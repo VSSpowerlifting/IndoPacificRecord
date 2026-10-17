@@ -17,7 +17,8 @@ from scripts import check_ph_afp_state as checker, shadow_collect_ph as runner
 from tests import ph_afp_support as S
 from tests.test_ph_afp_readiness import CapturedSession
 
-WORKFLOW = S.REPO_ROOT / '.github/workflows/ph_afp_shadow.yml'
+# Historical public workflow tests remain valid after private custody cutover.
+WORKFLOW = S.REPO_ROOT / 'tests/fixtures/ph_afp_public_legacy_workflow.yml'
 
 
 class BeforeCron(datetime):
