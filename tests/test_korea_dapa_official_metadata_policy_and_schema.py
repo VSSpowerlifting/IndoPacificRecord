@@ -72,6 +72,32 @@ class DapaSourceSchemaTests(unittest.TestCase):
         self.assertNotIn("title_original", old.EXPECTED_COLUMNS)
         self.assertNotIn("document_bytes", old.EXPECTED_COLUMNS)
 
+    def test_public_metadata_reader_keeps_issuers_and_originals_separate(self):
+        from core.korea_official_live_links import load_live_korea_official_links
+        with tempfile.TemporaryDirectory() as folder:
+            database = Path(folder) / "korea.sqlite"
+            with sqlite3.connect(database) as conn:
+                old.up(conn)
+                new.up(conn)
+                for row in (sample(MND_ID, "kr_mnd"),
+                            sample(DAPA_ID, "kr_dapa")):
+                    conn.execute(
+                        "INSERT INTO korea_official_source_records VALUES "
+                        "(" + ",".join("?" for _ in range(18)) + ")", row)
+                conn.commit()
+            rows = load_live_korea_official_links(database)
+            self.assertEqual(len(rows), 2)
+            mnd = next(r for r in rows if r["source_identity"] == MND_ID)
+            dapa = next(r for r in rows if r["source_identity"] == DAPA_ID)
+            self.assertEqual(mnd["issuer_original_label"], "국방부")
+            self.assertEqual(dapa["issuer_original_label"], "방위사업청")
+            self.assertIn("MND", mnd["neutral_label"])
+            self.assertIn("DAPA", dapa["neutral_label"])
+            self.assertNotIn("title_original", dapa)
+            self.assertNotIn("text_original", dapa)
+            self.assertNotIn("document_url", dapa)
+            self.assertEqual(dapa["source_url"], CANONICAL + "156785254")
+
     def test_wrong_dapa_as_mnd_and_invalid_cross_source_urls_refused(self):
         new.up(self.conn)
         good = sample(DAPA_ID, "kr_dapa", scope="held")
