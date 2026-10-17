@@ -288,6 +288,68 @@ class ReleaseContracts(unittest.TestCase):
             link.verify_release_evidence(proof,packet,link.verify_cohort(packet,policy))
 
 
+    def test_individually_approved_indonesia_source_only_is_released(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        eligible = link.verify_cohort(packet, policy)
+        self.assertEqual(len(eligible), 2)
+        approved = eligible[0]["source_identity"]
+        proof["approved_source_identities"] = [approved]
+        proof["eligible_source_identities_sha256"] = link.digest([approved])
+        verified = []
+        cx = memory_db()
+        def source_specific_validator(receipt, source, selected):
+            verified.extend(row["source_identity"] for row in selected)
+            return True
+        with patch.object(link, "load_owner_policy", return_value=policy):
+            result = link.admit(cx, packet, policy, proof,
+                                as_of_utc="2026-10-17T21:00:00Z",
+                                trusted_validator=source_specific_validator)
+        self.assertEqual(verified, [approved])
+        self.assertEqual(result["new_official_links"], 1)
+        self.assertEqual(result["held_pending_individual_approval"], 1)
+        self.assertEqual(result["held_semantic_exceptions"], 1)
+        self.assertEqual([row[0] for row in cx.execute(
+            "SELECT source_identity FROM regional_official_source_links")], [approved])
+
+    def test_partial_approval_never_includes_semantic_hold_or_unknown_source(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        excluded = next(row["source_identity"] for row in packet["records"]
+                        if row["semantic_exception_hold"])
+        for forbidden in ([excluded], ["kemhan:/2026/10/15/unknown.html"],
+                          [], ["z", "a"], ["abc", "abc"]):
+            trial = copy.deepcopy(proof)
+            trial["approved_source_identities"] = forbidden
+            with self.subTest(forbidden=forbidden):
+                with self.assertRaises(link.RegionalLinkHold):
+                    link.verify_release_evidence(
+                        trial, packet, link.verify_cohort(packet, policy))
+
+    def test_partial_approval_proof_cannot_masquerade_as_whole_batch(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        selected = sorted(row["source_identity"] for row in packet["records"]
+                          if not row["semantic_exception_hold"])[0]
+        proof["approved_source_identities"] = [selected]
+        with self.assertRaisesRegex(link.RegionalLinkHold,
+                                    "independent_release_evidence_missing"):
+            link.verify_release_evidence(
+                proof, packet, link.verify_cohort(packet, policy))
+
+    def test_untrusted_selected_subset_never_enters_database(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        selected = sorted(row["source_identity"] for row in packet["records"]
+                          if not row["semantic_exception_hold"])[0]
+        proof["approved_source_identities"] = [selected]
+        proof["eligible_source_identities_sha256"] = link.digest([selected])
+        cx = memory_db()
+        with patch.object(link, "load_owner_policy", return_value=policy):
+            with self.assertRaisesRegex(link.RegionalLinkHold,
+                                        "trusted_release_evidence_not_authenticated"):
+                link.admit(cx, packet, policy, proof,
+                           as_of_utc="2026-10-17T21:00:00Z",
+                           trusted_validator=lambda *_: False)
+        self.assertEqual(cx.execute(
+            "SELECT count(*) FROM regional_official_source_links").fetchone()[0], 0)
+
     def test_future_indonesia_batch_admits_only_new_url_and_retains_original_provenance(self):
         policy, frozen, future, proof = rolling_indonesia_packet()
         first_proof = copy.deepcopy(proof)
