@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 from analysis.analyzer import Analyzer, AnalysisError, FatalAPIError
 from config import ANALYSIS_MODEL
 from core.title_translation import english_title, title_hash, valid_english
-from migrations.versions.m0011_china_title_translation import up
+from migrations.versions.m0012_china_title_translation import up
 from scripts.backfill_china_titles import main, report
 from storage.title_translation import candidates, ready, claim, finish, run_batch, resume
 

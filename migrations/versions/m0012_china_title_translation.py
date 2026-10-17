@@ -1,9 +1,9 @@
-"""0011 — title-only receipts/claims on articles; no observed data backfill.
+"""0012 — title-only receipts/claims on articles; no observed data backfill.
 
 0010 belongs to the regional source index. No separate metadata store.
 The existing title, analysis and source bytes are untouched by this migration.
 """
-VERSION = "0011"
+VERSION = "0012"
 NAME = "china_title_translation"
 COLUMNS = (
     ("title_translation_source_sha256", "TEXT"),

@@ -97,7 +97,7 @@ def main(argv=None):
     if not preflight([("title-only", chars, ANALYSIS_MODEL, ratio)], len(batch), True):
         return 2
     from analysis.analyzer import Analyzer, FatalAPIError
-    from migrations.versions.m0011_china_title_translation import up
+    from migrations.versions.m0012_china_title_translation import up
     analyzer = Analyzer()
     conn = sqlite3.connect(args.db)
     try:

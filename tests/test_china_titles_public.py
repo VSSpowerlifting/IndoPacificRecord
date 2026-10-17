@@ -18,7 +18,7 @@ from urllib.parse import urlencode
 
 from playwright.sync_api import sync_playwright
 from scripts.reconcile_db import read_only
-from migrations.versions.m0011_china_title_translation import up
+from migrations.versions.m0012_china_title_translation import up
 from storage.title_translation import candidates, run_batch
 from core.title_translation import title_hash
 from config import ANALYSIS_MODEL
