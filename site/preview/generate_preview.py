@@ -2415,6 +2415,7 @@ def build(out_dir: Path, title: str, db_path: Path,
     korea_additional_rows = []
     korea_auto_official_rows = []
     korea_production_link_count = 0
+    korea_dapa_production_link_count = 0
     korea_published_original_rows = []
     korea_english_publication_rows = []
     if korea_release_state is not None:
@@ -2440,6 +2441,10 @@ def build(out_dir: Path, title: str, db_path: Path,
             # An empty rail is not evidence that the live feed is empty.
             korea_admitted_official_rows = load_live_korea_official_links(db_path)
             korea_production_link_count = len(korea_admitted_official_rows)
+            korea_dapa_production_link_count = sum(
+                row["source_identity"].startswith("korea-dapa-policy:")
+                for row in korea_admitted_official_rows
+            )
             korea_auto_official_rows = [
                 item for item in korea_admitted_official_rows
                 if item["source_identity"] not in frozen_ids
@@ -2835,7 +2840,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         # A live, separately governed Korea metadata table is NOT an article
         # corpus or a full-country source admission. Show its measured count
         # only on the Desks directory, without reclassifying Korea as 'live'.
-        desk_index_lanes = ({"korea_mnd_live_link_count": korea_production_link_count}
+        desk_index_lanes = ({"korea_mnd_live_link_count": (korea_production_link_count - korea_dapa_production_link_count)}
                             if target == "desks.html" else {})
         page_html = env.get_template(template).render(
             page=target, **ctx, **desk_index_lanes)
@@ -3095,6 +3100,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                              korea_additional_links=(korea_additional_rows if desk.slug == "korea" else []),
                              korea_auto_official_links=(korea_auto_official_rows if desk.slug == "korea" else []),
                              korea_production_link_count=(korea_production_link_count if desk.slug == "korea" else 0),
+                             korea_dapa_production_link_count=(korea_dapa_production_link_count if desk.slug == "korea" else 0),
                              korea_published_originals=(korea_published_original_rows if desk.slug == "korea" else []),
                              korea_english_publications=(korea_english_publication_rows if desk.slug == "korea" else []),
                              display_limits=public_desk_limits(
