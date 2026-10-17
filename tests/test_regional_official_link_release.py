@@ -98,6 +98,50 @@ def data(family="ph_afp_articles", count=1, with_hold=False):
     return policy, packet, proof
 
 
+
+def rolling_indonesia_packet():
+    """Synthetic future official sources; no genuine human approval asserted."""
+    policy, frozen, proof = data("id_kemhan_news", with_hold=True)
+    future = copy.deepcopy(frozen)
+    future["source_git_commit"] = "c" * 40
+    for row in future["records"]:
+        row["source_git_commit"] = future["source_git_commit"]
+        fields = {k: row[k] for k in (
+            "desk", "source_family", "source_identity",
+            "canonical_official_url", "publisher_posted_date",
+            "official_issuer", "official_publisher",
+            "official_republisher", "source_git_commit", "first_seen_run")}
+        row["metadata_version_sha256"] = link.digest(fields)
+    new_source = {
+        "desk": "indonesia", "source_family": "id_kemhan_news",
+        "source_identity": "kemhan:/2026/10/16/fictional-release.html",
+        "canonical_official_url":
+            "https://www.kemhan.go.id/2026/10/16/fictional-release.html",
+        "publisher_posted_date": "2026-10-16",
+        "official_issuer": None, "official_publisher": "id_kemhan",
+        "official_republisher": None,
+        "source_git_commit": future["source_git_commit"],
+        "first_seen_run": "39065001234-1",
+    }
+    row = {
+        **new_source, "metadata_version_sha256": link.digest(new_source),
+        "review_state": "held", "semantic_exception_hold": None,
+        "production_admission_authorized": False,
+        "automatic_public_link_authorized": False,
+        "publisher_body_reuse_authorized": False,
+    }
+    future["records"].append(row)
+    future["records"].sort(key=lambda r: r["source_identity"])
+    future["candidate_count"] = len(future["records"])
+    future["metadata_manifest_sha256"] = link.digest(future["records"])
+    proof["source_git_commit"] = future["source_git_commit"]
+    proof["metadata_manifest_sha256"] = future["metadata_manifest_sha256"]
+    proof["eligible_source_identities_sha256"] = link.digest(sorted(
+        x["source_identity"] for x in future["records"]
+        if not x["semantic_exception_hold"]))
+    return policy, frozen, future, proof
+
+
 def memory_db():
     cx = sqlite3.connect(":memory:")
     cx.execute(link.SCHEMA_SQL)
@@ -117,7 +161,7 @@ class ReleaseContracts(unittest.TestCase):
     def test_real_pinned_commit_cannot_be_replaced_by_synthetic(self):
         _, packet, _ = data()
         with self.assertRaisesRegex(link.RegionalLinkHold,
-                                    "source_candidate_cohort_not_owner_pinned"):
+                                    "rolling_source_requires_independently_pinned_baseline"):
             link.verify_cohort(packet, link.load_owner_policy())
 
     def test_fictional_afp_cohort_is_metadata_only(self):
@@ -242,6 +286,182 @@ class ReleaseContracts(unittest.TestCase):
         proof["eligible_source_identities_sha256"]="0"*64
         with self.assertRaisesRegex(link.RegionalLinkHold,"independent_release_evidence_missing"):
             link.verify_release_evidence(proof,packet,link.verify_cohort(packet,policy))
+
+
+    def test_individually_approved_indonesia_source_only_is_released(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        eligible = link.verify_cohort(packet, policy)
+        self.assertEqual(len(eligible), 2)
+        approved = eligible[0]["source_identity"]
+        proof["approved_source_identities"] = [approved]
+        proof["eligible_source_identities_sha256"] = link.digest([approved])
+        verified = []
+        cx = memory_db()
+        def source_specific_validator(receipt, source, selected):
+            verified.extend(row["source_identity"] for row in selected)
+            return True
+        with patch.object(link, "load_owner_policy", return_value=policy):
+            result = link.admit(cx, packet, policy, proof,
+                                as_of_utc="2026-10-17T21:00:00Z",
+                                trusted_validator=source_specific_validator)
+        self.assertEqual(verified, [approved])
+        self.assertEqual(result["new_official_links"], 1)
+        self.assertEqual(result["held_pending_individual_approval"], 1)
+        self.assertEqual(result["held_semantic_exceptions"], 1)
+        self.assertEqual([row[0] for row in cx.execute(
+            "SELECT source_identity FROM regional_official_source_links")], [approved])
+
+    def test_partial_approval_never_includes_semantic_hold_or_unknown_source(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        excluded = next(row["source_identity"] for row in packet["records"]
+                        if row["semantic_exception_hold"])
+        for forbidden in ([excluded], ["kemhan:/2026/10/15/unknown.html"],
+                          [], ["z", "a"], ["abc", "abc"]):
+            trial = copy.deepcopy(proof)
+            trial["approved_source_identities"] = forbidden
+            with self.subTest(forbidden=forbidden):
+                with self.assertRaises(link.RegionalLinkHold):
+                    link.verify_release_evidence(
+                        trial, packet, link.verify_cohort(packet, policy))
+
+    def test_partial_approval_proof_cannot_masquerade_as_whole_batch(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        selected = sorted(row["source_identity"] for row in packet["records"]
+                          if not row["semantic_exception_hold"])[0]
+        proof["approved_source_identities"] = [selected]
+        with self.assertRaisesRegex(link.RegionalLinkHold,
+                                    "independent_release_evidence_missing"):
+            link.verify_release_evidence(
+                proof, packet, link.verify_cohort(packet, policy))
+
+    def test_untrusted_selected_subset_never_enters_database(self):
+        policy, packet, proof = data("id_kemhan_news", count=2, with_hold=True)
+        selected = sorted(row["source_identity"] for row in packet["records"]
+                          if not row["semantic_exception_hold"])[0]
+        proof["approved_source_identities"] = [selected]
+        proof["eligible_source_identities_sha256"] = link.digest([selected])
+        cx = memory_db()
+        with patch.object(link, "load_owner_policy", return_value=policy):
+            with self.assertRaisesRegex(link.RegionalLinkHold,
+                                        "trusted_release_evidence_not_authenticated"):
+                link.admit(cx, packet, policy, proof,
+                           as_of_utc="2026-10-17T21:00:00Z",
+                           trusted_validator=lambda *_: False)
+        self.assertEqual(cx.execute(
+            "SELECT count(*) FROM regional_official_source_links").fetchone()[0], 0)
+
+    def test_future_indonesia_batch_admits_only_new_url_and_retains_original_provenance(self):
+        policy, frozen, future, proof = rolling_indonesia_packet()
+        first_proof = copy.deepcopy(proof)
+        first_proof["source_git_commit"] = frozen["source_git_commit"]
+        first_proof["metadata_manifest_sha256"] = frozen["metadata_manifest_sha256"]
+        first_proof["eligible_source_identities_sha256"] = link.digest(sorted(
+            x["source_identity"] for x in frozen["records"]
+            if not x["semantic_exception_hold"]))
+        db = memory_db()
+        with patch.object(link, "load_owner_policy", return_value=policy):
+            first = link.admit(db, frozen, policy, first_proof,
+                               as_of_utc="2026-10-15T20:00:00Z",
+                               trusted_validator=lambda *_: True)
+            next_batch = link.admit(db, future, policy, proof,
+                                    as_of_utc="2026-10-17T20:00:00Z",
+                                    trusted_validator=lambda *_: True,
+                                    baseline_packet=frozen)
+            repeated = link.admit(db, future, policy, proof,
+                                  as_of_utc="2026-10-17T20:01:00Z",
+                                  trusted_validator=lambda *_: True,
+                                  baseline_packet=frozen)
+        self.assertEqual(first["new_official_links"], 1)
+        self.assertEqual((next_batch["new_official_links"],
+                          next_batch["unchanged_official_links"]), (1, 1))
+        self.assertEqual((repeated["new_official_links"],
+                          repeated["unchanged_official_links"]), (0, 2))
+        self.assertEqual(db.execute(
+            "SELECT count(*) FROM regional_official_source_links").fetchone()[0], 2)
+        old = db.execute(
+            "SELECT source_git_commit FROM regional_official_source_links "
+            "WHERE source_identity=?", (
+                frozen["records"][0]["source_identity"] if
+                frozen["records"][0]["semantic_exception_hold"] is None
+                else frozen["records"][1]["source_identity"],)).fetchone()
+        self.assertEqual(old[0], frozen["source_git_commit"])
+        self.assertEqual(db.execute(
+            "SELECT count(*) FROM regional_official_source_links "
+            "WHERE source_identity LIKE '%kunker-ke-kaltara%'").fetchone()[0], 0)
+
+    def test_future_commit_without_pinned_baseline_refuses_every_write(self):
+        policy, frozen, future, proof = rolling_indonesia_packet()
+        db = memory_db()
+        with patch.object(link, "load_owner_policy", return_value=policy):
+            with self.assertRaisesRegex(
+                    link.RegionalLinkHold,
+                    "rolling_source_requires_independently_pinned_baseline"):
+                link.admit(db, future, policy, proof,
+                           as_of_utc="2026-10-17T20:00:00Z",
+                           trusted_validator=lambda *_: True)
+        self.assertEqual(db.execute(
+            "SELECT count(*) FROM regional_official_source_links").fetchone()[0], 0)
+
+    def test_incremental_packet_must_retain_all_frozen_original_identities(self):
+        policy, frozen, future, proof = rolling_indonesia_packet()
+        future["records"] = [r for r in future["records"]
+                             if r["source_identity"] != frozen["records"][0]["source_identity"]]
+        # Substitute a new valid identity without reducing record count.
+        new = copy.deepcopy(next(r for r in future["records"]
+                                 if "fictional-release" in r["source_identity"]))
+        new["source_identity"] = "kemhan:/2026/10/17/second-release.html"
+        new["canonical_official_url"] = "https://www.kemhan.go.id/2026/10/17/second-release.html"
+        new["publisher_posted_date"] = "2026-10-17"
+        original_source_keys = (
+            "desk", "source_family", "source_identity", "canonical_official_url",
+            "publisher_posted_date", "official_issuer", "official_publisher",
+            "official_republisher", "source_git_commit", "first_seen_run"
+        )
+        new["metadata_version_sha256"] = link.digest({
+            k: new[k] for k in original_source_keys})
+        future["records"].append(new)
+        future["records"].sort(key=lambda r: r["source_identity"])
+        future["metadata_manifest_sha256"] = link.digest(future["records"])
+        with self.assertRaises(link.RegionalLinkHold):
+            link.verify_cohort(future, policy, baseline_packet=frozen)
+
+    def test_future_changed_frozen_url_or_first_seen_is_held(self):
+        policy, frozen, future, proof = rolling_indonesia_packet()
+        target = next(r for r in future["records"]
+                      if "fake-0" in r["canonical_official_url"])
+        target["first_seen_run"] = "39065111111-1"
+        original_source_keys = (
+            "desk", "source_family", "source_identity", "canonical_official_url",
+            "publisher_posted_date", "official_issuer", "official_publisher",
+            "official_republisher", "source_git_commit", "first_seen_run"
+        )
+        target["metadata_version_sha256"] = link.digest({
+            k: target[k] for k in original_source_keys})
+        future["metadata_manifest_sha256"] = link.digest(future["records"])
+        with self.assertRaisesRegex(
+                link.RegionalLinkHold,
+                "rolling_source_frozen_identity_or_metadata_changed"):
+            link.verify_cohort(future, policy, baseline_packet=frozen)
+
+    def test_future_batch_still_requires_trusted_validator_and_exact_receipt(self):
+        policy, frozen, future, proof = rolling_indonesia_packet()
+        db = memory_db()
+        with patch.object(link, "load_owner_policy", return_value=policy):
+            with self.assertRaisesRegex(link.RegionalLinkHold,
+                                        "trusted_release_evidence_validator_missing"):
+                link.admit(db, future, policy, proof,
+                           as_of_utc="2026-10-17T20:00:00Z",
+                           baseline_packet=frozen)
+            altered = copy.deepcopy(proof)
+            altered["review_receipts_version_matched"] = False
+            with self.assertRaisesRegex(link.RegionalLinkHold,
+                                        "independent_release_evidence_missing"):
+                link.admit(db, future, policy, altered,
+                           as_of_utc="2026-10-17T20:00:00Z",
+                           trusted_validator=lambda *_: True,
+                           baseline_packet=frozen)
+        self.assertEqual(db.execute(
+            "SELECT count(*) FROM regional_official_source_links").fetchone()[0], 0)
 
     def test_schema_missing_prevents_any_write(self):
         policy,packet,proof=data()
