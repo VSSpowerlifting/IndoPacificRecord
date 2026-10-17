@@ -9,7 +9,6 @@ from collections import Counter
 import json
 import logging
 from pathlib import Path
-import sqlite3
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -20,6 +19,8 @@ from core.processing_state import RETRY_BUDGET
 from scripts.reconcile_db import read_only
 from scripts.spend_guard import estimate_cost_usd, preflight
 from storage.title_translation import candidates, needed, ready, run_batch, resume
+from migrations.runner import apply_all, applied_versions, connect, discover
+from migrations.versions.m0012_china_title_translation import VERSION as TITLE_VERSION
 
 
 def estimate(rows):
@@ -86,6 +87,10 @@ def main(argv=None):
         if args.resume_id is not None:
             rows = [dict(r, title_translation_attempts=0) for r in rows if r['id'] == args.resume_id]
         receipt, batch = report(rows, args.limit)
+        if args.execute and batch:
+            pending = {m.version for m in discover()} - set(applied_versions(conn))
+            if pending - {TITLE_VERSION}:
+                ap.error("apply other pending migrations through the normal DB workflow first")
     print(json.dumps(receipt, indent=2))
     if not args.execute or not batch:
         return 0
@@ -97,12 +102,12 @@ def main(argv=None):
     if not preflight([("title-only", chars, ANALYSIS_MODEL, ratio)], len(batch), True):
         return 2
     from analysis.analyzer import Analyzer, FatalAPIError
-    from migrations.versions.m0012_china_title_translation import up
     analyzer = Analyzer()
-    conn = sqlite3.connect(args.db)
+    conn = connect(args.db)
     try:
-        up(conn)
-        conn.commit()
+        # Record the migration through the existing runner, not just its DDL;
+        # otherwise the next read-only CI gate sees an unrecorded schema.
+        apply_all(conn, sync_config=False)
         if args.resume_id is not None and not resume(conn, batch[0]):
             return 1
         result = run_batch(conn, analyzer, batch, ANALYSIS_MODEL)

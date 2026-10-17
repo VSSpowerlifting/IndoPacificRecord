@@ -13,7 +13,7 @@ import sys
 import tempfile
 import threading
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from urllib.parse import urlencode
 
 from playwright.sync_api import sync_playwright
@@ -101,6 +101,27 @@ class ChinaTitlePublicTests(unittest.TestCase):
         html=(self.out/'record'/('%s.html'%ident)).read_text()
         self.assertIn('<title>Synthetic English original fixture',html)
         self.assertNotIn('The heading is a machine translation',html)
+
+    def test_cli_records_migration_and_repeat_execution_makes_no_duplicate_call(self):
+        from scripts.backfill_china_titles import main
+        from migrations.versions.m0012_china_title_translation import VERSION
+        with tempfile.TemporaryDirectory(prefix='ipr-title-cli-') as directory:
+            path=Path(directory)/'fixture.db'
+            with read_only(str(self.temp/'fixture.db')) as source:
+                con=sqlite3.connect(path);source.backup(con)
+            con.execute('UPDATE articles SET title_english=NULL,title_translation_source_sha256=NULL,title_translation_value_sha256=NULL WHERE id=?',(self.ident,))
+            con.commit();con.close()
+            fake=Mock();fake.translate_title.return_value='Synthetic headline translation fixture';fake.usage.rows.return_value=[]
+            args=['--db',str(path),'--resume-id',str(self.ident),'--execute','--confirm-spend']
+            with patch('scripts.backfill_china_titles.preflight',return_value=True) as guard, patch('analysis.analyzer.Analyzer',return_value=fake), patch('builtins.print'):
+                self.assertEqual(main(args),0)
+                self.assertEqual(main(args),0)
+            fake.translate_title.assert_called_once_with('测试标题')
+            guard.assert_called_once()
+            fake.analyze.assert_not_called()
+            with read_only(str(path)) as con:
+                self.assertEqual(con.execute('SELECT version FROM schema_migrations WHERE version=?',(VERSION,)).fetchone()[0],VERSION)
+                self.assertEqual(tuple(con.execute('SELECT passed_relevance,analyzed_at,summary_english FROM articles WHERE id=?',(self.ident,)).fetchone()),(0,None,None))
 
     def test_desktop_mobile_search_labels_citations_and_downloads(self):
         for width in (1280,375):

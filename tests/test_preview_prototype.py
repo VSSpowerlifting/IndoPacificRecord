@@ -5674,8 +5674,6 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
 
     def test_each_field_is_derived_from_its_own_column(self):
         for key, where in (
-            ("empty_title",
-             "title_english IS NULL OR TRIM(title_english) = ''"),
             ("empty_summary",
              "summary_english IS NULL OR TRIM(summary_english) = ''"),
             ("empty_model", "model_id IS NULL OR TRIM(model_id) = ''"),
@@ -5685,16 +5683,39 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
             with self.subTest(field=key):
                 self.assertEqual(self.sets[key], self._sql(where),
                                  "%s disagrees with a direct query" % key)
+        # A nonblank value may be invalid or bound to an old original. Use the
+        # shared validity/version policy on raw SQL rows, rather than counting
+        # a stale translation as a usable English title.
+        from core.title_translation import english_title, receipts
+        from scripts.reconcile_db import read_only
+        import sqlite3
+        with read_only(str(TRACKED_DB)) as con:
+            con.row_factory = sqlite3.Row
+            meta = receipts(con, metadata=True)
+            rows = con.execute('SELECT a.id,a.title_original,a.title_english, '
+                's.desk_id,s.language_tag FROM articles a JOIN sources s ON s.id=a.source_id')
+            empty = set()
+            for row in rows:
+                raw = dict(row); raw.update(meta.get(row['id'], {}))
+                if not (english_title(raw) or '').strip():
+                    empty.add(row['id'])
+        self.assertEqual(self.sets['empty_title'], empty)
 
     def test_set_equivalence_is_asserted_by_identity_not_by_count(self):
         """The permanent assertion the combined sentence depends on."""
         title = self.sets["empty_title"]
-        for other in ("empty_summary", "empty_model", "non_analyzed"):
-            with self.subTest(other=other):
-                self.assertEqual(
-                    title ^ self.sets[other], set(),
-                    "%s holds different record ids than empty_title" % other)
-        self.assertTrue(self.sets["identical"])
+        identical = all(title == self.sets[other] for other in
+                        ("empty_summary", "empty_model", "non_analyzed"))
+        self.assertIs(self.sets["identical"], identical)
+
+    def test_equal_totals_with_different_ids_never_earn_the_combined_claim(self):
+        records = [_fake_record(id=1, title_english=None, summary_english='Synthetic summary',
+                               model_id='synthetic-model', state='analyzed'),
+                   _fake_record(id=2, title_english='Synthetic title only', state='not_selected')]
+        sets = gp.english_output_sets(records)
+        self.assertEqual(len(sets['empty_title']), len(sets['empty_summary']))
+        self.assertNotEqual(sets['empty_title'], sets['empty_summary'])
+        self.assertFalse(sets['identical'])
 
     def test_the_stats_expose_all_three_counts_separately(self):
         stats = gp.corpus_guide_stats(self.corpus,
@@ -5703,7 +5724,7 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
         self.assertEqual(stats["no_summary"], len(self.sets["empty_summary"]))
         self.assertEqual(stats["no_model"], len(self.sets["empty_model"]))
         self.assertEqual(stats["non_analyzed"], len(self.sets["non_analyzed"]))
-        self.assertIs(stats["english_sets_identical"], True)
+        self.assertIs(stats["english_sets_identical"], self.sets["identical"])
 
     def test_each_dictionary_row_cites_its_own_field_count(self):
         rows = {r["label"]: r for r in gp.dictionary_rows(
@@ -5720,14 +5741,17 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
         self.assertNotIn("the same", rows["Machine summary"]["absent"])
 
     def test_the_combined_sentence_is_rendered_only_when_sets_agree(self):
-        self.assertIn("the same identifiers, not merely the same total",
-                      self.flat)
-        self.assertIn("they are exactly the records outside the Analyzed "
-                      "state", self.flat)
+        if self.sets['identical']:
+            self.assertIn("the same identifiers, not merely the same total", self.flat)
+            self.assertIn("they are exactly the records outside the Analyzed state", self.flat)
+        else:
+            self.assertIn("These are not the same records", self.flat)
+            self.assertNotIn("the same identifiers, not merely the same total", self.flat)
 
     def test_the_guide_renders_separate_counts_when_sets_disagree(self):
         """The false branch must be real, not decorative."""
         corpus = [dict(r) for r in self.corpus]
+        before = gp.english_output_sets(corpus)
         # One analyzed record loses only its summary: the sets now differ by
         # one id while every total stays plausible.
         for rec in corpus:
@@ -5736,7 +5760,10 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
                 break
         sets = gp.english_output_sets(corpus)
         self.assertFalse(sets["identical"])
-        self.assertEqual(len(sets["empty_summary"] - sets["empty_title"]), 1)
+        old_difference = before['empty_summary'] - before['empty_title']
+        new_difference = sets['empty_summary'] - sets['empty_title']
+        self.assertEqual(len(new_difference - old_difference), 1)
+        self.assertTrue(old_difference <= new_difference)
         stats = gp.corpus_guide_stats(corpus,
                                       gp.load_corpus(TRACKED_DB)["run_days"])
         entry = gp.changelog_entries(stats)[0]
