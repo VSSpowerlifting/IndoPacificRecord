@@ -173,10 +173,10 @@ def validate(root=ROOT, contract_path=None):
                 require(workflow_crons(raw) == ["47 17 * * *"]
                         and not contains_literal_branch(active, branch)
                         and "candidate-shadow-indonesia-" not in active
-                        and not re.search(r"(?m)^\\s*-\\s*indonesia\\s*$", active)
+                        and not re.search(r"(?m)^\s*-\s*indonesia\s*$", active)
                         and bool(re.search(
-                            r"(?m)^\\s*korea\\)\\s+state_branch=shadow/korea-policy-briefing;"
-                            r"\\s+cron_utc=17:47\\s*;;\\s*$", active)),
+                            r"(?m)^\s*korea\)\s+state_branch=shadow/korea-policy-briefing;"
+                            r"\s+cron_utc=17:47\s*;;\s*$", active)),
                         "private Indonesia handoff still has a public writer or Korea cadence drift")
             elif slug == "ph_afp_articles":
                 require(binding["manifest"] == "shadow/ph_afp/manifest.json"
@@ -188,8 +188,8 @@ def validate(root=ROOT, contract_path=None):
                 raw = legacy_path.read_text(encoding="utf-8")
                 active = uncommented_workflow_text(raw)
                 require(not workflow_crons(raw)
-                        and not re.search(r"(?m)^\\s*workflow_dispatch:\\s*$", active)
-                        and not re.search(r"\\bgit\\s+push\\b", active)
+                        and not re.search(r"(?m)^\s*workflow_dispatch:\s*$", active)
+                        and not re.search(r"\bgit\s+push\b", active)
                         and "pull_request:" in active,
                         "private AFP handoff still has public writer or active trigger")
             else:
