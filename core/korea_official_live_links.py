@@ -11,6 +11,11 @@ from scripts.reconcile_db import _read_only
 
 from core.korea_official_metadata_admission import PREFIX
 
+SOURCE_FAMILIES = {
+    "korea-policy:": ("kr_mnd", "Republic of Korea Ministry of National Defense", "국방부", "MND"),
+    "korea-dapa-policy:": ("kr_dapa", "Republic of Korea Defense Acquisition Program Administration", "방위사업청", "DAPA"),
+}
+
 def load_live_korea_official_links(db_path, *, exclude=()):
     path = Path(db_path)
     if not path.is_file():
@@ -37,20 +42,26 @@ def load_live_korea_official_links(db_path, *, exclude=()):
     out = []
     seen = set()
     for ident, url, day, issuer, republisher in rows:
-        if (not isinstance(ident, str)
-                or not ident.startswith("korea-policy:")
-                or not ident[13:].isdigit() or len(ident[13:]) != 9
-                or url != PREFIX + ident[13:]
-                or issuer != "kr_mnd" or republisher != "kr_policy_briefing"
-                or ident in seen):
+        if not isinstance(ident, str) or ident in seen:
+            raise ValueError("admitted_official_link_provenance_invalid")
+        matches = [(prefix, family) for prefix, family in SOURCE_FAMILIES.items()
+                   if ident.startswith(prefix)]
+        if len(matches) != 1:
+            raise ValueError("admitted_official_link_provenance_invalid")
+        prefix, (expected_issuer, english, korean, short) = matches[0]
+        article_id = ident[len(prefix):]
+        if (len(article_id) != 9 or not article_id.isdigit()
+                or url != PREFIX + article_id or issuer != expected_issuer
+                or republisher != "kr_policy_briefing"):
             raise ValueError("admitted_official_link_provenance_invalid")
         seen.add(ident)
         if ident not in excluded:
             out.append({
                 "source_identity": ident, "source_url": url,
                 "published_date": day,
-                "issuer_label": "Republic of Korea Ministry of National Defense",
+                "issuer_label": english,
+                "issuer_original_label": korean,
                 "republisher_label": "Republic of Korea Policy Briefing",
-                "neutral_label": "MND official press release " + ident[13:],
+                "neutral_label": short + " official press release " + article_id,
             })
     return out
