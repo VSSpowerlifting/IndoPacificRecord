@@ -183,6 +183,58 @@ class DAPABridgeContracts(unittest.TestCase):
 class DAPASyntheticVaultRoundTrip(unittest.TestCase):
     """Actual disposable private Git, ledger, original hashes and SQLite."""
 
+    def test_actual_korea_page_renders_admitted_dapa_without_originals(self):
+        # Actual preview renderer + actual production schema, but only a
+        # disposable database copy and temporary output. No public writes.
+        import sys
+        from scripts.reconcile_db import read_only
+        from core.korea_official_live_links import load_live_korea_official_links
+        root = Path(__file__).resolve().parents[1]
+        sys.path.insert(0, str(root / "site" / "preview"))
+        import generate_preview as preview
+
+        packet = sample()
+        mac = b.sign(packet, KEY)
+        with tempfile.TemporaryDirectory(prefix="ipr-dapa-render-") as folder:
+            sandbox = Path(folder)
+            temp_db = sandbox / "safe-production-copy.sqlite"
+            with read_only(root / "pla_watch.db") as source, sqlite3.connect(temp_db) as dest:
+                source.backup(dest)
+            with sqlite3.connect(temp_db) as conn:
+                newer.up(conn)
+                conn.commit()
+            baseline = sandbox / "baseline"
+            preview.build(baseline, "DAPA synthetic bridge check", temp_db,
+                          snapshot=preview.snapshot_from_corpus(temp_db),
+                          site_origin="https://indopacificrecord.org")
+            first = (baseline / "korea.html").read_text(encoding="utf-8")
+            with sqlite3.connect(temp_db) as conn:
+                result = b.admit(conn, packet, mac, KEY,
+                                 as_of_utc="2026-10-18T12:00:00Z")
+                conn.commit()
+            self.assertEqual(result["new_official_links_admitted"], 1)
+            published = sandbox / "after"
+            preview.build(published, "DAPA synthetic bridge check", temp_db,
+                          snapshot=preview.snapshot_from_corpus(temp_db),
+                          site_origin="https://indopacificrecord.org")
+            second = (published / "korea.html").read_text(encoding="utf-8")
+            self.assertEqual(second.count("data-korea-auto-official-link="),
+                             first.count("data-korea-auto-official-link=") + 1)
+            self.assertIn('data-korea-auto-official-link="korea-dapa-policy:156785999"', second)
+            self.assertIn(b.URL_PREFIX + "156785999", second)
+            self.assertIn("DAPA official press release 156785999", second)
+            listed = load_live_korea_official_links(temp_db)
+            self.assertEqual(sum(row["source_identity"] ==
+                                 "korea-dapa-policy:156785999" for row in listed), 1)
+            for forbidden in ("original_title_sha256", "original_text_sha256",
+                              "original_hwpx_sha256", "source_git_commit",
+                              "DAPA_BRIDGE_KEY", "title_original", "text_original",
+                              "summary_english", "FAKE HWPX",
+                              "FICTIONAL SYNTHETIC BODY"):
+                self.assertNotIn(forbidden, second)
+            self.assertFalse((root / "pla_watch.db-wal").exists())
+            self.assertFalse((root / "pla_watch.db-shm").exists())
+
     def test_private_original_replay_to_signed_public_metadata(self):
         import subprocess
 
