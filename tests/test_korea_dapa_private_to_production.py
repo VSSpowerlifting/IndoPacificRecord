@@ -265,7 +265,7 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
             (state / "ledger" / ("20261018T000000.000000+0000-" + run +
                                  ".json")).write_text(json.dumps(ledger))
             git("add", "state")
-            git("commit", "-qm", "fictional DAPA one-release source archive")
+            git("commit", "-qm", "private-dapa: preserve source attempt " + run)
 
             packet = b.export_from_private_checkout(root, run)
             self.assertEqual(packet["source_git_commit"], git("rev-parse", "HEAD"))
