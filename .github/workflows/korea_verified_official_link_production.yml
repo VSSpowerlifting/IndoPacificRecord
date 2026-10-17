@@ -85,6 +85,8 @@ jobs:
         if: ${{ inputs.dapa_packet_b64 != '' || inputs.dapa_mac != '' }}
         env:
           DAPA_BRIDGE_ENABLED: ${{ vars.DAPA_METADATA_BRIDGE_ENABLED }}
+          DAPA_PACKET_B64: ${{ inputs.dapa_packet_b64 }}
+          DAPA_PACKET_MAC: ${{ inputs.dapa_mac }}
         shell: bash
         run: |
           set -euo pipefail
@@ -92,7 +94,7 @@ jobs:
             echo "::error::DAPA bridge remains held pending source verification and operator activation"
             exit 1
           }
-          test -n "${{ inputs.dapa_packet_b64 }}" && test -n "${{ inputs.dapa_mac }}"
+          test -n "$DAPA_PACKET_B64" && test -n "$DAPA_PACKET_MAC"
       - name: Clone full preserved MND shadow Git history into private runner scratch
         env:
           SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
