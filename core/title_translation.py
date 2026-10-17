@@ -58,6 +58,9 @@ def processing_note(record, notes):
     note = notes[record["state"]]
     if record.get("desk_id") == "china":
         if (record.get("language_tag") or "").split("-")[0] == "en":
+            if record["state"] == "analyzed":
+                note = ("The summary held for this record is machine-generated; "
+                        "human review is not recorded.")
             return note + " The headline is an English-language original."
         if english_title(record):
             return note + " The English title is machine-translated; human review is not recorded."

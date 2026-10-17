@@ -380,7 +380,7 @@ DECLARED_SNAPSHOT = {
 PROCESSING_STATES = [
     {"code": "analyzed", "label": "Analyzed", "model_flagged": True,
      "definition": "Passed relevance screening and completed analysis. "
-                   "English title and summary are machine-generated."},
+                   "The summary is machine-generated."},
     {"code": "not_selected", "label": "Not selected for analysis",
      "model_flagged": False,
      "definition": "Screened and not selected for analysis. The original "

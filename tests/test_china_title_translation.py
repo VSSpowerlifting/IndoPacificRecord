@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 from analysis.analyzer import Analyzer, AnalysisError, FatalAPIError
 from config import ANALYSIS_MODEL
-from core.title_translation import english_title, title_hash, valid_english
+from core.title_translation import english_title, title_hash, valid_english, processing_note
 from migrations.versions.m0012_china_title_translation import up
 from scripts.backfill_china_titles import main, report
 from storage.title_translation import candidates, ready, claim, finish, run_batch, resume
@@ -223,6 +223,10 @@ class TitlePresentationTests(unittest.TestCase):
         self.assertEqual(receipt['eligible_now'],0)
         self.assertEqual(receipt['counts'][0]['title'],'english_original_invalid_stored')
         self.assertEqual(batch,[])
+        note=processing_note(dict(r,state='analyzed'),gp.CITATION_PROCESSING_NOTES)
+        self.assertIn('summary held for this record is machine-generated',note)
+        self.assertIn('English-language original',note)
+        self.assertNotIn('English title and summary',note)
 
 
 from tests.test_reconcile import ReconcileCase, migrate
