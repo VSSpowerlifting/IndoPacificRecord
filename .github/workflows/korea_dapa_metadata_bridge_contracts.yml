@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install only source-parser test dependencies
-        run: python -m pip install beautifulsoup4 requests
+        run: python -m pip install beautifulsoup4 requests 'jinja2>=3.1.4,<4'
       - name: Verify signed packet, source identity, DB admission and MND preservation
         run: |
           python -m unittest -v \
