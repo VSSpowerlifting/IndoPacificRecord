@@ -185,9 +185,14 @@ def export_from_private_checkout(checkout, run_attempt):
     rechecks the exact immutable record/receipt/ledger/capture bytes.
     A zero-publication day is not exportable.
     """
-    root = Path(checkout).resolve(strict=True)
-    need(root.is_dir() and not root.is_symlink()
-         and valid_run(run_attempt), "dapa_private_checkout_or_run_invalid")
+    source_path = Path(checkout)
+    need(not source_path.is_symlink() and valid_run(run_attempt),
+         "dapa_private_checkout_or_run_invalid")
+    try:
+        root = source_path.resolve(strict=True)
+    except OSError:
+        raise DAPABridgeHold("dapa_private_checkout_or_run_invalid") from None
+    need(root.is_dir(), "dapa_private_checkout_or_run_invalid")
     need(_git(root, "rev-parse", "--show-toplevel") == str(root)
          and _git(root, "branch", "--show-current") == REF
          and _git(root, "status", "--porcelain") == "",
@@ -269,23 +274,54 @@ def export_from_private_checkout(checkout, run_attempt):
          and first_seen == run_attempt,
          "dapa_private_record_source_or_rights_scope_invalid")
     document_sha = extra.get("document_capture_sha256")
-    need(valid_hash(htmlsha) and valid_hash(document_sha)
+    requests = ledger.get("requests")
+    need(type(requests) is list and 3 <= len(requests) <= 12
+         and all(type(q) is dict for q in requests)
+         and valid_hash(htmlsha) and valid_hash(document_sha),
+         "dapa_original_request_chain_incomplete")
+    listing_url = "https://www.korea.kr/briefing/pressReleaseList.do"
+    robots_url = "https://www.korea.kr/robots.txt"
+    need(any(q.get("requested_url") == robots_url
+                 and q.get("http_status") == 200
+                 and valid_hash(q.get("capture_sha256"))
+                 for q in requests)
+         and any(q.get("requested_url") == listing_url
+                 and q.get("http_status") == 200
+                 and valid_hash(q.get("capture_sha256"))
+                 and type(q.get("form")) is dict
+                 and q["form"].get("repCode") == "B00008"
+                 and q["form"].get("startDate") == day
+                 and q["form"].get("endDate") == day
+                 for q in requests)
          and any(q.get("requested_url") == url
                  and q.get("capture_sha256") == htmlsha
-                 and q.get("http_status") == 200
-                 for q in ledger.get("requests", []))
+                 and q.get("http_status") == 200 for q in requests)
          and any(q.get("requested_url") == extra.get("document_url")
                  and q.get("capture_sha256") == document_sha
-                 and q.get("http_status") == 200
-                 for q in ledger.get("requests", []))
-         and any(q.get("form", {}).get("repCode") == "B00008"
-                 for q in ledger.get("requests", []) if type(q.get("form")) is dict),
+                 and q.get("http_status") == 200 for q in requests),
          "dapa_original_request_chain_incomplete")
-    for sha in (htmlsha, document_sha):
-        path = state / "captures" / (sha + ".bin")
-        need(path.is_file() and not path.is_symlink()
-             and digest(path.read_bytes()) == sha,
+    for q in requests:
+        sha = q.get("capture_sha256")
+        need(valid_hash(sha), "dapa_original_request_chain_incomplete")
+        file = state / "captures" / (sha + ".bin")
+        need(file.is_file() and not file.is_symlink()
+             and digest(file.read_bytes()) == sha,
              "dapa_private_original_capture_mismatch")
+    from scraper.sources.kr_dapa_policy_briefing import KoreaDapaPolicyAdapter
+    from scraper.sources.kr_policy_briefing import hwpx_text
+    try:
+        article_bytes = (state / "captures" / (htmlsha + ".bin")).read_bytes()
+        document_bytes = (state / "captures" / (document_sha + ".bin")).read_bytes()
+        captured_title, captured_date, captured_document_url = (
+            KoreaDapaPolicyAdapter.metadata(None, article_bytes.decode("utf-8"), url))
+        recovered_text = hwpx_text(document_bytes)
+    except (ValueError, UnicodeError, OSError, KeyError, TypeError, ImportError):
+        raise DAPABridgeHold("dapa_original_replay_failed") from None
+    need(captured_title == title and captured_date == day
+         and captured_document_url == extra.get("document_url")
+         and recovered_text == body
+         and digest(recovered_text.encode("utf-8")) == bodysha,
+         "dapa_original_semantic_or_text_fidelity_mismatch")
     row = {
         "source_identity": ident,
         "canonical_official_url": url,
