@@ -5,7 +5,12 @@
     {
       "state": "analyzed",
       "title": "english_original",
-      "count": 175
+      "count": 174
+    },
+    {
+      "state": "analyzed",
+      "title": "english_original_invalid_stored",
+      "count": 1
     },
     {
       "state": "analyzed",

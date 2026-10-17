@@ -3,8 +3,10 @@
 **Public China title completion (17 October 2026, engineering candidate):**
 Read-only diagnosis finds 151 missing Chinese-headline translations among 826
 eligible public China records: 150 screened out and one awaiting screening;
-654 stored English titles already propagate, and 196 English originals need
-no new translation. The candidate adds bounded title-only processing on the
+653 valid stored English titles already propagate; one English original has
+Chinese in its English-title field and reuses its actual English headline for
+display. All 196 English originals need no new translation. The candidate adds
+bounded title-only processing on the
 existing client and `title_english`, source-version/concurrency protection,
 separate title retry receipts, dry-run/backfill cost reporting and consistent
 machine labels across public HTML/indexes/exports. Daily activation defaults

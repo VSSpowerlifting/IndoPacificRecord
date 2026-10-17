@@ -23,8 +23,10 @@ The reproducible receipt is
 | Analysis incomplete | 0 | 0 | 0 |
 | Total | 479 | 196 | 151 |
 
-826 public China records; 654 have a stored English title. **Zero** valid stored
-English titles are missing from the committed compact index. Both public
+826 public China records; 654 have a nonblank `title_english` value, of which
+**653 are valid English** and one is Chinese text on an English-language
+original. **Zero** valid stored English titles are missing from the committed
+compact index. Both public
 indexes and HTML already prefer `title_english`. The defect is missing
 translations, rather than a hidden stored translation: `Analyzer.analyze()`
 returns after a screening rejection, and `pipeline.py` previously persisted
@@ -32,7 +34,10 @@ returns after a screening rejection, and `pipeline.py` previously persisted
 The old body-translation backfill also requires `passed_relevance=1` and runs
 translation, summary and categorization together.
 
-Blank and invalid stored translations: **0**. Known stale title receipts: **0**;
+Blank stored translations: **0**. Invalid stored translations: **1**, on an
+English-language original, which can reuse its actual English source headline
+without a paid call or a database rewrite. Chinese-original invalid values:
+**0**. Known stale title receipts: **0**;
 legacy titles have no original-title-version receipt, so their historical
 staleness cannot be established. They are preserved, not retranslated on an
 assumption. The 196 English originals need no new translation; 21 screened-out
@@ -58,8 +63,10 @@ carry successful title-only receipts without inventing completed analysis.
 
 Migration **0011** adds nullable title provenance/retry/claim columns and writes
 no observed data. Version 0010 belongs to the integrated regional source index.
-Provenance binds SHA-256 of the exact original headline, model, prompt version
-and completion time. It does not reuse the body-analysis model fields or set
+Provenance binds SHA-256 of both the exact original headline and returned
+English title, model, prompt version and completion time. A later English edit
+is preserved even if the original subsequently changes; an old machine receipt
+is not attributed to that edited value. It does not reuse body-analysis model fields or set
 `analyzed_at`. The fingerprint includes the new title provenance. Existing
 screening scores, processing states, flags, bodies and summaries are untouched.
 
@@ -72,7 +79,8 @@ cannot be guaranteed across such a crash. Live claims prevent concurrent
 duplicate dispatch, and completed valid titles prevent repeat work.
 
 New title receipts are checked when loading HTML and both indexes. Stale or
-invalid China translations fall back to the original. Archive rows, record
+invalid China translations fall back to the original; an invalid rendering of
+an English original reuses its English source headline. Archive rows, record
 pages, citation processing notes and CSV/JSON processing labels identify machine
 translation without asserting human review. Source-text citations keep the exact
 original-source title. The six-column compact index and research export fields
@@ -89,7 +97,7 @@ English edits are protected; an existing title has no new human-review claim.
 
 ```sh
 .venv/bin/python scripts/backfill_china_titles.py --dry-run --limit 20
-.venv/bin/python -m unittest tests.test_china_title_translation tests.test_china_titles_public tests.test_reconcile tests.test_llm_usage_telemetry tests.test_archive_integration tests.test_archive_integration_browser tests.test_translation_tool_value_validation tests.test_migrations tests.test_preview_prototype -q
+.venv/bin/python -m unittest tests.test_china_title_translation tests.test_china_titles_public tests.test_reconcile tests.test_llm_usage_telemetry tests.test_archive_integration tests.test_translation_tool_value_validation tests.test_tracked_db_no_residue tests.test_preview_prototype.TestEnglishOutputIsMeasuredPerField tests.test_preview_prototype.TestAuthoredProseStaysGuarded tests.test_preview_prototype.TestLogicalFingerprint -q
 .venv/bin/python -m unittest discover -s tests -t . -v
 .venv/bin/python scripts/build_archive_js.py --check
 .venv/bin/python scripts/validate_output.py
@@ -110,12 +118,18 @@ and [mobile](../evidence/china-title-translation/mobile.png). These depict only
 the explicitly synthetic fixture. The production renderer was also exercised
 with that disposable DB and an isolated `/tmp/ipr-china-title-review/final-site`
 destination. Full-suite/CI results and any environmental failures are reported
-on the focused PR. The integrated focused suite passed **179 tests**; validator
+on the focused PR. The final focused suite passed **209 tests**, with the
+existing stale declared-snapshot check skipped; validator
 passes with zero errors / ten warnings and the JS bundle check passes. Initial
 full local runs were stopped for source/base integration, after reproducing an
 existing macOS `/var` versus `/private/var` temporary-path assertion in the
-retirement receipt test. The complete local rerun uses `TMPDIR=/private/tmp`;
-its outcome and the final Linux CI outcome must be read from the PR receipt.
+retirement receipt test. The complete local rerun used `TMPDIR=/private/tmp`;
+it exposed the English-original invalid-rendering case and corresponding
+label/fingerprint test updates, now corrected and exercised in the focused
+run. It also reported six environment errors because local GPG and
+`python-docx` are absent. That local full run is **not green**. The final Linux
+full CI (which installs requirements and verifies GPG) is the broader gate;
+read its exact-head outcome from the PR receipt.
 
 Tracked database SHA-256 at start and preservation check:
 `21012d0e3f04426145ccf9eddae2e2dd9c820e42283230011f62163dd52e48a6`.
@@ -175,3 +189,6 @@ unchanged from base, and both DB blobs were identical. Removed only that
 obsolete per-record lookup/print loop: the actual current public-row comparison,
 synthetic five-attempt/pause/resume contracts and byte-preservation checks
 remain. The updated workflow no longer enumerates those retired identities.
+PR #750 overlaps broader prototype fixture work; this PR changes only the
+translated-record fixture selection, its review-status assertion and coverage
+of the newly added title provenance fingerprint fields in that file.
