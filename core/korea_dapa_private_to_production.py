@@ -194,6 +194,11 @@ def export_from_private_checkout(checkout, run_attempt):
          "dapa_private_checkout_dirty_or_wrong_ref")
     source_sha = _git(root, "rev-parse", "HEAD")
     need(valid_commit(source_sha), "dapa_private_git_commit_invalid")
+    # Sign only the exact source-attempt commit, never a later branch tip:
+    # a reproducible retry must preserve the originally admitted hash pins.
+    need(_git(root, "log", "-1", "--format=%s") ==
+         "private-dapa: preserve source attempt " + run_attempt,
+         "dapa_private_source_commit_not_exact_attempt")
     state = root / "state"
     receipt = _json(state / "private_attempts" / (run_attempt + ".json"))
     need(receipt.get("run_attempt") == run_attempt
