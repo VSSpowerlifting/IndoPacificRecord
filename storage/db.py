@@ -392,6 +392,26 @@ def update_analysis(
 ) -> None:
     """Persist full analysis results and category tags for a single article."""
     with get_conn() as conn:
+        # Title-only completion/human edits may arrive while full analysis is
+        # in flight. Serialize the check with its write and preserve valid titles.
+        from core.title_translation import english_title
+        from core.title_translation import receipts
+        conn.execute("BEGIN IMMEDIATE")
+        held = conn.execute(
+            "SELECT a.id,a.title_original,a.title_english,s.desk_id,s.language_tag "
+            "FROM articles a JOIN sources s ON s.id=a.source_id WHERE a.id=?",
+            (article_id,)).fetchone()
+        if held and held["desk_id"] == "china":
+            current = dict(held)
+            current.update(receipts(conn, metadata=True).get(article_id, {}))
+            preserved_title = english_title(current)
+            title_english = preserved_title or title_english
+            if not preserved_title and current.get("title_translation_source_sha256"):
+                # A full translation replaced a stale title-only result. Its
+                # old receipt cannot describe the new full-analysis output.
+                conn.execute("UPDATE articles SET title_translation_source_sha256=NULL, "
+                    "title_translation_value_sha256=NULL,title_translation_model=NULL,title_translation_prompt=NULL, "
+                    "title_translated_at=NULL WHERE id=?", (article_id,))
         conn.execute(
             """
             UPDATE articles
