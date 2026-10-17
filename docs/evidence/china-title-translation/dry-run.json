@@ -1,0 +1,44 @@
+{
+  "model": "claude-sonnet-4-6",
+  "public_china_records": 826,
+  "counts": [
+    {
+      "state": "analyzed",
+      "title": "english_original",
+      "count": 175
+    },
+    {
+      "state": "analyzed",
+      "title": "stored_valid",
+      "count": 479
+    },
+    {
+      "state": "awaiting_screening",
+      "title": "missing",
+      "count": 1
+    },
+    {
+      "state": "not_selected",
+      "title": "english_original",
+      "count": 21
+    },
+    {
+      "state": "not_selected",
+      "title": "missing",
+      "count": 150
+    }
+  ],
+  "needs_translation": 151,
+  "eligible_now": 151,
+  "batch_count": 20,
+  "all_one_pass_estimate_usd": 1.55085,
+  "batch_estimate": {
+    "model": "claude-sonnet-4-6",
+    "input_tokens": 17322,
+    "output_tokens": 10240,
+    "input_usd": 0.051966,
+    "output_usd": 0.15360000000000001,
+    "total_usd": 0.20556600000000003
+  },
+  "five_attempt_estimate_usd": 7.75425
+}

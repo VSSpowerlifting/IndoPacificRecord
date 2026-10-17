@@ -1,5 +1,19 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Public China title completion (17 October 2026, engineering candidate):**
+Read-only diagnosis finds 151 missing Chinese-headline translations among 826
+eligible public China records: 150 screened out and one awaiting screening;
+654 stored English titles already propagate, and 196 English originals need
+no new translation. The candidate adds bounded title-only processing on the
+existing client and `title_english`, source-version/concurrency protection,
+separate title retry receipts, dry-run/backfill cost reporting and consistent
+machine labels across public HTML/indexes/exports. Daily activation defaults
+off. No production DB, tracked output, source policy or editorial changes.
+The exact commands, counts, estimated $1.55 one-pass cost, synthetic browser
+evidence and remaining owner-authorized activation/backfill steps are in
+`docs/engineering/CHINA_TITLE_TRANSLATION_2026-10-17.md`. Full CI and review are
+the engineering gates; merge, paid runs and publication remain unapproved.
+
 **Archive released (17 October 2026, PR #776):**
 Approved source `6d9368c2f60679f44aaa034c5bb5541976520f9b` merged as
 `027f3f56ca9ccef323545124f55ac3c3fb319e01`. The owner authorized the 981
