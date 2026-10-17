@@ -168,3 +168,10 @@ The read-only DB residue contract expects exactly pending 0010 and 0011,
 continuing to reject unknown migrations or a non-fail-closed verifier.
 No competing active
 public China title-completion PR was found in the open-PR inventory.
+
+The first PR CI run also exposed an inherited retry-workflow assertion that two
+retired records must still exist. The workflow and retry-history function were
+unchanged from base, and both DB blobs were identical. Removed only that
+obsolete per-record lookup/print loop: the actual current public-row comparison,
+synthetic five-attempt/pause/resume contracts and byte-preservation checks
+remain. The updated workflow no longer enumerates those retired identities.
