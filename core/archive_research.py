@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 from scripts.reconcile_db import read_only
 from core.retired_article_urls import url_sha256, verify_no_active_retired_urls
+from core.title_translation import english_title, receipts, processing_note
 
 ORIGIN = 'https://indopacificrecord.org'
 SCHEMA = 'ipr-archive-research/1'
@@ -90,6 +91,11 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
     current = {r[0]: r for r in con.execute(
         'SELECT a.id, a.url, a.published_date, a.title_english, a.title_original, '
         's.slug FROM articles a JOIN sources s ON s.id=a.source_id')}
+    title_receipts = receipts(con)
+    source_columns = {r[1] for r in con.execute('PRAGMA table_info(sources)')}
+    languages = ({r[0]: (r[1], r[2]) for r in con.execute(
+        'SELECT slug, desk_id, language_tag FROM sources')}
+        if {'desk_id', 'language_tag'} <= source_columns else {})
     seen = set()
     for row in index['records']:
         if not isinstance(row, list) or len(row) != 6 or type(row[0]) is not int:
@@ -108,7 +114,11 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
             continue
         source, state = index['sources'][source_pos], index['states'][state_pos]
         stored = current[ident]
-        if (day, english or '', original or '', source['code']) != (stored[2], stored[3] or '', stored[4] or '', stored[5]):
+        desk_id, language = languages.get(stored[5], (None, None))
+        title_record = dict(title_original=stored[4], title_english=stored[3],
+            desk_id=desk_id, language_tag=language,
+            title_translation_source_sha256=title_receipts.get(ident), state=state['code'])
+        if (day, english or '', original or '', source['code']) != (stored[2], english_title(title_record) or '', stored[4] or '', stored[5]):
             excluded['changed_public_projection'] += 1
             continue
         desk = source.get('desk') or {}
@@ -128,7 +138,7 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
         yield projection(id='record:%d' % ident, title=english or original or None,
             original_title=original or None, date=day or None, date_kind='source-stated publication',
             desks=[desk['code']] if desk.get('code') else [], source=source['label'], issuer=issuer,
-            record_type='archive_record', processing=state['label'] + ' · ' + processing_notes[state['code']],
+            record_type='archive_record', processing=state['label'] + ' · ' + processing_note(title_record, processing_notes),
             ipr_url=ipr, citation=citation + ' ' + ipr)
     excluded['active_not_in_public_projection'] += len(set(current) - seen)
 
@@ -315,4 +325,6 @@ def display_records(compact, records):
             state=state['label'] if state['code'] != 'analyzed' else None,
             state_class='state state--' + state['code'],
             trail_label='In an analysis source trail' if ident in compact['trail_ids'] else None)
+        if desk.get('code') == 'china' and english and lang.get('code') != 'en':
+            result[r['id']]['title_note'] = 'Machine-translated title · human review not recorded'
     return result

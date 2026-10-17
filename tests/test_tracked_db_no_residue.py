@@ -95,9 +95,9 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 self.sweep()
                 proc = self.run_script(argv)
                 if name == "verify_db_current" and proc.returncode == 1:
-                    # This schema-only PR introduces regional metadata migration
-                    # 0010 before the tracked production database receives its
-                    # separately reviewed migration. Version 0009 is already
+                    # Regional metadata 0010 and China title receipts 0011 are
+                    # source-only until their separately authorized production
+                    # migrations. Version 0009 is already
                     # applied. Verify the *exact* pending version, not an
                     # arbitrary failure. Read-only checks must leave no sidecars.
                     from migrations.runner import discover, applied_versions
@@ -105,7 +105,7 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                     with read_only(TRACKED) as check_db:
                         pending = ({m.version for m in discover()}
                                    - set(applied_versions(check_db)))
-                    self.assertEqual({"0010"}, pending,
+                    self.assertEqual({"0010", "0011"}, pending,
                                      "an unrecognized migration is pending")
                     self.assertIn("database is 'partially_applied'",
                                   proc.stderr)

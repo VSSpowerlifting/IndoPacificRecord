@@ -617,6 +617,8 @@ def reconcile(base_path, origin_path, local_path, out_path):
     # test. Rows where origin already holds a decision are left alone, exactly
     # as before.
     set_clause = ",".join(f"{c}=?" for c in ANALYSIS_COLS)
+    from core.title_translation import english_title, receipts
+    title_receipts = receipts(con)
     pending_shared = con.execute(
         f"SELECT l.id AS lid, l.url AS url, {','.join('l.' + c for c in ANALYSIS_COLS)} "
         "FROM loc.articles l JOIN main.articles m ON m.url = l.url "
@@ -624,11 +626,25 @@ def reconcile(base_path, origin_path, local_path, out_path):
         "   OR (l.passed_relevance IS NOT NULL AND m.passed_relevance IS NULL)"
     ).fetchall()
     for r in pending_shared:
+        values = [r[c] for c in ANALYSIS_COLS]
+        # Analysis/relevance merging must not erase an independently completed
+        # China headline (or an existing human edit) with an empty local field.
+        held = con.execute(
+            "SELECT a.id,a.title_english,a.title_original,s.desk_id,s.language_tag "
+            "FROM articles a JOIN sources s ON s.id=a.source_id WHERE a.url=?",
+            (r["url"],)).fetchone()
+        if held and held["desk_id"] == "china":
+            current = dict(held)
+            current["title_translation_source_sha256"] = title_receipts.get(held["id"])
+            if english_title(current):
+                values[ANALYSIS_COLS.index("title_english")] = english_title(current)
         con.execute(
             f"UPDATE articles SET {set_clause} WHERE url=?",
-            [r[c] for c in ANALYSIS_COLS] + [r["url"]],
+            values + [r["url"]],
         )
     report["analysis_backfilled"] = len(pending_shared)
+    from storage.title_translation import reconcile_titles
+    reconcile_titles(con)
 
     # ── 5. categories for newly-analyzed shared rows ──────────────────────
     ac_shared = 0
