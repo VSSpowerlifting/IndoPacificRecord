@@ -65,6 +65,9 @@ carry successful title-only receipts without inventing completed analysis.
 
 Migration **0012** adds nullable title provenance/retry/claim columns and writes
 no observed data. Version 0010 belongs to the integrated regional source index.
+The CLI records 0012 through the existing migration runner, without config sync;
+other pending migrations must go through the normal DB workflow before a paid
+title run. This guard runs before any API probe.
 Provenance binds SHA-256 of both the exact original headline and returned
 English title, model, prompt version and completion time. A later English edit
 is preserved even if the original subsequently changes; an old machine receipt
@@ -120,7 +123,7 @@ and [mobile](../evidence/china-title-translation/mobile.png). These depict only
 the explicitly synthetic fixture. The production renderer was also exercised
 with that disposable DB and an isolated `/tmp/ipr-china-title-review/final-site`
 destination. Full-suite/CI results and any environmental failures are reported
-on the focused PR. The final integrated focused suite passed **217 tests**, including
+on the focused PR. The final integrated focused suite passed **219 tests**, including
 the unchanged Korea DAPA policy/schema contracts, with the
 existing stale declared-snapshot check skipped; validator
 passes with zero errors / ten warnings and the JS bundle check passes. Initial
@@ -133,6 +136,15 @@ run. It also reported six environment errors because local GPG and
 `python-docx` are absent. That local full run is **not green**. The final Linux
 full CI (which installs requirements and verifies GPG) is the broader gate;
 read its exact-head outcome from the PR receipt.
+
+The seven corpus-guide field/rendering contracts also pass against a disposable
+public DB copy containing synthetic title-only completion. They measure title,
+summary and model fields independently and compare identifier sets; they no
+longer require every translated title to imply completed analysis. An
+equal-count/different-identifiers negative control retains the original claim
+guard. A mocked CLI execution on another disposable copy records migration
+0012, translates only the synthetic headline and makes no extra call or probe
+when repeated. No real headline is given a fake translation.
 
 The task-start database SHA-256 was
 `21012d0e3f04426145ccf9eddae2e2dd9c820e42283230011f62163dd52e48a6`.
