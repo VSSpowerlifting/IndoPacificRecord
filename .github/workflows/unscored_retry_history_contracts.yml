@@ -57,16 +57,10 @@ jobs:
               expected = {r["id"]:r["processing_attempts"] for r in rows
                           if r["processing_attempts"] is not None}
               assert history == expected
-              for identifier in (1077, 1635):
-                  row = conn.execute(
-                      "SELECT passed_relevance, processing_state,"
-                      " processing_attempts FROM articles WHERE id=?",
-                      (identifier,)).fetchone()
-                  assert row is not None
-                  print("recurring_relevance_failure=%d recorded_state=%r"
-                        " recorded_attempts=%r" %
-                        (identifier, row["processing_state"],
-                         row["processing_attempts"]))
+              # The historical recurring-failure examples were retired from
+              # the public corpus. Never require or enumerate retired rows.
+              # Synthetic tests above cover repeated failures, pause/resume
+              # and both lanes; this comparison covers today's public rows.
               print("read-only real unscored rows=%d retained_attempt_histories=%d" %
                     (len(rows), len(history)))
           PY
