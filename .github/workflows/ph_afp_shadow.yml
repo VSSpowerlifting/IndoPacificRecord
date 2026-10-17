@@ -29,14 +29,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Verify no AFP public collector can be scheduled or dispatched
-        run: |
-          python -m unittest tests.test_shadow_workflow_bindings -q
-          python - <<'PY'
-          from pathlib import Path
-          s = Path(".github/workflows/ph_afp_shadow.yml").read_text()
-          assert "  schedule:" not in s
-          assert "  workflow_dispatch:" not in s
-          assert "git push origin" not in s
-          print("PASS: retired public AFP collector has no writer")
-          PY
+      - name: Check retired-public-source binding and no writer
+        run: python -m unittest tests.test_shadow_workflow_bindings -q
