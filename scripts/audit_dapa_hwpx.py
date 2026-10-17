@@ -17,8 +17,8 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-SHA = re.compile(r"[0-9a-f]{64}\\Z")
-SECTION = re.compile(r"Contents/section([0-9]+)\\.xml\\Z")
+SHA = re.compile(r"[0-9a-f]{64}\Z")
+SECTION = re.compile(r"Contents/section([0-9]+)\.xml\Z")
 
 class AuditHold(ValueError):
     """Explicit non-publication hold."""
@@ -83,7 +83,7 @@ def audit(path, expected_sha256, expected_bytes=None, expected_characters=None):
                         else: count["empty_paragraphs"] += 1
             if not lines:
                 raise AuditHold("hwpx_no_extractable_original_text")
-            extracted = "\\n".join(lines)
+            extracted = "\n".join(lines)
             if expected_characters is not None and len(extracted) != expected_characters:
                 raise AuditHold("hwpx_text_character_count_mismatch")
             binary_members = sum(name.startswith(("BinData/", "Pictures/"))
@@ -129,7 +129,7 @@ def main(argv=None):
             with dest.open("x", encoding="utf-8",
                            opener=lambda name, flags: os.open(name, flags, 0o600)) as stream:
                 json.dump(report, stream, ensure_ascii=False, indent=2, sort_keys=True)
-                stream.write("\\n")
+                stream.write("\n")
         print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
         return 0
     except AuditHold as exc:
