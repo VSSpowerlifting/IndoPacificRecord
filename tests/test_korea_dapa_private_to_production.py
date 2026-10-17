@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -177,6 +178,112 @@ class DAPABridgeContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as dirname:
             with self.assertRaises(b.DAPABridgeHold):
                 b.export_from_private_checkout(Path(dirname), "39076047212-1")
+
+
+class DAPASyntheticVaultRoundTrip(unittest.TestCase):
+    """Actual disposable private Git, ledger, original hashes and SQLite."""
+
+    def test_private_original_replay_to_signed_public_metadata(self):
+        import subprocess
+
+        run = "39076047219-1"
+        body, title = "FICTIONAL SYNTHETIC BODY", "FICTIONAL SYNTHETIC TITLE"
+        html = b"<html><body>synthetic first party fixture</body></html>"
+        doc = b"FAKE HWPX BYTES FOR UNIT TEST"
+        htmlsha, docsha = b.digest(html), b.digest(doc)
+        url = b.URL_PREFIX + "156785999"
+        document_url = ("https://www.korea.kr/common/download.do"
+                        "?fileId=456789&tblKey=GMN")
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "private-vault"
+            root.mkdir()
+            def git(*args):
+                return subprocess.run(
+                    ["git", "-C", str(root), *args],
+                    check=True, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE, text=True).stdout.strip()
+            git("init", "-q")
+            git("checkout", "-b", b.REF)
+            git("config", "user.name", "Synthetic Test")
+            git("config", "user.email", "test@example.invalid")
+            state = root / "state"
+            for sub in ("captures", "ledger", "private_attempts"):
+                (state / sub).mkdir(parents=True)
+            for sha, payload in ((htmlsha, html), (docsha, doc)):
+                (state / "captures" / (sha + ".bin")).write_bytes(payload)
+            metadata = {
+                "issuer": "방위사업청",
+                "publisher": "대한민국 정책브리핑",
+                "body_scope": "captured_hwpx_text_not_editorially_approved",
+                "attachments_collected": True,
+                "document_url": document_url,
+                "document_capture_sha256": docsha,
+                "public_metadata_admission_approved": False,
+                "public_full_text_approved": False,
+                "document_reuse_approved": False,
+            }
+            db = state / "shadow.db"
+            with sqlite3.connect(db) as conn:
+                conn.execute(
+                    "CREATE TABLE shadow_records("
+                    "source_identity TEXT, url TEXT, source_slug TEXT,"
+                    "title_original TEXT, text_original TEXT,"
+                    "published_date TEXT, language_tag TEXT, metadata_json TEXT,"
+                    "content_sha256 TEXT, capture_sha256 TEXT,"
+                    "first_seen_run TEXT)")
+                conn.execute(
+                    "INSERT INTO shadow_records VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    ("korea-dapa-policy:156785999", url,
+                     "kr_policy_dapa_releases", title, body,
+                     "2026-10-18", "ko", json.dumps(metadata),
+                     b.digest(body.encode("utf-8")), htmlsha, run))
+                conn.commit()
+            (state / "private_attempts" / (run + ".json")).write_text(
+                json.dumps({
+                    "run_attempt": run, "collector_commit": "a" * 40,
+                    "collector_exit_status": 0,
+                    "public_admission_approved": False,
+                    "original_reuse_approved": False,
+                }))
+            ledger = {
+                "desk": "korea_dapa", "run_id": run,
+                "collector_commit": "a" * 40,
+                "result": "ok", "health": "ok",
+                "inserted": 1, "selected": 1, "retrieved": 1,
+                "extracted": 1, "fetch_failures": 0,
+                "extraction_failures": 0, "access_failures": 0,
+                "failures": [], "target_date_source": "explicit",
+                "target_date": "2026-10-18", "cap": 1, "lookback_days": 0,
+                "requests": [
+                    {"form": {"repCode": "B00008"}},
+                    {"requested_url": url, "capture_sha256": htmlsha,
+                     "http_status": 200},
+                    {"requested_url": document_url, "capture_sha256": docsha,
+                     "http_status": 200},
+                ],
+            }
+            (state / "ledger" / ("20261018T000000.000000+0000-" + run +
+                                 ".json")).write_text(json.dumps(ledger))
+            git("add", "state")
+            git("commit", "-qm", "fictional DAPA one-release source archive")
+
+            packet = b.export_from_private_checkout(root, run)
+            self.assertEqual(packet["source_git_commit"], git("rev-parse", "HEAD"))
+            self.assertEqual(packet["source_db_sha256"], b.digest(db.read_bytes()))
+            self.assertEqual(len(packet["records"]), 1)
+            for value in (title, body, document_url):
+                self.assertNotIn(value, b.canonical(packet).decode("utf-8"))
+            signed = b.sign(packet, KEY)
+            with sqlite3.connect(":memory:") as prod:
+                old.up(prod)
+                newer.up(prod)
+                self.assertEqual(
+                    b.admit(prod, packet, signed, KEY,
+                            as_of_utc="2026-10-18T12:00:00Z")[
+                                "new_official_links_admitted"], 1)
+            (state / "captures" / (docsha + ".bin")).write_bytes(b"CORRUPTED")
+            with self.assertRaises(b.DAPABridgeHold):
+                b.export_from_private_checkout(root, run)
 
 
 if __name__ == "__main__":
