@@ -2,6 +2,9 @@ name: Indonesia Desk — complete shared Actions attempt census
 
 # Independently enumerate the Indonesia/Korea shared workflow's API window
 # and each run's artifact list before comparing immutable Indonesia ledgers.
+# HISTORICAL REPLAY ONLY: the public Indonesia collector was retired Oct 17.
+# Private-originating runs use a different workflow and state repository;
+# never claim they are covered by this retired public Actions census.
 # No publisher contacts, article texts, or production write.
 on:
   pull_request:
@@ -14,14 +17,12 @@ on:
       - main
     paths:
       - ".github/workflows/indonesia_actions_census.yml"
-  schedule:
-    - cron: '47 3 * * *'
   workflow_dispatch:
     inputs:
       as_of_logical_day:
-        description: "Optional YYYY-MM-DD nominal Indonesia collection day"
+        description: "Historical final legacy collection day; no private-run coverage"
         required: false
-        default: ""
+        default: "2026-10-17"
         type: string
 
 permissions:
@@ -33,13 +34,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  offline-contracts:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Historical Actions census contracts, no live API or source access
+        run: python -m unittest tests.test_fetch_indonesia_actions_census tests.test_indonesia_actions_attempts tests.test_indonesia_shadow_provenance -q
+      - name: Check no protected database or public output changes
+        run: |
+          git diff --exit-code -- pla_watch.db output/ shadow/
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+
   enumerate-and-reconcile:
-    if: >-
-      github.event_name == 'pull_request' ||
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' &&
-       startsWith(github.event.head_commit.message, 'Enable complete Indonesia Actions census (PR #'))
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
