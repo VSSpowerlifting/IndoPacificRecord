@@ -156,29 +156,44 @@ def validate(root=ROOT, contract_path=None):
                     "research-only source must not claim a workflow or branch")
             classification = "no_collection_workflow_declared"
         elif trigger == "private_handoff_pending":
-            # Narrow explicit exception: the Indonesia *historical public*
-            # source ref remains accessible, but the old public writer must
-            # be retired before the owner can authorize private collection.
-            # We cannot verify an external private repository from PR-only
-            # offline CI; this classification never claims running collection.
-            require(binding["manifest"] == "shadow/id_kemhan/manifest.json"
-                    and slug == "id_kemhan_news"
-                    and branch == "shadow/indonesia-kemhan"
-                    and workflow is None and cron is None,
-                    "private handoff limited to exact Indonesia Kemhan source")
-            legacy_path = root / ".github/workflows/indonesia_korea_shadow.yml"
-            require(legacy_path.is_file() and not legacy_path.is_symlink(),
-                    "missing Korea-only legacy workflow during private handoff")
-            raw = legacy_path.read_text(encoding="utf-8")
-            active = uncommented_workflow_text(raw)
-            require(workflow_crons(raw) == ["47 17 * * *"]
-                    and not contains_literal_branch(active, branch)
-                    and "candidate-shadow-indonesia-" not in active
-                    and not re.search(r"(?m)^\s*-\s*indonesia\s*$", active)
-                    and bool(re.search(
-                        r"(?m)^\s*korea\)\s+state_branch=shadow/korea-policy-briefing;"
-                        r"\s+cron_utc=17:47\s*;;\s*$", active)),
-                    "private Indonesia handoff still has a public writer or Korea cadence drift")
+            # Private writer histories are external to this public-repo audit.
+            # Exactly two individually governed source families are allowed
+            # to retire public collection; no source is inferred to be live.
+            require(workflow is None and cron is None,
+                    "private handoff cannot claim an active public collector")
+            if slug == "id_kemhan_news":
+                require(binding["manifest"] == "shadow/id_kemhan/manifest.json"
+                        and branch == "shadow/indonesia-kemhan",
+                        "private handoff limited to exact Indonesia Kemhan source")
+                legacy_path = root / ".github/workflows/indonesia_korea_shadow.yml"
+                require(legacy_path.is_file() and not legacy_path.is_symlink(),
+                        "missing Korea-only legacy workflow during private handoff")
+                raw = legacy_path.read_text(encoding="utf-8")
+                active = uncommented_workflow_text(raw)
+                require(workflow_crons(raw) == ["47 17 * * *"]
+                        and not contains_literal_branch(active, branch)
+                        and "candidate-shadow-indonesia-" not in active
+                        and not re.search(r"(?m)^\\s*-\\s*indonesia\\s*$", active)
+                        and bool(re.search(
+                            r"(?m)^\\s*korea\\)\\s+state_branch=shadow/korea-policy-briefing;"
+                            r"\\s+cron_utc=17:47\\s*;;\\s*$", active)),
+                        "private Indonesia handoff still has a public writer or Korea cadence drift")
+            elif slug == "ph_afp_articles":
+                require(binding["manifest"] == "shadow/ph_afp/manifest.json"
+                        and branch == "shadow/ph-afp",
+                        "private AFP handoff requires exact source family and branch")
+                legacy_path = root / ".github/workflows/ph_afp_shadow.yml"
+                require(legacy_path.is_file() and not legacy_path.is_symlink(),
+                        "retired public AFP workflow missing")
+                raw = legacy_path.read_text(encoding="utf-8")
+                active = uncommented_workflow_text(raw)
+                require(not workflow_crons(raw)
+                        and not re.search(r"(?m)^\\s*workflow_dispatch:\\s*$", active)
+                        and not re.search(r"\\bgit\\s+push\\b", active)
+                        and "pull_request:" in active,
+                        "private AFP handoff still has public writer or active trigger")
+            else:
+                raise BindingError("private handoff limited to exact Indonesia Kemhan or Philippines AFP sources")
             classification = "private_handoff_pending_external_runs_unverified"
         else:
             require(type(branch) is str and
