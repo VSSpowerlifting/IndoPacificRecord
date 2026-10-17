@@ -70,9 +70,9 @@
       "manifest": "shadow/ph_afp/manifest.json",
       "source_slug": "ph_afp_articles",
       "state_branch": "shadow/ph-afp",
-      "workflow": ".github/workflows/ph_afp_shadow.yml",
-      "cron": "40 6 * * *",
-      "trigger": "scheduled"
+      "workflow": null,
+      "cron": null,
+      "trigger": "private_handoff_pending"
     },
     {
       "manifest": "shadow/ph_nsc/manifest.json",
