@@ -158,7 +158,8 @@ def verify_cohort(packet, policy, *, baseline_packet=None):
              and baseline_packet is not None,
              "rolling_source_requires_independently_pinned_baseline")
         original_eligible = verify_cohort(baseline_packet, policy)
-        need(packet.get("candidate_count", 0) >=
+        need(type(packet.get("candidate_count")) is int
+             and packet["candidate_count"] >=
              spec["frozen_review_cohort_candidate_count"],
              "rolling_source_lost_frozen_candidates")
     need(packet.get("schema") == CANDIDATE_SCHEMA
@@ -244,6 +245,29 @@ def verify_cohort(packet, policy, *, baseline_packet=None):
     return eligible
 
 
+def selected_official_links(receipt, eligible):
+    """Choose only individually authenticated approvals, not all stored originals.
+
+    A self-authored list is NOT authority. The separately trusted validator
+    must authenticate every selected identity and exact captured source version.
+    All other candidates remain unpublished, even when collected successfully.
+    """
+    if type(receipt) is not dict:
+        raise RegionalLinkHold("release_selection_untrusted")
+    rows = {r["source_identity"]: r for r in eligible}
+    if "approved_source_identities" not in receipt:
+        # Compatibility with existing whole-cohort proof; never bypasses
+        # the independent trusted validator in admit().
+        return list(eligible)
+    identities = receipt["approved_source_identities"]
+    need(type(identities) is list and bool(identities)
+         and all(type(v) is str for v in identities)
+         and identities == sorted(set(identities))
+         and set(identities) <= set(rows),
+         "release_selection_untrusted_or_contains_held_source")
+    return [rows[sid] for sid in identities]
+
+
 def verify_release_evidence(receipt, packet, eligible):
     """Shape and digest preflight; caller must also authenticate provenance.
 
@@ -251,6 +275,7 @@ def verify_release_evidence(receipt, packet, eligible):
     must be established by the independent Actions+original review validator,
     not inferred here. Until that validator is wired the importer is HOLD-only.
     """
+    selected = selected_official_links(receipt, eligible)
     need(type(receipt) is dict
          and receipt.get("schema") == "ipr-crossdesk-independent-release-proof/1"
          and receipt.get("source_family") == packet.get("source_family")
@@ -258,7 +283,7 @@ def verify_release_evidence(receipt, packet, eligible):
          and receipt.get("metadata_manifest_sha256") ==
              packet.get("metadata_manifest_sha256")
          and receipt.get("eligible_source_identities_sha256") ==
-             digest(sorted(r["source_identity"] for r in eligible))
+             digest(sorted(r["source_identity"] for r in selected))
          and receipt.get("review_receipts_version_matched") is True
          and receipt.get("seven_actual_scheduled_days_authenticated") is True
          and receipt.get("all_visible_actions_attempts_reconciled") is True
@@ -282,8 +307,9 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     need(policy == load_owner_policy(), "owner_policy_is_not_repository_pinned")
     need(callable(trusted_validator), "trusted_release_evidence_validator_missing")
     eligible = verify_cohort(packet, policy, baseline_packet=baseline_packet)
+    approved = selected_official_links(receipt, eligible)
     proof_digest = verify_release_evidence(receipt, packet, eligible)
-    need(trusted_validator(receipt, packet, eligible) is True,
+    need(trusted_validator(receipt, packet, approved) is True,
          "trusted_release_evidence_not_authenticated")
     need(type(as_of_utc) is str and
          re.fullmatch(r"20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z", as_of_utc),
@@ -294,7 +320,7 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     conn.execute("SAVEPOINT regional_link_admission")
     added = unchanged = 0
     try:
-        for row in eligible:
+        for row in approved:
             key = (row["source_family"], row["source_identity"])
             stable = (row["canonical_official_url"],
                       row["publisher_posted_date"], row["official_issuer"],
@@ -350,4 +376,5 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     return {"source_family":packet["source_family"],"new_official_links":added,
             "unchanged_official_links":unchanged,
             "held_semantic_exceptions":packet["semantic_exception_count"],
+            "held_pending_individual_approval":len(eligible) - len(approved),
             "published_original_titles_or_bodies":False}
