@@ -185,7 +185,9 @@ alternating cards, attached curved branches, mobile rail, immediately visible
 scope and explicitly labelled planned/later evidence. Existing approval,
 reconciliation and private-review paths remain intact. All six entries and
 five record pages survive in the current corpus; the canonical draft and
-related Brief are unchanged. Browser, budgets and review artifacts are in
+related Brief are unchanged. The shadow audit admits only the exact decorative
+node glow; negative controls keep other selectors, values and files prohibited.
+Browser, budgets and review artifacts are in
 `docs/EVIDENCE_TIMELINES.md`. Production output is unchanged and no publication
 is authorized. Ben's next step is review of the completed private experience;
 exact-content editorial approval and unresolved source-use #326 remain the

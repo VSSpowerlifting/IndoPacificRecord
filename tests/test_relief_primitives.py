@@ -20,6 +20,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import xml.dom.minidom
 from pathlib import Path
 
@@ -167,15 +168,47 @@ class CommittedAssetTests(unittest.TestCase):
 
 
 class ShadowAuditTests(unittest.TestCase):
-    """B1=A: exactly three lifts, on the six approved surfaces, in one file."""
+    """B1=A lifts stay scoped; the owner also permits timeline node illumination."""
 
     def test_no_other_preview_stylesheet_or_template_casts_a_shadow(self):
         for path in sorted(PREVIEW.rglob("*")):
             if path.suffix not in (".css", ".html") or path == RELIEF_CSS:
                 continue
             text = path.read_text(encoding="utf-8")
+            if path == PREVIEW / "timelines.css":
+                # Ben's Flowing Chronology exception is decorative node glow,
+                # not card elevation. Remove only this exact rule's approved
+                # declaration, then audit everything else in the file as usual.
+                text = re.sub(
+                    r"(?m)^(\s*\.tl-entry::before\s*\{[^{}]*?)"
+                    r"box-shadow\s*:\s*0 0 16px color-mix\(in srgb,var\(--focus-band\) 25%,transparent\)"
+                    r"(?=\s*[;}])", r"\1", text)
             self.assertNotRegex(text, r"box-shadow\s*:(?!\s*none)",
                                 "%s casts a shadow" % path.relative_to(REPO_ROOT))
+
+    def test_timeline_node_exception_does_not_admit_other_shadows(self):
+        glow = "0 0 16px color-mix(in srgb,var(--focus-band) 25%,transparent)"
+        node = ".tl-entry::before{box-shadow:%s}" % glow
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as tmp:
+            root = Path(tmp)
+            with mock.patch(__name__ + ".PREVIEW", root):
+                path = root / "timelines.css"
+                path.write_text(node, encoding="utf-8")
+                self.test_no_other_preview_stylesheet_or_template_casts_a_shadow()
+                for css in (node + "\n.tl-entry-body{box-shadow:0 2px 4px black}",
+                            node.replace("::before", "-body"),
+                            node.replace("::before{", "::before,.other{"),
+                            node.replace(glow, glow + ",0 2px 4px black")):
+                    with self.subTest(css=css), self.assertRaises(AssertionError):
+                        path.write_text(css, encoding="utf-8")
+                        self.test_no_other_preview_stylesheet_or_template_casts_a_shadow()
+                path.unlink()
+                for name in ("other.css", "timeline.html"):
+                    other = root / name
+                    other.write_text(node, encoding="utf-8")
+                    with self.subTest(file=name), self.assertRaises(AssertionError):
+                        self.test_no_other_preview_stylesheet_or_template_casts_a_shadow()
+                    other.unlink()
 
     def test_relief_css_uses_only_the_three_lifts_on_the_six_surfaces(self):
         css = RELIEF_CSS.read_text(encoding="utf-8")
