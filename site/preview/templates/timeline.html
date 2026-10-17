@@ -16,6 +16,8 @@
   <p class="evidence evidence--analysis">Evidence Timeline{% if timeline.is_review %} · unpublished draft{% endif %}</p>
   <h1>{{ timeline.title }}</h1>
   <p class="tl-dek">{{ timeline.dek }}</p>
+  <p class="tl-scope">{{ timeline.scope }}</p>
+  <nav class="tl-jump" aria-label="In this timeline"><a href="#tl-narrative-heading">Chronology</a>{% if timeline.reconciliation %}<a href="#tl-reconcile-1">Comparing accounts</a>{% endif %}<a href="#tl-ledger-heading">Source ledger</a></nav>
 </header>
 
 <div class="tl-reading-layout"><aside class="tl-context" aria-label="Timeline context and date tracks">
@@ -29,7 +31,7 @@
 {% if timeline.reconciliation %}<p class="tl-premise-note">{{ timeline.reconciliation[0].note }}</p>{% endif %}</section>
 
 </details>
-<details class="tl-context-tracks" data-wide-open><summary>Date tracks · Events and publications</summary><section class="tl-overview" aria-labelledby="tl-overview-heading">
+<details class="tl-context-tracks"><summary>Date tracks · Events and publications</summary><section class="tl-overview" aria-labelledby="tl-overview-heading">
   <div class="tl-section-head"><h2 id="tl-overview-heading">Two ways to read the dates</h2><p>Ordered sequences; spacing does not measure elapsed time.</p></div>
   <nav aria-label="Reported event chronology" class="tl-track"><h3>Events as reported</h3><ol>
     {% for e in timeline.entries %}<li><a href="#{{ e.id }}"><span>{{ period(e.event.start, e.event.end) }}</span><b>{{ e.headline }}</b>{% if e.contested %}<small>Contested boundary</small>{% endif %}</a></li>{% endfor %}
@@ -42,12 +44,14 @@
 </details></aside>
 <section class="tl-narrative" aria-labelledby="tl-narrative-heading">
   <h2 id="tl-narrative-heading">The chronology</h2>
+  <p class="tl-sequence-note">Read from top to bottom. Spacing shows order, not elapsed time. Branches connect each card to the chronology; they do not show cause and effect.</p>
   <ol class="tl-spine">
   {% for e in timeline.entries %}
-    <li id="{{ e.id }}" class="tl-entry{% if e.contested %} tl-entry-contested{% endif %}" tabindex="-1" data-reveal>
+    <li id="{{ e.id }}" class="tl-entry{% if e.contested %} tl-entry-contested{% endif %}" tabindex="-1">
       <svg class="tl-spine-segment" aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 2 100"><path d="M1 0V100" /></svg>
-      <div class="tl-date">{{ date_mark(e.event) }}<span class="tl-kind">{{ 'Attributed interval' if e.event_kind == 'claim' else ('Publication / report' if e.event_kind == 'report' else 'Reported event') }}</span></div>
+      <svg class="tl-branch" aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 100 60"><path d="M100 0C50 0 50 60 0 60" /></svg>
       <div class="tl-entry-body">
+        <div class="tl-date">{{ date_mark(e.event) }}<span class="tl-kind">{{ 'Attributed interval' if e.event_kind == 'claim' else ('Publication / report' if e.event_kind == 'report' else 'Reported event') }}</span></div>
         {% if e.contested %}<p class="tl-status">Contested starting boundary</p>{% endif %}
         <h3>{{ e.headline }}</h3>
         <p class="tl-observation">{{ e.observation }}</p>
@@ -60,7 +64,7 @@
             <h4 id="ev-{{ e.id }}-{{ ev.record_id }}"><a href="../record/{{ ev.record_id }}.html">Record {{ ev.record_id }}</a> · {{ ev.record.source_name }}</h4>
             <p>{{ ev.record.institution_name }} · Published {{ ev.published_on|reader_date }}</p>
             {{ original(ev.record) }}
-            <p><b>Attributed claim:</b> {{ ev.claim }}</p>
+            <p><b>{{ 'Planned activity' if ev.basis == 'planned' else ('Later report' if ev.basis == 'retrospective' else 'Reported activity') }}:</b> {{ ev.claim }}</p>
             <blockquote lang="{{ ev.record.lang }}">{{ ev.excerpt }}</blockquote>
             <p><a href="{{ ev.url }}" rel="noopener nofollow">Original source</a> <span class="tl-original-url">{{ ev.url }}</span></p>
           </section>{% endfor %}
