@@ -396,7 +396,7 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
         "Write a readable, flowing, serious article with natural paragraphs, "
         "not an outline or bullet list. Keep uncertainty in the prose. "
         "Use an editorial voice that is curious, analytically precise, and "
-        "comfortable for informed readers outside these institutions. Begin "
+        "accessible to informed readers outside these institutions. Begin "
         "with named actors and concrete events; explain what happened before "
         "turning to geopolitical meaning. Explain necessary technical terms "
         "on first use rather than stacking bureaucratic labels or abstract "
