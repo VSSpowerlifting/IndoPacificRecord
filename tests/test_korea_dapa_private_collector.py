@@ -201,6 +201,83 @@ class DapaPrivateCollection(unittest.TestCase):
                     self.assertNotEqual(result["health"], "ok", result)
                     self.assertFalse((Path(td) / "held" / "shadow.db").exists())
 
+    def test_live_portal_navigation_suffix_does_not_change_issuer(self):
+        # Verified 2026-10-15 captured Policy Briefing article (newsId 156785254):
+        # its DAPA repCode link displays a ministry-news navigation cue.
+        # No live HTTP or original article body is included in the fixture.
+        adapter, session = instance(item=article(
+            issuer="방위사업청 부처별 뉴스 이동"))
+        result = runner.run(
+            "korea_dapa", self.state, date(2026, 10, 8), lookback=0,
+            cap=1, run_id="dapa-nav-label", commit="synthetic",
+            adapter=adapter, dapa_original_access_authorized=True)
+        self.assertEqual(result["result"], st.OK, result)
+        self.assertEqual(result["extracted"], 1)
+        self.assertEqual(result["inserted"], 1)
+        self.assertEqual(len(session.calls), 4)
+        with sqlite3.connect(self.state / "shadow.db") as conn:
+            extra = json.loads(conn.execute(
+                "SELECT metadata_json FROM shadow_records").fetchone()[0])
+        self.assertEqual(extra["issuer"], "방위사업청")
+        self.assertFalse(extra["public_metadata_admission_approved"])
+        self.assertFalse(extra["public_full_text_approved"])
+
+    def test_issuer_navigation_text_cannot_spoof_another_issuer(self):
+        for label in (
+            "국방부 부처별 뉴스 이동",
+            "방위사업청 부처별 뉴스 이동 다른 부처",
+            "방위사업청 승인",
+        ):
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as td:
+                adapter, session = instance(item=article(issuer=label))
+                result = runner.run(
+                    "korea_dapa", Path(td) / "private",
+                    date(2026, 10, 8), lookback=0, cap=1,
+                    run_id="dapa-bad-nav-label", commit="synthetic",
+                    adapter=adapter, dapa_original_access_authorized=True)
+                self.assertEqual(result["health"], "fail", result)
+                self.assertEqual(len(session.calls), 3)
+                self.assertFalse((Path(td) / "private" / "shadow.db").exists())
+
+    def test_named_files_with_matching_generic_download_controls(self):
+        # Based on the real captured article's two generic "download"
+        # controls; match by fileId, not by display text alone.
+        item = article(issuer="방위사업청 부처별 뉴스 이동").replace(
+            "document.pdf</a>",
+            "document.pdf</a>"
+            '<a href="/common/download.do?fileId=123456&tblKey=GMN">내려받기</a>'
+            '<a href="/common/download.do?fileId=123457&tblKey=GMN">내려받기</a>',
+        )
+        adapter, session = instance(item=item)
+        result = runner.run(
+            "korea_dapa", self.state, date(2026, 10, 8), lookback=0,
+            cap=1, run_id="dapa-matched-download-controls", commit="synthetic",
+            adapter=adapter, dapa_original_access_authorized=True)
+        self.assertEqual(result["result"], st.OK, result)
+        self.assertEqual(result["inserted"], 1)
+        self.assertEqual(len(session.calls), 4)
+        self.assertEqual(session.calls[-1][1], DOC)
+
+    def test_unknown_generic_download_controls_and_spoofed_labels_stay_held(self):
+        for extra in (
+            '<a href="/common/download.do?fileId=999999&tblKey=GMN">내려받기</a>',
+            '<a href="/common/download.do?fileId=123456&tblKey=GMN">자료 받기</a>',
+            '<a href="/common/download.do?fileId=123457&tblKey=GMN">fake.hwpx</a>',
+            '<a href="/common/download.do?fileId=123456&tblKey=GMN">file.hwp</a>',
+        ):
+            item = article(issuer="방위사업청 부처별 뉴스 이동").replace(
+                "document.pdf</a>", "document.pdf</a>" + extra)
+            with self.subTest(extra=extra), tempfile.TemporaryDirectory() as td:
+                adapter, session = instance(item=item)
+                result = runner.run(
+                    "korea_dapa", Path(td) / "private",
+                    date(2026, 10, 8), lookback=0, cap=1,
+                    run_id="dapa-unknown-download", commit="synthetic",
+                    adapter=adapter, dapa_original_access_authorized=True)
+                self.assertEqual(result["health"], "fail", result)
+                self.assertEqual(len(session.calls), 3)
+                self.assertFalse((Path(td) / "private" / "shadow.db").exists())
+
     def test_dapa_robots_timeout_never_inherits_mnd_retry(self):
         adapter, session = instance()
         with mock.patch.object(session, "request", side_effect=requests.Timeout()) as request:

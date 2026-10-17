@@ -114,16 +114,21 @@ class KoreaDapaPolicyAdapter(KoreaPolicyAdapter):
             info.select('a.gotosite[href="/news/ministryNewsList.do?repCode=B00008"]'),
             "DAPA issuer link",
         )
-        if issuer.get_text(" ", strip=True) != ISSUER or not title:
+        # Policy Briefing appends a navigation cue to the issuer link text.
+        # The exact DAPA repCode URL above is authoritative; accept only the
+        # verified display variants, never arbitrary issuer names or suffixes.
+        displayed_issuer = issuer.get_text(" ", strip=True)
+        if displayed_issuer not in (ISSUER, ISSUER + " 부처별 뉴스 이동") or not title:
             raise ValueError("DAPA article issuer or title changed")
 
-        hwpx = set()
+        # The portal presents each attachment twice: a named filename and
+        # an adjacent generic "내려받기" navigation control. Only tolerate the
+        # generic control when it resolves to the *same validated fileId* as
+        # a named HWPX/PDF link. An unknown/extra download remains a hold.
+        named = {}
+        unnamed = set()
         for link in soup.select('a[href*="/common/download.do"]'):
             label = link.get_text(" ", strip=True).lower()
-            # PDF is a parallel representation, not a second independent
-            # original; we retrieve exactly one source HWPX, never the PDF.
-            if not label.endswith((".hwpx", ".pdf")):
-                raise ValueError("unsupported DAPA attachment format")
             download = urljoin(url, link["href"])
             p = urlsplit(download)
             q = parse_qs(p.query, keep_blank_values=True)
@@ -134,8 +139,22 @@ class KoreaDapaPolicyAdapter(KoreaPolicyAdapter):
                     not re.fullmatch(r"[1-9][0-9]{0,19}", q["fileId"][0]) or
                     q["tblKey"] != ["GMN"]):
                 raise ValueError("DAPA original document URL invalid")
+            file_id = q["fileId"][0]
             if label.endswith(".hwpx"):
-                hwpx.add(download)
+                kind = "hwpx"
+            elif label.endswith(".pdf"):
+                kind = "pdf"
+            elif label == "내려받기":
+                unnamed.add(file_id)
+                continue
+            else:
+                raise ValueError("unsupported DAPA attachment format")
+            if file_id in named and named[file_id][0] != kind:
+                raise ValueError("DAPA attachment fileId has conflicting types")
+            named.setdefault(file_id, (kind, download))
+        if not unnamed.issubset(named):
+            raise ValueError("unmatched DAPA generic download control")
+        hwpx = {download for kind, download in named.values() if kind == "hwpx"}
         if len(hwpx) != 1:
             raise ValueError("DAPA requires exactly one distinct HWPX original")
         return title, published, hwpx.pop()
