@@ -1,8 +1,10 @@
 # Public China headline completion
 
 Engineering candidate from main `611c14cb4c1ddeee39844db9ad1f6919525f172f`.
-Integrated with newer main `f212e1e04f7ea1793edb6dd50dcbd3803d5930be` before
-final verification; its Korea/Indonesia and regional-schema changes are retained.
+Integrated with newer main `75137305d4cd760679b1e82378861e55d8652c6d` before
+final verification; its Korea/Indonesia, regional-schema and admitted metadata
+changes are retained exactly. China title receipts use migration **0012**;
+the concurrently merged Korea DAPA migration retains **0011**.
 No production database write, paid model call, merge, publication or deployment
 is part of this change. Tracked `output/`, sidecars and editorial records stay
 unchanged. Title-only Daily processing defaults to **off**.
@@ -61,7 +63,7 @@ title edits. Successful titles stay in `title_english`, the existing authority.
 Full-analysis writes and DB reconciliation preserve valid China titles and
 carry successful title-only receipts without inventing completed analysis.
 
-Migration **0011** adds nullable title provenance/retry/claim columns and writes
+Migration **0012** adds nullable title provenance/retry/claim columns and writes
 no observed data. Version 0010 belongs to the integrated regional source index.
 Provenance binds SHA-256 of both the exact original headline and returned
 English title, model, prompt version and completion time. A later English edit
@@ -118,7 +120,8 @@ and [mobile](../evidence/china-title-translation/mobile.png). These depict only
 the explicitly synthetic fixture. The production renderer was also exercised
 with that disposable DB and an isolated `/tmp/ipr-china-title-review/final-site`
 destination. Full-suite/CI results and any environmental failures are reported
-on the focused PR. The final focused suite passed **209 tests**, with the
+on the focused PR. The final integrated focused suite passed **217 tests**, including
+the unchanged Korea DAPA policy/schema contracts, with the
 existing stale declared-snapshot check skipped; validator
 passes with zero errors / ten warnings and the JS bundle check passes. Initial
 full local runs were stopped for source/base integration, after reproducing an
@@ -131,8 +134,11 @@ run. It also reported six environment errors because local GPG and
 full CI (which installs requirements and verifies GPG) is the broader gate;
 read its exact-head outcome from the PR receipt.
 
-Tracked database SHA-256 at start and preservation check:
+The task-start database SHA-256 was
 `21012d0e3f04426145ccf9eddae2e2dd9c820e42283230011f62163dd52e48a6`.
+The owner-authorized Korea admission on integrated main updates that baseline
+to `f53c20cd7121822d70c68e510039de2759504599453ad899ab729dfd8aa2533a`.
+The task authors no DB changes: the final file must match the newer base exactly.
 
 ## Remaining activation and historical completion
 
@@ -178,7 +184,8 @@ Tracked database SHA-256 at start and preservation check:
 Collision review: PR #766's private workbench stays untouched. Open #741, #712,
 #695 and #694 touch other regions of `generate_preview.py`; #668/#679 touch
 storage/retirement code; migration 0010 is retained from the integrated main.
-The read-only DB residue contract expects exactly pending 0010 and 0011,
+The newer base has applied 0010 and 0011; the read-only DB residue contract
+expects exactly pending **0012**,
 continuing to reject unknown migrations or a non-fail-closed verifier.
 No competing active
 public China title-completion PR was found in the open-PR inventory.
