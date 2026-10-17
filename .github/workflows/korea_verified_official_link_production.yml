@@ -21,6 +21,15 @@ on:
   schedule:
     - cron: '37 20 * * *'
   workflow_dispatch:
+    inputs:
+      dapa_packet_b64:
+        description: 'Private-runner signed, sanitized DAPA metadata packet only'
+        required: false
+        type: string
+      dapa_mac:
+        description: 'HMAC-SHA256 from source-private evidence checkout'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -72,6 +81,18 @@ jobs:
             tests.test_korea_official_source_metadata_schema \
             tests.test_korea_official_metadata_auto_admission \
             tests.test_korea_production_candidate_bridge
+      - name: Fail closed unless DAPA bridge is explicitly activated in public repo
+        if: ${{ inputs.dapa_packet_b64 != '' || inputs.dapa_mac != '' }}
+        env:
+          DAPA_BRIDGE_ENABLED: ${{ vars.DAPA_METADATA_BRIDGE_ENABLED }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DAPA_BRIDGE_ENABLED" = true || {
+            echo "::error::DAPA bridge remains held pending source verification and operator activation"
+            exit 1
+          }
+          test -n "${{ inputs.dapa_packet_b64 }}" && test -n "${{ inputs.dapa_mac }}"
       - name: Clone full preserved MND shadow Git history into private runner scratch
         env:
           SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
@@ -92,6 +113,21 @@ jobs:
             --source-checkout "$RUNNER_TEMP/korea-official-original-state" \
             --production-db "$GITHUB_WORKSPACE/pla_watch.db" \
             --standing-official-links-approval
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+          python scripts/verify_db_current.py
+      - name: Admit authenticated DAPA metadata only; reject any text or media
+        if: ${{ inputs.dapa_packet_b64 != '' }}
+        env:
+          DAPA_PACKET_B64: ${{ inputs.dapa_packet_b64 }}
+          DAPA_PACKET_MAC: ${{ inputs.dapa_mac }}
+          DAPA_BRIDGE_KEY: ${{ secrets.DAPA_BRIDGE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_korea_dapa_private_to_production
+          python -m scripts.korea_dapa_signed_metadata_bridge admit-public \
+            --production-db "$GITHUB_WORKSPACE/pla_watch.db"
           test ! -e pla_watch.db-wal
           test ! -e pla_watch.db-shm
           python scripts/verify_db_current.py
