@@ -186,14 +186,33 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
     def test_private_original_replay_to_signed_public_metadata(self):
         import subprocess
 
+        import io
+        import zipfile
+
         run = "39076047219-1"
         body, title = "FICTIONAL SYNTHETIC BODY", "FICTIONAL SYNTHETIC TITLE"
-        html = b"<html><body>synthetic first party fixture</body></html>"
-        doc = b"FAKE HWPX BYTES FOR UNIT TEST"
-        htmlsha, docsha = b.digest(html), b.digest(doc)
         url = b.URL_PREFIX + "156785999"
         document_url = ("https://www.korea.kr/common/download.do"
                         "?fileId=456789&tblKey=GMN")
+        html = ("""<html><head><link rel="canonical" href="{url}"></head>
+        <body><div class="view_title"><h1>{title}</h1></div>
+        <div class="variety"><div class="info">
+        <span>2026.10.18</span>
+        <a class="gotosite" href="/news/ministryNewsList.do?repCode=B00008">
+        방위사업청</a></div></div>
+        <a href="/common/download.do?fileId=456789&tblKey=GMN">
+        fictional-original.hwpx</a>
+        </body></html>""".format(url=url, title=title)).encode("utf-8")
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as archive:
+            archive.writestr("Contents/section0.xml",
+                             "<root><p><run><t>" + body +
+                             "</t></run></p></root>")
+        doc = buf.getvalue()
+        robots = b"User-agent: *\\nAllow: /\\n"
+        listing = b"<html><body>fictional listing</body></html>"
+        htmlsha, docsha = b.digest(html), b.digest(doc)
+        robotsha, listingsha = b.digest(robots), b.digest(listing)
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder) / "private-vault"
             root.mkdir()
@@ -209,7 +228,8 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
             state = root / "state"
             for sub in ("captures", "ledger", "private_attempts"):
                 (state / sub).mkdir(parents=True)
-            for sha, payload in ((htmlsha, html), (docsha, doc)):
+            for sha, payload in ((htmlsha, html), (docsha, doc),
+                                (robotsha, robots), (listingsha, listing)):
                 (state / "captures" / (sha + ".bin")).write_bytes(payload)
             metadata = {
                 "issuer": "방위사업청",
@@ -255,7 +275,12 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                 "failures": [], "target_date_source": "explicit",
                 "target_date": "2026-10-18", "cap": 1, "lookback_days": 0,
                 "requests": [
-                    {"form": {"repCode": "B00008"}},
+                    {"requested_url": "https://www.korea.kr/robots.txt",
+                     "capture_sha256": robotsha, "http_status": 200},
+                    {"requested_url": "https://www.korea.kr/briefing/pressReleaseList.do",
+                     "capture_sha256": listingsha, "http_status": 200,
+                     "form": {"repCode": "B00008", "startDate": "2026-10-18",
+                              "endDate": "2026-10-18"}},
                     {"requested_url": url, "capture_sha256": htmlsha,
                      "http_status": 200},
                     {"requested_url": document_url, "capture_sha256": docsha,
