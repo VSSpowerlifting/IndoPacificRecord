@@ -131,7 +131,7 @@ def load_owner_policy(path=POLICY_PATH):
     return policy
 
 
-def verify_cohort(packet, policy):
+def verify_cohort(packet, policy, *, baseline_packet=None):
     """Validate one entire frozen source cohort; return metadata-only rows.
 
     Never reinterpret a candidate's private-review flags as a publication grant.
@@ -146,11 +146,27 @@ def verify_cohort(packet, policy):
     need(len(specs) == 1, "unapproved_source_family")
     spec = specs[0]
     records = packet.get("records")
+    future_commit = packet.get("source_git_commit") != spec["frozen_review_cohort_commit"]
+    original_eligible = None
+    if future_commit:
+        # The owner's source-family approval is standing, but the baseline
+        # cannot be substituted or forgotten as new immutable captures arrive.
+        # This structural gate does NOT verify Git ancestry, review or rights;
+        # a separate authenticated validator MUST do that before writes.
+        need(type(packet.get("source_git_commit")) is str
+             and SHA40.fullmatch(packet["source_git_commit"]) is not None
+             and baseline_packet is not None,
+             "rolling_source_requires_independently_pinned_baseline")
+        original_eligible = verify_cohort(baseline_packet, policy)
+        need(packet.get("candidate_count", 0) >=
+             spec["frozen_review_cohort_candidate_count"],
+             "rolling_source_lost_frozen_candidates")
     need(packet.get("schema") == CANDIDATE_SCHEMA
          and packet.get("desk") == FAMILIES[family]["desk"]
-         and packet.get("source_git_commit") == spec["frozen_review_cohort_commit"]
-         and packet.get("candidate_count") ==
-             spec["frozen_review_cohort_candidate_count"]
+         and (future_commit or
+              packet.get("source_git_commit") == spec["frozen_review_cohort_commit"])
+         and (future_commit or packet.get("candidate_count") ==
+              spec["frozen_review_cohort_candidate_count"])
          and type(records) is list
          and len(records) == packet["candidate_count"]
          and packet.get("all_candidates_held") is True
@@ -160,8 +176,10 @@ def verify_cohort(packet, policy):
          and packet.get("seven_scheduled_days_authenticated_by_this_projection") is False
          and packet.get("source_specific_reuse_authorized_by_this_projection") is False
          and packet.get("original_title_or_body_exported") is False
-         and packet.get("metadata_manifest_sha256") ==
-             spec["frozen_review_cohort_metadata_manifest_sha256"]
+         and type(packet.get("metadata_manifest_sha256")) is str
+         and SHA256.fullmatch(packet["metadata_manifest_sha256"])
+         and (future_commit or packet["metadata_manifest_sha256"] ==
+              spec["frozen_review_cohort_metadata_manifest_sha256"])
          and digest(records) == packet["metadata_manifest_sha256"],
          "source_candidate_cohort_not_owner_pinned")
     seen_id, seen_url, eligible, held = set(), set(), [], set()
@@ -209,6 +227,20 @@ def verify_cohort(packet, policy):
     need(held == set(spec["known_excluded_source_identities"])
          and packet["semantic_exception_count"] == len(held),
          "incomplete_semantic_exception_set")
+    if future_commit:
+        # Every initially reviewable identity must remain the same exact
+        # official source. Commit-bound digests may change across collections;
+        # the independent validator MUST recheck original version/capture bytes.
+        current_by_id = {row["source_identity"]: row for row in eligible}
+        for original in original_eligible:
+            current = current_by_id.get(original["source_identity"])
+            need(current is not None and all(
+                current[k] == original[k] for k in (
+                    "source_identity", "canonical_official_url",
+                    "publisher_posted_date", "official_issuer",
+                    "official_publisher", "official_republisher",
+                    "first_seen_run")),
+                "rolling_source_frozen_identity_or_metadata_changed")
     return eligible
 
 
@@ -241,7 +273,7 @@ def verify_release_evidence(receipt, packet, eligible):
 
 
 def admit(conn, packet, policy, receipt, *, as_of_utc,
-          trusted_validator=None):
+          trusted_validator=None, baseline_packet=None):
     """Insert source-scoped link rows transactionally after trusted validation.
 
     Default HOLD: no deployment caller currently has a trusted independent
@@ -249,7 +281,7 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     """
     need(policy == load_owner_policy(), "owner_policy_is_not_repository_pinned")
     need(callable(trusted_validator), "trusted_release_evidence_validator_missing")
-    eligible = verify_cohort(packet, policy)
+    eligible = verify_cohort(packet, policy, baseline_packet=baseline_packet)
     proof_digest = verify_release_evidence(receipt, packet, eligible)
     need(trusted_validator(receipt, packet, eligible) is True,
          "trusted_release_evidence_not_authenticated")
@@ -264,18 +296,25 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     try:
         for row in eligible:
             key = (row["source_family"], row["source_identity"])
-            expected = (row["canonical_official_url"],
-                        row["publisher_posted_date"],
-                        row["official_issuer"], row["official_publisher"],
-                        row["official_republisher"], row["metadata_version_sha256"])
+            stable = (row["canonical_official_url"],
+                      row["publisher_posted_date"], row["official_issuer"],
+                      row["official_publisher"], row["official_republisher"],
+                      row["first_seen_run"])
             old = conn.execute(
                 "SELECT canonical_official_url,publisher_posted_date,"
                 "official_issuer,official_publisher,official_republisher,"
-                "metadata_version_sha256 FROM regional_official_source_links "
+                "first_seen_run,source_git_commit,metadata_version_sha256 "
+                "FROM regional_official_source_links "
                 "WHERE source_family=? AND source_identity=?", key).fetchone()
             if old is not None:
-                need(tuple(old) == expected,
+                need(tuple(old[:6]) == stable and
+                     (old[6] != row["source_git_commit"] or
+                      old[7] == row["metadata_version_sha256"]),
                      "previously_released_source_version_changed")
+                # An unchanged official identity retains its ORIGINAL
+                # admitted Git SHA/proof. A later collection commit changes
+                # the candidate digest without creating a second public row.
+                # The trusted validator still re-verifies the new snapshot.
                 unchanged += 1
                 continue
             # Reject a collided legacy source URL rather than asserting its
