@@ -39,10 +39,10 @@ def fixture(conn):
             (3,2,None,None), (4,3,None,None), (5,4,None,None), (6,1,'paused',None),
             (7,1,'terminal',None), (8,1,'held',None), (9,1,'private',None), (10,1,None,None)):
         original = 'Synthetic English original' if source == 2 else '测试标题'  # explicit synthetic test headline
-        conn.execute('INSERT INTO articles VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        conn.execute('INSERT INTO articles VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
             (ident, 'https://example.org/title/%s' % ident, original, english,
              source, 0, None, state, 0.1, None, 'BODY MUST NEVER BE DISPATCHED',
-             *([None] * 9)))
+             *([None] * 10)))
     conn.execute('INSERT INTO retired_article_urls VALUES(?,?)',
                  (10, title_hash('https://example.org/title/10')))
     conn.commit()
@@ -116,6 +116,15 @@ class TitleWorkerTests(unittest.TestCase):
         self.conn.execute("UPDATE articles SET title_english='Concurrent human title' WHERE id=1"); self.conn.commit()
         self.assertFalse(finish(self.conn, row, 'Synthetic machine title', ANALYSIS_MODEL))
         self.assertEqual(self.conn.execute('SELECT title_english FROM articles WHERE id=1').fetchone()[0], 'Concurrent human title')
+
+    def test_later_human_edit_is_preserved_even_after_original_changes(self):
+        self.run_work()
+        self.conn.execute("UPDATE articles SET title_original='更改测试标题',title_english='Human corrected headline' WHERE id=1")
+        self.conn.commit()
+        self.assertEqual(self.work(),[])
+        self.assertEqual(english_title(candidates(self.conn)[0]),'Human corrected headline')
+        self.assertEqual(self.run_work()['translated'],0)
+        self.assertEqual(self.analyzer.translate_title.call_count,1)
 
     def test_failure_original_and_analysis_untouched_then_bounded_pause(self):
         self.analyzer.translate_title.side_effect = AnalysisError('synthetic malformed response')
@@ -205,6 +214,15 @@ class TitlePresentationTests(unittest.TestCase):
                title_translation_source_sha256=title_hash('old original'))
         self.assertIsNone(english_title(r))
         self.assertEqual(english_title(dict(r,desk_id='korea')),'Old title')
+
+    def test_english_original_with_invalid_chinese_rendering_reuses_source(self):
+        r=dict(id=1,title_english='测试标题',title_original='Synthetic English original',
+               language_tag='en',desk_id='china',passed_relevance=1,analyzed_at='2026-01-01')
+        self.assertEqual(english_title(r),'Synthetic English original')
+        receipt,batch=report([r],20)
+        self.assertEqual(receipt['eligible_now'],0)
+        self.assertEqual(receipt['counts'][0]['title'],'english_original_invalid_stored')
+        self.assertEqual(batch,[])
 
 
 from tests.test_reconcile import ReconcileCase, migrate

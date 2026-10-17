@@ -41,6 +41,10 @@ def build_fixture(destination):
     con.execute('INSERT INTO articles(id,url,content_hash,source_id,title_original,text_original,published_date,passed_relevance) VALUES(?,?,?,?,?,?,?,?)',
         (ident,'https://example.org/synthetic-title-fixture',title_hash('synthetic'),source,
          '测试标题','Synthetic body must stay outside bulk exports','2026-10-17',0))
+    english_source=con.execute("SELECT id FROM sources WHERE desk_id='china' AND language_tag='en' AND enabled=1 ORDER BY id LIMIT 1").fetchone()[0]
+    con.execute('INSERT INTO articles(id,url,content_hash,source_id,title_original,title_english,text_original,published_date,passed_relevance) VALUES(?,?,?,?,?,?,?,?,?)',
+        (ident+1,'https://example.org/synthetic-english-fixture',title_hash('synthetic English'),english_source,
+         'Synthetic English original fixture','测试标题','Synthetic English body','2026-10-17',0))
     con.commit()
     analyzer=Mock(); analyzer.translate_title.return_value='Synthetic headline translation fixture'
     row=next(r for r in candidates(con) if r['id']==ident)
@@ -86,6 +90,17 @@ class ChinaTitlePublicTests(unittest.TestCase):
         self.assertIn('测试标题',html)
         self.assertNotIn('No translation and no summary',html)
         self.assertIn('Machine-translated title', (self.out/'archive.html').read_text())
+
+    def test_english_original_with_wrong_language_rendering_uses_actual_headline_everywhere(self):
+        ident=self.ident+1
+        compact=next(r for r in self.compact['records'] if r[0]==ident)
+        research=next(r for r in self.index['records'] if r['id']=='record:'+str(ident))
+        self.assertEqual(compact[4:6],['Synthetic English original fixture']*2)
+        self.assertEqual(research['title'],compact[4])
+        self.assertIn('English-language original',research['processing'])
+        html=(self.out/'record'/('%s.html'%ident)).read_text()
+        self.assertIn('<title>Synthetic English original fixture',html)
+        self.assertNotIn('The heading is a machine translation',html)
 
     def test_desktop_mobile_search_labels_citations_and_downloads(self):
         for width in (1280,375):

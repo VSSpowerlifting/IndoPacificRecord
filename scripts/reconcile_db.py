@@ -618,7 +618,7 @@ def reconcile(base_path, origin_path, local_path, out_path):
     # as before.
     set_clause = ",".join(f"{c}=?" for c in ANALYSIS_COLS)
     from core.title_translation import english_title, receipts
-    title_receipts = receipts(con)
+    title_receipts = receipts(con, metadata=True)
     pending_shared = con.execute(
         f"SELECT l.id AS lid, l.url AS url, {','.join('l.' + c for c in ANALYSIS_COLS)} "
         "FROM loc.articles l JOIN main.articles m ON m.url = l.url "
@@ -635,7 +635,7 @@ def reconcile(base_path, origin_path, local_path, out_path):
             (r["url"],)).fetchone()
         if held and held["desk_id"] == "china":
             current = dict(held)
-            current["title_translation_source_sha256"] = title_receipts.get(held["id"])
+            current.update(title_receipts.get(held["id"], {}))
             if english_title(current):
                 values[ANALYSIS_COLS.index("title_english")] = english_title(current)
         con.execute(

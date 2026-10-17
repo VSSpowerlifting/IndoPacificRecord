@@ -324,7 +324,7 @@ LOGICAL_FIELDS = (
     "is_significant", "content_hash", "scraped_at", "scrape_run_id",
     "text_original", "passed_relevance", "source_slug", "source_name",
     "language_tag", "institution_id", "institution",
-    "title_translation_source_sha256", "title_translation_model",
+    "title_translation_source_sha256", "title_translation_value_sha256", "title_translation_model",
     "title_translation_prompt", "title_translated_at",
 )
 
@@ -597,6 +597,12 @@ def load_corpus(db_path: Path) -> dict:
             rec["desk_id"] = desk_by_source.get(rec["source_slug"])
             rec.update(title_receipts.get(rec["id"], {}))
             rec["title_english"] = english_title(rec)
+            value_hash = rec.get("title_translation_value_sha256")
+            if value_hash and rec["title_english"] and value_hash != hashlib.sha256(rec["title_english"].encode("utf-8")).hexdigest():
+                # The stored title was edited after this receipt. Preserve it
+                # without attributing the changed value to the old model run.
+                for key in ("title_translation_model", "title_translation_prompt", "title_translated_at"):
+                    rec.pop(key, None)
 
     for rec in corpus:
         rec["state_label"] = STATE_LABELS[rec["state"]]

@@ -120,10 +120,10 @@ def finish(conn, row, title, model):
                    and current.get("title_translation_claim") == row["token"])
         if matches and title is not None:
             conn.execute("UPDATE articles SET title_english=?, "
-                "title_translation_source_sha256=?, title_translation_model=?, "
+                "title_translation_source_sha256=?, title_translation_value_sha256=?, title_translation_model=?, "
                 "title_translation_prompt=?, title_translated_at=?, "
                 "title_translation_state=NULL WHERE id=?",
-                (title, title_hash(row["title_original"]), model, PROMPT_VERSION,
+                (title, title_hash(row["title_original"]), title_hash(title), model, PROMPT_VERSION,
                  datetime.now(timezone.utc).isoformat(), row["id"]))
         elif matches:
             disposition = classify(attempts_before=row["attempts"] - 1,
@@ -175,7 +175,7 @@ def reconcile_titles(conn):
     columns = {r[1] for r in conn.execute("PRAGMA loc.table_info(articles)")}
     if "title_translation_source_sha256" not in columns:
         return
-    names = ("title_english", "title_translation_source_sha256",
+    names = ("title_english", "title_translation_source_sha256", "title_translation_value_sha256",
              "title_translation_model", "title_translation_prompt", "title_translated_at")
     local = {r[0]: r[1:] for r in conn.execute(
         "SELECT url,title_original," + ",".join(names) +

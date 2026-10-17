@@ -91,7 +91,7 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
     current = {r[0]: r for r in con.execute(
         'SELECT a.id, a.url, a.published_date, a.title_english, a.title_original, '
         's.slug FROM articles a JOIN sources s ON s.id=a.source_id')}
-    title_receipts = receipts(con)
+    title_receipts = receipts(con, metadata=True)
     source_columns = {r[1] for r in con.execute('PRAGMA table_info(sources)')}
     languages = ({r[0]: (r[1], r[2]) for r in con.execute(
         'SELECT slug, desk_id, language_tag FROM sources')}
@@ -116,8 +116,8 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
         stored = current[ident]
         desk_id, language = languages.get(stored[5], (None, None))
         title_record = dict(title_original=stored[4], title_english=stored[3],
-            desk_id=desk_id, language_tag=language,
-            title_translation_source_sha256=title_receipts.get(ident), state=state['code'])
+            desk_id=desk_id, language_tag=language, state=state['code'])
+        title_record.update(title_receipts.get(ident, {}))
         if (day, english or '', original or '', source['code']) != (stored[2], english_title(title_record) or '', stored[4] or '', stored[5]):
             excluded['changed_public_projection'] += 1
             continue

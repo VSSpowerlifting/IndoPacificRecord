@@ -403,14 +403,14 @@ def update_analysis(
             (article_id,)).fetchone()
         if held and held["desk_id"] == "china":
             current = dict(held)
-            current["title_translation_source_sha256"] = receipts(conn).get(article_id)
+            current.update(receipts(conn, metadata=True).get(article_id, {}))
             preserved_title = english_title(current)
             title_english = preserved_title or title_english
-            if not preserved_title and current["title_translation_source_sha256"]:
+            if not preserved_title and current.get("title_translation_source_sha256"):
                 # A full translation replaced a stale title-only result. Its
                 # old receipt cannot describe the new full-analysis output.
                 conn.execute("UPDATE articles SET title_translation_source_sha256=NULL, "
-                    "title_translation_model=NULL,title_translation_prompt=NULL, "
+                    "title_translation_value_sha256=NULL,title_translation_model=NULL,title_translation_prompt=NULL, "
                     "title_translated_at=NULL WHERE id=?", (article_id,))
         conn.execute(
             """

@@ -39,8 +39,18 @@ def english_title(record):
         return value
     bound = record.get("title_translation_source_sha256")
     original = record.get("title_original") or ""
-    if bound and bound != title_hash(original):
+    saved_value = record.get("title_translation_value_sha256")
+    edited = bool(saved_value and isinstance(value, str) and saved_value != title_hash(value))
+    if bound and not edited and bound != title_hash(original):
         return None
+    # A legacy English original holds Chinese in its English-title field.
+    # Reuse its actual English headline for display; do not pay to
+    # translate it again or rewrite the stored value. Missing fields still
+    # use the ordinary original-title fallback and retain their own counts.
+    if (value and not valid_english(value)
+            and (record.get("language_tag") or "").split("-")[0] == "en"
+            and valid_english(original)):
+        return original
     return value if valid_english(value) else None
 
 
@@ -61,7 +71,7 @@ def receipts(conn, *, metadata=False):
     if "title_translation_source_sha256" not in {
             r[1] for r in cursor.execute("PRAGMA table_info(articles)")}:
         return {}
-    fields = ("title_translation_source_sha256", "title_translation_model",
+    fields = ("title_translation_source_sha256", "title_translation_value_sha256", "title_translation_model",
               "title_translation_prompt", "title_translated_at")
     return {r[0]: (dict(zip(fields, r[1:])) if metadata else r[1])
             for r in cursor.execute("SELECT id," + ",".join(fields) +

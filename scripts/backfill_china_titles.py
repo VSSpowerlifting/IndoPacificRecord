@@ -15,7 +15,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from config import DB_PATH, ANALYSIS_MODEL
 from core.title_translation import (MAX_TOKENS, SYSTEM, TOOL, title_hash,
-                                    valid_english)
+                                    valid_english, english_title)
 from core.processing_state import RETRY_BUDGET
 from scripts.reconcile_db import read_only
 from scripts.spend_guard import estimate_cost_usd, preflight
@@ -39,9 +39,11 @@ def report(rows, limit):
                  "analyzed" if r["analyzed_at"] else "analysis_incomplete")
         value = r["title_english"]
         if (r["language_tag"] or "").startswith("en"):
-            kind = "english_original"
+            kind = ("english_original_invalid_stored" if value and value.strip()
+                    and not valid_english(value) else "english_original")
         elif (r.get("title_translation_source_sha256") and
-              r["title_translation_source_sha256"] != title_hash(r["title_original"] or "")):
+              r["title_translation_source_sha256"] != title_hash(r["title_original"] or "")
+              and not english_title(r)):
             kind = "stale"
         elif value is None:
             kind = "missing"

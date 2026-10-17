@@ -4327,7 +4327,9 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
         super().setUpClass()
         cls.corpus = gp.load_corpus(TRACKED_DB)
         cls.analyzed = next(r for r in cls.corpus["corpus"]
-                            if r["state"] == "analyzed")
+                            if r["state"] == "analyzed"
+                            and r["language_tag"] == "zh-Hans"
+                            and r["title_english"])
 
     def authored(self, rel: str) -> str:
         return _authored_text((self.out / rel).read_text(encoding="utf-8"), rel)
@@ -4372,7 +4374,7 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
             self.authored("record/%d.html" % self.analyzed["id"]))
         self.assertIn("Machine translation", text)
         self.assertIn("The heading is a machine translation of the original "
-                      "title above. Not reviewed by a human.", text)
+                      "title above. Human review is not recorded.", text)
 
     def test_source_record_label_stays_guarded(self):
         self.assertIn("Source record",
@@ -4741,6 +4743,11 @@ class TestLogicalFingerprint(unittest.TestCase):
             "passed_relevance": 1, "source_slug": "t", "source_name": "Other",
             "language_tag": "en", "institution_id": "j",
             "institution": "Other Institution",
+            "title_translation_source_sha256": "a" * 64,
+            "title_translation_value_sha256": "b" * 64,
+            "title_translation_model": "title-model",
+            "title_translation_prompt": "china-title-v1",
+            "title_translated_at": "2026-10-17T00:00:00+00:00",
         }
         self.assertEqual(set(samples), set(gp.LOGICAL_FIELDS),
                          "every logical field must be exercised")

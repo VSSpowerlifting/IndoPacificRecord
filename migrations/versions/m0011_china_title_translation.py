@@ -7,6 +7,7 @@ VERSION = "0011"
 NAME = "china_title_translation"
 COLUMNS = (
     ("title_translation_source_sha256", "TEXT"),
+    ("title_translation_value_sha256", "TEXT"),
     ("title_translation_model", "TEXT"),
     ("title_translation_prompt", "TEXT"),
     ("title_translated_at", "TEXT"),
