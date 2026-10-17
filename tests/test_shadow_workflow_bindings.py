@@ -97,40 +97,27 @@ class BindingContracts(unittest.TestCase):
         with self.assertRaisesRegex(audit.BindingError, "admission status"):
             self.report()
 
-    def test_commented_cron_is_not_a_live_schedule(self):
-        name = self.root / ".github/workflows/ph_afp_shadow.yml"
-        s = name.read_text()
-        self.assertIn("- cron: '40 6 * * *'", s)
-        name.write_text(s.replace("- cron: '40 6 * * *'",
-                                  "# - cron: '40 6 * * *'"))
-        with self.assertRaisesRegex(audit.BindingError, "expected active schedule"):
+    def test_afp_source_is_pending_private_handoff(self):
+        row = next(x for x in self.original["sources"]
+                   if x["source_slug"] == "ph_afp_articles")
+        self.assertEqual(row["trigger"], "private_handoff_pending")
+        self.assertEqual(row["evidence"], "private_handoff_pending_external_runs_unverified")
+        self.assertFalse(row["run_attested"])
+        self.assertFalse(row["production_eligible"])
+        self.assertNotIn("  schedule:", (self.root / ".github/workflows/ph_afp_shadow.yml").read_text())
+
+    def test_reintroduced_afp_schedule_is_rejected(self):
+        path = self.root / ".github/workflows/ph_afp_shadow.yml"
+        original = path.read_text()
+        path.write_text(original.replace("on:\n", "on:\n  schedule:\n    - cron: '40 6 * * *'\n", 1))
+        with self.assertRaisesRegex(audit.BindingError, "private AFP handoff still"):
             self.report()
 
-    def test_extra_active_schedule_must_be_explicitly_reviewed(self):
-        name = self.root / ".github/workflows/ph_afp_shadow.yml"
-        s = name.read_text()
-        name.write_text(s.replace("    - cron: '40 6 * * *'",
-                                  "    - cron: '40 6 * * *'\n    - cron: '15 12 * * *'", 1))
-        with self.assertRaisesRegex(audit.BindingError,
-                                    "unexpected, duplicated or missing active"):
-            self.report()
-
-    def test_duplicate_active_schedule_is_not_one_slot(self):
-        name = self.root / ".github/workflows/ph_afp_shadow.yml"
-        s = name.read_text()
-        name.write_text(s.replace("    - cron: '40 6 * * *'",
-                                  "    - cron: '40 6 * * *'\n    - cron: '40 6 * * *'", 1))
-        with self.assertRaisesRegex(audit.BindingError,
-                                    "unexpected, duplicated or missing active"):
-            self.report()
-
-    def test_branch_mention_in_comment_does_not_count(self):
-        name = self.root / ".github/workflows/ph_afp_shadow.yml"
-        s = name.read_text()
-        self.assertIn("shadow/ph-afp", s)
-        name.write_text(s.replace("shadow/ph-afp", "shadow/ph-afp-unknown") +
-                        "\n# shadow/ph-afp\n")
-        with self.assertRaisesRegex(audit.BindingError, "branch not in active"):
+    def test_reintroduced_afp_manual_dispatch_is_rejected(self):
+        path = self.root / ".github/workflows/ph_afp_shadow.yml"
+        original = path.read_text()
+        path.write_text(original.replace("on:\n", "on:\n  workflow_dispatch:\n", 1))
+        with self.assertRaisesRegex(audit.BindingError, "private AFP handoff still"):
             self.report()
 
     def test_manual_only_workflow_cannot_gain_schedule_without_review(self):
