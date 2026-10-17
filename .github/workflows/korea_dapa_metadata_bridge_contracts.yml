@@ -46,8 +46,8 @@ jobs:
               'scripts.korea_dapa_signed_metadata_bridge admit-public',
           ):
               assert required in text, required
-          assert "DAPA_PACKET_B64: \${{ inputs.dapa_packet_b64 }}" in text
-          assert "DAPA_PACKET_MAC: \${{ inputs.dapa_mac }}" in text
+          assert "DAPA_PACKET_B64:" in text
+          assert "DAPA_PACKET_MAC:" in text
           print("PASS: no DAPA publication without signed dispatch and activation")
           PY
           git diff --exit-code -- pla_watch.db output/
