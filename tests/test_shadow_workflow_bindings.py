@@ -148,11 +148,18 @@ class BindingContracts(unittest.TestCase):
         self.assertIs(record["run_attested"], False)
         self.assertIs(record["production_eligible"], False)
 
-    def test_only_exact_indonesia_source_may_claim_pending_private_handoff(self):
-        philippines = next(x for x in self.config["sources"]
-                           if x["source_slug"] == "ph_afp_articles")
-        philippines.update(trigger="private_handoff_pending", workflow=None, cron=None)
-        with self.assertRaisesRegex(audit.BindingError, "exact Indonesia Kemhan"):
+    def test_other_sources_cannot_claim_private_handoff(self):
+        unrelated = next(x for x in self.config["sources"]
+                         if x["source_slug"] == "ph_nsc_official_statements")
+        unrelated.update(trigger="private_handoff_pending", workflow=None, cron=None)
+        with self.assertRaisesRegex(audit.BindingError,
+                                    "limited to exact Indonesia Kemhan or Philippines AFP"):
+            self.report()
+
+    def test_afp_reintroduced_writer_is_rejected(self):
+        path = self.root / ".github/workflows/ph_afp_shadow.yml"
+        path.write_text(path.read_text() + "\n      - run: git push origin HEAD:refs/heads/shadow/ph-afp\n")
+        with self.assertRaisesRegex(audit.BindingError, "private AFP handoff still"):
             self.report()
 
     def test_indonesia_legacy_writer_reintroduced_fails_handoff(self):
