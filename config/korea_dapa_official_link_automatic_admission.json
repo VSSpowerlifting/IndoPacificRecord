@@ -1,0 +1,29 @@
+{
+  "schema": "ipr-korea-dapa-official-link-policy/1",
+  "owner_decision_date": "2026-10-17",
+  "desk": "korea",
+  "source_family": "kr_policy_dapa_releases",
+  "issuer": "kr_dapa",
+  "republisher": "kr_policy_briefing",
+  "government_portal_issuer_code": "B00008",
+  "source_identity_prefix": "korea-dapa-policy:",
+  "canonical_url_prefix": "https://www.korea.kr/briefing/pressReleaseView.do?newsId=",
+  "automatic_admission_of_verified_link_metadata": true,
+  "public_fields": [
+    "canonical_official_url",
+    "publisher_posted_date",
+    "official_issuer",
+    "official_republisher",
+    "source_identity"
+  ],
+  "source_capture_and_version_verification_required": true,
+  "private_original_custody_required": true,
+  "publish_original_korean_titles": false,
+  "publish_original_text": false,
+  "publish_document_media": false,
+  "publish_translations_or_analysis": false,
+  "publish_to_model_or_email": false,
+  "rights_to_rehost_original_implied": false,
+  "retrospective_approval_of_unverified_articles": false,
+  "desk_launch_or_collector_schedule_authorized_by_policy": false
+}
