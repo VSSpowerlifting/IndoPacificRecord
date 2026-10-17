@@ -23,7 +23,7 @@ class BindingContracts(unittest.TestCase):
         config = json.loads((audit.ROOT / "config/shadow_source_workflow_bindings.json").read_text())
         self.config = copy.deepcopy(config)
         self.manifest_paths = sorted({x["manifest"] for x in config["sources"]})
-        self.workflow_paths = sorted({x["workflow"] for x in config["sources"] if x["workflow"]})
+        self.workflow_paths = sorted({x["workflow"] for x in config["sources"] if x["workflow"]} | {".github/workflows/ph_afp_shadow.yml"})
         for path in self.manifest_paths + self.workflow_paths:
             dst = self.root / path
             dst.parent.mkdir(parents=True, exist_ok=True)
