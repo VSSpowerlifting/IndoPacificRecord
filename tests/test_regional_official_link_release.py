@@ -161,7 +161,7 @@ class ReleaseContracts(unittest.TestCase):
     def test_real_pinned_commit_cannot_be_replaced_by_synthetic(self):
         _, packet, _ = data()
         with self.assertRaisesRegex(link.RegionalLinkHold,
-                                    "source_candidate_cohort_not_owner_pinned"):
+                                    "rolling_source_requires_independently_pinned_baseline"):
             link.verify_cohort(packet, link.load_owner_policy())
 
     def test_fictional_afp_cohort_is_metadata_only(self):
