@@ -138,14 +138,6 @@ jobs:
       # no-LLM/no-email gate. This uses only a scratch SQLite read and
       # source-availability counts. Current Sunday requires the exact same-day
       # successful collection marker; historical replays are marked unattested.
-      - name: Require real production full-text readiness before model and email
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m scripts.sunday_before_model_gate \
-            --week-ending "$IPR_SUNDAY_WEEK_END" \
-            --as-of "$IPR_SUNDAY_AS_OF"
-
       - name: Quarantine Korea before any Sunday source refresh
         shell: bash
         run: |
@@ -341,6 +333,20 @@ jobs:
             --week-ending "$IPR_SUNDAY_WEEK_END" \
             --as-of "$IPR_SUNDAY_AS_OF" \
             --packet "$PRIVATE_WEEK_PACKET"
+
+      # Evaluate the sanitized CURRENT-week research packet after refresh and
+      # editor-scope restrictions. Typed sources can support an unapproved
+      # editorial draft, but cannot represent live production desk coverage.
+      - name: Require Sunday source readiness with verified editorial research
+        shell: bash
+        env:
+          PRIVATE_WEEK_PACKET: ${{ steps.editor_scope.outputs.packet }}
+        run: |
+          set -euo pipefail
+          python -m scripts.sunday_before_model_gate \
+            --week-ending "$IPR_SUNDAY_WEEK_END" \
+            --as-of "$IPR_SUNDAY_AS_OF" \
+            --research-packet "$PRIVATE_WEEK_PACKET"
 
       - name: Create read-only full Saturday-ending week source scaffold
         env:
