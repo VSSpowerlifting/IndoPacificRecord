@@ -57,6 +57,44 @@ class SundayBeforeModelContracts(unittest.TestCase):
             with self.assertRaisesRegex(BeforeModelRefused, "fewer_than_two"):
                 invoke()
 
+    def test_one_production_desk_can_pair_with_validated_research_for_draft_only(self):
+        limited = assess(rows=[row(1, "china", "2026-10-08")])
+        with patch("scripts.sunday_before_model_gate.inspect", return_value=limited):
+            with patch("core.brief_editorial_evidence.load_editorial_evidence",
+                       return_value=[{"desk": "japan", "id": "JP-W41-07"}]):
+                with patch("pathlib.Path.is_file", return_value=True):
+                    outcome = gate(
+                        week_ending=SAT, as_of=SAT, review_local_day=SUN,
+                        research_packet=Path("/tmp/private/2026-10-10.json"))
+        self.assertTrue(outcome["research_supported_editorial_draft_only"])
+        self.assertEqual(outcome["typed_research_candidates"], 1)
+        self.assertEqual(outcome["production_desks_with_usable_text"], ["china"])
+        self.assertFalse(outcome["editor_delivery_authorized"])
+        self.assertFalse(outcome["publication_authorized"])
+
+    def test_research_never_bypasses_stale_marker_or_missing_production(self):
+        for report in (assess(marker="2026-10-10",
+                              rows=[row(1, "china", "2026-10-08")]),
+                       assess(rows=[])):
+            with self.subTest(report=report["unmet_gates"]):
+                with patch("scripts.sunday_before_model_gate.inspect",
+                           return_value=report):
+                    with patch("core.brief_editorial_evidence.load_editorial_evidence",
+                               return_value=[{"desk": "japan", "id": "JP-W41-07"}]):
+                        with patch("pathlib.Path.is_file", return_value=True):
+                            with self.assertRaises(BeforeModelRefused):
+                                gate(week_ending=SAT, as_of=SAT, review_local_day=SUN,
+                                     research_packet=Path("/tmp/private/2026-10-10.json"))
+
+    def test_research_packet_must_match_reporting_saturday(self):
+        limited = assess(rows=[row(1, "china", "2026-10-08")])
+        with patch("scripts.sunday_before_model_gate.inspect", return_value=limited):
+            for filename in ("2026-10-03.json", "not-a-packet.json"):
+                with self.subTest(filename=filename):
+                    with self.assertRaisesRegex(BeforeModelRefused, "invalid exact-week"):
+                        gate(week_ending=SAT, as_of=SAT, review_local_day=SUN,
+                             research_packet=Path("/tmp/private") / filename)
+
     def test_saturday_provisional_week_refused_before_archive_read(self):
         with patch("scripts.sunday_before_model_gate.inspect") as audit:
             with self.assertRaisesRegex(BeforeModelRefused,
@@ -117,16 +155,17 @@ class SundayBeforeModelContracts(unittest.TestCase):
         path = ROOT / ".github/workflows/sunday_briefs_editorial_handoff.yml"
         source = path.read_text(encoding="utf-8")
         preflight = source.index(
-            "- name: Require real production full-text readiness before model and email")
+            "- name: Require Sunday source readiness with verified editorial research")
         refresh = source.index(
             "- name: Audit current Vietnam MPS shadow state")
         model = source.index(
             "- name: Generate source-cited Sunday manuscript")
-        self.assertLess(preflight, refresh)
+        self.assertLess(refresh, preflight)
         self.assertLess(preflight, model)
         section = source[preflight:source.index(
-            "- name: Verify bounded Japan/Vietnam editorial source packet", preflight)]
+            "- name: Create read-only full Saturday-ending week source scaffold", preflight)]
         self.assertIn("python -m scripts.sunday_before_model_gate", section)
+        self.assertIn("--research-packet", section)
         for forbidden in ("ANTHROPIC_API_KEY", "IPR_SMTP_APP_PASSWORD",
                           "upload-artifact", "git push", "send_packet"):
             self.assertNotIn(forbidden, section)

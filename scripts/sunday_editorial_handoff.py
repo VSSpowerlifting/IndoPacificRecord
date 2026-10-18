@@ -60,9 +60,10 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
     if not trail:
         raise ValueError("no source candidates in this week; refuse empty editorial email")
     coverage_warning = (
-        "COVERAGE WARNING: fewer than two desks have source candidates. "
-        "This worksheet is NOT eligible for an ordinary cross-desk Brief; "
-        "a single-desk Brief would require Ben's separately recorded exception."
+        "COVERAGE WARNING: fewer than two live production desks have candidates. "
+        "Typed external research, where supplied, supports provisional "
+        "editorial drafting only; it is NOT a live public desk or publication "
+        "approval. Ben must separately clear the final source use and prose."
         if len(represented.intersection(desks)) < 2 else
         "Coverage: candidate records are present from at least two desks; not editorial approval."
     )
