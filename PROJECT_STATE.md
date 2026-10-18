@@ -1,5 +1,21 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Public China title completion (17 October 2026, engineering candidate):**
+Read-only diagnosis finds 151 missing Chinese-headline translations among 826
+eligible public China records: 150 screened out and one awaiting screening;
+653 valid stored English titles already propagate; one English original has
+Chinese in its English-title field and reuses its actual English headline for
+display. All 196 English originals need no new translation. The candidate adds
+bounded title-only processing on the
+existing client and `title_english`, source-version/concurrency protection,
+separate title retry receipts, dry-run/backfill cost reporting and consistent
+machine labels across public HTML/indexes/exports. Daily activation defaults
+off. No production DB, tracked output, source policy or editorial changes.
+The exact commands, counts, estimated $1.55 one-pass cost, synthetic browser
+evidence and remaining owner-authorized activation/backfill steps are in
+`docs/engineering/CHINA_TITLE_TRANSLATION_2026-10-17.md`. Full CI and review are
+the engineering gates; merge, paid runs and publication remain unapproved.
+
 **Archive released (17 October 2026, PR #776):**
 Approved source `6d9368c2f60679f44aaa034c5bb5541976520f9b` merged as
 `027f3f56ca9ccef323545124f55ac3c3fb319e01`. The owner authorized the 981
@@ -178,23 +194,29 @@ No private activation, production database/output/Daily/deployment changes or C2
 Independent manager review remains the next C1 acceptance gate. Receipt:
 `docs/research/APPLICATION_CUSTODY_INTEGRATION_2026-10-10.md`.
 
-**Evidence Timelines (17 October 2026, completion candidate):** merged #279
-already contains the engine and frontend from still-open #181. The focused
-completion branch `codex/evidence-timeline-completion-20261017`, from main
-`75137305d4`, implements the selected Flowing Chronology: dark petrol ground,
-alternating cards, attached curved branches, mobile rail, immediately visible
-scope and explicitly labelled planned/later evidence. Existing approval,
-reconciliation and private-review paths remain intact. All six entries and
-five record pages survive in the current corpus; the canonical draft and
-related Brief are unchanged. The shadow audit admits only the exact decorative
-node glow; negative controls keep other selectors, values and files prohibited.
-The read-only residue test pins liveness to the snapshot's latest active-source
-collection date; operational real-clock checks and liveness verdicts are unchanged.
-Browser, budgets and review artifacts are in
-`docs/EVIDENCE_TIMELINES.md`. Production output is unchanged and no publication
-is authorized. Ben's next step is review of the completed private experience;
-exact-content editorial approval and unresolved source-use #326 remain the
-publication holds documented by open preflight #697.
+**Evidence Timelines (18 October 2026, owner-review candidate):** frontend #798
+merged at `3ee6735338`, preserving the engine already integrated by #279 from
+still-open #181. The selected Flowing Chronology, scoped decorative node glow
+and approval/reconciliation/private-review paths are intact. Engineering and
+browser receipts remain in `docs/EVIDENCE_TIMELINES.md`.
+The corrected six-entry draft has now been checked against all five complete
+captured originals: sea-phase reporting includes September 9 morning gunnery,
+and the closing headline is explicitly attributed. A source-passage locator now
+separates the September 8 excerpt from the later September 9 gunnery account;
+the review note carries the refreshed draft digest and validation limit.
+Ben selected a references-only public presentation: no quotations, source
+titles or links to full-body record pages on this timeline. Private review
+retains evidence, and publisher-link/editorial approval remain unresolved.
+The private candidate,
+six-row review, exact digest and current source-use measurements/choices are in
+`docs/research/MARITIME_TIMELINE_OWNER_REVIEW_2026-10-18.md`. All five record
+routes survive; related Brief No. 15, frontend, database and production output
+are unchanged. Draft status and pending human credits remain intact. Ben's
+next step is exact-content/credit review and a source-use decision for the
+actual quotations/titles, publisher links and full-body record destinations.
+Open #697 remains the preflight; #326 has no recorded rights resolution. #332's
+later private-storage direction does not grant rights or establish cutover.
+No publication is authorized.
 
 **Deduplication provenance workbench (2026-10-11, review candidate):** explicit
 private archive inventory and saved-source replay now share the production

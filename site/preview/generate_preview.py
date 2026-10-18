@@ -77,6 +77,7 @@ from config import SITE_ORIGIN                                    # noqa: E402
 
 from jinja2 import Environment, FileSystemLoader                    # noqa: E402
 from core.viewmodel import PublicView                               # noqa: E402
+from core.title_translation import english_title, receipts, processing_note  # noqa: E402
 from core.china_discovery import build_focus                        # noqa: E402
 from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
@@ -323,6 +324,8 @@ LOGICAL_FIELDS = (
     "is_significant", "content_hash", "scraped_at", "scrape_run_id",
     "text_original", "passed_relevance", "source_slug", "source_name",
     "language_tag", "institution_id", "institution",
+    "title_translation_source_sha256", "title_translation_value_sha256", "title_translation_model",
+    "title_translation_prompt", "title_translated_at",
 )
 
 
@@ -377,11 +380,11 @@ DECLARED_SNAPSHOT = {
 PROCESSING_STATES = [
     {"code": "analyzed", "label": "Analyzed", "model_flagged": True,
      "definition": "Passed relevance screening and completed analysis. "
-                   "English title and summary are machine-generated."},
+                   "The summary is machine-generated."},
     {"code": "not_selected", "label": "Not selected for analysis",
      "model_flagged": False,
      "definition": "Screened and not selected for analysis. The original "
-                   "record is stored; no translation or summary was produced."},
+                   "record is stored; no analysis summary was produced."},
     {"code": "awaiting_screening", "label": "Awaiting screening",
      "model_flagged": False,
      "definition": "Stored but not yet screened for machine relevance. No machine screening judgment "
@@ -587,6 +590,19 @@ def load_corpus(db_path: Path) -> dict:
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
             " ORDER BY a.published_date DESC, a.id DESC").fetchall()
+
+        title_receipts = receipts(con, metadata=True)
+        desk_by_source = {s["slug"]: s.get("desk_id") for s in sources}
+        for rec in corpus + recent:
+            rec["desk_id"] = desk_by_source.get(rec["source_slug"])
+            rec.update(title_receipts.get(rec["id"], {}))
+            rec["title_english"] = english_title(rec)
+            value_hash = rec.get("title_translation_value_sha256")
+            if value_hash and rec["title_english"] and value_hash != hashlib.sha256(rec["title_english"].encode("utf-8")).hexdigest():
+                # The stored title was edited after this receipt. Preserve it
+                # without attributing the changed value to the old model run.
+                for key in ("title_translation_model", "title_translation_prompt", "title_translated_at"):
+                    rec.pop(key, None)
 
     for rec in corpus:
         rec["state_label"] = STATE_LABELS[rec["state"]]
@@ -2114,7 +2130,7 @@ CITATION_PROCESSING_NOTES = {
         "machine-generated and have not been reviewed by a human.",
     "not_selected":
         "This record was screened and not selected for analysis. No "
-        "translation and no summary were produced.",
+        "analysis summary was produced.",
     "awaiting_screening":
         "This record has not been machine-screened. No machine screening judgment has been "
         "made about it.",
@@ -2156,7 +2172,7 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
                 id=_require(record.get("id"), "record id", subject),
                 date=snapshot["date"],
                 records=snapshot["expected_records"]),
-        "note": CITATION_PROCESSING_NOTES[record["state"]],
+        "note": processing_note(record, CITATION_PROCESSING_NOTES),
     }
 
 

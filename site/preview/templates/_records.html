@@ -31,6 +31,9 @@
       and record.title_original.strip() != record.title_english.strip() %}
     <p class="original"{% if record.language_tag %} lang="{{ record.language_tag }}"{% endif %}>{{ record.title_original }}</p>
 {%- endif %}
+{%- if record.desk_id == 'china' and record.title_english and record.language_tag != 'en' %}
+    <p class="meta">Machine-translated title · human review not recorded</p>
+{%- endif %}
 {%- endmacro %}
 
 {# The heading text: the machine translation when one exists, otherwise the

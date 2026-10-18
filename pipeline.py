@@ -806,6 +806,25 @@ def run(
                 _record_failure(aid, body_zh, "analysis_incomplete",
                                 attempts_before, content_verdicts)
 
+    # Optional, independently bounded headline completion. Full analysis goes
+    # first so already translated records incur no duplicate title-only call.
+    # Failure here must not turn valid collection into a failed daily run.
+    from config import CHINA_TITLE_TRANSLATION_LIMIT
+    if (CHINA_TITLE_TRANSLATION_LIMIT and ANTHROPIC_API_KEY and not no_analysis
+            and not dry_run and account_blocked is None):
+        from storage.title_translation import candidates, ready, run_batch
+        try:
+            with db.get_conn() as title_conn:
+                rows = [r for r in candidates(title_conn) if ready(r)][:CHINA_TITLE_TRANSLATION_LIMIT]
+                if rows:
+                    analyzer = analyzer or Analyzer()
+                    logger.info("Title-only completion: %s", run_batch(
+                        title_conn, analyzer, rows, ANALYSIS_MODEL))
+        except FatalAPIError:
+            logger.error("Title-only completion stopped: account blocked")
+        except Exception:
+            logger.error("Title-only completion failed; collection continues", exc_info=False)
+
     # ── Stage 13: Close run record ────────────────────────────────────────────
     # --no-analysis is a deliberate skip, not a failure: it must not trip the
     # billing-failure guard or exit non-zero, or the site-generation stage and

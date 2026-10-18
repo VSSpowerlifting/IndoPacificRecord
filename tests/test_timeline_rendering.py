@@ -102,6 +102,34 @@ class TimelineRendering(unittest.TestCase):
             finally:
                 page.write_text(before)
 
+    def test_references_only_public_page_omits_publisher_text_and_local_body_links(self):
+        from bs4 import BeautifulSoup
+        sc = json.loads(self.pilot.read_text())
+        doc = BeautifulSoup(self.detail(self.approved).read_text(), 'html.parser')
+        private = BeautifulSoup(self.detail().read_text(), 'html.parser')
+        self.assertFalse(doc.select('blockquote,.tl-original,.tl-translation,a[href*="record/"]'))
+        self.assertTrue(private.select('blockquote,.tl-original,a[href*="record/"]'))
+        for entry in sc['entries']:
+            for ev in entry['evidence']:
+                self.assertIsNotNone(doc.select_one('#source-%s' % ev['record_id']))
+                self.assertIsNotNone(doc.find('a', href=ev['url']))
+                self.assertNotIn(ev['excerpt'], doc.get_text())
+        text = self.detail(self.approved).read_text()
+        path = self.detail(self.approved)
+        from core.brief_collection import load_briefs, brief_entry
+        from core.desk_registry import load_registry
+        published, _ = load_briefs(ROOT / 'briefs', load_registry(), historical_numbers=range(1, 15))
+        views, _ = t.load_timelines(ROOT / 'pla_watch.db',
+                                   {slug:brief_entry(slug, sc) for slug, sc in published}, self.sources)
+        try:
+            path.write_text(text.replace('</article>', '<a href="../record/4466.html">Body</a></article>', 1))
+            with mock.patch('core.timelines.load_timelines', return_value=(views, [])):
+                errors = []
+                validate_output._validate_timelines(self.approved, errors)
+                self.assertIn('exposes source text or full-body', ' '.join(errors))
+        finally:
+            path.write_text(text)
+
     def test_original_language_headline_is_escaped_in_native_evidence(self):
         from jinja2 import Environment, FileSystemLoader
         from tests.test_timelines import synthetic_timeline, write_db
@@ -211,7 +239,7 @@ class TimelineRendering(unittest.TestCase):
         for entry in sc['entries']:
             rendered = doc.select_one('#' + entry['id'])
             self.assertEqual({a['href'] for a in rendered.select('.tl-citations a')},
-                             {'../record/%s.html' % ev['record_id'] for ev in entry['evidence']})
+                             {'#source-%s' % ev['record_id'] for ev in entry['evidence']})
 
     def test_offline_browser_mobile_keyboard_motion_print_and_primary_links(self):
         from playwright.sync_api import sync_playwright

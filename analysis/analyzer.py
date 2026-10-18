@@ -500,6 +500,20 @@ class Analyzer:
             )
         return title_en, body_en
 
+    def translate_title(self, title: str) -> str:
+        """Translate the exact headline alone; never call full analysis here."""
+        from core.title_translation import SYSTEM, TOOL, MAX_TOKENS, valid_english
+        data = self._call_tool(
+            [{"role": "user", "content": json.dumps({"headline": title}, ensure_ascii=False)}],
+            TOOL, max_tokens=MAX_TOKENS, temperature=0.0,
+            system=[{"type": "text", "text": SYSTEM}], task="title_translation")
+        value = data.get("title_en")
+        if (set(data) != {"title_en"} or not valid_english(value)
+                or "\n" in value or "\r" in value):
+            self.usage.mark_failed("title_translation", ANALYSIS_MODEL)
+            raise AnalysisError("Invalid title-only translation response")
+        return value
+
     def summarize(self, title_en: str, body_en: str) -> str:
         messages = build_summary_messages(title_en, body_en)
         raw  = self._call(messages, max_tokens=1000, temperature=0.3,
