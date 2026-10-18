@@ -57,6 +57,15 @@
       "per_record_human_review_required": false,
       "asserts_human_review_outside_frozen_cohort": false,
       "elapsed_time_gate": false
+    },
+    {
+      "source_family": "ph_afp_articles",
+      "decision_recorded_on": "2026-10-18",
+      "decision_source": "Owner's explicit authorization in the Indo-Pacific Record working conversation, 2026-10-18, following the Philippines #816 release-readiness review",
+      "covers_existing_and_future_records": true,
+      "per_record_human_review_required": false,
+      "asserts_human_review_outside_frozen_cohort": false,
+      "elapsed_time_gate": false
     }
   ]
 }
