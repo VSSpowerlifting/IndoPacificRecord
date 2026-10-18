@@ -260,7 +260,7 @@
         "resolved": []
       },
       "limits": [
-        "No Philippine source is enabled in the public IPR corpus; private AFP and NSC shadow states remain separate.",
+        "No Philippine source is enabled in the public IPR corpus; any AFP links listed here are verified official-link metadata only (URL, date, publisher), and private AFP and NSC shadow states remain separate.",
         "No original body, binary capture or shadow archive record becomes public by this desk declaration.",
         "AFP and NSC are independently governed institutional sources, not comprehensive Philippine defense coverage."
       ]
