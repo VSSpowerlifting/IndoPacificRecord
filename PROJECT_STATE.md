@@ -1,7 +1,7 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-**Verification/desk-acceptance simplification (2026-10-18, engineering PR
-candidate; not merged):** Owner authorized one focused simplification: keep
+**Verification/desk-acceptance simplification (2026-10-18, PR #811):**
+Owner authorized one focused simplification: keep
 the existing stable PR check name and critical source/rights, browser,
 database and publication safeguards, while using a fail-closed docs/focused/
 full PR test scope and removing duplicate preflight tests. The same full suite
