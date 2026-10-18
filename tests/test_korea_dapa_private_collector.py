@@ -189,7 +189,7 @@ class DapaPrivateCollection(unittest.TestCase):
         second_listing_link = (
             '<a href="/briefing/pressReleaseView.do?newsId=156784626&pageIndex=1">'
             '<span class="source"><span>2026.10.08</span>'
-            '<span>방위사업청</span></span><strong>fictional second</strong></a>'
+            '<span>방위사업청</span></span><strong>' + ORIGINAL_TITLE + '</strong></a>'
         )
         index = (listing().replace(
             '<div class="result"><strong>1</strong></div>',
