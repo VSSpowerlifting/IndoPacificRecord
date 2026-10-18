@@ -76,7 +76,7 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
         self.assertIn("needs: verify_sunday_collection", src)
         self.assertIn(
             "if: always() && (github.event_name == 'workflow_dispatch' || "
-            "(github.event_name == 'workflow_run' && "
+            "(github.event_name == 'workflow_run' && github.run_attempt == 1 && "
             "needs.verify_sunday_collection.result == 'success' && "
             "needs.verify_sunday_collection.outputs.ready == 'true'))", src,
         )
