@@ -66,7 +66,7 @@ jobs:
     # One production writer and one SMTP path. The first job cleanly ignores
     # green skipped daily retries; manual previews bypass only this trigger.
     needs: verify_sunday_collection
-    if: always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && needs.verify_sunday_collection.result == 'success' && needs.verify_sunday_collection.outputs.ready == 'true'))
+    if: always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.run_attempt == 1 && needs.verify_sunday_collection.result == 'success' && needs.verify_sunday_collection.outputs.ready == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
