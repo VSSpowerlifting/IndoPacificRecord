@@ -60,14 +60,16 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
         # This default must NOT weaken the first-edition human approval,
         # both scheduled-mode exclusivity and the Sunday corpus freshness.
         self.assertIn('IPR_SUNDAY_OWNER_REVIEWED_SHA256', src)
-        self.assertIn('IPR_SUNDAY_OWNER_PREVIEW_ENABLED', src)
+        self.assertIn("SUNDAY_OWNER_PREVIEW: 'false'", src)
+        self.assertNotIn("vars.IPR_SUNDAY_OWNER_PREVIEW_ENABLED", src)
         self.assertIn('last_daily_run_date.txt', src)
         self.assertIn('friday_delivery_enabled=os.environ[', src)
 
     def test_workflow_sends_preview_only_to_owner_and_checks_both_modes(self):
         src = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("vars.IPR_SUNDAY_OWNER_PREVIEW_ENABLED == 'true'", src)
-        self.assertIn("SUNDAY_OWNER_PREVIEW: ${{ github.event_name == 'schedule'", src)
+        self.assertIn("SUNDAY_OWNER_PREVIEW: 'false'", src)
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.preview_to_owner == true", src)
+        self.assertNotIn("vars.IPR_SUNDAY_OWNER_PREVIEW_ENABLED", src)
         # Preview intent must reach preflight, the Vietnam email-scope gate,
         # and final handoff. Three checks are intentional, not duplicate sends.
         self.assertEqual(src.count("env.SUNDAY_OWNER_PREVIEW == 'true' ||"), 3)
