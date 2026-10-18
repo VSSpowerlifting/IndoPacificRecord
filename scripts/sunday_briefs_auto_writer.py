@@ -202,7 +202,7 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
         # A named editorial focus anchors one coherent article rather than a
         # list of country updates. Semantics still require human review.
         props["editorial_focus"] = {
-            "type": "string", "minLength": 20, "maxLength": 200,
+            "type": "string",
             "description": ("A concrete, 20–200-character, source-supported "
                             "description of the one story actually developed "
                             "in this manuscript; never blank or generic.")
@@ -212,7 +212,7 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
         "properties": {
             field: {
                 "type": "array", "items": {"type": "integer", "enum": ids},
-                "minItems": 0 if extra_ids else 1, "uniqueItems": True,
+                "minItems": 0 if extra_ids else 1,
             }
             for field in CITED_FIELDS
         },
@@ -225,7 +225,7 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
             "properties": {
                 field: {"type": "array", "items": {
                     "type": "string", "enum": extra_ids},
-                    "minItems": 0, "uniqueItems": True}
+                    "minItems": 0}
                 for field in CITED_FIELDS
             },
             "required": list(CITED_FIELDS),
@@ -540,6 +540,7 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                    "Follow the tool schema; no text outside tool input.",
             messages=[{"role": "user", "content": instruction}],
             tools=[{"name": "compose_editorial_draft",
+                    "strict": True,
                     "description": "Compose a provisional source-cited editor's Briefs manuscript.",
                     "input_schema": schema}],
             tool_choice={"type": "tool", "name": "compose_editorial_draft"},
