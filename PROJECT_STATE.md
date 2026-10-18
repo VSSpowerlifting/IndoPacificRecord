@@ -193,16 +193,23 @@ No private activation, production database/output/Daily/deployment changes or C2
 Independent manager review remains the next C1 acceptance gate. Receipt:
 `docs/research/APPLICATION_CUSTODY_INTEGRATION_2026-10-10.md`.
 
-**Evidence Timelines (#181):** the inspected prerequisite at head
-`657e9f264` is integrated into this candidate in separate commit `b80b3e4`,
-preserving concurrent main changes. Versioned sidecars, strict reconciliation,
-approved-only static routes and a private review command remain governed by
-`docs/EVIDENCE_TIMELINES.md`. Maritime Cooperation 2026 remains an unpublished
-editorial draft with unchanged digest; Brief No. 15's approval is not inherited.
-Production emits no timeline route, library, tab or backlinks while none is
-separately approved. Private review is noindex and rejected by the deploy gate.
-Owner implementation review, merge/deployment decisions and separate approval
-of exact timeline editorial content remain outstanding.
+**Evidence Timelines (17 October 2026, completion candidate):** merged #279
+already contains the engine and frontend from still-open #181. The focused
+completion branch `codex/evidence-timeline-completion-20261017`, from main
+`75137305d4`, implements the selected Flowing Chronology: dark petrol ground,
+alternating cards, attached curved branches, mobile rail, immediately visible
+scope and explicitly labelled planned/later evidence. Existing approval,
+reconciliation and private-review paths remain intact. All six entries and
+five record pages survive in the current corpus; the canonical draft and
+related Brief are unchanged. The shadow audit admits only the exact decorative
+node glow; negative controls keep other selectors, values and files prohibited.
+The read-only residue test pins liveness to the snapshot's latest active-source
+collection date; operational real-clock checks and liveness verdicts are unchanged.
+Browser, budgets and review artifacts are in
+`docs/EVIDENCE_TIMELINES.md`. Production output is unchanged and no publication
+is authorized. Ben's next step is review of the completed private experience;
+exact-content editorial approval and unresolved source-use #326 remain the
+publication holds documented by open preflight #697.
 
 **Deduplication provenance workbench (2026-10-11, review candidate):** explicit
 private archive inventory and saved-source replay now share the production

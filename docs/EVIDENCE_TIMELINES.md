@@ -114,23 +114,30 @@ its sidecar is untouched.
 
 ## Presentation and motion
 
-Paper Ledger tokens, shared typefaces and address-specific topography are
-reused. The three coordinated surfaces retain a neutral source layer and a
-labelled analysis layer. Desktop uses a quiet date column, continuous SVG
-spine and substantial narrative column. Mobile becomes a single-column
-chronology. Diamond nodes also label contested boundaries in text; shape
-does not express certainty. Two ordinal overview tracks distinguish reported
-events from publication dates without suggesting a proportional axis.
+The selected **Flowing Chronology** uses the current shared typefaces and
+coastal tokens: a dark petrol reading ground, turquoise/jade spine, curved
+branches and alternating desktop cards. At 1050px and below it becomes a
+single column beside a left rail. Each row owns its rail segment and branch,
+so wrapping, font substitution, resizing and disclosures cannot detach it.
+Dates sit inside the cards; DOM order remains chronological. Diamond nodes
+also label contested boundaries in text; shape does not express certainty.
+The visible scope explains the subject and limits before any disclosure.
+Optional date tracks distinguish reported events from publication dates;
+the chronology explicitly labels spacing as ordinal and branches as attachment,
+not causality. Jump links reach the chronology, comparison and source ledger.
 
 Native disclosures preserve always-visible exact record links. The ledger
 retains all evidence metadata and original URLs. The background is static on
-timeline pages. Existing `reveal.js` supplies the only observer and script:
-once-only entry reveal at 14px / 0.65s, transform-based spine growth and opacity
-node emphasis. Local navigation/link feedback uses the shared 150ms ease.
+timeline pages. Cards and connectors are static and always visible; there is
+no ambient motion to pause. Existing `reveal.js` retains the library reveal,
+and existing `shell.js` supplies shared navigation. No script was added.
+Planned activity and later reports are explicitly labelled inside disclosures.
+Local navigation/link feedback uses the shared 150ms ease.
 No-JS, reduced-motion, `no-anim`, `:target`, print and forced-color fallbacks
 remain functional. Closed disclosures expose their evidence in Chromium
 print; browsers without `::details-content` support still retain the complete
-source ledger and always-visible claims/citations.
+source ledger and always-visible claims/citations. Print uses black on white;
+forced colors retain rails, branches, borders and keyboard focus.
 
 The timeline shell stylesheet is deterministically derived from the shared
 common sections of `styles.css` (tokens, base, type, masthead, furniture,
@@ -139,6 +146,51 @@ unrelated page-family rules and strips comments/boundary whitespace while
 preserving strings. No second token source or CSS dependency is introduced.
 
 ## Verification receipts
+
+### Completion review — 17 October 2026
+
+Base: current main `75137305d4cd760679b1e82378861e55d8652c6d`.
+PR #279 is merged; #181 remains open but its integrated implementation is
+already on main. Open #697 adds a publication preflight only; no unmerged
+engine or frontend changes were needed. The canonical pilot, related Brief,
+approval digest contract, database and tracked production output are unchanged.
+
+Private render: the command above with the configured interpreter
+`/Users/benjaminyang/pla-watch/.venv/bin/python` (no worktree-local `.venv`).
+Review at `http://127.0.0.1:8782/timelines.html` and
+`http://127.0.0.1:8782/timeline/maritime-cooperation-2026.html`.
+Screenshots and machine-readable browser receipts are in
+`/Users/benjaminyang/.codex/visualizations/2026/10/17/01a14c13-e971-7183-a698-1a0de06a43ea/`:
+`desktop.png`, `mobile.png`, `evidence-expanded.png`, `library.png`, `qa.json`.
+The expanded capture masks original-language quotation blocks; private source
+text is not added to the review artifacts or commits.
+
+Browser checks cover both routes at 320/375/768/1024/1280px with JavaScript,
+without JavaScript and with reduced motion; expanded evidence, keyboard focus,
+direct anchors, native back/forward, all five preserved-record destinations,
+print and forced colors pass. No overflow, console exceptions or failed local
+responses. Actual dark-ground text contrast samples range from 8.24:1 to
+12.32:1. Regression tests additionally expand every evidence panel, force long
+titles and substitute the display font across the desktop/mobile breakpoint.
+Detail HTML + local CSS: **93,243 bytes**; library: **65,692 bytes**;
+JavaScript: **3,132 bytes** on each (unchanged). No external dependencies.
+The production output validator passes with its ten governed warnings.
+
+All six entries reconcile to records 3924, 4102, 4164, 4466 and 4472 in the
+current reduced corpus. Each has an actual rendered record page; the library,
+related Brief and eligible record backlinks work through existing approved
+test fixtures. Draft exclusion and stale-approval rejection remain enforced.
+
+**Publication remains held.** PR #697's exact-content editorial review and
+source-use decision remain separate from engineering. Issue #326 is still open:
+the current record renderer and timeline disclosures expose preserved source
+text, not merely desk metadata. No resolved publisher-use decision was found
+there, and this change grants none. No source text, source link policy or
+editorial approval was silently removed or fabricated. Ben's next step is to
+review this private experience, then settle the exact six-entry editorial
+content and source-use decisions before separately authorizing publication.
+
+### Original implementation receipts — 8 October 2026
 
 Measured on 2026-10-08 in Chromium 147.0.7727.15. The local worktree has no
 `.venv`; execution used the existing `/Users/benjaminyang/pla-watch/.venv/bin/python`
