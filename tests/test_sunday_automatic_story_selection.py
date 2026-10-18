@@ -100,8 +100,8 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
 
     def test_selected_story_must_appear_in_actual_opening_citations(self):
         draft = selected()
-        draft["story_selection"]["candidates"][0]["production_ids"] = [2]
-        draft["story_selection"]["candidates"][0]["research_ids"] = []
+        draft["story_selection"]["candidates"][0]["production_ids"] = []
+        draft["story_selection"]["candidates"][0]["research_ids"] = ["VN-MPS-1791199100"]
         with self.assertRaisesRegex(ValueError, "opening"):
             validate_manuscript(
                 draft, evidence(), supplemental=self.research,
