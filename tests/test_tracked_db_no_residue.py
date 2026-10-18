@@ -119,10 +119,10 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                     # with affirmative evidence of that documented verdict;
                     # crashes, imports, and unexplained exit codes still fail.
                     self.assertIn("Source liveness — threshold ", proc.stdout)
-                    self.assertRegex(proc.stdout, r"(?m)^UNHEALTHY\\s+")
+                    self.assertRegex(proc.stdout, r"(?m)^UNHEALTHY\s+")
                     self.assertRegex(
                         proc.stdout,
-                        r"(?m)^[1-9][0-9]* source\\(s\\) need attention\\.$")
+                        r"(?m)^[1-9][0-9]* source\(s\) need attention\.$")
                     self.assertNotIn("Traceback", proc.stderr)
                 else:
                     self.assertEqual(
