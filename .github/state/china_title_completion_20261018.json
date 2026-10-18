@@ -1,0 +1,29 @@
+{
+  "release": "china-title-completion-20261018",
+  "cap_usd": "3",
+  "batches": [
+    {
+      "kind": "intervening_daily_import",
+      "run_id": 39157089396,
+      "requests": [
+        {
+          "kind": "title_aggregate",
+          "model": "claude-sonnet-4-6",
+          "titles": 20,
+          "reserved_usd": "0.0692406",
+          "charged_usd": "0.0692406",
+          "base_token_cost_usd": "0.062946",
+          "reported_cost_usd": null,
+          "pricing_uncertain": true,
+          "usage": {
+            "input_tokens": 15312,
+            "output_tokens": 1134,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "note": "20 successful HTTP responses, no errors or retries. Historical titles completed by intervening Daily; 1.1x geography allowance retained."
+        }
+      ]
+    }
+  ]
+}
