@@ -24,6 +24,95 @@
           "note": "20 successful HTTP responses, no errors or retries. Historical titles completed by intervening Daily; 1.1x geography allowance retained."
         }
       ]
+    },
+    {
+      "reserved_at": "2026-10-18T19:57:40.742698+00:00",
+      "requests": [
+        {
+          "kind": "probe",
+          "reserved_usd": "0.01"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        }
+      ]
     }
   ]
 }
