@@ -73,10 +73,12 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
 
     def test_scheduled_editor_send_is_default_but_manual_stays_opt_in(self):
         src = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("needs: verify_sunday_collection", src)
         self.assertIn(
-            "if: github.event_name == 'workflow_dispatch' || "
+            "if: always() && (github.event_name == 'workflow_dispatch' || "
             "(github.event_name == 'workflow_run' && "
-            "github.event.workflow_run.conclusion == 'success')", src,
+            "needs.verify_sunday_collection.result == 'success' && "
+            "needs.verify_sunday_collection.outputs.ready == 'true'))", src,
         )
         self.assertIn(
             "SUNDAY_SEND: ${{ github.event_name == 'workflow_run' || "
