@@ -52,6 +52,20 @@ def export(args):
     return 0
 
 
+
+def export_historical(args):
+    # A distinct signed type and a separately reviewed/private Git source.
+    # No government network access and no retrospective green collector run.
+    from core.korea_dapa_historical_owner import export_from_private_checkout
+    packet = export_from_private_checkout(Path(args.private_checkout))
+    key = os.getenv("DAPA_BRIDGE_KEY", "")
+    mac = b.sign(packet, key)
+    safe_new(args.packet_output, base64.b64encode(b.canonical(packet)))
+    safe_new(args.mac_output, mac.encode("ascii"))
+    print("DAPA_OWNER_HISTORICAL_METADATA_ONLY_SIGNED; records=1; originals_held")
+    return 0
+
+
 def admit(args):
     packet_encoded = os.getenv("DAPA_PACKET_B64", "")
     mac = os.getenv("DAPA_PACKET_MAC", "")
@@ -93,11 +107,19 @@ def main(argv=None):
     exp.add_argument("--run-attempt", required=True)
     exp.add_argument("--packet-output", required=True)
     exp.add_argument("--mac-output", required=True)
+    hist = sub.add_parser("export-owner-historical")
+    hist.add_argument("--private-checkout", required=True)
+    hist.add_argument("--packet-output", required=True)
+    hist.add_argument("--mac-output", required=True)
     imp = sub.add_parser("admit-public")
     imp.add_argument("--production-db", required=True)
     args = p.parse_args(argv)
     try:
-        return export(args) if args.mode == "export-private" else admit(args)
+        if args.mode == "export-private":
+            return export(args)
+        if args.mode == "export-owner-historical":
+            return export_historical(args)
+        return admit(args)
     except (b.DAPABridgeHold, OSError, ValueError) as exc:
         reason = str(exc) if isinstance(exc, b.DAPABridgeHold) else "dapa_bridge_io_hold"
         print(json.dumps({"status": "HOLD", "reason": reason,
