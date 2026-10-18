@@ -58,9 +58,12 @@ architecture.
   never modify shadow branches, ledgers or stored shadow records.
 - Never defeat a source's access challenge, impersonate a browser, or route
   around `robots.txt`, however much coverage it would unlock.
-- Never describe a shadow desk as qualified and never promote one. Promotion
-  needs 30 consecutive collecting days, completed human checkpoint reviews,
-  and owner sign-off in DECISION_LOG.md.
+- Never call a shadow desk complete or promote it automatically. The owner-approved
+  2026-10-18 standard requires end-to-end real-source operation, a tested
+  failure/recovery, verifiable publication, and an explicit release decision.
+  Seven-/30-day streaks are ongoing reliability measurements, not automatic
+  prelaunch holds. Retain historical checkpoint evidence and human review.
+  See docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md.
 - The production renderer is `site/render.py`; the deploy gate is
   `scripts/validate_output.py`, whose governed baseline is **10 warnings**.
   A new warning is explained, never invented away.

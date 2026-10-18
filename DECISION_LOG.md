@@ -4,6 +4,30 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
+
+The owner directed IPR engineering to stop creating serial audit gates and
+deliver each desk as one complete, dependable official-source-to-publication
+service. A real source end-to-end demonstration and realistic failure/retry
+are the engineering acceptance criteria; seven-/30-day histories remain
+operational reliability measurements, not mandatory prelaunch waiting periods.
+Prior historical failures and human checkpoint reviews remain true and
+unchanged. Source-specific access/rights, language/source accuracy, human
+editorial approval, safe database operations, and explicit publication
+authorization remain mandatory. A reviewer or automation must not treat
+simulated data, CI success, or a PR merge as live publication proof.
+
+The owner also authorized a **bounded, fail-closed CI simplification**:
+docs-only and allowlisted timeline-presentation diffs use scoped checks;
+unknown or high-risk code, models, source custody, workflows, generated
+output, and publication paths retain full verification. The production daily
+pipeline is unchanged. Do not remove substantive security or source-rights
+negative tests, or create another verification framework. Implementation
+requires an independently reviewed PR and exact-head CI; this ruling
+does not authorize merging an unverified branch or changing deployed content.
+Governance details:
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
+
 ## 2026-10-18 — Singapore desk analysis path: engineering record, owner adoption pending
 
 This entry is an engineering record. It is **not** an owner ruling, and it

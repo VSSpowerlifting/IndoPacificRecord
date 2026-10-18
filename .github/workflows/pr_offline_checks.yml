@@ -6,12 +6,10 @@
 # deploys. Reviewing a change therefore meant either trusting a local run or
 # running production. This job closes that gap and nothing else.
 #
-# Deliberately narrow. It first reruns a focused subset of existing
-# taxonomy/source and collector-boundary tests as a fail-fast preflight, then
-# runs the entire offline suite and the deploy validator; finally it proves
-# nothing changed. The preflight is NOT an alternative to full CI. No step
-# collects, migrates, reconciles, renders, deploys, commits, pushes, or reads
-# a secret.
+# Exact PR-merge diff is classified fail-closed. Markdown-only changes use
+# lightweight checks; bounded timeline presentation changes run actual
+# browser/timeline contracts. All unknown, data, source and code changes
+# retain full offline CI. No step collects or deploys, and no credentials are used.
 #
 # Chromium. `requirements.txt` carries the playwright PACKAGE, which is why
 # `from playwright.sync_api import ...` has always succeeded here — but `pip
@@ -83,6 +81,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 2  # PR merge commit and base parent for scoped diff
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v5
@@ -105,9 +104,15 @@ jobs:
           echo "db=$(sha256sum pla_watch.db | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           echo "Tracked database baseline recorded."
 
+      # Capture the DB hash before running any PR-controlled Python code.
+      - name: Classify changed paths against PR base
+        id: scope
+        run: python scripts/pr_ci_scope.py --base HEAD^1 --head HEAD --github-output "$GITHUB_OUTPUT"
+
       # Supply exact frozen history for applicable pilot/review contracts.
       # Object retrieval is public/read-only; it changes no branch or worktree.
       - name: Verify GPG and restore frozen historical replay objects
+        if: ${{ steps.scope.outputs.mode == 'full' }}
         run: |
           set -euo pipefail
           gpg --version
@@ -138,70 +143,10 @@ jobs:
 
       # First execution of PR-controlled content.
       - name: Install dependencies
+        if: ${{ steps.scope.outputs.mode != 'docs' }}
         run: pip install -r requirements.txt
 
-      # Fail quickly on taxonomy/reviewer/source-integrity regressions before
-      # downloading a full Chromium runtime and running the ~4k-test suite.
-      # Every selected test is run again in the complete suite below; this is
-      # NOT a substitute, an approval gate, a collector or a deployment step.
-      # The smoke stage is read-only and uses no secrets, network operations,
-      # production database writes or generated output.
-      - name: Run fast taxonomy and collection-boundary contracts
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import sys
-          import unittest
-
-          tests_dir = Path("tests")
-          # Explicitly bounded, so newly added expensive/browser-backed
-          # suites cannot silently turn the preflight into a second full CI.
-          required = (
-              "test_regional_topics",
-              "test_extraction_interface",
-              "test_pr_workflow_contract",
-          )
-          optional = (
-              "test_regional_editorial_slate",
-              "test_regional_topics_v2",
-              "test_topic_pilot",
-              "test_topic_pilot_review",
-              "test_topic_review_gate",
-              "test_topic_owner_queue",
-              "test_topic_v2_evidence_verifier",
-              "test_topic_v2_crossdesk_hadr",
-              "test_vietnam_briefs_evidence_feeder",
-              "test_vietnam_private_synopses",
-              "test_vietnam_shadow_logical_slot_watchdog",
-              "test_vietnam_moit_weekly_candidates",
-              "test_vietnam_weekly_model_readiness",
-              # Sunday thematic citation, window and owner-only preview contracts.
-              "test_briefs_editorial_evidence",
-              "test_weekly_briefs_sunday_window",
-              "test_sunday_owner_preview",
-          )
-          for name in required:
-              if not (tests_dir / (name + ".py")).is_file():
-                  raise SystemExit("Missing mandatory fast check: " + name)
-          targets = list(required)
-          targets.extend(
-              name for name in optional
-              if (tests_dir / (name + ".py")).is_file()
-          )
-          print("Pre-browser contracts: " + ", ".join(targets), flush=True)
-          suite = unittest.defaultTestLoader.loadTestsFromNames(
-              ["tests." + name for name in targets]
-          )
-          count = suite.countTestCases()
-          if count == 0:
-              raise SystemExit("Refused: no fast contract tests discovered")
-          result = unittest.TextTestRunner(verbosity=2).run(suite)
-          print("Pre-browser check: %d tests, success=%s" %
-                (count, result.wasSuccessful()), flush=True)
-          if not result.wasSuccessful():
-              sys.exit(1)
-          PY
+      # Omit the redundant fast preflight: full CI reran every selected test.
 
       # The browser binary, with its system libraries. Same command the daily
       # workflow uses, so the two runs exercise one browser story rather than
@@ -209,6 +154,7 @@ jobs:
       # OS privileges on the ephemeral runner, never repository privileges, and
       # the job token stays read-only.
       - name: Install Chromium for the browser-backed tests
+        if: ${{ steps.scope.outputs.browser == 'true' }}
         run: playwright install chromium --with-deps
 
       # Launch it. The fixtures downgrade a launch failure to SkipTest, which
@@ -220,6 +166,7 @@ jobs:
       # The heredoc is quoted (<<'PY'), so the shell performs no expansion on
       # the script and no workflow expression is interpolated into it.
       - name: Verify Chromium launches
+        if: ${{ steps.scope.outputs.browser == 'true' }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -232,6 +179,7 @@ jobs:
           PY
 
       - name: Replay all frozen pilot sources and independent review excerpts
+        if: ${{ steps.scope.outputs.source_replay == 'true' }}
         run: |
           set -euo pipefail
           python scripts/topic_pilot.py --verify-sources
@@ -251,12 +199,33 @@ jobs:
       # The suite uses temporary databases and never touches the tracked file.
       # The assertion below is what makes that a fact rather than a claim.
       - name: Run offline test suite
+        if: ${{ steps.scope.outputs.mode == 'full' }}
         run: python -m unittest discover -s tests -t . -v
+
+      # The focused path still has real Chromium and publication/rights tests.
+      - name: Run focused timeline presentation contracts
+        if: ${{ steps.scope.outputs.mode == 'focused' }}
+        run: |
+          python - <<'PY'
+          import sys, unittest
+          names = (
+              'tests.test_timeline_rendering',
+              'tests.test_timelines',
+              'tests.test_relief_primitives',
+              'tests.test_site_mode_contract',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() == 0:
+              raise SystemExit('No focused tests collected')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
 
       # The same gate the daily run uses before deploying. Check 8 compares
       # analyzed articles in the database against rendered pages, so it reads
       # the database — through the scratch-copy helper, never the tracked file.
       - name: Validate rendered output
+        if: ${{ steps.scope.outputs.mode != 'docs' }}
         run: python scripts/validate_output.py
 
       # Must run even when a step above failed: a failing suite that also

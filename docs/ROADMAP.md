@@ -14,6 +14,14 @@ Pipeline-layer backlog (analyzer, scrapers, relevance filter) is in
 Completed work is recorded in `DECISION_LOG.md` and in Git history, not here.
 Current operational state is in `PROJECT_STATE.md`.
 
+**Owner supersession (2026-10-18):** See
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` for the
+complete-desk finish line and risk-scoped CI. The historical Day-30 Singapore
+review, old consecutive-day launch plans, and historical screening figures
+below document debt or past measurements—not general prelaunch gates or the
+current daily-queue configuration. Actual source/rights/editorial approvals
+and independently checked deployment still apply.
+
 The ordering principle: **research and review gates before presentation.** The
 project's credibility rests on the analytical publication cadence, on completed
 human reviews, and on honest coverage — not on the front end. Nothing below
