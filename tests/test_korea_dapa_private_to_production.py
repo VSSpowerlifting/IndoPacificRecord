@@ -403,14 +403,59 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
             }
             (state / "ledger" / ("20261018T000000.000000+0000-" + run +
                                  ".json")).write_text(json.dumps(ledger))
+            # Add a second separately captured article and HWPX in the same
+            # private attempt. Both must survive one atomic signature/receipt.
+            second_url = b.URL_PREFIX + "156785998"
+            second_title = "SECOND FICTIONAL DAPA TITLE"
+            second_body = "SECOND FICTIONAL HWPX CONTENT"
+            second_document_url = document_url.replace("456789", "456790")
+            second_html = (
+                html.replace(b"156785999", b"156785998")
+                    .replace(b"456789", b"456790")
+                    .replace(title.encode("utf-8"), second_title.encode("utf-8")))
+            second_buffer = io.BytesIO()
+            with zipfile.ZipFile(second_buffer, "w") as archive:
+                archive.writestr(
+                    "Contents/section0.xml",
+                    "<root><p><run><t>" + second_body +
+                    "</t></run></p></root>")
+            second_document = second_buffer.getvalue()
+            second_html_sha = b.digest(second_html)
+            second_doc_sha = b.digest(second_document)
+            (state / "captures" / (second_html_sha + ".bin")).write_bytes(second_html)
+            (state / "captures" / (second_doc_sha + ".bin")).write_bytes(second_document)
+            second_meta = dict(metadata, document_url=second_document_url,
+                               document_capture_sha256=second_doc_sha)
+            with sqlite3.connect(db) as conn:
+                conn.execute(
+                    "INSERT INTO shadow_records VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    ("korea-dapa-policy:156785998", second_url,
+                     "kr_policy_dapa_releases", second_title, second_body,
+                     "2026-10-18", "ko", json.dumps(second_meta),
+                     b.digest(second_body.encode("utf-8")), second_html_sha, run))
+                conn.commit()
+            ledger.update(inserted=2, selected=2, retrieved=2, extracted=2,
+                          cap=5)
+            ledger["requests"].extend((
+                {"requested_url": second_url, "capture_sha256": second_html_sha,
+                 "http_status": 200},
+                {"requested_url": second_document_url, "capture_sha256": second_doc_sha,
+                 "http_status": 200},
+            ))
+            (state / "ledger" / ("20261018T000000.000000+0000-" + run +
+                                 ".json")).write_text(json.dumps(ledger))
             git("add", "state")
             git("commit", "-qm", "private-dapa: preserve source attempt " + run)
 
             packet = b.export_from_private_checkout(root, run)
             self.assertEqual(packet["source_git_commit"], git("rev-parse", "HEAD"))
             self.assertEqual(packet["source_db_sha256"], b.digest(db.read_bytes()))
-            self.assertEqual(len(packet["records"]), 1)
-            for value in (title, body, document_url):
+            self.assertEqual(len(packet["records"]), 2)
+            self.assertEqual(
+                [row["source_identity"] for row in packet["records"]],
+                ["korea-dapa-policy:156785998", "korea-dapa-policy:156785999"])
+            for value in (title, body, document_url,
+                          second_title, second_body, second_document_url):
                 self.assertNotIn(value, b.canonical(packet).decode("utf-8"))
             signed = b.sign(packet, KEY)
             with sqlite3.connect(":memory:") as prod:
@@ -419,8 +464,8 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                 self.assertEqual(
                     b.admit(prod, packet, signed, KEY,
                             as_of_utc="2026-10-18T12:00:00Z")[
-                                "new_official_links_admitted"], 1)
-            (state / "captures" / (docsha + ".bin")).write_bytes(b"CORRUPTED")
+                                "new_official_links_admitted"], 2)
+            (state / "captures" / (second_doc_sha + ".bin")).write_bytes(b"CORRUPTED")
             with self.assertRaises(b.DAPABridgeHold):
                 b.export_from_private_checkout(root, run)
 
