@@ -77,9 +77,16 @@ The rehearsal ran on a scratch copy of `pla_watch.db` against the real
   - the page's `data-regional-official-source-id` set equals the DB rows;
   - none of the 29 preserved originals leaks its title or body text;
   - none of the other 950 render-drift files mentions `afp.mil.ph`.
-- **Post-release state:** with tracked `output/` plus only the newly rendered
-  `philippines.html` and the admitted DB, exactly those two files differ and
-  `validate_output.py` passes with the 10 governed warnings.
+- **Post-merge production state.** The candidate was merged into main
+  `52667d6`, and AFP was admitted into a copy of main's own `pla_watch.db`:
+  23 rows, `integrity_check` ok. The state then held tracked `output/` plus
+  only the newly rendered `philippines.html`.
+  - Exactly those two files differ.
+  - `validate_output.py` passes with the 10 governed warnings.
+  - The page's identities equal the 23 DB rows.
+  - The full suite gives the same 35 inherited results as below, with nothing
+    new.
+  - The page embeds no render date, so a 0-row daily run commits nothing.
 - **Tests:**
   - 84 desk/regional/Philippines/Indonesia modules (1,337 tests) pass against
     the admitted DB;
@@ -91,6 +98,9 @@ The rehearsal ran on a scratch copy of `pla_watch.db` against the real
   production untouched, and the next cron retries from fresh state. A run
   that pushed main but failed before Pages republishes the committed page on
   the next run.
+  Other DB writers that rebase register the `reconcile-db` merge driver. It
+  keeps the published `origin/main` database as the base, so a later
+  `daily_update` rebase keeps admitted AFP rows rather than dropping them.
 - **Source tip:** `shadow/ph-afp` was still `97ec0bf` at verification.
 
 **Full offline suite.** `unittest discover` ran on the candidate merged into
