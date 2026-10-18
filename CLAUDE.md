@@ -43,9 +43,11 @@ never intelligence cosplay.
 - Never defeat a source's access challenge, impersonate a browser, or route
   around `robots.txt`. An institution must be able to recognise this collector
   and refuse it.
-- No shadow desk is promoted automatically, and none may be described as
-  qualified. Promotion needs 30 consecutive collecting days, completed human
-  checkpoint reviews, and owner sign-off in `DECISION_LOG.md`.
+- No shadow desk is promoted automatically or called operational without
+  real-source end-to-end acceptance and a demonstrated failure/retry. The
+  owner's October 18 complete-desk standard supersedes seven-/30-day
+  *prelaunch* waiting periods, not historical receipts or human source/rights
+  and editorial approvals. See `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
 - Do not commit, push, deploy, publish, or regenerate output unless
   explicitly asked. CI deploys what is committed on main.
 - `base.html`, `pla-watch-base.html`, `scripts/pw_env.py` are single-owner
