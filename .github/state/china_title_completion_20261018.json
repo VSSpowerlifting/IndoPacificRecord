@@ -446,5 +446,31 @@
         }
       ]
     }
+  ],
+  "fidelity_corrections": [
+    {
+      "id": 4281,
+      "original": "\u4f0a\u6717\u79f0\u5728\u970d\u5c14\u6728\u5179\u6d77\u5ce1\u4ee5\u897f\u51fb\u6bc1\u4e00\u67b6MQ-1\u65e0\u4eba\u673a",
+      "model_title": "Iran says it shot down an MQ-1 drone west of the Strait of Hormuz",
+      "corrected_title": "Iran says it destroyed an MQ-1 drone west of the Strait of Hormuz",
+      "reason": "Preserve destroyed without adding airborne shoot-down",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 4336,
+      "original": "\u7f8e\u519bF-16\u6218\u673a\u5728\u5bc6\u6b47\u6839\u5dde\u5760\u6bc1 \u9644\u8fd1\u5c45\u6c11\u4e00\u5ea6\u88ab\u758f\u6563",
+      "model_title": "US Air Force F-16 fighter jet crashes in Michigan, nearby residents temporarily evacuated",
+      "corrected_title": "U.S. military F-16 fighter jet crashes in Michigan, nearby residents temporarily evacuated",
+      "reason": "Preserve military without adding service branch",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 4408,
+      "original": "\u7279\u6717\u666e\u79f0\u4e5f\u95e8\u80e1\u585e\u6b66\u88c5\u540c\u610f\u4e0d\u4e0e\u7f8e\u56fd\u4ea4\u6218",
+      "model_title": "Trump says Yemen's Houthis have agreed to stop fighting the United States",
+      "corrected_title": "Trump says Yemen's Houthis have agreed not to fight the United States",
+      "reason": "Preserve agreed not to fight without asserting fighting stopped",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    }
   ]
 }
