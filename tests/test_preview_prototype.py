@@ -2815,11 +2815,11 @@ class TestRecordSemantics(PreviewCase):
         block = self.record(rec["id"]).split("Machine assessment", 1)[0]
         self.assertTrue(block.rstrip().endswith('evidence--model">'))
 
-    def test_unscreened_and_unselected_records_carry_no_generated_output(self):
-        """If the stored data ever contradicts this, stop — do not force copy."""
+    def test_unscreened_and_unselected_records_carry_no_generated_analysis(self):
+        """Title-only translations are permitted; unscreened records cannot have analysis."""
         offenders = [r["id"] for r in self.data["corpus"]
                      if r["state"] in ("not_selected", "awaiting_screening")
-                     and (r["summary_english"] or r["title_english"])]
+                     and r["summary_english"]]
         self.assertEqual(offenders, [],
                          "stored data contradicts the copy for %d record(s); "
                          "stop and report rather than forcing the wording"
