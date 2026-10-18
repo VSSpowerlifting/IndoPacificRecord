@@ -15,6 +15,7 @@ from pathlib import Path
 from config import DB_PATH
 from core.brief_contract import trail_entry
 from core.brief_editorial_evidence import evidence_prompt as research_prompt
+from core.regional_editorial_slate import WEIGHTS, heuristic_score
 from scripts.reconcile_db import read_only
 from storage.db import get_articles_for_desks
 
@@ -188,7 +189,7 @@ def evidence_prompt(chosen, *, reviewed_synopses=None):
     return "\n\n".join(parts)
 
 
-def writing_schema(allowed_ids, *, supplemental_ids=()):
+def writing_schema(allowed_ids, *, supplemental_ids=(), automatic_story_selection=False):
     """Constrain citation output to the exact full-text records given to Claude."""
     ids = sorted(set(allowed_ids))
     if not ids or any(type(i) is not int for i in ids):
@@ -226,10 +227,37 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
             "required": list(CITED_FIELDS),
             "additionalProperties": False,
         }
+    if automatic_story_selection:
+        score = {"type": "object", "required": list(WEIGHTS),
+                 "additionalProperties": False,
+                 "properties": {key: {"type": "integer", "minimum": 0,
+                                     "maximum": 5} for key in WEIGHTS}}
+        candidate = {"type": "object", "additionalProperties": False,
+                     "required": ["slug", "thesis", "limitation", "production_ids",
+                                  "research_ids", "scores"],
+                     "properties": {
+                         "slug": {"type": "string"},
+                         "thesis": {"type": "string"},
+                         "limitation": {"type": "string"},
+                         "production_ids": {"type": "array", "uniqueItems": True,
+                                            "items": {"type": "integer", "enum": ids}},
+                         "research_ids": {"type": "array", "uniqueItems": True,
+                                          "items": ({"type": "string", "enum": extra_ids}
+                                                    if extra_ids else {"type": "string"})},
+                         "scores": score}}
+        props["story_selection"] = {
+            "type": "object", "additionalProperties": False,
+            "required": ["candidates", "selected_slug", "selection_rationale"],
+            "properties": {
+                "candidates": {"type": "array", "minItems": 1, "maxItems": 3,
+                               "items": candidate},
+                "selected_slug": {"type": "string"},
+                "selection_rationale": {"type": "string"}}}
     return {"type": "object", "properties": props,
             "required": list(PROSE_FIELDS) + ["citations"] +
                         (["editorial_focus", "supplemental_citations"]
-                         if extra_ids else []),
+                         if extra_ids else []) +
+                        (["story_selection"] if automatic_story_selection else []),
             "additionalProperties": False}
 
 
@@ -267,7 +295,64 @@ def validate_prose_boundaries(manuscript):
             )
 
 
-def validate_manuscript(manuscript, chosen, *, supplemental=()):
+def validate_story_selection(selection, manuscript, chosen, supplemental):
+    """Check source IDs and scoring of candidate themes; not a fact approval."""
+    if (not isinstance(selection, dict) or set(selection) != {
+            "candidates", "selected_slug", "selection_rationale"}):
+        raise ValueError("missing automatic story-selection assessment")
+    options = selection["candidates"]
+    if not isinstance(options, list) or not 1 <= len(options) <= 3:
+        raise ValueError("must consider one to three story candidates")
+    allowed = {row["id"] for row, _ in chosen}
+    external = {item["id"] for item in supplemental}
+    seen, scored, attributed = set(), {}, {}
+    for option in options:
+        if not isinstance(option, dict) or set(option) != {
+                "slug", "thesis", "limitation", "production_ids",
+                "research_ids", "scores"}:
+            raise ValueError("malformed story candidate")
+        slug = option["slug"]
+        if (not isinstance(slug, str) or len(slug) > 80
+                or re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", slug) is None
+                or slug in seen):
+            raise ValueError("duplicate or malformed story slug")
+        seen.add(slug)
+        for field in ("thesis", "limitation"):
+            value = option[field]
+            if (not isinstance(value, str) or not 20 <= len(value.strip()) <= 500
+                    or value != value.strip() or "\r" in value
+                    or CONTROL_MARKER.search(value) or PACKET_MARKER.search(value)):
+                raise ValueError("malformed story " + field)
+        ids, research_ids = option["production_ids"], option["research_ids"]
+        if (not isinstance(ids, list) or not isinstance(research_ids, list)
+                or not 1 <= len(ids) + len(research_ids) <= 10
+                or len(ids) != len(set(ids))
+                or len(research_ids) != len(set(research_ids))
+                or any(type(i) is not int or i not in allowed for i in ids)
+                or any(type(i) is not str or i not in external for i in research_ids)):
+            raise ValueError("story candidate used unavailable source IDs")
+        scored[slug] = heuristic_score(option["scores"])
+        attributed[slug] = set(ids + research_ids)
+    lead, reason = selection["selected_slug"], selection["selection_rationale"]
+    if (not isinstance(lead, str) or lead not in scored
+            or not isinstance(reason, str) or not 30 <= len(reason.strip()) <= 650
+            or reason != reason.strip() or "\r" in reason
+            or CONTROL_MARKER.search(reason) or PACKET_MARKER.search(reason)):
+        raise ValueError("missing selected story rationale")
+    if scored[lead] < max(scored.values()):
+        raise ValueError("chosen story is not highest-scoring candidate")
+    opening = set(manuscript["citations"]["development"] +
+                  manuscript["citations"]["opening_note"])
+    external_cites = manuscript.get("supplemental_citations")
+    if external_cites:
+        opening.update(external_cites["development"] +
+                       external_cites["opening_note"])
+    if not opening.intersection(attributed[lead]):
+        raise ValueError("chosen story is not grounded in the manuscript opening")
+    return selection
+
+
+def validate_manuscript(manuscript, chosen, *, supplemental=(), automatic_story_selection=False):
     """Check coverage and mechanical provenance. Humans still verify meaning."""
     if not isinstance(manuscript, dict):
         raise ValueError("writer returned no structured manuscript")
@@ -313,11 +398,19 @@ def validate_manuscript(manuscript, chosen, *, supplemental=()):
         compared.update(extras[i] for i in external_cites["cross_desk_comparison"])
     if len(compared) < 2:
         raise ValueError("cross-desk comparison lacks citations from both desks")
+    if automatic_story_selection:
+        validate_story_selection(manuscript.get("story_selection"),
+                                 manuscript, chosen, supplemental)
+    elif "story_selection" in manuscript:
+        raise ValueError("unrequested automatic story selection")
     return manuscript
 
 
 def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
-            selected_theme=None, reviewed_synopses=None):
+            selected_theme=None, reviewed_synopses=None,
+            automatic_story_selection=False):
+    if automatic_story_selection and selected_theme is not None:
+        raise ValueError("automatic selection cannot override signed owner trial")
     # Optional owner theme guidance is deliberately NOT supplied by Sunday's
     # scheduled job. Only scripts.regional_sunday_theme_preview verifies the
     # separate owner HMAC and invokes it for a private no-send rehearsal.
@@ -476,6 +569,27 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
          "none genuinely fits the article's selected theme."
          if extra else "")
     )
+    if automatic_story_selection:
+        prompt += (
+            "\n\nAUTOMATIC STORY SELECTION IN THIS SAME MODEL CALL. "
+            "Before writing, consider up to THREE genuinely distinct, "
+            "evidence-backed story ideas, but offer only ONE if only one "
+            "is defensible. Do not invent weak alternatives. Put them in "
+            "story_selection.candidates with an original slug, narrow "
+            "thesis, central evidence limitation, and exact numeric "
+            "production_ids and typed research_ids. Independently rate "
+            "each 0–5 by existing editorial criteria: strategic significance "
+            "(30%), evidence strength (25%), analytical novelty (20%), "
+            "cross-desk connection (15%) and timeliness (10%). Set "
+            "selected_slug to the highest-weighted choice and explain "
+            "the concrete evidence in selection_rationale. Do not reward "
+            "spurious connections or count research as production. "
+            "Draft ONE coherent article about the selected story. Its "
+            "opening MUST cite at least one source from its selected "
+            "candidate. This provisional selection is not source approval "
+            "or publication authorization. If no defensible cross-desk "
+            "article exists, do not make one up to satisfy the schema."
+        )
     if selected_theme is not None:
         prompt += (
             "\nOnly manually reviewed ANALYST SYNOPSES, not original publisher "
@@ -493,7 +607,8 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
             "Do not claim source review amounts to a publishing decision. "
             "No public one-desk exception is granted here.\n"
         )
-    schema = writing_schema(allowed_ids, supplemental_ids=extra_ids)
+    schema = writing_schema(allowed_ids, supplemental_ids=extra_ids,
+                            automatic_story_selection=automatic_story_selection)
     # The owner-approved thematic rehearsal authorizes exactly ONE paid model
     # request; preserve the existing bounded mechanical retry for ordinary
     # Sunday manuscripts, which have their own editorial delivery policy.
@@ -514,7 +629,7 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
             ).format(problem)
         with client.messages.stream(
             model=MODEL,
-            max_tokens=4600,
+            max_tokens=5400,
             system="You are an assistant draft writer for Indo-Pacific Record Briefs. "
                    "Write source-grounded prose for human editorial verification, "
                    "never a publication-ready or approved article. "
@@ -534,7 +649,8 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                     and getattr(b, "name", None) == "compose_editorial_draft"]
             if len(uses) != 1:
                 raise ValueError("writer returned zero or multiple manuscript tool outputs")
-            validated = validate_manuscript(uses[0].input, chosen, supplemental=extra)
+            validated = validate_manuscript(uses[0].input, chosen, supplemental=extra,
+                                            automatic_story_selection=automatic_story_selection)
             # Writer-owned, post-validation metadata: the full human source
             # appendix is larger than the <=10 production records seen by
             # the model. Record that exact allowlist for truthful triage.
