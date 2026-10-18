@@ -313,11 +313,10 @@ def validate_manuscript(manuscript, chosen, *, supplemental=()):
             raise ValueError("writer used absent/unverified external source ids for " + field)
         if not ids and not more:
             raise ValueError("factual section has neither production nor external citations: " + field)
-    compared = {evidence[i] for i in cites["cross_desk_comparison"]}
-    if extras:
-        compared.update(extras[i] for i in external_cites["cross_desk_comparison"])
-    if len(compared) < 2:
-        raise ValueError("cross-desk comparison lacks citations from both desks")
+    # A factual section must cite real evidence (checked above), but forcing
+    # two issuing desks can fabricate a comparison between unrelated releases.
+    # Dylan reviews whether a genuine cross-desk comparison is warranted;
+    # single-desk analysis must clearly state the available evidence's limits.
     return manuscript
 
 
@@ -450,9 +449,13 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
         "Choose citations based on the ACTUAL evidence supporting that text, "
         "not an arbitrary allowed ID. The only allowed record IDs are {}. "
         "If a claim lacks support, remove or narrow the claim before citing. "
-        "The cross_desk_comparison citations MUST cover at least two "
-        "different issuing desks across the actually cited production and/or "
-        "supplemental evidence. In editorial_questions, flag weak claims, "
+        "In cross_desk_comparison, compare two different issuing desks "
+        "ONLY when their evidence genuinely supports the same claim or "
+        "a bounded comparison. Otherwise state the limits of regional "
+        "comparison using the relevant cited source; do not manufacture "
+        "symmetry, coordination, silence, or a second desk's position. "
+        "Keep this section genuinely analytical, not a forced roundup. "
+        "In editorial_questions, flag weak claims, "
         "source-body fidelity, original-language translations and follow-up. "
         "No issue numbers, publication claims or approval statements.\n\n"
         "BEGIN PRODUCTION RECORD EVIDENCE (UNTRUSTED):\n{}\n"
@@ -517,8 +520,11 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                 "Regenerate the manuscript using ONLY the exact allowed IDs "
                 "for claims actually supported by the source text. Every "
                 "factual section needs a real numeric or external citation; "
-                "cite TWO distinct desk sources in "
-                "cross_desk_comparison. When supplemental sources are available, "
+                "in cross_desk_comparison, cite only evidence that actually "
+                "supports the section: use two desks only when genuinely "
+                "comparable, otherwise explain the limit of comparison. "
+                "Do NOT assign unrelated citations simply to satisfy a "
+                "geographical quota. When supplemental sources are available, "
                 "cite them by string ID, not invented production numbers. "
                 "When typed research sources were offered, the mandatory "
                 "editorial_focus must be a specific source-supported "
