@@ -242,7 +242,8 @@ def writing_schema(allowed_ids, *, supplemental_ids=(), automatic_story_selectio
                          "production_ids": {"type": "array", "uniqueItems": True,
                                             "items": {"type": "integer", "enum": ids}},
                          "research_ids": {"type": "array", "uniqueItems": True,
-                                          "items": {"type": "string", "enum": extra_ids}},
+                                          "items": ({"type": "string", "enum": extra_ids}
+                                                    if extra_ids else {"type": "string"})},
                          "scores": score}}
         props["story_selection"] = {
             "type": "object", "additionalProperties": False,
