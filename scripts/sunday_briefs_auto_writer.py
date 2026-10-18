@@ -201,7 +201,12 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
     if extra_ids:
         # A named editorial focus anchors one coherent article rather than a
         # list of country updates. Semantics still require human review.
-        props["editorial_focus"] = {"type": "string"}
+        props["editorial_focus"] = {
+            "type": "string", "minLength": 20, "maxLength": 200,
+            "description": ("A concrete, 20–200-character, source-supported "
+                            "description of the one story actually developed "
+                            "in this manuscript; never blank or generic.")
+        }
     props["citations"] = {
         "type": "object",
         "properties": {
@@ -406,8 +411,12 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
         "supported. Official-source research from other desks may contribute to "
         "the analysis, but is not a live production desk. Do NOT shoehorn "
         "unrelated country items merely because they were supplied. "
-        "Identify a specific coherent 'editorial_focus' when research sources "
-        "are available. Do not imply official coordination "
+        "When research sources are available, the mandatory editorial_focus "
+        "must be a concrete, 20–200-character statement of the ONE source-"
+        "supported story developed in this manuscript; it must agree with "
+        "the article title and opening, never be blank or generic, and never "
+        "fabricate a connection between unrelated events. "
+        "Do not imply official coordination "
         "from parallel timing. Do not invent events, movements, procurement, "
         "quotes, dates, translations, superlatives, or explanations of silence. "
         "Do not infer government intent from official messaging. "
@@ -510,7 +519,11 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                 "factual section needs a real numeric or external citation; "
                 "cite TWO distinct desk sources in "
                 "cross_desk_comparison. When supplemental sources are available, "
-                "cite them by string ID, not invented production numbers."
+                "cite them by string ID, not invented production numbers. "
+                "When typed research sources were offered, the mandatory "
+                "editorial_focus must be a specific source-supported "
+                "20–200-character statement of the draft's actual story, "
+                "not an empty string, label, placeholder or general topic."
             ).format(problem)
         with client.messages.stream(
             model=MODEL,

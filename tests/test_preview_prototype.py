@@ -2815,11 +2815,11 @@ class TestRecordSemantics(PreviewCase):
         block = self.record(rec["id"]).split("Machine assessment", 1)[0]
         self.assertTrue(block.rstrip().endswith('evidence--model">'))
 
-    def test_unscreened_and_unselected_records_carry_no_generated_output(self):
-        """If the stored data ever contradicts this, stop — do not force copy."""
+    def test_unscreened_and_unselected_records_carry_no_generated_analysis(self):
+        """Title-only translations are permitted; unscreened records cannot have analysis."""
         offenders = [r["id"] for r in self.data["corpus"]
                      if r["state"] in ("not_selected", "awaiting_screening")
-                     and (r["summary_english"] or r["title_english"])]
+                     and r["summary_english"]]
         self.assertEqual(offenders, [],
                          "stored data contradicts the copy for %d record(s); "
                          "stop and report rather than forcing the wording"
@@ -2830,7 +2830,17 @@ class TestRecordSemantics(PreviewCase):
             html = self.record(rec["id"])
             with self.subTest(id=rec["id"]):
                 self.assertNotIn("Machine summary", html)
-                self.assertNotIn("Machine translation", html)
+                # A title-only English translation is allowed even without
+                # screening or analysis; it must be labeled as a title
+                # translation, never confused with a generated summary.
+                has_translated_title = (
+                    bool(rec["title_english"] and rec["title_original"])
+                    and (rec["desk_id"] != "china" or rec["language_tag"] != "en")
+                )
+                if has_translated_title:
+                    self.assertIn("Machine translation", html)
+                else:
+                    self.assertNotIn("Machine translation", html)
 
     def test_the_four_state_definitions_use_american_english(self):
         british = re.compile(

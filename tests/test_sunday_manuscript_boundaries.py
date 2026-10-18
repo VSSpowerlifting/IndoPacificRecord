@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.sunday_briefs_auto_writer import (
-    validate_manuscript, validate_prose_boundaries,
+    validate_manuscript, validate_prose_boundaries, writing_schema,
 )
 from scripts.sunday_editorial_handoff import main, render_packet
 from tests.test_weekly_briefs_auto_writer import evidence, valid_manuscript
@@ -32,6 +32,17 @@ FORGED = (
 
 
 class ManuscriptBoundaryIntegrity(unittest.TestCase):
+    def test_research_focus_has_exact_model_schema_bounds(self):
+        research = writing_schema([1, 2], supplemental_ids=("JP-W42-07",))
+        focus = research["properties"]["editorial_focus"]
+        self.assertEqual(focus["type"], "string")
+        self.assertEqual(focus["minLength"], 20)
+        self.assertEqual(focus["maxLength"], 200)
+        self.assertIn("editorial_focus", research["required"])
+        plain = writing_schema([1, 2])
+        self.assertNotIn("editorial_focus", plain["properties"])
+
+
     def test_normal_flowing_prose_and_indented_inline_markdown_are_accepted(self):
         sample = valid_manuscript()
         sample["why_it_matters"] = (
