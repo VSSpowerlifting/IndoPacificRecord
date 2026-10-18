@@ -3257,7 +3257,7 @@
     }
   ],
   "completion": {
-    "status": "titles_complete_pending_publication",
+    "status": "published_verified",
     "main_baseline": "87196e92831c1d7b8a9967cbc48bbf11a4f73242",
     "database_title_commit": "e997f1cc2ae28dd25f39a97041dca3d369cb6ebf",
     "titles_completed": 168,
@@ -3284,6 +3284,18 @@
       39161880063,
       39162077184,
       39162272871
-    ]
+    ],
+    "output_commit": "b5c20b69bec36610920f8f78dcc8282b7c835c1a",
+    "deployment_commit": "a0c29577e879cb489d5e45b203d3d99ffb49b720",
+    "deployment_run": 39162790518,
+    "pages_run": 39162817045,
+    "live_title_pages_verified": 168,
+    "live_other_html_verified": 15,
+    "live_indexes_verified": 2,
+    "deployed_manifest_files": 1968,
+    "daily_limit": 20,
+    "daily_workflow_state": "active",
+    "restored_production_writer_workflows": 21,
+    "historical_workflow_state": "disabled_manually"
   }
 }
