@@ -121,6 +121,15 @@ def main():
                         help="Set ready=true/false for the existing workflow's gated second job")
     args = parser.parse_args()
     try:
+        # Native workflow_run is emitted every day. On weekdays, skip without
+        # even reading the upstream Actions API or touching the sender.
+        if datetime.now(NY).weekday() != 6:
+            if args.github_output is None:
+                raise NoNewCollection("not Sunday in New York")
+            with args.github_output.open("a", encoding="utf-8") as out:
+                out.write("ready=false\n")
+            print("Outside Sunday; skipping editorial job.")
+            return
         event = json.loads(args.event.read_text(encoding="utf-8"))
         run = event.get("workflow_run", {})
         repo = os.environ.get("GITHUB_REPOSITORY", "")
