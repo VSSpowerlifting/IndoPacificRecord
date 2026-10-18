@@ -256,6 +256,12 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
         import generate_preview as preview
 
         packet = sample()
+        second = copy.deepcopy(packet["records"][0])
+        second["source_identity"] = "korea-dapa-policy:156785998"
+        second["canonical_official_url"] = b.URL_PREFIX + "156785998"
+        second["original_text_sha256"] = "9" * 64
+        second["candidate_version_sha256"] = b.version_hash(second)
+        packet["records"].insert(0, second)
         mac = b.sign(packet, KEY)
         with tempfile.TemporaryDirectory(prefix="ipr-dapa-render-") as folder:
             sandbox = Path(folder)
@@ -274,14 +280,15 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                 result = b.admit(conn, packet, mac, KEY,
                                  as_of_utc="2026-10-18T12:00:00Z")
                 conn.commit()
-            self.assertEqual(result["new_official_links_admitted"], 1)
+            self.assertEqual(result["new_official_links_admitted"], 2)
             published = sandbox / "after"
             preview.build(published, "DAPA synthetic bridge check", temp_db,
                           snapshot=preview.snapshot_from_corpus(temp_db),
                           site_origin="https://indopacificrecord.org")
             second = (published / "korea.html").read_text(encoding="utf-8")
             self.assertEqual(second.count("data-korea-auto-official-link="),
-                             first.count("data-korea-auto-official-link=") + 1)
+                             first.count("data-korea-auto-official-link=") + 2)
+            self.assertIn('data-korea-auto-official-link="korea-dapa-policy:156785998"', second)
             self.assertIn('data-korea-auto-official-link="korea-dapa-policy:156785999"', second)
             self.assertIn(b.URL_PREFIX + "156785999", second)
             self.assertIn("DAPA official press release 156785999", second)
