@@ -377,8 +377,14 @@ def main(argv=None):
             parser.error("--write-automatic requires --as-of source cutoff")
         from scripts.sunday_briefs_auto_writer import compose
         # Fail closed before file creation/email if any evidence or model check fails.
-        manuscript = (compose(sidecar, args.as_of, supplemental=research)
-                      if research else compose(sidecar, args.as_of))
+        # The same Sunday model call now evaluates up to three grounded
+        # stories and writes only the chosen manuscript. No extra model call,
+        # owner choice, parallel queue, or publication permission.
+        manuscript = (compose(sidecar, args.as_of, supplemental=research,
+                              automatic_story_selection=args.full_week)
+                      if research else compose(
+                          sidecar, args.as_of,
+                          automatic_story_selection=args.full_week))
     # These unapproved metadata pointers appear only in the PRIVATE human
     # handoff after the immutable production source appendix. Never send them
     # to the model or count them as live, production-backed desk evidence.
