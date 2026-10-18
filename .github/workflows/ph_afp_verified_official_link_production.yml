@@ -1,12 +1,13 @@
 name: Philippines — Verified AFP Links to Production and Pages
 
-# Owner decision of Oct 15, 2026 (config/afp_kemhan_owner_link_activation.json):
-# verified AFP URL, publisher date and issuer metadata ONLY, as a permanent,
-# automatically updated feed. Only the owner-reviewed frozen cohort (23
-# records at 8a63ba4) is admitted; later AFP records are validated, counted
-# and held. The Oct 18 standing future-record authorization names Kemhan
-# Berita only; AFP future records stay held unless the owner adds a
-# ph_afp_articles standing entry to that policy. No original AFP headline, body,
+# Owner decisions Oct 15 and Oct 18, 2026
+# (config/afp_kemhan_owner_link_activation.json): only verified neutral AFP
+# official-link metadata (URL, publisher date, attributed issuer and provenance)
+# may be published automatically. The Oct 15 frozen 23-record cohort remains
+# pinned as an independently verified baseline; the Oct 18 AFP-specific standing
+# authorization also permits verified non-held future records without per-record
+# human review. Disputes, version changes and source/rights anomalies still hold.
+# No original AFP headline, body,
 # photograph, translation, model summary or IPR analysis is published here.
 #
 # Sources:
@@ -145,7 +146,7 @@ jobs:
           soup = BeautifulSoup(page, "html.parser")
           items = soup.select("li[data-regional-official-source-id]")
           got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
-          # 23 owner-reviewed frozen-cohort links; later records stay held.
+          # At least the frozen 23, plus any further authorized verified AFP links.
           assert len(rows) >= 23 and got == rows, "rendered links differ from SQLite"
           for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
               assert forbidden not in page, forbidden
