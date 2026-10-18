@@ -20,6 +20,9 @@ derives the receipt itself from:
 Review basis: the owner's 2026-10-15 declaration covers the frozen cohort and
 the policy states no record-specific review receipts exist; the receipt says
 exactly that. Records first collected after the pin are held, not admitted.
+The owner's 2026-10-18 standing authorization names Kemhan Berita only; AFP
+future records stay held unless the pinned owner policy gains a
+``ph_afp_articles`` standing entry, which this module reads but never writes.
 Nothing here grants AFP title, body, photograph, translation or model rights.
 
 AFP is not Kemhan: there is no listing-window proof field, no semantic hold
@@ -42,10 +45,11 @@ from core.crossdesk_official_metadata_candidates import (
 )
 # Generic, family-neutral Git/MAC helpers; the Kemhan constants are not used.
 from core.indonesia_kemhan_release_validator import (
-    ValidatorHold, _blobs, _git, _is_ancestor, _mac, need, reviewed_subset,
+    ValidatorHold, _blobs, _git, _is_ancestor, _mac, need,
 )
 from core.regional_official_link_release import (
-    digest, load_owner_policy, verify_cohort,
+    digest, load_owner_policy, standing_link_metadata_authorization,
+    verify_cohort,
 )
 
 FAMILY = "ph_afp_articles"
@@ -67,6 +71,9 @@ ENVELOPE_SCHEMA = "ipr-ph-afp-signed-private-metadata/1"
 ATTEMPT_SCHEMA = "ipr-ph-afp-private-attempt/1"
 REVIEW_BASIS = ("owner_2026-10-15_frozen_cohort_human_review_and_"
                 "standing_verified_link_metadata_authorization")
+# Used only if the owner policy ever lists ph_afp_articles as a standing family.
+STANDING_REVIEW_BASIS = ("owner_standing_verified_link_metadata_"
+                         "authorization_existing_and_future_records")
 SHA40 = re.compile(r"[a-f0-9]{40}\Z")
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 RUN = re.compile(r"([1-9][0-9]{0,19})-([1-9][0-9]{0,5})\Z")
@@ -276,7 +283,26 @@ def candidate_packet(repo, commit):
     return build_candidates(report, FAMILY)
 
 
-def _receipt(packet, approved, unreviewed, policy, validator_ref, evidence, history):
+def release_subset(eligible, baseline, policy):
+    """Return (approved, held_unreviewed, released_without_record_review).
+
+    Without an AFP standing entry in the owner policy (the current state),
+    only the frozen cohort is approved and later records are held. With one,
+    every eligible row is approved and those outside the frozen cohort are
+    reported, because no human reviewed them record by record.
+    """
+    reviewed = {r["source_identity"] for r in baseline["records"]}
+    outside = sorted(r["source_identity"] for r in eligible
+                     if r["source_identity"] not in reviewed)
+    if standing_link_metadata_authorization(policy, FAMILY):
+        return list(eligible), [], outside
+    return ([r for r in eligible if r["source_identity"] in reviewed],
+            outside, [])
+
+
+def _receipt(packet, subset, policy, validator_ref, evidence, history):
+    approved, unreviewed, outside = subset
+    standing = standing_link_metadata_authorization(policy, FAMILY)
     need(type(validator_ref) is str and SHA40.fullmatch(validator_ref) is not None,
          "trusted_validator_ref_not_immutable")
     need(policy.get("owner_authorizes_automated_verified_link_metadata") is True,
@@ -299,6 +325,10 @@ def _receipt(packet, approved, unreviewed, policy, validator_ref, evidence, hist
         "record_specific_review_receipts_verified": False,
         "held_unreviewed_source_identities_sha256": digest(unreviewed),
         "held_unreviewed_count": len(unreviewed),
+        # Read from the repository-pinned owner policy, not inferred.
+        "standing_link_metadata_authorization_verified": standing,
+        "released_without_record_specific_review_sha256": digest(outside),
+        "released_without_record_specific_review_count": len(outside),
         "scheduled_history_authenticated": True,
         "all_visible_actions_attempts_reconciled": True,
         "official_metadata_link_use_checked": True,
@@ -309,7 +339,7 @@ def _receipt(packet, approved, unreviewed, policy, validator_ref, evidence, hist
         "production_live_site_authorized": True,
         "source_capture_version_reverified": True,
         "trusted_validator_ref": validator_ref,
-        "review_basis": REVIEW_BASIS,
+        "review_basis": STANDING_REVIEW_BASIS if standing else REVIEW_BASIS,
         "frozen_review_cohort_commit": FROZEN_PIN,
         "authenticated_scheduled_days": history["healthy_days"],
         "authenticated_failed_scheduled_attempts": history["failed_attempts"],
@@ -335,10 +365,10 @@ def validate_source_checkout(repo, commit, *, fetch_run, validator_ref):
     packet = baseline if commit == FROZEN_PIN else candidate_packet(repo, commit)
     eligible = verify_cohort(packet, policy,
                              baseline_packet=None if commit == FROZEN_PIN else baseline)
-    approved, unreviewed = reviewed_subset(eligible, baseline)
+    subset = release_subset(eligible, baseline, policy)
+    approved = subset[0]
     history = authenticate_scheduled_history(evidence["attempts"], fetch_run)
-    receipt = _receipt(packet, approved, unreviewed, policy, validator_ref,
-                       evidence, history)
+    receipt = _receipt(packet, subset, policy, validator_ref, evidence, history)
     return {"packet": packet, "policy": policy, "receipt": receipt,
             "baseline_packet": None if commit == FROZEN_PIN else baseline,
             "eligible": eligible, "approved": approved,
@@ -399,7 +429,7 @@ def validate_signed_envelope(body, mac_hex, *, key, public_checkout,
          and private.get("source_git_commit") == packet.get("source_git_commit")
          and private.get("metadata_manifest_sha256") == packet.get("metadata_manifest_sha256")
          and private.get("schema") == RECEIPT_SCHEMA
-         and private.get("review_basis") == REVIEW_BASIS
+         and private.get("review_basis") in (REVIEW_BASIS, STANDING_REVIEW_BASIS)
          and private.get("record_specific_review_receipts_verified") is False
          and type(private.get("trusted_validator_ref")) is str
          and SHA40.fullmatch(private["trusted_validator_ref"]) is not None
@@ -416,10 +446,13 @@ def validate_signed_envelope(body, mac_hex, *, key, public_checkout,
          "public_frozen_branch_lacks_owner_pin")
     baseline = candidate_packet(public_checkout, FROZEN_PIN)
     eligible = verify_cohort(packet, policy, baseline_packet=baseline)
-    approved, unreviewed = reviewed_subset(eligible, baseline)
+    # Approval is recomputed from the public baseline and the pinned policy,
+    # never taken from the private runner's list.
+    subset = release_subset(eligible, baseline, policy)
+    approved = subset[0]
     public_evidence = verify_history(public_checkout, public_frozen_tip)
     history = authenticate_scheduled_history(public_evidence["attempts"], fetch_run)
-    receipt = _receipt(packet, approved, unreviewed, policy, validator_ref,
+    receipt = _receipt(packet, subset, policy, validator_ref,
                        {"public_frozen_history": {k: v for k, v in public_evidence.items()
                                                   if k != "attempts"},
                         "private_runner_evidence": private.get("evidence")},

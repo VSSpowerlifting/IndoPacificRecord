@@ -4,7 +4,9 @@ name: Philippines — Verified AFP Links to Production and Pages
 # verified AFP URL, publisher date and issuer metadata ONLY, as a permanent,
 # automatically updated feed. Only the owner-reviewed frozen cohort (23
 # records at 8a63ba4) is admitted; later AFP records are validated, counted
-# and held until individually approved. No original AFP headline, body,
+# and held. The Oct 18 standing future-record authorization names Kemhan
+# Berita only; AFP future records stay held unless the owner adds a
+# ph_afp_articles standing entry to that policy. No original AFP headline, body,
 # photograph, translation, model summary or IPR analysis is published here.
 #
 # Sources:

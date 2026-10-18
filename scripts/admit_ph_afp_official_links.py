@@ -98,8 +98,9 @@ def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None):
                 validator.need(stored.get(row["source_identity"]) ==
                                (row["canonical_official_url"], row["publisher_posted_date"]),
                                "admitted_row_readback_mismatch")
-            # AFP has no semantic-hold identity; its hold is the unreviewed
-            # post-pin cohort, which must never reach the table.
+            # AFP has no semantic-hold identity; its hold is every eligible
+            # record the validator did not approve (today: the post-pin
+            # records), which must never reach the table.
             for row in v["eligible"]:
                 validator.need(row["source_identity"] in approved
                                or row["source_identity"] not in stored,
@@ -142,7 +143,9 @@ def cmd_admit(args):
         "validations": [{"source_git_commit": v["packet"]["source_git_commit"],
                          "metadata_manifest_sha256": v["packet"]["metadata_manifest_sha256"],
                          "eligible": len(v["eligible"]),
-                         "approved_reviewed_cohort": len(v["approved"]),
+                         "approved_for_release": len(v["approved"]),
+                         "released_without_record_specific_review": v["receipt"][
+                             "released_without_record_specific_review_count"],
                          "held_unreviewed": v["receipt"]["held_unreviewed_count"],
                          "authenticated_scheduled_days": len(
                              v["receipt"]["authenticated_scheduled_days"])}
@@ -170,7 +173,7 @@ def cmd_sign_private(args):
     (out / "afp-envelope.json.gz").write_bytes(body)
     (out / "afp-envelope.mac").write_text(mac + "\n", encoding="ascii")
     print(json.dumps({"status": "SIGNED", "eligible": len(validated["eligible"]),
-                      "approved_reviewed_cohort": len(validated["approved"]),
+                      "approved_for_release": len(validated["approved"]),
                       "envelope_bytes": len(body),
                       "metadata_manifest_sha256": validated["packet"]["metadata_manifest_sha256"]},
                      sort_keys=True))

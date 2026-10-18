@@ -298,6 +298,24 @@ class TestIsolation(StateCase):
                     ):
                         self.assertNotIn(forbidden, text)
                     continue
+                if path.name == "ph_afp_verified_official_link_production.yml":
+                    # The one metadata-only release lane: it reads the
+                    # preserved shadow/ph-afp history and admits validated
+                    # links, but never collects AFP and publishes nothing
+                    # beyond the SQLite rows and the Philippines page.
+                    self.assertIn("permissions:\n  contents: read", text)
+                    self.assertIn("python -m scripts.admit_ph_afp_official_links admit", text)
+                    self.assertIn("git add -- pla_watch.db output/philippines.html", text)
+                    self.assertIn("git add -- philippines.html", text)
+                    self.assertNotRegex(text, r"(?m)^\s*pull_request_target:")
+                    for forbidden in (
+                            "scripts.shadow_collect_ph", "scripts/shadow_collect_ph",
+                            "sign-private", "actions: write", "pages: write",
+                            "id-token: write", "curl ", "wget ", "upload-artifact",
+                            "git push origin HEAD:shadow", "git add -A", "git add ."):
+                        with self.subTest(forbidden=forbidden):
+                            self.assertNotIn(forbidden, text)
+                    continue
                 self.assertNotIn("ph_afp", text)
 
     def test_the_source_is_enabled_only_in_the_shadow_manifest(self):

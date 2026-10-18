@@ -31,6 +31,7 @@ SECRET = "PRIVATE AFP BODY must never leave the source history"
 TITLE = "Original AFP headline text"
 KEY = b"k" * 32
 FIRST = 37631681338
+PINNED_POLICY_LOADER = release.load_owner_policy  # the real, unpatched loader
 
 
 def git(folder, *args):
@@ -357,10 +358,66 @@ class AfpReleaseValidatorTests(unittest.TestCase):
         self.assertIs(receipt["owner_review_declaration_bound_to_frozen_manifest"], True)
         self.assertIs(receipt["record_specific_review_receipts_verified"], False)
         self.assertEqual(receipt["review_basis"], v.REVIEW_BASIS)
+        self.assertIs(receipt["standing_link_metadata_authorization_verified"], False)
+        self.assertEqual(receipt["released_without_record_specific_review_count"], 0)
         claiming = dict(receipt, record_specific_review_receipts_verified=True)
         out = self.validate(self.h.attempt("39124069602-1", "2026-10-19"))
         self.assertHold("independent_release_evidence_missing", release.verify_release_evidence,
                         claiming, out["packet"], out["eligible"])
+
+    # --- future AFP records: held under the pinned policy -------------------
+
+    def test_pinned_owner_policy_grants_no_afp_standing_authorization(self):
+        pinned = PINNED_POLICY_LOADER()
+        self.assertIs(release.standing_link_metadata_authorization(pinned, v.FAMILY), False)
+        self.assertIs(release.standing_link_metadata_authorization(pinned, "id_kemhan_news"),
+                      True)
+
+    def _afp_standing(self):
+        self.policy["standing_link_metadata_authorizations"] = [
+            dict(release.STANDING_AUTHORIZATION, source_family=v.FAMILY,
+                 decision_recorded_on="2026-10-19",
+                 decision_source="test-only hypothetical owner decision")]
+
+    def test_hypothetical_afp_standing_entry_admits_future_records_without_claiming_review(self):
+        self._afp_standing()
+        tip = self.h.attempt("39124069601-1", "2026-10-18", new=[
+            (1409, "afp-chief-visits-command", "2026-10-14")])
+        out = self.validate(tip)
+        r = out["receipt"]
+        self.assertEqual((len(out["eligible"]), len(out["approved"])), (7, 7))
+        self.assertIs(r["standing_link_metadata_authorization_verified"], True)
+        self.assertIs(r["record_specific_review_receipts_verified"], False)
+        self.assertEqual((r["held_unreviewed_count"],
+                          r["released_without_record_specific_review_count"]), (0, 1))
+        self.assertEqual(r["review_basis"], v.STANDING_REVIEW_BASIS)
+        receipts, total = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T21:13:00Z")
+        self.assertEqual((receipts[0]["new_official_links"], total), (7, 7))
+        self.assertIn("afp:1409", self.rows())
+        # A released post-pin record that later changes is an anomaly: hold all.
+        self.h.records[-1]["published_date"] = "2026-10-13"
+        changed = self.validate(self.h.attempt("39124069602-1", "2026-10-19"))
+        before = sha(self.db)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [changed],
+                        as_of_utc="2026-10-19T21:13:00Z")
+        self.assertEqual(sha(self.db), before)
+
+    def test_standing_flag_without_policy_entry_cannot_widen_release(self):
+        tip = self.h.attempt("39124069601-1", "2026-10-18", new=[
+            (1410, "afp-not-yet-reviewed", "2026-10-18")])
+        out = self.validate(tip)
+        ids = sorted(r["source_identity"] for r in out["eligible"])
+        forged = dict(out["receipt"], approved_source_identities=ids,
+                      eligible_source_identities_sha256=release.digest(ids),
+                      standing_link_metadata_authorization_verified=True)
+        with sqlite3.connect(self.db) as cx:
+            self.assertHold("unreviewed_source_selected_for_release", release.admit, cx,
+                            out["packet"], out["policy"], forged,
+                            as_of_utc="2026-10-18T21:13:00Z",
+                            trusted_validator=lambda *a: True,
+                            baseline_packet=out["baseline_packet"])
+        self.assertEqual(self.rows(), {})
 
     def test_write_boundary_refuses_unreviewed_identity_even_if_validator_accepts(self):
         tip = self.h.attempt("39124069601-1", "2026-10-18", new=[
