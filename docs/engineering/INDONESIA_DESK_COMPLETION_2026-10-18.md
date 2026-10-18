@@ -43,6 +43,15 @@ is always held. Its original and discrepancy are preserved unaltered.
    private history inherited the exact final public tip, and re-authenticates
    scheduled history from public run records. This path is held until the
    owner sets the credential (below).
+5. **Existing page check rejected the admitted state.** Once rows exist the
+   desk template already swaps the shadow heading for the admitted one, but
+   `scripts/indonesia_operational_health.py` (used by the manual health run
+   and both curated-link release workflows) demanded the shadow heading. It
+   now accepts the admitted heading only alongside one well-formed admitted
+   index: `kemhan.go.id` hrefs equal to their identities, dates matching the
+   URL path, no duplicates and no held identity. The production workflow runs
+   the same check before committing. The curated 15 + 2 directory and its
+   prose-count checks are unchanged.
 
 ## Real-record evidence (18 October 2026)
 

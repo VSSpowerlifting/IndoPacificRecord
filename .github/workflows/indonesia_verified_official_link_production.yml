@@ -76,6 +76,7 @@ jobs:
         run: |
           python -m unittest -v \
             tests.test_indonesia_kemhan_release_validator \
+            tests.test_indonesia_operational_health \
             tests.test_regional_official_link_release \
             tests.test_regional_official_link_render
       - name: Clone the frozen public Kemhan source history
@@ -144,6 +145,9 @@ jobs:
           assert "yonif-tp-880" not in page
           for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
               assert forbidden not in page, forbidden
+          from scripts.indonesia_operational_health import check_admitted_links, check_public_page
+          check_public_page(Path("output/indonesia.html"))
+          assert check_admitted_links(page) == len(rows)
           print("Admitted Kemhan links rendered:", len(rows))
           PY
           sha256sum output/indonesia.html > "$RUNNER_TEMP/id-prod-page-sha"

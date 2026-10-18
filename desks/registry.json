@@ -384,7 +384,7 @@
    "route": "indonesia.html",
    "scope": "A bounded institutional-news research desk focused initially on Kementerian Pertahanan Republik Indonesia (Kemhan) Berita, in original Indonesian. Coverage excludes the armed forces' wider publications, ministerial decrees, and national defense-policy documents.",
    "status": "shadow",
-   "status_explanation": "Kemhan Berita is collected daily into IPR's private evidence archive; its original Indonesian articles are preserved privately and are not in the public IPR corpus. Under the owner's October 15, 2026 metadata-only authorization, verified Berita URLs and publisher dates are admitted automatically to IPR's official-source link index, except one record held for a publisher geographic inconsistency. Fifteen curated Berita links and two historical Siaran Pers press links remain a separate dated directory. Neither group is a human-reviewed IPR citation or public archive record, and no named Indonesian-language editorial review has certified these originals.",
+   "status_explanation": "Kemhan Berita is collected daily into a private evidence archive for source evaluation. Its original Indonesian articles are not in the public IPR corpus. Fifteen dated Berita links and two historical Siaran Pers press links provide attributed outbound navigation only; neither group constitutes human-reviewed IPR citations or public archive records. Five preserved originals received preliminary review; independent Indonesian-language signoff and the Day 7/14/30 collection reviews remain outstanding.",
    "public": true,
    "manifest": null,
    "has_production_records": false,
@@ -392,8 +392,8 @@
     "source_families": [
      {
       "name": "Indonesian Ministry of Defense — Berita (Indonesian)",
-      "format": "Dated ministry news HTML; daily private-archive preservation; verified URL and publisher-date metadata admitted to the official-source link index",
-      "note": "Institutional Berita statements on www.kemhan.go.id, not verbatim official decrees, treaties or independent verification of military capability. Original-language article text stays in the private evidence archive. The automatically admitted link index carries no headlines, publisher bodies, photographs or translations."
+      "format": "Dated ministry news HTML; isolated shadow preservation and private research reader",
+      "note": "Institutional Berita statements on www.kemhan.go.id, not verbatim official decrees, treaties or independent verification of military capability. Original-language article text stays in shadow state. No publisher bodies, photographs or translations are displayed here."
      },
      {
       "name": "Indonesian Ministry of Defense — Siaran Pers (Indonesian)",
@@ -412,7 +412,7 @@
      ],
      [
       "Collection reliability and eligibility",
-      "Daily collection began October 6, 2026 and moved to private custody on October 17. A healthy run that finds no new item is normal. Completeness of ministry releases is not established, and human checkpoint reviews and corpus admission remain separate decisions."
+      "The initial isolated collection began October 6, 2026. The October 11 evidence preflight cannot satisfy the October 13 Day 7 checkpoint, later human Day 14/30 reviews or 30-day corpus-admission test."
      ],
      [
       "Scope is not nationwide coverage",
@@ -421,10 +421,10 @@
     ]
    },
    "limits": [
-    "Fifteen curated Berita and two Siaran Pers first-party links, plus automatically admitted Berita URL and date metadata, are available for navigation; no article body, model analysis or independently reviewed citation is published, and Indonesia has no admitted public corpus records.",
-    "Private collection is not a public archive. A daily collection-success ledger does not establish completeness of ministry releases.",
+    "Fifteen Berita and two Siaran Pers first-party links are available for navigation; no article body, model analysis or independently reviewed citation is published, and Indonesia has no admitted public corpus records.",
+    "Isolated shadow collection is not production collection. A daily collection-success ledger does not establish completeness of ministry releases.",
     "Original Berita reports represent the ministry's communication, not independent confirmation of outcomes, agreements, force readiness or project completion.",
-    "Named Indonesian-language and content-rights decisions still govern reviewed citations, translations and corpus admission; outbound official links are not article-republication approval."
+    "Named Indonesian-language, content-rights and Day 7/14/30 decisions still govern reviewed citation releases and production admission; outbound official links are not article-republication approval."
    ]
   },
     {
