@@ -67,9 +67,15 @@ def save(ledger):
 
 def settle(entry, response):
     usage = response.usage
+    if usage is None or any(type(getattr(usage, k, None)) is not int
+                            for k in ("input_tokens", "output_tokens")):
+        raise RuntimeError("Missing provider usage; reservation retained")
     fields = ("input_tokens", "output_tokens", "cache_creation_input_tokens",
               "cache_read_input_tokens")
-    values = {k: getattr(usage, k, 0) or 0 for k in fields}
+    values = {k: getattr(usage, k, 0) for k in fields}
+    for k in fields[2:]:
+        if values[k] is None:
+            values[k] = 0
     if any(type(v) is not int or v < 0 for v in values.values()):
         raise RuntimeError("Unusable provider usage; reservation retained")
     cost = estimate_usage_cost_usd(entry["model"], **values)

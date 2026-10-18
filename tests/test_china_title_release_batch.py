@@ -45,12 +45,15 @@ class TitleReleaseBudget(unittest.TestCase):
         self.assertNotIn('charged_usd', batch['requests'][2])
 
     def test_unexpected_usage_never_refunds(self):
-        entry = {'model': 'claude-sonnet-4-6', 'reserved_usd': '.1'}
-        r = response()
-        r.usage.input_tokens = 100000
-        with self.assertRaises(RuntimeError):
-            settle(entry, r)
-        self.assertNotIn('charged_usd', entry)
+        for usage in (None, NS(), NS(input_tokens=None,output_tokens=None),
+                      NS(input_tokens=True,output_tokens=1),
+                      NS(input_tokens=100000,output_tokens=50)):
+            with self.subTest(usage=usage):
+                entry = {'model': 'claude-sonnet-4-6', 'reserved_usd': '.1'}
+                r = response(); r.usage = usage
+                with self.assertRaises(RuntimeError):
+                    settle(entry, r)
+                self.assertNotIn('charged_usd', entry)
 
     def test_only_fixed_envelope_reaches_one_paid_request(self):
         class Fake:
