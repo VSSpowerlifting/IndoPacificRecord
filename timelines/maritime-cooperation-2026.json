@@ -6,8 +6,8 @@
   "editorial_status": "draft",
   "scope": "What dates do Singapore and Chinese official sources assign to Maritime Cooperation 2026? This chronology compares five records selected in approved Brief No. 15. It establishes what those sources reported, not an independently verified operational history.",
   "methodology_note": "Entries follow source-stated event dates; source publication dates are shown separately. A prospective announcement is labelled as a plan, and a retrospective as a later report. Original-language excerpts are preserved verbatim. English claim descriptions are editorial paraphrases prepared for review. The ministry starting-date disagreement remains unresolved. This selected packet cannot establish all preparations, the reason for the wider Chinese interval, or comparative combat effectiveness.",
-  "updated_on": "2026-10-07",
-  "reviewed_on": "2026-10-07",
+  "updated_on": "2026-10-18",
+  "reviewed_on": "2026-10-18",
   "author_name": "Codex (draft preparation)",
   "editor_name": "Pending owner review",
   "related_briefs": [
@@ -16,7 +16,7 @@
   "entries": [
     {
       "id": "ministry-interval",
-      "headline": "China’s ministry gives the wider interval",
+      "headline": "China’s defence ministry gives the wider interval",
       "event": {
         "start": "2026-09-03",
         "end": "2026-09-09",
@@ -24,7 +24,7 @@
         "date_basis": "Explicit interval in China’s ministry answer."
       },
       "event_kind": "claim",
-      "observation": "In its September 14 answer, China’s ministry dates the exercise to September 3–9. The record does not explain the earlier starting boundary.",
+      "observation": "In its September 14 answer, China’s defence ministry dates the exercise to September 3–9. The record does not explain the September 3 starting date.",
       "evidence": [
         {
           "record_id": 4164,
@@ -144,15 +144,15 @@
     },
     {
       "id": "sea-phase",
-      "headline": "An announced sea phase, followed by a retrospective",
+      "headline": "Sea-phase dates: announced, then reported",
       "event": {
         "start": "2026-09-08",
         "end": "2026-09-09",
         "precision": "interval",
-        "date_basis": "MINDEF explicitly announces the interval; PLA Daily explicitly reports its starting day."
+        "date_basis": "MINDEF announces September 8–9. PLA Daily later dates the transition to sea to September 8 and gunnery to the morning of September 9."
       },
       "event_kind": "occurrence",
-      "observation": "On September 5, MINDEF announces a sea phase for September 8–9. PLA Daily’s September 12 retrospective reports the transition to the sea phase on September 8. The planned interval and later account are shown as distinct evidence.",
+      "observation": "On September 5, MINDEF announces a sea phase for September 8–9. PLA Daily’s September 12 retrospective reports the move to sea on September 8 and gunnery on the morning of September 9. This supports reported activity on both days, not independent confirmation of the full announced programme.",
       "evidence": [
         {
           "record_id": 4466,
@@ -173,7 +173,7 @@
           "published_on": "2026-09-12",
           "url": "http://www.81.cn/yw_208727/16485244.html",
           "basis": "retrospective",
-          "claim": "PLA Daily later reports that the exercise moved to sea on September 8.",
+          "claim": "PLA Daily later reports the transition to sea on September 8 and gunnery on the morning of September 9.",
           "excerpt": "9月8日，联演转入海上演习阶段。"
         }
       ],
@@ -181,7 +181,7 @@
     },
     {
       "id": "conclusion",
-      "headline": "The exercise concludes on September 9",
+      "headline": "Both closing accounts give September 9",
       "event": {
         "start": "2026-09-09",
         "end": "2026-09-09",
@@ -189,7 +189,7 @@
         "date_basis": "“Earlier today” relative to MINDEF’s September 9 publication; explicit September 9 date in PLA Daily."
       },
       "event_kind": "occurrence",
-      "observation": "MINDEF reports the conclusion earlier on September 9. PLA Daily’s September 12 retrospective also describes a five-day exercise ending on September 9. That later report does not explain China’s ministry’s wider starting interval.",
+      "observation": "MINDEF reports the conclusion earlier on September 9. PLA Daily’s September 12 retrospective describes a five-day exercise ending on September 9. That five-day description does not explain the September 3–9 interval given by China’s defence ministry.",
       "evidence": [
         {
           "record_id": 4472,
