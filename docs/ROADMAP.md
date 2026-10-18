@@ -1,12 +1,5 @@
 # Roadmap — Indo-Pacific Record
 
-> **October 18, 2026 precedence:** This preserves an earlier editorial and
-> frontend priority snapshot. Current desk engineering follows the approved
-> complete-desk standard in the October 18 `DECISION_LOG.md` ruling and issue
-> #673. Seven-/30-day histories are reliability measurements, not automatic
-> prelaunch delays. Check current code, Actions, source scope and authorizations
-> rather than trusting historical status or priorities below.
-
 Authoritative forward plan. **Replaces the 2026-07-11 frontend release
 sequence (R1–R5, tickets T1–T5)**, which was written before the rebrand, before
 the record architecture launched, and before either shadow desk existed. That
@@ -20,6 +13,14 @@ Pipeline-layer backlog (analyzer, scrapers, relevance filter) is in
 
 Completed work is recorded in `DECISION_LOG.md` and in Git history, not here.
 Current operational state is in `PROJECT_STATE.md`.
+
+**Owner supersession (2026-10-18):** See
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` for the
+complete-desk finish line and risk-scoped CI. The historical Day-30 Singapore
+review, old consecutive-day launch plans, and historical screening figures
+below document debt or past measurements—not general prelaunch gates or the
+current daily-queue configuration. Actual source/rights/editorial approvals
+and independently checked deployment still apply.
 
 The ordering principle: **research and review gates before presentation.** The
 project's credibility rests on the analytical publication cadence, on completed
@@ -258,17 +259,17 @@ in a hurry.
 record architecture launched, the component and homepage passes have landed,
 and additional visual refinement is not what the publication is short of.
 
-**Geographic desk delivery — current supersession.** The older 30-day
-promotion delay and blanket deferral are no longer the operating policy. Each
-approved desk instead needs complete source collection, private evidence,
-translation, analysis, governed public/editorial publication and sustainable
-operation, verified with actual source records and failure/recovery. Calendar
-streaks, a metadata-only directory or a status change alone prove neither a
-complete desk nor broad national coverage. Rights, source access, authentic
-human reviews and production-write safeguards remain mandatory. The old
-Vietnam exception and U.S. access observation above are dated historical
-findings, not current desk statuses or permissions. See October 18
-`DECISION_LOG.md` and issue #673.
+**Geographic desk delivery — October 18 supersession.** The earlier blanket
+geographic deferral and 30-day waiting requirement are no longer launch rules.
+An agreed desk must complete its official-source, private evidence, permitted
+translation/analysis, public/editorial publication and ongoing operation
+contract, demonstrated on real originals and failure/recovery. Neither an
+elapsed-time streak nor a link-only index proves a complete desk. Actual
+publisher access/robots, rights, reviewer and safe-production safeguards remain
+binding; do not claim coverage that has not been achieved. The dated Vietnam
+exception and U.S. access findings above are historical, not current approvals
+or desk statuses. See the October 18 `DECISION_LOG.md` ruling and
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
 
 **The record archive is not on this list, and the old "archive weight" ticket
 is retired.** It was written against an 804 KB flat all-records page that no

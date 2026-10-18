@@ -15,7 +15,7 @@ it is making. Do not restate one document's content inside another.
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | technical layer map, commands, publishing and deployment |
 | `docs/AGENT_WORKFLOWS.md` (this file) | agent operating constraints and model routing |
-| `docs/ROADMAP.md` | older priority context; verify current owner decisions |
+| `docs/ROADMAP.md` | dated plan; verify latest owner instructions |
 | `DECISION_LOG.md` | durable decisions that constrain future work |
 | Git history | superseded state and incident history |
 
@@ -46,24 +46,27 @@ lightweight model decide design direction, editorial meaning, or
 architecture.
 
 ### Standing rules (any model)
-- At session start, read latest relevant owner decisions and targeted
-  PROJECT_STATE.md handoff sections; verify time-sensitive claims against
-  real sources, current code, PRs, Actions and output. Update the snapshot
-  only when you own it and the task makes a meaningful change.
+- Start with current owner rulings and targeted PROJECT_STATE.md sections.
+  Verify operational claims against real source records, latest code, PRs,
+  Actions and site output. Update PROJECT_STATE only for meaningful changes
+  and only when its ownership is coordinated.
 - Editorial-integrity rules (PRODUCT_AND_EDITORIAL_DOCTRINE §4) bind every
   model at every tier: never invent Chinese text, translations, dates,
   ranks, sources, or claims — in code, copy, tests, or fixtures.
-- The assignment may authorize edits, tests, commits, pushes and a review
-  PR. Reuse valid standing permissions, but never infer approval to merge,
-  spend, change production, activate schedules, publish or send messages.
+- An explicit engineering task may authorize tests, commits, pushes and a
+  review PR. Reuse legitimate standing approvals; don't infer permission for
+  merge, paid model operation, production mutations, schedule activation,
+  publication or external communication.
 - Never hand-edit `output/`; never modify `pla_watch.db` outside the pipeline;
   never modify shadow branches, ledgers or stored shadow records.
 - Never defeat a source's access challenge, impersonate a browser, or route
   around `robots.txt`, however much coverage it would unlock.
-- Never silently promote or overclaim source coverage. Under the October 18
-  owner decision, seven-/30-day histories are ongoing reliability evidence,
-  not universal launch waiting periods. Preserve rights, legitimate human
-  review and independent real-record release gates.
+- Never call a shadow desk complete or promote it automatically. The owner-approved
+  2026-10-18 standard requires end-to-end real-source operation, a tested
+  failure/recovery, verifiable publication, and an explicit release decision.
+  Seven-/30-day streaks are ongoing reliability measurements, not automatic
+  prelaunch holds. Retain historical checkpoint evidence and human review.
+  See docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md.
 - The production renderer is `site/render.py`; the deploy gate is
   `scripts/validate_output.py`, whose governed baseline is **10 warnings**.
   A new warning is explained, never invented away.
@@ -71,43 +74,25 @@ architecture.
   and name the authoritative source — the database, the ledger, the registry,
   the workflow file, or Git history.
 
-## 1a. Complete-desk engineering and acceptance
+## 1a. Efficient complete-desk implementation
 
-Work on one assigned desk and its approved source families, not another
-qualification program. Begin with primary publisher listings and details,
-private captured original bytes/Git versions, authentic human decisions,
-Actions attempts (including failures), production SQLite rows, rendered pages
-and deployed HTTPS where authorized. Repository summaries and old PRs are
-navigation aids, not independent proof of operation.
+Use the October 18 integrated acceptance and risk-based CI rules in
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` rather than creating
+another checklist. Start with direct official publisher records and preserved
+originals, actual review/rights decisions, GitHub run attempts and real
+SQLite/site output. Reconcile one eligible record end to end; verify relevant
+failure, duplicate/revision, unsafe-write and recovery behavior with existing
+tests, and distinguish configured, rehearsed and live-scheduled operation.
 
-Close the existing source → protected capture → translation/processing →
-screening and analysis → approved admission → public/Archive and editorial
-intake → scheduled maintenance/recovery path. A functioning agreed contract
-is the completion standard; no reduced source scope, arbitrary date gate,
-readiness percentage or cosmetic status card substitutes for it. Do not force
-weak releases into articles or label machine output human reviewed.
-
-Independently identify expected official records from a bounded source window;
-reconcile them through storage, processing, database and page. Exercise a real
-eligible record, malformed or unavailable input, duplicate/revision, absent
-approval, atomic rollback, private leakage and idempotent recovery. Distinguish
-replay, manual rehearsal, and genuine scheduled operation. Human review or
-full-text reuse cannot be inferred from a green test or link permission.
-
-Reuse existing collectors, vault, DB, validation, rendering, monitoring and
-model clients. Discover skills/connectors once and use only those relevant to
-a concrete need; targeted Git/rg/Python/SQLite/GitHub/browser reads beat broad
-scans and repeated model calls. One isolated worktree and one owner of shared
-files. Avoid speculative architecture, duplicate verification frameworks,
-overlapping PRs and unrelated fixes. Run focused checks during implementation
-and required full checks once the candidate stabilizes.
-
-Deliver one coherent reviewable PR (and a private companion only if needed),
-grounded SHAs and run/source/output evidence, normal schedule/recovery and the
-smallest unresolved owner action. Stop at an operational desk or a verified
-candidate with a specific real external blocker. Start substantial subsequent
-phases in a new agent session with a concise checkpoint. See October 18
-`DECISION_LOG.md` ruling and issue #673.
+Use relevant tools selectively: targeted Git/rg/Python/SQLite, connected
+GitHub, primary-source retrieval and authorized browser readback. Avoid
+scanning unrelated files, spawning needless agents, repeated full suites,
+duplicated authentication frameworks or serial preparation PRs. Separate
+worktrees and shared-file owners. Complete one assigned desk without widening
+its agreed source contract. Hand back one coherent review PR (and only if
+necessary a private companion), exact real evidence and one precise external
+blocker. Never invent human approval, full-text reuse permission or live
+publication from a successful test.
 
 ## 2. Skills
 

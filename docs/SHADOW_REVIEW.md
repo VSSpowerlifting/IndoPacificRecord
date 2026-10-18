@@ -1,28 +1,31 @@
 # Shadow checkpoint reviews
 
-> **October 18, 2026 supersession:** Day 7/14/30 packets remain useful
-> historical/operational reliability evidence, not automatic desk launch
-> gates. Current complete-desk acceptance requires approved sources, evidence,
-> translation, analysis, permissioned public/editorial output and recovery
-> verified on real records (program issue #673). Genuine reviewer decisions,
-> publisher access/rights and safe production writes still bind.
+**Current policy (18 October 2026):** This is the procedure for preserving
+historical Day-7/14/30 qualification packets and separately requested human
+source reviews. Its former fixed-calendar prelaunch requirement is superseded
+by `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`. A new desk
+instead needs real-source end-to-end acceptance, a tested failure/retry,
+ongoing reliability measurement, and explicit publication approval. Do not
+erase or backdate any original checkpoint or waive editorial/rights review.
 
-Historically manual reviews were planned around days 7, 14 and 30 and their
-actual completion recorded. The procedures below preserve reproducibility;
-they are not a reason for another arbitrary prelaunch delay.
+The original 30-day qualification required manual corpus reviews around days
+7, 14 and 30, with evidence they occurred. The procedures below retain the
+ability to reconstruct that exact historical evidence.
 
 **Scope.** The tooling and the branch constants described here are
 **Singapore-specific**: `scripts/review_shadow_state.py` and
 `scripts/publish_shadow_review.py` read the Singapore state branch and publish
-to `review/singapore-mindef`. The **Japan** shadow desk (`shadow/jp-mod`) used the same historical review standard, but **did not yet have** its
-own review tooling when these notes were written. Historical Japanese review
-requires source-specific tooling; do not point the Singapore publisher at
-Japan state.
+to `review/singapore-mindef`. The **Japan** shadow desk (`shadow/jp-mod`) was originally subject to
+the same historical checkpoint procedure, but **has no review tooling yet**.
+New acceptance follows the October 18 standard above; an independent reviewer
+still needs authentic original-source evidence. Do not point the Singapore
+publisher at Japan state — the target branch is deliberately fixed.
 
-A completed historical checkpoint is evidence, not automatic qualification or
-publication authority. Check present desk status against actual production;
-October 18 superseded the former 30-day threshold. Never fabricate or backdate
-human review.
+A completed historical checkpoint review qualifies nothing on its own and
+does not promote a desk. Singapore was promoted by owner ruling on September
+21, 2026, without a distinct Day-30 human review. For current statuses read
+`desks/registry.json`; publication and source/rights approval remain explicit
+owner decisions, not automatic calendar results.
 
 The **Vietnam** pilot, built but not launched, has its own packet tool,
 `scripts/review_vietnam_shadow_state.py`. It reads only Vietnam state, refuses

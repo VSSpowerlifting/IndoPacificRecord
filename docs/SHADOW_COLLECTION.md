@@ -1,20 +1,18 @@
 # Shadow collection
 
-> **October 18, 2026 supersession:** This describes the earlier shadow-source
-> design and historical observations, not a current eight-desk inventory or
-> universal seven-/30-day launch gate. Check current source manifests,
-> private-vault custody, main, Actions and issue #673 before acting. The owner
-> now requires bounded real-source integrated acceptance and safe ongoing
-> operation. Preserve original captures, attempt history and source rights.
-
 A shadow desk is a source under evaluation. It collects into isolated state so
 its reliability can be measured before anything it produces is treated as
 coverage. Nothing a shadow desk collects appears in the public site, in
 `pla_watch.db`, or in any public count.
 
-**Initial two-desk snapshot:** these were the desks tracked under the
-original shadow arrangement. This dated list is not a current count or a
-claim about today's public status.
+**Historical initial shadow roster (August–September 2026):** The two
+entries below describe the original isolated collectors, not today's desk
+status. Singapore was subsequently promoted to the production corpus; always
+read `desks/registry.json` and the current production manifest for status.
+For future desks, the October 18 owner decision replaces fixed seven-/30-day
+*prelaunch* waiting with real end-to-end acceptance and failure/retry evidence
+(`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`). Historical
+failed source days remain failed; no shadow collector grants publication rights.
 
 | Desk | State branch | Collector | Workflow | Scope document |
 |---|---|---|---|---|
@@ -138,7 +136,7 @@ state/clock.json         day zero, written once, never rewritten
 state/ledger/*.json      one entry per run, append-only
 ```
 
-**Why a branch rather than a cache (historical design).** Evaluation needed state that
+**Why a branch rather than a cache.** The 30-day evaluation needs state that
 survives longer than any cache guarantee and that can be audited afterwards.
 GitHub Actions caches are evictable and are explicitly not a durable store; an
 artifact expires. A branch is durable, diffable, and every update is attributable
@@ -268,18 +266,21 @@ whose result is terminal-successful, written once into `clock.json` and never
 rewritten. A failed run neither starts nor advances the clock. An expected
 empty day is a success: it records history without inventing records.
 
-## Historical 30-day checkpoint (not a current launch gate)
+## Historical thirty-day checkpoint (not a current launch requirement)
 
-Previously, day 30 triggered a review packet, never automatic admission.
-The October 18 decision supersedes that elapsed-time prerequisite. Human
-review, permissioned source handling, and real end-to-end operation still
-matter; an old counter or review packet alone grants no publication rights.
+Under the original procedure, day 30 triggered a review packet, never an
+automatic release. The October 18 owner ruling supersedes the elapsed-time
+launch prerequisite. A real source-specific review, permissioned release, and
+end-to-end operation remain required where applicable; neither a time counter
+nor a historical review alone establishes publication authority.
 
-Historical reviews assessed scheduled outcomes (including failures and genuine
-empty days), robots/access compliance, retrieval completeness, source identity
-and deduplication, public/private isolation, Day 7/14/30 human review and
-recovery. Retain those observations for operational reliability. New desk
-launches instead prove the relevant failure/recovery behavior directly.
+Historical checks assessed terminal collection results (including genuine
+quiet days and failures), robots/access compliance, retrieval completeness,
+source identity/deduplication, shadow-production isolation, original Day 7/14/30
+human reviews and repair after collection breaks. Preserve those observations
+as reliability evidence. New desk launches verify relevant authentic
+failure/recovery behavior directly; do not require another arbitrary streak.
+See `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
 
 ## Rollback
 

@@ -4,42 +4,29 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
-## 2026-10-18 — Owner standard for complete, operational IPR desks
+## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
 
-**Owner direction; supersedes earlier fixed seven-/30-day launch delays and
-blanket shadow-promotion rules.** For every approved country desk, build the
-agreed official sources, honest collection, protected original evidence,
-source-specific processing and translation, screening and analysis, governed
-public/archive publication, editorial intake, and scheduled maintenance/recovery
-as **one functioning service**. Prove it against real source records and
-realistic, isolated failure/recovery conditions. Operate and improve it.
-Completion is the agreed contract functioning end to end, not comprehensive
-national coverage, a metadata-only directory, or a readiness percentage.
-Program decision and applicability: issue #673.
+The owner directed IPR engineering to stop creating serial audit gates and
+deliver each desk as one complete, dependable official-source-to-publication
+service. A real source end-to-end demonstration and realistic failure/retry
+are the engineering acceptance criteria; seven-/30-day histories remain
+operational reliability measurements, not mandatory prelaunch waiting periods.
+Prior historical failures and human checkpoint reviews remain true and
+unchanged. Source-specific access/rights, language/source accuracy, human
+editorial approval, safe database operations, and explicit publication
+authorization remain mandatory. A reviewer or automation must not treat
+simulated data, CI success, or a PR merge as live publication proof.
 
-Day 7/14/30 reviews and observed collection histories remain authentic,
-valuable **ongoing reliability measurements**, not mandatory elapsed-time
-prerequisites. Keep original failed attempts and dates unchanged. An actually
-broken collector, unavailable source, missing necessary permission/reviewer
-decision, source inconsistency, or unsafe production state still blocks the
-affected capability. Preserve publisher access restrictions and robots rules,
-copyright/source use, version-pinned human decisions and editorial authority,
-private custody, complete identity/provenance, and transaction-safe DB/Pages
-publication. Authorized minimal official-link metadata does not imply rights
-to republish originals, titles, translations, images or model analysis.
-
-Agents should inspect current code, official publisher records, preserved
-capture bytes, real Actions runs, active worktrees, relevant PRs and live output
-before implementation. Reuse existing collectors, validators, releases and
-monitoring. Favor the shortest executable integration path and one coherent PR
-(or essential public/private pair); avoid duplicate qualification frameworks,
-approval layers, report-only milestones, unnecessary QA and unrelated fixes.
-An explicit assignment can authorize edits, tests, commits and a reviewable PR;
-it does **not** automatically authorize merge, paid model runs, external
-messages, live schedule changes, production DB writes or publication. Reuse
-genuine prior authorizations and real human decisions, never invent signoff.
-Stop at a verified operating desk or a verified candidate awaiting a precise
-external action; hand substantial further phases to a new focused session.
+The owner also authorized a **bounded, fail-closed CI simplification**:
+docs-only and allowlisted timeline-presentation diffs use scoped checks;
+unknown or high-risk code, models, source custody, workflows, generated
+output, and publication paths retain full verification. The production daily
+pipeline is unchanged. Do not remove substantive security or source-rights
+negative tests, or create another verification framework. Implementation
+requires an independently reviewed PR and exact-head CI; this ruling
+does not authorize merging an unverified branch or changing deployed content.
+Governance details:
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
 
 ## 2026-10-18 — Singapore desk analysis path: engineering record, owner adoption pending
 
