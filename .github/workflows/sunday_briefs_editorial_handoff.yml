@@ -1,10 +1,12 @@
 name: Sunday IPR Briefs — Private Owner Preview or Approved Editor Handoff
 
 on:
-  schedule:
-    # Sunday ~3:17 p.m. EDT / ~2:17 p.m. EST (19:17 UTC).
-    # Fail closed if Sunday's collection did not complete first.
-    - cron: '17 19 * * 0'
+  workflow_run:
+    # Same-day successful Daily Update initiates the editor handoff.
+    # Green runs that skipped collection are refused by the upstream job gate.
+    workflows: [Daily PLA Watch Update]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       send_email:
@@ -30,6 +32,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: ipr-sunday-editorial-handoff
@@ -37,15 +40,16 @@ concurrency:
 
 jobs:
   sunday-editor-handoff:
-    # Scheduled Sunday editor draft is now the default; manual sends still require opt-in.
+    # Original, fully completed Sunday collection initiates editor drafting.
+    # Manual sends and owner previews remain separately opt-in.
     # The October 10 pilot approval/digest guard, live-source gates and Friday
     # exclusivity check remain mandatory. Scheduled Sunday targets Dylan;
     # owner-only preview is an explicitly separate manual dispatch.
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      SUNDAY_SEND: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && vars.IPR_SUNDAY_EDITOR_DELIVERY_ENABLED == 'true' && inputs.send_email == true) }}
+      SUNDAY_SEND: ${{ github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && vars.IPR_SUNDAY_EDITOR_DELIVERY_ENABLED == 'true' && inputs.send_email == true) }}
       # Legacy scheduled preview settings cannot conflict with Sunday's editor send.
       SUNDAY_OWNER_PREVIEW: 'false'
     steps:
@@ -58,6 +62,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+
+      - name: Verify real Sunday collection completed (not a green no-op)
+        if: github.event_name == 'workflow_run'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -m scripts.sunday_collection_trigger \
+            --event "$GITHUB_EVENT_PATH" \
+            --marker .github/state/last_daily_run_date.txt
 
       - name: Install project dependencies
         run: python -m pip install -r requirements.txt
@@ -97,7 +110,7 @@ jobs:
       # No-send owner previews do not require either setting.
       - name: Verify reporting Saturday and Sunday's successful database update
         env:
-          IPR_EVENT: ${{ github.event_name }}
+          IPR_EVENT: ${{ github.event_name == 'workflow_run' && 'schedule' || github.event_name }}
           IPR_MANUAL_SATURDAY: ${{ inputs.reporting_saturday || '' }}
           IPR_HISTORICAL_SEND: ${{ inputs.allow_historical_send == true }}
           IPR_OLD_FRIDAY_ACTIVE: ${{ vars.IPR_EDITOR_DELIVERY_ENABLED == 'true' }}
