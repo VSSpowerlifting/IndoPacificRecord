@@ -22,8 +22,10 @@ Summary of the non-negotiables:
   ranks, or claims. Historical gaps stay as recorded warnings.
 - Never defeat a source's access challenge or impersonate a browser; an
   institution must be able to recognise this collector and refuse it.
-- No shadow desk is promoted automatically, and none may be described as
-  qualified.
+- No shadow desk is promoted automatically or called qualified without
+  actual source-to-site acceptance and owner release. Follow the October 18
+  complete-desk/CI policy in `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`;
+  seven-/30-day streaks measure reliability rather than delay launch.
 - Do not commit, push, deploy, publish, or regenerate output unless
   explicitly asked. CI deploys what is committed on main.
 - Production renderer is `.venv/bin/python site/render.py`; the deploy gate is
