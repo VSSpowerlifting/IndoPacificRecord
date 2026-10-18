@@ -184,7 +184,10 @@ and approval/reconciliation/private-review paths are intact. Engineering and
 browser receipts remain in `docs/EVIDENCE_TIMELINES.md`.
 The corrected six-entry draft has now been checked against all five complete
 captured originals: sea-phase reporting includes September 9 morning gunnery,
-and the closing headline is explicitly attributed. The private candidate,
+and the closing headline is explicitly attributed. A source-passage locator now
+separates the September 8 excerpt from the later September 9 gunnery account;
+the review note carries the refreshed draft digest and validation limit.
+The private candidate,
 six-row review, exact digest and current source-use measurements/choices are in
 `docs/research/MARITIME_TIMELINE_OWNER_REVIEW_2026-10-18.md`. All five record
 routes survive; related Brief No. 15, frontend, database and production output
