@@ -373,6 +373,27 @@ class AfpReleaseValidatorTests(unittest.TestCase):
         self.assertIs(release.standing_link_metadata_authorization(pinned, "id_kemhan_news"),
                       True)
 
+    def test_one_entry_owner_edit_is_the_whole_activation(self):
+        # If the owner answers yes, adding one ph_afp_articles entry to the
+        # pinned policy is accepted by the real loader; nothing else changes.
+        policy = json.loads(release.POLICY_PATH.read_text(encoding="utf-8"))
+        policy["standing_link_metadata_authorizations"].append(
+            dict(release.STANDING_AUTHORIZATION, source_family=v.FAMILY,
+                 decision_recorded_on="2026-10-19",
+                 decision_source="test-only hypothetical owner decision"))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "policy.json"
+            path.write_text(json.dumps(policy), encoding="utf-8")
+            with patch.object(release, "POLICY_PATH", path):
+                loaded = PINNED_POLICY_LOADER(path=path)
+                self.assertIs(release.standing_link_metadata_authorization(
+                    loaded, v.FAMILY), True)
+                loaded["standing_link_metadata_authorizations"][-1][
+                    "per_record_human_review_required"] = True
+                path.write_text(json.dumps(loaded), encoding="utf-8")
+                with self.assertRaises(release.RegionalLinkHold):
+                    PINNED_POLICY_LOADER(path=path)
+
     def _afp_standing(self):
         self.policy["standing_link_metadata_authorizations"] = [
             dict(release.STANDING_AUTHORIZATION, source_family=v.FAMILY,

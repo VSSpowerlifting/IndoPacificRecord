@@ -1,5 +1,23 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Philippines Desk AFP official-link lane (18 October 2026, release candidate,
+draft PR #816 stacked on #812):** a trusted AFP validator, scratch-copy/atomic
+admission and a page-only production workflow. The Oct 15 frozen cohort
+(23 records, pin `8a63ba4`) is admitted. Future AFP records stay **held**,
+because the Oct 18 standing authorization names Kemhan only. Dormant standing
+support activates only if the owner adds a `ph_afp_articles` policy entry
+(owner question in the doc). Real-source rehearsal on a DB copy
+(`shadow/ph-afp` `97ec0bf`):
+- 23 admitted, 6 held;
+- idempotent replay;
+- page identities equal the DB rows;
+- no original text exposed.
+
+Merging #816 is the activation point. The #797 / private #11 collector cutover
+and the bridge credentials are owner-controlled. No production DB, output,
+Pages or schedule change was made here. Details:
+`docs/engineering/PHILIPPINES_DESK_COMPLETION_2026-10-18.md`.
+
 **Indonesia Desk official-link lane (18 October 2026, release candidate):**
 Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.
 This branch adds a trusted validator (pin ancestry, re-hashed captures,
