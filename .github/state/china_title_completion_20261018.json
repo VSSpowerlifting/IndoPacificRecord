@@ -2179,6 +2179,22 @@
       "corrected_title": "Air strikes hit Ukraine\u2019s capital and multiple other locations",
       "reason": "Preserve the unnamed capital in the original rather than adding a city name",
       "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 5145,
+      "original": "\u6c99\u7279\u9996\u90fd\u56fd\u9645\u673a\u573a\u518d\u906d\u88ad \u9020\u6210\u4eba\u5458\u53d7\u4f24",
+      "model_title": "Saudi capital's international airport attacked again, causing casualties",
+      "corrected_title": "Saudi capital\u2019s international airport attacked again, causing injuries",
+      "reason": "Preserve injuries without broadening to casualties, which can include deaths",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 5021,
+      "original": "\u4fdd\u969c\u5728\u7ebf | \u7696\u5c71\u7696\u6c34\u6620\u521d\u5fc3\u2014\u201c\u8054\u52e4\u519b\u533b\u8001\u533a\u884c\u201d\u7eaa\u5b9e",
+      "model_title": "Guarantee Online | Anhui Mountains and Waters Reflect the Original Aspiration \u2014 A Record of the \"Joint Logistics Military Doctors' Old Revolutionary Base Area Tour\"",
+      "corrected_title": "Support Online | Anhui Mountains and Waters Reflect the Original Aspiration \u2014 A Record of the \"Joint Logistics Military Doctors\u2019 Old Revolutionary Base Area Tour\"",
+      "reason": "Render military \u4fdd\u969c as support rather than guarantee",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
     }
   ]
 }
