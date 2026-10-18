@@ -2830,7 +2830,17 @@ class TestRecordSemantics(PreviewCase):
             html = self.record(rec["id"])
             with self.subTest(id=rec["id"]):
                 self.assertNotIn("Machine summary", html)
-                self.assertNotIn("Machine translation", html)
+                # A title-only English translation is allowed even without
+                # screening or analysis; it must be labeled as a title
+                # translation, never confused with a generated summary.
+                has_translated_title = (
+                    bool(rec["title_english"] and rec["title_original"])
+                    and (rec["desk_id"] != "china" or rec["language_tag"] != "en")
+                )
+                if has_translated_title:
+                    self.assertIn("Machine translation", html)
+                else:
+                    self.assertNotIn("Machine translation", html)
 
     def test_the_four_state_definitions_use_american_english(self):
         british = re.compile(
