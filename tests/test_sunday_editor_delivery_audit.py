@@ -90,11 +90,11 @@ class ReadOnlyObserverTests(unittest.TestCase):
         self.assertEqual(out["collection_marker_verdict"],
                          "HISTORICAL_MARKER_NOT_ATTESTED")
 
-    def test_winter_utc_schedule_is_still_1917(self):
+    def test_future_winter_has_no_fake_utc_deadline(self):
         result = diagnose(snapshot(), now=WINTER)
         self.assertEqual(result["week_ending"], "2027-11-13")
-        self.assertEqual(result["expected_scheduled_utc"],
-                         "2027-11-14T19:17:00Z")
+        self.assertIsNone(result["expected_scheduled_utc"])
+        self.assertEqual(result["trigger_mode"], "verified_workflow_run")
 
     def test_future_sunday_waits_for_real_collection_not_old_clock(self):
         now = parse_utc("2026-10-25T17:00:00Z")
