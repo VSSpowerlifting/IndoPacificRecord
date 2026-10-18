@@ -20,7 +20,7 @@ if str(REPO_ROOT) not in sys.path:
 from core.collection import status as st
 from core.collection.contract import CollectionWindow
 from core.manifests import load_manifest
-from core.shadow_schedule import resolve_target_date, ScheduleError, SOURCE_EXPLICIT
+from core.shadow_schedule import resolve_target_date, ScheduleError, SOURCE_EXPLICIT, SOURCE_SCHEDULE
 from scraper.sources.desk_shadow_http import USER_AGENT
 from scraper.sources.id_kemhan import KemhanAdapter
 from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter
@@ -124,13 +124,13 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
             (dapa_original_access_authorized and not dapa_recurring_access_authorized
              and target_source == SOURCE_EXPLICIT)
             or (dapa_recurring_access_authorized and not dapa_original_access_authorized
-                and target_source == "schedule-slot")):
+                and target_source == SOURCE_SCHEDULE)):
         raise ValueError("DAPA access must be separately authorized for exactly one manual day or scheduled slot")
     # Defense in depth: a direct CLI or Python import cannot bypass the
     # private workflow's one-date, five-article source-access ceiling.
     if desk == "korea_dapa" and (
             not 1 <= cap <= 5 or lookback != 0 or
-            target_source not in (SOURCE_EXPLICIT, "schedule-slot") or historical_backfill):
+            target_source not in (SOURCE_EXPLICIT, SOURCE_SCHEDULE) or historical_backfill):
         raise ValueError(
             "DAPA source access requires one explicit UTC day, zero lookback, "
             "and a bounded cap of 1–5 originals")
