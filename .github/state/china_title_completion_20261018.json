@@ -1714,87 +1714,419 @@
       "requests": [
         {
           "kind": "probe",
-          "reserved_usd": "0.01"
+          "reserved_usd": "0.01",
+          "model": "claude-haiku-4-5-20251001",
+          "usage": {
+            "input_tokens": 8,
+            "output_tokens": 1,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "1.3e-05",
+          "reported_cost_usd": "1.3e-05",
+          "charged_usd": "1.3e-05",
+          "inference_geo": "not_available",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJe8BEdrRv4zBWGf2Li"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 762,
+          "usage": {
+            "input_tokens": 762,
+            "output_tokens": 60,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003186",
+          "reported_cost_usd": "0.003186",
+          "charged_usd": "0.003186",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJeAmGkgbh69orqcTrf"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 767,
+          "usage": {
+            "input_tokens": 767,
+            "output_tokens": 51,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003066",
+          "reported_cost_usd": "0.003066",
+          "charged_usd": "0.003066",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJeJZp5Ao2WVf7FMekC"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 760,
+          "usage": {
+            "input_tokens": 760,
+            "output_tokens": 50,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.00303",
+          "reported_cost_usd": "0.00303",
+          "charged_usd": "0.00303",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJeQwJU6yLsmmkMd3Sx"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 762,
+          "usage": {
+            "input_tokens": 762,
+            "output_tokens": 53,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003081",
+          "reported_cost_usd": "0.003081",
+          "charged_usd": "0.003081",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJeWKFbBZ9RAUUm76Dy"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 762,
+          "usage": {
+            "input_tokens": 762,
+            "output_tokens": 51,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003051",
+          "reported_cost_usd": "0.003051",
+          "charged_usd": "0.003051",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJebfia8hUcscd4c7GC"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 756,
+          "usage": {
+            "input_tokens": 756,
+            "output_tokens": 46,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.002958",
+          "reported_cost_usd": "0.002958",
+          "charged_usd": "0.002958",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJeiB96mWxcqPtkKKW6"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 760,
+          "usage": {
+            "input_tokens": 760,
+            "output_tokens": 50,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.00303",
+          "reported_cost_usd": "0.00303",
+          "charged_usd": "0.00303",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJepbb6KTh2UzCeqi4T"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 769,
+          "usage": {
+            "input_tokens": 769,
+            "output_tokens": 70,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003357",
+          "reported_cost_usd": "0.003357",
+          "charged_usd": "0.003357",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJevs7xQjbuUoGy1Wti"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 767,
+          "usage": {
+            "input_tokens": 767,
+            "output_tokens": 52,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003081",
+          "reported_cost_usd": "0.003081",
+          "charged_usd": "0.003081",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJf5BSU9eWoSeee1voQ"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 765,
+          "usage": {
+            "input_tokens": 765,
+            "output_tokens": 68,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003315",
+          "reported_cost_usd": "0.003315",
+          "charged_usd": "0.003315",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJfEciV8JDc4VALQjqj"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 765,
+          "usage": {
+            "input_tokens": 765,
+            "output_tokens": 51,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.00306",
+          "reported_cost_usd": "0.00306",
+          "charged_usd": "0.00306",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJfPktUKKjD3XmPUBL9"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 770,
+          "usage": {
+            "input_tokens": 770,
+            "output_tokens": 56,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.00315",
+          "reported_cost_usd": "0.00315",
+          "charged_usd": "0.00315",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJfWj5wEJgdXguW2AJB"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 760,
+          "usage": {
+            "input_tokens": 760,
+            "output_tokens": 50,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.00303",
+          "reported_cost_usd": "0.00303",
+          "charged_usd": "0.00303",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJfcnxgiz3WQHqFw9Jw"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 757,
+          "usage": {
+            "input_tokens": 757,
+            "output_tokens": 43,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.002916",
+          "reported_cost_usd": "0.002916",
+          "charged_usd": "0.002916",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJfiRoHE9vyiLJBTwSd"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 758,
+          "usage": {
+            "input_tokens": 758,
+            "output_tokens": 48,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.002994",
+          "reported_cost_usd": "0.002994",
+          "charged_usd": "0.002994",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJfoHVbfSVRBprLSc3s"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 771,
+          "usage": {
+            "input_tokens": 771,
+            "output_tokens": 56,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003153",
+          "reported_cost_usd": "0.003153",
+          "charged_usd": "0.003153",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJftqMthTa1vwkqDFT7"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 761,
+          "usage": {
+            "input_tokens": 761,
+            "output_tokens": 44,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.002943",
+          "reported_cost_usd": "0.002943",
+          "charged_usd": "0.002943",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJg19sX3YdgrYK12bUz"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 772,
+          "usage": {
+            "input_tokens": 772,
+            "output_tokens": 72,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003396",
+          "reported_cost_usd": "0.003396",
+          "charged_usd": "0.003396",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJg6X5fW3YPHoQVjUQ9"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 762,
+          "usage": {
+            "input_tokens": 762,
+            "output_tokens": 51,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003051",
+          "reported_cost_usd": "0.003051",
+          "charged_usd": "0.003051",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJgGCVQVAs9H4cmntDr"
         },
         {
           "kind": "title",
-          "reserved_usd": "0.10"
+          "reserved_usd": "0.10",
+          "model": "claude-sonnet-4-6",
+          "counted_input_tokens": 762,
+          "usage": {
+            "input_tokens": 762,
+            "output_tokens": 54,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "base_token_cost_usd": "0.003096",
+          "reported_cost_usd": "0.003096",
+          "charged_usd": "0.003096",
+          "inference_geo": "global",
+          "service_tier": "standard",
+          "pricing_uncertain": false,
+          "response_id": "msg_011CgAJgNbDHjBQ7RESAcUVT"
+        }
+      ],
+      "result": {
+        "translated": 20,
+        "failed": 0,
+        "skipped": 0
+      },
+      "usage": [
+        {
+          "task": "title_translation",
+          "model": "claude-sonnet-4-6",
+          "calls": 20,
+          "succeeded_calls": 20,
+          "failed_calls": 0,
+          "input_tokens": 15268,
+          "output_tokens": 1076,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0
         }
       ]
     }
