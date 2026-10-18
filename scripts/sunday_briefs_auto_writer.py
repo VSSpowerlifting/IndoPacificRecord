@@ -15,6 +15,7 @@ from pathlib import Path
 from config import DB_PATH
 from core.brief_contract import trail_entry
 from core.brief_editorial_evidence import evidence_prompt as research_prompt
+from core.regional_editorial_slate import WEIGHTS, heuristic_score
 from scripts.reconcile_db import read_only
 from storage.db import get_articles_for_desks
 
@@ -188,7 +189,7 @@ def evidence_prompt(chosen, *, reviewed_synopses=None):
     return "\n\n".join(parts)
 
 
-def writing_schema(allowed_ids, *, supplemental_ids=()):
+def writing_schema(allowed_ids, *, supplemental_ids=(), automatic_story_selection=False):
     """Constrain citation output to the exact full-text records given to Claude."""
     ids = sorted(set(allowed_ids))
     if not ids or any(type(i) is not int for i in ids):
@@ -226,10 +227,36 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
             "required": list(CITED_FIELDS),
             "additionalProperties": False,
         }
+    if automatic_story_selection:
+        score = {"type": "object", "required": list(WEIGHTS),
+                 "additionalProperties": False,
+                 "properties": {key: {"type": "integer", "minimum": 0,
+                                     "maximum": 5} for key in WEIGHTS}}
+        candidate = {"type": "object", "additionalProperties": False,
+                     "required": ["slug", "thesis", "limitation", "production_ids",
+                                  "research_ids", "scores"],
+                     "properties": {
+                         "slug": {"type": "string"},
+                         "thesis": {"type": "string"},
+                         "limitation": {"type": "string"},
+                         "production_ids": {"type": "array", "uniqueItems": True,
+                                            "items": {"type": "integer", "enum": ids}},
+                         "research_ids": {"type": "array", "uniqueItems": True,
+                                          "items": {"type": "string", "enum": extra_ids}},
+                         "scores": score}}
+        props["story_selection"] = {
+            "type": "object", "additionalProperties": False,
+            "required": ["candidates", "selected_slug", "selection_rationale"],
+            "properties": {
+                "candidates": {"type": "array", "minItems": 1, "maxItems": 3,
+                               "items": candidate},
+                "selected_slug": {"type": "string"},
+                "selection_rationale": {"type": "string"}}}
     return {"type": "object", "properties": props,
             "required": list(PROSE_FIELDS) + ["citations"] +
                         (["editorial_focus", "supplemental_citations"]
-                         if extra_ids else []),
+                         if extra_ids else []) +
+                        (["story_selection"] if automatic_story_selection else []),
             "additionalProperties": False}
 
 
