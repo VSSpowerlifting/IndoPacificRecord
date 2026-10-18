@@ -38,6 +38,21 @@ SCOPE = (
 )
 SHA40 = re.compile(r"[a-f0-9]{40}\Z")
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
+RECEIPT_V1 = "ipr-crossdesk-independent-release-proof/1"
+# Version 2 states the review basis truthfully: the owner's declaration is
+# bound to the pinned frozen cohort, and no record-specific review receipts
+# exist. Admission is limited to identities in that reviewed cohort. Elapsed
+# scheduled days are not a gate; every visible scheduled claim is.
+RECEIPT_V2 = "ipr-crossdesk-independent-release-proof/2"
+V1_GATES = ("review_receipts_version_matched",
+            "seven_actual_scheduled_days_authenticated")
+V2_GATES = ("owner_review_declaration_bound_to_frozen_manifest",
+            "scheduled_history_authenticated")
+COMMON_GATES = ("all_visible_actions_attempts_reconciled",
+                "official_metadata_link_use_checked",
+                "known_semantic_holds_enforced",
+                "production_live_site_authorized",
+                "source_capture_version_reverified")
 
 # This DDL is used in disposable test databases ONLY until a unique, approved
 # versioned migration lands (concurrent China and Korea PRs both claim 0008).
@@ -276,21 +291,19 @@ def verify_release_evidence(receipt, packet, eligible):
     not inferred here. Until that validator is wired the importer is HOLD-only.
     """
     selected = selected_official_links(receipt, eligible)
-    need(type(receipt) is dict
-         and receipt.get("schema") == "ipr-crossdesk-independent-release-proof/1"
+    schema = receipt.get("schema") if type(receipt) is dict else None
+    gates = {RECEIPT_V1: V1_GATES, RECEIPT_V2: V2_GATES}.get(schema)
+    need(gates is not None
+         and (schema == RECEIPT_V1 or (
+             "approved_source_identities" in receipt
+             and receipt.get("record_specific_review_receipts_verified") is False))
          and receipt.get("source_family") == packet.get("source_family")
          and receipt.get("source_git_commit") == packet.get("source_git_commit")
          and receipt.get("metadata_manifest_sha256") ==
              packet.get("metadata_manifest_sha256")
          and receipt.get("eligible_source_identities_sha256") ==
              digest(sorted(r["source_identity"] for r in selected))
-         and receipt.get("review_receipts_version_matched") is True
-         and receipt.get("seven_actual_scheduled_days_authenticated") is True
-         and receipt.get("all_visible_actions_attempts_reconciled") is True
-         and receipt.get("official_metadata_link_use_checked") is True
-         and receipt.get("known_semantic_holds_enforced") is True
-         and receipt.get("production_live_site_authorized") is True
-         and receipt.get("source_capture_version_reverified") is True
+         and all(receipt.get(k) is True for k in gates + COMMON_GATES)
          and type(receipt.get("trusted_validator_ref")) is str
          and SHA40.fullmatch(receipt["trusted_validator_ref"]),
          "independent_release_evidence_missing")
@@ -309,6 +322,14 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     eligible = verify_cohort(packet, policy, baseline_packet=baseline_packet)
     approved = selected_official_links(receipt, eligible)
     proof_digest = verify_release_evidence(receipt, packet, eligible)
+    if receipt["schema"] == RECEIPT_V2:
+        # The owner's review covers the pinned frozen cohort only. Records
+        # collected later stay held until a separate owner decision.
+        reviewed = (verify_cohort(baseline_packet, policy)
+                    if baseline_packet is not None else eligible)
+        need({r["source_identity"] for r in approved}
+             <= {r["source_identity"] for r in reviewed},
+             "unreviewed_source_selected_for_release")
     need(trusted_validator(receipt, packet, approved) is True,
          "trusted_release_evidence_not_authenticated")
     need(type(as_of_utc) is str and

@@ -17,9 +17,19 @@ contradictory elapsed-time requirements in older repository documents.
 It does not supersede permissions, rights, evidence or publication
 requirements, human review where one is required, or the shadow-promotion
 sign-off rule. No desk is promoted by this entry. For Kemhan Berita official
-links, the trusted validator still authenticates the source history against
-GitHub's own scheduled-run records (11 healthy scheduled days, 7–17 October)
-as an evidence-integrity check, not as a waiting period. Implementation:
+links, the trusted validator requires no minimum number of days. It still
+authenticates every visible scheduled-run claim, healthy or failed, against
+GitHub's own run records and requires at least one authenticated healthy
+scheduled run, as an evidence-integrity check, not as a waiting period.
+
+Review basis (engineering reading of existing authority, not a new ruling):
+the Oct 15 owner policy covers the pinned frozen cohort (`0595c66`) and
+states that no machine-verifiable record-specific review receipts exist. The
+release receipt (`ipr-crossdesk-independent-release-proof/2`) says so, and
+only the 30 non-held frozen-cohort records are admissible. Yonif TP 880, the
+4 records first collected after the pin and every later record stay held
+until the owner re-pins a reviewed cohort or rules that link-only Berita
+metadata needs no per-record review. Implementation:
 `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
 
 ## 2026-10-18 — Singapore desk analysis path: engineering record, owner adoption pending

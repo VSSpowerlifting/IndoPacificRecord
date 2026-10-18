@@ -1,19 +1,23 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-**Indonesia Desk completion (18 October 2026, release candidate):**
-Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows;
-`admit()` had no trusted validator and no caller. This branch adds that
-validator (pin ancestry, re-hashed captures, ledger↔commit reconciliation,
-GitHub-authenticated scheduled days), a scratch-copy/atomic admission CLI and
-a Korea-pattern page-only production workflow. It also fixes the shared
-reader's 180-character identity cap, which HOLDs every Kemhan snapshot after
-Oct 15 (a genuine 194-character Berita path); tonight's private staging step
-fails on it until merge. Real rehearsal: 34 links admitted on a DB copy, 1
-Yonif hold, idempotent replay, only `indonesia.html` changes. Post-cutover
-private originals reach production through a held HMAC handoff (companion
-private PR) that needs owner credentials. Evidence, procedure and owner
-actions: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`. PR #652
-cross-check: `research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
+**Indonesia Desk official-link lane (18 October 2026, release candidate):**
+Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.
+This branch adds a trusted validator (pin ancestry, re-hashed captures,
+ledger↔commit reconciliation, every scheduled claim authenticated against
+GitHub, no minimum day count), a scratch-copy/atomic admission CLI and a
+Korea-pattern page-only production workflow, and fixes the shared reader's
+180-character identity cap that HOLDs Kemhan snapshots after Oct 15. Receipt
+v2 states the real review basis: only the 30 frozen-cohort records under the
+Oct 15 owner authority are admissible; Yonif TP 880, 4 post-pin records and
+all later records stay held pending an owner re-pin or ruling. Real rehearsal
+on a DB copy: 30 admitted, 5 held, idempotent replay. Post-cutover private
+records reach the public side only through a held HMAC handoff (companion
+private PR) needing owner credentials. Translation, analysis, editorial
+intake provenance and headline display remain outstanding; the desk is not
+complete end to end. No genuine private `schedule` run recorded as of 18 Oct
+18:48 UTC. Details: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+PR #652 cross-check:
+`research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
 No production DB, output, Pages or schedule change made here.
 
 **Public China title completion (17 October 2026, engineering candidate):**

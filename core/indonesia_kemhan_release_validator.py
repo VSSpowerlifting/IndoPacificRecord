@@ -10,10 +10,17 @@ that validator for ``id_kemhan_news``. It derives the receipt itself from:
   and every stored record's capture present);
 * the owner-pinned frozen cohort, rebuilt from Git and compared against the
   pinned manifest digest, with the rolling cohort checked against it;
-* GitHub's own Actions records for every ``schedule-slot`` ledger attempt.
+* GitHub's own Actions records for every ``schedule-slot`` ledger attempt,
+  healthy or failed. Elapsed days are reported, never required (DECISION_LOG
+  2026-10-18); at least one authenticated healthy scheduled run is.
 
 It then hands ``admit()`` a closure that accepts only that exact receipt and
 packet. Nothing here grants title, body, translation, media or model rights.
+
+Review basis: the owner's 2026-10-15 declaration covers the pinned frozen
+cohort, and the policy states no record-specific review receipts exist. The
+receipt says exactly that. Only frozen-cohort identities are approved; records
+first collected after the pin are reported as held pending owner decision.
 
 A private-runner envelope (post-cutover originals exist only in the private
 evidence repository) is an HMAC attestation by that runner. The public side
@@ -51,9 +58,8 @@ SCHEDULED_WORKFLOWS = frozenset({
     (PRIVATE_REPOSITORY, ".github/workflows/indonesia_private_first_collector.yml"),
 })
 HEALTHY_RESULTS = frozenset({"ok", "ok_all_duplicates"})
-MIN_SCHEDULED_DAYS = 7
 HELD_IDENTITY = "kemhan:" + KEMHAN_HELD
-RECEIPT_SCHEMA = "ipr-crossdesk-independent-release-proof/1"
+RECEIPT_SCHEMA = "ipr-crossdesk-independent-release-proof/2"
 ENVELOPE_SCHEMA = "ipr-indonesia-kemhan-signed-private-metadata/1"
 REVIEW_BASIS = ("owner_2026-10-15_frozen_cohort_human_review_and_"
                 "standing_verified_link_metadata_authorization")
@@ -230,19 +236,21 @@ def verify_history(repo, commit):
     }
 
 
-def authenticate_scheduled_days(attempts, fetch_run):
-    """Count UTC logical days whose attempt GitHub itself records as scheduled.
+def authenticate_scheduled_history(attempts, fetch_run):
+    """Check every ledger ``schedule-slot`` claim against GitHub's own record.
 
+    Failed attempts are authenticated too, so a failure cannot be relabelled.
     ``fetch_run(run_number)`` returns the Actions run JSON, or None when that
     run is not visible to this caller (e.g. a private run read from public).
     """
-    days = set()
+    days, failed, hidden = set(), 0, 0
     for a in attempts:
         m = RUN.fullmatch(a["run_id"])
-        if not (m and a["healthy"] and a["target_date_source"] == "schedule-slot"):
+        if not (m and a["target_date_source"] == "schedule-slot"):
             continue
         run = fetch_run(m.group(1))
         if run is None:
+            hidden += 1
             continue
         need(type(run) is dict and str(run.get("id")) == m.group(1)
              and str(run.get("run_attempt")) == m.group(2),
@@ -251,8 +259,13 @@ def authenticate_scheduled_days(attempts, fetch_run):
         need(run.get("event") == "schedule" and run.get("head_branch") == "main"
              and (repo, run.get("path")) in SCHEDULED_WORKFLOWS,
              "ledger_claims_schedule_github_does_not")
-        days.add(a["target_date"])
-    return sorted(days)
+        if a["healthy"]:
+            days.add(a["target_date"])
+        else:
+            failed += 1
+    need(bool(days), "scheduled_history_not_authenticated")
+    return {"healthy_days": sorted(days), "failed_attempts": failed,
+            "claims_not_visible": hidden}
 
 
 def candidate_packet(repo, commit):
@@ -265,39 +278,57 @@ def candidate_packet(repo, commit):
     return build_candidates(report, FAMILY)
 
 
-def _receipt(packet, eligible, policy, validator_ref, evidence, days):
+def reviewed_subset(eligible, baseline):
+    """Split eligible rows into the owner-reviewed frozen cohort and the rest."""
+    reviewed = {r["source_identity"] for r in baseline["records"]}
+    return ([r for r in eligible if r["source_identity"] in reviewed],
+            sorted(r["source_identity"] for r in eligible
+                   if r["source_identity"] not in reviewed))
+
+
+def _receipt(packet, approved, unreviewed, policy, validator_ref, evidence, history):
     need(type(validator_ref) is str and SHA40.fullmatch(validator_ref) is not None,
          "trusted_validator_ref_not_immutable")
-    need(len(days) >= MIN_SCHEDULED_DAYS, "scheduled_history_not_authenticated")
     need(policy.get("owner_authorizes_automated_verified_link_metadata") is True,
          "owner_link_metadata_authorization_missing")
-    ids = sorted(r["source_identity"] for r in eligible)
+    need(policy.get("machine_verified_record_specific_human_review_receipts_in_repository")
+         is False, "owner_review_basis_changed")
+    ids = sorted(r["source_identity"] for r in approved)
+    need(bool(ids), "no_reviewed_source_to_release")
     need(HELD_IDENTITY not in ids, "semantic_hold_would_be_released")
     return {
         "schema": RECEIPT_SCHEMA,
         "source_family": FAMILY,
         "source_git_commit": packet["source_git_commit"],
         "metadata_manifest_sha256": packet["metadata_manifest_sha256"],
+        "approved_source_identities": ids,
         "eligible_source_identities_sha256": digest(ids),
-        # The owner's 2026-10-15 review declaration is bound to the pinned
-        # frozen manifest, which verify_cohort just rebuilt and matched.
-        "review_receipts_version_matched": True,
-        "seven_actual_scheduled_days_authenticated": True,
+        # verify_cohort rebuilt the pinned frozen cohort from Git and matched
+        # the owner's manifest; that cohort is what the owner declared reviewed.
+        "owner_review_declaration_bound_to_frozen_manifest": True,
+        # Copied from the owner policy, which states none exist.
+        "record_specific_review_receipts_verified": False,
+        "held_unreviewed_source_identities_sha256": digest(unreviewed),
+        "held_unreviewed_count": len(unreviewed),
+        "scheduled_history_authenticated": True,
         "all_visible_actions_attempts_reconciled": True,
         "official_metadata_link_use_checked": True,
         "known_semantic_holds_enforced": True,
+        # The owner's standing metadata-only authorization (checked above).
         "production_live_site_authorized": True,
         "source_capture_version_reverified": True,
         "trusted_validator_ref": validator_ref,
         "review_basis": REVIEW_BASIS,
         "frozen_review_cohort_commit": FROZEN_PIN,
-        "authenticated_scheduled_days": days,
+        "authenticated_scheduled_days": history["healthy_days"],
+        "authenticated_failed_scheduled_attempts": history["failed_attempts"],
+        "scheduled_claims_not_visible": history["claims_not_visible"],
         "evidence": {k: v for k, v in evidence.items() if k != "attempts"},
     }
 
 
-def _trust(receipt, packet, eligible):
-    allowed = {r["source_identity"] for r in eligible}
+def _trust(receipt, packet, approved):
+    allowed = {r["source_identity"] for r in approved}
 
     def trusted_validator(r, p, approved):
         return (r is receipt and p is packet
@@ -314,11 +345,14 @@ def validate_source_checkout(repo, commit, *, fetch_run, validator_ref):
     packet = baseline if commit == FROZEN_PIN else candidate_packet(repo, commit)
     eligible = verify_cohort(packet, policy,
                              baseline_packet=None if commit == FROZEN_PIN else baseline)
-    days = authenticate_scheduled_days(evidence["attempts"], fetch_run)
-    receipt = _receipt(packet, eligible, policy, validator_ref, evidence, days)
+    approved, unreviewed = reviewed_subset(eligible, baseline)
+    history = authenticate_scheduled_history(evidence["attempts"], fetch_run)
+    receipt = _receipt(packet, approved, unreviewed, policy, validator_ref,
+                       evidence, history)
     return {"packet": packet, "policy": policy, "receipt": receipt,
             "baseline_packet": None if commit == FROZEN_PIN else baseline,
-            "eligible": eligible, "trusted_validator": _trust(receipt, packet, eligible)}
+            "eligible": eligible, "approved": approved,
+            "trusted_validator": _trust(receipt, packet, approved)}
 
 
 # --- private runner -> public production envelope -------------------------
@@ -374,12 +408,14 @@ def validate_signed_envelope(body, mac_hex, *, key, public_checkout,
     need(type(private) is dict and type(packet) is dict
          and private.get("source_git_commit") == packet.get("source_git_commit")
          and private.get("metadata_manifest_sha256") == packet.get("metadata_manifest_sha256")
+         and private.get("schema") == RECEIPT_SCHEMA
          and private.get("review_basis") == REVIEW_BASIS
+         and private.get("record_specific_review_receipts_verified") is False
          and type(private.get("trusted_validator_ref")) is str
          and SHA40.fullmatch(private["trusted_validator_ref"]) is not None
          and all(private.get(k) is True for k in (
-             "review_receipts_version_matched",
-             "seven_actual_scheduled_days_authenticated",
+             "owner_review_declaration_bound_to_frozen_manifest",
+             "scheduled_history_authenticated",
              "all_visible_actions_attempts_reconciled",
              "source_capture_version_reverified")),
          "private_runner_release_evidence_incomplete")
@@ -392,16 +428,19 @@ def validate_signed_envelope(body, mac_hex, *, key, public_checkout,
          "public_frozen_branch_lacks_owner_pin")
     baseline = candidate_packet(public_checkout, FROZEN_PIN)
     eligible = verify_cohort(packet, policy, baseline_packet=baseline)
+    # Approval is recomputed here from the public baseline, never taken from
+    # the private runner's list.
+    approved, unreviewed = reviewed_subset(eligible, baseline)
     public_evidence = verify_history(public_checkout, public_frozen_tip)
     # Scheduled history is re-authenticated here from GitHub's public run
     # records, not taken from the private runner's attestation.
-    days = authenticate_scheduled_days(public_evidence["attempts"], fetch_run)
-    receipt = _receipt(packet, eligible, policy, validator_ref,
+    history = authenticate_scheduled_history(public_evidence["attempts"], fetch_run)
+    receipt = _receipt(packet, approved, unreviewed, policy, validator_ref,
                        {"public_frozen_history": {k: v for k, v in public_evidence.items()
                                                   if k != "attempts"},
                         "private_runner_evidence": private.get("evidence")},
-                       days)
+                       history)
     return {"packet": packet, "policy": policy, "receipt": receipt,
-            "baseline_packet": baseline, "eligible": eligible,
-            "trusted_validator": _trust(receipt, packet, eligible),
+            "baseline_packet": baseline, "eligible": eligible, "approved": approved,
+            "trusted_validator": _trust(receipt, packet, approved),
             "source_run_attempt": envelope["source_run_attempt"]}

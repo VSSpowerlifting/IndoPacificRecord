@@ -137,7 +137,7 @@ def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None):
                 "FROM %s WHERE desk='indonesia' AND source_family=?" % TABLE,
                 (validator.FAMILY,))}
         for v in validations:
-            for row in v["eligible"]:
+            for row in v["approved"]:
                 validator.need(stored.get(row["source_identity"]) ==
                                (row["canonical_official_url"], row["publisher_posted_date"]),
                                "admitted_row_readback_mismatch")
@@ -183,6 +183,8 @@ def cmd_admit(args):
         "validations": [{"source_git_commit": v["packet"]["source_git_commit"],
                          "metadata_manifest_sha256": v["packet"]["metadata_manifest_sha256"],
                          "eligible": len(v["eligible"]),
+                         "approved_reviewed_cohort": len(v["approved"]),
+                         "held_unreviewed": v["receipt"]["held_unreviewed_count"],
                          "authenticated_scheduled_days": len(
                              v["receipt"]["authenticated_scheduled_days"])}
                         for v in validations],
@@ -208,6 +210,7 @@ def cmd_sign_private(args):
     (out / "kemhan-envelope.json.gz").write_bytes(body)
     (out / "kemhan-envelope.mac").write_text(mac + "\n", encoding="ascii")
     print(json.dumps({"status": "SIGNED", "eligible": len(validated["eligible"]),
+                      "approved_reviewed_cohort": len(validated["approved"]),
                       "envelope_bytes": len(body),
                       "metadata_manifest_sha256": validated["packet"]["metadata_manifest_sha256"]},
                      sort_keys=True))

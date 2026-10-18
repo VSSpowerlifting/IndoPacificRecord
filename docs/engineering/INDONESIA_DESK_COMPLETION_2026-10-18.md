@@ -26,8 +26,9 @@ is always held. Its original and discrepancy are preserved unaltered.
    ancestry, capture blobs re-hashed against their content addresses, every
    stored text bound to its digest and to a preserved capture, one-to-one
    ledger ↔ history-commit reconciliation, and GitHub's own run records for
-   every `schedule-slot` attempt. It returns a closure accepting only its own
-   receipt, so a caller-supplied or copied receipt cannot admit anything.
+   every `schedule-slot` attempt, healthy or failed. It returns a closure
+   accepting only its own receipt, so a caller-supplied or copied receipt
+   cannot admit anything.
 3. **No production caller.** `scripts/admit_indonesia_kemhan_official_links.py`
    admits on a scratch copy, checks integrity, verifies unrelated rows by
    digest, reads admitted rows back read-only, refuses if the production file
@@ -53,6 +54,42 @@ is always held. Its original and discrepancy are preserved unaltered.
    the same check before committing. The curated 15 + 2 directory and its
    prose-count checks are unchanged.
 
+## Review basis and what may be admitted
+
+The Oct 15 owner policy records that human review occurred for the pinned
+frozen cohort and authorises automated verified link metadata. It also
+records that **no machine-verifiable record-specific human review receipts
+exist** (`machine_verified_record_specific_human_review_receipts_in_repository:
+false`). The owner's Oct 17 subset release (`a55f55f`) then held unreviewed
+originals rather than admitting them. The receipt states exactly that:
+
+* schema `ipr-crossdesk-independent-release-proof/2`;
+  `owner_review_declaration_bound_to_frozen_manifest: true` and
+  `record_specific_review_receipts_verified: false`;
+* `approved_source_identities` is the frozen pin `0595c66` cohort (manifest
+  `2fbb897f…`) minus Yonif TP 880, i.e. **30 records**;
+* records first collected after the pin are counted in
+  `held_unreviewed_count` and never admitted; `admit()` itself refuses an
+  approved identity outside the reviewed cohort
+  (`unreviewed_source_selected_for_release`), whatever validator is passed.
+
+| Records | Status |
+|---|---|
+| 30 frozen-cohort Berita records (pin `0595c66`) | admissible under the Oct 15 authority |
+| Yonif TP 880 | held (semantic geography conflict) |
+| 4 records first collected after the pin (in tips `4295052` / `659ce42`) | held, no record-specific review exists |
+| every later collected record | held until an owner decision (below) |
+
+Automatic admission of newly collected records is therefore **not**
+authorised by the existing record. The pipeline validates, signs and counts
+them; it does not publish them.
+
+The previous seven-day rule is removed (DECISION_LOG 2026-10-18). The
+validator still authenticates every visible `schedule-slot` claim against
+GitHub, so a failed run cannot be relabelled and a manual dispatch cannot be
+passed off as scheduled, and it requires at least one authenticated healthy
+scheduled run. Elapsed days are reported, not required.
+
 ## Real-record evidence (18 October 2026)
 
 * **Independent expected set.** An independent regex over the preserved raw
@@ -64,33 +101,40 @@ is always held. Its original and discrepancy are preserved unaltered.
 * **Frozen pin.** `0595c66` rebuilds to the owner-pinned manifest
   `2fbb897f…` (31 candidates, 1 hold).
 * **Validator on real history.** Public frozen tip `4295052` and private tip
-  `659ce42`: 34 eligible, 1 held, 222/209 captures re-hashed, 14/13 ledger
-  attempts reconciled, 0 unhealthy. GitHub records 11 scheduled healthy days
-  (7–17 Oct) for the ledger's `schedule-slot` run IDs.
-* **Rehearsal on a scratch copy of production `pla_watch.db`.** 34 rows
-  admitted, 1 held. Replay was idempotent (0 new, 34 unchanged, identical
-  bytes). An independent read-only query found integrity and foreign-key
-  checks clean, 34 distinct URLs dated 2026-09-30…2026-10-16, no Yonif row, no
-  legacy URL collision, and unchanged row counts in all 18 other tables plus
-  the migration ledger. Production `pla_watch.db` was not modified.
+  `659ce42`: 34 eligible, 1 semantic hold, 222/209 captures re-hashed, 14/13
+  ledger attempts reconciled, 0 unhealthy. GitHub records 11 scheduled healthy
+  days (7–17 Oct) for the ledger's `schedule-slot` run IDs (reported only).
+  30 of the 34 are in the reviewed cohort; 4 are held as unreviewed.
+* **Rehearsal on a scratch copy of production `pla_watch.db`** (receipt v2,
+  re-run after the review-basis correction). 30 rows admitted, 4 held pending
+  approval, 1 semantic hold. Replay was idempotent (0 new, 30 unchanged,
+  identical bytes). The admitted rows are dated 2026-09-30…2026-10-14 with no
+  Yonif row. The earlier 34-row rehearsal found integrity and foreign-key
+  checks clean and unchanged row counts in all 18 other tables plus the
+  migration ledger; the 30 rows are a subset of it. Production `pla_watch.db`
+  was not modified.
 * **Render.** From the rehearsal DB, only `indonesia.html` differs from a
-  fresh baseline render. 34 rendered items match the SQLite identities and
-  URLs exactly.
-* **Signed path.** A real private envelope (4,817 bytes gzip, 6,424 base64
-  characters) built from `659ce42` admitted with 34 unchanged (no duplicates).
-  A forged MAC returned HOLD.
+  fresh baseline render, and rendered items match the SQLite identities and
+  URLs exactly (the production workflow repeats this check).
+* **Signed path.** A real private envelope (5,128 bytes gzip) built from
+  `659ce42` with a scratch key admitted with 30 unchanged and the same 4 held
+  (no duplicates). A forged MAC returned HOLD.
 
 ## Failure and recovery coverage
 
 `tests/test_indonesia_kemhan_release_validator.py` covers:
 
-* **History authenticity:** ledger schedule claims GitHub contradicts;
-  fewer than 7 authenticated days; tampered or missing captures; unexplained
+* **History authenticity:** ledger schedule claims GitHub contradicts; a
+  failed or manual run relabelled as scheduled; no authenticated healthy
+  scheduled run; one healthy day admits (days measured, not required);
+  tampered or missing captures; unexplained
   commits; commits without ledgers; frozen-record date/URL revision; history
   not descending from the pin.
 * **Truthful receipts:** a private attempt that died before its ledger is
-  counted as a visible failure; unhealthy scheduled attempts do not count as
-  days.
+  counted as a visible failure; unhealthy scheduled attempts are counted as
+  failures, not days; the receipt states the actual review basis; a
+  post-pin record stays held on both the source and signed paths, and the
+  write boundary refuses it even under a permissive validator.
 * **Database safety:** interruption before commit (rollback, no residue);
   concurrent production writer (HOLD, the other write survives);
   forged receipt or missing validator refused; replay idempotent; unrelated
@@ -107,7 +151,8 @@ partial batches, robots timeout, over-cap windows) are already covered in
 
 * **Normal.** 17:17 UTC: the private collector preserves the attempt, rebuilds
   the queue and held candidates, and (once the bridge is active) dispatches
-  the envelope. The public workflow admits new links, commits `pla_watch.db` +
+  the envelope. The public workflow re-verifies it, admits only reviewed
+  identities, counts the rest as held, commits `pla_watch.db` +
   `output/indonesia.html` only, publishes `indonesia.html` to Pages, and
   checks main and Pages bytes match. Its 19:43 UTC run retries and reconciles.
   A day with zero new items is healthy and commits nothing.
@@ -125,12 +170,18 @@ partial batches, robots timeout, over-cap windows) are already covered in
   collector with `collect_after_cutover`. Both are idempotent and never
   create duplicate public rows.
 * **Release authority.** The owner's Oct 15 standing metadata-only
-  authorization. Merging this PR runs the push-triggered admission once.
+  authorization, limited to the reviewed frozen cohort. Merging this PR runs
+  the push-triggered admission once.
 
 ## Owner actions still required
 
-1. Merge the public PR (it triggers admission of the 34 frozen-era links).
-2. To admit post-cutover records automatically, configure:
+1. Merge the public PR (it triggers admission of the 30 reviewed links).
+2. Decide how new records become admissible. Either review and re-pin a newer
+   cohort in `config/afp_kemhan_owner_link_activation.json` (the existing
+   mechanism), or record a ruling that link-only Berita metadata needs no
+   per-record review, which would need a small code change to widen
+   `approved_source_identities`. Until then every new record stays held.
+3. To carry post-cutover private records to the public side, configure:
    * one random ≥32-byte `KEMHAN_BRIDGE_KEY` secret in **both** repositories;
    * `IPR_PUBLIC_BRIDGE_TOKEN` in the private repository (a token limited to
      Actions dispatch on the public repository; the Korea DAPA bridge already
@@ -139,15 +190,24 @@ partial batches, robots timeout, over-cap windows) are already covered in
 
    Then merge the private PR.
 
+## Scope: this is the official-link lane, not the whole desk
+
+This change completes the automated official-link publication lane only. The
+desk is not complete end to end. Status of the other agreed requirements:
+
+| Requirement | Status |
+|---|---|
+| Official-link publication (30 reviewed links) | done once the PR merges |
+| New-record admission | outstanding: owner review basis needed (above) |
+| Translation of Kemhan originals | outstanding: none authorised; no machine translation exists |
+| Analysis of Kemhan originals | outstanding: no model or analyst analysis of bodies is authorised |
+| Sunday editorial intake | partial: typed `ID-KEMHAN-Wnn-nn` publisher-page items load, but the loader refuses unverifiable shadow commit/digest claims, so exact-version provenance covers only the pinned W42 record |
+| Reader-facing page | partial: the automated index shows dated links without headlines (titles excluded by policy); the 15 curated Berita links with descriptions remain the reader-oriented directory |
+
 ## Known limits
 
-* The automated index shows dated official links without headlines, because
-  the owner policy excludes titles. The 15 curated Berita links with
-  descriptions remain the reader-oriented directory.
-* No machine translation or model analysis of Kemhan bodies is authorized.
-  English research enters the Sunday intake as typed `ID-KEMHAN-Wnn-nn`
-  publisher-page items. The loader still refuses unverifiable shadow commit
-  and digest claims for new Kemhan items, so exact-version provenance in that
-  pack is limited to the pinned W42 record.
+* The private collector has no genuine `schedule` event run yet; all 15
+  recorded runs of `indonesia_private_first_collector.yml` are pull-request
+  or dispatch runs (checked 18 Oct, 18:48 UTC).
 * The reader and candidate builder cap one snapshot at 300 records. At
   roughly two new items a day, that limit arrives around February 2027.

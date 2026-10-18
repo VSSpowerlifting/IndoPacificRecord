@@ -194,21 +194,26 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
 
     # --- happy path, rolling cohort, replay --------------------------------
 
-    def test_frozen_cohort_and_new_scheduled_record_admit_once_without_hold(self):
+    def test_reviewed_frozen_cohort_admits_once_and_new_record_stays_held(self):
+        new_id = "kemhan:/2026/10/16/" + "-".join(["menhan-sjafrie-tinjau"] * 9) + ".html"
         tip = self.h.attempt("38958633428-1", "2026-10-16", new=[
-            ("/2026/10/16/" + "-".join(["menhan-sjafrie-tinjau"] * 9) + ".html", "2026-10-16")])
+            (new_id[len("kemhan:"):], "2026-10-16")])
         out = self.validate(tip)
         self.assertEqual(out["receipt"]["authenticated_scheduled_days"], [
             "2026-10-%02d" % d for d in range(7, 14)] + ["2026-10-16"])
         self.assertEqual(len(out["eligible"]), 9)  # 10 stored, Yonif 880 held
+        self.assertEqual(len(out["approved"]), 8)  # the owner-reviewed frozen cohort
+        self.assertEqual(out["receipt"]["held_unreviewed_count"], 1)
         receipts, total = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T19:43:00Z")
-        self.assertEqual((receipts[0]["new_official_links"], total), (9, 9))
+        self.assertEqual((receipts[0]["new_official_links"], total), (8, 8))
+        self.assertEqual(receipts[0]["held_pending_individual_approval"], 1)
         self.assertNotIn(v.HELD_IDENTITY, self.rows())
+        self.assertNotIn(new_id, self.rows())
         before = sha(self.db)
         receipts, _ = cli.admit_validated(self.db, [self.validate(tip)],
                                           as_of_utc="2026-10-19T19:43:00Z")
         self.assertEqual((receipts[0]["new_official_links"],
-                          receipts[0]["unchanged_official_links"]), (0, 9))
+                          receipts[0]["unchanged_official_links"]), (0, 8))
         self.assertEqual(sha(self.db), before, "replay must not rewrite the database")
         with sqlite3.connect(self.db) as cx:
             self.assertEqual(cx.execute("SELECT count(*) FROM regional_official_source_links "
@@ -237,9 +242,16 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
         foreign = scheduled_runs(*self.runs, 38958633428, path=".github/workflows/other.yml")
         self.assertHold("ledger_claims_schedule_github_does_not", self.validate, tip, foreign)
 
-    def test_fewer_than_seven_authenticated_scheduled_days_hold(self):
+    def test_elapsed_days_are_measured_not_required(self):
+        out = self.validate(self.pin, scheduled_runs(self.runs[0]))
+        self.assertEqual(out["receipt"]["authenticated_scheduled_days"], ["2026-10-07"])
+        self.assertEqual(out["receipt"]["scheduled_claims_not_visible"], 6)
+        receipts, _ = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T19:43:00Z")
+        self.assertEqual(receipts[0]["new_official_links"], 8)
+
+    def test_no_authenticated_healthy_scheduled_run_holds(self):
         self.assertHold("scheduled_history_not_authenticated", self.validate, self.pin,
-                        scheduled_runs(*self.runs[:6]))
+                        scheduled_runs())
 
     def test_tampered_or_missing_capture_holds(self):
         cap = next((self.h.folder / "state" / "captures").glob("*.bin"))
@@ -275,6 +287,47 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
         out = self.validate(tip)
         self.assertNotIn("2026-10-16", out["receipt"]["authenticated_scheduled_days"])
         self.assertEqual(out["receipt"]["evidence"]["unhealthy_attempts"], 1)
+        self.assertEqual(out["receipt"]["authenticated_failed_scheduled_attempts"], 1)
+
+    def test_failed_attempt_cannot_be_relabelled_as_scheduled(self):
+        tip = self.h.attempt("38958633428-1", "2026-10-16", healthy=False)
+        runs = scheduled_runs(*self.runs)
+        lying = lambda n: (dict(id=38958633428, run_attempt=1, event="workflow_dispatch",
+                                head_branch="main", repository={"full_name": v.PUBLIC_REPOSITORY},
+                                path=".github/workflows/indonesia_korea_shadow.yml")
+                           if n == "38958633428" else runs(n))
+        self.assertHold("ledger_claims_schedule_github_does_not", self.validate, tip, lying)
+
+    # --- review basis -----------------------------------------------------
+
+    def test_receipt_states_the_actual_review_basis(self):
+        receipt = self.validate(self.h.attempt("38958633428-1", "2026-10-16"))["receipt"]
+        self.assertIs(receipt["owner_review_declaration_bound_to_frozen_manifest"], True)
+        self.assertIs(receipt["record_specific_review_receipts_verified"], False)
+        self.assertIs(self.policy[
+            "machine_verified_record_specific_human_review_receipts_in_repository"], False)
+        for untrue in ("review_receipts_version_matched",
+                       "seven_actual_scheduled_days_authenticated"):
+            self.assertNotIn(untrue, receipt)
+        claiming = dict(receipt, record_specific_review_receipts_verified=True)
+        out = self.validate(self.h.attempt("38958633429-1", "2026-10-17"))
+        self.assertHold("independent_release_evidence_missing", release.verify_release_evidence,
+                        claiming, out["packet"], out["eligible"])
+
+    def test_write_boundary_refuses_unreviewed_identity_even_if_validator_accepts(self):
+        tip = self.h.attempt("38958633428-1", "2026-10-16", new=[
+            ("/2026/10/16/belum-ditinjau.html", "2026-10-16")])
+        out = self.validate(tip)
+        ids = sorted(r["source_identity"] for r in out["eligible"])
+        widened = dict(out["receipt"], approved_source_identities=ids,
+                       eligible_source_identities_sha256=release.digest(ids))
+        with sqlite3.connect(self.db) as cx:
+            self.assertHold("unreviewed_source_selected_for_release", release.admit, cx,
+                            out["packet"], out["policy"], widened,
+                            as_of_utc="2026-10-18T19:43:00Z",
+                            trusted_validator=lambda *a: True,
+                            baseline_packet=out["baseline_packet"])
+        self.assertEqual(self.rows(), {})
 
     def test_frozen_record_date_revision_holds(self):
         self.h.records[1][5] = "2026-10-04"
@@ -356,15 +409,17 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
         args.update(kw)
         return v.validate_signed_envelope(body, mac, **args)
 
-    def test_signed_private_record_reaches_production_without_original_text(self):
+    def test_signed_private_envelope_admits_reviewed_cohort_and_holds_new_record(self):
         body, mac, public_tip, main = self._signed()
         plain = gzip.decompress(body).decode()
         self.assertNotIn(SECRET, plain)
         self.assertNotIn(TITLE, plain)
         out = self._open(body, mac, public_tip, main)
+        self.assertEqual((len(out["eligible"]), len(out["approved"])), (9, 8))
         receipts, total = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T19:43:00Z")
-        self.assertEqual(total, 9)  # 9 frozen-era + 1 private, Yonif 880 held
-        self.assertIn("kemhan:/2026/10/18/wamenhan-terima-audiensi.html", self.rows())
+        self.assertEqual(total, 8)  # frozen cohort only; Yonif 880 and new private item held
+        self.assertEqual(receipts[0]["held_pending_individual_approval"], 1)
+        self.assertNotIn("kemhan:/2026/10/18/wamenhan-terima-audiensi.html", self.rows())
 
     def test_signed_envelope_forgery_and_binding_failures_hold(self):
         body, mac, public_tip, main = self._signed()
