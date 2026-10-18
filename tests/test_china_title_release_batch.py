@@ -19,7 +19,8 @@ def request():
 
 def response():
     return NS(id='synthetic', usage=NS(input_tokens=500, output_tokens=50,
-              cache_creation_input_tokens=0, cache_read_input_tokens=0))
+              cache_creation_input_tokens=0, cache_read_input_tokens=0,
+              inference_geo='global', service_tier='standard'))
 
 
 class TitleReleaseBudget(unittest.TestCase):
@@ -55,6 +56,20 @@ class TitleReleaseBudget(unittest.TestCase):
                     settle(entry, r)
                 self.assertNotIn('charged_usd', entry)
 
+    def test_residency_surcharge_and_unknown_geo_are_charged_conservatively(self):
+        for geo in ('us',None):
+            entry={'model':'claude-sonnet-4-6','reserved_usd':'.1'}
+            r=response();r.usage.inference_geo=geo
+            settle(entry,r)
+            self.assertEqual(Decimal(entry['charged_usd']),Decimal('.002475'))
+            self.assertEqual(entry['pricing_uncertain'],geo is None)
+        for change in ({'service_tier':'priority'},{'inference_geo':'unexpected'}):
+            entry={'model':'claude-sonnet-4-6','reserved_usd':'.1'}
+            r=response()
+            for key,value in change.items():setattr(r.usage,key,value)
+            with self.assertRaises(RuntimeError):settle(entry,r)
+            self.assertNotIn('charged_usd',entry)
+
     def test_only_fixed_envelope_reaches_one_paid_request(self):
         class Fake:
             calls = 0
@@ -62,6 +77,7 @@ class TitleReleaseBudget(unittest.TestCase):
                 return NS(input_tokens=500)
             @contextmanager
             def stream(self, **kw):
+                self.assert_tier = kw['service_tier']
                 self.calls += 1
                 yield NS(get_final_message=response)
         fake = Fake()
@@ -77,6 +93,7 @@ class TitleReleaseBudget(unittest.TestCase):
         with client.stream(**request()) as stream:
             self.assertEqual(stream.get_final_message().id, 'synthetic')
         self.assertEqual(fake.calls, 1)
+        self.assertEqual(fake.assert_tier,'standard_only')
         self.assertIn('charged_usd', entry)
         with self.assertRaises(RuntimeError):
             with client.stream(**request()):

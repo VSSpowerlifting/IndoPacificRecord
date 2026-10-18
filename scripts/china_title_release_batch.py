@@ -78,10 +78,24 @@ def settle(entry, response):
             values[k] = 0
     if any(type(v) is not int or v < 0 for v in values.values()):
         raise RuntimeError("Unusable provider usage; reservation retained")
-    cost = estimate_usage_cost_usd(entry["model"], **values)
+    tier = getattr(usage, "service_tier", None)
+    geo = getattr(usage, "inference_geo", None)
+    if tier not in (None, "standard"):
+        raise RuntimeError("Unexpected billing tier; reservation retained")
+    # Respect the existing workspace's residency choice. Sonnet 4.6's US-only
+    # inference has a published 1.1x surcharge. Missing geo keeps that premium
+    # charged conservatively rather than silently assuming a global invoice.
+    uncertain = entry["model"] == "claude-sonnet-4-6" and geo is None
+    if entry["model"] == "claude-sonnet-4-6" and geo not in (None, "global", "us"):
+        raise RuntimeError("Unknown inference geography; reservation retained")
+    base_cost = estimate_usage_cost_usd(entry["model"], **values)
+    cost = (None if base_cost is None else round(base_cost *
+            (1.1 if entry["model"] == "claude-sonnet-4-6" and geo != "global" else 1), 12))
     if cost is None or Decimal(str(cost)) > Decimal(entry["reserved_usd"]):
         raise RuntimeError("Provider usage exceeds allowance; stop and investigate")
-    entry.update(usage=values, reported_cost_usd=str(cost), charged_usd=str(cost),
+    entry.update(usage=values, base_token_cost_usd=str(base_cost),
+                 reported_cost_usd=None if uncertain else str(cost), charged_usd=str(cost),
+                 inference_geo=geo, service_tier=tier, pricing_uncertain=uncertain,
                  response_id=response.id)
 
 
@@ -90,8 +104,8 @@ class ReservedMessages:
 
     No caching/thinking/images/server tools or automatic retries. UTF-8 payload
     <=4096 bytes; free provider count must also be <=4096 input tokens. Each
-    $0.10 slot covers 30,000 input tokens ($0.09) plus ALL 512 output tokens
-    ($0.00768), leaving over 7x the counted input for framing/count differences.
+    $0.10 slot covers 27,000 input tokens plus ALL 512 output tokens, including
+    the 1.1x US-residency premium, leaving over 6x the admitted input for framing.
     Ambiguous/network/validation failures never refund their reservation.
     """
     def __init__(self, messages, entries):
@@ -109,7 +123,8 @@ class ReservedMessages:
                 or kwargs["tools"] != [TOOL]
                 or kwargs["tool_choice"] != {"type": "tool", "name": "emit_title"}
                 or kwargs["temperature"] != 0.0
-                or len(json.dumps(kwargs, ensure_ascii=False).encode()) > 4096):
+                or len(json.dumps(dict(kwargs, service_tier="standard_only"),
+                                  ensure_ascii=False).encode()) > 4096):
             raise RuntimeError("Request outside prepaid headline envelope")
         count_args = {k: v for k, v in kwargs.items()
                       if k not in {"temperature", "max_tokens"}}
@@ -119,7 +134,7 @@ class ReservedMessages:
         entry = self.entries[self.used]
         self.used += 1
         entry.update(model=kwargs["model"], counted_input_tokens=count)
-        with self.messages.stream(**kwargs) as stream:
+        with self.messages.stream(**dict(kwargs, service_tier="standard_only")) as stream:
             response = stream.get_final_message()
             settle(entry, response)
             # The existing Analyzer still validates the tool result and records
@@ -164,7 +179,7 @@ def main():
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0, timeout=60)
         probe = batch["requests"][0]
         probe["model"] = PROBE_MODEL
-        response = client.messages.create(model=PROBE_MODEL, max_tokens=1,
+        response = client.messages.create(model=PROBE_MODEL, max_tokens=1, service_tier="standard_only",
                     messages=[{"role": "user", "content": "ping"}])
         settle(probe, response)
         analyzer = Analyzer()

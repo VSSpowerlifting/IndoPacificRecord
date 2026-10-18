@@ -21,7 +21,11 @@ Each title request is the existing headline-only forced tool: Sonnet 4.6,
 512 output tokens, no thinking/cache/server tools. The complete serialized
 UTF-8 request must be <=4096 bytes, and the provider's free count-token endpoint
 must report <=4096 input tokens before dispatch. The $0.10 allowance covers
-30,000 input tokens plus all 512 output tokens at the verified pinned rates,
+27,000 input tokens plus all 512 output tokens at the verified pinned rates,
+including the 1.1x US-residency surcharge. Requests force standard service tier,
+respect existing workspace residency and record the reported tier/geography;
+missing geography conservatively retains the surcharge rather than assuming
+a global-rate invoice. Unknown tier/geography stops the run,
 leaving substantial room for framing/count differences. A response settles
 using actual provider-reported token usage; absent usage retains the allowance.
 The ledger is conservative operational accounting at published rates, not an
