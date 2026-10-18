@@ -294,7 +294,64 @@ def validate_prose_boundaries(manuscript):
             )
 
 
-def validate_manuscript(manuscript, chosen, *, supplemental=()):
+def validate_story_selection(selection, manuscript, chosen, supplemental):
+    """Check source IDs and scoring of candidate themes; not a fact approval."""
+    if (not isinstance(selection, dict) or set(selection) != {
+            "candidates", "selected_slug", "selection_rationale"}):
+        raise ValueError("missing automatic story-selection assessment")
+    options = selection["candidates"]
+    if not isinstance(options, list) or not 1 <= len(options) <= 3:
+        raise ValueError("must consider one to three story candidates")
+    allowed = {row["id"] for row, _ in chosen}
+    external = {item["id"] for item in supplemental}
+    seen, scored, attributed = set(), {}, {}
+    for option in options:
+        if not isinstance(option, dict) or set(option) != {
+                "slug", "thesis", "limitation", "production_ids",
+                "research_ids", "scores"}:
+            raise ValueError("malformed story candidate")
+        slug = option["slug"]
+        if (not isinstance(slug, str) or len(slug) > 80
+                or re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", slug) is None
+                or slug in seen):
+            raise ValueError("duplicate or malformed story slug")
+        seen.add(slug)
+        for field in ("thesis", "limitation"):
+            value = option[field]
+            if (not isinstance(value, str) or not 20 <= len(value.strip()) <= 500
+                    or value != value.strip() or "\r" in value
+                    or CONTROL_MARKER.search(value) or PACKET_MARKER.search(value)):
+                raise ValueError("malformed story " + field)
+        ids, research_ids = option["production_ids"], option["research_ids"]
+        if (not isinstance(ids, list) or not isinstance(research_ids, list)
+                or not 1 <= len(ids) + len(research_ids) <= 10
+                or len(ids) != len(set(ids))
+                or len(research_ids) != len(set(research_ids))
+                or any(type(i) is not int or i not in allowed for i in ids)
+                or any(type(i) is not str or i not in external for i in research_ids)):
+            raise ValueError("story candidate used unavailable source IDs")
+        scored[slug] = heuristic_score(option["scores"])
+        attributed[slug] = set(ids + research_ids)
+    lead, reason = selection["selected_slug"], selection["selection_rationale"]
+    if (not isinstance(lead, str) or lead not in scored
+            or not isinstance(reason, str) or not 30 <= len(reason.strip()) <= 650
+            or reason != reason.strip() or "\r" in reason
+            or CONTROL_MARKER.search(reason) or PACKET_MARKER.search(reason)):
+        raise ValueError("missing selected story rationale")
+    if scored[lead] < max(scored.values()):
+        raise ValueError("chosen story is not highest-scoring candidate")
+    opening = set(manuscript["citations"]["development"] +
+                  manuscript["citations"]["opening_note"])
+    external_cites = manuscript.get("supplemental_citations")
+    if external_cites:
+        opening.update(external_cites["development"] +
+                       external_cites["opening_note"])
+    if not opening.intersection(attributed[lead]):
+        raise ValueError("chosen story is not grounded in the manuscript opening")
+    return selection
+
+
+def validate_manuscript(manuscript, chosen, *, supplemental=(), automatic_story_selection=False):
     """Check coverage and mechanical provenance. Humans still verify meaning."""
     if not isinstance(manuscript, dict):
         raise ValueError("writer returned no structured manuscript")
@@ -340,6 +397,11 @@ def validate_manuscript(manuscript, chosen, *, supplemental=()):
         compared.update(extras[i] for i in external_cites["cross_desk_comparison"])
     if len(compared) < 2:
         raise ValueError("cross-desk comparison lacks citations from both desks")
+    if automatic_story_selection:
+        validate_story_selection(manuscript.get("story_selection"),
+                                 manuscript, chosen, supplemental)
+    elif "story_selection" in manuscript:
+        raise ValueError("unrequested automatic story selection")
     return manuscript
 
 
