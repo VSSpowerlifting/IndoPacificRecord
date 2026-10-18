@@ -95,6 +95,13 @@ def version_hash(row):
 
 
 def verify_structure(packet):
+    # One owner-verified historical release has a separately typed envelope.
+    # Routine new-source packets retain their >=2026-10-16 date and genuine
+    # successful private-collection receipt checks, unchanged.
+    if type(packet) is dict and packet.get("schema") == (
+            "ipr-korea-dapa-signed-owner-historical-metadata/1"):
+        from core.korea_dapa_historical_owner import verify_structure as historical
+        return historical(packet)
     need(type(packet) is dict and set(packet) == PACKET_FIELDS,
          "dapa_signed_packet_schema_invalid")
     need(packet["schema"] == SCHEMA
