@@ -200,3 +200,63 @@
  .tl-entry-body{border-color:CanvasText}.tl-entry::before{background:Canvas;box-shadow:none}
  .tl-spine-segment path,.tl-branch path{stroke:CanvasText}
 }
+
+
+/* Maritime Cooperation: restrained illustrative water, never exercise evidence.
+   Scoped to this one timeline; other timelines keep their existing presentation.
+   Keep semantic order and captions legible when disclosures expand. */
+.tl-narrative--maritime{
+ position:relative;isolation:isolate;overflow:clip;background:#112a35;
+ padding:clamp(1.25rem,3vw,2.5rem)
+}
+.tl-narrative--maritime::before{
+ content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
+ background-image:
+  linear-gradient(180deg,rgba(13,35,45,.80),rgba(13,35,45,.88) 25%,rgba(13,35,45,.84) 65%,rgba(13,35,45,.91)),
+  url("assets/timelines/maritime-ocean-texture.webp");
+ background-position:center top,center top;
+ background-size:auto,100% auto;
+ background-repeat:no-repeat,repeat-y
+}
+.tl-narrative--maritime>h2,
+.tl-narrative--maritime>.tl-sequence-note,
+.tl-narrative--maritime>.tl-spine,
+.tl-narrative--maritime>.tl-art-note{position:relative;z-index:1}
+.tl-narrative--maritime .tl-sequence-note{margin-bottom:2.3rem}
+.tl-narrative--maritime .tl-spine{--tl-cascade-offset:15rem}
+.tl-narrative--maritime .tl-entry:not(:first-child){margin-top:calc(-1 * var(--tl-cascade-offset))}
+.tl-narrative--maritime .tl-spine-segment,
+.tl-narrative--maritime .tl-entry:first-child .tl-spine-segment{
+ top:3rem;height:calc(100% - var(--tl-cascade-offset))
+}
+.tl-narrative--maritime .tl-entry:last-child .tl-spine-segment{display:none}
+.tl-narrative--maritime .tl-entry::before{background:#153541;box-shadow:0 0 0 5px rgba(17,42,53,.70)}
+.tl-narrative--maritime .tl-entry-body{
+ position:relative;background:rgba(23,49,61,.96);
+ border-color:rgba(136,176,176,.32);
+ box-shadow:0 10px 38px rgba(2,17,24,.12)
+}
+.tl-narrative--maritime .tl-entry-body h3{line-height:1.2}
+.tl-narrative--maritime .tl-art-note{
+ color:var(--band-muted);font-size:.75rem;line-height:1.6;
+ text-align:right;max-width:none;margin:.6rem 0 0;opacity:.9
+}
+@media(max-width:1050px){
+ .tl-narrative--maritime .tl-spine{--tl-cascade-offset:0px}
+ .tl-narrative--maritime .tl-entry:not(:first-child){margin-top:0}
+ .tl-narrative--maritime::before{
+  background-image:linear-gradient(180deg,rgba(13,35,45,.88),rgba(13,35,45,.91)),
+   url("assets/timelines/maritime-ocean-texture.webp")
+ }
+ .tl-narrative--maritime .tl-art-note{text-align:left}
+}
+@media print{
+ .tl-narrative--maritime::before,.tl-narrative--maritime .tl-art-note{display:none}
+ .tl-narrative--maritime .tl-entry:not(:first-child){margin-top:0}
+ .tl-narrative--maritime .tl-spine-segment{display:none}
+ .tl-narrative--maritime .tl-entry-body{background:none;box-shadow:none;border:0}
+}
+@media(forced-colors:active){
+ .tl-narrative--maritime::before{display:none}
+ .tl-narrative--maritime .tl-entry-body{background:Canvas;border:1px solid CanvasText}
+}
