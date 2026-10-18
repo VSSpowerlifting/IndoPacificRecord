@@ -13,9 +13,11 @@ never intelligence cosplay.
 2026-08-27. Use it only when describing history.
 
 ## Session start
-1. Read `PROJECT_STATE.md` (current state, debt, immediate priorities).
-2. For architecture / "where do I edit" questions: `graphify-out/GRAPH_REPORT.md`
-   first, targeted `rg` second, file reads third. No broad repo scans.
+1. Check the latest owner decisions in `DECISION_LOG.md` (especially
+   2026-10-18) and program issue #673; read relevant `PROJECT_STATE.md`
+   sections, checking dated claims against actual main, PRs and Actions.
+2. For architecture questions, use an existing graph report if available,
+   then targeted `rg` and relevant file reads; no broad repo scans.
 3. Before design, editorial, pipeline, or agent work, read the governing doc:
 
 | Doc | Governs |
@@ -23,14 +25,16 @@ never intelligence cosplay.
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, audiences, page anatomy, evidence-vs-inference rules |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | layer map, source vs generated, commands, CI, commit strategy |
 | `docs/AGENT_WORKFLOWS.md` | model routing, skills, agents, parallelism limits |
-| `docs/ROADMAP.md` | current priority order |
+| `docs/ROADMAP.md` | older priorities; verify current owner direction |
 | `docs/DESIGN_SYSTEM.md` | dual-surface tokens, typography, color, a11y + performance budgets |
 | `docs/VISUAL_AND_MOTION_SYSTEM.md` | motion rules, flagship visual specs, image policy, metadata fields |
-| `docs/SHADOW_COLLECTION.md` / `docs/SHADOW_REVIEW.md` | shadow desk isolation; human checkpoint reviews |
+| `docs/SHADOW_COLLECTION.md` / `docs/SHADOW_REVIEW.md` | historical shadow machinery; not launch-clock gates |
 | `DECISION_LOG.md` / `EDITORIAL_QA_CHECKLIST.md` | standing rulings; weekly publish gate |
 
 ## Hard rules
-- Work only inside `~/pla-watch`. Never touch sibling repos.
+- Use a separate worktree of the assigned IPR repository. Work in a named
+  private evidence companion repository only when the assignment calls for
+  coordinated custody. Never modify unrelated repos or another agent's work.
 - **Never hand-edit `output/`** — it is generated. Fix templates/scripts/
   sidecars and re-render. Sidecar JSON (`output/the-pla-watch/posts/*.json`)
   is the canonical edition record — no casual edits, ever.
@@ -43,13 +47,27 @@ never intelligence cosplay.
 - Never defeat a source's access challenge, impersonate a browser, or route
   around `robots.txt`. An institution must be able to recognise this collector
   and refuse it.
-- No shadow desk is promoted automatically, and none may be described as
-  qualified. Promotion needs 30 consecutive collecting days, completed human
-  checkpoint reviews, and owner sign-off in `DECISION_LOG.md`.
-- Do not commit, push, deploy, publish, or regenerate output unless
-  explicitly asked. CI deploys what is committed on main.
+- Never silently promote a desk or overstate its coverage. The 2026-10-18
+  owner decision replaces fixed seven-/30-day launch delays with genuine,
+  bounded end-to-end acceptance. Reliability histories continue after launch;
+  actual access, source-use and reviewer decisions remain binding.
+- Use the actual task's authority for edits, commits, pushes and review PRs.
+  Reuse genuine standing approvals; do not infer authority for merge, paid
+  processing, production writes, scheduling, publication or external messages.
 - `base.html`, `pla-watch-base.html`, `scripts/pw_env.py` are single-owner
   files — no concurrent agent edits.
+
+## Desk completion
+Build the agreed official sources, collection, private evidence custody,
+translation, screening/analysis, governed admission, reader/editor surfaces,
+and ongoing schedule/recovery into one functioning desk. Verify primary
+publisher material independently of the collector, real records through the
+actual path, permission-specific human decisions, idempotent retries and any
+authorized public HTTPS readback. Distinguish configured, demonstrated and
+operating. Prefer one integrated PR (plus an essential companion private PR)
+over another preparation framework or readiness score. Stop at a functioning
+contract or one precisely isolated external blocker. See `DECISION_LOG.md`
+2026-10-18, program issue #673 and `docs/AGENT_WORKFLOWS.md`.
 
 ## Commands
 ```bash
