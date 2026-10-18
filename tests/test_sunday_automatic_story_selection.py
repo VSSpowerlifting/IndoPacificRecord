@@ -12,6 +12,8 @@ from core.brief_editorial_evidence import load_editorial_evidence
 from scripts.sunday_briefs_auto_writer import (
     compose, validate_manuscript, writing_schema,
 )
+from scripts.sunday_editorial_handoff import render_packet
+from scripts.sunday_editor_readable import prose_only_text
 from tests.test_briefs_editorial_evidence import SAT, manuscript, scaffold
 from tests.test_weekly_briefs_auto_writer import evidence
 
@@ -128,6 +130,17 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
                          "official-military-cooperation")
         self.assertIn("AUTOMATIC STORY SELECTION", offered[0]["messages"][0]["content"])
         self.assertEqual(offered[0]["model"], "claude-sonnet-4-6")
+
+    def test_private_selection_receipt_not_in_dylan_editable_prose(self):
+        artifact = render_packet(
+            scaffold(), manuscript=selected(), as_of=SAT,
+            research_evidence=self.research)
+        self.assertIn("AUTOMATIC STORY TRIAGE", artifact)
+        self.assertIn("Selected: official-military-cooperation", artifact)
+        self.assertIn("secondary-cooperation", artifact)
+        plain = prose_only_text(artifact)
+        self.assertNotIn("AUTOMATIC STORY TRIAGE", plain)
+        self.assertNotIn("secondary-cooperation", plain)
 
     def test_scheduled_handoff_activates_selection_without_parallel_pipeline(self):
         handoff = (ROOT / "scripts/sunday_editorial_handoff.py").read_text()
