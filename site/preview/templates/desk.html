@@ -686,6 +686,8 @@ qualification are separate.</p>
   </ol>
   <p class="meta" data-reference-empty hidden>No approved source references match these filters.</p>
 </div>
+{% elif desk.slug in ('philippines', 'indonesia') and regional_official_links | default([]) %}
+<p class="meta">Individually admitted official-link metadata is listed under the verified publisher references above. Private research readers and shadow records remain separate.</p>
 {% else %}
 <p class="meta">No individual source references have completed the public-link review. Private research readers and shadow records remain separate.</p>
 {% endif %}

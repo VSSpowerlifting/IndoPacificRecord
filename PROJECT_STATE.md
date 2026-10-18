@@ -1,5 +1,21 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Indonesia Desk completion (18 October 2026, release candidate):**
+Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows;
+`admit()` had no trusted validator and no caller. This branch adds that
+validator (pin ancestry, re-hashed captures, ledger↔commit reconciliation,
+GitHub-authenticated scheduled days), a scratch-copy/atomic admission CLI and
+a Korea-pattern page-only production workflow. It also fixes the shared
+reader's 180-character identity cap, which HOLDs every Kemhan snapshot after
+Oct 15 (a genuine 194-character Berita path); tonight's private staging step
+fails on it until merge. Real rehearsal: 34 links admitted on a DB copy, 1
+Yonif hold, idempotent replay, only `indonesia.html` changes. Post-cutover
+private originals reach production through a held HMAC handoff (companion
+private PR) that needs owner credentials. Evidence, procedure and owner
+actions: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`. PR #652
+cross-check: `research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
+No production DB, output, Pages or schedule change made here.
+
 **Public China title completion (17 October 2026, engineering candidate):**
 Read-only diagnosis finds 151 missing Chinese-headline translations among 826
 eligible public China records: 150 screened out and one awaiting screening;

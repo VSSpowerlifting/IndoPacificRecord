@@ -4,6 +4,24 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Desk completion: elapsed-day histories are measurements, not launch gates
+
+The owner's Indonesia Desk completion assignment of 2026-10-18 adopts this
+delivery standard: build agreed sources, collection, evidence handling,
+processing, publishing and maintenance into one working desk, prove it against
+real records and failure/recovery conditions, then operate and monitor it.
+Seven- and 30-day collection histories are operational reliability
+measurements, not automatic launch waiting periods. This supersedes
+contradictory elapsed-time requirements in older repository documents.
+
+It does not supersede permissions, rights, evidence or publication
+requirements, human review where one is required, or the shadow-promotion
+sign-off rule. No desk is promoted by this entry. For Kemhan Berita official
+links, the trusted validator still authenticates the source history against
+GitHub's own scheduled-run records (11 healthy scheduled days, 7–17 October)
+as an evidence-integrity check, not as a waiting period. Implementation:
+`docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+
 ## 2026-10-18 — Singapore desk analysis path: engineering record, owner adoption pending
 
 This entry is an engineering record. It is **not** an owner ruling, and it
