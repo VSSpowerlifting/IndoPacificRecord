@@ -182,6 +182,18 @@ class DapaPrivateCollection(unittest.TestCase):
         self.assertEqual(again["inserted"], 0)
         self.assertEqual(again["duplicates"], 1)
 
+    def test_direct_source_collector_cannot_bypass_five_or_one_day(self):
+        for cap, lookback in ((6, 0), (40, 0), (1, 1), (5, 7)):
+            with self.subTest(cap=cap, lookback=lookback), tempfile.TemporaryDirectory() as folder:
+                adapter, session = instance()
+                state = Path(folder) / "private"
+                with self.assertRaisesRegex(ValueError, "bounded cap of 1"):
+                    runner.run("korea_dapa", state, date(2026, 10, 8),
+                               lookback=lookback, cap=cap,
+                               adapter=adapter, dapa_original_access_authorized=True)
+                self.assertEqual(session.calls, [])
+                self.assertFalse(state.exists())
+
     def test_two_distinct_dapa_originals_and_preflight_overcap_refusal(self):
         # Real DAPA listing and HWPX adapter; fake session blocks any network.
         second_article = ARTICLE.replace("156784625", "156784626")
@@ -246,7 +258,7 @@ class DapaPrivateCollection(unittest.TestCase):
                     adapter, _ = instance(**kwargs)
                     result = runner.run(
                         "korea_dapa", Path(td) / "held",
-                        date(2026, 10, 8), lookback=0,
+                        date(2026, 10, 8), lookback=0, cap=1,
                         adapter=adapter, dapa_original_access_authorized=True)
                     self.assertNotEqual(result["health"], "ok", result)
                     self.assertFalse((Path(td) / "held" / "shadow.db").exists())
