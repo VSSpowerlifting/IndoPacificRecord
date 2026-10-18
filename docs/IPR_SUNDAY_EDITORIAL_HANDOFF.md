@@ -1,51 +1,29 @@
 # Sunday IPR Briefs — full-week draft to Dylan (staged migration)
 
-## Scheduled-delivery correction — October 11, 2026
+## Automatic handoff after successful Sunday collection — beginning with the next cycle
 
-After this change, the Sunday 19:17 UTC schedule **attempts one guarded
-provisional Dylan delivery by default**. The variable
-IPR_SUNDAY_EDITOR_DELIVERY_ENABLED=true remains required for an explicit
-manual workflow_dispatch editor send, not scheduled runs.
+The active Sunday Brief uses the existing `.github/workflows/sunday_briefs_editorial_handoff.yml`. Instead of a 19:17 UTC cron, GitHub's native `workflow_run` event starts the same editor workflow when **Daily PLA Watch Update** completes. A small read-only prerequisite job authenticates the original scheduled production run, the actual pipeline, validated output, Pages deployment and same-Sunday success marker. Later green retry windows that merely skip collection are cleanly ignored; failed, off-day, manual and rerun Daily jobs cannot trigger automatic mail.
 
-Safeguards remain unchanged: the October 10 first-pilot edition still
-requires exact owner-reviewed week and attachment SHA-256; never regenerate
-that issue for automatic delivery after the manual handoff. Later editions
-still require same-Sunday successful collection, eligible source evidence,
-non-conflicting delivery modes and valid SMTP credentials. No Brief is
-automatically approved, numbered or published.
+When the gate passes, the existing Sunday workflow drafts **one source-cited, unnumbered manuscript** and sends Dylan its readable text, editable Word copy and private reference TXT. A manual owner preview stays a separate explicit `workflow_dispatch` action. `IPR_SUNDAY_EDITOR_DELIVERY_ENABLED=true` is still required for explicitly requested **manual** editor sends; automatic Sundays do not use it. The retired Friday delivery setting `IPR_EDITOR_DELIVERY_ENABLED` must remain false.
 
-Before next Sunday, the owner should:
-- Confirm the Sunday workflow is ENABLED in GitHub Actions; missing schedule
-  executions cannot be diagnosed solely from the repository YAML.
-- Keep legacy Friday IPR_EDITOR_DELIVERY_ENABLED=false. The old
-  IPR_SUNDAY_OWNER_PREVIEW_ENABLED variable is ignored by scheduled runs;
-  Sunday sends one manuscript to Dylan. Use manual workflow_dispatch for
-  owner-only previews, never together with editor delivery.
-- Verify ANTHROPIC_API_KEY, IPR_EDITOR_TO, IPR_SMTP_USER and
-  IPR_SMTP_APP_PASSWORD are configured (never log or share secret values).
-- Inspect the real Sunday Actions execution and one SMTP receipt. GitHub
-  schedules can be delayed or silently skipped; changing the default does
-  not guarantee a schedule was triggered or that SMTP credentials work.
-- Do not add a second sending cron without a durable, week-specific
-  de-duplication receipt.
+This change replaces the automatic scheduler only; it does not affect the October 18, 2026 scheduled handoff unless this PR is merged early (do **not** merge it before that handoff is verified). The first October 10 edition still has its separately reviewed owner/digest replay requirements. All source-accuracy, rights, non-publication and recipient safeguards remain. A successful Actions run is not independent Gmail receipt evidence.
 
-The older staged-migration instructions below remain background only where
-they say the scheduled Sunday job needs a separately enabled delivery flag.
-
+Do not add a second sending cron or retry a failed editor email blindly. The daily collector's marker and one-run guard, plus the upstream step verification, are the source of truth for this automation.
 
 ## Operating schedule
 
 The new, **separately gated** Sunday workflow is designed for this cycle:
 
-- **Sunday at 19:17 UTC:** approximately 3:17 p.m. EDT or 2:17 p.m.
-  EST. This is a best-effort GitHub Actions schedule, not a guaranteed
-  clock-time commitment; Actions can start late.
+- **Sunday immediately after the completed daily production run:** the
+  existing editorial workflow begins as GitHub's `workflow_run` event is delivered.
+  This is event-driven, not an exact clock-time commitment; GitHub queueing can
+  add a short delay. No email is attempted if collection failed or was skipped.
 - **Sunday before any Claude call:** require the main branch's existing
   .github/state/last_daily_run_date.txt to equal **today's Sunday date in
   New York**. That state marker is written only after the daily production
   pipeline/validation has succeeded. A green daily workflow that skipped
   collection is NOT sufficient by itself.
-- **Sunday afternoon after that gate:** read the stored official-source
+- **After that Sunday gate:** read the stored official-source
   corpus dated Sunday through **Saturday inclusive**, select a maximum of
   10 validated full-text bodies across at least two live desks, compose
   source-cited full prose with Claude Sonnet 4.6, validate the actual
@@ -102,8 +80,9 @@ without Sunday's marker, but **manual email** outside the current Sunday
 requires both the separate historical-send checkbox and the Sunday delivery
 variable. Full-week generation for an unfinished Saturday is refused.
 
-If Sunday collection is incomplete or the GitHub scheduled job starts on
-Monday, the automatic job **fails closed**: no Claude cost, no email. The
+If Sunday collection is incomplete or the collection-completion event is
+processed on Monday New York time, the automatic job **fails closed**: no Claude
+cost, no email. The
 operator can rerun manually after examining the now-current corpus and
 authorizing a historical send. A small missed dispatch is preferable to
 sending Dylan a misleading or incomplete edition.
@@ -125,15 +104,16 @@ requires both the original and the edited versions.
 
 ## Permissions and secrets
 
-This is a **new, manual-disabled-by-default** workflow. The only new
-configuration needed for scheduled sending is the repository variable
-IPR_SUNDAY_EDITOR_DELIVERY_ENABLED=true. It reuses the existing
+The existing Sunday workflow sends automatically once the verified Sunday
+collection completes; manual send remains opt-in through the
+IPR_SUNDAY_EDITOR_DELIVERY_ENABLED variable. It reuses
 ANTHROPIC_API_KEY, IPR_EDITOR_TO, IPR_SMTP_USER and
 IPR_SMTP_APP_PASSWORD secrets. No plain passwords, inbox credentials,
 unpublished article artifacts, source DB changes, Git writes, or
 publication rights are added.
 
-The existing GitHub Actions token is contents: read. Automated writing
+The GitHub Actions token is contents: read and actions: read; it only
+reads upstream job summaries. Automated writing
 uses a private runner temporary directory; invalid model output aborts
 without SMTP delivery. No automatic retries are made after network errors;
 invalid completed drafts may undergo one bounded correction attempt.
@@ -144,7 +124,7 @@ The Sunday editor's single synthesized manuscript may use a strict, week-specifi
 
 The returned text includes a unified immutable appendix that distinguishes real production record IDs from external, publisher-hosted source IDs. Dylan edits ONE draft and reviews any external citations; no separate national supplement is expected. The external material does not qualify the desks as live, does not become a production DB record, and is **not preapproved for publication**. Before a final Brief, human editorial checking and the independent publication contract still apply.
 
-The Sunday workflow uses `--full-week --include-research` and **cannot send** before the owner enables the new Sunday delivery variable. Do not activate until the current-week full CI and no-send Sunday preview pass.
+The Sunday workflow uses `--full-week --include-research`; for weeks after the October 10 pilot, automatic editor sends require current Sunday collection and source gates, not a fresh manual owner toggle. Do not activate a new trigger until exact-head offline CI and the prior Sunday editor delivery are verified.
 
 ### Synchronization with the Vietnam desk-page publisher-link lane
 
