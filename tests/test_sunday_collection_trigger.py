@@ -101,6 +101,7 @@ class CollectionTriggeredSunday(unittest.TestCase):
         self.assertIn("persist-credentials: false", text)
         self.assertIn("actions: read", text)
         self.assertIn("needs: verify_sunday_collection", text)
+        self.assertIn("github.run_attempt == 1", text)
         self.assertIn("if: always() && (github.event_name == 'workflow_dispatch' || (", text)
         self.assertIn("needs.verify_sunday_collection.outputs.ready == 'true'", text)
         self.assertIn("SUNDAY_SEND: ${{ github.event_name == 'workflow_run' ||", text)
