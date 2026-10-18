@@ -2616,6 +2616,14 @@
       "corrected_title": "Support Online | Anhui Mountains and Waters Reflect the Original Aspiration \u2014 A Record of the \"Joint Logistics Military Doctors\u2019 Old Revolutionary Base Area Tour\"",
       "reason": "Render military \u4fdd\u969c as support rather than guarantee",
       "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 5273,
+      "original": "\u7f8e\u519b\u79f0\u5728\u963f\u66fc\u6e7e\u6467\u6bc1\u4e00\u8258\u4e0e\u4f0a\u6717\u6709\u5173\u8054\u7684\u5e06\u8239",
+      "model_title": "U.S. military says it destroyed a dhow linked to Iran in the Gulf of Oman",
+      "corrected_title": "U.S. military says it destroyed a sailing vessel linked to Iran in the Gulf of Oman",
+      "reason": "Preserve sailing vessel without narrowing the unnamed vessel type to dhow",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
     }
   ]
 }
