@@ -251,6 +251,7 @@
  .tl-narrative--maritime .tl-art-note{text-align:left}
 }
 @media print{
+ .tl-narrative--maritime{background:none;padding:0}
  .tl-narrative--maritime::before,.tl-narrative--maritime .tl-art-note{display:none}
  .tl-narrative--maritime .tl-entry:not(:first-child){margin-top:0}
  .tl-narrative--maritime .tl-spine-segment{display:none}
