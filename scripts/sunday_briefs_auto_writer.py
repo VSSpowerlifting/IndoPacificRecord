@@ -406,7 +406,10 @@ def validate_manuscript(manuscript, chosen, *, supplemental=(), automatic_story_
 
 
 def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
-            selected_theme=None, reviewed_synopses=None):
+            selected_theme=None, reviewed_synopses=None,
+            automatic_story_selection=False):
+    if automatic_story_selection and selected_theme is not None:
+        raise ValueError("automatic selection cannot override signed owner trial")
     # Optional owner theme guidance is deliberately NOT supplied by Sunday's
     # scheduled job. Only scripts.regional_sunday_theme_preview verifies the
     # separate owner HMAC and invokes it for a private no-send rehearsal.
@@ -565,6 +568,27 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
          "none genuinely fits the article's selected theme."
          if extra else "")
     )
+    if automatic_story_selection:
+        prompt += (
+            "\n\nAUTOMATIC STORY SELECTION IN THIS SAME MODEL CALL. "
+            "Before writing, consider up to THREE genuinely distinct, "
+            "evidence-backed story ideas, but offer only ONE if only one "
+            "is defensible. Do not invent weak alternatives. Put them in "
+            "story_selection.candidates with an original slug, narrow "
+            "thesis, central evidence limitation, and exact numeric "
+            "production_ids and typed research_ids. Independently rate "
+            "each 0–5 by existing editorial criteria: strategic significance "
+            "(30%), evidence strength (25%), analytical novelty (20%), "
+            "cross-desk connection (15%) and timeliness (10%). Set "
+            "selected_slug to the highest-weighted choice and explain "
+            "the concrete evidence in selection_rationale. Do not reward "
+            "spurious connections or count research as production. "
+            "Draft ONE coherent article about the selected story. Its "
+            "opening MUST cite at least one source from its selected "
+            "candidate. This provisional selection is not source approval "
+            "or publication authorization. If no defensible cross-desk "
+            "article exists, do not make one up to satisfy the schema."
+        )
     if selected_theme is not None:
         prompt += (
             "\nOnly manually reviewed ANALYST SYNOPSES, not original publisher "
@@ -582,7 +606,8 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
             "Do not claim source review amounts to a publishing decision. "
             "No public one-desk exception is granted here.\n"
         )
-    schema = writing_schema(allowed_ids, supplemental_ids=extra_ids)
+    schema = writing_schema(allowed_ids, supplemental_ids=extra_ids,
+                            automatic_story_selection=automatic_story_selection)
     # The owner-approved thematic rehearsal authorizes exactly ONE paid model
     # request; preserve the existing bounded mechanical retry for ordinary
     # Sunday manuscripts, which have their own editorial delivery policy.
@@ -603,7 +628,7 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
             ).format(problem)
         with client.messages.stream(
             model=MODEL,
-            max_tokens=4600,
+            max_tokens=5400,
             system="You are an assistant draft writer for Indo-Pacific Record Briefs. "
                    "Write source-grounded prose for human editorial verification, "
                    "never a publication-ready or approved article. "
@@ -623,7 +648,8 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                     and getattr(b, "name", None) == "compose_editorial_draft"]
             if len(uses) != 1:
                 raise ValueError("writer returned zero or multiple manuscript tool outputs")
-            validated = validate_manuscript(uses[0].input, chosen, supplemental=extra)
+            validated = validate_manuscript(uses[0].input, chosen, supplemental=extra,
+                                            automatic_story_selection=automatic_story_selection)
             # Writer-owned, post-validation metadata: the full human source
             # appendix is larger than the <=10 production records seen by
             # the model. Record that exact allowlist for truthful triage.
