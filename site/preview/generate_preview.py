@@ -2906,6 +2906,15 @@ def build(out_dir: Path, title: str, db_path: Path,
         (out_dir / "timelines.css").write_text(
             (Path(__file__).parent / "timelines.css").read_text(encoding="utf-8"), encoding="utf-8")
         written.append("timelines.css")
+        # The illustrative maritime texture ships only when its exact timeline
+        # is rendered. Draft public builds therefore receive neither page nor asset.
+        if any(t["slug"] == "maritime-cooperation-2026" for t in timelines):
+            route = "assets/timelines/maritime-ocean-texture.webp"
+            source = REPO_ROOT / "site" / route
+            target = out_dir / route
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read_bytes())
+            written.append(route)
 
     # ── The component and state gallery (maintenance only) ────────────────
     # Off by default and never requested by `site/render.py`, so no published

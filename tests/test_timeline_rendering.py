@@ -49,6 +49,22 @@ class TimelineRendering(unittest.TestCase):
     def detail(self, root=None):
         return (root or self.preview) / 'timeline/maritime-cooperation-2026.html'
 
+    def test_maritime_water_asset_is_scoped_and_decorative(self):
+        # The unapproved timeline and its image must not leak into public output.
+        route = "assets/timelines/maritime-ocean-texture.webp"
+        self.assertFalse((self.public / route).exists())
+        for root in (self.preview, self.approved):
+            self.assertTrue((root / route).is_file())
+            self.assertEqual((root / route).read_bytes(),
+                             (ROOT / "site" / route).read_bytes())
+            html = self.detail(root).read_text()
+            self.assertIn('tl-narrative--maritime', html)
+            self.assertNotIn('tl-art-note', html)
+            self.assertNotIn('Illustrative AI-generated ocean texture', html)
+        css = (self.preview / "timelines.css").read_text()
+        self.assertIn('assets/timelines/maritime-ocean-texture.webp', css)
+        self.assertIn('@media(max-width:1050px)', css)
+
     def test_public_draft_exclusion_in_routes_links_feed_and_sitemap(self):
         self.assertFalse((self.public / 'timelines.html').exists())
         self.assertFalse((self.public / 'timeline').exists())
