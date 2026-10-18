@@ -47,7 +47,8 @@ def export(args):
     mac = b.sign(packet, key)
     safe_new(args.packet_output, base64.b64encode(b.canonical(packet)))
     safe_new(args.mac_output, mac.encode("ascii"))
-    print("DAPA_PRIVATE_ONE_NEW_RECORD_SIGNED; no original content exported")
+    print("DAPA_PRIVATE_BOUNDED_BATCH_SIGNED; sanitized_records=%d; "
+          "no original content exported" % len(packet["records"]))
     return 0
 
 
