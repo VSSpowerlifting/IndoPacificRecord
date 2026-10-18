@@ -9,14 +9,17 @@ database table, permission framework or publication system. Branch
 
 | Family | Admitted automatically | Public fields | Excluded |
 |---|---|---|---|
-| AFP articles (`ph_afp_articles`) | The Oct 15 frozen cohort only: 23 records at pin `8a63ba4`, metadata manifest `c97c1088…` | canonical `afp.mil.ph/news/` URL, publisher date, publisher, Git commit, metadata digest | headline, body, photograph, translation, model text, analysis |
+| AFP articles (`ph_afp_articles`) | Owner-authorized standing verified links for existing and future eligible records (frozen 23 at `8a63ba4`, manifest `c97c1088…`, preserved as pinned baseline) | canonical `afp.mil.ph/news/` URL, publisher date, publisher, Git commit, metadata digest | headline, body, photograph, translation, model text, analysis |
 | NSC official statements | No | none | everything |
 
-**Future AFP records are held.** The Oct 18 standing future-record
-authorization (DECISION_LOG) names Kemhan Berita only and lists other source
-families as not authorized. Post-pin AFP records therefore hold with
-`unreviewed_source_selected_for_release`. No per-record review is claimed or
-fabricated.
+**Owner authorization updated on October 18.** The owner separately approved
+standing publication of verified neutral AFP official-link metadata for
+existing and future eligible records without per-record review
+(`DECISION_LOG.md`; `config/afp_kemhan_owner_link_activation.json`).
+This does not claim any post-pin individual human review. Disputed or
+changed/missing previously released records, incompatible metadata, capture
+or source-use failures, and substantive anomalies still hold. No additional
+rights for titles, bodies or analysis are granted.
 
 ## What this change adds
 
@@ -46,17 +49,20 @@ fabricated.
    - Post-cutover private records arrive only through the HMAC envelope
      bridge, which stays dormant unless `vars.AFP_METADATA_BRIDGE_ENABLED` is
      `true` and `secrets.AFP_BRIDGE_KEY` is set.
-4. **Dormant standing support.** If the owner adds one `ph_afp_articles` entry
-   to `standing_link_metadata_authorizations`:
-   - post-pin records are released under
-     `STANDING_REVIEW_BASIS`, and receipt v2 counts them as released without
-     record-specific review;
+4. **Authorized standing metadata support.** The owner-approved
+   `ph_afp_articles` entry is now present in
+   `standing_link_metadata_authorizations`. On an authorized production run:
+   - verified post-pin records enter the existing source-link projection under
+     `STANDING_REVIEW_BASIS` and receipt v2 counts them as
+     `released_without_record_specific_review`, not individually reviewed;
    - a previously released record that changes or disappears holds the whole
      run.
 
-   A forged receipt flag without a policy entry cannot widen release. The
-   policy file is not a push-trigger path, so an activation edit takes effect
-   at the next daily cron.
+   A forged receipt cannot widen release. This policy commit is only on
+   draft PR #816, not `main`. After an approved merge, the workflow's
+   main-branch push trigger or daily schedule can use the standing policy.
+   No collectors, bridge variables, database or Pages publication are activated
+   by the policy commit itself.
 5. **Desk contract after admission.** `test_desk_rollout_contract` used to
    require the empty-shadow heading on the Philippines page. That would have
    failed on main after the first production run. It now requires the
@@ -64,6 +70,14 @@ fabricated.
    exist, and still requires an empty public corpus.
 
 ## Verification (18 October 2026)
+
+**These rehearsals predate the new AFP standing authorization and validate
+the earlier frozen-only selection.** At the same observed source tip the new
+policy would make 29 eligible records selectable (23 frozen + six post-pin),
+subject to the same independently verified provenance, rights and anomaly
+gates. This is an expected outcome, **not yet a new live or scratch rehearsal
+result**. Rerun exact-head selection and renderer/readback with the now-pinned
+standing policy before authorizing release.
 
 The rehearsal ran on a scratch copy of `pla_watch.db` against the real
 `shadow/ph-afp` at `97ec0bf`, with real GitHub run records.
@@ -123,17 +137,19 @@ current main `52667d6` and on this branch.
 ## Owner-controlled dependencies
 
 - **Merging #816 is the activation point.** The push trigger and the daily cron
-  then write `pla_watch.db` and `philippines.html` for the 23-record cohort
-  under the Oct 15 decision.
+  then write `pla_watch.db` and `philippines.html` for every verified,
+  non-held AFP link under the Oct 15 frozen baseline and the separate Oct 18
+  standing metadata authorization. Do not rely on the old 23-row release
+  expectation; check against the authenticated current source tip.
 - **Collector cutover.** Merging #797 retires the public AFP collector, and
   private #11 starts the private one. Until then the public collector on main
   keeps running.
 - **Bridge credentials.** After the cutover, new records reach this workflow
   only with owner-configured bridge credentials.
-- **Owner question (open):** "May the existing AFP source family automatically
-  publish verified neutral official-link metadata for future records under the
-  existing source, provenance, rights, and anomaly safeguards, without new
-  per-record human approval?"
+- **Owner standing metadata decision: APPROVED and pinned.** No further
+  per-record review is required for eligible neutral AFP official links.
+  This is not permission to merge, start private collection or publish IPR
+  editorial content.
 - **Sanlakas/JPSCC:** the editorial handoff
   `research/philippines/sanlakas_2026/EDITORIAL_HANDOFF_2026-10-18.md` stays
   pinned, with its opening-venue and Gavan/Galvan holds. No publication is
