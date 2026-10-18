@@ -15,7 +15,9 @@ identity retained in a provenance note and citation. See editorial doctrine §5a
 
 Summary of the non-negotiables:
 
-- Work only inside `~/pla-watch`; never touch sibling repositories.
+- Use a separate worktree for each assigned IPR repository. Coordinate with
+  the named private evidence companion only where authorized; do not modify
+  unrelated repositories or another agent's active worktree.
 - Never hand-edit `output/` (generated) or sidecar JSON (canonical edition
   records). Fix templates/scripts, then re-render.
 - Never invent Chinese text, translations, titles, outlets, dates, units,
@@ -26,13 +28,16 @@ Summary of the non-negotiables:
   actual source-to-site acceptance and owner release. Follow the October 18
   complete-desk/CI policy in `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`;
   seven-/30-day streaks measure reliability rather than delay launch.
-- Do not commit, push, deploy, publish, or regenerate output unless
-  explicitly asked. CI deploys what is committed on main.
+- Use the task's explicit authority (and valid standing owner decisions) for
+  edits, commits, pushes and review PRs. Do not infer permission to merge,
+  spend, activate schedules, mutate production or publish. CI deploys the
+  authorized changes committed to main.
 - Production renderer is `.venv/bin/python site/render.py`; the deploy gate is
   `.venv/bin/python scripts/validate_output.py`, whose governed baseline is
   10 warnings.
 - Be token-efficient: smallest safe change, no full-file pastes, no
   unrequested refactors; report files changed + what changed + how to test.
-- Session start: read `PROJECT_STATE.md`; deeper doctrine in `docs/`
+- Session start: check latest owner decisions and relevant
+  `PROJECT_STATE.md` sections against live code, PRs and Actions; doctrine in `docs/`
   (product/editorial, architecture & publishing, agent workflows, roadmap,
   shadow collection and review, design system, visual & motion).
