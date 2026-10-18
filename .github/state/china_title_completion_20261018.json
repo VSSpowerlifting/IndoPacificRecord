@@ -1287,6 +1287,95 @@
           "cache_read_input_tokens": 0
         }
       ]
+    },
+    {
+      "reserved_at": "2026-10-18T20:04:28.317057+00:00",
+      "requests": [
+        {
+          "kind": "probe",
+          "reserved_usd": "0.01"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        },
+        {
+          "kind": "title",
+          "reserved_usd": "0.10"
+        }
+      ]
     }
   ],
   "fidelity_corrections": [
