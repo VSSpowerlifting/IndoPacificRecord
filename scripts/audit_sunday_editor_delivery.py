@@ -20,6 +20,9 @@ from zoneinfo import ZoneInfo
 NY = ZoneInfo("America/New_York")
 WORKFLOW = ".github/workflows/sunday_briefs_editorial_handoff.yml"
 WORKFLOW_FILE = "sunday_briefs_editorial_handoff.yml"
+# Historical editions used UTC cron; beginning October 25 the same workflow
+# starts from the genuinely completed Sunday collection instead.
+COLLECTION_TRIGGER_START = date(2026, 10, 25)
 SCHEDULE_UTC_HOUR = 19
 SCHEDULE_UTC_MINUTE = 17
 DISPATCH_GRACE = timedelta(minutes=90)
@@ -66,9 +69,10 @@ def diagnose(payload, *, now, daily_marker=None):
     if not isinstance(runs, list) or len(runs) > 100:
         raise DeliveryAuditError("expected at most 100 workflow runs")
     anchor = sunday_for(now)
-    expected = datetime.combine(
+    collection_triggered = anchor >= COLLECTION_TRIGGER_START
+    expected = (None if collection_triggered else datetime.combine(
         anchor, time(SCHEDULE_UTC_HOUR, SCHEDULE_UTC_MINUTE, tzinfo=timezone.utc)
-    )
+    ))
     week_end = anchor - timedelta(days=1)
     now_utc = now.astimezone(timezone.utc)
     observed = []
@@ -79,7 +83,7 @@ def diagnose(payload, *, now, daily_marker=None):
         if item.get("path") != WORKFLOW:
             continue
         event = item.get("event")
-        if event not in ("schedule", "workflow_dispatch"):
+        if event not in ("schedule", "workflow_run", "workflow_dispatch"):
             continue
         created = parse_utc(item.get("created_at"))
         if created.astimezone(NY).date() != anchor:
@@ -102,10 +106,13 @@ def diagnose(payload, *, now, daily_marker=None):
             "status": status,
             "conclusion": conclusion,
         }
-        if event == "schedule":
+        if event == "workflow_dispatch":
+            manual.append(candidate)
+        elif event == ("workflow_run" if collection_triggered else "schedule"):
             observed.append(candidate)
         else:
-            manual.append(candidate)
+            # Unexpected opposite-mode automatic handoff is a duplicate risk.
+            observed.append(candidate)
 
     observed.sort(key=lambda x: (x["created_at_utc"], x["run_id"]))
     manual.sort(key=lambda x: (x["created_at_utc"], x["run_id"]))
@@ -129,6 +136,11 @@ def diagnose(payload, *, now, daily_marker=None):
             verdict = "RUN_SKIPPED"
         else:
             verdict = "RUN_FAILED_OR_CANCELLED"
+    elif collection_triggered:
+        if (daily_marker or "").strip() == anchor.isoformat():
+            verdict = "COLLECTION_COMPLETE_HANDOFF_NOT_OBSERVED"
+        else:
+            verdict = "AWAITING_SUCCESSFUL_SUNDAY_COLLECTION"
     elif now_utc < expected:
         verdict = "NOT_DUE"
     elif now_utc < expected + DISPATCH_GRACE:
@@ -151,7 +163,10 @@ def diagnose(payload, *, now, daily_marker=None):
     return {
         "schema": SCHEMA,
         "week_ending": week_end.isoformat(),
-        "expected_scheduled_utc": expected.isoformat().replace("+00:00", "Z"),
+        "expected_scheduled_utc": (expected.isoformat().replace("+00:00", "Z")
+                                   if expected else None),
+        "trigger_mode": ("verified_workflow_run" if collection_triggered
+                         else "legacy_utc_schedule"),
         "checked_at_utc": now_utc.isoformat().replace("+00:00", "Z"),
         "workflow_state": state,
         "scheduled_runs": observed,
@@ -235,7 +250,7 @@ def main(argv=None):
     # Nonzero only for actionable scheduler problems: never trigger a send.
     return 1 if result["verdict"] in (
         "WORKFLOW_DISABLED", "MULTIPLE_SCHEDULED_RUNS_NEED_REVIEW",
-        "RUN_SKIPPED", "RUN_FAILED_OR_CANCELLED", "MISSING_SCHEDULED_RUN"
+        "RUN_SKIPPED", "RUN_FAILED_OR_CANCELLED", "MISSING_SCHEDULED_RUN",
     ) else 0
 
 
