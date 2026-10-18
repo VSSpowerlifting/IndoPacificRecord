@@ -36,8 +36,11 @@ class ManuscriptBoundaryIntegrity(unittest.TestCase):
         research = writing_schema([1, 2], supplemental_ids=("JP-W42-07",))
         focus = research["properties"]["editorial_focus"]
         self.assertEqual(focus["type"], "string")
-        self.assertEqual(focus["minLength"], 20)
-        self.assertEqual(focus["maxLength"], 200)
+        # Anthropic strict grammars disallow minLength/maxLength. Application
+        # validation retains the same 20–200 character requirement.
+        self.assertNotIn("minLength", focus)
+        self.assertNotIn("maxLength", focus)
+        self.assertIn("20–200-character", focus["description"])
         self.assertIn("editorial_focus", research["required"])
         plain = writing_schema([1, 2])
         self.assertNotIn("editorial_focus", plain["properties"])
