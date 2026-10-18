@@ -20,6 +20,7 @@ from pathlib import Path
 from core.korea_dapa_official_metadata_policy import read_policy
 
 SCHEMA = "ipr-korea-dapa-signed-private-source-metadata/1"
+MAX_DAPA_BATCH = 5  # Single authorized publisher day; never a silent truncation.
 REPO = "VSSpowerlifting/ipr-source-evidence-private"
 REF = "archive/korea-dapa-policy-briefing"
 ISSUER = "kr_dapa"
@@ -104,26 +105,32 @@ def verify_structure(packet):
          and valid_run(packet["source_run_attempt"]),
          "dapa_source_attestation_invalid")
     rows = packet["records"]
-    need(type(rows) is list and len(rows) == 1,
-         "dapa_one_new_original_required")
-    row = rows[0]
-    need(type(row) is dict and set(row) == ROW_FIELDS,
-         "dapa_public_field_scope_invalid")
-    ident = row["source_identity"]
-    suffix = ident[len(PREFIX):] if type(ident) is str and ident.startswith(PREFIX) else ""
-    need(bool(NEWS.fullmatch(suffix))
-         and row["canonical_official_url"] == URL_PREFIX + suffix
-         and row["official_issuer"] == ISSUER
-         and row["official_republisher"] == REPUBLISHER
-         and valid_date(row["publisher_posted_date"])
-         and row["publisher_posted_date"] >= "2026-10-16",
-         "dapa_issuer_identity_or_date_invalid")
-    need(all(valid_hash(row[k]) for k in (
-        "candidate_version_sha256", "original_title_sha256",
-        "original_text_sha256", "publisher_html_sha256",
-        "original_hwpx_sha256")), "dapa_private_capture_hash_missing")
-    need(row["candidate_version_sha256"] == version_hash(row),
-         "dapa_candidate_version_inconsistent")
+    need(type(rows) is list and 1 <= len(rows) <= MAX_DAPA_BATCH,
+         "dapa_bounded_nonempty_batch_required")
+    identities = []
+    dates = set()
+    for row in rows:
+        need(type(row) is dict and set(row) == ROW_FIELDS,
+             "dapa_public_field_scope_invalid")
+        ident = row["source_identity"]
+        suffix = ident[len(PREFIX):] if type(ident) is str and ident.startswith(PREFIX) else ""
+        need(bool(NEWS.fullmatch(suffix))
+             and row["canonical_official_url"] == URL_PREFIX + suffix
+             and row["official_issuer"] == ISSUER
+             and row["official_republisher"] == REPUBLISHER
+             and valid_date(row["publisher_posted_date"])
+             and row["publisher_posted_date"] >= "2026-10-16",
+             "dapa_issuer_identity_or_date_invalid")
+        need(all(valid_hash(row[k]) for k in (
+            "candidate_version_sha256", "original_title_sha256",
+            "original_text_sha256", "publisher_html_sha256",
+            "original_hwpx_sha256")), "dapa_private_capture_hash_missing")
+        need(row["candidate_version_sha256"] == version_hash(row),
+             "dapa_candidate_version_inconsistent")
+        identities.append(ident)
+        dates.add(row["publisher_posted_date"])
+    need(identities == sorted(set(identities)) and len(dates) == 1,
+         "dapa_batch_not_unique_sorted_single_day")
     policy = read_policy()
     need(policy["issuer"] == ISSUER
          and policy["source_family"] == "kr_policy_dapa_releases"
@@ -136,7 +143,7 @@ def verify_structure(packet):
              "publish_document_media", "publish_translations_or_analysis",
              "publish_to_model_or_email")),
          "dapa_owner_metadata_policy_hold")
-    return row
+    return rows
 
 
 def sign(packet, key):
@@ -218,10 +225,15 @@ def export_from_private_checkout(checkout, run_attempt):
          and ledger.get("run_id") == run_attempt
          and ledger.get("result") == "ok"
          and ledger.get("health") == "ok"
-         and ledger.get("inserted") == 1
-         and ledger.get("selected") == 1
-         and ledger.get("retrieved") == 1
-         and ledger.get("extracted") == 1
+         and type(ledger.get("inserted")) is int
+         and 1 <= ledger["inserted"] <= MAX_DAPA_BATCH
+         and type(ledger.get("duplicates")) is int
+         and 0 <= ledger["duplicates"] <= MAX_DAPA_BATCH
+         and type(ledger.get("selected")) is int
+         and ledger["selected"] == ledger.get("retrieved")
+         and ledger["selected"] == ledger.get("extracted")
+         and ledger["selected"] == ledger["inserted"] + ledger["duplicates"]
+         and ledger["selected"] <= MAX_DAPA_BATCH
          and ledger.get("fetch_failures") == 0
          and ledger.get("extraction_failures") == 0
          and ledger.get("access_failures") == 0
@@ -229,7 +241,8 @@ def export_from_private_checkout(checkout, run_attempt):
          and ledger.get("target_date_source") == "explicit"
          and valid_date(ledger.get("target_date"))
          and ledger.get("target_date") >= "2026-10-16"
-         and ledger.get("cap") == 1
+         and type(ledger.get("cap")) is int
+         and 1 <= ledger["cap"] <= MAX_DAPA_BATCH
          and ledger.get("lookback_days") == 0
          and ledger.get("collector_commit") == receipt.get("collector_commit"),
          "dapa_private_live_collection_not_proven")
@@ -250,34 +263,10 @@ def export_from_private_checkout(checkout, run_attempt):
                 "WHERE first_seen_run=?", (run_attempt,)).fetchall()
     except sqlite3.Error:
         raise DAPABridgeHold("dapa_private_database_schema_invalid") from None
-    need(len(rows) == 1, "dapa_private_inserted_record_not_unique")
-    (ident, url, family, title, body, day, lang,
-     extra_json, bodysha, htmlsha, first_seen) = rows[0]
-    try:
-        extra = json.loads(extra_json)
-    except (TypeError, ValueError):
-        raise DAPABridgeHold("dapa_private_record_metadata_invalid") from None
-    need(type(title) is str and 0 < len(title) <= 3000
-         and type(body) is str and 0 < len(body) <= 200000
-         and digest(body.encode("utf-8")) == bodysha
-         and family == "kr_policy_dapa_releases"
-         and lang == "ko"
-         and extra.get("issuer") == "방위사업청"
-         and extra.get("publisher") == "대한민국 정책브리핑"
-         and extra.get("body_scope") ==
-             "captured_hwpx_text_not_editorially_approved"
-         and extra.get("attachments_collected") is True
-         and extra.get("public_metadata_admission_approved") is False
-         and extra.get("public_full_text_approved") is False
-         and extra.get("document_reuse_approved") is False
-         and day == ledger["target_date"]
-         and first_seen == run_attempt,
-         "dapa_private_record_source_or_rights_scope_invalid")
-    document_sha = extra.get("document_capture_sha256")
+    need(len(rows) == ledger["inserted"], "dapa_private_inserted_record_count_mismatch")
     requests = ledger.get("requests")
-    need(type(requests) is list and 3 <= len(requests) <= 12
-         and all(type(q) is dict for q in requests)
-         and valid_hash(htmlsha) and valid_hash(document_sha),
+    need(type(requests) is list and 3 <= len(requests) <= 5 + MAX_DAPA_BATCH * 3
+         and all(type(q) is dict for q in requests),
          "dapa_original_request_chain_incomplete")
     listing_url = "https://www.korea.kr/briefing/pressReleaseList.do"
     robots_url = "https://www.korea.kr/robots.txt"
@@ -290,16 +279,9 @@ def export_from_private_checkout(checkout, run_attempt):
                  and valid_hash(q.get("capture_sha256"))
                  and type(q.get("form")) is dict
                  and q["form"].get("repCode") == "B00008"
-                 and q["form"].get("startDate") == day
-                 and q["form"].get("endDate") == day
-                 for q in requests)
-         and any(q.get("requested_url") == url
-                 and q.get("capture_sha256") == htmlsha
-                 and q.get("http_status") == 200 for q in requests)
-         and any(q.get("requested_url") == extra.get("document_url")
-                 and q.get("capture_sha256") == document_sha
-                 and q.get("http_status") == 200 for q in requests),
-         "dapa_original_request_chain_incomplete")
+                 and q["form"].get("startDate") == ledger["target_date"]
+                 and q["form"].get("endDate") == ledger["target_date"]
+                 for q in requests), "dapa_original_request_chain_incomplete")
     for q in requests:
         sha = q.get("capture_sha256")
         need(valid_hash(sha), "dapa_original_request_chain_incomplete")
@@ -309,31 +291,66 @@ def export_from_private_checkout(checkout, run_attempt):
              "dapa_private_original_capture_mismatch")
     from scraper.sources.kr_dapa_policy_briefing import KoreaDapaPolicyAdapter
     from scraper.sources.kr_policy_briefing import hwpx_text
-    try:
-        article_bytes = (state / "captures" / (htmlsha + ".bin")).read_bytes()
-        document_bytes = (state / "captures" / (document_sha + ".bin")).read_bytes()
-        captured_title, captured_date, captured_document_url = (
-            KoreaDapaPolicyAdapter.metadata(None, article_bytes.decode("utf-8"), url))
-        recovered_text = hwpx_text(document_bytes)
-    except (ValueError, UnicodeError, OSError, KeyError, TypeError, ImportError):
-        raise DAPABridgeHold("dapa_original_replay_failed") from None
-    need(captured_title == title and captured_date == day
-         and captured_document_url == extra.get("document_url")
-         and recovered_text == body
-         and digest(recovered_text.encode("utf-8")) == bodysha,
-         "dapa_original_semantic_or_text_fidelity_mismatch")
-    row = {
-        "source_identity": ident,
-        "canonical_official_url": url,
-        "publisher_posted_date": day,
-        "official_issuer": ISSUER,
-        "official_republisher": REPUBLISHER,
-        "original_title_sha256": digest(title.encode("utf-8")),
-        "original_text_sha256": bodysha,
-        "publisher_html_sha256": htmlsha,
-        "original_hwpx_sha256": document_sha,
-    }
-    row["candidate_version_sha256"] = version_hash(row)
+    signed_rows = []
+    for (ident, url, family, title, body, day, lang,
+         extra_json, bodysha, htmlsha, first_seen) in rows:
+        try:
+            extra = json.loads(extra_json)
+        except (TypeError, ValueError):
+            raise DAPABridgeHold("dapa_private_record_metadata_invalid") from None
+        need(type(extra) is dict
+             and type(title) is str and 0 < len(title) <= 3000
+             and type(body) is str and 0 < len(body) <= 200000
+             and digest(body.encode("utf-8")) == bodysha
+             and family == "kr_policy_dapa_releases"
+             and lang == "ko"
+             and extra.get("issuer") == "방위사업청"
+             and extra.get("publisher") == "대한민국 정책브리핑"
+             and extra.get("body_scope") ==
+                 "captured_hwpx_text_not_editorially_approved"
+             and extra.get("attachments_collected") is True
+             and extra.get("public_metadata_admission_approved") is False
+             and extra.get("public_full_text_approved") is False
+             and extra.get("document_reuse_approved") is False
+             and day == ledger["target_date"]
+             and first_seen == run_attempt,
+             "dapa_private_record_source_or_rights_scope_invalid")
+        document_sha = extra.get("document_capture_sha256")
+        need(valid_hash(htmlsha) and valid_hash(document_sha)
+             and any(q.get("requested_url") == url
+                     and q.get("capture_sha256") == htmlsha
+                     and q.get("http_status") == 200 for q in requests)
+             and any(q.get("requested_url") == extra.get("document_url")
+                     and q.get("capture_sha256") == document_sha
+                     and q.get("http_status") == 200 for q in requests),
+             "dapa_original_request_chain_incomplete")
+        try:
+            article_bytes = (state / "captures" / (htmlsha + ".bin")).read_bytes()
+            document_bytes = (state / "captures" / (document_sha + ".bin")).read_bytes()
+            captured_title, captured_date, captured_document_url = (
+                KoreaDapaPolicyAdapter.metadata(None, article_bytes.decode("utf-8"), url))
+            recovered_text = hwpx_text(document_bytes)
+        except (ValueError, UnicodeError, OSError, KeyError, TypeError, ImportError):
+            raise DAPABridgeHold("dapa_original_replay_failed") from None
+        need(captured_title == title and captured_date == day
+             and captured_document_url == extra.get("document_url")
+             and recovered_text == body
+             and digest(recovered_text.encode("utf-8")) == bodysha,
+             "dapa_original_semantic_or_text_fidelity_mismatch")
+        signed_row = {
+            "source_identity": ident,
+            "canonical_official_url": url,
+            "publisher_posted_date": day,
+            "official_issuer": ISSUER,
+            "official_republisher": REPUBLISHER,
+            "original_title_sha256": digest(title.encode("utf-8")),
+            "original_text_sha256": bodysha,
+            "publisher_html_sha256": htmlsha,
+            "original_hwpx_sha256": document_sha,
+        }
+        signed_row["candidate_version_sha256"] = version_hash(signed_row)
+        signed_rows.append(signed_row)
+    signed_rows.sort(key=lambda r: r["source_identity"])
     packet = {
         "schema": SCHEMA,
         "source_repository": REPO,
@@ -341,48 +358,49 @@ def export_from_private_checkout(checkout, run_attempt):
         "source_git_commit": source_sha,
         "source_db_sha256": dbsha,
         "source_run_attempt": run_attempt,
-        "records": [row],
+        "records": signed_rows,
     }
     verify_structure(packet)
     return packet
 
 
 def admit(conn: sqlite3.Connection, packet, mac, key, *, as_of_utc):
-    """Only signed metadata becomes an official-link-only row; never a body."""
-    row = verify_signed_packet(packet, mac, key)
+    """Atomic metadata-only admission: any collision blocks the entire batch."""
+    rows = verify_signed_packet(packet, mac, key)
     need(type(as_of_utc) is str and
          re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z",
                       as_of_utc), "dapa_admission_clock_invalid")
     cols = {c[1] for c in conn.execute(
         "PRAGMA table_info(korea_official_source_records)")}
-    need(ROW_FIELDS.issubset(set(row))
-         and "original_hwpx_sha256" in cols
-         and "public_scope" in cols,
+    need("original_hwpx_sha256" in cols and "public_scope" in cols,
          "dapa_production_schema_not_ready")
-    proposed = (
-        row["source_identity"], row["canonical_official_url"],
-        row["publisher_posted_date"], packet["source_git_commit"],
-        packet["source_db_sha256"], row["candidate_version_sha256"],
-        row["original_title_sha256"], row["original_text_sha256"],
-        row["publisher_html_sha256"], row["original_hwpx_sha256"],
-        ISSUER, REPUBLISHER, "ko", "B", "syndicated",
-        "official_link_only", as_of_utc, as_of_utc,
-    )
+    inserted = 0
+    unchanged = 0
     conn.execute("SAVEPOINT dapa_signed_admission")
     try:
-        old = conn.execute(
-            "SELECT * FROM korea_official_source_records "
-            "WHERE source_identity=? OR canonical_official_url=?",
-            (row["source_identity"], row["canonical_official_url"])).fetchall()
-        if old:
-            need(len(old) == 1 and tuple(old[0][:16]) == proposed[:16],
-                 "dapa_conflicting_or_drifted_source_version")
-            changed = False
-        else:
-            conn.execute(
-                "INSERT INTO korea_official_source_records VALUES "
-                "(" + ",".join("?" for _ in proposed) + ")", proposed)
-            changed = True
+        for row in rows:
+            proposed = (
+                row["source_identity"], row["canonical_official_url"],
+                row["publisher_posted_date"], packet["source_git_commit"],
+                packet["source_db_sha256"], row["candidate_version_sha256"],
+                row["original_title_sha256"], row["original_text_sha256"],
+                row["publisher_html_sha256"], row["original_hwpx_sha256"],
+                ISSUER, REPUBLISHER, "ko", "B", "syndicated",
+                "official_link_only", as_of_utc, as_of_utc,
+            )
+            old = conn.execute(
+                "SELECT * FROM korea_official_source_records "
+                "WHERE source_identity=? OR canonical_official_url=?",
+                (row["source_identity"], row["canonical_official_url"])).fetchall()
+            if old:
+                need(len(old) == 1 and tuple(old[0][:16]) == proposed[:16],
+                     "dapa_conflicting_or_drifted_source_version")
+                unchanged += 1
+            else:
+                conn.execute(
+                    "INSERT INTO korea_official_source_records VALUES "
+                    "(" + ",".join("?" for _ in proposed) + ")", proposed)
+                inserted += 1
         need(conn.execute("PRAGMA foreign_key_check").fetchall() == [],
              "dapa_metadata_foreign_key_violation")
         conn.execute("RELEASE SAVEPOINT dapa_signed_admission")
@@ -393,8 +411,9 @@ def admit(conn: sqlite3.Connection, packet, mac, key, *, as_of_utc):
     return {
         "schema": "ipr-korea-dapa-signed-metadata-admission/1",
         "source_git_commit": packet["source_git_commit"],
-        "new_official_links_admitted": int(changed),
-        "unchanged_official_links": int(not changed),
+        "batch_records": len(rows),
+        "new_official_links_admitted": inserted,
+        "unchanged_official_links": unchanged,
         "original_titles_text_media_exported": False,
         "english_analysis_automatically_published": False,
     }
