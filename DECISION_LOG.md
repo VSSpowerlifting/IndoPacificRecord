@@ -4,6 +4,39 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Singapore desk analysis path: engineering record, owner adoption pending
+
+This entry is an engineering record. It is **not** an owner ruling, and it
+does not adopt anything. The 2026-09-29 repair (§5 of
+`docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md`) held Singapore out of the
+daily model queue until the owner decides what Singapore analysis should be.
+That hold was in force on `main` before this change.
+
+What the branch `claude/ipr-desk-completion-7e9246` builds:
+- **Relevance:** the desk screen `sg-relevance-v1`.
+- **Analysis:** one desk call, `sg-analysis-v1`, which returns an English
+  summary (concrete development first; official messaging, commitments,
+  implementation and inference kept apart) and the model flag with its
+  reason.
+- **Not produced:** a translation, PLA categories or an `executive_readout`.
+- **Rendering:** the record template states that an English-language source
+  needs no translation.
+- **Failure handling:** an invalid reply writes nothing and is retried as
+  pending analysis.
+- **Queue:** `SINGAPORE_PROFILE.daily_queue` is `True`; any other non-China
+  desk without its own analysis stays held.
+
+Merging that PR is the owner act that adopts the rubric (decision 1) and this
+analysis shape (decision 3), and starts paid daily processing of Singapore
+records. The estimate is about $1, order of magnitude, for the 71-record
+backlog (about $1.85 at the `max_tokens` output ceiling), then about 1–3
+cents per release. `sg-analysis-v1` has never run against the live model, so
+its first real outputs reach record pages, under machine labels, unsampled. Decision 2 (re-screening the 14 records rejected
+under the China rules) is not affected.
+
+Evidence is in §6 of the repair doc. It contains no observed scheduled
+analysis, because that can only follow the merge.
+
 ## 2026-10-14 — Owner-directed coastal visual identity
 
 The owner explicitly approved replacing active editorial crimson/pink and

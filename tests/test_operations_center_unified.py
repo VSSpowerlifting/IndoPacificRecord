@@ -19,10 +19,12 @@ from scripts import operations_center as ops
 from scripts import operations_center_unified as unified
 from tests.test_daily_run_receipts import (complete, guard_only, cancelled,
                                            envelope)
+from tests.held_desk import HELD_DESK, HELD_SOURCE, register_held_desk
 
 
 class UnifiedOperationsContracts(unittest.TestCase):
     def setUp(self):
+        register_held_desk(self)
         tmp = tempfile.TemporaryDirectory(prefix="ipr-unified-ops-")
         self.addCleanup(tmp.cleanup)
         self.temp = Path(tmp.name)
@@ -299,7 +301,7 @@ class UnifiedOperationsContracts(unittest.TestCase):
             );
         """)
         conn.executemany("INSERT INTO sources VALUES (?,?,?)", [
-            (1, "cn_mod", "china"), (2, "sg_mindef", "singapore"),
+            (1, "cn_mod", "china"), (2, HELD_SOURCE, HELD_DESK),
         ])
         conn.executemany("INSERT INTO articles VALUES (?,?,?,?,?,?)", [
             (1, 1, None, None, None, "2026-10-08 09:00:00"),

@@ -20,13 +20,18 @@ A `ScreeningProfile` says, per desk, how each stage judges a record:
     `system_prompt` is None for the Analyzer's existing system prompt. A desk
     prompt is built on first use from the desk's scope in desks/registry.json,
     so routing and the daily-queue gate never read that file.
+  * `build_analysis_messages` / `analysis_system_prompt` — what follows a
+    pass. None is the China path, Analyzer.analyze(): translation from
+    Chinese, the China summary and the PLA category taxonomy. A desk builder
+    is Analyzer.analyze_desk(): one call that summarises the original text and
+    sets the model flag, with no translation and no categories. A desk whose
+    sources publish in English (Singapore) must never take the China path.
   * `daily_queue` — whether pipeline.py sends the desk's records to the model
-    at all. The daily analysis that follows a pass (translation from Chinese,
-    a summary, the PLA category taxonomy) exists only for the China Desk, so a
-    desk without that is held out of the daily queue: its records stay
-    `passed_relevance IS NULL` ("awaiting screening"). Screening such a desk is
-    a deliberate, reviewed operation (scripts/rescreen_desk.py), not a
-    side effect of the next scheduled run.
+    at all. A desk is in the daily queue only when it has both its own
+    screening and its own post-pass analysis; any other non-China desk is held
+    out, and its records stay `passed_relevance IS NULL` ("awaiting
+    screening"). Singapore was held on this ground from 2026-09-29 until its
+    analysis path existed (docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md §6).
 
 A record whose desk is unknown gets the China profile, which is exactly what
 every record got before this module existed.
@@ -38,8 +43,11 @@ from typing import Callable, Dict, List, Optional
 
 from analysis.prompts import (
     PROMPT_VERSION,
+    SINGAPORE_ANALYSIS_PROMPT_VERSION,
     SINGAPORE_RELEVANCE_PROMPT_VERSION,
     build_relevance_messages,
+    build_singapore_analysis_messages,
+    build_singapore_analysis_system_prompt,
     build_singapore_relevance_messages,
     build_singapore_system_prompt,
 )
@@ -63,12 +71,26 @@ class ScreeningProfile:
     build_messages: Callable[[str, str], List[dict]]
     prompt_version: str
     build_system_prompt: Optional[Callable[[str], str]] = None
+    build_analysis_messages: Optional[Callable[[str, str], List[dict]]] = None
+    build_analysis_system_prompt: Optional[Callable[[str], str]] = None
+    analysis_prompt_version: Optional[str] = None
 
     @property
     def system_prompt(self) -> Optional[str]:
         if self.build_system_prompt is None:
             return None
         return self.build_system_prompt(_declared_scope(self.desk_id))
+
+    @property
+    def analysis_system_prompt(self) -> Optional[str]:
+        if self.build_analysis_system_prompt is None:
+            return None
+        return self.build_analysis_system_prompt(_declared_scope(self.desk_id))
+
+    @property
+    def translates(self) -> bool:
+        """True for the China path: a pass is translated from Chinese."""
+        return self.build_analysis_messages is None
 
 
 CHINA_PROFILE = ScreeningProfile(
@@ -82,16 +104,26 @@ CHINA_PROFILE = ScreeningProfile(
 SINGAPORE_PROFILE = ScreeningProfile(
     desk_id="singapore",
     keyword_prefilter=False,
-    daily_queue=False,
+    daily_queue=True,
     build_messages=build_singapore_relevance_messages,
     prompt_version=SINGAPORE_RELEVANCE_PROMPT_VERSION,
     build_system_prompt=build_singapore_system_prompt,
+    build_analysis_messages=build_singapore_analysis_messages,
+    build_analysis_system_prompt=build_singapore_analysis_system_prompt,
+    analysis_prompt_version=SINGAPORE_ANALYSIS_PROMPT_VERSION,
 )
 
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
 }
+
+# A non-China desk in the daily queue without its own analysis would have its
+# passes translated "from Chinese" and tagged with the PLA taxonomy.
+for _p in _PROFILES.values():
+    if _p.daily_queue and _p is not CHINA_PROFILE and _p.translates:
+        raise AssertionError(
+            "%s is in the daily queue without its own analysis" % _p.desk_id)
 
 
 def profile_for_desk(desk_id: Optional[str]) -> ScreeningProfile:

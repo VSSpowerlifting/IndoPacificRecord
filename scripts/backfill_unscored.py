@@ -93,21 +93,25 @@ def fetch_unscored(limit=None, since=None, until=None):
 
 def _without_held_desks(conn, rows):
     """
-    Drop records of a desk whose screening is not run by the daily pipeline
-    (processing/screening.py). This script runs the same China-only
-    `Analyzer.analyze()` path, so a Singapore record would be screened by the
-    China prompt and, on a pass, translated "from Chinese". Such a desk is
-    screened with scripts/rescreen_desk.py instead.
+    Keep only records of desks on the China path (processing/screening.py).
+    This script runs the China-only `Analyzer.analyze()` path and prices it at
+    the China pass rate, so a Singapore record would be screened by the China
+    prompt and, on a pass, translated "from Chinese". A desk with its own
+    analysis (Singapore) drains through the daily pipeline instead, and a desk
+    held out of the daily queue is not screened here either.
     """
     from processing.screening import profile_for_desk
     desks = dict(conn.execute(
         "SELECT a.id, s.desk_id FROM articles a "
         "JOIN sources s ON s.id = a.source_id").fetchall())
-    kept = [r for r in rows if profile_for_desk(desks.get(r["id"])).daily_queue]
+    profiles = {r["id"]: profile_for_desk(desks.get(r["id"])) for r in rows}
+    kept = [r for r in rows
+            if profiles[r["id"]].daily_queue and profiles[r["id"]].translates]
     if len(kept) != len(rows):
         logger.info(
-            "Skipping %d record(s) from desks screened only by "
-            "scripts/rescreen_desk.py.", len(rows) - len(kept))
+            "Skipping %d record(s) from desks not on the China analysis path; "
+            "they are screened by the daily pipeline with their own desk "
+            "profile.", len(rows) - len(kept))
     return kept
 
 

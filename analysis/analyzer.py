@@ -630,3 +630,92 @@ class Analyzer:
             "model_id":               ANALYSIS_MODEL,
             "prompt_version":         PROMPT_VERSION,
         }
+
+    # ── Desk analysis (a desk with its own post-pass path) ────────────────────
+
+    def analyze_record(self, title: str, body: str, profile=None) -> Optional[dict]:
+        """
+        Route one record by its desk's processing.screening profile.
+
+        None, or a profile without its own analysis (China), is exactly
+        `analyze()`; a desk profile with an analysis builder is `analyze_desk()`.
+        """
+        if profile is None or profile.translates:
+            return self.analyze(title, body)
+        return self.analyze_desk(title, body, profile)
+
+    def analyze_desk(self, title: str, body: str, profile) -> Optional[dict]:
+        """
+        Screen and analyse a record of a desk whose sources publish in the
+        language the record is read in (Singapore: English).
+
+        Relevance uses the desk's own rubric. A pass gets ONE ANALYSIS_MODEL
+        call for the summary and the model flag, built from the original text.
+        There is no translation and no PLA category call: `title_english` and
+        `text_english` are None, `categories` is empty, and
+        `requires_translation` is False so the caller writes the record without
+        an English title. The return keys and failure semantics are otherwise
+        those of `analyze()`: None when relevance fails, a partial result
+        without a summary when the analysis call fails, FatalAPIError raised.
+        """
+        try:
+            score, reasoning = self.score_relevance(title, body, profile=profile)
+        except FatalAPIError:
+            raise
+        except AnalysisError as exc:
+            logger.error("Relevance scoring failed: %s", exc)
+            return None
+
+        partial = {
+            "relevance_score":      score,
+            "relevance_reasoning":  reasoning,
+            "passed_relevance":     score >= RELEVANCE_THRESHOLD,
+            "requires_translation": False,
+            "model_id":             ANALYSIS_MODEL,
+            # Both rubrics the record went through, as the China path's one
+            # PROMPT_VERSION covers all four of its tasks.
+            "prompt_version":       "%s+%s" % (profile.prompt_version,
+                                               profile.analysis_prompt_version),
+        }
+        if not partial["passed_relevance"]:
+            return partial
+
+        try:
+            summary, flagged, reason = self._desk_summary_and_flag(
+                title, body, profile)
+        except FatalAPIError:
+            raise
+        except AnalysisError as exc:
+            logger.error("Desk analysis failed: %s", exc)
+            return partial
+
+        return {
+            **partial,
+            "title_english":          None,
+            "text_english":           None,
+            "summary_english":        summary,
+            "categories":             [],
+            "is_significant":         flagged,
+            "significance_reasoning": reason,
+        }
+
+    def _desk_summary_and_flag(
+        self, title: str, body: str, profile,
+    ) -> tuple[str, bool, Optional[str]]:
+        system = [{"type": "text", "text": profile.analysis_system_prompt,
+                   "cache_control": {"type": "ephemeral"}}]
+        raw = self._call(profile.build_analysis_messages(title, body),
+                         max_tokens=1000, temperature=0.3, system=system,
+                         task=TASK_SUMMARY)
+        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        summary = data.get("summary") if isinstance(data, dict) else None
+        flagged = data.get("flag") if isinstance(data, dict) else None
+        reason = data.get("flag_reason") if isinstance(data, dict) else None
+        # A paid response that does not carry a usable summary and an explicit
+        # flag is a failed call: nothing is written, and the record retries.
+        if (not isinstance(summary, str) or not summary.strip()
+                or not isinstance(flagged, bool)
+                or (flagged and (not isinstance(reason, str) or not reason.strip()))):
+            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
+        return summary, flagged, (reason if flagged else None)
