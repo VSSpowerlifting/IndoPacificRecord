@@ -434,12 +434,39 @@ class TestDraftScheduling(unittest.TestCase):
         self.assertFalse(self.scheduled("synchronize", True))
         self.assertTrue(self.scheduled("ready_for_review", False))
 
-    def test_suite_and_validator_cannot_be_independently_skipped(self):
-        for step in steps_of(load_workflow()):
-            body = step.get("run", "")
-            if "unittest" in body or "validate_output.py" in body:
-                with self.subTest(step=step["name"]):
-                    self.assertNotIn("if", step)
+    def test_risk_classification_keeps_full_suite_and_validator_bound(self):
+        steps = {s["name"]: s for s in steps_of(load_workflow())}
+        self.assertEqual(steps["Run offline test suite"]["if"],
+                         "${{ steps.scope.outputs.mode == 'full' }}")
+        self.assertEqual(steps["Run focused timeline presentation contracts"]["if"],
+                         "${{ steps.scope.outputs.mode == 'focused' }}")
+        self.assertEqual(steps["Validate rendered output"]["if"],
+                         "${{ steps.scope.outputs.mode != 'docs' }}")
+        self.assertEqual(steps["Install Chromium for the browser-backed tests"]["if"],
+                         "${{ steps.scope.outputs.browser == 'true' }}")
+        self.assertEqual(steps["Verify Chromium launches"]["if"],
+                         "${{ steps.scope.outputs.browser == 'true' }}")
+        self.assertEqual(steps["Replay all frozen pilot sources and independent review excerpts"]["if"],
+                         "${{ steps.scope.outputs.source_replay == 'true' }}")
+
+
+class TestChangeRiskScope(unittest.TestCase):
+    def test_pr_diff_classifier_fails_closed_and_uses_base_parent(self):
+        steps = steps_of(load_workflow())
+        checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout"))
+        self.assertEqual(checkout["with"]["fetch-depth"], 2)
+        scope = next(s for s in steps if s.get("id") == "scope")
+        self.assertIn("scripts/pr_ci_scope.py", scope["run"])
+        self.assertIn("--base HEAD^1 --head HEAD", scope["run"])
+        self.assertIn("--github-output", scope["run"])
+
+    def test_docs_cannot_silently_bypass_database_preservation(self):
+        steps = {s["name"]: s for s in steps_of(load_workflow())}
+        self.assertNotIn("if", steps["Record tracked database baseline"])
+        self.assertEqual(steps["Assert the tracked database and output are unchanged"]["if"],
+                         "${{ !cancelled() && steps.baseline.outcome == 'success' }}")
+        self.assertEqual(steps["Install dependencies"]["if"],
+                         "${{ steps.scope.outputs.mode != 'docs' }}")
 
 
 class TestPermissions(unittest.TestCase):
@@ -741,31 +768,20 @@ class TestBrowserBackedTestsActuallyRun(unittest.TestCase):
         self.assertLess(install, smoke, names)
         self.assertLess(smoke, suite, names)
 
-    def test_the_fast_preflight_cannot_replace_the_full_suite(self):
-        """Focused contracts run before Chromium, full suite after launch."""
+    def test_focused_browser_contracts_do_not_replace_full_mode(self):
         steps = steps_of(self.doc)
-        names = [step["name"] for step in steps]
-        preflight = index_of(
-            self.doc, lambda step: step["name"] ==
-            "Run fast taxonomy and collection-boundary contracts")
-        install = index_of(
-            self.doc, lambda step: self.INSTALL.search(step.get("run", "")))
-        smoke = index_of(
-            self.doc, lambda step: "chromium.launch()" in
-            step.get("run", ""))
-        suite = index_of(
-            self.doc, lambda step: step.get("run", "").strip()
-            == TestItRunsTheRealChecks.OFFLINE_SUITE)
-        self.assertLess(preflight, install, names)
-        self.assertLess(install, smoke, names)
-        self.assertLess(smoke, suite, names)
-        self.assertIn("unittest", steps[preflight]["run"])
-        self.assertEqual(
-            sum(step.get("run", "").strip()
-                == TestItRunsTheRealChecks.OFFLINE_SUITE
-                for step in steps),
-            1,
-        )
+        full = index_of(self.doc, lambda s: s["name"] == "Run offline test suite")
+        focused = index_of(self.doc, lambda s: s["name"] == "Run focused timeline presentation contracts")
+        browser = index_of(self.doc, lambda s: "chromium.launch()" in s.get("run", ""))
+        self.assertLess(browser, full)
+        self.assertLess(browser, focused)
+        body = steps[focused]["run"]
+        for test_module in ("tests.test_timeline_rendering", "tests.test_timelines",
+                            "tests.test_relief_primitives", "tests.test_site_mode_contract"):
+            self.assertIn(test_module, body)
+        self.assertIn("result.wasSuccessful()", body)
+        self.assertEqual(steps[full]["run"],
+                         TestItRunsTheRealChecks.OFFLINE_SUITE)
 
     def test_the_job_allows_time_for_the_browser_assertions(self):
         """
@@ -799,7 +815,7 @@ class TestBrowserBackedTestsActuallyRun(unittest.TestCase):
         """No new action, and nothing downloaded outside the install itself."""
         for step in steps_of(self.doc):
             if step.get("run") in (self.install_body(), self.smoke_body()):
-                self.assertEqual(set(step), {"name", "run"})
+                self.assertEqual(set(step), {"name", "run", "if"})
 
     def test_no_step_rewrites_a_workflow_file(self):
         """
