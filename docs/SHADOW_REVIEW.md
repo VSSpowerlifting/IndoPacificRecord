@@ -1,8 +1,16 @@
 # Shadow checkpoint reviews
 
-The 30-day qualification requires that manual corpus reviews happen around days
-7, 14 and 30, and that there is evidence they happened. This document is how
-those reviews are run so that they are reproducible rather than improvised.
+**Current policy (18 October 2026):** This is the procedure for preserving
+historical Day-7/14/30 qualification packets and separately requested human
+source reviews. Its former fixed-calendar prelaunch requirement is superseded
+by `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`. A new desk
+instead needs real-source end-to-end acceptance, a tested failure/retry,
+ongoing reliability measurement, and explicit publication approval. Do not
+erase or backdate any original checkpoint or waive editorial/rights review.
+
+The original 30-day qualification required manual corpus reviews around days
+7, 14 and 30, with evidence they occurred. The procedures below retain the
+ability to reconstruct that exact historical evidence.
 
 **Scope.** The tooling and the branch constants described here are
 **Singapore-specific**: `scripts/review_shadow_state.py` and
