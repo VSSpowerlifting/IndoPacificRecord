@@ -151,6 +151,11 @@ def scheduled_runs(*numbers, event="schedule", repo=v.PUBLIC_REPOSITORY,
 
 def policy_for(packet):
     policy = copy.deepcopy(release.load_owner_policy())
+    # Most synthetic tests exercise the pre-authorization fallback explicitly.
+    # Keep that fixture narrow even after the real AFP standing ruling lands.
+    policy["standing_link_metadata_authorizations"] = [
+        a for a in policy["standing_link_metadata_authorizations"]
+        if a["source_family"] != v.FAMILY]
     spec = next(s for s in policy["source_families"] if s["source_family"] == v.FAMILY)
     spec.update(frozen_review_cohort_commit=packet["source_git_commit"],
                 frozen_review_cohort_candidate_count=packet["candidate_count"],
@@ -365,22 +370,21 @@ class AfpReleaseValidatorTests(unittest.TestCase):
         self.assertHold("independent_release_evidence_missing", release.verify_release_evidence,
                         claiming, out["packet"], out["eligible"])
 
-    # --- future AFP records: held under the pinned policy -------------------
+    # --- AFP future metadata authorized; old non-standing fallback retained --
 
-    def test_pinned_owner_policy_grants_no_afp_standing_authorization(self):
+    def test_pinned_owner_policy_grants_afp_standing_authorization(self):
         pinned = PINNED_POLICY_LOADER()
-        self.assertIs(release.standing_link_metadata_authorization(pinned, v.FAMILY), False)
+        self.assertIs(release.standing_link_metadata_authorization(pinned, v.FAMILY), True)
         self.assertIs(release.standing_link_metadata_authorization(pinned, "id_kemhan_news"),
                       True)
+        self.assertEqual({a["source_family"] for a in
+                          pinned["standing_link_metadata_authorizations"]},
+                         {v.FAMILY, "id_kemhan_news"})
 
-    def test_one_entry_owner_edit_is_the_whole_activation(self):
-        # If the owner answers yes, adding one ph_afp_articles entry to the
-        # pinned policy is accepted by the real loader; nothing else changes.
+    def test_pinned_owner_authorization_is_accepted_by_real_loader(self):
+        # The owner-authorized AFP entry is now in the pinned policy.
+        # Changing the precise permission shape still fails closed.
         policy = json.loads(release.POLICY_PATH.read_text(encoding="utf-8"))
-        policy["standing_link_metadata_authorizations"].append(
-            dict(release.STANDING_AUTHORIZATION, source_family=v.FAMILY,
-                 decision_recorded_on="2026-10-19",
-                 decision_source="test-only hypothetical owner decision"))
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "policy.json"
             path.write_text(json.dumps(policy), encoding="utf-8")
