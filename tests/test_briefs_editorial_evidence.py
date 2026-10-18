@@ -202,8 +202,17 @@ class UnifiedWriterTests(unittest.TestCase):
         self.assertIs(validate_manuscript(
             result, evidence(), supplemental=self.research), result)
         result = manuscript()
+        result["cross_desk_comparison"] = (
+            "The cited institution's account does not establish whether a "
+            "similar development occurred in other jurisdictions."
+        )
         result["supplemental_citations"]["cross_desk_comparison"] = []
-        with self.assertRaisesRegex(ValueError, "both desks"):
+        # Bounded comparison limitations need a real citation, not unrelated
+        # external sources inserted just to satisfy a desk quota.
+        self.assertIs(validate_manuscript(result, evidence(),
+                                         supplemental=self.research), result)
+        result["citations"]["cross_desk_comparison"] = []
+        with self.assertRaisesRegex(ValueError, "neither production nor external"):
             validate_manuscript(result, evidence(), supplemental=self.research)
 
     def test_unverified_external_and_empty_section_citations_rejected(self):
