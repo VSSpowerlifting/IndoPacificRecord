@@ -3045,6 +3045,14 @@
       "corrected_title": "U.S. military says it destroyed a sailing vessel linked to Iran in the Gulf of Oman",
       "reason": "Preserve sailing vessel without narrowing the unnamed vessel type to dhow",
       "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 5317,
+      "original": "\u8425\u8fde\u65e5\u5fd7\u4e28\u6307\u5bfc\u5458\u7684\u5fc3\u7ed3\u8c01\u6765\u89e3",
+      "model_title": "Company Diary | Who Will Untangle the Political Instructor's Knot?",
+      "corrected_title": "Battalion and Company Diary | Who Will Untangle the Political Instructor\u2019s Knot?",
+      "reason": "Retain both battalion and company from \u8425\u8fde in the column title",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
     }
   ]
 }
