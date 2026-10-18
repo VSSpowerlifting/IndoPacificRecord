@@ -120,6 +120,14 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
         dapa_original_access_authorized=False):
     if desk == "korea_dapa" and not dapa_original_access_authorized:
         raise ValueError("DAPA article/HWPX collection requires separate one-time owner authorization")
+    # Defense in depth: a direct CLI or Python import cannot bypass the
+    # private workflow's one-date, five-article source-access ceiling.
+    if desk == "korea_dapa" and (
+            not 1 <= cap <= 5 or lookback != 0 or
+            target_source != SOURCE_EXPLICIT or historical_backfill):
+        raise ValueError(
+            "DAPA source access requires one explicit UTC day, zero lookback, "
+            "and a bounded cap of 1–5 originals")
     if desk not in DESKS or not 1 <= cap <= 40:
         raise ValueError("known desk and 1–40 cap required")
     if historical_backfill:
