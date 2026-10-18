@@ -48,7 +48,7 @@ class DAPABridgeContracts(unittest.TestCase):
 
     def test_exact_signed_packet_is_verified(self):
         self.assertEqual(
-            b.verify_signed_packet(self.packet, self.mac, KEY)["official_issuer"],
+            b.verify_signed_packet(self.packet, self.mac, KEY)[0]["official_issuer"],
             "kr_dapa")
         self.assertEqual(self.mac, b.sign(self.packet, KEY))
 
@@ -92,6 +92,68 @@ class DAPABridgeContracts(unittest.TestCase):
         pkt["records"].append(pkt["records"][0])
         with self.assertRaises(b.DAPABridgeHold):
             b.verify_structure(pkt)
+
+    @staticmethod
+    def batch(n):
+        pkt = sample()
+        row = pkt["records"][0]
+        pkt["records"] = []
+        for i in range(n):
+            item = copy.deepcopy(row)
+            suffix = str(156785990 + i)
+            item["source_identity"] = b.PREFIX + suffix
+            item["canonical_official_url"] = b.URL_PREFIX + suffix
+            item["original_text_sha256"] = format(i + 1, "064x")
+            item["candidate_version_sha256"] = b.version_hash(item)
+            pkt["records"].append(item)
+        return pkt
+
+    def test_bounded_sorted_one_day_batch_and_invalid_sizes(self):
+        for n in (1, 2, 5):
+            pkt = self.batch(n)
+            self.assertEqual(len(b.verify_signed_packet(pkt, b.sign(pkt, KEY), KEY)), n)
+        for n in (0, 6):
+            with self.assertRaisesRegex(b.DAPABridgeHold, "bounded"):
+                b.sign(self.batch(n), KEY)
+        for broken in ("reverse", "date", "duplicate", "foreign"):
+            pkt = self.batch(2)
+            if broken == "reverse":
+                pkt["records"].reverse()
+            elif broken == "date":
+                pkt["records"][1]["publisher_posted_date"] = "2026-10-19"
+                pkt["records"][1]["candidate_version_sha256"] = b.version_hash(pkt["records"][1])
+            elif broken == "duplicate":
+                pkt["records"][1] = copy.deepcopy(pkt["records"][0])
+            else:
+                pkt["records"][1]["text_original"] = "NO PRIVATE TEXT"
+            with self.subTest(broken=broken), self.assertRaises(b.DAPABridgeHold):
+                b.sign(pkt, KEY)
+
+    def test_batch_transaction_rollback_on_middle_collision(self):
+        pkt = self.batch(3)
+        mac = b.sign(pkt, KEY)
+        with sqlite3.connect(":memory:") as conn:
+            old.up(conn)
+            newer.up(conn)
+            inserted = b.admit(conn, pkt, mac, KEY, as_of_utc="2026-10-18T12:00:00Z")
+            self.assertEqual(inserted["new_official_links_admitted"], 3)
+            self.assertEqual(inserted["batch_records"], 3)
+            self.assertEqual(b.admit(
+                conn, pkt, mac, KEY, as_of_utc="2026-10-18T12:01:00Z")[
+                    "unchanged_official_links"], 3)
+            count_before = conn.execute("SELECT COUNT(*) FROM korea_official_source_records").fetchone()[0]
+            followup = self.batch(5)
+            followup["records"][1]["original_text_sha256"] = "9" * 64
+            followup["records"][1]["candidate_version_sha256"] = b.version_hash(followup["records"][1])
+            with self.assertRaisesRegex(b.DAPABridgeHold, "drifted"):
+                b.admit(conn, followup, b.sign(followup, KEY),
+                        KEY, as_of_utc="2026-10-18T12:02:00Z")
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM korea_official_source_records").fetchone()[0],
+                count_before)
+            self.assertNotIn(b.PREFIX + "156785993", {
+                row[0] for row in conn.execute(
+                    "SELECT source_identity FROM korea_official_source_records")})
 
     def test_bad_version_even_with_attacker_signature_refused(self):
         pkt = copy.deepcopy(self.packet)
