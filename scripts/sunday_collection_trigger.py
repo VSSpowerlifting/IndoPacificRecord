@@ -46,7 +46,9 @@ def verify(event, jobs, *, repo, marker, now):
         raise CollectionTriggerRefused("timezone-aware clock required")
     today = now.astimezone(NY).date()
     if today.weekday() != 6:
-        raise CollectionTriggerRefused("collector trigger is restricted to Sunday")
+        # workflow_run subscribes to the daily workflow across all weekdays.
+        # Non-Sundays are expected silent no-ops, NOT failed Briefs runs.
+        raise NoNewCollection("not Sunday in New York")
     if not isinstance(event, dict) or not isinstance(event.get("workflow_run"), dict):
         raise CollectionTriggerRefused("missing upstream workflow event")
     run = event["workflow_run"]
