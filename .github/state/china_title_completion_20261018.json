@@ -3255,5 +3255,35 @@
       "reason": "Retain the headline\u2019s needle pun without specifying acupuncture, which the headline does not name",
       "reviewer": "Codex source-headline fidelity check; no human review asserted"
     }
-  ]
+  ],
+  "completion": {
+    "status": "titles_complete_pending_publication",
+    "main_baseline": "87196e92831c1d7b8a9967cbc48bbf11a4f73242",
+    "database_title_commit": "e997f1cc2ae28dd25f39a97041dca3d369cb6ebf",
+    "titles_completed": 168,
+    "intervening_daily_titles": 20,
+    "guarded_batch_titles": 148,
+    "original_backlog_completed": 151,
+    "newly_collected_titles_completed": 17,
+    "eligible_china_records": 857,
+    "remaining": 0,
+    "failed_title_requests": 0,
+    "automatic_retries": 0,
+    "access_probes": 8,
+    "base_usage_priced_usd": "0.520463",
+    "conservative_charged_usd": "0.5267576",
+    "remaining_allowance_usd": "2.4732424",
+    "invoice_verified": false,
+    "uncertainty": "Intervening Daily did not record inference geography; retain 1.1x on its $0.062946 title usage. Capped batches report global Sonnet inference and standard service; all probes included. Provider invoice is unavailable.",
+    "batch_run_ids": [
+      39161028655,
+      39161230270,
+      39161407030,
+      39161570024,
+      39161726772,
+      39161880063,
+      39162077184,
+      39162272871
+    ]
+  }
 }
