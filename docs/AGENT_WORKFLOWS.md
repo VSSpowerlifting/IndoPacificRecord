@@ -15,7 +15,7 @@ it is making. Do not restate one document's content inside another.
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | technical layer map, commands, publishing and deployment |
 | `docs/AGENT_WORKFLOWS.md` (this file) | agent operating constraints and model routing |
-| `docs/ROADMAP.md` | current priority order |
+| `docs/ROADMAP.md` | older priority context; verify current owner decisions |
 | `DECISION_LOG.md` | durable decisions that constrain future work |
 | Git history | superseded state and incident history |
 
@@ -46,27 +46,68 @@ lightweight model decide design direction, editorial meaning, or
 architecture.
 
 ### Standing rules (any model)
-- Read PROJECT_STATE.md at session start; read the relevant docs/*.md
-  before changing what they govern; update PROJECT_STATE.md after
-  meaningful work, keeping it a snapshot rather than a diary.
+- At session start, read latest relevant owner decisions and targeted
+  PROJECT_STATE.md handoff sections; verify time-sensitive claims against
+  real sources, current code, PRs, Actions and output. Update the snapshot
+  only when you own it and the task makes a meaningful change.
 - Editorial-integrity rules (PRODUCT_AND_EDITORIAL_DOCTRINE §4) bind every
   model at every tier: never invent Chinese text, translations, dates,
   ranks, sources, or claims — in code, copy, tests, or fixtures.
-- Never commit, push, deploy, publish, or regenerate output unless the
-  analyst explicitly asks.
+- The assignment may authorize edits, tests, commits, pushes and a review
+  PR. Reuse valid standing permissions, but never infer approval to merge,
+  spend, change production, activate schedules, publish or send messages.
 - Never hand-edit `output/`; never modify `pla_watch.db` outside the pipeline;
   never modify shadow branches, ledgers or stored shadow records.
 - Never defeat a source's access challenge, impersonate a browser, or route
   around `robots.txt`, however much coverage it would unlock.
-- Never describe a shadow desk as qualified and never promote one. Promotion
-  needs 30 consecutive collecting days, completed human checkpoint reviews,
-  and owner sign-off in DECISION_LOG.md.
+- Never silently promote or overclaim source coverage. Under the October 18
+  owner decision, seven-/30-day histories are ongoing reliability evidence,
+  not universal launch waiting periods. Preserve rights, legitimate human
+  review and independent real-record release gates.
 - The production renderer is `site/render.py`; the deploy gate is
   `scripts/validate_output.py`, whose governed baseline is **10 warnings**.
   A new warning is explained, never invented away.
 - **Do not invent facts to fill a documentation gap.** State the uncertainty
   and name the authoritative source — the database, the ledger, the registry,
   the workflow file, or Git history.
+
+## 1a. Complete-desk engineering and acceptance
+
+Work on one assigned desk and its approved source families, not another
+qualification program. Begin with primary publisher listings and details,
+private captured original bytes/Git versions, authentic human decisions,
+Actions attempts (including failures), production SQLite rows, rendered pages
+and deployed HTTPS where authorized. Repository summaries and old PRs are
+navigation aids, not independent proof of operation.
+
+Close the existing source → protected capture → translation/processing →
+screening and analysis → approved admission → public/Archive and editorial
+intake → scheduled maintenance/recovery path. A functioning agreed contract
+is the completion standard; no reduced source scope, arbitrary date gate,
+readiness percentage or cosmetic status card substitutes for it. Do not force
+weak releases into articles or label machine output human reviewed.
+
+Independently identify expected official records from a bounded source window;
+reconcile them through storage, processing, database and page. Exercise a real
+eligible record, malformed or unavailable input, duplicate/revision, absent
+approval, atomic rollback, private leakage and idempotent recovery. Distinguish
+replay, manual rehearsal, and genuine scheduled operation. Human review or
+full-text reuse cannot be inferred from a green test or link permission.
+
+Reuse existing collectors, vault, DB, validation, rendering, monitoring and
+model clients. Discover skills/connectors once and use only those relevant to
+a concrete need; targeted Git/rg/Python/SQLite/GitHub/browser reads beat broad
+scans and repeated model calls. One isolated worktree and one owner of shared
+files. Avoid speculative architecture, duplicate verification frameworks,
+overlapping PRs and unrelated fixes. Run focused checks during implementation
+and required full checks once the candidate stabilizes.
+
+Deliver one coherent reviewable PR (and a private companion only if needed),
+grounded SHAs and run/source/output evidence, normal schedule/recovery and the
+smallest unresolved owner action. Stop at an operational desk or a verified
+candidate with a specific real external blocker. Start substantial subsequent
+phases in a new agent session with a concise checkpoint. See October 18
+`DECISION_LOG.md` ruling and issue #673.
 
 ## 2. Skills
 
