@@ -26,7 +26,12 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
         db = ROOT / "pla_watch.db"
         all_admitted = load_live_korea_official_links(db)
         self.assertGreater(len(all_admitted), 0,
-                           "verified MND production metadata cannot silently disappear")
+                           "verified Korea production metadata cannot silently disappear")
+        dapa_rows = [r for r in all_admitted
+                     if r["source_identity"].startswith("korea-dapa-policy:")]
+        mnd_rows = [r for r in all_admitted
+                    if r["source_identity"].startswith("korea-policy:")]
+        self.assertEqual(len(mnd_rows) + len(dapa_rows), len(all_admitted))
         bibliography = load_public_korea_links() + load_additional_korea_official_links()
         frozen = {r["source_identity"] for r in bibliography}
         newly_listed = [r for r in all_admitted
@@ -42,10 +47,10 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             html = (out / "korea.html").read_text(encoding="utf-8")
             directory = (out / "desks.html").read_text(encoding="utf-8")
             self.assertIn(
-                'data-korea-directory-mnd-metadata="%d"' % len(all_admitted),
+                'data-korea-directory-mnd-metadata="%d"' % len(mnd_rows),
                 directory)
             self.assertIn(
-                'data-korea-directory-scope-count="%d"' % len(all_admitted),
+                'data-korea-directory-scope-count="%d"' % len(mnd_rows),
                 directory)
             self.assertIn("Live MND link metadata", directory)
             self.assertIn("countrywide article corpus and DAPA remain unadmitted",
@@ -60,7 +65,9 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             self.assertIn(
                 'data-korea-production-admitted-count="%d"' % len(all_admitted),
                 html)
-            self.assertIn("MND official-source production live", html)
+            self.assertIn(
+                "MND and DAPA official-link metadata active"
+                if dapa_rows else "MND official-source production live", html)
             self.assertIn(
                 "contains %d separately admitted official-link metadata records"
                 % len(all_admitted), html)
@@ -74,13 +81,19 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                 html.count('data-korea-auto-official-link='), len(newly_listed))
             self.assertIn('data-korea-production-lanes', html)
             self.assertIn('Live MND official-link metadata</dt><dd>%d</dd>'
-                          % len(all_admitted), html)
+                          % len(mnd_rows), html)
+            if dapa_rows:
+                self.assertIn('Live DAPA official-link metadata</dt><dd>%d</dd>'
+                              % len(dapa_rows), html)
+                self.assertIn('DAPA production source</dt><dd>Link metadata admitted; '
+                              'full desk qualification pending', html)
+            else:
+                self.assertIn('DAPA production source</dt><dd>Not qualified', html)
             self.assertIn('Published Korean originals</dt><dd>%d</dd>'
                           % len(originals), html)
             self.assertIn('Reviewed English translations and analyses</dt><dd>%d</dd>'
                           % len(reviewed), html)
             self.assertIn('Article-corpus records</dt><dd>Not admitted', html)
-            self.assertIn('DAPA production source</dt><dd>Not qualified', html)
             self.assertNotIn(
                 'This desk has no admitted records in the public IPR corpus.', html)
             self.assertEqual(html.count('data-korea-public-link='), 5)
@@ -94,7 +107,9 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                 self.assertEqual(html.count(
                     'data-korea-auto-official-link="%s"' % source["source_identity"]
                 ), expected)
-            self.assertIn("DAPA remains research-only", html)
+            self.assertIn(
+                "October 15 and October 17, 2026 standing link-only publication policies"
+                if dapa_rows else "DAPA remains research-only", html)
             self.assertNotIn("original-source archive remains restricted", html)
             self.assertNotIn("text_original", html)
             self.assertNotIn("summary_english", html)
