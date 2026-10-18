@@ -82,10 +82,19 @@ class WriterContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source ids"):
             validate_manuscript(result, evidence())
 
-    def test_comparison_must_cite_two_desks(self):
+    def test_bounded_single_desk_discussion_does_not_force_unrelated_sources(self):
         result = valid_manuscript()
+        result["cross_desk_comparison"] = (
+            "The supplied source describes one issuing institution only. "
+            "It does not establish a comparable action by another state."
+        )
         result["citations"]["cross_desk_comparison"] = [1]
-        with self.assertRaisesRegex(ValueError, "both desks"):
+        self.assertIs(validate_manuscript(result, evidence()), result)
+        result["citations"]["cross_desk_comparison"] = []
+        with self.assertRaisesRegex(ValueError, "source ids"):
+            validate_manuscript(result, evidence())
+        result["citations"]["cross_desk_comparison"] = [999]
+        with self.assertRaisesRegex(ValueError, "source ids"):
             validate_manuscript(result, evidence())
 
     def test_no_legacy_title(self):
