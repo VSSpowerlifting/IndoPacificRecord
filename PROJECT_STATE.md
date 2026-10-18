@@ -187,6 +187,9 @@ captured originals: sea-phase reporting includes September 9 morning gunnery,
 and the closing headline is explicitly attributed. A source-passage locator now
 separates the September 8 excerpt from the later September 9 gunnery account;
 the review note carries the refreshed draft digest and validation limit.
+Ben selected a references-only public presentation: no quotations, source
+titles or links to full-body record pages on this timeline. Private review
+retains evidence, and publisher-link/editorial approval remain unresolved.
 The private candidate,
 six-row review, exact digest and current source-use measurements/choices are in
 `docs/research/MARITIME_TIMELINE_OWNER_REVIEW_2026-10-18.md`. All five record

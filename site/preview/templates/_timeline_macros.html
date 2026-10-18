@@ -8,7 +8,7 @@
 {% if event.precision == 'uncertain_interval' %}<span>Uncertain interval</span>{% endif %}
 {%- endmacro %}
 {% macro citations(entry, root='../') -%}
-<p class="tl-citations">Evidence {% for ev in entry.evidence %}<a href="{{ root }}record/{{ ev.record_id }}.html">Record {{ ev.record_id }}</a>{% if not loop.last %}<span aria-hidden="true"> · </span>{% endif %}{% endfor %}</p>
+<p class="tl-citations">Evidence {% for ev in entry.evidence %}<a href="{% if timeline.references_only %}#source-{{ ev.record_id }}{% else %}{{ root }}record/{{ ev.record_id }}.html{% endif %}">Record {{ ev.record_id }}</a>{% if not loop.last %}<span aria-hidden="true"> · </span>{% endif %}{% endfor %}</p>
 {%- endmacro %}
 {% macro original(record) -%}
 <p class="tl-original" lang="{{ record.lang }}">{{ record.title_original }}</p>

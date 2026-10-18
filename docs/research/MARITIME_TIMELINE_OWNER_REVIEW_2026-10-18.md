@@ -13,6 +13,38 @@ source reconciliation, as labelled in the private render, not human approval.
 The Flowing Chronology frontend, stable entry IDs, dates, source identities,
 ten verbatim excerpts, Brief No. 15, database and production output are unchanged.
 
+## Owner-selected narrower presentation — 18 October
+
+Ben selected the narrower version in this session. The canonical draft now
+sets `public_presentation: references_only`, which is included in the existing
+content digest. This selection is not editorial approval, publisher permission,
+or publication authorization.
+
+For this timeline, the public renderer retains IPR paraphrases, event and
+publication dates, institution/source names, stable reference IDs and outward
+publisher links. Event citations lead to the page's own source ledger.
+Publisher quotations, original-language titles, stored model title translations
+and links to IPR's full-body record pages are omitted from the public timeline.
+The existing private-review render retains those originals/excerpts and marks
+them as private source review; it must not be deployed.
+
+The default presentation of other timelines and all existing record pages,
+Briefs, stored originals and history remain unchanged. Publicly tracked source
+sidecars still contain excerpts: this change narrows the website presentation,
+not repository access or evidence custody. The existing publisher-link question
+is unresolved; the selected version is not represented as rights-cleared.
+
+Focused local verification used the real timeline/macros and production
+validation function with disposable synthetic record metadata and a minimal
+page shell. It passed public omission, private retention, all six entries/five
+references, fragment targets, legacy compatibility, digest binding, missing
+reference rejection and quote/title/body-link rejection. Python syntax and
+the canonical schema pass. This is not a complete corpus render or fresh
+desktop/mobile browser check. Earlier screenshots/preview URLs below show
+the previous presentation and need regeneration from the updated branch.
+Repository integration tests now exercise the approved-only render and
+public/private distinction; full CI remains the verification step on this head.
+
 ## Six-entry evidence review
 
 All five **complete captured originals**, their original-language titles,
@@ -132,7 +164,7 @@ still needs Ben's explicit authorization for the reviewed artifact.
 `core.timelines.content_digest()` for the corrected canonical draft:
 
 ```text
-26e027cb404ad61e9422351652773497deb4e5d11ec691b28e6d117a286eef64
+8afed5a93cdb8a2516953e362d39efc3790a95c121cc73db4af815f7a4433abd
 ```
 
 This binds the current draft, including pending-review metadata. The existing

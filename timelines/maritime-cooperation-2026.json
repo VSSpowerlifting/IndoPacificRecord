@@ -4,8 +4,9 @@
   "title": "Maritime Cooperation 2026: one exercise, different starting dates",
   "dek": "Follow the preparations, opening, sea phase and conclusion through five preserved official records—and see where the published accounts diverge.",
   "editorial_status": "draft",
+  "public_presentation": "references_only",
   "scope": "What dates do Singapore and Chinese official sources assign to Maritime Cooperation 2026? This chronology compares five records selected in approved Brief No. 15. It establishes what those sources reported, not an independently verified operational history.",
-  "methodology_note": "Entries follow source-stated event dates; source publication dates are shown separately. A prospective announcement is labelled as a plan, and a retrospective as a later report. Original-language excerpts are preserved verbatim. English claim descriptions are editorial paraphrases prepared for review. The ministry starting-date disagreement remains unresolved. This selected packet cannot establish all preparations, the reason for the wider Chinese interval, or comparative combat effectiveness.",
+  "methodology_note": "Entries follow source-stated event dates; source publication dates are shown separately. A prospective announcement is labelled as a plan, and a retrospective as a later report. Supporting excerpts are checked against preserved originals; the public chronology uses IPR paraphrases and publisher references. English claim descriptions are editorial paraphrases prepared for review. The ministry starting-date disagreement remains unresolved. This selected packet cannot establish all preparations, the reason for the wider Chinese interval, or comparative combat effectiveness.",
   "updated_on": "2026-10-18",
   "reviewed_on": "2026-10-18",
   "author_name": "Codex (draft preparation)",
@@ -173,7 +174,7 @@
           "published_on": "2026-09-12",
           "url": "http://www.81.cn/yw_208727/16485244.html",
           "basis": "retrospective",
-          "claim": "PLA Daily later reports the transition to sea on September 8 and gunnery on the morning of September 9. The excerpt below dates the transition; the later paragraph on gunnery dates the firing to the morning of September 9.",
+          "claim": "PLA Daily later reports the transition to sea on September 8 and gunnery on the morning of September 9. The opening sea-phase paragraph dates the transition; the later gunnery paragraph dates the firing to the morning of September 9.",
           "excerpt": "9月8日，联演转入海上演习阶段。"
         }
       ],
