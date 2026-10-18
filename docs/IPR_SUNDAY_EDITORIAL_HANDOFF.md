@@ -17,8 +17,10 @@ automatically approved, numbered or published.
 Before next Sunday, the owner should:
 - Confirm the Sunday workflow is ENABLED in GitHub Actions; missing schedule
   executions cannot be diagnosed solely from the repository YAML.
-- Keep legacy Friday IPR_EDITOR_DELIVERY_ENABLED=false and owner-only
-  IPR_SUNDAY_OWNER_PREVIEW_ENABLED=false; either conflicts with editor delivery.
+- Keep legacy Friday IPR_EDITOR_DELIVERY_ENABLED=false. The old
+  IPR_SUNDAY_OWNER_PREVIEW_ENABLED variable is ignored by scheduled runs;
+  Sunday sends one manuscript to Dylan. Use manual workflow_dispatch for
+  owner-only previews, never together with editor delivery.
 - Verify ANTHROPIC_API_KEY, IPR_EDITOR_TO, IPR_SMTP_USER and
   IPR_SMTP_APP_PASSWORD are configured (never log or share secret values).
 - Inspect the real Sunday Actions execution and one SMTP receipt. GitHub
