@@ -9,7 +9,7 @@
 # Exact PR-merge diff is classified fail-closed. Markdown-only changes use
 # lightweight checks; bounded timeline presentation changes run actual
 # browser/timeline contracts. All unknown, data, source and code changes
-# retain full offline CI. No step collects, deploys or uses secrets.
+# retain full offline CI. No step collects or deploys, and no credentials are used.
 #
 # Chromium. `requirements.txt` carries the playwright PACKAGE, which is why
 # `from playwright.sync_api import ...` has always succeeded here — but `pip
