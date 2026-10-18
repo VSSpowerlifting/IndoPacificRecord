@@ -48,7 +48,7 @@ class DAPABridgeContracts(unittest.TestCase):
 
     def test_exact_signed_packet_is_verified(self):
         self.assertEqual(
-            b.verify_signed_packet(self.packet, self.mac, KEY)["official_issuer"],
+            b.verify_signed_packet(self.packet, self.mac, KEY)[0]["official_issuer"],
             "kr_dapa")
         self.assertEqual(self.mac, b.sign(self.packet, KEY))
 
@@ -92,6 +92,68 @@ class DAPABridgeContracts(unittest.TestCase):
         pkt["records"].append(pkt["records"][0])
         with self.assertRaises(b.DAPABridgeHold):
             b.verify_structure(pkt)
+
+    @staticmethod
+    def batch(n):
+        pkt = sample()
+        row = pkt["records"][0]
+        pkt["records"] = []
+        for i in range(n):
+            item = copy.deepcopy(row)
+            suffix = str(156785990 + i)
+            item["source_identity"] = b.PREFIX + suffix
+            item["canonical_official_url"] = b.URL_PREFIX + suffix
+            item["original_text_sha256"] = format(i + 1, "064x")
+            item["candidate_version_sha256"] = b.version_hash(item)
+            pkt["records"].append(item)
+        return pkt
+
+    def test_bounded_sorted_one_day_batch_and_invalid_sizes(self):
+        for n in (1, 2, 5):
+            pkt = self.batch(n)
+            self.assertEqual(len(b.verify_signed_packet(pkt, b.sign(pkt, KEY), KEY)), n)
+        for n in (0, 6):
+            with self.assertRaisesRegex(b.DAPABridgeHold, "bounded"):
+                b.sign(self.batch(n), KEY)
+        for broken in ("reverse", "date", "duplicate", "foreign"):
+            pkt = self.batch(2)
+            if broken == "reverse":
+                pkt["records"].reverse()
+            elif broken == "date":
+                pkt["records"][1]["publisher_posted_date"] = "2026-10-19"
+                pkt["records"][1]["candidate_version_sha256"] = b.version_hash(pkt["records"][1])
+            elif broken == "duplicate":
+                pkt["records"][1] = copy.deepcopy(pkt["records"][0])
+            else:
+                pkt["records"][1]["text_original"] = "NO PRIVATE TEXT"
+            with self.subTest(broken=broken), self.assertRaises(b.DAPABridgeHold):
+                b.sign(pkt, KEY)
+
+    def test_batch_transaction_rollback_on_middle_collision(self):
+        pkt = self.batch(3)
+        mac = b.sign(pkt, KEY)
+        with sqlite3.connect(":memory:") as conn:
+            old.up(conn)
+            newer.up(conn)
+            inserted = b.admit(conn, pkt, mac, KEY, as_of_utc="2026-10-18T12:00:00Z")
+            self.assertEqual(inserted["new_official_links_admitted"], 3)
+            self.assertEqual(inserted["batch_records"], 3)
+            self.assertEqual(b.admit(
+                conn, pkt, mac, KEY, as_of_utc="2026-10-18T12:01:00Z")[
+                    "unchanged_official_links"], 3)
+            count_before = conn.execute("SELECT COUNT(*) FROM korea_official_source_records").fetchone()[0]
+            followup = self.batch(5)
+            followup["records"][1]["original_text_sha256"] = "9" * 64
+            followup["records"][1]["candidate_version_sha256"] = b.version_hash(followup["records"][1])
+            with self.assertRaisesRegex(b.DAPABridgeHold, "drifted"):
+                b.admit(conn, followup, b.sign(followup, KEY),
+                        KEY, as_of_utc="2026-10-18T12:02:00Z")
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM korea_official_source_records").fetchone()[0],
+                count_before)
+            self.assertNotIn(b.PREFIX + "156785993", {
+                row[0] for row in conn.execute(
+                    "SELECT source_identity FROM korea_official_source_records")})
 
     def test_bad_version_even_with_attacker_signature_refused(self):
         pkt = copy.deepcopy(self.packet)
@@ -194,6 +256,12 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
         import generate_preview as preview
 
         packet = sample()
+        second = copy.deepcopy(packet["records"][0])
+        second["source_identity"] = "korea-dapa-policy:156785998"
+        second["canonical_official_url"] = b.URL_PREFIX + "156785998"
+        second["original_text_sha256"] = "9" * 64
+        second["candidate_version_sha256"] = b.version_hash(second)
+        packet["records"].insert(0, second)
         mac = b.sign(packet, KEY)
         with tempfile.TemporaryDirectory(prefix="ipr-dapa-render-") as folder:
             sandbox = Path(folder)
@@ -212,14 +280,15 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                 result = b.admit(conn, packet, mac, KEY,
                                  as_of_utc="2026-10-18T12:00:00Z")
                 conn.commit()
-            self.assertEqual(result["new_official_links_admitted"], 1)
+            self.assertEqual(result["new_official_links_admitted"], 2)
             published = sandbox / "after"
             preview.build(published, "DAPA synthetic bridge check", temp_db,
                           snapshot=preview.snapshot_from_corpus(temp_db),
                           site_origin="https://indopacificrecord.org")
             second = (published / "korea.html").read_text(encoding="utf-8")
             self.assertEqual(second.count("data-korea-auto-official-link="),
-                             first.count("data-korea-auto-official-link=") + 1)
+                             first.count("data-korea-auto-official-link=") + 2)
+            self.assertIn('data-korea-auto-official-link="korea-dapa-policy:156785998"', second)
             self.assertIn('data-korea-auto-official-link="korea-dapa-policy:156785999"', second)
             self.assertIn(b.URL_PREFIX + "156785999", second)
             self.assertIn("DAPA official press release 156785999", second)
@@ -341,14 +410,59 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
             }
             (state / "ledger" / ("20261018T000000.000000+0000-" + run +
                                  ".json")).write_text(json.dumps(ledger))
+            # Add a second separately captured article and HWPX in the same
+            # private attempt. Both must survive one atomic signature/receipt.
+            second_url = b.URL_PREFIX + "156785998"
+            second_title = "SECOND FICTIONAL DAPA TITLE"
+            second_body = "SECOND FICTIONAL HWPX CONTENT"
+            second_document_url = document_url.replace("456789", "456790")
+            second_html = (
+                html.replace(b"156785999", b"156785998")
+                    .replace(b"456789", b"456790")
+                    .replace(title.encode("utf-8"), second_title.encode("utf-8")))
+            second_buffer = io.BytesIO()
+            with zipfile.ZipFile(second_buffer, "w") as archive:
+                archive.writestr(
+                    "Contents/section0.xml",
+                    "<root><p><run><t>" + second_body +
+                    "</t></run></p></root>")
+            second_document = second_buffer.getvalue()
+            second_html_sha = b.digest(second_html)
+            second_doc_sha = b.digest(second_document)
+            (state / "captures" / (second_html_sha + ".bin")).write_bytes(second_html)
+            (state / "captures" / (second_doc_sha + ".bin")).write_bytes(second_document)
+            second_meta = dict(metadata, document_url=second_document_url,
+                               document_capture_sha256=second_doc_sha)
+            with sqlite3.connect(db) as conn:
+                conn.execute(
+                    "INSERT INTO shadow_records VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    ("korea-dapa-policy:156785998", second_url,
+                     "kr_policy_dapa_releases", second_title, second_body,
+                     "2026-10-18", "ko", json.dumps(second_meta),
+                     b.digest(second_body.encode("utf-8")), second_html_sha, run))
+                conn.commit()
+            ledger.update(inserted=2, selected=2, retrieved=2, extracted=2,
+                          duplicates=0, cap=5)
+            ledger["requests"].extend((
+                {"requested_url": second_url, "capture_sha256": second_html_sha,
+                 "http_status": 200},
+                {"requested_url": second_document_url, "capture_sha256": second_doc_sha,
+                 "http_status": 200},
+            ))
+            (state / "ledger" / ("20261018T000000.000000+0000-" + run +
+                                 ".json")).write_text(json.dumps(ledger))
             git("add", "state")
             git("commit", "-qm", "private-dapa: preserve source attempt " + run)
 
             packet = b.export_from_private_checkout(root, run)
             self.assertEqual(packet["source_git_commit"], git("rev-parse", "HEAD"))
             self.assertEqual(packet["source_db_sha256"], b.digest(db.read_bytes()))
-            self.assertEqual(len(packet["records"]), 1)
-            for value in (title, body, document_url):
+            self.assertEqual(len(packet["records"]), 2)
+            self.assertEqual(
+                [row["source_identity"] for row in packet["records"]],
+                ["korea-dapa-policy:156785998", "korea-dapa-policy:156785999"])
+            for value in (title, body, document_url,
+                          second_title, second_body, second_document_url):
                 self.assertNotIn(value, b.canonical(packet).decode("utf-8"))
             signed = b.sign(packet, KEY)
             with sqlite3.connect(":memory:") as prod:
@@ -357,8 +471,8 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                 self.assertEqual(
                     b.admit(prod, packet, signed, KEY,
                             as_of_utc="2026-10-18T12:00:00Z")[
-                                "new_official_links_admitted"], 1)
-            (state / "captures" / (docsha + ".bin")).write_bytes(b"CORRUPTED")
+                                "new_official_links_admitted"], 2)
+            (state / "captures" / (second_doc_sha + ".bin")).write_bytes(b"CORRUPTED")
             with self.assertRaises(b.DAPABridgeHold):
                 b.export_from_private_checkout(root, run)
 

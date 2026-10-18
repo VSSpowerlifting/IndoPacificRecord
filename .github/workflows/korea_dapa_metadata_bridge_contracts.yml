@@ -9,6 +9,9 @@ on:
       - core/korea_dapa_private_to_production.py
       - scripts/korea_dapa_signed_metadata_bridge.py
       - tests/test_korea_dapa_private_to_production.py
+      - scripts/korea_dapa_private_recovery_plan.py
+      - tests/test_korea_dapa_private_recovery_plan.py
+      - tests/test_korea_dapa_private_collector.py
       - .github/workflows/korea_dapa_metadata_bridge_contracts.yml
       - .github/workflows/korea_verified_official_link_production.yml
 
@@ -32,7 +35,9 @@ jobs:
         run: |
           python -m unittest -v \
             tests.test_korea_dapa_private_to_production \
-            tests.test_korea_dapa_official_metadata_policy_and_schema
+            tests.test_korea_dapa_official_metadata_policy_and_schema \
+            tests.test_korea_dapa_private_recovery_plan \
+            tests.test_korea_dapa_private_collector
       - name: Verify disabled-by-default private dispatch trust boundary
         shell: bash
         run: |
