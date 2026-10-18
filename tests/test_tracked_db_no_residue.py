@@ -109,6 +109,21 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                                      "an unrecognized migration is pending")
                     self.assertIn("database is 'partially_applied'",
                                   proc.stderr)
+                elif name == "check_source_liveness" and proc.returncode == 1:
+                    # Liveness is a DATE-SENSITIVE health diagnostic, not an
+                    # unconditional success command. The tracked offline
+                    # corpus may cross a legitimate silence threshold between
+                    # one CI run and the next (e.g. at midnight UTC). Exit 1
+                    # means source(s) need attention, per the script contract,
+                    # and says nothing about SQLite sidecars. Accept it only
+                    # with affirmative evidence of that documented verdict;
+                    # crashes, imports, and unexplained exit codes still fail.
+                    self.assertIn("Source liveness — threshold ", proc.stdout)
+                    self.assertRegex(proc.stdout, r"(?m)^UNHEALTHY\\s+")
+                    self.assertRegex(
+                        proc.stdout,
+                        r"(?m)^[1-9][0-9]* source\\(s\\) need attention\\.$")
+                    self.assertNotIn("Traceback", proc.stderr)
                 else:
                     self.assertEqual(
                         0, proc.returncode,
