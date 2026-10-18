@@ -83,10 +83,6 @@ jobs:
           persist-credentials: false
           fetch-depth: 2  # PR merge commit and base parent for scoped diff
 
-      - name: Classify changed paths against PR base
-        id: scope
-        run: python scripts/pr_ci_scope.py --base HEAD^1 --head HEAD --github-output "$GITHUB_OUTPUT"
-
       - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
@@ -107,6 +103,11 @@ jobs:
           fi
           echo "db=$(sha256sum pla_watch.db | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           echo "Tracked database baseline recorded."
+
+      # Capture the DB hash before running any PR-controlled Python code.
+      - name: Classify changed paths against PR base
+        id: scope
+        run: python scripts/pr_ci_scope.py --base HEAD^1 --head HEAD --github-output "$GITHUB_OUTPUT"
 
       # Supply exact frozen history for applicable pilot/review contracts.
       # Object retrieval is public/read-only; it changes no branch or worktree.
