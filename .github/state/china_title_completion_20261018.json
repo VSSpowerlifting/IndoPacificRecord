@@ -3246,6 +3246,14 @@
       "corrected_title": "Battalion and Company Diary | Who Will Untangle the Political Instructor\u2019s Knot?",
       "reason": "Retain both battalion and company from \u8425\u8fde in the column title",
       "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 5343,
+      "original": "\u5de7\u89e3\u8170\u75db\u201c\u9488\u201d\u529f\u592b",
+      "model_title": "Cleverly Relieving Lower Back Pain with Acupuncture \"Needling\" Skills",
+      "corrected_title": "Cleverly Easing Lower Back Pain with \"Needling\" Skills",
+      "reason": "Retain the headline\u2019s needle pun without specifying acupuncture, which the headline does not name",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
     }
   ]
 }
