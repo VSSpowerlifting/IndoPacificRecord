@@ -39,13 +39,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify_sunday_collection:
+    # GitHub reports a green no-op for later retry windows. Confirm that the
+    # *real* collection, deployment and fresh Sunday marker all succeeded.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      ready: ${{ steps.gate.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Qualify same-Sunday collection without model or SMTP
+        id: gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -m scripts.sunday_collection_trigger \
+            --event "$GITHUB_EVENT_PATH" \
+            --marker .github/state/last_daily_run_date.txt \
+            --github-output "$GITHUB_OUTPUT"
+
   sunday-editor-handoff:
-    # Original, fully completed Sunday collection initiates editor drafting.
-    # Manual sends and owner previews remain separately opt-in.
-    # The October 10 pilot approval/digest guard, live-source gates and Friday
-    # exclusivity check remain mandatory. Scheduled Sunday targets Dylan;
-    # owner-only preview is an explicitly separate manual dispatch.
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    # One production writer and one SMTP path. The first job cleanly ignores
+    # green skipped daily retries; manual previews bypass only this trigger.
+    needs: verify_sunday_collection
+    if: always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && needs.verify_sunday_collection.result == 'success' && needs.verify_sunday_collection.outputs.ready == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -62,15 +83,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-
-      - name: Verify real Sunday collection completed (not a green no-op)
-        if: github.event_name == 'workflow_run'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          python -m scripts.sunday_collection_trigger \
-            --event "$GITHUB_EVENT_PATH" \
-            --marker .github/state/last_daily_run_date.txt
 
       - name: Install project dependencies
         run: python -m pip install -r requirements.txt
