@@ -95,6 +95,19 @@ class TimelineContract(unittest.TestCase):
         with self.assertRaises(t.TimelineError):
             t.validate_timeline(self.sc)
 
+    def test_reference_presentation_is_explicit_and_bound_to_approval(self):
+        self.sc["public_presentation"] = "references_only"
+        t.validate_timeline(self.sc)
+        approve_fixture(self.sc)
+        self.sc.pop("public_presentation")
+        with self.assertRaisesRegex(t.TimelineError, "changed since approval"):
+            t.validate_timeline(self.sc)
+        for value in ("full_text", None, True, {}, []):
+            sc = synthetic_timeline()
+            sc["public_presentation"] = value
+            with self.subTest(value=value), self.assertRaisesRegex(t.TimelineError, "public_presentation"):
+                t.validate_timeline(sc)
+
     def test_bad_dates_precision_chronology_and_future_unlabelled_events(self):
         changes = [dict(start="2026-02-30"), dict(start="2026-9-05"), dict(end="2026-09-04"),
                    dict(precision="interval"), dict(start="2026-09-06", end="2026-09-06"),

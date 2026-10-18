@@ -215,9 +215,23 @@ def _validate_timelines(output_dir, errors):
             errors.append("%s requires indexable metadata and a canonical" % route)
         if ('href="%s"' % route) not in texts["timelines.html"] or ("/%s</loc>" % route) not in texts["sitemap.xml"]:
             errors.append("%s is missing from the library or sitemap" % route)
-        for rec in item["ledger"]:
-            if ('href="../record/%s.html"' % rec["id"]) not in text or not (output_dir / ("record/%s.html" % rec["id"])).is_file():
-                errors.append("%s has a missing preserved-record link: %s" % (route, rec["id"]))
+        if item.get("public_presentation") == "references_only":
+            if 'href="../record/' in text or 'class="tl-original"' in text or "<blockquote" in text:
+                errors.append("%s exposes source text or full-body record links in references-only presentation" % route)
+            for rec in item["ledger"]:
+                if ('id="source-%s"' % rec["id"]) not in text or ('href="%s"' % escape(rec["url"], quote=True)) not in text:
+                    errors.append("%s has a missing publisher reference: %s" % (route, rec["id"]))
+                for key in ("title_original", "title_english"):
+                    if rec.get(key) and escape(rec[key]) in text:
+                        errors.append("%s reproduces a source title in references-only presentation" % route)
+            for entry in item["entries"]:
+                for ev in entry["evidence"]:
+                    if escape(ev["excerpt"]) in text:
+                        errors.append("%s reproduces a source excerpt in references-only presentation" % route)
+        else:
+            for rec in item["ledger"]:
+                if ('href="../record/%s.html"' % rec["id"]) not in text or not (output_dir / ("record/%s.html" % rec["id"])).is_file():
+                    errors.append("%s has a missing preserved-record link: %s" % (route, rec["id"]))
 
 
 def _validate_briefs(output_dir, errors):
