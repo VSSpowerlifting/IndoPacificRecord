@@ -14,12 +14,14 @@ from unittest.mock import patch
 
 from scripts import audit_analysis_failure_causes as audit
 from scripts import audit_analysis_queue_by_source as base
+from tests.held_desk import HELD_DESK, HELD_SOURCE, register_held_desk
 
 NOW = datetime(2026, 10, 9, 12, tzinfo=timezone.utc)
 
 
 class FailureReviewTests(unittest.TestCase):
     def setUp(self):
+        register_held_desk(self)
         temporary = tempfile.TemporaryDirectory(prefix="ipr-failure-review-")
         self.addCleanup(temporary.cleanup)
         self.db = Path(temporary.name) / "fixture.db"
@@ -38,7 +40,7 @@ class FailureReviewTests(unittest.TestCase):
           );
         """)
         self.conn.executemany("INSERT INTO sources VALUES (?,?,?)", [
-            (1, "cn_mod", "china"), (2, "sg_mindef", "singapore")
+            (1, "cn_mod", "china"), (2, HELD_SOURCE, HELD_DESK)
         ])
         self.conn.commit()
 

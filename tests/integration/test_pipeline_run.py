@@ -145,12 +145,14 @@ class PipelineRunCase(unittest.TestCase):
 
     # -- harness ----------------------------------------------------------
 
-    def run_pipeline(self, adapters_by_slug, sources=None, dry_run=False):
+    def run_pipeline(self, adapters_by_slug, sources=None, dry_run=False,
+                     no_analysis=True):
         """
         Drive the real pipeline.run() with controlled adapters.
 
-        `no_analysis=True` keeps the run entirely offline: collection, dedup,
-        the keyword filter and storage all execute; the LLM stage does not.
+        `no_analysis=True` (the default) keeps the run entirely offline:
+        collection, dedup, the keyword filter and storage all execute; the LLM
+        stage does not. A caller passing False must stub the model client.
         """
         import core.registry as reg
 
@@ -170,7 +172,7 @@ class PipelineRunCase(unittest.TestCase):
             sources=sources or sorted(adapters_by_slug),
             target_date=date(2026, 5, 10),
             dry_run=dry_run,
-            no_analysis=True,
+            no_analysis=no_analysis,
         )
         return registry
 

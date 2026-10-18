@@ -99,7 +99,8 @@ Production and corpus figures below carry their own measurement dates. The
 first-brief research packet are in
 `docs/DESK_CONSOLIDATION_AND_BRIEF_PREP_2026-09-28.md` (its §7 corrects the
 Singapore recovery claim). The Singapore screening repair and re-screening
-plan are in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` (merged, PR #84).
+plan are in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` (merged, PR #84;
+§6 added 2026-10-18 as the desk's finish-line checklist).
 The image-only-release repair is in
 `docs/SINGAPORE_IMAGE_ONLY_RELEASES_2026-09-29.md`. The authorized September 22
 recovery is prepared for review (three inserts, eight duplicates; no analysis
@@ -299,7 +300,7 @@ for its **sources**.
 | Desk | Status | Public meaning |
 |---|---|---|
 | China | `live` | Collecting daily into the production corpus. The only mature collection. |
-| Singapore | `live` | Promoted 2026-09-21 (DECISION_LOG). One source, MINDEF releases. Measured 2026-09-28: 64 records, none analyzed; 14 screened, all rejected by the China-scoped relevance screen; 50 await screening. Desk-scoped screening is in source (2026-09-29); Singapore is held out of the daily model queue until the owner rules. |
+| Singapore | `live` | Promoted 2026-09-21 (DECISION_LOG). One source, MINDEF releases. Measured 2026-10-18: 86 records, none analysed; 14 rejected under the old China-scoped screen; 72 await screening (4936 withheld, blank body). Collection operating; the 2026-10-04→10-18 window reconciles 9/9. The desk analysis path (summary only, no translation, no categories) is built and demonstrated on isolated copies, but Singapore stays held from the daily model queue until the PR on `claude/ipr-desk-completion-7e9246` merges. That merge is the owner act that adopts decisions 1 and 3 in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` §5; §6 is the finish-line checklist. |
 | Japan | `shadow` | Isolated evaluation. No production records, no public counts. |
 | US Indo-Pacific | `access_blocked` | Declared scope only; the command website's `robots.txt` returns 403, so permission cannot be established. A separate DVIDS route runs in shadow only (§5); it is not public coverage. |
 
@@ -894,16 +895,21 @@ review date, not a qualification threshold. Neither desk is promoted.
     only `global_times_mil` and `xinhua_mil` supply.
   - Measured 2026-09-28: 7 paused, 5 retriable, 0 terminal.
   - Publicly, paused records are shown as `analysis_incomplete`.
-* **616 unscreened records** (China desk 566, Singapore 50). None of the China
-  ones is dated in 2026-09-14 → 09-27. This is not urgent, since no edition
-  cites them, but it is the defect class that previously stranded material.
-  Drain only in scoped, windowed chunks.
+* **Unscreened records.** First recorded as 616 (China desk 566, Singapore
+  50). Measured 2026-10-18 (`passed_relevance IS NULL`): 73, China 1 and
+  Singapore 72. The Singapore 72 drain once the desk analysis PR merges
+  (§6.5 of `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md`). It is the defect
+  class that previously stranded material; drain only in scoped, windowed
+  chunks.
 * **Singapore was screened by China-scoped rules**, and all 14 of its screened
   records were rejected.
   - Fixed in source on 2026-09-29 (`processing/screening.py`): Singapore is
     judged against its registry scope.
   - Singapore records are held out of the daily queue and
-    `backfill_unscored.py`, because post-relevance analysis is China-only.
+    `backfill_unscored.py`, because post-relevance analysis was China-only.
+    The desk analysis path now exists on `claude/ipr-desk-completion-7e9246`
+    (2026-10-18). Merging it releases the hold; until then the hold stands
+    (repair doc §6).
   - No stored verdict changed.
   - Re-screening the 64 affected records costs about $0.27 at most, and needs
     authorization plus a human review of the proposal.
@@ -1127,8 +1133,12 @@ Full ordering and rationale in `docs/ROADMAP.md`. In short:
 2. Close Singapore's unrecorded Day 30 human-review evidence gap. The packet
    is verified; the human review is not done.
 3. Scoped screening/backfill for publication-ready windows only. For
-   Singapore: rule on the new rubric, authorize and review a re-screening
-   proposal, and decide what analysis follows a Singapore pass.
+   Singapore: the rubric and the post-pass analysis (summary only, no
+   translation, no categories) are built and verified on
+   `claude/ipr-desk-completion-7e9246`. Merging that PR adopts both and
+   starts daily paid screening (about $1, order of magnitude, for the
+   71-record backlog; about $1.85 at the output ceiling). Re-screening the 14 China-rule rejections still needs its own
+   authorized, reviewed `propose`.
 4. Collection continuity:
    - recover or disclose the 09-15 China gap;
    - review the September 22 recovery PR (PR #85 repair merged; three records

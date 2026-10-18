@@ -14,12 +14,14 @@ from unittest.mock import patch
 
 from scripts import audit_blank_body_recovery as a
 from scripts import audit_analysis_queue_by_source as q
+from tests.held_desk import HELD_DESK, HELD_SOURCE, register_held_desk
 
 NOW = datetime(2026, 10, 9, 12, tzinfo=timezone.utc)
 
 
 class BlankBodyRecoveryTests(unittest.TestCase):
     def setUp(self):
+        register_held_desk(self)
         temp = tempfile.TemporaryDirectory(prefix="ipr-empty-body-preflight-")
         self.addCleanup(temp.cleanup)
         self.db = Path(temp.name) / "fixture.db"
@@ -37,7 +39,7 @@ class BlankBodyRecoveryTests(unittest.TestCase):
         """)
         self.con.executemany("INSERT INTO sources VALUES (?,?,?)", [
             (1, "global_times_mil", "china"), (2, "pla_daily", "china"),
-            (3, "sg_mindef", "singapore")])
+            (3, HELD_SOURCE, HELD_DESK)])
         self.con.commit()
 
     def insert(self, ident, *, source=1, body=None, scraped="2026-09-15",

@@ -42,20 +42,30 @@ logging.basicConfig(
 logger = logging.getLogger("backfill")
 
 STUCK_QUERY = """
-    SELECT id, title_original, text_original, length(text_original) AS n
-      FROM articles
-     WHERE passed_relevance = 1
-       AND (title_english IS NULL OR title_english = '')
+    SELECT a.id, a.title_original, a.text_original,
+           length(a.text_original) AS n, s.desk_id
+      FROM articles a
+      LEFT JOIN sources s ON s.id = a.source_id
+     WHERE a.passed_relevance = 1
+       AND (a.title_english IS NULL OR a.title_english = '')
      ORDER BY n DESC
 """
 
 
 def fetch_stuck(limit=None):
-    """Longest first — those are the ones the cap actually broke."""
+    """
+    Longest first — those are the ones the cap actually broke.
+
+    Only records the China path translates: a Singapore record has no English
+    title by design (its source publishes in English), and translating it
+    "from Chinese" would overwrite its desk analysis (processing/screening.py).
+    """
+    from processing.screening import profile_for_desk
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
-        rows = conn.execute(STUCK_QUERY).fetchall()
+        rows = [r for r in conn.execute(STUCK_QUERY).fetchall()
+                if profile_for_desk(r["desk_id"]).translates]
     finally:
         conn.close()
     return rows[:limit] if limit else rows

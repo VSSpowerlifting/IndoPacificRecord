@@ -59,8 +59,8 @@
       <div class="interpretation">
         <p>{{ record.summary_english }}</p>
       </div>
-      <p class="meta">Machine-generated from the original text, and distinct from the
-      machine translation of the title. Not reviewed by a human. It is a reading of
+      <p class="meta">Machine-generated from the original text{% if record.title_english %}, and distinct from the
+      machine translation of the title{% endif %}. Not reviewed by a human. It is a reading of
       what was published, not a verification of it.</p>
     </section>
     {% endif %}
@@ -195,7 +195,7 @@
         <div><dt>Source-stated date</dt><dd><time datetime="{{ record.published_date }}">{{ record.published_date }}</time></dd></div>
         <div><dt>Source language</dt><dd>{{ record.language_tag | language_label if record.language_tag else '—' }}</dd></div>
         <div><dt>Processing state</dt><dd>{{ record.state_label }}</dd></div>
-        <div><dt>Translation</dt><dd>{% if record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% else %}No English title held{% endif %}</dd></div>
+        <div><dt>Translation</dt><dd>{% if record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% elif (record.language_tag or '').startswith('en') %}Not needed: the source publishes in English{% else %}No English title held{% endif %}</dd></div>
         <div><dt>Desk</dt><dd>{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</dd></div>
       </dl>
       <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>

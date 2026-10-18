@@ -229,3 +229,263 @@ $1 / $5 per million tokens as recorded in `scripts/spend_guard.py` on
    stays out of the daily queue.
 4. **Sequencing:** merge before or after the 2026-09-29 run. Each run before
    merge adds new China-rule rejections for Singapore.
+
+**Status of these decisions, 2026-10-18.** No owner ruling on decisions 1–4
+is in `DECISION_LOG.md`. The branch `claude/ipr-desk-completion-7e9246` (§6)
+builds the analysis path that decision 3 describes, and puts Singapore in the
+daily queue. **Merging that PR is the owner act that adopts the rubric
+(decision 1) and the analysis shape (decision 3).** Until it merges, Singapore
+stays held as written above. Decision 2 is not affected by the merge: the 14
+records already rejected under the China rules stay rejected until a
+`propose` run is authorized and reviewed. Decision 4 is moot, since every
+Singapore record collected since 2026-09-29 is still unscreened (the hold
+kept them out of the China screen).
+
+## 6. Finish line: Singapore desk, end to end — 2026-10-18
+
+Measured against `pla_watch.db` at `main` `7a1367102c` (sha256
+`d1c322449c1dedca…`), read-only. Every replay and failure test below ran on a
+copy; the tracked database hash was the same before and after each one. No
+model was called and nothing was paid for.
+
+Three kinds of evidence are kept apart:
+- **historical replay**: a past window re-collected through the real
+  pipeline on a copy;
+- **manual integrated execution**: one live collection plus analysis on a
+  copy, with the two model replies scripted;
+- **observed scheduled operation**: the GitHub Actions run doing the work
+  in production.
+
+Status words:
+- **configured**: the code or setting exists;
+- **demonstrated**: shown working here on a copy or in tests;
+- **operating**: observed in scheduled production runs.
+
+### 6.1 Checklist
+
+**1. Source family**
+- *Included:* `sg_mindef_releases`, MINDEF news releases (public;
+  `robots.txt` read every run, and a disallow stops the run).
+- *Excluded:*
+  - `15aug26-speech` and `16sep26-speech`, governed holds removed before
+    the window is applied. Both stored captures have CJK bytes destroyed by
+    a whitespace collapse; `16sep26-speech` also cannot be recaptured,
+    because MINDEF revised a sentence after capture
+    (`shadow/singapore_mindef/CORRECTIONS.md`; DECISION_LOG 2026-09-21).
+  - Speeches outside the release sitemap, and every other MINDEF or SAF
+    channel. These were never declared in the manifest.
+- *Status:* **operating** since promotion (2026-09-21).
+- *Missing:* nothing.
+- *Check:* `desks/singapore/manifest.json` has one enabled source, and
+  `HELD_RELEASE_SLUGS` lists the two holds.
+
+**2. Capture and evidence**
+- *Working:*
+  - sitemap discovery over a 7-day window (`production_lookback_days=6`);
+  - full-text capture, with 2 retries and a 1.5 s interval;
+  - atomic batch admission (`ATOMIC_BATCH_SLUGS`);
+  - per-run `source_run_results`.
+- *Status:* **operating**.
+- *Missing:* nothing.
+- *Check:* §6.2 reconciliation. Every official release in the window has
+  one row, and no URL is duplicated.
+
+**3. Processing**
+- *Working:*
+  - the desk relevance screen, `sg-relevance-v1` (Haiku);
+  - on a pass, one desk analysis call, `sg-analysis-v1` (Sonnet). It writes
+    an English summary that states the concrete development first, and it
+    keeps MINDEF's own statements apart from commitments, implementation and
+    inference.
+- *Not done for Singapore:*
+  - no translation: `title_english` and `text_english` stay NULL;
+  - no PLA categories;
+  - no `executive_readout`.
+- *Labelling:* on the record page the flag appears under the "Machine
+  assessment" label as "Model-flagged for closer review. This is a software
+  triage cue, not an editorial judgment." (or "Not flagged…"). The model's
+  flag reason is stored in `significance_reasoning` and not displayed. A
+  summary without a usable flag, or a flag without a reason, writes nothing
+  and is retried as pending analysis.
+- *Status:*
+  - **configured** and **demonstrated**: tests, plus the §6.3 integrated
+    run;
+  - not yet **operating**: held from the daily queue until this PR merges.
+- *Missing:*
+  - adoption of the rubric and the analysis shape (§5, decisions 1 and 3);
+  - `sg-analysis-v1` has never run against the live model. Its first real
+    outputs will appear on record pages, under machine labels, without a
+    human having seen a sample. A one-record paid probe on a copy (PR body)
+    is available if the owner wants a sample first.
+- *Check:*
+  - the first scheduled run after merge logs `Analysis queue: … backlog` with
+    Singapore records;
+  - `prompt_version = 'sg-relevance-v1+sg-analysis-v1'` on the records it
+    analysed.
+
+**4. Admission**
+- *Working:*
+  - URL uniqueness;
+  - all-or-nothing batch insert;
+  - `is_retired` policy;
+  - blank-body withholding: 4936 has an empty stored body, so it is kept
+    but never sent to the model.
+- *Status:* **operating** for collection; the crash and recovery case is
+  **demonstrated** (§6.4, F4).
+- *Missing:* nothing.
+- *Check:* `SELECT url FROM articles GROUP BY url HAVING count(*)>1` returns
+  nothing.
+
+**5. Reader experience**
+- *Reader route:* the desk page (`singapore.html`) links to the Singapore
+  week pages and to the archive filtered to the desk
+  (`archive.html?desk=singapore`). It does not list records itself. Week
+  pages and the filtered archive (driven by `corpus-index.json`) link to each
+  record page. Search (`archive-research-index.json`) and citation are on the
+  record page.
+- *Labels on a record page:*
+  - a machine summary says "Machine-generated from the original text. Not
+    reviewed by a human";
+  - the Translation row now reads "Not needed: the source publishes in
+    English" instead of implying a missing translation.
+- *Status:* **operating** for unanalysed records. The summary display is
+  **demonstrated** on an isolated render (§6.3).
+- *Missing:* summaries on public pages wait on item 3.
+- *Check:* `output/record/<id>.html` for an analysed Singapore record shows
+  the summary under the machine label and the "Machine assessment" flag line,
+  with no "significant" wording and no analyst readout (§6.3 shows both flag
+  states on an isolated render).
+
+**6. Ongoing operation**
+- *Schedule:* `.github/workflows/daily_update.yml`, cron at 12:23, 12:53,
+  13:23, 13:53 and 14:23 UTC (the first success ends the day), all sources.
+- *Failure reporting:*
+  - `scrape_runs.status = 'degraded'`, plus a `source_run_results` row with
+    `is_failure` and `error_detail`;
+  - `scripts/source_health_report.py --db pla_watch.db`;
+  - `scripts/check_source_liveness.py --db pla_watch.db` (7-day threshold).
+- *Status:* collection **operating**; failure and recovery
+  **demonstrated** (§6.4).
+- *Missing:* observed scheduled analysis (after merge).
+- *Check:* the first post-merge scheduled run completes without a
+  Singapore analysis failure in its log.
+
+### 6.2 Bounded MINDEF reconciliation, 2026-10-04 to 2026-10-18
+
+Live sitemap, read-only, against the tracked database and `output/`. MINDEF
+listed 9 releases in the window. All 9 are captured and unscreened. Each has
+a record page, a row in `corpus-index.json` `records` (so the filtered
+archive lists it), an entry in the search index, and a link from its week
+page. None is linked from `singapore.html` directly, by design (§6.1 item 5).
+
+| Slug | Date | Record | Chars |
+|---|---|---|---|
+| 4oct26-nr | 10-04 | 4891 | 1,840 |
+| 05oct26-mq | 10-05 | 4911 | 378 |
+| 06oct26-mq | 10-06 | 4986 | 514 |
+| 06oct26-pq | 10-06 | 4985 | 1,587 |
+| 8oct26-nr | 10-08 | 4984 | 853 |
+| 8oct26-nr2 | 10-08 | 4983 | 3,094 |
+| 9oct26-nr | 10-09 | 5026 | 2,206 |
+| 10oct26-fs | 10-10 | 5071 | 7,556 |
+| 10oct26-nr | 10-10 | 5070 | 4,706 |
+
+Nothing was published from 10-11 to 10-18, which is official silence, not a
+collection gap (the caveat: the sitemap can lag up to about two days). The
+liveness check therefore reports Singapore OVERDUE at 8 days against a 7-day
+threshold. That is accurate reporting of a quiet source, and it will clear on
+MINDEF's next release.
+
+### 6.3 Manual integrated execution (isolated copy)
+
+- **Run 173:** live MINDEF collection for 2026-10-18, then analysis with the
+  cap set to 2.
+  - Collection: `ok_no_publications`.
+  - Queue: 2 of 71 backlog records.
+  - Model calls: three, all scripted (two relevance, one analysis).
+  - Record 4891 passed: summary stored (a labelled REPLAY FIXTURE), English
+    title and text NULL, `is_significant` 0, no categories, prompt
+    `sg-relevance-v1+sg-analysis-v1`.
+  - Record 4911 was rejected, with no analysis call and no summary.
+- **Run 174:** historical replay of 2026-10-10, collection only. 9
+  discovered, 9 duplicates, 0 new.
+- **Isolated render:**
+  - `record/4891.html` shows the summary under the machine label, the
+    Translation row "Not needed: the source publishes in English" (all 86
+    Singapore rows carry `language_tag = 'en'`), and "Machine assessment —
+    Not flagged for closer review";
+  - the fixture text appears on no other page;
+  - neither held slug and no shadow path appears anywhere in the render.
+- **Flagged path (second copy):** 4891 was set to `is_significant = 1` with a
+  fixture reason, then rendered. The record page shows "Machine assessment —
+  Model-flagged for closer review. This is a software triage cue, not an
+  editorial judgment." The reason is not displayed. "significan…" appears
+  nowhere on the record page, its week page (which shows "Analyzed"),
+  `singapore.html` or `corpus-index.json`. The one hit in
+  `archive-research-index.json` is a pre-existing PLA Watch edition summary,
+  present identically in `output/`.
+- **Editorial intake (behaviour, not files).** No Brief, Sunday or draft
+  file changes. The Sunday and weekly auto-writers already take Singapore
+  evidence in desk-balanced slots; within a desk they rank analysed and
+  model-flagged records first (`scripts/sunday_briefs_auto_writer.py`,
+  `rank`). The source trail then shows Singapore records as `analyzed` with
+  their model flag (`core/brief_contract.py`, `trail_entry`). After merge,
+  that existing logic will treat analysed Singapore records exactly as it
+  treats analysed China records. Which Singapore records are offered to the
+  editor can therefore change. Human approval (`approve()`) and Dylan's
+  editorial role do not change.
+
+### 6.4 Controlled failures (isolated copies, real `pipeline.run`)
+
+| Case | Injected fault | Articles | Recorded result |
+|---|---|---|---|
+| F1 | `robots.txt` HTTP 503 | 912→912 | `listing_failure` "robots.txt returned HTTP 503"; run `degraded`; health report `is_failure=1`, last success kept |
+| F2 | sitemap `ConnectionError` | 912→912 | `listing_failure` "sitemap unreachable: ConnectionError" |
+| F3 | sitemap 200 with HTML body | 912→912 | `listing_failure` "sitemap parsed to zero release URLs" |
+| F4a | DB error on the 2nd insert of a 2-record batch | 910→910 | `storage_failure` "atomic batch insert failed; no new records committed this run" |
+| F4b | next run, no fault | 910→912 | `ok`, 2 new |
+| F4c | same window again | 912→912 | `ok_all_duplicates`, 9/9 |
+
+- After F4 the database held 0 duplicate URLs.
+- The two re-admitted releases are unscreened, so they enter the queue.
+
+**Interrupted publication** is governed by code and was not injected:
+- a render exception exits 1;
+- validation, the output commit and the Pages deploy are then skipped;
+- "Persist scraped articles" commits `pla_watch.db` only;
+- a whole-queue analysis failure exits 2 with the same persist path.
+
+**Recovery command.** The next scheduled run re-collects the 7-day window.
+For a longer outage, or to replay one day by hand:
+
+```bash
+.venv/bin/python pipeline.py --source sg_mindef_releases --date YYYY-MM-DD
+```
+
+Records stored without analysis (`--no-analysis`, or an API outage) drain as
+backlog on later runs.
+
+### 6.5 Cost once merged
+
+Priced from `analysis/pricing.py` at 3.5 characters per token:
+- Haiku relevance, $1 / $5 per million tokens;
+- Sonnet analysis, $3 / $15 per million tokens.
+
+There are 72 unscreened Singapore records. 4936 is withheld for its blank
+body, so 71 are sent. Input is measured from stored text; output is
+estimated, with the `max_tokens` ceiling as the bound:
+
+| Call | Input | Output (est. / ceiling) | Cost (est. / ceiling) |
+|---|---|---|---|
+| relevance, 71 × Haiku | ~128K → $0.13 | ~60 / 500 per call → $0.02 / $0.18 | $0.15 / $0.31 |
+| analysis, ≤71 × Sonnet | ~154K → $0.46 | ~300 / 1,000 per call → $0.32 / $1.07 | $0.78 / $1.53 |
+
+Order of magnitude, about **$1** for the backlog if every record passes
+(about $1.85 at the output ceiling). It is an estimate, not a quote.
+
+The backlog drains at no fewer than 16 records a run (the 30% backlog
+reserve of the 55 cap), and up to 55 on a quiet China day, so it clears in
+two to five runs. After that, a MINDEF release costs about 1–3 cents to
+screen and summarize. The 14 China-rule rejections (4421, 4422, 4425–4429,
+4561, 4609, 4631, 4679, 4680, 4720, 4721) are not re-screened by the merge;
+that is decision 2.

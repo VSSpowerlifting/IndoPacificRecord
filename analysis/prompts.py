@@ -170,6 +170,87 @@ Body:
     return [{"role": "user", "content": user_content}]
 
 
+# ── Analysis after a pass, Singapore Desk ─────────────────────────────────────
+# What follows a China pass (translation "from Chinese", the China summary, the
+# 14-slug PLA taxonomy) does not fit an English MINDEF release. A Singapore
+# record that passes gets one call instead: a summary of the original English
+# text and the model flag, with no translation and no categories. The China
+# builders below are unchanged and are never sent for a Singapore record.
+
+SINGAPORE_ANALYSIS_PROMPT_VERSION = "sg-analysis-v1"
+
+
+def build_singapore_analysis_system_prompt(declared_scope: str) -> str:
+    """System prompt for the Singapore Desk summary and flag call."""
+    return (
+        "You write the machine summary for official releases on the Singapore "
+        "Desk of the Indo-Pacific Record, an independent, source-grounded record "
+        "of official defence and security publication. The desk's declared scope "
+        f"is: {declared_scope}\n\n"
+        "Readers see your summary labelled as machine-generated and not reviewed "
+        "by a human. Write with precision. Report only what the release states, "
+        "and keep any inference visibly separate from it."
+    )
+
+
+def build_singapore_analysis_messages(title: str, body: str) -> list[dict]:
+    """Summary plus model flag for one English-language MINDEF release."""
+    user_content = f"""\
+You will receive an English-language official release published by Singapore's \
+Ministry of Defence (MINDEF). It has already been screened as concerning defence or \
+security. Write a summary of it and decide whether to flag it.
+
+Summary: two to three sentences, at most about 90 words.
+
+The first sentence reports the concrete development: who did what, when, where, and \
+at what scale. Use the named units, platforms, exercises, officials, counterparts, \
+agreements and locations the release gives, exactly as it gives them. The summary \
+renders directly under the headline, so do not restate the headline; add what it \
+does not say. This sentence must stand on its own.
+
+The remaining sentence or two place the development. Keep these four kinds of \
+statement distinct, and make clear which one you are writing:
+- Official messaging: how MINDEF or a minister describes, frames or justifies \
+something. Attribute it ("MINDEF describes the exercise as…", "the Minister said…"); \
+a release is evidence of what the ministry says, not proof of its claims.
+- Reported commitments: what the release says will be done — plans, agreements, \
+intended acquisitions, targets, dates. Report them as commitments, not as facts \
+achieved.
+- Implementation: what the release says has already happened — a delivery, a \
+signing, a completed exercise, a unit stood up, a sentence imposed. State it plainly \
+as reported by the release.
+- Inference: your own reading of what the development shows. Mark it as inference \
+("this suggests", "the pairing points to") and keep it to what the text supports.
+
+If the release is routine (a courtesy call, a commemorative event, a speech restating \
+established policy), say what kind of routine it is and what narrow use it has as a \
+record. Do not inflate it. Do not use "unprecedented", "historic" or "first" unless \
+the release itself makes that claim, and then attribute it. Do not compare Singapore \
+with other states, or introduce facts that are not in the release. Do not begin with \
+"This release", "The release" or "MINDEF announced"; start with the substance. Do \
+not use "signals".
+
+Flag: true only when the release records a concrete change in Singapore's defence \
+posture, capability or relationships that a defence analyst would want to see that \
+day — for example a new acquisition decision or delivery, a new or renewed defence \
+agreement, a new policy or organisational change, a new or materially expanded \
+exercise or deployment, or a serious incident or disciplinary outcome. Ceremonies, \
+courtesy calls, routine recurring exercises, award events and speeches restating \
+existing policy are not flagged. When unsure, do not flag. Most releases are not \
+flagged.
+
+Return only the raw JSON object with three fields: "summary" (string), "flag" \
+(boolean) and "flag_reason" (one sentence naming the specific change when "flag" is \
+true; null otherwise). Do not wrap the response in markdown code fences or any other \
+formatting. Do not include any other text.
+
+Title: {title}
+
+Body:
+{body}"""
+    return [{"role": "user", "content": user_content}]
+
+
 # ── Task 2: Translation ───────────────────────────────────────────────────────
 
 TRANSLATION_SCHEMA: dict[str, Any] = {
