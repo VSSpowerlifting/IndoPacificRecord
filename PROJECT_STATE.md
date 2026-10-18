@@ -1,21 +1,27 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-**Philippines Desk AFP official-link lane (18 October 2026, release candidate,
-draft PR #816 stacked on #812):** a trusted AFP validator, scratch-copy/atomic
-admission and a page-only production workflow. The Oct 15 frozen cohort
-(23 records, pin `8a63ba4`) is admitted. Future AFP records stay **held**,
-because the Oct 18 standing authorization names Kemhan only. Dormant standing
-support activates only if the owner adds a `ph_afp_articles` policy entry
-(owner question in the doc). Real-source rehearsal on a DB copy
-(`shadow/ph-afp` `97ec0bf`):
-- 23 admitted, 6 held;
-- idempotent replay;
-- page identities equal the DB rows;
-- no original text exposed.
+**Philippines Desk AFP official-link lane (18 October 2026, draft
+release PR #816 stacked on #812):** trusted AFP validator, scratch-copy/atomic
+admission and page-only production workflow. The owner has now separately
+authorized **standing automatic publication of verified neutral AFP link metadata**
+for existing and future eligible records without per-record human review.
+This is pinned in `config/afp_kemhan_owner_link_activation.json` and recorded
+in `DECISION_LOG.md`. Source/rights/authenticity anomalies and changed or
+missing previously released records still hold. The Oct 15 frozen 23-record
+cohort remains the authenticated baseline (pin `8a63ba4`).
 
-Merging #816 is the activation point. The #797 / private #11 collector cutover
-and the bridge credentials are owner-controlled. No production DB, output,
-Pages or schedule change was made here. Details:
+The **earlier frozen-only** real-source rehearsal at `shadow/ph-afp`
+`97ec0bf` admitted 23 and held six, with idempotent replay, exact
+DB↔page links and no source text leakage. Under the now-pinned standing
+authorization, those six post-pin records are *potentially* admissible
+after a fresh authenticated exact-head run; this has not yet been demonstrated
+under the newly active policy. Recheck before release, do not treat the old
+23-link expected count as final.
+
+Merging #816 separately activates the public production workflow; the
+#797/private #11 writer cutover and bridge credentials are separately
+owner-controlled. No production DB, Pages, scheduled collector or secret was
+changed by this policy commit. Details:
 `docs/engineering/PHILIPPINES_DESK_COMPLETION_2026-10-18.md`.
 
 **Indonesia Desk official-link lane (18 October 2026, release candidate):**
