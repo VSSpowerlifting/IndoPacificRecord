@@ -77,11 +77,34 @@ The rehearsal ran on a scratch copy of `pla_watch.db` against the real
   - the page's `data-regional-official-source-id` set equals the DB rows;
   - none of the 29 preserved originals leaks its title or body text;
   - none of the other 950 render-drift files mentions `afp.mil.ph`.
-- **Validator:** `validate_output.py` passes with the 10 governed warnings.
+- **Post-release state:** with tracked `output/` plus only the newly rendered
+  `philippines.html` and the admitted DB, exactly those two files differ and
+  `validate_output.py` passes with the 10 governed warnings.
 - **Tests:**
-  - 84 desk/regional/Philippines/Indonesia modules (1,336 tests) pass against
+  - 84 desk/regional/Philippines/Indonesia modules (1,337 tests) pass against
     the admitted DB;
-  - the focused AFP set passes.
+  - the focused AFP set (219 tests) passes.
+- **Concurrency and recovery:** the workflow has its own concurrency group.
+  Before committing, it refuses to continue if `shadow/ph-afp` or `main` has
+  moved since admission. It pushes main and gh-pages without force, and it
+  aborts if gh-pages has moved. A failed or rejected run therefore leaves
+  production untouched, and the next cron retries from fresh state. A run
+  that pushed main but failed before Pages republishes the committed page on
+  the next run.
+- **Source tip:** `shadow/ph-afp` was still `97ec0bf` at verification.
+
+**Full offline suite.** `unittest discover` ran on the candidate merged into
+main `52667d6`: 7,531 tests, 7 failures, 28 errors and 11 skipped. Running
+the same 34 IDs alone on plain `52667d6` gives the same result, so none is a
+regression. The causes:
+
+- macOS `/private` temp-path resolution: 21 evidence-store `unsafe_store_root`
+  errors and 3 path-equality mismatches;
+- the missing `docx` module (4) and `gpg` binary (2);
+- one Sunday-writer citation rule;
+- four `test_preview_prototype` record-page assertions.
+
+None of them touches AFP or Philippines code.
 
 The earlier #812 `TestRecordSemantics` failure is **inherited from main**. It
 reproduces on main `87196e9` alone, with the same 20 IDs, and passes on
