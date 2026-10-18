@@ -27,6 +27,14 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
         all_admitted = load_live_korea_official_links(db)
         self.assertGreater(len(all_admitted), 0,
                            "verified MND production metadata cannot silently disappear")
+        mnd_admitted = [r for r in all_admitted
+                        if r["source_identity"].startswith("korea-policy:")]
+        dapa_admitted = [r for r in all_admitted
+                         if r["source_identity"].startswith("korea-dapa-policy:")]
+        self.assertGreater(len(mnd_admitted), 0,
+                           "verified MND production metadata cannot silently disappear")
+        self.assertEqual(len(all_admitted), len(mnd_admitted) + len(dapa_admitted),
+                         "Korean metadata counts must have known source families")
         bibliography = load_public_korea_links() + load_additional_korea_official_links()
         frozen = {r["source_identity"] for r in bibliography}
         newly_listed = [r for r in all_admitted
@@ -42,10 +50,10 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             html = (out / "korea.html").read_text(encoding="utf-8")
             directory = (out / "desks.html").read_text(encoding="utf-8")
             self.assertIn(
-                'data-korea-directory-mnd-metadata="%d"' % len(all_admitted),
+                'data-korea-directory-mnd-metadata="%d"' % len(mnd_admitted),
                 directory)
             self.assertIn(
-                'data-korea-directory-scope-count="%d"' % len(all_admitted),
+                'data-korea-directory-scope-count="%d"' % len(mnd_admitted),
                 directory)
             self.assertIn("Live MND link metadata", directory)
             self.assertIn("countrywide article corpus and DAPA remain unadmitted",
@@ -60,7 +68,10 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             self.assertIn(
                 'data-korea-production-admitted-count="%d"' % len(all_admitted),
                 html)
-            self.assertIn("MND official-source production live", html)
+            self.assertIn(
+                "MND and DAPA official-link metadata active"
+                if dapa_admitted else "MND official-source production live",
+                html)
             self.assertIn(
                 "contains %d separately admitted official-link metadata records"
                 % len(all_admitted), html)
@@ -74,13 +85,20 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                 html.count('data-korea-auto-official-link='), len(newly_listed))
             self.assertIn('data-korea-production-lanes', html)
             self.assertIn('Live MND official-link metadata</dt><dd>%d</dd>'
-                          % len(all_admitted), html)
+                          % len(mnd_admitted), html)
+            if dapa_admitted:
+                self.assertIn(
+                    'Live DAPA official-link metadata</dt><dd>%d</dd>'
+                    % len(dapa_admitted), html)
             self.assertIn('Published Korean originals</dt><dd>%d</dd>'
                           % len(originals), html)
             self.assertIn('Reviewed English translations and analyses</dt><dd>%d</dd>'
                           % len(reviewed), html)
             self.assertIn('Article-corpus records</dt><dd>Not admitted', html)
-            self.assertIn('DAPA production source</dt><dd>Not qualified', html)
+            self.assertIn(
+                'DAPA production source</dt><dd>' + (
+                    'Link metadata admitted; full desk qualification pending'
+                    if dapa_admitted else 'Not qualified'), html)
             self.assertNotIn(
                 'This desk has no admitted records in the public IPR corpus.', html)
             self.assertEqual(html.count('data-korea-public-link='), 5)
