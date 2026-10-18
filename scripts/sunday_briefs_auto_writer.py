@@ -331,6 +331,10 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                 or not 20 <= len(selected_theme["approved_focus"].strip()) <= 1000
                 or not isinstance(selected_theme.get("theme_slug"), str)):
             raise ValueError("invalid or mismatched private owner theme directive")
+    # The separately owner-signed thematic trial authorizes production
+    # synopses only. Never let typed research influence its evidence selection.
+    if selected_theme is not None and supplemental:
+        raise ValueError("themed trial refuses unattested supplemental research")
     extra = list(supplemental)
     if (len(extra) > 8 or any(
             not isinstance(e, dict) or
