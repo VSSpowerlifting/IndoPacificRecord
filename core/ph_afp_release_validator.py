@@ -19,10 +19,11 @@ derives the receipt itself from:
 
 Review basis: the owner's 2026-10-15 declaration covers the frozen cohort and
 the policy states no record-specific review receipts exist; the receipt says
-exactly that. Records first collected after the pin are held, not admitted.
-The owner's 2026-10-18 standing authorization names Kemhan Berita only; AFP
-future records stay held unless the pinned owner policy gains a
-``ph_afp_articles`` standing entry, which this module reads but never writes.
+exactly that. On 2026-10-18, the owner separately authorized standing neutral
+official-link metadata for AFP existing and future verified eligible records.
+The repository-pinned ``ph_afp_articles`` policy entry controls that scope;
+post-pin releases are counted without claiming individual human review.
+Version, attribution, capture, rights and substantive anomaly holds persist.
 Nothing here grants AFP title, body, photograph, translation or model rights.
 
 AFP is not Kemhan: there is no listing-window proof field, no semantic hold
@@ -71,7 +72,7 @@ ENVELOPE_SCHEMA = "ipr-ph-afp-signed-private-metadata/1"
 ATTEMPT_SCHEMA = "ipr-ph-afp-private-attempt/1"
 REVIEW_BASIS = ("owner_2026-10-15_frozen_cohort_human_review_and_"
                 "standing_verified_link_metadata_authorization")
-# Used only if the owner policy ever lists ph_afp_articles as a standing family.
+# Used only when the pinned owner policy lists ph_afp_articles as a standing family.
 STANDING_REVIEW_BASIS = ("owner_standing_verified_link_metadata_"
                          "authorization_existing_and_future_records")
 SHA40 = re.compile(r"[a-f0-9]{40}\Z")
@@ -286,8 +287,8 @@ def candidate_packet(repo, commit):
 def release_subset(eligible, baseline, policy):
     """Return (approved, held_unreviewed, released_without_record_review).
 
-    Without an AFP standing entry in the owner policy (the current state),
-    only the frozen cohort is approved and later records are held. With one,
+    Without an AFP standing entry in the owner policy (pre-authorization
+    fallback), only the frozen cohort is approved and later records are held. With one,
     every eligible row is approved and those outside the frozen cohort are
     reported, because no human reviewed them record by record.
     """
