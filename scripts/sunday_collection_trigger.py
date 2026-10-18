@@ -11,7 +11,7 @@ import argparse
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
@@ -33,6 +33,11 @@ class CollectionTriggerRefused(ValueError):
     pass
 
 
+class NoNewCollection(CollectionTriggerRefused):
+    """A normal green retry did not actually collect or deploy anything."""
+    pass
+
+
 def verify(event, jobs, *, repo, marker, now):
     """Reconfirm original, live, successful scheduled Sunday collector."""
     if not REPO.fullmatch(repo):
@@ -40,8 +45,8 @@ def verify(event, jobs, *, repo, marker, now):
     if now.tzinfo is None or now.utcoffset() is None:
         raise CollectionTriggerRefused("timezone-aware clock required")
     today = now.astimezone(NY).date()
-    if today.weekday() != 6 or marker != today.isoformat():
-        raise CollectionTriggerRefused("Sunday marker not fresh and complete")
+    if today.weekday() != 6:
+        raise CollectionTriggerRefused("collector trigger is restricted to Sunday")
     if not isinstance(event, dict) or not isinstance(event.get("workflow_run"), dict):
         raise CollectionTriggerRefused("missing upstream workflow event")
     run = event["workflow_run"]
@@ -72,9 +77,14 @@ def verify(event, jobs, *, repo, marker, now):
     state = {step["name"]: step.get("conclusion")
              for step in job["steps"] if isinstance(step, dict)
              and isinstance(step.get("name"), str)}
+    if (state.get("Run pipeline") == "skipped"
+            and state.get("Record successful run") == "skipped"):
+        raise NoNewCollection("green retry skipped production collection")
     if any(state.get(step) != "success" for step in REQUIRED_STEPS):
         raise CollectionTriggerRefused("upstream full collection/deployment was skipped or failed")
-    return {"week_ending": (today.fromordinal(today.toordinal() - 1)).isoformat(),
+    if marker != today.isoformat():
+        raise CollectionTriggerRefused("Sunday marker not fresh and complete")
+    return {"week_ending": (today - timedelta(days=1)).isoformat(),
             "collection_day": today.isoformat(), "upstream_id": run["id"]}
 
 
@@ -105,6 +115,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--event", required=True, type=Path)
     parser.add_argument("--marker", required=True, type=Path)
+    parser.add_argument("--github-output", type=Path,
+                        help="Set ready=true/false for the existing workflow's gated second job")
     args = parser.parse_args()
     try:
         event = json.loads(args.event.read_text(encoding="utf-8"))
@@ -113,10 +125,21 @@ def main():
         marker = args.marker.read_text(encoding="utf-8").strip()
         jobs = fetch_jobs(repo=repo, run_id=run.get("id"),
                           token=os.environ.get("GITHUB_TOKEN", ""))
-        report = verify(event, jobs, repo=repo, marker=marker,
-                        now=datetime.now(NY))
+        try:
+            report = verify(event, jobs, repo=repo, marker=marker,
+                            now=datetime.now(NY))
+        except NoNewCollection:
+            if args.github_output is None:
+                raise
+            with args.github_output.open("a", encoding="utf-8") as out:
+                out.write("ready=false\n")
+            print("Daily retry was green but skipped collection. No Brief job.")
+            return
     except (OSError, ValueError, TypeError) as exc:
         parser.exit(2, "Sunday collector handoff HELD: {}\n".format(exc))
+    if args.github_output is not None:
+        with args.github_output.open("a", encoding="utf-8") as out:
+            out.write("ready=true\n")
     print("Validated complete Sunday production collection for " + report["collection_day"])
     print("Starting a single guarded editorial handoff; no email yet.")
 
