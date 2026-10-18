@@ -223,17 +223,18 @@
 .tl-narrative--maritime>.tl-spine{position:relative;z-index:1}
 .tl-narrative--maritime .tl-sequence-note{margin-bottom:2.3rem}
 .tl-narrative--maritime .tl-spine{--tl-cascade-offset:15rem}
+/* Overlapping empty row regions must not block the preceding evidence controls. */
+.tl-narrative--maritime .tl-entry{pointer-events:none}
 .tl-narrative--maritime .tl-entry:not(:first-child){margin-top:calc(-1 * var(--tl-cascade-offset))}
 .tl-narrative--maritime .tl-spine-segment,
 .tl-narrative--maritime .tl-entry:first-child .tl-spine-segment{
  top:3rem;height:calc(100% - var(--tl-cascade-offset))
 }
-.tl-narrative--maritime .tl-entry:last-child .tl-spine-segment{display:none}
-.tl-narrative--maritime .tl-entry::before{background:#153541;box-shadow:0 0 0 5px rgba(17,42,53,.70)}
+.tl-narrative--maritime .tl-entry:last-child .tl-spine-segment{top:3rem;height:3rem;display:block}
+.tl-narrative--maritime .tl-entry::before{background:#153541}
 .tl-narrative--maritime .tl-entry-body{
- position:relative;background:rgba(23,49,61,.96);
- border-color:rgba(136,176,176,.32);
- box-shadow:0 10px 38px rgba(2,17,24,.12)
+ position:relative;pointer-events:auto;background:rgba(23,49,61,.96);
+ border-color:rgba(136,176,176,.32)
 }
 .tl-narrative--maritime .tl-entry-body h3{line-height:1.2}
 @media(max-width:1050px){
