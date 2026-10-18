@@ -78,8 +78,12 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
         self.assertIn("args+=(--preview-to-owner)", src)
         self.assertIn("args+=(--send)", src)
         self.assertIn('[[ "$IPR_PREVIEW_REQUESTED" != "true" ]]', src)
-        self.assertLess(src.index("Preflight private owner preview"), src.index("Require real production full-text readiness"))
-        self.assertLess(src.index("Require real production full-text readiness"), src.index("Generate source-cited Sunday manuscript"))
+        self.assertLess(src.index("Preflight private owner preview"),
+                        src.index("Require Sunday source readiness with verified editorial research"))
+        self.assertLess(src.index("Separate Vietnam private-model and editor-email research scope"),
+                        src.index("Require Sunday source readiness with verified editorial research"))
+        self.assertLess(src.index("Require Sunday source readiness with verified editorial research"),
+                        src.index("Generate source-cited Sunday manuscript"))
         self.assertLess(src.index("Attest Japan research offer"), src.index("Generate source-cited Sunday manuscript"))
         self.assertIn("last_daily_run_date.txt", src)
         self.assertIn("IPR_SUNDAY_OWNER_REVIEWED_SHA256", src)

@@ -47,7 +47,7 @@ CITED_FIELDS = (
 
 
 def choose_evidence(sidecar, *, as_of, db=DB_PATH, selected_ids=None,
-                    selected_pins=None):
+                    selected_pins=None, research_desks=()):
     """Balanced, deterministic evidence selection with an explicit text-availability gate."""
     start = date.fromisoformat(sidecar["week_start"])
     end = date.fromisoformat(sidecar["week_ending"])
@@ -132,8 +132,15 @@ def choose_evidence(sidecar, *, as_of, db=DB_PATH, selected_ids=None,
         chosen = [verified_by_id[i] for i in selected_ids]
     elif selected_pins is not None:
         raise ValueError("source digest pins cannot alter ordinary Sunday selection")
-    if len({pair[0]["desk_id"] for pair in chosen}) < 2:
-        raise ValueError("fewer than two desks with full-text evidence; not safe to generate a cross-desk Brief")
+    production_desks = {pair[0]["desk_id"] for pair in chosen}
+    if len(production_desks) < 2:
+        if (not production_desks or not any(
+                desk not in production_desks for desk in research_desks)):
+            raise ValueError(
+                "fewer than two desks with usable evidence; unqualified "
+                "research cannot replace a production source")
+    # Typed research never becomes a numeric production record or a live desk.
+
     return chosen
 
 
@@ -324,12 +331,26 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                 or not 20 <= len(selected_theme["approved_focus"].strip()) <= 1000
                 or not isinstance(selected_theme.get("theme_slug"), str)):
             raise ValueError("invalid or mismatched private owner theme directive")
+    # The separately owner-signed thematic trial authorizes production
+    # synopses only. Never let typed research influence its evidence selection.
+    if selected_theme is not None and supplemental:
+        raise ValueError("themed trial refuses unattested supplemental research")
+    extra = list(supplemental)
+    if (len(extra) > 8 or any(
+            not isinstance(e, dict) or
+            e.get("status") != "unapproved-source-linked-editorial-candidate" or
+            e.get("copy_scope") != "private-model-drafting-only-no-source-body" or
+            e.get("desk") not in ("japan", "vietnam", "indonesia", "philippines")
+            for e in extra)):
+        raise ValueError("invalid or unbounded typed editorial research")
     chosen = choose_evidence(
         sidecar, as_of=as_of, db=db,
         selected_ids=(selected_theme["selected_source_ids"]
                       if selected_theme is not None else None),
         selected_pins=(selected_theme.get("reviewed_source_pins")
-                       if selected_theme is not None else None))
+                       if selected_theme is not None else None),
+        research_desks=(() if selected_theme is not None
+                        else tuple(e["desk"] for e in extra)))
     # A manually signed regional theme currently covers reviewed production
     # synopses only. Research-lane Japan/Vietnam items require an independent
     # exact-version/source-use attestation, so no caller may smuggle those in
@@ -337,7 +358,6 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
     if selected_theme is not None and supplemental:
         raise ValueError("themed trial refuses unattested supplemental research")
     # Ordinary Sunday retains its separately governed research-note pathway.
-    extra = list(supplemental)
     used_urls = {row["url"] for row, _ in chosen}
     if len(extra) > 8 or any(e.get("source_url") in used_urls or
                              e.get("status") != "unapproved-source-linked-editorial-candidate"
