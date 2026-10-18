@@ -5,8 +5,14 @@ its reliability can be measured before anything it produces is treated as
 coverage. Nothing a shadow desk collects appears in the public site, in
 `pla_watch.db`, or in any public count.
 
-**Two shadow desks exist.** Neither is qualified, neither is approved for
-public promotion, and neither may be described as coverage.
+**Historical initial shadow roster (August–September 2026):** The two
+entries below describe the original isolated collectors, not today's desk
+status. Singapore was subsequently promoted to the production corpus; always
+read `desks/registry.json` and the current production manifest for status.
+For future desks, the October 18 owner decision replaces fixed seven-/30-day
+*prelaunch* waiting with real end-to-end acceptance and failure/retry evidence
+(`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`). Historical
+failed source days remain failed; no shadow collector grants publication rights.
 
 | Desk | State branch | Collector | Workflow | Scope document |
 |---|---|---|---|---|

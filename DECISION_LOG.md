@@ -4,23 +4,38 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
-## 2026-10-18 — Desk completion: elapsed-day histories are measurements, not launch gates
+## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
 
-The owner's Indonesia Desk completion assignment of 2026-10-18 adopts this
-delivery standard: build agreed sources, collection, evidence handling,
-processing, publishing and maintenance into one working desk, prove it against
-real records and failure/recovery conditions, then operate and monitor it.
-Seven- and 30-day collection histories are operational reliability
-measurements, not automatic launch waiting periods. This supersedes
-contradictory elapsed-time requirements in older repository documents.
+The owner directed IPR engineering to stop creating serial audit gates and
+deliver each desk as one complete, dependable official-source-to-publication
+service. A real source end-to-end demonstration and realistic failure/retry
+are the engineering acceptance criteria; seven-/30-day histories remain
+operational reliability measurements, not mandatory prelaunch waiting periods.
+Prior historical failures and human checkpoint reviews remain true and
+unchanged. Source-specific access/rights, language/source accuracy, human
+editorial approval, safe database operations, and explicit publication
+authorization remain mandatory. A reviewer or automation must not treat
+simulated data, CI success, or a PR merge as live publication proof.
 
-It does not supersede permissions, rights, evidence or publication
-requirements, human review where one is required, or the shadow-promotion
-sign-off rule. No desk is promoted by this entry. For Kemhan Berita official
-links, the trusted validator requires no minimum number of days. It still
-authenticates every visible scheduled-run claim, healthy or failed, against
-GitHub's own run records and requires at least one authenticated healthy
-scheduled run, as an evidence-integrity check, not as a waiting period.
+The owner also authorized a **bounded, fail-closed CI simplification**:
+docs-only and allowlisted timeline-presentation diffs use scoped checks;
+unknown or high-risk code, models, source custody, workflows, generated
+output, and publication paths retain full verification. The production daily
+pipeline is unchanged. Do not remove substantive security or source-rights
+negative tests, or create another verification framework. Implementation
+requires an independently reviewed PR and exact-head CI; this ruling
+does not authorize merging an unverified branch or changing deployed content.
+Governance details:
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
+
+## 2026-10-18 — Kemhan Berita official links: no elapsed-day gate; truthful review basis
+
+Applies the owner entry above to the Indonesia official-link lane. No desk is
+promoted by this entry. For Kemhan Berita official links, the trusted
+validator requires no minimum number of days. It still authenticates every
+visible scheduled-run claim, healthy or failed, against GitHub's own run
+records and requires at least one authenticated healthy scheduled run, as an
+evidence-integrity check, not as a waiting period.
 
 Review basis (engineering reading of existing authority, not a new ruling):
 the Oct 15 owner policy covers the pinned frozen cohort (`0595c66`) and
