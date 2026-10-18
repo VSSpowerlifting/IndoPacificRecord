@@ -57,32 +57,35 @@ is always held. Its original and discrepancy are preserved unaltered.
 ## Review basis and what may be admitted
 
 The Oct 15 owner policy records that human review occurred for the pinned
-frozen cohort and authorises automated verified link metadata. It also
-records that **no machine-verifiable record-specific human review receipts
-exist** (`machine_verified_record_specific_human_review_receipts_in_repository:
-false`). The owner's Oct 17 subset release (`a55f55f`) then held unreviewed
-originals rather than admitting them. The receipt states exactly that:
+frozen cohort (`0595c66`, manifest `2fbb897f…`) and that **no
+machine-verifiable record-specific human review receipts exist**. On
+18 October the owner added a standing authorization (DECISION_LOG,
+#812 comment 6254436315): verified Kemhan Berita link metadata is admitted
+automatically for existing and future records, with no per-record review and
+no elapsed-time wait. It is pinned in the same policy file as
+`standing_link_metadata_authorizations` (family `id_kemhan_news` only;
+`load_owner_policy` refuses any other shape). The receipt says exactly that:
 
 * schema `ipr-crossdesk-independent-release-proof/2`;
-  `owner_review_declaration_bound_to_frozen_manifest: true` and
-  `record_specific_review_receipts_verified: false`;
-* `approved_source_identities` is the frozen pin `0595c66` cohort (manifest
-  `2fbb897f…`) minus Yonif TP 880, i.e. **30 records**;
-* records first collected after the pin are counted in
-  `held_unreviewed_count` and never admitted; `admit()` itself refuses an
-  approved identity outside the reviewed cohort
-  (`unreviewed_source_selected_for_release`), whatever validator is passed.
+  `owner_review_declaration_bound_to_frozen_manifest: true`,
+  `record_specific_review_receipts_verified: false`,
+  `standing_link_metadata_authorization_verified: true`;
+* `approved_source_identities` is every eligible record (frozen records still
+  must be unchanged against the pin); the ones outside the frozen cohort are
+  counted and digested in `released_without_record_specific_review_*`, so the
+  receipt never implies they were reviewed.
 
 | Records | Status |
 |---|---|
-| 30 frozen-cohort Berita records (pin `0595c66`) | admissible under the Oct 15 authority |
+| 30 frozen-cohort Berita records | admitted (Oct 15 review + standing authorization) |
+| verified records first collected after the pin (5 at `69b1f9b`) | admitted under the standing authorization, recorded as not individually reviewed |
 | Yonif TP 880 | held (semantic geography conflict) |
-| 4 records first collected after the pin (in tips `4295052` / `659ce42`) | held, no record-specific review exists |
-| every later collected record | held until an owner decision (below) |
+| a released record later revised in place or missing | HOLD `previously_released_source_missing_or_changed`; admission stops, nothing is overwritten |
+| frozen record changed against the pin; URL/date conflict; unverifiable capture, ledger or scheduled claim | HOLD (existing validator reasons) |
 
-Automatic admission of newly collected records is therefore **not**
-authorised by the existing record. The pipeline validates, signs and counts
-them; it does not publish them.
+Without the standing entry the code falls back to the Oct 15 behaviour: only
+the frozen cohort is admissible and `admit()` refuses anything else
+(`unreviewed_source_selected_for_release`), whatever validator is passed.
 
 The previous seven-day rule is removed (DECISION_LOG 2026-10-18). The
 validator still authenticates every visible `schedule-slot` claim against
@@ -105,9 +108,17 @@ scheduled run. Elapsed days are reported, not required.
   ledger attempts reconciled, 0 unhealthy. GitHub records 11 scheduled healthy
   days (7–17 Oct) for the ledger's `schedule-slot` run IDs (reported only).
   30 of the 34 are in the reviewed cohort; 4 are held as unreviewed.
-* **Rehearsal on a scratch copy of production `pla_watch.db`** (receipt v2,
-  re-run after the review-basis correction). 30 rows admitted, 4 held pending
-  approval, 1 semantic hold. Replay was idempotent (0 new, 30 unchanged,
+* **Standing-authorization rehearsal** (scratch copy of production
+  `pla_watch.db`, private tip `69b1f9b`): 35 rows admitted, 0 held pending
+  approval, 1 semantic hold (Yonif); 5 of the 35 counted as released without
+  record-specific review. Replay: 0 new, 35 unchanged, identical bytes.
+  Production `pla_watch.db` unchanged. Post-merge sequence: the frozen
+  branch `4295052` admits 34 (4 without record-specific review), then the
+  real signed private envelope from `69b1f9b` (5,314 bytes gzip, scratch
+  key, no title or body fields) adds 1 new with 34 unchanged; a forged MAC
+  HOLDs with the database byte-identical.
+* **Earlier frozen-only rehearsal** (receipt v2, before the standing
+  authorization). 30 rows admitted, 4 held pending approval, 1 semantic hold. Replay was idempotent (0 new, 30 unchanged,
   identical bytes). The admitted rows are dated 2026-09-30…2026-10-14 with no
   Yonif row. The earlier 34-row rehearsal found integrity and foreign-key
   checks clean and unchanged row counts in all 18 other tables plus the
@@ -133,8 +144,11 @@ scheduled run. Elapsed days are reported, not required.
 * **Truthful receipts:** a private attempt that died before its ledger is
   counted as a visible failure; unhealthy scheduled attempts are counted as
   failures, not days; the receipt states the actual review basis; a
-  post-pin record stays held on both the source and signed paths, and the
-  write boundary refuses it even under a permissive validator.
+  post-pin record is admitted on both the source and signed paths under the
+  standing authorization and held without it, and the write boundary refuses
+  it (or a receipt merely claiming standing) under a permissive validator;
+  Yonif stays refused under standing; a released post-pin record later
+  revised holds; a malformed standing entry is refused.
 * **Database safety:** interruption before commit (rollback, no residue);
   concurrent production writer (HOLD, the other write survives);
   forged receipt or missing validator refused; replay idempotent; unrelated
@@ -169,19 +183,18 @@ partial batches, robots timeout, over-cap windows) are already covered in
 * **Safe retry.** Re-dispatch the public workflow (no inputs) or the private
   collector with `collect_after_cutover`. Both are idempotent and never
   create duplicate public rows.
-* **Release authority.** The owner's Oct 15 standing metadata-only
-  authorization, limited to the reviewed frozen cohort. Merging this PR runs
-  the push-triggered admission once.
+* **Release authority.** The owner's Oct 15 metadata-only authorization for
+  the reviewed frozen cohort, extended on Oct 18 to verified existing and
+  future Berita link metadata. Merging this PR runs the push-triggered
+  admission once.
 
 ## Owner actions still required
 
-1. Merge the public PR (it triggers admission of the 30 reviewed links).
-2. Decide how new records become admissible. Either review and re-pin a newer
-   cohort in `config/afp_kemhan_owner_link_activation.json` (the existing
-   mechanism), or record a ruling that link-only Berita metadata needs no
-   per-record review, which would need a small code change to widen
-   `approved_source_identities`. Until then every new record stays held.
-3. To carry post-cutover private records to the public side, configure:
+1. Merge the public PR. Its push-triggered run admits the 34 verified links
+   on the frozen public branch (`4295052`; rehearsed: 34 admitted, 4 without
+   record-specific review, Yonif held). Private post-cutover records follow
+   via the bridge.
+2. To carry post-cutover private records to the public side, configure:
    * one random ≥32-byte `KEMHAN_BRIDGE_KEY` secret in **both** repositories;
    * `IPR_PUBLIC_BRIDGE_TOKEN` in the private repository (a token limited to
      Actions dispatch on the public repository; the Korea DAPA bridge already
@@ -197,8 +210,8 @@ desk is not complete end to end. Status of the other agreed requirements:
 
 | Requirement | Status |
 |---|---|
-| Official-link publication (30 reviewed links) | done once the PR merges |
-| New-record admission | outstanding: owner review basis needed (above) |
+| Official-link publication | done once the PR merges |
+| New-record admission | done in code (standing authorization); private records need the bridge credentials |
 | Translation of Kemhan originals | outstanding: none authorised; no machine translation exists |
 | Analysis of Kemhan originals | outstanding: no model or analyst analysis of bodies is authorised |
 | Sunday editorial intake | partial: typed `ID-KEMHAN-Wnn-nn` publisher-page items load, but the loader refuses unverifiable shadow commit/digest claims, so exact-version provenance covers only the pinned W42 record |
@@ -216,6 +229,7 @@ desk is not complete end to end. Status of the other agreed requirements:
   180-character reader cap this PR fixes. With this branch, `69b1f9b`
   rebuilds to 36 candidates, 1 semantic hold, all held (manifest
   `f779099b…`), and a scratch admission gives 30 unchanged, 5 held
-  unreviewed, 1 semantic hold. The new record is post-pin and stays held.
+  unreviewed, 1 semantic hold. Under the Oct 18 standing authorization the
+  same tip admits 35 with Yonif held.
 * The reader and candidate builder cap one snapshot at 300 records. At
   roughly two new items a day, that limit arrives around February 2027.

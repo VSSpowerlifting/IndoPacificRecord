@@ -48,6 +48,15 @@ V1_GATES = ("review_receipts_version_matched",
             "seven_actual_scheduled_days_authenticated")
 V2_GATES = ("owner_review_declaration_bound_to_frozen_manifest",
             "scheduled_history_authenticated")
+# Owner ruling 2026-10-18 (DECISION_LOG): for a family listed here, every
+# verified, non-held record is admissible without per-record review. The same
+# metadata-only scope, semantic holds and validation gates still apply.
+STANDING_AUTHORIZATION = {
+    "covers_existing_and_future_records": True,
+    "per_record_human_review_required": False,
+    "asserts_human_review_outside_frozen_cohort": False,
+    "elapsed_time_gate": False,
+}
 COMMON_GATES = ("all_visible_actions_attempts_reconciled",
                 "official_metadata_link_use_checked",
                 "known_semantic_holds_enforced",
@@ -143,7 +152,28 @@ def load_owner_policy(path=POLICY_PATH):
         need(excluded == expected_hold, "known_semantic_exclusions_changed")
         seen.add(family)
     need(seen == set(FAMILIES), "incomplete_owner_family_scope")
+    standing = policy.get("standing_link_metadata_authorizations", [])
+    need(type(standing) is list
+         and all(type(s) is dict and set(s) == set(STANDING_AUTHORIZATION)
+                 | {"source_family", "decision_recorded_on", "decision_source"}
+                 and s["source_family"] in FAMILIES
+                 and all(s[k] is val for k, val in STANDING_AUTHORIZATION.items())
+                 and type(s["decision_source"]) is str
+                 and type(s["decision_recorded_on"]) is str
+                 and re.fullmatch(r"20[0-9]{2}-[01][0-9]-[0-3][0-9]",
+                                  s["decision_recorded_on"])
+                 for s in standing)
+         and len({s["source_family"] for s in standing}) == len(standing),
+         "owner_standing_authorization_scope_changed")
     return policy
+
+
+def standing_link_metadata_authorization(policy, family):
+    """True when the owner authorized verified link metadata for existing and
+    future records of ``family`` without per-record human review. It never
+    asserts that such review happened, and never widens the metadata scope."""
+    return any(s.get("source_family") == family
+               for s in policy.get("standing_link_metadata_authorizations", []))
 
 
 def verify_cohort(packet, policy, *, baseline_packet=None):
@@ -322,9 +352,12 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     eligible = verify_cohort(packet, policy, baseline_packet=baseline_packet)
     approved = selected_official_links(receipt, eligible)
     proof_digest = verify_release_evidence(receipt, packet, eligible)
-    if receipt["schema"] == RECEIPT_V2:
-        # The owner's review covers the pinned frozen cohort only. Records
-        # collected later stay held until a separate owner decision.
+    standing = (receipt["schema"] == RECEIPT_V2
+                and standing_link_metadata_authorization(policy, packet["source_family"])
+                and receipt.get("standing_link_metadata_authorization_verified") is True)
+    if receipt["schema"] == RECEIPT_V2 and not standing:
+        # Without a standing authorization the owner's review covers the
+        # pinned frozen cohort only; later records stay held.
         reviewed = (verify_cohort(baseline_packet, policy)
                     if baseline_packet is not None else eligible)
         need({r["source_identity"] for r in approved}
@@ -338,6 +371,20 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     columns = {r[1] for r in conn.execute(
         "PRAGMA table_info(%s)" % TABLE)}
     need(columns == EXPECTED_TABLE_COLUMNS, "regional_official_index_not_migrated")
+    if standing:
+        # Without per-record review, a released link whose identity, date or
+        # attribution later changes or disappears is an anomaly: hold it all.
+        current = {r["source_identity"]: r for r in eligible}
+        for old in conn.execute(
+                "SELECT source_identity,canonical_official_url,publisher_posted_date,"
+                "official_issuer,official_publisher,official_republisher,first_seen_run "
+                "FROM %s WHERE source_family=?" % TABLE, (packet["source_family"],)):
+            row = current.get(old[0])
+            need(row is not None and tuple(old[1:]) == (
+                row["canonical_official_url"], row["publisher_posted_date"],
+                row["official_issuer"], row["official_publisher"],
+                row["official_republisher"], row["first_seen_run"]),
+                 "previously_released_source_missing_or_changed")
     conn.execute("SAVEPOINT regional_link_admission")
     added = unchanged = 0
     try:

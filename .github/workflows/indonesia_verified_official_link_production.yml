@@ -141,7 +141,8 @@ jobs:
           soup = BeautifulSoup(page, "html.parser")
           items = soup.select("li[data-regional-official-source-id]")
           got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
-          # 30 owner-reviewed frozen-cohort links; later records stay held.
+          # At least the 30 frozen-cohort links; verified later records are
+          # admitted under the Oct 18 standing link-metadata authorization.
           assert len(rows) >= 30 and got == rows, "rendered links differ from SQLite"
           assert "yonif-tp-880" not in page
           for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):

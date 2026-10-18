@@ -7,10 +7,12 @@ ledger↔commit reconciliation, every scheduled claim authenticated against
 GitHub, no minimum day count), a scratch-copy/atomic admission CLI and a
 Korea-pattern page-only production workflow, and fixes the shared reader's
 180-character identity cap that HOLDs Kemhan snapshots after Oct 15. Receipt
-v2 states the real review basis: only the 30 frozen-cohort records under the
-Oct 15 owner authority are admissible; Yonif TP 880 and every post-pin
-record (5 at private tip `69b1f9b`) stay held pending an owner re-pin or
-ruling. Real rehearsal on a DB copy: 30 admitted, the rest held, idempotent
+v2 states the real review basis: the Oct 15 review covers the frozen cohort,
+and the owner's Oct 18 standing authorization (DECISION_LOG) admits verified
+post-pin Berita link metadata without claiming review. Yonif TP 880 and any
+anomaly (revised/missing released record, date/URL conflict, unverifiable
+capture) stay held. Real rehearsal on a DB copy at private tip `69b1f9b`:
+35 admitted (5 without record-specific review), Yonif held, idempotent
 replay. Post-cutover private
 records reach the public side only through a held HMAC handoff (companion
 private PR) needing owner credentials. Translation, analysis, editorial

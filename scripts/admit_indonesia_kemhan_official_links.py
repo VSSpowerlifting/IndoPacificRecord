@@ -183,7 +183,9 @@ def cmd_admit(args):
         "validations": [{"source_git_commit": v["packet"]["source_git_commit"],
                          "metadata_manifest_sha256": v["packet"]["metadata_manifest_sha256"],
                          "eligible": len(v["eligible"]),
-                         "approved_reviewed_cohort": len(v["approved"]),
+                         "approved_for_release": len(v["approved"]),
+                         "released_without_record_specific_review": v["receipt"][
+                             "released_without_record_specific_review_count"],
                          "held_unreviewed": v["receipt"]["held_unreviewed_count"],
                          "authenticated_scheduled_days": len(
                              v["receipt"]["authenticated_scheduled_days"])}
@@ -210,7 +212,7 @@ def cmd_sign_private(args):
     (out / "kemhan-envelope.json.gz").write_bytes(body)
     (out / "kemhan-envelope.mac").write_text(mac + "\n", encoding="ascii")
     print(json.dumps({"status": "SIGNED", "eligible": len(validated["eligible"]),
-                      "approved_reviewed_cohort": len(validated["approved"]),
+                      "approved_for_release": len(validated["approved"]),
                       "envelope_bytes": len(body),
                       "metadata_manifest_sha256": validated["packet"]["metadata_manifest_sha256"]},
                      sort_keys=True))

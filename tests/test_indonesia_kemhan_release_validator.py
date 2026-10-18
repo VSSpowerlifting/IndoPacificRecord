@@ -194,30 +194,73 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
 
     # --- happy path, rolling cohort, replay --------------------------------
 
-    def test_reviewed_frozen_cohort_admits_once_and_new_record_stays_held(self):
-        new_id = "kemhan:/2026/10/16/" + "-".join(["menhan-sjafrie-tinjau"] * 9) + ".html"
-        tip = self.h.attempt("38958633428-1", "2026-10-16", new=[
-            (new_id[len("kemhan:"):], "2026-10-16")])
+    NEW_ID = "kemhan:/2026/10/16/" + "-".join(["menhan-sjafrie-tinjau"] * 9) + ".html"
+
+    def _new_record_tip(self):
+        return self.h.attempt("38958633428-1", "2026-10-16", new=[
+            (self.NEW_ID[len("kemhan:"):], "2026-10-16")])
+
+    def without_standing_authorization(self):
+        self.policy.pop("standing_link_metadata_authorizations")
+
+    def test_standing_authorization_admits_new_record_once_without_review_claim(self):
+        tip = self._new_record_tip()
         out = self.validate(tip)
-        self.assertEqual(out["receipt"]["authenticated_scheduled_days"], [
+        receipt = out["receipt"]
+        self.assertEqual(receipt["authenticated_scheduled_days"], [
             "2026-10-%02d" % d for d in range(7, 14)] + ["2026-10-16"])
         self.assertEqual(len(out["eligible"]), 9)  # 10 stored, Yonif 880 held
-        self.assertEqual(len(out["approved"]), 8)  # the owner-reviewed frozen cohort
-        self.assertEqual(out["receipt"]["held_unreviewed_count"], 1)
+        self.assertEqual(len(out["approved"]), 9)  # frozen cohort + post-pin record
+        self.assertIs(receipt["standing_link_metadata_authorization_verified"], True)
+        self.assertIs(receipt["record_specific_review_receipts_verified"], False)
+        self.assertEqual(receipt["review_basis"], v.STANDING_REVIEW_BASIS)
+        self.assertEqual(receipt["released_without_record_specific_review_count"], 1)
+        self.assertEqual(receipt["released_without_record_specific_review_sha256"],
+                         release.digest([self.NEW_ID]))
+        self.assertEqual(receipt["held_unreviewed_count"], 0)
         receipts, total = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T19:43:00Z")
-        self.assertEqual((receipts[0]["new_official_links"], total), (8, 8))
-        self.assertEqual(receipts[0]["held_pending_individual_approval"], 1)
+        self.assertEqual((receipts[0]["new_official_links"], total), (9, 9))
+        self.assertEqual(receipts[0]["held_pending_individual_approval"], 0)
         self.assertNotIn(v.HELD_IDENTITY, self.rows())
-        self.assertNotIn(new_id, self.rows())
+        self.assertEqual(self.rows()[self.NEW_ID][:2],
+                         ("https://www.kemhan.go.id" + self.NEW_ID[len("kemhan:"):],
+                          "2026-10-16"))
         before = sha(self.db)
         receipts, _ = cli.admit_validated(self.db, [self.validate(tip)],
                                           as_of_utc="2026-10-19T19:43:00Z")
         self.assertEqual((receipts[0]["new_official_links"],
-                          receipts[0]["unchanged_official_links"]), (0, 8))
+                          receipts[0]["unchanged_official_links"]), (0, 9))
         self.assertEqual(sha(self.db), before, "replay must not rewrite the database")
         with sqlite3.connect(self.db) as cx:
             self.assertEqual(cx.execute("SELECT count(*) FROM regional_official_source_links "
                                         "WHERE desk='philippines'").fetchone(), (1,))
+
+    def test_without_standing_authorization_new_record_stays_held(self):
+        self.without_standing_authorization()
+        out = self.validate(self._new_record_tip())
+        self.assertEqual(len(out["approved"]), 8)  # the owner-reviewed frozen cohort
+        self.assertEqual(out["receipt"]["held_unreviewed_count"], 1)
+        self.assertEqual(out["receipt"]["review_basis"], v.REVIEW_BASIS)
+        self.assertIs(out["receipt"]["standing_link_metadata_authorization_verified"], False)
+        receipts, total = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T19:43:00Z")
+        self.assertEqual((receipts[0]["new_official_links"], total), (8, 8))
+        self.assertEqual(receipts[0]["held_pending_individual_approval"], 1)
+        self.assertNotIn(self.NEW_ID, self.rows())
+
+    def test_released_post_pin_record_revised_or_missing_later_holds(self):
+        cli.admit_validated(self.db, [self.validate(self._new_record_tip())],
+                            as_of_utc="2026-10-18T19:43:00Z")
+        before = sha(self.db)
+        revised = self.h.records[-1]
+        path = "/2026/10/15/" + self.NEW_ID.rsplit("/", 1)[1]
+        revised[0], revised[1], revised[5] = ("kemhan:" + path,
+                                              "https://www.kemhan.go.id" + path, "2026-10-15")
+        out = self.validate(self.h.attempt("39065613730-1", "2026-10-17",
+                                           kind="private", source="manual-utc-date"))
+        self.assertNotIn(self.NEW_ID, {r["source_identity"] for r in out["eligible"]})
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [out], as_of_utc="2026-10-18T20:00:00Z")
+        self.assertEqual(sha(self.db), before)
 
     def test_later_collection_keeps_original_admitted_version(self):
         first = self.h.attempt("38958633428-1", "2026-10-16")
@@ -315,19 +358,55 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
                         claiming, out["packet"], out["eligible"])
 
     def test_write_boundary_refuses_unreviewed_identity_even_if_validator_accepts(self):
+        self.without_standing_authorization()
         tip = self.h.attempt("38958633428-1", "2026-10-16", new=[
             ("/2026/10/16/belum-ditinjau.html", "2026-10-16")])
         out = self.validate(tip)
         ids = sorted(r["source_identity"] for r in out["eligible"])
         widened = dict(out["receipt"], approved_source_identities=ids,
                        eligible_source_identities_sha256=release.digest(ids))
+        claiming = dict(widened, standing_link_metadata_authorization_verified=True)
         with sqlite3.connect(self.db) as cx:
-            self.assertHold("unreviewed_source_selected_for_release", release.admit, cx,
-                            out["packet"], out["policy"], widened,
+            for receipt in (widened, claiming):
+                self.assertHold("unreviewed_source_selected_for_release", release.admit, cx,
+                                out["packet"], out["policy"], receipt,
+                                as_of_utc="2026-10-18T19:43:00Z",
+                                trusted_validator=lambda *a: True,
+                                baseline_packet=out["baseline_packet"])
+        self.assertEqual(self.rows(), {})
+
+    def test_write_boundary_refuses_semantic_hold_under_standing_authorization(self):
+        out = self.validate(self._new_record_tip())
+        ids = sorted([v.HELD_IDENTITY] + [r["source_identity"] for r in out["eligible"]])
+        widened = dict(out["receipt"], approved_source_identities=ids)
+        with sqlite3.connect(self.db) as cx:
+            self.assertHold("release_selection_untrusted_or_contains_held_source", release.admit,
+                            cx, out["packet"], out["policy"], widened,
                             as_of_utc="2026-10-18T19:43:00Z",
                             trusted_validator=lambda *a: True,
                             baseline_packet=out["baseline_packet"])
         self.assertEqual(self.rows(), {})
+
+    def test_standing_authorization_scope_is_pinned(self):
+        self.patches[2].stop()
+        try:
+            real = release.load_owner_policy()
+            self.assertTrue(release.standing_link_metadata_authorization(real, "id_kemhan_news"))
+            self.assertFalse(release.standing_link_metadata_authorization(real,
+                                                                          "ph_afp_articles"))
+            standing = real["standing_link_metadata_authorizations"][0]
+            for key, bad in (("per_record_human_review_required", True),
+                             ("asserts_human_review_outside_frozen_cohort", True),
+                             ("elapsed_time_gate", True),
+                             ("source_family", "id_kemhan_press"),
+                             ("titles_authorized", True)):
+                broken = copy.deepcopy(real)
+                broken["standing_link_metadata_authorizations"][0] = dict(standing, **{key: bad})
+                with patch.object(release.json, "loads", lambda *_a, **_k: broken):
+                    self.assertHold("owner_standing_authorization_scope_changed",
+                                    release.load_owner_policy)
+        finally:
+            self.patches[2].start()
 
     def test_frozen_record_date_revision_holds(self):
         self.h.records[1][5] = "2026-10-04"
@@ -409,16 +488,25 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
         args.update(kw)
         return v.validate_signed_envelope(body, mac, **args)
 
-    def test_signed_private_envelope_admits_reviewed_cohort_and_holds_new_record(self):
+    def test_signed_private_envelope_admits_new_private_record(self):
         body, mac, public_tip, main = self._signed()
         plain = gzip.decompress(body).decode()
         self.assertNotIn(SECRET, plain)
         self.assertNotIn(TITLE, plain)
         out = self._open(body, mac, public_tip, main)
+        self.assertEqual((len(out["eligible"]), len(out["approved"])), (9, 9))
+        receipts, total = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T19:43:00Z")
+        self.assertEqual(total, 9)  # Yonif 880 held; new private item admitted
+        self.assertEqual(receipts[0]["held_pending_individual_approval"], 0)
+        self.assertIn("kemhan:/2026/10/18/wamenhan-terima-audiensi.html", self.rows())
+        self.assertNotIn(v.HELD_IDENTITY, self.rows())
+
+    def test_signed_private_envelope_without_standing_authorization_holds_new_record(self):
+        self.without_standing_authorization()
+        out = self._open(*self._signed())
         self.assertEqual((len(out["eligible"]), len(out["approved"])), (9, 8))
         receipts, total = cli.admit_validated(self.db, [out], as_of_utc="2026-10-18T19:43:00Z")
-        self.assertEqual(total, 8)  # frozen cohort only; Yonif 880 and new private item held
-        self.assertEqual(receipts[0]["held_pending_individual_approval"], 1)
+        self.assertEqual((total, receipts[0]["held_pending_individual_approval"]), (8, 1))
         self.assertNotIn("kemhan:/2026/10/18/wamenhan-terima-audiensi.html", self.rows())
 
     def test_signed_envelope_forgery_and_binding_failures_hold(self):
