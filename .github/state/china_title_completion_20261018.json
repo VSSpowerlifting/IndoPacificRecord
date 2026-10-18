@@ -1321,6 +1321,22 @@
       "corrected_title": "US and Iran Hold Indirect Talks During UN General Assembly, Iran Again States Conditions for Reopening of Strait",
       "reason": "Preserve during without adding a sidelines meeting location",
       "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 4648,
+      "original": "\u4fc4\u5916\u4ea4\u90e8\uff1a\u52a0\u4e4c\u201c\u767e\u5e74\u534f\u8bae\u201d\u4e0d\u4f1a\u5e26\u6765\u6b63\u5411\u7ed3\u679c",
+      "model_title": "Russian Foreign Ministry: The US-Ukraine \"100-Year Agreement\" Will Not Bring Positive Results",
+      "corrected_title": "Russian Foreign Ministry: The Canada-Ukraine \"100-Year Agreement\" Will Not Bring Positive Results",
+      "reason": "Translate \u52a0 as Canada, preserving the publisher country pair without correcting its claim",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 4794,
+      "original": "\u4e4c\u514b\u5170\u9996\u90fd\u7b49\u591a\u5730\u906d\u7a7a\u88ad",
+      "model_title": "Air strikes hit Kyiv and multiple other locations in Ukraine",
+      "corrected_title": "Air strikes hit Ukraine\u2019s capital and multiple other locations",
+      "reason": "Preserve the unnamed capital in the original rather than adding a city name",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
     }
   ]
 }
