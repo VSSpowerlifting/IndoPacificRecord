@@ -35,6 +35,32 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
                 pilot_owner_reviewed_sha256="a" * 64,
             )
 
+    def test_oct18_schedule_is_editor_only_despite_legacy_preview_flag(self):
+        # The October 11 live failure combined both true modes. The workflow
+        # now pins scheduled previews off; manual previews are still opt-in.
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("SUNDAY_OWNER_PREVIEW: 'false'", workflow)
+        self.assertNotIn("vars.IPR_SUNDAY_OWNER_PREVIEW_ENABLED", workflow)
+        result = resolve_sunday_handoff(
+            event="schedule",
+            now=datetime(2026, 10, 18, 19, 17, tzinfo=timezone.utc),
+            send_email=True,
+            scheduled_owner_preview=False,
+            sunday_daily_marker="2026-10-18",
+            friday_delivery_enabled=False,
+        )
+        self.assertEqual(result["IPR_SUNDAY_WEEK_END"], "2026-10-17")
+        self.assertEqual(result["IPR_SUNDAY_SHOULD_SEND"], "true")
+        with self.assertRaisesRegex(SundayHandoffRefused, "parallel services"):
+            resolve_sunday_handoff(
+                event="schedule",
+                now=datetime(2026, 10, 18, 19, 17, tzinfo=timezone.utc),
+                send_email=True,
+                scheduled_owner_preview=False,
+                sunday_daily_marker="2026-10-18",
+                friday_delivery_enabled=True,
+            )
+
     def test_preview_still_requires_real_sunday_collection(self):
         for marker in ("", "2026-10-10", "2026-10-12"):
             with self.subTest(marker=marker), self.assertRaisesRegex(
