@@ -206,8 +206,16 @@ desk is not complete end to end. Status of the other agreed requirements:
 
 ## Known limits
 
-* The private collector has no genuine `schedule` event run yet; all 15
-  recorded runs of `indonesia_private_first_collector.yml` are pull-request
-  or dispatch runs (checked 18 Oct, 18:48 UTC).
+* The first genuine `schedule` event run of
+  `indonesia_private_first_collector.yml` is run 39158713099, attempt 1
+  (17:17 UTC cron, started 19:25 UTC on private main `cf0a556`). Collection,
+  private commit `69b1f9b`, readback, SQLite integrity and capture hashes
+  passed (12 retrieved, 1 new, 36 stored). The run then failed at the
+  held-candidate rebuild, which runs public `main` `358a69c`: HOLD
+  `pinned_source_validation_failed`, because main still carries the
+  180-character reader cap this PR fixes. With this branch, `69b1f9b`
+  rebuilds to 36 candidates, 1 semantic hold, all held (manifest
+  `f779099b…`), and a scratch admission gives 30 unchanged, 5 held
+  unreviewed, 1 semantic hold. The new record is post-pin and stays held.
 * The reader and candidate builder cap one snapshot at 300 records. At
   roughly two new items a day, that limit arrives around February 2027.

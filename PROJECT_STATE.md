@@ -8,14 +8,17 @@ GitHub, no minimum day count), a scratch-copy/atomic admission CLI and a
 Korea-pattern page-only production workflow, and fixes the shared reader's
 180-character identity cap that HOLDs Kemhan snapshots after Oct 15. Receipt
 v2 states the real review basis: only the 30 frozen-cohort records under the
-Oct 15 owner authority are admissible; Yonif TP 880, 4 post-pin records and
-all later records stay held pending an owner re-pin or ruling. Real rehearsal
-on a DB copy: 30 admitted, 5 held, idempotent replay. Post-cutover private
+Oct 15 owner authority are admissible; Yonif TP 880 and every post-pin
+record (5 at private tip `69b1f9b`) stay held pending an owner re-pin or
+ruling. Real rehearsal on a DB copy: 30 admitted, the rest held, idempotent
+replay. Post-cutover private
 records reach the public side only through a held HMAC handoff (companion
 private PR) needing owner credentials. Translation, analysis, editorial
 intake provenance and headline display remain outstanding; the desk is not
-complete end to end. No genuine private `schedule` run recorded as of 18 Oct
-18:48 UTC. Details: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+complete end to end. First genuine private `schedule` run (39158713099,
+18 Oct): collection and preservation passed; the run failed at the
+held-candidate rebuild on main's 180-character cap, which this lane fixes.
+Details: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
 PR #652 cross-check:
 `research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
 No production DB, output, Pages or schedule change made here.
