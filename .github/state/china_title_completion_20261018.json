@@ -892,6 +892,14 @@
       "corrected_title": "Trump says Yemen's Houthis have agreed not to fight the United States",
       "reason": "Preserve agreed not to fight without asserting fighting stopped",
       "reviewer": "Codex source-headline fidelity check; no human review asserted"
+    },
+    {
+      "id": 4560,
+      "original": "\u7f8e\u4f0a\u8054\u5927\u671f\u95f4\u4e3e\u884c\u95f4\u63a5\u4f1a\u8c08 \u4f0a\u6717\u518d\u63d0\u91cd\u5f00\u6d77\u5ce1\u6761\u4ef6",
+      "model_title": "US and Iran Hold Indirect Talks on Sidelines of UN General Assembly, Iran Again States Conditions for Reopening of Strait",
+      "corrected_title": "US and Iran Hold Indirect Talks During UN General Assembly, Iran Again States Conditions for Reopening of Strait",
+      "reason": "Preserve during without adding a sidelines meeting location",
+      "reviewer": "Codex source-headline fidelity check; no human review asserted"
     }
   ]
 }
