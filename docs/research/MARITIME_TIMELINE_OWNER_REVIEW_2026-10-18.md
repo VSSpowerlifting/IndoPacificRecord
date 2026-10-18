@@ -32,6 +32,12 @@ or an independently observed operational history.
 | `sea-phase`: September 8–9 | 4466's prospective shore/sea schedule; 4102, published September 12: sea-phase transition paragraph and later gunnery paragraph explicitly dated the morning of the 9th | Correct incomplete description: later reporting covers both the September 8 move to sea and September 9 morning gunnery. Retain the planned/reported distinction and qualify the extent of confirmation. The short existing excerpt supports September 8; the September 9 passage is further down the same linked record. | Dated reported activity supports both days, but does not independently confirm the complete announced programme or every serial. No capability conclusion is adopted. |
 | `conclusion`: September 9 | 4472: conclusion earlier on its September 9 publication day; 4102's lead: five-day exercise ended September 9 | Attribute the headline to both closing accounts; clarify the five-day description's relationship to the unresolved interval. | Do not turn the five-day description into an inferred explanation or correction of the ministry's September 3 boundary. |
 
+A follow-up locator in the sea-phase evidence claim explicitly distinguishes the
+September 8 excerpt from the later gunnery paragraph supporting September 9.
+The existing schema validator passes on that final draft; excerpts and draft
+status are unchanged. Earlier browser receipts below predate this locator-only
+wording change; the final preview has not been independently rerendered here.
+
 All ten excerpt strings remain exact contiguous substrings of their preserved
 bodies; no excerpt was expanded, translated or newly introduced. Publication
 dates remain September 5 / 6 / 9 / 12 / 14. The evidence basis labels and
@@ -126,7 +132,7 @@ still needs Ben's explicit authorization for the reviewed artifact.
 `core.timelines.content_digest()` for the corrected canonical draft:
 
 ```text
-bcc9f3677ffc9cb12a381510e697c93486327c11f68d6c943ecb9fa98e396a4a
+26e027cb404ad61e9422351652773497deb4e5d11ec691b28e6d117a286eef64
 ```
 
 This binds the current draft, including pending-review metadata. The existing
