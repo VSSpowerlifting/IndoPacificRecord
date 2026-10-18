@@ -1,24 +1,28 @@
 # Shadow checkpoint reviews
 
-The 30-day qualification requires that manual corpus reviews happen around days
-7, 14 and 30, and that there is evidence they happened. This document is how
-those reviews are run so that they are reproducible rather than improvised.
+> **October 18, 2026 supersession:** Day 7/14/30 packets remain useful
+> historical/operational reliability evidence, not automatic desk launch
+> gates. Current complete-desk acceptance requires approved sources, evidence,
+> translation, analysis, permissioned public/editorial output and recovery
+> verified on real records (program issue #673). Genuine reviewer decisions,
+> publisher access/rights and safe production writes still bind.
+
+Historically manual reviews were planned around days 7, 14 and 30 and their
+actual completion recorded. The procedures below preserve reproducibility;
+they are not a reason for another arbitrary prelaunch delay.
 
 **Scope.** The tooling and the branch constants described here are
 **Singapore-specific**: `scripts/review_shadow_state.py` and
 `scripts/publish_shadow_review.py` read the Singapore state branch and publish
-to `review/singapore-mindef`. The **Japan** shadow desk (`shadow/jp-mod`) is
-subject to the same checkpoint requirement, the same human-review standard and
-the same no-automatic-promotion rule, but **has no review tooling yet**; a
-Japan checkpoint would need an equivalent tool, or an explicit extension of
-this one, before a formal packet could be produced. Do not point the Singapore
-publisher at Japan state — the target branch is a constant precisely so it
-cannot be redirected.
+to `review/singapore-mindef`. The **Japan** shadow desk (`shadow/jp-mod`) used the same historical review standard, but **did not yet have** its
+own review tooling when these notes were written. Historical Japanese review
+requires source-specific tooling; do not point the Singapore publisher at
+Japan state.
 
-Neither desk is qualified. A completed checkpoint review qualifies nothing on
-its own, and no review outcome promotes a desk: promotion is an owner decision
-recorded in `DECISION_LOG.md` after 30 consecutive collecting days and the
-reviews are complete.
+A completed historical checkpoint is evidence, not automatic qualification or
+publication authority. Check present desk status against actual production;
+October 18 superseded the former 30-day threshold. Never fabricate or backdate
+human review.
 
 The **Vietnam** pilot, built but not launched, has its own packet tool,
 `scripts/review_vietnam_shadow_state.py`. It reads only Vietnam state, refuses

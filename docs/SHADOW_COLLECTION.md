@@ -1,12 +1,20 @@
 # Shadow collection
 
+> **October 18, 2026 supersession:** This describes the earlier shadow-source
+> design and historical observations, not a current eight-desk inventory or
+> universal seven-/30-day launch gate. Check current source manifests,
+> private-vault custody, main, Actions and issue #673 before acting. The owner
+> now requires bounded real-source integrated acceptance and safe ongoing
+> operation. Preserve original captures, attempt history and source rights.
+
 A shadow desk is a source under evaluation. It collects into isolated state so
 its reliability can be measured before anything it produces is treated as
 coverage. Nothing a shadow desk collects appears in the public site, in
 `pla_watch.db`, or in any public count.
 
-**Two shadow desks exist.** Neither is qualified, neither is approved for
-public promotion, and neither may be described as coverage.
+**Initial two-desk snapshot:** these were the desks tracked under the
+original shadow arrangement. This dated list is not a current count or a
+claim about today's public status.
 
 | Desk | State branch | Collector | Workflow | Scope document |
 |---|---|---|---|---|
@@ -130,7 +138,7 @@ state/clock.json         day zero, written once, never rewritten
 state/ledger/*.json      one entry per run, append-only
 ```
 
-**Why a branch rather than a cache.** The 30-day evaluation needs state that
+**Why a branch rather than a cache (historical design).** Evaluation needed state that
 survives longer than any cache guarantee and that can be audited afterwards.
 GitHub Actions caches are evictable and are explicitly not a durable store; an
 artifact expires. A branch is durable, diffable, and every update is attributable
@@ -260,22 +268,18 @@ whose result is terminal-successful, written once into `clock.json` and never
 rewritten. A failed run neither starts nor advances the clock. An expected
 empty day is a success: it records history without inventing records.
 
-## Thirty-day qualification
+## Historical 30-day checkpoint (not a current launch gate)
 
-Reaching day 30 creates a **launch-review checkpoint**. It does not launch
-anything, and no code anywhere flips a mode based on it. **There is no
-automatic promotion**: no date, no counter and no collection milestone makes a
-shadow desk public. Promotion is an owner decision recorded in
-`DECISION_LOG.md`, and it comes after the reviews, not before them.
+Previously, day 30 triggered a review packet, never automatic admission.
+The October 18 decision supersedes that elapsed-time prerequisite. Human
+review, permissioned source handling, and real end-to-end operation still
+matter; an old counter or review packet alone grants no publication rights.
 
-A review may proceed only if every scheduled day has a recorded terminal
-result; expected empty days are distinguished from failures; no robots or
-access-policy violation occurred; no silent listing failure occurred; full-body
-extraction stayed reliable; identity and deduplication stayed deterministic; no
-shadow write reached a production artifact; manual corpus reviews happened
-around days 7, 14 and 30; any extraction break was repaired and followed by a
-fresh uninterrupted interval if the break invalidated reliability; and the
-corpus is substantively sufficient to represent a real desk.
+Historical reviews assessed scheduled outcomes (including failures and genuine
+empty days), robots/access compliance, retrieval completeness, source identity
+and deduplication, public/private isolation, Day 7/14/30 human review and
+recovery. Retain those observations for operational reliability. New desk
+launches instead prove the relevant failure/recovery behavior directly.
 
 ## Rollback
 
