@@ -1,5 +1,37 @@
 # Public China headline completion
 
+## Authorized release — 18 October 2026
+
+The owner subsequently authorized current-main verification and merge of #796,
+historical completion within **$3 aggregate**, Daily at **20 titles/run**, and
+verified publication. That authorization supersedes the candidate-only limits
+below; it does not authorize unrelated collection, analysis or source policy.
+
+The dedicated manual `china_title_completion_batch.yml` uses the existing
+Actions credential and only the checkpoint branch
+`ops/china-title-completion-20261018`; it never writes main or publishes.
+Before any paid request, it commits and pushes a durable batch reservation to
+`.github/state/china_title_completion_20261018.json`. A title reserves $0.10,
+and each access probe reserves $0.01, all within the same $3 ledger. Admission
+reduces the batch if the remaining balance cannot cover every reserved slot.
+No SDK retries are permitted. An interrupted run or unknown failure retains its
+entire reservation; another run cannot silently refund or replace it.
+
+Each title request is the existing headline-only forced tool: Sonnet 4.6,
+512 output tokens, no thinking/cache/server tools. The complete serialized
+UTF-8 request must be <=4096 bytes, and the provider's free count-token endpoint
+must report <=4096 input tokens before dispatch. The $0.10 allowance covers
+30,000 input tokens plus all 512 output tokens at the verified pinned rates,
+leaving substantial room for framing/count differences. A response settles
+using actual provider-reported token usage; absent usage retains the allowance.
+The ledger is conservative operational accounting at published rates, not an
+invoice or a claim about unrelated account usage/tax. Any unexpected usage or
+rate incompatibility stops the run. The first batch is at most 20, followed by
+original-to-English fidelity review before further dispatch.
+
+The original engineering evidence follows. Final release SHAs, actual usage,
+preservation and live receipts will be recorded after execution.
+
 Engineering candidate from main `611c14cb4c1ddeee39844db9ad1f6919525f172f`.
 Integrated with newer main `75137305d4cd760679b1e82378861e55d8652c6d` before
 final verification; its Korea/Indonesia, regional-schema and admitted metadata

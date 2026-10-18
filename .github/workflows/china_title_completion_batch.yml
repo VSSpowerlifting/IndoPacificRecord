@@ -1,0 +1,36 @@
+name: China historical titles — capped reviewed batch
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: At most 20 titles; dispatch next batch only after fidelity review
+        default: '20'
+        required: true
+concurrency:
+  group: china-title-completion-20261018
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  batch:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ops/china-title-completion-20261018
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - run: pip install -r requirements.txt
+      - name: Configure checkpoint author
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Reserve, translate headlines only and checkpoint
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TITLE_BATCH_LIMIT: ${{ inputs.limit }}
+        run: python scripts/china_title_release_batch.py --limit "$TITLE_BATCH_LIMIT"
