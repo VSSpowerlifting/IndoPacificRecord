@@ -67,6 +67,17 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 "a sidecar already sits beside the tracked database, so this "
                 "test cannot attribute one: %s" % sidecars_present())
         cls.before = hashlib.sha256(TRACKED.read_bytes()).hexdigest()
+        # Exercise liveness at this snapshot's collection date, not the wall
+        # clock: this test checks filesystem residue, not operational freshness.
+        # Match liveness's active-source filter and scraped_at date semantics.
+        from scripts.reconcile_db import read_only
+        with read_only(TRACKED) as db:
+            cls.liveness_today = db.execute(
+                "SELECT MAX(date(a.scraped_at)) FROM articles a "
+                "JOIN sources s ON a.source_id = s.id WHERE s.is_active = 1"
+            ).fetchone()[0]
+        if cls.liveness_today is None:
+            raise AssertionError("snapshot has no active-source collection date")
 
     def setUp(self):
         # Whatever this test provokes, it removes. setUpClass has already
@@ -83,6 +94,8 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 path.unlink()
 
     def run_script(self, argv):
+        if argv[0] == "scripts/check_source_liveness.py":
+            argv = [*argv, "--today", self.liveness_today]
         return subprocess.run([sys.executable, *argv], cwd=str(REPO_ROOT),
                               capture_output=True, text=True, timeout=600)
 
