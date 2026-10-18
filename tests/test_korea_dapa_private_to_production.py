@@ -435,7 +435,7 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                      b.digest(second_body.encode("utf-8")), second_html_sha, run))
                 conn.commit()
             ledger.update(inserted=2, selected=2, retrieved=2, extracted=2,
-                          cap=5)
+                          duplicates=0, cap=5)
             ledger["requests"].extend((
                 {"requested_url": second_url, "capture_sha256": second_html_sha,
                  "http_status": 200},
