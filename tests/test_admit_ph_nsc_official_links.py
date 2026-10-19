@@ -13,6 +13,7 @@ import io
 import json
 import os
 import sqlite3
+import unittest
 from datetime import date
 from pathlib import Path
 from unittest import mock
@@ -305,3 +306,48 @@ class CommandLine(Handoff):
                                     "envelope_bytes", "candidate_sha256"})
         self.assertEqual(sorted(p.name for p in out.iterdir()),
                          ["nsc-envelope.json.gz", "nsc-envelope.mac"])
+
+
+class ProductionWorkflow(unittest.TestCase):
+    """Static contract: the public lane only ever receives a signed envelope."""
+
+    def setUp(self):
+        raw = (ROOT / ".github/workflows/ph_nsc_verified_official_link_production.yml").read_text()
+        self.raw = raw
+        self.code = "\n".join(line for line in raw.splitlines()
+                              if not line.lstrip().startswith("#"))
+
+    def test_dispatch_only_and_held_until_bridge_enabled(self):
+        on = self.code.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+        self.assertIn("workflow_dispatch:", on)
+        for trigger in ("schedule:", "push:", "pull_request", "workflow_run"):
+            self.assertNotIn(trigger, on)
+        self.assertIn("vars.NSC_METADATA_BRIDGE_ENABLED", self.code)
+        first = self.code.split("    steps:\n", 1)[1].split("      - name: Check out", 1)[0]
+        self.assertIn('test "$BRIDGE_ENABLED" = true', first)
+
+    def test_least_privilege_and_shared_philippines_lock(self):
+        self.assertRegex(self.code, r"(?m)^permissions:\n  contents: read$")
+        self.assertIn("group: philippines-verified-official-link-production", self.code)
+        self.assertIn("cancel-in-progress: false", self.code)
+        self.assertIn("secrets.NSC_BRIDGE_KEY", self.code)
+        self.assertNotIn("AFP_BRIDGE_KEY", self.code)
+
+    def test_no_collection_custody_or_original_text_paths(self):
+        for forbidden in (
+                "shadow_collect_ph", "sign-private", "shadow/ph-nsc", "archive/ph-nsc",
+                "git clone", "actions: write", "pages: write", "id-token: write",
+                "upload-artifact", "curl ", "wget ", "git add -A", "git add .",
+                "--force", "push -f", "pull_request_target", "ANTHROPIC", "OPENAI"):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, self.code)
+
+    def test_writes_only_the_db_and_philippines_page_with_optimistic_checks(self):
+        self.assertIn("python -m migrations.cli --apply", self.code)
+        self.assertIn("python scripts/admit_ph_nsc_official_links.py admit", self.code)
+        self.assertIn("git add -- pla_watch.db output/philippines.html", self.code)
+        self.assertIn("git add -- philippines.html", self.code)
+        self.assertIn("Production main moved", self.code)
+        self.assertIn("Pages moved; never overwrite", self.code)
+        self.assertIn("main output and gh-pages Philippines bytes differ", self.code)
+        self.assertIn("assert got == rows", self.code)

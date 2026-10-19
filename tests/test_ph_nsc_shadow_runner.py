@@ -22,7 +22,7 @@ from tests.test_ph_nsc_adapter import (
     ARTICLE_URL, ARTICLE_BIN, CHALLENGE, FakeResponse, Rig, TARGET, routes)
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github/workflows/ph_nsc_shadow.yml"
+WORKFLOW = ROOT / "tests/fixtures/ph_nsc_public_legacy_workflow.yml"
 RAW = WORKFLOW.read_text()
 
 
