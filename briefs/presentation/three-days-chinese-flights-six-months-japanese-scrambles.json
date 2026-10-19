@@ -1,0 +1,39 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "three-days-chinese-flights-six-months-japanese-scrambles",
+  "manuscript_fingerprint": "ba8614533bcb909351c7c06f583e7dfb1459b47b674020b9d8e925b96caaad82",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-overview",
+      "heading": "Overview",
+      "start": 1,
+      "end": 1
+    },
+    {
+      "id": "reading-repeated-flights",
+      "heading": "Repeated Flights, Distinct Observations",
+      "start": 2,
+      "end": 3
+    },
+    {
+      "id": "reading-scramble-figures",
+      "heading": "What the Scramble Figures Show",
+      "start": 4,
+      "end": 6
+    },
+    {
+      "id": "reading-broader-activity",
+      "heading": "A Broader Picture of Chinese Military Activity",
+      "start": 7,
+      "end": 7
+    },
+    {
+      "id": "reading-evidence-limits",
+      "heading": "What the Evidence Can—and Cannot—Establish",
+      "start": 8,
+      "end": 10
+    }
+  ],
+  "approval": null
+}
