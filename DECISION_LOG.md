@@ -4,6 +4,25 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Owner: every Brief has a cover; Dylan card on the Japan Brief
+
+The owner reaffirmed that **every Brief, including historical Briefs, must
+have a cover image**. Carry the selected rights-checked photograph through
+the catalogue card and opened article. A fallback plate or text-led page
+handles missing/invalid media; it does not fulfill the cover requirement.
+Existing source-specific image holds are not blanket reuse permissions:
+use separately reviewed replacements where necessary. This Japan release
+does not expand into a historical cover backfill.
+
+For **Three Days of Chinese Flights, Six Months of Japanese Scrambles**, the
+owner requested Dylan Tanzi's author card and said everything else looked
+great, while requiring a cover before publication. Add his existing verified
+profile through the co-author-card pattern used for the Laos Brief. The
+manuscript's accepted prose, source references and six-month correction stay
+unchanged. Exact photograph selection, its paired crops and final modified
+credits remain concrete private review work; do not invent image approval or
+carry the earlier text-only fingerprint into the changed candidate.
+
 ## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
 
 The owner directed IPR engineering to stop creating serial audit gates and

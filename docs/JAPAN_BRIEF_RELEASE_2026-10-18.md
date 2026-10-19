@@ -3,18 +3,18 @@
 ## Exact candidate
 
 - Title: **Three Days of Chinese Flights, Six Months of Japanese Scrambles**.
-- Reporting window: October 11–17, 2026; author: Benjamin Yang, Founder &
-  Director of Research and Editorial. Dylan Tanzi supplied the language and
-  structure edits. This candidate grants no new co-author or research credit.
+- Reporting window: October 11–17, 2026; authors: Benjamin Yang and Dylan Tanzi.
+  The owner requested Dylan’s author card on October 18; his existing verified
+  profile is used through the same co-author-card pattern as the Laos Brief.
 - Canonical draft:
   `briefs/three-days-chinese-flights-six-months-japanese-scrambles.json`.
 - Reading structure: the same slug under `briefs/presentation/`.
 - DOCX SHA-256:
   `cdd99e61ec318733acb876606ef15ce02770fe0549878849b7e1a4096db02dcf`.
 - Editorial fingerprint:
-  `ba8614533bcb909351c7c06f583e7dfb1459b47b674020b9d8e925b96caaad82`.
+  `bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d`.
 - Presentation fingerprint:
-  `9c4faf4e3b4caf0efd068e8fd47ce0f362668874a6ad1026d567ef0b38b04f14`.
+  `b99dd14374548a88b3eb6e7c9d78a181f939a5bf18ec926cd7afe632e653d414`.
 
 The ten body paragraphs preserve the edited Word text. One repeated Liaoning
 coordination caveat was removed at the owner's direction. The owner expressly
@@ -24,10 +24,12 @@ to match the April–September statistical report. No other prose changed.
 
 The four headings supplied by Dylan are retained. The presentation additionally
 labels the opening paragraph **Overview**, as the existing section manifest
-requires a heading for every paragraph range. No finding/excerpt callout or
-photograph is introduced. Source-identifying phrases gain direct links without
+requires a heading for every paragraph range. No finding/excerpt callout is introduced. A separately verified DVIDS
+context photograph is now staged for private cover review. Source-identifying phrases gain direct links without
 changing their text; the existing numbered citations and seven-reference order
-are preserved. The ordinary text-led article/catalogue fallback applies.
+are preserved. The owner reaffirmed that every Brief requires a cover; a text-led
+fallback does not count as completed publication. The selected F-15DJ photo
+and its same-image catalogue crop are in the updated private review.
 
 ## Source-to-claim review
 
@@ -48,7 +50,9 @@ promotion or source-wide reuse licence. All seven URLs remain in the candidate.
 
 The publication is original English reporting/analysis with publisher links,
 not a republication of the Japanese documents or a translated source edition.
-No original PDF, map, photograph or logo from the sources is copied. Government
+No original PDF, map, photograph or logo from the seven manuscript sources
+is copied. The separate public-domain cover has its own source/terms receipt
+in `docs/evidence/japan-brief-cover-2026-10-18/`. Government
 publication alone is not treated as a blanket image or document reuse licence.
 The owner must accept this exact source/claim/limited-use assessment under the
 existing source-linked editorial exception in doctrine §5b. There is no new
@@ -63,9 +67,11 @@ Permit explicit JSON null only for a background reference and render it as
 and all existing approval/source/citation checks remain refused. No new schema,
 workflow, collector, model request, database operation or release gate is added.
 
-- 112 existing/focused tests pass across source-linked Briefs, presentation,
-  collection and presentation integration, including the new undated-reference
-  positive and negative case.
+- 225 relevant tests pass across the cover, paired photography, catalogue,
+  article media, source-linked Brief, presentation, collection and integration
+  contracts. The committed-cover tests now include a private unnumbered draft
+  without manufacturing a catalogue issue number. All source/rights negative
+  tests and the new undated-reference negative case remain.
 - The production renderer built the private candidate. Exact manuscript text,
   all inline URL associations, section ranges/headings/navigation and the
   undated display pass the shared fidelity checks.
@@ -77,7 +83,12 @@ workflow, collector, model request, database operation or release gate is added.
 - The final Word file was rendered again and all three pages inspected.
 - Tracked database SHA-256 remains
   `fc92686e891060dea518f34c3005476fbf4e7334a56bd880933ce85cb6f11e56`.
-  No tracked output changed. Exact-head full PR CI remains pending.
+  No tracked output changed. Initial full PR CI ran 7,522 tests: four failures and one error. Every failing
+  case reproduces on untouched main `765bbc9a822194e39deb6d75afa8aa4dd09332ca`: the
+  retired Friday writer’s comparison assertion and four record-title fixture
+  assertions. This is an independently confirmed release blocker, not a green
+  full suite. New exact-head CI is pending; no unrelated production code was
+  changed to hide these failures.
 
 ## Remaining release action
 
@@ -86,8 +97,11 @@ approval receipt. `author_brief.py ready` reports exactly the absent human
 editorial/source/rights review and owner source-linked policy ruling. The
 presentation also needs its existing exact-content approval at numbering time.
 
-After the owner reviews the concrete preview and accepts this manuscript,
-source-use assessment, presentation and publication, record the actual response
+The owner said the manuscript/presentation looked great, while requesting
+Dylan’s author card and a cover. Those additions are now concrete. The only
+remaining editorial choice is the exact proposed photograph, its context
+caption and paired crop; do not ask the owner to repeat the accepted prose
+review. Record the actual final acceptance
 against the fingerprints above. Use the existing locked numbering command to
 assign the next available number; do not assume No. 19. Regenerate with the
 production renderer, validate, review the output diff and exact-head CI, then
