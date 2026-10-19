@@ -1,0 +1,113 @@
+{
+ "aborted": null,
+ "access_failures": 0,
+ "cap": 100,
+ "collector_commit": "e92dcef2bdfb6966a9c9987996bf03840ae1d2b9",
+ "collector_identity": "IndoPacificRecord-ShadowCollector/0.1 (+https://indopacificrecord.org/about.html; research archive collector; contact via site)",
+ "content_hash_shared_groups": 0,
+ "content_hashes": [
+  "a4fb4d2a4a4d68153fc1ab6241e975f8b332f73f1452a3101f27d00978277b49",
+  "22890f3027d72074ef43dce92aa64bf0f01b41f6f9719f6f8c8f9212f864b2e2",
+  "53c35ee1109eea8f516df3e19d174e2978944a1b18afcd9805a84c4229546bd5"
+ ],
+ "corpus_range": [
+  "2026-09-25",
+  "2026-10-18"
+ ],
+ "day_zero_utc": "2026-10-07T13:51:44+00:00",
+ "desk": "ph-afp",
+ "discovered": 23,
+ "duplicates": 20,
+ "error_detail": null,
+ "extraction_failures": 0,
+ "failure_log": [],
+ "fetch_failures": 0,
+ "finished_utc": "2026-10-19T13:54:40+00:00",
+ "health": "ok",
+ "identity_collisions": 0,
+ "inserted": 3,
+ "inserted_no_text": 0,
+ "listing_status": "ok",
+ "lookback_days": 14,
+ "observed": {
+  "api_reported_count": 1109,
+  "api_robots_observation": {
+   "final_url": "https://api.afp.mil.ph/robots.txt",
+   "headers": {
+    "Content-Type": "text/html; charset=utf-8",
+    "X-Robots-Tag": "noindex, nofollow"
+   },
+   "http_status": 404,
+   "payload_bytes": 179,
+   "payload_retained": true,
+   "payload_sha256": "5547992afdadb59737c5c0feb1a35dff294cd27145bf290c031737ecf8a2577d",
+   "requested_url": "https://api.afp.mil.ph/robots.txt",
+   "retrieved_at": "2026-10-19T13:53:19+00:00"
+  },
+  "api_robots_status": 404,
+  "api_x_robots_tag": "noindex, nofollow",
+  "count_mismatch": false,
+  "list_pages": 12,
+  "listed_date_max": "2026-10-18",
+  "listed_date_min": "2021-01-21",
+  "listed_items": 1109,
+  "listing_end": "next_null",
+  "listing_http_status": 200,
+  "listing_payload_sha256": "d3a90587890f414677a49f2769b5bb841bfe69704523e17956745eb5f8c431c5",
+  "listing_url": "https://api.afp.mil.ph/articles/?page=12&page_size=100",
+  "same_title_same_date_groups": 9,
+  "www_robots_observation": {
+   "final_url": "https://www.afp.mil.ph/robots.txt",
+   "headers": {
+    "Content-Type": "text/plain"
+   },
+   "http_status": 200,
+   "payload_bytes": 45,
+   "payload_retained": true,
+   "payload_sha256": "befa30284d46cf89ba3ab58ba65af7e987be472e9efcdd368c98cea0530e378b",
+   "requested_url": "https://www.afp.mil.ph/robots.txt",
+   "retrieved_at": "2026-10-19T13:53:15+00:00",
+   "text": "User-agent: *\nAllow: /\nSitemap: /sitemap.xml\n"
+  },
+  "www_robots_status": 200
+ },
+ "redirect_refusals": 0,
+ "rehearsal": false,
+ "rejected_total": 1086,
+ "rejections": {
+  "beyond_cap": 0,
+  "duplicate_in_list": 0,
+  "identity_mismatch": 0,
+  "invalid_slug": 0,
+  "missing_id": 0,
+  "missing_pubdate": 0,
+  "missing_title": 0,
+  "non_press_category": 2,
+  "not_published": 0,
+  "outside_window": 1084,
+  "unparseable_pubdate": 0
+ },
+ "request_evidence": {
+  "path": "evidence/39263923199-1.json",
+  "requests": 37,
+  "sha256": "34260a5bf16c507efdd714e84a3e5f365c0d5093f687d64faa2bb9cb65a2cec7"
+ },
+ "result": "ok",
+ "retrieved": 23,
+ "revision_watch_days": 14,
+ "revisions": 0,
+ "robots_status": "allowed",
+ "run_id": "39263923199-1",
+ "sample_limit": null,
+ "sample_unselected": 0,
+ "selected": 23,
+ "shadow_day": 12,
+ "skipped_held": 0,
+ "started_utc": "2026-10-19T13:53:14+00:00",
+ "state_sha256_after": "20361650942064896be49b75638b6b1487ca72850fa324a1923627b03ff3ac4a",
+ "state_sha256_before": "2acbac63b2da453dbc6cf16ac15f68869eee3ff1e29adda02fa50b949ef9bab1",
+ "stored_total": 32,
+ "stored_with_text": 28,
+ "target_date": "2026-10-19",
+ "target_date_source": "schedule-slot"
+}
