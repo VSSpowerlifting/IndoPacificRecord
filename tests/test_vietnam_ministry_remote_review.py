@@ -167,6 +167,33 @@ class RemoteReview(unittest.TestCase):
         for slug in remote.SOURCES:
             self.assertNotEqual(remote.git(["rev-parse", "--verify", "HEAD"], self.repos / slug, check=False).returncode, 0)
 
+    def test_failed_recovery_download_ignores_partial_set_and_keeps_moit_independent(self):
+        text = (Path(remote.REPO) / '.github/workflows/vietnam_ministry_shadow.yml').read_text()
+        self.assertIn('MPS_RECOVERY_OUTCOME: ${{ steps.mps_recovery.outcome }}', text)
+        start = text.index('          if [ -n "${MPS_RECOVERY_ATTEMPTS:-}" ]; then')
+        end = text.index('          python scripts/vietnam_ministry_remote.py', start)
+        partial = self.root / 'vn-mps-recovery-zips'
+        partial.mkdir()
+        (partial / '1234567-1.zip').write_bytes(b'partial download')
+        import os
+        env = dict(os.environ, RUNNER_TEMP=str(self.root), MPS_RECOVERY_ATTEMPTS='1234567-1',
+                   MPS_RECOVERY_OUTCOME='failure')
+        script = 'set -eu\nset --\n' + text[start:end] + '\nprintf "%s\\n" "$@"'
+        args = subprocess.check_output(['bash', '-c', script], env=env, text=True).splitlines()
+        self.assertEqual(args[0], '--mps-recovery-zips')
+        self.assertNotEqual(Path(args[1]), partial)
+        self.assertFalse(Path(args[1]).exists())
+        successful = []
+        def collector(state, slug, *args, **kwargs):
+            if slug == MPS:
+                return collect(state, slug, *args, adapter=adapter(MPS), **kwargs)
+            return self.collector(state, slug, *args, **kwargs)
+        with self.assertRaisesRegex(ValueError, MPS):
+            remote.run_batch(self.repos, self.gate, date(2026,10,5), date(2026,9,30),
+                0, 2, 'recovery-failed', COMMIT, collector, successful_sources=successful,
+                mps_recovery_dir=Path(args[1]), api=object())
+        self.assertEqual(successful, [ENERGY, INDUSTRY])
+
     def test_one_failed_source_does_not_block_verified_sibling_state(self):
         successful = []
         def mixed(state, slug, *args, **kwargs):

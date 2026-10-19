@@ -67,6 +67,7 @@ jobs:
         run: python -m unittest tests.test_vietnam_ministry_remote_review -q
 
       - name: Download explicitly selected MPS recovery snapshots
+        id: mps_recovery
         if: github.event_name == 'workflow_dispatch' && inputs.mps_recovery_attempts != ''
         working-directory: repo
         continue-on-error: true
@@ -112,6 +113,7 @@ jobs:
         env:
           TARGET_DATE: ${{ inputs.target_date }}
           MPS_RECOVERY_ATTEMPTS: ${{ inputs.mps_recovery_attempts }}
+          MPS_RECOVERY_OUTCOME: ${{ steps.mps_recovery.outcome }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -127,7 +129,13 @@ jobs:
             *) exit 1 ;;
           esac
           if [ -n "${MPS_RECOVERY_ATTEMPTS:-}" ]; then
-            set -- "$@" --mps-recovery-zips "${RUNNER_TEMP}/vn-mps-recovery-zips"
+            if [ "$MPS_RECOVERY_OUTCOME" = success ]; then
+              set -- "$@" --mps-recovery-zips "${RUNNER_TEMP}/vn-mps-recovery-zips"
+            else
+              # Never use a partially downloaded recovery set. Only MPS holds;
+              # the independent MOIT families must still be attempted.
+              set -- "$@" --mps-recovery-zips "${RUNNER_TEMP}/vn-mps-recovery-download-failed"
+            fi
           fi
           python scripts/vietnam_ministry_remote.py \
             --root "${RUNNER_TEMP}/vn-ministry-state" \
