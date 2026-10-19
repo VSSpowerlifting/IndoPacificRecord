@@ -271,7 +271,9 @@ class ThemeSundayHandoffTests(unittest.TestCase):
             } for ident in (1, 2)
         }
         bad = valid_manuscript()
-        bad["citations"]["cross_desk_comparison"] = [1]
+        # An invented source ID still fails closed after exactly one paid
+        # owner-themed model attempt; one valid cited desk no longer fails.
+        bad["citations"]["cross_desk_comparison"] = [999]
         response = SimpleNamespace(stop_reason="tool_use",
             content=[SimpleNamespace(type="tool_use",
                                      name="compose_editorial_draft", input=bad)])
@@ -283,7 +285,7 @@ class ThemeSundayHandoffTests(unittest.TestCase):
                     "desks": ["china", "singapore"], "source_trail": []}
         with patch("scripts.sunday_briefs_auto_writer.choose_evidence",
                    return_value=evidence()):
-            with self.assertRaisesRegex(ValueError, "both desks"):
+            with self.assertRaisesRegex(ValueError, "source ids"):
                 compose(scaffold, SAT, client=fake, selected_theme=directive,
                         reviewed_synopses=synopsis)
         self.assertEqual(len(calls), 1)

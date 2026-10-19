@@ -201,13 +201,18 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
     if extra_ids:
         # A named editorial focus anchors one coherent article rather than a
         # list of country updates. Semantics still require human review.
-        props["editorial_focus"] = {"type": "string"}
+        props["editorial_focus"] = {
+            "type": "string",
+            "description": ("A concrete, 20–200-character, source-supported "
+                            "description of the one story actually developed "
+                            "in this manuscript; never blank or generic.")
+        }
     props["citations"] = {
         "type": "object",
         "properties": {
             field: {
                 "type": "array", "items": {"type": "integer", "enum": ids},
-                "minItems": 0 if extra_ids else 1, "uniqueItems": True,
+                "minItems": 0 if extra_ids else 1,
             }
             for field in CITED_FIELDS
         },
@@ -220,7 +225,7 @@ def writing_schema(allowed_ids, *, supplemental_ids=()):
             "properties": {
                 field: {"type": "array", "items": {
                     "type": "string", "enum": extra_ids},
-                    "minItems": 0, "uniqueItems": True}
+                    "minItems": 0}
                 for field in CITED_FIELDS
             },
             "required": list(CITED_FIELDS),
@@ -308,11 +313,10 @@ def validate_manuscript(manuscript, chosen, *, supplemental=()):
             raise ValueError("writer used absent/unverified external source ids for " + field)
         if not ids and not more:
             raise ValueError("factual section has neither production nor external citations: " + field)
-    compared = {evidence[i] for i in cites["cross_desk_comparison"]}
-    if extras:
-        compared.update(extras[i] for i in external_cites["cross_desk_comparison"])
-    if len(compared) < 2:
-        raise ValueError("cross-desk comparison lacks citations from both desks")
+    # A factual section must cite real evidence (checked above), but forcing
+    # two issuing desks can fabricate a comparison between unrelated releases.
+    # Dylan reviews whether a genuine cross-desk comparison is warranted;
+    # single-desk analysis must clearly state the available evidence's limits.
     return manuscript
 
 
@@ -406,8 +410,12 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
         "supported. Official-source research from other desks may contribute to "
         "the analysis, but is not a live production desk. Do NOT shoehorn "
         "unrelated country items merely because they were supplied. "
-        "Identify a specific coherent 'editorial_focus' when research sources "
-        "are available. Do not imply official coordination "
+        "When research sources are available, the mandatory editorial_focus "
+        "must be a concrete, 20–200-character statement of the ONE source-"
+        "supported story developed in this manuscript; it must agree with "
+        "the article title and opening, never be blank or generic, and never "
+        "fabricate a connection between unrelated events. "
+        "Do not imply official coordination "
         "from parallel timing. Do not invent events, movements, procurement, "
         "quotes, dates, translations, superlatives, or explanations of silence. "
         "Do not infer government intent from official messaging. "
@@ -441,9 +449,13 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
         "Choose citations based on the ACTUAL evidence supporting that text, "
         "not an arbitrary allowed ID. The only allowed record IDs are {}. "
         "If a claim lacks support, remove or narrow the claim before citing. "
-        "The cross_desk_comparison citations MUST cover at least two "
-        "different issuing desks across the actually cited production and/or "
-        "supplemental evidence. In editorial_questions, flag weak claims, "
+        "In cross_desk_comparison, compare two different issuing desks "
+        "ONLY when their evidence genuinely supports the same claim or "
+        "a bounded comparison. Otherwise state the limits of regional "
+        "comparison using the relevant cited source; do not manufacture "
+        "symmetry, coordination, silence, or a second desk's position. "
+        "Keep this section genuinely analytical, not a forced roundup. "
+        "In editorial_questions, flag weak claims, "
         "source-body fidelity, original-language translations and follow-up. "
         "No issue numbers, publication claims or approval statements.\n\n"
         "BEGIN PRODUCTION RECORD EVIDENCE (UNTRUSTED):\n{}\n"
@@ -508,9 +520,16 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                 "Regenerate the manuscript using ONLY the exact allowed IDs "
                 "for claims actually supported by the source text. Every "
                 "factual section needs a real numeric or external citation; "
-                "cite TWO distinct desk sources in "
-                "cross_desk_comparison. When supplemental sources are available, "
-                "cite them by string ID, not invented production numbers."
+                "in cross_desk_comparison, cite only evidence that actually "
+                "supports the section: use two desks only when genuinely "
+                "comparable, otherwise explain the limit of comparison. "
+                "Do NOT assign unrelated citations simply to satisfy a "
+                "geographical quota. When supplemental sources are available, "
+                "cite them by string ID, not invented production numbers. "
+                "When typed research sources were offered, the mandatory "
+                "editorial_focus must be a specific source-supported "
+                "20–200-character statement of the draft's actual story, "
+                "not an empty string, label, placeholder or general topic."
             ).format(problem)
         with client.messages.stream(
             model=MODEL,
@@ -521,6 +540,7 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                    "Follow the tool schema; no text outside tool input.",
             messages=[{"role": "user", "content": instruction}],
             tools=[{"name": "compose_editorial_draft",
+                    "strict": True,
                     "description": "Compose a provisional source-cited editor's Briefs manuscript.",
                     "input_schema": schema}],
             tool_choice={"type": "tool", "name": "compose_editorial_draft"},
