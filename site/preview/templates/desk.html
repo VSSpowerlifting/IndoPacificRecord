@@ -37,7 +37,7 @@
     <li data-regional-official-source-id="{{ ref.source_identity }}">
       <h3><a href="{{ ref.canonical_official_url }}" target="_blank"
              rel="noopener noreferrer">{{ ref.label }}</a></h3>
-      <p class="meta">Publisher: {{ ref.publisher_label if desk.slug == 'vietnam' else ('Armed Forces of the Philippines' if desk.slug == 'philippines' else 'Indonesian Ministry of Defense — Berita') }}
+      <p class="meta">Publisher: {{ ref.publisher_label }}
         · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time>
         · Official-link metadata only</p>
     </li>

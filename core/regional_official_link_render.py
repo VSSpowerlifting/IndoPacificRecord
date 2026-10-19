@@ -1,4 +1,4 @@
-"""Read-only HTML presentation of actually admitted AFP/Kemhan official links.
+"""Read-only HTML presentation of actually admitted regional official links.
 
 This renderer never reads original headlines, bodies, translations or model
 text. It never infers live status from a candidate packet or empty table.
@@ -26,6 +26,12 @@ NEUTRAL_LABELS = {
     "ph_afp_articles": "AFP official source",
     "id_kemhan_news": "Kemhan Berita official source",
 }
+PUBLISHER_LABELS = {
+    "ph_afp_articles": "Armed Forces of the Philippines",
+    "id_kemhan_news": "Indonesian Ministry of Defense — Berita",
+}
+NSC_LABEL = "NSC official statement"
+NSC_PUBLISHER_LABEL = "National Security Council"
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 SHA40 = re.compile(r"[a-f0-9]{40}\Z")
 
@@ -88,7 +94,52 @@ def read_live_links(conn: sqlite3.Connection, desk: str):
             "canonical_official_url": url,
             "publisher_posted_date": day,
             "label": NEUTRAL_LABELS[family],
+            "publisher_label": PUBLISHER_LABELS[family],
         })
+    if desk == "philippines":
+        # NSC shares the Philippines desk under its own family and checks; it
+        # never borrows AFP's issuer, labels or standing approval.
+        result = sorted(result + _read_nsc_links(conn, unique_ids, unique_urls),
+                        key=lambda r: r["source_identity"])
+        result.sort(key=lambda r: r["publisher_posted_date"], reverse=True)
+    return result
+
+
+def _read_nsc_links(conn, unique_ids, unique_urls):
+    from core.ph_nsc_official_link_admission import (
+        FAMILY, PUBLISHER, canonical_permalink, load_policy,
+    )
+    records = conn.execute(
+        "SELECT source_identity,canonical_official_url,publisher_posted_date,"
+        "official_issuer,official_publisher,official_republisher,"
+        "source_git_commit,metadata_version_sha256,release_proof_sha256,"
+        "release_scope FROM regional_official_source_links "
+        "WHERE desk='philippines' AND source_family=? "
+        "ORDER BY publisher_posted_date DESC,source_identity ASC",
+        (FAMILY,),
+    ).fetchall()
+    if not records:
+        return []
+    # A row admitted while a source-use hold stood is not a reason to show it.
+    need(load_policy()["category_anomaly_resolved"] is True, "nsc_source_use_hold")
+    result = []
+    for (ident, url, day, issuer, publisher, republisher, git_sha,
+         meta_sha, proof_sha, scope) in records:
+        need(issuer is None and publisher == PUBLISHER and republisher is None
+             and type(git_sha) is str and SHA40.fullmatch(git_sha) is not None
+             and type(meta_sha) is str and SHA256.fullmatch(meta_sha) is not None
+             and type(proof_sha) is str and SHA256.fullmatch(proof_sha) is not None
+             and scope == "official_link_only",
+             "published_reference_missing_authenticity")
+        need(type(ident) is str and type(url) is str and type(day) is str
+             and canonical_permalink(ident, url, day),
+             "nsc_reference_not_canonical")
+        need(ident not in unique_ids and url not in unique_urls,
+             "duplicate_published_source_reference")
+        unique_ids.add(ident); unique_urls.add(url)
+        result.append({"source_identity": ident, "canonical_official_url": url,
+                       "publisher_posted_date": day, "label": NSC_LABEL,
+                       "publisher_label": NSC_PUBLISHER_LABEL})
     return result
 
 
@@ -125,7 +176,7 @@ def render_live_links(conn: sqlite3.Connection, desk: str) -> str:
     rows = read_live_links(conn, desk)
     if not rows:
         return ""
-    label = {"philippines": "Philippines AFP", "indonesia": "Indonesia Kemhan",
+    label = {"philippines": "Philippines AFP and NSC", "indonesia": "Indonesia Kemhan",
              "vietnam": "Vietnam ministries"}[desk]
     lines = [
         '<section class="regional-official-source-links" '

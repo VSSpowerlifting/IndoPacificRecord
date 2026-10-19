@@ -341,5 +341,81 @@ class Migration(unittest.TestCase):
         self.assertTrue(m14.is_already_applied(cx))
 
 
+class Render(NscCase):
+    """The Philippines desk rail reads AFP and NSC under separate checks."""
+
+    def setUp(self):
+        super().setUp()
+        from tests.test_regional_official_link_render import insert
+        insert(self.cx)
+        _, sha = self.collect()
+        nsc.admit(self.cx, self.packet(sha), policy=STANDING, as_of_utc=NOW)
+
+    def read(self, pol=RESOLVED, desk="philippines"):
+        from core.regional_official_link_render import read_live_links
+        with mock.patch.object(nsc, "load_policy", return_value=pol):
+            return read_live_links(self.cx, desk)
+
+    def test_afp_and_nsc_rows_render_with_their_own_attribution(self):
+        rows = self.read()
+        self.assertEqual([r["source_identity"] for r in rows],
+                         ["afp:1499", "nsc:3108", "nsc:2269"])
+        days = [r["publisher_posted_date"] for r in rows]
+        self.assertEqual(days, sorted(days, reverse=True))
+        afp, *statements = rows
+        self.assertEqual((afp["label"], afp["publisher_label"]),
+                         ("AFP official source", "Armed Forces of the Philippines"))
+        for r in statements:
+            self.assertEqual((r["label"], r["publisher_label"]),
+                             ("NSC official statement", "National Security Council"))
+            self.assertTrue(r["canonical_official_url"].startswith("https://nsc.gov.ph/"))
+            self.assertEqual(set(r), {"source_identity", "canonical_official_url",
+                                      "publisher_posted_date", "label", "publisher_label"})
+
+    def test_rows_admitted_under_a_hold_never_render(self):
+        with self.assertRaisesRegex(ValueError, "nsc_source_use_hold"):
+            self.read(pol=CLOSED)
+
+    def test_without_nsc_rows_the_afp_rail_needs_no_nsc_policy(self):
+        self.cx.execute("DELETE FROM " + base.TABLE + " WHERE source_family=?", (nsc.FAMILY,))
+        with mock.patch.object(nsc, "load_policy", side_effect=AssertionError("read")):
+            from core.regional_official_link_render import read_live_links
+            rows = read_live_links(self.cx, "philippines")
+        self.assertEqual([r["source_identity"] for r in rows], ["afp:1499"])
+
+    def test_permalink_date_drift_holds_the_page(self):
+        self.cx.execute("UPDATE " + base.TABLE + " SET publisher_posted_date='2026-07-01' "
+                        "WHERE source_identity='nsc:3108'")
+        with self.assertRaisesRegex(ValueError, "nsc_reference_not_canonical"):
+            self.read()
+
+    def test_attribution_drift_holds_the_page(self):
+        # Bypass the CHECK on this in-memory index only to prove the renderer
+        # independently refuses a row the schema should never have held.
+        self.cx.execute("PRAGMA ignore_check_constraints=1")
+        self.cx.execute("UPDATE " + base.TABLE + " SET official_issuer='ph_afp' "
+                        "WHERE source_identity='nsc:3108'")
+        self.cx.execute("PRAGMA ignore_check_constraints=0")
+        with self.assertRaisesRegex(ValueError, "published_reference_missing_authenticity"):
+            self.read()
+
+    def test_other_desks_never_see_nsc_rows(self):
+        self.assertEqual(self.read(desk="indonesia"), [])
+
+    def test_readback_validates_the_combined_rail(self):
+        from scripts.verify_regional_source_index_readback import validate_page
+        rows = self.read()
+        items = "".join(
+            '<li data-regional-official-source-id="%s"><h3><a href="%s" '
+            'rel="noopener noreferrer">%s</a></h3><time datetime="%s">%s</time></li>'
+            % (r["source_identity"], r["canonical_official_url"], r["label"],
+               r["publisher_posted_date"], r["publisher_posted_date"]) for r in rows)
+        page = ('<section class="regional-official-live-links" '
+                'data-source-scope="official-link-only"><ol>%s</ol></section>' % items)
+        self.assertEqual(validate_page(page, rows), 3)
+        with self.assertRaisesRegex(ValueError, "count_disagrees"):
+            validate_page(page, rows[:1])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -93,6 +93,25 @@ def _git(args, cwd):
                           capture_output=True).stdout
 
 
+def permalink_date(url):
+    """The date an NSC permalink states, or None for any other URL shape."""
+    if type(url) is not str or not url.startswith("https://nsc.gov.ph/"):
+        return None
+    m = PERMALINK_RE.match(url[len("https://nsc.gov.ph"):])
+    if m is None:
+        return None
+    try:
+        return date(*map(int, m.groups()[:3])).isoformat()
+    except ValueError:
+        return None
+
+
+def canonical_permalink(ident, url, day):
+    """Render-time recheck: canonical HTTPS permalink whose path date is `day`."""
+    return (type(ident) is str and IDENTITY.match(ident) is not None
+            and canonical_url(url) == url and permalink_date(url) == day)
+
+
 def load_policy(path=POLICY_PATH):
     policy = json.loads(Path(path).read_text(encoding="utf-8"))
     _hold(type(policy) is dict and set(policy) == POLICY_KEYS
@@ -205,8 +224,7 @@ def replay_state(state_dir, source_commit, source_ref):
         x = doc.extra
         _hold(x["source_identity"] == r["source_identity"], "nsc_identity_changed")
         _hold(x["content_sha256"] == r["content_sha256"], "nsc_content_changed")
-        permalink = "-".join(PERMALINK_RE.match(url[len("https://nsc.gov.ph"):]).groups()[:3])
-        _hold(doc.published_date == r["published_date"] == permalink
+        _hold(doc.published_date == r["published_date"] == permalink_date(url)
               and x["published_at_utc"] == r["published_at_utc"],
               "nsc_date_discrepancy")
         run = runs.get(r["first_seen_run"])
