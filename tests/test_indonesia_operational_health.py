@@ -1,6 +1,7 @@
 """Synthetic read-only tests for Indonesia's daily operational canary."""
 import copy
 import json
+import re
 import tempfile
 import unittest
 from datetime import date, datetime, timezone
@@ -187,12 +188,16 @@ class OperationalCanaryTests(unittest.TestCase):
         # Isolate the historical zero-admission fixture before inserting the
         # synthetic rail under test. Main may now contain real admitted links;
         # leaving them here makes each negative case validate that other rail.
-        from bs4 import BeautifulSoup
-        fixture = BeautifulSoup(shadow, "html.parser")
-        for section in fixture.select('section.regional-official-live-links'):
-            section.decompose()
-        fixture.select_one('.status-panel h2').string = "Shadow evaluation — no public corpus records"
-        shadow = str(fixture)
+        # This workflow deliberately runs with the standard library only.
+        shadow = re.sub(
+            r'<section class="desk-references regional-official-live-links"\s.*?</section>',
+            '', shadow, flags=re.DOTALL)
+        shadow, headings = re.subn(
+            r'(<div class="status-panel[^>]*>.*?<h2>).*?(</h2>)',
+            r'\g<1>Shadow evaluation — no public corpus records\2',
+            shadow, count=1, flags=re.DOTALL)
+        self.assertEqual(headings, 1)
+        self.assertFalse('data-regional-official-source-id=' in shadow)
         self.assertEqual(check_public_page_text(shadow), 17)
         path = "/2026/10/16/menhan-contoh-berita.html"
         def item(path=path, href=None, shown="2026-10-16"):
