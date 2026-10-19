@@ -1,0 +1,81 @@
+{
+  "candidate_sha256": "93224b092f9a4e2eaa12247e224a4c3c06f2ae559b21a1185e398d749136201a",
+  "source_git_commit": "cb607582eda7bd8760663540c33de2f73da411ff",
+  "status": "held_for_independent_original_language_source_use_and_custody_review",
+  "proposed_source_identities": [
+    "mps-vi:1791199100",
+    "mps-vi:1791199677",
+    "mps-vi:1791971146"
+  ],
+  "records": [
+    {
+      "source_family": "vn_mps_foreign_affairs_vi",
+      "source_identity": "mps-vi:1791199100",
+      "desk": "vietnam",
+      "canonical_official_url": "https://bocongan.gov.vn/bai-viet/mo-rong-hop-tac-cong-nghe-cong-nghiep-an-ninh-voi-cac-doi-tac-tho-nhi-ky-1791199100",
+      "publisher_posted_date": "2026-10-05",
+      "official_issuer": "vn_mps",
+      "official_publisher": "vn_mps",
+      "official_republisher": null,
+      "source_git_commit": "cb607582eda7bd8760663540c33de2f73da411ff",
+      "first_seen_run": "37656171920-2",
+      "content_sha256": "dcd9bf2a81c8adab834ae1d1790178b445d67fd6549a2080356cc2444b176b0e",
+      "capture_sha256": "3c2655abac2130a196dee00c9375a9434d8b347eaf526b7a9ef1c632414f9837",
+      "version_first_seen_run": "37656171920-2",
+      "collector_commit": "2c21b0d091ffc288b1a106d5459d758aaaac6ff5",
+      "collection_target_source": "explicit",
+      "rss_instant_utc": "2026-10-05T10:13:46+00:00",
+      "metadata_version_sha256": "150e2fe55b9219f620c323da8f23426073093e3d7ad41114fa279077be8e1973"
+    },
+    {
+      "source_family": "vn_mps_foreign_affairs_vi",
+      "source_identity": "mps-vi:1791199677",
+      "desk": "vietnam",
+      "canonical_official_url": "https://bocongan.gov.vn/bai-viet/cu-the-hoa-hop-tac-dao-tao-nghien-cuu-cong-nghe-an-ninh-voi-dai-hoc-concordia-1791199677",
+      "publisher_posted_date": "2026-10-05",
+      "official_issuer": "vn_mps",
+      "official_publisher": "vn_mps",
+      "official_republisher": null,
+      "source_git_commit": "cb607582eda7bd8760663540c33de2f73da411ff",
+      "first_seen_run": "37656171920-2",
+      "content_sha256": "c5d67c01fd96a6fb3d453e0d21ada152a69761b8163a512dd27ed8f8b9676691",
+      "capture_sha256": "54327544e9e3c01380bf3c3fe56654075294f3f65ea9d613c0ffe299a09a1c12",
+      "version_first_seen_run": "37656171920-2",
+      "collector_commit": "2c21b0d091ffc288b1a106d5459d758aaaac6ff5",
+      "collection_target_source": "explicit",
+      "rss_instant_utc": "2026-10-05T11:18:25+00:00",
+      "metadata_version_sha256": "d2f45c5e6fa80185019fcec8ca4a6dd42c3857e5e0ab026aaac08b69e74ea3bc"
+    },
+    {
+      "source_family": "vn_mps_foreign_affairs_vi",
+      "source_identity": "mps-vi:1791971146",
+      "desk": "vietnam",
+      "canonical_official_url": "https://bocongan.gov.vn/bai-viet/thuc-day-hop-tac-quoc-te-ve-an-ninh-mang-va-chuyen-doi-so-1791971146",
+      "publisher_posted_date": "2026-10-14",
+      "official_issuer": "vn_mps",
+      "official_publisher": "vn_mps",
+      "official_republisher": null,
+      "source_git_commit": "cb607582eda7bd8760663540c33de2f73da411ff",
+      "first_seen_run": "38642138299-1",
+      "content_sha256": "bd9cf870ce1e95e8b0e55f37f1ef070c8d8446776838d0b8f0c4fee21e7b07df",
+      "capture_sha256": "6e684e939bd29fccfd43eb01ff037fa7faa70a807949a172408ae4378949ae93",
+      "version_first_seen_run": "38642138299-1",
+      "collector_commit": "6c5a9bce2324e684572e3e808fb0622b99f326c3",
+      "collection_target_source": "schedule-slot",
+      "rss_instant_utc": "2026-10-14T09:41:07+00:00",
+      "metadata_version_sha256": "596fff999e7eda63975cf24544fed4c7487d19aef38951d0f8f70462a9f7b8f3"
+    }
+  ],
+  "decisions": {
+    "private_capture": "existing_shadow_authority_only",
+    "outbound_official_linking": "pending_exact_review",
+    "public_factual_metadata": "pending_exact_review",
+    "titles": "not_authorized_by_this_packet",
+    "full_bodies": "not_authorized_by_this_packet",
+    "translations": "not_authorized_by_this_packet",
+    "external_model_use": "not_authorized_by_this_packet",
+    "images": "not_authorized_by_this_packet"
+  },
+  "production_release_authorized": false,
+  "protected_custody_verified": false
+}

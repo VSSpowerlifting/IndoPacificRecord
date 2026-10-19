@@ -10,11 +10,27 @@ on:
     - cron: '17 18 * * *'
   workflow_dispatch:
     inputs:
+      operation:
+        type: choice
+        default: collect
+        options: [collect, reviewed-release]
       target_date:
         description: >-
           Explicit logical date YYYY-MM-DD for recovery. Do not use the Actions
           re-run button for a failed scheduled slot.
-        required: true
+        required: false
+      mps_recovery_attempts:
+        description: 'Optional failed scheduled run-attempt IDs, space separated (max six); MPS RSS only'
+        required: false
+      expected_main:
+        description: 'Reviewed release only: exact main commit authorized by the owner'
+        required: false
+      source_commit:
+        description: 'Reviewed release only: exact reviewed MPS evidence commit'
+        required: false
+      decision_name:
+        description: 'Reviewed release only: committed config/vietnam_link_releases/<name>.json'
+        required: false
 
 concurrency:
   group: vietnam-ministry-shadow
@@ -25,11 +41,12 @@ permissions:
 
 jobs:
   shadow:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.operation != 'reviewed-release'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: write
+      actions: read
     steps:
       - name: Check out exact collector
         uses: actions/checkout@v4
@@ -49,6 +66,18 @@ jobs:
       - name: Run Vietnam ministry offline contracts
         working-directory: repo
         run: python -m unittest tests.test_vietnam_ministry_remote_review -q
+
+      - name: Download explicitly selected MPS recovery snapshots
+        id: mps_recovery
+        if: github.event_name == 'workflow_dispatch' && inputs.mps_recovery_attempts != ''
+        working-directory: repo
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_ATTEMPTS: ${{ inputs.mps_recovery_attempts }}
+        run: |
+          python -m scripts.vietnam_mps_rss_history --attempts "$RECOVERY_ATTEMPTS" \
+            --out-dir "${RUNNER_TEMP}/vn-mps-recovery-zips"
 
       - name: Prepare isolated initialized state checkouts
         env:
@@ -84,6 +113,9 @@ jobs:
         working-directory: repo
         env:
           TARGET_DATE: ${{ inputs.target_date }}
+          MPS_RECOVERY_ATTEMPTS: ${{ inputs.mps_recovery_attempts }}
+          MPS_RECOVERY_OUTCOME: ${{ steps.mps_recovery.outcome }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           case "$GITHUB_EVENT_NAME" in
@@ -97,6 +129,15 @@ jobs:
               ;;
             *) exit 1 ;;
           esac
+          if [ -n "${MPS_RECOVERY_ATTEMPTS:-}" ]; then
+            if [ "$MPS_RECOVERY_OUTCOME" = success ]; then
+              set -- "$@" --mps-recovery-zips "${RUNNER_TEMP}/vn-mps-recovery-zips"
+            else
+              # Never use a partially downloaded recovery set. Only MPS holds;
+              # the independent MOIT families must still be attempted.
+              set -- "$@" --mps-recovery-zips "${RUNNER_TEMP}/vn-mps-recovery-download-failed"
+            fi
+          fi
           python scripts/vietnam_ministry_remote.py \
             --root "${RUNNER_TEMP}/vn-ministry-state" \
             --gate-dir "${RUNNER_TEMP}/vn-ministry-host-gate" \
@@ -160,3 +201,119 @@ jobs:
             ${{ runner.temp }}/vn-ministry-successful-sources
           if-no-files-found: warn
           retention-days: 90
+
+  reviewed-release:
+    # Inert until actual source/custody review, a sealed decision and owner release.
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.operation == 'reviewed-release' &&
+      github.ref == 'refs/heads/main' && vars.VIETNAM_MPS_RELEASE_ENABLED == 'true'
+    concurrency:
+      group: daily-update
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Require exact owner-selected release and independent key
+        env:
+          EXPECTED_MAIN: ${{ inputs.expected_main }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          DECISION_NAME: ${{ inputs.decision_name }}
+          VIETNAM_LINK_REVIEW_KEY: ${{ secrets.VIETNAM_LINK_REVIEW_KEY }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,re,subprocess
+          from pathlib import Path
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==os.environ['EXPECTED_MAIN']
+          assert re.fullmatch('[0-9a-f]{40}',os.environ['SOURCE_COMMIT'])
+          assert re.fullmatch('[a-z0-9-]{1,80}',os.environ['DECISION_NAME'])
+          p=Path('config/vietnam_link_releases')/(os.environ['DECISION_NAME']+'.json')
+          assert p.is_file() and not p.is_symlink()
+          assert len(os.environ['VIETNAM_LINK_REVIEW_KEY'].encode())>=32
+          PY
+          test -z "$(git status --porcelain --untracked-files=all)"
+          sha256sum pla_watch.db > "$RUNNER_TEMP/vn-db.sha"
+      - run: pip install -r requirements.txt
+      - name: Clone immutable reviewed source history
+        run: |
+          git clone --quiet --single-branch --branch shadow/vietnam-mps-foreign-affairs \
+            https://github.com/VSSpowerlifting/IndoPacificRecord.git "$RUNNER_TEMP/vn-release-source"
+      - name: Validate review, admit atomically and render Vietnam only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VIETNAM_LINK_REVIEW_KEY: ${{ secrets.VIETNAM_LINK_REVIEW_KEY }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          DECISION_NAME: ${{ inputs.decision_name }}
+        run: |
+          set -euo pipefail
+          python -m scripts.admit_vietnam_official_links --release --database "$GITHUB_WORKSPACE/pla_watch.db" \
+            --state-repo "$RUNNER_TEMP/vn-release-source" --state-commit "$SOURCE_COMMIT" \
+            --signed-decision "config/vietnam_link_releases/$DECISION_NAME.json" \
+            --expected-db-sha256 "$(cut -d' ' -f1 "$RUNNER_TEMP/vn-db.sha")"
+          python site/render.py --out "$RUNNER_TEMP/vn-release-render"
+          cp "$RUNNER_TEMP/vn-release-render/vietnam.html" output/vietnam.html
+          python scripts/validate_output.py
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --site-dir output --require-desk vietnam
+      - name: Commit exact DB and generated page with optimistic concurrency
+        env:
+          EXPECTED_MAIN: ${{ inputs.expected_main }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/shadow/vietnam-mps-foreign-affairs | cut -f1)" = "$SOURCE_COMMIT"
+          git fetch --quiet origin main
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN"
+          git add -- pla_watch.db output/vietnam.html
+          test -z "$(git status --porcelain --untracked-files=all | grep -vE '^M  (pla_watch.db|output/vietnam.html)$')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Vietnam: admit exact owner-reviewed MPS official links'
+            git push origin HEAD:refs/heads/main
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: vn-existing-pages
+          fetch-depth: 0
+      - name: Publish only Vietnam and independently read back Pages Git
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)"
+          before=$(git -C vn-existing-pages rev-parse HEAD)
+          cp output/vietnam.html vn-existing-pages/vietnam.html
+          git -C vn-existing-pages add -- vietnam.html
+          git -C vn-existing-pages config user.name 'github-actions[bot]'
+          git -C vn-existing-pages config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git -C vn-existing-pages diff --cached --quiet; then
+            git -C vn-existing-pages commit -m 'Vietnam: publish exact reviewed official links'
+          fi
+          git -C vn-existing-pages fetch --quiet origin gh-pages
+          test "$(git -C vn-existing-pages rev-parse origin/gh-pages)" = "$before"
+          git -C vn-existing-pages push origin HEAD:refs/heads/gh-pages
+          git -C vn-existing-pages fetch --quiet origin gh-pages
+          git -C vn-existing-pages show origin/gh-pages:vietnam.html > "$RUNNER_TEMP/vn-pages-readback.html"
+          cmp output/vietnam.html "$RUNNER_TEMP/vn-pages-readback.html"
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --site-dir output --deployed-dir vn-existing-pages --require-desk vietnam
+      - name: Independent fixed-origin HTTPS readback
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+              --site-dir output --require-desk vietnam --vietnam-https; then exit 0; fi
+            sleep 10
+          done
+          exit 1
