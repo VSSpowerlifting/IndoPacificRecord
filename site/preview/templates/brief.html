@@ -111,7 +111,7 @@
       {% for source in brief.publisher_references %}
         <li class="brief-record" id="publisher-{{ source.id }}">
           <a class="brief-record-title" href="{{ source.url }}" rel="noopener noreferrer"{% if source.original_title %} lang="{{ source.lang }}"{% endif %}>{{ source.original_title or source.publisher }}</a>
-          <span class="brief-record-meta">{{ source.publisher }} · {{ source.issuer }} · <time datetime="{{ source.date }}">{{ source.date }}</time> · {{ 'Official account' if source.independence == 'official' else 'Independent reporting' }} · {{ 'Historical background' if source.temporal_role == 'background' else 'Published during the reporting window' }}</span>
+          <span class="brief-record-meta">{{ source.publisher }} · {{ source.issuer }} · {% if source.date %}<time datetime="{{ source.date }}">{{ source.date }}</time>{% else %}Undated{% endif %} · {{ 'Official account' if source.independence == 'official' else 'Independent reporting' }} · {{ ('Historical background' if source.date else 'Background reference') if source.temporal_role == 'background' else 'Published during the reporting window' }}</span>
           {% if brief.is_review %}<p class="meta">Verification: {{ source.verification.method }}. Human source and release review pending.</p>{% endif %}
         </li>
       {% endfor %}

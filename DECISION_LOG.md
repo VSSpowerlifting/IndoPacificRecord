@@ -4,6 +4,53 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Japan Brief source review confirmed; No. 19 assigned
+
+After the existing requirement for human Japanese-source/claim/rights review
+was explained explicitly, the owner replied “yes. reviewed.” Record that actual
+confirmation against editorial fingerprint
+`bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d`
+and the exact source-linked policy ruling for this manuscript. Do not attribute
+the review to Dylan individually or invent another date. The existing locked
+approval command assigned No.19, preserving all existing issue numbers. Reading
+presentation and cover acceptance were separately recorded earlier. The paired
+catalogue crop equals the already reviewed bytes. No merger, deployment, paid
+model call, live-desk promotion or publication has happened in this preparation.
+
+## 2026-10-18 — Japan Brief cover and reading presentation accepted
+
+After reviewing the updated article preview and same-image catalogue crop,
+Benjamin Yang replied “yes this works. how to publish?” The selected cover is
+DVIDS photo 8080849 / VIRIN 231017-F-VQ804-1198, Tylir Meyer, U.S. Air Force:
+a Japanese F-15DJ over the East China Sea on October 17, 2023. Its approved
+scope is the Japan Brief article and catalogue card, using the standard CSS
+gradient and retained creator, public-domain credit and exact DVIDS notice.
+The caption identifies historical context, not an October 2026 scramble.
+This also accepts the displayed reading presentation and Dylan's co-author
+card. The exact presentation receipt is recorded against its existing digest.
+It does not claim that the owner personally reviewed the Japanese originals,
+or authorize a merge/deployment. The independent source-review/policy gate
+remains explicit in the release dossier; do not manufacture its receipt.
+
+## 2026-10-18 — Owner: every Brief has a cover; Dylan card on the Japan Brief
+
+The owner reaffirmed that **every Brief, including historical Briefs, must
+have a cover image**. Carry the selected rights-checked photograph through
+the catalogue card and opened article. A fallback plate or text-led page
+handles missing/invalid media; it does not fulfill the cover requirement.
+Existing source-specific image holds are not blanket reuse permissions:
+use separately reviewed replacements where necessary. This Japan release
+does not expand into a historical cover backfill.
+
+For **Three Days of Chinese Flights, Six Months of Japanese Scrambles**, the
+owner requested Dylan Tanzi's author card and said everything else looked
+great, while requiring a cover before publication. Add his existing verified
+profile through the co-author-card pattern used for the Laos Brief. The
+manuscript's accepted prose, source references and six-month correction stay
+unchanged. Exact photograph selection, its paired crops and final modified
+credits remain concrete private review work; do not invent image approval or
+carry the earlier text-only fingerprint into the changed candidate.
+
 ## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
 
 The owner directed IPR engineering to stop creating serial audit gates and
@@ -27,6 +74,58 @@ requires an independently reviewed PR and exact-head CI; this ruling
 does not authorize merging an unverified branch or changing deployed content.
 Governance details:
 `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
+
+## 2026-10-18 — Owner: standing Kemhan Berita link-metadata admission
+
+The owner approved standing automatic publication of verified link metadata
+for Kemhan Berita (`id_kemhan_news`) only, for existing and future records,
+with no per-record human review and no elapsed-time wait (VSSpowerlifting/
+IndoPacificRecord#812, owner comment 6254436315, confirmed in session). The
+admitted fields are the canonical official URL, publisher-posted date,
+attributed issuer/publisher and identity/version/provenance metadata. This
+supersedes the frozen-cohort-only restriction for that projection and
+nothing else. It does not assert that any post-pin record was reviewed.
+
+Still held: Yonif TP 880; any disputed or materially changed identity, date
+or attribution (including a released record later revised or missing);
+conflicting official facts; an unverifiable source, version or capture;
+failed access, provenance or authenticity checks; any other substantive
+anomaly. A prior human disposition or discrepancy is never silently turned
+into a clean record, and genuine failed scheduled runs stay in the record.
+
+Not authorized: headlines, titles, bodies, raw captures, PDFs, images,
+translations, AI summaries, editorial articles, other source families, merging
+#812 or the private bridge PR, activating credentials or schedules, paid
+models, or unrelated production operations. Robots/access compliance,
+private-evidence separation, the authenticated bridge, transactional and
+idempotent admission, and checked public output all remain required.
+
+Implementation uses the existing contracts: a pinned
+`standing_link_metadata_authorizations` entry in
+`config/afp_kemhan_owner_link_activation.json` (exact shape enforced by
+`load_owner_policy`), receipt v2 fields
+`standing_link_metadata_authorization_verified` and
+`released_without_record_specific_review_*` beside the unchanged
+`record_specific_review_receipts_verified: false`, and an `admit()` check that
+every previously released row is still present and unchanged.
+
+## 2026-10-18 — Kemhan Berita official links: no elapsed-day gate; truthful review basis
+
+Applies the owner entry above to the Indonesia official-link lane. No desk is
+promoted by this entry. For Kemhan Berita official links, the trusted
+validator requires no minimum number of days. It still authenticates every
+visible scheduled-run claim, healthy or failed, against GitHub's own run
+records and requires at least one authenticated healthy scheduled run, as an
+evidence-integrity check, not as a waiting period.
+
+Review basis (engineering reading of existing authority, not a new ruling):
+the Oct 15 owner policy covers the pinned frozen cohort (`0595c66`) and
+states that no machine-verifiable record-specific review receipts exist. The
+release receipt (`ipr-crossdesk-independent-release-proof/2`) says so, and
+the frozen cohort's 30 non-held records were admissible on that basis. The
+owner's standing authorization (entry above) now admits verified post-pin
+Berita link metadata too; Yonif TP 880 stays held. Implementation:
+`docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
 
 ## 2026-10-18 — Singapore desk analysis path: engineering record, owner adoption pending
 
