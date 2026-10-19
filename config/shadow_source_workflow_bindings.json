@@ -61,10 +61,10 @@
     {
       "manifest": "shadow/kr_policy_briefing/manifest.json",
       "source_slug": "kr_policy_mnd_releases",
-      "state_branch": "shadow/korea-policy-briefing",
-      "workflow": ".github/workflows/indonesia_korea_shadow.yml",
+      "state_branch": "archive/korea-policy-briefing",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
       "cron": "47 17 * * *",
-      "trigger": "scheduled"
+      "trigger": "private_scheduled"
     },
     {
       "manifest": "shadow/ph_afp/manifest.json",

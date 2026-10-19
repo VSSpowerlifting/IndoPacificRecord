@@ -23,8 +23,11 @@ class BindingContracts(unittest.TestCase):
         config = json.loads((audit.ROOT / "config/shadow_source_workflow_bindings.json").read_text())
         self.config = copy.deepcopy(config)
         self.manifest_paths = sorted({x["manifest"] for x in config["sources"]})
-        self.workflow_paths = sorted({x["workflow"] for x in config["sources"]
-                                      if x["workflow"] and x["workflow"].startswith(".github/")})
+        self.workflow_paths = sorted(
+            {x["workflow"] for x in config["sources"]
+             if x["workflow"] and x["workflow"].startswith(".github/")}
+            | {".github/workflows/indonesia_korea_shadow.yml"}
+        )
         for path in self.manifest_paths + self.workflow_paths:
             dst = self.root / path
             dst.parent.mkdir(parents=True, exist_ok=True)
@@ -155,13 +158,12 @@ class BindingContracts(unittest.TestCase):
         with self.assertRaisesRegex(audit.BindingError, "manual-only binding"):
             self.report()
 
-    def test_shared_korean_coverage_cannot_use_indonesia_branch(self):
+    def test_mnd_private_schedule_cannot_claim_indonesia_branch(self):
         item = next(s for s in self.config["sources"]
                     if s["source_slug"] == "kr_policy_mnd_releases")
+        self.assertEqual(item["trigger"], "private_scheduled")
         item["state_branch"] = "shadow/indonesia-kemhan"
-        # Both branches occur in this shared YAML, but the actual case arm
-        # must bind the Korea desk to the Korea branch and Korea cron.
-        with self.assertRaisesRegex(audit.BindingError, "branch not in active|routing mismatch"):
+        with self.assertRaisesRegex(audit.BindingError, "private schedule limited"):
             self.report()
 
     def test_indonesia_external_handoff_is_not_live_attestation(self):
@@ -185,16 +187,15 @@ class BindingContracts(unittest.TestCase):
     def test_indonesia_legacy_writer_reintroduced_fails_handoff(self):
         name = self.root / ".github/workflows/indonesia_korea_shadow.yml"
         raw = name.read_text()
-        name.write_text(raw.replace("state_branch=shadow/korea-policy-briefing",
-                                    "state_branch=shadow/indonesia-kemhan", 1))
+        name.write_text(raw + "\nstate_branch=shadow/indonesia-kemhan\n")
         with self.assertRaisesRegex(audit.BindingError, "private Indonesia handoff still"):
             self.report()
 
     def test_indonesia_public_schedule_reintroduced_fails_handoff(self):
         name = self.root / ".github/workflows/indonesia_korea_shadow.yml"
         raw = name.read_text()
-        name.write_text(raw.replace("    - cron: '47 17 * * *'",
-                                    "    - cron: '17 17 * * *'\n    - cron: '47 17 * * *'", 1))
+        name.write_text(raw.replace("on:\n",
+                                    "on:\n  schedule:\n    - cron: '17 17 * * *'\n", 1))
         with self.assertRaisesRegex(audit.BindingError, "private Indonesia handoff still"):
             self.report()
 

@@ -5,8 +5,8 @@ name: Korea — Verified Government Links to Production and Pages
 # HWPX/photo/media, AI summaries or auto-editorial assessments are published.
 on:
   # Run once as soon as this production release is merged into main.
-  # Future additions arrive via successful scheduled shadow collection and
-  # the independent daily retry, without a manual record PR.
+  # Future MND additions arrive from the private archive via this established
+  # scheduled publisher; no original-body export or manual record PR.
   push:
     branches: [main]
     paths:
@@ -14,10 +14,6 @@ on:
       - site/preview/generate_preview.py
       - site/preview/templates/desk.html
       - desks/registry.json
-  workflow_run:
-    workflows:
-      - South Korea Shadow Collection (legacy custody)
-    types: [completed]
   schedule:
     - cron: '37 20 * * *'
   workflow_dispatch:
@@ -95,18 +91,27 @@ jobs:
             exit 1
           }
           test -n "$DAPA_PACKET_B64" && test -n "$DAPA_PACKET_MAC"
-      - name: Clone full preserved MND shadow Git history into private runner scratch
+      - name: Authenticate restricted private MND source history in runner scratch
         env:
-          SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          KOREA_VAULT_READ_TOKEN: ${{ secrets.IPR_KOREA_PRIVATE_READ_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           umask 077
-          git clone --single-branch --branch shadow/korea-policy-briefing \
-            "$SRC_REMOTE" "$RUNNER_TEMP/korea-official-original-state"
+          test -n "$KOREA_VAULT_READ_TOKEN" || {
+            echo "::error::MND private archive read capability missing; refuse publication"
+            exit 1
+          }
+          auth="$(printf 'x-access-token:%s' "$KOREA_VAULT_READ_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            clone --quiet --single-branch --branch archive/korea-policy-briefing \
+            https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
+            "$RUNNER_TEMP/korea-official-original-state"
           test -z "$(git -C "$RUNNER_TEMP/korea-official-original-state" status --porcelain)"
           git -C "$RUNNER_TEMP/korea-official-original-state" rev-parse HEAD \
             > "$RUNNER_TEMP/korea-prod-source-before"
+          git -C "$RUNNER_TEMP/korea-official-original-state" merge-base --is-ancestor \
+            cac1f02fb7360385ddcb1b44a5877dfee342da4f HEAD
       - name: Admit newly verified official links to live metadata table
         shell: bash
         run: |
@@ -163,13 +168,17 @@ jobs:
           git diff --name-only -- output/ > "$RUNNER_TEMP/korea-other-render-diffs"
           echo "All rendered output changes listed for audit, not bulk publication:"
           cat "$RUNNER_TEMP/korea-other-render-diffs"
-      - name: Refuse changed original archive or moving production main
+      - name: Refuse changed private source archive or moving production main
         env:
-          SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          KOREA_VAULT_READ_TOKEN: ${{ secrets.IPR_KOREA_PRIVATE_READ_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          current_source="$(git ls-remote "$SRC_REMOTE" refs/heads/shadow/korea-policy-briefing | cut -f1)"
+          test -n "$KOREA_VAULT_READ_TOKEN"
+          auth="$(printf 'x-access-token:%s' "$KOREA_VAULT_READ_TOKEN" | base64 -w0)"
+          current_source="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            ls-remote https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
+            refs/heads/archive/korea-policy-briefing | cut -f1)"
           test "$current_source" = "$(cat "$RUNNER_TEMP/korea-prod-source-before")" || {
             echo "::error::Original source Git state advanced; retry on new exact version"
             exit 1

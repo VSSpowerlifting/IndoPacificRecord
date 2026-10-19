@@ -15,7 +15,8 @@ WORKFLOW = ROOT / ".github/workflows/indonesia_korea_shadow.yml"
 
 class KoreaPublicWriterCutoverGuardTests(unittest.TestCase):
     def setUp(self):
-        self.policy = json.loads(POLICY.read_text(encoding="utf-8"))
+        # Frozen legacy mode remains covered by the fail-closed guard.
+        self.policy = dict(guard.EXPECTED)
 
     def assess(self, data=None, *, stage="pre_collect"):
         return guard.assess("korea", guard.STATE_BRANCH,
@@ -110,25 +111,26 @@ class KoreaPublicWriterCutoverGuardTests(unittest.TestCase):
             self.assertIs(receipt["legacy_public_writer_permitted"], False)
             self.assertNotIn(str(path), output.getvalue())
 
-    def test_workflow_guard_order_and_preserved_korea_cadence(self):
+    def test_current_cutover_policy_blocks_legacy_public_source_writes(self):
+        staged = json.loads(POLICY.read_text(encoding="utf-8"))
+        self.assertEqual(staged["mode"], "private_cutover_staged")
+        self.assertTrue(staged["private_cutover_authorized"])
+        self.assertTrue(staged["private_copy_verified"])
+        self.assertFalse(staged["private_writer_active"])
+        self.assertFalse(staged["private_restore_verified"])
+        with self.assertRaises(guard.WriterHold):
+            self.assess(staged, stage="pre_collect")
+        with self.assertRaises(guard.WriterHold):
+            self.assess(staged, stage="pre_public_push")
+
+    def test_retired_public_workflow_has_no_collector_or_original_push(self):
         raw = WORKFLOW.read_text(encoding="utf-8")
-        for item in ("47 17 * * *", "state_branch=shadow/korea-policy-briefing"):
-            self.assertIn(item, raw)
-        for retired in ("17 17 * * *", "state_branch=shadow/indonesia-kemhan",
-                        "candidate-shadow-indonesia-", "DESK_INPUT=indonesia"):
-            self.assertNotIn(retired, raw)
-        self.assertIn("SHADOW_CRON_UTC=$cron_utc", raw)
-        self.assertEqual(raw.count("scripts/check_korea_public_shadow_writer.py"), 2)
-        self.assertEqual(raw.count("--stage pre_collect"), 1)
-        self.assertEqual(raw.count("--stage pre_public_push"), 1)
-        first = raw.index("Fail closed on Korea public writer policy before source access")
-        source = raw.index("- name: Check out isolated state")
-        self.assertLess(first, source)
-        push = raw.split("- name: Publish successful state to its explicit branch")[1]
-        self.assertLess(push.index("--stage pre_public_push"),
-                        push.index('git push origin "HEAD:refs/heads/$STATE_BRANCH"'))
-        self.assertIn('if [ "$SHADOW_DESK" = korea ]; then', push)
-        self.assertIn("env.SHADOW_DESK == 'korea'", raw)
+        self.assertIn("workflow_dispatch:", raw)
+        self.assertNotIn("  schedule:", raw)
+        self.assertNotIn("shadow/korea-policy-briefing", raw)
+        self.assertNotIn("scripts/shadow_collect_desk.py", raw)
+        self.assertNotIn("git push", raw)
+        self.assertNotIn("git clone", raw)
 
 
 if __name__ == "__main__":
