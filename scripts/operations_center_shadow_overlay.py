@@ -144,12 +144,20 @@ def _check_bindings(report, expected):
             require(branch is None and row.get("workflow") is None and
                     row.get("cron") is None, "research-only source has collector binding")
         elif trigger == "private_scheduled":
-            require(identity == ("shadow/kr_dapa_policy_briefing/manifest.json", "kr_policy_dapa_releases")
-                    and branch == "archive/korea-dapa-policy-briefing"
-                    and row.get("workflow") == "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml"
-                    and row.get("cron") == "17 22 * * *"
+            allowed = {
+                ("shadow/kr_dapa_policy_briefing/manifest.json", "kr_policy_dapa_releases"): (
+                    "archive/korea-dapa-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml",
+                    "17 22 * * *"),
+                ("shadow/kr_policy_briefing/manifest.json", "kr_policy_mnd_releases"): (
+                    "archive/korea-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
+                    "47 17 * * *"),
+            }
+            require(identity in allowed and
+                    (branch, row.get("workflow"), row.get("cron")) == allowed[identity]
                     and row.get("evidence") == "private_schedule_declared_external_runs_unverified",
-                    "private schedule must remain exact DAPA-only and unverified")
+                    "private schedule must be exact Korea source and unverified")
         elif trigger == "private_handoff_pending":
             require(identity == ("shadow/id_kemhan/manifest.json", "id_kemhan_news")
                     and branch == "shadow/indonesia-kemhan"
