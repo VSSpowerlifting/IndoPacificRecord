@@ -148,6 +148,22 @@ class SourceLinkedTests(unittest.TestCase):
         value["body_paragraphs"][1][1]["source"] = "missing"
         self.assertTrue(validate_source_linked(value))
 
+    def test_undated_background_is_explicit_and_cannot_supply_an_event_date(self):
+        value = copy.deepcopy(self.value)
+        source = value["publisher_references"][3]
+        source.update(date=None, temporal_role="background")
+        self.assertEqual(validate_source_linked(value), [])
+        html = self.render(value)
+        self.assertIn("Undated", html)
+        self.assertIn("Background reference", html)
+        self.assertNotIn('datetime="None"', html)
+        source["temporal_role"] = "in-window"
+        self.assertIn("publisher reference has incorrect chronology", validate_source_linked(value))
+        source["temporal_role"] = "background"
+        for invalid in ("", "unknown", "2026-02-30", False):
+            source["date"] = invalid
+            self.assertIn("publisher reference has incorrect chronology", validate_source_linked(value))
+
     def test_safe_urls_and_escaped_prose(self):
         for url in ("javascript:alert(1)", "data:text/html,x", "https://user:pw@example.org/x",
                     "https://example.org:443/x", "https://example.org/\" onmouseover=\"x",

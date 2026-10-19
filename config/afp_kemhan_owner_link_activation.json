@@ -47,5 +47,25 @@
   ],
   "machine_verified_record_specific_human_review_receipts_in_repository": false,
   "all_actions_attempts_and_release_gates_approved_by_this_declaration": false,
-  "production_database_or_site_changed_by_this_declaration": false
+  "production_database_or_site_changed_by_this_declaration": false,
+  "standing_link_metadata_authorizations": [
+    {
+      "source_family": "id_kemhan_news",
+      "decision_recorded_on": "2026-10-18",
+      "decision_source": "Owner approval recorded in VSSpowerlifting/IndoPacificRecord#812 (comment 6254436315) and confirmed by the owner in the working session, 2026-10-18",
+      "covers_existing_and_future_records": true,
+      "per_record_human_review_required": false,
+      "asserts_human_review_outside_frozen_cohort": false,
+      "elapsed_time_gate": false
+    },
+    {
+      "source_family": "ph_afp_articles",
+      "decision_recorded_on": "2026-10-18",
+      "decision_source": "Owner's explicit authorization in the Indo-Pacific Record working conversation, 2026-10-18, following the Philippines #816 release-readiness review",
+      "covers_existing_and_future_records": true,
+      "per_record_human_review_required": false,
+      "asserts_human_review_outside_frozen_cohort": false,
+      "elapsed_time_gate": false
+    }
+  ]
 }

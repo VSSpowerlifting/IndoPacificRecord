@@ -156,15 +156,23 @@ def validate(root=ROOT, contract_path=None):
                     "research-only source must not claim a workflow or branch")
             classification = "no_collection_workflow_declared"
         elif trigger == "private_scheduled":
-            # Public offline inspection cannot attest private configuration or
-            # execution. Register the existing DAPA schedule without pretending
-            # it is still a research-only source or opening another writer.
-            require(binding["manifest"] == "shadow/kr_dapa_policy_briefing/manifest.json"
-                    and slug == "kr_policy_dapa_releases"
-                    and branch == "archive/korea-dapa-policy-briefing"
-                    and workflow == "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml"
-                    and cron == "17 22 * * *",
-                    "private schedule limited to exact DAPA custody workflow")
+            # A public-only source map cannot attest an external private run.
+            # Pin exactly the two existing authorized Korea source families.
+            private_korea = {
+                "kr_policy_dapa_releases": (
+                    "shadow/kr_dapa_policy_briefing/manifest.json",
+                    "archive/korea-dapa-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml",
+                    "17 22 * * *"),
+                "kr_policy_mnd_releases": (
+                    "shadow/kr_policy_briefing/manifest.json",
+                    "archive/korea-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
+                    "47 17 * * *"),
+            }
+            require(slug in private_korea and
+                    (binding["manifest"], branch, workflow, cron) == private_korea[slug],
+                    "private schedule limited to exact Korea custody workflow")
             classification = "private_schedule_declared_external_runs_unverified"
         elif trigger == "private_handoff_pending":
             # Private writer histories are external to this public-repo audit.
@@ -173,6 +181,9 @@ def validate(root=ROOT, contract_path=None):
             require(workflow is None and cron is None,
                     "private handoff cannot claim an active public collector")
             if slug == "id_kemhan_news":
+                # The Indonesia *historical public* source ref remains
+                # accessible, but the old public writer must be retired before
+                # the owner can authorize private collection.
                 require(binding["manifest"] == "shadow/id_kemhan/manifest.json"
                         and branch == "shadow/indonesia-kemhan",
                         "private handoff limited to exact Indonesia Kemhan source")
@@ -181,13 +192,12 @@ def validate(root=ROOT, contract_path=None):
                         "missing Korea-only legacy workflow during private handoff")
                 raw = legacy_path.read_text(encoding="utf-8")
                 active = uncommented_workflow_text(raw)
-                require(workflow_crons(raw) == ["47 17 * * *"]
+                require(workflow_crons(raw) == []
                         and not contains_literal_branch(active, branch)
+                        and not contains_literal_branch(active, "shadow/korea-policy-briefing")
                         and "candidate-shadow-indonesia-" not in active
                         and not re.search(r"(?m)^\s*-\s*indonesia\s*$", active)
-                        and bool(re.search(
-                            r"(?m)^\s*korea\)\s+state_branch=shadow/korea-policy-briefing;"
-                            r"\s+cron_utc=17:47\s*;;\s*$", active)),
+                        and "scripts/shadow_collect_desk.py" not in active,
                         "private Indonesia handoff still has a public writer or Korea cadence drift")
             elif slug == "ph_afp_articles":
                 require(binding["manifest"] == "shadow/ph_afp/manifest.json"

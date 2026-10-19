@@ -548,11 +548,23 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
             ).fetchone()[0], 0)
 
     def test_countries_have_honest_empty_public_corpus(self):
+        # Admitted AFP official-link metadata is not corpus coverage: once the
+        # guarded production workflow writes rows, the page must list exactly
+        # those identities and still report an empty public corpus.
+        with self.db() as con:
+            afp_links = {row[0] for row in con.execute(
+                "SELECT source_identity FROM regional_official_source_links "
+                "WHERE source_family = 'ph_afp_articles'")}
         for name in ("philippines", "vietnam"):
             with self.subTest(desk=name):
                 page = self.page(name + ".html")
                 if name == "vietnam":
                     self.assertIn("IPR research published — official originals linked", page)
+                elif afp_links:
+                    self.assertIn("Verified official-source links admitted", page)
+                    self.assertEqual(set(re.findall(
+                        r'data-regional-official-source-id="([^"]+)"', page)),
+                        afp_links)
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
                 self.assertIn("Corpus records</dt><dd>Not admitted", page)

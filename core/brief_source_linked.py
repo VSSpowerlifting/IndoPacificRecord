@@ -163,9 +163,14 @@ def validate_source_linked(value, *, release=False):
             problems.append("reference must distinguish official and independent reporting")
         d = _day(source["date"])
         role = source["temporal_role"]
-        if (not d or not start or not end or role not in ("in-window", "background")
-                or (role == "in-window" and not start <= d <= end)
-                or (role == "background" and not d < start)):
+        # An undated institutional explainer may supply background, never
+        # an event's reporting-window date. Keep that absence explicit rather
+        # than substituting the retrieval date or inventing a publication date.
+        undated_background = source["date"] is None and role == "background"
+        if (not start or not end or role not in ("in-window", "background")
+                or (not d and not undated_background)
+                or (role == "in-window" and d and not start <= d <= end)
+                or (role == "background" and d and not d < start)):
             problems.append("publisher reference has incorrect chronology")
         verification = source["verification"]
         if (not isinstance(verification, dict) or set(verification) != {"method", "locator"}

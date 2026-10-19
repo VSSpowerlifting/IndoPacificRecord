@@ -95,7 +95,8 @@ class IndonesiaPressLinks(unittest.TestCase):
         self.assertIn("SP/10/III/2026/ROINFOHAN", page)
         self.assertIn("press parser is disabled", page)
         self.assertIn("No individual source references have completed", page)
-        self.assertIn("Shadow evaluation — no public corpus records", page)
+        self.assertIn("Verified official-source links admitted — original publisher references", page)
+        self.assertIn('aria-label="Admitted official publisher references"', page)
         self.assertNotIn('data-reference-list', page)
         for forbidden in ("state/shadow.db", "text_original", "body_original",
                           "NOT APPROVED FOR PUBLICATION"):

@@ -5,12 +5,15 @@ and grants no new source, model or release permission.
 
 ## Normal operation
 
-- MND: `indonesia_korea_shadow.yml`, named **South Korea Shadow Collection
-  (legacy custody)**, 17:47 UTC, six-day lookback, cap 40. Original-bearing
-  writes still target public `shadow/korea-policy-briefing`; the private mirror
-  is `ipr-source-evidence-private:archive/korea-policy-briefing`. A mirror is
-  not private-first collection. Issue #520 and
-  `config/korea_shadow_writer_policy.json` retain a separate cutover hold.
+- MND: the public legacy collector is now a no-source tombstone. The
+  private repo `ipr-source-evidence-private` holds the existing preserved
+  `archive/korea-policy-briefing` history. The replacement
+  `korea_mnd_private_first_collector.yml` declares 17:47 UTC, six-day
+  lookback, cap 40, and **remains inactive** until
+  `KOREA_MND_PRIVATE_COLLECTION_ENABLED=true` is explicitly set in the
+  private Actions variables after the two coordinated PR merges and source
+  writer-idle check. Do not report private collection as operating until a
+  genuine schedule/attempt is read back.
 - DAPA: private `korea_dapa_private_first_collector.yml`, 22:17 UTC, one logical
   UTC day, no lookback, at most five complete article/HWPX pairs. Private
   `DAPA_DAILY_ORIGINAL_ACCESS_APPROVED` and both repositories'
@@ -19,6 +22,44 @@ and grants no new source, model or release permission.
 - Retain the existing official-link and standing-original-text publishers.
   Their completion hooks must match the collector's actual workflow name.
   Their existing daily fallback schedules remain; do not add another writer.
+
+## One-writer MND private cutover — operator order
+
+Owner approved private GitHub custody as the primary archive and accepted that
+this is not an independent off-provider disaster-recovery backup. Do not claim
+otherwise. The historical public branch remains in Git history; no force-push,
+erasure or secret rotation is implied.
+
+1. Before merging either PR, confirm that public and private MND branches
+   have the same final legacy tip and all legacy/public mirror jobs are idle.
+   Record that exact commit and verify the existing immutable source/DB/ledger
+   equality. A private mirror is not itself proof of independent backup.
+2. Provision a **fine-grained token with Contents: Read on the existing private
+   evidence repository only** into the PUBLIC repo Actions secret
+   `IPR_KOREA_PRIVATE_READ_TOKEN`. Do not print its value.
+3. Merge the PUBLIC companion first. It retires the legacy collector and
+   changes both existing publishers to clone the private archive into
+   ephemeral runner scratch. Check the scheduled publishers are able to
+   read the exact preserved private source; no raw evidence reaches Pages.
+4. Merge private companion PR #18 only after the public writer is retired
+   and source history is still identical. This removes MND alone from the
+   old fast-forward mirror and stages one private daily writer. It must not
+   disturb DAPA, Indonesia or the seven other mirror families.
+5. Finally, enable `KOREA_MND_PRIVATE_COLLECTION_ENABLED=true` in PRIVATE
+   repo Actions variables. Check the next scheduled genuine private MND run
+   or deliberately authorized single-day manual run, its Git attempt
+   commit/readback and SHA-256 original preservation.
+6. Run the existing official-link and licensed-Korean-text publishers (or
+   observe their existing daily fallback); verify production SQLite,
+   generated Korea HTML, Pages and actual HTTPS. A genuine zero-new day
+   proves collection operation, not a new source's admission.
+7. If a token, provenance, source, completeness or concurrency check fails,
+   hold publication and diagnose the precise issue. Do not silently
+   reenable the old public original-bearing writer or the mirror.
+
+The private writer has no authority to widen source access, reproduce
+restricted HWPX/media, auto-publish DAPA text or change reviewed English.
+Manual source recovery does not rewrite historical scheduled failures.
 
 ## Quiet day, failure and recovery
 

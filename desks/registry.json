@@ -245,8 +245,8 @@
         "volume_caveat": "The private source inventories and ledgers are independently pinned for review. No shadow row contributes to the published IPR corpus or to the public reference index.",
         "blockers": [
           [
-            "Thirty-day reliability and human checkpoints remain pending.",
-            "AFP's earliest possible Day 7 checkpoint is October 13, 2026; November 5 is the earliest possible 30th qualifying collecting day only if every required scheduled slot succeeds. NSC must qualify separately."
+            "Only verified AFP official-link metadata is authorized for publication.",
+            "On October 18, 2026 the owner authorized automatic publication of verified neutral AFP link metadata (official URL, publisher date and attributed issuer) without per-record review or an elapsed-day waiting period. Links after the October 15 reviewed cohort are not individually reviewed, and changed or disputed sources are held. AFP titles, bodies, images and translations, and admission to the IPR corpus, still need their own source, rights and editorial review. NSC must qualify separately."
           ],
           [
             "Publisher-specific rights and canonical evidence custody remain unresolved.",
@@ -260,7 +260,7 @@
         "resolved": []
       },
       "limits": [
-        "No Philippine source is enabled in the public IPR corpus; private AFP and NSC shadow states remain separate.",
+        "No Philippine source is enabled in the public IPR corpus; any AFP links listed here are verified official-link metadata only (URL, date, publisher), and private AFP and NSC shadow states remain separate.",
         "No original body, binary capture or shadow archive record becomes public by this desk declaration.",
         "AFP and NSC are independently governed institutional sources, not comprehensive Philippine defense coverage."
       ]
@@ -384,7 +384,7 @@
    "route": "indonesia.html",
    "scope": "A bounded institutional-news research desk focused initially on Kementerian Pertahanan Republik Indonesia (Kemhan) Berita, in original Indonesian. Coverage excludes the armed forces' wider publications, ministerial decrees, and national defense-policy documents.",
    "status": "shadow",
-   "status_explanation": "Kemhan Berita is collected on a separate scheduled shadow-state branch for private source evaluation. Its original Indonesian articles are not in the public IPR corpus. Fifteen dated Berita links and two historical Siaran Pers press links provide attributed outbound navigation only; neither group constitutes human-reviewed IPR citations or public archive records. Five preserved originals received preliminary review; independent Indonesian-language signoff and the Day 7/14/30 collection reviews remain outstanding.",
+   "status_explanation": "Kemhan Berita is collected daily into a private evidence archive for source evaluation. Its original Indonesian articles are not in the public IPR corpus. Fifteen dated Berita links and two historical Siaran Pers press links provide attributed outbound navigation only; neither group constitutes human-reviewed IPR citations or public archive records. Five preserved originals received preliminary review; independent Indonesian-language signoff and the Day 7/14/30 collection reviews remain outstanding.",
    "public": true,
    "manifest": null,
    "has_production_records": false,

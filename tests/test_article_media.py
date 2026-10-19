@@ -54,6 +54,7 @@ EXPECTED = {
     16: am.PLATE,
     17: am.PHOTOGRAPH,   # trident-resolve-basarnas-drone, a brief cover (PoC)
     18: am.PHOTOGRAPH,   # source-linked editorial analysis, museum aircraft context (not Ban Keun)
+    19: am.PHOTOGRAPH,   # owner-approved 2023 JASDF F-15DJ context photograph
 }
 
 #: Han, kana and CJK punctuation: script that needs a declared language.
@@ -116,7 +117,7 @@ class ArticleMediaPagesTests(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def test_all_eighteen_items_are_covered(self):
+    def test_all_published_items_are_covered(self):
         self.assertEqual(sorted(self.historical) + sorted(self.native),
                          sorted(EXPECTED))
 
@@ -348,7 +349,8 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 carrying.add(number)
                 self.assertEqual(card.get("data-media"), "photograph")
         self.assertEqual(carrying, expected)
-        self.assertEqual(cat.get_text().count(notice), len(expected))
+        # No.19 is also the featured lead; it must retain its notice there.
+        self.assertEqual(cat.get_text().count(notice), len(expected) + 1)
 
     def test_native_script_in_a_photograph_credit_declares_its_language(self):
         # No. 8's credit names the Joint Staff in Japanese. Only that name is
@@ -403,7 +405,13 @@ class ArticleMediaPagesTests(unittest.TestCase):
         prev18 = self.native[18][2].select_one("nav.brief-issue-nav a[rel=prev]")
         self.assertEqual(prev18["href"], "trident-resolve-regional-scale-specific-chinese-tasks.html")
         self.assertIn("No. 17", prev18.get_text())
-        self.assertIsNone(self.native[18][2].select_one("nav.brief-issue-nav a[rel=next]"))
+        next18 = self.native[18][2].select_one("nav.brief-issue-nav a[rel=next]")
+        self.assertEqual(next18["href"], self.native[19][0]["slug"] + ".html")
+        self.assertIn("No. 19", next18.get_text())
+        prev19 = self.native[19][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        self.assertEqual(prev19["href"], "what-is-being-built-in-laos.html")
+        self.assertIn("No. 18", prev19.get_text())
+        self.assertIsNone(self.native[19][2].select_one("nav.brief-issue-nav a[rel=next]"))
 
     def test_historical_pages_load_the_shared_nav_and_media_rules(self):
         # The coordinated journal release ships every historical page together

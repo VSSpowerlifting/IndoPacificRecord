@@ -15,6 +15,7 @@ import re
 from html.parser import HTMLParser
 from pathlib import Path
 
+from core.crossdesk_official_metadata_candidates import KEMHAN_HELD
 from core.indonesia_official_index import load as load_official_links
 from core.indonesia_press_index import load as load_official_press_links
 from core.shadow_schedule import scheduled_slot_date
@@ -196,6 +197,33 @@ class PublishedEntries(HTMLParser):
         check(self.counts == {"news": 1, "press": 1} and
               self.section is None and self.current is None,
               "missing, repeated or unclosed publisher directory")
+ADMITTED_HEADING = "Verified official-source links admitted — original publisher references"
+ADMITTED_ITEM = re.compile(
+    r'<li data-regional-official-source-id="kemhan:(/(20[0-9]{2})/([01][0-9])/([0-3][0-9])/[^"<>]+)">'
+    r'\s*<h3><a href="([^"]+)"[^>]*>\s*Kemhan Berita official source</a></h3>'
+    r'[^<]*<p class="meta">[^<]*<time datetime="([^"]+)">')
+
+
+def check_admitted_links(page):
+    """Return the admitted Berita count, refusing a malformed admitted index."""
+    lists = page.count('aria-label="Admitted official publisher references"')
+    check(lists == page.count(ADMITTED_HEADING) and lists in (0, 1),
+          "admitted official-link heading and index disagree")
+    if not lists:
+        return 0
+    items = page.count("data-regional-official-source-id=")
+    found = ADMITTED_ITEM.findall(page)
+    check(items > 0 and len(found) == items, "malformed admitted official-link item")
+    paths = set()
+    for path, year, month, day, href, shown in found:
+        check(href == "https://www.kemhan.go.id" + path and
+              shown == "%s-%s-%s" % (year, month, day) and path not in paths,
+              "admitted official link disagrees with its identity or date")
+        paths.add(path)
+    check(KEMHAN_HELD not in page, "held Kemhan identity published")
+    return len(found)
+
+
 def check_public_page(path, approved_links=None, approved_press_links=None):
     """Read a local copy from exact gh-pages Git commit, never fetch publisher."""
     path = Path(path)
@@ -244,7 +272,13 @@ def check_public_page(path, approved_links=None, approved_press_links=None):
     for claim in prose_counts:
         check(page.count(claim) == 1,
               "published bibliography prose counts disagree with source index")
-    for phrase in ("Shadow evaluation — no public corpus records",
+    # Once metadata-only Berita links are admitted (owner policy of Oct 15),
+    # the desk template replaces the shadow heading with the admitted one.
+    # Accept that state only when the admitted index is itself well formed.
+    admitted = check_admitted_links(page)
+    heading = (ADMITTED_HEADING if admitted else
+               "Shadow evaluation — no public corpus records")
+    for phrase in (heading,
                    "No individual source references have completed",
                    "Explore official Indonesian defense publications",
                    "Kemhan press releases (Siaran Pers)"):

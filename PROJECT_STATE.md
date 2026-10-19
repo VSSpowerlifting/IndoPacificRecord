@@ -1,5 +1,69 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Philippines Desk AFP official-link lane (18 October 2026, draft
+release PR #816 stacked on #812):** trusted AFP validator, scratch-copy/atomic
+admission and page-only production workflow. The owner has now separately
+authorized **standing automatic publication of verified neutral AFP link metadata**
+for existing and future eligible records without per-record human review.
+This is pinned in `config/afp_kemhan_owner_link_activation.json` and recorded
+in `DECISION_LOG.md`. Source/rights/authenticity anomalies and changed or
+missing previously released records still hold. The Oct 15 frozen 23-record
+cohort remains the authenticated baseline (pin `8a63ba4`).
+
+**Final rehearsal under the pinned policy** (main `f3ff927` + #816, scratch
+copy of main's DB, `shadow/ph-afp` `97ec0bf`): 29 eligible, 29 approved,
+0 held. That is the frozen 23 plus 6 released without record-specific review,
+with `record_specific_review_receipts_verified: false`. Results:
+
+- replay is idempotent;
+- only `regional_official_source_links` changes;
+- safe failure and recovery are proven;
+- page↔DB identity holds at 29 links, with no source text leakage;
+- the validator passes with the 10 governed warnings.
+
+The release set is recomputed at the tip in effect at merge, so no count is
+hardcoded. main + #816 + #797 passes the cutover-compatibility suites.
+
+The Philippines registry blocker now states the October 18 scope instead of
+the superseded thirty-day gate.
+
+**Status: release candidate.** Production DB, Pages, schedules and secrets
+are unchanged. Owner actions remain:
+
+- merge #812, then #816 (its push trigger publishes the eligible set);
+- in an idle window with equal tips, merge #797 and then private #11;
+- configure `AFP_BRIDGE_KEY`, `AFP_METADATA_BRIDGE_ENABLED` and
+  `AFP_PRIVATE_SCHEDULE_ENABLED`.
+
+Maintenance: the 48 KiB signed-envelope limit is reached near ~350 records,
+and it fails closed. Details:
+`docs/engineering/PHILIPPINES_DESK_COMPLETION_2026-10-18.md`.
+
+**Indonesia Desk official-link lane (18 October 2026, release candidate):**
+Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.
+This branch adds a trusted validator (pin ancestry, re-hashed captures,
+ledger↔commit reconciliation, every scheduled claim authenticated against
+GitHub, no minimum day count), a scratch-copy/atomic admission CLI and a
+Korea-pattern page-only production workflow, and fixes the shared reader's
+180-character identity cap that HOLDs Kemhan snapshots after Oct 15. Receipt
+v2 states the real review basis: the Oct 15 review covers the frozen cohort,
+and the owner's Oct 18 standing authorization (DECISION_LOG) admits verified
+post-pin Berita link metadata without claiming review. Yonif TP 880 and any
+anomaly (revised/missing released record, date/URL conflict, unverifiable
+capture) stay held. Real rehearsal on a DB copy at private tip `69b1f9b`:
+35 admitted (5 without record-specific review), Yonif held, idempotent
+replay. Post-cutover private
+records reach the public side only through a held HMAC handoff (companion
+private PR) needing owner credentials. Translation, analysis, editorial
+intake provenance and headline display remain outstanding; the desk is not
+complete end to end. First genuine private `schedule` run (39158713099,
+18 Oct): collection and preservation passed; the run failed at the
+held-candidate rebuild on main's 180-character cap, which this lane fixes.
+Details: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+PR #652 cross-check:
+`research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
+No production DB, output, Pages or schedule change made here.
+
 **Korea completion candidate (18 October 2026):**
 The existing private DAPA schedule is activated and genuinely ran successfully:
 `39179758230-1`, logical October 18, `ok_no_publications`, preserved at private
@@ -158,6 +222,20 @@ qualifications remain explicit. No corpus, historical sidecar, MEPCOM or desk
 promotion changes. Complete diagnosis, repaired assertions, source/rights
 matrix, CI/merge/deploy and live route hashes:
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`. No remaining Laos release blocker.
+
+**Japan Brief No. 19 (18 October 2026, PR #822, ready for release review):**
+Benjamin Yang confirmed the Japanese-source/claim review explicitly after the
+existing gate was explained: “yes. reviewed.” The exact editorial/policy and
+presentation receipts are recorded. Existing locked approval assigned No.19;
+Dylan's author card and the approved 2023 F-15DJ photograph are paired across
+article/catalogue with the accepted crop. CI repair #823 (e21d10e) is included.
+250 relevant tests pass; production-rendered output validates with zero errors
+and seven preserved historical warnings. Desktop/mobile QA passes; unchanged
+manuscript. Current main’s authorized metadata DB changes are preserved.
+Fourteen generated output paths add the Brief and its listings,
+feed, author links, previous/next navigation and assets. Exact-head CI remains
+required. No merge/deployment or live publication is claimed. Release dossier:
+`docs/JAPAN_BRIEF_RELEASE_2026-10-18.md`.
 
 Brief release approval was received 2026-10-05; its candidate,
 authorization recovery and QA evidence are in
