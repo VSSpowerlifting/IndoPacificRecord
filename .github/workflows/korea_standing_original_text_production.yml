@@ -138,7 +138,7 @@ jobs:
             exit 1
           }
           auth="$(printf 'x-access-token:%s' "$KOREA_VAULT_READ_TOKEN" | base64 -w0)"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+          git -C "$RUNNER_TEMP" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
             clone --quiet --single-branch --branch archive/korea-policy-briefing \
             https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
             "$RUNNER_TEMP/korea-future-text-source"
@@ -208,7 +208,7 @@ jobs:
           fi
           # A new source version can contain a genuinely eligible article.
           # Never skip an unseen capture merely because this run read old Git.
-          source_now="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+          source_now="$(git -C "$RUNNER_TEMP" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
             ls-remote https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
             refs/heads/archive/korea-policy-briefing | cut -f1)"
           test -n "$source_now"
@@ -225,7 +225,7 @@ jobs:
             refs/heads/gh-pages:refs/remotes/origin/gh-pages
           test "$main_before" = "$(git rev-parse origin/main)"
           test "$pages_before" = "$(git rev-parse origin/gh-pages)"
-          source_now="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+          source_now="$(git -C "$RUNNER_TEMP" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
             ls-remote https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
             refs/heads/archive/korea-policy-briefing | cut -f1)"
           test "$source_now" = "$(cat "$RUNNER_TEMP/korea-future-text-source-head")"
@@ -240,7 +240,7 @@ jobs:
           set -euo pipefail
           test -n "$KOREA_VAULT_READ_TOKEN"
           auth="$(printf 'x-access-token:%s' "$KOREA_VAULT_READ_TOKEN" | base64 -w0)"
-          source_now="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+          source_now="$(git -C "$RUNNER_TEMP" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
             ls-remote https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
             refs/heads/archive/korea-policy-briefing | cut -f1)"
           test "$source_now" = "$(cat "$RUNNER_TEMP/korea-future-text-source-head")"
