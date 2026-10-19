@@ -399,12 +399,13 @@ class AfpReleaseValidatorTests(unittest.TestCase):
                     PINNED_POLICY_LOADER(path=path)
 
     def _afp_standing(self):
+        # Restore the owner's real pinned AFP entry that policy_for() strips.
         self.policy["standing_link_metadata_authorizations"] = [
-            dict(release.STANDING_AUTHORIZATION, source_family=v.FAMILY,
-                 decision_recorded_on="2026-10-19",
-                 decision_source="test-only hypothetical owner decision")]
+            a for a in PINNED_POLICY_LOADER()["standing_link_metadata_authorizations"]
+            if a["source_family"] == v.FAMILY]
+        self.assertEqual(len(self.policy["standing_link_metadata_authorizations"]), 1)
 
-    def test_hypothetical_afp_standing_entry_admits_future_records_without_claiming_review(self):
+    def test_pinned_afp_standing_entry_admits_future_records_without_claiming_review(self):
         self._afp_standing()
         tip = self.h.attempt("39124069601-1", "2026-10-18", new=[
             (1409, "afp-chief-visits-command", "2026-10-14")])

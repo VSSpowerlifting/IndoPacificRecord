@@ -10,18 +10,33 @@ in `DECISION_LOG.md`. Source/rights/authenticity anomalies and changed or
 missing previously released records still hold. The Oct 15 frozen 23-record
 cohort remains the authenticated baseline (pin `8a63ba4`).
 
-The **earlier frozen-only** real-source rehearsal at `shadow/ph-afp`
-`97ec0bf` admitted 23 and held six, with idempotent replay, exact
-DB↔page links and no source text leakage. Under the now-pinned standing
-authorization, those six post-pin records are *potentially* admissible
-after a fresh authenticated exact-head run; this has not yet been demonstrated
-under the newly active policy. Recheck before release, do not treat the old
-23-link expected count as final.
+**Final rehearsal under the pinned policy** (main `f3ff927` + #816, scratch
+copy of main's DB, `shadow/ph-afp` `97ec0bf`): 29 eligible, 29 approved,
+0 held. That is the frozen 23 plus 6 released without record-specific review,
+with `record_specific_review_receipts_verified: false`. Results:
 
-Merging #816 separately activates the public production workflow; the
-#797/private #11 writer cutover and bridge credentials are separately
-owner-controlled. No production DB, Pages, scheduled collector or secret was
-changed by this policy commit. Details:
+- replay is idempotent;
+- only `regional_official_source_links` changes;
+- safe failure and recovery are proven;
+- page↔DB identity holds at 29 links, with no source text leakage;
+- the validator passes with the 10 governed warnings.
+
+The release set is recomputed at the tip in effect at merge, so no count is
+hardcoded. main + #816 + #797 passes the cutover-compatibility suites.
+
+The Philippines registry blocker now states the October 18 scope instead of
+the superseded thirty-day gate.
+
+**Status: release candidate.** Production DB, Pages, schedules and secrets
+are unchanged. Owner actions remain:
+
+- merge #812, then #816 (its push trigger publishes the eligible set);
+- in an idle window with equal tips, merge #797 and then private #11;
+- configure `AFP_BRIDGE_KEY`, `AFP_METADATA_BRIDGE_ENABLED` and
+  `AFP_PRIVATE_SCHEDULE_ENABLED`.
+
+Maintenance: the 48 KiB signed-envelope limit is reached near ~350 records,
+and it fails closed. Details:
 `docs/engineering/PHILIPPINES_DESK_COMPLETION_2026-10-18.md`.
 
 **Indonesia Desk official-link lane (18 October 2026, release candidate):**

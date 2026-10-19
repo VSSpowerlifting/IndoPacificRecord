@@ -71,51 +71,58 @@ rights for titles, bodies or analysis are granted.
 
 ## Verification (18 October 2026)
 
-**These rehearsals predate the new AFP standing authorization and validate
-the earlier frozen-only selection.** At the same observed source tip the new
-policy would make 29 eligible records selectable (23 frozen + six post-pin),
-subject to the same independently verified provenance, rights and anomaly
-gates. This is an expected outcome, **not yet a new live or scratch rehearsal
-result**. Rerun exact-head selection and renderer/readback with the now-pinned
-standing policy before authorizing release.
+### Final rehearsal under the pinned standing policy
 
-The rehearsal ran on a scratch copy of `pla_watch.db` against the real
-`shadow/ph-afp` at `97ec0bf`, with real GitHub run records.
+Candidate: main `f3ff927` merged with this branch; scratch copy of main's own
+`pla_watch.db`; real `shadow/ph-afp` at `97ec0bf`; real GitHub run records.
 
-- **Selection:** 29 eligible, 23 approved, 6 held, 0 released without review,
-  12 authenticated scheduled days.
-- **Replay:** 0 new rows, 23 unchanged, DB hash unchanged.
-- **Integrity:** `integrity_check` ok; no unrelated table differs.
-- **Admitted rows:** 23 Philippines rows, dated 2026-09-25 to 2026-10-14.
+- **Selection:** 29 eligible, 29 approved, 0 held. Of the 29, 23 are the
+  frozen reviewed cohort and 6 are `released_without_record_specific_review`.
+  `record_specific_review_receipts_verified` stays `false`. 12 authenticated
+  scheduled days; manifest `ead0fe45…`.
+- **Admitted rows:** 29 Philippines rows, publisher dates 2026-09-25 to
+  2026-10-16; every URL is on `afp.mil.ph/news/`.
+- **Replay:** 0 new rows, 29 unchanged, DB hash unchanged.
+- **Integrity:** `integrity_check` ok. Of 19 tables, only
+  `regional_official_source_links` differs.
+- **Safe failure and recovery:**
+  - a wrong source commit holds with `source_checkout_not_at_requested_commit`;
+  - an altered, previously released row holds with
+    `previously_released_source_version_changed`;
+  - both leave the DB byte-identical, with no temp residue;
+  - a fresh run afterwards admits the same 29.
 - **Rendered page:**
-  - the page's `data-regional-official-source-id` set equals the DB rows;
+  - `validate_output.py` passes with the 10 governed warnings;
+  - the page's `data-regional-official-source-id` set equals the 29 DB rows;
   - none of the 29 preserved originals leaks its title or body text;
-  - none of the other 950 render-drift files mentions `afp.mil.ph`.
-- **Post-merge production state.** The candidate was merged into main
-  `52667d6`, and AFP was admitted into a copy of main's own `pla_watch.db`:
-  23 rows, `integrity_check` ok. The state then held tracked `output/` plus
-  only the newly rendered `philippines.html`.
-  - Exactly those two files differ.
-  - `validate_output.py` passes with the 10 governed warnings.
-  - The page's identities equal the 23 DB rows.
-  - The full suite gives the same 35 inherited results as below, with nothing
-    new.
-  - The page embeds no render date, so a 0-row daily run commits nothing.
-- **Tests:**
-  - 84 desk/regional/Philippines/Indonesia modules (1,337 tests) pass against
-    the admitted DB;
-  - the focused AFP set (219 tests) passes.
-- **Concurrency and recovery:** the workflow has its own concurrency group.
-  Before committing, it refuses to continue if `shadow/ph-afp` or `main` has
-  moved since admission. It pushes main and gh-pages without force, and it
-  aborts if gh-pages has moved. A failed or rejected run therefore leaves
-  production untouched, and the next cron retries from fresh state. A run
-  that pushed main but failed before Pages republishes the committed page on
-  the next run.
-  Other DB writers that rebase register the `reconcile-db` merge driver. It
-  keeps the published `origin/main` database as the base, so a later
-  `daily_update` rebase keeps admitted AFP rows rather than dropping them.
-- **Source tip:** `shadow/ph-afp` was still `97ec0bf` at verification.
+  - no other changed output file mentions `afp.mil.ph`.
+- **Signed envelope:** a 29-record private envelope is 3,966 gzip bytes
+  (5,288 base64 characters), against the 48 KiB limit. The limit is reached
+  near ~350 records, so it needs a maintenance follow-up. Over the limit, the
+  envelope fails closed (`signed_envelope_too_large`).
+- **Cutover compatibility:** main + this branch + #797 merged passes
+  #797's AFP readiness, schedule and binding tests plus this lane's suites
+  (181 tests), and `audit_shadow_workflow_bindings.py`.
+
+### Earlier frozen-only rehearsal (superseded selection)
+
+Before the standing ruling, the same tip gave 23 approved and 6 held, with the
+same replay, integrity and leak results. Its post-merge production state
+against main `52667d6` was:
+
+- the main commit touches exactly `pla_watch.db` and `output/philippines.html`;
+- the page embeds no render date, so a 0-row daily run commits nothing.
+
+Concurrency and recovery work as follows:
+
+- the workflow has its own concurrency group;
+- it refuses to commit if `shadow/ph-afp` or `main` moved since admission;
+- it pushes main and gh-pages without force, and aborts if gh-pages moved;
+- a failed run leaves production untouched;
+- a run that pushed main but failed before Pages republishes the committed
+  page on the next run;
+- rebasing DB writers use the `reconcile-db` driver, so admitted AFP rows
+  survive their rebases.
 
 **Full offline suite.** `unittest discover` ran on the candidate merged into
 main `52667d6`: 7,531 tests, 7 failures, 28 errors and 11 skipped. Running
@@ -136,11 +143,10 @@ current main `52667d6` and on this branch.
 
 ## Owner-controlled dependencies
 
-- **Merging #816 is the activation point.** The push trigger and the daily cron
-  then write `pla_watch.db` and `philippines.html` for every verified,
-  non-held AFP link under the Oct 15 frozen baseline and the separate Oct 18
-  standing metadata authorization. Do not rely on the old 23-row release
-  expectation; check against the authenticated current source tip.
+- **Merging #816 is the activation point.** The push trigger runs at once and
+  publishes every verified, non-held AFP link at the then-current
+  `shadow/ph-afp` tip. That is 29 at `97ec0bf`: the frozen 23 plus 6 under the
+  standing authorization. The daily cron reconciles afterwards.
 - **Collector cutover.** Merging #797 retires the public AFP collector, and
   private #11 starts the private one. Until then the public collector on main
   keeps running.
@@ -155,10 +161,17 @@ current main `52667d6` and on this branch.
   pinned, with its opening-venue and Gavan/Galvan holds. No publication is
   made.
 
-## Known page-copy staleness (not changed here)
+## Page copy
 
-The desk registry's barrier text still cites the superseded thirty-day
-reliability gate. The "Individually reviewed official-source references" lane
-still reads "none" under the admitted links. That is accurate for that lane,
-but it reads awkwardly. Both need an editorial copy decision; neither affects
-admission.
+The Philippines registry blocker no longer cites the superseded thirty-day
+gate. It states the October 18 scope instead: verified link metadata only;
+post-cohort links are not individually reviewed; titles, bodies, translations
+and corpus admission still need their own review.
+
+Two shared desk-template strings are left unchanged, because Indonesia
+renders them too:
+
+- the "Individually reviewed official-source references" lane still reads
+  "none" for title-bearing references, which is accurate for that lane;
+- the status-panel sentence says "individually admitted", meaning each record
+  passed admission, not that it was individually reviewed.
