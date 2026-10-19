@@ -41,7 +41,6 @@ from core.collection.contract import CandidateReference, CaptureResult
 from core.regional_official_link_release import (
     RegionalLinkHold, canonical, digest, need, store_verified_links)
 from core.regional_reviewed_evidence import verify_review_seal
-from scraper.sources.ph_nsc import PHNscAdapter, canonical_url, PERMALINK_RE
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = REPO_ROOT / "config" / "ph_nsc_official_link_policy.json"
@@ -64,6 +63,13 @@ PERMITTED_FIELDS = ["source_identity", "canonical_official_url",
 IDENTITY = re.compile(r"^nsc:[1-9][0-9]{0,9}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
+# Render-time permalink shape, kept stdlib-only so the page renderer never
+# imports the network adapter (and `requests`). It is the adapter's
+# `canonical_url` contract: https, host nsc.gov.ph, path `PERMALINK_RE`, no
+# query or fragment. tests.test_ph_nsc_official_link_admission pins the two
+# together.
+PERMALINK_PATH = r"/(\d{4})/(\d{2})/(\d{2})/([a-z0-9]+(?:-[a-z0-9]+)*)/"
+PERMALINK_URL = re.compile(r"https://nsc\.gov\.ph" + PERMALINK_PATH)
 LEDGER_NAME = re.compile(r"^ledger/\d{8}T\d{6}\+0000-[A-Za-z0-9_.-]{1,128}\.json$")
 CAPTURE_NAME = re.compile(r"^captures/[0-9a-f]{64}\.bin$")
 STATE_FILES = ("clock.json", "shadow.db")
@@ -95,9 +101,7 @@ def _git(args, cwd):
 
 def permalink_date(url):
     """The date an NSC permalink states, or None for any other URL shape."""
-    if type(url) is not str or not url.startswith("https://nsc.gov.ph/"):
-        return None
-    m = PERMALINK_RE.match(url[len("https://nsc.gov.ph"):])
+    m = PERMALINK_URL.fullmatch(url) if type(url) is str else None
     if m is None:
         return None
     try:
@@ -109,7 +113,7 @@ def permalink_date(url):
 def canonical_permalink(ident, url, day):
     """Render-time recheck: canonical HTTPS permalink whose path date is `day`."""
     return (type(ident) is str and IDENTITY.match(ident) is not None
-            and canonical_url(url) == url and permalink_date(url) == day)
+            and permalink_date(url) == day)
 
 
 def load_policy(path=POLICY_PATH):
@@ -194,6 +198,8 @@ def replay_state(state_dir, source_commit, source_ref):
                           % ",".join(SHADOW_COLUMNS)).fetchall()
     finally:
         db.close()
+    # The adapter re-extracts preserved capture bytes; only this replay needs it.
+    from scraper.sources.ph_nsc import PHNscAdapter, canonical_url
     adapter = PHNscAdapter(load_source())
     records, links = [], []
     for values in rows:

@@ -12,6 +12,7 @@ import json
 import socket
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import unittest
 from datetime import date
@@ -401,6 +402,38 @@ class Render(NscCase):
 
     def test_other_desks_never_see_nsc_rows(self):
         self.assertEqual(self.read(desk="indonesia"), [])
+
+    def test_render_permalink_check_matches_the_adapter_contract(self):
+        from scraper.sources import ph_nsc as adapter
+        self.assertEqual(nsc.PERMALINK_PATH, adapter.PERMALINK_RE.pattern[1:-1])
+        for url in ("https://nsc.gov.ph/2026/07/08/statement-on-x/",
+                    "http://nsc.gov.ph/2026/07/08/statement-on-x/",
+                    "https://evas.nsc.gov.ph/2026/07/08/statement-on-x/",
+                    "https://nsc.gov.ph/2026/07/08/statement-on-x/?p=1",
+                    "https://nsc.gov.ph/2026/07/08/statement-on-x/#a",
+                    "https://nsc.gov.ph:443/2026/07/08/statement-on-x/",
+                    "https://nsc.gov.ph/2026/07/08/Statement/",
+                    "https://nsc.gov.ph/category/official-statements/"):
+            with self.subTest(url=url):
+                self.assertEqual(nsc.permalink_date(url) is not None,
+                                 adapter.canonical_url(url) == url)
+
+    def test_render_path_imports_no_network_dependency(self):
+        # The regional contract CI renders without `requests` or bs4 installed.
+        code = ("import sys\n"
+                "class Block:\n"
+                "    def find_spec(self, name, path=None, target=None):\n"
+                "        if name.split('.')[0] in ('requests', 'bs4'):\n"
+                "            raise ImportError(name)\n"
+                "sys.meta_path.insert(0, Block())\n"
+                "import core.regional_official_link_render as r\n"
+                "from core.ph_nsc_official_link_admission import canonical_permalink\n"
+                "assert canonical_permalink('nsc:1', "
+                "'https://nsc.gov.ph/2026/07/08/x/', '2026-07-08')\n")
+        root = Path(__file__).resolve().parents[1]
+        proc = subprocess.run([sys.executable, "-c", code], cwd=root,
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_readback_validates_the_combined_rail(self):
         from scripts.verify_regional_source_index_readback import validate_page
