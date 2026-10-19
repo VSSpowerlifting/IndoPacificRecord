@@ -95,7 +95,13 @@ class IndonesiaPressLinks(unittest.TestCase):
         self.assertIn("SP/10/III/2026/ROINFOHAN", page)
         self.assertIn("press parser is disabled", page)
         self.assertIn("No individual source references have completed", page)
-        self.assertIn("Shadow evaluation — no public corpus records", page)
+        from scripts.reconcile_db import read_only
+        with read_only(database) as conn:
+            admitted = conn.execute("SELECT count(*) FROM regional_official_source_links "
+                                    "WHERE desk='indonesia' AND source_family='id_kemhan_news'").fetchone()[0]
+        self.assertEqual(len(doc.select('li[data-regional-official-source-id]')), admitted)
+        self.assertIn("Verified official-source links admitted" if admitted else
+                      "Shadow evaluation — no public corpus records", page)
         self.assertNotIn('data-reference-list', page)
         for forbidden in ("state/shadow.db", "text_original", "body_original",
                           "NOT APPROVED FOR PUBLICATION"):

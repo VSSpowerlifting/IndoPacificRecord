@@ -184,6 +184,15 @@ class OperationalCanaryTests(unittest.TestCase):
 
     def test_admitted_metadata_index_replaces_shadow_heading_only_when_sound(self):
         shadow = (Path(__file__).resolve().parents[1] / "output/indonesia.html").read_text(encoding="utf-8")
+        # Isolate the historical zero-admission fixture before inserting the
+        # synthetic rail under test. Main may now contain real admitted links;
+        # leaving them here makes each negative case validate that other rail.
+        from bs4 import BeautifulSoup
+        fixture = BeautifulSoup(shadow, "html.parser")
+        for section in fixture.select('section.regional-official-live-links'):
+            section.decompose()
+        fixture.select_one('.status-panel h2').string = "Shadow evaluation — no public corpus records"
+        shadow = str(fixture)
         self.assertEqual(check_public_page_text(shadow), 17)
         path = "/2026/10/16/menhan-contoh-berita.html"
         def item(path=path, href=None, shown="2026-10-16"):
