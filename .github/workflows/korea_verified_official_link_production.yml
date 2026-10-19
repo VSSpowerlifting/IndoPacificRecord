@@ -16,7 +16,7 @@ on:
       - desks/registry.json
   workflow_run:
     workflows:
-      - Indonesia and South Korea Shadow Collection
+      - South Korea Shadow Collection (legacy custody)
     types: [completed]
   schedule:
     - cron: '37 20 * * *'

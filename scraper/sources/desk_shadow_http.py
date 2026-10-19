@@ -181,10 +181,10 @@ class ListingShadowAdapter(SourceAdapter):
             if not robots and "</html>" not in text.lower():
                 raise Refused(st.EXTRACTION_FAILURE, "incomplete HTML document")
             return text
-        except requests.Timeout:
-            raise Refused(st.TIMEOUT, "request timed out; no retry")
+        except requests.Timeout as exc:
+            raise Refused(st.TIMEOUT, "request timed out; no retry") from exc
         except requests.RequestException as exc:
-            raise Refused(st.FETCH_FAILURE, "transport failed: " + type(exc).__name__)
+            raise Refused(st.FETCH_FAILURE, "transport failed: " + type(exc).__name__) from exc
         except UnicodeError:
             raise Refused(st.UNEXPECTED_CONTENT_TYPE, "invalid UTF-8 response")
         finally:

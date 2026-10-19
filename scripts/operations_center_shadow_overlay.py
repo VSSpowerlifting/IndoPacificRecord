@@ -25,7 +25,7 @@ from scripts.source_health_report import build_report
 BINDING_SCHEMA = "ipr-shadow-source-workflow-bindings/1"
 SLOT_SCHEMA = "ipr-shadow-slot-candidates/1"
 EVIDENCE_SCHEMA = "ipr-operations-shadow-candidates/1"
-TRIGGERS = frozenset(("scheduled", "manual_only", "research_only", "private_handoff_pending"))
+TRIGGERS = frozenset(("scheduled", "manual_only", "research_only", "private_handoff_pending", "private_scheduled"))
 # The only source families allowed to retire public collection, each bound to
 # its exact preserved state branch (mirrors audit_shadow_workflow_bindings).
 PRIVATE_HANDOFFS = {
@@ -149,6 +149,13 @@ def _check_bindings(report, expected):
         if trigger == "research_only":
             require(branch is None and row.get("workflow") is None and
                     row.get("cron") is None, "research-only source has collector binding")
+        elif trigger == "private_scheduled":
+            require(identity == ("shadow/kr_dapa_policy_briefing/manifest.json", "kr_policy_dapa_releases")
+                    and branch == "archive/korea-dapa-policy-briefing"
+                    and row.get("workflow") == "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml"
+                    and row.get("cron") == "17 22 * * *"
+                    and row.get("evidence") == "private_schedule_declared_external_runs_unverified",
+                    "private schedule must remain exact DAPA-only and unverified")
         elif trigger == "private_handoff_pending":
             require(PRIVATE_HANDOFFS.get(identity) == branch
                     and row.get("workflow") is None

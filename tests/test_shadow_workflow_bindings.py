@@ -23,7 +23,9 @@ class BindingContracts(unittest.TestCase):
         config = json.loads((audit.ROOT / "config/shadow_source_workflow_bindings.json").read_text())
         self.config = copy.deepcopy(config)
         self.manifest_paths = sorted({x["manifest"] for x in config["sources"]})
-        self.workflow_paths = sorted({x["workflow"] for x in config["sources"] if x["workflow"]} | {".github/workflows/ph_afp_shadow.yml"})
+        self.workflow_paths = sorted({x["workflow"] for x in config["sources"]
+                                      if x["workflow"] and x["workflow"].startswith(".github/")}
+                                     | {".github/workflows/ph_afp_shadow.yml"})
         for path in self.manifest_paths + self.workflow_paths:
             dst = self.root / path
             dst.parent.mkdir(parents=True, exist_ok=True)
@@ -51,14 +53,27 @@ class BindingContracts(unittest.TestCase):
         self.assertEqual(len(result["sources"]), 17)
         dapa = next(row for row in result["sources"]
                     if row["source_slug"] == "kr_policy_dapa_releases")
-        self.assertEqual(dapa["evidence"], "no_collection_workflow_declared")
-        self.assertIsNone(dapa["workflow"])
+        self.assertEqual(dapa["evidence"], "private_schedule_declared_external_runs_unverified")
+        self.assertEqual(dapa["trigger"], "private_scheduled")
+        self.assertEqual(dapa["cron"], "17 22 * * *")
         self.assertFalse(dapa["production_eligible"])
 
     def test_synthetic_mirror_preserves_count_without_modifications(self):
         result = self.report()
         self.assertEqual(result["source_families_checked"], 17)
         self.assertTrue(all(not s["run_attested"] for s in result["sources"]))
+
+    def test_private_dapa_schedule_cannot_claim_another_repo_branch_or_frequency(self):
+        row = next(x for x in self.config["sources"]
+                   if x["source_slug"] == "kr_policy_dapa_releases")
+        for field, value in (("workflow", row["workflow"].replace("ipr-source-evidence-private", "IndoPacificRecord")),
+                             ("state_branch", "shadow/korea-policy-briefing"),
+                             ("cron", "17 * * * *")):
+            original = row[field]
+            row[field] = value
+            with self.assertRaisesRegex(audit.BindingError, "private schedule limited"):
+                self.report()
+            row[field] = original
 
     def test_missing_source_binding_is_a_hard_error(self):
         self.config["sources"].pop()
