@@ -70,6 +70,7 @@ class VNMinistryAdapter(ShadowHttpAdapter):
         self.robots_url = "https://" + self.profile.host + "/robots.txt"
         self._listing = {}
         self.listing_report = {}
+        self.rss_history = []
 
     def _challenged(self, headers, text):
         return bool(CHALLENGE_RE.search(text) or re.search(
@@ -103,10 +104,22 @@ class VNMinistryAdapter(ShadowHttpAdapter):
                 "coverage": "proven" if dates[-1] < start.isoformat() else "unprovable",
                 "listed": [[self.profile.article_id(i["url"]), i["date"]] for i in items],
             }
-            if not dates[-1] < start.isoformat():
-                raise ValueError("window coverage unprovable on the published first page/feed")
-            selected = [i for i in items if start.isoformat() <= i["date"]
-                        <= window.target_date.isoformat()]
+            if self.profile.host == "bocongan.gov.vn" and self.rss_history:
+                from core.collection.vietnam_rss_frontier import stitch
+                snapshot = {"items": items, "retrieved_at": raw.retrieved_at,
+                            "sha256": hashlib.sha256(raw.body).hexdigest()}
+                selected, chain = stitch(self.rss_history + [snapshot], start.isoformat(),
+                                         window.target_date.isoformat())
+                self.listing_report.update(coverage="proven", coverage_basis="observed_rss_chain",
+                                           snapshot_sha256=chain,
+                                           archive_completeness_proven=False)
+                if getattr(self, "rss_recovery_provenance", None):
+                    self.listing_report["recovery_attempts"] = self.rss_recovery_provenance
+            else:
+                if not dates[-1] < start.isoformat():
+                    raise ValueError("window coverage unprovable on the published first page/feed")
+                selected = [i for i in items if start.isoformat() <= i["date"]
+                            <= window.target_date.isoformat()]
             self._listing = {i["url"]: i for i in selected}
             self.listing_report["selected"] = len(selected)
             self.listing_report["listed_after_window"] = sum(

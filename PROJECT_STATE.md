@@ -234,18 +234,23 @@ authorization recovery and QA evidence are in
 `docs/BRIEF_RELEASE_REVIEW_2026-10-04.md`. The older desk measurements below
 have not been refreshed by that work.
 
-Vietnam is declared at `research`; PR #107 merged on 2026-10-07 as
-`5ccc20ff9` and PR #114 merged the remote ministry path as `2c21b0d09`.
-Actions run `37656171920`, attempt 2 established durable Day 0 on 2026-10-07
-for MPS foreign affairs and the two MOIT families after attempt 1 stopped on a
-transient MOIT robots HTTP 502 without publication. State heads are
-`9098f48e` (MPS), `e4e97954` (MOIT energy), and `4da050e4` (MOIT
-foundational industry). A separate reliability-cadence PR proposes daily
-18:17 UTC collection with six-day lookback/cap 40 and explicit-date manual
-recovery, leading to human Day 7/14/30 checkpoints on 2026-10-14,
-2026-10-21, and 2026-11-06. Government News remains unapproved for remote
-dispatch or public capture retention; no production admission or automatic
-promotion is authorized.
+Vietnam remains `research`, with zero production corpus/link rows. Merged #824
+supplies independent ministry failures and guarded shared-index admission.
+The October 19 integration candidate implements six-day RSS snapshot recovery
+and an inert exact-reviewed MPS publisher in the existing workflow. Genuine
+local recovery fetched 12 missing MPS originals (23 in the temporary local
+archive); canonical scheduled state still has 11 MPS / two MOIT Energy / one
+MOIT Industry original, last healthy logical October 14. October 15–18 remain
+failed scheduled attempts; no new scheduled recovery is claimed. A three-record
+MPS exact-version review candidate is held, not approved. Current MOIT official
+terms still require written consent and robots retain the MIME warning; both
+families keep separate holds. Private `archive/vietnam-*` refs are unchanged
+mirrors; no independent restore or private canonical writer is established.
+The existing Sunday feeder joins two version-matched private synopsis notes;
+Brief #18 remains public. No production DB/output, schedule, credentials, models
+or editorial mail changed. Exact evidence, recovery command, guarded release,
+minimum private cutover and separate owner actions:
+`docs/engineering/VIETNAM_FULL_OPERATION_2026-10-19.md`.
 
 National Defence Journal English (desktop `tapchiqptd.vn/en/default.html`,
 mobile `m.tapchiqptd.vn/en`) is one additional **disabled, research-only**
