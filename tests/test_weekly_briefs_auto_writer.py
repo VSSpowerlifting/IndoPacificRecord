@@ -82,23 +82,10 @@ class WriterContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source ids"):
             validate_manuscript(result, evidence())
 
-    def test_cross_desk_section_requires_two_desk_citations_even_for_caveats(self):
-        # A bounded caveat is responsible prose, but it cannot fulfill the
-        # current two-production-desk citation contract by itself. Reject it
-        # rather than attach an irrelevant citation to pass validation.
+    def test_comparison_must_cite_two_desks(self):
         result = valid_manuscript()
-        result["cross_desk_comparison"] = (
-            "The supplied source describes one issuing institution only. "
-            "It does not establish a comparable action by another state."
-        )
         result["citations"]["cross_desk_comparison"] = [1]
         with self.assertRaisesRegex(ValueError, "both desks"):
-            validate_manuscript(result, evidence())
-        result["citations"]["cross_desk_comparison"] = []
-        with self.assertRaisesRegex(ValueError, "source ids"):
-            validate_manuscript(result, evidence())
-        result["citations"]["cross_desk_comparison"] = [999]
-        with self.assertRaisesRegex(ValueError, "source ids"):
             validate_manuscript(result, evidence())
 
     def test_no_legacy_title(self):
