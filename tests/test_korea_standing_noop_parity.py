@@ -115,7 +115,9 @@ class KoreaStandingNoopParityTests(unittest.TestCase):
         self.assertIn("python -m scripts.verify_korea_standing_noop_parity", yaml)
         self.assertIn('if: steps.verified_noop.outputs.verified != \'true\'', yaml)
         self.assertIn("git status --porcelain -- research/korea_published_original_texts.json", yaml)
-        self.assertIn("git ls-remote", yaml)
+        self.assertIn("ls-remote https://github.com/VSSpowerlifting/ipr-source-evidence-private.git", yaml)
+        self.assertIn("secrets.IPR_KOREA_PRIVATE_READ_TOKEN", yaml)
+        self.assertIn("refs/heads/archive/korea-policy-briefing", yaml)
         self.assertIn('test "$source_now" = "$(cat "$RUNNER_TEMP/korea-future-text-source-head")"', yaml)
         self.assertGreaterEqual(
             yaml.count("if: steps.verified_noop.outputs.verified != 'true'"), 5)
