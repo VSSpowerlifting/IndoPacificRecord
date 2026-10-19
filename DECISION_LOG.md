@@ -4,6 +4,40 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Owner: standing AFP verified official-link metadata
+
+The owner explicitly authorized **automatic publication of verified neutral official-link
+metadata** for existing and future Armed Forces of the Philippines articles
+(`ph_afp_articles`), without per-record human approval and without an
+elapsed-day waiting period. This is a **Philippines AFP source-family decision**,
+separate from the earlier Kemhan-only authorization.
+
+Permitted public fields remain the canonical official URL, publisher-posted
+date, attributed official issuer/publisher/republisher, source identity,
+immutable source Git commit and metadata digest. Every published row must
+pass the established AFP source capture/version, provenance, link-use, rights,
+authenticity, anomaly and transactional release checks. A disputed,
+materially changed or missing previously released source, conflicting
+publisher identity/date/attribution, failed capture validation, or other
+substantive anomaly must hold rather than be silently treated as clean.
+Earlier editorial source holds and human decisions remain intact.
+
+The decision **does not** claim that post-pin records received individual
+human review. Receipt v2 must report such releases under
+`released_without_record_specific_review_*` and retain
+`record_specific_review_receipts_verified: false`. This authorization
+does not cover original AFP titles/bodies, raw captures, photographs,
+documents, translations, AI summaries, IPR analysis, NSC or other source
+families, or independent editorial publication. It does not authorize
+merging a PR, changing production/Pages, activating collectors, enabling
+bridge credentials, or bypassing the public→private source-custody cutover.
+
+The decision is pinned in
+`config/afp_kemhan_owner_link_activation.json` as a separate
+`standing_link_metadata_authorizations` entry for `ph_afp_articles`.
+The existing AFP validator and admission lane in draft #816 must be
+tested with this active policy before a separately authorized release.
+
 ## 2026-10-18 — Japan Brief source review confirmed; No. 19 assigned
 
 After the existing requirement for human Japanese-source/claim/rights review

@@ -392,8 +392,11 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
         try:
             real = release.load_owner_policy()
             self.assertTrue(release.standing_link_metadata_authorization(real, "id_kemhan_news"))
+            # AFP has its own separate owner ruling (DECISION_LOG 2026-10-18);
+            # an unlisted sibling family is still never authorized.
+            self.assertTrue(release.standing_link_metadata_authorization(real, "ph_afp_articles"))
             self.assertFalse(release.standing_link_metadata_authorization(real,
-                                                                          "ph_afp_articles"))
+                                                                          "id_kemhan_press"))
             standing = real["standing_link_metadata_authorizations"][0]
             for key, bad in (("per_record_human_review_required", True),
                              ("asserts_human_review_outside_frozen_cohort", True),
