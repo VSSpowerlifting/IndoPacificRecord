@@ -9,13 +9,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class KoreaRegistryTruth(unittest.TestCase):
-    def test_existing_publishers_follow_actual_collector_name(self):
+    def test_existing_publishers_use_private_mnd_archive_after_cutover(self):
         workflows = ROOT / ".github/workflows"
-        collector_name = (workflows / "indonesia_korea_shadow.yml").read_text().splitlines()[0].removeprefix("name: ")
+        legacy = (workflows / "indonesia_korea_shadow.yml").read_text()
+        self.assertNotIn("  schedule:", legacy)
+        self.assertNotIn("scripts/shadow_collect_desk.py", legacy)
         for name in ("korea_verified_official_link_production.yml",
                      "korea_standing_original_text_production.yml"):
             flow = (workflows / name).read_text()
-            self.assertIn("  workflow_run:\n    workflows:\n      - " + collector_name + "\n", flow)
+            self.assertNotIn("  workflow_run:", flow)
+            self.assertIn("secrets.IPR_KOREA_PRIVATE_READ_TOKEN", flow)
+            self.assertIn("archive/korea-policy-briefing", flow)
+            self.assertIn("ipr-source-evidence-private.git", flow)
+            self.assertNotIn("ref: shadow/korea-policy-briefing", flow)
 
     def test_mnd_content_and_dapa_limits_stated_without_full_desk_promotion(self):
         doc = json.loads((ROOT / "desks/registry.json").read_text(encoding="utf-8"))
