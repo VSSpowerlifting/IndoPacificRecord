@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Serial, bounded ministry batch; publication is the workflow's success step."""
 import argparse
+import os
 import re
 import sys
 from datetime import date, datetime, timezone
@@ -67,7 +68,8 @@ def resolve_targets(event_name, run_attempt, cron_utc, mps_target=None, moit_tar
 
 
 def run_batch(root, gate_dir, mps_target, moit_target, lookback, cap, run_id, commit,
-              collector=collect, target_source=SOURCE_EXPLICIT, successful_sources=None):
+              collector=collect, target_source=SOURCE_EXPLICIT, successful_sources=None,
+              mps_recovery_dir=None, api=None):
     require(lookback in (0, 6) and cap in (2, 40), "unapproved remote budget")
     require(re.fullmatch(r"[0-9a-f]{40}", commit) is not None, "full collector SHA required")
     before = prepare(root, gate_dir)
@@ -76,8 +78,10 @@ def run_batch(root, gate_dir, mps_target, moit_target, lookback, cap, run_id, co
         state = root / slug / "state"
         target = mps_target if slug == SOURCES[0] else moit_target
         try:
+            recovery_args = ({"mps_recovery_dir": mps_recovery_dir, "api": api}
+                             if slug == SOURCES[0] and mps_recovery_dir else {})
             entry = collector(state, slug, target, lookback, cap, run_id, commit,
-                              gate_dir=gate_dir, target_source=target_source)
+                              gate_dir=gate_dir, target_source=target_source, **recovery_args)
             require(entry["health"] == "ok", "collection failed")
         except (ValueError, OSError, ReviewError):
             # Keep the failure and all captures in the attempt artifact. A
@@ -111,6 +115,7 @@ def main(argv=None):
     ap.add_argument("--cron-utc", required=True)
     ap.add_argument("--publication-list", type=Path,
                     help="new external file listing only independently verified successful sources")
+    ap.add_argument("--mps-recovery-zips", type=Path)
     args = ap.parse_args(argv)
     successful_sources = []
     publication_list = None
@@ -125,9 +130,14 @@ def main(argv=None):
         mps_target, moit_target, target_source = resolve_targets(
             args.event_name, args.run_attempt, args.cron_utc,
             args.mps_target, args.moit_target)
+        require(not args.mps_recovery_zips or args.event_name == "workflow_dispatch",
+                "recovered RSS snapshots require explicit manual recovery")
+        from scripts.attest_vietnam_run_state import GithubRead
         return run_batch(args.root, args.gate_dir, mps_target, moit_target,
                          args.lookback, args.cap, args.run_id, args.commit,
-                         target_source=target_source, successful_sources=successful_sources)
+                         target_source=target_source, successful_sources=successful_sources,
+                         mps_recovery_dir=args.mps_recovery_zips,
+                         api=GithubRead(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")))
     except (ValueError, OSError, ReviewError) as exc:
         print("remote batch refused: %s" % exc, file=sys.stderr)
         return 1

@@ -34,7 +34,8 @@ def load_source(slug):
 
 
 def collect(state_dir, slug, target, lookback=6, cap=40, run_id="local", commit="unknown",
-            adapter=None, gate_dir=None, target_source=SOURCE_EXPLICIT):
+            adapter=None, gate_dir=None, target_source=SOURCE_EXPLICIT,
+            mps_recovery_dir=None, api=None):
     state_dir = Path(state_dir)
     assert_isolated(state_dir)
     source = load_source(slug)
@@ -44,6 +45,18 @@ def collect(state_dir, slug, target, lookback=6, cap=40, run_id="local", commit=
                                     gate=host_gate(state_dir, gate_dir))
     if adapter is not None and adapter.slug != slug:
         raise ValueError("adapter belongs to another source")
+    if slug == "vn_mps_foreign_affairs_vi" and adapter is not None:
+        from scripts.vietnam_mps_rss_history import stored, recovery
+        if (state_dir / "shadow.db").exists():
+            from scripts.review_vietnam_ministry_state import review
+            review(state_dir, slug)
+        adapter.rss_history = stored(adapter, state_dir)
+        if mps_recovery_dir is not None:
+            if api is None:
+                raise ValueError("MPS recovery requires authenticated provider readback")
+            snapshots, provenance = recovery(adapter, mps_recovery_dir, api)
+            adapter.rss_history.extend(snapshots)
+            adapter.rss_recovery_provenance = provenance
     return run(state_dir, target, lookback, cap, run_id, commit, adapter=adapter,
                source=source, content_hash_rule=SOURCES[slug].hash_rule,
                target_source=target_source)

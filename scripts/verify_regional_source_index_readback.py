@@ -186,6 +186,32 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
     return result
 
 
+def verify_vietnam_https(db_path, site_dir, *, fetch=None):
+    """Independent fixed-origin HTTP readback, requiring exact committed bytes."""
+    if fetch is None:
+        import urllib.request
+        class NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *args, **kwargs):
+                return None
+        def fetch(url):
+            req = urllib.request.Request(url, headers={"User-Agent": "IPR-Publication-Readback/1"})
+            with urllib.request.build_opener(NoRedirect).open(req, timeout=20) as response:
+                need(response.status == 200 and response.geturl() == url,
+                     "vietnam_https_status_or_origin_differs")
+                data = response.read(500001)
+                need(len(data) <= 500000, "vietnam_https_page_oversized")
+                return data
+    expected = (Path(site_dir) / "vietnam.html").read_bytes()
+    actual = fetch("https://indopacificrecord.org/vietnam.html")
+    need(actual == expected, "vietnam_https_bytes_differ_from_committed_output")
+    rows = load_admitted_links(db_path, "vietnam")
+    need(bool(rows), "vietnam_https_has_no_admitted_records")
+    validate_page(actual.decode("utf-8"), rows)
+    return {"https_url": "https://indopacificrecord.org/vietnam.html",
+            "page_sha256": hashlib.sha256(actual).hexdigest(),
+            "admitted_official_link_count": len(rows)}
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--db", required=True, type=Path)
@@ -196,11 +222,14 @@ def main(argv=None):
     p.add_argument("--require-desk", choices=sorted(ROUTES), action="append",
                    default=[],
                    help="Require admitted links for this desk; may be repeated")
+    p.add_argument("--vietnam-https", action="store_true")
     args = p.parse_args(argv)
     try:
         receipt = verify(args.db, args.site_dir, pages_dir=args.deployed_dir,
                          require_records=args.require_records,
                          required_desks=args.require_desk)
+        if args.vietnam_https:
+            receipt["vietnam_https"] = verify_vietnam_https(args.db, args.site_dir)
     except (ReadbackHold, OSError, ValueError) as exc:
         reason = (str(exc) if isinstance(exc, ReadbackHold)
                   else "regional_source_index_readback_failed")
