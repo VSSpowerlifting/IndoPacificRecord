@@ -273,6 +273,20 @@ class OverlayContracts(unittest.TestCase):
         with self.assertRaisesRegex(overlay.OverlayError, "private handoff"):
             self.report(reports=[], bindings=b)
 
+    def test_private_dapa_schedule_does_not_attest_execution_or_admission(self):
+        from scripts import audit_shadow_workflow_bindings as bindings
+        native = bindings.validate(ops.ROOT)
+        snapshot = copy.deepcopy(self.base)
+        snapshot["shadow_source_manifests"] = ops.shadow_inventory(ops.SHADOW_ROOT, {})
+        result = overlay.attach(snapshot, native, [], root=ops.ROOT)
+        row = next(r for r in result["shadow_evidence_overlay"]["source_families"]
+                   if r["source_slug"] == "kr_policy_dapa_releases")
+        self.assertEqual(row["trigger"], "private_scheduled")
+        self.assertEqual(row["schedule_cron_utc"], "17 22 * * *")
+        self.assertEqual(row["slot_evidence_status"], "not_supplied")
+        self.assertFalse(row["collection_verified"])
+        self.assertFalse(row["production_eligible"])
+
     def test_snapshot_authorization_is_not_overridden(self):
         self.base["publication_authorized"] = True
         with self.assertRaisesRegex(overlay.OverlayError, "editorial authorization"):
