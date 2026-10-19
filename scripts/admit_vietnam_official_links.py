@@ -10,6 +10,7 @@ import json
 import os
 import sqlite3
 import tempfile
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -54,7 +55,10 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
     scratch = Path(name)
     try:
         scratch.write_bytes(db.read_bytes())
-        with sqlite3.connect(str(scratch)) as conn:
+        with closing(sqlite3.connect(str(scratch))) as conn, conn:
+            # Replacement and immutable readback require a self-contained file.
+            vn.need(conn.execute("PRAGMA journal_mode=DELETE").fetchone() == ("delete",),
+                    "admission_requires_single_file_journal")
             conn.execute("PRAGMA foreign_keys=ON")
             before = unrelated(conn)
             done = applied_versions(conn)
@@ -69,7 +73,7 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
                     "vietnam_admission_integrity_failed")
             vn.need(unrelated(conn) == before, "unrelated_database_rows_changed")
             conn.commit()
-        with sqlite3.connect(scratch.as_uri() + "?mode=ro&immutable=1", uri=True) as conn:
+        with closing(sqlite3.connect(scratch.as_uri() + "?mode=ro&immutable=1", uri=True)) as conn:
             rows = read_live_links(conn, "vietnam")
             vn.need(set(sealed["review"]["approved_source_identities"]) <=
                     {r["source_identity"] for r in rows}, "independent_sqlite_readback_failed")
@@ -81,6 +85,8 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
         return result
     finally:
         scratch.unlink(missing_ok=True)
+        for suffix in ("-wal", "-shm", "-journal"):
+            Path(str(scratch) + suffix).unlink(missing_ok=True)
 
 
 def main(argv=None):

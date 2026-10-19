@@ -1,7 +1,9 @@
 """Fictional review seals on disposable databases; no real source approval."""
+import gc
 import shutil
 import sqlite3
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -28,11 +30,31 @@ class AtomicAdmission(unittest.TestCase):
 
     def test_atomic_replay_preserves_unrelated_rows_and_idempotence(self):
         self.run_admit()
-        with sqlite3.connect(str(self.db)) as conn:
+        with closing(sqlite3.connect(str(self.db))) as conn:
             self.assertEqual(conn.execute("select count(*) from regional_official_source_links where desk='vietnam'").fetchone()[0], 2)
         after = self.db.read_bytes()
         self.run_admit()
         self.assertEqual(self.db.read_bytes(), after)
+
+    def test_wal_failure_cleanup_and_replay_do_not_depend_on_garbage_collection(self):
+        with closing(sqlite3.connect(str(self.db))) as conn:
+            conn.execute('PRAGMA journal_mode=WAL')
+        before = self.db.read_bytes()
+        enabled = gc.isenabled()
+        gc.disable()
+        try:
+            with self.assertRaises(ValueError):
+                self.run_admit({})
+            self.assertEqual(self.db.read_bytes(), before)
+            self.assertEqual(list(self.db.parent.glob('.vietnam-admission-*')), [])
+            self.run_admit()
+            after = self.db.read_bytes()
+            self.run_admit()
+            self.assertEqual(self.db.read_bytes(), after)
+            self.assertEqual(list(self.db.parent.glob('.vietnam-admission-*')), [])
+        finally:
+            if enabled:
+                gc.enable()
 
     def test_failed_review_or_independent_readback_never_replaces_database(self):
         with self.assertRaises(ValueError): self.run_admit({})
@@ -67,7 +89,7 @@ class AtomicAdmission(unittest.TestCase):
         start = source.index("{% if desk.slug in ('philippines', 'indonesia', 'vietnam')",
                              source.index('{# Regional official-link index:'))
         end = source.index('{# US: first-party publisher URLs', start)
-        with sqlite3.connect(str(self.db)) as conn:
+        with closing(sqlite3.connect(str(self.db))) as conn:
             data = Environment(autoescape=select_autoescape(default_for_string=True)).from_string(
                 source[start:end]).render(desk=SimpleNamespace(slug='vietnam'),
                                          regional_official_links=read_live_links(conn,'vietnam')).encode()
