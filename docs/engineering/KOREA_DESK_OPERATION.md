@@ -135,17 +135,30 @@ Revisions, missing evidence and disputes require actual review. MND
   `b9f3e7380838fa204f07f5d197a5480ae4dac741d5de9b561968a909a9e6ba14`). Held
   by decision, not defect: `korea-policy:156785161` (chronology exception,
   link-only on the historical bibliography, absent from the production table).
-- `156785691` reaches production only through the established daily fallbacks
-  (link publisher 20:37 UTC, standing-text publisher 21:17 UTC, English owner
-  handoff after the text release). A scratch dry run against a copy of production
-  predicted one link admitted, one text eligible (hash identical to the private
-  original) and zero held. **Not yet observed:** at 23:43 UTC on October 19 neither
-  publisher had a scheduled run for that evening (recent nights ran roughly two
-  hours late: October 18 at 22:35 and 23:13 UTC); `main` (16 production rows),
-  `gh-pages` (`6715da1514`) and HTTPS `korea.html` lack the record, and
-  `korea-originals/156785691.html` returns 404. Classify as pending, or a possibly
-  dropped schedule if still absent after the next slot. Do not dispatch manually
-  without owner authorization; admission and release stay with the publishers.
+- `156785691` admission and release. The nominal 20:37 and 21:17 UTC scheduled
+  publishers had not run by 23:43 UTC on October 19 (recent nights ran about two
+  hours late), so it was absent from `main`, `gh-pages` and HTTPS. With the
+  owner's explicit one-time authorization (October 19, 23:51 UTC) the existing
+  workflows were dispatched manually on `main`, link publisher first. This
+  proves the pathway; it does not attest the scheduled fallbacks, which remain
+  unobserved for this evening and are classified pending or possibly dropped.
+  - Links, [39344115247](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39344115247):
+    pinned private source `0fe16d7708471a6e019a7e5618fb8c9e9768dd11`; admitted 1,
+    unchanged 15, `explicit_exception_held` 1 (`156785161`); validator passed
+    with the usual 10 warnings. Main commit `137c8b93c2`, `gh-pages` `3a2decb365`.
+    Production table: 17 rows (16 MND, 1 DAPA), `156785691` is
+    `official_link_only`, admitted 23:52:16 UTC.
+  - Text, [39344401457](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39344401457):
+    1 new original, 0 held, 14 historical excluded. Main `7347a530e3`,
+    `gh-pages` `edc0e2ce7d`. The released text SHA-256 equals the private original
+    (`66931c2d…97cf8`). Workflow HTTPS byte readback passed; independently,
+    `korea-originals/156785691.html` returns 200 and `korea.html` shows 4
+    licensed originals and 3 reviewed English pairs.
+  - English owner handoff, workflow_run [39344660562](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39344660562):
+    one private draft delivered to the owner only at 23:59:07 UTC (draft SHA-256
+    `5a6834fd1821…`, receipt `4f5dbaa4e3`). No reviewed JSON exists and
+    `korea-translations/156785691.html` returns 404: nothing English is public
+    until human review and the owner release dispatch.
 - Known stale check (not changed here): `korea_shadow_slot_watchdog.yml` reads
   the frozen public `shadow/korea-policy-briefing` branch (tip `cac1f02fb7`, last
   ledger October 16), so it reports "no successful scheduled-run ledger" and has

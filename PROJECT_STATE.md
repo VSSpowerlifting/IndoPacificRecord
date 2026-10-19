@@ -67,11 +67,16 @@ before that record existed; the first dispatch failed on a 403 read token that
 was then fixed. Production/Pages/HTTPS match: 15 MND + 1 DAPA links, 3 licensed
 originals, 3 reviewed English pairs; `156785161` stays link-only (chronology
 hold). The first genuine scheduled private MND run `39329889889` passed
-(October 19, 21:44 UTC, 0 new, ledger at `0fe16d7708`). Open: the fallback
-publishers (nominally 20:37/21:17 UTC) had not run by 23:43 UTC, so
-`156785691` is unadmitted and unpublished (pending or a dropped schedule; no
-manual dispatch). DAPA's October 19 22:17 slot is also unobserved (prior run:
-healthy zero day `39179758230`). The Korea shadow watchdog still checks the
+(October 19, 21:44 UTC, 0 new, ledger at `0fe16d7708`). The scheduled link
+(20:37 UTC) and text (21:17 UTC) publishers had not run by 23:43 UTC, so with
+explicit owner authorization the existing workflows were dispatched once
+(links `39344115247`, text `39344401457`): `156785691` is now admitted (17
+production rows, main `137c8b93c2`) and its KOGL Type 1 original is live
+(`7347a530e3`, HTTPS 200, 4 licensed originals). The English handoff delivered
+a private owner-only draft; no English page is public (human review pending).
+Still unobserved: the scheduled fallbacks for these publishers (pending or
+possibly dropped) and DAPA's 22:17 UTC slot (prior run: healthy zero day
+`39179758230`). The Korea shadow watchdog still checks the
 frozen public branch and fails daily; separate fix. Registry stays `shadow`.
 See `docs/engineering/KOREA_DESK_OPERATION.md`.
 
