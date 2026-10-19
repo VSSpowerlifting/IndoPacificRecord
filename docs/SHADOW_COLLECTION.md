@@ -31,6 +31,12 @@ and no shadow record enters the published site or production collection. No
 private remote or new credentials are needed. The bounded post-merge verification
 procedure and remaining evidence gates are in `shadow/ph_nsc/README.md`.
 
+**NSC custody transition (19 October 2026, pending owner merge).** The public
+NSC writer is retired, and `shadow/ph-nsc` is frozen at `1a313e04` (0 records).
+Collection continues privately on `archive/ph-nsc` in `ipr-source-evidence-private`
+(PR #19). Link publication waits on the owner decision in
+`docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md`.
+
 Ben authorized committing the Indonesia/South Korea candidates, opening their PR
 and establishing fresh durable shadow collection in this repository on 2026-10-06.
 The state branches are `shadow/indonesia-kemhan` and `shadow/korea-policy-briefing`;
