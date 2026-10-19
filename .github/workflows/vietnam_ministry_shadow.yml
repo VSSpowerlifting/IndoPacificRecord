@@ -80,6 +80,7 @@ jobs:
           done
 
       - name: Collect serial reliability batch
+        id: collect
         working-directory: repo
         env:
           TARGET_DATE: ${{ inputs.target_date }}
@@ -104,9 +105,12 @@ jobs:
             --commit "$(git rev-parse HEAD)" \
             --event-name "$GITHUB_EVENT_NAME" \
             --run-attempt "$GITHUB_RUN_ATTEMPT" \
-            --cron-utc "18:17" 2>&1 | tee "${RUNNER_TEMP}/vn-ministry-run.log"
+            --cron-utc "18:17" \
+            --publication-list "${RUNNER_TEMP}/vn-ministry-successful-sources" \
+            2>&1 | tee "${RUNNER_TEMP}/vn-ministry-run.log"
 
       - name: Assert collector checkout preservation
+        id: preservation
         if: always()
         working-directory: repo
         run: |
@@ -114,11 +118,17 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all)"
 
       - name: Publish successful state only
-        if: success()
+        if: ${{ !cancelled() && steps.preservation.outcome == 'success' && (steps.collect.outcome == 'success' || steps.collect.outcome == 'failure') }}
         run: |
           set -euo pipefail
           collector=$(git -C "${GITHUB_WORKSPACE}/repo" rev-parse HEAD)
-          for slug in vn_mps_foreign_affairs_vi vn_moit_energy_vi vn_moit_foundational_industry_vi; do
+          publication_list="${RUNNER_TEMP}/vn-ministry-successful-sources"
+          test -f "$publication_list" || exit 0
+          while IFS= read -r slug; do
+            case "$slug" in
+              vn_mps_foreign_affairs_vi|vn_moit_energy_vi|vn_moit_foundational_industry_vi) ;;
+              *) exit 1 ;;
+            esac
             dest="${RUNNER_TEMP}/vn-ministry-state/${slug}"
             branch=$(git -C "$dest" branch --show-current)
             case "$branch" in
@@ -135,7 +145,7 @@ jobs:
             git -C "$dest" commit -m "shadow(${slug}): run ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
               -m "Collector ${collector}. Successful state only; never merged to main."
             git -C "$dest" push origin "HEAD:refs/heads/${branch}"
-          done
+          done < "$publication_list"
 
       - name: Preserve complete attempt evidence
         if: always()
@@ -147,5 +157,6 @@ jobs:
             ${{ runner.temp }}/vn-ministry-state/vn_moit_energy_vi/state/
             ${{ runner.temp }}/vn-ministry-state/vn_moit_foundational_industry_vi/state/
             ${{ runner.temp }}/vn-ministry-run.log
+            ${{ runner.temp }}/vn-ministry-successful-sources
           if-no-files-found: warn
           retention-days: 90

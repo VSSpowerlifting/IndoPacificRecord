@@ -368,10 +368,9 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     need(type(as_of_utc) is str and
          re.fullmatch(r"20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z", as_of_utc),
          "invalid_release_timestamp")
-    columns = {r[1] for r in conn.execute(
-        "PRAGMA table_info(%s)" % TABLE)}
-    need(columns == EXPECTED_TABLE_COLUMNS, "regional_official_index_not_migrated")
     if standing:
+        columns = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % TABLE)}
+        need(columns == EXPECTED_TABLE_COLUMNS, "regional_official_index_not_migrated")
         # Without per-record review, a released link whose identity, date or
         # attribution later changes or disappears is an anomaly: hold it all.
         current = {r["source_identity"]: r for r in eligible}
@@ -385,6 +384,22 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
                 row["official_issuer"], row["official_publisher"],
                 row["official_republisher"], row["first_seen_run"]),
                  "previously_released_source_missing_or_changed")
+    result = store_verified_links(conn, approved, proof_digest, as_of_utc)
+    return {"source_family":packet["source_family"], **result,
+            "held_semantic_exceptions":packet["semantic_exception_count"],
+            "held_pending_individual_approval":len(eligible) - len(approved),
+            "published_original_titles_or_bodies":False}
+
+
+def store_verified_links(conn, approved, proof_digest, as_of_utc, *, stable_versions=False):
+    """Shared atomic store. Call ONLY after source-specific authentication.
+
+    Rights, source bytes and authorization are verified by the admission gate,
+    never by this persistence helper. Vietnam uses the same regional index.
+    """
+    columns = {r[1] for r in conn.execute(
+        "PRAGMA table_info(%s)" % TABLE)}
+    need(columns == EXPECTED_TABLE_COLUMNS, "regional_official_index_not_migrated")
     conn.execute("SAVEPOINT regional_link_admission")
     added = unchanged = 0
     try:
@@ -402,6 +417,7 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
                 "WHERE source_family=? AND source_identity=?", key).fetchone()
             if old is not None:
                 need(tuple(old[:6]) == stable and
+                     (not stable_versions or old[7] == row["metadata_version_sha256"]) and
                      (old[6] != row["source_git_commit"] or
                       old[7] == row["metadata_version_sha256"]),
                      "previously_released_source_version_changed")
@@ -441,8 +457,4 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
         conn.execute("ROLLBACK TO SAVEPOINT regional_link_admission")
         conn.execute("RELEASE SAVEPOINT regional_link_admission")
         raise
-    return {"source_family":packet["source_family"],"new_official_links":added,
-            "unchanged_official_links":unchanged,
-            "held_semantic_exceptions":packet["semantic_exception_count"],
-            "held_pending_individual_approval":len(eligible) - len(approved),
-            "published_original_titles_or_bodies":False}
+    return {"new_official_links": added, "unchanged_official_links": unchanged}

@@ -162,7 +162,7 @@ class RegionalReadbackTests(unittest.TestCase):
     def test_unknown_required_desk_cannot_be_promoted(self):
         with self.assertRaisesRegex(ReadbackHold,
                                     "unknown_required_regional_source_desk"):
-            verify(self.db, self.site, required_desks=("vietnam",))
+            verify(self.db, self.site, required_desks=("atlantis",))
 
     def test_pages_byte_parity_succeeds_if_equal(self):
         self.admit_afp()
