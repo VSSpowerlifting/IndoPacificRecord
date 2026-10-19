@@ -103,7 +103,7 @@ jobs:
             exit 1
           }
           auth="$(printf 'x-access-token:%s' "$KOREA_VAULT_READ_TOKEN" | base64 -w0)"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+          git -C "$RUNNER_TEMP" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
             clone --quiet --single-branch --branch archive/korea-policy-briefing \
             https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
             "$RUNNER_TEMP/korea-official-original-state"
@@ -176,7 +176,7 @@ jobs:
           set -euo pipefail
           test -n "$KOREA_VAULT_READ_TOKEN"
           auth="$(printf 'x-access-token:%s' "$KOREA_VAULT_READ_TOKEN" | base64 -w0)"
-          current_source="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+          current_source="$(git -C "$RUNNER_TEMP" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
             ls-remote https://github.com/VSSpowerlifting/ipr-source-evidence-private.git \
             refs/heads/archive/korea-policy-briefing | cut -f1)"
           test "$current_source" = "$(cat "$RUNNER_TEMP/korea-prod-source-before")" || {
