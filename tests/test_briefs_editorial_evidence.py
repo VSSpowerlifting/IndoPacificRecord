@@ -202,8 +202,17 @@ class UnifiedWriterTests(unittest.TestCase):
         self.assertIs(validate_manuscript(
             result, evidence(), supplemental=self.research), result)
         result = manuscript()
+        result["cross_desk_comparison"] = (
+            "The cited institution's account does not establish whether a "
+            "similar development occurred in other jurisdictions."
+        )
         result["supplemental_citations"]["cross_desk_comparison"] = []
-        with self.assertRaisesRegex(ValueError, "both desks"):
+        # Bounded comparison limitations need a real citation, not unrelated
+        # external sources inserted just to satisfy a desk quota.
+        self.assertIs(validate_manuscript(result, evidence(),
+                                         supplemental=self.research), result)
+        result["citations"]["cross_desk_comparison"] = []
+        with self.assertRaisesRegex(ValueError, "neither production nor external"):
             validate_manuscript(result, evidence(), supplemental=self.research)
 
     def test_unverified_external_and_empty_section_citations_rejected(self):
@@ -485,6 +494,37 @@ class IndonesiaSundayWeek42Tests(unittest.TestCase):
             bad["id"] = replacement
             with self.subTest(replacement=replacement), self.assertRaises(SourceUseError):
                 summarize_source_use(m, sidecar["source_trail"], [bad])
+
+
+class SundayStrictToolContractTests(unittest.TestCase):
+    def test_strict_tool_whitelists_real_ids_without_unsupported_constraints(self):
+        """Prevent invalid source IDs before output, without relaxing validation."""
+        schema = writing_schema([2, 1], supplemental_ids=["JP-W42-07"])
+        self.assertEqual(schema["properties"]["citations"]["properties"]
+                         ["development"]["items"]["enum"], [1, 2])
+        self.assertEqual(schema["properties"]["supplemental_citations"]
+                         ["properties"]["development"]["items"]["enum"], ["JP-W42-07"])
+        for unsupported in ("uniqueItems", "minLength", "maxLength"):
+            self.assertNotIn('"' + unsupported + '"', repr(schema).replace("'", '"'))
+
+        response = SimpleNamespace(stop_reason="tool_use", content=[
+            SimpleNamespace(type="tool_use", name="compose_editorial_draft",
+                            input=valid_manuscript())])
+        calls = []
+        def stream(**kwargs):
+            calls.append(kwargs)
+            return nullcontext(SimpleNamespace(get_final_message=lambda: response))
+        fake = SimpleNamespace(messages=SimpleNamespace(stream=stream))
+        with patch("scripts.sunday_briefs_auto_writer.choose_evidence",
+                   return_value=evidence()):
+            compose({"week_start": "2026-10-04", "week_ending": SAT,
+                     "desks": ["china", "singapore"], "source_trail": []},
+                    SAT, client=fake)
+        self.assertEqual(len(calls), 1)
+        self.assertIs(calls[0]["tools"][0]["strict"], True)
+        self.assertEqual(calls[0]["tools"][0]["input_schema"]["properties"]
+                         ["citations"]["properties"]["development"]["items"]["enum"],
+                         [1, 2])
 
 
 def load_tests(loader, suite, pattern):

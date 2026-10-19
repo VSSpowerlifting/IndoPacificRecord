@@ -75,21 +75,29 @@ automatic launch delays. Governing proposal:
 `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`. No other workflow,
 production database/output, publisher access or site release is changed.
 
-**Public China title completion (17 October 2026, engineering candidate):**
-Read-only diagnosis finds 151 missing Chinese-headline translations among 826
-eligible public China records: 150 screened out and one awaiting screening;
-653 valid stored English titles already propagate; one English original has
-Chinese in its English-title field and reuses its actual English headline for
-display. All 196 English originals need no new translation. The candidate adds
-bounded title-only processing on the
-existing client and `title_english`, source-version/concurrency protection,
-separate title retry receipts, dry-run/backfill cost reporting and consistent
-machine labels across public HTML/indexes/exports. Daily activation defaults
-off. No production DB, tracked output, source policy or editorial changes.
-The exact commands, counts, estimated $1.55 one-pass cost, synthetic browser
-evidence and remaining owner-authorized activation/backfill steps are in
-`docs/engineering/CHINA_TITLE_TRANSLATION_2026-10-17.md`. Full CI and review are
-the engineering gates; merge, paid runs and publication remain unapproved.
+**Public China title completion (18 October 2026, released):**
+PR #796 merged as `e7436acfc5369ebc4383f582d50f2a8197e41861` after green
+7,486-test CI and verified current-main integration. All 168 missing titles are
+complete (original backlog 151 plus 17 newer titles): 20 by intervening Daily,
+148 in eight reserved, reviewed batches. All 857 eligible China records now have
+usable English display titles; zero remain. Provider usage prices to $0.520463;
+the conservative $3 ledger charges $0.5267576, retaining a 1.1x geography allowance
+for the intervening Daily. Invoice unavailable; all eight probes included, no
+failed title calls or automatic retries. Original Chinese, 653 prior valid English
+titles, screening/analysis states, source permissions and exclusions are preserved;
+no bodies or analysis were processed by the historical batches. Migration 0012
+is current. Output `b5c20b69bec36610920f8f78dcc8282b7c835c1a` deployed as
+`a0c29577e879cb489d5e45b203d3d99ffb49b720` via output-only run 39162790518;
+Pages run 39162817045 succeeded. All 1,968 deployed files match accepted output;
+168 title pages, both indexes and changed listings match actual HTTPS bytes.
+Live desktop/mobile/no-JS, English/Chinese search, citations and CSV/JSON pass;
+142 combined tests pass; validator zero errors/ten governed warnings; JS 9,879
+bytes. Daily is active at 20 titles/run with existing account controls; all 21
+paused writers are restored, and the historical workflow is disabled. The
+intervening full Daily retains its unrelated source-health alert. Exact SHAs,
+spending uncertainty, corrections and receipts:
+`docs/engineering/CHINA_TITLE_TRANSLATION_2026-10-17.md`. No title-release blocker
+or further release action remains.
 
 **Archive released (17 October 2026, PR #776):**
 Approved source `6d9368c2f60679f44aaa034c5bb5541976520f9b` merged as
