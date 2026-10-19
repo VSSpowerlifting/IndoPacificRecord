@@ -889,5 +889,73 @@
     "credit": "Sgt. Amber I. Smith, U.S. Army · Public domain · via Wikimedia Commons",
     "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
     "depicts": "context"
+  },
+  {
+    "id": "japan-f15dj-east-china-sea-2023",
+    "file": "japan-f15dj-east-china-sea-2023.jpg",
+    "sha256": "298971e34c8a52a3bdb029184d576ed4edb3d7ec2e5d71c220d12a6e7f0c1231",
+    "alt": "A Japan Air Self-Defense Force F-15DJ in flight, viewed from above against clouds.",
+    "caption": "A Japan Air Self-Defense Force F-15DJ over the East China Sea ahead of bilateral training, 17 October 2023.",
+    "date_note": "Historical context, not an October 2026 scramble.",
+    "credit": "Tylir Meyer, U.S. Air Force · Public domain · via DVIDS",
+    "creator": "Tylir Meyer, U.S. Air Force",
+    "license": "Public domain",
+    "license_url": "https://www.dvidshub.net/about/copyright",
+    "license_basis": "DVIDS image 8080849 / VIRIN 231017-F-VQ804-1198 explicitly marked PUBLIC DOMAIN and credited to an official-duty U.S. Air Force photographer. Publisher source page and restrictions inspected 2026-10-18; retained file is the 1000w publisher preview, not the 3278x2181 original.",
+    "source_page": "https://www.dvidshub.net/image/8080849/usaf-jasdf-conduct-training-over-east-china-sea",
+    "source_label": "DVIDS",
+    "original_url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2310/8080849/1000w_q95.jpg",
+    "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+    "cover_treatment": "gradient",
+    "depicts": "context",
+    "focal": "50% 48%",
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "surfaces": [
+      "article"
+    ],
+    "match": {
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": [],
+      "briefs": [
+        "three-days-chinese-flights-six-months-japanese-scrambles"
+      ]
+    },
+    "retrieval": {
+      "url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2310/8080849/1000w_q95.jpg",
+      "retrieved_at": "2026-10-19T01:11:43.400678+00:00",
+      "http_status": 200,
+      "size_bytes": 118892,
+      "etag": "\"530eb9c34f9942ef15eff3bd6942d8a0\"",
+      "sha256": "298971e34c8a52a3bdb029184d576ed4edb3d7ec2e5d71c220d12a6e7f0c1231",
+      "user_agent": "IndoPacificRecord editorial image review (+https://indopacificrecord.org)",
+      "robots_status": 404
+    },
+    "note": "Private cover selection candidate. Owner requested a photograph for every Brief and accepted the manuscript subject to Dylan author card and cover. Exact photograph selection remains pending; article-only staging permits the unnumbered private preview. Final release must pair this same image with the catalogue after the locked issue assignment.",
+    "derivatives": [
+      {
+        "file": "derivatives/japan-f15dj-east-china-sea-2023-1600.jpg",
+        "width": 999,
+        "height": 665,
+        "sha256": "f8c435b22ffdd8a528cabf8731cfa74fa45cd8e5dca5dfbb393d41f66e2f6029"
+      },
+      {
+        "file": "derivatives/japan-f15dj-east-china-sea-2023-800.webp",
+        "width": 800,
+        "height": 533,
+        "sha256": "b803a15bc13fd605ff4be66445f7d49426876f5a61591320ecef470b2fd2783e"
+      },
+      {
+        "file": "derivatives/japan-f15dj-east-china-sea-2023-1600.webp",
+        "width": 999,
+        "height": 665,
+        "sha256": "d541327ef6ee888bd6548ce82e322555cf2af19b9e54b7f28942cdd5befb6a34"
+      }
+    ],
+    "built_with": {
+      "pillow": "12.3.0"
+    }
   }
 ]

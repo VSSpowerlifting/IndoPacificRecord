@@ -305,5 +305,13 @@
         "s4"
       ]
     }
-  ]
+  ],
+  "research_contributor": {
+    "name": "Dylan Tanzi",
+    "title": "Lead Research Analyst",
+    "bio": "Dylan Tanzi studies International Politics at Georgetown University's Walsh School of Foreign Service. As Lead Research Analyst at Indo-Pacific Record, he has helped establish the Vietnam Research Desk and expand the publication's Southeast Asian coverage. His work focuses on primary-source research, translation verification, and editorial review of regional security and foreign policy analysis, with particular interests in Southeast Asian affairs, international security, and historical memory.",
+    "linkedin": "https://www.linkedin.com/in/dylan-tanzi/",
+    "email": "dt822@georgetown.edu",
+    "credit_role": "co-author"
+  }
 }
