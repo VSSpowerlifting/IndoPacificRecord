@@ -1,5 +1,17 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Sunday Brief prose guidance (18 October 2026, review candidate):**
+Branch `editorial/dylan-brief-flow-2026-10-18` extends the existing Sunday
+drafting prompt using Dylan's edited Japan Brief: distinct steps in the
+argument, historical/quantitative context, explanatory transitions, and
+consolidated repeated caveats. Syntax and AST comparison verify that only
+the existing prose instruction changes; schema, citation/rights boundaries,
+model-call limits and delivery remain identical. Exact-head PR CI and merge
+are pending; scheduled drafts do not use this candidate yet. This week's
+returned DOCX has exactly one repeated Liaoning coordination caveat removed;
+all other text and links are preserved. Exact hashes and owner direction
+are in `DECISION_LOG.md`.
+
 **Verification/desk-acceptance simplification (2026-10-18, PR #811):**
 Owner authorized one focused simplification: keep
 the existing stable PR check name and critical source/rights, browser,
