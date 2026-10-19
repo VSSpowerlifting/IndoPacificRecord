@@ -146,7 +146,13 @@ tests, real 14-original replay, authenticated provider readback, production-mode
 private rendering and 1280/375 Chromium checks were run. Preview preserves Brief
 #18, contains zero unapproved rows and has no horizontal overflow. Tracked DB
 and output remain unchanged; the output validator passes with 10 governed
-warnings. Full-suite/PR results are recorded in the implementation PR.
+warnings. Shared CI fixture corrections keep the title-only CLI's unrelated-
+migration refusal intact, recognize only known pending schema versions, and
+compare legacy directory rendering against the independently queried admitted
+index. Synthetic negative-index tests explicitly remove existing real links
+from their disposable HTML fixture before inserting the case under test. No
+country's source permissions or publication behavior changed in those fixes.
+Full-suite/PR results are recorded in the implementation PR.
 
 The next action is owner review of this one implementation PR and these exact
 blocked source treatments:
