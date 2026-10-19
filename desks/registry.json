@@ -222,7 +222,7 @@
       "route": "philippines.html",
       "scope": "Bounded first-party Armed Forces of the Philippines (AFP) public-affairs publications and Philippine National Security Council (NSC) official statements. Not a comprehensive defense, military, foreign-policy or whole-of-government archive.",
       "status": "shadow",
-      "status_explanation": "AFP and Philippine NSC operate distinct isolated shadow collection and private research readers. AFP has preserved originals under review; the NSC source had no articles at the pinned October 11 snapshot. Neither is admitted to the production IPR corpus, and reliability, human source-review and rights gates remain incomplete.",
+      "status_explanation": "Verified AFP official-link metadata is collected into private custody and published daily. Philippine NSC remains isolated shadow collection with no published links pending its own owner decision. Neither source is admitted to the production IPR corpus; titles, text and rights gates remain separate.",
       "public": true,
       "manifest": null,
       "has_production_records": false,
@@ -238,7 +238,7 @@
             "name": "Philippine National Security Council — official statements",
             "format": "Official statement source; independent shadow-state family",
             "publisher_url": "https://nsc.gov.ph/category/official-statements/",
-            "note": "The October 11 pinned state held zero article rows. Do not infer missing publications or borrow AFP's reliability clock; admission requires its own source-specific review."
+            "note": "Checked daily in isolation since October 2, 2026; no new statement has been observed in that window. Do not infer missing publications or borrow AFP's approval; link publication requires its own owner decision."
           }
         ],
         "observed_volume": [],

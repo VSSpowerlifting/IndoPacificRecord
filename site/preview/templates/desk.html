@@ -48,6 +48,36 @@
   appear in this index.</p>
 </section>
 {% endif %}
+{# Philippines: how the desk operates, derived from admitted rows and the
+   published-research catalog only. NSC stays described as shadow until its
+   own owner decision admits rows (docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md). #}
+{% if desk.slug == 'philippines' %}
+{% set ph_links = regional_official_links | default([]) %}
+{% set ph_afp = ph_links | selectattr('publisher_label', 'equalto', 'Armed Forces of the Philippines') | list %}
+{% set ph_nsc = ph_links | selectattr('publisher_label', 'equalto', 'National Security Council') | list %}
+<section class="desk-operations" data-desk-operations="philippines"
+         aria-labelledby="ph-desk-operations-title">
+  <p class="eyebrow">How this desk works</p>
+  <h2 id="ph-desk-operations-title">Coverage, update rhythm and what IPR adds</h2>
+  <dl class="blockers">
+    <dt><strong>Armed Forces of the Philippines</strong></dt>
+      <dd>Public-affairs news releases in English. {% if ph_afp %}{{ ph_afp | length }} verified publisher links;
+        newest official date <time datetime="{{ ph_afp[0].publisher_posted_date }}">{{ ph_afp[0].publisher_posted_date }}</time>.{% else %}No verified publisher links admitted yet.{% endif %}
+        Collected daily into private custody; verified link metadata is admitted and published automatically once a day.</dd>
+    <dt><strong>National Security Council</strong></dt>
+      <dd>Official statements in English. {% if ph_nsc %}{{ ph_nsc | length }} verified publisher links;
+        newest official date <time datetime="{{ ph_nsc[0].publisher_posted_date }}">{{ ph_nsc[0].publisher_posted_date }}</time>.{% else %}Shadow collection only: the source is checked daily in isolation and no NSC link is published.
+        NSC publication needs its own owner decision; it does not inherit AFP's approval.{% endif %}</dd>
+    <dt><strong>Official references vs. IPR analysis</strong></dt>
+      <dd>Publisher references on this page are the institutions' own statements, dated by the publisher and not independently verified.
+        IPR analysis appears only in Briefs that an editor has reviewed and the owner has approved; machine screening is never published as analysis.</dd>
+    <dt><strong>Briefs from this desk</strong></dt>
+      <dd>{% if published_research | default([]) %}{{ published_research | length }} published — listed under research from this desk.{% else %}None published yet. An AFP-sourced dossier separating the Pagsasanay Sanlakas inter-agency exercise from the September 29 JPSCC coordination meeting awaits independent human review; its venue and name-spelling questions remain open.{% endif %}</dd>
+    <dt><strong>Not covered</strong></dt>
+      <dd>The Department of National Defense, the Philippine Navy, Army, Air Force and Coast Guard as publishers, and all other institutions. Original headlines, article text, photographs and translations are not republished.</dd>
+  </dl>
+</section>
+{% endif %}
 
 {# US: first-party publisher URLs, never collected source originals. #}
 {% if desk.slug == 'us-indopacific' and us_pacom_official_links | default([]) %}
