@@ -36,3 +36,36 @@ The original research candidate and claim-to-evidence mapping remain at `researc
 A qualified reviewer should inspect the four referenced authentic originals against the manuscript, decide the outstanding venue/name treatment, confirm allowed citation/link use, and then use the **existing IPR editorial approval and publication process**. Do not use this metadata-only note as a substitute for any of those decisions.
 
 The source-index admission engineering is a separate content lane: admitting verified official AFP links to public SQLite does **not** publish this manuscript or count these references as independently authored articles.
+
+## Re-verification against private custody (19 October 2026)
+
+This was a read-only check. It resolves neither hold, and it is not a human
+source review.
+
+- **Versions unchanged.** I compared the four records with the private AFP
+  archive branch (`archive/ph-afp` at
+  `d48bb3873fe3df554f5fbed5adaeafb7cdd6d876`). All four have the same content
+  and capture SHA-256 values as the table above, so the pinned evidence has not
+  drifted since the public writer was retired.
+- **F02 (name).** The exact publisher strings are as recorded:
+  - among these four records, `Galvan` appears only in `afp:1390`;
+  - `Gavan` appears only in `afp:1394`.
+
+  The external Gavan evidence cited in `README.md` remains a lead. It has not
+  been admitted to the archive. The hold stays open.
+- **F06 (venue).** All four AFP records carry a `CAMP AGUINALDO` dateline,
+  including the field-exercise and closing stories. None names PCG National
+  Headquarters. The observation is consistent with the dateline marking where
+  AFP prepared each story, but that remains an inference. The hold stays open
+  until an authenticated first-party PCG source is preserved.
+- **Event grouping.** The private Philippines research packet
+  (`scripts/ph_private_research_packet.py` in the private repository) reached
+  its grouping independently, by keyword rules with no model:
+  - it proposes `afp:1391`, `afp:1393` and `afp:1394` as possible repeat
+    coverage of one exercise;
+  - it does not cluster `afp:1390` with them.
+
+  This matches F01. It is machine agreement, not editorial confirmation.
+
+PR #661 remains an open draft. Its route is unchanged: a qualified reviewer,
+then the existing editorial approval process.
