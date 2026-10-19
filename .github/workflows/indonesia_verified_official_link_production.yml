@@ -1,0 +1,250 @@
+name: Indonesia — Verified Kemhan Berita Links to Production and Pages
+
+# Owner decision of Oct 15, 2026 (config/afp_kemhan_owner_link_activation.json):
+# verified Kemhan Berita URL, publisher date and issuer metadata ONLY, as a
+# permanent, automatically updated feed. The Yonif TP 880 geography record is
+# always held. No original Indonesian headline, body, photograph, translation,
+# model summary or IPR analysis is published by this workflow.
+#
+# Sources:
+#   * the frozen public shadow/indonesia-kemhan branch (all pre-cutover
+#     originals), validated here directly; and
+#   * post-cutover private originals, which reach this workflow only as a
+#     private-runner HMAC envelope dispatched by the private 17:17 collector.
+#     That path stays held unless KEMHAN_METADATA_BRIDGE_ENABLED is 'true'
+#     and KEMHAN_BRIDGE_KEY is configured.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/indonesia_verified_official_link_production.yml
+      - core/indonesia_kemhan_release_validator.py
+      - scripts/admit_indonesia_kemhan_official_links.py
+  schedule:
+    # Daily reconciliation/retry: recovers a run that committed main but
+    # failed before Pages, and re-verifies the frozen history. Idempotent.
+    - cron: '43 19 * * *'
+  workflow_dispatch:
+    inputs:
+      envelope_b64:
+        description: 'Private-runner signed, gzip metadata-only Kemhan envelope (base64)'
+        required: false
+        type: string
+      envelope_mac:
+        description: 'HMAC-SHA256 of the gzip envelope bytes'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Own group: a shared daily-update pending slot can be replaced by another
+# desk's push. Cross-desk DB races are caught by the exact main/DB/Pages pins.
+concurrency:
+  group: indonesia-verified-official-link-production
+  cancel-in-progress: false
+
+jobs:
+  publish-indonesia-official-links:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out current production main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Pin exact main and refuse dirty or sidecar state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > "$RUNNER_TEMP/id-prod-main-before"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+      - name: Install existing source and site dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify release, validator and renderer contracts
+        run: |
+          python -m unittest -v \
+            tests.test_indonesia_kemhan_release_validator \
+            tests.test_indonesia_operational_health \
+            tests.test_regional_official_link_release \
+            tests.test_regional_official_link_render
+      - name: Clone the frozen public Kemhan source history
+        env:
+          SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          git clone --quiet --single-branch --branch shadow/indonesia-kemhan \
+            "$SRC_REMOTE" "$RUNNER_TEMP/kemhan-frozen"
+          test -z "$(git -C "$RUNNER_TEMP/kemhan-frozen" status --porcelain)"
+          git -C "$RUNNER_TEMP/kemhan-frozen" rev-parse HEAD > "$RUNNER_TEMP/id-source-tip"
+      - name: Accept a private envelope only when the bridge is activated
+        if: ${{ inputs.envelope_b64 != '' || inputs.envelope_mac != '' }}
+        env:
+          BRIDGE_ENABLED: ${{ vars.KEMHAN_METADATA_BRIDGE_ENABLED }}
+          ENVELOPE_B64: ${{ inputs.envelope_b64 }}
+          ENVELOPE_MAC: ${{ inputs.envelope_mac }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$BRIDGE_ENABLED" = true || {
+            echo "::error::HOLD: Kemhan private metadata bridge is not activated"
+            exit 1
+          }
+          test -n "$ENVELOPE_B64" && test -n "$ENVELOPE_MAC"
+          printf '%s' "$ENVELOPE_B64" | base64 -d > "$RUNNER_TEMP/kemhan-envelope.json.gz"
+          printf '%s\n' "$ENVELOPE_MAC" > "$RUNNER_TEMP/kemhan-envelope.mac"
+          echo "ENVELOPE_ARGS=--signed-envelope $RUNNER_TEMP/kemhan-envelope.json.gz --signed-mac $RUNNER_TEMP/kemhan-envelope.mac" >> "$GITHUB_ENV"
+      - name: Admit trusted-validated Kemhan links (scratch copy, atomic replace)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KEMHAN_BRIDGE_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2086
+          python -m scripts.admit_indonesia_kemhan_official_links admit \
+            --source-checkout "$RUNNER_TEMP/kemhan-frozen" \
+            --source-commit "$(cat "$RUNNER_TEMP/id-source-tip")" \
+            --production-db "$GITHUB_WORKSPACE/pla_watch.db" ${ENVELOPE_ARGS:-}
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+          python scripts/verify_db_current.py
+      - name: Render site; verify the Indonesia page independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          python site/render.py
+          python scripts/validate_output.py
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          from bs4 import BeautifulSoup
+          db = sqlite3.connect("file:pla_watch.db?mode=ro", uri=True)
+          rows = {r[0]: r[1] for r in db.execute(
+              "SELECT source_identity, canonical_official_url FROM regional_official_source_links "
+              "WHERE desk='indonesia' AND source_family='id_kemhan_news'")}
+          page = Path("output/indonesia.html").read_text(encoding="utf-8")
+          soup = BeautifulSoup(page, "html.parser")
+          items = soup.select("li[data-regional-official-source-id]")
+          got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
+          # At least the 30 frozen-cohort links; verified later records are
+          # admitted under the Oct 18 standing link-metadata authorization.
+          assert len(rows) >= 30 and got == rows, "rendered links differ from SQLite"
+          assert "yonif-tp-880" not in page
+          for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
+              assert forbidden not in page, forbidden
+          from scripts.indonesia_operational_health import check_admitted_links, check_public_page
+          check_public_page(Path("output/indonesia.html"))
+          assert check_admitted_links(page) == len(rows)
+          print("Admitted Kemhan links rendered:", len(rows))
+          PY
+          sha256sum output/indonesia.html > "$RUNNER_TEMP/id-prod-page-sha"
+          echo "All rendered output changes listed for audit, not bulk publication:"
+          git diff --name-only -- output/
+      - name: Refuse a moved source history or production main
+        env:
+          SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote "$SRC_REMOTE" refs/heads/shadow/indonesia-kemhan | cut -f1)" = \
+            "$(cat "$RUNNER_TEMP/id-source-tip")" || {
+            echo "::error::Frozen source branch moved; retry on the exact new version"
+            exit 1
+          }
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$(cat "$RUNNER_TEMP/id-prod-main-before")" || {
+            echo "::error::Production main moved; aborting rather than replacing a changed DB"
+            exit 1
+          }
+          sha256sum -c "$RUNNER_TEMP/id-prod-page-sha"
+      - name: Commit exactly live SQLite and Indonesia HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- pla_watch.db output/indonesia.html
+          staged="$(git diff --cached --name-only)"
+          if [ -z "$staged" ]; then
+            echo "No new admitted links; nothing to commit"
+            exit 0
+          fi
+          if echo "$staged" | grep -vE '^(pla_watch.db|output/indonesia.html)$'; then
+            echo "::error::Unexpected staged file; full-site publish prohibited"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Indonesia: admit verified Kemhan Berita link metadata and update page only"
+          git push origin HEAD:main
+      - name: Check out current Pages without uploading other files
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: indonesia-existing-pages
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Publish only Indonesia HTML to existing Pages branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c "$RUNNER_TEMP/id-prod-page-sha"
+          # Always reconcile Pages, even if an earlier attempt pushed main and
+          # then failed before gh-pages: this is the unattended retry path.
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" || {
+            echo "::error::Main changed since this Indonesia page was rendered"
+            exit 1
+          }
+          git show HEAD:output/indonesia.html | cmp - output/indonesia.html
+          cd indonesia-existing-pages
+          test -z "$(git status --porcelain --untracked-files=all)"
+          pages_old="$(git rev-parse HEAD)"
+          cp ../output/indonesia.html indonesia.html
+          git add -- indonesia.html
+          staged="$(git diff --cached --name-only)"
+          test -z "$staged" || test "$staged" = "indonesia.html"
+          if [ -n "$staged" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Indonesia: publish verified Kemhan Berita outbound links only"
+          fi
+          git fetch origin gh-pages
+          test "$(git rev-parse origin/gh-pages)" = "$pages_old" || {
+            echo "::error::Pages moved; never overwrite a concurrent release"
+            exit 1
+          }
+          if [ -n "$staged" ]; then
+            git push origin HEAD:gh-pages
+          fi
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Independent readback of committed and deployed bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main gh-pages
+          main_sha="$(git show origin/main:output/indonesia.html | sha256sum | cut -d' ' -f1)"
+          pages_sha="$(git show origin/gh-pages:indonesia.html | sha256sum | cut -d' ' -f1)"
+          test "$main_sha" = "$pages_sha" || {
+            echo "::error::main output and gh-pages Indonesia bytes differ"
+            exit 1
+          }
+          echo "PASS: main:output/indonesia.html == gh-pages:indonesia.html ($main_sha)"
+
+# Original bytes stay in their preserved source branches and private custody.
+# No source artifact upload, bulk site push, AI request or editor email.

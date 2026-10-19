@@ -384,7 +384,7 @@
    "route": "indonesia.html",
    "scope": "A bounded institutional-news research desk focused initially on Kementerian Pertahanan Republik Indonesia (Kemhan) Berita, in original Indonesian. Coverage excludes the armed forces' wider publications, ministerial decrees, and national defense-policy documents.",
    "status": "shadow",
-   "status_explanation": "Kemhan Berita is collected on a separate scheduled shadow-state branch for private source evaluation. Its original Indonesian articles are not in the public IPR corpus. Fifteen dated Berita links and two historical Siaran Pers press links provide attributed outbound navigation only; neither group constitutes human-reviewed IPR citations or public archive records. Five preserved originals received preliminary review; independent Indonesian-language signoff and the Day 7/14/30 collection reviews remain outstanding.",
+   "status_explanation": "Kemhan Berita is collected daily into a private evidence archive for source evaluation. Its original Indonesian articles are not in the public IPR corpus. Fifteen dated Berita links and two historical Siaran Pers press links provide attributed outbound navigation only; neither group constitutes human-reviewed IPR citations or public archive records. Five preserved originals received preliminary review; independent Indonesian-language signoff and the Day 7/14/30 collection reviews remain outstanding.",
    "public": true,
    "manifest": null,
    "has_production_records": false,
