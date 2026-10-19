@@ -92,15 +92,14 @@ workflow, collector, model request, database operation or release gate is added.
 
 ## Remaining release action
 
-Both canonical records remain **draft**, with no issue number and no human
-approval receipt. `author_brief.py ready` reports exactly the absent human
+The manuscript remains **draft**, with no issue number and no source-review
+approval receipt. The presentation is now accepted as recorded below. `author_brief.py ready` reports exactly the absent human
 editorial/source/rights review and owner source-linked policy ruling. The
 presentation also needs its existing exact-content approval at numbering time.
 
 The owner said the manuscript/presentation looked great, while requesting
-Dylan’s author card and a cover. Those additions are now concrete. The only
-remaining editorial choice is the exact proposed photograph, its context
-caption and paired crop; do not ask the owner to repeat the accepted prose
+Dylan’s author card and a cover. Those additions are now concrete. The exact photograph, context
+caption and paired crop have since been accepted; do not ask the owner to repeat the accepted prose
 review. Record the actual final acceptance
 against the fingerprints above. Use the existing locked numbering command to
 assign the next available number; do not assume No. 19. Regenerate with the
@@ -108,3 +107,30 @@ production renderer, validate, review the output diff and exact-head CI, then
 follow the existing authorized merge/deployment path. Verify the live article,
 Analysis, homepage, Brief feed and sitemap against the accepted output. Do not
 substitute a preview, PR merge or passing test for live publication.
+
+## Owner acceptance and remaining human gate
+
+On October 18, 2026, the owner accepted the exact displayed cover, caption,
+paired crop, reading presentation and Dylan author card: “yes this works.
+how to publish?” The accepted editorial/presentation fingerprints above are
+unchanged. The presentation now carries that actual owner acceptance.
+Canonical manuscript prose remains identical and unnumbered.
+
+The owner subsequently reported “Merged”; GitHub confirms this refers to
+CI repair PR #823, merged as e21d10e679d6399b398c311fa69c185951bada8b.
+This candidate incorporates that repair without changing its two test files.
+Do not duplicate the CI repair or treat its merge as publication authority.
+Final focused verification passes 229 tests, including every previously failing
+case and all 225 relevant Brief/cover/presentation tests. Database and manuscript
+bytes remain unchanged. Exact-head GitHub CI must still be assessed.
+
+Doctrine §5b separately requires actual human review of original-language
+sources, claims/chronology and limited source use against the exact manuscript.
+The seven-source assessment above is the agent's research, not evidence that
+Benjamin or Dylan personally performed that source review. General prose or
+cover approval is not a basis to set all editorial_review checks to true.
+The source-review receipt and exact owner policy ruling remain absent until
+the owner confirms the actual review or explicitly changes that requirement.
+No new gate is introduced. After that real decision, use the existing locked
+approval command, add the already reviewed paired catalogue crop for the actual
+assigned issue, render/validate, and follow an explicitly authorized release.

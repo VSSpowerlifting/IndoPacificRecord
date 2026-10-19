@@ -1,9 +1,11 @@
-# Proposed Japan Brief cover
+# Owner-approved Japan Brief cover
 
-**Disposition:** concrete private selection candidate; exact owner image
-approval pending. The owner reaffirmed a cover on every Brief and accepted
-the manuscript subject to Dylan’s author card and a cover. No live photograph,
-catalogue admission, issue assignment, merge or deployment is asserted here.
+**Disposition:** Benjamin Yang approved this exact photograph, contextual
+caption, article preview and same-image catalogue crop on October 18, 2026,
+replying “yes this works. how to publish?” The approval covers this Brief's
+article and catalogue surfaces with the treatment and credits below. The
+paired catalogue admission still awaits the existing issue-numbering step.
+No live publication, issue assignment, merge or deployment is asserted here.
 
 ## Source and editorial fit
 
@@ -50,8 +52,7 @@ gradient is CSS. The 720 × 480 catalogue crop comes from the same photograph,
 using the existing catalogue crop helper with focal point `50% 48%`.
 
 The unnumbered private preview stages the **article** surface only. Its standalone
-review file also shows the exact catalogue crop. After the owner chooses this
-photograph and the existing lock assigns a number, add its paired catalogue
+review file also shows the exact catalogue crop. After the existing lock assigns a number, add its paired catalogue
 admission for that actual number and set the manifest to article + catalogue.
 Run the existing pair/hash/credit checks before release. Do not assume No. 19
 or declare the current article-only staging a completed paired cover.

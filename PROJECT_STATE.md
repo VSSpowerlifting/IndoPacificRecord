@@ -1,5 +1,14 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Japan Brief release preparation (18 October 2026, PR #822):**
+Owner accepted the exact F-15DJ cover, contextual caption, reading preview and
+Dylan co-author card. Presentation acceptance is recorded; manuscript remains
+unnumbered draft. CI repair #823 merged as e21d10e and is incorporated here.
+The existing doctrine §5b human original-source review and exact owner policy
+ruling still require an actual decision; do not invent them from cover approval.
+No merge/deployment authority or live publication. Current release dossier:
+`docs/JAPAN_BRIEF_RELEASE_2026-10-18.md`.
+
 **Verification/desk-acceptance simplification (2026-10-18, PR #811):**
 Owner authorized one focused simplification: keep
 the existing stable PR check name and critical source/rights, browser,

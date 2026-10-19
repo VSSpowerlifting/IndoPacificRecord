@@ -2,7 +2,7 @@
   "version": "brief-presentation-v1",
   "article": "three-days-chinese-flights-six-months-japanese-scrambles",
   "manuscript_fingerprint": "bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d",
-  "status": "draft",
+  "status": "approved",
   "sections": [
     {
       "id": "reading-overview",
@@ -35,5 +35,16 @@
       "end": 10
     }
   ],
-  "approval": null
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-10-18",
+    "reference": "docs/JAPAN_BRIEF_RELEASE_2026-10-18.md#owner-acceptance-and-remaining-human-gate",
+    "fingerprint": "b99dd14374548a88b3eb6e7c9d78a181f939a5bf18ec926cd7afe632e653d414",
+    "checks": {
+      "excerpts": true,
+      "headings": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
 }

@@ -4,6 +4,21 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Japan Brief cover and reading presentation accepted
+
+After reviewing the updated article preview and same-image catalogue crop,
+Benjamin Yang replied “yes this works. how to publish?” The selected cover is
+DVIDS photo 8080849 / VIRIN 231017-F-VQ804-1198, Tylir Meyer, U.S. Air Force:
+a Japanese F-15DJ over the East China Sea on October 17, 2023. Its approved
+scope is the Japan Brief article and catalogue card, using the standard CSS
+gradient and retained creator, public-domain credit and exact DVIDS notice.
+The caption identifies historical context, not an October 2026 scramble.
+This also accepts the displayed reading presentation and Dylan's co-author
+card. The exact presentation receipt is recorded against its existing digest.
+It does not claim that the owner personally reviewed the Japanese originals,
+or authorize a merge/deployment. The independent source-review/policy gate
+remains explicit in the release dossier; do not manufacture its receipt.
+
 ## 2026-10-18 — Owner: every Brief has a cover; Dylan card on the Japan Brief
 
 The owner reaffirmed that **every Brief, including historical Briefs, must
