@@ -21,9 +21,9 @@ without record-specific review. Production run 39294019152 committed only
 
 **Collector handover (done 19 October 2026).** #797 retired the public AFP
 writer, and private #11 removed the `shadow/ph-afp` → `archive/ph-afp` mirror.
-Both are merged. The owner configured `AFP_BRIDGE_KEY`,
-`AFP_METADATA_BRIDGE_ENABLED=true` and `AFP_PRIVATE_SCHEDULE_ENABLED=true`. The
-private dispatch, run 39303137920, succeeded. `archive/ph-afp` is the AFP
+Both are merged. `AFP_BRIDGE_KEY`, `AFP_METADATA_BRIDGE_ENABLED=true` and
+`AFP_PRIVATE_SCHEDULE_ENABLED=true` were configured on 2026-10-19 (18:27–18:41
+UTC). The private dispatch, run 39303137920, succeeded. `archive/ph-afp` is the AFP
 writer and may legitimately advance past the frozen public branch.
 
 **Philippines NSC (19 October 2026): built, held on an owner decision.**
@@ -33,7 +33,8 @@ This branch adds:
 - a signed-envelope production lane,
   `ph_nsc_verified_official_link_production.yml`;
 - `ph_nsc_shadow.yml` reduced to a pull-request contract check. The public
-  `shadow/ph-nsc` branch is frozen at `1a313e04` (0 records).
+  `shadow/ph-nsc` branch freezes at its tip when this PR merges (`1a313e04`,
+  0 records, as of 2026-10-19).
 
 Private PR #19 continues the history on `archive/ph-nsc`. It also adds a
 no-model research packet for AFP and NSC. The packet labels screening,

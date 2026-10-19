@@ -32,7 +32,8 @@ private remote or new credentials are needed. The bounded post-merge verificatio
 procedure and remaining evidence gates are in `shadow/ph_nsc/README.md`.
 
 **NSC custody transition (19 October 2026, pending owner merge).** The public
-NSC writer is retired, and `shadow/ph-nsc` is frozen at `1a313e04` (0 records).
+NSC writer is retired, and `shadow/ph-nsc` freezes at its tip on merge
+(`1a313e04`, 0 records, as of 2026-10-19).
 Collection continues privately on `archive/ph-nsc` in `ipr-source-evidence-private`
 (PR #19). Link publication waits on the owner decision in
 `docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md`.

@@ -20,7 +20,9 @@ full-text licence.
   since 2026-07-08.
 - **Schedule.** The public schedule ran from 2026-10-02 with a six-day
   lookback. Every window since has been quiet, so the shadow state
-  (`shadow/ph-nsc` at `1a313e04`) holds **zero** records. The six earlier
+  (`shadow/ph-nsc`, `1a313e04` as of 2026-10-19) holds **zero** records. The
+  public schedule keeps advancing the tip until the retirement merges; the
+  private seed reads the tip at that point. The six earlier
   statements predate every collected window. They are not missing captures,
   and none has been backfilled.
 - **Rehearsal.** A bounded rehearsal on 2026-10-02 fetched `nsc:3108` and

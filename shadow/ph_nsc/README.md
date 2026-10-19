@@ -2,8 +2,8 @@
 
 **Custody transition (19 October 2026, pending owner merge).** The public
 writer is retired. `ph_nsc_shadow.yml` becomes a pull-request-only contract
-check, and the public `shadow/ph-nsc` branch is frozen at `1a313e04` (0
-records). Collection continues in the private repository on `archive/ph-nsc`
+check, and the public `shadow/ph-nsc` branch freezes at its tip when that
+merge happens (`1a313e04`, 0 records, as of 2026-10-19). Collection continues in the private repository on `archive/ph-nsc`
 (private PR #19, `nsc_private_first_collector.yml`, daily at 10:10 UTC). Neutral
 link metadata reaches production only through
 `ph_nsc_verified_official_link_production.yml`, and only after an owner rights
