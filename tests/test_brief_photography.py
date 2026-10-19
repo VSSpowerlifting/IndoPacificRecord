@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT / "site" / "preview"))
 
 from core import brief_cover as bcv                              # noqa: E402
 from core import catalogue_media as cm                           # noqa: E402
-from core.brief_collection import load_collection                 # noqa: E402
+from core.brief_collection import load_collection, brief_entry    # noqa: E402
 from core.desk_registry import load_registry                      # noqa: E402
 from core.brief_photography import article_cover, pair_problem    # noqa: E402
 from core.source_terms import notice_problem, required_notice     # noqa: E402
@@ -261,8 +261,18 @@ class CommittedPairTests(unittest.TestCase):
             for slug in entry["match"]["briefs"]:
                 with self.subTest(cover=entry["id"], brief=slug):
                     self.assertIsNone(bcv.problem(entry, ROOT))
-                    self.assertIsNone(pair_problem(entry, briefs[slug], ROOT, self.admissions))
-                    self.assertIsNotNone(article_cover(briefs[slug], ROOT,
+                    brief = briefs.get(slug)
+                    if brief is None:
+                        draft = json.loads((ROOT / 'briefs' / (slug + '.json')).read_text())
+                        self.assertEqual(draft['editorial_status'], 'draft')
+                        self.assertIsNone(draft.get('issue_number'))
+                        self.assertNotIn('approval', draft)
+                        # An unnumbered private cover candidate may stage the
+                        # article alone; no catalogue or publication grant.
+                        self.assertEqual(entry['surfaces'], ['article'])
+                        brief = brief_entry(slug, draft)
+                    self.assertIsNone(pair_problem(entry, brief, ROOT, self.admissions))
+                    self.assertIsNotNone(article_cover(brief, ROOT,
                                                        admissions=self.admissions))
 
     def test_catalogue_photographs_from_ordinary_entries_are_unaffected(self):

@@ -1,7 +1,7 @@
-"""All eighteen published Briefs share navigable reading styles without prose edits.
+"""All nineteen published Briefs share navigable reading styles without prose edits.
 
 This contract deliberately reads checked-in output. Rendering of source-linked
-No. 18, native Nos. 15–17 and historical Nos. 1–14 is covered elsewhere.
+Nos. 18–19, native Nos. 15–17 and historical Nos. 1–14 is covered elsewhere.
 """
 from pathlib import Path
 import unittest
@@ -18,6 +18,7 @@ NATIVE = (
     "xiangshan-security-frames-defense-ties",
     "trident-resolve-regional-scale-specific-chinese-tasks",
     "what-is-being-built-in-laos",
+    "three-days-chinese-flights-six-months-japanese-scrambles",
 )
 PAGES = tuple(ROOT / "output/the-pla-watch/posts" / ("2026-" + day + ".html")
               for day in HISTORICAL) + tuple(
@@ -25,8 +26,8 @@ PAGES = tuple(ROOT / "output/the-pla-watch/posts" / ("2026-" + day + ".html")
 
 
 class UnifiedBriefReadingTests(unittest.TestCase):
-    def test_all_eighteen_pages_keep_navigable_editorial_sections(self):
-        self.assertEqual(len(PAGES), 18)
+    def test_all_nineteen_pages_keep_navigable_editorial_sections(self):
+        self.assertEqual(len(PAGES), 19)
         for path in PAGES:
             with self.subTest(page=path.relative_to(ROOT)):
                 soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")

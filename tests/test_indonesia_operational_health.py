@@ -183,8 +183,9 @@ class OperationalCanaryTests(unittest.TestCase):
                 check_public_page(page)
 
     def test_admitted_metadata_index_replaces_shadow_heading_only_when_sound(self):
-        shadow = (Path(__file__).resolve().parents[1] / "output/indonesia.html").read_text(encoding="utf-8")
-        self.assertEqual(check_public_page_text(shadow), 17)
+        published = (Path(__file__).resolve().parents[1] / "output/indonesia.html").read_text(encoding="utf-8")
+        self.assertIn("<h2>" + ADMITTED_HEADING + "</h2>", published)
+        self.assertEqual(check_public_page_text(published), 17)
         path = "/2026/10/16/menhan-contoh-berita.html"
         def item(path=path, href=None, shown="2026-10-16"):
             return (
@@ -195,11 +196,17 @@ class OperationalCanaryTests(unittest.TestCase):
                 '        · Official date <time datetime="%s">%s</time>\n'
                 '        · Official-link metadata only</p>\n    </li>' %
                 (path, href or "https://www.kemhan.go.id" + path, shown, shown))
+        # Replace the *actual* admitted metadata index, not the retired
+        # shadow-only heading. The old replacement was a no-op after admission.
+        anchor = '<ol class="desk-reference-list" aria-label="Admitted official publisher references">'
+        start = published.index(anchor)
+        end = published.index("</ol>", start) + len("</ol>")
         def admitted(*items, heading=ADMITTED_HEADING):
-            return shadow.replace(
-                "<h2>Shadow evaluation — no public corpus records</h2>",
-                "<h2>%s</h2>\n<ol aria-label=\"Admitted official publisher references\">%s</ol>"
-                % (heading, "".join(items)), 1)
+            page = published[:start] + anchor + "".join(items) + "</ol>" + published[end:]
+            if heading != ADMITTED_HEADING:
+                page = page.replace("<h2>" + ADMITTED_HEADING + "</h2>",
+                                    "<h2>" + heading + "</h2>", 1)
+            return page
         self.assertEqual(check_public_page_text(admitted(item())), 17)
         held = "/2026/10/02/" + KEMHAN_HELD.split("/2026/10/02/", 1)[1]
         for label, page in (
