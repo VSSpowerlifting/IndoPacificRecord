@@ -13,6 +13,21 @@ feed, author links, previous/next navigation and assets. Exact-head CI remains
 required. No merge/deployment or live publication is claimed. Release dossier:
 `docs/JAPAN_BRIEF_RELEASE_2026-10-18.md`.
 
+**Korea completion candidate (18 October 2026):**
+The existing private DAPA schedule is activated and genuinely ran successfully:
+`39179758230-1`, logical October 18, `ok_no_publications`, preserved at private
+`7a03ac11555b0d301c64bf5953c255825e988eb5`; no false publication dispatch.
+Candidate changes repair one bounded MND transient transport retry, both
+publisher completion hooks after the collector rename, obsolete DAPA registry
+copy, separate MND/DAPA counts, and the existing Operations Center binding.
+Current production: 15 MND + 1 DAPA links, 3 licensed originals, 3 reviewed
+English/analysis pairs. MND's failed scheduled `39159889610` remains failed;
+its `156785190` original is already preserved/admitted. Manual one-day MND
+check returned healthy zero; this does not attest repaired scheduled operation.
+MND still writes originals to its legacy public ref: the verified private
+mirror is not a cutover. Separate owner cutover authorization and review/release
+of this candidate remain required. See `docs/engineering/KOREA_DESK_OPERATION.md`.
+
 **Verification/desk-acceptance simplification (2026-10-18, PR #811):**
 Owner authorized one focused simplification: keep
 the existing stable PR check name and critical source/rights, browser,

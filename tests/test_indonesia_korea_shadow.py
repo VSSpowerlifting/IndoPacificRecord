@@ -268,6 +268,63 @@ class Korea(Case):
 
 
 class Access(Case):
+    def test_mnd_article_connection_failure_recovers_exact_original_once(self):
+        korean, session = adapter("korea")
+        ref = korean.discover(CollectionWindow(TARGET, 0)).references[0]
+        original_request = session.request
+        failures = [ref.url]
+
+        def once(method, url, **kwargs):
+            if failures and url == failures[0]:
+                failures.pop()
+                session.calls.append((method, url, kwargs["data"]))
+                raise requests.ConnectionError("synthetic connection reset")
+            return original_request(method, url, **kwargs)
+
+        session.request = once
+        result = korean.extract(korean.fetch(ref))
+        self.assertEqual(result.status, st.OK)
+        self.assertEqual(korean.transport_retries, 1)
+        self.assertEqual([url for _, url, _ in session.calls].count(ref.url), 2)
+        self.assertEqual([e["requested_url"] for e in korean.evidence].count(ref.url), 1)
+        # The budget is collection-wide, not multiplied by the number of sources.
+        session.mutations[ref.url] = requests.ConnectionError("still unavailable")
+        self.assertEqual(korean.fetch(ref).status, st.FETCH_FAILURE)
+        self.assertEqual([url for _, url, _ in session.calls].count(ref.url), 3)
+
+    def test_mnd_attachment_timeout_can_recover_without_refetching_article(self):
+        korean, session = adapter("korea")
+        ref = korean.discover(CollectionWindow(TARGET, 0)).references[0]
+        original_request = session.request
+        failed = []
+
+        def once(method, url, **kwargs):
+            if "/common/download.do" in url and not failed:
+                failed.append(url)
+                session.calls.append((method, url, kwargs["data"]))
+                raise requests.Timeout("synthetic document timeout")
+            return original_request(method, url, **kwargs)
+
+        session.request = once
+        self.assertEqual(korean.extract(korean.fetch(ref)).status, st.OK)
+        self.assertEqual(korean.transport_retries, 1)
+        self.assertEqual([url for _, url, _ in session.calls].count(ref.url), 1)
+
+    def test_mnd_access_tls_and_malformed_body_failures_never_retry(self):
+        for failure in (
+            requests.exceptions.SSLError("synthetic invalid TLS certificate"),
+            Response(KR_LISTING, b"forbidden", 403),
+            Response(KR_LISTING, b"unavailable", 503),
+            Response(KR_LISTING, b"", 302),
+            Response(KR_LISTING, b'<html><title>Just a moment</title></html>'),
+            Response(KR_LISTING, b"<html>truncated"),
+        ):
+            with self.subTest(failure=type(failure).__name__):
+                korean, session = adapter("korea", {KR_LISTING: failure})
+                self.assertFalse(korean.discover(CollectionWindow(TARGET, 0)).ok)
+                self.assertEqual(korean.transport_retries, 0)
+                self.assertEqual([url for _, url, _ in session.calls].count(KR_LISTING), 1)
+
     def test_korea_robots_timeout_is_extended_for_only_one_request(self):
         korean, korean_session = adapter("korea")
         self.assertEqual(korean.discover(CollectionWindow(TARGET, 0)).status, st.OK)
@@ -325,14 +382,15 @@ class Access(Case):
         self.assertEqual(session.calls, [("GET", robots, None)])
         self.assertEqual([e["requested_url"] for e in korean.evidence], [robots])
 
-    def test_korea_listing_timeout_is_never_retried(self):
+    def test_korea_listing_timeout_retries_once_then_fails_closed(self):
         korean, session = adapter(
             "korea", {KR_LISTING: requests.Timeout("synthetic listing timeout")})
         outcome = korean.discover(CollectionWindow(TARGET, 0))
         self.assertEqual(outcome.status, st.TIMEOUT)
         self.assertEqual(korean.robots_timeout_retries, 0)
-        self.assertEqual([url for _, url, _ in session.calls].count(KR_LISTING), 1)
-        self.assertEqual(len(session.calls), 2)
+        self.assertEqual(korean.transport_retries, 1)
+        self.assertEqual([url for _, url, _ in session.calls].count(KR_LISTING), 2)
+        self.assertEqual(len(session.calls), 3)
 
     def test_indonesia_robots_timeout_remains_single_attempt(self):
         robots = "https://www.kemhan.go.id/robots.txt"
