@@ -152,7 +152,19 @@ compare legacy directory rendering against the independently queried admitted
 index. Synthetic negative-index tests explicitly remove existing real links
 from their disposable HTML fixture before inserting the case under test. No
 country's source permissions or publication behavior changed in those fixes.
-Full-suite/PR results are recorded in the implementation PR.
+Full-suite/PR results are recorded in [PR #824](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/824).
+The October 19 full Linux run at `27b4aded844b4fbf51ecdef4fe8fbbffc443b9c6`
+completed 7,570 tests with one failure and two skips: committed
+`indonesia.html` plus CSS is 121,977 bytes against its 120,000-byte budget.
+The identical test fails on untouched base main `31b8d00cb0148c104666c19c19b67af84f6ae61e`;
+its Indonesia HTML bytes are identical to this branch. This remains an inherited
+merge blocker, not a Vietnam source/admission regression. The budget was not
+relaxed and another desk's generated output was not changed. Two ancillary
+checks were repaired narrowly: the synthetic canary remains standard-library
+only, and the legacy link-directory PR assertion derives its admitted heading
+and count from SQLite. Their 71-test combined group and actual HTML assertions
+pass locally. Exact final-head CI status belongs to the PR, not an operational
+or deployment claim.
 
 The next action is owner review of this one implementation PR and these exact
 blocked source treatments:

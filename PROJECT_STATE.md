@@ -889,6 +889,10 @@ join the current source queue. Outcome remains **Blocked**, pending a genuinely
 coverable MPS source scope, source-specific review/release and protected-custody
 cutover authority. Exact receipts, verification and owner actions:
 `docs/engineering/VIETNAM_DESK_COMPLETION_2026-10-18.md`.
+PR #824's October 19 full Linux run completed 7,570 tests with one inherited
+failure (Indonesia's unchanged committed page exceeds the HTML/CSS budget by
+1,977 bytes) and two skips. Untouched base main reproduces it. The gate remains
+enforced; exact final-head status is recorded on the PR. No merge is authorized.
 
 The original English Government News defense-tag pilot remains separate,
 `research`, with no approved remote dispatch and no `shadow/vietnam` branch.
