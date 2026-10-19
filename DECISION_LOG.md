@@ -38,6 +38,53 @@ The decision is pinned in
 The existing AFP validator and admission lane in draft #816 must be
 tested with this active policy before a separately authorized release.
 
+## 2026-10-18 — Japan Brief source review confirmed; No. 19 assigned
+
+After the existing requirement for human Japanese-source/claim/rights review
+was explained explicitly, the owner replied “yes. reviewed.” Record that actual
+confirmation against editorial fingerprint
+`bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d`
+and the exact source-linked policy ruling for this manuscript. Do not attribute
+the review to Dylan individually or invent another date. The existing locked
+approval command assigned No.19, preserving all existing issue numbers. Reading
+presentation and cover acceptance were separately recorded earlier. The paired
+catalogue crop equals the already reviewed bytes. No merger, deployment, paid
+model call, live-desk promotion or publication has happened in this preparation.
+
+## 2026-10-18 — Japan Brief cover and reading presentation accepted
+
+After reviewing the updated article preview and same-image catalogue crop,
+Benjamin Yang replied “yes this works. how to publish?” The selected cover is
+DVIDS photo 8080849 / VIRIN 231017-F-VQ804-1198, Tylir Meyer, U.S. Air Force:
+a Japanese F-15DJ over the East China Sea on October 17, 2023. Its approved
+scope is the Japan Brief article and catalogue card, using the standard CSS
+gradient and retained creator, public-domain credit and exact DVIDS notice.
+The caption identifies historical context, not an October 2026 scramble.
+This also accepts the displayed reading presentation and Dylan's co-author
+card. The exact presentation receipt is recorded against its existing digest.
+It does not claim that the owner personally reviewed the Japanese originals,
+or authorize a merge/deployment. The independent source-review/policy gate
+remains explicit in the release dossier; do not manufacture its receipt.
+
+## 2026-10-18 — Owner: every Brief has a cover; Dylan card on the Japan Brief
+
+The owner reaffirmed that **every Brief, including historical Briefs, must
+have a cover image**. Carry the selected rights-checked photograph through
+the catalogue card and opened article. A fallback plate or text-led page
+handles missing/invalid media; it does not fulfill the cover requirement.
+Existing source-specific image holds are not blanket reuse permissions:
+use separately reviewed replacements where necessary. This Japan release
+does not expand into a historical cover backfill.
+
+For **Three Days of Chinese Flights, Six Months of Japanese Scrambles**, the
+owner requested Dylan Tanzi's author card and said everything else looked
+great, while requiring a cover before publication. Add his existing verified
+profile through the co-author-card pattern used for the Laos Brief. The
+manuscript's accepted prose, source references and six-month correction stay
+unchanged. Exact photograph selection, its paired crops and final modified
+credits remain concrete private review work; do not invent image approval or
+carry the earlier text-only fingerprint into the changed candidate.
+
 ## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
 
 The owner directed IPR engineering to stop creating serial audit gates and

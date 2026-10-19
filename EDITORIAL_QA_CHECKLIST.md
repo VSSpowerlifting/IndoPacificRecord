@@ -66,7 +66,10 @@ prose remain human-controlled.
       approval — never in a draft, never reassigned, never read off the
       week, and not at all while any existing issue is unreconciled
       (`core/brief_contract.py`).
-- [ ] Cover image credit present and marked "visual context only".
+- [ ] A rights-checked cover photograph is present on the opened Brief and its
+      catalogue card, with the correct credit and event/context caption.
+      This applies to every Brief, including historical issues. A text-led or
+      Editorial-plate fallback is an unresolved cover gap, not completion.
 - [ ] LinkedIn .txt written, ends with the standing corrections invitation,
       and its source URLs match the edition's trail (no extras, no inventions).
 - [ ] Local preview of post + index + archive at desktop and ~375px.

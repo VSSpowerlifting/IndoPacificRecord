@@ -141,7 +141,8 @@ class CommittedCoverTests(unittest.TestCase):
 
     def test_reviewed_seventeen_and_eighteen_covers_are_granted(self):
         named = [e["id"] for e in self.manifest if (e.get("match") or {}).get("briefs")]
-        self.assertEqual(set(named), {ENTRY_ID, 'laos-vientiane-museum-plane'})
+        self.assertEqual(set(named), {ENTRY_ID, 'laos-vientiane-museum-plane',
+                                      'japan-f15dj-east-china-sea-2023'})
         self.assertIsNotNone(bcv.brief_cover('what-is-being-built-in-laos', ROOT))
         self.assertIsNotNone(bcv.brief_cover(SLUG, ROOT))
 
@@ -183,7 +184,9 @@ class CommittedCoverTests(unittest.TestCase):
         out = subprocess.run([sys.executable, str(ROOT / "scripts/build_brief_cover.py"),
                               "--check"], capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
-        self.assertEqual(out.stdout.count("ok  "), 6)
+        expected = sum(len(e.get("derivatives", [])) for e in self.manifest
+                       if e.get("derivative_builder") == bcv.BUILDER)
+        self.assertEqual(out.stdout.count("ok  "), expected)
 
 
 if __name__ == "__main__":

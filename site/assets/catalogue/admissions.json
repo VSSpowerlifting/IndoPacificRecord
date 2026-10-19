@@ -467,6 +467,35 @@
       "credit": "Petty Officer 1st Class William Colclough, U.S. Coast Guard · Public domain · via Wikimedia Commons",
       "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
       "depicts": "context"
+    },
+    {
+      "alt": "A Japan Air Self-Defense Force F-15DJ in flight, viewed from above against clouds.",
+      "caption": "A Japan Air Self-Defense Force F-15DJ over the East China Sea ahead of bilateral training, 17 October 2023.",
+      "date_note": "Historical context, not an October 2026 scramble.",
+      "creator": "Tylir Meyer, U.S. Air Force",
+      "license": "Public domain",
+      "license_url": "https://www.dvidshub.net/about/copyright",
+      "source_page": "https://www.dvidshub.net/image/8080849/usaf-jasdf-conduct-training-over-east-china-sea",
+      "source_label": "DVIDS",
+      "credit": "Tylir Meyer, U.S. Air Force · Public domain · via DVIDS",
+      "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+      "depicts": "context",
+      "cover_treatment": "gradient",
+      "issue": 19,
+      "week_ending": "2026-10-17",
+      "status": "admitted",
+      "source_file": "site/assets/editorial/derivatives/japan-f15dj-east-china-sea-2023-1600.jpg",
+      "source_manifest_id": "japan-f15dj-east-china-sea-2023",
+      "focal": "50% 48%",
+      "served": "assets/catalogue/media/no-19-japan-f15dj-east-china-sea-2023.jpg",
+      "width": 720,
+      "height": 480,
+      "source_sha256": "f8c435b22ffdd8a528cabf8731cfa74fa45cd8e5dca5dfbb393d41f66e2f6029",
+      "served_sha256": "f3d57e2c723f02633750c048c19990fe331ee43f840b1ade99f75016564e4f59",
+      "change_note": "Cropped and resized by IPR; IPR gradient overlaid.",
+      "review_note": "Benjamin Yang approved the exact article image and catalogue crop on October 18, 2026; docs/JAPAN_BRIEF_RELEASE_2026-10-18.md records the actual acceptance.",
+      "creator_native": "",
+      "creator_native_lang": ""
     }
   ]
 }
