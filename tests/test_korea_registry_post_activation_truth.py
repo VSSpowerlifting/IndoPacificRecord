@@ -22,6 +22,12 @@ class KoreaRegistryTruth(unittest.TestCase):
             self.assertIn("archive/korea-policy-briefing", flow)
             self.assertIn("ipr-source-evidence-private.git", flow)
             self.assertNotIn("ref: shadow/korea-policy-briefing", flow)
+            # The public checkout persists its own GitHub token in local Git
+            # config. Private source requests must run from neutral scratch so
+            # only the vault-scoped read token can reach the archive remote.
+            private_ops = flow.count('git -C "$RUNNER_TEMP" -c "http.https://github.com/.extraheader=')
+            self.assertEqual(private_ops, 2 if "verified_official" in name else 4)
+            self.assertNotIn('git -c "http.https://github.com/.extraheader=', flow)
 
     def test_mnd_content_and_dapa_limits_stated_without_full_desk_promotion(self):
         doc = json.loads((ROOT / "desks/registry.json").read_text(encoding="utf-8"))
