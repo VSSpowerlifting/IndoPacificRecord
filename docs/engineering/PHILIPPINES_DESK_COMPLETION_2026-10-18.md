@@ -139,7 +139,7 @@ None of them touches AFP or Philippines code.
 
 The earlier #812 `TestRecordSemantics` failure is **inherited from main**. It
 reproduces on main `87196e9` alone, with the same 20 IDs, and passes on
-current main `52667d6` and on this branch.
+main `52667d6`, on current main `f3ff927` merged with #812, and on this branch.
 
 ## Owner-controlled dependencies
 
