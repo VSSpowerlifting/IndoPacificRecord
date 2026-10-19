@@ -3134,13 +3134,13 @@ def build(out_dir: Path, title: str, db_path: Path,
             # source, publisher and date, but compact layout whitespace and
             # omit the per-row "metadata only" refrain already explained above.
             # The all-route 120 KB budget remains unchanged.
-            pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\\s\\S]*?</li>'
+            pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
             matches = re.findall(pattern, desk_page)
             if len(matches) != len(regional_official_links):
                 raise ValueError("Indonesia admitted-index markup/count mismatch")
             desk_page = re.sub(
                 pattern,
-                lambda m: re.sub(r'\\s*\\n\\s*', ' ', m.group(0))
+                lambda m: re.sub(r'\s*\n\s*', ' ', m.group(0))
                          .replace(' · Official-link metadata only', ''),
                 desk_page,
             )
