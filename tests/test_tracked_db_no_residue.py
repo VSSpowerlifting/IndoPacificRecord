@@ -108,17 +108,18 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 self.sweep()
                 proc = self.run_script(argv)
                 if name == "verify_db_current" and proc.returncode == 1:
-                    # Main already applied regional metadata 0010 and Korea
-                    # DAPA separation 0011. Only China title receipts 0012 are
-                    # pending separate production application. Verify exactly
-                    # that version, not an
-                    # arbitrary failure. Read-only checks must leave no sidecars.
+                    # Title receipts 0012 and Vietnam index extension 0013
+                    # may await separate production application, depending on
+                    # this tracked snapshot. Accept exactly those known gaps,
+                    # never an arbitrary pending migration or verifier failure.
                     from migrations.runner import discover, applied_versions
                     from scripts.reconcile_db import read_only
                     with read_only(TRACKED) as check_db:
+                        applied = set(applied_versions(check_db))
                         pending = ({m.version for m in discover()}
-                                   - set(applied_versions(check_db)))
-                    self.assertEqual({"0012"}, pending,
+                                   - applied)
+                    self.assertTrue(pending)
+                    self.assertEqual({"0012", "0013"} - applied, pending,
                                      "an unrecognized migration is pending")
                     self.assertIn("database is 'partially_applied'",
                                   proc.stderr)

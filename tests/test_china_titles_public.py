@@ -104,11 +104,17 @@ class ChinaTitlePublicTests(unittest.TestCase):
 
     def test_cli_records_migration_and_repeat_execution_makes_no_duplicate_call(self):
         from scripts.backfill_china_titles import main
+        from migrations.runner import apply_all
         from migrations.versions.m0012_china_title_translation import VERSION
         with tempfile.TemporaryDirectory(prefix='ipr-title-cli-') as directory:
             path=Path(directory)/'fixture.db'
             with read_only(str(self.temp/'fixture.db')) as source:
                 con=sqlite3.connect(path);source.backup(con)
+            # Keep this disposable fixture current for unrelated migrations,
+            # then exercise the title CLI's own migration-recording boundary.
+            # Its refusal of other pending migrations remains unchanged.
+            apply_all(con, sync_config=False)
+            con.execute('DELETE FROM schema_migrations WHERE version=?', (VERSION,))
             con.execute('UPDATE articles SET title_english=NULL,title_translation_source_sha256=NULL,title_translation_value_sha256=NULL WHERE id=?',(self.ident,))
             con.commit();con.close()
             fake=Mock();fake.translate_title.return_value='Synthetic headline translation fixture';fake.usage.rows.return_value=[]
