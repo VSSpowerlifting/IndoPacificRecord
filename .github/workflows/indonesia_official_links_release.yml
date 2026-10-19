@@ -58,12 +58,18 @@ jobs:
           assert len(links) == 15
           assert [x["href"] for x in links] == [r["source_url"] for r in load()]
           assert "No individual source references have completed" in html
-          from scripts.reconcile_db import read_only
-          with read_only("pla_watch.db") as conn:
-              admitted = conn.execute("SELECT count(*) FROM regional_official_source_links WHERE desk='indonesia' AND source_family='id_kemhan_news'").fetchone()[0]
-          soup = BeautifulSoup(html, "html.parser")
-          assert len(soup.select('li[data-regional-official-source-id]')) == admitted
-          assert ("Verified official-source links admitted" if admitted else "Shadow evaluation — no public corpus records") in html
+          from core.regional_official_link_render import load_admitted_links
+          admitted = load_admitted_links(Path("pla_watch.db"), "indonesia")
+          admitted_items = BeautifulSoup(html, "html.parser").select(
+              'ol[aria-label="Admitted official publisher references"] li[data-regional-official-source-id]')
+          if admitted:
+              assert "Verified official-source links admitted — original publisher references" in html
+              assert [item["data-regional-official-source-id"] for item in admitted_items] == [
+                  row["source_identity"] for row in admitted
+              ]
+          else:
+              assert "Shadow evaluation — no public corpus records" in html
+              assert not admitted_items
           assert "data-reference-list" not in html
           assert all(x not in html for x in ("text_original", "body_original", "state/shadow.db"))
           assert 'href="indonesia.html"' in Path("output/desks.html").read_text()

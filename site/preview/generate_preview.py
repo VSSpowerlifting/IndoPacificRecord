@@ -3108,8 +3108,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         ])
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
-        (out_dir / desk.route).write_text(
-            desk_tmpl.render(page=desk.route, desk=desk,
+        desk_page = desk_tmpl.render(page=desk.route, desk=desk,
                              public_source_links=references,
                              published_research=published_research,
                              public_source_options=source_options,
@@ -3129,8 +3128,23 @@ def build(out_dir: Path, title: str, db_path: Path,
                              korea_published_originals=(korea_published_original_rows if desk.slug == "korea" else []),
                              korea_english_publications=(korea_english_publication_rows if desk.slug == "korea" else []),
                              display_limits=public_desk_limits(
-                                 desk, source_views), **ctx),
-            encoding="utf-8")
+                                 desk, source_views), **ctx)
+        if desk.slug == "indonesia" and regional_official_links:
+            # The admitted URL/date-only entries are repetitive; keep every
+            # source, publisher and date, but compact layout whitespace and
+            # omit the per-row "metadata only" refrain already explained above.
+            # The all-route 120 KB budget remains unchanged.
+            pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
+            matches = re.findall(pattern, desk_page)
+            if len(matches) != len(regional_official_links):
+                raise ValueError("Indonesia admitted-index markup/count mismatch")
+            desk_page = re.sub(
+                pattern,
+                lambda m: re.sub(r'\s*\n\s*', ' ', m.group(0))
+                         .replace(' · Official-link metadata only', ''),
+                desk_page,
+            )
+        (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
 
     # Reproducible original Korean source pages are emitted ONLY when an

@@ -184,6 +184,20 @@ promotion changes. Complete diagnosis, repaired assertions, source/rights
 matrix, CI/merge/deploy and live route hashes:
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`. No remaining Laos release blocker.
 
+**Japan Brief No. 19 (18 October 2026, PR #822, ready for release review):**
+Benjamin Yang confirmed the Japanese-source/claim review explicitly after the
+existing gate was explained: “yes. reviewed.” The exact editorial/policy and
+presentation receipts are recorded. Existing locked approval assigned No.19;
+Dylan's author card and the approved 2023 F-15DJ photograph are paired across
+article/catalogue with the accepted crop. CI repair #823 (e21d10e) is included.
+250 relevant tests pass; production-rendered output validates with zero errors
+and seven preserved historical warnings. Desktop/mobile QA passes; unchanged
+manuscript. Current main’s authorized metadata DB changes are preserved.
+Fourteen generated output paths add the Brief and its listings,
+feed, author links, previous/next navigation and assets. Exact-head CI remains
+required. No merge/deployment or live publication is claimed. Release dossier:
+`docs/JAPAN_BRIEF_RELEASE_2026-10-18.md`.
+
 Brief release approval was received 2026-10-05; its candidate,
 authorization recovery and QA evidence are in
 `docs/BRIEF_RELEASE_REVIEW_2026-10-04.md`. The older desk measurements below
@@ -889,10 +903,10 @@ join the current source queue. Outcome remains **Blocked**, pending a genuinely
 coverable MPS source scope, source-specific review/release and protected-custody
 cutover authority. Exact receipts, verification and owner actions:
 `docs/engineering/VIETNAM_DESK_COMPLETION_2026-10-18.md`.
-PR #824's October 19 full Linux run completed 7,570 tests with one inherited
-failure (Indonesia's unchanged committed page exceeds the HTML/CSS budget by
-1,977 bytes) and two skips. Untouched base main reproduces it. The gate remains
-enforced; exact final-head status is recorded on the PR. No merge is authorized.
+PR #824's earlier October 19 full Linux run completed 7,570 tests with one
+inherited page-budget failure and two skips. Subsequent main `e92dcef2` supplies
+the budget and post-admission contract repairs; the candidate retains those
+files exactly. Final-head CI is recorded on the PR. No merge is authorized.
 
 The original English Government News defense-tag pilot remains separate,
 `research`, with no approved remote dispatch and no `shadow/vietnam` branch.

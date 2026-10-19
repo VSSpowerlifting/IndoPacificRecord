@@ -9,7 +9,7 @@ cutover prevent an operational claim. No production database or site changed.
 
 Authenticated GitHub readback, native Git replay and independent SQLite queries
 began against public main `e21d10e679d6399b398c311fa69c185951bada8b`.
-The candidate also incorporates later main `31b8d00cb0148c104666c19c19b67af84f6ae61e`,
+The candidate incorporates later main `e92dcef2bdfb6966a9c9987996bf03840ae1d2b9`,
 retaining its shared admission rules. Migration replay on that newer production
 copy preserved all 943 articles, six sources and every field of 34 existing
 regional links. Vietnam still has zero admitted links.
@@ -156,15 +156,14 @@ Full-suite/PR results are recorded in [PR #824](https://github.com/VSSpowerlifti
 The October 19 full Linux run at `27b4aded844b4fbf51ecdef4fe8fbbffc443b9c6`
 completed 7,570 tests with one failure and two skips: committed
 `indonesia.html` plus CSS is 121,977 bytes against its 120,000-byte budget.
-The identical test fails on untouched base main `31b8d00cb0148c104666c19c19b67af84f6ae61e`;
-its Indonesia HTML bytes are identical to this branch. This remains an inherited
-merge blocker, not a Vietnam source/admission regression. The budget was not
-relaxed and another desk's generated output was not changed. Two ancillary
-checks were repaired narrowly: the synthetic canary remains standard-library
-only, and the legacy link-directory PR assertion derives its admitted heading
-and count from SQLite. Their 71-test combined group and actual HTML assertions
-pass locally. Exact final-head CI status belongs to the PR, not an operational
-or deployment claim.
+The identical failure was reproduced on untouched earlier base main
+`31b8d00cb0148c104666c19c19b67af84f6ae61e`. Main subsequently received its own
+Indonesia budget and post-admission contract repairs with the Japan Brief #19
+release. The candidate incorporates that main rather than retaining competing
+Indonesia fixes: both workflows and all three affected Indonesia test files
+match main exactly. The budget remains unchanged. No other desk's content or
+generated output is changed by the Vietnam diff. Exact final-head CI status
+belongs to the PR, not an operational or deployment claim.
 
 The next action is owner review of this one implementation PR and these exact
 blocked source treatments:
