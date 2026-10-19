@@ -215,15 +215,34 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
-  "issue_number": null,
+  "editorial_status": "approved",
+  "issue_number": 19,
   "week_start": "2026-10-11",
   "week_ending": "2026-10-17",
   "desks": [],
   "source_trail": [],
   "coverage_by_desk": {},
-  "editorial_review": null,
-  "policy_ruling": null,
+  "editorial_review": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-10-18",
+    "reference": "docs/JAPAN_BRIEF_RELEASE_2026-10-18.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d",
+    "checks": {
+      "authorship": true,
+      "chronology": true,
+      "claim_support": true,
+      "limited_source_use": true,
+      "manuscript_fidelity": true,
+      "original_language": true,
+      "rendered_review": true
+    }
+  },
+  "policy_ruling": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-10-18",
+    "reference": "docs/JAPAN_BRIEF_RELEASE_2026-10-18.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d"
+  },
   "paragraph_support": [
     {
       "kind": "reporting",
@@ -313,5 +332,10 @@
     "linkedin": "https://www.linkedin.com/in/dylan-tanzi/",
     "email": "dt822@georgetown.edu",
     "credit_role": "co-author"
+  },
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-10-18",
+    "reference": "docs/JAPAN_BRIEF_RELEASE_2026-10-18.md#confirmed-source-review-and-release-preparation"
   }
 }

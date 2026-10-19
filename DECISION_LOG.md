@@ -4,6 +4,19 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Japan Brief source review confirmed; No. 19 assigned
+
+After the existing requirement for human Japanese-source/claim/rights review
+was explained explicitly, the owner replied “yes. reviewed.” Record that actual
+confirmation against editorial fingerprint
+`bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d`
+and the exact source-linked policy ruling for this manuscript. Do not attribute
+the review to Dylan individually or invent another date. The existing locked
+approval command assigned No.19, preserving all existing issue numbers. Reading
+presentation and cover acceptance were separately recorded earlier. The paired
+catalogue crop equals the already reviewed bytes. No merger, deployment, paid
+model call, live-desk promotion or publication has happened in this preparation.
+
 ## 2026-10-18 — Japan Brief cover and reading presentation accepted
 
 After reviewing the updated article preview and same-image catalogue crop,

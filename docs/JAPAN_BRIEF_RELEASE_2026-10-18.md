@@ -1,4 +1,7 @@
-# Japan air reports Brief publication candidate
+# Japan Brief No. 19 — final release candidate
+
+Owner-approved and numbered; source and generated output are separate commits
+in PR #822. Not merged or deployed.
 
 ## Exact candidate
 
@@ -6,7 +9,7 @@
 - Reporting window: October 11–17, 2026; authors: Benjamin Yang and Dylan Tanzi.
   The owner requested Dylan’s author card on October 18; his existing verified
   profile is used through the same co-author-card pattern as the Laos Brief.
-- Canonical draft:
+- Canonical record:
   `briefs/three-days-chinese-flights-six-months-japanese-scrambles.json`.
 - Reading structure: the same slug under `briefs/presentation/`.
 - DOCX SHA-256:
@@ -25,11 +28,11 @@ to match the April–September statistical report. No other prose changed.
 The four headings supplied by Dylan are retained. The presentation additionally
 labels the opening paragraph **Overview**, as the existing section manifest
 requires a heading for every paragraph range. No finding/excerpt callout is introduced. A separately verified DVIDS
-context photograph is now staged for private cover review. Source-identifying phrases gain direct links without
+context photograph is approved for article and catalogue use. Source-identifying phrases gain direct links without
 changing their text; the existing numbered citations and seven-reference order
 are preserved. The owner reaffirmed that every Brief requires a cover; a text-led
 fallback does not count as completed publication. The selected F-15DJ photo
-and its same-image catalogue crop are in the updated private review.
+and its same-image catalogue crop were accepted in the updated private review.
 
 ## Source-to-claim review
 
@@ -54,83 +57,70 @@ No original PDF, map, photograph or logo from the seven manuscript sources
 is copied. The separate public-domain cover has its own source/terms receipt
 in `docs/evidence/japan-brief-cover-2026-10-18/`. Government
 publication alone is not treated as a blanket image or document reuse licence.
-The owner must accept this exact source/claim/limited-use assessment under the
-existing source-linked editorial exception in doctrine §5b. There is no new
+The owner explicitly confirmed the required Japanese-source/claim review after
+the existing source-linked doctrine §5b requirement was explained; receipt below. There is no new
 live-desk coverage or independent verification of Chinese mission/intent.
-
-## Narrow format repair and verification
-
-An undated institutional explainer could not be represented truthfully because
-the existing publisher-reference contract required dates for every source.
-Permit explicit JSON null only for a background reference and render it as
-**Undated · Background reference**. Undated in-window events, empty/invalid dates
-and all existing approval/source/citation checks remain refused. No new schema,
-workflow, collector, model request, database operation or release gate is added.
-
-- 225 relevant tests pass across the cover, paired photography, catalogue,
-  article media, source-linked Brief, presentation, collection and integration
-  contracts. The committed-cover tests now include a private unnumbered draft
-  without manufacturing a catalogue issue number. All source/rights negative
-  tests and the new undated-reference negative case remain.
-- The production renderer built the private candidate. Exact manuscript text,
-  all inline URL associations, section ranges/headings/navigation and the
-  undated display pass the shared fidelity checks.
-- Chromium 153 at 1280 and 375 pixels: ten paragraphs and seven references,
-  no horizontal overflow or page errors; top/body/reference screenshots reviewed.
-  This container lacks a Japanese fallback font: original Japanese Unicode is
-  intact, but reference-title glyphs appear as boxes in its screenshots. This
-  is disclosed, not a text substitution or a claim of complete font QA.
-- The final Word file was rendered again and all three pages inspected.
-- Tracked database SHA-256 remains
-  `fc92686e891060dea518f34c3005476fbf4e7334a56bd880933ce85cb6f11e56`.
-  No tracked output changed. Initial full PR CI ran 7,522 tests: four failures and one error. Every failing
-  case reproduces on untouched main `765bbc9a822194e39deb6d75afa8aa4dd09332ca`: the
-  retired Friday writer’s comparison assertion and four record-title fixture
-  assertions. This is an independently confirmed release blocker, not a green
-  full suite. New exact-head CI is pending; no unrelated production code was
-  changed to hide these failures.
-
-## Remaining release action
-
-The manuscript remains **draft**, with no issue number and no source-review
-approval receipt. The presentation is now accepted as recorded below. `author_brief.py ready` reports exactly the absent human
-editorial/source/rights review and owner source-linked policy ruling. The
-presentation also needs its existing exact-content approval at numbering time.
-
-The owner said the manuscript/presentation looked great, while requesting
-Dylan’s author card and a cover. Those additions are now concrete. The exact photograph, context
-caption and paired crop have since been accepted; do not ask the owner to repeat the accepted prose
-review. Record the actual final acceptance
-against the fingerprints above. Use the existing locked numbering command to
-assign the next available number; do not assume No. 19. Regenerate with the
-production renderer, validate, review the output diff and exact-head CI, then
-follow the existing authorized merge/deployment path. Verify the live article,
-Analysis, homepage, Brief feed and sitemap against the accepted output. Do not
-substitute a preview, PR merge or passing test for live publication.
 
 ## Owner acceptance and remaining human gate
 
-On October 18, 2026, the owner accepted the exact displayed cover, caption,
-paired crop, reading presentation and Dylan author card: “yes this works.
-how to publish?” The accepted editorial/presentation fingerprints above are
-unchanged. The presentation now carries that actual owner acceptance.
-Canonical manuscript prose remains identical and unnumbered.
+The earlier missing human gate is now satisfied by the explicit confirmation
+below. The owner first accepted the prose, corrected six-month wording and
+reading organization while requesting Dylan's author card and a cover. After
+viewing the exact updated article image and same-image catalogue crop he replied
+“yes this works. how to publish?” This accepts the presentation, historical
+context caption, joint author cards and DVIDS photograph on article/catalogue.
+The independent presentation receipt binds the unchanged digest above.
 
-The owner subsequently reported “Merged”; GitHub confirms this refers to
-CI repair PR #823, merged as e21d10e679d6399b398c311fa69c185951bada8b.
-This candidate incorporates that repair without changing its two test files.
-Do not duplicate the CI repair or treat its merge as publication authority.
-Final focused verification passes 229 tests, including every previously failing
-case and all 225 relevant Brief/cover/presentation tests. Database and manuscript
-bytes remain unchanged. Exact-head GitHub CI must still be assessed.
+CI repair PR #823 merged as e21d10e679d6399b398c311fa69c185951bada8b and is
+incorporated unchanged. The final source changes retain the narrow date repair:
+explicit null is allowed only for genuinely undated background references,
+rendered as “Undated · Background reference.” Missing/invalid event dates,
+source fidelity, citation, rights and publication checks remain enforced.
+No collector, paid model call, schema version or new release workflow is added.
 
-Doctrine §5b separately requires actual human review of original-language
-sources, claims/chronology and limited source use against the exact manuscript.
-The seven-source assessment above is the agent's research, not evidence that
-Benjamin or Dylan personally performed that source review. General prose or
-cover approval is not a basis to set all editorial_review checks to true.
-The source-review receipt and exact owner policy ruling remain absent until
-the owner confirms the actual review or explicitly changes that requirement.
-No new gate is introduced. After that real decision, use the existing locked
-approval command, add the already reviewed paired catalogue crop for the actual
-assigned issue, render/validate, and follow an explicitly authorized release.
+## Confirmed source review and release preparation
+
+After being asked explicitly whether he or Dylan had reviewed the Japanese
+sources against the article's claims, with doctrine §5b and the missing human
+source/rights gate explained, Benjamin Yang replied “yes. reviewed.” on October
+18, 2026. This is the actual human confirmation for the exact manuscript and
+its documented seven-source/limited-use assessment, not an automated review
+or a newly invented event. Record Benjamin's confirmation as owner; do not
+attribute the source review to Dylan individually or invent its earlier date.
+Together with his existing manuscript, presentation and exact cover acceptance,
+this supplies the required editorial review and exact source-linked policy
+ruling. Both receipts bind the unchanged editorial fingerprint above.
+
+The earlier missing-review state is superseded by this explicit confirmation.
+The existing locked numbering command has assigned No.19. Approval of content and source review does not assert a production
+deployment has happened or fabricate a separate merge/deployment instruction.
+
+## Final verification and deployment handoff
+
+- Existing locked approval assigned **No.19**, after reading the full collection;
+  no existing issue number changed. The final canonical record is approved.
+- The owner-approved 720×480 card equals the previously displayed crop bytes.
+  Both article and catalogue gates accept the same DVIDS source identity,
+  photograph derivatives, caption, credit, treatment and exact required notice.
+- Final publication preparation passed **250 relevant tests**. Committed media
+  inventories now include No.19, and native next/previous navigation includes
+  the No.18→No.19 edge. Existing substantive assertions remain enforced.
+- Production renderer output validates with **zero errors and seven preserved
+  historical warnings** (pilot/date/marked-item/cadence). Existing published
+  assets and data exports are carried forward by the normal render contract.
+- Chromium 153 desktop 1280/mobile375: ten paragraphs, seven references, two
+  author cards and the accepted photograph; no overflow or JavaScript errors.
+  Final screenshots inspected. This container lacks a Japanese fallback font; screenshot glyph boxes do not
+  replace source text, and original source-title Unicode is retained.
+- Exactly **14 output paths** change against main e21d10e: the new article;
+  homepage/Analysis; archive research index plus its digest; both author work
+  lists; No.18's next link; feed/sitemap; and four photograph derivatives/crop.
+  The archive index adds exactly one record and removes/modifies no prior record.
+  No corpus record, database, historical manuscript or historical source changes.
+- Database SHA-256 and editorial/presentation fingerprints remain as above.
+- Final exact-head GitHub CI must complete. After explicit merge/deployment
+  authorization, merge #822 and run the existing **Deploy Rendered Output**
+  workflow on main (`.github/workflows/deploy_output_only.yml`). It publishes
+  committed output without collection or paid models. Verify actual HTTPS article,
+  cover/card, author credits, Analysis/homepage, archive, feed and sitemap.
+  A merged PR or green CI alone does not establish live publication.

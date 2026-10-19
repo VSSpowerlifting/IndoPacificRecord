@@ -911,7 +911,8 @@
     "focal": "50% 48%",
     "derivative_builder": "scripts/build_brief_cover.py",
     "surfaces": [
-      "article"
+      "article",
+      "catalogue"
     ],
     "match": {
       "article_urls": [],
@@ -933,7 +934,7 @@
       "user_agent": "IndoPacificRecord editorial image review (+https://indopacificrecord.org)",
       "robots_status": 404
     },
-    "note": "Private cover selection candidate. Owner requested a photograph for every Brief and accepted the manuscript subject to Dylan author card and cover. Exact photograph selection remains pending; article-only staging permits the unnumbered private preview. Final release must pair this same image with the catalogue after the locked issue assignment.",
+    "note": "Owner approved the exact photo, historical-context caption and paired crop on 2026-10-18. Source review separately confirmed. Same image on article and catalogue; no contemporaneous October 2026 event claim.",
     "derivatives": [
       {
         "file": "derivatives/japan-f15dj-east-china-sea-2023-1600.jpg",
