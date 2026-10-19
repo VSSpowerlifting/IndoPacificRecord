@@ -31,7 +31,7 @@ class BeforeModelRefused(ValueError):
 
 
 def gate(*, week_ending, as_of, review_local_day, database=DB_PATH,
-         marker_path=MARKER):
+         marker_path=MARKER, research_packet=None):
     saturday = iso_day(week_ending)
     observed = iso_day(review_local_day)
     if saturday.weekday() != 5:
@@ -46,11 +46,30 @@ def gate(*, week_ending, as_of, review_local_day, database=DB_PATH,
         week_ending=week_ending, as_of=as_of, review_day=review_local_day,
         database=database, marker_path=marker_path,
     )
-    unmet = report["unmet_gates"]
+    unmet = list(report["unmet_gates"])
+    research_support = False
+    offered_research_count = 0
+    if research_packet is not None:
+        # Use only the existing exact-week publisher-family-validated private
+        # notes. Typed research may support a DRAFT, never production admission.
+        from core.brief_editorial_evidence import load_editorial_evidence
+        packet = Path(research_packet)
+        if (packet.name != week_ending + ".json" or not packet.is_file()
+                or packet.is_symlink() or packet.parent.is_symlink()):
+            raise BeforeModelRefused("invalid exact-week private research packet")
+        notes = load_editorial_evidence(week_ending, as_of, directory=packet.parent)
+        offered_research_count = len(notes)
+        production = set(report["desks_with_usable_text"])
+        research_support = (len(production) == 1 and any(
+            note["desk"] not in production for note in notes))
+        if research_support:
+            unmet = [issue for issue in unmet if
+                     issue != "fewer_than_two_desks_with_usable_source_text"]
     if observed == sunday:
         # Sunday must have an actual same-Sunday successful collection marker.
         # Two stored desk names do not suffice without full text from BOTH.
-        if report["machine_preflight_verdict"] != CURRENT_READY or unmet:
+        if unmet or (report["machine_preflight_verdict"] != CURRENT_READY
+                     and not research_support):
             raise BeforeModelRefused(
                 "current Sunday corpus is not model-ready: " +
                 ", ".join(unmet or ["audit_not_ready"])
@@ -76,6 +95,8 @@ def gate(*, week_ending, as_of, review_local_day, database=DB_PATH,
         "production_desks_with_usable_text": report["desks_with_usable_text"],
         "usable_text_records": report["usable_text_records"],
         "sunday_collection_verified_for_this_execution": observed == sunday,
+        "research_supported_editorial_draft_only": research_support,
+        "typed_research_candidates": offered_research_count,
         "model_output_reviewed": False,
         "external_research_reviewed": False,
         "editor_delivery_authorized": False,
@@ -91,13 +112,15 @@ def main(argv=None):
                         help="NY-local review date; omitted on production runner")
     parser.add_argument("--db", type=Path, default=DB_PATH)
     parser.add_argument("--marker", type=Path, default=MARKER)
+    parser.add_argument("--research-packet", type=Path,
+                        help="validated exact-week private editor-safe research notes")
     args = parser.parse_args(argv)
     today = (args.review_local_day or
              datetime.now(NY).date().isoformat())
     try:
         result = gate(week_ending=args.week_ending, as_of=args.as_of,
                       review_local_day=today, database=args.db,
-                      marker_path=args.marker)
+                      marker_path=args.marker, research_packet=args.research_packet)
     except (BeforeModelRefused, ReadinessError, OSError, ValueError) as exc:
         parser.error(str(exc))
     print(json.dumps(result, sort_keys=True))

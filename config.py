@@ -70,6 +70,11 @@ RELEVANCE_TOOL_OUTPUT_ENABLED: bool = (
 # https://docs.anthropic.com/en/docs/about-claude/models
 ANALYSIS_MODEL: str = os.environ.get("ANALYSIS_MODEL", "claude-sonnet-4-6")
 
+# Owner activation after title-only engineering review; independent of relevance.
+# Zero makes no additional calls. One run has the same hard batch bound as the CLI.
+CHINA_TITLE_TRANSLATION_LIMIT: int = max(0, min(200, int(
+    os.environ.get("CHINA_TITLE_TRANSLATION_LIMIT", "0"))))
+
 # Hard cap on LLM-analyzed articles per daily run.
 # Prevents runaway costs from large scrape days or backlog catch-up.
 # Override via env var: DAILY_ANALYSIS_CAP=20 python pipeline.py

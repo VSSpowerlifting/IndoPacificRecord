@@ -26,7 +26,12 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
         db = ROOT / "pla_watch.db"
         all_admitted = load_live_korea_official_links(db)
         self.assertGreater(len(all_admitted), 0,
-                           "verified MND production metadata cannot silently disappear")
+                           "verified Korea production metadata cannot silently disappear")
+        mnd_count = sum(row["source_identity"].startswith("korea-policy:")
+                        for row in all_admitted)
+        dapa_count = sum(row["source_identity"].startswith("korea-dapa-policy:")
+                         for row in all_admitted)
+        self.assertEqual(mnd_count + dapa_count, len(all_admitted))
         bibliography = load_public_korea_links() + load_additional_korea_official_links()
         frozen = {r["source_identity"] for r in bibliography}
         newly_listed = [r for r in all_admitted
@@ -42,14 +47,13 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             html = (out / "korea.html").read_text(encoding="utf-8")
             directory = (out / "desks.html").read_text(encoding="utf-8")
             self.assertIn(
-                'data-korea-directory-mnd-metadata="%d"' % len(all_admitted),
+                'data-korea-directory-mnd-metadata="%d"' % mnd_count,
                 directory)
             self.assertIn(
-                'data-korea-directory-scope-count="%d"' % len(all_admitted),
+                'data-korea-directory-scope-count="%d"' % mnd_count,
                 directory)
             self.assertIn("Live MND link metadata", directory)
-            self.assertIn("countrywide article corpus and DAPA remain unadmitted",
-                          directory)
+            self.assertIn("not a full-country article corpus", directory)
             korea_card = directory.split('id="desk-korea"', 1)[1].split(
                 '</section>', 1)[0]
             self.assertIn("desk--shadow", directory.split(
@@ -60,7 +64,9 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             self.assertIn(
                 'data-korea-production-admitted-count="%d"' % len(all_admitted),
                 html)
-            self.assertIn("MND official-source production live", html)
+            self.assertIn(
+                "MND and DAPA official-link metadata active" if dapa_count
+                else "MND official-source production live", html)
             self.assertIn(
                 "contains %d separately admitted official-link metadata records"
                 % len(all_admitted), html)
@@ -74,13 +80,20 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                 html.count('data-korea-auto-official-link='), len(newly_listed))
             self.assertIn('data-korea-production-lanes', html)
             self.assertIn('Live MND official-link metadata</dt><dd>%d</dd>'
-                          % len(all_admitted), html)
+                          % mnd_count, html)
             self.assertIn('Published Korean originals</dt><dd>%d</dd>'
                           % len(originals), html)
             self.assertIn('Reviewed English translations and analyses</dt><dd>%d</dd>'
                           % len(reviewed), html)
             self.assertIn('Article-corpus records</dt><dd>Not admitted', html)
-            self.assertIn('DAPA production source</dt><dd>Not qualified', html)
+            self.assertIn(
+                'DAPA production source</dt><dd>Link metadata admitted'
+                if dapa_count else
+                'DAPA production source</dt><dd>Not qualified', html)
+            if dapa_count:
+                self.assertIn(
+                    'Live DAPA official-link metadata</dt><dd>%d</dd>' % dapa_count,
+                    html)
             self.assertNotIn(
                 'This desk has no admitted records in the public IPR corpus.', html)
             self.assertEqual(html.count('data-korea-public-link='), 5)
@@ -94,7 +107,7 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                 self.assertEqual(html.count(
                     'data-korea-auto-official-link="%s"' % source["source_identity"]
                 ), expected)
-            self.assertIn("DAPA remains research-only", html)
+            self.assertIn("DAPA original documents and English assessments require separate review", html)
             self.assertNotIn("original-source archive remains restricted", html)
             self.assertNotIn("text_original", html)
             self.assertNotIn("summary_english", html)

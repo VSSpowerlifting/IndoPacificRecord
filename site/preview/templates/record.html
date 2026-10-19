@@ -22,14 +22,14 @@
     {# The institution and the date are the date block's, beside this. #}
     <h1{% if not record.title_english %} lang="{{ record.language_tag or 'zh' }}"{% endif %}>{{ display_title }}</h1>
     <p class="record-source-line">Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time> · <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a></p>
-    {% if record.title_english and record.title_original %}
+    {% if record.title_english and record.title_original and (record.desk_id != 'china' or record.language_tag != 'en') %}
     {# Two distinct machine outputs. The English TITLE is a translation; the
        summary below is a different artifact. Labelling them identically would
        merge two separate claims about what a model produced. #}
     <div class="record-title-pair">
       <p class="original" lang="{{ record.language_tag or 'zh' }}">{{ record.title_original }}</p>
       <p class="meta"><span class="evidence evidence--model">Machine translation</span>
-      The heading is a machine translation of the original title above. Not reviewed by a human.</p>
+      The heading is a machine translation of the original title above. {% if record.desk_id == 'china' %}Human review is not recorded.{% else %}Not reviewed by a human.{% endif %}</p>
     </div>
     {% endif %}
 
@@ -59,8 +59,8 @@
       <div class="interpretation">
         <p>{{ record.summary_english }}</p>
       </div>
-      <p class="meta">Machine-generated from the original text, and distinct from the
-      machine translation of the title. Not reviewed by a human. It is a reading of
+      <p class="meta">Machine-generated from the original text{% if record.title_english %}, and distinct from the
+      machine translation of the title{% endif %}. Not reviewed by a human. It is a reading of
       what was published, not a verification of it.</p>
     </section>
     {% endif %}
@@ -121,6 +121,11 @@
           {% endif %}
           {% if record.model_id %}
           <tr><th scope="row">Analysis model</th><td class="prov-value">{{ record.model_id }}</td></tr>
+          {% endif %}
+          {% if record.title_translation_model and record.title_english %}
+          <tr><th scope="row">Title translation model</th><td class="prov-value">{{ record.title_translation_model }}</td></tr>
+          <tr><th scope="row">Title translation prompt</th><td class="prov-value">{{ record.title_translation_prompt }}</td></tr>
+          <tr><th scope="row">Title translated at</th><td class="prov-value">{{ record.title_translated_at }}</td></tr>
           {% endif %}
           {% if record.prompt_version %}
           <tr><th scope="row">Prompt version</th><td class="prov-value">{{ record.prompt_version }}</td></tr>
@@ -190,7 +195,7 @@
         <div><dt>Source-stated date</dt><dd><time datetime="{{ record.published_date }}">{{ record.published_date }}</time></dd></div>
         <div><dt>Source language</dt><dd>{{ record.language_tag | language_label if record.language_tag else '—' }}</dd></div>
         <div><dt>Processing state</dt><dd>{{ record.state_label }}</dd></div>
-        <div><dt>Translation</dt><dd>{% if record.title_english %}Machine-translated title, not reviewed by a human{% else %}No English title held{% endif %}</dd></div>
+        <div><dt>Translation</dt><dd>{% if record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% elif (record.language_tag or '').startswith('en') %}Not needed: the source publishes in English{% else %}No English title held{% endif %}</dd></div>
         <div><dt>Desk</dt><dd>{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</dd></div>
       </dl>
       <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>

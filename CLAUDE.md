@@ -13,9 +13,12 @@ never intelligence cosplay.
 2026-08-27. Use it only when describing history.
 
 ## Session start
-1. Read `PROJECT_STATE.md` (current state, debt, immediate priorities).
-2. For architecture / "where do I edit" questions: `graphify-out/GRAPH_REPORT.md`
-   first, targeted `rg` second, file reads third. No broad repo scans.
+1. Check latest owner rulings in `DECISION_LOG.md` and
+   `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`; read relevant
+   `PROJECT_STATE.md` sections and verify dated status against real code,
+   open PRs, source captures and Actions.
+2. For architecture questions, use an existing graph report when present,
+   then targeted `rg` and relevant file reads. No broad repo scans.
 3. Before design, editorial, pipeline, or agent work, read the governing doc:
 
 | Doc | Governs |
@@ -23,14 +26,16 @@ never intelligence cosplay.
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, audiences, page anatomy, evidence-vs-inference rules |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | layer map, source vs generated, commands, CI, commit strategy |
 | `docs/AGENT_WORKFLOWS.md` | model routing, skills, agents, parallelism limits |
-| `docs/ROADMAP.md` | current priority order |
+| `docs/ROADMAP.md` | dated priorities; verify current owner direction |
 | `docs/DESIGN_SYSTEM.md` | dual-surface tokens, typography, color, a11y + performance budgets |
 | `docs/VISUAL_AND_MOTION_SYSTEM.md` | motion rules, flagship visual specs, image policy, metadata fields |
-| `docs/SHADOW_COLLECTION.md` / `docs/SHADOW_REVIEW.md` | shadow desk isolation; human checkpoint reviews |
+| `docs/SHADOW_COLLECTION.md` / `docs/SHADOW_REVIEW.md` | historical shadow isolation/review; not launch-clock gates |
 | `DECISION_LOG.md` / `EDITORIAL_QA_CHECKLIST.md` | standing rulings; weekly publish gate |
 
 ## Hard rules
-- Work only inside `~/pla-watch`. Never touch sibling repos.
+- Use an isolated worktree of the assigned IPR repository. Coordinate with
+  the private source-evidence companion when explicitly authorized. Never
+  modify unrelated repositories or another agent's active worktree.
 - **Never hand-edit `output/`** — it is generated. Fix templates/scripts/
   sidecars and re-render. Sidecar JSON (`output/the-pla-watch/posts/*.json`)
   is the canonical edition record — no casual edits, ever.
@@ -43,13 +48,29 @@ never intelligence cosplay.
 - Never defeat a source's access challenge, impersonate a browser, or route
   around `robots.txt`. An institution must be able to recognise this collector
   and refuse it.
-- No shadow desk is promoted automatically, and none may be described as
-  qualified. Promotion needs 30 consecutive collecting days, completed human
-  checkpoint reviews, and owner sign-off in `DECISION_LOG.md`.
-- Do not commit, push, deploy, publish, or regenerate output unless
-  explicitly asked. CI deploys what is committed on main.
+- No shadow desk is promoted automatically or called operational without
+  real-source end-to-end acceptance and a demonstrated failure/retry. The
+  owner's October 18 complete-desk standard supersedes seven-/30-day
+  *prelaunch* waiting periods, not historical receipts or human source/rights
+  and editorial approvals. See `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
+- A task may authorize edits, commits, pushes and one reviewable PR. Apply
+  established standing decisions, but never infer merge, model spending,
+  production DB writes, schedule activation, publication or outside contact.
+  Deployment remains separately governed by production release procedures.
 - `base.html`, `pla-watch-base.html`, `scripts/pw_env.py` are single-owner
   files — no concurrent agent edits.
+
+## Complete-desk working method
+Follow the owner-approved contract for each desk: official sources → private
+source evidence → permitted translation/processing → screening and analysis →
+governed SQLite/admission → reader/editor publication → genuine scheduled
+maintenance and recovery. Derive expected records from original publisher
+material; distinguish manual rehearsal from real unattended operation. Verify
+source rights, actual human decisions, idempotent retries and deployed HTTPS
+when authorized. Prefer one coherent PR (and only an essential private
+companion) to new qualification frameworks or extra approval layers. Finish
+at an operating desk or a specific external blocker. See
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` and issue #673.
 
 ## Commands
 ```bash

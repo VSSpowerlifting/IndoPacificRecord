@@ -62,7 +62,11 @@ def _references(packet):
         elif line.startswith("URL: ") and current is not None:
             url = line[5:].strip()
             parts = urlsplit(url)
-            if (parts.scheme == "https" and parts.hostname
+            # The immutable production corpus includes original publisher URLs
+            # using HTTP (e.g. Chinese MOD/China Military Online). Preserve the
+            # source's actual URL rather than silently rewriting it to HTTPS;
+            # never accept non-web schemes or embedded credentials.
+            if (parts.scheme in ("http", "https") and parts.hostname
                     and not parts.username and not parts.password):
                 if current in catalog and catalog[current] != url:
                     raise ValueError("duplicate source identity with conflicting URL")

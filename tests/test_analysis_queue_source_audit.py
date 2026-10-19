@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from scripts import audit_analysis_queue_by_source as audit
+from tests.held_desk import HELD_DESK, HELD_SOURCE, register_held_desk
 
 
 NOW = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
@@ -21,6 +22,7 @@ NOW = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
 
 class StoredQueueAudit(unittest.TestCase):
     def setUp(self):
+        register_held_desk(self)
         temp = tempfile.TemporaryDirectory(prefix="ipr-queue-audit-")
         self.addCleanup(temp.cleanup)
         self.temp = Path(temp.name)
@@ -41,8 +43,9 @@ class StoredQueueAudit(unittest.TestCase):
             )""")
         self.con.executemany("INSERT INTO sources VALUES (?,?,?)", [
             (1, "cn_mod", "china"),
-            (2, "sg_mindef", "singapore"),
+            (2, HELD_SOURCE, HELD_DESK),
             (3, "unknown_desk", None),
+            (4, "sg_mindef_releases", "singapore"),
         ])
         self.con.commit()
         self.addCleanup(self.con.close)
@@ -84,20 +87,29 @@ class StoredQueueAudit(unittest.TestCase):
         self.assertEqual(r["stored_daily_pending_analysis"], 1)
         self.assertEqual(r["stored_daily_unscored"], 0)
 
-    def test_singapore_unscored_held_out_of_china_model_queue(self):
+    def test_held_desk_unscored_is_out_of_the_daily_queue(self):
         self.insert(1, source_id=2)
         r = self.get()
-        x = self.row(r, "sg_mindef")
+        x = self.row(r, HELD_SOURCE)
         self.assertFalse(x["daily_model_queue_eligible_by_desk"])
         self.assertEqual(x["held_unscored"], 1)
         self.assertEqual(r["stored_daily_queue_eligible"], 0)
         self.assertEqual(r["stored_held_out_of_daily"], 1)
 
-    def test_singapore_pending_also_held_out(self):
+    def test_held_desk_pending_is_also_held_out(self):
         self.insert(1, source_id=2, passed=1)
         r = self.get()
-        self.assertEqual(self.row(r, "sg_mindef")["held_pending_analysis"], 1)
+        self.assertEqual(self.row(r, HELD_SOURCE)["held_pending_analysis"], 1)
         self.assertEqual(r["stored_held_out_of_daily"], 1)
+
+    def test_singapore_is_daily_eligible_on_its_own_analysis_path(self):
+        self.insert(1, source_id=4)
+        self.insert(2, source_id=4, passed=1)
+        r = self.get()
+        x = self.row(r, "sg_mindef_releases")
+        self.assertTrue(x["daily_model_queue_eligible_by_desk"])
+        self.assertEqual(r["stored_daily_queue_eligible"], 2)
+        self.assertEqual(r["stored_held_out_of_daily"], 0)
 
     def test_paused_terminal_records_not_eligible(self):
         self.insert(1, state="paused")

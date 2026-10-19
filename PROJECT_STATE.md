@@ -1,5 +1,40 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Verification/desk-acceptance simplification (2026-10-18, PR #811):**
+Owner authorized one focused simplification: keep
+the existing stable PR check name and critical source/rights, browser,
+database and publication safeguards, while using a fail-closed docs/focused/
+full PR test scope and removing duplicate preflight tests. The same full suite
+still runs on high-risk code and in the daily production workflow. Shadow
+seven-/30-day histories become operating reliability metrics instead of
+automatic launch delays. Governing proposal:
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`. No other workflow,
+production database/output, publisher access or site release is changed.
+
+**Public China title completion (18 October 2026, released):**
+PR #796 merged as `e7436acfc5369ebc4383f582d50f2a8197e41861` after green
+7,486-test CI and verified current-main integration. All 168 missing titles are
+complete (original backlog 151 plus 17 newer titles): 20 by intervening Daily,
+148 in eight reserved, reviewed batches. All 857 eligible China records now have
+usable English display titles; zero remain. Provider usage prices to $0.520463;
+the conservative $3 ledger charges $0.5267576, retaining a 1.1x geography allowance
+for the intervening Daily. Invoice unavailable; all eight probes included, no
+failed title calls or automatic retries. Original Chinese, 653 prior valid English
+titles, screening/analysis states, source permissions and exclusions are preserved;
+no bodies or analysis were processed by the historical batches. Migration 0012
+is current. Output `b5c20b69bec36610920f8f78dcc8282b7c835c1a` deployed as
+`a0c29577e879cb489d5e45b203d3d99ffb49b720` via output-only run 39162790518;
+Pages run 39162817045 succeeded. All 1,968 deployed files match accepted output;
+168 title pages, both indexes and changed listings match actual HTTPS bytes.
+Live desktop/mobile/no-JS, English/Chinese search, citations and CSV/JSON pass;
+142 combined tests pass; validator zero errors/ten governed warnings; JS 9,879
+bytes. Daily is active at 20 titles/run with existing account controls; all 21
+paused writers are restored, and the historical workflow is disabled. The
+intervening full Daily retains its unrelated source-health alert. Exact SHAs,
+spending uncertainty, corrections and receipts:
+`docs/engineering/CHINA_TITLE_TRANSLATION_2026-10-17.md`. No title-release blocker
+or further release action remains.
+
 **Archive released (17 October 2026, PR #776):**
 Approved source `6d9368c2f60679f44aaa034c5bb5541976520f9b` merged as
 `027f3f56ca9ccef323545124f55ac3c3fb319e01`. The owner authorized the 981
@@ -83,7 +118,8 @@ Production and corpus figures below carry their own measurement dates. The
 first-brief research packet are in
 `docs/DESK_CONSOLIDATION_AND_BRIEF_PREP_2026-09-28.md` (its §7 corrects the
 Singapore recovery claim). The Singapore screening repair and re-screening
-plan are in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` (merged, PR #84).
+plan are in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` (merged, PR #84;
+§6 added 2026-10-18 as the desk's finish-line checklist).
 The image-only-release repair is in
 `docs/SINGAPORE_IMAGE_ONLY_RELEASES_2026-09-29.md`. The authorized September 22
 recovery is prepared for review (three inserts, eight duplicates; no analysis
@@ -177,16 +213,29 @@ No private activation, production database/output/Daily/deployment changes or C2
 Independent manager review remains the next C1 acceptance gate. Receipt:
 `docs/research/APPLICATION_CUSTODY_INTEGRATION_2026-10-10.md`.
 
-**Evidence Timelines (#181):** the inspected prerequisite at head
-`657e9f264` is integrated into this candidate in separate commit `b80b3e4`,
-preserving concurrent main changes. Versioned sidecars, strict reconciliation,
-approved-only static routes and a private review command remain governed by
-`docs/EVIDENCE_TIMELINES.md`. Maritime Cooperation 2026 remains an unpublished
-editorial draft with unchanged digest; Brief No. 15's approval is not inherited.
-Production emits no timeline route, library, tab or backlinks while none is
-separately approved. Private review is noindex and rejected by the deploy gate.
-Owner implementation review, merge/deployment decisions and separate approval
-of exact timeline editorial content remain outstanding.
+**Evidence Timelines (18 October 2026, owner-review candidate):** frontend #798
+merged at `3ee6735338`, preserving the engine already integrated by #279 from
+still-open #181. The selected Flowing Chronology, scoped decorative node glow
+and approval/reconciliation/private-review paths are intact. Engineering and
+browser receipts remain in `docs/EVIDENCE_TIMELINES.md`.
+The corrected six-entry draft has now been checked against all five complete
+captured originals: sea-phase reporting includes September 9 morning gunnery,
+and the closing headline is explicitly attributed. A source-passage locator now
+separates the September 8 excerpt from the later September 9 gunnery account;
+the review note carries the refreshed draft digest and validation limit.
+Ben selected a references-only public presentation: no quotations, source
+titles or links to full-body record pages on this timeline. Private review
+retains evidence, and publisher-link/editorial approval remain unresolved.
+The private candidate,
+six-row review, exact digest and current source-use measurements/choices are in
+`docs/research/MARITIME_TIMELINE_OWNER_REVIEW_2026-10-18.md`. All five record
+routes survive; related Brief No. 15, frontend, database and production output
+are unchanged. Draft status and pending human credits remain intact. Ben's
+next step is exact-content/credit review and a source-use decision for the
+actual quotations/titles, publisher links and full-body record destinations.
+Open #697 remains the preflight; #326 has no recorded rights resolution. #332's
+later private-storage direction does not grant rights or establish cutover.
+No publication is authorized.
 
 **Deduplication provenance workbench (2026-10-11, review candidate):** explicit
 private archive inventory and saved-source replay now share the production
@@ -270,7 +319,7 @@ for its **sources**.
 | Desk | Status | Public meaning |
 |---|---|---|
 | China | `live` | Collecting daily into the production corpus. The only mature collection. |
-| Singapore | `live` | Promoted 2026-09-21 (DECISION_LOG). One source, MINDEF releases. Measured 2026-09-28: 64 records, none analyzed; 14 screened, all rejected by the China-scoped relevance screen; 50 await screening. Desk-scoped screening is in source (2026-09-29); Singapore is held out of the daily model queue until the owner rules. |
+| Singapore | `live` | Promoted 2026-09-21 (DECISION_LOG). One source, MINDEF releases. Measured 2026-10-18: 86 records, none analysed; 14 rejected under the old China-scoped screen; 72 await screening (4936 withheld, blank body). Collection operating; the 2026-10-04→10-18 window reconciles 9/9. The desk analysis path (summary only, no translation, no categories) is built and demonstrated on isolated copies, but Singapore stays held from the daily model queue until the PR on `claude/ipr-desk-completion-7e9246` merges. That merge is the owner act that adopts decisions 1 and 3 in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` §5; §6 is the finish-line checklist. |
 | Japan | `shadow` | Isolated evaluation. No production records, no public counts. |
 | US Indo-Pacific | `access_blocked` | Declared scope only; the command website's `robots.txt` returns 403, so permission cannot be established. A separate DVIDS route runs in shadow only (§5); it is not public coverage. |
 
@@ -865,16 +914,21 @@ review date, not a qualification threshold. Neither desk is promoted.
     only `global_times_mil` and `xinhua_mil` supply.
   - Measured 2026-09-28: 7 paused, 5 retriable, 0 terminal.
   - Publicly, paused records are shown as `analysis_incomplete`.
-* **616 unscreened records** (China desk 566, Singapore 50). None of the China
-  ones is dated in 2026-09-14 → 09-27. This is not urgent, since no edition
-  cites them, but it is the defect class that previously stranded material.
-  Drain only in scoped, windowed chunks.
+* **Unscreened records.** First recorded as 616 (China desk 566, Singapore
+  50). Measured 2026-10-18 (`passed_relevance IS NULL`): 73, China 1 and
+  Singapore 72. The Singapore 72 drain once the desk analysis PR merges
+  (§6.5 of `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md`). It is the defect
+  class that previously stranded material; drain only in scoped, windowed
+  chunks.
 * **Singapore was screened by China-scoped rules**, and all 14 of its screened
   records were rejected.
   - Fixed in source on 2026-09-29 (`processing/screening.py`): Singapore is
     judged against its registry scope.
   - Singapore records are held out of the daily queue and
-    `backfill_unscored.py`, because post-relevance analysis is China-only.
+    `backfill_unscored.py`, because post-relevance analysis was China-only.
+    The desk analysis path now exists on `claude/ipr-desk-completion-7e9246`
+    (2026-10-18). Merging it releases the hold; until then the hold stands
+    (repair doc §6).
   - No stored verdict changed.
   - Re-screening the 64 affected records costs about $0.27 at most, and needs
     authorization plus a human review of the proposal.
@@ -1098,8 +1152,12 @@ Full ordering and rationale in `docs/ROADMAP.md`. In short:
 2. Close Singapore's unrecorded Day 30 human-review evidence gap. The packet
    is verified; the human review is not done.
 3. Scoped screening/backfill for publication-ready windows only. For
-   Singapore: rule on the new rubric, authorize and review a re-screening
-   proposal, and decide what analysis follows a Singapore pass.
+   Singapore: the rubric and the post-pass analysis (summary only, no
+   translation, no categories) are built and verified on
+   `claude/ipr-desk-completion-7e9246`. Merging that PR adopts both and
+   starts daily paid screening (about $1, order of magnitude, for the
+   71-record backlog; about $1.85 at the output ceiling). Re-screening the 14 China-rule rejections still needs its own
+   authorized, reviewed `propose`.
 4. Collection continuity:
    - recover or disclose the 09-15 China gap;
    - review the September 22 recovery PR (PR #85 repair merged; three records

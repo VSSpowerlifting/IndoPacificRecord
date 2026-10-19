@@ -92,7 +92,7 @@ def validate_timeline(sc):
     _object(sc, ("timeline_schema", "slug", "title", "dek", "editorial_status",
                  "scope", "methodology_note", "updated_on", "reviewed_on",
                  "author_name", "editor_name", "entries", "related_briefs"),
-            ("approval", "reconciliation"))
+            ("approval", "reconciliation", "public_presentation"))
     if type(sc["timeline_schema"]) is not int or sc["timeline_schema"] != TIMELINE_SCHEMA:
         _fail("timeline_schema", "unsupported version")
     _slug(sc["slug"], "slug")
@@ -117,6 +117,9 @@ def validate_timeline(sc):
             _fail("approval", "must name the actual editor")
         if approval["content_sha256"] != content_digest(sc):
             _fail("approval", "editorial content changed since approval")
+
+    if "public_presentation" in sc and sc["public_presentation"] != "references_only":
+        _fail("public_presentation", "expected references_only")
 
     _list(sc["related_briefs"], "related_briefs")
     for slug in sc["related_briefs"]:
@@ -263,6 +266,8 @@ def reconcile_sources(sc, db_path, registry=None):
 def timeline_view(sc, records, related, is_review=False):
     """Derived periods/counts and sorted deduplicated source ledger."""
     result = dict(sc, route="timeline/%s.html" % sc["slug"], is_review=is_review)
+    result["references_only"] = sc.get("public_presentation") == "references_only"
+    result["show_originals"] = not result["references_only"] or is_review
     result["entries"] = [dict(e, evidence=[dict(ev, record=records[ev["record_id"]])
                                           for ev in sorted(e["evidence"], key=lambda x: (x["published_on"], x["record_id"]))])
                          for e in sc["entries"]]

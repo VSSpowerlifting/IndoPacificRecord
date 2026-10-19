@@ -20,7 +20,7 @@ if str(REPO_ROOT) not in sys.path:
 from core.collection import status as st
 from core.collection.contract import CollectionWindow
 from core.manifests import load_manifest
-from core.shadow_schedule import resolve_target_date, ScheduleError, SOURCE_EXPLICIT
+from core.shadow_schedule import resolve_target_date, ScheduleError, SOURCE_EXPLICIT, SOURCE_SCHEDULE
 from scraper.sources.desk_shadow_http import USER_AGENT
 from scraper.sources.id_kemhan import KemhanAdapter
 from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter
@@ -117,9 +117,23 @@ def finish(entry, state_dir):
 
 def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unknown",
         adapter=None, target_source=SOURCE_EXPLICIT, historical_backfill=False,
-        dapa_original_access_authorized=False):
-    if desk == "korea_dapa" and not dapa_original_access_authorized:
+        dapa_original_access_authorized=False, dapa_recurring_access_authorized=False):
+    if desk == "korea_dapa" and not (dapa_original_access_authorized or dapa_recurring_access_authorized):
         raise ValueError("DAPA article/HWPX collection requires separate one-time owner authorization")
+    if desk == "korea_dapa" and not (
+            (dapa_original_access_authorized and not dapa_recurring_access_authorized
+             and target_source == SOURCE_EXPLICIT)
+            or (dapa_recurring_access_authorized and not dapa_original_access_authorized
+                and target_source == SOURCE_SCHEDULE)):
+        raise ValueError("DAPA access must be separately authorized for exactly one manual day or scheduled slot")
+    # Defense in depth: a direct CLI or Python import cannot bypass the
+    # private workflow's one-date, five-article source-access ceiling.
+    if desk == "korea_dapa" and (
+            not 1 <= cap <= 5 or lookback != 0 or
+            target_source not in (SOURCE_EXPLICIT, SOURCE_SCHEDULE) or historical_backfill):
+        raise ValueError(
+            "DAPA source access requires one explicit UTC day, zero lookback, "
+            "and a bounded cap of 1–5 originals")
     if desk not in DESKS or not 1 <= cap <= 40:
         raise ValueError("known desk and 1–40 cap required")
     if historical_backfill:
@@ -284,21 +298,37 @@ def main(argv=None):
     parser.add_argument("--run-attempt", default=os.environ.get("GITHUB_RUN_ATTEMPT", "1"))
     parser.add_argument("--approve-one-time-dapa-original-access", action="store_true",
                         help="Explicitly authorize this separate DAPA portal article/HWPX operation")
+    parser.add_argument("--approve-recurring-dapa-original-access", action="store_true",
+                        help="Private scheduled DAPA collection, only under separately enabled owner approval")
     parser.add_argument("--jcg-september-backfill", action="store_true",
                         help="one-time owner-approved JCG historical content backfill only")
     args = parser.parse_args(argv)
     try:
         target, provenance = resolve_target_date(datetime.now(timezone.utc), args.event_name,
                                                 args.cron_utc, args.target_date, args.run_attempt)
-        if args.desk == "korea_dapa" and (args.event_name != "workflow_dispatch" or
-                                         not args.approve_one_time_dapa_original_access):
-            raise ValueError("DAPA originals require explicitly approved manual dispatch")
+        if args.desk == "korea_dapa":
+            manual_ok = (args.event_name == "workflow_dispatch"
+                         and args.approve_one_time_dapa_original_access
+                         and not args.approve_recurring_dapa_original_access)
+            scheduled_ok = (
+                args.event_name == "schedule"
+                and args.cron_utc == "22:17"
+                and not args.target_date
+                and str(args.run_attempt) == "1"
+                and args.approve_recurring_dapa_original_access
+                and not args.approve_one_time_dapa_original_access
+                and os.environ.get("GITHUB_REPOSITORY")
+                    == "VSSpowerlifting/ipr-source-evidence-private"
+            )
+            if not (manual_ok or scheduled_ok):
+                raise ValueError("DAPA originals require an approved manual dispatch or the separately gated private 22:17 UTC schedule")
         if args.jcg_september_backfill and args.event_name != "workflow_dispatch":
             raise ValueError("JCG historical backfill requires explicit owner manual dispatch")
         entry = run(args.desk, args.state_dir, target, args.lookback_days, args.cap,
                     args.run_id, args.commit, target_source=provenance,
                     historical_backfill=args.jcg_september_backfill,
-                    dapa_original_access_authorized=args.approve_one_time_dapa_original_access)
+                    dapa_original_access_authorized=args.approve_one_time_dapa_original_access,
+                    dapa_recurring_access_authorized=args.approve_recurring_dapa_original_access)
     except (ValueError, ScheduleError, sqlite3.Error) as exc:
         print("collection refused: " + str(exc), file=sys.stderr)
         return 2

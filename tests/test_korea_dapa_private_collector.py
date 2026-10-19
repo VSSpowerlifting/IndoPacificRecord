@@ -182,6 +182,68 @@ class DapaPrivateCollection(unittest.TestCase):
         self.assertEqual(again["inserted"], 0)
         self.assertEqual(again["duplicates"], 1)
 
+    def test_direct_source_collector_cannot_bypass_five_or_one_day(self):
+        for cap, lookback in ((6, 0), (40, 0), (1, 1), (5, 7)):
+            with self.subTest(cap=cap, lookback=lookback), tempfile.TemporaryDirectory() as folder:
+                adapter, session = instance()
+                state = Path(folder) / "private"
+                with self.assertRaisesRegex(ValueError, "bounded cap of 1"):
+                    runner.run("korea_dapa", state, date(2026, 10, 8),
+                               lookback=lookback, cap=cap,
+                               adapter=adapter, dapa_original_access_authorized=True)
+                self.assertEqual(session.calls, [])
+                self.assertFalse(state.exists())
+
+    def test_two_distinct_dapa_originals_and_preflight_overcap_refusal(self):
+        # Real DAPA listing and HWPX adapter; fake session blocks any network.
+        second_article = ARTICLE.replace("156784625", "156784626")
+        second_doc = DOC.replace("123456", "123458")
+        second_listing_link = (
+            '<a href="/briefing/pressReleaseView.do?newsId=156784626&pageIndex=1">'
+            '<span class="source"><span>2026.10.08</span>'
+            '<span>방위사업청</span></span><strong>' + ORIGINAL_TITLE + '</strong></a>'
+        )
+        index = (listing().replace(
+            '<div class="result"><strong>1</strong></div>',
+            '<div class="result"><strong>2</strong></div>')
+            .replace('<div class="paging"></div>',
+                     second_listing_link + '<div class="paging"></div>'))
+        def configured():
+            adapter, session = instance(index=index)
+            html = article().replace(ARTICLE, second_article).replace(
+                "fileId=123456", "fileId=123458")
+            session.pages[second_article] = FakeResponse(
+                second_article, html.encode(), "text/html")
+            session.pages[second_doc] = FakeResponse(
+                second_doc, document(), "application/zip")
+            return adapter, session
+
+        with tempfile.TemporaryDirectory() as folder:
+            adapter, session = configured()
+            held = runner.run(
+                "korea_dapa", Path(folder) / "no-silent-truncation",
+                date(2026, 10, 8), lookback=0, cap=1, run_id="dapa-two-overcap",
+                adapter=adapter, dapa_original_access_authorized=True)
+            self.assertEqual(held["result"], st.LISTING_FAILURE, held)
+            self.assertEqual(held["retrieved"], 0)
+            self.assertEqual(len(session.calls), 2)
+            self.assertFalse((Path(folder) / "no-silent-truncation" / "shadow.db").exists())
+            adapter, session = configured()
+            accepted = runner.run(
+                "korea_dapa", Path(folder) / "both-private",
+                date(2026, 10, 8), lookback=0, cap=5, run_id="dapa-two-eligible",
+                adapter=adapter, dapa_original_access_authorized=True)
+            self.assertEqual(accepted["result"], st.OK, accepted)
+            self.assertEqual(accepted["inserted"], 2)
+            self.assertEqual(accepted["selected"], 2)
+            self.assertEqual(accepted["extracted"], 2)
+            self.assertEqual(len(session.calls), 6)
+            with sqlite3.connect(Path(folder) / "both-private" / "shadow.db") as db:
+                ids = {row[0] for row in db.execute(
+                    "SELECT source_identity FROM shadow_records")}
+            self.assertEqual(ids, {IDENTITY_PREFIX + "156784625",
+                                   IDENTITY_PREFIX + "156784626"})
+
     def test_issuer_or_date_mismatch_cannot_create_corpus(self):
         for kwargs in (
             {"index": listing(issuer="국방부")},
@@ -196,7 +258,7 @@ class DapaPrivateCollection(unittest.TestCase):
                     adapter, _ = instance(**kwargs)
                     result = runner.run(
                         "korea_dapa", Path(td) / "held",
-                        date(2026, 10, 8), lookback=0,
+                        date(2026, 10, 8), lookback=0, cap=1,
                         adapter=adapter, dapa_original_access_authorized=True)
                     self.assertNotEqual(result["health"], "ok", result)
                     self.assertFalse((Path(td) / "held" / "shadow.db").exists())

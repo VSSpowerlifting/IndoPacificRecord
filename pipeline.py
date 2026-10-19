@@ -521,13 +521,14 @@ def run(
     # since every run scrapes more than the cap, the backlog got zero slots and
     # never drained at all (DECISION_LOG 2026-07-30).
     #
-    # A desk whose screening profile is not in the daily queue (Singapore: its
-    # records would be screened, then translated, summarised and categorised by
-    # China-only prompts) is held out of all three sources of the queue. Its
-    # records keep passed_relevance NULL, "awaiting screening", until a
-    # reviewed desk-scoped screening (scripts/rescreen_desk.py) — see
-    # processing/screening.py.
+    # Each queued record is screened and analysed by its desk's profile
+    # (processing/screening.py): China by the China path, Singapore by its own
+    # rubric and its own summary-and-flag call, with no translation. A desk
+    # whose profile is not in the daily queue is held out of all three sources
+    # of the queue; its records keep passed_relevance NULL, "awaiting
+    # screening".
     held_desks: dict[str, int] = {}
+    queue_desk: dict[int, Optional[str]] = {}
 
     def _in_daily_queue(desk_id: Optional[str]) -> bool:
         if profile_for_desk(desk_id).daily_queue:
@@ -544,6 +545,8 @@ def run(
         for aid, a in inserted
         if _in_daily_queue(desk_for_source(a.get("source_slug")))
     ]
+    queue_desk.update((aid, desk_for_source(a.get("source_slug")))
+                      for aid, a in inserted)
 
     inserted_ids = {aid for aid, _ in inserted}
 
@@ -551,6 +554,8 @@ def run(
     unscored_all = db.get_articles_unscored()
     backlog_desks = db.get_article_desks(
         {r["id"] for r in pending_all} | {r["id"] for r in unscored_all})
+    for aid, desk_id in backlog_desks.items():
+        queue_desk.setdefault(aid, desk_id)
     pending_rows = [r for r in pending_all
                     if _in_daily_queue(backlog_desks.get(r["id"]))]
     pending: list[tuple[int, str, str, str]] = [
@@ -710,7 +715,8 @@ def run(
             )
 
             try:
-                result = analyzer.analyze(title_zh, body_zh)
+                result = analyzer.analyze_record(
+                    title_zh, body_zh, profile_for_desk(queue_desk.get(aid)))
             except FatalAPIError as exc:
                 # Account-level failure: every remaining call would fail the
                 # same way. On 2026-07-31 the spend limit was reached mid-run
@@ -751,10 +757,14 @@ def run(
             # analyzed_at on a record with a blank summary, which reads as
             # complete here but fails validate_output.py and blocks the deploy
             # (DECISION_LOG 2026-07-31). Without the summary the article stays
-            # pending and a later run retries it.
+            # pending and a later run retries it. An English title is required
+            # only of a record the China path translates; a desk that reads
+            # its sources in the original language (Singapore) has none.
+            translated = (result.get("title_english")
+                          or not result.get("requires_translation", True))
             if (
                 result["passed_relevance"]
-                and result.get("title_english")
+                and translated
                 and (result.get("summary_english") or "").strip()
             ):
                 db.update_analysis(
@@ -782,7 +792,9 @@ def run(
                 # and a later run retries it.
                 missing = (
                     "no English translation"
-                    if not result.get("title_english")
+                    if not translated
+                    else "no summary"
+                    if not result.get("requires_translation", True)
                     else "a translation but no summary"
                 )
                 msg = (
@@ -793,6 +805,25 @@ def run(
                 errors.append(msg)
                 _record_failure(aid, body_zh, "analysis_incomplete",
                                 attempts_before, content_verdicts)
+
+    # Optional, independently bounded headline completion. Full analysis goes
+    # first so already translated records incur no duplicate title-only call.
+    # Failure here must not turn valid collection into a failed daily run.
+    from config import CHINA_TITLE_TRANSLATION_LIMIT
+    if (CHINA_TITLE_TRANSLATION_LIMIT and ANTHROPIC_API_KEY and not no_analysis
+            and not dry_run and account_blocked is None):
+        from storage.title_translation import candidates, ready, run_batch
+        try:
+            with db.get_conn() as title_conn:
+                rows = [r for r in candidates(title_conn) if ready(r)][:CHINA_TITLE_TRANSLATION_LIMIT]
+                if rows:
+                    analyzer = analyzer or Analyzer()
+                    logger.info("Title-only completion: %s", run_batch(
+                        title_conn, analyzer, rows, ANALYSIS_MODEL))
+        except FatalAPIError:
+            logger.error("Title-only completion stopped: account blocked")
+        except Exception:
+            logger.error("Title-only completion failed; collection continues", exc_info=False)
 
     # ── Stage 13: Close run record ────────────────────────────────────────────
     # --no-analysis is a deliberate skip, not a failure: it must not trip the

@@ -14,10 +14,11 @@ These tests pin three things:
     system payload object, the same keyword verdicts. China's backlog order is
     unchanged; only the queue slots Singapore records used to take are freed.
   * Singapore is judged by its own declared scope, at both stages.
-  * Singapore records are held out of the daily model queue, because what
-    follows a pass there (translation from Chinese, a summary, the PLA
-    taxonomy) is China-only. Screening them is scripts/rescreen_desk.py's
-    reviewed job.
+  * Singapore records run through the daily pipeline on their own path: the
+    desk rubric, then one summary-and-flag call on the original English text,
+    with no translation and no PLA taxonomy. They were held out of the daily
+    queue from 2026-09-29 until that path existed; a desk without its own
+    analysis is still held (tests/held_desk.py).
 
 A mocked model cannot show that the Singapore rubric selects the right
 releases; what it can show is that the rubric is what gets sent, and that a
@@ -134,7 +135,8 @@ class TestSingaporeIsJudgedByItsOwnScope(unittest.TestCase):
     def test_the_profile(self):
         self.assertEqual(self.profile.desk_id, "singapore")
         self.assertFalse(self.profile.keyword_prefilter)
-        self.assertFalse(self.profile.daily_queue)
+        self.assertTrue(self.profile.daily_queue)
+        self.assertFalse(self.profile.translates)
 
     def test_the_china_keyword_list_is_what_rejected_the_discipline_notice(self):
         from processing.relevance import keyword_filter, passes_keyword_filter
@@ -191,59 +193,245 @@ class TestSingaporeIsJudgedByItsOwnScope(unittest.TestCase):
         self.assertNotIn("saf", body.split())
 
 
-class TestSingaporeIsHeldOutOfTheDailyQueue(unittest.TestCase):
+class DeskClient:
+    """
+    A scripted model for the Singapore path. Answers the desk relevance call
+    by the record's title and the desk analysis call with `analysis_reply`;
+    any other call (a China prompt, a translation) fails the test.
+    """
+
+    def __init__(self, profile, scores, analysis_reply):
+        self.profile = profile
+        self.scores = scores
+        self.analysis_reply = analysis_reply
+        self.calls = []
+        self.messages = self
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        system = kwargs["system"][0]["text"]
+        user = kwargs["messages"][0]["content"]
+        if system == self.profile.system_prompt:
+            title = next(t for t in self.scores if t in user)
+            reply = json.dumps({"score": self.scores[title],
+                                "reasoning": "scripted"})
+        elif system == self.profile.analysis_system_prompt:
+            reply = self.analysis_reply
+        else:
+            raise AssertionError("unexpected model call: %s" % system[:60])
+        return SimpleNamespace(content=[SimpleNamespace(text=reply)],
+                               stop_reason="end_turn", usage=None)
+
+
+SUMMARY = json.dumps({
+    "summary": "The RSN hosted a navy visit; MINDEF said it deepens ties.",
+    "flag": False, "flag_reason": None})
+
+
+class TestSingaporeRunsThroughTheDailyPipeline(unittest.TestCase):
     """Driven through the real pipeline.run() on a temporary database."""
 
     def setUp(self):
+        from processing.screening import SINGAPORE_PROFILE
         from tests.integration.test_pipeline_run import PipelineRunCase
+        self.profile = SINGAPORE_PROFILE
         self.case = PipelineRunCase("run")
         self.case.setUp()
+        self.addCleanup(self.case.tearDown)
+        # A first offline run creates the source rows from the manifests.
+        from tests.integration.test_pipeline_run import scraper_factory
+        self.case.run_pipeline({"china_mil_online": scraper_factory(urls=[])})
 
-    def tearDown(self):
-        self.case.tearDown()
-
-    def seed(self):
-        """One China and two Singapore records, all awaiting screening."""
+    def seed(self, records):
         con = sqlite3.connect(str(self.case.db_path))
-        ids = {}
-        for slug, url in (("pla_daily", "http://www.81.cn/x/cn1.html"),
-                          ("sg_mindef_releases", SG[4466]["url"]),
-                          ("sg_mindef_releases", SG[4631]["url"])):
-            sid = con.execute("SELECT id FROM sources WHERE slug=?",
-                              (slug,)).fetchone()[0]
-            cur = con.execute(
+        sid = con.execute("SELECT id FROM sources WHERE slug=?",
+                          ("sg_mindef_releases",)).fetchone()[0]
+        for rec in records:
+            con.execute(
                 "INSERT INTO articles (source_id, url, title_original, "
                 "text_original, published_date, content_hash, scraped_at) "
                 "VALUES (?,?,?,?,?,?,datetime('now'))",
-                (sid, url, "t " + url, "body " + url, "2026-09-05", url))
-            ids[url] = cur.lastrowid
+                (sid, rec["url"], rec["title_original"], rec["text_original"],
+                 "2026-09-05", rec["url"]))
         con.commit()
         con.close()
-        return ids
 
-    def test_only_the_china_record_is_queued_and_singapore_stays_unscreened(self):
+    def run_with(self, client, exit_code=None):
+        from unittest import mock
         from tests.integration.test_pipeline_run import scraper_factory
-        # A first run creates the source rows from the manifests.
-        self.case.run_pipeline({"china_mil_online": scraper_factory(urls=[])})
-        ids = self.seed()
-        with self.assertLogs("pipeline", level="INFO") as logs:
-            self.case.run_pipeline({"china_mil_online": scraper_factory(urls=[])})
-        joined = "\n".join(logs.output)
-        self.assertIn("Held out of the daily analysis queue: 2 singapore-desk", joined)
-        self.assertIn("0/0 new + 1/1 backlog", joined)
+        analyzer = fake_analyzer(client)
+        with mock.patch.object(self.case.pipeline, "ANTHROPIC_API_KEY", "test-key"), \
+                mock.patch("analysis.analyzer.Analyzer", return_value=analyzer), \
+                self.assertLogs("pipeline", level="INFO") as logs:
+            try:
+                self.case.run_pipeline(
+                    {"china_mil_online": scraper_factory(urls=[])},
+                    no_analysis=False)
+            except SystemExit as exc:
+                self.assertEqual(exc.code, exit_code)
+            else:
+                self.assertIsNone(exit_code)
+        return "\n".join(logs.output)
 
+    def rows(self):
         con = sqlite3.connect(str(self.case.db_path))
-        states = dict(con.execute(
-            "SELECT id, passed_relevance FROM articles").fetchall())
-        con.close()
-        for url in (SG[4466]["url"], SG[4631]["url"]):
-            self.assertIsNone(states[ids[url]])
+        con.row_factory = sqlite3.Row
+        try:
+            return {r["url"]: dict(r) for r in con.execute(
+                "SELECT a.*, (SELECT count(*) FROM article_categories c "
+                "             WHERE c.article_id = a.id) AS n_categories "
+                "FROM articles a")}
+        finally:
+            con.close()
+
+    def test_a_pass_is_summarised_in_english_and_a_reject_is_recorded(self):
+        self.seed([SG[4466], SG[4631]])
+        client = DeskClient(self.profile, {SG[4466]["title_original"]: 0.92,
+                                           SG[4631]["title_original"]: 0.10},
+                            SUMMARY)
+        log = self.run_with(client)
+        self.assertNotIn("Held out of the daily analysis queue", log)
+        self.assertIn("0/0 new + 2/2 backlog", log)
+
+        # Two relevance calls on the desk rubric and one analysis call: no
+        # China prompt, no translation, no category call.
+        systems = [c["system"][0]["text"] for c in client.calls]
+        self.assertEqual(sorted(systems), sorted([
+            self.profile.system_prompt, self.profile.system_prompt,
+            self.profile.analysis_system_prompt]))
+        analysis = [c for c in client.calls
+                    if c["system"][0]["text"] == self.profile.analysis_system_prompt]
+        self.assertEqual(analysis[0]["messages"], self.profile.build_analysis_messages(
+            SG[4466]["title_original"], SG[4466]["text_original"]))
+
+        rows = self.rows()
+        passed, rejected = rows[SG[4466]["url"]], rows[SG[4631]["url"]]
+        self.assertEqual(passed["passed_relevance"], 1)
+        self.assertIsNotNone(passed["analyzed_at"])
+        self.assertIsNone(passed["title_english"])
+        self.assertIsNone(passed["text_english"])
+        self.assertEqual(passed["summary_english"],
+                         json.loads(SUMMARY)["summary"])
+        self.assertEqual(passed["is_significant"], 0)
+        self.assertIsNone(passed["significance_reasoning"])
+        self.assertEqual(passed["prompt_version"], "sg-relevance-v1+sg-analysis-v1")
+        self.assertEqual(passed["n_categories"], 0)
+        self.assertEqual(rejected["passed_relevance"], 0)
+        self.assertIsNone(rejected["analyzed_at"])
+        self.assertIsNone(rejected["summary_english"])
+
+    def test_a_failed_analysis_writes_nothing_and_is_retried_once(self):
+        self.seed([SG[4466]])
+        bad = DeskClient(self.profile, {SG[4466]["title_original"]: 0.92},
+                         json.dumps({"summary": "", "flag": False}))
+        # A run whose whole queue fails analysis exits non-zero and writes no
+        # success marker, so a later cron window retries it.
+        log = self.run_with(bad, exit_code=2)
+        self.assertIn("passed relevance but produced no summary", log)
+        self.assertIn("FATAL: 1 article(s) passed relevance but none produced", log)
+        row = self.rows()[SG[4466]["url"]]
+        self.assertEqual(row["passed_relevance"], 1)
+        self.assertIsNone(row["analyzed_at"])
+        self.assertIsNone(row["summary_english"])
+
+        # The next run takes it as pending analysis and completes it.
+        good = DeskClient(self.profile, {SG[4466]["title_original"]: 0.92},
+                          SUMMARY)
+        log = self.run_with(good)
+        self.assertIn("0/0 new + 1/1 backlog", log)
+        rows = self.rows()
+        self.assertEqual(len(rows), 1)
+        row = rows[SG[4466]["url"]]
+        self.assertIsNotNone(row["analyzed_at"])
+        self.assertEqual(row["summary_english"], json.loads(SUMMARY)["summary"])
+
+        # A third run has nothing left to do for it.
+        idle = DeskClient(self.profile, {}, SUMMARY)
+        self.run_with(idle)
+        self.assertEqual(idle.calls, [])
+        self.assertEqual(self.rows()[SG[4466]["url"]]["analyzed_at"],
+                         row["analyzed_at"])
+
+    def test_a_desk_without_its_own_analysis_is_still_held(self):
+        # Singapore as it stood before its analysis path: the run re-syncs
+        # each source's desk from the manifests, so the profile is swapped.
+        from dataclasses import replace
+        from unittest import mock
+        from processing import screening
+        from tests.held_desk import HELD_PROFILE
+        held = replace(HELD_PROFILE, desk_id="singapore")
+        patcher = mock.patch.dict(screening._PROFILES, {"singapore": held})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.seed([SG[4466]])
+        client = DeskClient(self.profile, {}, SUMMARY)
+        log = self.run_with(client)
+        self.assertIn("Held out of the daily analysis queue: 1 singapore-desk", log)
+        self.assertEqual(client.calls, [])
+        self.assertIsNone(self.rows()[SG[4466]["url"]]["passed_relevance"])
 
 
-class TestBackfillSkipsHeldDesks(unittest.TestCase):
-    """scripts/backfill_unscored.py runs the China analyze() path too."""
+class TestDeskAnalysisValidation(unittest.TestCase):
+    """A paid response without a usable summary and flag writes nothing."""
 
-    def test_singapore_records_are_not_offered_to_the_backfill(self):
+    def analyse(self, reply, score=0.9):
+        from processing.screening import SINGAPORE_PROFILE
+        rec = SG[4466]
+        client = DeskClient(SINGAPORE_PROFILE, {rec["title_original"]: score},
+                            reply)
+        result = fake_analyzer(client).analyze_record(
+            rec["title_original"], rec["text_original"], SINGAPORE_PROFILE)
+        return result, client
+
+    def test_invalid_replies_leave_a_partial_result(self):
+        for reply in ("not json",
+                      json.dumps({"summary": "   ", "flag": False}),
+                      json.dumps({"summary": "S.", "flag": "no"}),
+                      json.dumps({"summary": "S."}),
+                      json.dumps({"summary": "S.", "flag": True}),
+                      json.dumps({"summary": "S.", "flag": True,
+                                  "flag_reason": " "}),
+                      json.dumps(["S."])):
+            result, _ = self.analyse(reply)
+            self.assertTrue(result["passed_relevance"], reply)
+            self.assertNotIn("summary_english", result, reply)
+            self.assertFalse(result["requires_translation"], reply)
+
+    def test_a_flag_carries_its_reason_and_an_unflagged_reason_is_dropped(self):
+        flagged, _ = self.analyse(json.dumps(
+            {"summary": "S.", "flag": True, "flag_reason": "New acquisition."}))
+        self.assertEqual(
+            (flagged["is_significant"], flagged["significance_reasoning"]),
+            (True, "New acquisition."))
+        plain, _ = self.analyse(json.dumps(
+            {"summary": "S.", "flag": False, "flag_reason": "ignored"}))
+        self.assertEqual(
+            (plain["is_significant"], plain["significance_reasoning"]),
+            (False, None))
+
+    def test_a_reject_makes_no_analysis_call(self):
+        result, client = self.analyse(SUMMARY, score=0.2)
+        self.assertFalse(result["passed_relevance"])
+        self.assertNotIn("summary_english", result)
+        self.assertEqual(len(client.calls), 1)
+
+    def test_china_records_still_take_the_china_path(self):
+        from processing.screening import CHINA_PROFILE
+        a = fake_analyzer(FakeClient())
+        seen = []
+        a.analyze = lambda t, b: seen.append((t, b)) or "china"
+        for profile in (None, CHINA_PROFILE):
+            self.assertEqual(a.analyze_record("t", "b", profile), "china")
+        self.assertEqual(seen, [("t", "b"), ("t", "b")])
+
+
+class TestBackfillsKeepToTheChinaPath(unittest.TestCase):
+    """
+    Both backfill scripts run the China path (relevance, then translation
+    from Chinese); Singapore drains through the daily pipeline instead.
+    """
+
+    def test_singapore_records_are_not_offered_to_the_unscored_backfill(self):
         import scripts.backfill_unscored as bf
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "b.db"
@@ -268,6 +456,31 @@ class TestBackfillSkipsHeldDesks(unittest.TestCase):
                 self.assertEqual([r["id"] for r in bf.fetch_unscored(limit=1)], [1])
             finally:
                 bf.DB_PATH = saved
+
+    def test_a_singapore_pass_is_never_offered_for_translation(self):
+        import scripts.backfill_translations as bt
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "t.db"
+            con = sqlite3.connect(str(db))
+            con.executescript("""
+                CREATE TABLE sources (id INTEGER PRIMARY KEY, slug TEXT, desk_id TEXT);
+                CREATE TABLE articles (id INTEGER PRIMARY KEY, source_id INTEGER,
+                    title_original TEXT, text_original TEXT,
+                    title_english TEXT, passed_relevance INTEGER);
+                INSERT INTO sources VALUES (1,'pla_daily','china'),
+                                           (6,'sg_mindef_releases','singapore');
+                INSERT INTO articles VALUES
+                    (1,1,'t','body',NULL,1),
+                    (2,6,'t','a longer body',NULL,1),
+                    (3,1,'t','b','T',1);
+            """)
+            con.commit()
+            con.close()
+            saved, bt.DB_PATH = bt.DB_PATH, db
+            try:
+                self.assertEqual([r["id"] for r in bt.fetch_stuck()], [1])
+            finally:
+                bt.DB_PATH = saved
 
 
 class TestRescreenPlanAndProposal(unittest.TestCase):
