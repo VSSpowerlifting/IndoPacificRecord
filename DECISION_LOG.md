@@ -4,6 +4,31 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-18 — Owner: learn from Dylan's revised Japan Brief
+
+The owner accepted Dylan Tanzi's organization and flow in **Three Days of
+Chinese Flights, Six Months of Japanese Scrambles**, week ending October 17,
+as guidance for future automated drafts. Start with concrete observations,
+develop the relevant historical or quantitative context, include related
+activity where it advances the argument, and distinguish supported findings
+from open questions. Transitions should explain the relationship between
+paragraphs; avoid restarting the story and repeating the same caveat. Adapt
+the progression to each story rather than reusing Japan's headings or imposing
+a fixed country comparison.
+
+The owner authorized removing one repeated coordination caveat from the
+Liaoning paragraph and expressly retained “increasingly detailed record.”
+All other manuscript text, four descriptive section headings, seven source
+references and hyperlinks are preserved. Returned DOCX SHA-256:
+`94d8e35fd859213d4991dc2cae45f895242decef5f45a9a7973427fe9cf86a68`;
+edited DOCX SHA-256:
+`b4fe6e411a4c8021ab6ea21c246ba4822d25a341d6178e2bdfadf0ec26acafed`.
+
+Apply the writing lesson in the existing Sunday prose prompt. Its tool fields,
+renderer-owned packet headings, source/citation checks, bounded calls, editorial
+handoff and human publication process remain unchanged. This does not create
+a fixed four-section schema or automatically approve a future manuscript.
+
 ## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
 
 The owner directed IPR engineering to stop creating serial audit gates and
