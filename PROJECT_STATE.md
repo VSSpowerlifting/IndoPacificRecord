@@ -144,6 +144,18 @@ promotion changes. Complete diagnosis, repaired assertions, source/rights
 matrix, CI/merge/deploy and live route hashes:
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`. No remaining Laos release blocker.
 
+**Japan air reports Brief (18 October 2026, publication candidate):**
+The exact edited October 11–17 manuscript and Dylan's four headings are imported
+as a draft source-linked Brief and separate draft reading manifest. Seven
+publisher references have been checked; the undated JASDF explainer is explicitly
+represented without an invented date. The repeated caveat removal and retained
+wording follow the owner; one factual “quarterly” → “six-month” correction matches
+the report. 112 relevant tests and private production-renderer fidelity checks
+pass. Desktop/mobile preview is ready. No number, human approval, tracked output,
+merge or deployment is recorded. Final owner acceptance and exact-head CI remain;
+fingerprints, source review, preview limitations and release procedure are in
+`docs/JAPAN_BRIEF_RELEASE_2026-10-18.md`.
+
 Brief release approval was received 2026-10-05; its candidate,
 authorization recovery and QA evidence are in
 `docs/BRIEF_RELEASE_REVIEW_2026-10-04.md`. The older desk measurements below
