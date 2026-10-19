@@ -9,6 +9,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class KoreaRegistryTruth(unittest.TestCase):
+    def test_existing_publishers_follow_actual_collector_name(self):
+        workflows = ROOT / ".github/workflows"
+        collector_name = (workflows / "indonesia_korea_shadow.yml").read_text().splitlines()[0].removeprefix("name: ")
+        for name in ("korea_verified_official_link_production.yml",
+                     "korea_standing_original_text_production.yml"):
+            flow = (workflows / name).read_text()
+            self.assertIn("  workflow_run:\n    workflows:\n      - " + collector_name + "\n", flow)
+
     def test_mnd_content_and_dapa_limits_stated_without_full_desk_promotion(self):
         doc = json.loads((ROOT / "desks/registry.json").read_text(encoding="utf-8"))
         rows = doc["desks"] if type(doc) is dict else doc
@@ -18,7 +26,7 @@ class KoreaRegistryTruth(unittest.TestCase):
         self.assertIs(korea["has_production_records"], False,
                       "source-specific MND metadata is not the full desk corpus")
         self.assertIsNone(korea["manifest"],
-                          "DAPA feed has not been admitted as a production source")
+                          "general corpus discovery remains separate from admitted metadata")
         public = " ".join([
             korea["scope"], korea["status_explanation"],
             *korea["limits"],
@@ -38,7 +46,10 @@ class KoreaRegistryTruth(unittest.TestCase):
             "Public scope is five frozen bibliographic links",
         ):
             self.assertNotIn(stale, public)
-        self.assertIn("DAPA collection remains research-only", korea["scope"])
+        self.assertIn("MND and DAPA official-link metadata", korea["scope"])
+        for stale in ("DAPA collection remains research-only", "separate unadmitted issuer",
+                      "No DAPA production", "production admission remain unapproved"):
+            self.assertNotIn(stale, json.dumps(korea, ensure_ascii=False))
         self.assertIn("HWPX", public)
         self.assertIn("photographs", public)
         self.assertIn("human", public.lower()) if "human" in public.lower() else self.assertIn("editor", public.lower())

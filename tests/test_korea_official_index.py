@@ -28,9 +28,9 @@ class KoreaOfficialIndexContracts(unittest.TestCase):
         source, dapa = sources
         self.assertEqual(source["publisher_url"], INDEX)
         self.assertEqual(dapa["publisher_url"], DAPA_INDEX)
-        self.assertIn("research only", dapa["name"])
-        self.assertIn("no DAPA shadow collection", dapa["format"])
-        self.assertIn("unapproved", dapa["note"])
+        self.assertIn("Policy Briefing releases", dapa["name"])
+        self.assertIn("preserved privately", dapa["format"])
+        self.assertIn("no automatic public reuse approval", dapa["note"])
         parsed = urlsplit(INDEX)
         self.assertEqual((parsed.scheme, parsed.netloc, parsed.path),
                          ("https", "www.korea.kr",
@@ -58,7 +58,7 @@ class KoreaOfficialIndexContracts(unittest.TestCase):
             self.assertEqual(page.count("Open official publisher index"), 2)
             self.assertIn('<nav class="korea-publisher-shortcuts"', page)
             self.assertIn('id="korea-publisher-shortcuts-title"', page)
-            self.assertIn("Research-only source family; no DAPA records admitted", page)
+            self.assertIn("Official-link metadata admitted; originals require separate rights review", page)
             # Both indexes are next to the frozen bibliography, never buried
             # behind the bottom source inventory or counted as sixth records.
             self.assertLess(page.index("korea-publisher-shortcuts-title"),
