@@ -865,32 +865,35 @@ them then. Gate wording and evidence:
 `shadow/ph_nsc/README.md` and
 `docs/PH_NSC_ADAPTER_REVIEW_RECEIPT_2026-10-01.md`.
 
-**Vietnam Desk: built and rehearsed, not launched (PR #107 merged 2026-10-07).**
-An owner-authorized exception to the
-geographic deferral (DECISION_LOG 2026-10-05). The registry declares
-`vietnam` at `research`, manifest null, `has_production_records: false`; no
-count is shown. Pilot source: the English defense tag of Viet Nam Government
-News, `vn_vgp_defense_en`, Tier B newsroom reporting. Adapter
-`scraper/sources/vn_vgp.py`; runner `scripts/shadow_collect_vietnam.py`;
-dispatch-only `vietnam_shadow.yml`; review kit
-`scripts/review_vietnam_shadow_state.py`; manifest and scope in
-`shadow/vietnam/`. The orphan state branch `shadow/vietnam` does not exist on
-origin.
+**Vietnam Desk — ministry integration held (observed 2026-10-18).**
+Current authenticated public source heads remain MPS `cb607582` (11 originals),
+MOIT Energy `5d25d68e` (2), and MOIT Foundational Industry `75035550` (1).
+All three latest successful logical dates are October 14, run `38642138299-1`;
+MOIT retains separate rights and robots MIME holds. October 15–18 scheduled
+attempts failed because MPS's ten-item RSS cannot prove the six-day window;
+the old serial batch never reached MOIT. None is a healthy quiet day.
+Private `archive/vietnam-*` heads equal these source heads, but collection still
+writes public orphan branches; mirroring is not private-first custody or an
+independently restored backup. No Vietnam corpus or admitted-link rows exist.
 
-**Ministry continuation (2026-10-07, merged PR #107):** isolated adapters
-now read Public Security's Vietnamese foreign-affairs RSS and Industry and
-Trade's Vietnamese energy/foundational-industry first pages. All three passed
-body, duplicate and quiet live rehearsals (28 capped requests, five reports),
-with separate source state/clocks and deterministic local reviews. Both runners
-pass the shared cross-process host gate. Defence (`bqp.vn`/`mod.gov.vn`) remains
-at a robots script challenge; Finance (`www.mof.gov.vn`) at a robots app shell.
-No ministry workflow or remote state was published. Registry remains research;
-no activation or qualification. The continuation evidence is in
-`docs/VIETNAM_MINISTRY_EXPANSION_2026-10-07.md`. The separate readiness draft
-adds a main-only dispatch workflow for a serial ministry batch and source-bound
-Day 7/14/30 packets. No rehearsal clock is transferred. Exact budgets, public
-approved ministry retention/identity, publication failure boundaries and exact first
-action: `docs/VIETNAM_REMOTE_ACTIVATION_PROPOSAL_2026-10-07.md`.
+`codex/vietnam-desk-completion-20261018` prepares a shared regional-index
+adapter and migration, exact captured-HTML replay, authenticated attempt/source
+checks, purpose-separated regional review seals, and Vietnam renderer/readback
+support. It also lets independently healthy ministry families persist state
+without hiding a sibling failure. Both MOIT gates remain enforced. Production
+SQLite, output, registry status, source holds and publication are unchanged;
+no new collector, schedule, model or email was activated. The existing current
+editorial catalog already features approved Brief #18 on the live Vietnam page;
+closed PR #651 needs no port. Two authorized private MPS synopsis notes still
+join the current source queue. Outcome remains **Blocked**, pending a genuinely
+coverable MPS source scope, source-specific review/release and protected-custody
+cutover authority. Exact receipts, verification and owner actions:
+`docs/engineering/VIETNAM_DESK_COMPLETION_2026-10-18.md`.
+
+The original English Government News defense-tag pilot remains separate,
+`research`, with no approved remote dispatch and no `shadow/vietnam` branch.
+National Defence Journal remains disabled; MOD access remains challenged.
+Historical October 6 pilot measurements (not current ministry health):
 
 - **Measured 2026-10-06 UTC**, 26 requests under the full identity: the tag
   page lists 24 items, 2023-11-16 to 2026-09-09, with no published
