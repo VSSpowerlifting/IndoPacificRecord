@@ -8,7 +8,11 @@ cutover prevent an operational claim. No production database or site changed.
 ## Observed source and publication state
 
 Authenticated GitHub readback, native Git replay and independent SQLite queries
-were performed against public main `e21d10e679d6399b398c311fa69c185951bada8b`.
+began against public main `e21d10e679d6399b398c311fa69c185951bada8b`.
+The candidate also incorporates later main `31b8d00cb0148c104666c19c19b67af84f6ae61e`,
+retaining its shared admission rules. Migration replay on that newer production
+copy preserved all 943 articles, six sources and every field of 34 existing
+regional links. Vietnam still has zero admitted links.
 These are current observed branch heads, not assumed October 14 constants:
 
 | Family | Current source commit | Originals | Public admitted links | Latest successful logical date |
