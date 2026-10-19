@@ -1,5 +1,6 @@
 """Offline Git-object review and serial remote publication boundaries."""
 import json
+import re
 import socket
 import subprocess
 import tempfile
@@ -18,6 +19,22 @@ COMMIT = "a" * 40
 BODIES = {MPS: ["mps-article-concordia.bin", "mps-article-tho-nhi-ky.bin"],
           ENERGY: ["derived-moit-article-thue-xang-dau.html", "derived-moit-article-nghi-dinh-xang-dau.html"],
           INDUSTRY: ["derived-moit-article-cnht-dinh-huong.html"]}
+
+
+class WorkflowTokenPermissions(unittest.TestCase):
+    def test_actions_api_jobs_keep_explicit_job_scoped_read_permissions(self):
+        text = (Path(remote.REPO) / ".github/workflows/vietnam_ministry_shadow.yml").read_text()
+        for name in ("shadow", "reviewed-release"):
+            with self.subTest(job=name):
+                job = re.search(r"(?ms)^  " + re.escape(name) +
+                                r":\n(.*?)(?=^  [\w-]+:\n|\Z)", text)
+                self.assertIsNotNone(job, "required Actions API job missing")
+                permissions = re.search(r"(?m)^    permissions:\n((?:      [^\n]+\n)+)",
+                                        job.group(1))
+                self.assertIsNotNone(permissions, "job must declare its own token scopes")
+                scopes = dict(line.strip().split(": ", 1)
+                              for line in permissions.group(1).splitlines())
+                self.assertEqual(scopes, {"contents": "write", "actions": "read"})
 
 
 def git(repo, *args):
