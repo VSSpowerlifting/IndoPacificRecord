@@ -13,6 +13,7 @@ from datetime import date
 from urllib.parse import parse_qs, urljoin, urlsplit
 from xml.etree import ElementTree as ET
 
+import requests
 from bs4 import BeautifulSoup
 
 from core.collection import status as st
@@ -76,19 +77,32 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
     host, listing = HOST, LISTING
     # The Oct 12 2026 scheduled run timed out before robots completed.
     # Allow one extra, identically scoped robots GET after a transient timeout.
-    # HTTP denial, disallowed policy, redirects, bad bodies, listing, article
-    # and original HWPX fetches NEVER retry. Parent transport enforces delay
-    # between requests and captures only complete successful responses.
+    # One additional transport retry TOTAL across listing/article/HWPX requests
+    # per collection addresses the Oct 18 ConnectionError without replaying a
+    # whole batch. Denials, TLS errors, redirects and invalid bodies never retry.
+    # Parent transport still checks robots and enforces delay on every request.
     ROBOTS_TIMEOUT = 45
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.documents = {}
         self.robots_timeout_retries = 0
+        self.transport_retries = 0
 
     def _request(self, url, form=None, robots=False, binary=False):
         if not robots:
-            return super()._request(url, form=form, robots=robots, binary=binary)
+            try:
+                return super()._request(url, form=form, binary=binary)
+            except Refused as exc:
+                cause = exc.__cause__
+                if (self.transport_retries >= 1 or
+                        not isinstance(cause, (requests.Timeout, requests.ConnectionError)) or
+                        isinstance(cause, requests.exceptions.SSLError)):
+                    raise
+                self.transport_retries += 1
+                print("Korea MND transient transport failure; one bounded retry after crawl delay",
+                      file=sys.stderr)
+                return super()._request(url, form=form, binary=binary)
         try:
             return super()._request(url, form=form, robots=True, binary=False)
         except Refused as exc:
@@ -109,6 +123,7 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
 
     def discover(self, window):
         self.robots_timeout_retries = 0
+        self.transport_retries = 0
         return super().discover(window)
 
     def first_request(self, window):

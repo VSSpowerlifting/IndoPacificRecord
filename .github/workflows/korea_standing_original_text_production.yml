@@ -10,7 +10,7 @@ on:
       - .github/workflows/korea_standing_original_text_production.yml
   workflow_run:
     workflows:
-      - Indonesia and South Korea Shadow Collection
+      - South Korea Shadow Collection (legacy custody)
     types: [completed]
   schedule:
     - cron: '17 21 * * *'

@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = "ipr-shadow-source-workflow-bindings/1"
-TRIGGERS = frozenset(("scheduled", "manual_only", "research_only", "private_handoff_pending"))
+TRIGGERS = frozenset(("scheduled", "manual_only", "research_only", "private_handoff_pending", "private_scheduled"))
 FIELDS = frozenset(("manifest", "source_slug", "state_branch", "workflow", "cron", "trigger"))
 NAME = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
 CRON = re.compile(r"([0-9*,-/]+ ){4}[0-9*,-/]+\Z")
@@ -155,6 +155,17 @@ def validate(root=ROOT, contract_path=None):
             require(workflow is None and branch is None and cron is None,
                     "research-only source must not claim a workflow or branch")
             classification = "no_collection_workflow_declared"
+        elif trigger == "private_scheduled":
+            # Public offline inspection cannot attest private configuration or
+            # execution. Register the existing DAPA schedule without pretending
+            # it is still a research-only source or opening another writer.
+            require(binding["manifest"] == "shadow/kr_dapa_policy_briefing/manifest.json"
+                    and slug == "kr_policy_dapa_releases"
+                    and branch == "archive/korea-dapa-policy-briefing"
+                    and workflow == "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml"
+                    and cron == "17 22 * * *",
+                    "private schedule limited to exact DAPA custody workflow")
+            classification = "private_schedule_declared_external_runs_unverified"
         elif trigger == "private_handoff_pending":
             # Narrow explicit exception: the Indonesia *historical public*
             # source ref remains accessible, but the old public writer must
@@ -238,7 +249,7 @@ def validate(root=ROOT, contract_path=None):
     # entire cron multiset to explicitly reviewed workflow-level expectations.
     by_workflow = {}
     for binding in config["sources"]:
-        if binding["workflow"] is not None:
+        if binding["workflow"] is not None and binding["trigger"] != "private_scheduled":
             by_workflow.setdefault(root / binding["workflow"], set())
             if binding["trigger"] == "scheduled":
                 by_workflow[root / binding["workflow"]].add(binding["cron"])
