@@ -20,6 +20,7 @@ from core.regional_official_link_release import (
 DESK_TO_FAMILY = {
     "philippines": "ph_afp_articles",
     "indonesia": "id_kemhan_news",
+    "vietnam": "vn_mps_foreign_affairs_vi",
 }
 NEUTRAL_LABELS = {
     "ph_afp_articles": "AFP official source",
@@ -42,6 +43,8 @@ def read_live_links(conn: sqlite3.Connection, desk: str):
     """Rows are drawn only from the production admission table, never shadow."""
     need(desk in DESK_TO_FAMILY, "not_a_supported_regional_live_desk")
     family = DESK_TO_FAMILY[desk]
+    if desk == "vietnam":
+        return _read_vietnam_links(conn)
     schema = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % TABLE)}
     need(schema == EXPECTED_TABLE_COLUMNS,
          "regional_source_index_unavailable_or_schema_drift")
@@ -89,12 +92,41 @@ def read_live_links(conn: sqlite3.Connection, desk: str):
     return result
 
 
+def _read_vietnam_links(conn):
+    from core.vietnam_official_link_admission import ISSUERS, LABELS, exact_url, HOLDS
+    schema = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % TABLE)}
+    need(schema == EXPECTED_TABLE_COLUMNS, "regional_source_index_unavailable_or_schema_drift")
+    records = conn.execute(
+        "SELECT source_family,source_identity,canonical_official_url,publisher_posted_date,"
+        "official_issuer,official_publisher,official_republisher,source_git_commit,"
+        "metadata_version_sha256,release_proof_sha256,release_scope "
+        "FROM regional_official_source_links WHERE desk='vietnam' "
+        "ORDER BY publisher_posted_date DESC,source_identity ASC").fetchall()
+    need(len(records) <= 5000, "unexpectedly_large_source_index")
+    result = []
+    for family, ident, url, day, issuer, publisher, republisher, commit, meta, proof, scope in records:
+        need(family in ISSUERS and family not in HOLDS, "vietnam_source_rights_hold")
+        need(issuer == publisher == ISSUERS[family] and republisher is None
+             and type(commit) is str and SHA40.fullmatch(commit)
+             and type(meta) is str and SHA256.fullmatch(meta)
+             and type(proof) is str and SHA256.fullmatch(proof)
+             and scope == "official_link_only", "published_reference_missing_authenticity")
+        exact_url(family, ident, url)
+        need(type(day) is str and date.fromisoformat(day).isoformat() == day,
+             "invalid_publisher_date")
+        result.append({"source_identity": ident, "canonical_official_url": url,
+                       "publisher_posted_date": day, "label": LABELS[family],
+                       "publisher_label": "Vietnam Ministry of Public Security"})
+    return result
+
+
 def render_live_links(conn: sqlite3.Connection, desk: str) -> str:
     """Small accessible link-only desk rail for *admitted* production rows."""
     rows = read_live_links(conn, desk)
     if not rows:
         return ""
-    label = "Philippines AFP" if desk == "philippines" else "Indonesia Kemhan"
+    label = {"philippines": "Philippines AFP", "indonesia": "Indonesia Kemhan",
+             "vietnam": "Vietnam ministries"}[desk]
     lines = [
         '<section class="regional-official-source-links" '
         'data-source-scope="official-link-only" '

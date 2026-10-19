@@ -155,17 +155,43 @@ class RemoteReview(unittest.TestCase):
                                             "invalid source-surface anomaly evidence"):
                     self.packet(ENERGY, "invalid-surface-%s" % index, commit)
 
-    def test_batch_failure_stops_all_remaining_sources(self):
+    def test_batch_failure_preserves_failure_and_attempts_independent_sources(self):
         calls = []
         def failure(state, slug, *args, **kwargs):
             calls.append(slug)
             return {"health": "fail", "result": "access_challenged"}
-        with self.assertRaisesRegex(ValueError, "batch stopped"):
+        with self.assertRaisesRegex(ValueError, "batch has failed sources"):
             self.batch(failure)
-        self.assertEqual(calls, [MPS])
+        self.assertEqual(calls, list(remote.SOURCES))
         self.assertFalse((self.repos / ENERGY / "state").exists())
         for slug in remote.SOURCES:
             self.assertNotEqual(remote.git(["rev-parse", "--verify", "HEAD"], self.repos / slug, check=False).returncode, 0)
+
+    def test_one_failed_source_does_not_block_verified_sibling_state(self):
+        successful = []
+        def mixed(state, slug, *args, **kwargs):
+            if slug == MPS:
+                return {"health": "fail", "result": "listing_failure"}
+            return self.collector(state, slug, *args, **kwargs)
+        with self.assertRaisesRegex(ValueError, MPS):
+            remote.run_batch(self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                             0, 2, "remote-test", COMMIT, mixed, successful_sources=successful)
+        self.assertEqual(successful, [ENERGY, INDUSTRY])
+        self.assertFalse((self.repos / MPS / "state").exists())
+        for slug in successful:
+            self.assertEqual(review.review(self.repos / slug / "state", slug)["failures"], 0)
+
+    def test_success_list_contains_only_verified_families_after_validation_failure(self):
+        successful = []
+        def bad_review(state, slug, *args, **kwargs):
+            result = self.collector(state, slug, *args, **kwargs)
+            if slug == ENERGY:
+                (state / "captures").joinpath("unexpected.bin").write_bytes(b"invalid")
+            return result
+        with self.assertRaises((ValueError, review.formal.ReviewError)):
+            remote.run_batch(self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                             0, 2, "remote-test", COMMIT, bad_review, successful_sources=successful)
+        self.assertEqual(successful, [MPS])
 
     def test_prior_moit_states_seed_same_gate_before_any_request(self):
         self.batch()
@@ -308,7 +334,9 @@ class RemoteReview(unittest.TestCase):
         self.assertIn("scheduled reliability state branch missing", text)
         self.assertIn('test -f "$dest/state/clock.json"', text)
         self.assertIn("ref: ${{ github.sha }}", text)
-        self.assertIn("if: success()", text)
+        self.assertIn("steps.preservation.outcome == 'success'", text)
+        self.assertIn('--publication-list "${RUNNER_TEMP}/vn-ministry-successful-sources"', text)
+        self.assertIn('done < "$publication_list"', text)
         self.assertIn("if: always()", text)
         self.assertIn("retention-days: 90", text)
         self.assertNotIn("*/state/", text)

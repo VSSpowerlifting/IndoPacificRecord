@@ -3095,7 +3095,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.regional_official_link_render import load_admitted_links
         regional_official_links = (
             load_admitted_links(db_path, desk.slug)
-            if desk.slug in ("philippines", "indonesia") else [])
+            if desk.slug in ("philippines", "indonesia", "vietnam") else [])
         # Reuse the exact public results that render this build's desk pages.
         archive_official_groups.extend([
             (references, desk.slug, None, None),

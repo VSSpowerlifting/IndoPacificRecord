@@ -17,7 +17,8 @@ from pathlib import Path
 
 from core.regional_official_link_render import DESK_TO_FAMILY, load_admitted_links
 
-ROUTES = {"philippines": "philippines.html", "indonesia": "indonesia.html"}
+ROUTES = {"philippines": "philippines.html", "indonesia": "indonesia.html",
+          "vietnam": "vietnam.html"}
 SCHEMA = "ipr-regional-source-link-readback/1"
 
 
@@ -140,7 +141,10 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
     if pages_dir is not None:
         need(pages_dir.is_dir() and not pages_dir.is_symlink(),
              "deployed_pages_checkout_missing")
-    required = set(ROUTES) if require_records else set()
+    # Preserve existing AFP/Kemhan callers; Vietnam is checked explicitly via
+    # --require-desk vietnam once that independently governed release is made.
+    defaults = ("philippines", "indonesia")
+    required = set(defaults) if require_records else set()
     need(all(desk in ROUTES for desk in required_desks),
          "unknown_required_regional_source_desk")
     required.update(required_desks)
@@ -153,7 +157,8 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
         "site_bytes_match_deployed_checkout": pages_dir is not None,
         "source_families": {},
     }
-    for desk, route in ROUTES.items():
+    for desk in dict.fromkeys(defaults + tuple(required_desks)):
+        route = ROUTES[desk]
         path = site_dir / route
         need(path.is_file() and not path.is_symlink(),
              "committed_regional_desk_page_missing")
