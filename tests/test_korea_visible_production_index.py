@@ -65,8 +65,11 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                 'data-korea-production-admitted-count="%d"' % len(all_admitted),
                 html)
             self.assertIn(
-                "MND and DAPA official-link metadata active" if dapa_count
+                "MND and DAPA official-source archive" if dapa_count
                 else "MND official-source production live", html)
+            self.assertIn('data-korea-mnd-count="%d"' % mnd_count, html)
+            self.assertIn('data-korea-dapa-count="%d"' % dapa_count, html)
+            self.assertNotIn("Research-only source family; no DAPA records admitted", html)
             self.assertIn(
                 "contains %d separately admitted official-link metadata records"
                 % len(all_admitted), html)
