@@ -368,6 +368,22 @@ def admit(conn, packet, policy, receipt, *, as_of_utc,
     need(type(as_of_utc) is str and
          re.fullmatch(r"20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z", as_of_utc),
          "invalid_release_timestamp")
+    if standing:
+        columns = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % TABLE)}
+        need(columns == EXPECTED_TABLE_COLUMNS, "regional_official_index_not_migrated")
+        # Without per-record review, a released link whose identity, date or
+        # attribution later changes or disappears is an anomaly: hold it all.
+        current = {r["source_identity"]: r for r in eligible}
+        for old in conn.execute(
+                "SELECT source_identity,canonical_official_url,publisher_posted_date,"
+                "official_issuer,official_publisher,official_republisher,first_seen_run "
+                "FROM %s WHERE source_family=?" % TABLE, (packet["source_family"],)):
+            row = current.get(old[0])
+            need(row is not None and tuple(old[1:]) == (
+                row["canonical_official_url"], row["publisher_posted_date"],
+                row["official_issuer"], row["official_publisher"],
+                row["official_republisher"], row["first_seen_run"]),
+                 "previously_released_source_missing_or_changed")
     result = store_verified_links(conn, approved, proof_digest, as_of_utc)
     return {"source_family":packet["source_family"], **result,
             "held_semantic_exceptions":packet["semantic_exception_count"],
@@ -384,20 +400,6 @@ def store_verified_links(conn, approved, proof_digest, as_of_utc, *, stable_vers
     columns = {r[1] for r in conn.execute(
         "PRAGMA table_info(%s)" % TABLE)}
     need(columns == EXPECTED_TABLE_COLUMNS, "regional_official_index_not_migrated")
-    if standing:
-        # Without per-record review, a released link whose identity, date or
-        # attribution later changes or disappears is an anomaly: hold it all.
-        current = {r["source_identity"]: r for r in eligible}
-        for old in conn.execute(
-                "SELECT source_identity,canonical_official_url,publisher_posted_date,"
-                "official_issuer,official_publisher,official_republisher,first_seen_run "
-                "FROM %s WHERE source_family=?" % TABLE, (packet["source_family"],)):
-            row = current.get(old[0])
-            need(row is not None and tuple(old[1:]) == (
-                row["canonical_official_url"], row["publisher_posted_date"],
-                row["official_issuer"], row["official_publisher"],
-                row["official_republisher"], row["first_seen_run"]),
-                 "previously_released_source_missing_or_changed")
     conn.execute("SAVEPOINT regional_link_admission")
     added = unchanged = 0
     try:
