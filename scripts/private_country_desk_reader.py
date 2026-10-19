@@ -94,7 +94,11 @@ def _row(rec, slug, commit):
         ("source_identity", "url", "title_original", "published_date", "first_seen_run"))
     require(all(isinstance(x, str) and x for x in
                 (sid, url, title, published, first)), "missing source identity/metadata")
-    require(len(sid) <= 180 and len(title) <= 700 and len(first) <= 100,
+    # Kemhan identities are exactly "kemhan:" + the dated URL path (checked
+    # below), so they are bounded by the URL cap; a genuine Oct 15 Berita path
+    # is 194 characters. Other families keep the original 180-character bound.
+    sid_cap = 1708 if slug == "id_kemhan_news" else 180
+    require(len(sid) <= sid_cap and len(title) <= 700 and len(first) <= 100,
             "record metadata exceeds bounded display size")
     try:
         date.fromisoformat(published)

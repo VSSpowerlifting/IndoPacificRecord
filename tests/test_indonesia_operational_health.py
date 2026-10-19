@@ -6,8 +6,9 @@ import unittest
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from core.crossdesk_official_metadata_candidates import KEMHAN_HELD
 from scripts.indonesia_operational_health import (
-    HealthError, check_public_page, evaluate, monitor_day,
+    ADMITTED_HEADING, HealthError, check_public_page, evaluate, monitor_day,
 )
 from core.indonesia_official_index import load as load_index
 from core.indonesia_press_index import load as load_press_index
@@ -180,6 +181,44 @@ class OperationalCanaryTests(unittest.TestCase):
             page.write_text(document(approved) + "text_original", encoding="utf-8")
             with self.assertRaises(HealthError):
                 check_public_page(page)
+
+    def test_admitted_metadata_index_replaces_shadow_heading_only_when_sound(self):
+        shadow = (Path(__file__).resolve().parents[1] / "output/indonesia.html").read_text(encoding="utf-8")
+        self.assertEqual(check_public_page_text(shadow), 17)
+        path = "/2026/10/16/menhan-contoh-berita.html"
+        def item(path=path, href=None, shown="2026-10-16"):
+            return (
+                '<li data-regional-official-source-id="kemhan:%s">\n'
+                '      <h3><a href="%s" target="_blank"\n'
+                '             rel="noopener noreferrer">Kemhan Berita official source</a></h3>\n'
+                '      <p class="meta">Publisher: Indonesian Ministry of Defense — Berita\n'
+                '        · Official date <time datetime="%s">%s</time>\n'
+                '        · Official-link metadata only</p>\n    </li>' %
+                (path, href or "https://www.kemhan.go.id" + path, shown, shown))
+        def admitted(*items, heading=ADMITTED_HEADING):
+            return shadow.replace(
+                "<h2>Shadow evaluation — no public corpus records</h2>",
+                "<h2>%s</h2>\n<ol aria-label=\"Admitted official publisher references\">%s</ol>"
+                % (heading, "".join(items)), 1)
+        self.assertEqual(check_public_page_text(admitted(item())), 17)
+        held = "/2026/10/02/" + KEMHAN_HELD.split("/2026/10/02/", 1)[1]
+        for label, page in (
+            ("shadow heading kept", admitted(item(), heading="Shadow evaluation — no public corpus records")),
+            ("empty index", admitted()),
+            ("foreign host", admitted(item(href="https://spoof.example" + path))),
+            ("date disagrees with path", admitted(item(shown="2026-10-15"))),
+            ("duplicate identity", admitted(item(), item())),
+            ("held identity", admitted(item(held, shown="2026-10-02"))),
+        ):
+            with self.subTest(label), self.assertRaises(HealthError):
+                check_public_page_text(page)
+
+
+def check_public_page_text(text):
+    with tempfile.TemporaryDirectory(prefix="ipr-id-admitted-") as tmp:
+        page = Path(tmp) / "indonesia.html"
+        page.write_text(text, encoding="utf-8")
+        return check_public_page(page)
 
 
 if __name__ == "__main__":

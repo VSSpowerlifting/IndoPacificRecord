@@ -124,3 +124,24 @@ deployment has happened or fabricate a separate merge/deployment instruction.
   committed output without collection or paid models. Verify actual HTTPS article,
   cover/card, author credits, Analysis/homepage, archive, feed and sitemap.
   A merged PR or green CI alone does not establish live publication.
+
+## Stable integration after parallel desk merges
+
+The final Brief heads 25fa6d1 and e85e4fa both passed full GitHub offline CI.
+Further Indonesia merges moved main to 31b8d00, again conflicting only with the
+new top-of-file PROJECT_STATE snapshot. Resolve this by updating the existing
+Japan Brief section beside the other Brief status, removing the duplicate top
+insertion. Preserve main's Indonesia/Korea top blocks verbatim. Future ordinary
+top-of-file desk updates then have no competing Brief edit at that location.
+
+Integrate main 31b8d00 and preserve its authorized Kemhan metadata admission,
+including database SHA-256
+`d767118ddfe1097a6e2c9aefadeff54a01e3cefe06422467d1afd5fb59f5c68e`.
+This inherited production change is not a new DB write by Brief preparation.
+The Brief manuscript, receipts, numbering, presentation and cover bytes remain
+unchanged. A fresh production render still validates with zero errors/seven
+historical warnings. Keep the 14 reviewed Brief output deltas; restore the
+unrelated desks.html renderer drift to current main's committed bytes rather
+than bundling another desk presentation change. No CI rules/gates are weakened.
+Only one final integration check run is needed after this complete update;
+keep other merges paused until #822 lands to avoid invalidating its tested base.
