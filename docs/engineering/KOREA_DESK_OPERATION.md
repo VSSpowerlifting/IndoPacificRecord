@@ -10,9 +10,12 @@ and grants no new source, model or release permission.
   `archive/korea-policy-briefing`. Its `korea_mnd_private_first_collector.yml`
   runs at 17:47 UTC (six-day lookback, cap 40) with
   `KOREA_MND_PRIVATE_COLLECTION_ENABLED=true` (set October 19, 18:40 UTC). MND
-  is excluded from the private fast-forward mirror. The first scheduled slot
-  after enablement is October 20, 17:47 UTC; until it is read back, scheduled
-  MND operation is enabled but unobserved (the manual run below is not it).
+  is excluded from the private fast-forward mirror. The first genuine scheduled
+  run, [39329889889](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/39329889889)
+  (`schedule`, slot attributed to October 19, started 21:44 UTC, about four hours
+  after the 17:47 slot), succeeded: robots read, 10 listed and retrieved, 10
+  duplicates, no failures, 17 stored, ledger and independent readback preserved
+  at `0fe16d7708`. GitHub cron delay on these repositories is routinely hours.
 - DAPA: private `korea_dapa_private_first_collector.yml`, 22:17 UTC, one logical
   UTC day, no lookback, at most five complete article/HWPX pairs. Private
   `DAPA_DAILY_ORIGINAL_ACCESS_APPROVED` and both repositories'
@@ -136,7 +139,19 @@ Revisions, missing evidence and disputes require actual review. MND
   (link publisher 20:37 UTC, standing-text publisher 21:17 UTC, English owner
   handoff after the text release). A scratch dry run against a copy of production
   predicted one link admitted, one text eligible (hash identical to the private
-  original) and zero held; actual admission is recorded below once observed.
+  original) and zero held. **Not yet observed:** at 23:43 UTC on October 19 neither
+  publisher had a scheduled run for that evening (recent nights ran roughly two
+  hours late: October 18 at 22:35 and 23:13 UTC); `main` (16 production rows),
+  `gh-pages` (`6715da1514`) and HTTPS `korea.html` lack the record, and
+  `korea-originals/156785691.html` returns 404. Classify as pending, or a possibly
+  dropped schedule if still absent after the next slot. Do not dispatch manually
+  without owner authorization; admission and release stay with the publishers.
+- Known stale check (not changed here): `korea_shadow_slot_watchdog.yml` reads
+  the frozen public `shadow/korea-policy-briefing` branch (tip `cac1f02fb7`, last
+  ledger October 16), so it reports "no successful scheduled-run ledger" and has
+  failed daily since cutover (e.g. `39256411507`). That is a false alarm about
+  public custody, not an MND collection failure; private receipts above are
+  authoritative. Retargeting it to the private archive is a separate fix.
 - Genuine private DAPA scheduled run
   [39179758230, attempt 1](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/39179758230)
   started October 18 at 8:12 PM EDT (October 19 00:12 UTC), correctly attributed

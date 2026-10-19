@@ -66,10 +66,14 @@ publishers passed post-cutover reruns (links `39302834158`, text `39302167309`)
 before that record existed; the first dispatch failed on a 403 read token that
 was then fixed. Production/Pages/HTTPS match: 15 MND + 1 DAPA links, 3 licensed
 originals, 3 reviewed English pairs; `156785161` stays link-only (chronology
-hold). Open, time-gated: first scheduled private MND run (Oct 20 17:47 UTC) and
-the fallback publishers admitting `156785691` (Oct 19 20:37/21:17 UTC). DAPA's
-one scheduled run (`39179758230`) was a healthy zero day. Registry stays
-`shadow`. See `docs/engineering/KOREA_DESK_OPERATION.md`.
+hold). The first genuine scheduled private MND run `39329889889` passed
+(October 19, 21:44 UTC, 0 new, ledger at `0fe16d7708`). Open: the fallback
+publishers (nominally 20:37/21:17 UTC) had not run by 23:43 UTC, so
+`156785691` is unadmitted and unpublished (pending or a dropped schedule; no
+manual dispatch). DAPA's October 19 22:17 slot is also unobserved (prior run:
+healthy zero day `39179758230`). The Korea shadow watchdog still checks the
+frozen public branch and fails daily; separate fix. Registry stays `shadow`.
+See `docs/engineering/KOREA_DESK_OPERATION.md`.
 
 **Verification/desk-acceptance simplification (2026-10-18, PR #811):**
 Owner authorized one focused simplification: keep
