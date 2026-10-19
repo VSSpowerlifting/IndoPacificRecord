@@ -56,20 +56,20 @@ PR #652 cross-check:
 `research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
 No production DB, output, Pages or schedule change made here.
 
-**Korea completion candidate (18 October 2026):**
-The existing private DAPA schedule is activated and genuinely ran successfully:
-`39179758230-1`, logical October 18, `ok_no_publications`, preserved at private
-`7a03ac11555b0d301c64bf5953c255825e988eb5`; no false publication dispatch.
-Candidate changes repair one bounded MND transient transport retry, both
-publisher completion hooks after the collector rename, obsolete DAPA registry
-copy, separate MND/DAPA counts, and the existing Operations Center binding.
-Current production: 15 MND + 1 DAPA links, 3 licensed originals, 3 reviewed
-English/analysis pairs. MND's failed scheduled `39159889610` remains failed;
-its `156785190` original is already preserved/admitted. Manual one-day MND
-check returned healthy zero; this does not attest repaired scheduled operation.
-MND still writes originals to its legacy public ref: the verified private
-mirror is not a cutover. Separate owner cutover authorization and review/release
-of this candidate remain required. See `docs/engineering/KOREA_DESK_OPERATION.md`.
+**Korea desk acceptance (19 October 2026):**
+Public PRs #825/#826 and private PR #18 are merged; private-first MND custody
+is live (`archive/korea-policy-briefing` has one writer, MND is outside the
+mirror, `KOREA_MND_PRIVATE_COLLECTION_ENABLED=true` since 18:40 UTC). Manual
+private run `39304457445` preserved the new record `korea-policy:156785691`
+(17 stored, archive tip `02090fc2`, independent readback passed). Both public
+publishers passed post-cutover reruns (links `39302834158`, text `39302167309`)
+before that record existed; the first dispatch failed on a 403 read token that
+was then fixed. Production/Pages/HTTPS match: 15 MND + 1 DAPA links, 3 licensed
+originals, 3 reviewed English pairs; `156785161` stays link-only (chronology
+hold). Open, time-gated: first scheduled private MND run (Oct 20 17:47 UTC) and
+the fallback publishers admitting `156785691` (Oct 19 20:37/21:17 UTC). DAPA's
+one scheduled run (`39179758230`) was a healthy zero day. Registry stays
+`shadow`. See `docs/engineering/KOREA_DESK_OPERATION.md`.
 
 **Verification/desk-acceptance simplification (2026-10-18, PR #811):**
 Owner authorized one focused simplification: keep
