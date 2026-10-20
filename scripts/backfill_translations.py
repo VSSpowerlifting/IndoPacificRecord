@@ -60,12 +60,14 @@ def fetch_stuck(limit=None):
     title by design (its source publishes in English), and translating it
     "from Chinese" would overwrite its desk analysis (processing/screening.py).
     """
-    from processing.screening import profile_for_desk
+    from processing.screening import registered_profile
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
+        # A desk with no screening profile is never translated "from Chinese".
         rows = [r for r in conn.execute(STUCK_QUERY).fetchall()
-                if profile_for_desk(r["desk_id"]).translates]
+                if (p := registered_profile(r["desk_id"])) is not None
+                and p.translates]
     finally:
         conn.close()
     return rows[:limit] if limit else rows

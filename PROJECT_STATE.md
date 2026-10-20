@@ -10,6 +10,19 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**Screening profiles fail closed (20 October 2026; draft PR, not merged).**
+Before this change, an unknown desk, a source missing from the desk manifests,
+or a missing slug fell back to the China profile. They now raise
+`UnregisteredDeskError` (`processing/screening.py`).
+
+The daily queue, keyword stage, queue audit and both backfills hold such a
+record out: it stays `passed_relevance IS NULL` and gets no model call, and
+the China Daily run continues. `rescreen_desk.py` refuses the desk.
+
+Only china, singapore and korea are registered; korea stays out of the daily
+queue. Their resolution is pinned in `tests/test_screening_fail_closed.py`.
+Vietnam (#834) must add its profile and snapshot there.
+
 **Philippines Desk AFP official-link lane (19 October 2026):** released.
 The owner's standing authorization publishes verified neutral AFP link
 metadata for existing and future eligible records without per-record human

@@ -37,7 +37,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from config import RELEVANCE_MODEL, RELEVANCE_THRESHOLD  # noqa: E402
-from processing.screening import profile_for_desk  # noqa: E402
+from processing.screening import (  # noqa: E402
+    UnregisteredDeskError, profile_for_desk,
+)
 
 KEYWORD_REJECTION = "failed keyword pre-filter"
 # English prose tokenizes at roughly 4 characters per token; 3.5 over-counts on
@@ -209,7 +211,9 @@ def main(argv=None) -> int:
             p.add_argument("--confirm-spend", action="store_true")
     args = ap.parse_args(argv)
 
-    if profile_for_desk(args.desk).desk_id != args.desk:
+    try:
+        profile_for_desk(args.desk)
+    except UnregisteredDeskError:
         ap.error("no screening profile for desk %r" % args.desk)
 
     if args.cmd == "plan":

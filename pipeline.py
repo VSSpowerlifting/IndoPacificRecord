@@ -47,7 +47,9 @@ from processing.relevance import (
     keyword_filter,
     llm_relevance_check,
 )
-from processing.screening import desk_for_source, profile_for_desk
+from processing.screening import (
+    UnregisteredDeskError, desk_for_source, profile_for_desk,
+)
 from core.collection import status as collection_status
 from core.collection.contract import CollectionWindow
 from core.collection.health import aggregate_status, human_report
@@ -526,12 +528,19 @@ def run(
     # rubric and its own summary-and-flag call, with no translation. A desk
     # whose profile is not in the daily queue is held out of all three sources
     # of the queue; its records keep passed_relevance NULL, "awaiting
-    # screening".
+    # screening". So is a record whose desk has no profile at all: it is never
+    # screened by the China profile in its place, and it does not stop the run.
     held_desks: dict[str, int] = {}
+    unregistered_desks: dict[Optional[str], int] = {}
     queue_desk: dict[int, Optional[str]] = {}
 
     def _in_daily_queue(desk_id: Optional[str]) -> bool:
-        if profile_for_desk(desk_id).daily_queue:
+        try:
+            profile = profile_for_desk(desk_id)
+        except UnregisteredDeskError:
+            unregistered_desks[desk_id] = unregistered_desks.get(desk_id, 0) + 1
+            return False
+        if profile.daily_queue:
             return True
         held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
         return False
@@ -591,6 +600,14 @@ def run(
             "Held out of the daily analysis queue: %d %s-desk record(s) — the "
             "desk's screening is not run by the daily pipeline "
             "(processing/screening.py); they stay awaiting screening.",
+            held, desk_id,
+        )
+    for desk_id, held in sorted(unregistered_desks.items(),
+                                key=lambda kv: str(kv[0])):
+        logger.warning(
+            "Held out of the daily analysis queue: %d record(s) of desk %r, "
+            "which has no screening profile (processing/screening.py). They "
+            "stay awaiting screening; no other desk's profile is used.",
             held, desk_id,
         )
 

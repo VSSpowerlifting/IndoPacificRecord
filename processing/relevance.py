@@ -51,13 +51,19 @@ def passes_desk_prefilter(article: dict) -> bool:
     """
     Stage 1 as the article's own desk defines it (processing.screening).
 
-    China-desk articles, and any article whose source maps to no desk, get
-    passes_keyword_filter() exactly as before. A desk whose source is its
-    declared scope (Singapore) skips the keyword lists and goes on to the
-    model stage.
+    China-desk articles get passes_keyword_filter() exactly as before. A desk
+    whose source is its declared scope (Singapore) skips the keyword lists and
+    goes on to the model stage. An article whose source has no screening
+    profile is not judged by the China keyword lists either: it passes, is
+    stored, and is held out of the model queue awaiting screening.
     """
-    from processing.screening import profile_for_source
-    if not profile_for_source(article.get("source_slug")).keyword_prefilter:
+    from processing.screening import UnregisteredDeskError, profile_for_source
+    try:
+        profile = profile_for_source(article.get("source_slug"))
+    except UnregisteredDeskError as exc:
+        logger.warning("Keyword filter skipped: %s", exc)
+        return True
+    if not profile.keyword_prefilter:
         return True
     return passes_keyword_filter(article)
 
