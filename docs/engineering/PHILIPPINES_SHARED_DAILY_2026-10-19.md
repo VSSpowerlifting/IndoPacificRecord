@@ -76,7 +76,7 @@ one private trial at `442081916b3b41850e958ae75298bf12afe565b6`; that pin's
 matches its exact captured body/version. The owner configured the private Actions
 key; the genuine two-call trial consumed 1,251 input / 584 output tokens,
 estimated $0.010581. Response text, relevance judgment and source-specific review
-remain private: **not a quality-passing public candidate**. The current prompt v9 clarifies
+remain private: **not a quality-passing public candidate**. The current prompt v10 clarifies
 literal evidence, concise complete sentences, source attribution and supported
 topics; the gates remain strict. Do not repeat the excluded trial.
 Private NSC `b564c3089cac408fce4dc52b794c94855efe025d` replays zero records,

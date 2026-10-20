@@ -38,7 +38,7 @@ def analysis_messages(title, body):
         "Select TWO salient facts and write exactly TWO short summary sentences, "
         "12–22 words each. Begin each sentence with 'AFP reports' or 'NSC reports' "
         "as appropriate. Do not use possessive AFP's or NSC's. Omit additional names, "
-        "dates or details rather than packing several facts into one sentence. "
+        "dates or details rather than packing several facts into one sentence. Do not repeat formal event names or named activity lists: describe the reported activity in ordinary words. For example, describe an event as a bilateral maritime activity rather than copying its long official name; describe a photo exercise as photography practice. Never invent abbreviations for institutions or countries: use only the spelling actually present in the supporting paragraph. "
         "Distinguish reported activities and stated aims from achieved outcomes. "
         "Do not invent negative claims about what did not happen. No direct quotations "
         "or copied publisher sentences; never copy 12 consecutive source words. "

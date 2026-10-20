@@ -39,7 +39,7 @@ def reading():
         facts=[dict(sentence=first, evidence="A routine exercise is planned for 23 October."),
                dict(sentence=second, evidence="The announcement does not establish that training has taken place.")],
         is_significant=False, categories=["exercises"], significance_reasoning=None,
-        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v9")
+        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v10")
 
 
 def fake_analyzer(reply=None):
@@ -291,7 +291,7 @@ class SharedDaily(unittest.TestCase):
             model_flagged=False, publisher='ph_afp', published_date='2026-10-19',
             url=record()['canonical_official_url'], source_git_commit='c'*40,
             content_sha256=record()['content_sha256'], source_run='123-1',
-            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v9'))
+            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v10'))
         self.assertIn('Machine summary', html)
         self.assertNotIn(record()['body'], html)
         self.assertNotIn(record()['title'], html)
