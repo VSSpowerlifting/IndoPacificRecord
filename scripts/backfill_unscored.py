@@ -98,15 +98,17 @@ def _without_held_desks(conn, rows):
     the China pass rate, so a Singapore record would be screened by the China
     prompt and, on a pass, translated "from Chinese". A desk with its own
     analysis (Singapore) drains through the daily pipeline instead, and a desk
-    held out of the daily queue is not screened here either.
+    held out of the daily queue is not screened here either, nor is a record
+    whose desk has no screening profile at all.
     """
-    from processing.screening import profile_for_desk
+    from processing.screening import registered_profile
     desks = dict(conn.execute(
         "SELECT a.id, s.desk_id FROM articles a "
         "JOIN sources s ON s.id = a.source_id").fetchall())
-    profiles = {r["id"]: profile_for_desk(desks.get(r["id"])) for r in rows}
+    profiles = {r["id"]: registered_profile(desks.get(r["id"])) for r in rows}
     kept = [r for r in rows
-            if profiles[r["id"]].daily_queue and profiles[r["id"]].translates]
+            if profiles[r["id"]] is not None
+            and profiles[r["id"]].daily_queue and profiles[r["id"]].translates]
     if len(kept) != len(rows):
         logger.info(
             "Skipping %d record(s) from desks not on the China analysis path; "

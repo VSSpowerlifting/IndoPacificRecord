@@ -33,8 +33,12 @@ A `ScreeningProfile` says, per desk, how each stage judges a record:
     screening"). Singapore was held on this ground from 2026-09-29 until its
     analysis path existed (docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md §6).
 
-A record whose desk is unknown gets the China profile, which is exactly what
-every record got before this module existed.
+Resolution fails closed. A desk with no profile here, or a source that no
+desk manifest declares, raises `UnregisteredDeskError`; it never falls back
+to the China profile, whose prompts judge PLA vocabulary and translate "from
+Chinese" (DECISION_LOG 2026-10-19; SHARED_DAILY_DESK_ARCHITECTURE step 3).
+The batch callers (keyword stage, daily queue, audits, backfills) hold such
+a record out, unscreened and with no model call, rather than stop the run.
 """
 
 from dataclasses import dataclass
@@ -59,8 +63,6 @@ from analysis.prompts import (
     build_singapore_relevance_messages,
     build_singapore_system_prompt,
 )
-
-DEFAULT_DESK = "china"
 
 
 def _declared_scope(desk_id: str) -> str:
@@ -149,9 +151,27 @@ for _p in _PROFILES.values():
             "%s is in the daily queue without its own analysis" % _p.desk_id)
 
 
+class UnregisteredDeskError(LookupError):
+    """A desk or source with no screening profile. Never routed to China."""
+
+
 def profile_for_desk(desk_id: Optional[str]) -> ScreeningProfile:
-    """The desk's profile; the China profile for an unknown or missing desk."""
-    return _PROFILES.get(desk_id or DEFAULT_DESK, CHINA_PROFILE)
+    """The desk's profile. An unknown or missing desk raises."""
+    profile = _PROFILES.get(desk_id) if desk_id else None
+    if profile is None:
+        raise UnregisteredDeskError(
+            "no screening profile for desk %r; register one in "
+            "processing/screening.py before any of its records are screened"
+            % (desk_id,))
+    return profile
+
+
+def registered_profile(desk_id: Optional[str]) -> Optional[ScreeningProfile]:
+    """The desk's profile, or None when it has none. None is held, never China."""
+    try:
+        return profile_for_desk(desk_id)
+    except UnregisteredDeskError:
+        return None
 
 
 @lru_cache(maxsize=1)
@@ -170,4 +190,10 @@ def desk_for_source(source_slug: Optional[str]) -> Optional[str]:
 
 
 def profile_for_source(source_slug: Optional[str]) -> ScreeningProfile:
-    return profile_for_desk(desk_for_source(source_slug))
+    """The profile of the source's desk. A source no desk declares raises."""
+    desk_id = desk_for_source(source_slug)
+    if desk_id is None:
+        raise UnregisteredDeskError(
+            "source %r belongs to no desk in desks/*/manifest.json, so it has "
+            "no screening profile" % (source_slug,))
+    return profile_for_desk(desk_id)

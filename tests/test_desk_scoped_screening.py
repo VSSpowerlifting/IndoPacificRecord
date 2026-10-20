@@ -95,12 +95,17 @@ class TestChinaIsUnchanged(unittest.TestCase):
         self.assertEqual(hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
                          CHINA_SYSTEM_PROMPT_SHA256)
 
-    def test_every_china_source_and_an_unknown_one_get_the_china_profile(self):
-        from processing.screening import CHINA_PROFILE, profile_for_source
+    def test_every_china_source_gets_the_china_profile_and_an_unknown_one_none(self):
+        # An unknown source used to fall back to China; it now fails closed
+        # (DECISION_LOG 2026-10-19; tests/test_screening_fail_closed.py).
+        from processing.screening import (CHINA_PROFILE, UnregisteredDeskError,
+                                          profile_for_source)
         for slug in ("pla_daily", "mod_china", "xinhua_mil",
-                     "global_times_mil", "china_mil_online",
-                     "not_a_source", None):
+                     "global_times_mil", "china_mil_online"):
             self.assertIs(profile_for_source(slug), CHINA_PROFILE, slug)
+        for slug in ("not_a_source", None):
+            with self.assertRaises(UnregisteredDeskError, msg=slug):
+                profile_for_source(slug)
 
     def test_a_china_relevance_call_sends_what_it_always_sent(self):
         from analysis.analyzer import Analyzer

@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from config import DB_PATH, LIVE_BACKLOG_DAYS
-from processing.screening import profile_for_desk
+from processing.screening import registered_profile
 from scripts.reconcile_db import read_only
 
 SCHEMA = "ipr-analysis-queue-by-source/1"
@@ -32,6 +32,12 @@ BUCKETS = (
     "relevance_rejected", "unknown_state",
 )
 PERMITTED_STATES = frozenset(("", "retriable", "paused", "terminal"))
+
+
+def _daily_queue(desk_id) -> bool:
+    """A desk with no screening profile is held, as the daily pipeline holds it."""
+    profile = registered_profile(desk_id)
+    return profile is not None and profile.daily_queue
 
 
 class QueueAuditError(ValueError):
@@ -79,7 +85,7 @@ def categorize(row, *, cutoff):
         pending = "pending_analysis"
     else:
         raise QueueAuditError("unexpected relevance verdict outside 0/1/NULL")
-    if not profile_for_desk(row["desk_id"]).daily_queue:
+    if not _daily_queue(row["desk_id"]):
         return "held_" + pending
     if pending == "pending_analysis":
         return "daily_pending_analysis"
@@ -145,7 +151,7 @@ def summarize(conn, *, at=None, live_days=LIVE_BACKLOG_DAYS):
         sources.append({
             "desk_id": desk, "source_slug": slug,
             "daily_model_queue_eligible_by_desk": (
-                profile_for_desk(None if desk == "__undeclared_desk__" else desk).daily_queue
+                _daily_queue(None if desk == "__undeclared_desk__" else desk)
             ),
             **{bucket: counts[bucket] for bucket in BUCKETS},
             "rows_total": sum(counts.values()),
