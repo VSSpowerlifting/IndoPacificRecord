@@ -5,8 +5,17 @@ nothing and reads no private package: its inputs are the already-public,
 SHA-pinned KOGL Type 1 release index (core.korea_published_originals) and the
 production metadata admission in `korea_official_source_records`. A record is
 admitted only when both agree on identity, official URL, posting date and
-original-text digest, the record is MND (never DAPA) and released
-official-link-only, and it is not one of the excluded identities:
+original-text digest, the record is MND (never DAPA), and it is not one of
+the excluded identities.
+
+Rights authority: permission to carry the original text comes only from the
+release-index row itself — its KOGL Type 1 release decision and policy digests
+(`release_decision_sha256`, `policy_sha256`), which are pinned in the ledger.
+The metadata row's `public_scope == 'official_link_only'` is an identity
+cross-check (the same record was admitted as an official link), not a text
+licence; a mismatch is held as `korea_metadata_scope_mismatch`.
+
+Excluded identities:
 
   * the 14 frozen historical references (scripts.admit_korea_standing_original_texts.baseline);
   * the standing research hold (core.korea_private_research_candidates.HOLD_NEWS_IDS);
@@ -192,7 +201,7 @@ def _candidate_hold(rec: dict, db: Optional[dict]) -> Optional[str]:
     if db["official_issuer"] != "kr_mnd":
         return "korea_issuer_not_mnd"
     if db["public_scope"] != "official_link_only":
-        return "korea_release_not_authorized"
+        return "korea_metadata_scope_mismatch"
     if db["canonical_official_url"] != rec["official_url"]:
         return "korea_official_url_mismatch"
     if db["publisher_posted_date"] != rec["publisher_posted_date"]:

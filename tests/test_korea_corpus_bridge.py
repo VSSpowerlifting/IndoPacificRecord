@@ -229,7 +229,7 @@ class TestFailClosed(BridgeCase):
                        admitted_at_utc=None, released_at_utc=None)
         receipt = self.run_bridge()
         self.assertIn({"source_identity": rec["source_identity"],
-                       "reason": "korea_release_not_authorized"}, receipt["held"])
+                       "reason": "korea_metadata_scope_mismatch"}, receipt["held"])
         self.assertEqual(self.korea_rows(), [])
 
     def test_unidentifiable_heading_is_held_not_guessed(self):

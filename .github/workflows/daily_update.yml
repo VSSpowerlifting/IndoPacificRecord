@@ -263,6 +263,12 @@ jobs:
       # usage.py) at a file under $RUNNER_TEMP, outside the repository. The
       # pipeline writes ONLY there, so no tracked file is dirty while the rebase
       # steps below run; step 8b appends that one record to the tracked history.
+      #
+      # `KOREA_DAILY_AUTOMATION_ENABLED` is the single owner activation switch
+      # for the Korea Desk (docs/engineering/KOREA_DESK_OPERATION.md). Unset or
+      # anything but 'true' leaves the governed MND admission and Korean model
+      # processing off. The Daily never fetches the Korean portal: it admits
+      # only already-released, hash-pinned texts from the repository index.
       - name: Run pipeline
         id: pipeline
         if: steps.timecheck.outputs.should_run == 'true'
@@ -271,6 +277,8 @@ jobs:
           PLA_WATCH_DAILY_RUN_DATE: ${{ steps.timecheck.outputs.today_ny }}
           LLM_USAGE_RECORD_PATH: ${{ runner.temp }}/llm_usage_record.json
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
+          KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
+          KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
         run: python pipeline.py
 
       # ── 5b. Validate rendered output (blocks deploy on failure) ───────────

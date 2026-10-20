@@ -132,6 +132,20 @@ LIVE_BACKLOG_DAYS: int = int(os.environ.get("LIVE_BACKLOG_DAYS", "14"))
 # size must stream, or the SDK hits an HTTP timeout.
 TRANSLATION_MAX_TOKENS: int = int(os.environ.get("TRANSLATION_MAX_TOKENS", "32000"))
 
+# Korea Desk shared-Daily automation (docs/engineering/KOREA_DESK_OPERATION.md).
+# The single owner activation switch: the governed MND corpus bridge and the
+# Korea reservation on the shared model queue both stay inert unless this is
+# exactly "true". Set from the repository variable of the same name; unset in
+# every other context, including tests and local runs.
+KOREA_DAILY_AUTOMATION_ENABLED: bool = (
+    os.environ.get("KOREA_DAILY_AUTOMATION_ENABLED", "") == "true"
+)
+# Korean records sent to the model per run, in addition to (never out of)
+# DAILY_ANALYSIS_CAP, so Korea can neither starve nor be starved by China and
+# Singapore. Bounded 0-20; zero processes nothing.
+KOREA_DAILY_PROCESSING_CAP: int = max(0, min(20, int(
+    os.environ.get("KOREA_DAILY_PROCESSING_CAP", "4"))))
+
 PROMPT_VERSION: str = "v1"
 
 # ---------------------------------------------------------------------------

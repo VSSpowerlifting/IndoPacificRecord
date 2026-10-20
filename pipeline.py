@@ -232,6 +232,97 @@ def _store_atomic_batches(kw_passed: list, kw_rejected: list, run_id,
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
+# ── Governed manual sources ──────────────────────────────────────────────────
+#
+# A manual source is fetched by nobody in this process. Its records enter the
+# corpus through one governed, source-pinned admission function; a manual
+# source without one contributes nothing and says so.
+
+def _governed_admissions() -> dict:
+    from core import korea_corpus_bridge
+    return {korea_corpus_bridge.SOURCE_SLUG: _admit_korea_mnd}
+
+
+def _admit_korea_mnd(run_id: Optional[int]) -> dict:
+    """Run the Korean MND bridge in its own explicit transaction."""
+    from core import korea_corpus_bridge
+    with db.get_conn() as conn:
+        # The bridge issues BEGIN IMMEDIATE itself; the connection's implicit
+        # transaction handling must not open one first.
+        conn.isolation_level = None
+        return korea_corpus_bridge.apply(conn, run_id=run_id)
+
+
+def run_governed_manual_sources(manual_slugs: list, run_id: Optional[int],
+                                registry, errors: list, *,
+                                dry_run: bool = False) -> list:
+    """One honest SourceRunResult per manual source; never raises."""
+    import config
+    from core.collection.contract import SourceRunResult
+    from core.korea_corpus_bridge import BridgeHold
+    from core.korea_published_originals import PublishedKoreaHold
+
+    governed = _governed_admissions()
+    results = []
+    for slug in manual_slugs:
+        desk_id = registry.get_source(slug).desk_id
+        admit = governed.get(slug)
+
+        def _result(status, detail=None, new=0, dups=0):
+            return SourceRunResult(source_slug=slug, status=status,
+                                   desk_id=desk_id, new_documents=new,
+                                   duplicates=dups, error_detail=detail)
+
+        if admit is None:
+            results.append(_result(collection_status.SKIPPED_DISABLED,
+                                   "manual source with no governed admission"))
+            continue
+        if not config.KOREA_DAILY_AUTOMATION_ENABLED:
+            logger.info("%s: governed admission awaiting owner activation", slug)
+            results.append(_result(collection_status.SKIPPED_DISABLED,
+                                   "governed admission awaiting owner activation"))
+            continue
+        if dry_run:
+            results.append(_result(collection_status.SKIPPED_DISABLED,
+                                   "dry run: governed admission not run"))
+            continue
+        try:
+            receipt = admit(run_id)
+        except (BridgeHold, PublishedKoreaHold) as exc:
+            # Fixed machine code only; never source text.
+            msg = "%s: governed admission held — %s" % (slug, exc)
+            logger.error(msg)
+            errors.append(msg)
+            results.append(_result(collection_status.ADAPTER_ERROR,
+                                   "korea_corpus_bridge: %s" % exc))
+            continue
+        except Exception as exc:
+            msg = "%s: governed admission failed — %s" % (slug, type(exc).__name__)
+            logger.error(msg)
+            errors.append(msg)
+            results.append(_result(collection_status.ADAPTER_ERROR,
+                                   "korea_corpus_bridge: %s" % type(exc).__name__))
+            continue
+
+        admitted, unchanged = len(receipt["admitted"]), len(receipt["unchanged"])
+        logger.info(
+            "%s: governed admission — %d admitted, %d unchanged, %d held, "
+            "%d withdrawn, %d excluded, %d deferred", slug, admitted, unchanged,
+            len(receipt["held"]), len(receipt["withdrawn"]),
+            len(receipt["excluded"]), len(receipt["deferred"]))
+        for item in receipt["held"] + receipt["withdrawn"]:
+            logger.warning("%s: %s %s", slug, item["source_identity"],
+                           item["reason"])
+        if admitted:
+            status = collection_status.OK
+        elif unchanged:
+            status = collection_status.OK_ALL_DUPLICATES
+        else:
+            status = collection_status.OK_NO_PUBLICATIONS
+        results.append(_result(status, new=admitted, dups=unchanged))
+    return results
+
+
 def run(
     sources:         list[str],
     target_date:     date,
@@ -282,6 +373,7 @@ def run(
     # closes.
     registry = get_registry()
     source_results = []
+    manual_slugs: list[str] = []
 
     for slug in sources:
         if slug not in registry:
@@ -294,6 +386,13 @@ def run(
                                 status=collection_status.UNKNOWN_SOURCE,
                                 error_detail="not declared in any desk manifest")
             )
+            continue
+
+        if registry.get_source(slug).access_method == "manual":
+            # A manual source has no adapter and is never fetched here. It
+            # enters the corpus only through its governed admission path,
+            # which runs after storage (`run_governed_manual_sources`).
+            manual_slugs.append(slug)
             continue
 
         try:
@@ -374,6 +473,9 @@ def run(
             "are UNAVAILABLE (no storage, so no attribution), and each status is "
             "pre-refinement: ok_all_duplicates / ok_all_filtered are not resolved."
         )
+        source_results.extend(
+            run_governed_manual_sources(manual_slugs, None, registry, errors,
+                                        dry_run=True))
         logger.info("\n%s", human_report(source_results, run_id))
         _print_summary(all_scraped, new_articles, kw_passed, [], [], dry_run)
         return
@@ -451,6 +553,14 @@ def run(
                 result.status = collection_status.OK_ALL_FILTERED
 
         db.record_source_run_result(run_id, result)
+
+    # Governed manual admissions run after the fold, so their counts are not
+    # overwritten by scrape attribution, and before the queues are read, so a
+    # record admitted today is processed today.
+    for result in run_governed_manual_sources(manual_slugs, run_id, registry,
+                                              errors):
+        db.record_source_run_result(run_id, result)
+        source_results.append(result)
 
     collection_agg = aggregate_status(source_results)
 
