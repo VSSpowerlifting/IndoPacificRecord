@@ -68,15 +68,20 @@ def main(argv=None):
                        "passed": result.wasSuccessful() and result.testsRun == 1,
                        "problems": problems})
         print("%2d %-44s %s" % (n, name, "pass" if stages[-1]["passed"] else "FAIL"))
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
-                          text=True, check=True).stdout.strip()
-    out = {"label": LABEL, "repository_head": head,
+    git = lambda *a: subprocess.run(("git",) + a, cwd=ROOT, capture_output=True,
+                                    text=True, check=True).stdout.strip()
+    # The head names the code only when nothing uncommitted ran with it.
+    clean = git("status", "--porcelain") == ""
+    out = {"label": LABEL, "repository_head": git("rev-parse", "HEAD"),
+           "worktree_clean": clean,
            "ran_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
            "tracked_db_sha256_unchanged": _sha(db) == db_before,
            "stages": stages, "all_passed": all(s["passed"] for s in stages)}
     receipt.write_text(json.dumps(out, indent=2) + "\n")
     print(LABEL)
-    return 0 if out["all_passed"] and out["tracked_db_sha256_unchanged"] else 1
+    if not clean:
+        print("uncommitted changes: the receipt does not identify the code that ran")
+    return 0 if out["all_passed"] and out["tracked_db_sha256_unchanged"] and clean else 1
 
 
 if __name__ == "__main__":

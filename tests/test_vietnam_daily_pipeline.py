@@ -11,6 +11,7 @@ import contextlib
 import dataclasses
 import hashlib
 import hmac
+import io
 import json
 import sqlite3
 import tempfile
@@ -229,6 +230,18 @@ class RealAnalyzerPath(unittest.TestCase):
                 self.assertIn("vn-mps-translation-v1", result["prompt_version"])
                 self.assertIn(("stream", "emit_translation"), calls)
                 self.assertFalse(any("Chinese military" in str(c) for c in calls))
+
+    def test_every_vietnam_profile_avoids_the_china_analysis_path(self):
+        from analysis.analyzer import Analyzer
+        for slug in sorted(screening.VIETNAM_FAMILY_PROFILES):
+            with self.subTest(family=slug), \
+                    patch.object(Analyzer, "analyze", side_effect=AssertionError("China path")), \
+                    patch("analysis.analyzer.RELEVANCE_TOOL_OUTPUT_ENABLED", False):
+                profile = screening.profile_for_source(slug)
+                self.assertFalse(profile.translates)
+                client, _ = self.client()
+                result = self.analyzer(client).analyze_record("Tiêu đề", "Nội dung", profile)
+                self.assertEqual(result["categories"], ["meeting"])
 
     def test_translation_disabled_profile_makes_no_translation_call(self):
         client, calls = self.client()
@@ -817,6 +830,94 @@ class VietnamRecordRender(unittest.TestCase):
 
     def outcomes(self, report):
         return [o["outcome"] for o in report["outcomes"]]
+
+
+class DailyCommand(unittest.TestCase):
+    """SIMULATED: the Daily command on a schema clone outside the repository."""
+
+    authenticated_fixture = BridgeRuns.authenticated_fixture
+
+    @classmethod
+    def setUpClass(cls):
+        BridgeRuns.setUpClass.__func__(cls)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.fixture.doCleanups()
+
+    def setUp(self):
+        from scripts import run_vietnam_daily_bridge as daily
+        self.daily = daily
+        tmp = tempfile.TemporaryDirectory(prefix="ipr-vn-daily-cli-test-")
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.db_path = self.tmp / "corpus.db"
+        clone_schema(self.db_path).close()
+        auth = patch.object(vn, "authenticate", side_effect=self.authenticated_fixture)
+        auth.start()
+        self.addCleanup(auth.stop)
+
+    def main(self, *extra, family=MPS):
+        sha = hashlib.sha256(self.db_path.read_bytes()).hexdigest()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = self.daily.main([
+                "--database", str(self.db_path), "--expected-db-sha256", sha,
+                "--state-repo", str(self.fixture.repos / family),
+                "--family", "%s=%s" % (family, self.shas[family]),
+                "--ledger-dir", str(self.tmp / "ledgers"), "--run-id", "simulated-cli",
+                *extra])
+        return code, json.loads(out.getvalue())
+
+    def test_standing_policy_constructs_no_model_and_publishes_nothing(self):
+        for family in (MPS, ENERGY, INDUSTRY):
+            with self.subTest(family=family), \
+                    patch("analysis.analyzer.Analyzer", side_effect=AssertionError("model")):
+                code, report = self.main(family=family)
+                self.assertEqual(code, 0, report)
+                outcomes = {o["outcome"] for o in report["runs"][0]["outcomes"]}
+                self.assertEqual(outcomes, {qa.HELD_RIGHTS})
+                with contextlib.closing(sqlite3.connect(str(self.db_path))) as conn:
+                    self.assertEqual(conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0], 0)
+                self.assertTrue((self.tmp / "ledgers" / ("%s.json" % family)).is_file())
+
+    def test_refusals_leave_the_database_untouched(self):
+        before = self.db_path.read_bytes()
+        cases = (
+            (["--release"], "release_requires_canonical_database"),
+            (["--decision", "%s=%s" % (MPS, self.tmp / "missing.json")],
+             "vietnam_source_use_decision_unavailable"),
+        )
+        for extra, reason in cases:
+            with self.subTest(reason=reason):
+                code, report = self.main(*extra)
+                self.assertEqual((code, report["reason"]), (2, reason))
+        sealed = self.tmp / "unsigned.json"
+        sealed.write_text(json.dumps(su.owner_decision_request(MPS)))
+        code, report = self.main("--decision", "%s=%s" % (MPS, sealed))
+        self.assertEqual(code, 2)
+        self.assertFalse(report["database_replaced"])
+        self.assertEqual(self.db_path.read_bytes(), before)
+
+    def test_database_inside_a_repository_needs_release(self):
+        inside = TRACKED_DB.parent / ".vietnam-daily-cli-test.db"
+        self.addCleanup(inside.unlink, missing_ok=True)
+        inside.write_bytes(self.db_path.read_bytes())
+        self.db_path = inside
+        code, report = self.main()
+        self.assertEqual((code, report["reason"]), (2, "rehearsal_requires_external_database"))
+
+    def test_stale_preimage_holds(self):
+        sha = "0" * 64
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = self.daily.main([
+                "--database", str(self.db_path), "--expected-db-sha256", sha,
+                "--state-repo", str(self.fixture.repos / MPS),
+                "--family", "%s=%s" % (MPS, self.shas[MPS]),
+                "--ledger-dir", str(self.tmp / "ledgers"), "--run-id", "simulated-cli"])
+        self.assertEqual((code, json.loads(out.getvalue())["reason"]),
+                         (2, "database_preimage_changed"))
 
 
 if __name__ == "__main__":
