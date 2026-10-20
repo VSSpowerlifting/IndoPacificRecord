@@ -41,6 +41,12 @@ class PublicationChecks(unittest.TestCase):
                 self.pending['desks'], conn=connection)
         self.pending['coverage_by_desk'] = author_brief.coverage_by_desk(
             active, self.pending['desks'])
+        # Likewise a later Daily may screen a cited record that was awaiting
+        # screening at approval; the draft takes the fresh scaffold's state.
+        current = {r['id']: author_brief.trail_entry(r) for r in active}
+        self.pending['source_trail'] = [
+            current.get(entry.get('record_id'), entry)
+            for entry in self.pending['source_trail']]
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
