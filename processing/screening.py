@@ -51,7 +51,15 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Callable, Dict, List, Optional, Tuple
 
+from analysis.korea_prompts import (
+    RELEVANCE_VERSION as KOREA_RELEVANCE_VERSION,
+    ANALYSIS_VERSION as KOREA_ANALYSIS_VERSION,
+    relevance_messages as build_korea_relevance_messages,
+    analysis_messages as build_korea_analysis_messages,
+    system_prompt as build_korea_system_prompt,
+)
 from core.collection.vietnam_sources import SOURCES as VIETNAM_SOURCES
+
 from analysis.prompts import (
     PROMPT_VERSION,
     SINGAPORE_ANALYSIS_PROMPT_VERSION,
@@ -166,12 +174,27 @@ VIETNAM_FAMILY_PROFILES: Dict[str, ScreeningProfile] = {
     slug: _vietnam_profile(slug) for slug in sorted(VIETNAM_SOURCES)
 }
 
+# Installed but kept out of paid Daily until source admission and publication
+# QA are complete. Model processing can be verified offline and on scratch DBs.
+KOREA_PROFILE = ScreeningProfile(
+    desk_id="korea",
+    keyword_prefilter=False,
+    daily_queue=False,
+    build_messages=build_korea_relevance_messages,
+    prompt_version=KOREA_RELEVANCE_VERSION,
+    build_system_prompt=build_korea_system_prompt,
+    build_analysis_messages=build_korea_analysis_messages,
+    build_analysis_system_prompt=build_korea_system_prompt,
+    analysis_prompt_version=KOREA_ANALYSIS_VERSION,
+)
+
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
     # Desk-level Vietnam profile: no family, so its builders refuse. Records
     # reach the Vietnam bridge by source family, never the shared daily queue.
     "vietnam": VIETNAM_PROFILE,
+    "korea": KOREA_PROFILE,
 }
 
 # Source-level profiles for sources without a desk manifest.

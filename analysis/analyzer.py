@@ -671,6 +671,9 @@ class Analyzer:
         None, or a profile without its own analysis (China), is exactly
         `analyze()`; a desk profile with an analysis builder is `analyze_desk()`.
         """
+        if profile is not None and profile.desk_id == "korea":
+            from analysis.korea_daily import analyze as analyze_korea
+            return analyze_korea(self, title, body, profile)
         if profile is None or profile.translates:
             return self.analyze(title, body)
         return self.analyze_desk(title, body, profile)
