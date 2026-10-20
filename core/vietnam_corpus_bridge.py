@@ -5,7 +5,10 @@ One Daily step per ministry source family:
   1. replay the private state commit with the existing admission adapter
      (core.vietnam_official_link_admission.prepare) and authenticate its tip
      and collection attempts against GitHub (authenticate); nothing is
-     recrawled;
+     recrawled. After the private-first cutover (#831) the Ministry of Public
+     Security runs with PrivateCustody instead: the archive/ ref of the
+     private evidence repository, authenticated by authenticate_private,
+     whose pre-cutover versions stay bound to their public attempts;
   2. re-export the same commit to read each current version's preserved body;
   3. skip versions already in the corpus, hold material changes;
   4. apply the family's source-use policy before any model call;
@@ -102,10 +105,35 @@ def save_ledger(path: Path, ledger: dict) -> None:
 
 # ── Source replay ────────────────────────────────────────────────────────────
 
-def preserved_versions(state_repo, commit: str, family: str) -> Dict[tuple, dict]:
+@dataclasses.dataclass(frozen=True)
+class PrivateCustody:
+    """Ministry of Public Security records held in the private evidence repository.
+
+    `public_frozen_tip` is the last public shadow commit, whose history stays
+    authenticated against the public collector; `private_api` reads the private
+    repository's ref, attempt receipts and Actions attempts. Originals never
+    leave the local private clone except through the source-use projection.
+    """
+    public_frozen_tip: str
+    private_api: object
+
+
+def _state_ref(family: str, private: bool) -> str:
+    ref = SOURCES[family].state_branch
+    if not private:
+        return ref
+    # The same derivation as vn.prepare(private=True), checked against #831's ref.
+    ref = ref.replace("shadow/", "archive/", 1)
+    if ref != vn.PRIVATE_REF:
+        raise BridgeError("vietnam_private_ref_mismatch")
+    return ref
+
+
+def preserved_versions(state_repo, commit: str, family: str, *,
+                       private: bool = False) -> Dict[tuple, dict]:
     """Each preserved version of the commit, keyed (identity, content_sha256)."""
     repo = formal.resolve_state_repo(state_repo)
-    formal.verify_state_commit(repo, commit, SOURCES[family].state_branch)
+    formal.verify_state_commit(repo, commit, _state_ref(family, private))
     with tempfile.TemporaryDirectory(prefix="ipr-vn-bridge-") as tmp:
         state = formal.export_state_tree(repo, commit, Path(tmp) / "state")
         evidence = ministry.review(state, family)
@@ -229,13 +257,18 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
                api, as_of_utc, source_use: SourceUse, analyzer, ledger_path: Path,
                run_id: str, second_pass: Optional[Callable] = None,
                max_second_pass: int = 5, now: Callable[[], str] = _utc_now,
-               desk=None) -> dict:
+               desk=None, custody: Optional[PrivateCustody] = None) -> dict:
     """Process every current version of one family's authenticated commit.
 
     `desk` is the registry's Vietnam entry; None reads desks/registry.json.
+    `api` always reads the public repository. With `custody`, `commit` is on
+    the private archive ref of `state_repo` and is authenticated there; there
+    is no public fallback.
     """
     if source_use.source_family != family:
         raise BridgeError("vietnam_source_use_family_mismatch")
+    if custody is not None and family != vn.MPS:
+        raise BridgeError("vietnam_private_custody_is_mps_only")
     if desk is None:
         from core.desk_registry import load_registry
         desk = load_registry().get("vietnam")
@@ -243,9 +276,19 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
         # Checked before authentication or any model call: nothing is spent.
         raise BridgeError("vietnam_desk_not_promoted")
     ledger = load_ledger(ledger_path, family)
-    packet = vn.prepare(state_repo, commit, family)
-    vn.authenticate(packet, api, as_of_utc)
-    versions = preserved_versions(state_repo, commit, family)
+    private = custody is not None
+    packet = vn.prepare(state_repo, commit, family, private=private)
+    if private:
+        proof = vn.authenticate_private(packet, state_repo, custody.public_frozen_tip,
+                                        api=custody.private_api, public_api=api)
+        custody_report = {"mode": "private", "source_ref": vn.PRIVATE_REF,
+                          "public_frozen_tip": custody.public_frozen_tip,
+                          "private_attempts_verified": proof["private_attempts_verified"],
+                          "latest_run": proof["latest_run"]}
+    else:
+        vn.authenticate(packet, api, as_of_utc)
+        custody_report = {"mode": "public", "source_ref": SOURCES[family].state_branch}
+    versions = preserved_versions(state_repo, commit, family, private=private)
     budget = qa.SecondPassBudget(max_second_pass)
     base_profile = profile_for_source(family)
     outcomes: List[dict] = []
@@ -370,6 +413,7 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
     return {
         "schema": "ipr-vietnam-daily-run/1", "run_id": run_id, "source_family": family,
         "source_git_commit": commit, "logical_date": packet["logical_date"],
+        "custody": custody_report,
         "rights_policy_version": source_use.policy_version,
         "rights_decision_sha256": source_use.decision_sha256,
         "qa_rubric_version": qa.RUBRIC_VERSION, "second_pass_used": budget.used,

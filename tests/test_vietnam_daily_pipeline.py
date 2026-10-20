@@ -7,7 +7,9 @@ whose English is labelled synthetic test rendering, never a translation. The
 seal key is fictional and every sealed decision below is a test fixture, not
 an owner decision.
 """
+import base64
 import contextlib
+import copy
 import dataclasses
 import hashlib
 import hmac
@@ -656,8 +658,8 @@ class BridgeRuns(unittest.TestCase):
     def test_source_mismatch_missing_body_and_wrong_date(self):
         real = bridge.preserved_versions
 
-        def tampered(repo, commit, family):
-            versions = real(repo, commit, family)
+        def tampered(repo, commit, family, **kw):
+            versions = real(repo, commit, family, **kw)
             keys = sorted(versions)
             versions[keys[0]] = dict(versions[keys[0]],
                                      text_original=versions[keys[0]]["text_original"] + " x",
@@ -673,8 +675,8 @@ class BridgeRuns(unittest.TestCase):
 
         prepare = vn.prepare
 
-        def future(*args):
-            packet = prepare(*args)
+        def future(*args, **kw):
+            packet = prepare(*args, **kw)
             packet["records"][0]["publisher_posted_date"] = "2026-12-01"
             return packet
         with patch.object(vn, "prepare", side_effect=future):
@@ -757,6 +759,215 @@ class BridgeRuns(unittest.TestCase):
                 self.run_bridge(source_use=grant())
         self.auth.start()
         self.assertEqual(self.count(), 0)
+
+
+class PrivateCustodyDaily(unittest.TestCase):
+    """SIMULATED: the Daily bridge on #831's fictional private evidence history.
+
+    Real Git replay and the real authenticate_private against fixture API
+    routes; no network, no private repository and no live attempt.
+    """
+
+    def setUp(self):
+        from tests import test_vietnam_private_custody as custody_fixture
+        self.cf = custody_fixture
+        self.pc = custody_fixture.PrivateCustody("test_real_git_replay_and_distinct_private_workflow_identity")
+        self.pc.setUp()
+        self.addCleanup(self.pc.doCleanups)
+        tmp = tempfile.TemporaryDirectory(prefix="ipr-vn-private-daily-test-")
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.db_path = self.tmp / "corpus.db"
+        self.conn = clone_schema(self.db_path)
+        self.addCleanup(self.conn.close)
+        self.ledger = self.tmp / "mps-ledger.json"
+
+    def custody(self):
+        return bridge.PrivateCustody(public_frozen_tip=self.pc.legacy, private_api=self.pc.api)
+
+    def run_private(self, source_use=None, analyzer=None, commit=None, family=MPS):
+        analyzer = analyzer if analyzer is not None else FakeAnalyzer()
+        report = bridge.run_family(
+            self.conn, self.pc.repo, commit or self.pc.tip, family,
+            api=self.pc.public_api, as_of_utc=NOW,
+            source_use=source_use or su.standing(family), analyzer=analyzer,
+            ledger_path=self.ledger, run_id="simulated-private-run", now=lambda: NOW,
+            desk=PROMOTED, custody=self.custody())
+        return report, analyzer
+
+    def rows(self):
+        return self.conn.execute(
+            "SELECT p.source_identity, p.source_git_commit, p.content_sha256"
+            " FROM vietnam_article_provenance p ORDER BY p.source_identity").fetchall()
+
+    def originals(self):
+        versions = bridge.preserved_versions(self.pc.repo, self.pc.tip, MPS, private=True)
+        return [v for v in versions.values()]
+
+    def test_private_readback_publishes_once_and_replays_identically(self):
+        packet = vn.prepare(self.pc.repo, self.pc.tip, MPS, private=True)
+        self.assertEqual({r["version_first_seen_run"] for r in packet["records"]},
+                         {"100-1", "101-1"})
+        report, analyzer = self.run_private(source_use=grant())
+        self.assertEqual([o["outcome"] for o in report["outcomes"]], [qa.PUBLISHED] * 2)
+        self.assertEqual(report["custody"], {
+            "mode": "private", "source_ref": vn.PRIVATE_REF,
+            "public_frozen_tip": self.pc.legacy, "private_attempts_verified": 1,
+            "latest_run": "101-1"})
+        self.assertEqual(len(analyzer.calls), 2)
+        self.assertEqual({r[1] for r in self.rows()}, {self.pc.tip})
+        self.assertEqual({(r["source_identity"], r["content_sha256"]) for r in packet["records"]},
+                         {(r[0], r[2]) for r in self.rows()})
+        # The private archive was read; no original was fetched over the API.
+        self.assertFalse(any("/contents/" in p and "private_attempts" not in p
+                             for p in self.pc.api.calls))
+        again, analyzer2 = self.run_private(source_use=grant())
+        self.assertEqual([o["outcome"] for o in again["outcomes"]], [bridge.DUPLICATE] * 2)
+        self.assertEqual(analyzer2.calls, [])
+        self.assertEqual(len(self.rows()), 2)
+
+    def test_pre_cutover_public_record_is_not_duplicated(self):
+        # Before the cutover the public path published the legacy version.
+        with patch.object(vn, "authenticate", return_value={}):
+            public = bridge.run_family(
+                self.conn, self.pc.repo, self.pc.legacy, MPS, api=None, as_of_utc=NOW,
+                source_use=grant(), analyzer=FakeAnalyzer(), ledger_path=self.ledger,
+                run_id="simulated-public-run", now=lambda: NOW, desk=PROMOTED)
+        self.assertEqual(public["custody"]["mode"], "public")
+        self.assertEqual([o["outcome"] for o in public["outcomes"]], [qa.PUBLISHED])
+        legacy_identity = public["outcomes"][0]["source_identity"]
+        report, analyzer = self.run_private(source_use=grant())
+        by_id = {o["source_identity"]: o["outcome"] for o in report["outcomes"]}
+        self.assertEqual(by_id.pop(legacy_identity), bridge.DUPLICATE)
+        self.assertEqual(set(by_id.values()), {qa.PUBLISHED})
+        self.assertEqual(len(analyzer.calls), 1)
+        commits = {r[0]: r[1] for r in self.rows()}
+        self.assertEqual(commits.pop(legacy_identity), self.pc.legacy)
+        self.assertEqual(set(commits.values()), {self.pc.tip})
+
+    def assert_refused_without_trace(self, reason, **kw):
+        analyzer = FakeAnalyzer()
+        with self.assertRaisesRegex((ValueError, RuntimeError), reason):
+            self.run_private(source_use=grant(kw.get("family", MPS)), analyzer=analyzer, **kw)
+        self.assertEqual(analyzer.calls, [])
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0], 0)
+        self.assertFalse(self.ledger.exists())
+
+    def test_invalid_private_provenance_holds_before_any_model_call(self):
+        api, public = self.pc.api.routes, self.pc.public_api.routes
+        private_ref = vn.PRIVATE_PREFIX + "/git/ref/heads/" + vn.PRIVATE_REF
+        public_ref = vn.PREFIX + "/git/ref/heads/" + vn.SOURCES[MPS].state_branch
+        with self.subTest("private ref moved"):
+            api[private_ref]["object"]["sha"] = "f" * 40
+            self.assert_refused_without_trace("private_source_changed_concurrently")
+            api[private_ref]["object"]["sha"] = self.pc.tip
+        with self.subTest("public writer resumed"):
+            public[public_ref]["object"]["sha"] = "f" * 40
+            self.assert_refused_without_trace("public_vietnam_writer_changed_after_cutover")
+            public[public_ref]["object"]["sha"] = self.pc.legacy
+        with self.subTest("receipt disagrees with the ledger"):
+            original = copy.deepcopy(api[self.pc.receipt_path])
+            raw = json.dumps({**self.pc.receipt, "state_sha256": "0" * 64}).encode()
+            api[self.pc.receipt_path] = {"encoding": "base64", "sha": self.cf.sha_blob(raw),
+                                         "content": base64.b64encode(raw).decode()}
+            self.assert_refused_without_trace("private_ledger_receipt_mismatch")
+            api[self.pc.receipt_path] = original
+        with self.subTest("private attempt from another workflow"):
+            api[self.pc.run_path]["path"] = ".github/workflows/vietnam_ministry_shadow.yml"
+            self.assert_refused_without_trace("private_collection_attempt_mismatch")
+            api[self.pc.run_path]["path"] = vn.PRIVATE_WORKFLOW
+        with self.subTest("pre-cutover commit offered as private custody"):
+            self.assert_refused_without_trace("private_collection_not_yet_proven",
+                                              commit=self.pc.legacy)
+        with self.subTest("another family"):
+            self.assert_refused_without_trace("vietnam_private_custody_is_mps_only",
+                                              family=ENERGY)
+        # The intact history still authenticates afterwards.
+        report, _ = self.run_private(source_use=grant())
+        self.assertEqual({o["outcome"] for o in report["outcomes"]}, {qa.PUBLISHED})
+
+    def test_rights_hold_before_model_even_with_metadata_rights(self):
+        metadata_only = grant(permissions={
+            "external_model_transmission": False, "public_ipr_analysis": False,
+            "public_full_translation": False, "public_original_storage": False,
+            "public_excerpt": False})
+        for use in (su.standing(MPS), metadata_only):
+            with self.subTest(policy=use.policy_version, decision=use.decision_sha256):
+                analyzer = FakeAnalyzer()
+                report, _ = self.run_private(source_use=use, analyzer=analyzer)
+                self.assertEqual({o["outcome"] for o in report["outcomes"]}, {qa.HELD_RIGHTS})
+                self.assertEqual(report["custody"]["private_attempts_verified"], 1)
+                self.assertEqual(analyzer.calls, [])
+                self.assertEqual(self.rows(), [])
+
+    def test_withheld_private_originals_never_reach_the_corpus_or_report(self):
+        use = grant(permissions={"public_original_storage": False,
+                                 "public_full_translation": False, "public_excerpt": False})
+        seen = []
+        analyzer = FakeAnalyzer()
+        analyzer.hook = lambda title, body, profile: seen.append(body)
+        report, _ = self.run_private(source_use=use, analyzer=analyzer)
+        self.assertEqual({o["outcome"] for o in report["outcomes"]}, {qa.PUBLISHED})
+        bodies = [v["text_original"] for v in self.originals()]
+        self.assertEqual(sorted(seen), sorted(bodies))  # the model saw only granted bodies
+        self.conn.commit()
+        dump = "\n".join(self.conn.iterdump())
+        public = json.dumps(report, ensure_ascii=False) + self.ledger.read_text()
+        for body in bodies:
+            for para in qa._paragraphs(body):
+                with self.subTest(para=para[:24]):
+                    self.assertNotIn(para[:80], dump)
+                    self.assertNotIn(para[:80], public)
+        self.assertEqual(self.conn.execute(
+            "SELECT COUNT(*) FROM articles WHERE text_original IS NOT NULL"
+            " OR text_english IS NOT NULL").fetchone()[0], 0)
+
+    def test_daily_command_uses_private_custody_with_its_own_token(self):
+        from scripts import run_vietnam_daily_bridge as daily
+        db = self.tmp / "cli.db"
+        clone_schema(db).close()
+        pc = self.pc
+
+        def github(token=None, repository=None):
+            if repository == vn.PRIVATE_REPO:
+                self.assertEqual(token, "fictional-private-read-token")
+                return pc.api
+            return pc.public_api
+
+        def main(*extra, env=None):
+            sha = hashlib.sha256(db.read_bytes()).hexdigest()
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out), patch.object(daily, "GithubRead", github), \
+                    patch.dict(os.environ, env or {}, clear=False), \
+                    patch.object(vn, "authenticate", side_effect=AssertionError("public path")):
+                code = daily.main([
+                    "--database", str(db), "--expected-db-sha256", sha,
+                    "--state-repo", str(self.tmp / "no-public-clone"),
+                    "--private-state-repo", str(pc.repo),
+                    "--family", "%s=%s" % (MPS, pc.tip),
+                    "--ledger-dir", str(self.tmp / "ledgers"), "--run-id", "simulated-cli",
+                    *extra])
+            return code, json.loads(out.getvalue())
+
+        before = db.read_bytes()
+        os.environ.pop("VIETNAM_PRIVATE_PROVENANCE_TOKEN", None)
+        code, report = main("--private-custody", pc.legacy)
+        self.assertEqual((code, report["reason"]), (2, "vietnam_private_provenance_token_required"))
+        code, report = main("--private-custody", "not-a-commit",
+                            env={"VIETNAM_PRIVATE_PROVENANCE_TOKEN": "fictional-private-read-token"})
+        self.assertEqual((code, report["reason"]), (2, "vietnam_private_custody_incomplete"))
+        self.assertEqual(db.read_bytes(), before)
+        with patch("analysis.analyzer.Analyzer", side_effect=AssertionError("model")):
+            code, report = main("--private-custody", pc.legacy,
+                                env={"VIETNAM_PRIVATE_PROVENANCE_TOKEN": "fictional-private-read-token"})
+        self.assertEqual(code, 0, report)
+        run = report["runs"][0]
+        self.assertEqual(run["custody"]["mode"], "private")
+        self.assertEqual({o["outcome"] for o in run["outcomes"]}, {qa.HELD_RIGHTS})
+        out = json.dumps(report, ensure_ascii=False)
+        for version in self.originals():
+            self.assertNotIn(version["title_original"], out)
+            self.assertNotIn(qa._paragraphs(version["text_original"])[0][:80], out)
 
 
 class VietnamRecordRender(unittest.TestCase):

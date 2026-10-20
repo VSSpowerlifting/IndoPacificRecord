@@ -970,7 +970,11 @@ captures to the shared Daily. It contains:
 
 Under the standing policy every record holds for rights before any model call.
 Neither the publishable path nor a public article is reachable until the owner
-seals a decision and promotes the registry. The 12-stage rehearsal is SIMULATED,
+seals a decision and promotes the registry. After the #831 cutover the MPS
+family reads from the private archive ref (`--private-custody`), reusing
+`vn.prepare(private=True)`/`vn.authenticate_private` with a separate read-only
+token; pre-cutover public records stay deduplicated and #831's metadata-link
+path is a supplementary index only. The 16-stage rehearsal is SIMULATED,
 on fixtures. No real original has passed through the bridge, and no production
 run, schedule or publication has happened. The render is byte-identical to main
 (1,925 files). The tracked `pla_watch.db` ships with `0015` applied, as

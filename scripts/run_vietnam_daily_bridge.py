@@ -13,6 +13,15 @@ this script never creates one. Model calls need ANTHROPIC_API_KEY and happen
 only for records whose decision grants model transmission and public analysis
 on a promoted desk.
 
+After the private-first cutover (#831) the Ministry of Public Security family
+runs with --private-custody PUBLIC_FROZEN_TIP and --private-state-repo, a
+clone of the private evidence repository: its commit must be on that
+repository's archive ref and is authenticated with
+VIETNAM_PRIVATE_PROVENANCE_TOKEN (read-only). Other families keep
+--state-repo. Because it reads private originals from that clone, a
+--private-custody run belongs on the private runner, never a public job; the
+corpus, ledgers and report receive only permitted fields and provenance.
+
 No collection, signing, Git push, schedule or deployment.
 
     .venv/bin/python scripts/run_vietnam_daily_bridge.py \\
@@ -25,6 +34,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sqlite3
 import tempfile
@@ -33,6 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core import vietnam_corpus_bridge as bridge
+from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as source_use
 from core.collection.vietnam_sources import SOURCES
 from migrations.runner import applied_versions, apply_all, discover
@@ -77,8 +88,10 @@ def _policies(decisions, families, as_of):
 
 
 def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sha256,
-        api, analyzer, as_of_utc):
+        api, analyzer, as_of_utc, custody=None, private_state_repo=None):
     db = Path(db)
+    if (custody is None) != (private_state_repo is None):
+        raise bridge.BridgeError("vietnam_private_custody_incomplete")
     if _sha(db) != expected_db_sha256:
         raise bridge.BridgeError("database_preimage_changed")
     if any(Path(str(db) + s).exists() for s in ("-wal", "-shm", "-journal")):
@@ -107,10 +120,13 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
                 raise bridge.BridgeError("unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             for family, commit in commits:
+                private = custody is not None and family == vn.MPS
                 reports.append(bridge.run_family(
-                    conn, state_repo, commit, family, api=api, as_of_utc=as_of_utc,
+                    conn, private_state_repo if private else state_repo, commit, family,
+                    api=api, as_of_utc=as_of_utc,
                     source_use=policies[family], analyzer=analyzer,
-                    ledger_path=staging / ("%s.json" % family), run_id=run_id))
+                    ledger_path=staging / ("%s.json" % family), run_id=run_id,
+                    custody=custody if private else None))
             if (conn.execute("PRAGMA integrity_check").fetchone() != ("ok",)
                     or conn.execute("PRAGMA foreign_key_check").fetchall()):
                 raise bridge.BridgeError("vietnam_daily_integrity_failed")
@@ -131,6 +147,9 @@ def main(argv=None):
     p.add_argument("--database", type=Path, required=True)
     p.add_argument("--expected-db-sha256", required=True)
     p.add_argument("--state-repo", type=Path, required=True)
+    p.add_argument("--private-custody", metavar="PUBLIC_FROZEN_TIP",
+                   help="run the Ministry of Public Security from the private archive ref")
+    p.add_argument("--private-state-repo", type=Path)
     p.add_argument("--family", type=_pair, action="append", required=True,
                    metavar="SOURCE_FAMILY=COMMIT")
     p.add_argument("--decision", type=_pair, action="append", default=[],
@@ -152,6 +171,18 @@ def main(argv=None):
         families = [slug for slug, _ in args.family]
         if len(set(families)) != len(families):
             raise bridge.BridgeError("vietnam_family_repeated")
+        custody = private_repo = None
+        if args.private_custody is not None or args.private_state_repo is not None:
+            if (args.private_state_repo is None or vn.MPS not in families
+                    or not re.fullmatch(r"[0-9a-f]{40}", args.private_custody or "")):
+                raise bridge.BridgeError("vietnam_private_custody_incomplete")
+            token = os.environ.get("VIETNAM_PRIVATE_PROVENANCE_TOKEN")
+            if not token:
+                raise bridge.BridgeError("vietnam_private_provenance_token_required")
+            custody = bridge.PrivateCustody(
+                public_frozen_tip=args.private_custody,
+                private_api=GithubRead(token, repository=vn.PRIVATE_REPO))
+            private_repo = args.private_state_repo
         policies = _policies(dict(args.decision), families, as_of[:10])
         needs_model = any(pol.allows("external_model_transmission") for pol in policies.values())
         if needs_model:
@@ -163,7 +194,8 @@ def main(argv=None):
                       ledger_dir=args.ledger_dir, run_id=args.run_id,
                       expected_db_sha256=args.expected_db_sha256,
                       api=GithubRead(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")),
-                      analyzer=analyzer, as_of_utc=as_of)
+                      analyzer=analyzer, as_of_utc=as_of,
+                      custody=custody, private_state_repo=private_repo)
         print(json.dumps({"status": "OK", "release": args.release, "runs": reports},
                          sort_keys=True, ensure_ascii=False))
         return 0

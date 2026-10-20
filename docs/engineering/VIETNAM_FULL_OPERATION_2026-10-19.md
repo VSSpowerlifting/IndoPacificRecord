@@ -301,9 +301,29 @@ second database, analyzer, sync system or Vietnam site.
   Without a sealed decision it builds no model client. Ledgers are staged and
   published only after the copy replaces the database, so a discarded run
   cannot settle or escalate a record that never reached the corpus.
+- After the #831 cutover, the Ministry of Public Security runs with
+  `--private-custody PUBLIC_FROZEN_TIP --private-state-repo <private clone>`.
+  The bridge reuses `vn.prepare(private=True)` and `vn.authenticate_private`:
+  it checks the exact archive commit, frozen public writer, private attempt
+  receipts, workflow identity and custody. It reads with a separate read-only
+  `VIETNAM_PRIVATE_PROVENANCE_TOKEN`. Records admitted publicly before the
+  cutover resolve as duplicates and keep their public commit. The run reads
+  originals from a local private clone, so it must execute on the private
+  runner (private #20's workflow), never in a public job; the corpus, ledger
+  and report receive only the rights-permitted article fields and provenance.
+  Returning that database post-image to the public release is the one open
+  placement step, following #831's private-projection handoff. MOIT has no
+  private authentication path yet: `authenticate_private` is MPS-only, and the
+  cutover retires all three public writers, so new MOIT captures have no
+  authenticated bridge input until #831's private attestation covers them
+  (both MOIT families are rights-held regardless). m0015 stores
+  the private commit SHA, not the repository holding it; the record page
+  labels it "private evidence commit". #831's metadata-link admission stays a
+  supplementary source index for rights-restricted items, not a second writer
+  of articles.
 
 **Simulated rehearsal.** `scripts/rehearse_vietnam_daily.py` replays fixture
-repositories through the bridge in 12 stages:
+repositories through the bridge in 16 stages:
 
 1. Rights denied.
 2. Unpromoted desk.
@@ -316,7 +336,11 @@ repositories through the bridge in 12 stages:
 9. Material change.
 10. Concurrent commit.
 11. Unauthenticated source.
-12. The record page, with its disclosures.
+12. Private MPS readback, then an identical replay.
+13. A pre-cutover public record, not duplicated.
+14. Invalid private provenance, held before any model call.
+15. Private originals that stay out of the corpus, ledger and report.
+16. The record page, with its disclosures.
 
 The receipt is labelled SIMULATED and requires a clean tree at the cited head.
 It is not a live or unattended run.
@@ -339,5 +363,8 @@ It is not a live or unattended run.
    written consent and a robots review.
 2. Promote the Vietnam registry entry from shadow.
 3. Add the bridge command to an existing scheduled workflow, with
-   `VIETNAM_SOURCE_USE_REVIEW_KEY` and model credentials.
-4. Merge #831, private #20 and this PR.
+   `VIETNAM_SOURCE_USE_REVIEW_KEY` and model credentials. The MPS
+   `--private-custody` step goes in the private runner, with
+   `VIETNAM_PRIVATE_PROVENANCE_TOKEN`; only the database post-image returns.
+4. Merge #831 and private #20 first, then this PR, which already contains
+   #831.

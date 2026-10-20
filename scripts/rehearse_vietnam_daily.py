@@ -40,6 +40,10 @@ STAGES = (
     ("material_change_not_overwritten", "BridgeRuns.test_material_change_is_held_not_overwritten"),
     ("concurrent_commit_duplicate", "BridgeRuns.test_concurrent_commit_resolves_to_duplicate"),
     ("unauthenticated_source_aborts", "BridgeRuns.test_unauthenticated_source_aborts_before_any_write"),
+    ("private_mps_readback_and_identical_replay", "PrivateCustodyDaily.test_private_readback_publishes_once_and_replays_identically"),
+    ("pre_cutover_public_record_not_duplicated", "PrivateCustodyDaily.test_pre_cutover_public_record_is_not_duplicated"),
+    ("invalid_private_provenance_holds", "PrivateCustodyDaily.test_invalid_private_provenance_holds_before_any_model_call"),
+    ("private_originals_stay_private", "PrivateCustodyDaily.test_withheld_private_originals_never_reach_the_corpus_or_report"),
     ("site_render_disclosures_and_guard", "VietnamRecordRender.test_record_page_discloses_withheld_original_and_machine_translation"),
 )
 
