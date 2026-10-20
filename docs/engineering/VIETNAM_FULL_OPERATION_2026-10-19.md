@@ -270,10 +270,15 @@ second database, analyzer, sync system or Vietnam site.
   projected per permission. The private ledger lives outside the repository.
 - Migration `0015` adds the `vietnam_article_provenance` table: URL, publisher
   date, family, language, version hash, rights decision, QA record and
-  attribution. The `daily_update.yml` step `python -m migrations.cli --apply`
-  runs pending migrations, so the
-  first production run after merge adds this empty table. The render is
-  byte-identical with and without it.
+  attribution. Its foreign key cascades, as China retirement staging requires
+  of every `articles` dependent; the private ledger keeps the durable record.
+  The tracked `pla_watch.db` ships with `0015` applied, as `0014` did. It is
+  derived from main's exact blob with `python -m migrations.cli --apply`: one
+  empty table and one `schema_migrations` row, every other table
+  row-identical, `verify_db_current` fully current. Without it, the release
+  workflows that run `verify_db_current.py` without `--apply` would refuse
+  until the next Daily run. The render is byte-identical with and without it.
+  If main's database moves before merge, re-derive the file the same way.
 - `processing/screening.py` adds three per-family `VIETNAM_*` profiles and a
   refusing desk-level profile. Their event types are distinct: meeting,
   announcement, financing, commencement and completion.
@@ -288,7 +293,9 @@ second database, analyzer, sync system or Vietnam site.
   Attribution is a condition, not a basis.
 - `scripts/run_vietnam_daily_bridge.py` is the Daily command. It runs on an
   atomic sibling copy and requires `--release` for the canonical database.
-  Without a sealed decision it builds no model client.
+  Without a sealed decision it builds no model client. Ledgers are staged and
+  published only after the copy replaces the database, so a discarded run
+  cannot settle or escalate a record that never reached the corpus.
 
 **Simulated rehearsal.** `scripts/rehearse_vietnam_daily.py` replays fixture
 repositories through the bridge in 12 stages:

@@ -968,8 +968,9 @@ Neither the publishable path nor a public article is reachable until the owner
 seals a decision and promotes the registry. The 12-stage rehearsal is SIMULATED,
 on fixtures. No real original has passed through the bridge, and no production
 run, schedule or publication has happened. The render is byte-identical to main
-(1,925 files). After merge, the Daily migration step adds the empty `0015`
-table. Status stays **Blocked**: #831 and private #20 are unmerged, rights are
+(1,925 files). The tracked `pla_watch.db` ships with `0015` applied, as
+`0014` did: one empty table and one ledger row, derived from main's blob, so
+release workflows that verify without `--apply` stay current. Status stays **Blocked**: #831 and private #20 are unmerged, rights are
 held and the desk is in shadow. Owner requests and gaps are in
 `docs/engineering/VIETNAM_FULL_OPERATION_2026-10-19.md` § Shared Daily
 integration.

@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import io
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -918,6 +919,43 @@ class DailyCommand(unittest.TestCase):
                 "--ledger-dir", str(self.tmp / "ledgers"), "--run-id", "simulated-cli"])
         self.assertEqual((code, json.loads(out.getvalue())["reason"]),
                          (2, "database_preimage_changed"))
+
+    def test_sealed_decision_needs_a_real_review_key(self):
+        sealed = self.tmp / "sealed.json"
+        sealed.write_text(json.dumps(decision(MPS)))
+        before = self.db_path.read_bytes()
+        for key in (None, "", "short-key"):
+            env = {k: v for k, v in os.environ.items() if k != "VIETNAM_SOURCE_USE_REVIEW_KEY"}
+            if key is not None:
+                env["VIETNAM_SOURCE_USE_REVIEW_KEY"] = key
+            with self.subTest(key=key), patch.dict(os.environ, env, clear=True), \
+                    patch("analysis.analyzer.Analyzer", side_effect=AssertionError("model")):
+                code, report = self.main("--decision", "%s=%s" % (MPS, sealed))
+                self.assertEqual((code, report["reason"]), (2, "source_use_decision_unsealed"))
+        self.assertEqual(self.db_path.read_bytes(), before)
+        self.assertFalse((self.tmp / "ledgers" / ("%s.json" % MPS)).exists())
+
+    def test_ledger_is_published_only_with_the_database(self):
+        real = self.daily.bridge.run_family
+
+        def then_change_db(*args, **kwargs):
+            report = real(*args, **kwargs)
+            with open(self.db_path, "ab") as fh:
+                fh.write(b"\0")
+            return report
+
+        ledger = self.tmp / "ledgers" / ("%s.json" % MPS)
+        with patch.object(self.daily.bridge, "run_family", side_effect=then_change_db):
+            code, report = self.main()
+        self.assertEqual((code, report["reason"]), (2, "database_changed_concurrently"))
+        self.assertFalse(ledger.exists())
+        self.assertEqual([p.name for p in ledger.parent.iterdir()], [])
+        with open(self.db_path, "r+b") as fh:
+            fh.truncate(self.db_path.stat().st_size - 1)
+        code, report = self.main()
+        self.assertEqual(code, 0, report)
+        self.assertTrue(ledger.is_file())
+        self.assertEqual([p.name for p in ledger.parent.iterdir()], [ledger.name])
 
 
 if __name__ == "__main__":

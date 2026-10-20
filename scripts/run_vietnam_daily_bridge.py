@@ -25,6 +25,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import tempfile
 from contextlib import closing
@@ -82,11 +83,20 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
         raise bridge.BridgeError("database_preimage_changed")
     if any(Path(str(db) + s).exists() for s in ("-wal", "-shm", "-journal")):
         raise bridge.BridgeError("database_has_active_sidecars")
+    ledger_dir = Path(ledger_dir)
+    ledger_dir.mkdir(parents=True, exist_ok=True)
+    # Ledgers record outcomes for rows in the scratch copy; they are staged
+    # beside the real ones and published only once that copy replaces the DB.
+    staging = Path(tempfile.mkdtemp(prefix=".vietnam-ledgers-", dir=str(ledger_dir)))
     fd, name = tempfile.mkstemp(prefix=".vietnam-daily-", dir=str(db.parent))
     os.close(fd)
     scratch = Path(name)
     reports = []
     try:
+        for family, _commit in commits:
+            current = ledger_dir / ("%s.json" % family)
+            if current.is_file():
+                shutil.copyfile(current, staging / current.name)
         scratch.write_bytes(db.read_bytes())
         with closing(sqlite3.connect(str(scratch), isolation_level=None)) as conn:
             if conn.execute("PRAGMA journal_mode=DELETE").fetchone() != ("delete",):
@@ -100,7 +110,7 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
                 reports.append(bridge.run_family(
                     conn, state_repo, commit, family, api=api, as_of_utc=as_of_utc,
                     source_use=policies[family], analyzer=analyzer,
-                    ledger_path=Path(ledger_dir) / ("%s.json" % family), run_id=run_id))
+                    ledger_path=staging / ("%s.json" % family), run_id=run_id))
             if (conn.execute("PRAGMA integrity_check").fetchone() != ("ok",)
                     or conn.execute("PRAGMA foreign_key_check").fetchall()):
                 raise bridge.BridgeError("vietnam_daily_integrity_failed")
@@ -108,9 +118,13 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
             raise bridge.BridgeError("database_changed_concurrently")
         os.chmod(scratch, db.stat().st_mode & 0o777)
         os.replace(str(scratch), str(db))
+        for family, _commit in commits:
+            os.replace(str(staging / ("%s.json" % family)),
+                       str(ledger_dir / ("%s.json" % family)))
         return reports
     finally:
         scratch.unlink(missing_ok=True)
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 def main(argv=None):

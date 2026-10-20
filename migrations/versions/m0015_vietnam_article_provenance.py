@@ -11,6 +11,10 @@ category taxonomy.
 
 Schema only: creates an empty table, admits no record, grants no right and
 adds no desk or source row. No original text is stored here.
+
+A row goes with its article (ON DELETE CASCADE, as China retirement staging
+requires of every `articles` dependent); the private bridge ledger remains the
+durable record of what was admitted.
 """
 
 VERSION = "0015"
@@ -33,7 +37,7 @@ def _in(values):
 
 DDL = """
 CREATE TABLE %(t)s (
-    article_id                 INTEGER PRIMARY KEY REFERENCES articles(id),
+    article_id                 INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
     source_family              TEXT NOT NULL CHECK (source_family IN %(families)s),
     source_identity            TEXT NOT NULL UNIQUE,
     canonical_official_url     TEXT NOT NULL,
