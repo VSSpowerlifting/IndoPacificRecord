@@ -40,14 +40,19 @@ workflow adds its text to the public KOGL release index.
 
 ## Owner steps
 
-1. Merge the activation PR. The next Daily applies m0015 and syncs the one manual
-   Korea source row. Nothing is admitted or processed yet.
-2. Set the repository variables:
+1. Set the repository variables. Code on `main` before this PR never reads them,
+   so this step alone changes nothing.
 
 | Variable | Value | Effect |
 |---|---|---|
 | `KOREA_DAILY_AUTOMATION_ENABLED` | `true` | Turns on admission and the Korea lane. Any other value leaves both off. |
 | `KOREA_DAILY_PROCESSING_CAP` | optional; default `4`, max `20` | Maximum Korea records sent to the model per Daily. This bounds spend. |
+
+2. Merge the activation PR. The merge itself starts render-only releases
+   (official-link, bibliography and country-research publishers) that show Korea
+   as a live desk with no records yet. The next Daily applies m0015, syncs the one
+   manual Korea source row, admits `korea-policy:156785691` and processes it.
+   Merging before step 1 would show the live desk while the lane is still off.
 
 ## Rollback
 
