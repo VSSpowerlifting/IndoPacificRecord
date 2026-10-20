@@ -37,6 +37,9 @@ def main(argv=None):
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--scratch-db", type=Path)
     ap.add_argument("--signed-decision", type=Path)
+    ap.add_argument("--private-state", action="store_true")
+    ap.add_argument("--sign-private-projection", action="store_true")
+    ap.add_argument("--public-frozen-tip")
     args = ap.parse_args(argv)
     try:
         out = args.out
@@ -44,9 +47,29 @@ def main(argv=None):
                 and ROOT not in out.resolve().parents,
                 "candidate_output_must_be_new_and_external")
         outside_repositories(out)
-        vn.need(bool(args.scratch_db) == bool(args.signed_decision),
+        vn.need(args.sign_private_projection or bool(args.scratch_db) == bool(args.signed_decision),
                 "scratch_admission_requires_signed_decision")
-        packet = vn.prepare(args.state_repo, args.state_commit, args.source)
+        if args.sign_private_projection:
+            vn.need(args.source == vn.MPS and args.signed_decision and not args.scratch_db,
+                    "private_projection_requires_exact_mps_review")
+            vn.need(args.signed_decision.is_file() and not args.signed_decision.is_symlink()
+                    and args.signed_decision.stat().st_size <= 131072,
+                    "signed_decision_unavailable")
+            import subprocess
+            decision = strict_loads(args.signed_decision.read_text(), "release decision")
+            packet = vn.sign_private_projection(args.state_repo, args.state_commit, args.public_frozen_tip,
+                decision, api=GithubRead(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"),
+                                        repository=vn.PRIVATE_REPO),
+                public_api=GithubRead(), bridge_key=os.environ.get("VIETNAM_PRIVATE_BRIDGE_KEY", "").encode(),
+                review_key=os.environ.get("VIETNAM_LINK_REVIEW_KEY", "").encode(),
+                as_of_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                validator_commit=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip())
+            with out.open('x', encoding='utf-8') as f:
+                os.chmod(out, 0o600)
+                json.dump(packet, f, sort_keys=True)
+            print(json.dumps({"private_projection_prepared": True, "production_changed": False}))
+            return 0
+        packet = vn.prepare(args.state_repo, args.state_commit, args.source, private=args.private_state)
         result = None
         if args.scratch_db:
             db = args.scratch_db

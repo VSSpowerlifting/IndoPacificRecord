@@ -60,6 +60,22 @@ ruling, unresolved NSC policy/anomaly and all historical source-specific holds
 remain unchanged. Implementation is governed by
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md` and the real evidence/publishing gates.
 
+## 2026-10-19 — Owner: Vietnam local encrypted backup and isolated restore
+
+Benjamin Yang, Founder and Director of Research and Editorial, Indo-Pacific
+Record, selected himself as custodian and authorized the existing-home private
+backup and separate restore-validation roots for the three complete Vietnam
+histories, original evidence and failed-attempt ZIPs. Permissions must restrict
+access to his account; storage must be encrypted and hashes, history/integrity
+and an actual isolated restore verified. Do not delete/modify originals, put
+backups in public Git/cloud/Actions artifacts, or expose encryption credentials.
+The existing FileVault-encrypted Data volume supplies the authorized storage
+encryption; no new credential is inferred. This is local same-device resilience,
+not a separate-device backup. Production cutover remains held until these checks
+actually succeed and the separately reserved activation actions are released.
+This storage authorization grants no original/public/AI reuse, collection
+activation, public-writer disabling, merge, credential provisioning or publication.
+
 ## 2026-10-18 — Owner: standing AFP verified official-link metadata
 
 The owner explicitly authorized **automatic publication of verified neutral official-link

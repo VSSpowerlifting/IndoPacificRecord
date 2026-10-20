@@ -362,11 +362,11 @@ class RemoteReview(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "artifact changed"):
             review.check_signoff(out, out / "signoff_template.json")
 
-    def test_workflow_is_daily_main_only_and_success_only_publication(self):
+    def test_public_original_writer_is_retired_and_historical_path_is_preserved(self):
         text = (Path(remote.REPO) / ".github/workflows/vietnam_ministry_shadow.yml").read_text()
         self.assertIn("workflow_dispatch:", text)
-        self.assertIn("schedule:", text)
-        self.assertIn("cron: '17 18 * * *'", text)
+        self.assertNotIn("  schedule:", text)
+        self.assertIn("  shadow:\n    if: false", text)
         self.assertIn("target_date:", text)
         self.assertIn("github.ref == 'refs/heads/main'", text)
         self.assertIn("cancel-in-progress: false", text)

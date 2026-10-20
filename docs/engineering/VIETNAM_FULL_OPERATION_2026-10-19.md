@@ -1,5 +1,10 @@
 # Vietnam desk — recovery and exact release handoff, 19 October 2026
 
+**Follow-up:** #827 has merged. The dated observations below remain historical.
+Current performed private mirror/ZIP custody, owner-selected local encrypted
+backup/restore, and the still-held coordinated writer/provenance cutover are in
+[the private-first receipt](VIETNAM_PRIVATE_FIRST_CUTOVER_2026-10-19.md).
+
 **Status: built further; not operational or maintained end to end.** This is
 one integration candidate after merged #824, based on current main
 `ce94bd2293130764210e5fe228b1a9072c3d4101`. No production admission, deployment,

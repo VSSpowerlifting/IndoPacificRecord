@@ -22,7 +22,7 @@ from scripts.prepare_vietnam_briefs_evidence import (
 
 
 def build(*, state_repo, state_commit, week_ending, notes, output,
-          existing=None, allow_missing_notes=False, require_vietnam=False):
+          existing=None, allow_missing_notes=False, require_vietnam=False, private_state=False):
     """Build only after complete immutable state-tree, raw-capture and DB audit."""
     saturday = window(week_ending)
     require(type(allow_missing_notes) is bool and type(require_vietnam) is bool,
@@ -56,7 +56,10 @@ def build(*, state_repo, state_commit, week_ending, notes, output,
     # generating its machine-only queue. No source text is serialized here.
     with tempfile.TemporaryDirectory(prefix="ipr-vn-sunday-") as temp:
         queue_dir = Path(temp) / "machine-queue"
-        queue_builder.prepare(state_repo, state_commit, queue_dir)
+        if private_state:
+            queue_builder.prepare(state_repo, state_commit, queue_dir, private=True)
+        else:
+            queue_builder.prepare(state_repo, state_commit, queue_dir)
         queue = load(queue_dir / "review_queue.json", 90000)
         packet = make_packet(queue, authored, week_ending, previous=previous)
         # The machine-review queue is a first-party inventory, not proof of
@@ -100,6 +103,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--state-repo", type=Path, required=True)
     p.add_argument("--state-commit", required=True)
+    p.add_argument("--private-state", action="store_true")
     p.add_argument("--week-ending", required=True)
     p.add_argument("--notes", type=Path,
                    help="version-bound synopsis catalog; required unless --allow-missing-notes")
@@ -114,7 +118,7 @@ def main(argv=None):
         state_repo=args.state_repo, state_commit=args.state_commit,
         week_ending=args.week_ending, notes=args.notes, output=args.out,
         existing=args.existing, allow_missing_notes=args.allow_missing_notes,
-        require_vietnam=args.require_vietnam)
+        require_vietnam=args.require_vietnam, private_state=args.private_state)
     print(json.dumps(result, sort_keys=True))
     return 0
 

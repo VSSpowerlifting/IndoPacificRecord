@@ -85,7 +85,7 @@ def verified_queue(queue):
     require(isinstance(queue, dict) and queue.get("schema") == QUEUE_SCHEMA
             and queue.get("source_slug") == SOURCE,
             "not the MPS foreign-affairs verified queue")
-    require(queue.get("state_branch") == "shadow/vietnam-mps-foreign-affairs",
+    require(queue.get("state_branch") in ("shadow/vietnam-mps-foreign-affairs", "archive/vietnam-mps-foreign-affairs"),
             "foreign shadow branch")
     require(isinstance(queue.get("state_commit"), str) and
             HEX40.fullmatch(queue["state_commit"]), "unverified source commit")

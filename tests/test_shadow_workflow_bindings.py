@@ -28,6 +28,7 @@ class BindingContracts(unittest.TestCase):
              if x["workflow"] and x["workflow"].startswith(".github/")}
             | {".github/workflows/indonesia_korea_shadow.yml",
                ".github/workflows/ph_afp_shadow.yml",
+               ".github/workflows/vietnam_ministry_shadow.yml",
                ".github/workflows/ph_nsc_shadow.yml"}
         )
         for path in self.manifest_paths + self.workflow_paths:
@@ -61,6 +62,18 @@ class BindingContracts(unittest.TestCase):
         self.assertEqual(dapa["trigger"], "private_scheduled")
         self.assertEqual(dapa["cron"], "17 22 * * *")
         self.assertFalse(dapa["production_eligible"])
+
+    def test_declaration_cli_works_without_project_import_path(self):
+        import os
+        import subprocess
+        import sys
+        run_env=os.environ.copy()
+        run_env.pop('PYTHONPATH',None)
+        p=subprocess.run([sys.executable,str(audit.ROOT/'scripts/audit_shadow_workflow_bindings.py'),
+                          '--root',str(audit.ROOT)],cwd=self.root,env=run_env,
+                         text=True,capture_output=True)
+        self.assertEqual(p.returncode,0,p.stderr)
+        self.assertEqual(json.loads(p.stdout)['source_families_checked'],17)
 
     def test_synthetic_mirror_preserves_count_without_modifications(self):
         result = self.report()
@@ -228,8 +241,17 @@ class BindingContracts(unittest.TestCase):
         source = next(s for s in self.config["sources"]
                       if s["source_slug"] == "vn_mps_foreign_affairs_vi")
         source["state_branch"] = "shadow/vietnam-moit-energy"
-        with self.assertRaisesRegex(audit.BindingError, "routing mismatch"):
+        with self.assertRaisesRegex(audit.BindingError, "private schedule limited"):
             self.report()
+
+    def test_private_vietnam_declaration_refuses_a_revived_public_writer(self):
+        path=self.root/".github/workflows/vietnam_ministry_shadow.yml"
+        original=path.read_text()
+        for revived in (original.replace("    if: false", "    if: true", 1),
+                        original.replace("on:\n", "on:\n  schedule:\n    - cron: '17 18 * * *'\n", 1)):
+            path.write_text(revived)
+            with self.assertRaisesRegex(audit.BindingError,"public original writer"):
+                self.report()
 
     def test_research_only_journal_cannot_claim_hidden_workflow(self):
         item = next(s for s in self.config["sources"]

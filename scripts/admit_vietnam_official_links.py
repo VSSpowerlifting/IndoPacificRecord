@@ -43,7 +43,7 @@ def unrelated(conn):
 
 
 def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
-                 expected_db_sha256):
+                 expected_db_sha256, private_projection=None, bridge_key=None, private_api=None):
     db = Path(db)
     vn.need(db.is_file() and not db.is_symlink() and db.stat().st_nlink == 1,
             "unsafe_admission_database")
@@ -66,8 +66,13 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
             vn.need(pending <= {"0013"}, "unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             conn.execute("BEGIN IMMEDIATE")
-            result = vn.admit(conn, state_repo, commit, vn.MPS, sealed,
-                              api=api, secret=secret, as_of_utc=as_of_utc)
+            if private_projection is None:
+                result = vn.admit(conn, state_repo, commit, vn.MPS, sealed,
+                                  api=api, secret=secret, as_of_utc=as_of_utc)
+            else:
+                result = vn.admit_private_projection(conn, private_projection, sealed,
+                    bridge_key=bridge_key, secret=secret, api=api, private_api=private_api,
+                    as_of_utc=as_of_utc, public_checkout=ROOT)
             vn.need(conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
                     and conn.execute("PRAGMA foreign_key_check").fetchall() == [],
                     "vietnam_admission_integrity_failed")
@@ -92,8 +97,9 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--database", type=Path, required=True)
-    p.add_argument("--state-repo", type=Path, required=True)
-    p.add_argument("--state-commit", required=True)
+    p.add_argument("--state-repo", type=Path)
+    p.add_argument("--state-commit")
+    p.add_argument("--private-projection", type=Path)
     p.add_argument("--signed-decision", type=Path, required=True)
     p.add_argument("--expected-db-sha256", required=True)
     p.add_argument("--release", action="store_true")
@@ -103,6 +109,7 @@ def main(argv=None):
         db = args.database.resolve(strict=True)
         if args.release:
             vn.need(db == ROOT / "pla_watch.db", "release_requires_canonical_database")
+            vn.need(args.private_projection is not None, "release_requires_private_provenance")
         else:
             vn.need(not any((parent / ".git").exists() for parent in db.parents),
                     "rehearsal_requires_external_database")
@@ -110,11 +117,25 @@ def main(argv=None):
         vn.need(path.is_file() and not path.is_symlink() and path.stat().st_size <= 131072,
                 "signed_decision_unavailable")
         sealed = strict_loads(path.read_text(), "Vietnam release")
+        projection = None
+        if args.private_projection:
+            vn.need(not args.state_repo and not args.state_commit,
+                    "private_projection_cannot_import_source_bytes")
+            vn.need(args.private_projection.is_file() and not args.private_projection.is_symlink()
+                    and args.private_projection.stat().st_size <= 250000,
+                    "private_metadata_projection_unavailable")
+            projection = strict_loads(args.private_projection.read_text(), "private metadata")
+        else:
+            vn.need(args.state_repo and args.state_commit, "source_history_required")
         result = admit_atomic(db, args.state_repo, args.state_commit, sealed,
                               api=GithubRead(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")),
                               secret=os.environ.get("VIETNAM_LINK_REVIEW_KEY", "").encode(),
                               as_of_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                              expected_db_sha256=args.expected_db_sha256)
+                              expected_db_sha256=args.expected_db_sha256,
+                              private_projection=projection,
+                              bridge_key=os.environ.get("VIETNAM_PRIVATE_BRIDGE_KEY", "").encode(),
+                              private_api=GithubRead(os.environ.get("VIETNAM_PRIVATE_PROVENANCE_TOKEN"),
+                                                     repository=vn.PRIVATE_REPO))
         print(json.dumps(result, sort_keys=True))
         return 0
     except (ValueError, OSError, sqlite3.Error, vn.formal.ReviewError):
