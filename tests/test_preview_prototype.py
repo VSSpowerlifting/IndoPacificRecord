@@ -43,6 +43,13 @@ from tests.test_migrations import build_legacy_db                # noqa: E402
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
 PRODUCTION_OUT = REPO_ROOT / "output"
 
+
+def machine_translated(rec) -> bool:
+    """An analyzed record carrying machine English. English-language desks
+    (Singapore, U.S.) are analyzed without translation, so the newest
+    analyzed record is not necessarily a translated one."""
+    return rec["state"] == "analyzed" and bool(rec["title_english"])
+
 #: Institutions whose OWN NAME is spelled the British way. American spelling is
 #: house style for the publication's own prose; an institution's name is not
 #: the publication's prose, and Americanising it would be an edit to the
@@ -1016,7 +1023,7 @@ class TestRenderedStructure(PreviewCase):
 
     def test_model_output_is_labelled_as_model_output(self):
         corpus = gp.load_corpus(TRACKED_DB)["corpus"]
-        analyzed = next(r for r in corpus if r["state"] == "analyzed")
+        analyzed = next(r for r in corpus if machine_translated(r))
         page = (self.out / "record" / ("%d.html" % analyzed["id"])).read_text(
             encoding="utf-8")
         self.assertIn("Machine summary", page)
@@ -2193,14 +2200,14 @@ class TestRecordPages(PreviewCase):
                 self.assertNotIn("not flagged", html)
 
     def test_an_analyzed_record_distinguishes_translation_from_summary(self):
-        rec_id = self.first_in_state("analyzed")
+        rec_id = next(r["id"] for r in self.data["corpus"] if machine_translated(r))
         html = self.record(rec_id)
         self.assertIn("Machine translation", html)
         self.assertIn("Machine summary", html)
         self.assertIn("distinct from the", html)
 
     def test_original_title_and_translation_notice_follow_record_heading(self):
-        rec_id = self.first_in_state("analyzed")
+        rec_id = next(r["id"] for r in self.data["corpus"] if machine_translated(r))
         html = self.record(rec_id)
         self.assertLess(html.index('</h1>'), html.index('class="record-source-line"'))
         self.assertLess(html.index('class="record-source-line"'), html.index('class="record-title-pair"'))
@@ -4499,7 +4506,7 @@ class TestStoredContentIsExcluded(PreviewCase):
         super().setUpClass()
         cls.corpus = gp.load_corpus(TRACKED_DB)
         cls.analyzed = next(r for r in cls.corpus["corpus"]
-                            if r["state"] == "analyzed" and r["has_text"])
+                            if machine_translated(r) and r["has_text"])
 
     def authored(self, rel: str) -> str:
         return _authored_text((self.out / rel).read_text(encoding="utf-8"), rel)
@@ -5782,7 +5789,7 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
         # One analyzed record loses only its summary: the sets now differ by
         # one id while every total stays plausible.
         for rec in corpus:
-            if rec["state"] == "analyzed":
+            if machine_translated(rec):
                 rec["summary_english"] = ""
                 break
         sets = gp.english_output_sets(corpus)
