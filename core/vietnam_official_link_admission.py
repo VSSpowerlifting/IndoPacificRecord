@@ -207,7 +207,15 @@ def admit(conn, state_repo, commit, family, sealed, *, api, secret, as_of_utc):
 PRIVATE_REPO = "VSSpowerlifting/ipr-source-evidence-private"
 PRIVATE_PREFIX = "/repos/" + PRIVATE_REPO
 PRIVATE_WORKFLOW = ".github/workflows/vietnam_private_first_collector.yml"
-PRIVATE_REF = "archive/vietnam-mps-foreign-affairs"
+
+
+def private_ref(family):
+    """Private archive ref for one family; the private runner clones exactly these."""
+    need(family in SOURCES, "unknown_vietnam_source_family")
+    return SOURCES[family].state_branch.replace("shadow/", "archive/", 1)
+
+
+PRIVATE_REF = private_ref(MPS)
 PRIVATE_SCHEMA = "ipr-vietnam-private-reviewed-metadata/1"
 PRIVATE_DOMAIN = b"IPR-VIETNAM-PRIVATE-METADATA-v1\n"
 ATTEMPT_SCHEMA = "ipr-vietnam-private-attempt/1"
@@ -229,14 +237,15 @@ def authenticate_private(packet, state_repo, public_frozen_tip, *, api, public_a
     """
     from scripts.attest_vietnam_run_state import encoded_content, pinned_head, utc
     from core.shadow_schedule import scheduled_slot_date
-    need(packet["source_family"] == MPS, "private_projection_is_mps_only")
-    formal.verify_state_commit(Path(state_repo), public_frozen_tip, PRIVATE_REF)
-    need(pinned_head(public_api, SOURCES[MPS].state_branch) == public_frozen_tip,
+    family = packet["source_family"]
+    ref = private_ref(family)
+    formal.verify_state_commit(Path(state_repo), public_frozen_tip, ref)
+    need(pinned_head(public_api, SOURCES[family].state_branch) == public_frozen_tip,
          "public_vietnam_writer_changed_after_cutover")
     # This history remains the authentic public history, never re-labelled private.
     with tempfile.TemporaryDirectory(prefix="ipr-vn-legacy-") as tmp:
         legacy_state = formal.export_state_tree(Path(state_repo), public_frozen_tip, Path(tmp) / "state")
-        legacy = ministry.review(legacy_state, MPS)
+        legacy = ministry.review(legacy_state, family)
     legacy_runs = {r["run_id"]: r for r in legacy["runs"]}
     legacy_versions = {(v["source_identity"], v["content_sha256"], v["first_seen_run"])
                        for v in legacy["versions"]}
@@ -260,13 +269,13 @@ def authenticate_private(packet, state_repo, public_frozen_tip, *, api, public_a
         require_persisted_attempt(public_api, run)
     with tempfile.TemporaryDirectory(prefix="ipr-vn-private-") as tmp:
         state = formal.export_state_tree(Path(state_repo), packet["source_git_commit"], Path(tmp) / "state")
-        evidence = ministry.review(state, MPS)
+        evidence = ministry.review(state, family)
     private_runs = [r for r in evidence["runs"] if r["run_id"] not in legacy_runs]
     need(private_runs and private_runs[-1]["run_id"] == packet["latest_run"]
          and private_runs[-1]["health"] == "ok", "private_collection_not_yet_proven")
     subject = formal._git_bytes(["log", "-1", "--format=%s", packet["source_git_commit"]],
                                 Path(state_repo)).decode().strip()
-    need(subject == "private-vietnam: preserve " + MPS + " attempt " + packet["latest_run"],
+    need(subject == "private-vietnam: preserve " + family + " attempt " + packet["latest_run"],
          "private_latest_attempt_has_no_healthy_ledger")
     for ledger in private_runs:
         rid = ledger["run_id"]
@@ -276,7 +285,7 @@ def authenticate_private(packet, state_repo, public_frozen_tip, *, api, public_a
                                   packet["source_git_commit"], prefix=PRIVATE_PREFIX)
         run = api.get(PRIVATE_PREFIX + "/actions/runs/%s/attempts/%s" % m.groups())
         expected_event = "schedule" if ledger["target_date_source"] == "schedule-slot" else "workflow_dispatch"
-        need(receipt.get("schema") == ATTEMPT_SCHEMA and receipt.get("source_family") == MPS
+        need(receipt.get("schema") == ATTEMPT_SCHEMA and receipt.get("source_family") == family
              and receipt.get("run_attempt") == rid
              and receipt.get("collector_commit") == ledger["collector_commit"]
              and receipt.get("state_sha256") == ledger["state_sha256_after"]
@@ -307,8 +316,8 @@ def authenticate_private(packet, state_repo, public_frozen_tip, *, api, public_a
         need((row["source_identity"], row["content_sha256"], row["version_first_seen_run"]) in legacy_versions
              or row["version_first_seen_run"] in {r["run_id"] for r in private_runs},
              "source_version_has_no_authenticated_custody_attempt")
-    head = api.get(PRIVATE_PREFIX + "/git/ref/heads/" + PRIVATE_REF)
-    need(head.get("ref") == "refs/heads/" + PRIVATE_REF
+    head = api.get(PRIVATE_PREFIX + "/git/ref/heads/" + ref)
+    need(head.get("ref") == "refs/heads/" + ref
          and head.get("object", {}).get("sha") == packet["source_git_commit"],
          "private_source_changed_concurrently")
     return {"private_attempts_verified": len(private_runs),

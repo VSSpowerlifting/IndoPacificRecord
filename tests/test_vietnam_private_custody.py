@@ -29,14 +29,16 @@ class API:
 
 
 class PrivateCustody(unittest.TestCase):
+    FAMILY = fixture.MPS
+
     def setUp(self):
         self.f = fixture.RemoteReview(); self.f.setUp()
         self.addCleanup(self.f.doCleanups)
-        self.repo = self.f.repos / fixture.MPS
-        self.collect('100-1', one=True)
-        self.legacy = self.f.commit_state()
+        self.repo = self.f.repos / self.FAMILY
+        self.collect('100-1', one=self.FAMILY == fixture.MPS)
+        self.legacy = self.f.commit_state(self.FAMILY)
         self.collect('101-1')
-        self.receipt = {'schema': vn.ATTEMPT_SCHEMA, 'source_family': fixture.MPS,
+        self.receipt = {'schema': vn.ATTEMPT_SCHEMA, 'source_family': self.FAMILY,
             'run_attempt': '101-1', 'workflow_commit': WORKFLOW_SHA,
             'collector_commit': fixture.COMMIT, 'public_frozen_tip': self.legacy,
             'event': 'workflow_dispatch', 'health': 'ok',
@@ -45,16 +47,17 @@ class PrivateCustody(unittest.TestCase):
         (self.repo/'private_attempts').mkdir()
         (self.repo/'private_attempts/101-1.json').write_text(json.dumps(self.receipt))
         fixture.git(self.repo, 'add', 'state', 'private_attempts')
-        fixture.git(self.repo, 'commit', '-m', 'private-vietnam: preserve '+fixture.MPS+' attempt 101-1')
+        fixture.git(self.repo, 'commit', '-m', 'private-vietnam: preserve '+self.FAMILY+' attempt 101-1')
         self.tip = fixture.git(self.repo, 'rev-parse', 'HEAD')
-        fixture.git(self.repo, 'branch', vn.PRIVATE_REF)
-        self.packet = vn.prepare(self.repo, self.tip, fixture.MPS, private=True)
+        fixture.git(self.repo, 'branch', vn.private_ref(self.FAMILY))
+        self.packet = vn.prepare(self.repo, self.tip, self.FAMILY, private=True)
         latest=next((self.repo/'state/ledger').glob('*-101-1.json'))
         latest=json.loads(latest.read_text())
-        self.decision = sealed(self.packet)
+        # Link review is MPS-only; the Daily bridge needs no review decision.
+        self.decision = sealed(self.packet) if self.FAMILY == fixture.MPS else None
         self.public_api = API({
-            vn.PREFIX+'/git/ref/heads/'+vn.SOURCES[fixture.MPS].state_branch:
-                {'ref':'refs/heads/'+vn.SOURCES[fixture.MPS].state_branch,'object':{'sha':self.legacy}},
+            vn.PREFIX+'/git/ref/heads/'+vn.SOURCES[self.FAMILY].state_branch:
+                {'ref':'refs/heads/'+vn.SOURCES[self.FAMILY].state_branch,'object':{'sha':self.legacy}},
             vn.PREFIX+'/actions/runs/100/attempts/1':
                 {'id':100,'run_attempt':1,'path':'.github/workflows/vietnam_ministry_shadow.yml',
                  'head_sha':fixture.COMMIT,'event':'workflow_dispatch','status':'completed','conclusion':'success'}})
@@ -67,14 +70,14 @@ class PrivateCustody(unittest.TestCase):
                 'event':'workflow_dispatch','status':'completed','conclusion':'success'},
             self.run_path+'/jobs?per_page=100':{'total_count':1,'jobs':[{'steps':[
                 {'name':'Persist and independently verify private state','conclusion':'success'}]}]},
-            vn.PRIVATE_PREFIX+'/git/ref/heads/'+vn.PRIVATE_REF:
-                {'ref':'refs/heads/'+vn.PRIVATE_REF,'object':{'sha':self.tip}}})
+            vn.PRIVATE_PREFIX+'/git/ref/heads/'+vn.private_ref(self.FAMILY):
+                {'ref':'refs/heads/'+vn.private_ref(self.FAMILY),'object':{'sha':self.tip}}})
         self.api.routes[self.run_path].update(run_started_at=latest['started_utc'],updated_at=latest['finished_utc'])
         self.cx=db();self.addCleanup(self.cx.close)
 
     def collect(self,rid,one=False):
         if not one:
-            return self.f.collector(self.repo/'state',fixture.MPS,date(2026,10,5),0,2,rid,fixture.COMMIT)
+            return self.f.collector(self.repo/'state',self.FAMILY,date(2026,10,5),0,2,rid,fixture.COMMIT)
         # Derived fictional feed: one existing original arrives only in the
         # private attempt. No invented original-language source text.
         import xml.etree.ElementTree as ET

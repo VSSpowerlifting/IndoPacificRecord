@@ -879,12 +879,39 @@ class PrivateCustodyDaily(unittest.TestCase):
         with self.subTest("pre-cutover commit offered as private custody"):
             self.assert_refused_without_trace("private_collection_not_yet_proven",
                                               commit=self.pc.legacy)
-        with self.subTest("another family"):
-            self.assert_refused_without_trace("vietnam_private_custody_is_mps_only",
+        with self.subTest("another family's commit on this archive"):
+            # Each family authenticates only on its own archive ref.
+            self.assert_refused_without_trace("archive/vietnam-moit-energy names no ref",
                                               family=ENERGY)
         # The intact history still authenticates afterwards.
         report, _ = self.run_private(source_use=grant())
         self.assertEqual({o["outcome"] for o in report["outcomes"]}, {qa.PUBLISHED})
+
+    def test_moit_family_runs_on_its_own_private_archive(self):
+        class EnergyCustody(self.cf.PrivateCustody):
+            FAMILY = ENERGY
+        ec = EnergyCustody("test_real_git_replay_and_distinct_private_workflow_identity")
+        ec.setUp()
+        self.addCleanup(ec.doCleanups)
+        custody = bridge.PrivateCustody(public_frozen_tip=ec.legacy, private_api=ec.api)
+
+        def run(use, analyzer):
+            return bridge.run_family(
+                self.conn, ec.repo, ec.tip, ENERGY, api=ec.public_api, as_of_utc=NOW,
+                source_use=use, analyzer=analyzer, ledger_path=self.tmp / "energy.json",
+                run_id="simulated-energy-run", now=lambda: NOW, desk=PROMOTED, custody=custody)
+        held = run(su.standing(ENERGY), FakeAnalyzer())
+        self.assertEqual(held["custody"]["source_ref"], vn.private_ref(ENERGY))
+        self.assertEqual(held["custody"]["private_attempts_verified"], 1)
+        # The written-consent/robots hold withholds MOIT records at admission:
+        # even a rights grant reaches no model and writes no article.
+        analyzer = FakeAnalyzer()
+        granted = run(grant(ENERGY), analyzer)
+        for report in (held, granted):
+            self.assertEqual(report["source_hold"], vn.HOLDS[ENERGY])
+            self.assertEqual(report["outcomes"], [])
+        self.assertEqual(analyzer.calls, [])
+        self.assertEqual(self.rows(), [])
 
     def test_rights_hold_before_model_even_with_metadata_rights(self):
         metadata_only = grant(permissions={

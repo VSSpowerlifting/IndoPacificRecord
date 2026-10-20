@@ -5,10 +5,10 @@ One Daily step per ministry source family:
   1. replay the private state commit with the existing admission adapter
      (core.vietnam_official_link_admission.prepare) and authenticate its tip
      and collection attempts against GitHub (authenticate); nothing is
-     recrawled. After the private-first cutover (#831) the Ministry of Public
-     Security runs with PrivateCustody instead: the archive/ ref of the
-     private evidence repository, authenticated by authenticate_private,
-     whose pre-cutover versions stay bound to their public attempts;
+     recrawled. After the private-first cutover (#831) each ministry family
+     runs with PrivateCustody instead: its archive/ ref in the private
+     evidence repository, authenticated by authenticate_private, whose
+     pre-cutover versions stay bound to their public attempts;
   2. re-export the same commit to read each current version's preserved body;
   3. skip versions already in the corpus, hold material changes;
   4. apply the family's source-use policy before any model call;
@@ -107,7 +107,7 @@ def save_ledger(path: Path, ledger: dict) -> None:
 
 @dataclasses.dataclass(frozen=True)
 class PrivateCustody:
-    """Ministry of Public Security records held in the private evidence repository.
+    """One family's records held in the private evidence repository.
 
     `public_frozen_tip` is the last public shadow commit, whose history stays
     authenticated against the public collector; `private_api` reads the private
@@ -122,9 +122,9 @@ def _state_ref(family: str, private: bool) -> str:
     ref = SOURCES[family].state_branch
     if not private:
         return ref
-    # The same derivation as vn.prepare(private=True), checked against #831's ref.
+    # The same derivation as vn.prepare(private=True), checked against #831's refs.
     ref = ref.replace("shadow/", "archive/", 1)
-    if ref != vn.PRIVATE_REF:
+    if ref != vn.private_ref(family):
         raise BridgeError("vietnam_private_ref_mismatch")
     return ref
 
@@ -267,8 +267,6 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
     """
     if source_use.source_family != family:
         raise BridgeError("vietnam_source_use_family_mismatch")
-    if custody is not None and family != vn.MPS:
-        raise BridgeError("vietnam_private_custody_is_mps_only")
     if desk is None:
         from core.desk_registry import load_registry
         desk = load_registry().get("vietnam")
@@ -281,7 +279,7 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
     if private:
         proof = vn.authenticate_private(packet, state_repo, custody.public_frozen_tip,
                                         api=custody.private_api, public_api=api)
-        custody_report = {"mode": "private", "source_ref": vn.PRIVATE_REF,
+        custody_report = {"mode": "private", "source_ref": vn.private_ref(family),
                           "public_frozen_tip": custody.public_frozen_tip,
                           "private_attempts_verified": proof["private_attempts_verified"],
                           "latest_run": proof["latest_run"]}
@@ -298,7 +296,8 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
         prior_item = ledger["items"].get(identity) or {}
         item = {"source_identity": identity, "content_sha256": sha}
 
-        def done(outcome, failures=(), article_id=None, details=None, qa_json=None):
+        def done(outcome, failures=(), article_id=None, details=None, qa_json=None,
+                 article=None):
             item.update(outcome=outcome, failures=list(failures), article_id=article_id)
             if details:
                 item["details"] = details
@@ -311,6 +310,9 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
                     "content_sha256": sha, "outcome": outcome, "failures": list(failures),
                     "attempts": attempts, "updated_utc": now(), "run_id": run_id,
                     "qa": qa_json}
+                if article is not None:
+                    # Only the permitted projection; offered again, never re-analysed.
+                    ledger["items"][identity]["article"] = article
 
         prior = _existing(conn, identity)
         if prior is not None:
@@ -337,6 +339,19 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
             reason = (source_use.reason("external_model_transmission", identity)
                       or source_use.reason("public_ipr_analysis", identity))
             done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"], details={"E_RIGHTS_WITHHELD": reason})
+            continue
+        stored = prior_item.get("article") if prior_item.get("content_sha256") == sha else None
+        if (stored and prior_item.get("outcome") == qa.PUBLISHED
+                and stored["provenance"]["rights_decision_sha256"] == source_use.decision_sha256
+                and stored["provenance"]["permissions_json"] == json.dumps(
+                    source_use.snapshot(identity), sort_keys=True)):
+            # Analysed under the same decision, but this corpus copy lacks it
+            # (the private runner works on a fresh copy of public main until
+            # the handoff is admitted there): offer the stored projection again.
+            outcome, article_id, code = _insert(conn, family, record, stored["row"],
+                                                stored["provenance"])
+            done(outcome, [code] if code else [], article_id, qa_json=prior_item.get("qa"),
+                 article=stored)
             continue
 
         translate = source_use.allows("public_full_translation", identity)
@@ -404,7 +419,8 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
             "published_by_run": run_id, "processed_utc": processed,
         }
         outcome, article_id, code = _insert(conn, family, record, row, provenance)
-        done(outcome, [code] if code else [], article_id, qa_json=verdict.as_json())
+        done(outcome, [code] if code else [], article_id, qa_json=verdict.as_json(),
+             article={"row": row, "provenance": provenance} if outcome == qa.PUBLISHED else None)
 
     save_ledger(ledger_path, ledger)
     counts: Dict[str, int] = {}
@@ -413,7 +429,7 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
     return {
         "schema": "ipr-vietnam-daily-run/1", "run_id": run_id, "source_family": family,
         "source_git_commit": commit, "logical_date": packet["logical_date"],
-        "custody": custody_report,
+        "custody": custody_report, "source_hold": packet["source_hold"],
         "rights_policy_version": source_use.policy_version,
         "rights_decision_sha256": source_use.decision_sha256,
         "qa_rubric_version": qa.RUBRIC_VERSION, "second_pass_used": budget.used,

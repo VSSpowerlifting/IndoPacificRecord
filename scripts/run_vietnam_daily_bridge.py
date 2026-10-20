@@ -13,14 +13,15 @@ this script never creates one. Model calls need ANTHROPIC_API_KEY and happen
 only for records whose decision grants model transmission and public analysis
 on a promoted desk.
 
-After the private-first cutover (#831) the Ministry of Public Security family
-runs with --private-custody PUBLIC_FROZEN_TIP and --private-state-repo, a
-clone of the private evidence repository: its commit must be on that
-repository's archive ref and is authenticated with
-VIETNAM_PRIVATE_PROVENANCE_TOKEN (read-only). Other families keep
---state-repo. Because it reads private originals from that clone, a
---private-custody run belongs on the private runner, never a public job; the
-corpus, ledgers and report receive only permitted fields and provenance.
+After the private-first cutover (#831) every family runs with
+--private-custody SOURCE_FAMILY=PUBLIC_FROZEN_TIP (one per family; a bare tip
+when one family is named) and --private-state-repo, a clone of the private
+evidence repository: each commit must be on that family's archive ref and is
+authenticated with VIETNAM_PRIVATE_PROVENANCE_TOKEN (read-only). Because it
+reads private originals from that clone, a --private-custody run belongs on
+the private runner, never a public job; the corpus, ledgers and report receive
+only permitted fields and provenance. Approved records reach the public
+corpus only through core.vietnam_daily_handoff.
 
 No collection, signing, Git push, schedule or deployment.
 
@@ -71,6 +72,21 @@ def _pair(text):
     return slug, value
 
 
+def _tips(values, families):
+    """{family: public frozen tip}; a bare tip only when one family is named."""
+    tips = {}
+    for value in values:
+        family, sep, tip = value.rpartition("=")
+        if not sep:
+            if len(families) != 1:
+                raise bridge.BridgeError("vietnam_private_custody_needs_family")
+            family = families[0]
+        if family not in families or family in tips or not re.fullmatch(r"[0-9a-f]{40}", tip):
+            raise bridge.BridgeError("vietnam_private_custody_incomplete")
+        tips[family] = tip
+    return tips
+
+
 def _policies(decisions, families, as_of):
     secret = os.environ.get("VIETNAM_SOURCE_USE_REVIEW_KEY", "").encode()
     out = {}
@@ -91,6 +107,8 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
         api, analyzer, as_of_utc, custody=None, private_state_repo=None):
     db = Path(db)
     if (custody is None) != (private_state_repo is None):
+        raise bridge.BridgeError("vietnam_private_custody_incomplete")
+    if custody is not None and set(custody) != {family for family, _ in commits}:
         raise bridge.BridgeError("vietnam_private_custody_incomplete")
     if _sha(db) != expected_db_sha256:
         raise bridge.BridgeError("database_preimage_changed")
@@ -120,13 +138,13 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
                 raise bridge.BridgeError("unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             for family, commit in commits:
-                private = custody is not None and family == vn.MPS
+                private = custody is not None
                 reports.append(bridge.run_family(
                     conn, private_state_repo if private else state_repo, commit, family,
                     api=api, as_of_utc=as_of_utc,
                     source_use=policies[family], analyzer=analyzer,
                     ledger_path=staging / ("%s.json" % family), run_id=run_id,
-                    custody=custody if private else None))
+                    custody=custody[family] if private else None))
             if (conn.execute("PRAGMA integrity_check").fetchone() != ("ok",)
                     or conn.execute("PRAGMA foreign_key_check").fetchall()):
                 raise bridge.BridgeError("vietnam_daily_integrity_failed")
@@ -147,8 +165,9 @@ def main(argv=None):
     p.add_argument("--database", type=Path, required=True)
     p.add_argument("--expected-db-sha256", required=True)
     p.add_argument("--state-repo", type=Path, required=True)
-    p.add_argument("--private-custody", metavar="PUBLIC_FROZEN_TIP",
-                   help="run the Ministry of Public Security from the private archive ref")
+    p.add_argument("--private-custody", action="append", default=[],
+                   metavar="SOURCE_FAMILY=PUBLIC_FROZEN_TIP",
+                   help="run each family from its private archive ref")
     p.add_argument("--private-state-repo", type=Path)
     p.add_argument("--family", type=_pair, action="append", required=True,
                    metavar="SOURCE_FAMILY=COMMIT")
@@ -172,16 +191,17 @@ def main(argv=None):
         if len(set(families)) != len(families):
             raise bridge.BridgeError("vietnam_family_repeated")
         custody = private_repo = None
-        if args.private_custody is not None or args.private_state_repo is not None:
-            if (args.private_state_repo is None or vn.MPS not in families
-                    or not re.fullmatch(r"[0-9a-f]{40}", args.private_custody or "")):
+        if args.private_custody or args.private_state_repo is not None:
+            tips = _tips(args.private_custody, families)
+            if args.private_state_repo is None or set(tips) != set(families):
                 raise bridge.BridgeError("vietnam_private_custody_incomplete")
             token = os.environ.get("VIETNAM_PRIVATE_PROVENANCE_TOKEN")
             if not token:
                 raise bridge.BridgeError("vietnam_private_provenance_token_required")
-            custody = bridge.PrivateCustody(
-                public_frozen_tip=args.private_custody,
-                private_api=GithubRead(token, repository=vn.PRIVATE_REPO))
+            private_api = GithubRead(token, repository=vn.PRIVATE_REPO)
+            custody = {family: bridge.PrivateCustody(public_frozen_tip=tip,
+                                                     private_api=private_api)
+                       for family, tip in tips.items()}
             private_repo = args.private_state_repo
         policies = _policies(dict(args.decision), families, as_of[:10])
         needs_model = any(pol.allows("external_model_transmission") for pol in policies.values())
