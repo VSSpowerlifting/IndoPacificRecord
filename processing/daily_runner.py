@@ -37,7 +37,14 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
     need(ROOT not in path.resolve().parents and ROOT not in Path(out_dir).resolve().parents,
          "private_daily_state_must_remain_outside_public_checkout")
     state = json.loads(path.read_text()) if path.exists() else {}
-    state, usage = process(eligible, state, family=family, policy=policy)
+    readings = {}
+    observer = (lambda identity, reading: readings.update({identity: reading})) if no_release else None
+    state, usage = process(eligible, state, family=family, policy=policy, reading_observer=observer)
+    if readings:
+        # Explicit private-only verification; supporting source spans never
+        # enter the queue, a public envelope, logs or the public checkout.
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.with_suffix(".reading.json").write_text(json.dumps(readings, ensure_ascii=False))
     # Atomic private state write: failed runs preserve the previous queue.
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
