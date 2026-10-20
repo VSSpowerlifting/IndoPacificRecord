@@ -15,7 +15,7 @@ Before this change, an unknown desk, a source missing from the desk manifests,
 or a missing slug fell back to the China profile. They now raise
 `UnregisteredDeskError` (`processing/screening.py`).
 
-The daily queue, keyword stage, queue audit and both backfills hold such a
+The daily queue, keyword stage, queue and backlog-triage audits and both backfills hold such a
 record out: it stays `passed_relevance IS NULL` and gets no model call, and
 the China Daily run continues. `rescreen_desk.py` refuses the desk.
 
