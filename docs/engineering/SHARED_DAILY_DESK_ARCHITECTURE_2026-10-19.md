@@ -6,6 +6,60 @@ It complements the 18 October complete-desk acceptance rule and the source-speci
 rights, custody, and publication decisions in `DECISION_LOG.md`. Historical
 collection/release receipts and authorized limitations remain unchanged.
 
+## Operational desk contract — permanent default (20 October 2026)
+
+The owner wants **working desks**, not engineering programs. Apply this across
+China, Singapore, Korea, Japan, Philippines, Indonesia, Vietnam and subsequent
+desks. Source-specific limitations are reported honestly; don't expand the
+agreed source families just to delay completion. Historical plans that demand
+additional seven-/30-day waits, human review of every routine machine record,
+or perpetual shadow phases are superseded where no genuine rights/accuracy
+constraint requires them.
+
+```text
+AUTHORIZED OFFICIAL SOURCE(S)
+     |  independently scheduled collector (private when required)
+     v
+SOURCE-PINNED EVIDENCE + SOURCE-SPECIFIC RIGHTS / VERSION CHECKS
+     |  no duplicate scrape, no unauthorized full-text reuse
+     v
+ONE SHARED DAILY INTAKE  -->  CANONICAL ARTICLES OR HONEST LINK-ONLY RECORDS
+     |
+     v
+ONE SHARED PROCESSING QUEUE
+     |-- explicit desk-specific relevance and classification
+     |-- translation only for non-English originals
+     |-- source-grounded machine analysis + cost/retry controls
+     v
+AUTOMATIC RIGHTS + MINIMAL ESSENTIAL QUALITY GATE
+     |-- pass --> SHARED RECORD / ARCHIVE / SEARCH / DESK / SITE DEPLOY
+     |-- hold --> exception queue for THAT source/version only
+     v
+REAL PUBLIC RESULT + UNATTENDED NEXT CYCLE
+
+SEPARATE: human-authored Briefs/editorials retain human review and approval.
+```
+
+**Delivery method:** Check the current production state once; identify the
+shortest missing connection; reuse existing infrastructure; implement in one
+coherent integration PR (plus a private companion only where custody demands);
+run focused checks during development and required full CI on the final exact
+head, not after every small edit; obtain any necessary one-time source/spend/
+publication activation decision; demonstrate one authentic, authorized
+source-to-public-HTTPS result. Then **stop expanding the project**. Normal
+ongoing monitoring is maintenance, not a new launch stage. Don't create
+additional test harnesses, artificial rehearsals, serial qualification PRs,
+or percentage-completeness dashboards when existing verification can answer
+the question. Do not replace essential rights/custody checks with a model's
+confidence judgment. Distinguish a truly quiet publishing day from a failure.
+
+**Success is operational, not rhetorical:** (1) eligible input arrives or a
+legitimate quiet day is recorded, (2) allowed output is processed through the
+shared path, (3) public pages and corpus agree, (4) scheduled future updates
+require no per-record owner review, and (5) errors isolate to the affected
+source/record. A functioning metadata-only source is correctly *link-only*,
+not falsely described as a completed full-text/English desk.
+
 ## Outcome
 
 **Build privately; launch completely; operate continuously.** Every agreed
