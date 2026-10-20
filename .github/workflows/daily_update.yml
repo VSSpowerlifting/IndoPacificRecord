@@ -237,6 +237,34 @@ jobs:
         if: steps.timecheck.outputs.should_run == 'true'
         run: python -m unittest tests.test_reconcile -v
 
+      # ── 4b. Vietnam Desk: admit the private runner's approved articles ────
+      # The private evidence runner (ipr-source-evidence-private) runs the
+      # shared Vietnam bridge on its originals and signs only this run's
+      # published projections to its daily/vietnam branch. This step verifies
+      # that handoff against the owner-sealed decision committed here
+      # (config/vietnam_source_use/), the source holds and desk promotion, then
+      # inserts through the bridge's own write path; the pipeline below renders
+      # and commits them with everything else. A hold (exit 2) leaves the
+      # database untouched and never blocks the other desks. Off until the
+      # owner sets VIETNAM_DAILY_HANDOFF_ENABLED.
+      - name: Admit Vietnam Daily handoff
+        if: >
+          steps.timecheck.outputs.should_run == 'true' &&
+          vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          VIETNAM_PRIVATE_BRIDGE_KEY: ${{ secrets.VIETNAM_PRIVATE_BRIDGE_KEY }}
+          VIETNAM_SOURCE_USE_REVIEW_KEY: ${{ secrets.VIETNAM_SOURCE_USE_REVIEW_KEY }}
+          VIETNAM_PRIVATE_PROVENANCE_TOKEN: ${{ secrets.VIETNAM_PRIVATE_PROVENANCE_TOKEN }}
+        run: |
+          status=0
+          python -m core.vietnam_daily_handoff --database pla_watch.db || status=$?
+          if [ "$status" -eq 2 ]; then
+            echo "::notice title=Vietnam handoff held::No Vietnam records admitted this run; pla_watch.db unchanged."
+          elif [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+
       # ── 5. Run pipeline (all sources) ─────────────────────────────────────
       # `id: pipeline` exists so the persist step below can prove this step
       # actually ran. Without it the only signal available is job-scoped

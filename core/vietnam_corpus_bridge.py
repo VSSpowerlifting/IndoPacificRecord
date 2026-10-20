@@ -180,6 +180,22 @@ def _ensure_source(conn: sqlite3.Connection, family: str) -> int:
     return cur.lastrowid
 
 
+# The exact columns run_family writes; the private-to-public handoff
+# (core.vietnam_daily_handoff) admits nothing else.
+ROW_COLUMNS = frozenset((
+    "content_hash", "title_original", "text_original", "published_date", "relevance_score",
+    "relevance_reasoning", "passed_relevance", "title_english", "text_english",
+    "summary_english", "analyzed_at", "is_significant", "significance_reasoning", "model_id",
+    "prompt_version"))
+PROVENANCE_COLUMNS = frozenset((
+    "source_family", "source_identity", "canonical_official_url", "publisher_posted_date",
+    "content_sha256", "capture_sha256", "source_git_commit", "collector_commit",
+    "rights_policy_version", "rights_decision_sha256", "attribution_text", "license_terms",
+    "permissions_json", "qa_rubric_version", "qa_json", "event_type", "terminology_version",
+    "translation_prompt_version", "original_withheld", "translation_published",
+    "published_by_run", "processed_utc"))
+
+
 def _existing(conn: sqlite3.Connection, identity: str):
     return conn.execute("SELECT article_id, content_sha256 FROM vietnam_article_provenance"
                         " WHERE source_identity=?", (identity,)).fetchone()
