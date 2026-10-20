@@ -951,6 +951,29 @@ inherited page-budget failure and two skips. Subsequent main `e92dcef2` supplies
 the budget and post-admission contract repairs; the candidate retains those
 files exactly. Final-head CI is recorded on the PR. No merge is authorized.
 
+**Shared Daily integration (candidate, 2026-10-19).** Branch
+`claude/vietnam-desk-daily-pipeline-64d334` connects authenticated ministry
+captures to the shared Daily. It contains:
+
+- a thin corpus bridge with no recrawl;
+- migration `0015` provenance;
+- per-family `ScreeningProfile`s on `analyze_desk()`;
+- versioned terminology;
+- exception-based QA;
+- a sealed, per-permission source-use policy;
+- `scripts/run_vietnam_daily_bridge.py`.
+
+Under the standing policy every record holds for rights before any model call.
+Neither the publishable path nor a public article is reachable until the owner
+seals a decision and promotes the registry. The 12-stage rehearsal is SIMULATED,
+on fixtures. No real original has passed through the bridge, and no production
+run, schedule or publication has happened. The render is byte-identical to main
+(1,925 files). After merge, the Daily migration step adds the empty `0015`
+table. Status stays **Blocked**: #831 and private #20 are unmerged, rights are
+held and the desk is in shadow. Owner requests and gaps are in
+`docs/engineering/VIETNAM_FULL_OPERATION_2026-10-19.md` § Shared Daily
+integration.
+
 The original English Government News defense-tag pilot remains separate,
 `research`, with no approved remote dispatch and no `shadow/vietnam` branch.
 National Defence Journal remains disabled; MOD access remains challenged.

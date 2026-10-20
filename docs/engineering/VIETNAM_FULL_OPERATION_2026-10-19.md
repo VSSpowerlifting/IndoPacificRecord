@@ -246,3 +246,86 @@ The graphify code refresh completed (22,471 nodes), reporting 287 files with no
 extracted nodes and omitting its oversized HTML view; that map is not source
 or claim evidence. Required PR checks, actual scheduled recovery, private
 cutover/restore, exact human MPS release and two MOIT permissions remain distinct.
+
+## Shared Daily integration (follow-up candidate, 19 October)
+
+The ministry captures above now have a path into the shared Daily, under
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`. Nothing is
+operational: no production run, admission, model call, schedule or publication
+was performed, and the registry keeps Vietnam in shadow.
+
+**Reused, not rebuilt.** The existing collectors, private state branches,
+`vn.prepare`/`vn.authenticate` source and attempt checks, `ScreeningProfile`,
+`Analyzer.analyze_record()` → `analyze_desk()` (never the China `analyze()` path),
+the `articles`/`sources` tables and `site/render.py` record pages. There is no
+second database, analyzer, sync system or Vietnam site.
+
+**Added.**
+
+- `core/vietnam_corpus_bridge.py` is the thin intake. It reads committed
+  captures at an authenticated state commit, with no recrawl. Each version gets
+  a stable identity, and duplicates and concurrent commits resolve to a single
+  row. A material change is held, never overwritten. Bad dates, missing bodies,
+  unsupported versions and unauthenticated sources are refused. Columns are
+  projected per permission. The private ledger lives outside the repository.
+- Migration `0015` adds the `vietnam_article_provenance` table: URL, publisher
+  date, family, language, version hash, rights decision, QA record and
+  attribution. The `daily_update.yml` step `python -m migrations.cli --apply`
+  runs pending migrations, so the
+  first production run after merge adds this empty table. The render is
+  byte-identical with and without it.
+- `processing/screening.py` adds three per-family `VIETNAM_*` profiles and a
+  refusing desk-level profile. Their event types are distinct: meeting,
+  announcement, financing, commencement and completion.
+- Terminology lives in `analysis/vietnam_terminology.json`, version
+  `vn-terms-2026-10-19.1`.
+- `core/vietnam_daily_qa.py` holds the deterministic rubric
+  `vn-qa-2026-10-19.1`, a bounded model second pass, failure codes, retryable
+  holds that escalate after three attempts, and a Vietnamese evaluation set.
+- `core/vietnam_source_use.py` holds the standing policy
+  `vn-source-use-2026-10-19.1`. It covers seven separate permissions with their
+  dependencies, owner decisions sealed with HMAC, and item exceptions.
+  Attribution is a condition, not a basis.
+- `scripts/run_vietnam_daily_bridge.py` is the Daily command. It runs on an
+  atomic sibling copy and requires `--release` for the canonical database.
+  Without a sealed decision it builds no model client.
+
+**Simulated rehearsal.** `scripts/rehearse_vietnam_daily.py` replays fixture
+repositories through the bridge in 12 stages:
+
+1. Rights denied.
+2. Unpromoted desk.
+3. Backfill, then a rerun that adds zero duplicates.
+4. Rights projection.
+5. Source mismatch, missing body and wrong date.
+6. Model failure, retry and escalation.
+7. Retry after a transient failure.
+8. Incomplete translation.
+9. Material change.
+10. Concurrent commit.
+11. Unauthenticated source.
+12. The record page, with its disclosures.
+
+The receipt is labelled SIMULATED and requires a clean tree at the cited head.
+It is not a live or unattended run.
+
+**Open gaps.**
+
+- Dylan Tanzi's October readability feedback is not in the repository. PR #821
+  concerns Japan Brief prose, not Vietnamese terminology. The terminology guide
+  records the gap; no model was trained or tuned.
+- No pass over the 14 real originals has run through the bridge.
+- On main, a desk not in `_SOURCE_PROFILES` still receives the China profile.
+  Vietnam families are registered explicitly, but the fail-closed target from
+  the shared-architecture ruling is not yet general.
+
+**Owner decisions, one per item:**
+
+1. Each family's source-use decision. Generate the exact template with
+   `vietnam_source_use.owner_decision_request(family)`. MPS reuse and
+   model-transmission terms are not established. Both MOIT families need
+   written consent and a robots review.
+2. Promote the Vietnam registry entry from shadow.
+3. Add the bridge command to an existing scheduled workflow, with
+   `VIETNAM_SOURCE_USE_REVIEW_KEY` and model credentials.
+4. Merge #831, private #20 and this PR.

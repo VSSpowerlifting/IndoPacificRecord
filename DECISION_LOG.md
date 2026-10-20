@@ -4,6 +4,28 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-19 — Engineering rule (proposed in the Vietnam Daily PR; not an owner ruling): Vietnam joins the shared Daily only through sealed per-family source use
+
+Applying the shared-Daily direction above to Vietnam:
+
+- The ministry captures enter the common corpus through
+  `core/vietnam_corpus_bridge.py`, using explicit `VIETNAM_*` family profiles
+  on the shared analyzer. There is no Vietnam-specific database, analyzer or
+  site.
+- A record reaches a model only when its family's owner-sealed decision
+  (`core/vietnam_source_use.py`) grants both external model transmission and
+  public IPR analysis, and the registry has promoted the desk.
+- Each public column is projected from its own permission: original title,
+  original text, full translation, excerpt and analysis.
+- An attribution line or site footer is a condition of use, never a rights
+  basis.
+- The standing policy holds every permission for MPS and both MOIT families.
+  Engineering prepares `owner_decision_request(family)` and never fills in or
+  signs a decision.
+
+**Authority limit:** this ruling grants no rights. It also authorizes no model
+spend, schedule, promotion, merge or publication.
+
 ## 2026-10-19 — Owner direction: converge all desks on one logical Daily
 
 The owner requested that the Philippines Desk and other IPR country desks use
