@@ -23,7 +23,12 @@ Production DB/output and desk status are unchanged. Owner decisions remain:
 one private pinned AFP acceptance call (estimated allowance $0.35), source-specific
 machine-output rights, then merge/credentials/activation/release authority.
 See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
-evidence distinctions and rollback. Full exact-head CI is required for release.
+evidence distinctions and rollback. Review: public #835 and private #21, both
+inactive. Focused profile/custody/migration/retry checks, the private 81-test
+suite and synthetic production-render/Chromium checks passed; full exact-head
+Linux PR CI is required for release. The development full local run was not
+green (subsequently repaired regressions, missing gpg/python-docx and macOS
+temporary-path constraints); do not present it as successful full CI.
 
 **Philippines Desk AFP official-link lane (19 October 2026):** released.
 The owner's standing authorization publishes verified neutral AFP link

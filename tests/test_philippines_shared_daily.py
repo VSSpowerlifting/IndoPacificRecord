@@ -190,6 +190,11 @@ class SharedDaily(unittest.TestCase):
         bad = copy.deepcopy(envelope); bad["packet"]["records"][0]["body"] = "restricted"
         with self.assertRaises(d.IntakeHold): d.admit(conn,bad,family="ph_afp_articles",policy=p,key=key)
         self.assertEqual(conn.execute("SELECT count(*) FROM daily_machine_records").fetchone()[0],1)
+        withdrawn, _ = d.process([], state, family="ph_afp_articles", policy=p)
+        hold = d.sign_outputs(withdrawn, family="ph_afp_articles", policy=p, key=key)
+        d.admit(conn, hold, family="ph_afp_articles", policy=p, key=key)
+        d.admit(conn, envelope, family="ph_afp_articles", policy=p, key=key)
+        self.assertEqual(conn.execute("SELECT publication_state FROM daily_machine_records").fetchone()[0], "held")
         conn.close()
 
     def test_public_intake_isolates_bad_family_envelope(self):
@@ -224,6 +229,48 @@ class SharedDaily(unittest.TestCase):
         self.assertNotIn(record()['body'], html)
         self.assertNotIn(record()['title'], html)
         self.assertIn('No translation was needed', html)
+
+
+from tests.test_reconcile import ReconcileCase, migrate
+
+
+class MachineRecordReconciliation(ReconcileCase):
+    """A concurrent main update must preserve the local Daily publication."""
+
+    def setUp(self):
+        super().setUp()
+        self.p = policy()
+        state, _ = d.process([record()], {}, family="ph_afp_articles", policy=self.p,
+                             analyzer_factory=fake_analyzer)
+        self.key = "synthetic-reconcile-key-" * 3
+        self.envelope = d.sign_outputs(state, family="ph_afp_articles", policy=self.p, key=self.key)
+        for path in (self.origin, self.local):
+            migrate(path)
+            with sqlite3.connect(str(path)) as conn:
+                r = record()
+                conn.execute("INSERT INTO regional_official_source_links VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+                    r["source_family"], r["source_identity"], "philippines", r["canonical_official_url"],
+                    r["publisher_posted_date"], "ph_afp", "ph_afp", None, "c"*40, "a"*64,
+                    "123-1", "official_link_only", "d"*64, "2026-10-19T00:00:00Z"))
+        with sqlite3.connect(str(self.local)) as conn:
+            d.admit(conn, self.envelope, family="ph_afp_articles", policy=self.p, key=self.key)
+
+    def test_local_output_survives_main_reconciliation_and_replay(self):
+        out, _, problems = self.run_reconcile()
+        self.assertEqual(problems, [])
+        with sqlite3.connect(str(out)) as conn:
+            self.assertEqual(conn.execute("SELECT summary FROM daily_machine_records").fetchone()[0],
+                             reading()["summary_english"])
+            self.assertEqual(d.admit(conn, self.envelope, family="ph_afp_articles", policy=self.p,
+                                     key=self.key)["admitted"], 0)
+
+    def test_conflicting_already_released_version_stops_reconciliation(self):
+        with sqlite3.connect(str(self.origin)) as conn:
+            d.admit(conn, self.envelope, family="ph_afp_articles", policy=self.p, key=self.key)
+            conn.execute("UPDATE daily_machine_records SET summary='Conflicting synthetic machine record'")
+        conn.close()  # checkpoint the immutable merge input, including its WAL
+        with self.assertRaisesRegex(ValueError, "daily_machine_record_version_conflict"):
+            self.run_reconcile()
 
 
 if __name__ == "__main__":
