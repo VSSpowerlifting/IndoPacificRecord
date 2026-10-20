@@ -13,6 +13,14 @@ The 2026-10-09 owner ruling supersedes preservation of historical page chrome:
 all article pages should use the current IPR shell, with original publication
 identity retained in a provenance note and citation. See editorial doctrine §5a.
 
+**Standing multi-desk direction (owner, 2026-10-19):** one logical shared
+Daily processing/record publishing system, not a separate article/AI/site
+pipeline per desk. Independent private/source-specific collectors remain
+allowed and necessary. Translation only when needed; automated, labeled
+record output after source-specific rights/QA/spend authorization; Briefs
+remain human editorial. This is a target, not current release permission.
+See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 Summary of the non-negotiables:
 
 - Use a separate worktree for each assigned IPR repository. Coordinate with
