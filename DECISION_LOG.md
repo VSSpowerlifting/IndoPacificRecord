@@ -4,6 +4,40 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-19 — Owner direction: converge all desks on one logical Daily
+
+The owner requested that the Philippines Desk and other IPR country desks use
+**one common, unattended, source-grounded article-processing and public
+publication architecture**, rather than perpetuating Korea-style separate
+country AI engines, article corpora, per-record review pipelines and public
+renderers. Existing officially authorized, independently scheduled collectors
+and private source custody should remain where access, provenance and source
+rights require them; validated outputs should converge through shared IPR
+Daily intake, explicit desk-specific processing profiles, common source-link/
+article distinctions, one public reader experience and coordinated deployment.
+"One Daily" is a logical processing and publication architecture, **not** a
+requirement for every source to scrape inside one Actions run.
+
+The Philippines example is simpler than Korea: AFP and NSC originals are
+English and need **no translation**. Reuse Singapore-style English screening
+and the shared analyzer with a distinct Philippines profile, rather than
+build a separate translation engine or routine manual review queue. For Korea,
+Korean-to-English translation requires its own terminology/quality checks;
+China-only PLA prompts must never be the default for unregistered desks.
+The desired long-term norm is automatic public release of qualifying,
+properly identified **machine-generated source-record explanations** after
+source-specific rights, quality, cost and accuracy controls; exceptional
+records hold for review. Human-controlled IPR Briefs and bylined analysis
+retain editorial acceptance and owner approval.
+
+**Authority limit:** This is a standing **design preference**, not an
+immediate authorization to spend on models, republish AFP/NSC text, publish
+machine derivatives, widen DAPA/other source rights, merge code, activate
+workflows, or bypass signed human editorial decisions. Existing AFP link-only
+ruling, unresolved NSC policy/anomaly and all historical source-specific holds
+remain unchanged. Implementation is governed by
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md` and the real evidence/publishing gates.
+
 ## 2026-10-19 — Owner: Vietnam local encrypted backup and isolated restore
 
 Benjamin Yang, Founder and Director of Research and Editorial, Indo-Pacific

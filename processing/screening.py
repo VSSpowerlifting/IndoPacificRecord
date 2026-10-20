@@ -41,6 +41,14 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Callable, Dict, List, Optional
 
+from analysis.korea_prompts import (
+    RELEVANCE_VERSION as KOREA_RELEVANCE_VERSION,
+    ANALYSIS_VERSION as KOREA_ANALYSIS_VERSION,
+    relevance_messages as build_korea_relevance_messages,
+    analysis_messages as build_korea_analysis_messages,
+    system_prompt as build_korea_system_prompt,
+)
+
 from analysis.prompts import (
     PROMPT_VERSION,
     SINGAPORE_ANALYSIS_PROMPT_VERSION,
@@ -113,9 +121,24 @@ SINGAPORE_PROFILE = ScreeningProfile(
     analysis_prompt_version=SINGAPORE_ANALYSIS_PROMPT_VERSION,
 )
 
+# Installed but kept out of paid Daily until source admission and publication
+# QA are complete. Model processing can be verified offline and on scratch DBs.
+KOREA_PROFILE = ScreeningProfile(
+    desk_id="korea",
+    keyword_prefilter=False,
+    daily_queue=False,
+    build_messages=build_korea_relevance_messages,
+    prompt_version=KOREA_RELEVANCE_VERSION,
+    build_system_prompt=build_korea_system_prompt,
+    build_analysis_messages=build_korea_analysis_messages,
+    build_analysis_system_prompt=build_korea_system_prompt,
+    analysis_prompt_version=KOREA_ANALYSIS_VERSION,
+)
+
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
+    "korea": KOREA_PROFILE,
 }
 
 # A non-China desk in the daily queue without its own analysis would have its

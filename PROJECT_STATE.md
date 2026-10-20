@@ -1,5 +1,15 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Owner architecture target (19 October 2026; not yet deployed):** All desks
+should ultimately converge on one logical shared Daily article-processing,
+model and public publishing architecture, while approved source collection,
+private originals and access schedules remain source-specific. Philippines
+AFP/NSC English originals need no translation; standing machine-record
+publication is a desired end state only after specific rights/quality/spend
+approval. Briefs remain human-controlled. This does **not** change any live
+desk status, consent or rights flag. Canonical target:
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 **Philippines Desk AFP official-link lane (19 October 2026):** released.
 The owner's standing authorization publishes verified neutral AFP link
 metadata for existing and future eligible records without per-record human
