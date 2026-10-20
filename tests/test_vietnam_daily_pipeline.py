@@ -957,6 +957,12 @@ class DailyCommand(unittest.TestCase):
         self.assertTrue(ledger.is_file())
         self.assertEqual([p.name for p in ledger.parent.iterdir()], [ledger.name])
 
+    def test_family_without_a_ledger_still_completes(self):
+        with patch.object(self.daily.bridge, "run_family", return_value={"family": MPS}):
+            code, report = self.main()
+        self.assertEqual(code, 0, report)
+        self.assertEqual(list((self.tmp / "ledgers").iterdir()), [])
+
 
 if __name__ == "__main__":
     unittest.main()

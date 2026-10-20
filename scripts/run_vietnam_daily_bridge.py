@@ -118,9 +118,8 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
             raise bridge.BridgeError("database_changed_concurrently")
         os.chmod(scratch, db.stat().st_mode & 0o777)
         os.replace(str(scratch), str(db))
-        for family, _commit in commits:
-            os.replace(str(staging / ("%s.json" % family)),
-                       str(ledger_dir / ("%s.json" % family)))
+        for staged in sorted(staging.iterdir()):
+            os.replace(str(staged), str(ledger_dir / staged.name))
         return reports
     finally:
         scratch.unlink(missing_ok=True)
