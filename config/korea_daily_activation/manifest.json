@@ -1,0 +1,60 @@
+{
+  "manifest_version": 1,
+  "_comment": [
+    "South Korea Desk - STAGED production manifest. Not active.",
+    "core.manifests.load_all_desks() globs desks/*/manifest.json only, so this",
+    "file at config/korea_daily_activation/ is read by tests and by nothing in",
+    "production. Owner activation moves it to desks/korea/manifest.json in the",
+    "same commit that flips the desks/registry.json Korea entry to live",
+    "(docs/engineering/KOREA_DAILY_ACTIVATION_2026-10-20.md). The build refuses",
+    "either half without the other.",
+    "One source: Korea Policy Briefing republications explicitly labelled as",
+    "MND (A00005) releases. access_method is manual: the Daily never fetches",
+    "the portal. The private collector (ipr-source-evidence-private) keeps",
+    "captures, HWPX and photographs; records reach `articles` only through the",
+    "source-pinned bridge (core/korea_corpus_bridge.py) for identities in the",
+    "public KOGL release index. DAPA stays metadata-only and is not a source",
+    "here. Tier B reflects republication; cadence thresholds remain unset."
+  ],
+  "desk": {
+    "desk_id": "korea",
+    "display_name": "South Korea Desk",
+    "jurisdiction_code": "KR",
+    "default_timezone": "Asia/Seoul",
+    "default_calendar": "gregorian",
+    "supported_language_tags": ["ko"],
+    "public_status": "public",
+    "active": true
+  },
+  "institutions": [
+    {
+      "institution_id": "kr_policy_briefing",
+      "display_name": "Korea Policy Briefing",
+      "name_original": "대한민국 정책브리핑",
+      "institution_type": "other",
+      "notes": "Government portal that republishes ministry press releases. Publisher of record for this source, not its issuer."
+    },
+    {
+      "institution_id": "kr_mnd",
+      "display_name": "South Korea Ministry of National Defense",
+      "name_original": "국방부",
+      "institution_type": "defense_ministry",
+      "notes": "Original issuer of the releases this desk carries."
+    }
+  ],
+  "sources": [
+    {
+      "slug": "kr_policy_mnd_releases",
+      "institution_id": "kr_policy_briefing",
+      "display_name": "Policy Briefing - MND-labelled republished releases",
+      "base_url": "https://www.korea.kr",
+      "language_tag": "ko",
+      "access_method": "manual",
+      "authority_tier": "B",
+      "source_type": "government_republished_release",
+      "originality": "syndicated",
+      "enabled": true,
+      "notes": "Manual in this repository: collected once daily by the private, robots-compliant collector; admitted to the corpus only through the source-pinned bridge for KOGL Type 1 releases in research/korea_published_original_texts. The frozen October baseline, the editor-reviewed English releases and the research hold are never bridged. Portal posting date is preserved; dates inside the document stay original text. Not direct MND-site retrieval, not a complete MND wire, not independent corroboration."
+    }
+  ]
+}

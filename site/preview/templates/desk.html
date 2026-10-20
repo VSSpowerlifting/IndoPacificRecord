@@ -378,7 +378,8 @@
         <p class="meta">Source: <a href="{{ item.official_url }}" rel="noopener noreferrer"
         target="_blank">Official government article</a>
         · Portal posted: <time datetime="{{ item.publisher_posted_date }}">{{ item.publisher_posted_date }}</time>
-        · KOGL Type 1 text with attribution</p>
+        · KOGL Type 1 text with attribution{% if korea_record_routes and korea_record_routes.get(item.source_identity) %}
+        · <a href="{{ korea_record_routes[item.source_identity] }}" data-korea-record-link="{{ item.source_identity }}">IPR record with machine translation (not human-reviewed)</a>{% endif %}</p>
       </li>
     {% endfor %}
     </ol>

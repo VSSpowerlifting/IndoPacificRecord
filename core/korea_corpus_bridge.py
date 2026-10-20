@@ -435,3 +435,54 @@ def withdrawn_article_ids(conn: sqlite3.Connection) -> set:
     return {r[0] for r in conn.execute(
         "SELECT article_id FROM korea_corpus_admissions "
         "WHERE state='withdrawn' AND article_id IS NOT NULL")}
+
+
+# Ledger processing states a reader may see. Everything else — pending,
+# retryable, QA-held, paused — would render with the generic
+# "awaiting screening" label, which is not what happened to it.
+PUBLISHABLE_PROCESSING = ("processed", "not_relevant")
+
+
+def publication_gate(conn: sqlite3.Connection):
+    """Which Korea-desk corpus rows a renderer may show.
+
+    Returns ``(publishable, hidden)``: ``{article_id: source_identity}`` for
+    rows that are admitted, still pinned and finished processing, and the set
+    of every other Korea-desk article id. Fail closed: a Korea-desk row with
+    no ledger entry (one that bypassed the bridge) is hidden, not shown.
+    Other desks are untouched; with no Korea rows ``hidden`` is empty.
+    """
+    def rows(sql, params=()):
+        # Positional rows whatever row factory the caller's connection uses
+        # (the renderer reads through a dict factory).
+        cur = conn.cursor()
+        cur.row_factory = None
+        return cur.execute(sql, params).fetchall()
+
+    korea = {r[0] for r in rows(
+        "SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id "
+        "WHERE s.desk_id = ? OR s.slug = ?", (DESK_ID, SOURCE_SLUG))}
+    if not korea:
+        return {}, set()
+    publishable = {}
+    if rows("SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='korea_corpus_admissions'"):
+        publishable = {r[0]: r[1] for r in rows(
+            "SELECT article_id, source_identity FROM korea_corpus_admissions "
+            "WHERE state = 'admitted' AND article_id IS NOT NULL "
+            "AND processing_state IN (?, ?)", PUBLISHABLE_PROCESSING)
+            if r[0] in korea}
+    return publishable, korea - set(publishable)
+
+
+def hidden_predicate(hidden, alias: str = "a") -> str:
+    """SQL that keeps an `articles` row unless the gate hides it.
+
+    Article ids are integers from the database itself, so they are inlined;
+    with nothing hidden the predicate is the constant ``1=1`` and every other
+    desk's query is unchanged in effect.
+    """
+    if not hidden:
+        return "1=1"
+    return "%s.id NOT IN (%s)" % (
+        alias, ",".join(str(int(i)) for i in sorted(hidden)))
