@@ -21,6 +21,23 @@ record output after source-specific rights/QA/spend authorization; Briefs
 remain human editorial. This is a target, not current release permission.
 See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**Owner's permanent desk-delivery rule (20 October 2026, all desks and sessions):**
+The deliverable is a **working unattended desk**, not another audit, roadmap,
+shadow milestone, or PR. Reuse one shared Daily corpus/processing/publishing
+path, and use separate private collectors only where source access/custody
+requires them. For authorized, quality-passing machine-labeled records,
+automate translation when needed, analysis, and site updates without routine
+per-article approval; hold real rights/accuracy exceptions individually.
+Use focused tests while implementing, the repository's mandatory CI at the
+final exact revision, and one real successful source-to-live-site result.
+No arbitrary 7/30-day waits, repeat full suites, extra rehearsal programs,
+parallel AI engines, or desk-specific article renderers. Preserve source-use
+permissions, provenance, model spending limits, the existing China/Singapore
+service, and human approval for Briefs. Explicit authority is still required
+for new source-use/spend/publishing activation. Stop when the agreed desk
+works—or report the one precise external blocker. **Do not manufacture more
+work to chase a percentage.**
+
 Summary of the non-negotiables:
 
 - Use a separate worktree for each assigned IPR repository. Coordinate with
