@@ -52,13 +52,13 @@ def analysis_messages(title, body):
         "(string), flag (boolean), flag_reason (source-attributed sentence or null), "
         "flag_evidence (exact supporting source span or null), facts (one object per "
         "summary sentence with sentence and evidence fields; evidence is an exact "
-        "source paragraph of 20–500 characters, copied character-for-character including "
-        "curly apostrophes, punctuation and whitespace; use JSON escapes where needed). "
+        "contiguous source span of 20–500 characters, copied character-for-character including "
+        "curly apostrophes, punctuation and whitespace; encode a right curly apostrophe as \\u2019, never ASCII apostrophe). "
         "Every date, quantity, name, place and other claim in a sentence must be "
         "supported by that sentence's ONE evidence span. Do not combine facts from "
-        "distant paragraphs. Select only facts supported by a paragraph that fits "
+        "distant paragraphs. This applies equally to flag_reason and flag_evidence. Select only facts supported by a single span that fits "
         "the evidence length; do not shorten the evidence so it omits a claim's support. "
-        "Never normalize or rewrite evidence. Concatenating facts' sentence fields with "
+        "A span may omit unrelated text before or after the complete supporting clause. Never normalize or rewrite evidence. Concatenating facts' sentence fields with "
         "one space must reproduce summary exactly. Return categories (list of "
         "these slugs only: " + ", ".join(CATEGORIES) + ").\n" +
         json.dumps({"title": title, "body": body}, ensure_ascii=False))}]
