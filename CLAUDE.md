@@ -13,8 +13,9 @@ never intelligence cosplay.
 2026-08-27. Use it only when describing history.
 
 ## Session start
-1. Check latest owner rulings in `DECISION_LOG.md` and
-   `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`; read relevant
+1. Check latest owner rulings in `DECISION_LOG.md`,
+   `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` and
+   `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`; read relevant
    `PROJECT_STATE.md` sections and verify dated status against real code,
    open PRs, source captures and Actions.
 2. For architecture questions, use an existing graph report when present,
@@ -60,17 +61,39 @@ never intelligence cosplay.
 - `base.html`, `pla-watch-base.html`, `scripts/pw_env.py` are single-owner
   files — no concurrent agent edits.
 
-## Complete-desk working method
-Follow the owner-approved contract for each desk: official sources → private
-source evidence → permitted translation/processing → screening and analysis →
-governed SQLite/admission → reader/editor publication → genuine scheduled
-maintenance and recovery. Derive expected records from original publisher
-material; distinguish manual rehearsal from real unattended operation. Verify
-source rights, actual human decisions, idempotent retries and deployed HTTPS
-when authorized. Prefer one coherent PR (and only an essential private
-companion) to new qualification frameworks or extra approval layers. Finish
-at an operating desk or a specific external blocker. See
-`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` and issue #673.
+## Complete-desk working method — do not build extra machinery
+
+**This is the default interpretation of EVERY desk-completion request.**
+The owner's repeated correction is that we must **make the desk actually
+work**, not produce more shadows, staged qualification plans, independent
+source publishers, approval forms or engineering infrastructure.
+
+Deliver the shortest credible end-to-end slice through the existing shared
+Daily: source-specific official collector/private custody → authenticated
+source- and rights-pinned shared intake → explicit desk/language screening →
+translation **only for non-English originals** → existing Analyzer
+summary/categories/model flag → rights and factual QA → existing common
+article/source-link representation → existing site/desk/archive/search,
+deployment and live readback → unattended normal maintenance.
+
+**One logical Daily is NOT one giant collection job.** Leave source-specific
+schedules, private originals and isolation intact; converge processing and
+public release. Reuse before building. Do not add a new service, country
+queue, DB, AI engine, article renderer, dashboard, audit process or PR stage
+unless you can identify exactly why the working common component cannot
+meet the real requirement. No arbitrary 7/30-day holding patterns. Human
+approval is for genuine source-use, spending/release decisions and exceptional
+machine-record holds; IPR Briefs and bylined analysis retain their separate
+editorial sign-off. Never infer permission to copy protected originals into
+public SQLite or publish derivatives merely from official-link authorization.
+
+**When asked to finish a desk, implement toward publication and maintenance,
+not another roadmap.** Use a real eligible record to prove the narrow path,
+preserve existing desk operation and run the established tests. If blocked
+by a rights/access/owner decision, finish all safe work and request the one
+precise decision. Do not describe an inactive profile, green fixture or link
+index as the completed desk. Details, architecture diagram and "do not build"
+rules: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
 ## Shared Daily target (owner direction, 2026-10-19)
 

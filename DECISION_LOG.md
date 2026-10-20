@@ -4,6 +4,31 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-20 — Owner clarification: ship working desks, not intermediate engineering programs
+
+This reaffirms and sharpens the October 19 shared Daily design rule for
+**every** desk, including Korea and the Philippines. The owner wants
+source-to-live-site delivery and automatic ongoing operation, not cumulative
+shadow stages, idle processing profiles, endless rehearsals, duplicate
+country-specific subsystems, repeated local 7,000-test runs, documentation
+cycles or overlapping preliminary PRs. Reuse the existing collector/custody
+and common Daily/Analyzer/corpus-or-link-index/renderer stack; finish one
+coherent activation release. During development, use focused tests; run the
+repository's required exact-head CI on final reviewable code, then—with
+specific authorization—ship one authentic source-backed record and check
+the deployed page. Fix real failures; do not invent waiting periods or require
+a live production incident to demonstrate recovery.
+
+**This is an execution-priority ruling, not a waiver of source permissions,
+proof of facts, rights for model processing/public derivatives, bounded
+spending, production approval, concurrency safety or human Brief review.**
+Where a single real authorization is missing, request that decision
+concisely and complete the rest of the integrated implementation. Do not
+mislabel green preflight, inactive PRs or synthetic pages as live content.
+The canonical agent instructions and target architecture are in
+`CLAUDE.md`, `AGENTS.md`, and
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 ## 2026-10-19 — Owner direction: converge all desks on one logical Daily
 
 The owner requested that the Philippines Desk and other IPR country desks use
