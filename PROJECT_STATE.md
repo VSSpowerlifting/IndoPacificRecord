@@ -18,21 +18,29 @@ integration are implemented on `codex/philippines-shared-daily-20261019`.
 The essential private companion invokes the same public engine without changing
 collectors. Every new model/output/unattended policy flag remains false.
 Authentic offline replay: 32 AFP originals/captures match all 32 admitted link
-versions; NSC has zero records. No paid call or machine explanation release.
+versions; NSC has zero records. No machine explanation has been released.
 Production DB/output and desk status are unchanged. The owner authorized one
 private `afp:1418` trial at `442081916b3b41850e958ae75298bf12afe565b6`,
 with a $0.35 total allowance, no translation, no automatic paid retry and no
-public output. Exact capture/content hashes and admitted link version reverified;
-execution is blocked by missing `ANTHROPIC_API_KEY` locally and in private Actions.
-Private #21 contains the bounded shared-Analyzer trial command. Standing model/
+public output. Exact capture/content hashes and admitted link version reverified.
+The owner configured the private Actions key. Genuine trial: two calls, 1,251
+input / 584 output tokens, estimated $0.010581; no retries or translation.
+Response text, relevance judgment and source-specific review remain private.
+The trial did not produce a release-eligible record. Prompt v2 explicitly
+requires literal evidence punctuation and AFP/NSC in every sentence; strict
+gates remain unchanged. This is not a quality-passing production record.
+Private #21 retains the bounded trial command and private run receipts. Standing model/
 machine-output rights and merge/credentials/activation/release authority remain
 separate. Main's permanent working-desk ruling is retained in this branch.
 See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
 evidence distinctions and rollback. Review: public #835 and private #21, both
 inactive. Focused profile/custody/migration/retry checks, the private 81-test
 suite and synthetic production-render/Chromium checks passed. Full Linux CI on
-`f446d53861` passed 7,690 tests (three skips), with ten governed validator warnings;
-CI must pass again on the final updated PR head. The development full local run was not
+`f446d53861` passed 7,690 tests (three skips), with ten governed validator warnings.
+Updated-head CI exposed Python 3.12 fixture/date compatibility and a changed SDK
+dependency set: explicit SQLite closure, consistent ISO-date diagnostics and
+the existing SDK major/httpx contract are repaired. Final-head CI must pass.
+The development full local run was not
 green (subsequently repaired regressions, missing gpg/python-docx and macOS
 temporary-path constraints); do not present it as successful full CI.
 

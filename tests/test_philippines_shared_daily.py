@@ -39,7 +39,7 @@ def reading():
         facts=[dict(sentence=first, evidence="A routine exercise is planned for 23 October."),
                dict(sentence=second, evidence="The announcement does not establish that training has taken place.")],
         is_significant=False, categories=["exercises"], significance_reasoning=None,
-        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v1")
+        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v2")
 
 
 def fake_analyzer(reply=None):
@@ -224,7 +224,7 @@ class SharedDaily(unittest.TestCase):
             model_flagged=False, publisher='ph_afp', published_date='2026-10-19',
             url=record()['canonical_official_url'], source_git_commit='c'*40,
             content_sha256=record()['content_sha256'], source_run='123-1',
-            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v1'))
+            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v2'))
         self.assertIn('Machine summary', html)
         self.assertNotIn(record()['body'], html)
         self.assertNotIn(record()['title'], html)
@@ -252,8 +252,10 @@ class MachineRecordReconciliation(ReconcileCase):
                     r["source_family"], r["source_identity"], "philippines", r["canonical_official_url"],
                     r["publisher_posted_date"], "ph_afp", "ph_afp", None, "c"*40, "a"*64,
                     "123-1", "official_link_only", "d"*64, "2026-10-19T00:00:00Z"))
+            conn.close()  # immutable reconciliation inputs must include committed WAL data
         with sqlite3.connect(str(self.local)) as conn:
             d.admit(conn, self.envelope, family="ph_afp_articles", policy=self.p, key=self.key)
+        conn.close()
 
     def test_local_output_survives_main_reconciliation_and_replay(self):
         out, _, problems = self.run_reconcile()

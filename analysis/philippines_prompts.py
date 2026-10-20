@@ -35,15 +35,18 @@ def relevance_messages(title, body):
 
 def analysis_messages(title, body):
     return [{"role": "user", "content": (
-        "Write 2–3 factual sentences, at most 90 words. Attribute each sentence to "
-        "AFP or NSC as appropriate. Distinguish announced intentions from completed "
+        "Write 2–3 factual sentences, at most 90 words. Every sentence must explicitly "
+        "contain AFP or NSC as appropriate; 'the source' alone is insufficient attribution. "
+        "Distinguish announced intentions from completed "
         "actions; identify what the source does not establish. No direct quotations "
         "or copied publisher sentences. Flag only substantive developments for "
         "closer reading, with a restrained explanation. Return only JSON with summary "
         "(string), flag (boolean), flag_reason (source-attributed sentence or null), "
         "flag_evidence (exact supporting source span or null), facts (one object per "
         "summary sentence with sentence and evidence fields; evidence is an exact "
-        "source span of 20–500 characters). Concatenating facts' sentence fields with "
+        "source span of 20–500 characters, copied character-for-character including "
+        "curly apostrophes, punctuation and whitespace; use JSON escapes where needed). "
+        "Never normalize or rewrite evidence. Concatenating facts' sentence fields with "
         "one space must reproduce summary exactly. Return categories (list of "
         "these slugs only: " + ", ".join(CATEGORIES) + ").\n" +
         json.dumps({"title": title, "body": body}, ensure_ascii=False))}]

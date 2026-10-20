@@ -19,11 +19,13 @@ LOCAL_TZ = ZoneInfo("America/New_York")
 def _parse_friday(value: str) -> date:
     try:
         parsed = date.fromisoformat(value)
+        if parsed.isoformat() != value:
+            raise ValueError("noncanonical date")
     except (TypeError, ValueError) as exc:
         raise ReportingWindowRefused(
             "reporting_friday must be a valid YYYY-MM-DD date"
         ) from exc
-    if parsed.isoformat() != value or parsed.weekday() != 4:
+    if parsed.weekday() != 4:
         raise ReportingWindowRefused(
             "reporting_friday must identify a Friday in YYYY-MM-DD format"
         )

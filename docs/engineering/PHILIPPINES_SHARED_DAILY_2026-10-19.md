@@ -72,8 +72,12 @@ behind the 32 admitted public AFP links. The first candidate is `afp:1418`.
 Its source evidence is authentic. On 20 October the owner separately authorized
 one private trial at `442081916b3b41850e958ae75298bf12afe565b6`; that pin's
 32 originals/captures still match all 32 admitted link versions. `afp:1418`
-matches its exact captured body/version. The trial awaits a securely available
-`ANTHROPIC_API_KEY`; neither local configuration nor private Actions has one.
+matches its exact captured body/version. The owner configured the private Actions
+key; the genuine two-call trial consumed 1,251 input / 584 output tokens,
+estimated $0.010581. Response text, relevance judgment and source-specific review
+remain private: **not a quality-passing public candidate**. Prompt v2 clarifies
+literal evidence punctuation and per-sentence attribution; the gates remain
+strict. No further trial expense is authorized or needed by this receipt.
 Private NSC `b564c3089cac408fce4dc52b794c94855efe025d` replays zero records,
 a valid quiet-source outcome. No original content is copied into this document.
 
@@ -85,8 +89,8 @@ production build into `/tmp/ipr-ph-machine-fixture-20261019/site`, including its
 record page, Philippines link and archive entry. That is **not** an actual model
 response, official-source publication, production DB write or deployed page.
 
-Only the owner's single private trial is authorized; no API expense, credential,
-schedule, production DB/output, Pages change or desk promotion has occurred.
+Only the owner's single private trial is authorized; no schedule, production
+DB/output, Pages change or desk promotion has occurred.
 The existing 32-link AFP
 release remains the genuinely published product; no machine explanation has
 been published by this assignment. Verification results and exact PR state
@@ -97,8 +101,8 @@ belong in the PR checks and `PROJECT_STATE.md`.
 1. Review the public integration and essential private companion; require the
    full PR offline check on the exact final public head, including Chromium,
    validator and DB/output preservation. Merge only under owner authority.
-2. Execute the **already authorized** private `afp:1418` trial once its key is
-   securely available. Private #21's `scripts/trial_afp_1418.py` scopes the exact
+2. The **already completed** private `afp:1418` trial is retained in private #21's
+   `scripts/trial_afp_1418.py`, which scopes the exact
    identity/capture/content version without changing standing family flags. It
    reuses Analyzer/profile/quality/usage, disables SDK retries, limits dispatch
    to relevance (500 output tokens) and analysis (2,200 output tokens), checks a
@@ -107,7 +111,9 @@ belong in the PR checks and `PROJECT_STATE.md`.
    estimate, not a billing-enforced cap; expected successful-call cost is below
    $0.12. Anthropic's [Sonnet 4.6 pricing](https://platform.claude.com/docs/en/models/sonnet-4-6/overview)
    and [Haiku 4.5 pricing](https://platform.claude.com/docs/en/models/haiku-4-5/overview)
-   support the estimate. No call has been made.
+   support the estimate. Actual total was $0.010581; do not repeat this trial.
+   Normal private processing now also disables hidden SDK retries and applies
+   the 16,000-character input ceiling conservatively to UTF-8 bytes.
 3. Establish the applicable source-use basis for AFP machine explanations,
    including attribution, original/capture hash provenance and the public-safe
    schema. Set the three family flags and owner reference only under the actual
