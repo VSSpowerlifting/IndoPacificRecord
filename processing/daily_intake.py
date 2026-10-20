@@ -56,13 +56,21 @@ def load_policy(path=POLICY_PATH):
     for p in value["sources"].values():
         need(set(p) == {"private_model_processing", "public_machine_explanation",
                        "unattended_release", "owner_decision",
-                       "max_records_per_run", "max_input_characters"}, "daily_policy_invalid")
+                       "max_records_per_run", "max_input_characters",
+                       "max_estimated_cost_usd_per_run", "excluded_source_identities"}, "daily_policy_invalid")
         need(all(type(p[k]) is bool for k in (
             "private_model_processing", "public_machine_explanation", "unattended_release")),
             "daily_policy_invalid")
-        need(type(p["max_records_per_run"]) is int and 1 <= p["max_records_per_run"] <= 10
+        need(type(p["max_records_per_run"]) is int and p["max_records_per_run"] == 1
              and type(p["max_input_characters"]) is int
              and 100 <= p["max_input_characters"] <= 16000, "daily_spend_bound_invalid")
+        need(type(p["max_estimated_cost_usd_per_run"]) in (int, float)
+             and 0 < p["max_estimated_cost_usd_per_run"] <= 0.35,
+             "daily_spend_bound_invalid")
+        excluded = p["excluded_source_identities"]
+        need(type(excluded) is list and len(excluded) <= 100
+             and all(type(v) is str and 0 < len(v) < 120 for v in excluded)
+             and len(set(excluded)) == len(excluded), "daily_policy_invalid")
         need(not any(p[k] for k in ("private_model_processing", "public_machine_explanation",
                                    "unattended_release"))
              or (type(p["owner_decision"]) is str and len(p["owner_decision"].strip()) >= 10),
@@ -120,6 +128,33 @@ def verified_source(repo, commit, family):
     return sorted(result, key=lambda r: (r["publisher_posted_date"], r["source_identity"]), reverse=True)
 
 
+def bound_private_calls(analyzer, policy):
+    """Guard the shared Analyzer's two English calls before dispatch."""
+    from config import ANALYSIS_MODEL, RELEVANCE_MODEL, RELEVANCE_TOOL_OUTPUT_ENABLED
+    from analysis.pricing import estimate_usage_cost_usd
+    need(not RELEVANCE_TOOL_OUTPUT_ENABLED, "daily_private_tool_route_not_authorized")
+    call = analyzer._call
+    remaining, calls = policy["max_estimated_cost_usd_per_run"], 0
+    expected = (("relevance", RELEVANCE_MODEL, 500), ("summary", ANALYSIS_MODEL, 2200))
+
+    def guarded(messages, *, model=None, max_tokens=1000, task=None, **kwargs):
+        nonlocal remaining, calls
+        used_model = model or ANALYSIS_MODEL
+        need(calls < 2 and (task, used_model, max_tokens) == expected[calls],
+             "daily_private_call_bound")
+        # UTF-8 bytes bound text tokens; reserve request framing and the more
+        # expensive cache-write rate, rather than guessing chars per token.
+        size = len(json.dumps([messages, kwargs], ensure_ascii=False).encode()) + 2048
+        cost = estimate_usage_cost_usd(used_model, 0, max_tokens, size, 0)
+        need(cost is not None and cost <= remaining, "daily_private_spend_bound")
+        remaining -= cost
+        calls += 1
+        return call(messages, model=model, max_tokens=max_tokens, task=task, **kwargs)
+
+    analyzer._call = guarded
+    analyzer._client = analyzer._client.with_options(max_retries=0)
+
+
 def quality_check(record, reading):
     """Conservative exact-fact checks; no model confidence is accepted as proof.
 
@@ -141,6 +176,9 @@ def quality_check(record, reading):
     source = record["title"] + "\n" + record["body"]
     attribution = "AFP" if record["source_family"] == "ph_afp_articles" else "NSC"
     flagged = reading.get("is_significant")
+    flag_reason = reading.get("significance_reasoning") if flagged else ""
+    need(type(flag_reason) is str and len((summary + " " + flag_reason).split()) <= 90,
+         "daily_explanation_word_limit")
     checked_facts = list(facts)
     if flagged:
         checked_facts.append({"sentence": reading.get("significance_reasoning"),
@@ -187,7 +225,7 @@ def quality_check(record, reading):
              (type(reading.get("significance_reasoning")) is str
               and reading["significance_reasoning"].strip())), "daily_analysis_incomplete")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
-         and reading.get("prompt_version") == "ph-relevance-v1+ph-analysis-v2",
+         and reading.get("prompt_version") == "ph-relevance-v1+ph-analysis-v3",
          "daily_model_provenance_incomplete")
     return digest({"source": record["content_sha256"], "facts": facts, "version": "ph-quality-v1"})
 
@@ -242,6 +280,9 @@ def process(records, state, *, family, policy, analyzer_factory=None):
         version = digest({k: r[k] for k in ("metadata_version_sha256", "content_sha256",
                                            "capture_sha256")})
         prior = result.get(key, {})
+        if r["source_identity"] in p["excluded_source_identities"]:
+            result[key] = {**prior, "status": "held", "reason": "owner_excluded_source_identity"}
+            continue
         if prior.get("version") not in (None, version):
             result[key] = {**prior, "status": "held", "reason": "source_version_changed"}
             continue
@@ -255,6 +296,11 @@ def process(records, state, *, family, policy, analyzer_factory=None):
         result[key] = entry
         if not p["private_model_processing"]:
             entry.update(status="held", reason="model_rights_held")
+            continue
+        if family == "ph_afp_articles" and not (
+                r.get("official_issuer") == r.get("official_publisher") == "ph_afp"
+                and r.get("official_republisher") is None):
+            entry.update(status="held", reason="source_rights_not_first_party")
             continue
         if family == "ph_nsc_official_statements":
             from core.ph_nsc_official_link_admission import load_policy as nsc_policy
@@ -271,7 +317,7 @@ def process(records, state, *, family, policy, analyzer_factory=None):
             analyzer = (analyzer_factory or Analyzer)()
             if analyzer_factory is None:
                 # Queue attempts, not hidden SDK retries, govern private spend.
-                analyzer._client = analyzer._client.with_options(max_retries=0)
+                bound_private_calls(analyzer, p)
         used += 1
         try:
             reading = analyzer.analyze_record(r["title"], r["body"], PHILIPPINES_PROFILE)
@@ -291,12 +337,14 @@ def process(records, state, *, family, policy, analyzer_factory=None):
         except FatalAPIError:
             entry.update(status="pending", reason="account_blocked")
             break
-        except (AnalysisError, IntakeHold):
+        except (AnalysisError, IntakeHold) as exc:
             disposition = processing_state.classify(
                 attempts_before=entry["attempts"], has_body=True,
                 failure=processing_state.ANALYSIS_INCOMPLETE)
             entry.update(status=disposition.state, attempts=disposition.attempts,
                          reason="analysis_or_quality_failed")
+            if isinstance(exc, IntakeHold):
+                entry["quality_hold"] = str(exc)  # fixed diagnostic, never source text
     usage_record = None
     if analyzer is not None:
         from analysis.usage import build_run_record
@@ -320,6 +368,7 @@ def sign_outputs(state, *, family, policy, key):
     need(type(key) is str and len(key) >= 32, "daily_bridge_key_invalid")
     outputs = [v["output"] for k, v in sorted(state.items())
                if k.startswith(family + ":") and v.get("status") == "complete"
+               and v["output"]["source_identity"] not in p["excluded_source_identities"]
                and v["output"]["policy_sha256"] == digest(p)]
     packet = {"schema": "ipr-shared-daily-machine-output/1", "family": family,
               "source_repository": PRIVATE_REPO, "source_ref": REFS[family],
@@ -404,6 +453,8 @@ def validate_output(r, family, p):
     need(type(r) is dict and set(r) == set(PUBLIC_FIELDS)
          and r["source_family"] == family and r["policy_sha256"] == digest(p),
          "daily_output_schema_or_policy_invalid")
+    need(r["source_identity"] not in p["excluded_source_identities"],
+         "daily_owner_excluded_source_identity")
     need(all(type(r[k]) is str and SHA.fullmatch(r[k]) for k in (
         "metadata_version_sha256", "content_sha256", "capture_sha256", "quality_sha256", "policy_sha256"))
          and type(r["source_git_commit"]) is str and COMMIT.fullmatch(r["source_git_commit"]),
@@ -415,4 +466,6 @@ def validate_output(r, family, p):
          and type(r["categories"]) is list and r["categories"]
          and all(type(c) is str and c in PHILIPPINES_PROFILE.categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
-         and r["prompt_version"] == "ph-relevance-v1+ph-analysis-v2", "daily_output_incomplete")
+         and r["prompt_version"] == "ph-relevance-v1+ph-analysis-v3", "daily_output_incomplete")
+    need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
+         "daily_explanation_word_limit")

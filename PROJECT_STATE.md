@@ -16,7 +16,11 @@ private source/version intake, shared Analyzer/quality/retry path, signed
 public-safe output and coordinated Daily/record/desk/archive/Sunday research
 integration are implemented on `codex/philippines-shared-daily-20261019`.
 The essential private companion invokes the same public engine without changing
-collectors. Every new model/output/unattended policy flag remains false.
+collectors. The owner approved standing AFP processing and qualifying factual
+machine explanations (≤90 words, explicit attribution/citation), $0.35 estimated
+per run, one record/two intended calls, no SDK retries, five failed attempts
+before individual pause. AFP policy is pinned; NSC remains independently held.
+General integration activation variables remain absent: no production release.
 Authentic offline replay: 32 AFP originals/captures match all 32 admitted link
 versions; NSC has zero records. No machine explanation has been released.
 Production DB/output and desk status are unchanged. The owner authorized one
@@ -26,12 +30,16 @@ public output. Exact capture/content hashes and admitted link version reverified
 The owner configured the private Actions key. Genuine trial: two calls, 1,251
 input / 584 output tokens, estimated $0.010581; no retries or translation.
 Response text, relevance judgment and source-specific review remain private.
-The trial did not produce a release-eligible record. Prompt v2 explicitly
+The trial did not produce a release-eligible record. Prompt v3 explicitly
 requires literal evidence punctuation and AFP/NSC in every sentence; strict
 gates remain unchanged. This is not a quality-passing production record.
-Private #21 retains the bounded trial command and private run receipts. Standing model/
-machine-output rights and merge/credentials/activation/release authority remain
-separate. Main's permanent working-desk ruling is retained in this branch.
+Private #21 retains the bounded trial command and private run receipts.
+`afp:1418` is explicitly excluded from processing, signing, intake and rendering.
+The owner requested genuine private verification of another relevant preserved
+record through shared Daily; `afp:1411` is selected. Private-only execution uses
+the ordinary processor and quality gates, without signing/releasing an envelope.
+Separate merge/credentials/activation/deployment authorization remains required.
+Main's permanent working-desk ruling and newer U.S. metadata are retained.
 See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
 evidence distinctions and rollback. Review: public #835 and private #21, both
 inactive. Focused profile/custody/migration/retry checks, the private 81-test

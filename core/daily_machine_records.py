@@ -20,6 +20,8 @@ def load(db_path):
             if family not in REFS:
                 continue
             p = policy["sources"][family]
+            if r["source_identity"] in p["excluded_source_identities"]:
+                continue
             if not all(p[k] for k in ("private_model_processing", "public_machine_explanation", "unattended_release")):
                 continue
             r["categories"] = json.loads(r["categories"])

@@ -1,6 +1,7 @@
 # Philippines integration with shared Daily
 
-Engineering candidate; no new production, model-use or publication authority.
+Engineering candidate. Standing AFP processing/output policy is owner-approved
+(20 October); production merge/activation/deployment remain separately held.
 Started from public main `5ba03d04ec`; rebased onto `4509361d13` after Korea
 #832 merged during implementation. Its profile and Analyzer route are preserved.
 Shared architecture #833 was already merged. Other desks' engineering is outside
@@ -89,7 +90,12 @@ production build into `/tmp/ipr-ph-machine-fixture-20261019/site`, including its
 record page, Philippines link and archive entry. That is **not** an actual model
 response, official-source publication, production DB write or deployed page.
 
-Only the owner's single private trial is authorized; no schedule, production
+The owner has now approved standing AFP processing and qualifying nonverbatim
+machine explanations, subject to applicable source-use rights. The initial
+limits are $0.35 estimated/run, one record, two intended calls, no SDK retries,
+and five failed queue attempts before pausing that record. `afp:1418` is expressly
+excluded regardless of future model judgments. NSC remains separately held.
+No schedule, production
 DB/output, Pages change or desk promotion has occurred.
 The existing 32-link AFP
 release remains the genuinely published product; no machine explanation has
@@ -114,16 +120,24 @@ belong in the PR checks and `PROJECT_STATE.md`.
    support the estimate. Actual total was $0.010581; do not repeat this trial.
    Normal private processing now also disables hidden SDK retries and applies
    the 16,000-character input ceiling conservatively to UTF-8 bytes.
-3. Establish the applicable source-use basis for AFP machine explanations,
-   including attribution, original/capture hash provenance and the public-safe
-   schema. Set the three family flags and owner reference only under the actual
-   decision. NSC needs its own metadata, anomaly, model and output decisions;
-   AFP's authorization never supplies them.
+3. Standing AFP policy is pinned to the owner's 20 October decision. It covers
+   first-party factual reporting only, independently worded explanation rather
+   than publisher expression, with attribution, citations and capture/version
+   proof; no original titles/bodies/images or restricted third-party material.
+   The [IP Code §§175–176,185](https://ilaw.ipophil.gov.ph/mod/resource/view.php?id=14)
+   distinguishes facts, government works and research/comment use; this is not
+   a blanket copyright licence or permission for exploitation of government
+   expression for profit. Ambiguous source rights remain held. NSC needs its
+   own metadata, anomaly, model and output decisions.
 4. With separate owner release authority, configure matching independent
-   family keys and the private-output read credential, then enable the guarded
+   AFP family key and the private-output read credential, then enable the guarded
    private processing and public Daily variables. The private runner uses only
    public main code; its JSON state/output branch is atomically advanced with
    non-force Git ref updates. It does not write public main or Pages.
+   Public Daily can reuse the existing `IPR_PRIVATE_VAULT_READ_TOKEN` for the
+   fixed signed-envelope read, or use a dedicated `IPR_DAILY_OUTPUT_READ_TOKEN`.
+   The shared `DAILY_PH_AFP_ARTICLES_KEY` must match in both repositories;
+   no NSC signing key or policy activation is needed for AFP release.
 5. Process one genuine AFP record, inspect actual quality and provenance,
    consume its signed output through shared Daily and render/validate/commit
    through the existing publisher. Read back the exact record, desk and archive

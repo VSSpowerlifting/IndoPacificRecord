@@ -4,6 +4,24 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-20 — Owner: standing AFP factual machine explanations; production held
+
+The owner approved standing private AFP model processing and automatic public
+publication of qualifying, independently worded, clearly machine-labeled English
+explanations of at most 90 words, with explicit AFP attribution and source links,
+subject to applicable source-use rights and existing provenance, relevance,
+attribution, copying and quality gates. No original AFP titles, bodies, images
+or restricted material may be reproduced. NSC remains separately held.
+
+Initial limits: $0.35 estimated per run, one record per run, at most two intended
+model calls, bounded input/output tokens, no SDK retries, and at most five failed
+queue attempts before pausing that record. `afp:1418` is explicitly excluded
+from machine publication; its failed private trial must never be forced through.
+The owner directed another genuine relevant preserved AFP record to be processed
+through shared Daily before release. These decisions are pinned in
+`config/philippines_daily_policy.json`; **no merge, production secret mutation,
+activation or deployment is authorized yet**.
+
 ## 2026-10-20 — Owner: one bounded private AFP model trial
 
 The owner authorized private relevance screening and English summary/topics/

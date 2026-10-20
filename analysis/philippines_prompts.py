@@ -35,7 +35,8 @@ def relevance_messages(title, body):
 
 def analysis_messages(title, body):
     return [{"role": "user", "content": (
-        "Write 2–3 factual sentences, at most 90 words. Every sentence must explicitly "
+        "Write 2–3 factual summary sentences. The summary and flag_reason combined "
+        "must contain at most 90 words. Every sentence must explicitly "
         "contain AFP or NSC as appropriate; 'the source' alone is insufficient attribution. "
         "Distinguish announced intentions from completed "
         "actions; identify what the source does not establish. No direct quotations "

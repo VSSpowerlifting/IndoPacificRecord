@@ -39,7 +39,7 @@ def reading():
         facts=[dict(sentence=first, evidence="A routine exercise is planned for 23 October."),
                dict(sentence=second, evidence="The announcement does not establish that training has taken place.")],
         is_significant=False, categories=["exercises"], significance_reasoning=None,
-        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v2")
+        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v3")
 
 
 def fake_analyzer(reply=None):
@@ -96,10 +96,51 @@ class SharedDaily(unittest.TestCase):
 
     def test_default_rights_stop_before_analyzer_construction(self):
         factory = Mock(side_effect=AssertionError("paid call"))
-        state, usage = d.process([record()], {}, family="ph_afp_articles", policy=d.load_policy(), analyzer_factory=factory)
+        p = policy(); p["sources"]["ph_afp_articles"]["private_model_processing"] = False
+        state, usage = d.process([record()], {}, family="ph_afp_articles", policy=p, analyzer_factory=factory)
         self.assertEqual(state["ph_afp_articles:afp:1"]["reason"], "model_rights_held")
         self.assertEqual(usage, [])
         factory.assert_not_called()
+
+    def test_owner_excluded_trial_never_processes_or_signs(self):
+        r = record(); r["source_identity"] = "afp:1418"
+        factory = Mock(side_effect=AssertionError("excluded paid call"))
+        state, usage = d.process([r], {}, family="ph_afp_articles", policy=policy(), analyzer_factory=factory)
+        self.assertEqual(state["ph_afp_articles:afp:1418"]["reason"], "owner_excluded_source_identity")
+        self.assertEqual(usage, [])
+        factory.assert_not_called()
+        envelope = d.sign_outputs(state, family="ph_afp_articles", policy=policy(), key="k"*32)
+        self.assertEqual(envelope["packet"]["records"], [])
+
+    def test_shared_private_model_guard_bounds_calls_and_cost(self):
+        from config import RELEVANCE_MODEL
+        p = policy()["sources"]["ph_afp_articles"]
+        a = Mock(); underlying = a._call
+        d.bound_private_calls(a, p)
+        a._call([], task="relevance", model=RELEVANCE_MODEL, max_tokens=500)
+        a._call([], task="summary", max_tokens=2200)
+        with self.assertRaisesRegex(d.IntakeHold, "call_bound"):
+            a._call([], task="summary", max_tokens=2200)
+        self.assertEqual(underlying.call_count, 2)
+        a = Mock(); client = a._client; underlying = a._call
+        d.bound_private_calls(a, p)
+        client.with_options.assert_called_once_with(max_retries=0)
+        with self.assertRaisesRegex(d.IntakeHold, "spend_bound"):
+            a._call([{"content": "x"*400000}], task="relevance", model=RELEVANCE_MODEL, max_tokens=500)
+        underlying.assert_not_called()
+
+    def test_afp_standing_rights_do_not_cover_republished_material(self):
+        r = record(); r["official_republisher"] = "third_party"
+        factory = Mock(side_effect=AssertionError("rights-held paid call"))
+        state, _ = d.process([r], {}, family="ph_afp_articles", policy=policy(), analyzer_factory=factory)
+        self.assertEqual(state["ph_afp_articles:afp:1"]["reason"], "source_rights_not_first_party")
+        factory.assert_not_called()
+
+    def test_ninety_word_limit_includes_flag_explanation(self):
+        r = reading()
+        r.update(is_significant=True, significance_reasoning="AFP " + "word "*90)
+        with self.assertRaisesRegex(d.IntakeHold, "explanation_word_limit"):
+            d.quality_check(record(), r)
 
     def test_quiet_nsc_is_a_noop(self):
         state, usage = d.process([], {}, family="ph_nsc_official_statements", policy=d.load_policy())
@@ -181,8 +222,10 @@ class SharedDaily(unittest.TestCase):
         conn.commit()
         for badkey in ("x"*32, ""):
             with self.assertRaises(d.IntakeHold): d.admit(conn,envelope,family="ph_afp_articles",policy=p,key=badkey)
+        denied = copy.deepcopy(p)
+        denied["sources"]["ph_afp_articles"]["public_machine_explanation"] = False
         with self.assertRaises(d.IntakeHold):
-            d.admit(conn,envelope,family="ph_afp_articles",policy=d.load_policy(),key=key)
+            d.admit(conn,envelope,family="ph_afp_articles",policy=denied,key=key)
         with self.assertRaises(d.IntakeHold):
             d.admit(conn,envelope,family="ph_nsc_official_statements",policy=p,key=key)
         self.assertEqual(d.admit(conn,envelope,family="ph_afp_articles",policy=p,key=key)["admitted"],1)
@@ -224,7 +267,7 @@ class SharedDaily(unittest.TestCase):
             model_flagged=False, publisher='ph_afp', published_date='2026-10-19',
             url=record()['canonical_official_url'], source_git_commit='c'*40,
             content_sha256=record()['content_sha256'], source_run='123-1',
-            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v2'))
+            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v3'))
         self.assertIn('Machine summary', html)
         self.assertNotIn(record()['body'], html)
         self.assertNotIn(record()['title'], html)

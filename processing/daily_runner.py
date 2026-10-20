@@ -15,7 +15,8 @@ from processing.daily_intake import (
 )
 
 
-def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False):
+def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
+                source_identity=None, no_release=False):
     """spec is FAMILY,PRIVATE_GIT_CHECKOUT,IMMUTABLE_COMMIT."""
     from scripts.reconcile_db import read_only
     from processing.daily_intake import ROOT
@@ -25,6 +26,9 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False):
     records = verified_source(repo, commit, family)
     with read_only(str(public_db)) as conn:
         eligible = bind_admitted_metadata(records, conn, source_repo=repo)
+    if source_identity:
+        eligible = [r for r in eligible if r["source_identity"] == source_identity]
+        need(len(eligible) == 1, "daily_selected_identity_not_admitted")
     if no_analysis:
         return {"source_family": family, "source_commit": commit,
                 "verified": len(records), "bound_public_links": len(eligible),
@@ -45,7 +49,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False):
     result = {"source_family": family, "source_commit": commit,
               "verified": len(records), "bound_public_links": len(eligible),
               "usage": usage, "model_calls_enabled": policy["sources"][family]["private_model_processing"]}
-    if policy["sources"][family]["public_machine_explanation"]:
+    if not no_release and policy["sources"][family]["public_machine_explanation"]:
         envelope = sign_outputs(state, family=family, policy=policy,
                                  key=os.environ.get("DAILY_OUTPUT_KEY", ""))
         target = Path(out_dir) / (family + ".json")
