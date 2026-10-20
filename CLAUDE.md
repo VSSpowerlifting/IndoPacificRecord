@@ -12,6 +12,32 @@ never intelligence cosplay.
 "China Mil Watch" is a **legacy name**: the predecessor identity, retired
 2026-08-27. Use it only when describing history.
 
+## Standing owner priority — working desks, minimal engineering overhead (20 October 2026)
+
+This instruction applies to **every desk and every future Codex/Claude
+session**. The owner values **a public desk that runs automatically** over
+internal architecture milestones, test counts, review dockets, shadow streaks,
+or a nominal \"100%\" score. Build privately, launch completely, then maintain
+only real failures. On a desk assignment: identify the single missing link to
+real Daily intake → shared corpus or truthful source-link record → appropriate
+translation → model-labeled analysis → source-specific rights/QA gate → shared
+site/desk/archive/search → routine automatic publication. Reuse working
+collectors, custody, model engine and renderer. Do not start parallel article
+pipelines, new phase frameworks, redundant monitoring or speculative source
+expansions. Keep doing the actual implementation instead of serial preparatory
+PRs. A desk is done when a real eligible record completes the authorized
+production path and future eligible records can follow without routine human
+intervention; a link-only source remains clearly labeled and does not imply
+full-text rights. Test risky paths with focused checks during development and
+run required CI once on the final head; verify the actual deployed result.
+Do not avoid necessary tests, distort the evidence, bypass access/rights,
+automate Briefs, or infer authority to spend, merge or activate publication.
+If blocked, report **one concrete blocker and owner action**; otherwise ship.
+The source of truth is the 20 October entry in `DECISION_LOG.md` and
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`. This owner
+priority supersedes older preparatory waiting schedules and aspirational
+roadmaps, not mandatory CI, publisher rights or historical approvals.
+
 ## Session start
 1. Check latest owner rulings in `DECISION_LOG.md` and
    `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`; read relevant
