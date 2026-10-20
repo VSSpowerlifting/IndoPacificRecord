@@ -43,6 +43,15 @@ Summary of the non-negotiables:
 - Production renderer is `.venv/bin/python site/render.py`; the deploy gate is
   `.venv/bin/python scripts/validate_output.py`, whose governed baseline is
   10 warnings.
+- **Desk work means shipment, not scaffolding:** use one existing shared Daily
+  analyzer/publisher, keep authorized source collectors separate, and finish a
+  genuine record-to-live-site vertical slice. No duplicate queues, databases,
+  AI engines, renderers, permanent shadow publication lanes, multi-PR phase
+  ladders or prolonged proof programs. Focused tests while building, required
+  CI once on the final head, then release and fix actual faults. Retain real
+  rights, evidence, accuracy, model-spend and concurrency protections. Follow
+  the execution rule in the shared Daily architecture doc; no routine human
+  review of already-approved machine record output.
 - Be token-efficient: smallest safe change, no full-file pastes, no
   unrequested refactors; report files changed + what changed + how to test.
 - Session start: check latest owner decisions and relevant
