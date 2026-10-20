@@ -90,6 +90,89 @@ Do not infer that any desk currently satisfies the target solely because a
 profile, manifest, PR, private collector or synthetic test exists. Even a
 working link-only desk is not equivalent to a completed content/analysis desk.
 
+## The desk system at a glance (target, not current completion status)
+
+```mermaid
+flowchart TD
+    A["Approved official sources: China, Korea, Japan, Philippines, Indonesia, Vietnam, Singapore"] --> B["Source-specific collectors and schedules"]
+    B --> C["Pinned source identities, rights and private evidence custody"]
+    C --> D["ONE authenticated shared Daily intake and retry queue"]
+    D --> E["Explicit desk/language profiles on ONE Analyzer"]
+    E --> F["Translate only when needed; summarize, categorize, model-flag"]
+    F --> G{"Per-record rights, QA, provenance and spend checks"}
+    G -->|"Authorized full-content record"| H["Shared articles corpus"]
+    G -->|"Authorized metadata only"| I["Shared verified official-link index"]
+    G -->|"Authorized public-safe machine explanation"| J["Shared model-labeled record presentation"]
+    G -->|"Hold"| K["Existing exceptional review/retry path"]
+    H --> L["ONE production renderer, search, archive, desk pages and deploy"]
+    I --> L
+    J --> L
+    L --> M["indopacificrecord.org"]
+    D -.-> N["Source-backed editorial inputs for Briefs"]
+    N --> O["Separate human-reviewed Brief and bylined article publication"]
+```
+
+The common Daily is a **logical processing and publication system**. Source
+collectors can run earlier/later, in private Git, or as isolated Actions jobs;
+their validated output must converge. Do not force unrelated publisher
+requests into one giant job, or make an unavailable source block unrelated
+work. Keep existing specialized publication workflows only where they enforce
+a genuine source-specific security or rights boundary; converge overlapping
+record processing, site rendering and routine release rather than copying
+them per country.
+
+## Implementation rule: deliver the desk, not the scaffolding
+
+These rules apply to **every** current and future desk and all coding-agent
+sessions. They are the default when the owner says "finish", "complete",
+"get it working", "100%" or "make it operational":
+
+1. **Ship the minimum complete vertical slice:** one real eligible source
+   identity and exact version → authorized intake → proper language-specific
+   screening/translation if required → model summary/classification as
+   permitted → authorized public record/link representation → normal website
+   deploy/readback → maintained automatic cycle. Quiet sources are not errors.
+   The accepted agreed source scope, not arbitrary institutional expansion,
+   defines completeness.
+2. **Reuse first, every time:** existing collectors, original custody,
+   authenticated source bridge, `pipeline.py`, `Analyzer`, `pla_watch.db`
+   contracts, `site/render.py`, Actions, retry/billing and deployed readback.
+   Before adding a new component, state the specific missing capability that
+   none of these can satisfy, and justify the smallest compatible extension.
+3. **Do not proliferate systems:** no permanent shadow/development publication
+   lane, second national corpus/AI engine/renderer, country-specific Brief
+   generator, duplicate queue, manual per-record sign-off for already
+   authorized machine record outputs, speculative dashboards, arbitrary
+   waiting streaks, multiple overlapping PRs, or more audit/test frameworks
+   when an existing focused check would cover the risk.
+4. **Safety should be concentrated, not multiplied:** retain one meaningful
+   check at each genuine boundary (publisher access, evidence custody,
+   source rights, model spend/quality, database integrity, concurrency and
+   deployment); keep historical receipts and narrow exception holds. A
+   second approval process proving the same fact needs a demonstrated reason.
+5. **One reviewable, production-directed change:** work from current live
+   status, make the smallest coherent end-to-end implementation with only an
+   essential private companion, run the existing required tests, and ask the
+   owner for only real release/rights/spend decisions. Do not stop at an
+   inactive profile, another roadmap, a "ready" label or synthetic tests
+   while safe implementation remains possible.
+6. **Unattended normal operation:** after genuine source-specific permission,
+   quality acceptance and spending approval, qualifying, clearly labeled
+   machine record content publishes without routine owner/editor action.
+   Only exceptional records hold. Human-authored Briefs, human bylines and
+   independently editorialized analysis retain explicit human approvals.
+7. **Tell the truth about progress:** a green preflight, synthetic record,
+   metadata link, collection attempt or model prompt is not a deployed,
+   analyzed article. Report what truly runs, what publishes, and the one
+   material blocker if anything still prevents the full agreed visitor
+   experience.
+
+**Do not interpret "make the desk work" as permission to add systems or
+override source rights.** The owner prefers the shortest *credible*
+end-to-end route, not a shortcut around authenticity, licensing, accuracy or
+human editorial authority. If a path is blocked, build the safe remainder,
+identify the exact decision needed, and stop proposing unnecessary stages.
+
 ## Implementation priorities
 
 - Preserve live collector/source custody and already verified public releases.
