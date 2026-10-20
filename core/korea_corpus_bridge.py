@@ -84,13 +84,31 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+# Every Korea consumer splits a released text the same way: the bridge's
+# heading index, the line-numbered translation payload, the QA gate and the
+# benchmark. Plain "\n" only. str.splitlines() also breaks on \r, \x0b, \x85,
+# \u2028 and others, which would silently shift line numbers between those
+# consumers, so a text containing one is refused rather than guessed at.
+_OTHER_SEPARATORS = re.compile("[\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029]")
+
+
+def source_lines(text: str):
+    """The document's lines (0-based list), or None for unsupported breaks."""
+    if not isinstance(text, str) or _OTHER_SEPARATORS.search(text):
+        return None
+    return text.split("\n")
+
+
 def document_heading(text: str):
     """(line_index, heading) of the released document, or None.
 
     Anchored on the exact `배포` label, not the first timestamp: the 보도시점
-    embargo line can carry its own timestamp (e.g. 156785286).
+    embargo line can carry its own timestamp (e.g. 156785286). The index is
+    0-based into source_lines(); translation entries are 1-based (index + 1).
     """
-    lines = text.splitlines()
+    lines = source_lines(text)
+    if lines is None:
+        return None
     window = [line.strip() for line in lines[:HEADING_SEARCH_LINES]]
     try:
         label = window.index(_DIST_LABEL)

@@ -142,9 +142,18 @@ KOREA_DAILY_AUTOMATION_ENABLED: bool = (
 )
 # Korean records sent to the model per run, in addition to (never out of)
 # DAILY_ANALYSIS_CAP, so Korea can neither starve nor be starved by China and
-# Singapore. Bounded 0-20; zero processes nothing.
-KOREA_DAILY_PROCESSING_CAP: int = max(0, min(20, int(
-    os.environ.get("KOREA_DAILY_PROCESSING_CAP", "4"))))
+# Singapore. Bounded 0-20; zero processes nothing. A malformed value means
+# zero, never an import error: a typo in a repository variable must not take
+# the China and Singapore Daily down with it.
+def _korea_processing_cap(raw: str) -> int:
+    try:
+        return max(0, min(20, int(raw)))
+    except (TypeError, ValueError):
+        return 0
+
+
+KOREA_DAILY_PROCESSING_CAP: int = _korea_processing_cap(
+    os.environ.get("KOREA_DAILY_PROCESSING_CAP", "4"))
 
 PROMPT_VERSION: str = "v1"
 

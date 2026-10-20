@@ -141,6 +141,14 @@ class TestGovernedManualSourceStatuses(unittest.TestCase):
                       "\n".join(logs.output))
 
 
+class TestProcessingCapInput(unittest.TestCase):
+    def test_cap_is_fail_safe(self):
+        import config
+        cap = config._korea_processing_cap
+        self.assertEqual([cap("4"), cap("0"), cap("99"), cap("-3"), cap(""),
+                          cap("four"), cap(None)], [4, 0, 20, 0, 0, 0, 0])
+
+
 class TestAdmissionThroughPipelineConnection(unittest.TestCase):
     """`_admit_korea_mnd` through the real storage.db.get_conn() path."""
 
