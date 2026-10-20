@@ -227,7 +227,7 @@ def quality_check(record, reading):
              (type(reading.get("significance_reasoning")) is str
               and reading["significance_reasoning"].strip())), "daily_analysis_incomplete")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
-         and reading.get("prompt_version") == "ph-relevance-v1+ph-analysis-v5",
+         and reading.get("prompt_version") == "ph-relevance-v1+ph-analysis-v6",
          "daily_model_provenance_incomplete")
     return digest({"source": record["content_sha256"], "facts": facts, "version": "ph-quality-v1"})
 
@@ -470,6 +470,6 @@ def validate_output(r, family, p):
          and type(r["categories"]) is list and r["categories"]
          and all(type(c) is str and c in PHILIPPINES_PROFILE.categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
-         and r["prompt_version"] == "ph-relevance-v1+ph-analysis-v5", "daily_output_incomplete")
+         and r["prompt_version"] == "ph-relevance-v1+ph-analysis-v6", "daily_output_incomplete")
     need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
          "daily_explanation_word_limit")
