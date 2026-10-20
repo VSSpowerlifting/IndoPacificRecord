@@ -54,6 +54,12 @@ def fixture_maps(*, moit_anomaly=True):
 class FakeGitHub:
     def __init__(self, *, moit_anomaly=True):
         self.bindings = binding_audit()
+        # Historical public-run fixtures remain explicitly historical after
+        # the live declaration changes to a held private handoff.
+        for row in self.bindings["sources"]:
+            if row["source_slug"] in SOURCES:
+                row.update(state_branch={"vn_mps_foreign_affairs_vi":"shadow/vietnam-mps-foreign-affairs", "vn_moit_energy_vi":"shadow/vietnam-moit-energy", "vn_moit_foundational_industry_vi":"shadow/vietnam-moit-foundational-industry"}[row["source_slug"]], trigger="scheduled", cron="17 18 * * *",
+                           workflow=".github/workflows/vietnam_ministry_shadow.yml")
         self.routes = {}
         self.calls = []
         self.source_by_branch = {}
@@ -125,7 +131,7 @@ class LiveRunAttestationTests(unittest.TestCase):
         self.assertEqual(b["source_families_checked"], 17)
         selected = [x for x in b["sources"] if x["source_slug"] in SOURCES]
         self.assertEqual(len(selected), 3)
-        self.assertTrue(all(x["trigger"] == "scheduled" for x in selected))
+        self.assertTrue(all(x["trigger"] == "private_scheduled" for x in selected))
         self.assertTrue(all(x["cron"] == "17 18 * * *" for x in selected))
 
     def test_three_pinned_sources_and_green_run_are_not_desk_qualification(self):

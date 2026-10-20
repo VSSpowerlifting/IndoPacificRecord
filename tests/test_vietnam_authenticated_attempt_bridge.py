@@ -52,6 +52,12 @@ def rebuild_blob(blob_envelope, mutator):
 class FakeRest:
     def __init__(self, *, moit_anomaly=True):
         self.declarations = source_bindings()
+        # These are historical public Actions fixtures, not a claim that the
+        # retired public writer is still the current collection authority.
+        for row in self.declarations["sources"]:
+            if row["source_slug"] in SOURCES:
+                row.update(state_branch=SOURCES[row["source_slug"]], trigger="scheduled", cron="17 18 * * *",
+                           workflow=".github/workflows/vietnam_ministry_shadow.yml")
         self.routes = {}
         self.calls = []
         self.ref_count = {}

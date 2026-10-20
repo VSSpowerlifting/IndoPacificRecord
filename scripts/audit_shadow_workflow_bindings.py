@@ -157,8 +157,9 @@ def validate(root=ROOT, contract_path=None):
             classification = "no_collection_workflow_declared"
         elif trigger == "private_scheduled":
             # A public-only source map cannot attest an external private run.
-            # Pin exactly the two existing authorized Korea source families.
-            private_korea = {
+            # Pin the existing Korea sources and the three coordinated Vietnam
+            # declarations; this says nothing about actual activation/success.
+            private_sources = {
                 "kr_policy_dapa_releases": (
                     "shadow/kr_dapa_policy_briefing/manifest.json",
                     "archive/korea-dapa-policy-briefing",
@@ -170,9 +171,20 @@ def validate(root=ROOT, contract_path=None):
                     "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
                     "47 17 * * *"),
             }
-            require(slug in private_korea and
-                    (binding["manifest"], branch, workflow, cron) == private_korea[slug],
-                    "private schedule limited to exact Korea custody workflow")
+            from core.collection.vietnam_sources import SOURCES as vietnam_sources
+            for family, profile in vietnam_sources.items():
+                private_sources[family] = (
+                    "shadow/vietnam_ministries/manifest.json",
+                    profile.state_branch.replace("shadow/", "archive/", 1),
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
+                    "17 18 * * *")
+            require(slug in private_sources and
+                    (binding["manifest"], branch, workflow, cron) == private_sources[slug],
+                    "private schedule limited to exact source custody workflow")
+            if slug in vietnam_sources:
+                raw = (root / ".github/workflows/vietnam_ministry_shadow.yml").read_text()
+                require(not workflow_crons(raw) and re.search(r"(?m)^  shadow:\n    if: false(?:\s|$)", raw),
+                        "private Vietnam handoff still has a public original writer")
             classification = "private_schedule_declared_external_runs_unverified"
         elif trigger == "private_handoff_pending":
             # Private writer histories are external to this public-repo audit.
