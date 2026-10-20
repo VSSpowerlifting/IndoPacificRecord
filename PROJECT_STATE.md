@@ -10,6 +10,53 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**Philippines shared Daily integration (20 October 2026; review candidate):**
+Explicit English AFP/NSC profile, fail-closed unknown-desk routing, authenticated
+private source/version intake, shared Analyzer/quality/retry path, signed
+public-safe output and coordinated Daily/record/desk/archive/Sunday research
+integration are implemented on `codex/philippines-shared-daily-20261019`.
+The essential private companion invokes the same public engine without changing
+collectors. The owner approved standing AFP processing and qualifying factual
+machine explanations (≤90 words, explicit attribution/citation), $0.35 estimated
+per run, one record/two intended calls, no SDK retries, five failed attempts
+before individual pause. AFP policy is pinned; NSC remains independently held.
+General integration activation variables remain absent: no production release.
+Authentic offline replay: 32 AFP originals/captures match all 32 admitted link
+versions; NSC has zero records. No machine explanation has been released.
+Production DB/output and desk status are unchanged. The owner authorized one
+private `afp:1418` trial at `442081916b3b41850e958ae75298bf12afe565b6`,
+with a $0.35 total allowance, no translation, no automatic paid retry and no
+public output. Exact capture/content hashes and admitted link version reverified.
+The owner configured the private Actions key. Genuine trial: two calls, 1,251
+input / 584 output tokens, estimated $0.010581; no retries or translation.
+Response text, relevance judgment and source-specific review remain private.
+The trial did not produce a release-eligible record. Prompt v10 explicitly
+requires literal evidence punctuation and AFP/NSC in every sentence; strict
+gates remain unchanged. This is not a quality-passing production record.
+Private #21 retains the bounded trial command and private run receipts.
+`afp:1418` is explicitly excluded from processing, signing, intake and rendering.
+The owner requested genuine private verification of another relevant preserved
+record through shared Daily. Private review rejected another response for an
+unsupported geographic topic despite mechanical checks; its five attempts are
+preserved and paused. The shared quality gate now requires explicit source
+support for the South China Sea topic. The next genuine selection is `afp:1410`;
+its actual private receipt, admission/render result and final exact-head CI are
+reported in the existing PRs. No further model call is needed for a completed,
+quality-passing queue entry: retain it for the authorized production handoff.
+Separate merge/credentials/activation/deployment authorization remains required.
+Main's permanent working-desk ruling and newer U.S. metadata are retained.
+See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
+evidence distinctions and rollback. Review: public #835 and private #21, both
+inactive. Focused profile/custody/migration/retry checks, the private 81-test
+suite and synthetic production-render/Chromium checks passed. Full Linux CI on
+`f446d53861` passed 7,690 tests (three skips), with ten governed validator warnings.
+Updated-head CI exposed Python 3.12 fixture/date compatibility and a changed SDK
+dependency set: explicit SQLite closure, consistent ISO-date diagnostics and
+the existing SDK major/httpx contract are repaired. Final-head CI must pass.
+The development full local run was not
+green (subsequently repaired regressions, missing gpg/python-docx and macOS
+temporary-path constraints); do not present it as successful full CI.
+
 **Philippines Desk AFP official-link lane (19 October 2026):** released.
 The owner's standing authorization publishes verified neutral AFP link
 metadata for existing and future eligible records without per-record human

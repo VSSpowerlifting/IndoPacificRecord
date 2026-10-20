@@ -4,12 +4,15 @@
 {# Display title: the machine translation when one exists, otherwise the
    original. Never a placeholder — a record with no English title shows its
    original title as the heading rather than inventing a substitute. #}
-{% set display_title = record.title_english or record.title_original %}
+{% set display_title = (record.source_label ~ ' official source — machine explanation') if record.machine_only | default(false) else (record.title_english or record.title_original) %}
 {% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
 {% block title %}{{ display_title }} — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="../record.css">{% endblock %}
 {% block main_class %} class="record-reading"{% endblock %}
 {% block content %}
+{% if record.machine_only | default(false) %}
+{% include '_machine_explanation.html' %}
+{% else %}
 {# "Back to results" appears only when the reader arrived from a search or a
    week list on this site (citation.js reads the referrer). The record's own
    address never carries query parameters, so a copied link stays canonical. #}
@@ -229,5 +232,6 @@
 
 </aside>
 </article>
+{% endif %}
 {% endblock %}
 {% block scripts %}<script src="../citation.js" defer></script>{% endblock %}

@@ -99,11 +99,12 @@ class TriageContracts(unittest.TestCase):
         self.assertFalse(report["text_extraction_verified"])
         self.assertFalse(report["model_spend_authorized"])
 
-    def test_unknown_desk_fallback_is_labeled_not_claimed_china(self):
+    def test_unknown_desk_is_held_without_china_fallback(self):
         self.insert(1, source=3)
         report = self.audit()
-        self.assertEqual(report["stored_daily_queue_eligible"], 1)
-        self.assertEqual(report["metadata_flags"]["daily_without_declared_desk"], 1)
+        self.assertEqual(report["stored_daily_queue_eligible"], 0)
+        self.assertEqual(report["stored_held_out_of_daily"], 1)
+        self.assertEqual(report["metadata_flags"]["daily_without_declared_desk"], 0)
         self.assertEqual(report["sources"][0]["desk_id"], "__undeclared_desk__")
 
     def test_historical_and_held_records_never_mix(self):
