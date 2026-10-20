@@ -72,6 +72,23 @@ companion) to new qualification frameworks or extra approval layers. Finish
 at an operating desk or a specific external blocker. See
 `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` and issue #673.
 
+## Shared Daily target (owner direction, 2026-10-19)
+
+The default end state for every desk is **one logical Daily**: permitted
+independently scheduled/private collector → authenticated source-pinned common
+intake → explicit desk-language profile on the shared screening/model queue →
+source-specific rights and automatic QA gates → existing IPR record/source-link
+presentation, search, desk and deployment. **Do not build a second corpus,
+country-specific AI engine, parallel article renderer or routine per-record
+human publishing workflow.** Source collectors need not run inside the same
+Actions job: preserve official access cadence, isolation and private originals.
+English originals need no translation. Unknown desks must not use China's
+prompts by fallback. A metadata-only licence never approves original text or
+public machine explanation. Once separately authorized and verified, routine
+machine-labeled records may publish without human approval; Briefs and bylined
+analysis remain human controlled. Policy targets are **not** activation,
+spending or publication authority. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 ## Commands
 ```bash
 .venv/bin/python scripts/validate_output.py                 # deploy gate — run before/after output changes

@@ -20,6 +20,12 @@ only; see [Deployment](#deployment-github-pages--github-actions).
 This is an academic portfolio project.  It does not use or claim access to any
 classified information.  All source material is publicly available.
 
+**Cross-desk engineering direction (19 October 2026):** Future desk
+integration targets one logical shared Daily processing/publishing engine,
+with independently scheduled/private source collection where necessary. This
+is a **target**, not a claim that all desks are integrated or permitted to
+publish full text. See [shared Daily architecture](docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md).
+
 ---
 
 ## What It Does

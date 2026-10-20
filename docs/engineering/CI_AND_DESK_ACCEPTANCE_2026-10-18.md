@@ -30,6 +30,22 @@ model operation from mock replies, or actual HTTPS publication from a passing
 build. Only the source families agreed for the desk count toward completeness;
 do not inflate desk scope after completion.
 
+## Shared Daily instead of desk-specific publication silos (19 October owner direction)
+
+The complete-desk principle now includes a durable architectural default:
+keep source collection separate where warranted, but converge eligible,
+source-version-verified data on the shared Daily screening/analysis system,
+source-appropriate rights gates and common site publication. Source-language
+profiles must be explicit; translate non-English material only; never run
+unknown desks through China-specific prompts. Reuse the existing corpus for
+rights-cleared full-text records and distinguish restricted neutral source
+links from articles. Once independently authorized, quality-passing, labeled
+machine record output should publish without routine per-record owner review;
+source anomalies and genuine rights/quality failures hold individually.
+Human Briefs and bylined editorials still require their normal approvals.
+No new permission, spending cap, rollout or claimed real end-to-end proof
+is created by this architecture preference. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 ## Verification budget
 
 The existing PR workflow keeps its read-only token, no secrets, no write

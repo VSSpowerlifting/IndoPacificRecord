@@ -49,6 +49,26 @@ analyst — never an intelligence-agency imitation, a SaaS product, or a
 dashboard aesthetic. No intelligence cosplay, and no claim the record does not
 support.
 
+## 1a. Shared Daily as the default for every desk (owner, 2026-10-19)
+
+The normal **record** should converge across country desks on one shared IPR
+screening, language-appropriate processing, source-attributed explanation,
+search/archive and publication system—not independent national publications
+with their own AI engines or permanent manual source-record release steps.
+Private-first or differently scheduled collectors remain legitimate upstream
+components; they do not require parallel public editorial systems. Translate
+only non-English originals when permitted, and do not apply China's PLA
+framing to other desks. Source rights determine whether a record may publish
+full originals, neutral metadata, and/or an independently permitted
+machine-produced summary. Those outputs must be clearly distinguished.
+
+**Normal model-labeled record output should eventually publish unattended**
+after explicit source-family permissions, accuracy and cost controls, and real
+end-to-end acceptance; exceptions hold. This does **not** authorize new
+machine processing, derivative text or publication today. Human-authored
+IPR Briefs, bylined analysis and approval remain the distinct editorial layer.
+Implementation contract: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 ## 2. Audiences
 
 1. **Primary — policy professionals and analysts** who cannot monitor official
