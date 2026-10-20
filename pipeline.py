@@ -697,6 +697,13 @@ def run(
     # The newly inserted lane has no prior retry history.
     attempts_before = prior_processing_attempts(pending_rows, unscored_rows)
     for desk_id, held in sorted(held_desks.items(), key=lambda kv: str(kv[0])):
+        if desk_id == "korea":
+            # Governed admissions are processed by the Korea lane below, on
+            # its own cap and only once the owner switch is on.
+            logger.info("Held out of the shared queue: %d korea-desk record(s) "
+                        "— handled by the Korea lane (processing/"
+                        "korea_shared_queue.py).", held)
+            continue
         logger.info(
             "Held out of the daily analysis queue: %d %s-desk record(s) — the "
             "desk's screening is not run by the daily pipeline "
@@ -916,12 +923,37 @@ def run(
                 _record_failure(aid, body_zh, "analysis_incomplete",
                                 attempts_before, content_verdicts)
 
+    # Korea MND lane (processing/korea_shared_queue.py): the shared engine's
+    # Korea profile over governed admissions, after the China/Singapore queue
+    # and on its own cap, so it can never take their slots. Its outcomes are
+    # kept out of the counters above, which decide this run's exit status: a
+    # Korea failure or hold never fails the Daily. An account-level block seen
+    # here still writes the billing marker and degrades the run.
+    korea_blocked: Optional[str] = None
+    import config as _config
+    if (_config.KOREA_DAILY_AUTOMATION_ENABLED and _config.KOREA_DAILY_PROCESSING_CAP
+            and ANTHROPIC_API_KEY and not no_analysis and not dry_run
+            and account_blocked is None):
+        from analysis.analyzer import Analyzer, FatalAPIError
+        from processing import korea_shared_queue
+        analyzer = analyzer or Analyzer()
+        try:
+            korea_report = korea_shared_queue.run(
+                analyzer, cap=_config.KOREA_DAILY_PROCESSING_CAP, db=db,
+                fatal_error=FatalAPIError)
+            korea_blocked = korea_report.blocked
+        except Exception as exc:  # noqa: BLE001 — never fail China for Korea
+            logger.error("Korea lane failed: %s", type(exc).__name__)
+            errors.append("Korea lane failed: %s" % type(exc).__name__)
+        if korea_blocked is not None:
+            errors.append("Korea lane stopped: account-level API block")
+
     # Optional, independently bounded headline completion. Full analysis goes
     # first so already translated records incur no duplicate title-only call.
     # Failure here must not turn valid collection into a failed daily run.
     from config import CHINA_TITLE_TRANSLATION_LIMIT
     if (CHINA_TITLE_TRANSLATION_LIMIT and ANTHROPIC_API_KEY and not no_analysis
-            and not dry_run and account_blocked is None):
+            and not dry_run and account_blocked is None and korea_blocked is None):
         from storage.title_translation import candidates, ready, run_batch
         try:
             with db.get_conn() as title_conn:
@@ -975,11 +1007,11 @@ def run(
     # on a partial success: every later window today would hit the same wall.
     # This is a definitive signal from the API, unlike relevance_total_failure,
     # which infers billing trouble from "everything failed".
-    if account_blocked is not None and not dry_run:
+    if (account_blocked is not None or korea_blocked is not None) and not dry_run:
         logger.error(
             "Account-level API block detected (%s). Writing billing-failure "
             "marker so later cron windows today skip their paid retries.",
-            account_blocked,
+            account_blocked or "Korea lane: %s" % korea_blocked,
         )
         _write_billing_failure_marker()
 
@@ -1001,7 +1033,7 @@ def run(
     # MOD China was dead.
     if total_analysis_failed:
         run_status = "failed"
-    elif account_blocked is not None:
+    elif account_blocked is not None or korea_blocked is not None:
         run_status = "degraded"
     elif collection_agg in ("failed", "degraded"):
         run_status = "degraded"
