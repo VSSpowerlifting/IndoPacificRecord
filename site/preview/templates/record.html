@@ -47,7 +47,7 @@
 
     <nav class="reader-contents" aria-label="On this record page">
       <span>In this record</span>
-      <ul>{% if record.summary_english %}<li><a href="#record-summary">Summary</a></li>{% endif %}
+      <ul>{% if record.summary_english %}<li><a href="#record-summary">Summary</a></li>{% endif %}{% if record.vietnam and record.vietnam.translation_published %}<li><a href="#record-translation">Translation</a></li>{% endif %}
           <li><a href="#record-text">Stored text</a></li><li><a href="#record-status">Processing</a></li>
           <li><a href="#record-provenance">Provenance</a></li><li><a href="#record-citation">Citation</a></li></ul>
     </nav>
@@ -65,6 +65,34 @@
     </section>
     {% endif %}
 
+    {% if record.vietnam and record.vietnam.translation_published and record.vietnam.text_english %}
+    <section class="record-section" id="record-translation" aria-labelledby="translation-heading">
+      <div class="layer-head"><h2 id="translation-heading">English translation</h2>
+        <span class="evidence evidence--model">Machine translation</span></div>
+      <div class="interpretation">
+      {% for para in record.vietnam.text_english.split('\n') %}
+      {% if para.strip() %}<p>{{ para.strip() }}</p>
+      {% endif %}
+      {% endfor %}
+      </div>
+      <p class="meta">Machine-translated from the Vietnamese original and checked by
+      automated QA (rubric {{ record.vietnam.qa_rubric_version }}). Not reviewed by a human.
+      The <a href="{{ record.url }}" rel="noopener nofollow">official page</a> is the authority.</p>
+    </section>
+    {% endif %}
+    {% if record.vietnam and record.vietnam.original_withheld %}
+    <section class="record-section" aria-labelledby="record-text">
+      <div class="layer-head"><h2 id="record-text">Source text</h2>
+        <span class="evidence evidence--record">Source record</span></div>
+      {# Not a capture failure: the original is preserved privately. The
+         source-use decision on record does not let IPR republish it. #}
+      <p>The Vietnamese original is preserved in IPR's private evidence store but
+      is not reproduced here: the source-use decision on record does not grant
+      public storage of the original text. Read it on the
+      <a href="{{ record.url }}" rel="noopener nofollow">official page</a>.</p>
+      <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
+    </section>
+    {% else %}
     <section class="record-section" aria-labelledby="record-text">
       <div class="layer-head"><h2 id="record-text">Stored source text</h2>
         <span class="evidence evidence--record">Source record</span></div>
@@ -86,7 +114,11 @@
          re-capture remains possible and this page must not foreclose it. #}
       <p>Original text is unavailable in this stored record.</p>
       {% endif %}
+      {% if record.vietnam %}
+      <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
+      {% endif %}
     </section>
+    {% endif %}
 
     <section class="record-section" aria-labelledby="record-status">
       <h2 id="record-status">Processing status</h2>
@@ -131,6 +163,25 @@
           <tr><th scope="row">Prompt version</th><td class="prov-value">{{ record.prompt_version }}</td></tr>
           {% elif record.model_id %}
           <tr><th scope="row">Prompt version</th><td class="prov-value">Prompt version is unavailable for this record.</td></tr>
+          {% endif %}
+          {% if record.vietnam %}
+          {% set vn = record.vietnam %}
+          <tr><th scope="row">Source attribution</th><td class="prov-value">{{ vn.attribution_text }}</td></tr>
+          {% if vn.license_terms %}
+          <tr><th scope="row">Licence terms</th><td class="prov-value">{{ vn.license_terms }}</td></tr>
+          {% endif %}
+          <tr><th scope="row">Event type</th><td class="prov-value">{{ vn.event_type }} <span class="meta">— machine classification</span></td></tr>
+          <tr><th scope="row">Source family</th><td class="prov-value">{{ vn.source_family }}</td></tr>
+          <tr><th scope="row">Preserved version</th><td class="prov-value"><span class="token">{{ vn.content_sha256 }}</span></td></tr>
+          <tr><th scope="row">Capture</th><td class="prov-value"><span class="token">{{ vn.capture_sha256 }}</span> <span class="meta">— private evidence commit {{ vn.source_git_commit[:12] }}</span></td></tr>
+          <tr><th scope="row">Source-use policy</th><td class="prov-value">{{ vn.rights_policy_version }} <span class="meta">— decision <span class="token">{{ vn.rights_decision_sha256[:16] }}</span></span></td></tr>
+          <tr><th scope="row">Original text</th><td class="prov-value">{% if vn.original_withheld %}Withheld under the source-use decision{% else %}Stored{% endif %}</td></tr>
+          <tr><th scope="row">QA rubric</th><td class="prov-value">{{ vn.qa_rubric_version }}</td></tr>
+          <tr><th scope="row">Terminology guide</th><td class="prov-value">{{ vn.terminology_version }}</td></tr>
+          {% if vn.translation_prompt_version %}
+          <tr><th scope="row">Translation prompt</th><td class="prov-value">{{ vn.translation_prompt_version }}</td></tr>
+          {% endif %}
+          <tr><th scope="row">Published by run</th><td class="prov-value">{{ vn.published_by_run }}</td></tr>
           {% endif %}
         </tbody>
       </table>
