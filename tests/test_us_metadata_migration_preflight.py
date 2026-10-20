@@ -67,11 +67,13 @@ class USMetadataMigrationPreflight(unittest.TestCase):
                 (repaired.stdout + repaired.stderr)[-2500:])
             with sqlite3.connect(str(db)) as con:
                 self.assertEqual(classify(con), "fully_current")
-                self.assertEqual(
-                    {tbl: con.execute("SELECT COUNT(*) FROM " + tbl).fetchone()[0]
-                     for tbl in counts_before},
-                    counts_before,
-                )
+                after = {tbl: con.execute("SELECT COUNT(*) FROM " + tbl).fetchone()[0]
+                         for tbl in counts_before}
+                # The repair also syncs desk configuration, which may add a
+                # newly configured source row; no existing row is lost.
+                self.assertEqual(after["articles"], counts_before["articles"])
+                self.assertEqual(after["scrape_runs"], counts_before["scrape_runs"])
+                self.assertGreaterEqual(after["sources"], counts_before["sources"])
                 self.assertEqual(con.execute("PRAGMA quick_check").fetchone()[0],
                                  "ok")
                 self.assertEqual(con.execute(

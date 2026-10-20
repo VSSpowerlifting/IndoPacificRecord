@@ -91,6 +91,28 @@ PR #652 cross-check:
 `research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
 No production DB, output, Pages or schedule change made here.
 
+**Korea unified Daily (20 October 2026; activation PR open, processing off):**
+Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of
+the shared Daily. It adds:
+- the governed MND corpus ledger (m0015) and a source-pinned, fail-closed bridge
+  (`kr-corpus-bridge-v1`) into `articles`. A human-handoff receipt alone no
+  longer excludes a release; reviewed English, the frozen October baseline and
+  the research hold still do;
+- the explicit Korea profile on the shared engine: relevance `kr-relevance-v1`,
+  translation `kr-translation-v2` with `kr-glossary-v1`, analysis `kr-analysis-v1`,
+  deterministic QA `kr-qa-v1`;
+- a capped Korea lane that runs after China/Singapore and never fails the Daily;
+- unreviewed machine-translation labels on the existing record and desk pages;
+- the applied activation: live registry entry and `desks/korea/manifest.json`.
+
+Rehearsed on a disposable DB copy: the bridge admits one release
+(`korea-policy:156785691`), excludes three, and a replay changes nothing. The
+lane selects it and stops without a model. The render shows no unprocessed
+machine output. No paid call, no production DB write and no variable change has
+been made. Processing starts only when the owner merges and sets
+`KOREA_DAILY_AUTOMATION_ENABLED=true`; see
+`docs/engineering/KOREA_DAILY_ACTIVATION_2026-10-20.md`.
+
 **Korea desk acceptance (19 October 2026):**
 Public PRs #825/#826 and private PR #18 are merged; private-first MND custody
 is live (`archive/korea-policy-briefing` has one writer, MND is outside the

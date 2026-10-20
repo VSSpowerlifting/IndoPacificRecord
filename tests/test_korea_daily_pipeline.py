@@ -30,10 +30,12 @@ from core import korea_corpus_bridge as bridge
 from core.collection import status as st
 from core.korea_published_originals import INDEX, ORIGINAL_DIR, PublishedKoreaHold
 from migrations.runner import apply_all, connect
-from tests.test_korea_corpus_bridge import LIVE, activate
+from tests.test_korea_corpus_bridge import LIVE, SHADOW, activate
 from tests.test_migrations import build_legacy_db
 
 SLUG = bridge.SOURCE_SLUG
+ACTIVATED = (Path(__file__).resolve().parent.parent
+             / "desks" / "korea" / "manifest.json").is_file()
 
 
 class FakeRegistry:
@@ -202,22 +204,30 @@ class TestAdmissionThroughPipelineConnection(unittest.TestCase):
         self.assertEqual(self.ledger(), ledger)
         self.assertTrue(all(state == "admitted" for _, _, state in ledger))
 
-    def test_repository_defaults_admit_nothing_today(self):      # scenario 6, 7, 8
+    def test_repository_defaults_admit_only_the_unreviewed_release(self):  # 6, 7, 8
         # The real exclusions: frozen baseline, the reviewed English releases
-        # (incl. 156785691) and the 156785161 research hold.
+        # and the 156785161 research hold. 156785691 has only an unreviewed
+        # English draft handoff, which does not exclude it.
         self.seed_metadata()
         live_only = functools.partial(bridge.apply, original_dir=self.originals,
                                       registry=LIVE)
         with mock.patch.object(bridge, "apply", live_only):
             rec = pipeline._admit_korea_mnd(1)
-        self.assertEqual(rec["admitted"], [])
+        self.assertEqual([a["source_identity"] for a in rec["admitted"]],
+                         ["korea-policy:156785691"])
         excluded = {e["source_identity"]: e["reason"] for e in rec["excluded"]}
-        self.assertEqual(excluded.get("korea-policy:156785691"),
+        self.assertEqual(excluded.get("korea-policy:156785286"),
                          "excluded_reviewed_english")
         self.assertNotIn("korea-policy:156785161",
                          [i for i, _, _ in self.ledger()])
 
     def test_repository_registry_refuses(self):                  # scenario 13
+        if ACTIVATED:
+            # After the owner activation the registry gate passes; with no
+            # governed metadata in this database nothing is admitted.
+            rec = pipeline._admit_korea_mnd(1)
+            self.assertEqual(rec["admitted"], [])
+            return
         with self.assertRaises(bridge.BridgeHold) as ctx:
             pipeline._admit_korea_mnd(1)
         self.assertIn(str(ctx.exception), {"korea_desk_not_live",
@@ -280,7 +290,9 @@ class TestRealPipelineRun(unittest.TestCase):
         self.assertNotEqual(self.case.run_status(), "failed")
 
     def test_switch_on_without_live_desk_is_reported(self):      # scenario 13
-        built = self.run_with_manual_source(enabled=True)
+        with mock.patch("core.desk_registry.get_desk_registry",
+                        return_value=SHADOW):
+            built = self.run_with_manual_source(enabled=True)
         self.assertEqual(built, ["china_mil_online"])
         result = self.case.results()[SLUG]
         self.assertEqual(result["status"], st.ADAPTER_ERROR)

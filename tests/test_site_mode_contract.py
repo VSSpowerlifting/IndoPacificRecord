@@ -358,9 +358,10 @@ class TestCandidateBuild(unittest.TestCase):
         from core.desk_registry import load_registry
         declared = {e.name: e for e in load_registry().public_entries}
         html = (self.out / "desks.html").read_text(encoding="utf-8")
-        # Korea and Indonesia were subsequently admitted as public reference/
-        # status-only pages. Neither has a production manifest or public corpus.
-        for name in ("South Korea Desk", "Indonesia Desk"):
+        # Indonesia was admitted as a public reference/status-only page with no
+        # production manifest or public corpus. Korea is now a live desk.
+        self.assertEqual(declared["South Korea Desk"].status, "live")
+        for name in ("Indonesia Desk",):
             with self.subTest(public_shadow=name):
                 entry = declared[name]
                 self.assertIn(name, html)

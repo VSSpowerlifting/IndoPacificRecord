@@ -55,10 +55,10 @@ class DeskCapabilityPlanTests(unittest.TestCase):
         self.assertIsNone(next(x for x in plan["tasks"]
                                if x["scope"] == "korea")["registry_desk"])
         korea = next(x for x in self.registry["desks"] if x["slug"] == "korea")
-        self.assertTrue(korea["public"])  # Fixed link-only directory, not collector admission
-        self.assertEqual(korea["status"], "shadow")
-        self.assertIsNone(korea["manifest"])
-        self.assertFalse(korea["has_production_records"])
+        self.assertTrue(korea["public"])
+        self.assertEqual(korea["status"], "live")
+        self.assertEqual(korea["manifest"], "desks/korea/manifest.json")
+        self.assertIs(korea["has_production_records"], True)
 
     def test_invalid_dependencies_cycles_and_wrong_wave_refused(self):
         for mutation in ("unknown", "cycle", "self", "future", "duplicate"):

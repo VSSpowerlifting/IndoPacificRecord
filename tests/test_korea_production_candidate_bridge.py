@@ -285,9 +285,9 @@ class KoreaProductionCandidateBridgeTests(unittest.TestCase):
             self.assertNotIn(prohibited, source)
         reg = json.loads((stage.ROOT / "desks/registry.json").read_text())
         korea = next(d for d in reg["desks"] if d["slug"] == "korea")
-        self.assertEqual(korea["status"], "shadow")
-        self.assertIs(korea["has_production_records"], False)
-        self.assertIsNone(korea["manifest"])
+        self.assertEqual(korea["status"], "live")
+        self.assertEqual(korea["manifest"], "desks/korea/manifest.json")
+        self.assertIs(korea["has_production_records"], True)
 
 
 if __name__ == "__main__":

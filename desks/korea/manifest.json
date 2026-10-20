@@ -1,14 +1,9 @@
 {
   "manifest_version": 1,
   "_comment": [
-    "South Korea Desk - STAGED production manifest. Not active.",
-    "core.manifests.load_all_desks() globs desks/*/manifest.json only, so this",
-    "file at config/korea_daily_activation/ is read by tests and by nothing in",
-    "production. Owner activation moves it to desks/korea/manifest.json in the",
-    "same commit that flips the desks/registry.json Korea entry to live",
-    "(docs/engineering/KOREA_DAILY_ACTIVATION_2026-10-20.md). The build refuses",
-    "either half without the other.",
-    "One source: Korea Policy Briefing republications explicitly labelled as",
+    "South Korea Desk - production manifest, activated by the owner through",
+    "scripts/korea_daily_activation.py (docs/engineering/KOREA_DAILY_ACTIVATION_2026-10-20.md).",
+    "One source: Korea Policy Briefing republications explicitly labeled as",
     "MND (A00005) releases. access_method is manual: the Daily never fetches",
     "the portal. The private collector (ipr-source-evidence-private) keeps",
     "captures, HWPX and photographs; records reach `articles` only through the",
@@ -22,7 +17,9 @@
     "jurisdiction_code": "KR",
     "default_timezone": "Asia/Seoul",
     "default_calendar": "gregorian",
-    "supported_language_tags": ["ko"],
+    "supported_language_tags": [
+      "ko"
+    ],
     "public_status": "public",
     "active": true
   },
@@ -46,7 +43,7 @@
     {
       "slug": "kr_policy_mnd_releases",
       "institution_id": "kr_policy_briefing",
-      "display_name": "Policy Briefing - MND-labelled republished releases",
+      "display_name": "Policy Briefing - MND-labeled republished releases",
       "base_url": "https://www.korea.kr",
       "language_tag": "ko",
       "access_method": "manual",

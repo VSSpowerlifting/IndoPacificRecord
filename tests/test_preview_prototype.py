@@ -426,11 +426,12 @@ class TestNoFabricatedCoverage(PreviewCase):
     def test_only_one_desk_is_marked_live(self):
         """
         Renamed in effect, not in name: China and Singapore are both live now
-        (DECISION_LOG 2026-09-21). Kept as the exact node id CI reported so the
-        fix is directly verifiable against the failing run.
+        (DECISION_LOG 2026-09-21), and Korea since its Daily activation
+        (docs/engineering/KOREA_DAILY_ACTIVATION_2026-10-20.md). Kept as the
+        exact node id CI reported so the fix is directly verifiable.
         """
         live = [e for e in load_registry() if e.is_collecting]
-        self.assertEqual(sorted(e.slug for e in live), ["china", "singapore"])
+        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore"])
 
     def test_non_collecting_desks_are_labelled_and_carry_no_record_count(self):
         """

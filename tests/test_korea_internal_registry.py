@@ -10,25 +10,28 @@ from core.brief_contract import eligible_desks
 
 
 class KoreaInternalRegistry(unittest.TestCase):
-    def test_public_bibliography_is_not_a_production_collector(self):
+    def test_the_live_desk_collects_through_one_manual_source_only(self):
+        # The public bibliography is still not a collector: the activated desk
+        # has exactly one manual source, admitted only through the bridge.
         reg = load_registry()
         k = reg.get("korea")
         self.assertIsNotNone(k)
         self.assertEqual(k.route, "korea.html")
         self.assertTrue(k.public)
-        self.assertEqual(k.status, "shadow")
-        self.assertFalse(k.is_collecting)
-        self.assertFalse(k.has_production_records)
-        self.assertFalse(k.may_show_record_count)
-        self.assertIsNone(k.manifest_path)
-        self.assertEqual(k.configured_source_count, 0)
-        self.assertEqual(k.enabled_source_count, 0)
+        self.assertEqual(k.status, "live")
+        self.assertTrue(k.is_collecting)
+        self.assertTrue(k.has_production_records)
+        self.assertEqual(k.manifest_path, "desks/korea/manifest.json")
+        self.assertEqual(k.configured_source_count, 1)
+        self.assertEqual(k.enabled_source_count, 1)
+        self.assertEqual([(s.slug, s.access_method) for s in k.sources],
+                         [("kr_policy_mnd_releases", "manual")])
         self.assertIn("korea", [x.slug for x in reg.public_entries])
-        self.assertNotIn("korea", eligible_desks(reg))
+        self.assertIn("korea", eligible_desks(reg))
         self.assertEqual(load_public_desk_references("korea"), [])
         self.assertEqual(len(load_public_korea_links()), 5)
-        self.assertFalse((Path(__file__).resolve().parents[1] /
-                          "desks/korea/manifest.json").exists())
+        self.assertTrue((Path(__file__).resolve().parents[1] /
+                         "desks/korea/manifest.json").exists())
 
     def test_actual_public_site_includes_five_links_and_no_archive_record(self):
         import sys

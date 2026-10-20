@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS korea_corpus_admissions (
     source_identity          TEXT PRIMARY KEY NOT NULL
                              CHECK(source_identity GLOB
                                'korea-policy:[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
-    article_id               INTEGER UNIQUE REFERENCES articles(id),
+    article_id               INTEGER UNIQUE REFERENCES articles(id) ON DELETE CASCADE,
     canonical_official_url   TEXT NOT NULL CHECK(canonical_official_url GLOB
                                'https://www.korea.kr/briefing/pressReleaseView.do?newsId=[0-9]*'),
     publisher_posted_date    TEXT NOT NULL,

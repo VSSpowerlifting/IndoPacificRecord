@@ -19,8 +19,11 @@ Excluded identities:
 
   * the 14 frozen historical references (scripts.admit_korea_standing_original_texts.baseline);
   * the standing research hold (core.korea_private_research_candidates.HOLD_NEWS_IDS);
-  * any identity with a reviewed English release or an owner English draft
-    handoff, so a reviewed page never gets a competing machine version.
+  * any identity with a reviewed English release, so a reviewed page never
+    gets a competing machine version. An English draft handoff receipt alone
+    excludes nothing: the draft is unreviewed and unpublished, so it must not
+    strand an eligible release. If a reviewed release is published later, the
+    machine record is withdrawn (`superseded_by_reviewed_english`).
 
 `title_original` is the document's own heading line in the released text, not
 the private portal listing title, which has no public release. The heading is
@@ -53,7 +56,6 @@ BRIDGE_VERSION = "kr-corpus-bridge-v1"
 SOURCE_SLUG = "kr_policy_mnd_releases"
 DESK_ID = "korea"
 ENGLISH_INDEX = ROOT / "research" / "korea_english_publications.json"
-HANDOFF_RECEIPTS = ROOT / "research" / "korea_english_draft_handoff_receipts.json"
 MAX_ADMISSIONS_PER_RUN = 10
 HEADING_SEARCH_LINES = 12
 HEADING_MAX_CHARS = 200
@@ -129,10 +131,10 @@ def document_heading(text: str):
 
 # ── excluded identities ───────────────────────────────────────────────────────
 
-def _english_identities(english_index: Path, handoff: Path) -> set:
-    """Reviewed English releases plus owner handoffs. Unreadable → refuse."""
+def _english_identities(english_index: Path) -> set:
+    """Published reviewed English releases. Unreadable → refuse."""
     found = set()
-    for path, key in ((english_index, "releases"), (handoff, "delivered")):
+    for path, key in ((english_index, "releases"),):
         _require(path.is_file() and not path.is_symlink(),
                  "korea_english_registry_unavailable")
         try:
@@ -149,7 +151,6 @@ def _english_identities(english_index: Path, handoff: Path) -> set:
 
 
 def excluded_identities(*, english_index: Path = ENGLISH_INDEX,
-                        handoff: Path = HANDOFF_RECEIPTS,
                         frozen: Optional[Iterable[str]] = None) -> Dict[str, str]:
     """{identity: exclusion code}; never bridged, never ledgered."""
     from core.korea_private_research_candidates import HOLD_NEWS_IDS
@@ -157,7 +158,7 @@ def excluded_identities(*, english_index: Path = ENGLISH_INDEX,
         from scripts.admit_korea_standing_original_texts import baseline
         frozen = baseline()
     out = {ident: "excluded_frozen_baseline" for ident in frozen}
-    for ident in _english_identities(english_index, handoff):
+    for ident in _english_identities(english_index):
         out.setdefault(ident, "excluded_reviewed_english")
     for news_id in HOLD_NEWS_IDS:
         out["korea-policy:" + news_id] = "excluded_research_hold"
@@ -249,6 +250,8 @@ def plan(conn: sqlite3.Connection, *, index=INDEX, original_dir=ORIGINAL_DIR,
         reason = None
         if rec is None:
             reason = "source_withdrawn_from_release_index"
+        elif excluded.get(ident) == "excluded_reviewed_english":
+            reason = "superseded_by_reviewed_english"
         elif meta is None or meta["public_scope"] != "official_link_only":
             reason = "source_release_revoked"
         elif (rec["original_text_sha256"] != row["original_text_sha256"]

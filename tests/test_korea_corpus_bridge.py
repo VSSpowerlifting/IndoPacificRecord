@@ -19,6 +19,7 @@ from core.korea_published_originals import (
 from migrations.runner import apply_all, connect
 from tests.test_migrations import build_legacy_db
 
+ROOT = Path(__file__).resolve().parent.parent
 LIVE = {"korea": SimpleNamespace(status="live",
                                  manifest_path="desks/korea/manifest.json")}
 SHADOW = {"korea": SimpleNamespace(status="shadow", manifest_path=None)}
@@ -33,7 +34,11 @@ def released():
 def activate(conn, enabled=1, desk="korea", access="manual"):
     conn.execute(
         "INSERT INTO sources (slug, display_name, base_url, language, desk_id, "
-        "enabled, access_method, language_tag) VALUES (?, ?, ?, 'ko', ?, ?, ?, 'ko')",
+        "enabled, access_method, language_tag) VALUES (?, ?, ?, 'ko', ?, ?, ?, 'ko') "
+        # Upsert: once the desk is activated, sync_desk_config has already
+        # inserted the manifest's row and the fixture only sets its state.
+        "ON CONFLICT(slug) DO UPDATE SET desk_id=excluded.desk_id, "
+        "enabled=excluded.enabled, access_method=excluded.access_method",
         (bridge.SOURCE_SLUG, "ROK MND via Policy Briefing",
          "https://www.korea.kr/", desk, enabled, access))
     conn.commit()
@@ -250,6 +255,9 @@ class TestFailClosed(BridgeCase):
         self.assertEqual(self.korea_rows(), [])
 
     def test_gates_refuse_without_activation(self):           # scenario 13
+        # Once the desk is activated apply_all syncs the manifest's source
+        # row; remove it to model a database that never received it.
+        self.conn.execute("DELETE FROM sources WHERE slug=?", (bridge.SOURCE_SLUG,))
         before = self.snapshot()
         with self.assertRaisesRegex(bridge.BridgeHold, "korea_source_not_registered"):
             self.run_bridge()
@@ -266,27 +274,33 @@ class TestFailClosed(BridgeCase):
             self.run_bridge(registry=SHADOW)
         self.assertEqual(self.snapshot(), before)
 
-    def test_repository_registry_is_not_yet_live(self):
-        """Before the owner activation change, the real registry refuses."""
+    def test_repository_registry_gate_matches_activation_state(self):
+        """Until the owner activation change the real registry refuses; after
+        it, the registry gate passes and only the database gates remain."""
         activate(self.conn)
+        if (ROOT / "desks/korea/manifest.json").is_file():
+            self.assertIsInstance(bridge.check_gates(self.conn), int)
+            return
         with self.assertRaisesRegex(bridge.BridgeHold, "korea_desk_not_live"):
             bridge.apply(self.conn, index=self.index, original_dir=self.dir,
                          excluded={})
 
 
 class TestExclusions(BridgeCase):
-    def test_repository_exclusions_admit_nothing_today(self):  # scenario 6, 8
+    def test_repository_exclusions_admit_only_the_unreviewed_release(self):  # scenario 6, 8
         activate(self.conn)
         for rec in self.records:
             admit_metadata(self.conn, rec)
         receipt = self.run_bridge(excluded=bridge.excluded_identities())
-        self.assertEqual(receipt["admitted"], [])
         reasons = {e["source_identity"]: e["reason"] for e in receipt["excluded"]}
         self.assertEqual(reasons["korea-policy:156784297"], "excluded_frozen_baseline")
-        for nid in ("156785286", "156785444", "156785691"):
+        for nid in ("156785286", "156785444"):
             self.assertEqual(reasons["korea-policy:" + nid],
                              "excluded_reviewed_english")
-        self.assertEqual(self.korea_rows(), [])
+        # An unreviewed English draft handoff alone does not strand a release.
+        self.assertNotIn("korea-policy:156785691", reasons)
+        self.assertEqual([a["source_identity"] for a in receipt["admitted"]],
+                         ["korea-policy:156785691"])
 
     def test_research_hold_and_reviewed_releases_always_excluded(self):
         excluded = bridge.excluded_identities(frozen=set())
@@ -350,6 +364,14 @@ class TestWithdrawal(BridgeCase):
         self.assertEqual(reasons, {a["source_identity"]: "source_release_revoked",
                                    b["source_identity"]: "source_version_changed"})
         self.assertEqual(len(bridge.renderable_article_ids(self.conn)), 2)
+
+    def test_later_reviewed_english_supersedes_the_machine_record(self):
+        ident = self.records[0]["source_identity"]
+        receipt = self.run_bridge(excluded={ident: "excluded_reviewed_english"})
+        self.assertEqual([(w["source_identity"], w["reason"]) for w in receipt["withdrawn"]],
+                         [(ident, "superseded_by_reviewed_english")])
+        self.assertIn(receipt["withdrawn"][0]["article_id"],
+                      bridge.withdrawn_article_ids(self.conn))
 
 
 if __name__ == "__main__":

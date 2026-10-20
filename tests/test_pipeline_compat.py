@@ -86,8 +86,8 @@ class TestRegistryDrivesCollection(unittest.TestCase):
     def test_registry_exposes_the_declared_sources(self):
         self.assertEqual(
             SourceRegistry().slugs,
-            ["china_mil_online", "global_times_mil", "mod_china",
-             "pla_daily", "sg_mindef_releases", "xinhua_mil"],
+            ["china_mil_online", "global_times_mil", "kr_policy_mnd_releases",
+             "mod_china", "pla_daily", "sg_mindef_releases", "xinhua_mil"],
         )
 
     def test_slug_view_answers_membership_and_keys(self):
@@ -223,9 +223,10 @@ class TestNoSourceStarvesAnother(unittest.TestCase):
             result("global_times_mil", st.OK, new_documents=1),
             result("xinhua_mil", st.NOT_IMPLEMENTED),
             result("sg_mindef_releases", st.OK_NO_PUBLICATIONS),
+            result("kr_policy_mnd_releases", st.OK_NO_PUBLICATIONS),
         ]
         report = machine_report(results)
-        self.assertEqual(report["source_count"], 6)
+        self.assertEqual(report["source_count"], 7)
         self.assertEqual(
             sorted(s["source_slug"] for s in report["sources"]),
             SourceRegistry().slugs,
@@ -374,9 +375,9 @@ class TestConfigSyncIsIdempotent(unittest.TestCase):
         desks = conn.execute("SELECT COUNT(*) FROM desks").fetchone()[0]
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(n, 6)
-        self.assertEqual(desks, 2)
-        self.assertEqual(insts, 5)
+        self.assertEqual(n, 7)
+        self.assertEqual(desks, 3)
+        self.assertEqual(insts, 7)      # Korea adds Policy Briefing and MND
 
     def test_sync_populates_authority_and_originality(self):
         conn = connect(self.db_path)
@@ -414,7 +415,7 @@ class TestScrapersSlugView(unittest.TestCase):
 
     def test_iteration_and_len(self):
         self.assertEqual(sorted(self.pipeline.SCRAPERS), SourceRegistry().slugs)
-        self.assertEqual(len(self.pipeline.SCRAPERS), 6)
+        self.assertEqual(len(self.pipeline.SCRAPERS), 7)
 
     def test_subscripting_raises_with_a_pointer_to_the_real_api(self):
         with self.assertRaises(TypeError) as ctx:
@@ -608,7 +609,7 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
     def test_production_manifest_declares_no_russia_desk(self):
         configs = __import__("core.manifests", fromlist=["load_all_desks"]) \
             .load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "singapore"])
+        self.assertEqual(sorted(configs), ["china", "korea", "singapore"])
         for cfg in configs.values():
             for src in cfg.sources:
                 self.assertNotEqual(src.language_tag.split("-")[0], "ru")

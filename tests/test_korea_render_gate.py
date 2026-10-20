@@ -8,7 +8,7 @@ Two layers:
   * the production renderer (site/preview/generate_preview.build) on a
     disposable copy of pla_watch.db with the STAGED activation manifest synced
     in and the four public KOGL releases bridged: one reader record per
-    finished release, labelled machine translation, cross-linked to its
+    finished release, labeled machine translation, cross-linked to its
     licensed original exhibit; held and pending releases absent; China and
     Singapore output unchanged; half-applied activation refused.
 
@@ -41,7 +41,10 @@ sys.path.insert(0, str(ROOT / "site" / "preview"))
 import generate_preview as gp  # noqa: E402
 
 NUMBER = re.compile(r"\d+")
-STAGED_MANIFEST = ROOT / "config" / "korea_daily_activation" / "manifest.json"
+# The production manifest: staged until the owner activation moves it.
+STAGED_MANIFEST = next(p for p in (ROOT / "config" / "korea_daily_activation" / "manifest.json",
+                                   ROOT / "desks" / "korea" / "manifest.json")
+                       if p.is_file())
 
 
 def synthetic_english(text_original):
@@ -322,10 +325,12 @@ class TestExcludedIdentityRefusal(BridgeCase):
         self.conn.execute("UPDATE korea_corpus_admissions SET processing_state='processed'")
         publishable, _ = bridge.publication_gate(self.conn)
         excluded = bridge.excluded_identities()
-        # In the real repository every one of the four released texts is
-        # frozen or editor-reviewed, so none can be machine-published.
-        self.assertTrue(set(publishable.values()) <= set(excluded))
+        # In the real repository three of the four released texts are frozen
+        # or editor-reviewed; the renderer refuses to route those. Only the
+        # release with an unreviewed draft handoff may be machine-published.
         self.assertEqual(len(publishable), 4)
+        self.assertEqual(set(publishable.values()) - set(excluded),
+                         {"korea-policy:156785691"})
 
 
 class TestStagedManifest(unittest.TestCase):
@@ -337,10 +342,13 @@ class TestStagedManifest(unittest.TestCase):
         self.assertEqual({i.institution_id for i in cfg.institutions},
                          {"kr_policy_briefing", "kr_mnd"})
 
-    def test_staged_manifest_is_not_discoverable(self):
+    def test_manifest_is_discoverable_only_once_activated(self):
         from core.manifests import load_all_desks
-        self.assertNotIn("korea", load_all_desks())
-        self.assertFalse((ROOT / gp.KOREA_MANIFEST).exists())
+        activated = (ROOT / gp.KOREA_MANIFEST).exists()
+        self.assertEqual("korea" in load_all_desks(), activated)
+        self.assertNotEqual(
+            (ROOT / "config" / "korea_daily_activation" / "manifest.json").exists(),
+            activated)
 
 
 if __name__ == "__main__":

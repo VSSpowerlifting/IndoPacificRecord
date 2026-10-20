@@ -73,8 +73,8 @@ jobs:
           import json
           korea = next(x for x in json.loads(Path("desks/registry.json").read_text())["desks"]
                        if x["slug"] == "korea")
-          assert korea["public"] is True and korea["status"] == "shadow"
-          assert korea["manifest"] is None and korea["has_production_records"] is False
+          assert korea["public"] is True and korea["status"] == "live"
+          assert korea["manifest"] == "desks/korea/manifest.json" and korea["has_production_records"] is True
           base = Path("output")
           html = (base/"korea.html").read_text(encoding="utf-8")
           assert html.count('data-korea-public-link=') == 5
@@ -179,8 +179,8 @@ jobs:
           import json
           k = next(x for x in json.loads(Path("desks/registry.json").read_text())["desks"]
                    if x["slug"] == "korea")
-          assert k["public"] is True and k["status"] == "shadow"
-          assert k["manifest"] is None and k["has_production_records"] is False
+          assert k["public"] is True and k["status"] == "live"
+          assert k["manifest"] == "desks/korea/manifest.json" and k["has_production_records"] is True
           p = Path("output")
           html = (p/"korea.html").read_text(encoding="utf-8")
           assert html.count('data-korea-public-link=') == 5
