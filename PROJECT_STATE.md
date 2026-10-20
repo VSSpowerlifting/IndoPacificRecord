@@ -74,9 +74,10 @@ explicit owner authorization the existing workflows were dispatched once
 production rows, main `137c8b93c2`) and its KOGL Type 1 original is live
 (`7347a530e3`, HTTPS 200, 4 licensed originals). The English handoff delivered
 a private owner-only draft; no English page is public (human review pending).
-Still unobserved: the scheduled fallbacks for these publishers (pending or
-possibly dropped) and DAPA's 22:17 UTC slot (prior run: healthy zero day
-`39179758230`). The Korea shadow watchdog still checks the
+The scheduled link fallback subsequently passed at 23:55 UTC (`39344495959`):
+zero new, 16 unchanged, chronology hold retained. Still unobserved: the
+scheduled text fallback and DAPA's 22:17 UTC slot (prior DAPA run: healthy
+zero day `39179758230`). The Korea shadow watchdog still checks the
 frozen public branch and fails daily; separate fix. Registry stays `shadow`.
 See `docs/engineering/KOREA_DESK_OPERATION.md`.
 
