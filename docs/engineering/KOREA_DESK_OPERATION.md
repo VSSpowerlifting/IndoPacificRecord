@@ -140,8 +140,11 @@ Revisions, missing evidence and disputes require actual review. MND
   hours late), so it was absent from `main`, `gh-pages` and HTTPS. With the
   owner's explicit one-time authorization (October 19, 23:51 UTC) the existing
   workflows were dispatched manually on `main`, link publisher first. This
-  proves the pathway; it does not attest the scheduled fallbacks, which remain
-  unobserved for this evening and are classified pending or possibly dropped.
+  proves the publication pathway, not unattended operation. The link fallback
+  subsequently ran successfully as a genuine `schedule` event at 23:55 UTC,
+  [39344495959](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39344495959):
+  0 new, 16 unchanged, `156785161` still held. The scheduled text fallback and
+  DAPA evening slot remain unobserved at this checkpoint.
   - Links, [39344115247](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39344115247):
     pinned private source `0fe16d7708471a6e019a7e5618fb8c9e9768dd11`; admitted 1,
     unchanged 15, `explicit_exception_held` 1 (`156785161`); validator passed
