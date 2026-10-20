@@ -38,8 +38,11 @@ Private #21 retains the bounded trial command and private run receipts.
 The owner requested genuine private verification of another relevant preserved
 record through shared Daily. Private review rejected another response for an
 unsupported geographic topic despite mechanical checks; its five attempts are
-preserved and paused. The next genuine selection is `afp:1410`. Private-only execution uses
-the ordinary processor and quality gates, without signing/releasing an envelope.
+preserved and paused. The shared quality gate now requires explicit source
+support for the South China Sea topic. The next genuine selection is `afp:1410`;
+its actual private receipt, admission/render result and final exact-head CI are
+reported in the existing PRs. No further model call is needed for a completed,
+quality-passing queue entry: retain it for the authorized production handoff.
 Separate merge/credentials/activation/deployment authorization remains required.
 Main's permanent working-desk ruling and newer U.S. metadata are retained.
 See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,

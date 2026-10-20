@@ -76,9 +76,9 @@ one private trial at `442081916b3b41850e958ae75298bf12afe565b6`; that pin's
 matches its exact captured body/version. The owner configured the private Actions
 key; the genuine two-call trial consumed 1,251 input / 584 output tokens,
 estimated $0.010581. Response text, relevance judgment and source-specific review
-remain private: **not a quality-passing public candidate**. Prompt v2 clarifies
-literal evidence punctuation and per-sentence attribution; the gates remain
-strict. No further trial expense is authorized or needed by this receipt.
+remain private: **not a quality-passing public candidate**. The current prompt v8 clarifies
+literal evidence, concise complete sentences, source attribution and supported
+topics; the gates remain strict. Do not repeat the excluded trial.
 Private NSC `b564c3089cac408fce4dc52b794c94855efe025d` replays zero records,
 a valid quiet-source outcome. No original content is copied into this document.
 
@@ -138,11 +138,21 @@ belong in the PR checks and `PROJECT_STATE.md`.
    fixed signed-envelope read, or use a dedicated `IPR_DAILY_OUTPUT_READ_TOKEN`.
    The shared `DAILY_PH_AFP_ARTICLES_KEY` must match in both repositories;
    no NSC signing key or policy activation is needed for AFP release.
-5. Process one genuine AFP record, inspect actual quality and provenance,
-   consume its signed output through shared Daily and render/validate/commit
-   through the existing publisher. Read back the exact record, desk and archive
-   identities over deployed HTTPS; observe the next ordinary unattended cycle
-   and a real failure/retry. Only then assess desk operational status.
+5. Reuse the completed genuine private verification queue from private #21's
+   receipt rather than buying another analysis of that version. Seed only its
+   public-safe `queue.json` as `queues/ph_afp_articles.json` on the existing
+   private orphan `state/shared-daily` branch; preserve the separately reviewed
+   five-attempt pause and never copy `.reading.json`, originals or captures.
+   After public #835 then private #21 are merged and both repositories have
+   `IPR_PRIVATE_DAILY_ENABLED=true`, dispatch private `shared_daily_processing.yml`
+   on main. Its existing atomic writer signs the qualified queue with the
+   configured AFP key. NSC remains held. Then dispatch public `daily_update.yml`
+   on main; manual dispatch bypasses its once-per-day scheduling guard.
+   Daily consumes the signed output, validates, commits and deploys through the
+   existing publisher. Read back the exact record, Philippines desk and archive
+   identities over deployed HTTPS. Verify future maintenance in the ordinary
+   cycle after release; do not add a prelaunch observation period. Genuine
+   quality failures and the five-attempt pause were exercised privately.
 
 Pause by disabling the two integration enable variables. Retain all custody
 and processing history. Revoking a family policy suppresses its explanations
