@@ -16,7 +16,9 @@ A desk is:
 1. **Built:** the agreed capabilities exist and are connected.
 2. **Operational:** a real official-source item has passed an end-to-end
    collection → stored original/metadata → processing → approved presentation
-   → actual site readback, and one representative failure/retry was exercised.
+   → actual site readback. Verify that the existing retry/recovery controls
+   work with focused evidence; do **not** hold an otherwise ready desk waiting
+   for a real-world failure or another arbitrary observation period.
    A real source's continued unavailability remains a blocker if the agreed
    service cannot operate; do not substitute simulated fixtures.
 3. **Maintained:** the normal operational signals detect a missing collection,
@@ -45,6 +47,21 @@ source anomalies and genuine rights/quality failures hold individually.
 Human Briefs and bylined editorials still require their normal approvals.
 No new permission, spending cap, rollout or claimed real end-to-end proof
 is created by this architecture preference. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
+## Ship-first verification (owner clarification, 20 October 2026)
+
+**The measurable outcome is a real working published desk.** Do not spend
+repeated sessions on test frameworks, shadow-only milestones, reports or
+rehearsals after the minimum implementation and safety evidence exists.
+Use focused tests during development; run the existing required full PR CI
+on the final head rather than restarting the entire suite after every tiny
+edit. Fix actual failures and rerun only what is necessary; do not ignore
+required CI or weaken rights/security/integrity assertions. With owner
+source-use, model-spend and production approval, release one real qualifying
+record through shared Daily, verify it on the live site, enable the normal
+unattended path and fix observed faults. A quiet official source day does
+not justify delay or synthetic publication. See the ship-first rule in
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
 ## Verification budget
 
