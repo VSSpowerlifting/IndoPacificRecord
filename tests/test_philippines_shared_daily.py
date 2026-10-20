@@ -39,7 +39,7 @@ def reading():
         facts=[dict(sentence=first, evidence="A routine exercise is planned for 23 October."),
                dict(sentence=second, evidence="The announcement does not establish that training has taken place.")],
         is_significant=False, categories=["exercises"], significance_reasoning=None,
-        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v4")
+        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v5")
 
 
 def fake_analyzer(reply=None):
@@ -141,6 +141,21 @@ class SharedDaily(unittest.TestCase):
         r.update(is_significant=True, significance_reasoning="AFP " + "word "*90)
         with self.assertRaisesRegex(d.IntakeHold, "explanation_word_limit"):
             d.quality_check(record(), r)
+
+    def test_numeric_evidence_ignores_sentence_punctuation_but_not_value(self):
+        source = "An exercise is planned for 23 October 2026 and involves 125 specialists."
+        item = record(); item.update(body=source, content_sha256=hashlib.sha256(source.encode()).hexdigest())
+        r = reading()
+        first = "AFP reports an exercise planned for 23 October 2026."
+        second = "AFP describes plans involving 125 specialists."
+        r.update(summary_english=first + " " + second,
+                 facts=[dict(sentence=s, evidence=source) for s in (first, second)])
+        self.assertTrue(d.quality_check(item, r))
+        second = second.replace("125", "25")
+        r.update(summary_english=first + " " + second,
+                 facts=[dict(sentence=s, evidence=source) for s in (first, second)])
+        with self.assertRaisesRegex(d.IntakeHold, "quantity_or_date_unsupported"):
+            d.quality_check(item, r)
 
     def test_quiet_nsc_is_a_noop(self):
         state, usage = d.process([], {}, family="ph_nsc_official_statements", policy=d.load_policy())
@@ -267,7 +282,7 @@ class SharedDaily(unittest.TestCase):
             model_flagged=False, publisher='ph_afp', published_date='2026-10-19',
             url=record()['canonical_official_url'], source_git_commit='c'*40,
             content_sha256=record()['content_sha256'], source_run='123-1',
-            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v4'))
+            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v5'))
         self.assertIn('Machine summary', html)
         self.assertNotIn(record()['body'], html)
         self.assertNotIn(record()['title'], html)

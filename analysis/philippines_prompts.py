@@ -51,6 +51,10 @@ def analysis_messages(title, body):
         "summary sentence with sentence and evidence fields; evidence is an exact "
         "source span of 20–500 characters, copied character-for-character including "
         "curly apostrophes, punctuation and whitespace; use JSON escapes where needed). "
+        "Every date, quantity, name, place and other claim in a sentence must be "
+        "supported by that sentence's ONE evidence span. Do not combine facts from "
+        "distant paragraphs; use another sentence and span instead. Select only "
+        "2–3 facts that each fit within one supporting span. "
         "Never normalize or rewrite evidence. Concatenating facts' sentence fields with "
         "one space must reproduce summary exactly. Return categories (list of "
         "these slugs only: " + ", ".join(CATEGORIES) + ").\n" +
