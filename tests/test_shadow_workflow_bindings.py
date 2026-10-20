@@ -62,6 +62,18 @@ class BindingContracts(unittest.TestCase):
         self.assertEqual(dapa["cron"], "17 22 * * *")
         self.assertFalse(dapa["production_eligible"])
 
+    def test_declaration_cli_works_without_project_import_path(self):
+        import os
+        import subprocess
+        import sys
+        run_env=os.environ.copy()
+        run_env.pop('PYTHONPATH',None)
+        p=subprocess.run([sys.executable,str(audit.ROOT/'scripts/audit_shadow_workflow_bindings.py'),
+                          '--root',str(audit.ROOT)],cwd=self.root,env=run_env,
+                         text=True,capture_output=True)
+        self.assertEqual(p.returncode,0,p.stderr)
+        self.assertEqual(json.loads(p.stdout)['source_families_checked'],17)
+
     def test_synthetic_mirror_preserves_count_without_modifications(self):
         result = self.report()
         self.assertEqual(result["source_families_checked"], 17)

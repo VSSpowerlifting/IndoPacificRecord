@@ -171,11 +171,17 @@ def validate(root=ROOT, contract_path=None):
                     "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
                     "47 17 * * *"),
             }
-            from core.collection.vietnam_sources import SOURCES as vietnam_sources
-            for family, profile in vietnam_sources.items():
+            # This audit is a standalone stdlib CLI, before dependencies are
+            # installed. Keep its three explicitly reviewed bindings local.
+            vietnam_sources = {
+                "vn_mps_foreign_affairs_vi": "archive/vietnam-mps-foreign-affairs",
+                "vn_moit_energy_vi": "archive/vietnam-moit-energy",
+                "vn_moit_foundational_industry_vi": "archive/vietnam-moit-foundational-industry",
+            }
+            for family, private_ref in vietnam_sources.items():
                 private_sources[family] = (
                     "shadow/vietnam_ministries/manifest.json",
-                    profile.state_branch.replace("shadow/", "archive/", 1),
+                    private_ref,
                     "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
                     "17 18 * * *")
             require(slug in private_sources and
