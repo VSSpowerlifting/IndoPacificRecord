@@ -286,6 +286,12 @@ class OverlayContracts(unittest.TestCase):
         self.assertEqual(row["slot_evidence_status"], "not_supplied")
         self.assertFalse(row["collection_verified"])
         self.assertFalse(row["production_eligible"])
+        nsc = next(r for r in result["shadow_evidence_overlay"]["source_families"]
+                   if r["source_slug"] == "ph_nsc_official_statements")
+        self.assertEqual(nsc["trigger"], "private_handoff_pending")
+        self.assertIsNone(nsc["workflow"])
+        self.assertFalse(nsc["collection_verified"])
+        self.assertFalse(nsc["production_eligible"])
 
     def test_snapshot_authorization_is_not_overridden(self):
         self.base["publication_authorized"] = True
