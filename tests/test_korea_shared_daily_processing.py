@@ -1,9 +1,9 @@
 """Offline Korea Daily model-path tests: zero paid calls or site mutations."""
 import unittest
-from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from analysis.analyzer import Analyzer, AnalysisError, FatalAPIError
+from analysis.usage import UsageLedger
 from analysis.korea_daily import analyze, translate
 from analysis.korea_prompts import (
     TRANSLATION_SYSTEM, analysis_messages, relevance_messages,
@@ -32,7 +32,8 @@ class KoreaDailyProcessingTests(unittest.TestCase):
         a.score_relevance = Mock(return_value=(0.95, "MND press release"))
         a._call_tool = Mock(return_value={"title_en": "ROK meeting", "body_en": "An official met an envoy."})
         a._desk_summary_and_flag = Mock(return_value=("MND announced a meeting.", False, None))
-        a.usage = SimpleNamespace(mark_failed=Mock())
+        # `usage` is a read-only property over the instance's `_usage` ledger.
+        a._usage = Mock(spec=UsageLedger)
         result = Analyzer.analyze_record(a, "국방부", "협력", KOREA_PROFILE)
         self.assertTrue(result["requires_translation"])
         self.assertEqual(result["categories"], [])
@@ -45,7 +46,8 @@ class KoreaDailyProcessingTests(unittest.TestCase):
     def test_incomplete_translation_is_a_hold(self):
         a = object.__new__(Analyzer)
         a._call_tool = Mock(return_value={"title_en": "ROK", "body_en": " "})
-        a.usage = SimpleNamespace(mark_failed=Mock())
+        # `usage` is a read-only property over the instance's `_usage` ledger.
+        a._usage = Mock(spec=UsageLedger)
         with self.assertRaises(AnalysisError):
             translate(a, "제목", "본문")
         a.usage.mark_failed.assert_called_once()
@@ -55,7 +57,8 @@ class KoreaDailyProcessingTests(unittest.TestCase):
         a.score_relevance = Mock(return_value=(0.95, "MND"))
         a._call_tool = Mock(return_value={"title_en": "Title", "body_en": "Body"})
         a._desk_summary_and_flag = Mock(side_effect=AnalysisError("invalid summary"))
-        a.usage = SimpleNamespace(mark_failed=Mock())
+        # `usage` is a read-only property over the instance's `_usage` ledger.
+        a._usage = Mock(spec=UsageLedger)
         result = analyze(a, "제목", "본문", KOREA_PROFILE)
         self.assertTrue(result["passed_relevance"])
         self.assertNotIn("text_english", result)
