@@ -4,6 +4,50 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-20 — Standing owner ruling: finish operating desks; no unnecessary engineering
+
+**Applies to all Indo-Pacific Record desks, all coding agents, and future
+sessions.** The owner's purpose is an **operational, unattended public desk**,
+not a sequence of audits, rehearsal exercises, qualification checklists, shadow
+streaks, PRs or artificial readiness percentages. The prior 19 October shared
+Daily convergence decision is reaffirmed as the **default implementation
+requirement**, not an indefinitely deferred aspiration.
+
+- Preserve legitimate source-specific, private-first collection and custody;
+  bring authenticated, eligible outputs to **one shared Daily article/source-link
+  intake**, one desk-specific multilingual model engine, and one public
+  record/archive/search/desk renderer. No redundant country article pipelines,
+  duplicated scrapers, or routine manual machine-output release workflows.
+- For eligible, explicitly authorized records, automate language-appropriate
+  translation (none for English originals), source-grounded AI analysis and
+  **machine-labeled public output**, with bounded spending and automated rights/
+  quality checks. Failed or disallowed versions are **exception holds**; do not
+  delay other releases. A source cleared only for metadata remains link-only.
+  This does not grant new text, translation, derivative, media, access, model
+  processing or publication rights for any particular source family.
+- Finish implementation rather than serial preparation: inspect current facts,
+  identify the smallest missing production connection, reuse what works, make
+  coherent changes, run targeted checks while developing and the **existing
+  mandatory PR CI on the final exact revision**, obtain any one-time necessary
+  activation approvals, and verify an actual authorized production publication
+  and routine unattended behavior. Do not introduce arbitrary seven-/30-day
+  waits, duplicate full-suite local runs, extra rehearsal frameworks, or
+  unrelated desk expansions. One authentic production result is more meaningful
+  than many synthetic gates; do not skip checks that prevent real damage.
+- **Stop condition:** the agreed source-to-site service works, or there is one
+  named rights/access/external decision that prevents it. Report that blocker
+  precisely, rather than creating infrastructure or a fictitious 100% score.
+  Maintain real failures after launch. Briefs and human-bylined analysis retain
+  their separate editorial approval; do not relabel machine text as reviewed.
+
+This supersedes conflicting older *process preferences* and time-based
+prelaunch programs, including the seven-day minimum in the superseded
+15 October accelerated-path memo. It does **not** alter historical evidence,
+rights or editorial decisions, required repository CI, source access controls,
+production write authority, model spending permission or owner approval of a
+new exact-scope public activation. Detailed default and flow:
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 ## 2026-10-19 — Owner direction: converge all desks on one logical Daily
 
 The owner requested that the Philippines Desk and other IPR country desks use
