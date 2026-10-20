@@ -1,6 +1,6 @@
 """Read-only Korea collection-slot watchdog: ledger evidence, NOT source approval.
 
-Inspect metadata from an exact Git-pinned sparse shadow checkout. A successful
+Inspect metadata from an authenticated, Git-pinned private ledger checkout. A successful
 Korea target-date ledger shows an observed collection attempt; it cannot prove
 publisher completeness, the Actions attempt census, correct HWPX semantics or
 attachment rights. Recovery of source coverage must never be mistaken for a
@@ -19,7 +19,7 @@ from core.shadow_schedule import SOURCE_EXPLICIT, SOURCE_SCHEDULE
 from scripts.run_korea_authenticated_actions_census import pinned_ledger_checkout
 
 SCHEMA = "ipr-korea-readonly-logical-slot-watch/1"
-STATE_BRANCH = "shadow/korea-policy-briefing"
+STATE_BRANCH = "archive/korea-policy-briefing"
 FIRST_SLOT = date(2026, 10, 7)
 EXPECTED_CLOCK_DAY = date(2026, 10, 6)
 CRON_HOUR, CRON_MINUTE = 17, 47
@@ -177,8 +177,8 @@ def summarize(ledgers, clock, *, commit, as_of):
 
 
 def inspect_checkout(folder, *, as_of):
-    """Sparse pinned checkout: only state ledger/clock metadata are read."""
-    commit, ledgers = pinned_ledger_checkout(folder)
+    """Private sparse pinned checkout: only ledger/clock metadata are read."""
+    commit, ledgers = pinned_ledger_checkout(folder, expected_branch=STATE_BRANCH)
     clockfile = Path(folder) / "state" / "clock.json"
     require(clockfile.is_file() and not clockfile.is_symlink()
             and clockfile.stat().st_size <= 10000, "unsafe or absent Korea clock")
