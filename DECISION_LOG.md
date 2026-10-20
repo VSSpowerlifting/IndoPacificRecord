@@ -4,6 +4,18 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-20 — Owner: one bounded private AFP model trial
+
+The owner authorized private relevance screening and English summary/topics/
+model-flag processing of `afp:1418` at private source pin
+`442081916b3b41850e958ae75298bf12afe565b6`, after authentic version and
+source-use checks, with a **$0.35 total estimated allowance**. Use the shared
+Analyzer and Philippines quality gates; no translation, unlimited retries or
+public trial result. This is not standing AFP/NSC processing, public derivative
+rights, merging, credential mutation, schedule activation or deployment authority.
+The trial needs a securely configured private `ANTHROPIC_API_KEY`; do not request
+another spending approval or infer successful processing from offline checks.
+
 ## 2026-10-20 — Standing owner ruling: finish operating desks; no unnecessary engineering
 
 **Applies to all Indo-Pacific Record desks, all coding agents, and future

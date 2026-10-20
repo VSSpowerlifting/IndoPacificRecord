@@ -10,7 +10,7 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Philippines shared Daily integration (19 October 2026; review candidate):**
+**Philippines shared Daily integration (20 October 2026; review candidate):**
 Explicit English AFP/NSC profile, fail-closed unknown-desk routing, authenticated
 private source/version intake, shared Analyzer/quality/retry path, signed
 public-safe output and coordinated Daily/record/desk/archive/Sunday research
@@ -19,14 +19,20 @@ The essential private companion invokes the same public engine without changing
 collectors. Every new model/output/unattended policy flag remains false.
 Authentic offline replay: 32 AFP originals/captures match all 32 admitted link
 versions; NSC has zero records. No paid call or machine explanation release.
-Production DB/output and desk status are unchanged. Owner decisions remain:
-one private pinned AFP acceptance call (estimated allowance $0.35), source-specific
-machine-output rights, then merge/credentials/activation/release authority.
+Production DB/output and desk status are unchanged. The owner authorized one
+private `afp:1418` trial at `442081916b3b41850e958ae75298bf12afe565b6`,
+with a $0.35 total allowance, no translation, no automatic paid retry and no
+public output. Exact capture/content hashes and admitted link version reverified;
+execution is blocked by missing `ANTHROPIC_API_KEY` locally and in private Actions.
+Private #21 contains the bounded shared-Analyzer trial command. Standing model/
+machine-output rights and merge/credentials/activation/release authority remain
+separate. Main's permanent working-desk ruling is retained in this branch.
 See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
 evidence distinctions and rollback. Review: public #835 and private #21, both
 inactive. Focused profile/custody/migration/retry checks, the private 81-test
-suite and synthetic production-render/Chromium checks passed; full exact-head
-Linux PR CI is required for release. The development full local run was not
+suite and synthetic production-render/Chromium checks passed. Full Linux CI on
+`f446d53861` passed 7,690 tests (three skips), with ten governed validator warnings;
+CI must pass again on the final updated PR head. The development full local run was not
 green (subsequently repaired regressions, missing gpg/python-docx and macOS
 temporary-path constraints); do not present it as successful full CI.
 
