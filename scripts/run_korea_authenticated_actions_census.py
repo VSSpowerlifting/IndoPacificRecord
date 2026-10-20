@@ -152,7 +152,9 @@ def pinned_ledger_checkout(folder, *, expected_branch="shadow/korea-policy-brief
         capture_output=True, text=True, check=False, timeout=10)
     require(branch.returncode == 0 and
             branch.stdout.strip() == expected_branch,
-            "checkout is not on the expected pinned Korea custody branch")
+            ("checkout is not on the isolated Korea shadow branch"
+             if expected_branch == "shadow/korea-policy-briefing"
+             else "checkout is not on the expected private Korea custody branch"))
     directory = folder / "state" / "ledger"
     require(directory.is_dir() and not directory.is_symlink(),
             "Korea state ledger directory absent or symlinked")
