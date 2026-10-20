@@ -30,13 +30,15 @@ public output. Exact capture/content hashes and admitted link version reverified
 The owner configured the private Actions key. Genuine trial: two calls, 1,251
 input / 584 output tokens, estimated $0.010581; no retries or translation.
 Response text, relevance judgment and source-specific review remain private.
-The trial did not produce a release-eligible record. Prompt v7 explicitly
+The trial did not produce a release-eligible record. Prompt v8 explicitly
 requires literal evidence punctuation and AFP/NSC in every sentence; strict
 gates remain unchanged. This is not a quality-passing production record.
 Private #21 retains the bounded trial command and private run receipts.
 `afp:1418` is explicitly excluded from processing, signing, intake and rendering.
 The owner requested genuine private verification of another relevant preserved
-record through shared Daily; `afp:1411` is selected. Private-only execution uses
+record through shared Daily. Private review rejected another response for an
+unsupported geographic topic despite mechanical checks; its five attempts are
+preserved and paused. The next genuine selection is `afp:1410`. Private-only execution uses
 the ordinary processor and quality gates, without signing/releasing an envelope.
 Separate merge/credentials/activation/deployment authorization remains required.
 Main's permanent working-desk ruling and newer U.S. metadata are retained.

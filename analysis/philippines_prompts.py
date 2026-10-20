@@ -59,6 +59,6 @@ def analysis_messages(title, body):
         "distant paragraphs. This applies equally to flag_reason and flag_evidence. Select only facts supported by a single span that fits "
         "the evidence length; do not shorten the evidence so it omits a claim's support. "
         "A span may omit unrelated text before or after the complete supporting clause. Never normalize or rewrite evidence. Concatenating facts' sentence fields with "
-        "one space must reproduce summary exactly. Return categories (list of "
+        "one space must reproduce summary exactly. Select only topics explicitly supported by the source. Use south_china_sea only when the source explicitly names the South China Sea or West Philippine Sea; generic defense cooperation is insufficient. Return categories (list of "
         "these slugs only: " + ", ".join(CATEGORIES) + ").\n" +
         json.dumps({"title": title, "body": body}, ensure_ascii=False))}]

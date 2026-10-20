@@ -39,7 +39,7 @@ def reading():
         facts=[dict(sentence=first, evidence="A routine exercise is planned for 23 October."),
                dict(sentence=second, evidence="The announcement does not establish that training has taken place.")],
         is_significant=False, categories=["exercises"], significance_reasoning=None,
-        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v7")
+        model_id="synthetic-model", prompt_version="ph-relevance-v1+ph-analysis-v8")
 
 
 def fake_analyzer(reply=None):
@@ -50,6 +50,15 @@ def fake_analyzer(reply=None):
 
 
 class SharedDaily(unittest.TestCase):
+    def test_geographic_topic_requires_explicit_source_support(self):
+        r = record()
+        reading = fake_analyzer().analyze_record(r["title"], r["body"], None)
+        reading["categories"] = ["south_china_sea"]
+        with self.assertRaisesRegex(d.IntakeHold, "daily_topic_unsupported"):
+            d.quality_check(r, reading)
+        r["body"] += " The source also names the West Philippine Sea."
+        d.quality_check(r, reading)
+
     def test_explicit_profiles_and_fail_closed_fallback(self):
         for slug in d.REFS:
             self.assertIs(profile_for_source(slug), PHILIPPINES_PROFILE)
@@ -282,7 +291,7 @@ class SharedDaily(unittest.TestCase):
             model_flagged=False, publisher='ph_afp', published_date='2026-10-19',
             url=record()['canonical_official_url'], source_git_commit='c'*40,
             content_sha256=record()['content_sha256'], source_run='123-1',
-            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v7'))
+            model_id='synthetic-model', prompt_version='ph-relevance-v1+ph-analysis-v8'))
         self.assertIn('Machine summary', html)
         self.assertNotIn(record()['body'], html)
         self.assertNotIn(record()['title'], html)
