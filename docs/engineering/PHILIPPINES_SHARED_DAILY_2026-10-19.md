@@ -1,0 +1,127 @@
+# Philippines integration with shared Daily
+
+Engineering candidate; no new production, model-use or publication authority.
+Started from public main `5ba03d04ec`; rebased onto `4509361d13` after Korea
+#832 merged during implementation. Its profile and Analyzer route are preserved.
+Shared architecture #833 was already merged. Other desks' engineering is outside
+this change.
+
+## Connected implementation
+
+- `processing/screening.py` declares `PHILIPPINES_PROFILE`. AFP and NSC use
+  the same English profile and the existing Analyzer, model routing and token
+  ledger. One relevance call, then one summary/topics/model-flag call. No
+  translation, China category call, additional SDK or separate analysis service.
+  Unknown/missing desk profiles are held outside Daily; direct dispatch fails
+  closed. Explicit China and Singapore prompts retain their existing behavior.
+- `processing/daily_intake.py` reuses AFP history/capture verification and NSC
+  capture replay. It reads exact private Git commits, canonical identity, date,
+  publisher/issuer and hashes. It compares originals against the exact snapshot
+  behind the admitted link, so unchanged metadata cannot conceal a changed body,
+  title or capture. No publisher retrieval is added.
+- `pipeline.py --private-daily-source FAMILY,CHECKOUT,COMMIT` runs this shared
+  engine in private custody. The private companion's existing collectors remain
+  unchanged. `--no-analysis` and `--dry-run` verify intake without calls or state
+  writes. Originals are transient inputs; the queue ledger stores hashes,
+  attempts, dispositions and machine results, never another original corpus.
+- Per-source pinned policy separates private model use, public machine
+  explanation and unattended release. All three default false for both sources.
+  NSC also retains its independent category anomaly and metadata admission gate.
+  Missing rights are checked before constructing an Analyzer. One record per
+  run and 16,000 input characters are the initial bounds; policy caps cannot
+  exceed ten records. Oversize/empty input holds rather than truncating evidence.
+- Every sentence and flag explanation requires an exact private source span.
+  Checks cover completeness, attribution, numerical/date tokens, proper-name
+  tokens, completed-action/modal language, categories and copied original
+  sentences/long excerpts. This is conservative screening, **not a proof that
+  arbitrary paraphrases are semantically correct**. No model confidence score
+  substitutes for source evidence. Genuine model output still needs the first
+  real acceptance exercise before activation.
+- The common five-attempt retry/pause policy and usage ledger are reused.
+  Source revisions/missing records hold individually. Account failure stops
+  paid work for that source. `resume(state, key)` resets an exceptional pause;
+  changed versions require actual source review before resetting the binding.
+- Private processing produces a family-specific MAC over an allowlisted
+  public-safe snapshot, bound to the processor commit, policy, exact original
+  and capture hashes, metadata version and collection run. AFP/NSC keys are
+  separate. Public policy is never accepted from the envelope.
+- Normal `daily_update.yml` fetches only these signed outputs, with a separate
+  read credential, when enabled. `pipeline.py` admits eligible outputs before
+  the normal shared render. Source-specific intake failures are isolated;
+  source originals never enter the public workflow or `articles` table.
+- Migration 0015 adds `daily_machine_records` to the **existing** public DB.
+  It stores separately licensed IPR output, with no original-title/body columns,
+  and requires the already-admitted family/identity/version. SQLite admission
+  is transactional and replayable; Daily reconciliation preserves additions
+  and refuses conflicting versions. Signed source holds retain the DB record
+  while withholding it from rendering; an old successful envelope cannot
+  silently reverse that hold.
+- The production renderer uses the existing record template, IPR shell and
+  machine styling, Philippines page and shared archive search/export. Generated
+  machine pages are pruned when held. Machine records remain distinct from
+  official-link metadata, preserved originals and human analysis. The existing
+  Sunday writer receives bounded, dated machine-labeled leads through its
+  supplemental research contract; human source verification, bylines and Brief
+  approval remain unchanged.
+
+## Authentic evidence versus synthetic tests
+
+Read-only replay used private AFP `d48bb3873fe3df554f5fbed5adaeafb7cdd6d876`:
+32 originals/captures verified; 32 matched the exact preserved source versions
+behind the 32 admitted public AFP links. The first candidate is `afp:1418`.
+Its source evidence is authentic; processing correctly holds at model rights.
+Private NSC `b564c3089cac408fce4dc52b794c94855efe025d` replays zero records,
+a valid quiet-source outcome. No original content is copied into this document.
+
+Offline synthetic tests exercise model routing, sentence evidence, malformed
+analysis, signatures, policy/publisher separation, duplicate/revision handling,
+retry/pause, item/family failure isolation and public non-disclosure. A synthetic
+approved output was admitted to a disposable DB copy and rendered through the
+production build into `/tmp/ipr-ph-machine-fixture-20261019/site`, including its
+record page, Philippines link and archive entry. That is **not** an actual model
+response, official-source publication, production DB write or deployed page.
+
+No new source rights, API expense, credential, schedule, production DB/output,
+Pages change or desk promotion is created here. The existing 32-link AFP
+release remains the genuinely published product; no machine explanation has
+been published by this assignment. Verification results and exact PR state
+belong in the PR checks and `PROJECT_STATE.md`.
+
+## Release and rollback
+
+1. Review the public integration and essential private companion; require the
+   full PR offline check on the exact final public head, including Chromium,
+   validator and DB/output preservation. Merge only under owner authority.
+2. Decide AFP model processing separately from public machine explanation.
+   For a private first acceptance call, authorize **one** existing pinned AFP
+   record (`afp:1418`), relevance + English reading, with a **$0.35 spending
+   allowance**, private result custody and no publication/schedule activation.
+   Expected successful-call cost is below $0.12 at the configured Haiku 4.5 /
+   Sonnet 4.6 rates; $0.35 allows existing SDK retry overhead. This is an
+   estimate, not a billing-enforced dollar ceiling. Input/record/output-token
+   limits bound dispatch. Anthropic's [Sonnet 4.6 pricing](https://platform.claude.com/docs/en/models/sonnet-4-6/overview)
+   and [Haiku 4.5 pricing](https://platform.claude.com/docs/en/models/haiku-4-5/overview)
+   support the estimate. No call has been made.
+3. Establish the applicable source-use basis for AFP machine explanations,
+   including attribution, original/capture hash provenance and the public-safe
+   schema. Set the three family flags and owner reference only under the actual
+   decision. NSC needs its own metadata, anomaly, model and output decisions;
+   AFP's authorization never supplies them.
+4. With separate owner release authority, configure matching independent
+   family keys and the private-output read credential, then enable the guarded
+   private processing and public Daily variables. The private runner uses only
+   public main code; its JSON state/output branch is atomically advanced with
+   non-force Git ref updates. It does not write public main or Pages.
+5. Process one genuine AFP record, inspect actual quality and provenance,
+   consume its signed output through shared Daily and render/validate/commit
+   through the existing publisher. Read back the exact record, desk and archive
+   identities over deployed HTTPS; observe the next ordinary unattended cycle
+   and a real failure/retry. Only then assess desk operational status.
+
+Pause by disabling the two integration enable variables. Retain all custody
+and processing history. Revoking a family policy suppresses its explanations
+on the next ordinary shared render and prunes its generated machine pages;
+neutral links keep their independent authorization. Replay signed snapshots
+after a fetch/admission/deploy failure; identity/version checks prevent duplicate
+pages or replacement of an already-released version. A signed hold persists
+until an explicit reviewed recovery; no source change is silently republished.

@@ -50,6 +50,7 @@
             <select id="f-record_type" name="record_type"><option value="">All publication types</option>
             <option value="archive_record">Archive record</option><option value="official_link">Official-link reference</option>
             <option value="preserved_original">Published original</option><option value="reviewed_translation">Reviewed translation</option>
+            {% if has_machine_explanations | default(false) %}<option value="machine_explanation">Machine explanation</option>{% endif %}
             <option value="reviewed_analysis">Reviewed analysis</option><option value="human_analysis">Human-controlled analysis</option></select>
           </div>
           <div class="finder-field"><label for="f-issuer">Issuer or author</label><select id="f-issuer" name="issuer"><option value="">All issuers / authors</option>{% for issuer in archive_issuers %}<option value="{{ issuer }}">{{ issuer }}</option>{% endfor %}</select></div>

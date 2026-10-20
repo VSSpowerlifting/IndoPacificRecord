@@ -263,6 +263,14 @@ jobs:
       # usage.py) at a file under $RUNNER_TEMP, outside the repository. The
       # pipeline writes ONLY there, so no tracked file is dirty while the rebase
       # steps below run; step 8b appends that one record to the tracked history.
+      - name: Fetch permitted shared Daily machine outputs
+        if: steps.timecheck.outputs.should_run == 'true' && vars.IPR_PRIVATE_DAILY_ENABLED == 'true'
+        env:
+          IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
+          GH_TOKEN: ${{ secrets.IPR_DAILY_OUTPUT_READ_TOKEN }}
+          IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+        run: python -m scripts.fetch_daily_machine_outputs
+
       - name: Run pipeline
         id: pipeline
         if: steps.timecheck.outputs.should_run == 'true'
@@ -271,6 +279,9 @@ jobs:
           PLA_WATCH_DAILY_RUN_DATE: ${{ steps.timecheck.outputs.today_ny }}
           LLM_USAGE_RECORD_PATH: ${{ runner.temp }}/llm_usage_record.json
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
+          IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
+          DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
         run: python pipeline.py
 
       # ── 5b. Validate rendered output (blocks deploy on failure) ───────────

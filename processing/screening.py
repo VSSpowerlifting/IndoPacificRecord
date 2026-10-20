@@ -33,8 +33,7 @@ A `ScreeningProfile` says, per desk, how each stage judges a record:
     screening"). Singapore was held on this ground from 2026-09-29 until its
     analysis path existed (docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md §6).
 
-A record whose desk is unknown gets the China profile, which is exactly what
-every record got before this module existed.
+Unregistered desks are held out of Daily and cannot dispatch model calls.
 """
 
 from dataclasses import dataclass
@@ -82,6 +81,7 @@ class ScreeningProfile:
     build_analysis_messages: Optional[Callable[[str, str], List[dict]]] = None
     build_analysis_system_prompt: Optional[Callable[[str], str]] = None
     analysis_prompt_version: Optional[str] = None
+    categories: tuple = ()
 
     @property
     def system_prompt(self) -> Optional[str]:
@@ -135,10 +135,36 @@ KOREA_PROFILE = ScreeningProfile(
     analysis_prompt_version=KOREA_ANALYSIS_VERSION,
 )
 
+def _unsupported(*args):
+    raise LookupError("unsupported_desk_processing_profile")
+
+
+UNSUPPORTED_PROFILE = ScreeningProfile(
+    desk_id="unsupported", keyword_prefilter=False, daily_queue=False,
+    build_messages=_unsupported, prompt_version="unsupported",
+    build_analysis_messages=_unsupported,
+)
+
+from analysis.philippines_prompts import (  # explicit English-only contract
+    relevance_messages, analysis_messages, system_prompt, CATEGORIES,
+)
+
+PHILIPPINES_PROFILE = ScreeningProfile(
+    desk_id="philippines", keyword_prefilter=False,
+    # Private originals use the shared private intake; never the public
+    # articles queue, whose schema contains publisher title/body text.
+    daily_queue=False, build_messages=relevance_messages,
+    prompt_version="ph-relevance-v1", build_system_prompt=system_prompt,
+    build_analysis_messages=analysis_messages,
+    build_analysis_system_prompt=system_prompt,
+    analysis_prompt_version="ph-analysis-v1", categories=CATEGORIES,
+)
+
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
     "korea": KOREA_PROFILE,
+    "philippines": PHILIPPINES_PROFILE,
 }
 
 # A non-China desk in the daily queue without its own analysis would have its
@@ -150,8 +176,8 @@ for _p in _PROFILES.values():
 
 
 def profile_for_desk(desk_id: Optional[str]) -> ScreeningProfile:
-    """The desk's profile; the China profile for an unknown or missing desk."""
-    return _PROFILES.get(desk_id or DEFAULT_DESK, CHINA_PROFILE)
+    """Explicit registered desks only; missing/unknown desks fail closed."""
+    return _PROFILES.get(desk_id, UNSUPPORTED_PROFILE)
 
 
 @lru_cache(maxsize=1)
@@ -170,4 +196,6 @@ def desk_for_source(source_slug: Optional[str]) -> Optional[str]:
 
 
 def profile_for_source(source_slug: Optional[str]) -> ScreeningProfile:
+    if source_slug in ("ph_afp_articles", "ph_nsc_official_statements"):
+        return PHILIPPINES_PROFILE
     return profile_for_desk(desk_for_source(source_slug))

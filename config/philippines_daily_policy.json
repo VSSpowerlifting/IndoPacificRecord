@@ -1,0 +1,21 @@
+{
+  "schema": "ipr-daily-source-policy/1",
+  "sources": {
+    "ph_afp_articles": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": null,
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
+    },
+    "ph_nsc_official_statements": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": null,
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
+    }
+  }
+}

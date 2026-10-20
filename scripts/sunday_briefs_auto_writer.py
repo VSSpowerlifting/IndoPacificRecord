@@ -340,6 +340,11 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
     if selected_theme is not None and supplemental:
         raise ValueError("themed trial refuses unattested supplemental research")
     extra = list(supplemental)
+    if selected_theme is None:
+        from core.daily_machine_records import editorial_candidates
+        used = {r.get("source_url") for r in extra}
+        extra.extend(r for r in editorial_candidates(db, sidecar["week_start"], as_of, limit=max(0, 8-len(extra)))
+                     if r["source_url"] not in used)
     if (len(extra) > 8 or any(
             not isinstance(e, dict) or
             e.get("status") != "unapproved-source-linked-editorial-candidate" or

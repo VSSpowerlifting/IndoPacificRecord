@@ -52,6 +52,13 @@
    published-research catalog only. NSC stays described as shadow until its
    own owner decision admits rows (docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md). #}
 {% if desk.slug == 'philippines' %}
+{% if daily_machine_records | default([]) %}
+<section class="desk-section" aria-labelledby="daily-machine-heading">
+  <h2 id="daily-machine-heading">Machine explanations of official publications</h2>
+  <p>Automated readings of institutional accounts, not independently verified events or human-authored IPR analysis.</p>
+  <ul>{% for rec in daily_machine_records %}<li><a href="{{ rec.record_path }}">{{ rec.source_label }} · {{ rec.published_date }} · {{ rec.source_identity }}</a> <span class="evidence evidence--model">Machine explanation</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
 {% set ph_links = regional_official_links | default([]) %}
 {% set ph_afp = ph_links | selectattr('publisher_label', 'equalto', 'Armed Forces of the Philippines') | list %}
 {% set ph_nsc = ph_links | selectattr('publisher_label', 'equalto', 'National Security Council') | list %}

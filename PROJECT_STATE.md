@@ -10,6 +10,21 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**Philippines shared Daily integration (19 October 2026; review candidate):**
+Explicit English AFP/NSC profile, fail-closed unknown-desk routing, authenticated
+private source/version intake, shared Analyzer/quality/retry path, signed
+public-safe output and coordinated Daily/record/desk/archive/Sunday research
+integration are implemented on `codex/philippines-shared-daily-20261019`.
+The essential private companion invokes the same public engine without changing
+collectors. Every new model/output/unattended policy flag remains false.
+Authentic offline replay: 32 AFP originals/captures match all 32 admitted link
+versions; NSC has zero records. No paid call or machine explanation release.
+Production DB/output and desk status are unchanged. Owner decisions remain:
+one private pinned AFP acceptance call (estimated allowance $0.35), source-specific
+machine-output rights, then merge/credentials/activation/release authority.
+See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
+evidence distinctions and rollback. Full exact-head CI is required for release.
+
 **Philippines Desk AFP official-link lane (19 October 2026):** released.
 The owner's standing authorization publishes verified neutral AFP link
 metadata for existing and future eligible records without per-record human
