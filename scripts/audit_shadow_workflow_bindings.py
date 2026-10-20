@@ -194,7 +194,7 @@ def validate(root=ROOT, contract_path=None):
             classification = "private_schedule_declared_external_runs_unverified"
         elif trigger == "private_handoff_pending":
             # Private writer histories are external to this public-repo audit.
-            # Exactly two individually governed source families are allowed
+            # Exactly three individually governed source families are allowed
             # to retire public collection; no source is inferred to be live.
             require(workflow is None and cron is None,
                     "private handoff cannot claim an active public collector")
@@ -231,8 +231,23 @@ def validate(root=ROOT, contract_path=None):
                         and not re.search(r"\bgit\s+push\b", active)
                         and "pull_request:" in active,
                         "private AFP handoff still has public writer or active trigger")
+            elif slug == "ph_nsc_official_statements":
+                require(binding["manifest"] == "shadow/ph_nsc/manifest.json"
+                        and branch == "shadow/ph-nsc",
+                        "private NSC handoff requires exact source family and branch")
+                legacy_path = root / ".github/workflows/ph_nsc_shadow.yml"
+                require(legacy_path.is_file() and not legacy_path.is_symlink(),
+                        "retired public NSC workflow missing")
+                raw = legacy_path.read_text(encoding="utf-8")
+                active = uncommented_workflow_text(raw)
+                require(not workflow_crons(raw)
+                        and not re.search(r"(?m)^\s*workflow_dispatch:\s*$", active)
+                        and not re.search(r"\bgit\s+push\b", active)
+                        and "shadow_collect_ph_nsc" not in active
+                        and "pull_request:" in active,
+                        "private NSC handoff still has public writer or active trigger")
             else:
-                raise BindingError("private handoff limited to exact Indonesia Kemhan or Philippines AFP sources")
+                raise BindingError("private handoff limited to exact Indonesia Kemhan or Philippines AFP/NSC sources")
             classification = "private_handoff_pending_external_runs_unverified"
         else:
             require(type(branch) is str and

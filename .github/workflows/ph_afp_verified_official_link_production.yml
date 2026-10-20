@@ -117,6 +117,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Repair schema before admission, as every other link release does:
+          # a pending index extension (e.g. 0014 for NSC) is not a failed
+          # AFP collection. This is the only step that writes pla_watch.db.
+          python -m migrations.cli --apply --db "$GITHUB_WORKSPACE/pla_watch.db"
+          python scripts/verify_db_current.py
           # shellcheck disable=SC2086
           python -m scripts.admit_ph_afp_official_links admit \
             --source-checkout "$RUNNER_TEMP/afp-source" \
@@ -139,15 +144,18 @@ jobs:
           from pathlib import Path
           from bs4 import BeautifulSoup
           db = sqlite3.connect("file:pla_watch.db?mode=ro", uri=True)
+          # Every admitted Philippines family (AFP, and NSC once separately
+          # authorized) must render exactly; AFP keeps its frozen floor.
           rows = {r[0]: r[1] for r in db.execute(
               "SELECT source_identity, canonical_official_url FROM regional_official_source_links "
-              "WHERE desk='philippines' AND source_family='ph_afp_articles'")}
+              "WHERE desk='philippines'")}
+          afp = sum(1 for k in rows if k.startswith("afp:"))
           page = Path("output/philippines.html").read_text(encoding="utf-8")
           soup = BeautifulSoup(page, "html.parser")
           items = soup.select("li[data-regional-official-source-id]")
           got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
           # At least the frozen 23, plus any further authorized verified AFP links.
-          assert len(rows) >= 23 and got == rows, "rendered links differ from SQLite"
+          assert afp >= 23 and got == rows, "rendered links differ from SQLite"
           for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
               assert forbidden not in page, forbidden
           # No preserved AFP headline or body may reach the public page.
@@ -155,7 +163,7 @@ jobs:
           for title, body in src.execute("SELECT title_original, text_original FROM shadow_records"):
               assert not (title and title in page), "original AFP headline on public page"
               assert not (body and body[:120] in page), "original AFP body on public page"
-          print("Admitted AFP links rendered:", len(rows))
+          print("Admitted Philippines links rendered:", len(rows), "AFP:", afp)
           PY
           sha256sum output/philippines.html > "$RUNNER_TEMP/ph-prod-page-sha"
           echo "All rendered output changes listed for audit, not bulk publication:"

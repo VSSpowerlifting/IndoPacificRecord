@@ -28,7 +28,8 @@ class BindingContracts(unittest.TestCase):
              if x["workflow"] and x["workflow"].startswith(".github/")}
             | {".github/workflows/indonesia_korea_shadow.yml",
                ".github/workflows/ph_afp_shadow.yml",
-               ".github/workflows/vietnam_ministry_shadow.yml"}
+               ".github/workflows/vietnam_ministry_shadow.yml",
+               ".github/workflows/ph_nsc_shadow.yml"}
         )
         for path in self.manifest_paths + self.workflow_paths:
             dst = self.root / path
@@ -180,10 +181,39 @@ class BindingContracts(unittest.TestCase):
 
     def test_other_sources_cannot_claim_private_handoff(self):
         unrelated = next(x for x in self.config["sources"]
-                         if x["source_slug"] == "ph_nsc_official_statements")
+                         if x["source_slug"] == "sg_mindef_releases")
         unrelated.update(trigger="private_handoff_pending", workflow=None, cron=None)
         with self.assertRaisesRegex(audit.BindingError,
-                                    "limited to exact Indonesia Kemhan or Philippines AFP"):
+                                    "limited to exact Indonesia Kemhan or Philippines AFP/NSC"):
+            self.report()
+
+    def test_nsc_source_is_pending_private_handoff(self):
+        row = next(x for x in self.original["sources"]
+                   if x["source_slug"] == "ph_nsc_official_statements")
+        self.assertEqual(row["trigger"], "private_handoff_pending")
+        self.assertEqual(row["evidence"], "private_handoff_pending_external_runs_unverified")
+        self.assertFalse(row["run_attested"])
+        self.assertFalse(row["production_eligible"])
+
+    def test_nsc_reintroduced_public_writer_is_rejected(self):
+        path = self.root / ".github/workflows/ph_nsc_shadow.yml"
+        original = path.read_text()
+        for mutated in (
+                original.replace("on:\n", "on:\n  schedule:\n    - cron: '10 10 * * *'\n", 1),
+                original.replace("on:\n", "on:\n  workflow_dispatch:\n", 1),
+                original + "\n      - run: git push origin shadow/ph-nsc\n",
+                original + "\n      - run: python scripts/shadow_collect_ph_nsc.py\n"):
+            with self.subTest(mutated=mutated[-60:]):
+                path.write_text(mutated)
+                with self.assertRaisesRegex(audit.BindingError, "private NSC handoff still"):
+                    self.report()
+        path.write_text(original)
+
+    def test_nsc_handoff_cannot_point_at_another_branch(self):
+        row = next(x for x in self.config["sources"]
+                   if x["source_slug"] == "ph_nsc_official_statements")
+        row["state_branch"] = "shadow/ph-afp"
+        with self.assertRaisesRegex(audit.BindingError, "private NSC handoff requires exact"):
             self.report()
 
     def test_afp_reintroduced_writer_is_rejected(self):

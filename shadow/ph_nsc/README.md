@@ -1,16 +1,26 @@
 # Philippines — National Security Council, Official Statements
 
-**Public, nonproduction shadow settings approved by Ben on 2026-10-02.**
-Activation merged in PR #96. The first bounded manual run on 2026-10-02
-verified robots/listing egress and initial public state persistence in a quiet
-window; it made zero article requests. Ordinary scheduling remains in place.
+**Custody transition (19 October 2026, pending owner merge).** The public
+writer is retired. `ph_nsc_shadow.yml` becomes a pull-request-only contract
+check, and the public `shadow/ph-nsc` branch freezes at its tip when that
+merge happens (`1a313e04`, 0 records, as of 2026-10-19). Collection continues in the private repository on `archive/ph-nsc`
+(private PR #19, `nsc_private_first_collector.yml`, daily at 10:10 UTC). Neutral
+link metadata reaches production only through
+`ph_nsc_verified_official_link_production.yml`, and only after an owner rights
+decision. See `docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md`. The
+sections below record the public shadow period from 2026-10-02 to 2026-10-19.
+
+*Historical:* Ben approved the public, nonproduction shadow settings on
+2026-10-02. Activation merged in PR #96. The first bounded manual run on
+2026-10-02 verified robots/listing egress and initial public state persistence
+in a quiet window; it made zero article requests.
 
 | | |
 |---|---|
 | Adapter | `scraper/sources/ph_nsc.py` (`PHNscAdapter`) |
 | Manifest | `shadow/ph_nsc/manifest.json` (`enabled: true` for shadow only, deliberately not under `desks/`) |
-| Runner / workflow | `scripts/shadow_collect_ph_nsc.py` / `ph_nsc_shadow.yml` |
-| Public state branch / schedule | `shadow/ph-nsc` in this repository / daily 10:10 UTC, plus manual dispatch; active after PR #96 |
+| Runner / workflow | `scripts/shadow_collect_ph_nsc.py`; it runs privately from `nsc_private_first_collector.yml`. `ph_nsc_shadow.yml` is a pull-request contract check only. |
+| State branch / schedule | Private `archive/ph-nsc`, daily 10:10 UTC, plus manual `target_date` recovery. The public `shadow/ph-nsc` branch is frozen. |
 | Tests | `tests/test_ph_nsc_adapter.py` (offline; a socket guard fails any real connection) |
 | Fixtures | `tests/fixtures/ph_nsc/` (byte-exact copies, hash-pinned by the tests) |
 | Review receipt | `docs/PH_NSC_ADAPTER_REVIEW_RECEIPT_2026-10-01.md` |
@@ -287,7 +297,11 @@ tests; tests/CI have to pass at the final exact head. No page retrieval,
 source-policy change, collector identity change, credential change, production
 data or shadow-state modification is part of this update.
 
-## Bounded verification after activation merges
+## Bounded verification after activation merges (historical, public writer)
+
+This procedure applied to the retired public writer. After the cutover, use the
+private runbook `docs/PH_NSC_PRIVATE_FIRST_RUNBOOK.md` in
+`ipr-source-evidence-private`.
 
 1. Fetch main and verify it contains the activation merge. Record its SHA, the
    current `shadow/ph-nsc` ref (or confirmed absence), and production DB/output

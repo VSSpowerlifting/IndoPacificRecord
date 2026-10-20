@@ -78,9 +78,9 @@
       "manifest": "shadow/ph_nsc/manifest.json",
       "source_slug": "ph_nsc_official_statements",
       "state_branch": "shadow/ph-nsc",
-      "workflow": ".github/workflows/ph_nsc_shadow.yml",
-      "cron": "10 10 * * *",
-      "trigger": "scheduled"
+      "workflow": null,
+      "cron": null,
+      "trigger": "private_handoff_pending"
     },
     {
       "manifest": "shadow/singapore_mindef/manifest.json",
