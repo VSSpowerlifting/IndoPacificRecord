@@ -348,23 +348,28 @@ authorization recovery and QA evidence are in
 `docs/BRIEF_RELEASE_REVIEW_2026-10-04.md`. The older desk measurements below
 have not been refreshed by that work.
 
-Vietnam remains `research`, with zero production corpus/link rows. Merged #824
-supplies independent ministry failures and guarded shared-index admission.
-The October 19 integration candidate implements six-day RSS snapshot recovery
-and an inert exact-reviewed MPS publisher in the existing workflow. Genuine
-local recovery fetched 12 missing MPS originals (23 in the temporary local
-archive); canonical scheduled state still has 11 MPS / two MOIT Energy / one
-MOIT Industry original, last healthy logical October 14. October 15–18 remain
-failed scheduled attempts; no new scheduled recovery is claimed. A three-record
-MPS exact-version review candidate is held, not approved. Current MOIT official
-terms still require written consent and robots retain the MIME warning; both
-families keep separate holds. Private `archive/vietnam-*` refs are unchanged
-mirrors; no independent restore or private canonical writer is established.
-The existing Sunday feeder joins two version-matched private synopsis notes;
-Brief #18 remains public. No production DB/output, schedule, credentials, models
-or editorial mail changed. Exact evidence, recovery command, guarded release,
-minimum private cutover and separate owner actions:
-`docs/engineering/VIETNAM_FULL_OPERATION_2026-10-19.md`.
+Vietnam remains `research`, with zero production corpus/link rows. #827 merged
+the bounded RSS frontier recovery and guarded MPS publisher. Private/public MPS
+still match at 11 originals, last healthy October 14. Both MOIT families genuinely
+completed October 19 despite MPS failure; their two/one-original private mirrors
+were fast-forwarded and independently read back. Five genuine failed-attempt ZIPs
+are preserved privately. The owner-selected FileVault-encrypted local backup was
+actually restored without network access: all three histories, originals,
+captures, clocks and failed ZIPs passed integrity/readback checks. It shares the
+same device and is not a separate-device backup.
+
+The coordinated private-first candidate retires public writers/Vietnam mirror
+jobs, adds an owner-gated private writer using the existing collectors, and
+authenticates private run/version provenance before exporting only actually
+reviewed metadata. These code changes are not activated by this work. The prior
+12-original local rehearsal is not canonical recovery; genuine private recovery,
+idempotent replay and a subsequent scheduled receipt still require owner cutover
+release. MPS human/source-use review, independent bridge/read credentials and
+public release remain held; both MOIT rights/robots holds remain independent.
+The existing Sunday feeder, two synopsis notes, Brief #18, production DB/output
+and editorial automation are preserved. Performed custody, exact constraints and
+coordinated cutover/rollback:
+`docs/engineering/VIETNAM_PRIVATE_FIRST_CUTOVER_2026-10-19.md`.
 
 National Defence Journal English (desktop `tapchiqptd.vn/en/default.html`,
 mobile `m.tapchiqptd.vn/en`) is one additional **disabled, research-only**
@@ -1019,6 +1024,44 @@ PR #824's earlier October 19 full Linux run completed 7,570 tests with one
 inherited page-budget failure and two skips. Subsequent main `e92dcef2` supplies
 the budget and post-admission contract repairs; the candidate retains those
 files exactly. Final-head CI is recorded on the PR. No merge is authorized.
+
+**Shared Daily integration (candidate, 2026-10-19).** Branch
+`claude/vietnam-desk-daily-pipeline-64d334` connects authenticated ministry
+captures to the shared Daily. It contains:
+
+- a thin corpus bridge with no recrawl;
+- migration `0017` provenance, after Korea corpus `0016`;
+- per-family `ScreeningProfile`s on `analyze_desk()`;
+- versioned terminology;
+- exception-based QA;
+- a sealed, per-permission source-use policy;
+- `scripts/run_vietnam_daily_bridge.py`.
+
+Under the standing policy every record holds for rights before any model call.
+Neither the publishable path nor a public article is reachable until the owner
+seals a decision and promotes the registry. After the #831 cutover the MPS
+family reads from the private archive ref (`--private-custody`), reusing
+`vn.prepare(private=True)`/`vn.authenticate_private` with a separate read-only
+token; pre-cutover public records stay deduplicated and #831's metadata-link
+path is a supplementary index only. The 16-stage rehearsal is SIMULATED,
+on fixtures. No real original has passed through the bridge, and no production
+run, schedule or publication has happened. Reconciliation against main
+`647a3246d5` preserves Korea rendering and the shared summary-recovery fix. The tracked database starts from that main blob;
+migration `0017` was applied to a disposable copy first. All 21 existing tables
+retain identical rows and schema, including Korea migration `0016`; foreign-key
+and integrity checks pass. Only an empty Vietnam provenance table and its
+migration ledger row are added. Generated output is unchanged; a disposable
+current-corpus render matches main byte-for-byte across all 1,300 files.
+Focused offline verification ran 1,146 tests: 1,137 passed, eight skipped, and
+one NSC scratch-WAL cleanup assertion failed. The same 21-test NSC module
+fails that assertion on a disposable exact-main checkout and on this branch;
+Philippines code/configuration remain unchanged. A separate 129-test shared
+analyzer/screening/U.S. regression run passed. Required PR CI remains a remote
+check after push; this is not a full-suite success claim.
+Status stays **Blocked**: #831 remains open, rights are held and the desk is
+in shadow. The private companion was not inspected during reconciliation. Owner requests and gaps are in
+`docs/engineering/VIETNAM_FULL_OPERATION_2026-10-19.md` § Shared Daily
+integration.
 
 The original English Government News defense-tag pilot remains separate,
 `research`, with no approved remote dispatch and no `shadow/vietnam` branch.

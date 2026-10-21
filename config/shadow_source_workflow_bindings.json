@@ -109,26 +109,26 @@
     {
       "manifest": "shadow/vietnam_ministries/manifest.json",
       "source_slug": "vn_moit_energy_vi",
-      "state_branch": "shadow/vietnam-moit-energy",
-      "workflow": ".github/workflows/vietnam_ministry_shadow.yml",
+      "state_branch": "archive/vietnam-moit-energy",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
       "cron": "17 18 * * *",
-      "trigger": "scheduled"
+      "trigger": "private_scheduled"
     },
     {
       "manifest": "shadow/vietnam_ministries/manifest.json",
       "source_slug": "vn_moit_foundational_industry_vi",
-      "state_branch": "shadow/vietnam-moit-foundational-industry",
-      "workflow": ".github/workflows/vietnam_ministry_shadow.yml",
+      "state_branch": "archive/vietnam-moit-foundational-industry",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
       "cron": "17 18 * * *",
-      "trigger": "scheduled"
+      "trigger": "private_scheduled"
     },
     {
       "manifest": "shadow/vietnam_ministries/manifest.json",
       "source_slug": "vn_mps_foreign_affairs_vi",
-      "state_branch": "shadow/vietnam-mps-foreign-affairs",
-      "workflow": ".github/workflows/vietnam_ministry_shadow.yml",
+      "state_branch": "archive/vietnam-mps-foreign-affairs",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
       "cron": "17 18 * * *",
-      "trigger": "scheduled"
+      "trigger": "private_scheduled"
     },
     {
       "manifest": "shadow/vietnam/manifest.json",

@@ -1,19 +1,15 @@
 name: Vietnam Ministry Shadow Collection
 
-# Owner-approved reliability cadence for MPS/MOIT only.
-# Daily schedule begins only after this PR is separately merged. Government News
-# remains unapproved. State stays on three isolated orphan branches; never main.
+# Public original writer retired by the coordinated private-first cutover.
+# Preserve historical refs and the inert legacy job; new originals stay private.
+# Only separately approved, metadata-only releases may run here.
 on:
-  schedule:
-    # 18:17 UTC = 01:17 in Hanoi the following day. The schedule-slot UTC date
-    # is therefore the Hanoi publication date being closed out.
-    - cron: '17 18 * * *'
   workflow_dispatch:
     inputs:
       operation:
         type: choice
-        default: collect
-        options: [collect, reviewed-release]
+        default: reviewed-release
+        options: [reviewed-release]
       target_date:
         description: >-
           Explicit logical date YYYY-MM-DD for recovery. Do not use the Actions
@@ -21,6 +17,9 @@ on:
         required: false
       mps_recovery_attempts:
         description: 'Optional failed scheduled run-attempt IDs, space separated (max six); MPS RSS only'
+        required: false
+      private_projection_b64:
+        description: 'Exact reviewed metadata-only private projection, base64 JSON; no originals'
         required: false
       expected_main:
         description: 'Reviewed release only: exact main commit authorized by the owner'
@@ -41,7 +40,7 @@ permissions:
 
 jobs:
   shadow:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.operation != 'reviewed-release'))
+    if: false # Public original writer retired at the coordinated private cutover.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -244,20 +243,37 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all)"
           sha256sum pla_watch.db > "$RUNNER_TEMP/vn-db.sha"
       - run: pip install -r requirements.txt
-      - name: Clone immutable reviewed source history
+      - name: Accept only the exact permitted private metadata projection
+        env:
+          PROJECTION_B64: ${{ inputs.private_projection_b64 }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
         run: |
-          git clone --quiet --single-branch --branch shadow/vietnam-mps-foreign-affairs \
-            https://github.com/VSSpowerlifting/IndoPacificRecord.git "$RUNNER_TEMP/vn-release-source"
+          python - <<'PYTHON'
+          import base64,json,os
+          from pathlib import Path
+          from core import vietnam_official_link_admission as vn
+          raw=os.environ['PROJECTION_B64']
+          assert 0 < len(raw) <= 65536
+          signed=json.loads(base64.b64decode(raw,validate=True))
+          assert set(signed)=={'projection','hmac_sha256'}
+          vn._projection_shape(signed['projection'])
+          assert signed['projection']['packet']['source_git_commit']==os.environ['SOURCE_COMMIT']
+          p=Path(os.environ['RUNNER_TEMP'])/'vn-private-projection.json'
+          p.write_text(json.dumps(signed,sort_keys=True));p.chmod(0o600)
+          PYTHON
       - name: Validate review, admit atomically and render Vietnam only
         env:
           GH_TOKEN: ${{ github.token }}
           VIETNAM_LINK_REVIEW_KEY: ${{ secrets.VIETNAM_LINK_REVIEW_KEY }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
           DECISION_NAME: ${{ inputs.decision_name }}
+          VIETNAM_PRIVATE_BRIDGE_KEY: ${{ secrets.VIETNAM_PRIVATE_BRIDGE_KEY }}
+          VIETNAM_PRIVATE_PROVENANCE_TOKEN: ${{ secrets.VIETNAM_PRIVATE_PROVENANCE_TOKEN }}
         run: |
           set -euo pipefail
+          test -n "$VIETNAM_PRIVATE_PROVENANCE_TOKEN"
           python -m scripts.admit_vietnam_official_links --release --database "$GITHUB_WORKSPACE/pla_watch.db" \
-            --state-repo "$RUNNER_TEMP/vn-release-source" --state-commit "$SOURCE_COMMIT" \
+            --private-projection "$RUNNER_TEMP/vn-private-projection.json" \
             --signed-decision "config/vietnam_link_releases/$DECISION_NAME.json" \
             --expected-db-sha256 "$(cut -d' ' -f1 "$RUNNER_TEMP/vn-db.sha")"
           python site/render.py --out "$RUNNER_TEMP/vn-release-render"
@@ -267,11 +283,19 @@ jobs:
             --site-dir output --require-desk vietnam
       - name: Commit exact DB and generated page with optimistic concurrency
         env:
+          VIETNAM_PRIVATE_PROVENANCE_TOKEN: ${{ secrets.VIETNAM_PRIVATE_PROVENANCE_TOKEN }}
           EXPECTED_MAIN: ${{ inputs.expected_main }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
         run: |
           set -euo pipefail
-          test "$(git ls-remote origin refs/heads/shadow/vietnam-mps-foreign-affairs | cut -f1)" = "$SOURCE_COMMIT"
+          python - <<'PYTHON'
+          import json,os
+          from pathlib import Path
+          from core import vietnam_official_link_admission as vn
+          from scripts.attest_vietnam_run_state import GithubRead
+          signed=json.loads((Path(os.environ['RUNNER_TEMP'])/'vn-private-projection.json').read_text())
+          vn.verify_private_projection_head(signed,GithubRead(os.environ['VIETNAM_PRIVATE_PROVENANCE_TOKEN'],repository=vn.PRIVATE_REPO),public_api=GithubRead())
+          PYTHON
           git fetch --quiet origin main
           test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN"
           git add -- pla_watch.db output/vietnam.html

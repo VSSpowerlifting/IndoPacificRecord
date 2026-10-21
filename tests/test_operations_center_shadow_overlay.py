@@ -293,6 +293,30 @@ class OverlayContracts(unittest.TestCase):
         self.assertFalse(nsc["collection_verified"])
         self.assertFalse(nsc["production_eligible"])
 
+    def test_private_vietnam_declarations_stay_unverified_and_exactly_source_bound(self):
+        from scripts import audit_shadow_workflow_bindings as bindings
+        native = bindings.validate(ops.ROOT)
+        snapshot = copy.deepcopy(self.base)
+        snapshot["shadow_source_manifests"] = ops.shadow_inventory(ops.SHADOW_ROOT, {})
+        result = overlay.attach(snapshot, native, [], root=ops.ROOT)
+        rows = [r for r in result["shadow_evidence_overlay"]["source_families"]
+                if r["source_slug"].startswith(("vn_mps_", "vn_moit_"))]
+        self.assertEqual(len(rows), 3)
+        for row in rows:
+            self.assertEqual(row["trigger"], "private_scheduled")
+            self.assertEqual(row["schedule_cron_utc"], "17 18 * * *")
+            self.assertEqual(row["slot_evidence_status"], "not_supplied")
+            self.assertFalse(row["collection_verified"])
+            self.assertFalse(row["production_eligible"])
+            for field, value in (("state_branch", "archive/unreviewed"),
+                                 ("workflow", "https://example.invalid/forged.yml"),
+                                 ("cron", "18 18 * * *")):
+                forged = copy.deepcopy(native)
+                target = next(r for r in forged["sources"] if r["source_slug"] == row["source_slug"])
+                target[field] = value
+                with self.assertRaisesRegex(overlay.OverlayError, "private schedule"):
+                    overlay.attach(snapshot, forged, [], root=ops.ROOT)
+
     def test_snapshot_authorization_is_not_overridden(self):
         self.base["publication_authorized"] = True
         with self.assertRaisesRegex(overlay.OverlayError, "editorial authorization"):

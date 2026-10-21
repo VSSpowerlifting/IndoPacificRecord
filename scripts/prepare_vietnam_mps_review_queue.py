@@ -38,7 +38,7 @@ def _json(obj):
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
 
 
-def compile_queue(evidence, commit, state_tree):
+def compile_queue(evidence, commit, state_tree, *, private=False):
     """Full machine inventory; *review candidate* is not editorial approval."""
     require(evidence.get("source_slug") == pilot.PILOT_SOURCE,
             "only the MPS foreign-affairs source may enter this queue")
@@ -112,7 +112,8 @@ def compile_queue(evidence, commit, state_tree):
         "schema": QUEUE_SCHEMA,
         "source_slug": pilot.PILOT_SOURCE,
         "source_family": "Ministry of Public Security — Thông tin Đối ngoại",
-        "state_branch": SOURCES[pilot.PILOT_SOURCE].state_branch,
+        "state_branch": SOURCES[pilot.PILOT_SOURCE].state_branch.replace("shadow/", "archive/", 1)
+                        if private else SOURCES[pilot.PILOT_SOURCE].state_branch,
         "state_commit": commit,
         "state_tree": state_tree,
         "day_zero_utc": evidence["clock"]["day_zero_utc"],
@@ -215,7 +216,7 @@ def review_markdown(queue):
     return "\n".join(out)
 
 
-def prepare(state_repo, state_commit, out_dir):
+def prepare(state_repo, state_commit, out_dir, *, private=False):
     """Read-only Git export and review. Create output only after checks pass."""
     require(re.fullmatch(r"[0-9a-f]{40}", state_commit) is not None,
             "full state SHA required")
@@ -227,11 +228,12 @@ def prepare(state_repo, state_commit, out_dir):
     require(not folder.exists(), "output directory must not already exist")
     repo = formal.resolve_state_repo(state_repo)
     profile = SOURCES[pilot.PILOT_SOURCE]
-    provenance = formal.verify_state_commit(repo, state_commit, profile.state_branch)
+    state_ref = profile.state_branch.replace("shadow/", "archive/", 1) if private else profile.state_branch
+    provenance = formal.verify_state_commit(repo, state_commit, state_ref)
     with tempfile.TemporaryDirectory(prefix="vn-mps-queue-") as temp:
         state = formal.export_state_tree(repo, state_commit, Path(temp) / "state")
         evidence = ministry.review(state, pilot.PILOT_SOURCE)
-        queue = compile_queue(evidence, state_commit, provenance["state_tree"])
+        queue = compile_queue(evidence, state_commit, provenance["state_tree"], private=private)
     template = unsigned_template(queue)
     require(template["reviewer"] is None and not template["records"],
             "generated template must be unsigned")
@@ -250,9 +252,10 @@ def main(argv=None):
     ap.add_argument("--state-repo", type=Path, required=True)
     ap.add_argument("--state-commit", required=True)
     ap.add_argument("--out-dir", type=Path, required=True)
+    ap.add_argument("--private-state", action="store_true")
     args = ap.parse_args(argv)
     try:
-        print(_json(prepare(args.state_repo, args.state_commit, args.out_dir)), end="")
+        print(_json(prepare(args.state_repo, args.state_commit, args.out_dir, private=args.private_state)), end="")
         return 0
     except (pilot.Refused, ValueError, OSError, formal.ReviewError) as exc:
         print("MPS review queue refused: %s" % exc, file=sys.stderr)

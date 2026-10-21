@@ -161,10 +161,19 @@ def _check_bindings(report, expected):
                     "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
                     "47 17 * * *"),
             }
+            for family, private_ref in {
+                "vn_mps_foreign_affairs_vi": "archive/vietnam-mps-foreign-affairs",
+                "vn_moit_energy_vi": "archive/vietnam-moit-energy",
+                "vn_moit_foundational_industry_vi": "archive/vietnam-moit-foundational-industry",
+            }.items():
+                allowed[("shadow/vietnam_ministries/manifest.json", family)] = (
+                    private_ref,
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
+                    "17 18 * * *")
             require(identity in allowed and
                     (branch, row.get("workflow"), row.get("cron")) == allowed[identity]
                     and row.get("evidence") == "private_schedule_declared_external_runs_unverified",
-                    "private schedule must be exact Korea source and unverified")
+                    "private schedule must be exact reviewed source and unverified")
         elif trigger == "private_handoff_pending":
             require(PRIVATE_HANDOFFS.get(identity) == branch
                     and row.get("workflow") is None
