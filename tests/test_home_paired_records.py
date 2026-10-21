@@ -417,14 +417,25 @@ class TestReviewedHome(HomeCase):
                 self.assertEqual(row.h3.get('lang'),
                                  (governed['language_tag'] or None)
                                  if not governed['title_english'] else None)
-        # The selected analyzed record exercises the translated title pair
-        # even when all four newest arrivals have only original titles.
+        # The selected analyzed record may be an English-source release
+        # (Singapore), with no machine translation. Check the actual stored
+        # translation state rather than assuming this is a Chinese record.
         selected = soup.select_one('.home-selected')
         governed = by_id[int(Path(selected.select_one('h3 a')['href']).stem)]
+        heading = selected.select_one('h3 a')
+        self.assertEqual(heading.get_text(' ', strip=True),
+                         governed['title_english'] or governed['title_original'])
         original = selected.select_one('.home-selected-original')
-        self.assertIsNotNone(original)
-        self.assertEqual(original.get_text(' ', strip=True), governed['title_original'])
-        self.assertEqual(original.get('lang'), governed['language_tag'])
+        translated = bool(governed['title_english'] and governed['title_original'])
+        self.assertEqual(original is not None, translated)
+        if translated:
+            self.assertEqual(original.get_text(' ', strip=True), governed['title_original'])
+            self.assertEqual(original.get('lang'), governed['language_tag'])
+            self.assertIn('Machine translation', selected.get_text(' ', strip=True))
+        else:
+            self.assertNotIn('Machine translation', selected.get_text(' ', strip=True))
+            if not governed['title_english']:
+                self.assertEqual(heading.get('lang'), governed['language_tag'])
 
     def test_human_brief_and_machine_record_labels_are_explicit(self):
         self.assertIn('Human-controlled analysis', self.home)
