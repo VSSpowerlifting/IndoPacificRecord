@@ -283,8 +283,15 @@ def align(entries, n_lines: int) -> Optional[List[str]]:
 _SHARED_VIEW_KO = ("공감", "동감", "인식을 같이", "견해를 같이",
                    "의견을 같이", "뜻을 같이")
 _SHARED_VIEW_EN = re.compile(
-    r"agree(?:d|s|ing)?\s+(?:with\b|that\b|on\s+(?:the\s+)?"
-    r"(?:need|importance|necessity)\b)", re.I)
+    r"agree(?:d|s|ing)?\s+with\s+(?:the|that|this|his|her|their)\s+"
+    r"(?:view|assessment|understanding|position)\b", re.I)
+_SHARED_NEED_EN = re.compile(
+    r"agree(?:d|s|ing)?\s+(?:on\s+(?:the\s+)?"
+    r"(?:need|importance|necessity)\b|that\s+it\s+(?:was|is)\s+"
+    r"(?:necessary|important|essential)\b)", re.I)
+_VIEW_NOUN_EN = re.compile(
+    r"agreement\s+with\s+(?:the|that|this|his|her|their)\s+"
+    r"(?:view|assessment|understanding|position)\b", re.I)
 _CONTACT_DECISION_EN = re.compile(
     r"agree(?:d|s|ing)?\s+to\s+"
     r"(?:maintain|continue|keep(?:\s+up)?|enhance|strengthen)\s+"
@@ -310,12 +317,15 @@ def unsupported_agreement(ko: str, en: str, guide: dict) -> bool:
         if term in ("agree", "agreed", "agrees", "agreeing"):
             if shared_view and _SHARED_VIEW_EN.match(tail):
                 continue
+            if (shared_view and any(x in ko for x in ("필요성", "중요성"))
+                    and _SHARED_NEED_EN.match(tail)):
+                continue
             if contact_decision and _CONTACT_DECISION_EN.match(tail):
                 continue
         elif term == "agreement" and shared_view:
             before = normal[max(0, match.start()-32):match.start()]
             if (_CONCURRENCE_NOUN_PREFIX.search(before) and
-                    re.match(r"agreement\s+with\b", tail, re.I)):
+                    _VIEW_NOUN_EN.match(tail)):
                 continue
         return True
     return False
