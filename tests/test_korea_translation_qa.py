@@ -213,6 +213,8 @@ class AgreementContext(unittest.TestCase):
             (japan, "Both governments signed a defense agreement."),
             (japan, "Both sides agreed to buy new missiles."),
             (japan, "Both sides agreed that a treaty was signed."),
+            (japan, "Both sides agreed that they would deploy troops."),
+            (japan, "Both sides agreed with Japan to deploy troops."),
             (japan, "They concluded a bilateral treaty."),
             (china, "Both sides agreed to deploy their fleets."),
             (china, "An agreement on defense cooperation was signed."),
