@@ -17,6 +17,7 @@ Everything runs on scratch databases; nothing touches pla_watch.db.
 """
 import dataclasses
 import functools
+import json
 import shutil
 import sqlite3
 import tempfile
@@ -172,8 +173,16 @@ class TestAdmissionThroughPipelineConnection(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         # Real released index and texts; exclusions lifted and the desk
         # treated as live only inside this scratch run.
+        # Pin this four-release scenario; later official releases are tested
+        # through the separate real-index admission path below.
+        from tests.test_korea_corpus_bridge import released
+        fixture = root / "korea-four-release-index.json"
+        fixture.write_text(json.dumps({
+            "schema": "ipr-korea-public-original-text-index/1",
+            "records": released(),
+        }), encoding="utf-8")
         self.apply = functools.partial(
-            bridge.apply, index=INDEX, original_dir=self.originals,
+            bridge.apply, index=fixture, original_dir=self.originals,
             excluded={}, registry=LIVE)
 
     def seed_metadata(self):

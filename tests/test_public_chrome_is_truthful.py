@@ -117,9 +117,11 @@ class TestNoPageDescribesItselfAsUnpublished(BuildCase):
             (self.out / "corpus-index.json").read_text(encoding="utf-8"))
         self.assertGreater(len(index["records"]), 0)
         self.assertGreater(len(self.pages), len(index["records"]))
+        from core.daily_machine_records import load as load_machine_records
+        machine = {Path(r["record_path"]).stem for r in load_machine_records(TRACKED_DB)}
         self.assertEqual(
             {p.stem for p in self.out.glob("record/*.html")},
-            {str(row[0]) for row in index["records"]},
+            {str(row[0]) for row in index["records"]} | machine,
             "missing, extra or retired record page in public chrome scan",
         )
 

@@ -56,8 +56,10 @@ class CompleteDelivery(unittest.TestCase):
         self.assertEqual(result['routes_checked'], len(html_routes))
         index = json.loads((root / 'corpus-index.json').read_text('utf-8'))
         living = {str(r[0]) + '.html' for r in index['records']}
+        from core.daily_machine_records import load as load_machine_records
+        machine = {Path(r['record_path']).name for r in load_machine_records(ROOT / 'pla_watch.db')}
         self.assertEqual({p.name for p in (root / 'record').glob('*.html')},
-                         living,
+                         living | machine,
                          "retired, missing or extra record pages would go unchecked")
         self.assertEqual(result['failures'], [])
 

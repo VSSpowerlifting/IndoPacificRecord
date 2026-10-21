@@ -2118,13 +2118,15 @@ class TestRecordPages(PreviewCase):
         self.skipTest("every %s record now carries machine text" % state)
 
     def test_page_count_equals_the_database_count(self):
-        pages = list((self.out / "record").glob("*.html"))
+        pages = [p for p in (self.out / "record").glob("*.html")
+                 if p.stem.isdigit()]
         self.assertEqual(len(pages), len(self.ids))
         self.assertEqual(len(pages), self.snapshot["expected_records"])
 
     def test_page_ids_equal_the_database_ids(self):
         on_disk = sorted(int(p.stem)
-                         for p in (self.out / "record").glob("*.html"))
+                         for p in (self.out / "record").glob("*.html")
+                         if p.stem.isdigit())
         self.assertEqual(on_disk, self.ids)
 
     def test_missing_ids_have_no_page(self):
@@ -5367,10 +5369,11 @@ class TestSnapshotScopedCitations(PreviewCase):
                     % (self.snapshot["date"],
                        "{:,}".format(self.snapshot["expected_records"])))
         missing = [p.name for p in sorted((self.out / "record").glob("*.html"))
-                   if expected not in p.read_text(encoding="utf-8")]
+                   if p.stem.isdigit()
+                   and expected not in p.read_text(encoding="utf-8")]
         self.assertEqual(missing, [])
-        self.assertEqual(len(list((self.out / "record").glob("*.html"))),
-                         self.corpus_size)
+        self.assertEqual(len([p for p in (self.out / "record").glob("*.html")
+                              if p.stem.isdigit()]), self.corpus_size)
 
     def test_each_processing_state_receives_its_own_note(self):
         notes = gp.CITATION_PROCESSING_NOTES
@@ -5574,7 +5577,8 @@ class TestSnapshotScopedCitations(PreviewCase):
         self.assertIn("corpus-guide.html", loading)
         self.assertIn("pla-watch.html", loading)
         self.assertNotIn("archive.html", loading)
-        records = [n for n in loading if n.startswith("record/")]
+        records = [n for n in loading if n.startswith("record/")
+                   and n.endswith(".html") and n[7:-5].isdigit()]
         self.assertEqual(len(records), self.corpus_size)
 
     def test_page_scripts_stay_within_budget(self):
@@ -6479,7 +6483,8 @@ class TestStop4RoutesAreIntact(PreviewCase):
         return self.shard_count
 
     def test_every_record_route_still_exists(self):
-        pages = sorted((self.out / "record").glob("*.html"))
+        pages = sorted(p for p in (self.out / "record").glob("*.html")
+                       if p.stem.isdigit())
         self.assertEqual(len(pages), self.RECORD_PAGES)
         corpus = gp.load_corpus(TRACKED_DB)["corpus"]
         stored = {r["id"] for r in corpus}
@@ -6532,6 +6537,12 @@ class TestStop4RoutesAreIntact(PreviewCase):
         from core.korea_english_publication import public_registry
         registered_korean_originals = len(read_release_index())
         reviewed_english_pages = 2 * len(public_registry())
+        from core.daily_machine_records import load as load_machine_records
+        machine_paths = {r["record_path"] for r in load_machine_records(TRACKED_DB)}
+        self.assertEqual(
+            {"record/" + p.name for p in (self.out / "record").glob("source-*.html")},
+            machine_paths,
+            "machine-explanation routes must match released source records")
         from core.staff_directory import load_staff
         staff = load_staff(REPO_ROOT / "site/preview/staff.json")
         self.assertEqual(sorted(q.name for q in (self.out / "authors").glob("*.html")),
@@ -6540,6 +6551,7 @@ class TestStop4RoutesAreIntact(PreviewCase):
                          self.corpus_size + len(top) + len(sources) + len(staff)
                          + len(covers) + len(atmosphere)
                          + registered_korean_originals + reviewed_english_pages
+                         + len(machine_paths)
                          + len([q for q in (self.out / "assets").rglob("*") if q.is_file()]))
         # Three declared files since 2026-09-15: the withdrawn J-20 derivative,
         # which stays published with its licence record because "do not render
