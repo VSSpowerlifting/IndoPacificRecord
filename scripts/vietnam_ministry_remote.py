@@ -26,10 +26,10 @@ def preserved(state):
             if n == "clock.json" or n.startswith(("ledger/", "captures/"))}
 
 
-def prepare(root, gate_dir, private=False):
+def prepare(root, gate_dir, private=False, sources=SOURCES):
     """Refuse foreign/malformed state, then seed all prior host completions."""
     before = {}
-    for slug in SOURCES:
+    for slug in sources:
         repo, state = root / slug, root / slug / "state"
         assert_isolated(repo)
         require(not repo.is_symlink(), "symlink state repository")
@@ -83,12 +83,14 @@ def resolve_targets(event_name, run_attempt, cron_utc, mps_target=None, moit_tar
 
 def run_batch(root, gate_dir, mps_target, moit_target, lookback, cap, run_id, commit,
               collector=collect, target_source=SOURCE_EXPLICIT, successful_sources=None,
-              mps_recovery_dir=None, api=None, private=False):
+              mps_recovery_dir=None, api=None, private=False, sources=SOURCES):
     require(lookback in (0, 6) and cap in (2, 40), "unapproved remote budget")
     require(re.fullmatch(r"[0-9a-f]{40}", commit) is not None, "full collector SHA required")
-    before = prepare(root, gate_dir, private=private)
+    require(sources == SOURCES or (private and sources == SOURCES[:1]),
+            "unapproved Vietnam source scope")
+    before = prepare(root, gate_dir, private=private, sources=sources)
     failures = []
-    for slug in SOURCES:
+    for slug in sources:
         state = root / slug / "state"
         target = mps_target if slug == SOURCES[0] else moit_target
         try:
@@ -132,6 +134,8 @@ def main(argv=None):
     ap.add_argument("--mps-recovery-zips", type=Path)
     ap.add_argument("--private-state", action="store_true",
                     help="allow the existing private_attempts custody receipts beside state")
+    ap.add_argument("--mps-only", action="store_true",
+                    help="collect only MPS in the private-first workflow; do not access MOIT")
     args = ap.parse_args(argv)
     successful_sources = []
     publication_list = None
@@ -143,6 +147,8 @@ def main(argv=None):
             require(REPO not in publication_list.resolve().parents
                     and args.root.resolve() not in publication_list.resolve().parents,
                     "publication list must be outside collector and source checkouts")
+        require(not args.mps_only or args.private_state,
+                "MPS-only collection requires private-state mode")
         mps_target, moit_target, target_source = resolve_targets(
             args.event_name, args.run_attempt, args.cron_utc,
             args.mps_target, args.moit_target)
@@ -154,6 +160,7 @@ def main(argv=None):
                          target_source=target_source, successful_sources=successful_sources,
                          mps_recovery_dir=args.mps_recovery_zips,
                          private=args.private_state,
+                         sources=SOURCES[:1] if args.mps_only else SOURCES,
                          api=GithubRead(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")))
     except (ValueError, OSError, ReviewError) as exc:
         print("remote batch refused: %s" % exc, file=sys.stderr)
