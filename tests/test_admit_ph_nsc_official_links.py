@@ -193,6 +193,18 @@ class Admission(Handoff):
                 self.admit(self.packet(commit), pol=pol)
         self.assertEqual(sha(self.db), before)
 
+    def test_wal_mode_source_read_leaves_no_sidecars(self):
+        _, commit = self.collect()
+        # Reproduce the production database's WAL-mode read behavior.
+        with contextlib.closing(sqlite3.connect(self.db)) as cx:
+            self.assertEqual(cx.execute("PRAGMA journal_mode=WAL").fetchone()[0], "wal")
+        for suffix in ("-wal", "-shm"):
+            self.assertFalse(Path(str(self.db) + suffix).exists(), suffix)
+        receipt, count = self.admit(self.packet(commit))
+        self.assertEqual((receipt["new_official_links"], count), (2, 2))
+        for suffix in ("-wal", "-shm"):
+            self.assertFalse(Path(str(self.db) + suffix).exists(), suffix)
+
     def test_authorized_admission_then_idempotent_retry(self):
         _, commit = self.collect()
         receipt, total = self.admit(self.packet(commit))
