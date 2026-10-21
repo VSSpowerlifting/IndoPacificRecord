@@ -62,7 +62,7 @@ class Benchmark(unittest.TestCase):
                          [("qa_number_added", 3), ("qa_number_added", 5)])
 
     def test_versions_and_pins(self):
-        self.assertEqual(qa.QA_VERSION, "kr-qa-v1")
+        self.assertEqual(qa.QA_VERSION, "kr-qa-v2")
         self.assertEqual(qa.glossary_version(), "kr-glossary-v1")
         self.assertEqual(hashlib.sha256(qa.GUIDE_PATH.read_bytes()).hexdigest(),
                          GUIDE_SHA256)
@@ -179,6 +179,56 @@ class SyntheticLines(unittest.TestCase):
     def test_china_marker_permits_china_terms(self):
         got = codes("중국 인민해방군", [{"index": 1, "text_en": "China's PLA"}])
         self.assertNotIn("qa_pla_terminology", got)
+
+
+class AgreementContext(unittest.TestCase):
+    """Actual released Oct. 19/20 Korean lines, synthetic English QA cases."""
+
+    def source(self, release, phrase):
+        text = (ROOT / "research/korea_published_original_texts" /
+                (release + ".txt")).read_text(encoding="utf-8")
+        return next(line for line in text.splitlines() if phrase in line)
+
+    def flagged(self, ko, en):
+        results = qa.check_translation(
+            ko, [{"index": 1, "text_en": en}])
+        return "qa_agreement_unsupported" in results.reasons
+
+    def test_shared_view_or_explicit_contact_decision_is_not_an_accord(self):
+        japan = self.source("156785691", "인식을 같이")
+        china = self.source("156785888", "이에 공감하며")
+        self.assertFalse(self.flagged(
+            japan, "Both sides agreed on the need for defense exchanges "
+                   "and agreed to maintain close communication."))
+        self.assertFalse(self.flagged(
+            china, "The ambassador agreed with that view and hoped "
+                   "for continued dialogue."))
+        self.assertFalse(self.flagged(
+            china, "The ambassador expressed agreement with the view."))
+
+    def test_unsupported_pacts_and_commitments_remain_held(self):
+        japan = self.source("156785691", "인식을 같이")
+        china = self.source("156785888", "이에 공감하며")
+        for ko, english in (
+            (japan, "Both governments signed a defense agreement."),
+            (japan, "Both sides agreed to buy new missiles."),
+            (japan, "Both sides agreed that a treaty was signed."),
+            (japan, "Both sides agreed that they would deploy troops."),
+            (japan, "Both sides agreed with Japan to deploy troops."),
+            (japan, "They concluded a bilateral treaty."),
+            (china, "Both sides agreed to deploy their fleets."),
+            (china, "An agreement on defense cooperation was signed."),
+        ):
+            with self.subTest(english=english):
+                self.assertTrue(self.flagged(ko, english))
+
+    def test_shared_view_basis_required_on_same_line(self):
+        self.assertTrue(self.flagged(
+            "장관은 대사와 의견을 교환했습니다.",
+            "The minister agreed with the ambassador."))
+        self.assertFalse(self.flagged(
+            "양측은 협정을 체결하였습니다.",
+            "Both sides signed an agreement."))
 
 
 class DispatchHold(unittest.TestCase):

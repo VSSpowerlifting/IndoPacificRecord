@@ -28,7 +28,7 @@ from typing import Iterable, List, Optional, Sequence, Tuple
 
 from core.korea_corpus_bridge import source_lines
 
-QA_VERSION = "kr-qa-v1"
+QA_VERSION = "kr-qa-v2"
 GUIDE_PATH = Path(__file__).resolve().parent.parent / "config" / "korea_translation_guide.json"
 
 # Dispatch holds (decided before any paid call).
@@ -277,6 +277,60 @@ def align(entries, n_lines: int) -> Optional[List[str]]:
     return out
 
 
+# A shared view is not a signed agreement. These permissions are strictly
+# *lexical*: the relevant Korean cue must be in the very same source line.
+# The gate still cannot certify the whole translation's semantic accuracy.
+_SHARED_VIEW_KO = ("공감", "동감", "인식을 같이", "견해를 같이",
+                   "의견을 같이", "뜻을 같이")
+_SHARED_VIEW_EN = re.compile(
+    r"agree(?:d|s|ing)?\s+with\s+(?:the|that|this|his|her|their)\s+"
+    r"(?:view|assessment|understanding|position)\b", re.I)
+_SHARED_NEED_EN = re.compile(
+    r"agree(?:d|s|ing)?\s+(?:on\s+(?:the\s+)?"
+    r"(?:need|importance|necessity)\b|that\s+it\s+(?:was|is)\s+"
+    r"(?:necessary|important|essential)\b)", re.I)
+_VIEW_NOUN_EN = re.compile(
+    r"agreement\s+with\s+(?:the|that|this|his|her|their)\s+"
+    r"(?:view|assessment|understanding|position)\b", re.I)
+_CONTACT_DECISION_EN = re.compile(
+    r"agree(?:d|s|ing)?\s+to\s+"
+    r"(?:maintain|continue|keep(?:\s+up)?|enhance|strengthen)\s+"
+    r"(?:close\s+)?(?:communications?|dialogue|contact)\b", re.I)
+_CONCURRENCE_NOUN_PREFIX = re.compile(r"(?:expressed|voiced|indicated)\s+$", re.I)
+
+
+def unsupported_agreement(ko: str, en: str, guide: dict) -> bool:
+    """Check each English agreement claim against Korean line-level language.
+
+    "Agreed with/that" may describe 공감, but it cannot authorize an
+    unsupported decision, formal accord, treaty or deployment commitment.
+    """
+    if any(marker in ko for marker in guide["agreement_markers_ko"]):
+        return False
+    shared_view = any(marker in ko for marker in _SHARED_VIEW_KO)
+    contact_decision = ("기로" in ko and
+                        any(term in ko for term in ("소통", "대화", "연락")))
+    normal = _norm(en)
+    for match in re.finditer(guide["agreement_terms_en"], normal, re.I):
+        term = match.group(0).lower()
+        tail = normal[match.start():]
+        if term in ("agree", "agreed", "agrees", "agreeing"):
+            if shared_view and _SHARED_VIEW_EN.match(tail):
+                continue
+            if (shared_view and any(x in ko for x in ("필요성", "중요성"))
+                    and _SHARED_NEED_EN.match(tail)):
+                continue
+            if contact_decision and _CONTACT_DECISION_EN.match(tail):
+                continue
+        elif term == "agreement" and shared_view:
+            before = normal[max(0, match.start()-32):match.start()]
+            if (_CONCURRENCE_NOUN_PREFIX.search(before) and
+                    _VIEW_NOUN_EN.match(tail)):
+                continue
+        return True
+    return False
+
+
 def check_translation(source_text: str, entries,
                       guide: Optional[dict] = None) -> QAResult:
     """Line-level and document-level checks of one line-aligned translation."""
@@ -295,8 +349,6 @@ def check_translation(source_text: str, entries,
     glossary = [(re.compile(g["ko"]), [_norm(a).lower() for a in g["accepted"]])
                 for g in guide["glossary"]]
     hdr_timing = guide["header_fields"]["보도시점"]
-    agreement_en = re.compile(guide["agreement_terms_en"], re.I)
-    agreement_ko = guide["agreement_markers_ko"]
     injection = [re.compile(p, re.I) for p in guide["injection_patterns_en"]]
     b = guide["bounds"]
 
@@ -333,7 +385,7 @@ def check_translation(source_text: str, entries,
             add(Finding("qa_header_distribution", i))
         if _quote_spans_en(en) > _quote_spans_ko(ko):
             add(Finding("qa_quote_added", i))
-        if agreement_en.search(en_n) and not any(m in ko for m in agreement_ko):
+        if unsupported_agreement(ko, en_n, guide):
             add(Finding("qa_agreement_unsupported", i))
         if any(p.search(en_n) for p in injection):
             add(Finding("qa_injection_trace", i))
@@ -391,8 +443,7 @@ def check_record(source_text: str, heading_index: int, result: dict,
         supported = set(english_numbers("\n".join(lines), guide))
         if set(english_numbers(summary, guide)) - supported:
             add(Finding("qa_summary_number_unsupported"))
-    if (re.search(guide["agreement_terms_en"], s_norm, re.I)
-            and not any(m in source_text for m in guide["agreement_markers_ko"])):
+    if unsupported_agreement(source_text, s_norm, guide):
         add(Finding("qa_summary_agreement_unsupported"))
     if (not any(m in source_text for m in guide["china_markers"])
             and any(p.search(s_norm) for p in

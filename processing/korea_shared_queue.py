@@ -85,6 +85,9 @@ def candidates(conn) -> list[dict]:
     if not _table_exists(conn):
         return []
     from analysis.korea_prompts import TRANSLATION_PROMPT_ID
+    # Owner-authorized one-time QA-v1 recovery: two exact source identities.
+    # No broad retry reset and no fourth attempt after another QA hold.
+    recovery_ids = ("korea-policy:156785691", "korea-policy:156785888")
     rows = conn.execute(
         "SELECT k.source_identity, k.article_id, k.original_text_sha256, "
         "k.document_heading_sha256, k.processing_state, k.processing_attempts, "
@@ -94,10 +97,15 @@ def candidates(conn) -> list[dict]:
         "WHERE k.state = 'admitted' AND (k.processing_state IN (?, ?) "
         "OR (k.processing_state = ? AND k.processing_reason = ? "
         "AND k.processing_attempts = 1 "
-        "AND (k.prompt_version IS NULL OR k.prompt_version NOT LIKE ?))) "
+        "AND (k.prompt_version IS NULL OR k.prompt_version NOT LIKE ?)) "
+        "OR (k.source_identity IN (?, ?) AND k.processing_state = ? "
+        "AND k.processing_reason = ? AND k.processing_attempts = 2 "
+        "AND k.qa_version = ? AND k.prompt_version LIKE ?)) "
         "ORDER BY k.first_seen_at_utc, k.source_identity",
         (PENDING, RETRYABLE, QA_HELD, "qa_agreement_unsupported",
-         "%" + TRANSLATION_PROMPT_ID + "%")
+         "%" + TRANSLATION_PROMPT_ID + "%",
+         *recovery_ids, QA_HELD, "qa_agreement_unsupported",
+         "kr-qa-v1", "%kr-translation-v3/kr-glossary-v1%")
     ).fetchall()
     return [dict(r) for r in rows]
 
