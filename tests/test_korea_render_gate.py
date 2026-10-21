@@ -33,7 +33,7 @@ from core.manifests import load_manifest
 from core.registry import sync_desk_config
 from migrations.runner import apply_all, connect
 from tests.test_korea_corpus_bridge import (
-    LIVE, BridgeCase, activate, admit_metadata,
+    LIVE, BridgeCase, activate, admit_metadata, released,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -172,7 +172,14 @@ class TestRenderedKoreaRecords(unittest.TestCase):
         apply_all(conn)
         sync_desk_config(conn, desks)
         conn.isolation_level = None
-        receipt = bridge.apply(conn, index=INDEX, original_dir=ORIGINAL_DIR,
+        # Keep the four-scenario render contract stable as the real public
+        # Korean release index receives new, independently eligible records.
+        fixed_index = root / "korea-release-four-fixture.json"
+        fixed_index.write_text(json.dumps({
+            "schema": "ipr-korea-public-original-text-index/1",
+            "records": released(),
+        }), encoding="utf-8")
+        receipt = bridge.apply(conn, index=fixed_index, original_dir=ORIGINAL_DIR,
                                excluded={}, registry=LIVE)
         assert len(receipt["admitted"]) == 4, receipt
         idents = sorted(i for i, in conn.execute(
