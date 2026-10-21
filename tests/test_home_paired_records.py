@@ -422,9 +422,19 @@ class TestReviewedHome(HomeCase):
         selected = soup.select_one('.home-selected')
         governed = by_id[int(Path(selected.select_one('h3 a')['href']).stem)]
         original = selected.select_one('.home-selected-original')
-        self.assertIsNotNone(original)
-        self.assertEqual(original.get_text(' ', strip=True), governed['title_original'])
-        self.assertEqual(original.get('lang'), governed['language_tag'])
+        # The selected live record may have no machine title. The template
+        # must show an original-title pair only when both titles are present,
+        # and must not claim translation for a source-language-only record.
+        paired = bool(governed['title_english'] and governed['title_original'])
+        self.assertEqual(original is not None, paired)
+        if paired:
+            self.assertEqual(original.get_text(' ', strip=True), governed['title_original'])
+            self.assertEqual(original.get('lang'), governed['language_tag'])
+            self.assertIn('Machine translation', str(selected))
+        else:
+            self.assertNotIn('Machine translation', str(selected))
+            self.assertEqual(selected.select_one('h3 a').get('lang'),
+                             governed['language_tag'] or None)
 
     def test_human_brief_and_machine_record_labels_are_explicit(self):
         self.assertIn('Human-controlled analysis', self.home)
