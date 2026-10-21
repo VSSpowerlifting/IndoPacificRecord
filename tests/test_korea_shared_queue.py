@@ -143,7 +143,7 @@ class TestKoreaLane(LaneCase):
         for ident in PASS:
             row = led[ident]
             self.assertEqual(row["processing_state"], "processed")
-            self.assertEqual(row["qa_version"], "kr-qa-v1")
+            self.assertEqual(row["qa_version"], "kr-qa-v2")
             self.assertEqual(row["glossary_version"], "kr-glossary-v1")
             self.assertIn("kr-translation-v3/kr-glossary-v1", row["prompt_version"])
             art = self.article(ident)
@@ -211,6 +211,39 @@ class TestKoreaLane(LaneCase):
         a = fake_analyzer()
         self.run_lane(a)
         a.score_relevance.assert_not_called()
+
+    def test_only_two_exact_qa_v1_holds_receive_a_final_attempt(self):
+        identities = ("korea-policy:156785691", "korea-policy:156785888")
+        self.admit(only=set(identities))
+        conn = sqlite3.connect(str(self.db_path))
+        conn.row_factory = sqlite3.Row
+        try:
+            for ident in identities:
+                conn.execute(
+                    "UPDATE korea_corpus_admissions SET "
+                    "processing_state='qa_held', "
+                    "processing_reason='qa_agreement_unsupported', "
+                    "processing_attempts=2, qa_version='kr-qa-v1', "
+                    "prompt_version='kr-relevance-v1+kr-translation-v3/kr-glossary-v1+kr-analysis-v1' "
+                    "WHERE source_identity=?", (ident,))
+            conn.commit()
+            self.assertEqual(
+                {r["source_identity"] for r in lane.candidates(conn)},
+                set(identities))
+            conn.execute(
+                "UPDATE korea_corpus_admissions SET processing_attempts=3 "
+                "WHERE source_identity=?", (identities[0],))
+            conn.commit()
+            self.assertEqual(
+                {r["source_identity"] for r in lane.candidates(conn)},
+                {identities[1]})
+            conn.execute(
+                "UPDATE korea_corpus_admissions SET qa_version='kr-qa-v2' "
+                "WHERE source_identity=?", (identities[1],))
+            conn.commit()
+            self.assertFalse(lane.candidates(conn))
+        finally:
+            conn.close()
 
     def test_retry_budget_pauses(self):
         self.admit(only={NO_REVIEW})
