@@ -537,7 +537,12 @@ class Analyzer:
         try:
             data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
         except AnalysisError as exc:
-            if "JSON parse failed" not in str(exc):
+            if ("JSON parse failed" not in str(exc)
+                    or (hasattr(self, "_client") and not callable(
+                        getattr(self._client.messages, "stream", None)))):
+                # The fallback requires the streaming tool API. Standalone
+                # parser/test clients without that interface keep the original
+                # redacted parse error instead of raising an AttributeError.
                 raise
             # Keep existing successful behavior. For a malformed JSON string,
             # ask for the same schema using an SDK-parsed forced tool instead.
