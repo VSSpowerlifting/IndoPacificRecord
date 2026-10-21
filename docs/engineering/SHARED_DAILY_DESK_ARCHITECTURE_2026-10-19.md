@@ -6,6 +6,53 @@ It complements the 18 October complete-desk acceptance rule and the source-speci
 rights, custody, and publication decisions in `DECISION_LOG.md`. Historical
 collection/release receipts and authorized limitations remain unchanged.
 
+
+## China-equivalent reader experience — standing owner standard (21 October 2026)
+
+**China is the reference product behavior, not the exact code or default
+copyright policy to replicate.** Visitors to every operational desk should
+receive one continuously updated, searchable, attributed record of relevant
+official defense/security developments. The normal unattended path is:
+
+1. An authorized official publisher posts; its existing independent collector
+   captures/versions the source and honors access constraints.
+2. The authenticated record enters **one shared Daily intake** and the desk's
+   specific relevance/profile (never blindly use China's PLA prompts).
+3. Translate only non-English originals as permitted; write concise,
+   independently worded, source-grounded English factual explanations, topic
+   labels and clearly identified machine flags.
+4. Automatically publish qualifying, permitted machine-labeled records to
+   existing record, archive/search and desk pages. Preserve original source
+   links, publication dates and issuer-versus-hosting-publisher distinctions.
+   Continue on subsequent normal runs without owner review of every article.
+5. If a particular record/version has a rights, source-integrity, relevance,
+   cost or factual-quality problem, **hold only that exception**. A quiet source
+   day is a valid no-op. Separately edited, bylined IPR Briefs stay
+   human-reviewed.
+
+**Source use proportionality:** linking to government documents and reporting
+underlying facts in one's own words are different from publishing entire
+articles, complete translations, substantial excerpts and media. Don't impose
+new seven-permission forms, ministry-email waiting gates or routine per-article
+owner signoffs as the default for a basic factual product. Use an explicit,
+narrow standing policy for each necessary source family/use, based on actual
+site terms, lawful access, credible source authority, model-input handling,
+and allowed public output. Foreign-government content is **not necessarily
+public domain**; a source's official status does not itself license every use,
+and model processing/redistribution can require separate checks. Never
+silently widen an existing held source's permissions. If a real source-use
+question prevents safe publication, identify that exact use and hold it
+pending evidence/owner decision, without freezing unrelated records.
+
+**Engineering stop rule:** use the existing collectors, common Daily engine,
+provenance and publishing tools. Make only the missing production connection;
+run focused local/offline checks and mandatory final-head CI, then verify one
+genuine authorized release to live HTTPS and the automatic next-cycle path.
+Don't equate artificial qualification phases, new infrastructure, or exhaustive
+historical backfill with a working desk. Don't misrepresent link-only metadata
+as a full-text article, machine output as analyst authorship, or a proposed
+policy as an activated source permission.
+
 ## Operational desk contract — permanent default (20 October 2026)
 
 The owner wants **working desks**, not engineering programs. Apply this across
@@ -136,8 +183,8 @@ become permanent parallel systems when an equivalent shared path is proven.
 | China | Chinese→English when required | Preserve today's working shared Daily behavior | Existing record, reuse and publisher contracts |
 | Singapore | English original | Explicit Singapore screening and English summary; no fake translation | Existing approved source/publication behavior |
 | South Korea MND | Korean→English | Source-pinned private original → shared profile and quality gate → unattended qualifying machine record | KOGL Type 1 applies only to actually eligible verified original text; DAPA metadata-only scope is separate |
-| Philippines AFP | English original | Existing private AFP collector → common intake and Philippines-specific summary/topics → qualifying public record | Oct 18 AFP authorization is **neutral link metadata only**, not automatic text/model/public-analysis approval |
-| Philippines NSC | English original | Use same Philippines processing profile when eligible original evidence exists | NSC metadata, model processing and category anomaly have separate unresolved owner decisions |
+| Philippines AFP | English original | Existing private AFP collector → shared Daily English screening/explanation → qualifying public machine-labeled record | Standing bounded factual machine-output authorization adopted Oct 20, 2026; first `afp:1410` record deployed; no blanket original text/media reuse approval |
+| Philippines NSC | English original | Reuse the same Philippines profile and shared Daily once source-pinned NSC original and official-link admission are authorized | Authentic `nsc:3108` preserved privately; standing metadata/model authorization proposed in PR #841 as of Oct 21, not active on `main` until merged and activated |
 | Indonesia, Vietnam, Japan, other desks | Source's actual language | Reuse the shared processing, archive and release semantics with desk profiles | No cross-family permission inheritance or speculative source activation |
 
 Do not infer that any desk currently satisfies the target solely because a
@@ -161,11 +208,11 @@ working link-only desk is not equivalent to a completed content/analysis desk.
   verify Korean translation against a versioned terminology/quality set,
   and route qualifying machine English through common publishing; retain
   DAPA metadata-only restrictions. Prompt examples are not fine-tuning.
-- Build an authentic small end-to-end rehearsal before a broad backfill:
-  official evidence → exact version and rights → shared processing →
+- Confirm one authentic end-to-end **production result** before considering any broad
+  backfill: official evidence → exact version and rights → shared processing →
   governed SQLite/public-safe projection → generated record and desk →
-  main/gh-pages/live HTTPS byte/identity readback. Separately observe the
-  first subsequent ordinary unattended cycle.
+  main/gh-pages/live HTTPS byte/identity readback. Verify the ordinary
+  unattended next-cycle path without making an arbitrary waiting milestone.
 - No mandatory seven-/30-day waiting milestone, new data pipeline for each
   desk, standalone analysis engine, duplicate database or endless phased
   shadow program. Preserve historical receipts and meaningful monitoring.
