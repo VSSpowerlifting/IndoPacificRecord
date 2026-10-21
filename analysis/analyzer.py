@@ -764,6 +764,35 @@ class Analyzer:
                          temperature=0.3, system=system,
                          task=TASK_SUMMARY)
         data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        # Philippines evidence references are resolved exclusively against the
+        # unchanged original. A model supplies IDs, never authoritative quoted
+        # text; the existing private quality gate still checks every claim.
+        if profile.desk_id == "philippines" and isinstance(data, dict):
+            from analysis.philippines_prompts import evidence_passages
+            source_passages = dict(evidence_passages(body))
+            facts = data.get("facts")
+            if isinstance(facts, list):
+                resolved = []
+                for fact in facts:
+                    if isinstance(fact, dict) and "evidence_id" in fact:
+                        ref = fact["evidence_id"]
+                        if (set(fact) != {"sentence", "evidence_id"}
+                                or type(ref) is not str or ref not in source_passages):
+                            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                            raise AnalysisError("Invalid Philippines evidence reference")
+                        resolved.append({"sentence": fact["sentence"],
+                                         "evidence": source_passages[ref]})
+                    else:
+                        resolved.append(fact)  # legacy direct-span test fixtures
+                data["facts"] = resolved
+            if "flag_evidence_id" in data:
+                ref = data["flag_evidence_id"]
+                if ref is not None:
+                    if type(ref) is not str or ref not in source_passages:
+                        self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                        raise AnalysisError("Invalid Philippines flag evidence reference")
+                    data["flag_evidence"] = source_passages[ref]
+                del data["flag_evidence_id"]
         summary = data.get("summary") if isinstance(data, dict) else None
         flagged = data.get("flag") if isinstance(data, dict) else None
         reason = data.get("flag_reason") if isinstance(data, dict) else None
