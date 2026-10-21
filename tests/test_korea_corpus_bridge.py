@@ -27,8 +27,20 @@ EXPECTED_HEADING_LINE = {"156784297": 6, "156785286": 5,
                          "156785444": 5, "156785691": 5}
 
 
+# Fixed four-release scenario fixture. The production release index grows daily;
+# new official releases must not silently change the cases under test.
+FIXTURE_IDENTITIES = frozenset({
+    "korea-policy:156784297", "korea-policy:156785286",
+    "korea-policy:156785444", "korea-policy:156785691",
+})
+
+
 def released():
-    return json.loads(INDEX.read_text(encoding="utf-8"))["records"]
+    records = json.loads(INDEX.read_text(encoding="utf-8"))["records"]
+    selected = [r for r in records if r["source_identity"] in FIXTURE_IDENTITIES]
+    if {r["source_identity"] for r in selected} != FIXTURE_IDENTITIES:
+        raise AssertionError("Korea four-release test fixture incomplete")
+    return selected
 
 
 def activate(conn, enabled=1, desk="korea", access="manual"):
