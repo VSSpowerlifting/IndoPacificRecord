@@ -438,7 +438,7 @@ class Analyzer:
             tool = (self._DESK_RELEVANCE_TOOL
                     if getattr(profile, "source_language", None)
                     else self._RELEVANCE_TOOL)
-            if profile is not None and profile.desk_id == "philippines":
+            if getattr(profile, "desk_id", None) == "philippines":
                 tool = {**tool, "description": "Return a Philippine defense and national-security relevance score and source-grounded reason."}
             data = self._call_tool(
                 messages, tool, max_tokens=500,
