@@ -20,6 +20,11 @@ class AtomicAdmission(unittest.TestCase):
         self.addCleanup(self.f.doCleanups)
         self.db = self.f.fixture.root / 'production-copy.db'
         shutil.copyfile(publisher.ROOT / 'pla_watch.db', self.db)
+        # Other public schema capabilities must already exist before this
+        # family-specific publisher, which correctly refuses unrelated upgrades.
+        from migrations.runner import connect, apply_all
+        with closing(connect(self.db)) as conn:
+            apply_all(conn)
         self.before = self.db.read_bytes()
         self.sealed = fixtures.sealed(self.f.packet)
 

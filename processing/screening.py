@@ -33,18 +33,11 @@ A `ScreeningProfile` says, per desk, how each stage judges a record:
     screening"). Singapore was held on this ground from 2026-09-29 until its
     analysis path existed (docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md §6).
 
-  * `build_translation_messages` — optional, for a desk whose originals are
-    neither Chinese nor English (Vietnam). A pass is translated in full by the
-    desk's own builder through the Analyzer's existing translation tool, and
-    the summary is still written from the original text. None (China,
-    Singapore) leaves those paths byte-identical.
-  * `categories` — optional desk vocabulary (Vietnam event types). Empty keeps
-    the existing behaviour: China's PLA taxonomy, Singapore's none.
+  * `build_translation_messages` — optional Vietnam-specific translation.
+  * `categories` — a desk's own event or topic vocabulary.
 
-A record whose desk is unknown gets the China profile, which is exactly what
-every record got before this module existed. A source that a desk claims in
-`_SOURCE_PROFILES` (Vietnam's ministry families, which have no manifest) never
-falls through to China.
+Unregistered desks are held out of Daily and cannot dispatch model calls.
+Vietnam ministry families use explicit source profiles.
 """
 
 from dataclasses import dataclass
@@ -188,13 +181,38 @@ KOREA_PROFILE = ScreeningProfile(
     analysis_prompt_version=KOREA_ANALYSIS_VERSION,
 )
 
+def _unsupported(*args):
+    raise LookupError("unsupported_desk_processing_profile")
+
+
+UNSUPPORTED_PROFILE = ScreeningProfile(
+    desk_id="unsupported", keyword_prefilter=False, daily_queue=False,
+    build_messages=_unsupported, prompt_version="unsupported",
+    build_analysis_messages=_unsupported,
+)
+
+from analysis.philippines_prompts import (  # explicit English-only contract
+    relevance_messages, analysis_messages, system_prompt, CATEGORIES,
+)
+
+PHILIPPINES_PROFILE = ScreeningProfile(
+    desk_id="philippines", keyword_prefilter=False,
+    # Private originals use the shared private intake; never the public
+    # articles queue, whose schema contains publisher title/body text.
+    daily_queue=False, build_messages=relevance_messages,
+    prompt_version="ph-relevance-v1", build_system_prompt=system_prompt,
+    build_analysis_messages=analysis_messages,
+    build_analysis_system_prompt=system_prompt,
+    analysis_prompt_version="ph-analysis-v10", categories=CATEGORIES,
+)
+
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
     # Desk-level Vietnam profile: no family, so its builders refuse. Records
     # reach the Vietnam bridge by source family, never the shared daily queue.
-    "vietnam": VIETNAM_PROFILE,
     "korea": KOREA_PROFILE,
+    "philippines": PHILIPPINES_PROFILE,
 }
 
 # Source-level profiles for sources without a desk manifest.
@@ -212,8 +230,8 @@ for _p in list(_PROFILES.values()) + list(_SOURCE_PROFILES.values()):
 
 
 def profile_for_desk(desk_id: Optional[str]) -> ScreeningProfile:
-    """The desk's profile; the China profile for an unknown or missing desk."""
-    return _PROFILES.get(desk_id or DEFAULT_DESK, CHINA_PROFILE)
+    """Explicit registered desks only; missing/unknown desks fail closed."""
+    return _PROFILES.get(desk_id, UNSUPPORTED_PROFILE)
 
 
 @lru_cache(maxsize=1)
@@ -236,4 +254,6 @@ def desk_for_source(source_slug: Optional[str]) -> Optional[str]:
 def profile_for_source(source_slug: Optional[str]) -> ScreeningProfile:
     if source_slug in _SOURCE_PROFILES:
         return _SOURCE_PROFILES[source_slug]
+    if source_slug in ("ph_afp_articles", "ph_nsc_official_statements"):
+        return PHILIPPINES_PROFILE
     return profile_for_desk(desk_for_source(source_slug))

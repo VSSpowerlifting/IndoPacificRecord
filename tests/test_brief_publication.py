@@ -5,6 +5,7 @@ import importlib.util
 import io
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,6 +13,7 @@ from unittest import mock
 
 from core import brief_contract as contract
 from core import brief_collection as collection
+from storage.db import get_articles_for_desks
 from core.desk_registry import load_registry
 from scripts import author_brief
 from scripts import validate_output
@@ -28,19 +30,8 @@ class PublicationChecks(unittest.TestCase):
         self.pending.pop('approval', None)
         self.pending['title'] = 'Approval command fixture; never published'
         self.pending['author_name'] = 'Owner (test fixture)'
-        # The published historical Brief was approved before the
-        # owner-authorized October China retirement. Its already-cited source
-        # identities survive, but whole-week desk COVERAGE counts legitimately
-        # change when 4,400 unrelated sources retire. Approval tests work on
-        # a synthetic DRAFT copy, not on the immutable published Brief. Update
-        # only that draft's computed coverage to the live read-only corpus,
-        # and keep the full source-trail + citation/readiness gate intact.
-        with author_brief.read_only(ROOT / 'pla_watch.db') as connection:
-            active = author_brief.get_articles_for_desks(
-                self.pending['week_start'], self.pending['week_ending'],
-                self.pending['desks'], conn=connection)
-        self.pending['coverage_by_desk'] = author_brief.coverage_by_desk(
-            active, self.pending['desks'])
+        # Tests use an isolated historical source fixture; retired public
+        # records are never reintroduced to the production database.
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
@@ -52,6 +43,51 @@ class PublicationChecks(unittest.TestCase):
         self.path = self.briefs / 'fixture.json'
         self.write(self.path, self.pending)
         self.registry = load_registry()
+        self.db = self.root / 'fixture_sources.db'
+        self.make_source_db()
+        self.write(self.path, self.pending)
+
+    def make_source_db(self):
+        # Historic sources remain cited in the approved brief but many were
+        # retired from public storage. Test numbering and readiness against
+        # disposable authentic sidecar-derived records, never production rows.
+        entries = self.pending['source_trail']
+        with sqlite3.connect(str(self.db)) as conn:
+            conn.executescript("""
+                CREATE TABLE sources(
+                    id INTEGER PRIMARY KEY, slug TEXT, display_name TEXT,
+                    desk_id TEXT, language TEXT, language_tag TEXT);
+                CREATE TABLE articles(
+                    id INTEGER PRIMARY KEY, source_id INTEGER, url TEXT,
+                    published_date TEXT, title_original TEXT,
+                    title_english TEXT, passed_relevance INTEGER,
+                    analyzed_at TEXT, is_significant INTEGER);
+            """)
+            sources = {}
+            for entry in entries:
+                slug = entry['source_id']
+                if slug not in sources:
+                    sources[slug] = len(sources) + 1
+                    conn.execute(
+                        'INSERT INTO sources VALUES (?, ?, ?, ?, ?, ?)',
+                        (sources[slug], slug, entry['source'],
+                         entry['desk'], entry['lang'].split('-')[0],
+                         entry['lang']))
+                state = entry['screening']
+                passed = (None if state == 'awaiting_screening'
+                          else 0 if state == 'not_selected' else 1)
+                analyzed = ('2026-09-19' if state == 'analyzed' else None)
+                conn.execute(
+                    'INSERT INTO articles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    (entry['record_id'], sources[slug], entry['url'],
+                     entry['date'], entry['title_original'], entry['title'],
+                     passed, analyzed,
+                     int(bool(entry['is_significant']))))
+            records = get_articles_for_desks(
+                self.pending['week_start'], self.pending['week_ending'],
+                self.pending['desks'], conn=conn)
+            self.pending['coverage_by_desk'] = contract.coverage_by_desk(
+                records, self.pending['desks'])
 
     def write(self, path, value):
         path.write_text(json.dumps(value), encoding='utf-8')
@@ -61,7 +97,10 @@ class PublicationChecks(unittest.TestCase):
              mock.patch.object(author_brief, 'POSTS_DIR', self.posts), \
              contextlib.redirect_stdout(io.StringIO()), \
              contextlib.redirect_stderr(io.StringIO()):
-            return author_brief.main(list(args))
+            argv = list(args)
+            if argv and argv[0] in ('approve', 'ready', 'scaffold'):
+                argv.extend(['--db', str(self.db)])
+            return author_brief.main(argv)
 
     def approve(self, path=None, reference='human approval (simulated test)'):
         return self.run_command('approve', str(path or self.path), '--approved-by', 'Fixture owner',
@@ -104,7 +143,7 @@ class PublicationChecks(unittest.TestCase):
         self.pending['opening_note'] += ' [Records 999999]'
         self.pending['source_trail'][0]['screening'] = 'awaiting_screening'
         issues = [{'issue_number': 14}]
-        errors = author_brief.readiness_problems(self.pending, issues, ROOT / 'pla_watch.db')
+        errors = author_brief.readiness_problems(self.pending, issues, self.db)
         self.assertIn('absent from the trail', ' '.join(errors))
         self.assertIn('conflicts with stored source state', ' '.join(errors))
         self.write(self.path, self.pending)

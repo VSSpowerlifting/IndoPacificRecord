@@ -36,6 +36,7 @@ VIETNAM_ID = re.compile(r"VN-MPS-([1-9][0-9]{6,20})\Z")
 # Typed editorial identities are never integer production IDs.
 # The new families encode the reporting Saturday's ISO week.
 AFP_ID = re.compile(r"PH-AFP-W(0[1-9]|[1-4][0-9]|5[0-3])-[0-9]{2}\Z")
+PH_DAILY_ID = re.compile(r"PH-DAILY-(?:AFP|NSC)-[a-f0-9]{24}\Z")
 KEMHAN_ID = re.compile(r"ID-KEMHAN-W(0[1-9]|[1-4][0-9]|5[0-3])-[0-9]{2}\Z")
 # One reviewed research provenance identity, not an open-ended Indonesia feed.
 INDONESIA_W42_ID = "ID-W42-01"
@@ -289,11 +290,15 @@ def evidence_prompt(items):
             "Publisher URL: " + row["source_url"],
             "Published: " + row["published_date"],
             "Original language: " + row["language"],
-            "Original headline: " + row["title_original"],
+            ("Machine explanation; original headline withheld" if
+             row["source_kind"] == "published-machine-explanation" else
+             "Original headline: " + row["title_original"]),
             "Topics (clustering suggestions, NOT proof of a shared event): " +
                 ", ".join(row["topics"]),
             "Research provenance: " + row["source_kind"],
-            "Short, unapproved, source-attributed research synopsis: " + row["summary"],
+            ("Machine-generated lead, not human-reviewed: " if
+             row["source_kind"] == "published-machine-explanation" else
+             "Short, unapproved, source-attributed research synopsis: ") + row["summary"],
             "Accuracy cautions: " + " | ".join(row["caveats"]),
             "WARNING: source requires human review before public Brief approval.",
             "</external_source>",

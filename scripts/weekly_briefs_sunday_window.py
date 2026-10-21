@@ -23,11 +23,13 @@ class SundayHandoffRefused(ValueError):
 def _date(value: str) -> date:
     try:
         result = date.fromisoformat(value)
+        if result.isoformat() != value:
+            raise ValueError("noncanonical date")
     except (TypeError, ValueError) as exc:
         raise SundayHandoffRefused(
             "reporting_saturday must be a valid YYYY-MM-DD date"
         ) from exc
-    if result.isoformat() != value or result.weekday() != 5:
+    if result.weekday() != 5:
         raise SundayHandoffRefused(
             "reporting_saturday must be a Saturday in YYYY-MM-DD format"
         )

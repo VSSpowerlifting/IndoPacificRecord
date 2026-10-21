@@ -146,16 +146,18 @@ class StoredQueueAudit(unittest.TestCase):
         r = self.get()
         x = self.row(r, "__missing_source__")
         self.assertEqual(x["desk_id"], "__undeclared_desk__")
-        self.assertEqual(x["daily_unscored_live"], 1)
-        self.assertTrue(x["daily_model_queue_eligible_by_desk"])
+        self.assertEqual(x["daily_unscored_live"], 0)
+        self.assertEqual(x["held_unscored"], 1)
+        self.assertFalse(x["daily_model_queue_eligible_by_desk"])
         self.assertEqual(x["rows_total"], 1)
 
-    def test_null_desk_uses_pipeline_fallback_not_promoted_desk(self):
+    def test_null_desk_is_held_out_of_pipeline(self):
         self.insert(1, source_id=3)
         r = self.get()
         x = self.row(r, "unknown_desk")
         self.assertEqual(x["desk_id"], "__undeclared_desk__")
-        self.assertEqual(x["daily_unscored_live"], 1)
+        self.assertEqual(x["daily_unscored_live"], 0)
+        self.assertEqual(x["held_unscored"], 1)
 
     def test_unknown_processing_state_not_called_retriable(self):
         self.insert(1, state="mysterious")

@@ -555,7 +555,9 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # this list exists to make a new pipeline input a deliberate act, so it
         # moves with a ruling.
         self.assertEqual(sorted(env_keys),
-                         ["ANTHROPIC_API_KEY", "CHINA_TITLE_TRANSLATION_LIMIT", "LLM_USAGE_RECORD_PATH",
+                         ["ANTHROPIC_API_KEY", "CHINA_TITLE_TRANSLATION_LIMIT",
+                          "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
+                          "IPR_DAILY_INTAKE_DIR", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE"])
         self.assertRegex(pipeline, r"CHINA_TITLE_TRANSLATION_LIMIT:\s*['\"]20['\"]")
         self.assertIn("run: python pipeline.py", pipeline)

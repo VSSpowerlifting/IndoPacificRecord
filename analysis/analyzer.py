@@ -438,6 +438,8 @@ class Analyzer:
             tool = (self._DESK_RELEVANCE_TOOL
                     if getattr(profile, "source_language", None)
                     else self._RELEVANCE_TOOL)
+            if profile is not None and profile.desk_id == "philippines":
+                tool = {**tool, "description": "Return a Philippine defense and national-security relevance score and source-grounded reason."}
             data = self._call_tool(
                 messages, tool, max_tokens=500,
                 temperature=0.0, task=TASK_RELEVANCE,
@@ -674,6 +676,8 @@ class Analyzer:
         if profile is not None and profile.desk_id == "korea":
             from analysis.korea_daily import analyze as analyze_korea
             return analyze_korea(self, title, body, profile)
+        if profile is not None and profile.desk_id == "unsupported":
+            raise AnalysisError("unsupported_desk_processing_profile")
         if profile is None or profile.translates:
             return self.analyze(title, body)
         return self.analyze_desk(title, body, profile)
@@ -724,7 +728,18 @@ class Analyzer:
             return partial
 
         try:
-            fields = self._desk_analysis_fields(title, body, profile)
+            if profile.desk_id == "vietnam":
+                fields = self._desk_analysis_fields(title, body, profile)
+            else:
+                reading = self._desk_summary_and_flag(title, body, profile)
+                fields = {
+                    "summary": reading[0],
+                    "flag": reading[1],
+                    "flag_reason": reading[2],
+                    "categories": reading[3] if profile.categories else [],
+                    "facts": reading[4] if profile.categories else None,
+                    "flag_evidence": reading[5] if profile.categories else None,
+                }
         except FatalAPIError:
             raise
         except AnalysisError as exc:
@@ -746,6 +761,8 @@ class Analyzer:
 
         return {
             **partial,
+            **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
+               if profile.desk_id == "philippines" else {}),
             "title_english":          title_en,
             "text_english":           text_en,
             "summary_english":        fields["summary"],
@@ -757,8 +774,32 @@ class Analyzer:
     def _desk_summary_and_flag(
         self, title: str, body: str, profile,
     ) -> tuple[str, bool, Optional[str]]:
-        fields = self._desk_analysis_fields(title, body, profile)
-        return fields["summary"], fields["flag"], fields["flag_reason"]
+        system = [{"type": "text", "text": profile.analysis_system_prompt,
+                   "cache_control": {"type": "ephemeral"}}]
+        raw = self._call(profile.build_analysis_messages(title, body),
+                         max_tokens=2200 if profile.categories else 1000,
+                         temperature=0.3, system=system,
+                         task=TASK_SUMMARY)
+        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        summary = data.get("summary") if isinstance(data, dict) else None
+        flagged = data.get("flag") if isinstance(data, dict) else None
+        reason = data.get("flag_reason") if isinstance(data, dict) else None
+        if profile.categories:
+            categories = data.get("categories") if isinstance(data, dict) else None
+            if (not isinstance(categories, list) or not categories
+                    or any(not isinstance(c, str) or c not in profile.categories for c in categories)
+                    or len(set(categories)) != len(categories)):
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Invalid desk analysis categories")
+        # A paid response that does not carry a usable summary and an explicit
+        # flag is a failed call: nothing is written, and the record retries.
+        if (not isinstance(summary, str) or not summary.strip()
+                or not isinstance(flagged, bool)
+                or (flagged and (not isinstance(reason, str) or not reason.strip()))):
+            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
+        result = (summary, flagged, (reason if flagged else None))
+        return result + (categories, data.get("facts"), data.get("flag_evidence")) if profile.categories else result
 
     def _desk_analysis_fields(self, title: str, body: str, profile) -> dict:
         system = [{"type": "text", "text": profile.analysis_system_prompt,
