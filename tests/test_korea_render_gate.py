@@ -159,6 +159,14 @@ class TestRenderedKoreaRecords(unittest.TestCase):
             with read_only(str(ROOT / "pla_watch.db")) as source:
                 dest = sqlite3.connect(str(path))
                 source.backup(dest)
+                # This test models *initial* activation. Existing Korea rows
+                # from the real first Daily attempt are not part of its four-
+                # release scenario; remove them from the disposable copies.
+                dest.execute("DELETE FROM korea_corpus_admissions")
+                dest.execute(
+                    "DELETE FROM articles WHERE source_id IN "
+                    "(SELECT id FROM sources WHERE desk_id='korea')")
+                dest.commit()
                 dest.close()
 
         # Owner activation, rehearsed on the copy: migrate, sync the staged

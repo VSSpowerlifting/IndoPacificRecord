@@ -222,10 +222,20 @@ def weeks_from_sql(db_path):
     uri = "file:%s?mode=ro&immutable=1" % urllib.parse.quote(str(db_path))
     con = sqlite3.connect(uri, uri=True)
     try:
+        # Reproduce the release eligibility rule independently in SQL.
+        # Korea's admitted-but-QA-held rows are stored, not publicly counted.
+        korea_filter = (
+            "(COALESCE(s.desk_id, '') != 'korea' "
+            "AND s.slug != 'kr_policy_mnd_releases') "
+            "OR EXISTS (SELECT 1 FROM korea_corpus_admissions k "
+            "WHERE k.article_id = a.id AND k.state = 'admitted' "
+            "AND k.processing_state IN ('processed', 'not_relevant'))"
+        )
         rows = con.execute(
             "SELECT date(a.published_date,'weekday 0','-6 days') AS start, "
             "       COUNT(*) AS n "
             "  FROM articles a JOIN sources s ON s.id = a.source_id "
+            " WHERE " + korea_filter +
             " GROUP BY start ORDER BY start DESC").fetchall()
         run_days = {r[0] for r in con.execute(
             "SELECT DISTINCT substr(started_at,1,10) FROM scrape_runs")}
@@ -3746,7 +3756,9 @@ class TestCorpusBrowserMarkup(PreviewCase):
             shutil.copy(TRACKED_DB, db)
             con = sqlite3.connect(db)
             rec_id = con.execute(
-                "SELECT id FROM articles ORDER BY id DESC LIMIT 1").fetchone()[0]
+                "SELECT a.id FROM articles a JOIN sources s ON s.id=a.source_id "
+                "WHERE s.desk_id='china' ORDER BY a.id DESC LIMIT 1"
+            ).fetchone()[0]
             con.execute("UPDATE articles SET title_english=?, title_original=?"
                         " WHERE id=?", (hostile, hostile + "原文", rec_id))
             con.commit()
@@ -5715,6 +5727,7 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.corpus = gp.load_corpus(TRACKED_DB)["corpus"]
+        cls.visible_ids = {r["id"] for r in cls.corpus}
         cls.sets = gp.english_output_sets(cls.corpus)
         cls.html = cls.page(cls, "corpus-guide.html")
         cls.flat = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", cls.html))
@@ -5722,8 +5735,13 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
     def _sql(self, where):
         from scripts.reconcile_db import _read_only
         with _read_only(str(TRACKED_DB)) as con:
-            return {r[0] for r in con.execute(
+            # QA-held Korea source rows remain in the tracked database but
+            # are deliberately absent from the public corpus. Compare only
+            # the published population, while deriving the field predicate
+            # independently from SQL.
+            return ({r[0] for r in con.execute(
                 "SELECT id FROM articles WHERE " + where).fetchall()}
+                & self.visible_ids)
 
     def test_each_field_is_derived_from_its_own_column(self):
         for key, where in (
@@ -5752,7 +5770,7 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
                 raw = dict(row); raw.update(meta.get(row['id'], {}))
                 if not (english_title(raw) or '').strip():
                     empty.add(row['id'])
-        self.assertEqual(self.sets['empty_title'], empty)
+        self.assertEqual(self.sets['empty_title'], empty & self.visible_ids)
 
     def test_set_equivalence_is_asserted_by_identity_not_by_count(self):
         """The permanent assertion the combined sentence depends on."""
@@ -5917,7 +5935,9 @@ class TestHostileTitlesStayInertInCitations(unittest.TestCase):
             shutil.copy(TRACKED_DB, db)
             con = sqlite3.connect(db)
             rec_id = con.execute(
-                "SELECT id FROM articles ORDER BY id DESC LIMIT 1").fetchone()[0]
+                "SELECT a.id FROM articles a JOIN sources s ON s.id=a.source_id "
+                "WHERE s.desk_id='china' ORDER BY a.id DESC LIMIT 1"
+            ).fetchone()[0]
             con.execute("UPDATE articles SET title_original=? WHERE id=?",
                         (hostile, rec_id))
             con.commit()
