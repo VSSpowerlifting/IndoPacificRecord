@@ -132,8 +132,12 @@ def _check_record(family: str, entry: dict, policy, article) -> dict:
           "vietnam_handoff_record_columns")
     identity = prov["source_identity"]
     vn.exact_url(family, identity, prov["canonical_official_url"])
+    # An article may be re-offered from the private ledger after new captures
+    # advance the family archive tip. Keep its originally authenticated evidence
+    # commit; the signed envelope separately identifies the latest archive tip.
     _need(prov["source_family"] == family
-          and prov["source_git_commit"] == entry["source_git_commit"]
+          and isinstance(prov["source_git_commit"], str)
+          and re.fullmatch(r"[0-9a-f]{40}", prov["source_git_commit"])
           and prov["rights_decision_sha256"] == policy.decision_sha256
           and prov["rights_policy_version"] == policy.policy_version
           and prov["attribution_text"] == policy.attribution_text
