@@ -29,7 +29,7 @@ from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as su
 from core.regional_reviewed_evidence import _canonical
-from migrations.versions import m0015_vietnam_article_provenance as m0015
+from migrations.versions import m0016_vietnam_article_provenance as m0016
 from processing import screening
 from tests import test_vietnam_ministry_remote_review as fixtures
 
@@ -123,7 +123,7 @@ class FakeAnalyzer:
 
 
 def clone_schema(path):
-    """The tracked corpus schema (no rows but desks) plus migration 0015."""
+    """The tracked corpus schema (no rows but desks) plus migration 0016."""
     src = sqlite3.connect("file:%s?mode=ro" % TRACKED_DB, uri=True)
     rows = src.execute("SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL"
                        " AND name NOT LIKE 'sqlite_%'").fetchall()
@@ -137,7 +137,7 @@ def clone_schema(path):
     conn.executemany("INSERT INTO desks VALUES (%s)" % ",".join("?" * len(desks[0])), desks)
     conn.executemany("INSERT INTO schema_migrations VALUES (%s)"
                      % ",".join("?" * len(applied[0])), applied)
-    m0015.up(conn)
+    m0016.up(conn)
     conn.commit()
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -418,23 +418,23 @@ class QARubric(unittest.TestCase):
         self.assertFalse(qa.needs_second_pass({"categories": ["meeting"]}))
 
 
-# ── Migration 0015 ───────────────────────────────────────────────────────────
+# ── Migration 0016 ───────────────────────────────────────────────────────────
 
 class ProvenanceMigration(unittest.TestCase):
     def test_idempotent_and_refuses_without_articles(self):
         conn = sqlite3.connect(":memory:")
         with self.assertRaisesRegex(ValueError, "articles table must precede"):
-            m0015.up(conn)
+            m0016.up(conn)
         conn.execute("CREATE TABLE articles (id INTEGER PRIMARY KEY)")
-        m0015.up(conn)
-        m0015.up(conn)
-        self.assertTrue(m0015.is_already_applied(conn))
+        m0016.up(conn)
+        m0016.up(conn)
+        self.assertTrue(m0016.is_already_applied(conn))
 
     def test_checks_reject_bad_values(self):
         conn = sqlite3.connect(":memory:")
         conn.execute("CREATE TABLE articles (id INTEGER PRIMARY KEY)")
-        m0015.up(conn)
-        row = {c: "x" for c in m0015.COLUMNS}
+        m0016.up(conn)
+        row = {c: "x" for c in m0016.COLUMNS}
         row.update(article_id=1, source_family=MPS, source_identity="mps-vi:1",
                    publisher_posted_date="2026-10-05", content_sha256="a" * 64,
                    capture_sha256="b" * 64, source_git_commit="c" * 40,
@@ -442,7 +442,7 @@ class ProvenanceMigration(unittest.TestCase):
                    license_terms=None, attribution_text="Nguồn: Bộ Công an",
                    event_type="meeting", original_withheld=1, translation_published=0)
         sql = "INSERT INTO %s (%s) VALUES (%s)" % (
-            m0015.TABLE, ",".join(row), ",".join("?" * len(row)))
+            m0016.TABLE, ",".join(row), ",".join("?" * len(row)))
         for bad in ({"event_type": "raid"}, {"source_family": "xinhua_mil"},
                     {"rights_decision_sha256": "none"}, {"publisher_posted_date": "5/10/2026"},
                     {"qa_json": "{"}, {"attribution_text": " "}):
@@ -1021,7 +1021,7 @@ class VietnamRecordRender(unittest.TestCase):
         shutil.copyfile(TRACKED_DB, self.db_path)
         self.conn = sqlite3.connect(str(self.db_path))
         self.addCleanup(self.conn.close)
-        m0015.up(self.conn)
+        m0016.up(self.conn)
         self.conn.commit()
         self.conn.execute("PRAGMA foreign_keys = ON")
         auth = patch.object(vn, "authenticate", side_effect=self.authenticated_fixture)

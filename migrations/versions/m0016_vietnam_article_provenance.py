@@ -1,4 +1,4 @@
-"""0015 — provenance for Vietnam Desk articles in the shared corpus.
+"""0016 — provenance for Vietnam Desk articles in the shared corpus.
 
 One row per `articles` row that core.vietnam_corpus_bridge admitted from an
 authenticated private Vietnam capture. It keeps what the shared `articles`
@@ -17,7 +17,7 @@ requires of every `articles` dependent); the private bridge ledger remains the
 durable record of what was admitted.
 """
 
-VERSION = "0015"
+VERSION = "0016"
 NAME = "vietnam_article_provenance"
 TABLE = "vietnam_article_provenance"
 

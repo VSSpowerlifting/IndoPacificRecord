@@ -273,11 +273,12 @@ second database, analyzer, sync system or Vietnam site.
   row. A material change is held, never overwritten. Bad dates, missing bodies,
   unsupported versions and unauthenticated sources are refused. Columns are
   projected per permission. The private ledger lives outside the repository.
-- Migration `0015` adds the `vietnam_article_provenance` table: URL, publisher
+- Migration `0016` adds the `vietnam_article_provenance` table: URL, publisher
   date, family, language, version hash, rights decision, QA record and
   attribution. Its foreign key cascades, as China retirement staging requires
   of every `articles` dependent; the private ledger keeps the durable record.
-  The tracked `pla_watch.db` ships with `0015` applied, as `0014` did. It is
+  After reconciliation, `pla_watch.db` retains Daily migration `0015`
+  and applies Vietnam migration `0016`. The resulting database is
   derived from main's exact blob with `python -m migrations.cli --apply`: one
   empty table and one `schema_migrations` row, every other table
   row-identical, `verify_db_current` fully current. Without it, the release
@@ -316,7 +317,7 @@ second database, analyzer, sync system or Vietnam site.
   private authentication path yet: `authenticate_private` is MPS-only, and the
   cutover retires all three public writers, so new MOIT captures have no
   authenticated bridge input until #831's private attestation covers them
-  (both MOIT families are rights-held regardless). m0015 stores
+  (both MOIT families are rights-held regardless). m0016 stores
   the private commit SHA, not the repository holding it; the record page
   labels it "private evidence commit". #831's metadata-link admission stays a
   supplementary source index for rights-restricted items, not a second writer
