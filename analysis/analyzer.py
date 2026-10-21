@@ -427,8 +427,11 @@ class Analyzer:
                       [{"type": "text", "text": desk_system,
                         "cache_control": {"type": "ephemeral"}}])
         if RELEVANCE_TOOL_OUTPUT_ENABLED:
+            tool = self._RELEVANCE_TOOL
+            if profile is not None and getattr(profile, "desk_id", None) == "philippines":
+                tool = {**tool, "description": "Return a Philippine defense and national-security relevance score and source-grounded reason."}
             data = self._call_tool(
-                messages, self._RELEVANCE_TOOL, max_tokens=500,
+                messages, tool, max_tokens=500,
                 temperature=0.0, task=TASK_RELEVANCE,
                 model=RELEVANCE_MODEL, system=system,
             )
@@ -657,6 +660,8 @@ class Analyzer:
         if profile is not None and profile.desk_id == "korea":
             from analysis.korea_daily import analyze as analyze_korea
             return analyze_korea(self, title, body, profile)
+        if profile is not None and profile.desk_id == "unsupported":
+            raise AnalysisError("unsupported_desk_processing_profile")
         if profile is None or profile.translates:
             return self.analyze(title, body)
         return self.analyze_desk(title, body, profile)
@@ -698,8 +703,9 @@ class Analyzer:
             return partial
 
         try:
-            summary, flagged, reason = self._desk_summary_and_flag(
-                title, body, profile)
+            reading = self._desk_summary_and_flag(title, body, profile)
+            summary, flagged, reason = reading[:3]
+            categories = reading[3] if profile.categories else []
         except FatalAPIError:
             raise
         except AnalysisError as exc:
@@ -708,10 +714,11 @@ class Analyzer:
 
         return {
             **partial,
+            **({"facts": reading[4], "flag_evidence": reading[5]} if profile.categories else {}),
             "title_english":          None,
             "text_english":           None,
             "summary_english":        summary,
-            "categories":             [],
+            "categories":             categories,
             "is_significant":         flagged,
             "significance_reasoning": reason,
         }
@@ -722,12 +729,20 @@ class Analyzer:
         system = [{"type": "text", "text": profile.analysis_system_prompt,
                    "cache_control": {"type": "ephemeral"}}]
         raw = self._call(profile.build_analysis_messages(title, body),
-                         max_tokens=1000, temperature=0.3, system=system,
+                         max_tokens=2200 if profile.categories else 1000,
+                         temperature=0.3, system=system,
                          task=TASK_SUMMARY)
         data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
         summary = data.get("summary") if isinstance(data, dict) else None
         flagged = data.get("flag") if isinstance(data, dict) else None
         reason = data.get("flag_reason") if isinstance(data, dict) else None
+        if profile.categories:
+            categories = data.get("categories") if isinstance(data, dict) else None
+            if (not isinstance(categories, list) or not categories
+                    or any(not isinstance(c, str) or c not in profile.categories for c in categories)
+                    or len(set(categories)) != len(categories)):
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Invalid desk analysis categories")
         # A paid response that does not carry a usable summary and an explicit
         # flag is a failed call: nothing is written, and the record retries.
         if (not isinstance(summary, str) or not summary.strip()
@@ -735,4 +750,5 @@ class Analyzer:
                 or (flagged and (not isinstance(reason, str) or not reason.strip()))):
             self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
             raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
-        return summary, flagged, (reason if flagged else None)
+        result = (summary, flagged, (reason if flagged else None))
+        return result + (categories, data.get("facts"), data.get("flag_evidence")) if profile.categories else result

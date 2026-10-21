@@ -1,4 +1,4 @@
-"""0015 — ledger for governed Korean MND admission into the shared corpus.
+"""0016 — ledger for governed Korean MND admission into the shared corpus.
 
 Creates an empty ledger, without admitting, processing or publishing anything.
 One row per Korean source identity records which exact released source version
@@ -12,7 +12,7 @@ machine codes only; no Korean title, body or model output is ever stored here.
 """
 import sqlite3
 
-VERSION = "0015"
+VERSION = "0016"
 NAME = "korea_corpus_admissions"
 
 HEX = "length(%s) = 64 AND %s NOT GLOB '*[^0-9a-f]*'"

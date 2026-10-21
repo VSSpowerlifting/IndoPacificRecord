@@ -263,12 +263,16 @@ jobs:
       # usage.py) at a file under $RUNNER_TEMP, outside the repository. The
       # pipeline writes ONLY there, so no tracked file is dirty while the rebase
       # steps below run; step 8b appends that one record to the tracked history.
-      #
-      # `KOREA_DAILY_AUTOMATION_ENABLED` is the single owner activation switch
-      # for the Korea Desk (docs/engineering/KOREA_DESK_OPERATION.md). Unset or
-      # anything but 'true' leaves the governed MND admission and Korean model
-      # processing off. The Daily never fetches the Korean portal: it admits
-      # only already-released, hash-pinned texts from the repository index.
+      - name: Fetch permitted shared Daily machine outputs
+        if: steps.timecheck.outputs.should_run == 'true' && vars.IPR_PRIVATE_DAILY_ENABLED == 'true'
+        env:
+          IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
+          GH_TOKEN: ${{ secrets.IPR_DAILY_OUTPUT_READ_TOKEN || secrets.IPR_PRIVATE_VAULT_READ_TOKEN }}
+          IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+        run: python -m scripts.fetch_daily_machine_outputs
+
+      # Korean MND texts come only from the already verified, released source index.
+      # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
       - name: Run pipeline
         id: pipeline
         if: steps.timecheck.outputs.should_run == 'true'
@@ -279,6 +283,9 @@ jobs:
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
+          IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
+          DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
         run: python pipeline.py
 
       # ── 5b. Validate rendered output (blocks deploy on failure) ───────────

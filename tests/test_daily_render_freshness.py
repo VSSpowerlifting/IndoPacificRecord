@@ -554,12 +554,10 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # $RUNNER_TEMP (DECISION_LOG 2026-10-01). It is accounting only, but
         # this list exists to make a new pipeline input a deliberate act, so it
         # moves with a ruling.
-        # The two KOREA_* inputs are the Korea Desk's owner activation switch
-        # and per-run cap (DECISION_LOG 2026-10-20). The switch comes only from
-        # a repository variable, so it is off until the owner sets it.
         self.assertEqual(sorted(env_keys),
                          ["ANTHROPIC_API_KEY", "CHINA_TITLE_TRANSLATION_LIMIT",
-                          "KOREA_DAILY_AUTOMATION_ENABLED",
+                          "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
+                          "IPR_DAILY_INTAKE_DIR", "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE"])
         self.assertRegex(pipeline, r"CHINA_TITLE_TRANSLATION_LIMIT:\s*['\"]20['\"]")

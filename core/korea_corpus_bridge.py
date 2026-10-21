@@ -30,7 +30,7 @@ the private portal listing title, which has no public release. The heading is
 the first line after the `배포` distribution timestamp; if that structure is
 absent the record is held, never guessed.
 
-Exactly once per source version: `korea_corpus_admissions` (migration 0015)
+Exactly once per source version: `korea_corpus_admissions` (migration 0016)
 pins each admitted identity to its text, release-decision and policy digests.
 A replay writes nothing. A later change to an admitted source (digest drift,
 removal from the release index, revoked release) withdraws the record from

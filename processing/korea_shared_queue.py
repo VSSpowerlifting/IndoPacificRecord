@@ -37,7 +37,7 @@ from processing import korea_translation_qa as qa
 
 logger = logging.getLogger(__name__)
 
-# Ledger processing states (migrations/versions/m0015_korea_corpus_admissions).
+# Ledger processing states (migrations/versions/m0016_korea_corpus_admissions).
 PENDING, RETRYABLE, QA_HELD = "pending", "retryable", "qa_held"
 PROCESSED, NOT_RELEVANT, PAUSED = "processed", "not_relevant", "paused"
 DISPATCHABLE = (PENDING, RETRYABLE)

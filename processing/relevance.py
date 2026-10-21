@@ -51,8 +51,9 @@ def passes_desk_prefilter(article: dict) -> bool:
     """
     Stage 1 as the article's own desk defines it (processing.screening).
 
-    China-desk articles, and any article whose source maps to no desk, get
-    passes_keyword_filter() exactly as before. A desk whose source is its
+    China-desk articles get passes_keyword_filter() exactly as before.
+    Unregistered sources are retained for a profile hold, never dispatched to
+    China's model. A desk whose source is its
     declared scope (Singapore) skips the keyword lists and goes on to the
     model stage.
     """
@@ -101,11 +102,17 @@ def llm_relevance_check(
 
     results: list[tuple[dict, float, str]] = []
     for i, article in enumerate(articles, 1):
+        from processing.screening import CHINA_PROFILE, profile_for_source
+        profile = profile_for_source(article.get("source_slug"))
+        if not profile.daily_queue:
+            results.append((article, 0.0, "held: source requires its authorized intake/profile"))
+            continue
         url = article.get("url", "?")
         try:
             score, reasoning = analyzer.score_relevance(
                 article.get("title_original", ""),
                 article.get("text_original",  ""),
+                **({} if profile is CHINA_PROFILE else {"profile": profile}),
             )
             logger.debug(
                 "[%d/%d] Relevance %.2f — %s",

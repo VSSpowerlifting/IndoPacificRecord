@@ -789,6 +789,28 @@ def reconcile(base_path, origin_path, local_path, out_path):
         report["source_results_expected"] = len(expected)
         report["source_results_from_origin"] = len(origin_keys)
 
+    # Shared machine explanations use stable source identities, never numeric
+    # article IDs. Preserve local admissions across Daily's normal main rebase.
+    # A conflict or changed parent version stops reconciliation atomically.
+    if _has_table(con, "loc", "daily_machine_records"):
+        machine_cols = [r[1] for r in con.execute("PRAGMA main.table_info(daily_machine_records)")]
+        local_columns = [r[1] for r in con.execute("PRAGMA loc.table_info(daily_machine_records)")]
+        if machine_cols != local_columns:
+            raise ValueError("daily_machine_record_schema_conflict")
+        for row in con.execute("SELECT * FROM loc.daily_machine_records").fetchall():
+            existing = con.execute("SELECT * FROM daily_machine_records WHERE source_family=? AND source_identity=?",
+                                   (row["source_family"], row["source_identity"])).fetchone()
+            if existing is not None:
+                if tuple(existing) != tuple(row):
+                    raise ValueError("daily_machine_record_version_conflict")
+                continue
+            parent = con.execute("SELECT metadata_version_sha256 FROM regional_official_source_links "
+                                 "WHERE source_family=? AND source_identity=?",
+                                 (row["source_family"], row["source_identity"])).fetchone()
+            if parent is None or parent[0] != row["metadata_version_sha256"]:
+                raise ValueError("daily_machine_record_parent_version_conflict")
+            con.execute("INSERT INTO daily_machine_records VALUES (" + ",".join("?" for _ in machine_cols) + ")", tuple(row))
+
     report["source_results_merged"] = srr_merged
     report["source_results_origin_won"] = srr_conflicts
 

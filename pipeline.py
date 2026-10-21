@@ -29,6 +29,7 @@ Usage:
 """
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -1108,6 +1109,11 @@ def run(
     # Second, regenerating from a DB whose analysis is knowingly incomplete
     # rewrites the published site from a partial record.
     if not dry_run and not no_analysis:
+        intake_dir = os.environ.get("IPR_DAILY_INTAKE_DIR")
+        if intake_dir:
+            from processing.daily_runner import public_intake
+            logger.info("Shared private-source Daily intake: %s",
+                        public_intake(DB_PATH, intake_dir))
         try:
             import importlib.util
             from pathlib import Path as _Path
@@ -1252,6 +1258,11 @@ if __name__ == "__main__":
         default=None,
         help="Scrape a single source (default: all sources)",
     )
+    parser.add_argument("--private-daily-source", help="Private-only: FAMILY,GIT_CHECKOUT,COMMIT; no collection or public render")
+    parser.add_argument("--private-daily-state", help="Private JSON queue ledger")
+    parser.add_argument("--private-daily-out", help="Public-safe signed handoff directory in private custody")
+    parser.add_argument("--private-daily-source-identity", help="Process one admitted private source identity")
+    parser.add_argument("--private-daily-no-release", action="store_true", help="Private processing only; no signed output")
     parser.add_argument(
         "--date",
         type=date.fromisoformat,
@@ -1277,6 +1288,18 @@ if __name__ == "__main__":
         ),
     )
     args = parser.parse_args()
+    if (args.private_daily_no_release or args.private_daily_source_identity) and not args.private_daily_source:
+        parser.error("private Daily options require --private-daily-source")
+
+    if args.private_daily_source:
+        if not args.private_daily_state or not args.private_daily_out:
+            parser.error("private Daily requires state and output paths")
+        from processing.daily_runner import private_run
+        print(json.dumps(private_run(args.private_daily_source, public_db=DB_PATH,
+            state_path=args.private_daily_state, out_dir=args.private_daily_out,
+            no_analysis=args.no_analysis or args.dry_run,
+            source_identity=args.private_daily_source_identity, no_release=args.private_daily_no_release)))
+        sys.exit(0)
 
     target   = args.date or date.today()
     sources  = [args.source] if args.source else list(SCRAPERS.keys())

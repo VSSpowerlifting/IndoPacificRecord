@@ -19,7 +19,7 @@ the owner sets one repository variable.
 
    A human-handoff receipt alone excludes nothing. A release that later gains
    reviewed English withdraws its machine record (`superseded_by_reviewed_english`).
-   Every decision goes to the `korea_corpus_admissions` ledger (m0015). Replays
+   Every decision goes to the `korea_corpus_admissions` ledger (m0016). Replays
    do nothing, and a changed SHA is refused.
 2. **Processing** (`processing/korea_shared_queue.py`). This is the shared engine
    with the Korea profile:
@@ -50,7 +50,7 @@ workflow adds its text to the public KOGL release index.
 
 2. Merge the activation PR. The merge itself starts render-only releases
    (official-link, bibliography and country-research publishers) that show Korea
-   as a live desk with no records yet. The next Daily applies m0015, syncs the one
+   as a live desk with no records yet. The next Daily applies m0016, syncs the one
    manual Korea source row, admits `korea-policy:156785691` and processes it.
    Merging before step 1 would show the live desk while the lane is still off.
 

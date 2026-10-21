@@ -3144,6 +3144,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                      if desk.slug == "us-indopacific" else [])
         # Only already-admitted database metadata, never archived bodies.
         from core.regional_official_link_render import load_admitted_links
+        from core.daily_machine_records import load as load_daily_machine_records
+        daily_machine_records = load_daily_machine_records(db_path) if desk.slug == "philippines" else []
         regional_official_links = (
             load_admitted_links(db_path, desk.slug)
             if desk.slug in ("philippines", "indonesia", "vietnam") else [])
@@ -3167,6 +3169,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                              indonesia_official_links=indonesia_official_links,
                              indonesia_press_links=indonesia_press_links,
                              regional_official_links=regional_official_links,
+                             daily_machine_records=daily_machine_records,
                              us_pacom_official_links=us_pacom_links,
                              uscc_official_links=uscc_links,
                              us_treasury_official_links=treasury_links,
@@ -3293,6 +3296,17 @@ def build(out_dir: Path, title: str, db_path: Path,
             encoding="utf-8")
         written.append("record/%d.html" % rec["id"])
 
+    from core.daily_machine_records import load as load_daily_machine_records, archive_rows as machine_archive_rows
+    machine_records = load_daily_machine_records(db_path)
+    machine_paths = {r["record_path"] for r in machine_records}
+    for stale in (out_dir / "record").glob("source-*.html"):
+        if "record/" + stale.name not in machine_paths:
+            stale.unlink()
+    for rec in machine_records:
+        (out_dir / rec["record_path"]).write_text(
+            record_tmpl.render(page="archive.html", record=rec, **ctx), encoding="utf-8")
+        written.append(rec["record_path"])
+
     # ── Week shards ──────────────────────────────────────────────────────────
     # Ordinary static pages. Every record is reachable from corpus.html through
     # plain links with JavaScript disabled — no facets, no result-count script,
@@ -3322,10 +3336,12 @@ def build(out_dir: Path, title: str, db_path: Path,
     research_index = build_archive_index(
         db_path, index, cite_record=record_citation, processing_notes=CITATION_PROCESSING_NOTES,
         official_groups=archive_official_groups, originals=korea_published_original_rows,
+        machine_records=machine_archive_rows(machine_records),
         english_publications=korea_english_publication_rows, analyses=public_analyses)
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
+    ctx["has_machine_explanations"] = bool(machine_records)
     ctx["archive_public_sources"] = sorted({r["source"] for r in research_index["records"]
         if r["record_type"] != "archive_record" and r["source"]})
     ctx["archive_issuers"] = sorted({r["issuer"] for r in research_index["records"] if r["issuer"]})

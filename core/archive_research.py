@@ -260,7 +260,8 @@ def analysis_records(collection, catalog, historical, *, edition_citation,
 
 
 def build_index(db_path, compact, *, cite_record, processing_notes,
-                official_groups=(), originals=(), english_publications=(), analyses=()):
+                official_groups=(), originals=(), english_publications=(), analyses=(),
+                machine_records=()):
     """One build's selected DB + current public projection/loaders, fail closed.
 
     Source URLs are read solely for retirement checks on archive rows, never
@@ -281,6 +282,7 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
                 holds.setdefault(record['id'], raw['editorial_hold'])
     records.extend(published_artifacts(originals, english_publications))
     records.extend(analyses)
+    records.extend(machine_records)
     records = deduplicate(records, {r[0] for r in tombstones}, {r[1] for r in tombstones}, excluded)
     # Per-type rules also bind any future caller of the public projection API.
     for r in records:

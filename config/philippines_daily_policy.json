@@ -1,0 +1,25 @@
+{
+  "schema": "ipr-daily-source-policy/1",
+  "sources": {
+    "ph_afp_articles": {
+      "private_model_processing": true,
+      "public_machine_explanation": true,
+      "unattended_release": true,
+      "owner_decision": "2026-10-20 standing AFP nonverbatim factual English explanations; separate production activation required",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": ["afp:1418"],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
+    },
+    "ph_nsc_official_statements": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": null,
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
+    }
+  }
+}
