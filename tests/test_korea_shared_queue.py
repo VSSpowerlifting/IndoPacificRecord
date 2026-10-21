@@ -214,7 +214,16 @@ class TestKoreaLane(LaneCase):
 
     def test_only_two_exact_qa_v1_holds_receive_a_final_attempt(self):
         identities = ("korea-policy:156785691", "korea-policy:156785888")
-        self.admit(only=set(identities))
+        # The shared four-release fixture is deliberately frozen and doesn't
+        # include 156785888. Add its real published metadata to this scratch
+        # case only; don't widen every historical bridge test fixture.
+        from tests.test_korea_corpus_bridge import admit_metadata
+        records = json.loads(INDEX.read_text(encoding="utf-8"))["records"]
+        chinese_meeting = next(
+            r for r in records if r["source_identity"] == identities[1])
+        with sqlite3.connect(str(self.db_path)) as prepared:
+            admit_metadata(prepared, chinese_meeting)
+        self.admit(only={identities[0]})
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         try:

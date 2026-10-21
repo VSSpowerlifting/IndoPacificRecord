@@ -1649,6 +1649,15 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         # The "As published" section now uses the provisional discovery
         # view's first four source records, not the analyzed-only feed.
         # Unanalyzed originals must retain their actual processing labels.
+        # The production build enriches each row with its source-trail links
+        # before selecting focus; those links affect ranking. Match the actual
+        # source-citation state instead of ranking bare DB records.
+        editions = gp.load_editions(REPO_ROOT)
+        collection = gp.load_collection(editions, gp.load_registry(),
+                                        briefs_dir=self.briefs)
+        source_trails, _ = gp.trail_citations(REPO_ROOT, editions, collection)
+        for record in data['corpus']:
+            record['in_trails'] = source_trails.get(record['url'], [])
         focused = gp.build_focus(data['corpus'])['rows']
         self.assertEqual(recent, [r['id'] for r in focused[:4]])
         by_id = {r['id']: r for r in data['corpus']}
@@ -3295,7 +3304,19 @@ class TestCompactQueryIndex(PreviewCase):
         self.assertEqual(len(retired), 4400)
         self.assertTrue(retired <= missing,
                         "a tombstoned ID is being advertised as an active record")
-        self.assertEqual(len(missing - retired), 6,
+        # The database assigns Korea admission IDs before translation QA.
+        # Those two QA-held rows are correctly absent from the *public* index,
+        # but they are not deleted/tombstoned or historical ID gaps.
+        with read_only(TRACKED_DB) as con:
+            hidden_korea = {r[0] for r in con.execute(
+                "SELECT a.id FROM articles a JOIN sources s ON s.id=a.source_id "
+                "LEFT JOIN korea_corpus_admissions k ON k.article_id=a.id "
+                "WHERE (s.desk_id='korea' OR s.slug='kr_policy_mnd_releases') "
+                "AND NOT (k.state='admitted' AND "
+                "k.processing_state IN ('processed','not_relevant'))")}
+        self.assertTrue(hidden_korea <= missing,
+                        "QA-held Korea row leaked into the public index")
+        self.assertEqual(len(missing - retired - hidden_korea), 6,
                          "historical non-retirement gaps changed unexpectedly")
         self.assertFalse(ids & retired)
         for ident in retired:
