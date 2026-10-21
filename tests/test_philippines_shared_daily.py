@@ -119,7 +119,7 @@ class SharedDaily(unittest.TestCase):
                      facts=[{"sentence": f["sentence"], "evidence_id": "P999"}
                             for f in source_reply["facts"]])
         a = Analyzer.__new__(Analyzer)
-        a.usage = Mock()
+        a._usage = Mock()  # usage is a read-only property on Analyzer
         with patch.object(a, "_call", side_effect=[
                 json.dumps(dict(score=.9, reasoning="Synthetic relevance.")),
                 json.dumps(reply)]):
