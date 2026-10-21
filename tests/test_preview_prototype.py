@@ -1646,11 +1646,18 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
             for card in cards
         ]
         data = gp.load_corpus(TRACKED_DB)
-        # The "As published" section now uses the provisional discovery
-        # view's first four source records, not the analyzed-only feed.
-        # Unanalyzed originals must retain their actual processing labels.
-        focused = gp.build_focus(data['corpus'])['rows']
-        self.assertEqual(recent, [r['id'] for r in focused[:4]])
+        # Match the builder's citation-enriched discovery focus, not an
+        # unenriched load_corpus() result. Brief source-trail membership is
+        # an intentional focus-ranking input; omitting it changes which
+        # legitimate China record appears fourth as the corpus advances.
+        editions = gp.load_editions(REPO_ROOT)
+        collection = gp.load_collection(
+            editions, gp.load_registry(), briefs_dir=self.briefs)
+        trails, _ = gp.trail_citations(REPO_ROOT, editions, collection)
+        for row in data["corpus"]:
+            row["in_trails"] = trails.get(row["url"], [])
+        focused = gp.build_focus(data["corpus"])["rows"]
+        self.assertEqual(recent, [r["id"] for r in focused[:4]])
         by_id = {r['id']: r for r in data['corpus']}
         for card, rid in zip(cards, recent):
             badge = card.select_one('.state')
@@ -3282,9 +3289,10 @@ class TestCompactQueryIndex(PreviewCase):
     def test_historical_gaps_and_4400_retired_ids_remain_absent(self):
         ids = {row[0] for row in self.index["records"]}
         missing = set(range(1, max(ids) + 1)) - ids
-        # Before October 2026 there were six natural missing identifiers.
-        # The owner-approved China cutover then tombstoned precisely 4,400
-        # additional former article IDs; none may be reused or rehosted.
+        # Before the October 2026 China cutover there were six natural
+        # missing identifiers. That cutover tombstoned precisely 4,400
+        # former article IDs; none may be reused or rehosted. Newer
+        # AUTOINCREMENT/failed-write gaps need not equal the historic six.
         from scripts.reconcile_db import read_only
         with read_only(TRACKED_DB) as con:
             retired = {
@@ -3295,8 +3303,10 @@ class TestCompactQueryIndex(PreviewCase):
         self.assertEqual(len(retired), 4400)
         self.assertTrue(retired <= missing,
                         "a tombstoned ID is being advertised as an active record")
-        self.assertEqual(len(missing - retired), 6,
-                         "historical non-retirement gaps changed unexpectedly")
+        historic_missing = {ident for ident in missing - retired
+                            if ident <= max(retired)}
+        self.assertEqual(len(historic_missing), 6,
+                         "pre-cutover non-retirement gaps changed unexpectedly")
         self.assertFalse(ids & retired)
         for ident in retired:
             self.assertFalse((self.out / "record" / ("%d.html" % ident)).exists(),
