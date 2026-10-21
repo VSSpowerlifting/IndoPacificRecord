@@ -84,6 +84,40 @@ class _FakeStatusError(Exception):
         self.message = message
 
 
+class TestMalformedSummaryRecovery(unittest.TestCase):
+    def test_invalid_raw_json_uses_structured_fallback(self):
+        from unittest import mock
+        from analysis.analyzer import Analyzer
+        from analysis.usage import UsageLedger
+
+        analyzer = object.__new__(Analyzer)
+        analyzer._usage = UsageLedger()
+        analyzer._call = mock.Mock(return_value='{"summary": "The ministry said "yes"."}')
+        analyzer._call_tool = mock.Mock(
+            return_value={"summary": "The ministry announced a meeting."})
+        self.assertEqual(
+            analyzer.summarize("Meeting", "Official source text."),
+            "The ministry announced a meeting.")
+        analyzer._call_tool.assert_called_once()
+        self.assertEqual(analyzer._call_tool.call_args.args[1]["name"],
+                         "emit_summary")
+
+    def test_valid_summary_does_not_retry(self):
+        from unittest import mock
+        from analysis.analyzer import Analyzer
+        from analysis.usage import UsageLedger
+
+        analyzer = object.__new__(Analyzer)
+        analyzer._usage = UsageLedger()
+        analyzer._call = mock.Mock(
+            return_value='{"summary": "The ministry reported a meeting."}')
+        analyzer._call_tool = mock.Mock()
+        self.assertEqual(
+            analyzer.summarize("Meeting", "Official source text."),
+            "The ministry reported a meeting.")
+        analyzer._call_tool.assert_not_called()
+
+
 class TestAnAccountBlockIsNotAnArticleFailure(unittest.TestCase):
     """
     The classification that stopped the run at 1 of 55 instead of 55 of 55.

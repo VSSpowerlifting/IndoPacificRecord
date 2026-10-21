@@ -15,10 +15,12 @@ Properties the pipeline relies on:
   * Free checks first. A record whose stored text or heading no longer matches
     its ledger pin, or that is too large for the translation ceiling, is held
     with a machine reason before any paid call.
-  * Exactly once per source version. Only `pending`/`retryable` rows are
-    dispatched; a processed, not-relevant, QA-held or paused row is never paid
-    for again. A crash between the `articles` write and the ledger write is
-    repaired from `articles` on the next run without a call.
+  * Once per source version, with a bounded exception: a record held solely
+    for unsupported agreement language under an old Korean translation prompt
+    receives one corrective attempt after a prompt revision. QA remains
+    unchanged; another hold is terminal. All other held, processed,
+    not-relevant, and paused rows never receive another call. A crash between
+    the articles write and ledger write is repaired without a call.
   * Isolated failures. One record's failure is recorded against that record
     and the lane continues; only an account-level block stops it.
   * Nothing private in logs: identities and machine codes only, never Korean
@@ -82,14 +84,20 @@ def candidates(conn) -> list[dict]:
     """
     if not _table_exists(conn):
         return []
+    from analysis.korea_prompts import TRANSLATION_PROMPT_ID
     rows = conn.execute(
         "SELECT k.source_identity, k.article_id, k.original_text_sha256, "
         "k.document_heading_sha256, k.processing_state, k.processing_attempts, "
         "a.title_original, a.text_original, a.content_hash, a.analyzed_at, "
         "a.passed_relevance, a.summary_english, a.prompt_version "
         "FROM korea_corpus_admissions k JOIN articles a ON a.id = k.article_id "
-        "WHERE k.state = 'admitted' AND k.processing_state IN (?, ?) "
-        "ORDER BY k.first_seen_at_utc, k.source_identity", DISPATCHABLE
+        "WHERE k.state = 'admitted' AND (k.processing_state IN (?, ?) "
+        "OR (k.processing_state = ? AND k.processing_reason = ? "
+        "AND k.processing_attempts = 1 "
+        "AND (k.prompt_version IS NULL OR k.prompt_version NOT LIKE ?))) "
+        "ORDER BY k.first_seen_at_utc, k.source_identity",
+        (PENDING, RETRYABLE, QA_HELD, "qa_agreement_unsupported",
+         "%" + TRANSLATION_PROMPT_ID + "%")
     ).fetchall()
     return [dict(r) for r in rows]
 

@@ -244,6 +244,19 @@ class Analyzer:
         "input_schema": {**RELEVANCE_SCHEMA, "additionalProperties": False},
     }
 
+    # Recover malformed raw-JSON summaries through the existing forced-tool
+    # API, which escapes quotation marks rather than returning raw JSON.
+    _SUMMARY_TOOL: dict = {
+        "name": "emit_summary",
+        "description": "Return the source-grounded English article summary.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"summary": {"type": "string"}},
+            "required": ["summary"],
+            "additionalProperties": False,
+        },
+    }
+
     _TRANSLATION_TOOL: dict = {
         "name": "emit_translation",
         "description": "Return the English translation of the article's title and body.",
@@ -519,10 +532,28 @@ class Analyzer:
 
     def summarize(self, title_en: str, body_en: str) -> str:
         messages = build_summary_messages(title_en, body_en)
-        raw  = self._call(messages, max_tokens=1000, temperature=0.3,
-                          task=TASK_SUMMARY)
-        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
-        return str(data["summary"])
+        raw = self._call(messages, max_tokens=1000, temperature=0.3,
+                         task=TASK_SUMMARY)
+        try:
+            data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        except AnalysisError as exc:
+            if ("JSON parse failed" not in str(exc)
+                    or (hasattr(self, "_client") and not callable(
+                        getattr(self._client.messages, "stream", None)))):
+                # The fallback requires the streaming tool API. Standalone
+                # parser/test clients without that interface keep the original
+                # redacted parse error instead of raising an AttributeError.
+                raise
+            # Keep existing successful behavior. For a malformed JSON string,
+            # ask for the same schema using an SDK-parsed forced tool instead.
+            data = self._call_tool(
+                messages, self._SUMMARY_TOOL, max_tokens=1000,
+                temperature=0.0, task=TASK_SUMMARY)
+        summary = data.get("summary")
+        if not isinstance(summary, str) or not summary.strip():
+            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            raise AnalysisError("Summary response contains no usable text")
+        return summary
 
     def categorize(
         self, title_en: str, body_en: str

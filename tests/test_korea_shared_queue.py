@@ -145,7 +145,7 @@ class TestKoreaLane(LaneCase):
             self.assertEqual(row["processing_state"], "processed")
             self.assertEqual(row["qa_version"], "kr-qa-v1")
             self.assertEqual(row["glossary_version"], "kr-glossary-v1")
-            self.assertIn("kr-translation-v2/kr-glossary-v1", row["prompt_version"])
+            self.assertIn("kr-translation-v3/kr-glossary-v1", row["prompt_version"])
             art = self.article(ident)
             self.assertTrue(art["analyzed_at"])
             self.assertEqual(art["passed_relevance"], 1)
@@ -177,6 +177,40 @@ class TestKoreaLane(LaneCase):
         for ident in PASS + (QA_FAIL,):
             self.assertEqual(after[ident], before[ident])
         self.assertEqual(after[NO_REVIEW]["processing_attempts"], 2)
+
+    def test_old_agreement_hold_gets_one_prompt_revision_attempt(self):
+        self.admit(only={PASS[0]})
+        conn = sqlite3.connect(str(self.db_path))
+        conn.execute(
+            "UPDATE korea_corpus_admissions SET processing_state = 'qa_held', "
+            "processing_reason = 'qa_agreement_unsupported', "
+            "processing_attempts = 1, "
+            "prompt_version = 'kr-translation-v2/kr-glossary-v1' "
+            "WHERE source_identity = ?", (PASS[0],))
+        conn.commit()
+        conn.close()
+        a = fake_analyzer()
+        report = self.run_lane(a)
+        self.assertEqual(report.processed, [PASS[0]])
+        self.assertEqual(self.ledger()[PASS[0]]["processing_attempts"], 2)
+        next_day = fake_analyzer()
+        self.run_lane(next_day)
+        next_day.score_relevance.assert_not_called()
+
+    def test_agreement_hold_past_one_attempt_is_terminal(self):
+        self.admit(only={PASS[0]})
+        conn = sqlite3.connect(str(self.db_path))
+        conn.execute(
+            "UPDATE korea_corpus_admissions SET processing_state = 'qa_held', "
+            "processing_reason = 'qa_agreement_unsupported', "
+            "processing_attempts = 2, "
+            "prompt_version = 'kr-translation-v2/kr-glossary-v1' "
+            "WHERE source_identity = ?", (PASS[0],))
+        conn.commit()
+        conn.close()
+        a = fake_analyzer()
+        self.run_lane(a)
+        a.score_relevance.assert_not_called()
 
     def test_retry_budget_pauses(self):
         self.admit(only={NO_REVIEW})
