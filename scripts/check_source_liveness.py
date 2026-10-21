@@ -86,6 +86,11 @@ class Expectation:
     broken: bool = False
     reason: Optional[str] = None
     threshold: Optional[int] = None
+    #: Never fetched: records arrive only through a governed admission step
+    #: (pipeline.run_governed_manual_sources). Until that step has admitted
+    #: anything there is no collection to be silent; after it has, the source
+    #: is judged by its threshold like any other.
+    manual: bool = False
 
 
 #: The expectation for a slug no desk manifest declares. Deliberately not
@@ -123,7 +128,9 @@ def expectations(registry=None) -> Dict[str, Expectation]:
                 threshold=threshold,
             )
         else:
-            out[result.source_slug] = Expectation(threshold=threshold)
+            out[result.source_slug] = Expectation(
+                threshold=threshold,
+                manual=getattr(source, "access_method", None) == "manual")
     return out
 
 
@@ -162,6 +169,8 @@ def classify(slug: str, total: int, last_seen: str | None,
         return "INERT", None, expectation.reason
 
     if total == 0 or last_seen is None:
+        if expectation.manual:
+            return "INERT", None, "manual source — nothing admitted yet"
         return "UNHEALTHY", None, "no articles have ever been collected"
 
     threshold = expectation.threshold or max_silent

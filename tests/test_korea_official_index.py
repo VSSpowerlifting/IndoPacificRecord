@@ -20,9 +20,9 @@ class KoreaOfficialIndexContracts(unittest.TestCase):
     def test_exact_ministry_filtered_official_index(self):
         korea = load_registry().get("korea")
         self.assertTrue(korea.public)
-        self.assertEqual(korea.status, "shadow")
-        self.assertIsNone(korea.manifest_path)
-        self.assertFalse(korea.has_production_records)
+        self.assertEqual(korea.status, "live")
+        self.assertEqual(korea.manifest_path, "desks/korea/manifest.json")
+        self.assertTrue(korea.has_production_records)
         sources = korea.research["source_families"]
         self.assertEqual(len(sources), 2)
         source, dapa = sources

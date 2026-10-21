@@ -73,15 +73,21 @@ jobs:
           import json
           korea = next(x for x in json.loads(Path("desks/registry.json").read_text())["desks"]
                        if x["slug"] == "korea")
-          assert korea["public"] is True and korea["status"] == "shadow"
-          assert korea["manifest"] is None and korea["has_production_records"] is False
+          assert korea["public"] is True and korea["status"] == "live"
+          assert korea["manifest"] == "desks/korea/manifest.json" and korea["has_production_records"] is True
           base = Path("output")
           html = (base/"korea.html").read_text(encoding="utf-8")
           assert html.count('data-korea-public-link=') == 5
           assert html.count('data-korea-additional-link=') == 9
           from core.korea_official_live_links import load_live_korea_official_links
           fixed = {x["source_identity"] for x in load_public_korea_links() + additional}
-          auto = load_live_korea_official_links("pla_watch.db", exclude=fixed)
+          # A release that became a processed record page links from its
+          # record, not the auto-official rail (generate_preview mirrors this).
+          from scripts.reconcile_db import _read_only
+          from core.korea_corpus_bridge import publication_gate
+          with _read_only("pla_watch.db") as con:
+              records = set(publication_gate(con)[0].values())
+          auto = load_live_korea_official_links("pla_watch.db", exclude=fixed | records)
           assert html.count('data-korea-auto-official-link=') == len(auto)
           # Fourteen curated outbound references, production-admitted outbound
           # links, and separately owner-released full Korean original TEXT are
@@ -179,15 +185,21 @@ jobs:
           import json
           k = next(x for x in json.loads(Path("desks/registry.json").read_text())["desks"]
                    if x["slug"] == "korea")
-          assert k["public"] is True and k["status"] == "shadow"
-          assert k["manifest"] is None and k["has_production_records"] is False
+          assert k["public"] is True and k["status"] == "live"
+          assert k["manifest"] == "desks/korea/manifest.json" and k["has_production_records"] is True
           p = Path("output")
           html = (p/"korea.html").read_text(encoding="utf-8")
           assert html.count('data-korea-public-link=') == 5
           assert html.count('data-korea-additional-link=') == 9
           from core.korea_official_live_links import load_live_korea_official_links
           fixed = {x["source_identity"] for x in load_public_korea_links() + additional}
-          auto = load_live_korea_official_links("pla_watch.db", exclude=fixed)
+          # A release that became a processed record page links from its
+          # record, not the auto-official rail (generate_preview mirrors this).
+          from scripts.reconcile_db import _read_only
+          from core.korea_corpus_bridge import publication_gate
+          with _read_only("pla_watch.db") as con:
+              records = set(publication_gate(con)[0].values())
+          auto = load_live_korea_official_links("pla_watch.db", exclude=fixed | records)
           assert html.count('data-korea-auto-official-link=') == len(auto)
           assert html.count('https://www.korea.kr/briefing/pressReleaseView.do?newsId=') == 14 + len(auto)
           for row in additional:

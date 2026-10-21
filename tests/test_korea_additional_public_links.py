@@ -134,9 +134,9 @@ class KoreaAdditionalPublicLinkReleaseTests(unittest.TestCase):
         self.assertIn("sha256sum -c", workflow)
         registry = json.loads((ROOT / "desks/registry.json").read_text())
         korea = next(x for x in registry["desks"] if x["slug"] == "korea")
-        self.assertEqual(korea["status"], "shadow")
-        self.assertEqual(korea["manifest"], None)
-        self.assertIs(korea["has_production_records"], False)
+        self.assertEqual(korea["status"], "live")
+        self.assertEqual(korea["manifest"], "desks/korea/manifest.json")
+        self.assertIs(korea["has_production_records"], True)
         self.assertIs(korea["public"], True)
 
 

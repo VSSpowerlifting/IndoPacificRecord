@@ -131,7 +131,7 @@ class TestIsolationFromProduction(unittest.TestCase):
         """
         from core.manifests import load_all_desks
         configs = load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "singapore"])
+        self.assertEqual(sorted(configs), ["china", "korea", "singapore"])
         sg_sources = {s.slug: s for s in configs["singapore"].sources}
         self.assertIn("sg_mindef_releases", sg_sources)
         self.assertTrue(sg_sources["sg_mindef_releases"].enabled)

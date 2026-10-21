@@ -218,7 +218,7 @@ class CountryPublisherNavigationTests(DeskCase):
     def test_live_desk_and_philippines_counts_are_unaffected(self):
         self.assertEqual(
             sorted(d.slug for d in load_registry() if d.is_collecting),
-            ["china", "singapore"])
+            ["china", "korea", "singapore"])
         philippines = self.page("philippines.html")
         self.assertEqual(philippines.count("Open official publisher index"), 2)
         for slug in LINKS:

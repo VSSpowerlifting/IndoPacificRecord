@@ -36,33 +36,24 @@ jobs:
       - name: Real site template + five Korean references + holds
         run: |
           python -m unittest tests.test_korea_site_preview tests.test_korea_internal_registry tests.test_korea_reference_gate -q
-      - name: Generate actual manual private site preview
+      - name: Private pre-launch preview fails closed once Korea is live
         shell: bash
         run: |
           set -euo pipefail
-          python -m scripts.preview_korea_site --out "$RUNNER_TEMP/ipr-korea-site"
-          test -f "$RUNNER_TEMP/ipr-korea-site/korea.html"
-          test ! -f "$RUNNER_TEMP/ipr-korea-site/sitemap.xml"
-          grep -q 'href="korea.html"' "$RUNNER_TEMP/ipr-korea-site/desks.html"
-          grep -q 'data-review-status="hold"' "$RUNNER_TEMP/ipr-korea-site/korea.html"
-          test ! -e "$RUNNER_TEMP/ipr-korea-site/record/korea.html"
+          # Korea is a live production desk (activation, 2026-10-20). The
+          # pre-launch private preview must refuse rather than render a
+          # shadow-desk page beside the real one.
+          if python -m scripts.preview_korea_site --out "$RUNNER_TEMP/ipr-korea-site" \
+              2> "$RUNNER_TEMP/korea-preview.err"; then
+            echo "private Korea preview built for a live desk" >&2
+            exit 1
+          fi
+          grep -q "Korea must remain a nonpublic, unconfigured shadow desk" "$RUNNER_TEMP/korea-preview.err"
+          test ! -e "$RUNNER_TEMP/ipr-korea-site"
           sha256sum -c /tmp/korea-web-db.sha
           sha256sum -c /tmp/korea-web-output.sha >/dev/null
           test -z "$(git status --porcelain --untracked-files=all -- pla_watch.db output/ shadow/)"
           test ! -e pla_watch.db-wal
           test ! -e pla_watch.db-shm
-      - name: Preserve offline-only five-source site-layout QA evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: korea-private-site-preview-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/ipr-korea-site/korea.html
-            ${{ runner.temp }}/ipr-korea-site/desk-references.css
-            ${{ runner.temp }}/ipr-korea-site/styles.css
-            ${{ runner.temp }}/ipr-korea-site/support.css
-            ${{ runner.temp }}/ipr-korea-site/surfaces.css
-            ${{ runner.temp }}/ipr-korea-site/fonts.css
-          if-no-files-found: error
-          retention-days: 14
 
 # No workflow_dispatch, no public deploy, no site-origin or automatic release.

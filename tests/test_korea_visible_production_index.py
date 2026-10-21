@@ -56,11 +56,10 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             self.assertIn("not a full-country article corpus", directory)
             korea_card = directory.split('id="desk-korea"', 1)[1].split(
                 '</section>', 1)[0]
-            self.assertIn("desk--shadow", directory.split(
+            self.assertIn("desk--live", directory.split(
                 'id="desk-korea"', 1)[0][-350:])
-            self.assertIn("Corpus records", korea_card)
-            self.assertIn("Not admitted", korea_card)
-            self.assertNotIn("archive.html?desk=korea", korea_card)
+            self.assertIn("Live — collecting", korea_card)
+            self.assertNotIn("Not admitted", korea_card)
             self.assertIn(
                 'data-korea-production-admitted-count="%d"' % len(all_admitted),
                 html)
@@ -88,7 +87,8 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                           % len(originals), html)
             self.assertIn('Reviewed English translations and analyses</dt><dd>%d</dd>'
                           % len(reviewed), html)
-            self.assertIn('Article-corpus records</dt><dd>Not admitted', html)
+            self.assertNotIn('Article-corpus records</dt><dd>Not admitted', html)
+            self.assertIn("labeled as\nunreviewed machine output", html)
             self.assertIn(
                 'DAPA production source</dt><dd>Link metadata admitted'
                 if dapa_count else

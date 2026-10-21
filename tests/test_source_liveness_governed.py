@@ -221,6 +221,16 @@ class DeclaredStubsAreStillExempt(unittest.TestCase):
         )
         self.assertIn("adapter unusable", detail)
 
+    def test_a_manual_source_is_inert_only_until_its_first_admission(self):
+        expected = liveness.Expectation(manual=True)
+        state, _, detail = liveness.classify(
+            "manual_mil", 0, None, TODAY, 7, expected)
+        self.assertEqual("INERT", state)
+        self.assertIn("nothing admitted yet", detail)
+        state, _, _ = liveness.classify(
+            "manual_mil", 3, "2026-09-05", TODAY, 7, expected)
+        self.assertEqual("UNHEALTHY", state)        # 15d > 7d
+
     def test_an_undeclared_slug_is_not_exempt(self):
         """A source configuration has forgotten is still expected to produce."""
         self.assertFalse(liveness.UNDECLARED.inert)

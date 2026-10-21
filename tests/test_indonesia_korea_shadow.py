@@ -101,12 +101,13 @@ class Evidence(Case):
                 self.assertEqual(hashlib.sha256(data).hexdigest(), row["sha256"])
                 self.assertEqual(len(data), row["bytes"])
 
-    def test_both_manifests_are_absent_from_production_despite_public_directory(self):
+    def test_indonesia_manifest_is_absent_from_production_despite_public_directory(self):
+        # Korea left this shadow pair through the owner activation
+        # (scripts/korea_daily_activation.py); Indonesia remains shadow.
         self.assertNotIn("indonesia", load_all_desks())
-        self.assertNotIn("korea", load_all_desks())
         entries = {d["slug"]: d for d in json.loads(
             (ROOT / "desks/registry.json").read_text())["desks"]}
-        for slug in ("indonesia", "korea"):
+        for slug in ("indonesia",):
             entry = entries[slug]
             self.assertTrue(entry["public"])
             self.assertEqual(entry["status"], "shadow")

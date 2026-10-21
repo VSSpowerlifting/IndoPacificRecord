@@ -242,7 +242,9 @@ def reconcile_sources(sc, db_path, registry=None):
             "JOIN sources s ON s.id=a.source_id LEFT JOIN institutions i "
             "ON i.institution_id=s.institution_id WHERE a.id IN (%s)" %
             ",".join("?" for _ in ids), ids).fetchall()
-    records = {row["id"]: dict(row) for row in rows}
+        from core.korea_corpus_bridge import publication_gate
+        hidden = publication_gate(con)[1]
+    records = {row["id"]: dict(row) for row in rows if row["id"] not in hidden}
     for ev in refs:
         rec = records.get(ev["record_id"])
         if rec is None:

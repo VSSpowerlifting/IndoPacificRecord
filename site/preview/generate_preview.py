@@ -81,6 +81,8 @@ from core.title_translation import english_title, receipts, processing_note  # n
 from core.china_discovery import build_focus                        # noqa: E402
 from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
+from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
+KOREA_MANIFEST = "desks/korea/manifest.json"
 from scripts.desk_map import layout as desk_map_layout              # noqa: E402
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -472,6 +474,10 @@ def load_corpus(db_path: Path) -> dict:
     """Everything the prototype renders. One pass, read-only, no mutation."""
     with _read_only(str(db_path)) as con:
         con.row_factory = _dict_row
+        # Korea rows render only once the governed bridge admitted them and
+        # processing finished; every query below applies the same predicate.
+        korea_publishable, korea_hidden = publication_gate(con)
+        visible = hidden_predicate(korea_hidden)
 
         sources = con.execute(
             "SELECT s.slug, s.display_name, s.language, s.language_tag, "
@@ -486,12 +492,12 @@ def load_corpus(db_path: Path) -> dict:
         counts = {r["source_slug"]: r["n"] for r in con.execute(
             "SELECT sr.slug AS source_slug, COUNT(a.id) AS n "
             "  FROM sources sr LEFT JOIN articles a ON a.source_id = sr.id "
-            " GROUP BY sr.slug").fetchall()}
+            "   AND " + visible + " GROUP BY sr.slug").fetchall()}
 
         last_pub = {r["source_slug"]: r["d"] for r in con.execute(
             "SELECT sr.slug AS source_slug, MAX(a.published_date) AS d "
             "  FROM sources sr LEFT JOIN articles a ON a.source_id = sr.id "
-            " GROUP BY sr.slug").fetchall()}
+            "   AND " + visible + " GROUP BY sr.slug").fetchall()}
 
         latest_run = con.execute(
             "SELECT id, started_at, completed_at, status, articles_scraped, "
@@ -533,11 +539,11 @@ def load_corpus(db_path: Path) -> dict:
             " WHERE institution_id IS NOT NULL").fetchone()["n"]
 
         totals = con.execute(
-            "SELECT (SELECT COUNT(*) FROM articles) AS articles, "
-            "       (SELECT COUNT(*) FROM articles WHERE analyzed_at IS NOT NULL) AS analyzed, "
+            "SELECT (SELECT COUNT(*) FROM articles a WHERE " + visible + ") AS articles, "
+            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + ") AS analyzed, "
             "       (SELECT COUNT(*) FROM scrape_runs) AS runs, "
-            "       (SELECT MIN(published_date) FROM articles) AS first_date, "
-            "       (SELECT MAX(published_date) FROM articles) AS last_date"
+            "       (SELECT MIN(published_date) FROM articles a WHERE " + visible + ") AS first_date, "
+            "       (SELECT MAX(published_date) FROM articles a WHERE " + visible + ") AS last_date"
         ).fetchone()
 
         # Recent analyzed articles for the archive surface. Bounded: the
@@ -555,7 +561,7 @@ def load_corpus(db_path: Path) -> dict:
             "  FROM articles a "
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
-            " WHERE " + STATE_CASE_SQL + " = 'analyzed' "
+            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " "
             " ORDER BY a.published_date DESC, a.id DESC LIMIT 60").fetchall()
 
         # Collection continuity: which calendar days have a run. The published
@@ -589,6 +595,7 @@ def load_corpus(db_path: Path) -> dict:
             "  FROM articles a "
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
+            " WHERE " + visible + " "
             " ORDER BY a.published_date DESC, a.id DESC").fetchall()
 
         title_receipts = receipts(con, metadata=True)
@@ -604,6 +611,14 @@ def load_corpus(db_path: Path) -> dict:
                 for key in ("title_translation_model", "title_translation_prompt", "title_translated_at"):
                     rec.pop(key, None)
 
+        # The line-aligned machine translation is read only for gated Korean
+        # records; no other desk's record carries or renders this field.
+        korea_english = {}
+        if korea_publishable:
+            korea_english = {r["id"]: r["text_english"] for r in con.execute(
+                "SELECT id, text_english FROM articles WHERE id IN (%s)"
+                % ",".join(str(int(i)) for i in sorted(korea_publishable)))}
+
     for rec in corpus:
         rec["state_label"] = STATE_LABELS[rec["state"]]
         # The machine flag is surfaced ONLY where it was actually computed.
@@ -613,6 +628,10 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
+        rec["korea_identity"] = korea_publishable.get(rec["id"])
+        if rec["korea_identity"]:
+            rec["korea_news_id"] = rec["korea_identity"].split(":", 1)[1]
+            rec["text_english"] = korea_english.get(rec["id"])
 
     for s in sources:
         s["article_count"] = counts.get(s["slug"], 0)
@@ -626,6 +645,7 @@ def load_corpus(db_path: Path) -> dict:
         "unmapped_executed": unmapped_executed,
         "institutions": institutions,
         "corpus": corpus,
+        "korea_publishable": korea_publishable,
         "state_counts": corpus_state_counts(corpus),
         "facets": corpus_facets(corpus),
         "weeks": corpus_weeks(corpus, run_days),
@@ -2435,9 +2455,18 @@ def build(out_dir: Path, title: str, db_path: Path,
     korea_published_original_rows = []
     korea_english_publication_rows = []
     if korea_release_state is not None:
-        if (korea_release_state.status != "shadow"
-                or korea_release_state.manifest_path is not None
-                or korea_release_state.has_production_records):
+        # Two states only. The shadow declaration, or the owner-activated
+        # shared-Daily desk: live, its own production manifest, and corpus
+        # rows that exist only through the governed bridge (and render only
+        # through the publication gate in load_corpus). Anything in between
+        # is a half-applied activation and refuses to build.
+        korea_shadow = (korea_release_state.status == "shadow"
+                        and korea_release_state.manifest_path is None
+                        and not korea_release_state.has_production_records)
+        korea_live = (korea_release_state.status == "live"
+                      and korea_release_state.manifest_path == KOREA_MANIFEST
+                      and korea_release_state.has_production_records)
+        if not (korea_shadow or korea_live):
             raise ValueError("Korea production admission remains prohibited")
         if korea_release_state.public:
             from core.korea_public_bibliography import load_public_korea_links
@@ -2527,6 +2556,28 @@ def build(out_dir: Path, title: str, db_path: Path,
     out_dir.mkdir(parents=True)
 
     data = load_corpus(db_path)
+
+    # A Korean release that passed the publication gate is ONE reader record:
+    # record/<id>.html. Its bare official link is then reached from that
+    # record and is not repeated in the desk rail or the archive index. The
+    # licensed original-text exhibit stays listed exactly as released (the
+    # deployed-readback verifier pins that list and those page bytes) and is
+    # cross-linked to the record, as the reviewed English pages already are.
+    # The frozen baseline, the editor-reviewed English releases and the
+    # research hold can never become a machine record (fail closed), and a
+    # record must have its released original exhibit to link to.
+    korea_record_routes = {ident: "record/%d.html" % aid
+                           for aid, ident in data["korea_publishable"].items()}
+    if korea_record_routes:
+        from core.korea_corpus_bridge import excluded_identities
+        if set(korea_record_routes) & set(excluded_identities()):
+            raise ValueError("an excluded Korean identity reached the publication gate")
+        if not set(korea_record_routes) <= {
+                r["source_identity"] for r in korea_published_original_rows}:
+            raise ValueError("a Korean record has no released original exhibit")
+        korea_auto_official_rows = [
+            r for r in korea_auto_official_rows
+            if r["source_identity"] not in korea_record_routes]
 
     # Declared, not inferred. Fixtures pass their own snapshot; the default is
     # the production-preview assertion and is never relaxed for a fixture.
@@ -3129,6 +3180,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                              korea_production_link_count=(korea_production_link_count if desk.slug == "korea" else 0),
                              korea_dapa_production_link_count=(korea_dapa_production_link_count if desk.slug == "korea" else 0),
                              korea_published_originals=(korea_published_original_rows if desk.slug == "korea" else []),
+                             korea_record_routes=(korea_record_routes if desk.slug == "korea" else {}),
                              korea_english_publications=(korea_english_publication_rows if desk.slug == "korea" else []),
                              display_limits=public_desk_limits(
                                  desk, source_views), **ctx)
