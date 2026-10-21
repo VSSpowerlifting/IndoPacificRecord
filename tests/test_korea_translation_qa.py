@@ -26,7 +26,7 @@ REVIEWED = ("156784297", "156785286", "156785444")
 # Changing the guide or the rendered prompt without bumping glossary_version /
 # TRANSLATION_VERSION would silently change what a stored prompt_version means.
 GUIDE_SHA256 = "75789b59c774a8e590ad0024f89c5291320d442708e3970ee01ac365a4c1def9"
-SYSTEM_SHA256 = "3880cd2fe6126a44a3bd4f02f0276b686b696ce46812aff7091d50c4368d06fc"
+SYSTEM_SHA256 = "4931290d13228eae644686332cbe908923055c390a9bb5ab25c130ff0f11fb1f"
 
 
 def load(release):
