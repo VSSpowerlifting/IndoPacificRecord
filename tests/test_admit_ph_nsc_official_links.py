@@ -3,7 +3,8 @@
 State comes from the real NSC shadow runner over the unit-test fixture pages
 with the network blocked (tests.test_ph_nsc_official_link_admission). It is a
 synthetic rehearsal, never a live observation. The bridge key is a fictional
-test value; the committed policy stays closed throughout.
+test value; closed-policy checks use an explicit fictional policy regardless of
+whether the repository has an owner-authorized standing policy.
 """
 import contextlib
 import copy
@@ -25,7 +26,7 @@ from migrations.versions import m0013_vietnam_regional_official_links as m13
 from migrations.versions import m0014_ph_nsc_regional_official_links as m14
 from scripts import admit_ph_nsc_official_links as cli
 from tests.test_ph_nsc_official_link_admission import (
-    NOW, RESOLVED, STANDING, NscCase, decision, git,
+    NOW, CLOSED, RESOLVED, STANDING, NscCase, decision, git,
 )
 
 BRIDGE = b"fictional-nsc-bridge-test-key-000000000000"
@@ -186,7 +187,7 @@ class Admission(Handoff):
     def test_closed_policy_holds_without_writing(self):
         _, commit = self.collect()
         before = sha(self.db)
-        for pol, reason in ((nsc.load_policy(), "category_anomaly_unresolved"),
+        for pol, reason in ((CLOSED, "category_anomaly_unresolved"),
                             (RESOLVED, "metadata_publication_not_authorized")):
             with self.subTest(reason=reason), self.assertRaisesRegex(ValueError, reason):
                 self.admit(self.packet(commit), pol=pol)
@@ -200,6 +201,13 @@ class Admission(Handoff):
         receipt, total = self.admit(self.packet(commit))
         self.assertEqual((receipt["unchanged_official_links"], total), (2, 2))
         self.assertEqual(self.nsc_rows(), ["nsc:2269", "nsc:3108"])
+        # The NSC website is the hosting publisher, not proof of the issuer.
+        with sqlite3.connect(self.db.as_uri() + "?mode=ro", uri=True) as cx:
+            origins = cx.execute(
+                "SELECT official_issuer, official_publisher, official_republisher "
+                "FROM regional_official_source_links WHERE source_family=? "
+                "ORDER BY source_identity", (nsc.FAMILY,)).fetchall()
+        self.assertEqual(origins, [(None, "ph_nsc", None)] * 2)
         # Unchanged rows keep their original commit, proof and timestamp.
         self.assertEqual(sha(self.db), after_first)
 
@@ -278,11 +286,13 @@ class CommandLine(Handoff):
         self.assertEqual((code, msg["status"], msg["nsc_rows_after"]),
                          (0, "NO_ELIGIBLE_RECORDS", 0))
         self.assertEqual(sha(self.db), before)
-        # A day with statements: the committed closed policy holds, nothing moves.
+        # A busy day with the fictional CLOSED policy must hold even after
+        # a standing owner authorization is committed to the repository.
         _, busy = self.collect(run_id="r2")
         code, msg, out = self.sign(busy)
         self.assertEqual((code, msg["links"]), (0, 2))
-        code, msg = self.admit(out)
+        with mock.patch.object(nsc, "load_policy", return_value=CLOSED):
+            code, msg = self.admit(out)
         self.assertEqual((code, msg["status"], msg["reason"]),
                          (2, "HOLD", "nsc_category_anomaly_unresolved"))
         self.assertFalse(msg["published_original_titles_or_bodies"])

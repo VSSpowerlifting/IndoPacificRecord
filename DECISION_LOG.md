@@ -4,6 +4,49 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-20 — Owner: standing Philippine NSC neutral links and attributed factual machine explanations
+
+The owner authorizes authentic first-party NSC Official Statements to enter
+the existing shared Philippines Daily, including **neutral metadata** (official
+permalink, publisher date, hosting publisher, verified identity) and **bounded
+private model processing** of English originals. Qualifying nonverbatim,
+source-grounded public explanations may be machine-labeled and attributed to
+the **NSC website or the correctly identified issuing institution**, not
+misrepresented as independently established fact. Every factual sentence
+needs source evidence. The website hosts statements from multiple issuing
+offices: NSC hosting/byline is not automatic evidence of original authorship.
+Public original titles, bodies, quotations/excerpts, screenshots, photographs,
+third-party content or wholesale reproduction remain unauthorized.
+
+Standing NSC limits match AFP: 90 combined explanation/flag words, $0.35
+**estimated** per run (not a billing-enforced cap), one record per run, two
+intended calls, bounded input/output tokens, zero hidden SDK retries, and
+five failed attempts before pausing the individual record. Existing publisher
+rights, source/capture/metadata version proof, relevance, topic, attribution,
+copying and quality gates remain mandatory. Human-written Briefs still
+require editorial approval.
+
+The NSC site category had an anomalous unrelated gambling-content observation.
+The Oct 2 official-category investigation did **not** reproduce it. An
+independent Oct 20 check of the official NSC category, official article
+permalinks, and six recognizable security statements (June 3–July 8)
+again found normal official content and no reproduction. The owner resolves
+**this historical category-warning for bounded release purposes only**.
+No unconditional trust of future NSC content is granted: strict official-host,
+WordPress-template, category, canonical permalink, captured body/identity,
+date, provenance and version checks must continue to refuse mismatches. Any
+new anomaly or ambiguous hosted/issued-content rights holds the specific
+record until independently resolved.
+
+Implement through existing private NSC originals custody, signed metadata
+admission, shared private Daily, and existing public Daily/Pages. The historical
+six statements are **not** yet stored in private custody: a real bounded
+historical collection and metadata admission must precede any paid analysis
+or public record release. Maintain the initial quiet-source state faithfully.
+This is standing policy and production-release authorization **conditional on
+these existing verification gates**; it is not evidence that a launch already
+occurred, nor authorization to bypass holds.
+
 ## 2026-10-20 — Owner: standing AFP factual machine explanations; production held
 
 The owner approved standing private AFP model processing and automatic public
