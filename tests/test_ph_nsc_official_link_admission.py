@@ -113,7 +113,7 @@ class NscCase(unittest.TestCase):
 
 
 class Replay(NscCase):
-    def test_replay_is_metadata_only_and_held_by_default(self):
+    def test_replay_is_metadata_only_and_held_under_closed_test_policy(self):
         _, sha = self.collect()
         packet = self.packet(sha)
         self.assertEqual([r["source_identity"] for r in packet["records"]],
@@ -125,16 +125,20 @@ class Replay(NscCase):
         self.assertTrue(all(l["official_issuer"] is None and l["official_publisher"] == "ph_nsc"
                             for l in packet["links"]))
         with self.assertRaisesRegex(ValueError, "category_anomaly_unresolved"):
-            nsc.admit(self.cx, packet, policy=nsc.load_policy(), as_of_utc=NOW)
+            nsc.admit(self.cx, packet, policy=CLOSED, as_of_utc=NOW)
         with self.assertRaisesRegex(ValueError, "metadata_publication_not_authorized"):
             nsc.admit(self.cx, packet, policy=RESOLVED, as_of_utc=NOW)
         self.assertEqual(self.count(), 0)
 
-    def test_committed_policy_is_fail_closed(self):
+    def test_committed_policy_allows_neutral_metadata_only_with_explicit_owner_refs(self):
         p = nsc.load_policy()
-        self.assertFalse(p["standing_metadata_publication_authorized"])
-        self.assertFalse(p["category_anomaly_resolved"])
-        for bad in (dict(p, standing_metadata_publication_authorized=True),
+        self.assertTrue(p["standing_metadata_publication_authorized"])
+        self.assertTrue(p["category_anomaly_resolved"])
+        self.assertTrue(p["owner_decision_reference"].startswith("DECISION_LOG"))
+        self.assertTrue(p["category_anomaly_reference"].startswith("DECISION_LOG"))
+        self.assertEqual(p["permitted_fields"], nsc.PERMITTED_FIELDS)
+        for bad in (dict(p, owner_decision_reference=None),
+                    dict(p, category_anomaly_reference=None),
                     dict(p, permitted_fields=nsc.PERMITTED_FIELDS + ["title_original"]),
                     dict(p, extra=1)):
             path = self.root / "p.json"
