@@ -94,7 +94,7 @@ def analysis_messages(title, body):
         "exactly; joining both with one space must reproduce summary. "
         "Cite only an ID from the supplied passages; no arbitrary citation or "
         "invented evidence is permitted. Use south_china_sea only if the original "
-        "explicitly names the South China Sea or West Philippine Sea.\\n" +
+        "explicitly names the South China Sea or West Philippine Sea.\n" +
         json.dumps({"title": title, "passages": [
             {"id": ident, "text": text} for ident, text in passages
         ]}, ensure_ascii=False))}]
