@@ -38,6 +38,43 @@ The source of truth is the 20 October entry in `DECISION_LOG.md` and
 priority supersedes older preparatory waiting schedules and aspirational
 roadmaps, not mandatory CI, publisher rights or historical approvals.
 
+
+## China-equivalent desk product standard — owner decision (21 October 2026)
+
+**Make every desk behave like China for the *reader*, not by cloning its old
+code or inheriting its publisher permissions.** The default, once a source/use
+family is actually authorized, is: official publication → authenticated
+collection and provenance → shared Daily relevance screening → translation
+only if the original requires it → short, independently worded,
+source-attributed factual explanation, categories and machine flags →
+automatic publication to the same record/archive/search/desk/site system.
+A normal eligible record should not wait for the owner's per-article approval;
+run unattended with a bounded spend/retry policy. Hold genuine uncertainty
+for *that source/version*, not the whole desk.
+
+Use a **documented, proportionate standing source-use decision** for the basic
+research product: official links and dates, independently written factual
+summaries with source citation, and appropriately labeled machine analysis.
+Do **not** assume contacting each government ministry or awaiting an email
+reply is always needed merely to report facts. Equally, do **not** treat the
+China legacy corpus or an official URL as a blanket licence: check actual
+publisher terms, crawler access, use of originals with external AI services,
+and separately the public reproduction of titles, full texts, translations,
+long excerpts, files or media. Where legitimate restrictions apply, respect
+them; a metadata-only source stays honestly link-only until broader permitted
+uses are established. Preserve original custody, precise institutional
+attribution and factual/quality gates. Human-authored Briefs and bylined
+editorials retain their existing sign-off.
+
+**Finish, then stop:** do not invent new rights forms, individual-article
+approval rituals, duplicate national pipelines, shadow waiting periods, or
+test programs after an authentic qualifying source-to-site publication and
+unattended follow-on path work. Reuse proven mechanisms, isolate true
+exceptions and resolve only specific observed failures. This standard is
+product and delivery guidance, **not itself authorization** to spend, merge,
+contact institutions, republish copyrighted originals or activate a source.
+See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 ## Session start
 1. Check latest owner rulings in `DECISION_LOG.md` and
    `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`; read relevant

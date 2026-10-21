@@ -1,14 +1,14 @@
 # Philippine NSC — rights and release decision (owner)
 
-**Status (19 October 2026): the owner has not decided.** This document sets out
-the decision. It does not make it. Both flags in
-`config/ph_nsc_official_link_policy.json` are `false`, and admission holds with
-`nsc_category_anomaly_unresolved` or `nsc_metadata_publication_not_authorized`
-until the owner changes them.
-
-The AFP standing authorization (DECISION_LOG, 2026-10-15) does not extend to
-NSC. An accessible government website, or its `robots.txt`, does not grant a
-full-text licence.
+**Owner decision (20 October 2026):** Standing neutral-link metadata and narrowly
+attributed, nonverbatim NSC machine explanations are authorized, under the
+specific limits and source-quality conditions recorded in `DECISION_LOG.md`.
+This decision is separate from AFP. The two NSC policy files now reflect it,
+but **authorization alone does not prove that a record was captured, admitted,
+processed, or published**. Initial private NSC custody contains zero article
+records; historic July material needs genuine private collection and admission
+before model processing. An accessible government website or `robots.txt` does
+not grant a full-text licence.
 
 ## Source as observed
 
@@ -29,20 +29,35 @@ full-text licence.
   `nsc:2269`. It wrote nothing to a database or to output. It proves access
   and extraction only; it is not a stored record.
 - **Category anomaly.** An earlier observation found gambling content in the
-  category. It did not reproduce on 2026-10-02. It is neither dismissed nor
-  treated as proof of compromise (`shadow/ph_nsc/README.md` item 5).
+  category. The Oct 2 direct collector examination did not reproduce it; an
+  independent Oct 20 review of the official category found six coherent,
+  canonical official-security statements dated June 3–July 8, with no such
+  unrelated content. The owner authorizes **bounded clearance of this historical
+  observation only**. The collector must still refuse a mismatched host,
+  category, canonical permalink, template, article identity, capture, date,
+  or source provenance. Recurrence automatically holds affected records; this
+  is not a permanent guarantee that the site is uncompromised.
 
 ## The seven decisions
 
 | # | Use | Current position | Who decides |
 |---|---|---|---|
 | 1 | Private preservation of originals | Implemented in private PR [ipr-source-evidence-private#19](https://github.com/VSSpowerlifting/ipr-source-evidence-private/pull/19): `archive/ph-nsc` continues the frozen public history. | Owner merges #19. |
-| 2 | Public URL, publisher date, publisher identity and attribution | Not authorized. The pipeline is built and tested, and holds at admission. | Owner: standing flag, or a sealed exact-version decision. |
+| 2 | Public URL, publisher date, publisher identity and attribution | **Authorized standing, neutral metadata only** on official, verified NSC permalinks. | Owner approval Oct 20. |
 | 3 | Original title in public | Not authorized. The envelope cannot carry a title. | Owner, separately from #2. |
 | 4 | Short excerpts | Not authorized. No pipeline exists. | Owner, after the source's terms are reviewed. |
 | 5 | Full text | Not authorized. It stays private. | Owner. Website access is not a licence. |
-| 6 | Model processing of the text | Not authorized. The private research packet uses keyword rules only (`model_processing: none`). | Owner, including the spending limit. |
+| 6 | Model processing of the text | **Authorized narrowly for first-party factual statements:** the same private shared Daily engine as AFP, nonverbatim 90-word maximum, clear NSC-website attribution, machine label and source URL. No original titles/bodies/images public. One record/two intended calls per run, $0.35 estimated/run, zero SDK retries, five failed attempts then hold. Publisher is not presumed issuer. | Owner approval Oct 20; distinct from editorial Brief approval. |
 | 7 | IPR-authored reporting that cites NSC | Allowed through the existing editorial route: an analyst writes, an editor reviews and the owner approves. It cites the official URL. | The existing Sunday Brief workflow. |
+
+## Current activation, not a new architecture
+
+1. Recover the genuine July 8 statement using the already-built private collector `collect_after_cutover` with explicit `target_date=2026-07-14` (six-day window). Verify publisher URL, canonical identity, original captured bytes, actual date, and original/issuer attribution. Do not publish from the website or prior synthetic fixtures alone.
+2. Use the existing NSC signed metadata bridge to admit the official link into the shared public `regional_official_source_links`. Provision `NSC_BRIDGE_KEY` securely in private and public repositories, and the private repository's limited public Actions dispatch credential. Enable `NSC_METADATA_BRIDGE_ENABLED`. If the collector only signs after a new attempt, dispatch its existing `collect_after_cutover` again with an explicit date after credentials are set; do not invent a separate workflow.
+3. Configure matching `DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY` in both repositories. The already enabled shared private Daily processes one verified, **publicly admitted** NSC source; manual dispatch can follow link admission. If the model output fails source-grounded quality, hold that record and select another genuine statement rather than weakening the controls.
+4. Dispatch the existing public `daily_update.yml` to admit the signed machine output and deploy its machine-labeled record, Philippines Desk, and archive/search. Read back actual live HTTPS and confirm AFP remains unchanged. Normal private NSC collection and the shared Daily then run unattended. A quiet new-publication window remains a valid no-op.
+
+No NSC original titles, source bodies, captures, photographs, verbatim excerpts, or unrestricted republication are authorized by this decision. No claim of live NSC publication is made before the above deployment succeeds.
 
 ## How the owner records a decision
 
