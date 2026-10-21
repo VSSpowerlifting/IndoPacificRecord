@@ -101,6 +101,34 @@ class Handoff(unittest.TestCase):
                              key=BRIDGE_KEY, run_id="r2", generated_utc=NOW)
         self.assertEqual(again["families"][0]["records"], first["families"][0]["records"])
 
+    def test_delayed_handoff_after_private_archive_tip_advances(self):
+        # SIMULATED: an earlier run processed two records, but public Daily
+        # has not admitted them before the private archive receives new captures.
+        report, _ = self.run_private(source_use=grant())
+        earlier_tip = report["source_git_commit"]
+        later_tip = "f" * 40 if earlier_tip != "f" * 40 else "e" * 40
+        ledger = json.loads(self.ledger.read_text())
+        envelope = handoff.sign(
+            [dict(report, source_git_commit=later_tip)], {MPS: ledger},
+            key=BRIDGE_KEY, run_id="simulated-delayed-handoff", generated_utc=NOW)
+        entry = envelope["families"][0]
+        self.assertEqual(entry["source_git_commit"], later_tip)
+        self.assertEqual(len(entry["records"]), 2)
+        self.assertTrue(all(r["provenance"]["source_git_commit"] == earlier_tip
+                            for r in entry["records"]))
+
+        public = self.public()
+        self.assertEqual(handoff.admit(public, self.verify(envelope)), {qa.PUBLISHED: 2})
+        self.assertEqual(self.corpus(public), self.corpus(self.conn))
+
+        # Even a valid MAC must not turn a malformed historical commit into
+        # acceptable provenance.
+        def bad_evidence_commit(body):
+            body["families"][0]["records"][0]["provenance"]["source_git_commit"] = "not-a-sha"
+
+        with self.assertRaisesRegex(RuntimeError, "vietnam_handoff_provenance_mismatch"):
+            self.verify(self.resign(envelope, bad_evidence_commit))
+
     def test_withheld_fields_never_cross(self):
         envelope = self.signed(permissions=WITHHOLD)
         text = json.dumps(envelope, ensure_ascii=False)
