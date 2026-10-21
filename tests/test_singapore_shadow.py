@@ -176,7 +176,7 @@ class TestIsolationFromProduction(unittest.TestCase):
                 "WHERE s.slug = 'sg_mindef_releases' "
                 "  AND a.scrape_run_id IS NOT NULL AND r.id IS NULL"
             ).fetchone()[0]
-        self.assertEqual(sorted(desks), ["china", "singapore"])
+        self.assertEqual(sorted(desks), ["china", "korea", "singapore"])
         self.assertEqual(promoted, 57)
         self.assertEqual(orphaned, 0,
                          "a Singapore record names a scrape run that does not exist")

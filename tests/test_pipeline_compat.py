@@ -614,7 +614,7 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
             for src in cfg.sources:
                 self.assertNotEqual(src.language_tag.split("-")[0], "ru")
 
-    def test_production_database_has_only_china_and_singapore_sources(self):
+    def test_production_database_has_only_declared_collecting_sources(self):
         # Reads a scratch COPY, never the tracked file.
         #
         # A plain `sqlite3.connect()` on the tracked database is not a harmless
@@ -637,10 +637,10 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
         with _read_only(str(prod)) as con:
             desks = {r[0] for r in con.execute("SELECT DISTINCT desk_id FROM desks")}
             slugs = {r[0] for r in con.execute("SELECT slug FROM sources")}
-        self.assertEqual(desks, {"china", "singapore"})
+        self.assertEqual(desks, {"china", "korea", "singapore"})
         self.assertEqual(slugs, {"pla_daily", "mod_china", "xinhua_mil",
                                  "global_times_mil", "china_mil_online",
-                                 "sg_mindef_releases"})
+                                 "sg_mindef_releases", "kr_policy_mnd_releases"})
 
 
 class TestSyncAtomicityAtPersistence(unittest.TestCase):

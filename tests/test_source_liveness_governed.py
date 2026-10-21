@@ -318,8 +318,11 @@ class TheLiveCorpusAgrees(unittest.TestCase):
         grand total AND is not a value configuration declares (a threshold or a
         cadence), which is how 7 and 21 stay legal.
         """
-        totals = {total for _slug, _name, total, _seen in self.rows}
-        totals.add(sum(total for _s, _n, total, _x in self.rows))
+        # Zero is a stable empty-source sentinel, not a moving corpus total.
+        totals = {total for _slug, _name, total, _seen in self.rows if total > 0}
+        grand_total = sum(total for _s, _n, total, _x in self.rows)
+        if grand_total > 0:
+            totals.add(grand_total)
         configured = set()
         for slug in get_registry().slugs:
             src = get_registry().get_source(slug)

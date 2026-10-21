@@ -98,10 +98,11 @@ class TestRosterMatchesConfiguration(DeskCase):
                 if not entry.is_collecting:
                     self.assertFalse(entry.has_production_records)
 
-    def test_the_only_desks_in_the_database_are_china_and_singapore(self):
+    def test_the_database_contains_only_declared_collecting_desks(self):
         with self.db() as con:
             desks = [r[0] for r in con.execute("SELECT desk_id FROM desks")]
-        self.assertEqual(sorted(desks), ["china", "singapore"])
+        collecting = sorted(e.slug for e in load_registry() if e.is_collecting)
+        self.assertEqual(sorted(desks), collecting)
 
     def test_every_enabled_source_belongs_to_a_declared_collecting_desk(self):
         """A source enabled under any other desk would be collection this
@@ -110,10 +111,11 @@ class TestRosterMatchesConfiguration(DeskCase):
             rows = con.execute(
                 "SELECT slug, desk_id, is_active FROM sources").fetchall()
         self.assertTrue(rows, "no sources configured")
+        collecting = {e.slug for e in load_registry() if e.is_collecting}
         for slug, desk_id, active in rows:
             with self.subTest(source=slug):
                 if active:
-                    self.assertIn(desk_id, ("china", "singapore"))
+                    self.assertIn(desk_id, collecting)
 
     def test_no_japan_source_exists_or_is_enabled(self):
         with self.db() as con:
