@@ -33,12 +33,13 @@ class KoreaRegistryTruth(unittest.TestCase):
         doc = json.loads((ROOT / "desks/registry.json").read_text(encoding="utf-8"))
         rows = doc["desks"] if type(doc) is dict else doc
         korea = next(x for x in rows if x["slug"] == "korea")
-        self.assertEqual(korea["status"], "shadow",
-                         "full desk status must not be promoted by copy changes")
-        self.assertIs(korea["has_production_records"], False,
-                      "source-specific MND metadata is not the full desk corpus")
-        self.assertIsNone(korea["manifest"],
-                          "general corpus discovery remains separate from admitted metadata")
+        # Live is set only by scripts/korea_daily_activation.py, together with
+        # the production manifest; copy changes alone never promote the desk.
+        self.assertEqual((korea["status"], korea["manifest"],
+                          korea["has_production_records"]),
+                         ("live", "desks/korea/manifest.json", True))
+        self.assertIn("no human has reviewed", korea["status_explanation"])
+        self.assertIn("does not certify comprehensive", korea["status_explanation"])
         public = " ".join([
             korea["scope"], korea["status_explanation"],
             *korea["limits"],

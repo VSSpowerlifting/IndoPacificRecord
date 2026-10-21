@@ -208,7 +208,13 @@ class SnapshotRefreshTests(unittest.TestCase):
                 dest.close()
             con = sqlite3.connect(str(db))
             columns = [r[1] for r in con.execute('PRAGMA table_info(articles)')]
-            latest = dict(zip(columns, con.execute('SELECT * FROM articles ORDER BY id DESC LIMIT 1').fetchone()))
+            # A live Korea Daily can leave QA-held rows at the top of the
+            # tracked corpus. The archive correctly hides them; use a visible
+            # China source row for this synthetic public-record insertion.
+            latest = dict(zip(columns, con.execute(
+                "SELECT a.* FROM articles a JOIN sources s ON s.id=a.source_id "
+                "WHERE s.desk_id='china' ORDER BY a.id DESC LIMIT 1"
+            ).fetchone()))
             ident = max(con.execute('SELECT MAX(id) FROM articles').fetchone()[0],
                         con.execute('SELECT MAX(original_article_id) FROM retired_article_urls').fetchone()[0]) + 1
             latest.update(id=ident, url='https://example.org/synthetic-archive-integration',

@@ -222,10 +222,20 @@ def weeks_from_sql(db_path):
     uri = "file:%s?mode=ro&immutable=1" % urllib.parse.quote(str(db_path))
     con = sqlite3.connect(uri, uri=True)
     try:
+        # Reproduce the release eligibility rule independently in SQL.
+        # Korea's admitted-but-QA-held rows are stored, not publicly counted.
+        korea_filter = (
+            "(COALESCE(s.desk_id, '') != 'korea' "
+            "AND s.slug != 'kr_policy_mnd_releases') "
+            "OR EXISTS (SELECT 1 FROM korea_corpus_admissions k "
+            "WHERE k.article_id = a.id AND k.state = 'admitted' "
+            "AND k.processing_state IN ('processed', 'not_relevant'))"
+        )
         rows = con.execute(
             "SELECT date(a.published_date,'weekday 0','-6 days') AS start, "
             "       COUNT(*) AS n "
             "  FROM articles a JOIN sources s ON s.id = a.source_id "
+            " WHERE " + korea_filter +
             " GROUP BY start ORDER BY start DESC").fetchall()
         run_days = {r[0] for r in con.execute(
             "SELECT DISTINCT substr(started_at,1,10) FROM scrape_runs")}
@@ -425,12 +435,12 @@ class TestNoFabricatedCoverage(PreviewCase):
 
     def test_only_one_desk_is_marked_live(self):
         """
-        Renamed in effect, not in name: China and Singapore are both live now
-        (DECISION_LOG 2026-09-21). Kept as the exact node id CI reported so the
-        fix is directly verifiable against the failing run.
+        Renamed in effect, not in name: China and Singapore are live,
+        and Korea joins upon the owner's merged activation package.
+        Historical test name is retained for compatibility.
         """
         live = [e for e in load_registry() if e.is_collecting]
-        self.assertEqual(sorted(e.slug for e in live), ["china", "singapore"])
+        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore"])
 
     def test_non_collecting_desks_are_labelled_and_carry_no_record_count(self):
         """
@@ -1636,11 +1646,18 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
             for card in cards
         ]
         data = gp.load_corpus(TRACKED_DB)
-        # The "As published" section now uses the provisional discovery
-        # view's first four source records, not the analyzed-only feed.
-        # Unanalyzed originals must retain their actual processing labels.
-        focused = gp.build_focus(data['corpus'])['rows']
-        self.assertEqual(recent, [r['id'] for r in focused[:4]])
+        # Match the builder's citation-enriched discovery focus, not an
+        # unenriched load_corpus() result. Brief source-trail membership is
+        # an intentional focus-ranking input; omitting it changes which
+        # legitimate China record appears fourth as the corpus advances.
+        editions = gp.load_editions(REPO_ROOT)
+        collection = gp.load_collection(
+            editions, gp.load_registry(), briefs_dir=self.briefs)
+        trails, _ = gp.trail_citations(REPO_ROOT, editions, collection)
+        for row in data["corpus"]:
+            row["in_trails"] = trails.get(row["url"], [])
+        focused = gp.build_focus(data["corpus"])["rows"]
+        self.assertEqual(recent, [r["id"] for r in focused[:4]])
         by_id = {r['id']: r for r in data['corpus']}
         for card, rid in zip(cards, recent):
             badge = card.select_one('.state')
@@ -2118,13 +2135,15 @@ class TestRecordPages(PreviewCase):
         self.skipTest("every %s record now carries machine text" % state)
 
     def test_page_count_equals_the_database_count(self):
-        pages = list((self.out / "record").glob("*.html"))
+        pages = [p for p in (self.out / "record").glob("*.html")
+                 if p.stem.isdigit()]
         self.assertEqual(len(pages), len(self.ids))
         self.assertEqual(len(pages), self.snapshot["expected_records"])
 
     def test_page_ids_equal_the_database_ids(self):
         on_disk = sorted(int(p.stem)
-                         for p in (self.out / "record").glob("*.html"))
+                         for p in (self.out / "record").glob("*.html")
+                         if p.stem.isdigit())
         self.assertEqual(on_disk, self.ids)
 
     def test_missing_ids_have_no_page(self):
@@ -3270,9 +3289,10 @@ class TestCompactQueryIndex(PreviewCase):
     def test_historical_gaps_and_4400_retired_ids_remain_absent(self):
         ids = {row[0] for row in self.index["records"]}
         missing = set(range(1, max(ids) + 1)) - ids
-        # Before October 2026 there were six natural missing identifiers.
-        # The owner-approved China cutover then tombstoned precisely 4,400
-        # additional former article IDs; none may be reused or rehosted.
+        # Before the October 2026 China cutover there were six natural
+        # missing identifiers. That cutover tombstoned precisely 4,400
+        # former article IDs; none may be reused or rehosted. Newer
+        # AUTOINCREMENT/failed-write gaps need not equal the historic six.
         from scripts.reconcile_db import read_only
         with read_only(TRACKED_DB) as con:
             retired = {
@@ -3283,8 +3303,10 @@ class TestCompactQueryIndex(PreviewCase):
         self.assertEqual(len(retired), 4400)
         self.assertTrue(retired <= missing,
                         "a tombstoned ID is being advertised as an active record")
-        self.assertEqual(len(missing - retired), 6,
-                         "historical non-retirement gaps changed unexpectedly")
+        historic_missing = {ident for ident in missing - retired
+                            if ident <= max(retired)}
+        self.assertEqual(len(historic_missing), 6,
+                         "pre-cutover non-retirement gaps changed unexpectedly")
         self.assertFalse(ids & retired)
         for ident in retired:
             self.assertFalse((self.out / "record" / ("%d.html" % ident)).exists(),
@@ -3744,7 +3766,9 @@ class TestCorpusBrowserMarkup(PreviewCase):
             shutil.copy(TRACKED_DB, db)
             con = sqlite3.connect(db)
             rec_id = con.execute(
-                "SELECT id FROM articles ORDER BY id DESC LIMIT 1").fetchone()[0]
+                "SELECT a.id FROM articles a JOIN sources s ON s.id=a.source_id "
+                "WHERE s.desk_id='china' ORDER BY a.id DESC LIMIT 1"
+            ).fetchone()[0]
             con.execute("UPDATE articles SET title_english=?, title_original=?"
                         " WHERE id=?", (hostile, hostile + "原文", rec_id))
             con.commit()
@@ -5367,10 +5391,11 @@ class TestSnapshotScopedCitations(PreviewCase):
                     % (self.snapshot["date"],
                        "{:,}".format(self.snapshot["expected_records"])))
         missing = [p.name for p in sorted((self.out / "record").glob("*.html"))
-                   if expected not in p.read_text(encoding="utf-8")]
+                   if p.stem.isdigit()
+                   and expected not in p.read_text(encoding="utf-8")]
         self.assertEqual(missing, [])
-        self.assertEqual(len(list((self.out / "record").glob("*.html"))),
-                         self.corpus_size)
+        self.assertEqual(len([p for p in (self.out / "record").glob("*.html")
+                              if p.stem.isdigit()]), self.corpus_size)
 
     def test_each_processing_state_receives_its_own_note(self):
         notes = gp.CITATION_PROCESSING_NOTES
@@ -5574,7 +5599,8 @@ class TestSnapshotScopedCitations(PreviewCase):
         self.assertIn("corpus-guide.html", loading)
         self.assertIn("pla-watch.html", loading)
         self.assertNotIn("archive.html", loading)
-        records = [n for n in loading if n.startswith("record/")]
+        records = [n for n in loading if n.startswith("record/")
+                   and n.endswith(".html") and n[7:-5].isdigit()]
         self.assertEqual(len(records), self.corpus_size)
 
     def test_page_scripts_stay_within_budget(self):
@@ -5711,6 +5737,7 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.corpus = gp.load_corpus(TRACKED_DB)["corpus"]
+        cls.visible_ids = {r["id"] for r in cls.corpus}
         cls.sets = gp.english_output_sets(cls.corpus)
         cls.html = cls.page(cls, "corpus-guide.html")
         cls.flat = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", cls.html))
@@ -5718,8 +5745,13 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
     def _sql(self, where):
         from scripts.reconcile_db import _read_only
         with _read_only(str(TRACKED_DB)) as con:
-            return {r[0] for r in con.execute(
+            # QA-held Korea source rows remain in the tracked database but
+            # are deliberately absent from the public corpus. Compare only
+            # the published population, while deriving the field predicate
+            # independently from SQL.
+            return ({r[0] for r in con.execute(
                 "SELECT id FROM articles WHERE " + where).fetchall()}
+                & self.visible_ids)
 
     def test_each_field_is_derived_from_its_own_column(self):
         for key, where in (
@@ -5748,7 +5780,7 @@ class TestEnglishOutputIsMeasuredPerField(PreviewCase):
                 raw = dict(row); raw.update(meta.get(row['id'], {}))
                 if not (english_title(raw) or '').strip():
                     empty.add(row['id'])
-        self.assertEqual(self.sets['empty_title'], empty)
+        self.assertEqual(self.sets['empty_title'], empty & self.visible_ids)
 
     def test_set_equivalence_is_asserted_by_identity_not_by_count(self):
         """The permanent assertion the combined sentence depends on."""
@@ -5913,7 +5945,9 @@ class TestHostileTitlesStayInertInCitations(unittest.TestCase):
             shutil.copy(TRACKED_DB, db)
             con = sqlite3.connect(db)
             rec_id = con.execute(
-                "SELECT id FROM articles ORDER BY id DESC LIMIT 1").fetchone()[0]
+                "SELECT a.id FROM articles a JOIN sources s ON s.id=a.source_id "
+                "WHERE s.desk_id='china' ORDER BY a.id DESC LIMIT 1"
+            ).fetchone()[0]
             con.execute("UPDATE articles SET title_original=? WHERE id=?",
                         (hostile, rec_id))
             con.commit()
@@ -6479,7 +6513,8 @@ class TestStop4RoutesAreIntact(PreviewCase):
         return self.shard_count
 
     def test_every_record_route_still_exists(self):
-        pages = sorted((self.out / "record").glob("*.html"))
+        pages = sorted(p for p in (self.out / "record").glob("*.html")
+                       if p.stem.isdigit())
         self.assertEqual(len(pages), self.RECORD_PAGES)
         corpus = gp.load_corpus(TRACKED_DB)["corpus"]
         stored = {r["id"] for r in corpus}
@@ -6532,6 +6567,12 @@ class TestStop4RoutesAreIntact(PreviewCase):
         from core.korea_english_publication import public_registry
         registered_korean_originals = len(read_release_index())
         reviewed_english_pages = 2 * len(public_registry())
+        from core.daily_machine_records import load as load_machine_records
+        machine_paths = {r["record_path"] for r in load_machine_records(TRACKED_DB)}
+        self.assertEqual(
+            {"record/" + p.name for p in (self.out / "record").glob("source-*.html")},
+            machine_paths,
+            "machine-explanation routes must match released source records")
         from core.staff_directory import load_staff
         staff = load_staff(REPO_ROOT / "site/preview/staff.json")
         self.assertEqual(sorted(q.name for q in (self.out / "authors").glob("*.html")),
@@ -6540,6 +6581,7 @@ class TestStop4RoutesAreIntact(PreviewCase):
                          self.corpus_size + len(top) + len(sources) + len(staff)
                          + len(covers) + len(atmosphere)
                          + registered_korean_originals + reviewed_english_pages
+                         + len(machine_paths)
                          + len([q for q in (self.out / "assets").rglob("*") if q.is_file()]))
         # Three declared files since 2026-09-15: the withdrawn J-20 derivative,
         # which stays published with its licence record because "do not render

@@ -36,8 +36,11 @@ def unrelated(conn):
         sql = "SELECT * FROM " + safe
         if name == "regional_official_source_links":
             sql += " WHERE desk<>'vietnam'"
+        rows = conn.execute(sql).fetchall()
+        if name == "korea_corpus_admissions" and not rows:
+            continue  # m0016 may create the empty ledger during this admission
         h.update(name.encode() + b"\0")
-        for row in sorted(conn.execute(sql).fetchall(), key=repr):
+        for row in sorted(rows, key=repr):
             h.update(repr(row).encode())
     return h.hexdigest()
 
@@ -63,7 +66,8 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
             before = unrelated(conn)
             done = applied_versions(conn)
             pending = {m.version for m in discover()} - set(done)
-            vn.need(pending <= {"0013"}, "unrelated_pending_migrations")
+            # 0016 creates Korea's empty admission ledger; 0015 is the PH machine ledger.
+            vn.need(pending <= {"0013", "0015", "0016"}, "unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             conn.execute("BEGIN IMMEDIATE")
             if private_projection is None:

@@ -38,6 +38,25 @@ for new source-use/spend/publishing activation. Stop when the agreed desk
 works—or report the one precise external blocker. **Do not manufacture more
 work to chase a percentage.**
 
+
+**China-equivalent product standard (owner, 21 October 2026; all desks):**
+Use China's *reader-facing operating model* as the default: eligible official
+publications are collected automatically, screened, translated only when needed,
+summarized/classified using source evidence, and published as attributable,
+searchable records by the common Daily system. The owner should **not**
+approve every routine article; one valid standing source/use policy enables
+unattended publication, while actual exceptions are held per record/version.
+Don't copy China's legacy implementation or presume its source-use rights
+apply abroad. Publisher correspondence is **not a universal prerequisite** to
+linking to official sources or independently reporting facts, but copyright,
+site access/terms, external-model processing, and public reuse of original text,
+translations, images or substantial excerpts remain distinct checks. Use
+appropriately narrow standing decisions, not invented multi-form licensing gates;
+don't bypass real restrictions. Keep human Briefs separate. See the updated
+shared-Daily architecture guideline. A desk is finished when the agreed sources
+produce genuine public results and future eligible records flow without manual
+per-item approval—not when extra tests, documents or stages accumulate.
+
 Summary of the non-negotiables:
 
 - Use a separate worktree for each assigned IPR repository. Coordinate with

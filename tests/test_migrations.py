@@ -242,7 +242,7 @@ class TestApply(MigrationTestCase):
         for slug, legacy, tag in rows:
             self.assertIsNotNone(legacy, "%s lost its legacy language" % slug)
             self.assertIsNotNone(tag, "%s has no BCP 47 tag" % slug)
-            self.assertIn(tag, ("zh-Hans", "en"))
+            self.assertIn(tag, ("zh-Hans", "en", "ko"))
             self.assertTrue(tag.startswith(legacy))
 
     def test_no_orphans_and_integrity_ok(self):
@@ -272,7 +272,8 @@ class TestApply(MigrationTestCase):
         desks = conn.execute("SELECT desk_id, public_status FROM desks").fetchall()
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(sorted(desks), [("china", "legacy"), ("singapore", "public")])
+        self.assertEqual(sorted(desks), [("china", "legacy"), ("korea", "public"),
+                                         ("singapore", "public")])
         self.assertGreaterEqual(insts, 5)
 
 
@@ -355,10 +356,11 @@ class TestReconcileReversion(MigrationTestCase):
         self.assertEqual(restored["article_ids"], migrated["article_ids"])
         self.assertEqual(restored["article_urls"], migrated["article_urls"])
         self.assertTrue(v["ok"])
-        # Two desks now sync from the real desks/ manifests: china (this
-        # fixture's 5 legacy sources) and singapore (sg_mindef_releases).
-        self.assertEqual(desks, 2)
-        self.assertEqual(sources_with_desk, 6)
+        # Three desks now sync from the real desks/ manifests: china (this
+        # fixture's 5 legacy sources), singapore (sg_mindef_releases) and
+        # korea (the manual kr_policy_mnd_releases source).
+        self.assertEqual(desks, 3)
+        self.assertEqual(sources_with_desk, 7)
 
 
 class TestRollback(MigrationTestCase):
@@ -546,7 +548,7 @@ class TestLanguageConstraint(MigrationTestCase):
         conn.close()
         legacy_slugs = {slug for slug, _ in before}
         self.assertEqual(before, [row for row in after if row[0] in legacy_slugs])
-        self.assertEqual({lang for _, lang in after}, {"zh", "en"})
+        self.assertEqual({lang for _, lang in after}, {"zh", "en", "ko"})
 
     def test_source_ids_preserved_across_the_rebuild(self):
         """

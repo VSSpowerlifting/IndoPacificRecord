@@ -273,18 +273,23 @@ second database, analyzer, sync system or Vietnam site.
   row. A material change is held, never overwritten. Bad dates, missing bodies,
   unsupported versions and unauthenticated sources are refused. Columns are
   projected per permission. The private ledger lives outside the repository.
-- **Reconciliation preparation (21 October):** Vietnam provenance uses migration
+- **Reconciliation (21 October):** Vietnam provenance uses migration
   `0017`, after shared Daily `0015` and Korea corpus `0016`. Its table
   `vietnam_article_provenance` keeps source identity, publisher date, version
   hash, rights decision, QA and attribution. The `articles` foreign key
-  cascades; no original text is stored by this migration. This isolated
-  branch does **not** apply migration `0017` to `pla_watch.db`.
-  At final integration, start from the latest published `main` database
-  (including Philippines and Korea rows), migrate only a disposable copy,
-  verify all unrelated table rows and foreign keys are preserved, then
-  reconcile the tracked database as a separate controlled operation.
-  Do not restore the old Vietnam migration `0016` or replace the live
-  database with the stale #834 snapshot.
+  cascades; no original text is stored by this migration. The tracked database
+  was derived from main `647a3246d5`, with `0017` applied first on a disposable
+  copy. All 21 pre-existing tables retain identical rows and schema; foreign
+  keys and integrity pass, and migration replay is a no-op. Only the empty
+  provenance table and its migration ledger row are new. The stale #834
+  database is not used. Korea record rendering and shared summary recovery
+  from main are retained alongside Vietnam's gated rendering.
+  Focused offline run: 1,137 passed, eight skipped, one failure out of 1,146.
+  The NSC `test_wal_mode_source_read_leaves_no_sidecars` leaves a scratch SHM
+  file on this macOS/Python 3.9 environment; the identical failure reproduces
+  in its 21-test module on exact main and this branch. Philippines code and
+  configuration are unchanged. Separately, all 129 shared analyzer/screening/
+  U.S. tests pass. Current-corpus render parity passes across 1,300 files.
 - `processing/screening.py` adds three per-family `VIETNAM_*` profiles and a
   refusing desk-level profile. Their event types are distinct: meeting,
   announcement, financing, commencement and completion.

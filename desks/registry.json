@@ -161,12 +161,12 @@
       "slug": "korea",
       "name": "South Korea Desk",
       "route": "korea.html",
-      "scope": "Source-verified MND and DAPA official-link metadata from Korea Policy Briefing, separately licensed Korean government original text, and editor-approved English translation and analysis. Coverage is selective; government claims remain attributed to their issuing institutions.",
-      "status": "shadow",
-      "status_explanation": "MND and DAPA link-only metadata have been admitted to a separately controlled production table. Licensed MND source text and approved English translation and analysis use distinct guarded workflows. The shadow registry status describes the separate general collection corpus; it does not erase these production publications or certify dependable source collection.",
+      "scope": "Source-verified MND and DAPA official-link metadata from Korea Policy Briefing; separately licensed Korean government original text; machine-translated MND releases, labeled as unreviewed machine output; and editor-approved English translation and analysis. Coverage is selective; government claims remain attributed to their issuing institutions.",
+      "status": "live",
+      "status_explanation": "MND releases republished on Korea Policy Briefing whose KOGL Type 1 Korean text is in the public release index enter the corpus once per source version through a source-pinned bridge, and the shared Daily screens, machine-translates and summarizes them. Those records are machine output that no human has reviewed. Releases in the editor-reviewed English path, the frozen October baseline and the research hold are never machine-published. DAPA remains official-link metadata only. Live describes this lane; it does not certify comprehensive Korean defense coverage or direct MND.gov.kr collection.",
       "public": true,
-      "manifest": null,
-      "has_production_records": false,
+      "manifest": "desks/korea/manifest.json",
+      "has_production_records": true,
       "research": {
         "source_families": [
           {

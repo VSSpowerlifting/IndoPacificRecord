@@ -117,7 +117,7 @@ class KoreaFourteenLinkReviewTests(unittest.TestCase):
         self.assertEqual(len(load_public_korea_links()), 5)
         workflow = (root / ".github/workflows/korea_public_bibliography_release.yml").read_text()
         self.assertIn("assert len(load_public_korea_links()) == 5", workflow)
-        self.assertIn('k["status"] == "shadow"', workflow)
+        self.assertIn('k["status"] == "live"', workflow)
         # A changed held-review manifest must re-run PR checks, but must
         # NOT independently trigger the live Pages push release.
         pull_trigger, push_and_jobs = workflow.split("  push:", 1)

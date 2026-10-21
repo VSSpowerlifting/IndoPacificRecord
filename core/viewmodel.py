@@ -529,6 +529,10 @@ class PublicView:
     def _read(self) -> None:
         with _read_only(str(self.db_path)) as con:
             con.row_factory = _dict_row
+            # Same Korea publication gate as the renderer's corpus read.
+            from core.korea_corpus_bridge import (hidden_predicate,
+                                                  publication_gate)
+            visible = hidden_predicate(publication_gate(con)[1])
 
             self._sources = con.execute(
                 "SELECT s.slug, s.display_name, s.desk_id, s.enabled, "
@@ -548,7 +552,7 @@ class PublicView:
                 "       MAX(a.published_date) AS last_published "
                 "  FROM sources sr "
                 "  LEFT JOIN articles a ON a.source_id = sr.id "
-                " GROUP BY sr.slug").fetchall()}
+                "   AND " + visible + " GROUP BY sr.slug").fetchall()}
 
             self._desk_stats = {r["desk_id"]: r for r in con.execute(
                 "SELECT s.desk_id, COUNT(a.id) AS n, "
@@ -558,7 +562,7 @@ class PublicView:
                 "       MAX(a.published_date) AS last_published "
                 "  FROM sources s "
                 "  JOIN articles a ON a.source_id = s.id "
-                " WHERE s.desk_id IS NOT NULL "
+                " WHERE s.desk_id IS NOT NULL AND " + visible + " "
                 " GROUP BY s.desk_id").fetchall()}
 
             # Read here, with everything else. The class opens one connection
@@ -566,7 +570,8 @@ class PublicView:
             # lazy second read for freshness would break exactly that.
             _fresh = con.execute(
                 "SELECT MAX(scraped_at) AS collected,"
-                "       MAX(analyzed_at) AS analysed FROM articles").fetchone()
+                "       MAX(analyzed_at) AS analysed FROM articles a "
+                " WHERE " + visible).fetchone()
             self._last_collected = (_fresh["collected"] or "")[:10] or None
             self._last_analysed = (_fresh["analysed"] or "")[:10] or None
 
@@ -639,19 +644,21 @@ class PublicView:
                     " GROUP BY s.desk_id").fetchall()}
 
             self._totals = con.execute(
-                "SELECT (SELECT COUNT(*) FROM articles) AS records, "
+                "SELECT (SELECT COUNT(*) FROM articles a WHERE " + visible
+                + ") AS records, "
                 "       (SELECT COUNT(*) FROM scrape_runs) AS runs, "
-                "       (SELECT MIN(published_date) FROM articles) "
-                "            AS first_published, "
-                "       (SELECT MAX(published_date) FROM articles) "
-                "            AS last_published, "
+                "       (SELECT MIN(published_date) FROM articles a WHERE "
+                + visible + ") AS first_published, "
+                "       (SELECT MAX(published_date) FROM articles a WHERE "
+                + visible + ") AS last_published, "
                 "       (SELECT COUNT(DISTINCT institution_id) FROM sources "
                 "         WHERE institution_id IS NOT NULL) AS institutions"
             ).fetchone()
 
             self._state_counts = {r["state"]: r["n"] for r in con.execute(
                 "SELECT " + _STATE_CASE_SQL + " AS state, COUNT(*) AS n "
-                "  FROM articles a GROUP BY state").fetchall()}
+                "  FROM articles a WHERE " + visible
+                + " GROUP BY state").fetchall()}
 
             self._field_counts = con.execute(
                 "SELECT SUM(CASE WHEN TRIM(COALESCE(text_original,'')) <> '' "
@@ -660,7 +667,7 @@ class PublicView:
                 "                THEN 1 ELSE 0 END) AS with_english_title, "
                 "       SUM(CASE WHEN TRIM(COALESCE(summary_english,'')) <> '' "
                 "                THEN 1 ELSE 0 END) AS with_english_summary "
-                "  FROM articles").fetchone()
+                "  FROM articles a WHERE " + visible).fetchone()
 
     # -- identity -------------------------------------------------------------
 

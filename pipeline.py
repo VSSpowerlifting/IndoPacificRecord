@@ -233,6 +233,97 @@ def _store_atomic_batches(kw_passed: list, kw_rejected: list, run_id,
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
+# ── Governed manual sources ──────────────────────────────────────────────────
+#
+# A manual source is fetched by nobody in this process. Its records enter the
+# corpus through one governed, source-pinned admission function; a manual
+# source without one contributes nothing and says so.
+
+def _governed_admissions() -> dict:
+    from core import korea_corpus_bridge
+    return {korea_corpus_bridge.SOURCE_SLUG: _admit_korea_mnd}
+
+
+def _admit_korea_mnd(run_id: Optional[int]) -> dict:
+    """Run the Korean MND bridge in its own explicit transaction."""
+    from core import korea_corpus_bridge
+    with db.get_conn() as conn:
+        # The bridge issues BEGIN IMMEDIATE itself; the connection's implicit
+        # transaction handling must not open one first.
+        conn.isolation_level = None
+        return korea_corpus_bridge.apply(conn, run_id=run_id)
+
+
+def run_governed_manual_sources(manual_slugs: list, run_id: Optional[int],
+                                registry, errors: list, *,
+                                dry_run: bool = False) -> list:
+    """One honest SourceRunResult per manual source; never raises."""
+    import config
+    from core.collection.contract import SourceRunResult
+    from core.korea_corpus_bridge import BridgeHold
+    from core.korea_published_originals import PublishedKoreaHold
+
+    governed = _governed_admissions()
+    results = []
+    for slug in manual_slugs:
+        desk_id = registry.get_source(slug).desk_id
+        admit = governed.get(slug)
+
+        def _result(status, detail=None, new=0, dups=0):
+            return SourceRunResult(source_slug=slug, status=status,
+                                   desk_id=desk_id, new_documents=new,
+                                   duplicates=dups, error_detail=detail)
+
+        if admit is None:
+            results.append(_result(collection_status.SKIPPED_DISABLED,
+                                   "manual source with no governed admission"))
+            continue
+        if not config.KOREA_DAILY_AUTOMATION_ENABLED:
+            logger.info("%s: governed admission awaiting owner activation", slug)
+            results.append(_result(collection_status.SKIPPED_DISABLED,
+                                   "governed admission awaiting owner activation"))
+            continue
+        if dry_run:
+            results.append(_result(collection_status.SKIPPED_DISABLED,
+                                   "dry run: governed admission not run"))
+            continue
+        try:
+            receipt = admit(run_id)
+        except (BridgeHold, PublishedKoreaHold) as exc:
+            # Fixed machine code only; never source text.
+            msg = "%s: governed admission held — %s" % (slug, exc)
+            logger.error(msg)
+            errors.append(msg)
+            results.append(_result(collection_status.ADAPTER_ERROR,
+                                   "korea_corpus_bridge: %s" % exc))
+            continue
+        except Exception as exc:
+            msg = "%s: governed admission failed — %s" % (slug, type(exc).__name__)
+            logger.error(msg)
+            errors.append(msg)
+            results.append(_result(collection_status.ADAPTER_ERROR,
+                                   "korea_corpus_bridge: %s" % type(exc).__name__))
+            continue
+
+        admitted, unchanged = len(receipt["admitted"]), len(receipt["unchanged"])
+        logger.info(
+            "%s: governed admission — %d admitted, %d unchanged, %d held, "
+            "%d withdrawn, %d excluded, %d deferred", slug, admitted, unchanged,
+            len(receipt["held"]), len(receipt["withdrawn"]),
+            len(receipt["excluded"]), len(receipt["deferred"]))
+        for item in receipt["held"] + receipt["withdrawn"]:
+            logger.warning("%s: %s %s", slug, item["source_identity"],
+                           item["reason"])
+        if admitted:
+            status = collection_status.OK
+        elif unchanged:
+            status = collection_status.OK_ALL_DUPLICATES
+        else:
+            status = collection_status.OK_NO_PUBLICATIONS
+        results.append(_result(status, new=admitted, dups=unchanged))
+    return results
+
+
 def run(
     sources:         list[str],
     target_date:     date,
@@ -283,6 +374,7 @@ def run(
     # closes.
     registry = get_registry()
     source_results = []
+    manual_slugs: list[str] = []
 
     for slug in sources:
         if slug not in registry:
@@ -295,6 +387,13 @@ def run(
                                 status=collection_status.UNKNOWN_SOURCE,
                                 error_detail="not declared in any desk manifest")
             )
+            continue
+
+        if registry.get_source(slug).access_method == "manual":
+            # A manual source has no adapter and is never fetched here. It
+            # enters the corpus only through its governed admission path,
+            # which runs after storage (`run_governed_manual_sources`).
+            manual_slugs.append(slug)
             continue
 
         try:
@@ -375,6 +474,9 @@ def run(
             "are UNAVAILABLE (no storage, so no attribution), and each status is "
             "pre-refinement: ok_all_duplicates / ok_all_filtered are not resolved."
         )
+        source_results.extend(
+            run_governed_manual_sources(manual_slugs, None, registry, errors,
+                                        dry_run=True))
         logger.info("\n%s", human_report(source_results, run_id))
         _print_summary(all_scraped, new_articles, kw_passed, [], [], dry_run)
         return
@@ -452,6 +554,14 @@ def run(
                 result.status = collection_status.OK_ALL_FILTERED
 
         db.record_source_run_result(run_id, result)
+
+    # Governed manual admissions run after the fold, so their counts are not
+    # overwritten by scrape attribution, and before the queues are read, so a
+    # record admitted today is processed today.
+    for result in run_governed_manual_sources(manual_slugs, run_id, registry,
+                                              errors):
+        db.record_source_run_result(run_id, result)
+        source_results.append(result)
 
     collection_agg = aggregate_status(source_results)
 
@@ -588,6 +698,13 @@ def run(
     # The newly inserted lane has no prior retry history.
     attempts_before = prior_processing_attempts(pending_rows, unscored_rows)
     for desk_id, held in sorted(held_desks.items(), key=lambda kv: str(kv[0])):
+        if desk_id == "korea":
+            # Governed admissions are processed by the Korea lane below, on
+            # its own cap and only once the owner switch is on.
+            logger.info("Held out of the shared queue: %d korea-desk record(s) "
+                        "— handled by the Korea lane (processing/"
+                        "korea_shared_queue.py).", held)
+            continue
         logger.info(
             "Held out of the daily analysis queue: %d %s-desk record(s) — the "
             "desk's screening is not run by the daily pipeline "
@@ -807,12 +924,37 @@ def run(
                 _record_failure(aid, body_zh, "analysis_incomplete",
                                 attempts_before, content_verdicts)
 
+    # Korea MND lane (processing/korea_shared_queue.py): the shared engine's
+    # Korea profile over governed admissions, after the China/Singapore queue
+    # and on its own cap, so it can never take their slots. Its outcomes are
+    # kept out of the counters above, which decide this run's exit status: a
+    # Korea failure or hold never fails the Daily. An account-level block seen
+    # here still writes the billing marker and degrades the run.
+    korea_blocked: Optional[str] = None
+    import config as _config
+    if (_config.KOREA_DAILY_AUTOMATION_ENABLED and _config.KOREA_DAILY_PROCESSING_CAP
+            and ANTHROPIC_API_KEY and not no_analysis and not dry_run
+            and account_blocked is None):
+        from analysis.analyzer import Analyzer, FatalAPIError
+        from processing import korea_shared_queue
+        analyzer = analyzer or Analyzer()
+        try:
+            korea_report = korea_shared_queue.run(
+                analyzer, cap=_config.KOREA_DAILY_PROCESSING_CAP, db=db,
+                fatal_error=FatalAPIError)
+            korea_blocked = korea_report.blocked
+        except Exception as exc:  # noqa: BLE001 — never fail China for Korea
+            logger.error("Korea lane failed: %s", type(exc).__name__)
+            errors.append("Korea lane failed: %s" % type(exc).__name__)
+        if korea_blocked is not None:
+            errors.append("Korea lane stopped: account-level API block")
+
     # Optional, independently bounded headline completion. Full analysis goes
     # first so already translated records incur no duplicate title-only call.
     # Failure here must not turn valid collection into a failed daily run.
     from config import CHINA_TITLE_TRANSLATION_LIMIT
     if (CHINA_TITLE_TRANSLATION_LIMIT and ANTHROPIC_API_KEY and not no_analysis
-            and not dry_run and account_blocked is None):
+            and not dry_run and account_blocked is None and korea_blocked is None):
         from storage.title_translation import candidates, ready, run_batch
         try:
             with db.get_conn() as title_conn:
@@ -866,11 +1008,11 @@ def run(
     # on a partial success: every later window today would hit the same wall.
     # This is a definitive signal from the API, unlike relevance_total_failure,
     # which infers billing trouble from "everything failed".
-    if account_blocked is not None and not dry_run:
+    if (account_blocked is not None or korea_blocked is not None) and not dry_run:
         logger.error(
             "Account-level API block detected (%s). Writing billing-failure "
             "marker so later cron windows today skip their paid retries.",
-            account_blocked,
+            account_blocked or "Korea lane: %s" % korea_blocked,
         )
         _write_billing_failure_marker()
 
@@ -892,7 +1034,7 @@ def run(
     # MOD China was dead.
     if total_analysis_failed:
         run_status = "failed"
-    elif account_blocked is not None:
+    elif account_blocked is not None or korea_blocked is not None:
         run_status = "degraded"
     elif collection_agg in ("failed", "degraded"):
         run_status = "degraded"

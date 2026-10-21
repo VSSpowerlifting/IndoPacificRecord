@@ -135,6 +135,17 @@ class KoreaWatchTests(unittest.TestCase):
         self.assertIn("secrets.IPR_KOREA_PRIVATE_READ_TOKEN", raw)
         self.assertIn("--filter=blob:none", raw)
         self.assertIn("'/state/ledger/**' '/state/clock.json'", raw)
+        # The filtered fetch and its implicit checkout-time blob fetch must
+        # both be authenticated. The header is command-scoped, not persisted.
+        auth_arg = 'http.https://github.com/.extraheader=AUTHORIZATION: basic $auth'
+        self.assertEqual(raw.count(auth_arg), 2)
+        checkout_prefix = raw.split(
+            'checkout -q -b archive/korea-policy-briefing FETCH_HEAD', 1
+        )[0].splitlines()[-2]
+        self.assertIn('git -C "$repo" -c', checkout_prefix)
+        self.assertIn(auth_arg, checkout_prefix)
+        self.assertNotIn('git -C "$repo" config http', raw)
+        self.assertNotIn('https://x-access-token:', raw)
         self.assertIn("state/ledger", raw)
         self.assertIn("state/clock.json", raw)
         self.assertIn("scripts.watch_korea_shadow_slots", raw)

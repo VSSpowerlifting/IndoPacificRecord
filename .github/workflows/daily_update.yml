@@ -299,6 +299,8 @@ jobs:
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
         run: python -m scripts.fetch_daily_machine_outputs
 
+      # Korean MND texts come only from the already verified, released source index.
+      # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
       - name: Run pipeline
         id: pipeline
         if: steps.timecheck.outputs.should_run == 'true'
@@ -307,6 +309,8 @@ jobs:
           PLA_WATCH_DAILY_RUN_DATE: ${{ steps.timecheck.outputs.today_ny }}
           LLM_USAGE_RECORD_PATH: ${{ runner.temp }}/llm_usage_record.json
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
+          KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
+          KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}

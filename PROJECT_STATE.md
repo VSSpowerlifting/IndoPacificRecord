@@ -138,6 +138,28 @@ PR #652 cross-check:
 `research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
 No production DB, output, Pages or schedule change made here.
 
+**Korea unified Daily (20 October 2026; activation PR open, processing off):**
+Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of
+the shared Daily. It adds:
+- the governed MND corpus ledger (m0016) and a source-pinned, fail-closed bridge
+  (`kr-corpus-bridge-v1`) into `articles`. A human-handoff receipt alone no
+  longer excludes a release; reviewed English, the frozen October baseline and
+  the research hold still do;
+- the explicit Korea profile on the shared engine: relevance `kr-relevance-v1`,
+  translation `kr-translation-v2` with `kr-glossary-v1`, analysis `kr-analysis-v1`,
+  deterministic QA `kr-qa-v1`;
+- a capped Korea lane that runs after China/Singapore and never fails the Daily;
+- unreviewed machine-translation labels on the existing record and desk pages;
+- the applied activation: live registry entry and `desks/korea/manifest.json`.
+
+Rehearsed on a disposable DB copy: the bridge admits one release
+(`korea-policy:156785691`), excludes three, and a replay changes nothing. The
+lane selects it and stops without a model. The render shows no unprocessed
+machine output. No paid call, no production DB write and no variable change has
+been made. Processing starts only when the owner merges and sets
+`KOREA_DAILY_AUTOMATION_ENABLED=true`; see
+`docs/engineering/KOREA_DAILY_ACTIVATION_2026-10-20.md`.
+
 **Korea desk acceptance (19 October 2026):**
 Public PRs #825/#826 and private PR #18 are merged; private-first MND custody
 is live (`archive/korea-policy-briefing` has one writer, MND is outside the
@@ -1008,7 +1030,7 @@ files exactly. Final-head CI is recorded on the PR. No merge is authorized.
 captures to the shared Daily. It contains:
 
 - a thin corpus bridge with no recrawl;
-- migration `0015` provenance;
+- migration `0017` provenance, after Korea corpus `0016`;
 - per-family `ScreeningProfile`s on `analyze_desk()`;
 - versioned terminology;
 - exception-based QA;
@@ -1023,11 +1045,21 @@ family reads from the private archive ref (`--private-custody`), reusing
 token; pre-cutover public records stay deduplicated and #831's metadata-link
 path is a supplementary index only. The 16-stage rehearsal is SIMULATED,
 on fixtures. No real original has passed through the bridge, and no production
-run, schedule or publication has happened. The render is byte-identical to main
-(1,925 files). The tracked `pla_watch.db` ships with `0015` applied, as
-`0014` did: one empty table and one ledger row, derived from main's blob, so
-release workflows that verify without `--apply` stay current. Status stays **Blocked**: #831 and private #20 are unmerged, rights are
-held and the desk is in shadow. Owner requests and gaps are in
+run, schedule or publication has happened. Reconciliation against main
+`647a3246d5` preserves Korea rendering and the shared summary-recovery fix. The tracked database starts from that main blob;
+migration `0017` was applied to a disposable copy first. All 21 existing tables
+retain identical rows and schema, including Korea migration `0016`; foreign-key
+and integrity checks pass. Only an empty Vietnam provenance table and its
+migration ledger row are added. Generated output is unchanged; a disposable
+current-corpus render matches main byte-for-byte across all 1,300 files.
+Focused offline verification ran 1,146 tests: 1,137 passed, eight skipped, and
+one NSC scratch-WAL cleanup assertion failed. The same 21-test NSC module
+fails that assertion on a disposable exact-main checkout and on this branch;
+Philippines code/configuration remain unchanged. A separate 129-test shared
+analyzer/screening/U.S. regression run passed. Required PR CI remains a remote
+check after push; this is not a full-suite success claim.
+Status stays **Blocked**: #831 remains open, rights are held and the desk is
+in shadow. The private companion was not inspected during reconciliation. Owner requests and gaps are in
 `docs/engineering/VIETNAM_FULL_OPERATION_2026-10-19.md` § Shared Daily
 integration.
 

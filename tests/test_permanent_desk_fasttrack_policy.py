@@ -54,11 +54,12 @@ class PermanentDeskExceptionPolicy(unittest.TestCase):
         self.assertNotIn("ignore copyright", self.record)
 
     def test_no_country_promoted_by_exception_document(self):
-        for name in ("philippines", "indonesia", "korea", "japan", "vietnam"):
+        for name in ("philippines", "indonesia", "japan", "vietnam"):
             d = self.registry[name]
             self.assertEqual(d["status"], "shadow")
             self.assertFalse(d["has_production_records"])
-        for name in ("china", "singapore"):
+        # Korea is live through its own activation change, not this document.
+        for name in ("china", "singapore", "korea"):
             self.assertEqual(self.registry[name]["status"], "live")
             self.assertTrue(self.registry[name]["has_production_records"])
 

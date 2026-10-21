@@ -184,7 +184,11 @@ def admit_validated(db_path, packet, *, policy, as_of_utc, sealed=None, secret=N
     verify_packet(packet)
     offered = {l["source_identity"] for l in packet["links"]}
     before = _sha256(db_path)
-    with sqlite3.connect(db_path.as_uri() + "?mode=ro", uri=True) as ro:
+    # The tracked database may be WAL-mode. A normal mode=ro connection
+    # creates persistent -wal/-shm files even after close, and the release
+    # workflow must refuse those sidecars. Immutable is safe here because this
+    # isolated runner pins production main and rechecks the file hash.
+    with sqlite3.connect(db_path.as_uri() + "?mode=ro&immutable=1", uri=True) as ro:
         stored = _stored(ro)
     ro.close()
     # Private custody is append-only: an admitted statement absent from a

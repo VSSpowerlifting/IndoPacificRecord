@@ -50,8 +50,9 @@
 
     <nav class="reader-contents" aria-label="On this record page">
       <span>In this record</span>
-      <ul>{% if record.summary_english %}<li><a href="#record-summary">Summary</a></li>{% endif %}{% if record.vietnam and record.vietnam.translation_published %}<li><a href="#record-translation">Translation</a></li>{% endif %}
-          <li><a href="#record-text">Stored text</a></li><li><a href="#record-status">Processing</a></li>
+      <ul>{% if record.vietnam and record.vietnam.translation_published %}<li><a href="#record-translation">Translation</a></li>{% endif %}{% if record.summary_english %}<li><a href="#record-summary">Summary</a></li>{% endif %}
+          {% if record.korea_identity and record.text_english %}<li><a href="#record-translation">Machine translation</a></li>{% endif %}
+          <li><a href="#record-text">{{ 'Korean original' if record.korea_identity else 'Stored text' }}</a></li><li><a href="#record-status">Processing</a></li>
           <li><a href="#record-provenance">Provenance</a></li><li><a href="#record-citation">Citation</a></li></ul>
     </nav>
 
@@ -83,7 +84,38 @@
       The <a href="{{ record.url }}" rel="noopener nofollow">official page</a> is the authority.</p>
     </section>
     {% endif %}
-    {% if record.vietnam and record.vietnam.original_withheld %}
+    {% if record.korea_identity %}
+    {# A gated Korean MND release (core/korea_corpus_bridge.publication_gate).
+       The licensed original is shown once, on its own exhibit page; this
+       record links to it rather than reproducing it a second time. #}
+    {% if record.text_english %}
+    <section class="record-section" id="record-translation-section" aria-labelledby="record-translation">
+      <div class="layer-head"><h2 id="record-translation">Full text in English</h2>
+        <span class="evidence evidence--model">Machine translation</span></div>
+      <p class="meta">A machine translation of the Korean original, line by line. Not reviewed by a
+      human. The statements are the Ministry of National Defense's official claims, translated;
+      they are not IPR findings and are not independently verified. Where wording matters,
+      the <a href="../korea-originals/{{ record.korea_news_id }}.html">Korean original</a> governs.</p>
+      <div class="machine-translation" lang="en">
+      {% for line in record.text_english.split('\n') %}
+      {% if line.strip() %}<p>{{ line.strip() }}</p>
+      {% endif %}
+      {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="record-section" aria-labelledby="record-text">
+      <div class="layer-head"><h2 id="record-text">Korean original</h2>
+        <span class="evidence evidence--record">Source record</span></div>
+      <p><a href="../korea-originals/{{ record.korea_news_id }}.html">Read the verbatim Korean original — release {{ record.korea_news_id }}</a></p>
+      <p class="meta"><strong>Official Korean government source text</strong> — not an IPR fact-check or independent endorsement of the claims.
+      Issuer: Republic of Korea Ministry of National Defense; republication: Republic of Korea Policy Briefing.
+      Text reproduced with attribution under the article-specific
+      <a href="https://www.korea.kr/guide/copyRight.do">KOGL Type 1 text-use notice and publisher terms</a>.
+      Photographs, HWPX attachments and other media are not included.</p>
+    </section>
+    {% elif record.vietnam and record.vietnam.original_withheld %}
     <section class="record-section" aria-labelledby="record-text">
       <div class="layer-head"><h2 id="record-text">Source text</h2>
         <span class="evidence evidence--record">Source record</span></div>
@@ -249,7 +281,7 @@
         <div><dt>Source-stated date</dt><dd><time datetime="{{ record.published_date }}">{{ record.published_date }}</time></dd></div>
         <div><dt>Source language</dt><dd>{{ record.language_tag | language_label if record.language_tag else '—' }}</dd></div>
         <div><dt>Processing state</dt><dd>{{ record.state_label }}</dd></div>
-        <div><dt>Translation</dt><dd>{% if record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% elif (record.language_tag or '').startswith('en') %}Not needed: the source publishes in English{% else %}No English title held{% endif %}</dd></div>
+        <div><dt>Translation</dt><dd>{% if record.korea_identity and record.text_english %}Full machine translation, not reviewed by a human{% elif record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% elif (record.language_tag or '').startswith('en') %}Not needed: the source publishes in English{% else %}No English title held{% endif %}</dd></div>
         <div><dt>Desk</dt><dd>{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</dd></div>
       </dl>
       <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>

@@ -79,9 +79,9 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertIn("PublicView", source)
         self.assertTrue((REPO_ROOT / "desks" / "registry.json").is_file())
 
-    def test_china_and_singapore_are_the_collecting_desks(self):
+    def test_china_singapore_and_korea_are_the_collecting_desks(self):
         live = [e for e in load_registry() if e.is_collecting]
-        self.assertEqual(sorted(e.slug for e in live), ["china", "singapore"])
+        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore"])
 
     def test_a_collecting_desk_must_have_an_enabled_source(self):
         """Derived, not declared: the count comes from the desk's manifest."""
@@ -98,10 +98,11 @@ class TestRosterMatchesConfiguration(DeskCase):
                 if not entry.is_collecting:
                     self.assertFalse(entry.has_production_records)
 
-    def test_the_only_desks_in_the_database_are_china_and_singapore(self):
+    def test_the_database_contains_only_declared_collecting_desks(self):
         with self.db() as con:
             desks = [r[0] for r in con.execute("SELECT desk_id FROM desks")]
-        self.assertEqual(sorted(desks), ["china", "singapore"])
+        collecting = sorted(e.slug for e in load_registry() if e.is_collecting)
+        self.assertEqual(sorted(desks), collecting)
 
     def test_every_enabled_source_belongs_to_a_declared_collecting_desk(self):
         """A source enabled under any other desk would be collection this
@@ -110,10 +111,11 @@ class TestRosterMatchesConfiguration(DeskCase):
             rows = con.execute(
                 "SELECT slug, desk_id, is_active FROM sources").fetchall()
         self.assertTrue(rows, "no sources configured")
+        collecting = {e.slug for e in load_registry() if e.is_collecting}
         for slug, desk_id, active in rows:
             with self.subTest(source=slug):
                 if active:
-                    self.assertIn(desk_id, ("china", "singapore"))
+                    self.assertIn(desk_id, collecting)
 
     def test_no_japan_source_exists_or_is_enabled(self):
         with self.db() as con:
@@ -127,7 +129,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         cannot find it. If it ever lands in desks/, collection starts by
         accident."""
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "singapore"})
+        self.assertEqual(discovered, {"china", "korea", "singapore"})
 
     def test_the_us_is_not_a_live_desk(self):
         """
@@ -182,7 +184,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertEqual(sg.manifest_path, "desks/singapore/manifest.json")
         self.assertTrue((MANIFESTS / "singapore" / "manifest.json").exists())
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "singapore"})
+        self.assertEqual(discovered, {"china", "korea", "singapore"})
 
     def test_singapore_shows_no_stale_shadow_language(self):
         """
@@ -316,10 +318,10 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
         html = self.page("desks.html")
         self.assertIn("Indonesia Desk", html)
         self.assertIn("8 declared", html)
-        self.assertIn("2 collecting into the record", html)
+        self.assertIn("3 collecting into the record", html)
         self.assertEqual(
             sorted(x.slug for x in load_registry() if x.is_collecting),
-            ["china", "singapore"])
+            ["china", "korea", "singapore"])
 
 
 class TestJapanDeskIsPlannedNotCoverage(DeskCase):
@@ -580,7 +582,7 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
         self.assertEqual({d.slug for d in load_registry().public_entries},
             {"china", "singapore", "japan", "korea", "philippines", "vietnam", "indonesia", "us-indopacific"})
         self.assertEqual(sorted(d.slug for d in load_registry() if d.is_collecting),
-                         ["china", "singapore"])
+                         ["china", "korea", "singapore"])
 
 
 class TestPendingDeskReferenceBrowser(DeskCase):

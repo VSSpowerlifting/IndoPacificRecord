@@ -81,11 +81,13 @@ class KoreaFileOnlyPagesTests(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", text)
         self.assertNotIn("  issues:", text)
         self.assertNotIn("  repository_dispatch:", text)
+        # The recovery release was for the shadow desk only. Now that Korea is
+        # live, its own guard refuses to run, and the Daily publishes korea.html.
+        self.assertIn('assert kr["public"] is True and kr["status"]=="shadow"', text)
+        self.assertIn('assert kr["manifest"] is None and kr["has_production_records"] is False', text)
         registry=json.loads((ROOT/"desks/registry.json").read_text())
         kr=next(d for d in registry["desks"] if d["slug"]=="korea")
-        self.assertIs(kr["public"],True)
-        self.assertIs(kr["has_production_records"],False)
-        self.assertEqual(kr["status"],"shadow")
+        self.assertEqual(kr["status"],"live")
 
 
 if __name__=="__main__":

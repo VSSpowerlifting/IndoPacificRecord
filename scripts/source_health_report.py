@@ -92,7 +92,7 @@ def _build(conn, run_id=None) -> dict:
             "last_article_date": last_article["d"],
             "days_since_last_article": days_silent,
             "silence_verdict": silence_verdict(days_silent, src),
-            "config_health": registry.get_adapter(slug).healthcheck().status,
+            "config_health": registry.healthcheck(slug).status,
         }
 
         if have_srr:
