@@ -96,6 +96,10 @@ REGISTRY = {
     "indonesia_press_links_release.yml::publish": {
         "class": "full-tree", "locks": (SHARED_LOCK,),
         "guards": ("main_cas", "main_ref_guard")},
+    # Own queue so a shared daily-update pending slot cannot replace it.
+    "indonesia_verified_official_link_production.yml::publish-indonesia-official-links": {
+        "class": "file-only", "locks": ("indonesia-verified-official-link-production",),
+        "guards": _FC + ("main_ref_guard",)},
     "korea_original_text_pages_release.yml::release-only-this-korean-original": {
         "class": "file-only", "locks": ("korea-verified-official-link-production",),
         "guards": ("main_cas", "pages_cas", "main_ref_guard")},
@@ -114,6 +118,13 @@ REGISTRY = {
     "korea_verified_official_link_production.yml::publish-korea-official-links": {
         "class": "file-only", "locks": ("korea-verified-official-link-production",),
         "guards": _FC + ("main_ref_guard",)},
+    # AFP and NSC share one Philippines queue, outside daily-update.
+    "ph_afp_verified_official_link_production.yml::publish-philippines-official-links": {
+        "class": "file-only", "locks": ("philippines-verified-official-link-production",),
+        "guards": _FC + ("main_ref_guard",)},
+    "ph_nsc_verified_official_link_production.yml::publish-philippines-nsc-links": {
+        "class": "file-only", "locks": ("philippines-verified-official-link-production",),
+        "guards": _FC + ("main_ref_guard",)},
     "treasury_verified_official_links_release.yml::production-metadata-page-only": {
         "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC + ("main_ref_guard",)},
     "us_bis_verified_official_links_release.yml::genuine-scheduled-source-only": {
@@ -122,6 +133,10 @@ REGISTRY = {
         "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC},
     "uscc_verified_official_links_release.yml::production-metadata-page-only": {
         "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC + ("main_ref_guard",)},
+    # Inert until owner release; its sibling shadow job pushes only shadow/ state.
+    "vietnam_ministry_shadow.yml::reviewed-release": {
+        "class": "file-only", "locks": (SHARED_LOCK, "vietnam-ministry-shadow"),
+        "guards": ("main_cas", "main_ref_guard", "pages_cas")},
 }
 # Scripts allowed to combine a push with gh-pages. None today.
 SCRIPT_REGISTRY: dict = {}
@@ -271,12 +286,23 @@ def audit_workflow(path):
     triggers = sorted(_top_keys(lines, "on"))
     wf_group = _concurrency(lines, 0, len(lines), 0)
     code_text = [_code(l) for l in lines]
+    jobs = sorted(_top_keys(lines, "jobs").items())
+    in_job = {i for _, (start, end) in jobs for i in range(start, end)}
+    # Workflow-level env/defaults reach every job, so they count against each.
+    shared_mentions_pages = any("gh-pages" in l for i, l in enumerate(code_text)
+                                if i not in in_job)
     file_mentions_pages = any("gh-pages" in l for l in code_text)
-    literal_branches = sorted(set(_LITERAL_BRANCH_RE.findall("\n".join(code_text))))
     writers, problems = [], []
-    for job, (start, end) in sorted(_top_keys(lines, "jobs").items()):
+    for job, (start, end) in jobs:
         job_lines = [_code(l) for l in lines[start:end]]
         job_group = _concurrency(lines, start, end, 4)
+        # A variable refspec is tolerated only in a job that names the
+        # shadow/review branches it may push and cannot see gh-pages: not in
+        # its own text, workflow-level text, or (via needs.*) a sibling job.
+        job_mentions_pages = (
+            shared_mentions_pages or any("gh-pages" in l for l in job_lines)
+            or (file_mentions_pages and any("needs." in l for l in job_lines)))
+        job_literal_branches = _LITERAL_BRANCH_RE.findall("\n".join(job_lines))
         checkout_ref, publish_line, cls, details = None, None, None, {}
         signals = []
         for first, stop, step in _steps(lines, start, end):
@@ -302,7 +328,7 @@ def audit_workflow(path):
                 if target is None:
                     target = checkout_ref or "<trigger>"
                 if "$" in target:
-                    if file_mentions_pages or not literal_branches:
+                    if job_mentions_pages or not job_literal_branches:
                         problems.append({"kind": "UNRESOLVED_PUSH_TARGET",
                                          "where": "%s:%d" % (name, lineno), "job": job})
                     continue

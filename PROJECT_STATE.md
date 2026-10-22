@@ -1060,8 +1060,8 @@ review date, not a qualification threshold. Neither desk is promoted.
 ## 6. Known technical debt
 
 * **gh-pages stale-rollback race — audited, NOT fixed (#346, 2026-10-15).**
-  `scripts/audit_pages_writers.py` inventories 20 Pages writers (10 full-tree,
-  1 overlay, 9 file-only). An unregistered or widened writer fails PR CI and
+  `scripts/audit_pages_writers.py` inventories 24 Pages writers (10 full-tree,
+  1 overlay, 13 file-only). An unregistered or widened writer fails PR CI and
   `daily_update`'s pre-deploy gate (step 6c), never collection: step 4c defers
   the ratchet (`IPR_DEFER_PAGES_WRITER_AUDIT`), proven by
   `tests/test_pages_audit_collection_isolation.py`.

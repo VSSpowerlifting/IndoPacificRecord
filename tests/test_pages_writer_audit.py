@@ -61,10 +61,13 @@ class RepoInventory(unittest.TestCase):
         self.assertEqual(self.report["summary"]["outside_shared_lock"], [
             "china_retirement_release.yml::release",
             "deploy_output_only.yml::deploy",
+            "indonesia_verified_official_link_production.yml::publish-indonesia-official-links",
             "korea_original_text_pages_release.yml::release-only-this-korean-original",
             "korea_reviewed_english_release.yml::owner-reviewed-korea-english-release",
             "korea_standing_original_text_production.yml::publish-future-original-korean-text",
             "korea_verified_official_link_production.yml::publish-korea-official-links",
+            "ph_afp_verified_official_link_production.yml::publish-philippines-official-links",
+            "ph_nsc_verified_official_link_production.yml::publish-philippines-nsc-links",
         ])
 
     def test_known_hazards_are_reported_not_hidden(self):
@@ -175,6 +178,54 @@ class SyntheticWorkflows(unittest.TestCase):
         report = self.run_audit()
         self.assertEqual(report["writers"], [])
         self.assertEqual(report["violations"], [])
+
+    def test_variable_push_is_judged_by_its_own_job(self):
+        # vietnam_ministry_shadow.yml: a shadow-state job beside a Pages writer.
+        self.write("m.yml", """\
+name: Mixed
+on:
+  workflow_dispatch:
+jobs:
+  shadow:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          branch=$(git branch --show-current)
+          case "$branch" in shadow/example-desk) ;; *) exit 1 ;; esac
+          git push origin "HEAD:refs/heads/${branch}"
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - run: git push origin HEAD:gh-pages
+""")
+        self.assertEqual(self.kinds(self.run_audit()), ["UNREGISTERED_WRITER"])
+        # The shadow names must be in the pushing job, not merely in the file.
+        self.write("m.yml", (self.tmp / ".github" / "workflows" / "m.yml").read_text()
+                   .replace('case "$branch" in shadow/example-desk) ;; *) exit 1 ;; esac',
+                            "true")
+                   + "  state:\n    runs-on: ubuntu-latest\n    steps:\n"
+                   + "      - run: git fetch origin shadow/example-desk\n")
+        self.assertIn("UNRESOLVED_PUSH_TARGET", self.kinds(self.run_audit()))
+
+    def test_variable_push_still_sees_workflow_env_and_needs_outputs(self):
+        shadow_job = """\
+  shadow:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          case "$BRANCH" in shadow/example-desk) ;; *) exit 1 ;; esac
+          git push origin "HEAD:refs/heads/${BRANCH}"
+"""
+        self.write("e.yml", "name: Env\non:\n  workflow_dispatch:\nenv:\n"
+                   "  BRANCH: gh-pages\njobs:\n" + shadow_job)
+        self.assertIn("UNRESOLVED_PUSH_TARGET", self.kinds(self.run_audit()))
+        self.write("e.yml", "name: Needs\non:\n  workflow_dispatch:\njobs:\n"
+                   "  pick:\n    runs-on: ubuntu-latest\n    steps:\n"
+                   "      - run: echo branch=gh-pages >> \"$GITHUB_OUTPUT\"\n"
+                   + shadow_job.replace("    steps:\n", "    needs: pick\n    env:\n"
+                                        "      BRANCH: ${{ needs.pick.outputs.branch }}\n"
+                                        "    steps:\n"))
+        self.assertIn("UNRESOLVED_PUSH_TARGET", self.kinds(self.run_audit()))
 
     def test_gh_pages_reader_and_commented_push_are_not_writers(self):
         self.write("r.yml", PEACEIRIS_JOB.split("      - name: Deploy")[0] + """\

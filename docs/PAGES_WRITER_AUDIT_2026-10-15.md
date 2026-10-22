@@ -1,7 +1,8 @@
 # GitHub Pages writer audit and stale-deploy reproduction — 2026-10-15
 
 Issue #346 (audit phase only). Audited at `main` `7763663963`; rebased onto
-`c56d9714d0`, then merged with `d55d8e2b8b` (2026-10-16). **The race is not
+`c56d9714d0`, then merged with `d55d8e2b8b` (2026-10-16) and `35d1850371`
+(2026-10-22). **The race is not
 fixed.** This change adds detection and reproduction only. The one workflow
 change is in `daily_update.yml`: the ratchet is deferred in its pre-collection
 test step and enforced as a gate immediately before its deploy (§6). No Pages
@@ -11,14 +12,14 @@ Deliverables:
 
 - `scripts/audit_pages_writers.py`: a read-only, standard-library auditor with
   a registry ratchet.
-- `tests/test_pages_writer_audit.py`: inventory and ratchet tests, 20 cases.
+- `tests/test_pages_writer_audit.py`: inventory and ratchet tests, 22 cases.
 - `tests/test_pages_stale_deploy_race.py`: hermetic interleaving
   reproductions plus a test-only reference fence, 15 cases.
 - `tests/test_pages_audit_collection_isolation.py`: proves daily collection
   proceeds when the audit fails, while the publication gate and PR CI still
   block, 7 cases.
 
-## 1. Writer inventory (20 jobs across 217 workflow files; auditor output)
+## 1. Writer inventory (24 jobs across 240 workflow files; auditor output)
 
 | Writer (`file::job`) | Class | Concurrency held | Checkout | Freshness before publish |
 |---|---|---|---|---|
@@ -33,15 +34,19 @@ Deliverables:
 | `indonesia_press_links_release::publish` | full-tree | daily-update | main | main CAS |
 | `korea_public_bibliography_release::release` | full-tree | daily-update | main | main CAS |
 | `desks_p4a_render_only_release::release` | overlay (`keep_files`) | daily-update + pages-deploy | main | approved SHA + main CAS |
+| `indonesia_verified_official_link_production` (merged 2026-10-22) | file-only push | **own group** | main | main CAS + Pages CAS |
 | `korea_pages_file_only_release` | file-only push | daily-update | main | main CAS + Pages CAS |
 | `korea_verified_official_link_production` | file-only push | **own group** (deliberate) | main | main CAS + Pages CAS |
 | `korea_original_text_pages_release` (#722, merged during this audit) | file-only push (`korea.html`, `korea-originals/`) | **korea-verified group** | main | main CAS + Pages CAS |
 | `korea_reviewed_english_release` (merged during this audit) | file-only push (`korea.html`, `korea-translations/`, `korea-analysis/`) | **korea-verified group** | main | main CAS + Pages CAS |
 | `korea_standing_original_text_production` (merged during this audit) | file-only push (`korea.html`, `korea-originals/`) | **korea-verified group** | main | main CAS + Pages CAS |
+| `ph_afp_verified_official_link_production` (merged 2026-10-22) | file-only push | **own Philippines group** | main | main CAS + Pages CAS |
+| `ph_nsc_verified_official_link_production` (merged 2026-10-22) | file-only push | **own Philippines group** (shared with AFP) | main | main CAS + Pages CAS |
 | `treasury_verified_official_links_release` | file-only push | daily-update | main | main CAS + Pages CAS |
 | `uscc_verified_official_links_release` | file-only push | daily-update | main | main CAS + Pages CAS |
 | `us_bis_verified_official_links_release` | file-only push | daily-update | main | main CAS + Pages CAS |
 | `us_pacom_pages_file_only_release` | file-only push | daily-update | main | main CAS + Pages CAS |
+| `vietnam_ministry_shadow::reviewed-release` (merged 2026-10-22; inert until `VIETNAM_MPS_RELEASE_ENABLED`) | file-only push | daily-update + vietnam-ministry-shadow | main | main CAS + Pages CAS |
 
 Every full-tree writer replaces all of gh-pages with its own `output/`. It can
 therefore overwrite any other desk's page. Overlay and file-only writers
@@ -52,7 +57,11 @@ The scan also covered:
 - **Readers, not writers:** `us_bis_deployed_metadata_readback` and
   `us_desk_public_distribution_preflight`. Both check out `gh-pages` read-only.
 - **Non-Pages pushes, resolved to literal shadow/review branches:** for
-  example the `vietnam_ministry_shadow` slug pairs and `STATE_BRANCH` values.
+  example the `vietnam_ministry_shadow` `shadow` job's case-validated
+  branches and `STATE_BRANCH` values. A variable refspec is accepted only when
+  its own job names those branches and cannot see gh-pages, whether in its own
+  text, workflow-level text, or a sibling job it reads through `needs.*`. A
+  Pages writer in an unrelated sibling job does not taint it.
 - **Scripts:** none pushes to gh-pages.
 - **Writers outside the repository, undetectable from workflow text:** owner-local
   and web/API pushes. They are visible only as git evidence (§3).
