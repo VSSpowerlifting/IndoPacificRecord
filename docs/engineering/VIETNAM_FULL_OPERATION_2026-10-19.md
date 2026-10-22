@@ -1,5 +1,10 @@
 # Vietnam desk — recovery and exact release handoff, 19 October 2026
 
+**Follow-up:** #827 has merged. The dated observations below remain historical.
+Current performed private mirror/ZIP custody, owner-selected local encrypted
+backup/restore, and the still-held coordinated writer/provenance cutover are in
+[the private-first receipt](VIETNAM_PRIVATE_FIRST_CUTOVER_2026-10-19.md).
+
 **Status: built further; not operational or maintained end to end.** This is
 one integration candidate after merged #824, based on current main
 `ce94bd2293130764210e5fe228b1a9072c3d4101`. No production admission, deployment,
@@ -246,3 +251,126 @@ The graphify code refresh completed (22,471 nodes), reporting 287 files with no
 extracted nodes and omitting its oversized HTML view; that map is not source
 or claim evidence. Required PR checks, actual scheduled recovery, private
 cutover/restore, exact human MPS release and two MOIT permissions remain distinct.
+
+## Shared Daily integration (follow-up candidate, 19 October)
+
+The ministry captures above now have a path into the shared Daily, under
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`. Nothing is
+operational: no production run, admission, model call, schedule or publication
+was performed, and the registry keeps Vietnam in shadow.
+
+**Reused, not rebuilt.** The existing collectors, private state branches,
+`vn.prepare`/`vn.authenticate` source and attempt checks, `ScreeningProfile`,
+`Analyzer.analyze_record()` → `analyze_desk()` (never the China `analyze()` path),
+the `articles`/`sources` tables and `site/render.py` record pages. There is no
+second database, analyzer, sync system or Vietnam site.
+
+**Added.**
+
+- `core/vietnam_corpus_bridge.py` is the thin intake. It reads committed
+  captures at an authenticated state commit, with no recrawl. Each version gets
+  a stable identity, and duplicates and concurrent commits resolve to a single
+  row. A material change is held, never overwritten. Bad dates, missing bodies,
+  unsupported versions and unauthenticated sources are refused. Columns are
+  projected per permission. The private ledger lives outside the repository.
+- **Reconciliation (21 October):** Vietnam provenance uses migration
+  `0017`, after shared Daily `0015` and Korea corpus `0016`. Its table
+  `vietnam_article_provenance` keeps source identity, publisher date, version
+  hash, rights decision, QA and attribution. The `articles` foreign key
+  cascades; no original text is stored by this migration. The tracked database
+  was derived from main `647a3246d5`, with `0017` applied first on a disposable
+  copy. All 21 pre-existing tables retain identical rows and schema; foreign
+  keys and integrity pass, and migration replay is a no-op. Only the empty
+  provenance table and its migration ledger row are new. The stale #834
+  database is not used. Korea record rendering and shared summary recovery
+  from main are retained alongside Vietnam's gated rendering.
+  Focused offline run: 1,137 passed, eight skipped, one failure out of 1,146.
+  The NSC `test_wal_mode_source_read_leaves_no_sidecars` leaves a scratch SHM
+  file on this macOS/Python 3.9 environment; the identical failure reproduces
+  in its 21-test module on exact main and this branch. Philippines code and
+  configuration are unchanged. Separately, all 129 shared analyzer/screening/
+  U.S. tests pass. Current-corpus render parity passes across 1,300 files.
+- `processing/screening.py` adds three per-family `VIETNAM_*` profiles and a
+  refusing desk-level profile. Their event types are distinct: meeting,
+  announcement, financing, commencement and completion.
+- Terminology lives in `analysis/vietnam_terminology.json`, version
+  `vn-terms-2026-10-19.1`.
+- `core/vietnam_daily_qa.py` holds the deterministic rubric
+  `vn-qa-2026-10-19.1`, a bounded model second pass, failure codes, retryable
+  holds that escalate after three attempts, and a Vietnamese evaluation set.
+- `core/vietnam_source_use.py` holds the standing policy
+  `vn-source-use-2026-10-19.1`. It covers seven separate permissions with their
+  dependencies, owner decisions sealed with HMAC, and item exceptions.
+  Attribution is a condition, not a basis.
+- `scripts/run_vietnam_daily_bridge.py` is the Daily command. It runs on an
+  atomic sibling copy and requires `--release` for the canonical database.
+  Without a sealed decision it builds no model client. Ledgers are staged and
+  published only after the copy replaces the database, so a discarded run
+  cannot settle or escalate a record that never reached the corpus.
+- After the #831 cutover, the Ministry of Public Security runs with
+  `--private-custody PUBLIC_FROZEN_TIP --private-state-repo <private clone>`.
+  The bridge reuses `vn.prepare(private=True)` and `vn.authenticate_private`:
+  it checks the exact archive commit, frozen public writer, private attempt
+  receipts, workflow identity and custody. It reads with a separate read-only
+  `VIETNAM_PRIVATE_PROVENANCE_TOKEN`. Records admitted publicly before the
+  cutover resolve as duplicates and keep their public commit. The run reads
+  originals from a local private clone, so it must execute on the private
+  runner (private #20's workflow), never in a public job; the corpus, ledger
+  and report receive only the rights-permitted article fields and provenance.
+  Returning that database post-image to the public release is the one open
+  placement step, following #831's private-projection handoff. MOIT has no
+  private authentication path yet: `authenticate_private` is MPS-only, and the
+  cutover retires all three public writers, so new MOIT captures have no
+  authenticated bridge input until #831's private attestation covers them
+  (both MOIT families are rights-held regardless). m0017 stores
+  the private commit SHA, not the repository holding it; the record page
+  labels it "private evidence commit". #831's metadata-link admission stays a
+  supplementary source index for rights-restricted items, not a second writer
+  of articles.
+
+**Simulated rehearsal.** `scripts/rehearse_vietnam_daily.py` replays fixture
+repositories through the bridge in 16 stages:
+
+1. Rights denied.
+2. Unpromoted desk.
+3. Backfill, then a rerun that adds zero duplicates.
+4. Rights projection.
+5. Source mismatch, missing body and wrong date.
+6. Model failure, retry and escalation.
+7. Retry after a transient failure.
+8. Incomplete translation.
+9. Material change.
+10. Concurrent commit.
+11. Unauthenticated source.
+12. Private MPS readback, then an identical replay.
+13. A pre-cutover public record, not duplicated.
+14. Invalid private provenance, held before any model call.
+15. Private originals that stay out of the corpus, ledger and report.
+16. The record page, with its disclosures.
+
+The receipt is labelled SIMULATED and requires a clean tree at the cited head.
+It is not a live or unattended run.
+
+**Open gaps.**
+
+- Dylan Tanzi's October readability feedback is not in the repository. PR #821
+  concerns Japan Brief prose, not Vietnamese terminology. The terminology guide
+  records the gap; no model was trained or tuned.
+- No pass over the 14 real originals has run through the bridge.
+- On main, a desk not in `_SOURCE_PROFILES` still receives the China profile.
+  Vietnam families are registered explicitly, but the fail-closed target from
+  the shared-architecture ruling is not yet general.
+
+**Owner decisions, one per item:**
+
+1. Each family's source-use decision. Generate the exact template with
+   `vietnam_source_use.owner_decision_request(family)`. MPS reuse and
+   model-transmission terms are not established. Both MOIT families need
+   written consent and a robots review.
+2. Promote the Vietnam registry entry from shadow.
+3. Add the bridge command to an existing scheduled workflow, with
+   `VIETNAM_SOURCE_USE_REVIEW_KEY` and model credentials. The MPS
+   `--private-custody` step goes in the private runner, with
+   `VIETNAM_PRIVATE_PROVENANCE_TOKEN`; only the database post-image returns.
+4. Merge #831 and private #20 first, then this PR, which already contains
+   #831.

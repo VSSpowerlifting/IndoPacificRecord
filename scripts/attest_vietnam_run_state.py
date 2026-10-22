@@ -67,11 +67,14 @@ def sha_blob(data):
 
 class GithubRead:
     """Fixed GitHub API domain, no redirect, auth token never logged."""
-    def __init__(self, token=None):
+    def __init__(self, token=None, repository=REPO):
+        require(repository in (REPO, "VSSpowerlifting/ipr-source-evidence-private"),
+                "repository not allowlisted")
         self.token = token
+        self.prefix = "/repos/" + repository
 
     def get(self, path):
-        require(isinstance(path, str) and path.startswith(PREFIX + "/"),
+        require(isinstance(path, str) and path.startswith(self.prefix + "/"),
                 "non-repository API endpoint")
         require(".." not in path and "//" not in path, "malformed API path")
         url = "https://api.github.com" + path
@@ -95,8 +98,10 @@ class GithubRead:
             raise AttestationHold("GitHub API unavailable, denied or malformed") from None
 
 
-def encoded_content(api, path, state_sha):
-    obj = api.get(PREFIX + "/contents/" + path + "?ref=" + state_sha)
+def encoded_content(api, path, state_sha, *, prefix=PREFIX):
+    require(prefix in (PREFIX, "/repos/VSSpowerlifting/ipr-source-evidence-private"),
+            "repository not allowlisted")
+    obj = api.get(prefix + "/contents/" + path + "?ref=" + state_sha)
     require(isinstance(obj, dict) and obj.get("encoding") == "base64"
             and isinstance(obj.get("content"), str) and
             isinstance(obj.get("sha"), str),

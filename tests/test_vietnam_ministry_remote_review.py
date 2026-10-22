@@ -172,6 +172,47 @@ class RemoteReview(unittest.TestCase):
                                             "invalid source-surface anomaly evidence"):
                     self.packet(ENERGY, "invalid-surface-%s" % index, commit)
 
+    def test_private_mps_only_collection_never_touches_moit_state(self):
+        successful = []
+        calls = []
+
+        def record(state, slug, *args, **kwargs):
+            calls.append(slug)
+            return self.collector(state, slug, *args, **kwargs)
+
+        remote.run_batch(
+            self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+            0, 2, "mps-only", COMMIT, record,
+            successful_sources=successful, private=True, sources=(MPS,))
+        self.assertEqual(calls, [MPS])
+        self.assertEqual(successful, [MPS])
+        for slug in (ENERGY, INDUSTRY):
+            self.assertFalse((self.repos / slug / "state").exists())
+        self.assertEqual(review.review(self.repos / MPS / "state", MPS)["failures"], 0)
+
+    def test_mps_only_scope_refused_outside_private_custody(self):
+        with self.assertRaisesRegex(ValueError, "unapproved Vietnam source scope"):
+            remote.run_batch(
+                self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                0, 2, "mps-only", COMMIT, self.collector, sources=(MPS,))
+        self.assertFalse((self.repos / MPS / "state").exists())
+
+    def test_private_mps_only_failure_never_attempts_moit(self):
+        calls = []
+
+        def fail(state, slug, *args, **kwargs):
+            calls.append(slug)
+            return {"health": "fail", "result": "source_unavailable"}
+
+        with self.assertRaisesRegex(ValueError, "batch has failed sources"):
+            remote.run_batch(
+                self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                0, 2, "mps-only", COMMIT, fail,
+                private=True, sources=(MPS,))
+        self.assertEqual(calls, [MPS])
+        for slug in (ENERGY, INDUSTRY):
+            self.assertFalse((self.repos / slug / "state").exists())
+
     def test_batch_failure_preserves_failure_and_attempts_independent_sources(self):
         calls = []
         def failure(state, slug, *args, **kwargs):
@@ -362,11 +403,11 @@ class RemoteReview(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "artifact changed"):
             review.check_signoff(out, out / "signoff_template.json")
 
-    def test_workflow_is_daily_main_only_and_success_only_publication(self):
+    def test_public_original_writer_is_retired_and_historical_path_is_preserved(self):
         text = (Path(remote.REPO) / ".github/workflows/vietnam_ministry_shadow.yml").read_text()
         self.assertIn("workflow_dispatch:", text)
-        self.assertIn("schedule:", text)
-        self.assertIn("cron: '17 18 * * *'", text)
+        self.assertNotIn("  schedule:", text)
+        self.assertIn("  shadow:\n    if: false", text)
         self.assertIn("target_date:", text)
         self.assertIn("github.ref == 'refs/heads/main'", text)
         self.assertIn("cancel-in-progress: false", text)

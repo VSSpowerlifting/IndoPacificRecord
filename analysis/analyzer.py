@@ -244,6 +244,14 @@ class Analyzer:
         "input_schema": {**RELEVANCE_SCHEMA, "additionalProperties": False},
     }
 
+    # A desk that declares its own source language (Vietnam) is not scored as
+    # "Chinese military"; China and Singapore keep the tool above.
+    _DESK_RELEVANCE_TOOL: dict = {
+        "name": "emit_relevance",
+        "description": "Return the relevance score for the desk's stated focus and a concise reason.",
+        "input_schema": {**RELEVANCE_SCHEMA, "additionalProperties": False},
+    }
+
     # Recover malformed raw-JSON summaries through the existing forced-tool
     # API, which escapes quotation marks rather than returning raw JSON.
     _SUMMARY_TOOL: dict = {
@@ -440,8 +448,10 @@ class Analyzer:
                       [{"type": "text", "text": desk_system,
                         "cache_control": {"type": "ephemeral"}}])
         if RELEVANCE_TOOL_OUTPUT_ENABLED:
-            tool = self._RELEVANCE_TOOL
-            if profile is not None and getattr(profile, "desk_id", None) == "philippines":
+            tool = (self._DESK_RELEVANCE_TOOL
+                    if getattr(profile, "source_language", None)
+                    else self._RELEVANCE_TOOL)
+            if getattr(profile, "desk_id", None) == "philippines":
                 tool = {**tool, "description": "Return a Philippine defense and national-security relevance score and source-grounded reason."}
             data = self._call_tool(
                 messages, tool, max_tokens=500,
@@ -488,13 +498,19 @@ class Analyzer:
         Streams: TRANSLATION_MAX_TOKENS is far above the ~16K non-streaming
         threshold, and this is the only call that renders a full article body.
         """
-        messages = build_translation_messages(title, body)
+        return self._translate_with(build_translation_messages(title, body))
+
+    def _translate_with(
+        self, messages: list[dict], system: Optional[list] = None,
+    ) -> tuple[str, str]:
+        """The shared translation call; `system` None is the China default."""
         data = self._call_tool(
             messages,
             self._TRANSLATION_TOOL,
             max_tokens=TRANSLATION_MAX_TOKENS,
             temperature=0.3,
             task=TASK_TRANSLATION,
+            system=system,
         )
         # A forced tool call guarantees a structured *container*, not that each
         # value respects the advertised string schema. str(None) -> "None"
@@ -710,6 +726,11 @@ class Analyzer:
         an English title. The return keys and failure semantics are otherwise
         those of `analyze()`: None when relevance fails, a partial result
         without a summary when the analysis call fails, FatalAPIError raised.
+
+        A profile with `build_translation_messages` (Vietnam) also gets a full
+        translation through the shared translation tool and its event type
+        from `profile.categories`; a failed translation or an event type
+        outside the vocabulary leaves only the partial result.
         """
         try:
             score, reasoning = self.score_relevance(title, body, profile=profile)
@@ -730,28 +751,55 @@ class Analyzer:
             "prompt_version":       "%s+%s" % (profile.prompt_version,
                                                profile.analysis_prompt_version),
         }
+        translator = getattr(profile, "build_translation_messages", None)
+        if translator is not None:
+            partial["requires_translation"] = True
+            partial["prompt_version"] += "+%s" % profile.translation_prompt_version
         if not partial["passed_relevance"]:
             return partial
 
         try:
-            reading = self._desk_summary_and_flag(title, body, profile)
-            summary, flagged, reason = reading[:3]
-            categories = reading[3] if profile.categories else []
+            if profile.desk_id == "vietnam":
+                fields = self._desk_analysis_fields(title, body, profile)
+            else:
+                reading = self._desk_summary_and_flag(title, body, profile)
+                fields = {
+                    "summary": reading[0],
+                    "flag": reading[1],
+                    "flag_reason": reading[2],
+                    "categories": reading[3] if profile.categories else [],
+                    "facts": reading[4] if profile.categories else None,
+                    "flag_evidence": reading[5] if profile.categories else None,
+                }
         except FatalAPIError:
             raise
         except AnalysisError as exc:
             logger.error("Desk analysis failed: %s", exc)
             return partial
 
+        title_en = text_en = None
+        if translator is not None:
+            system = [{"type": "text", "text": profile.translation_system_prompt,
+                       "cache_control": {"type": "ephemeral"}}]
+            try:
+                title_en, text_en = self._translate_with(
+                    translator(title, body), system=system)
+            except FatalAPIError:
+                raise
+            except AnalysisError as exc:
+                logger.error("Desk translation failed: %s", exc)
+                return partial
+
         return {
             **partial,
-            **({"facts": reading[4], "flag_evidence": reading[5]} if profile.categories else {}),
-            "title_english":          None,
-            "text_english":           None,
-            "summary_english":        summary,
-            "categories":             categories,
-            "is_significant":         flagged,
-            "significance_reasoning": reason,
+            **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
+               if profile.desk_id == "philippines" else {}),
+            "title_english":          title_en,
+            "text_english":           text_en,
+            "summary_english":        fields["summary"],
+            "categories":             fields["categories"],
+            "is_significant":         fields["flag"],
+            "significance_reasoning": fields["flag_reason"],
         }
 
     def _desk_summary_and_flag(
@@ -812,3 +860,32 @@ class Analyzer:
             raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
         result = (summary, flagged, (reason if flagged else None))
         return result + (categories, data.get("facts"), data.get("flag_evidence")) if profile.categories else result
+
+    def _desk_analysis_fields(self, title: str, body: str, profile) -> dict:
+        system = [{"type": "text", "text": profile.analysis_system_prompt,
+                   "cache_control": {"type": "ephemeral"}}]
+        raw = self._call(profile.build_analysis_messages(title, body),
+                         max_tokens=1000, temperature=0.3, system=system,
+                         task=TASK_SUMMARY)
+        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        summary = data.get("summary") if isinstance(data, dict) else None
+        flagged = data.get("flag") if isinstance(data, dict) else None
+        reason = data.get("flag_reason") if isinstance(data, dict) else None
+        # A paid response that does not carry a usable summary and an explicit
+        # flag is a failed call: nothing is written, and the record retries.
+        if (not isinstance(summary, str) or not summary.strip()
+                or not isinstance(flagged, bool)
+                or (flagged and (not isinstance(reason, str) or not reason.strip()))):
+            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
+        categories = []
+        vocabulary = getattr(profile, "categories", ())
+        if vocabulary:
+            event_type = data.get("event_type")
+            if not isinstance(event_type, str) or event_type not in vocabulary:
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Desk analysis event_type outside the desk vocabulary")
+            categories = [event_type]
+        return {"summary": summary, "flag": flagged,
+                "flag_reason": reason if flagged else None,
+                "categories": categories}

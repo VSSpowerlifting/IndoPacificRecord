@@ -33,12 +33,16 @@ A `ScreeningProfile` says, per desk, how each stage judges a record:
     screening"). Singapore was held on this ground from 2026-09-29 until its
     analysis path existed (docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md §6).
 
+  * `build_translation_messages` — optional Vietnam-specific translation.
+  * `categories` — a desk's own event or topic vocabulary.
+
 Unregistered desks are held out of Daily and cannot dispatch model calls.
+Vietnam ministry families use explicit source profiles.
 """
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from analysis.korea_prompts import (
     RELEVANCE_VERSION as KOREA_RELEVANCE_VERSION,
@@ -47,6 +51,7 @@ from analysis.korea_prompts import (
     analysis_messages as build_korea_analysis_messages,
     system_prompt as build_korea_system_prompt,
 )
+from core.collection.vietnam_sources import SOURCES as VIETNAM_SOURCES
 
 from analysis.prompts import (
     PROMPT_VERSION,
@@ -81,7 +86,12 @@ class ScreeningProfile:
     build_analysis_messages: Optional[Callable[[str, str], List[dict]]] = None
     build_analysis_system_prompt: Optional[Callable[[str], str]] = None
     analysis_prompt_version: Optional[str] = None
-    categories: tuple = ()
+    build_translation_messages: Optional[Callable[[str, str], List[dict]]] = None
+    build_translation_system_prompt: Optional[Callable[[str], str]] = None
+    translation_prompt_version: Optional[str] = None
+    source_language: Optional[str] = None
+    source_family: Optional[str] = None
+    categories: Tuple[str, ...] = ()
 
     @property
     def system_prompt(self) -> Optional[str]:
@@ -94,6 +104,12 @@ class ScreeningProfile:
         if self.build_analysis_system_prompt is None:
             return None
         return self.build_analysis_system_prompt(_declared_scope(self.desk_id))
+
+    @property
+    def translation_system_prompt(self) -> Optional[str]:
+        if self.build_translation_system_prompt is None:
+            return None
+        return self.build_translation_system_prompt(_declared_scope(self.desk_id))
 
     @property
     def translates(self) -> bool:
@@ -120,6 +136,36 @@ SINGAPORE_PROFILE = ScreeningProfile(
     build_analysis_system_prompt=build_singapore_analysis_system_prompt,
     analysis_prompt_version=SINGAPORE_ANALYSIS_PROMPT_VERSION,
 )
+
+
+def _vietnam_profile(family: Optional[str]) -> ScreeningProfile:
+    from analysis import vietnam_prompts as vn
+    return ScreeningProfile(
+        desk_id="vietnam",
+        keyword_prefilter=False,
+        # Vietnam records are processed by core.vietnam_corpus_bridge, which
+        # applies the source-use gate before any model call. The shared daily
+        # queue never sends them to a model.
+        daily_queue=False,
+        build_messages=vn.relevance_builder(family),
+        prompt_version=vn.prompt_version("relevance", family),
+        build_system_prompt=vn.relevance_system_builder(family),
+        build_analysis_messages=vn.analysis_builder(family),
+        build_analysis_system_prompt=vn.analysis_system_builder(family),
+        analysis_prompt_version=vn.prompt_version("analysis", family),
+        build_translation_messages=vn.translation_builder(family),
+        build_translation_system_prompt=vn.translation_system_builder(family),
+        translation_prompt_version=vn.prompt_version("translation", family),
+        source_language="vi",
+        source_family=family,
+        categories=vn.EVENT_TYPES,
+    )
+
+
+VIETNAM_PROFILE = _vietnam_profile(None)
+VIETNAM_FAMILY_PROFILES: Dict[str, ScreeningProfile] = {
+    slug: _vietnam_profile(slug) for slug in sorted(VIETNAM_SOURCES)
+}
 
 # Installed but kept out of paid Daily until source admission and publication
 # QA are complete. Model processing can be verified offline and on scratch DBs.
@@ -163,16 +209,24 @@ PHILIPPINES_PROFILE = ScreeningProfile(
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
+    # Desk-level Vietnam profile: no family, so its builders refuse. Records
+    # reach the Vietnam bridge by source family, never the shared daily queue.
     "korea": KOREA_PROFILE,
     "philippines": PHILIPPINES_PROFILE,
 }
 
+# Source-level profiles for sources without a desk manifest.
+_SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
+
 # A non-China desk in the daily queue without its own analysis would have its
 # passes translated "from Chinese" and tagged with the PLA taxonomy.
-for _p in _PROFILES.values():
+for _p in list(_PROFILES.values()) + list(_SOURCE_PROFILES.values()):
     if _p.daily_queue and _p is not CHINA_PROFILE and _p.translates:
         raise AssertionError(
             "%s is in the daily queue without its own analysis" % _p.desk_id)
+    if _p is not CHINA_PROFILE and _p.translates:
+        raise AssertionError(
+            "%s would take the China translation path" % _p.desk_id)
 
 
 def profile_for_desk(desk_id: Optional[str]) -> ScreeningProfile:
@@ -192,10 +246,14 @@ def desk_for_source(source_slug: Optional[str]) -> Optional[str]:
     """The desk a source belongs to, from desks/*/manifest.json."""
     if not source_slug:
         return None
+    if source_slug in _SOURCE_PROFILES:
+        return _SOURCE_PROFILES[source_slug].desk_id
     return _desk_by_source().get(source_slug)
 
 
 def profile_for_source(source_slug: Optional[str]) -> ScreeningProfile:
+    if source_slug in _SOURCE_PROFILES:
+        return _SOURCE_PROFILES[source_slug]
     if source_slug in ("ph_afp_articles", "ph_nsc_official_statements"):
         return PHILIPPINES_PROFILE
     return profile_for_desk(desk_for_source(source_slug))

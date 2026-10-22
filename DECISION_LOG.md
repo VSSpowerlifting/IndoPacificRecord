@@ -121,6 +121,28 @@ production write authority, model spending permission or owner approval of a
 new exact-scope public activation. Detailed default and flow:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+## 2026-10-19 — Engineering rule (proposed in the Vietnam Daily PR; not an owner ruling): Vietnam joins the shared Daily only through sealed per-family source use
+
+Applying the shared-Daily direction above to Vietnam:
+
+- The ministry captures enter the common corpus through
+  `core/vietnam_corpus_bridge.py`, using explicit `VIETNAM_*` family profiles
+  on the shared analyzer. There is no Vietnam-specific database, analyzer or
+  site.
+- A record reaches a model only when its family's owner-sealed decision
+  (`core/vietnam_source_use.py`) grants both external model transmission and
+  public IPR analysis, and the registry has promoted the desk.
+- Each public column is projected from its own permission: original title,
+  original text, full translation, excerpt and analysis.
+- An attribution line or site footer is a condition of use, never a rights
+  basis.
+- The standing policy holds every permission for MPS and both MOIT families.
+  Engineering prepares `owner_decision_request(family)` and never fills in or
+  signs a decision.
+
+**Authority limit:** this ruling grants no rights. It also authorizes no model
+spend, schedule, promotion, merge or publication.
+
 ## 2026-10-19 — Owner direction: converge all desks on one logical Daily
 
 The owner requested that the Philippines Desk and other IPR country desks use
@@ -154,6 +176,22 @@ workflows, or bypass signed human editorial decisions. Existing AFP link-only
 ruling, unresolved NSC policy/anomaly and all historical source-specific holds
 remain unchanged. Implementation is governed by
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md` and the real evidence/publishing gates.
+
+## 2026-10-19 — Owner: Vietnam local encrypted backup and isolated restore
+
+Benjamin Yang, Founder and Director of Research and Editorial, Indo-Pacific
+Record, selected himself as custodian and authorized the existing-home private
+backup and separate restore-validation roots for the three complete Vietnam
+histories, original evidence and failed-attempt ZIPs. Permissions must restrict
+access to his account; storage must be encrypted and hashes, history/integrity
+and an actual isolated restore verified. Do not delete/modify originals, put
+backups in public Git/cloud/Actions artifacts, or expose encryption credentials.
+The existing FileVault-encrypted Data volume supplies the authorized storage
+encryption; no new credential is inferred. This is local same-device resilience,
+not a separate-device backup. Production cutover remains held until these checks
+actually succeed and the separately reserved activation actions are released.
+This storage authorization grants no original/public/AI reuse, collection
+activation, public-writer disabling, merge, credential provisioning or publication.
 
 ## 2026-10-18 — Owner: standing AFP verified official-link metadata
 

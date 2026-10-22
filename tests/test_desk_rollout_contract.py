@@ -550,23 +550,24 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
             ).fetchone()[0], 0)
 
     def test_countries_have_honest_empty_public_corpus(self):
-        # Admitted AFP and NSC official-link metadata is not corpus coverage.
-        # The public page must list the exact authenticated identities while
-        # reporting no publisher-original article corpus.
+        # Admitted AFP and NSC link metadata are not general corpus coverage.
+        # The renderer publishes both independently authorized families, so
+        # the page must list exactly those identities (not just AFP).
         with self.db() as con:
-            admitted_ph_links = {row[0] for row in con.execute(
+            philippines_links = {row[0] for row in con.execute(
                 "SELECT source_identity FROM regional_official_source_links "
-                "WHERE source_family IN ('ph_afp_articles', 'ph_nsc_official_statements')")}
+                "WHERE desk = 'philippines' AND source_family IN (?, ?)",
+                ("ph_afp_articles", "ph_nsc_official_statements"))}
         for name in ("philippines", "vietnam"):
             with self.subTest(desk=name):
                 page = self.page(name + ".html")
                 if name == "vietnam":
                     self.assertIn("IPR research published — official originals linked", page)
-                elif admitted_ph_links:
+                elif philippines_links:
                     self.assertIn("Verified official-source links admitted", page)
                     self.assertEqual(set(re.findall(
                         r'data-regional-official-source-id="([^"]+)"', page)),
-                        admitted_ph_links)
+                        philippines_links)
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
                 self.assertIn("Corpus records</dt><dd>Not admitted", page)

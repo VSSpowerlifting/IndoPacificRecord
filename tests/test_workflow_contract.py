@@ -288,5 +288,37 @@ class TestPreservedSemantics(unittest.TestCase):
             )
 
 
+class TestVietnamHandoffStep(unittest.TestCase):
+    """The private Vietnam handoff is admitted before the pipeline renders, off
+    by default, and a hold never fails the shared Daily."""
+
+    def setUp(self):
+        self.text = workflow_text()
+        self.names = step_names(self.text)
+        self.body = dict(step_blocks(self.text))["Admit Vietnam Daily handoff"]
+
+    def test_runs_after_gates_and_before_pipeline(self):
+        step = index_of(self.names, "Admit Vietnam Daily handoff")
+        self.assertLess(index_of(self.names, "Verify database schema"), step)
+        self.assertLess(index_of(self.names, "Reconciliation contract"), step)
+        self.assertLess(step, index_of(self.names, "Run pipeline"))
+
+    def test_owner_switch_and_no_failure_propagation(self):
+        self.assertIn("vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'", self.body)
+        self.assertIn("steps.timecheck.outputs.should_run == 'true'", self.body)
+        self.assertIn("continue-on-error: true", self.body)
+        self.assertIn("|| status=$?", self.body)
+
+    def test_only_the_handoff_secrets_reach_the_step(self):
+        secrets = set(re.findall(r"secrets\.([A-Z_]+)", self.body))
+        self.assertEqual(secrets, {"VIETNAM_PRIVATE_BRIDGE_KEY",
+                                   "VIETNAM_SOURCE_USE_REVIEW_KEY",
+                                   "VIETNAM_PRIVATE_PROVENANCE_TOKEN"})
+        self.assertNotIn("ANTHROPIC_API_KEY", self.body)
+        self.assertIn("python -m core.vietnam_daily_handoff --database pla_watch.db",
+                      self.body)
+        self.assertNotRegex(self.body, r"git (add|commit|push)")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

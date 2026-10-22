@@ -470,6 +470,34 @@ def assert_snapshot(corpus, snapshot: dict) -> None:
 
 # ── Data (read-only, from a scratch copy) ─────────────────────────────────────
 
+def vietnam_publication(con) -> dict:
+    """Vietnam Desk provenance by article id; empty when none is held.
+
+    The rows come from core.vietnam_corpus_bridge, which writes them only under
+    a sealed source-use decision and a promoted registry entry. The renderer
+    re-checks the registry: Vietnam records under a desk the registry still
+    declares shadow (or without production records) refuse the build rather
+    than publish under a desk page that says nothing is admitted.
+    """
+    if con.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                   "AND name='vietnam_article_provenance'").fetchone() is None:
+        return {}
+    rows = con.execute(
+        "SELECT p.*, a.text_english FROM vietnam_article_provenance p "
+        "  JOIN articles a ON a.id = p.article_id ORDER BY p.article_id").fetchall()
+    if not rows:
+        return {}
+    entry = load_registry().get("vietnam")
+    if entry is None or not (entry.is_collecting and entry.has_production_records):
+        raise ValueError("Vietnam records require a live registry entry with production records")
+    out = {}
+    for row in rows:
+        row["permissions"] = json.loads(row.pop("permissions_json"))
+        row["qa"] = json.loads(row.pop("qa_json"))
+        out[row["article_id"]] = row
+    return out
+
+
 def load_corpus(db_path: Path) -> dict:
     """Everything the prototype renders. One pass, read-only, no mutation."""
     with _read_only(str(db_path)) as con:
@@ -599,6 +627,7 @@ def load_corpus(db_path: Path) -> dict:
             " ORDER BY a.published_date DESC, a.id DESC").fetchall()
 
         title_receipts = receipts(con, metadata=True)
+        vietnam = vietnam_publication(con)
         desk_by_source = {s["slug"]: s.get("desk_id") for s in sources}
         for rec in corpus + recent:
             rec["desk_id"] = desk_by_source.get(rec["source_slug"])
@@ -628,6 +657,9 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
+        if rec["id"] in vietnam:
+            # Vietnam Desk rows only; every other record dict is unchanged.
+            rec["vietnam"] = vietnam[rec["id"]]
         rec["korea_identity"] = korea_publishable.get(rec["id"])
         if rec["korea_identity"]:
             rec["korea_news_id"] = rec["korea_identity"].split(":", 1)[1]
