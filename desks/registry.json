@@ -271,9 +271,9 @@
       "route": "vietnam.html",
       "scope": "Bounded research families: the Government News English defense tag, Public Security Vietnamese foreign-affairs RSS, and Industry and Trade Vietnamese energy and foundational-industry listings. The English National Defence Journal is a separate disabled military-journal research candidate, not an operating ministry source. The Government News family is a tag that editors apply, not a complete defense category. No comprehensive ministry archive or formal government-document collection.",
       "status": "live",
-      "status_explanation": "MPS Foreign Affairs is the Vietnam Desk's initial live article-analysis family. The authenticated private MPS collector feeds the shared Daily system; qualifying source-grounded English factual explanations are released automatically after the owner-approved source-use, provenance, AI quality and spend gates. Original Vietnamese titles/bodies, complete translations and images are not published. Three verified MPS official-link references remain available independently. MOIT Energy/Foundational Industry stay held for separate access and source-use review; Government News, MOD and National Defence Journal are not operating article inputs. Coverage is intentionally selective; the public corpus count reflects actual admitted articles.",
+      "status_explanation": "MPS Foreign Affairs is the Vietnam Desk's only live article-analysis family. The authenticated private MPS collector feeds the shared Daily system; qualifying source-grounded English factual explanations are released automatically after the owner-approved source-use, provenance, AI quality and spend gates. Original Vietnamese titles/bodies, complete translations and images are not published. Three verified MPS official-link references remain available independently. MOIT Energy/Foundational Industry stay held for separate access and source-use review; Government News, MOD and National Defence Journal are not operating article inputs. Coverage is intentionally selective; the public corpus count reflects actual admitted articles.",
       "public": true,
-      "manifest": null,
+      "manifest": "desks/vietnam/manifest.json",
       "has_production_records": true,
       "research": {
         "source_families": [
