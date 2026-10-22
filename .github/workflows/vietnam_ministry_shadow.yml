@@ -283,6 +283,7 @@ jobs:
             --site-dir output --require-desk vietnam
       - name: Commit exact DB and generated page with optimistic concurrency
         env:
+          GH_TOKEN: ${{ github.token }}
           VIETNAM_PRIVATE_PROVENANCE_TOKEN: ${{ secrets.VIETNAM_PRIVATE_PROVENANCE_TOKEN }}
           EXPECTED_MAIN: ${{ inputs.expected_main }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
@@ -294,7 +295,7 @@ jobs:
           from core import vietnam_official_link_admission as vn
           from scripts.attest_vietnam_run_state import GithubRead
           signed=json.loads((Path(os.environ['RUNNER_TEMP'])/'vn-private-projection.json').read_text())
-          vn.verify_private_projection_head(signed,GithubRead(os.environ['VIETNAM_PRIVATE_PROVENANCE_TOKEN'],repository=vn.PRIVATE_REPO),public_api=GithubRead())
+          vn.verify_private_projection_head(signed,GithubRead(os.environ['VIETNAM_PRIVATE_PROVENANCE_TOKEN'],repository=vn.PRIVATE_REPO),public_api=GithubRead(os.environ['GH_TOKEN']))
           PYTHON
           git fetch --quiet origin main
           test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN"
