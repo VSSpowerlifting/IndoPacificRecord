@@ -1,6 +1,88 @@
 # Vietnam source-use decisions — owner review, 21 October 2026
 
-**Status: BASIC REPORTING POLICY PROPOSED; NO PRODUCTION GATES CHANGED.** IPR is pivoting toward the China Desk's core editorial product: linked primary-source facts and original attributed analysis, not republication of full government texts. No source-use seal, collection authorization, model call, or release was generated here. Existing implementation holds remain in effect until separately reviewed and changed.
+**Status: THREE MPS OFFICIAL LINKS LIVE; AUTOMATIC ARTICLE ANALYSIS HELD.**
+The metadata-only owner release and PR #848 are complete. They do not grant
+original-body model use. No article source-use seal, model call, source-use key
+or article activation flag was created in this follow-up.
+
+## Production activation assessment — 21 October 2026
+
+- Read the current [official MPS portal](https://www.bocongan.gov.vn/) footer:
+  copyright belongs to MPS; reused information should credit the portal. It
+  supplies no express external-model, retained-copy or full-translation scope.
+  This observation is not a finding that factual reporting requires a ministry
+  licence, nor a legal determination that all model use is prohibited.
+- Connected GW Gmail contains the sent inquiry, subject “Clarification of MPS
+  Portal Reuse and English Translation Permissions”, 21 October 2026, 10:33 EDT.
+  Searches of the contact, ministry domains and subject found no reply. No
+  further correspondence was sent.
+- Current private main is `defd100a5bc6cfc1274e8f0e628d676b251dcc8b`;
+  the MPS archive remains `25dae9889700e555f69710620d64f1577ac5e219`.
+  Verification [#39697545306](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/39697545306)
+  and [#39702405271](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/39702405271)
+  succeeded. The archive has 25 authenticated originals; these are not published
+  analyzed articles.
+- [Metadata publication #39711288743](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39711288743)
+  and [Pages #39711423178](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39711423178)
+  succeeded. HTTPS [Vietnam Desk](https://indopacificrecord.org/vietnam.html)
+  contains three MPS URL/date/issuer references, and excludes original titles,
+  bodies, translations and automatic analysis. Vietnam corpus article count: 0.
+
+**Input/output determination.** The present relevance, analysis and second-pass
+calls all transmit the authenticated Vietnamese original title/body to Anthropic.
+The previous metadata release does not authorize that. Private preservation
+under the separate collector/cutover authority also does not establish external
+transmission rights. Independently reporting facts in IPR's own words is a
+different use from those copies and from public translations. No source-specific
+basis plus owner decision for this exact body-driven model use was established.
+The body call therefore remains disabled. This does not make ministry
+correspondence universally indispensable: a documented independent rights/terms
+assessment and explicit owner authorization could supply the missing decision.
+
+**Narrow alternative assessed.** The approved URL/date/issuer projection supports
+an honest source-link index, not substantive article analysis. No recurring,
+independently prepared, authorized factual-note feed exists for the shared
+Analyzer. Feeding sparse metadata or relabeling source text as “notes” would not
+solve that boundary. The existing two human editorial synopses are not a
+standing automatic source-input authorization. No alternate engine was built.
+
+**Engineering repair.** The existing runner now passes `model_second_pass` to
+`run_family`, using its five-review per-family/run budget and three-attempt
+retry/escalation policy. MPS's existing summary call also produces an original
+English factual headline; no extra headline API call or full translation is
+needed. The public projection, deterministic headline checks, signed handoff
+and record-page label distinguish that headline from translation. Existing
+successful projection replay avoids new API calls after delayed public admission.
+Fixture pipeline/handoff tests passed; no real MPS AI run is claimed.
+The first full CI run executed 7,902 tests and exposed seven older Vietnam
+fixture/expectation failures after the real metadata release. Disposable
+admission databases now remove only their inherited MPS link identities before
+fictional review replay; page assertions compare the admitted Vietnam identities
+while retaining the zero-article claim. Production rows and release guards are
+unchanged. All 10 focused checks covering these failures pass after correction.
+The final exact-head gate is recorded on the PR.
+
+**Single remaining external decision.** The owner must approve an evidence-backed
+MPS source-use decision for original title/body transmission to Anthropic,
+private retention and attributable independent factual headlines/summaries,
+with public original bodies, complete translations, excerpts and media excluded.
+Use the existing `core.vietnam_source_use.verify_decision` format and a separate
+`VIETNAM_SOURCE_USE_REVIEW_KEY`; do not reuse the metadata review key or claim a
+publisher licence where the basis is an independent rights assessment. The
+current validator also requires `public_title_display` for public analysis;
+review that exact title scope rather than silently bypassing its dependency.
+No supported decision is ready to sign today.
+
+After that decision, remaining ordinary release work is: provision the separate
+review key securely in both repositories, commit the validated seal under
+`config/vietnam_source_use/`, promote registry coverage for MPS only, set the two
+article flags, run one authenticated MPS item through the existing private
+bridge and public Daily receiver, and verify its deployed record and withheld
+fields. Those actions remain conditional on the decision. Existing bridge,
+provenance and Anthropic secret names are present; values were not read.
+Private collection runs at 18:17 UTC, its bridge at 20:17 UTC, and public Daily
+receives at 12:23 UTC the following day (with retries through 14:23); the persisted
+handoff survives that ordering, so no shared schedule change is needed.
 
 ## Baseline Vietnam reporting policy — limited, source-linked, no blanket permission requirement
 
@@ -44,7 +126,7 @@ Seven existing `core.vietnam_source_use.PERMISSIONS` fields apply independently 
 
 **Fastest useful scope:** Admit independently authenticated and owner-reviewed **MPS factual metadata** using the existing verified-link route once approved. Produce independent journalistic analysis separately without republishing Vietnamese bodies. For automatic AI analysis, review and document the narrower model-input policy before touching the current sealed-decision gate. Full-text translation, original-body hosting and imagery are not needed for the baseline. The verified-link route is not the same thing as an admitted article.
 
-Existing exact MPS metadata candidates (all still held): `mps-vi:1791199100`, `mps-vi:1791199677`, `mps-vi:1791971146`. Their historical source tip and metadata hashes are pinned in the candidate JSON. Owner must independently review exact originals and current editions before any metadata release.
+Released exact MPS metadata candidates (metadata only; article use still held): `mps-vi:1791199100`, `mps-vi:1791199677`, `mps-vi:1791971146`. Their historical source tip and metadata hashes are pinned in the candidate JSON. The signed metadata release records that exact review; it grants no article/model use.
 
 ## Historical inquiry drafts — both requests actually sent on 21 October 2026
 

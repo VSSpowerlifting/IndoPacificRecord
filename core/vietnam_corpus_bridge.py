@@ -380,7 +380,9 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
         projection = {
             "title_original": title if show_title else None,
             "text_original": body if permissions["public_original_storage"] else None,
-            "title_english": (result or {}).get("title_english") if translate else None,
+            # MPS analysis supplies an independent headline without a translation.
+            "title_english": ((result or {}).get("title_english")
+                              if translate or family == "vn_mps_foreign_affairs_vi" else None),
             "text_english": (result or {}).get("text_english") if translate else None,
             "summary_english": (result or {}).get("summary_english"),
         }

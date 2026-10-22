@@ -25,6 +25,13 @@ class AtomicAdmission(unittest.TestCase):
         from migrations.runner import connect, apply_all
         with closing(connect(self.db)) as conn:
             apply_all(conn)
+            # The live corpus now has three real MPS links. This fictional
+            # review must start without those identities on its scratch copy.
+            conn.execute("DELETE FROM regional_official_source_links "
+                         "WHERE desk='vietnam' AND source_family=?", (fixtures.MPS,))
+            conn.commit()
+            self.unrelated = conn.execute("SELECT * FROM regional_official_source_links "
+                                          "WHERE desk!='vietnam' ORDER BY source_family, source_identity").fetchall()
         self.before = self.db.read_bytes()
         self.sealed = fixtures.sealed(self.f.packet)
 
@@ -37,6 +44,9 @@ class AtomicAdmission(unittest.TestCase):
         self.run_admit()
         with closing(sqlite3.connect(str(self.db))) as conn:
             self.assertEqual(conn.execute("select count(*) from regional_official_source_links where desk='vietnam'").fetchone()[0], 2)
+            self.assertEqual(conn.execute("SELECT * FROM regional_official_source_links "
+                                          "WHERE desk!='vietnam' ORDER BY source_family, source_identity").fetchall(),
+                             self.unrelated)
         after = self.db.read_bytes()
         self.run_admit()
         self.assertEqual(self.db.read_bytes(), after)

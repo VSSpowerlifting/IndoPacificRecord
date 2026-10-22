@@ -123,7 +123,8 @@ def _family(family: Optional[str]) -> dict:
 def prompt_version(kind: str, family: Optional[str]) -> str:
     """Stable version label; the desk-level profile has no family."""
     short = _FAMILIES[family]["short"] if family in _FAMILIES else "desk"
-    version = {"relevance": _RELEVANCE_V, "analysis": _ANALYSIS_V,
+    analysis_version = "v2" if family == "vn_mps_foreign_affairs_vi" else _ANALYSIS_V
+    version = {"relevance": _RELEVANCE_V, "analysis": analysis_version,
                "translation": _TRANSLATION_V}[kind]
     label = "vn-%s-%s-%s" % (short, kind, version)
     if kind in ("analysis", "translation"):
@@ -240,6 +241,10 @@ def analysis_system_builder(family: Optional[str]) -> Callable[[str], str]:
 def analysis_builder(family: Optional[str]) -> Callable[[str, str], List[dict]]:
     def build(title: str, body: str) -> List[dict]:
         f = _family(family)
+        fields = ('five fields: "headline" (an independently worded English factual '
+                  'headline, at most 200 characters; do not translate or quote the source '
+                  'headline or add unsupported claims), ' if family == "vn_mps_foreign_affairs_vi"
+                  else 'four fields: ')
         content = (
             "You will receive a Vietnamese-language report published by %s. "
             "It has already been screened as concerning %s. Write an English "
@@ -270,13 +275,13 @@ def analysis_builder(family: Optional[str]) -> Callable[[str, str], List[dict]]:
             "announcements are flagged only when they record a specific "
             "decision. When unsure, do not flag. Most reports are not "
             "flagged.\n\n%s\n\n%s\n\n"
-            "Return only the raw JSON object with four fields: \"summary\" "
+            "Return only the raw JSON object with %s\"summary\" "
             "(string), \"event_type\" (string), \"flag\" (boolean) and "
             "\"flag_reason\" (one sentence naming the specific change when "
             "\"flag\" is true; null otherwise). Do not wrap the response in "
             "markdown code fences. Do not include any other text.\n\n%s"
             % (f["publisher"], f["focus"], f["cautions"],
                ", ".join('"%s"' % e for e in EVENT_TYPES), f["high"],
-               _glossary(), _UNTRUSTED, _source(title, body)))
+               _glossary(), _UNTRUSTED, fields, _source(title, body)))
         return [{"role": "user", "content": content}]
     return build

@@ -152,9 +152,16 @@ def _check_record(family: str, entry: dict, policy, article) -> dict:
     _need(prov["permissions_json"] == json.dumps(perms, sort_keys=True)
           and perms["external_model_transmission"] and perms["public_ipr_analysis"],
           "vietnam_handoff_permissions_mismatch")
+    analysis_headline = (family == source_use.MPS and not prov["translation_published"]
+                         and prov["translation_prompt_version"] is None)
+    if analysis_headline:
+        from core.title_translation import valid_english
+        _need(valid_english(row["title_english"]) and len(row["title_english"]) <= 200,
+              "vietnam_handoff_headline_invalid")
     for column, permission in (("title_original", "public_title_display"),
                                ("text_original", "public_original_storage"),
-                               ("title_english", "public_full_translation"),
+                               ("title_english", "public_ipr_analysis" if analysis_headline
+                                else "public_full_translation"),
                                ("text_english", "public_full_translation")):
         _need(row[column] is None or perms[permission], "vietnam_handoff_withheld_field")
     _need(prov["original_withheld"] == (0 if row["text_original"] else 1)

@@ -47,6 +47,20 @@ class Handoff(unittest.TestCase):
         return handoff.sign([report], {MPS: ledger}, key=BRIDGE_KEY,
                             run_id="simulated-private-run", generated_utc=NOW)
 
+    def test_analysis_headline_survives_signed_handoff_without_translation_rights(self):
+        envelope = self.signed(permissions=WITHHOLD)
+        records = self.verify(envelope, permissions=WITHHOLD)
+        self.assertTrue(records)
+        for family, record, row, provenance in records:
+            self.assertEqual(row["title_english"], "Synthetic IPR factual headline")
+            self.assertIsNone(row["text_original"])
+            self.assertIsNone(row["text_english"])
+            self.assertEqual(provenance["translation_published"], 0)
+        tampered = self.resign(envelope, lambda body: body["families"][0]["records"][0]["row"].update(
+            text_english="Unauthorized full translation"))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_withheld_field"):
+            self.verify(tampered, permissions=WITHHOLD)
+
     def public(self):
         conn = clone_schema(self.tmp / "public.db")
         self.addCleanup(conn.close)

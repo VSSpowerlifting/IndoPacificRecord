@@ -25,7 +25,12 @@
     {# The institution and the date are the date block's, beside this. #}
     <h1{% if not record.title_english %} lang="{{ record.language_tag or 'zh' }}"{% endif %}>{{ display_title }}</h1>
     <p class="record-source-line">Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time> · <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a></p>
-    {% if record.title_english and record.title_original and (record.desk_id != 'china' or record.language_tag != 'en') %}
+    {% if record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}
+    <p class="meta"><span class="evidence evidence--model">Machine-generated headline</span>
+    Independently worded IPR factual headline. Not a translation of the source title.
+    Not reviewed by a human.</p>
+    {% if record.title_original %}<p class="original" lang="vi">{{ record.title_original }}</p>{% endif %}
+    {% elif record.title_english and record.title_original and (record.desk_id != 'china' or record.language_tag != 'en') %}
     {# Two distinct machine outputs. The English TITLE is a translation; the
        summary below is a different artifact. Labelling them identically would
        merge two separate claims about what a model produced. #}

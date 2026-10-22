@@ -778,6 +778,9 @@ class Analyzer:
             return partial
 
         title_en = text_en = None
+        if (profile.desk_id == "vietnam" and translator is None
+                and profile.source_family == "vn_mps_foreign_affairs_vi"):
+            title_en = fields.get("headline")
         if translator is not None:
             system = [{"type": "text", "text": profile.translation_system_prompt,
                        "cache_control": {"type": "ephemeral"}}]
@@ -842,6 +845,12 @@ class Analyzer:
         summary = data.get("summary") if isinstance(data, dict) else None
         flagged = data.get("flag") if isinstance(data, dict) else None
         reason = data.get("flag_reason") if isinstance(data, dict) else None
+        headline = data.get("headline") if isinstance(data, dict) else None
+        if profile.source_family == "vn_mps_foreign_affairs_vi":
+            from core.title_translation import valid_english
+            if not valid_english(headline) or len(headline) > 200:
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Invalid MPS factual headline")
         # A paid response that does not carry a usable summary and an explicit
         # flag is a failed call: nothing is written, and the record retries.
         if (not isinstance(summary, str) or not summary.strip()
@@ -857,6 +866,6 @@ class Analyzer:
                 self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
                 raise AnalysisError("Desk analysis event_type outside the desk vocabulary")
             categories = [event_type]
-        return {"summary": summary, "flag": flagged,
+        return {"summary": summary, "flag": flagged, "headline": headline,
                 "flag_reason": reason if flagged else None,
                 "categories": categories}
