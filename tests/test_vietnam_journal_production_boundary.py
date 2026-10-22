@@ -48,20 +48,20 @@ class JournalProductionBoundaryTests(unittest.TestCase):
         ):
             self.assertFalse(report[key], key)
 
-    def test_registry_must_keep_vietnam_nonproduction_without_manifest(self):
-        # Shadow denotes isolated collection; it is never production admission.
+    def test_live_mps_registry_cannot_silently_change_scope(self):
+        # A live, MPS-only Vietnam desk must not turn the held journal on.
         for field, new_value in (
-            ("status", "live"),
             ("status", "planned"),
-            ("manifest", "desks/vietnam/manifest.json"),
-            ("has_production_records", True),
+            ("manifest", None),
+            ("manifest", "shadow/vietnam_journal/manifest.json"),
+            ("has_production_records", False),
             ("public", False),
         ):
             args = list(inputs())
             vn = next(x for x in args[2]["desks"] if x["slug"] == "vietnam")
             vn[field] = new_value
             with self.subTest(field=field, new_value=new_value):
-                with self.assertRaisesRegex(BoundaryRefused, "nonproduction"):
+                with self.assertRaises(BoundaryRefused):
                     validate_boundary(*args)
 
     def test_shadow_and_research_status_both_preserve_disabled_journal(self):
@@ -69,6 +69,9 @@ class JournalProductionBoundaryTests(unittest.TestCase):
             args = list(inputs())
             vn = next(x for x in args[2]["desks"] if x["slug"] == "vietnam")
             vn["status"] = status
+            vn["manifest"] = None
+            vn["has_production_records"] = False
+            args[3].pop("desks/vietnam/manifest.json")
             with self.subTest(status=status):
                 report = validate_boundary(*args)
                 self.assertEqual(report["source_status"], "disabled_research_only")
