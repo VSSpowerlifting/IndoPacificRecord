@@ -1,6 +1,7 @@
 """Prevent direct, unauthorized Vietnam-journal production/CI activation wiring.
 
-Read-only static boundary for the current *disabled research candidate*.
+Read-only static boundary for the disabled journal candidate, regardless of
+other separately authorized Vietnam sources.
 Composes the merged source-readiness hold with production manifests, public
 desk registry, and the names and contents of workflow definitions. This is
 not a crawler authorization, a full code-flow audit, or a legal rights grant.
@@ -52,11 +53,20 @@ def validate_boundary(manifest, readiness, registry, production_manifests, workf
     if len(vietnam) != 1:
         raise BoundaryRefused("Vietnam desk must be declared exactly once")
     entry = vietnam[0]
-    if (entry.get("status") not in ("research", "shadow")
-            or entry.get("manifest") is not None
-            or entry.get("has_production_records") is not False
-            or entry.get("public") is not True):
-        raise BoundaryRefused("journal's Vietnam desk is no longer nonproduction research/shadow")
+    # Gate the journal by its own disabled identity, not all Vietnam sources.
+    # MPS is separately authorized and can be live without approving the journal.
+    status = entry.get("status")
+    if entry.get("public") is not True:
+        raise BoundaryRefused("Vietnam public desk must remain visible")
+    if status in ("research", "shadow"):
+        if entry.get("manifest") is not None or entry.get("has_production_records") is not False:
+            raise BoundaryRefused("nonproduction Vietnam desk has production wiring")
+    elif status == "live":
+        if (entry.get("manifest") != "desks/vietnam/manifest.json"
+                or entry.get("has_production_records") is not True):
+            raise BoundaryRefused("live Vietnam desk must use governed production manifest")
+    else:
+        raise BoundaryRefused("invalid Vietnam desk status")
 
     if not isinstance(production_manifests, dict):
         raise BoundaryRefused("invalid production manifest inventory")

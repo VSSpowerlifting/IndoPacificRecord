@@ -440,7 +440,7 @@ class TestNoFabricatedCoverage(PreviewCase):
         Historical test name is retained for compatibility.
         """
         live = [e for e in load_registry() if e.is_collecting]
-        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore", "vietnam"])
 
     def test_non_collecting_desks_are_labelled_and_carry_no_record_count(self):
         """

@@ -374,7 +374,10 @@ class TestRunner(RunnerCase):
         literals = [n.value for n in ast.walk(tree)
                     if isinstance(n, ast.Constant) and isinstance(n.value, str)]
         self.assertFalse(any(x in s for s in literals for x in ("pla_watch.db", "output/", "gh-pages")))
-        self.assertFalse((ROOT / "desks/vietnam").exists())
+        # The VGP shadow family must stay out of the separately live MPS manifest.
+        from core.manifests import load_all_desks
+        self.assertNotIn("vn_vgp_defense_en",
+                         {s.slug for d in load_all_desks().values() for s in d.sources})
 
 
 class TestSchedule(RunnerCase):

@@ -564,15 +564,14 @@ class BridgeRuns(unittest.TestCase):
                                  {qa.HELD_RIGHTS})
 
     def test_grant_refused_while_registry_keeps_desk_shadow(self):
-        # The real registry: a sealed rights grant alone never publishes.
+        # Explicitly emulate an unpromoted desk: even a sealed review cannot
+        # permit article publication in this state.
         shadow = SimpleNamespace(is_collecting=False, has_production_records=False)
-        for desk in (None, shadow):
-            with self.subTest(desk=desk):
-                analyzer = FakeAnalyzer()
-                with self.assertRaisesRegex(bridge.BridgeError, "vietnam_desk_not_promoted"):
-                    self.run_bridge(source_use=grant(), analyzer=analyzer, desk=desk)
-                self.assertEqual(analyzer.calls, [])
-                self.assertEqual(self.count(), 0)
+        analyzer = FakeAnalyzer()
+        with self.assertRaisesRegex(bridge.BridgeError, "vietnam_desk_not_promoted"):
+            self.run_bridge(source_use=grant(), analyzer=analyzer, desk=shadow)
+        self.assertEqual(analyzer.calls, [])
+        self.assertEqual(self.count(), 0)
         # Holding every permission needs no promotion: nothing can be written.
         report, _ = self.run_bridge(desk=shadow)
         self.assertEqual(set(self.outcomes(report)), {qa.HELD_RIGHTS})
@@ -597,9 +596,10 @@ class BridgeRuns(unittest.TestCase):
             self.assertEqual((row[5], row[6]), (0, 1))
             self.assertTrue(row[7] and row[8])
             self.assertEqual(row[9], qa.RUBRIC_VERSION)
-            self.assertEqual(row[10], "shadow")
+            self.assertEqual(row[10], "public")
         source = self.conn.execute("SELECT is_active, enabled, access_method FROM sources"
                                    " WHERE slug=?", (MPS,)).fetchone()
+        # The synthetic private bridge must not enable a production collector.
         self.assertEqual(source, (0, 0, "private_collector"))
         # A second identical run: zero new rows, zero model calls.
         again, analyzer2 = self.run_bridge(source_use=grant())
@@ -1096,9 +1096,8 @@ class VietnamRecordRender(unittest.TestCase):
             "vietnam_article_provenance p ON p.article_id = a.id ORDER BY a.id"
             ).fetchone()
         self.assertIsNone(row[1])
-        # The real registry keeps Vietnam shadow: reading the corpus refuses.
-        with self.assertRaisesRegex(ValueError, "Vietnam records require"):
-            gp.load_corpus(self.db_path)
+        # The governed MPS record is accessible through the current desk.
+        self.assertIsNotNone(gp.load_corpus(self.db_path))
         with patch.object(gp, "load_registry", self.promoted_registry):
             snap = gp.snapshot_from_corpus(self.db_path)
             gp.build(self.tmp / "out", "Test Title", self.db_path, snapshot=snap)
