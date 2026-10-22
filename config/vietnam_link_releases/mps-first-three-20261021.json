@@ -1,0 +1,26 @@
+{
+  "hmac_sha256": "5274d56d9b0380ca7aedba2830c7d7d25ec498aeecaba018d6bfe66b003becde",
+  "review": {
+    "approval_reference": "Owner approval in Indo-Pacific Record ChatGPT conversation, 2026-10-21, for three exact MPS source identities and four metadata fields only.",
+    "approved_source_identities": [
+      "mps-vi:1791199100",
+      "mps-vi:1791199677",
+      "mps-vi:1791971146"
+    ],
+    "candidate_sha256": "da8b7402d20ba26527e069071ed3a9971fdb50aed05907ced612cb8cd99c0bf3",
+    "custody_reference": "Private verification run 39697545306 (success); private source Git commit 25dae9889700e555f69710620d64f1577ac5e219; 25 records, 23 expected + 2 extra.",
+    "original_language_and_source_version_checked": true,
+    "permitted_fields": [
+      "source_identity",
+      "canonical_official_url",
+      "publisher_posted_date",
+      "official_issuer"
+    ],
+    "production_release_authorized": true,
+    "protected_custody_verified": true,
+    "reviewed_on": "2026-10-21",
+    "reviewer": "Benjamin Yang, Founder & Director of Research and Editorial, Indo-Pacific Record",
+    "rights_basis": "Independent factual reporting and outbound official links; no claimed MPS reuse license for original text, translation, images, or AI transmission.",
+    "schema": "ipr-vietnam-reviewed-official-link-release/1"
+  }
+}
