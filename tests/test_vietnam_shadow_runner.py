@@ -374,7 +374,10 @@ class TestRunner(RunnerCase):
         literals = [n.value for n in ast.walk(tree)
                     if isinstance(n, ast.Constant) and isinstance(n.value, str)]
         self.assertFalse(any(x in s for s in literals for x in ("pla_watch.db", "output/", "gh-pages")))
-        self.assertFalse((ROOT / "desks/vietnam").exists())
+        # A separately approved MPS production manifest does not connect this VGP shadow runner.
+        active = json.loads((ROOT / "desks/vietnam/manifest.json").read_text())
+        self.assertEqual([source["slug"] for source in active["sources"]],
+                         ["vn_mps_foreign_affairs_vi"])
 
 
 class TestSchedule(RunnerCase):
