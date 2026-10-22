@@ -436,8 +436,8 @@ class TestVietnamShadowIsNotPublicCoverage(DeskCase):
 
     def test_the_vietnam_page_states_no_records_and_no_enabled_source(self):
         html = self.page("vietnam.html")
-        self.assertIn("IPR research published — official originals linked", html)
-        self.assertIn("not a production source-text archive", html)
+        self.assertIn("Verified official-source links admitted", html)
+        self.assertIn("not independently verified defense outcomes", html)
         self.assertIn("Corpus records</dt><dd>Not admitted", html)
         self.assertIn("Sources enabled in production</dt><dd>0", html)
         self.assertNotIn("Sources enabled in shadow", html)
@@ -562,7 +562,7 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
             with self.subTest(desk=name):
                 page = self.page(name + ".html")
                 if name == "vietnam":
-                    self.assertIn("IPR research published — official originals linked", page)
+                    self.assertIn("Verified official-source links admitted", page)
                 elif philippines_links:
                     self.assertIn("Verified official-source links admitted", page)
                     self.assertEqual(set(re.findall(
