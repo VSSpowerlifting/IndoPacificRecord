@@ -40,8 +40,8 @@ class CountryPublisherNavigationTests(DeskCase):
     def test_exact_verified_indices_and_separate_moit_clocks(self):
         for slug, expected in LINKS.items():
             desk = load_registry().get(slug)
-            self.assertEqual(desk.status, "shadow")
-            self.assertFalse(desk.has_production_records)
+            self.assertEqual(desk.status, "live" if slug == "vietnam" else "shadow")
+            self.assertEqual(desk.has_production_records, slug == "vietnam")
             actual = {s["name"]: s["publisher_url"]
                       for s in desk.research["source_families"]
                       if s.get("publisher_url")}
@@ -69,7 +69,9 @@ class CountryPublisherNavigationTests(DeskCase):
             other = "vietnam" if slug == "japan" else "japan"
             for url in LINKS[other].values():
                 self.assertNotIn(url, html)
-            self.assertNotIn('href="archive.html?desk=' + slug + '"', html)
+            if slug == "japan":
+                self.assertNotIn('href="archive.html?desk=' + slug + '"', html)
+            # Vietnam may acquire genuine MPS article links after the Daily cycle.
             self.assertNotIn("data-reference-list", html)
             self.assertNotIn("state/shadow.db", html)
             self.assertNotIn("text_original", html)
@@ -218,7 +220,7 @@ class CountryPublisherNavigationTests(DeskCase):
     def test_live_desk_and_philippines_counts_are_unaffected(self):
         self.assertEqual(
             sorted(d.slug for d in load_registry() if d.is_collecting),
-            ["china", "korea", "singapore"])
+            ["china", "korea", "singapore", "vietnam"])
         philippines = self.page("philippines.html")
         self.assertEqual(philippines.count("Open official publisher index"), 2)
         for slug in LINKS:
