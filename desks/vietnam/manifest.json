@@ -1,0 +1,51 @@
+{
+  "manifest_version": 1,
+  "_comment": [
+    "Production configuration for Vietnam MPS Foreign Affairs only, owner-authorized 2026-10-22.",
+    "This is a MANUAL source: public Daily never scrapes the MPS website.",
+    "The scheduled private-first collector retains original Vietnamese evidence;",
+    "the signed Vietnam Daily handoff admits only independently written English",
+    "factual output under an owner-sealed MPS source-use decision and QA.",
+    "MOIT, Government News, MOD, other Vietnamese publications and source media",
+    "are not covered by this manifest or its standing authorization."
+  ],
+  "desk": {
+    "desk_id": "vietnam",
+    "display_name": "Vietnam Desk",
+    "jurisdiction_code": "VN",
+    "default_timezone": "Asia/Ho_Chi_Minh",
+    "default_calendar": "gregorian",
+    "supported_language_tags": [
+      "vi",
+      "en"
+    ],
+    "public_status": "public",
+    "active": true
+  },
+  "institutions": [
+    {
+      "institution_id": "vn_mps",
+      "display_name": "Ministry of Public Security",
+      "name_original": "Bộ Công an",
+      "institution_type": "other"
+    }
+  ],
+  "sources": [
+    {
+      "slug": "vn_mps_foreign_affairs_vi",
+      "institution_id": "vn_mps",
+      "display_name": "Ministry of Public Security — Foreign Affairs",
+      "base_url": "https://bocongan.gov.vn",
+      "language_tag": "vi",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_news",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://bocongan.gov.vn/api/rss/34.xml"
+      ],
+      "notes": "Public Daily does not scrape: bounded official Vietnamese Foreign Affairs originals are collected in authenticated private custody. Only owner-approved, source-pinned, QA-passing, nonverbatim English machine explanations are signed into shared Daily and published. No public original Vietnamese headline/body, full translation, photograph, media, PDF or substantial excerpt. Ministry official claims are attributed, not independent corroboration."
+    }
+  ]
+}
