@@ -173,7 +173,7 @@ class TestIsolation(StateCase):
         self.assertFalse((REPO_ROOT / "pla_watch.db-wal").exists())
 
     def test_the_manifest_is_not_discoverable_as_a_production_desk(self):
-        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore", "vietnam"])
         self.assertTrue((REPO_ROOT / "shadow" / "ph_afp" / "manifest.json").is_file())
         self.assertFalse((REPO_ROOT / "desks" / "philippines").exists())
 

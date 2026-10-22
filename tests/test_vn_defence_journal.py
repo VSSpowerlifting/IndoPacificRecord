@@ -107,7 +107,10 @@ class JournalIdentity(unittest.TestCase):
 
     def test_source_not_discoverable_by_production_manifest_glob(self):
         self.assertEqual(MANIFEST.parent.parent.name, "shadow")
-        self.assertFalse((ROOT / "desks" / "vietnam" / "manifest.json").exists())
+        # The governed MPS manifest must not silently admit this journal.
+        from core.manifests import load_all_desks
+        self.assertNotIn(dj.SOURCE_SLUG,
+                         {s.slug for s in load_all_desks()["vietnam"].sources})
 
 
 if __name__ == "__main__":

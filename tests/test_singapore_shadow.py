@@ -131,7 +131,7 @@ class TestIsolationFromProduction(unittest.TestCase):
         """
         from core.manifests import load_all_desks
         configs = load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(configs), ["china", "korea", "singapore", "vietnam"])
         sg_sources = {s.slug: s for s in configs["singapore"].sources}
         self.assertIn("sg_mindef_releases", sg_sources)
         self.assertTrue(sg_sources["sg_mindef_releases"].enabled)
@@ -176,7 +176,7 @@ class TestIsolationFromProduction(unittest.TestCase):
                 "WHERE s.slug = 'sg_mindef_releases' "
                 "  AND a.scrape_run_id IS NOT NULL AND r.id IS NULL"
             ).fetchone()[0]
-        self.assertEqual(sorted(desks), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(desks), ["china", "korea", "singapore", "vietnam"])
         self.assertEqual(promoted, 57)
         self.assertEqual(orphaned, 0,
                          "a Singapore record names a scrape run that does not exist")
