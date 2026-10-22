@@ -983,9 +983,10 @@ class TestContractAndIsolation(unittest.TestCase):
         self.assertEqual(rig.urls, [])
 
     def test_vietnam_is_invisible_to_production_discovery(self):
-        self.assertFalse((REPO_ROOT / "desks" / "vietnam").exists())
         desks = load_all_desks()
-        self.assertNotIn("vietnam", desks)
+        self.assertIn("vietnam", desks)  # MPS is live, Government News is not.
+        self.assertEqual([s.slug for s in desks["vietnam"].sources],
+                         ["vn_mps_foreign_affairs_vi"])
         self.assertNotIn(SOURCE["slug"], {s.slug for cfg in desks.values() for s in cfg.sources})
 
     def test_adapter_imports_nothing_from_production_storage(self):
