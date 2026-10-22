@@ -281,9 +281,41 @@ class SourceUsePolicy(unittest.TestCase):
     def test_sealed_fixture_grant_and_dependencies(self):
         use = grant(permissions={"public_title_display": False})
         self.assertTrue(use.allows("external_model_transmission"))
-        self.assertFalse(use.allows("public_ipr_analysis"))
-        self.assertEqual(use.reason("public_ipr_analysis"), "requires_public_title_display")
+        self.assertTrue(use.allows("public_ipr_analysis"))
+        self.assertFalse(use.allows("public_title_display"))
+        self.assertFalse(use.allows("public_full_translation"))
+        moit = grant(ENERGY, permissions={"public_title_display": False})
+        self.assertFalse(moit.allows("public_ipr_analysis"))
+        self.assertEqual(moit.reason("public_ipr_analysis"), "requires_public_title_display")
         self.assertRegex(use.decision_sha256, r"^[0-9a-f]{64}$")
+
+    def test_mps_independent_assessment_is_narrow_and_still_owner_sealed(self):
+        perms = {p: False for p in su.PERMISSIONS}
+        perms.update(collect_preserve=True, external_model_transmission=True,
+                     public_ipr_analysis=True)
+        reference = "docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md"
+        use = grant(rights_basis_type=su.INDEPENDENT_ASSESSMENT,
+                    rights_basis_reference=reference, permissions=perms)
+        self.assertTrue(use.allows("public_ipr_analysis"))
+        self.assertFalse(use.allows("public_title_display"))
+        self.assertFalse(use.allows("public_full_translation"))
+        self.assertFalse(use.allows("public_original_storage"))
+        with self.assertRaisesRegex(su.SourceUseError, "independent_assessment_mps_only"):
+            grant(ENERGY, rights_basis_type=su.INDEPENDENT_ASSESSMENT,
+                  rights_basis_reference=reference, permissions=perms)
+        with self.assertRaisesRegex(su.SourceUseError, "independent_assessment_document_required"):
+            grant(rights_basis_type=su.INDEPENDENT_ASSESSMENT,
+                  rights_basis_reference="https://bocongan.gov.vn/",
+                  permissions=perms)
+        with self.assertRaisesRegex(su.SourceUseError, "independent_assessment_cannot_grant_source_republication"):
+            grant(rights_basis_type=su.INDEPENDENT_ASSESSMENT,
+                  rights_basis_reference=reference,
+                  permissions=dict(perms, public_original_storage=True))
+        tampered = decision(rights_basis_type=su.INDEPENDENT_ASSESSMENT,
+                            rights_basis_reference=reference, permissions=perms)
+        tampered["review"]["rights_basis_reference"] = "docs/engineering/fake.md"
+        with self.assertRaisesRegex(su.SourceUseError, "unsealed"):
+            su.verify_decision(tampered, KEY, MPS, as_of=AS_OF)
 
     def test_attribution_and_unsealed_decisions_are_not_rights(self):
         with self.assertRaisesRegex(su.SourceUseError, "rights_basis_type"):
