@@ -318,10 +318,10 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
         html = self.page("desks.html")
         self.assertIn("Indonesia Desk", html)
         self.assertIn("8 declared", html)
-        self.assertIn("3 collecting into the record", html)
+        self.assertIn("4 collecting into the record", html)
         self.assertEqual(
             sorted(x.slug for x in load_registry() if x.is_collecting),
-            ["china", "korea", "singapore"])
+            ["china", "korea", "singapore", "vietnam"])
 
 
 class TestJapanDeskIsPlannedNotCoverage(DeskCase):
