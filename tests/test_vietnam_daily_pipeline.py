@@ -110,7 +110,8 @@ class FakeAnalyzer:
             "model_id": "synthetic-test-model",
             "prompt_version": "%s+%s" % (profile.prompt_version,
                                          profile.analysis_prompt_version),
-            "title_english": "Synthetic test rendering of the title" if translate else None,
+            "title_english": ("Synthetic test rendering of the title" if translate else
+                              self.fields.get("headline", "Synthetic IPR factual headline")),
             "text_english": (self.english(body) if translate else None),
             "summary_english": self.fields.get(
                 "summary", "According to the report, the ministry recorded a meeting."),
@@ -190,6 +191,7 @@ class RealAnalyzerPath(unittest.TestCase):
     def client(self, translation=None):
         calls = []
         analysis = {"summary": "The ministry said it held talks.", "event_type": "meeting",
+                    "headline": "Synthetic IPR factual headline",
                     "flag": False, "flag_reason": None}
 
         def create(**kw):
@@ -253,6 +255,7 @@ class RealAnalyzerPath(unittest.TestCase):
         with patch("analysis.analyzer.RELEVANCE_TOOL_OUTPUT_ENABLED", False):
             result = self.analyzer(client).analyze_record("Tiêu đề", "Nội dung", profile)
         self.assertIsNone(result["text_english"])
+        self.assertEqual(result["title_english"], "Synthetic IPR factual headline")
         self.assertNotIn(("stream", "emit_translation"), calls)
 
     def test_failed_translation_leaves_a_partial_result(self):
@@ -356,6 +359,17 @@ def check(result, translation=True, permissions=FULL, projection=None):
 
 
 class QARubric(unittest.TestCase):
+    def test_factual_headline_runs_source_checks_without_translation(self):
+        for headline, failure in (
+                ("The ministry reported 900 officers", "E_NUMBER_MISMATCH"),
+                ("Historic ministry breakthrough", "E_INFLATION"),
+                ("Minister Luong Tam Quang receives a delegation", "E_NAME_DIACRITICS"),
+                ("The ministry said the project was completed", "E_OUTCOME_CLAIM")):
+            with self.subTest(headline=headline):
+                failures = check(good(), translation=False, projection={
+                    "title_english": headline, "summary_english": good()["summary_english"]})
+                self.assertIn(failure, failures)
+
     def test_faithful_output_passes(self):
         self.assertEqual(check(good()), {})
 
@@ -1070,6 +1084,29 @@ class VietnamRecordRender(unittest.TestCase):
     def outcomes(self, report):
         return [o["outcome"] for o in report["outcomes"]]
 
+    def test_independent_headline_and_summary_render_without_source_body_or_translation(self):
+        import sys
+        sys.path.insert(0, str(TRACKED_DB.parent / "site" / "preview"))
+        import generate_preview as gp
+        report, _ = self.run_bridge(source_use=grant(permissions={
+            "public_original_storage": False, "public_full_translation": False,
+            "public_excerpt": False}))
+        self.assertIn(qa.PUBLISHED, self.outcomes(report))
+        self.conn.commit()
+        row = self.conn.execute("SELECT a.id, a.url FROM articles a JOIN "
+                                "vietnam_article_provenance p ON p.article_id=a.id").fetchone()
+        with patch.object(gp, "load_registry", self.promoted_registry):
+            gp.build(self.tmp / "out", "Test Title", self.db_path,
+                     snapshot=gp.snapshot_from_corpus(self.db_path))
+        page = (self.tmp / "out" / "record" / ("%d.html" % row[0])).read_text()
+        self.assertIn("Synthetic IPR factual headline", page)
+        self.assertIn("According to the report", page)
+        self.assertIn("Machine-generated headline", page)
+        self.assertNotIn('id="record-translation"', page)
+        self.assertNotIn("The heading is a machine translation", page)
+        self.assertIn('href="%s"' % row[1], page)
+        self.assertIn("not reproduced here", page)
+
 
 class DailyCommand(unittest.TestCase):
     """SIMULATED: the Daily command on a schema clone outside the repository."""
@@ -1119,6 +1156,27 @@ class DailyCommand(unittest.TestCase):
                 with contextlib.closing(sqlite3.connect(str(self.db_path))) as conn:
                     self.assertEqual(conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0], 0)
                 self.assertTrue((self.tmp / "ledgers" / ("%s.json" % family)).is_file())
+
+    def test_production_command_wires_bounded_second_pass_and_duplicates_cost_nothing(self):
+        sealed = self.tmp / "sealed.json"
+        sealed.write_text(json.dumps(decision(permissions={"public_full_translation": False,
+                                                          "public_original_storage": False})))
+        analyzer = FakeAnalyzer(event_type="contract")
+        analyzer._call = lambda *args, **kwargs: '{"ok":true,"reason":"Synthetic check"}'
+        analyzer._parse_task_json = lambda raw, *args: json.loads(raw)
+        with patch.dict(os.environ, {"VIETNAM_SOURCE_USE_REVIEW_KEY": KEY.decode()}), \
+                patch("analysis.analyzer.Analyzer", return_value=analyzer), \
+                patch.object(bridge, "desk_promoted", return_value=True):
+            code, report = self.main("--decision", "%s=%s" % (MPS, sealed))
+            self.assertEqual(code, 0, report)
+            run = report["runs"][0]
+            self.assertEqual(set(o["outcome"] for o in run["outcomes"]), {qa.PUBLISHED})
+            self.assertEqual(run["second_pass_used"], len(analyzer.calls))
+            first_calls = len(analyzer.calls)
+            code, report = self.main("--decision", "%s=%s" % (MPS, sealed))
+            self.assertEqual(code, 0, report)
+            self.assertEqual(report["runs"][0]["second_pass_used"], 0)
+            self.assertEqual(len(analyzer.calls), first_calls)
 
     def test_refusals_leave_the_database_untouched(self):
         before = self.db_path.read_bytes()
