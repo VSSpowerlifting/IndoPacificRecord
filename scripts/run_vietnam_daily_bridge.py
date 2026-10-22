@@ -144,6 +144,9 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
                     api=api, as_of_utc=as_of_utc,
                     source_use=policies[family], analyzer=analyzer,
                     ledger_path=staging / ("%s.json" % family), run_id=run_id,
+                    second_pass=(bridge.model_second_pass(analyzer, family)
+                                 if policies[family].allows("external_model_transmission")
+                                 and policies[family].allows("public_ipr_analysis") else None),
                     custody=custody[family] if private else None))
             if (conn.execute("PRAGMA integrity_check").fetchone() != ("ok",)
                     or conn.execute("PRAGMA foreign_key_check").fetchall()):

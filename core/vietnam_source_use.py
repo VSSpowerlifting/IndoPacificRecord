@@ -16,11 +16,13 @@ cutover) establishes neither MPS reuse terms nor permission to send MPS text to
 a model, and MOIT has a separate written-consent and robots hold.
 
 A grant exists only in an owner-sealed decision (HMAC under DOMAIN, the same
-envelope as other regional reviews). The seal authenticates possession of the
-owner's key, not legal rights: the decision must also name a rights basis of a
-type in core.regional_typed_source_use_decision.RIGHTS and a reference to it.
-Attribution or a site footer is never a rights basis. MOIT decisions also need
-a robots review reference. Fixture keys exist only in tests.
+envelope as other regional reviews). The seal authenticates the owner's
+decision, not legal rights. An MPS-specific independently documented source-use
+assessment may be recorded instead of implying every reporting use needs a
+publisher license; it must separately cover full-body external model input.
+This is never inferred from the China Desk, a source URL, or attribution.
+MOIT retains its existing express-terms/permission and robots requirements.
+Fixture keys exist only in tests.
 """
 from __future__ import annotations
 
@@ -37,6 +39,10 @@ import hashlib
 SCHEMA = "ipr-vietnam-source-use-decision/1"
 DOMAIN = b"IPR-VIETNAM-SOURCE-USE-DECISION-v1\n"
 POLICY_VERSION = "vn-source-use-2026-10-19.1"
+# This records an owner-reviewed legal/source-use rationale, NOT a publisher license.
+# Only MPS may select it; public reproduction/translation remains separately held.
+INDEPENDENT_ASSESSMENT = "documented_independent_source_use_assessment"
+SOURCE_USE_BASES = RIGHTS | frozenset((INDEPENDENT_ASSESSMENT,))
 
 PERMISSIONS = (
     "collect_preserve", "external_model_transmission", "public_original_storage",
@@ -110,13 +116,20 @@ class SourceUse:
     item_withholds: Dict[str, FrozenSet[str]] = field(default_factory=dict)
     policy_version: str = POLICY_VERSION
 
+    def _dependencies(self, permission: str):
+        # MPS publishes a separately authored factual English headline, not
+        # the Vietnamese original. Analysis need not inherit title reuse.
+        if self.source_family == MPS and permission == "public_ipr_analysis":
+            return ("external_model_transmission",)
+        return REQUIRES.get(permission, ())
+
     def allows(self, permission: str, source_identity: Optional[str] = None) -> bool:
         _need(permission in PERMISSIONS, "unknown_source_use_permission")
         if permission not in self.granted:
             return False
         if source_identity and permission in self.item_withholds.get(source_identity, ()):
             return False
-        return all(self.allows(dep, source_identity) for dep in REQUIRES.get(permission, ()))
+        return all(self.allows(dep, source_identity) for dep in self._dependencies(permission))
 
     def reason(self, permission: str, source_identity: Optional[str] = None) -> Optional[str]:
         """The hold code for a permission that is not usable; None when usable."""
@@ -126,7 +139,7 @@ class SourceUse:
             return self.holds.get(permission, "not_granted")
         if source_identity and permission in self.item_withholds.get(source_identity, ()):
             return "item_exception"
-        for dep in REQUIRES.get(permission, ()):
+        for dep in self._dependencies(permission):
             if not self.allows(dep, source_identity):
                 return "requires_" + dep
         return "not_granted"
@@ -165,8 +178,16 @@ def verify_decision(sealed: dict, secret: bytes, family: str, *, as_of: str) -> 
               "source_use_decision_expired")
     _text(review["decided_by"], "source_use_decided_by", 3)
     # Attribution is a condition of use, never a basis for it.
-    _need(review["rights_basis_type"] in RIGHTS, "source_use_rights_basis_type")
+    basis = review["rights_basis_type"]
+    _need(basis in SOURCE_USE_BASES, "source_use_rights_basis_type")
     _text(review["rights_basis_reference"], "source_use_rights_basis_reference", 12)
+    if basis == INDEPENDENT_ASSESSMENT:
+        _need(family == MPS, "independent_assessment_mps_only")
+        # A source-specific documented determination is required; a homepage
+        # or site footer is not a substitute for reviewing model-input use.
+        ref = review["rights_basis_reference"]
+        _need(ref.startswith("docs/engineering/") and ref.endswith(".md"),
+              "independent_assessment_document_required")
     _text(review["attribution_text"], "source_use_attribution_text", 3)
     if review["license_terms"] is not None:
         _text(review["license_terms"], "source_use_license_terms", 3)
@@ -175,6 +196,11 @@ def verify_decision(sealed: dict, secret: bytes, family: str, *, as_of: str) -> 
     perms = review["permissions"]
     _need(isinstance(perms, dict) and set(perms) == set(PERMISSIONS)
           and all(type(v) is bool for v in perms.values()), "source_use_permissions")
+    if basis == INDEPENDENT_ASSESSMENT:
+        _need(not any(perms[p] for p in ("public_original_storage",
+                                         "public_full_translation",
+                                         "public_excerpt", "public_title_display")),
+              "independent_assessment_cannot_grant_source_republication")
     excerpt = review["excerpt_max_chars"]
     if perms["public_excerpt"]:
         _need(type(excerpt) is int and 1 <= excerpt <= 600, "source_use_excerpt_limit")
@@ -220,9 +246,13 @@ def owner_decision_request(family: str) -> dict:
             "public_title_display": "May IPR show the original Vietnamese title with a link to the official page?",
         },
         "evidence_required": [
-            "rights_basis_type: one of " + ", ".join(sorted(RIGHTS))
+            "rights_basis_type: one of " + ", ".join(sorted(
+                SOURCE_USE_BASES if family == MPS else RIGHTS))
             + " (a site footer or attribution line is not a basis)",
-            "rights_basis_reference: the URL of the official reuse terms or the dated written permission",
+            "rights_basis_reference: explicit official terms/permission, or for MPS "
+            "only a dated independent source-use assessment in docs/engineering/ "
+            "covering full-body Anthropic input, provenance, applicable law and "
+            "its limits; the assessment is not a publisher license",
             "attribution_text and any license_terms the basis imposes",
         ] + ([] if family == MPS else [
             "robots_review_reference: the dated robots.txt / access review for moit.gov.vn",

@@ -207,10 +207,11 @@ class PrivateCustody(unittest.TestCase):
         from scripts import admit_vietnam_official_links as publisher
         signed=self.sign(); target=self.f.root/'disposable-production.db'
         shutil.copyfile(publisher.ROOT/'pla_watch.db',target)
-        # Synthetic private review must not collide with MPS links already
-        # admitted to canonical production under different source commits.
-        with closing(sqlite3.connect(str(target))) as conn, conn:
-            conn.execute("DELETE FROM regional_official_source_links WHERE desk='vietnam'")
+        # Keep real, already-released MPS identities out of a fictional review.
+        with closing(sqlite3.connect(str(target))) as conn:
+            conn.execute("DELETE FROM regional_official_source_links "
+                         "WHERE desk='vietnam' AND source_family=?", (self.FAMILY,))
+            conn.commit()
         before=target.read_bytes()
         options=dict(api=self.public_api,secret=KEY,as_of_utc=NOW,
             expected_db_sha256=publisher.sha(target),private_projection=signed,
