@@ -1,6 +1,7 @@
 """Prevent direct, unauthorized Vietnam-journal production/CI activation wiring.
 
-Read-only static boundary for the current *disabled research candidate*.
+Read-only static boundary for the disabled journal research candidate,
+independent of the live MPS-only Vietnam Desk.
 Composes the merged source-readiness hold with production manifests, public
 desk registry, and the names and contents of workflow definitions. This is
 not a crawler authorization, a full code-flow audit, or a legal rights grant.
@@ -52,16 +53,30 @@ def validate_boundary(manifest, readiness, registry, production_manifests, workf
     if len(vietnam) != 1:
         raise BoundaryRefused("Vietnam desk must be declared exactly once")
     entry = vietnam[0]
-    if (entry.get("status") not in ("research", "shadow")
-            or entry.get("manifest") is not None
-            or entry.get("has_production_records") is not False
-            or entry.get("public") is not True):
-        raise BoundaryRefused("journal's Vietnam desk is no longer nonproduction research/shadow")
+    if entry.get("public") is not True:
+        raise BoundaryRefused("Vietnam desk must remain publicly declared")
+    if entry.get("status") in ("research", "shadow"):
+        if (entry.get("manifest") is not None
+                or entry.get("has_production_records") is not False):
+            raise BoundaryRefused("nonproduction Vietnam desk cannot declare a live manifest")
+    elif entry.get("status") == "live":
+        # The owner authorized only the separate MPS family, not this journal.
+        if (entry.get("manifest") != "desks/vietnam/manifest.json"
+                or entry.get("has_production_records") is not True):
+            raise BoundaryRefused("live Vietnam desk requires its reviewed MPS manifest")
+    else:
+        raise BoundaryRefused("invalid Vietnam desk status")
 
     if not isinstance(production_manifests, dict):
         raise BoundaryRefused("invalid production manifest inventory")
     if not production_manifests:
         raise BoundaryRefused("production manifest scan returned no files")
+    if entry.get("status") == "live":
+        mps_manifest = production_manifests.get("desks/vietnam/manifest.json")
+        if (not isinstance(mps_manifest, dict)
+                or {source.get("slug") for source in mps_manifest.get("sources", [])
+                    if isinstance(source, dict)} != {"vn_mps_foreign_affairs_vi"}):
+            raise BoundaryRefused("live Vietnam desk is not limited to the approved MPS family")
     for path, payload in production_manifests.items():
         if (not isinstance(path, str) or not path.startswith("desks/")
                 or not path.endswith("/manifest.json")
