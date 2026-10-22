@@ -455,7 +455,7 @@ class TestThisEnablesNothing(unittest.TestCase):
         `sync_desk_config()` write a row into the tracked database.
         """
         from core.manifests import load_all_desks
-        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore", "vietnam"])
         self.assertTrue((REPO_ROOT / "desks" / "registry.json").is_file())
         self.assertFalse((REPO_ROOT / "desks" / "registry"
                           / "manifest.json").exists())

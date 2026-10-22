@@ -110,11 +110,13 @@ class VietnamReviewedLinksTests(unittest.TestCase):
         with self.assertRaises(ReviewedLinkError):
             load_reviewed_links(self.path)
 
-    def test_is_not_a_production_desk_or_brief_source(self):
+    def test_mps_only_live_desk_is_eligible_for_human_reviewed_briefs(self):
         from core.brief_contract import eligible_desks
         from core.desk_registry import load_registry
         desks = eligible_desks(load_registry())
-        self.assertNotIn("vietnam", desks)
+        self.assertIn("vietnam", desks)
+        self.assertEqual([s.slug for s in load_registry().get("vietnam").sources],
+                         ["vn_mps_foreign_affairs_vi"])
 
 
 if __name__ == "__main__":

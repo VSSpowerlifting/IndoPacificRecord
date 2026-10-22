@@ -1,5 +1,20 @@
 # Vietnam source-use decisions — owner review, 21 October 2026
 
+**OWNER DECISION — 22 October 2026:** The owner explicitly APPROVED the
+conditional-go MPS Foreign Affairs model-input assessment below, accepting its
+documented residual legal risk and authorizing bounded external Anthropic
+analysis plus automatic publication of qualifying nonverbatim English factual
+explanations. See the newer 2026-10-22 entry in `DECISION_LOG.md`. The original
+21 October assessment and unsigned recommendation remain below as historical
+evidence; the subsequent owner's approval supersedes their undecided status.
+This is *not* a ministry license. No original Vietnamese title/body, complete
+translation, substantial excerpt, media or MOIT source inherits permission.
+
+**Production evidence is separate:** Activation requires a sealed decision,
+independent key in both repositories, an accurate MPS-only production manual
+manifest/registry, required CI, and genuine private-to-public source-to-HTTPS
+verification. Approval alone does not establish any AI-analyzed article count.
+
 **Status: THREE MPS OFFICIAL LINKS LIVE; AUTOMATIC ARTICLE ANALYSIS HELD.**
 The metadata-only owner release and PR #848 are complete. They do not grant
 original-body model use. No article source-use seal, model call, source-use key
