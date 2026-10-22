@@ -107,7 +107,11 @@ class JournalIdentity(unittest.TestCase):
 
     def test_source_not_discoverable_by_production_manifest_glob(self):
         self.assertEqual(MANIFEST.parent.parent.name, "shadow")
-        self.assertFalse((ROOT / "desks" / "vietnam" / "manifest.json").exists())
+        # The MPS-only live manifest does not authorize National Defence Journal.
+        prod = json.loads((ROOT / "desks" / "vietnam" / "manifest.json").read_text())
+        self.assertEqual([source["slug"] for source in prod["sources"]],
+                         ["vn_mps_foreign_affairs_vi"])
+        self.assertFalse(json.loads(MANIFEST.read_text())["sources"][0]["enabled"])
 
 
 if __name__ == "__main__":
