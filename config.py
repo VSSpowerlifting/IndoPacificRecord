@@ -70,6 +70,11 @@ RELEVANCE_TOOL_OUTPUT_ENABLED: bool = (
 # https://docs.anthropic.com/en/docs/about-claude/models
 ANALYSIS_MODEL: str = os.environ.get("ANALYSIS_MODEL", "claude-sonnet-4-6")
 
+# Owner activation after title-only engineering review; independent of relevance.
+# Zero makes no additional calls. One run has the same hard batch bound as the CLI.
+CHINA_TITLE_TRANSLATION_LIMIT: int = max(0, min(200, int(
+    os.environ.get("CHINA_TITLE_TRANSLATION_LIMIT", "0"))))
+
 # Hard cap on LLM-analyzed articles per daily run.
 # Prevents runaway costs from large scrape days or backlog catch-up.
 # Override via env var: DAILY_ANALYSIS_CAP=20 python pipeline.py
@@ -126,6 +131,29 @@ LIVE_BACKLOG_DAYS: int = int(os.environ.get("LIVE_BACKLOG_DAYS", "14"))
 # the longest article observed (18,148 chars) with wide margin. Calls at this
 # size must stream, or the SDK hits an HTTP timeout.
 TRANSLATION_MAX_TOKENS: int = int(os.environ.get("TRANSLATION_MAX_TOKENS", "32000"))
+
+# Korea Desk shared-Daily automation (docs/engineering/KOREA_DESK_OPERATION.md).
+# The single owner activation switch: the governed MND corpus bridge and the
+# Korea reservation on the shared model queue both stay inert unless this is
+# exactly "true". Set from the repository variable of the same name; unset in
+# every other context, including tests and local runs.
+KOREA_DAILY_AUTOMATION_ENABLED: bool = (
+    os.environ.get("KOREA_DAILY_AUTOMATION_ENABLED", "") == "true"
+)
+# Korean records sent to the model per run, in addition to (never out of)
+# DAILY_ANALYSIS_CAP, so Korea can neither starve nor be starved by China and
+# Singapore. Bounded 0-20; zero processes nothing. A malformed value means
+# zero, never an import error: a typo in a repository variable must not take
+# the China and Singapore Daily down with it.
+def _korea_processing_cap(raw: str) -> int:
+    try:
+        return max(0, min(20, int(raw)))
+    except (TypeError, ValueError):
+        return 0
+
+
+KOREA_DAILY_PROCESSING_CAP: int = _korea_processing_cap(
+    os.environ.get("KOREA_DAILY_PROCESSING_CAP", "4"))
 
 PROMPT_VERSION: str = "v1"
 

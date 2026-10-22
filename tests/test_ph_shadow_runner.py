@@ -173,7 +173,7 @@ class TestIsolation(StateCase):
         self.assertFalse((REPO_ROOT / "pla_watch.db-wal").exists())
 
     def test_the_manifest_is_not_discoverable_as_a_production_desk(self):
-        self.assertEqual(sorted(load_all_desks()), ["china", "singapore"])
+        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore"])
         self.assertTrue((REPO_ROOT / "shadow" / "ph_afp" / "manifest.json").is_file())
         self.assertFalse((REPO_ROOT / "desks" / "philippines").exists())
 
@@ -278,6 +278,43 @@ class TestIsolation(StateCase):
                     # Two explicitly named read-only reviewer facilities.
                     # All other AFP workflow entry points remain prohibited.
                     self.assert_read_only_afp_observer(text)
+                    continue
+                if path.name in (
+                    "afp_kemhan_held_metadata_intake.yml",
+                    "ph_afp_first23_originals_review.yml",
+                    "afp_kemhan_regional_release_contracts.yml",
+                ):
+                    # Explicit bounded reviewer/intake exceptions; no direct
+                    # AFP shadow collection or public-release permissions.
+                    self.assertIn("permissions:\n  contents: read", text)
+                    self.assertIn("persist-credentials: false", text)
+                    self.assertNotRegex(
+                        text, r"(?m)^\s*(?:schedule|push|pull_request_target):")
+                    for forbidden in (
+                        "contents: write", "actions: write", "pages: write",
+                        "id-token: write", "scripts.shadow_collect_ph",
+                        "scripts/shadow_collect_ph", "git push", "curl ",
+                        "wget ", "GITHUB_TOKEN", "secrets.",
+                    ):
+                        self.assertNotIn(forbidden, text)
+                    continue
+                if path.name == "ph_afp_verified_official_link_production.yml":
+                    # The one metadata-only release lane: it reads the
+                    # preserved shadow/ph-afp history and admits validated
+                    # links, but never collects AFP and publishes nothing
+                    # beyond the SQLite rows and the Philippines page.
+                    self.assertIn("permissions:\n  contents: read", text)
+                    self.assertIn("python -m scripts.admit_ph_afp_official_links admit", text)
+                    self.assertIn("git add -- pla_watch.db output/philippines.html", text)
+                    self.assertIn("git add -- philippines.html", text)
+                    self.assertNotRegex(text, r"(?m)^\s*pull_request_target:")
+                    for forbidden in (
+                            "scripts.shadow_collect_ph", "scripts/shadow_collect_ph",
+                            "sign-private", "actions: write", "pages: write",
+                            "id-token: write", "curl ", "wget ", "upload-artifact",
+                            "git push origin HEAD:shadow", "git add -A", "git add ."):
+                        with self.subTest(forbidden=forbidden):
+                            self.assertNotIn(forbidden, text)
                     continue
                 self.assertNotIn("ph_afp", text)
 

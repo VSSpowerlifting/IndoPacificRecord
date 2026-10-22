@@ -67,6 +67,17 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 "a sidecar already sits beside the tracked database, so this "
                 "test cannot attribute one: %s" % sidecars_present())
         cls.before = hashlib.sha256(TRACKED.read_bytes()).hexdigest()
+        # Exercise liveness at this snapshot's collection date, not the wall
+        # clock: this test checks filesystem residue, not operational freshness.
+        # Match liveness's active-source filter and scraped_at date semantics.
+        from scripts.reconcile_db import read_only
+        with read_only(TRACKED) as db:
+            cls.liveness_today = db.execute(
+                "SELECT MAX(date(a.scraped_at)) FROM articles a "
+                "JOIN sources s ON a.source_id = s.id WHERE s.is_active = 1"
+            ).fetchone()[0]
+        if cls.liveness_today is None:
+            raise AssertionError("snapshot has no active-source collection date")
 
     def setUp(self):
         # Whatever this test provokes, it removes. setUpClass has already
@@ -83,6 +94,8 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 path.unlink()
 
     def run_script(self, argv):
+        if argv[0] == "scripts/check_source_liveness.py":
+            argv = [*argv, "--today", self.liveness_today]
         return subprocess.run([sys.executable, *argv], cwd=str(REPO_ROOT),
                               capture_output=True, text=True, timeout=600)
 
@@ -95,20 +108,37 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 self.sweep()
                 proc = self.run_script(argv)
                 if name == "verify_db_current" and proc.returncode == 1:
-                    # A schema-only PR may add China tombstone migration 0009 before the
-                    # tracked production database has received its guarded
-                    # production admission. The verifier MUST fail closed in
-                    # that transitional state while still leaving no SQLite
-                    # WAL/SHM sidecars beside the tracked file.
+                    # Title receipts 0012, Vietnam links 0013, NSC 0014,
+                    # shared Daily 0015, Korea corpus 0016 and Vietnam provenance 0017
+                    # may await separate production application, depending on
+                    # this tracked snapshot. Accept exactly those known gaps,
+                    # never an arbitrary pending migration or verifier failure.
                     from migrations.runner import discover, applied_versions
                     from scripts.reconcile_db import read_only
                     with read_only(TRACKED) as check_db:
+                        applied = set(applied_versions(check_db))
                         pending = ({m.version for m in discover()}
-                                   - set(applied_versions(check_db)))
-                    self.assertEqual({"0009"}, pending,
+                                   - applied)
+                    self.assertTrue(pending)
+                    self.assertEqual({"0012", "0013", "0014", "0015", "0016", "0017"} - applied, pending,
                                      "an unrecognized migration is pending")
                     self.assertIn("database is 'partially_applied'",
                                   proc.stderr)
+                elif name == "check_source_liveness" and proc.returncode == 1:
+                    # Liveness is a DATE-SENSITIVE health diagnostic, not an
+                    # unconditional success command. The tracked offline
+                    # corpus may cross a legitimate silence threshold between
+                    # one CI run and the next (e.g. at midnight UTC). Exit 1
+                    # means source(s) need attention, per the script contract,
+                    # and says nothing about SQLite sidecars. Accept it only
+                    # with affirmative evidence of that documented verdict;
+                    # crashes, imports, and unexplained exit codes still fail.
+                    self.assertIn("Source liveness — threshold ", proc.stdout)
+                    self.assertRegex(proc.stdout, r"(?m)^UNHEALTHY\s+")
+                    self.assertRegex(
+                        proc.stdout,
+                        r"(?m)^[1-9][0-9]* source\(s\) need attention\.$")
+                    self.assertNotIn("Traceback", proc.stderr)
                 else:
                     self.assertEqual(
                         0, proc.returncode,

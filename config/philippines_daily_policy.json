@@ -1,0 +1,27 @@
+{
+  "schema": "ipr-daily-source-policy/1",
+  "sources": {
+    "ph_afp_articles": {
+      "private_model_processing": true,
+      "public_machine_explanation": true,
+      "unattended_release": true,
+      "owner_decision": "2026-10-20 standing AFP nonverbatim factual English explanations; separate production activation required",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [
+        "afp:1418"
+      ],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
+    },
+    "ph_nsc_official_statements": {
+      "private_model_processing": true,
+      "public_machine_explanation": true,
+      "unattended_release": true,
+      "owner_decision": "2026-10-20 owner: NSC first-party official factual English processing and <=90-word attributed clearly machine-labeled public explanations; preserve strict provenance/rights/topic/quality holds and NSC host-versus-issuer distinction; $0.35 estimated/run, 1 record per run",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
+    }
+  }
+}

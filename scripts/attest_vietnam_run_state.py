@@ -26,7 +26,7 @@ from core.shadow_schedule import scheduled_slot_date
 from scripts.audit_shadow_workflow_bindings import validate as audit_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO = "VSSpowerlifting/China-Mil-Watch"
+REPO = "VSSpowerlifting/IndoPacificRecord"
 PREFIX = "/repos/" + REPO
 SOURCES = (
     "vn_mps_foreign_affairs_vi",
@@ -67,11 +67,14 @@ def sha_blob(data):
 
 class GithubRead:
     """Fixed GitHub API domain, no redirect, auth token never logged."""
-    def __init__(self, token=None):
+    def __init__(self, token=None, repository=REPO):
+        require(repository in (REPO, "VSSpowerlifting/ipr-source-evidence-private"),
+                "repository not allowlisted")
         self.token = token
+        self.prefix = "/repos/" + repository
 
     def get(self, path):
-        require(isinstance(path, str) and path.startswith(PREFIX + "/"),
+        require(isinstance(path, str) and path.startswith(self.prefix + "/"),
                 "non-repository API endpoint")
         require(".." not in path and "//" not in path, "malformed API path")
         url = "https://api.github.com" + path
@@ -95,8 +98,10 @@ class GithubRead:
             raise AttestationHold("GitHub API unavailable, denied or malformed") from None
 
 
-def encoded_content(api, path, state_sha):
-    obj = api.get(PREFIX + "/contents/" + path + "?ref=" + state_sha)
+def encoded_content(api, path, state_sha, *, prefix=PREFIX):
+    require(prefix in (PREFIX, "/repos/VSSpowerlifting/ipr-source-evidence-private"),
+            "repository not allowlisted")
+    obj = api.get(prefix + "/contents/" + path + "?ref=" + state_sha)
     require(isinstance(obj, dict) and obj.get("encoding") == "base64"
             and isinstance(obj.get("content"), str) and
             isinstance(obj.get("sha"), str),
@@ -137,6 +142,22 @@ def exact_binding(source, bindings):
     return rows[0]
 
 
+def require_persisted_attempt(api, run):
+    """A failed sibling does not erase a successfully persisted source."""
+    require(run.get("status") == "completed" and run.get("conclusion") in ("success", "failure"),
+            "Actions attempt not an attested success")
+    if run["conclusion"] == "failure":
+        jobs = api.get(PREFIX + "/actions/runs/%s/attempts/%s/jobs?per_page=100" %
+                       (run["id"], run["run_attempt"]))
+        require(type(jobs) is dict and jobs.get("total_count") == 1
+                and len(jobs.get("jobs", [])) == 1, "source publication job missing")
+        steps = jobs["jobs"][0].get("steps", [])
+        for name in ("Assert collector checkout preservation", "Publish successful state only"):
+            matches = [s for s in steps if s.get("name") == name]
+            require(len(matches) == 1 and matches[0].get("conclusion") == "success",
+                    "failed batch did not persist independently successful source")
+
+
 def one_family(api, binding, as_of):
     """Return only GitHub-confirmed operational observation, NEVER full review."""
     branch = binding["state_branch"]
@@ -167,12 +188,14 @@ def one_family(api, binding, as_of):
     run = api.get(PREFIX + "/actions/runs/" + str(run_num) +
                   "/attempts/" + str(attempt_num))
     require(isinstance(run, dict) and run.get("id") == run_num and
-            run.get("run_attempt") == attempt_num and
-            run.get("status") == "completed" and run.get("conclusion") == "success",
+            run.get("run_attempt") == attempt_num,
             "Actions attempt not an attested success")
+    require_persisted_attempt(api, run)
     require(run.get("event") == "schedule" and
             isinstance(run.get("head_sha"), str) and SHA.fullmatch(run["head_sha"]),
             "not an identifiable scheduled Actions run")
+    require(ledger.get("collector_commit") == run["head_sha"],
+            "ledger collector commit differs from authenticated Actions attempt")
     wf = run.get("path")
     require(isinstance(wf, str) and wf.split("@")[0] == binding["workflow"],
             "Actions workflow does not match source binding")
@@ -215,6 +238,7 @@ def one_family(api, binding, as_of):
         "actions_head_sha": run["head_sha"],
         "logical_date": date_str,
         "github_event": "schedule",
+        "batch_conclusion": run["conclusion"],
         "state_health": ledger["health"],
         "bounded_listing_result": ledger["result"],
         "new_records_in_observed_run": ledger["new_records"],

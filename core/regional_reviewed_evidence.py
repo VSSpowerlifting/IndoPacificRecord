@@ -209,6 +209,23 @@ def sign_private_review(unsigned, inventory, secret):
     return {"review": unsigned, "hmac_sha256": seal}
 
 
+def verify_review_seal(sealed, secret, *, domain=b""):
+    """Authenticate a review envelope; each caller separately enforces scope.
+
+    The private-model seal retains its existing bytes. Other review purposes
+    require a distinct domain and their own exact source/action validation.
+    This authenticates key possession, never legal rights or human identity.
+    """
+    _keys(sealed, ("review", "hmac_sha256"), "signed review")
+    digest = sealed["hmac_sha256"]
+    _need(isinstance(digest, str) and len(digest) == 64
+          and all(x in "0123456789abcdef" for x in digest), "invalid review seal")
+    want = hmac.new(_key(secret), domain + _canonical(sealed["review"]),
+                    hashlib.sha256).hexdigest()
+    _need(hmac.compare_digest(digest, want), "owner review signature missing or altered")
+    return sealed["review"]
+
+
 def verify_private_review(sealed, inventory, secret):
     """Verify reviewed manifest against a *freshly re-inspected* inventory.
 
@@ -216,16 +233,7 @@ def verify_private_review(sealed, inventory, secret):
     not a model-supplied or stale JSON file. A valid HMAC demonstrates
     owner-secret possession, not publisher consent or factual truth.
     """
-    _keys(sealed, ("review", "hmac_sha256"), "signed review")
-    digest = sealed["hmac_sha256"]
-    _need(isinstance(digest, str) and len(digest) == 64
-          and all(x in "0123456789abcdef" for x in digest),
-          "invalid review seal")
-    want = hmac.new(_key(secret), _canonical(sealed["review"]),
-                    hashlib.sha256).hexdigest()
-    _need(hmac.compare_digest(digest, want),
-          "owner review signature missing or altered")
-    return _review_payload(sealed["review"], inventory)
+    return _review_payload(verify_review_seal(sealed, secret), inventory)
 
 
 def private_model_packet(inventory, sealed, secret):

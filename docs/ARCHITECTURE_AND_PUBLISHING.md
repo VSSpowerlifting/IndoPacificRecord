@@ -45,6 +45,32 @@ historical Night Desk base link that stylesheet. `core/topography.py` supplies
 deterministic address-specific profiles to both Jinja environments. Historical
 HTML still requires its normal sidecar re-render to pick up base-template edits.
 
+## 2a. Cross-desk convergence target (owner, 2026-10-19)
+
+The layer table above describes currently deployed paths; it is **not** a
+prescription to build each desk a separate publishing system. The long-term
+architecture is one **logical** `pipeline.py`/`daily_update.yml` processing
+coordinator with explicit desk-specific profiles, a common permitted-content
+and source-link intake, shared public renderer/archive/search and controlled
+site publication. Independently scheduled official-source collectors and
+private evidence storage remain separate when publisher cadence, access,
+security or source rights require it; they converge through authenticated,
+source-pinned contracts, without recrawling originals. One logical Daily does
+not mean one enormous synchronized scraper job or the removal of safe
+source-specific error isolation.
+
+Public `pla_watch.db` currently stores original article text, so a metadata-
+only source cannot be inserted there as though unrestricted original-text
+republication had been licensed. Separate approved full-text corpus records
+from neutral source-link records and any separately authorized machine-written
+explanation. Machine processing happens only under source-appropriate rights;
+source use, published fields, spending and release remain independently gated.
+The target is unattended publication of authorized, quality-passing,
+**machine-labeled record output**, with exceptional holds; human Briefs and
+bylined analytical manuscripts keep their editorial approval gates.
+This architectural direction does not switch on any desk or workflow by
+itself. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
 ## 3. Commands
 
 ```bash

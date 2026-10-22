@@ -39,14 +39,15 @@ jobs:
   sunday-editor-handoff:
     # Scheduled Sunday editor draft is now the default; manual sends still require opt-in.
     # The October 10 pilot approval/digest guard, live-source gates and Friday
-    # exclusivity check remain mandatory. A configured owner-preview conflicts
-    # with automatic Dylan delivery and fails before any paid model call.
+    # exclusivity check remain mandatory. Scheduled Sunday targets Dylan;
+    # owner-only preview is an explicitly separate manual dispatch.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       SUNDAY_SEND: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && vars.IPR_SUNDAY_EDITOR_DELIVERY_ENABLED == 'true' && inputs.send_email == true) }}
-      SUNDAY_OWNER_PREVIEW: ${{ github.event_name == 'schedule' && vars.IPR_SUNDAY_OWNER_PREVIEW_ENABLED == 'true' }}
+      # Legacy scheduled preview settings cannot conflict with Sunday's editor send.
+      SUNDAY_OWNER_PREVIEW: 'false'
     steps:
       - name: Checkout production corpus on main (read-only)
         uses: actions/checkout@v4
@@ -138,14 +139,6 @@ jobs:
       # no-LLM/no-email gate. This uses only a scratch SQLite read and
       # source-availability counts. Current Sunday requires the exact same-day
       # successful collection marker; historical replays are marked unattested.
-      - name: Require real production full-text readiness before model and email
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m scripts.sunday_before_model_gate \
-            --week-ending "$IPR_SUNDAY_WEEK_END" \
-            --as-of "$IPR_SUNDAY_AS_OF"
-
       - name: Quarantine Korea before any Sunday source refresh
         shell: bash
         run: |
@@ -342,6 +335,20 @@ jobs:
             --as-of "$IPR_SUNDAY_AS_OF" \
             --packet "$PRIVATE_WEEK_PACKET"
 
+      # Evaluate the sanitized CURRENT-week research packet after refresh and
+      # editor-scope restrictions. Typed sources can support an unapproved
+      # editorial draft, but cannot represent live production desk coverage.
+      - name: Require Sunday source readiness with verified editorial research
+        shell: bash
+        env:
+          PRIVATE_WEEK_PACKET: ${{ steps.editor_scope.outputs.packet }}
+        run: |
+          set -euo pipefail
+          python -m scripts.sunday_before_model_gate \
+            --week-ending "$IPR_SUNDAY_WEEK_END" \
+            --as-of "$IPR_SUNDAY_AS_OF" \
+            --research-packet "$PRIVATE_WEEK_PACKET"
+
       - name: Create read-only full Saturday-ending week source scaffold
         env:
           PACKET_SIDECAR: ${{ runner.temp }}/ipr-sunday-scaffold.json
@@ -404,7 +411,7 @@ jobs:
           fi
           python -m scripts.sunday_editorial_handoff "${args[@]}"
 
-      # Owner-only preview requires explicit manual input OR the opt-in
-      # scheduled owner-preview variable, plus distinct IPR_PREVIEW_TO secret.
-      # Neither mode can address Dylan or grant manuscript publication.
+      # Owner-only preview requires manual workflow_dispatch and a distinct
+      # IPR_PREVIEW_TO secret. Scheduled Sunday is reserved for Dylan only.
+      # Neither mode grants manuscript publication.
       # No public manuscript artifact; no push, approval, numbering or deploy.

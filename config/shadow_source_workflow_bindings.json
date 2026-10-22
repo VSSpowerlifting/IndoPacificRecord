@@ -6,9 +6,9 @@
       "manifest": "shadow/id_kemhan/manifest.json",
       "source_slug": "id_kemhan_news",
       "state_branch": "shadow/indonesia-kemhan",
-      "workflow": ".github/workflows/indonesia_korea_shadow.yml",
-      "cron": "17 17 * * *",
-      "trigger": "scheduled"
+      "workflow": null,
+      "cron": null,
+      "trigger": "private_handoff_pending"
     },
     {
       "manifest": "shadow/jp_jcg/manifest.json",
@@ -20,23 +20,15 @@
     },
     {
       "manifest": "shadow/jp_mod/manifest.json",
-      "source_slug": "jp_mod_news_ja",
-      "state_branch": "shadow/jp-mod",
-      "workflow": ".github/workflows/japan_shadow.yml",
-      "cron": "40 22 * * *",
-      "trigger": "scheduled"
-    },
-    {
-      "manifest": "shadow/jp_mod/manifest.json",
-      "source_slug": "jp_mod_siteupdate_ja",
-      "state_branch": "shadow/jp-mod",
-      "workflow": ".github/workflows/japan_shadow.yml",
-      "cron": "40 22 * * *",
-      "trigger": "scheduled"
-    },
-    {
-      "manifest": "shadow/jp_mod/manifest.json",
       "source_slug": "jp_joint_staff_en",
+      "state_branch": "shadow/jp-mod",
+      "workflow": ".github/workflows/japan_shadow.yml",
+      "cron": "40 22 * * *",
+      "trigger": "scheduled"
+    },
+    {
+      "manifest": "shadow/jp_mod/manifest.json",
+      "source_slug": "jp_mod_news_ja",
       "state_branch": "shadow/jp-mod",
       "workflow": ".github/workflows/japan_shadow.yml",
       "cron": "40 22 * * *",
@@ -51,28 +43,44 @@
       "trigger": "scheduled"
     },
     {
+      "manifest": "shadow/jp_mod/manifest.json",
+      "source_slug": "jp_mod_siteupdate_ja",
+      "state_branch": "shadow/jp-mod",
+      "workflow": ".github/workflows/japan_shadow.yml",
+      "cron": "40 22 * * *",
+      "trigger": "scheduled"
+    },
+    {
+      "manifest": "shadow/kr_dapa_policy_briefing/manifest.json",
+      "source_slug": "kr_policy_dapa_releases",
+      "state_branch": "archive/korea-dapa-policy-briefing",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml",
+      "cron": "17 22 * * *",
+      "trigger": "private_scheduled"
+    },
+    {
       "manifest": "shadow/kr_policy_briefing/manifest.json",
       "source_slug": "kr_policy_mnd_releases",
-      "state_branch": "shadow/korea-policy-briefing",
-      "workflow": ".github/workflows/indonesia_korea_shadow.yml",
+      "state_branch": "archive/korea-policy-briefing",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
       "cron": "47 17 * * *",
-      "trigger": "scheduled"
+      "trigger": "private_scheduled"
     },
     {
       "manifest": "shadow/ph_afp/manifest.json",
       "source_slug": "ph_afp_articles",
       "state_branch": "shadow/ph-afp",
-      "workflow": ".github/workflows/ph_afp_shadow.yml",
-      "cron": "40 6 * * *",
-      "trigger": "scheduled"
+      "workflow": null,
+      "cron": null,
+      "trigger": "private_handoff_pending"
     },
     {
       "manifest": "shadow/ph_nsc/manifest.json",
       "source_slug": "ph_nsc_official_statements",
       "state_branch": "shadow/ph-nsc",
-      "workflow": ".github/workflows/ph_nsc_shadow.yml",
-      "cron": "10 10 * * *",
-      "trigger": "scheduled"
+      "workflow": null,
+      "cron": null,
+      "trigger": "private_handoff_pending"
     },
     {
       "manifest": "shadow/singapore_mindef/manifest.json",
@@ -91,14 +99,6 @@
       "trigger": "manual_only"
     },
     {
-      "manifest": "shadow/vietnam/manifest.json",
-      "source_slug": "vn_vgp_defense_en",
-      "state_branch": "shadow/vietnam",
-      "workflow": ".github/workflows/vietnam_shadow.yml",
-      "cron": null,
-      "trigger": "manual_only"
-    },
-    {
       "manifest": "shadow/vietnam_journal/manifest.json",
       "source_slug": "vn_national_defence_journal_en",
       "state_branch": null,
@@ -108,27 +108,35 @@
     },
     {
       "manifest": "shadow/vietnam_ministries/manifest.json",
-      "source_slug": "vn_mps_foreign_affairs_vi",
-      "state_branch": "shadow/vietnam-mps-foreign-affairs",
-      "workflow": ".github/workflows/vietnam_ministry_shadow.yml",
-      "cron": "17 18 * * *",
-      "trigger": "scheduled"
-    },
-    {
-      "manifest": "shadow/vietnam_ministries/manifest.json",
       "source_slug": "vn_moit_energy_vi",
-      "state_branch": "shadow/vietnam-moit-energy",
-      "workflow": ".github/workflows/vietnam_ministry_shadow.yml",
+      "state_branch": "archive/vietnam-moit-energy",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
       "cron": "17 18 * * *",
-      "trigger": "scheduled"
+      "trigger": "private_scheduled"
     },
     {
       "manifest": "shadow/vietnam_ministries/manifest.json",
       "source_slug": "vn_moit_foundational_industry_vi",
-      "state_branch": "shadow/vietnam-moit-foundational-industry",
-      "workflow": ".github/workflows/vietnam_ministry_shadow.yml",
+      "state_branch": "archive/vietnam-moit-foundational-industry",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
       "cron": "17 18 * * *",
-      "trigger": "scheduled"
+      "trigger": "private_scheduled"
+    },
+    {
+      "manifest": "shadow/vietnam_ministries/manifest.json",
+      "source_slug": "vn_mps_foreign_affairs_vi",
+      "state_branch": "archive/vietnam-mps-foreign-affairs",
+      "workflow": "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
+      "cron": "17 18 * * *",
+      "trigger": "private_scheduled"
+    },
+    {
+      "manifest": "shadow/vietnam/manifest.json",
+      "source_slug": "vn_vgp_defense_en",
+      "state_branch": "shadow/vietnam",
+      "workflow": ".github/workflows/vietnam_shadow.yml",
+      "cron": null,
+      "trigger": "manual_only"
     }
   ]
 }

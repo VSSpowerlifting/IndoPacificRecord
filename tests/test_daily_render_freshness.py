@@ -547,7 +547,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         self.assertIn(expression, pipeline)
         self.assertIn(expression, success)
 
-    def test_the_pipeline_step_gained_nothing_else(self):
+    def test_the_pipeline_environment_has_only_approved_values(self):
         pipeline = self.step("Run pipeline")
         env_keys = re.findall(r"^          (\w+):", pipeline, re.M)
         # LLM_USAGE_RECORD_PATH points the usage telemetry at a file under
@@ -555,8 +555,14 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # this list exists to make a new pipeline input a deliberate act, so it
         # moves with a ruling.
         self.assertEqual(sorted(env_keys),
-                         ["ANTHROPIC_API_KEY", "LLM_USAGE_RECORD_PATH",
+                         ["ANTHROPIC_API_KEY", "CHINA_TITLE_TRANSLATION_LIMIT",
+                          "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
+                          "IPR_DAILY_INTAKE_DIR", "KOREA_DAILY_AUTOMATION_ENABLED",
+                          "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE"])
+        self.assertRegex(pipeline, r"CHINA_TITLE_TRANSLATION_LIMIT:\s*['\"]20['\"]")
+        self.assertIn("KOREA_DAILY_AUTOMATION_ENABLED: "
+                      "${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}", pipeline)
         self.assertIn("run: python pipeline.py", pipeline)
         self.assertIn("id: pipeline", pipeline)
         self.assertIn("if: steps.timecheck.outputs.should_run == 'true'",

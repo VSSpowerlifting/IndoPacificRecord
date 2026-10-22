@@ -25,7 +25,14 @@ from scripts.source_health_report import build_report
 BINDING_SCHEMA = "ipr-shadow-source-workflow-bindings/1"
 SLOT_SCHEMA = "ipr-shadow-slot-candidates/1"
 EVIDENCE_SCHEMA = "ipr-operations-shadow-candidates/1"
-TRIGGERS = frozenset(("scheduled", "manual_only", "research_only"))
+TRIGGERS = frozenset(("scheduled", "manual_only", "research_only", "private_handoff_pending", "private_scheduled"))
+# The only source families allowed to retire public collection, each bound to
+# its exact preserved state branch (mirrors audit_shadow_workflow_bindings).
+PRIVATE_HANDOFFS = {
+    ("shadow/id_kemhan/manifest.json", "id_kemhan_news"): "shadow/indonesia-kemhan",
+    ("shadow/ph_afp/manifest.json", "ph_afp_articles"): "shadow/ph-afp",
+    ("shadow/ph_nsc/manifest.json", "ph_nsc_official_statements"): "shadow/ph-nsc",
+}
 SLOT_STATUSES = frozenset((
     "pending_grace", "scheduled_success_new_records_candidate",
     "scheduled_success_no_new_records_candidate",
@@ -143,6 +150,36 @@ def _check_bindings(report, expected):
         if trigger == "research_only":
             require(branch is None and row.get("workflow") is None and
                     row.get("cron") is None, "research-only source has collector binding")
+        elif trigger == "private_scheduled":
+            allowed = {
+                ("shadow/kr_dapa_policy_briefing/manifest.json", "kr_policy_dapa_releases"): (
+                    "archive/korea-dapa-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml",
+                    "17 22 * * *"),
+                ("shadow/kr_policy_briefing/manifest.json", "kr_policy_mnd_releases"): (
+                    "archive/korea-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
+                    "47 17 * * *"),
+            }
+            for family, private_ref in {
+                "vn_mps_foreign_affairs_vi": "archive/vietnam-mps-foreign-affairs",
+                "vn_moit_energy_vi": "archive/vietnam-moit-energy",
+                "vn_moit_foundational_industry_vi": "archive/vietnam-moit-foundational-industry",
+            }.items():
+                allowed[("shadow/vietnam_ministries/manifest.json", family)] = (
+                    private_ref,
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
+                    "17 18 * * *")
+            require(identity in allowed and
+                    (branch, row.get("workflow"), row.get("cron")) == allowed[identity]
+                    and row.get("evidence") == "private_schedule_declared_external_runs_unverified",
+                    "private schedule must be exact reviewed source and unverified")
+        elif trigger == "private_handoff_pending":
+            require(PRIVATE_HANDOFFS.get(identity) == branch
+                    and row.get("workflow") is None
+                    and row.get("cron") is None
+                    and row.get("evidence") == "private_handoff_pending_external_runs_unverified",
+                    "private handoff must remain exact Indonesia Kemhan or Philippines AFP/NSC and unverified")
         else:
             require(type(branch) is str and
                     bool(re.fullmatch(r"shadow/[a-z0-9_/-]+", branch)) and

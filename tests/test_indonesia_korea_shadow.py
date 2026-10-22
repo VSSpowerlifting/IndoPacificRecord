@@ -101,12 +101,13 @@ class Evidence(Case):
                 self.assertEqual(hashlib.sha256(data).hexdigest(), row["sha256"])
                 self.assertEqual(len(data), row["bytes"])
 
-    def test_both_manifests_are_absent_from_production_despite_public_directory(self):
+    def test_indonesia_manifest_is_absent_from_production_despite_public_directory(self):
+        # Korea left this shadow pair through the owner activation
+        # (scripts/korea_daily_activation.py); Indonesia remains shadow.
         self.assertNotIn("indonesia", load_all_desks())
-        self.assertNotIn("korea", load_all_desks())
         entries = {d["slug"]: d for d in json.loads(
             (ROOT / "desks/registry.json").read_text())["desks"]}
-        for slug in ("indonesia", "korea"):
+        for slug in ("indonesia",):
             entry = entries[slug]
             self.assertTrue(entry["public"])
             self.assertEqual(entry["status"], "shadow")
@@ -268,6 +269,63 @@ class Korea(Case):
 
 
 class Access(Case):
+    def test_mnd_article_connection_failure_recovers_exact_original_once(self):
+        korean, session = adapter("korea")
+        ref = korean.discover(CollectionWindow(TARGET, 0)).references[0]
+        original_request = session.request
+        failures = [ref.url]
+
+        def once(method, url, **kwargs):
+            if failures and url == failures[0]:
+                failures.pop()
+                session.calls.append((method, url, kwargs["data"]))
+                raise requests.ConnectionError("synthetic connection reset")
+            return original_request(method, url, **kwargs)
+
+        session.request = once
+        result = korean.extract(korean.fetch(ref))
+        self.assertEqual(result.status, st.OK)
+        self.assertEqual(korean.transport_retries, 1)
+        self.assertEqual([url for _, url, _ in session.calls].count(ref.url), 2)
+        self.assertEqual([e["requested_url"] for e in korean.evidence].count(ref.url), 1)
+        # The budget is collection-wide, not multiplied by the number of sources.
+        session.mutations[ref.url] = requests.ConnectionError("still unavailable")
+        self.assertEqual(korean.fetch(ref).status, st.FETCH_FAILURE)
+        self.assertEqual([url for _, url, _ in session.calls].count(ref.url), 3)
+
+    def test_mnd_attachment_timeout_can_recover_without_refetching_article(self):
+        korean, session = adapter("korea")
+        ref = korean.discover(CollectionWindow(TARGET, 0)).references[0]
+        original_request = session.request
+        failed = []
+
+        def once(method, url, **kwargs):
+            if "/common/download.do" in url and not failed:
+                failed.append(url)
+                session.calls.append((method, url, kwargs["data"]))
+                raise requests.Timeout("synthetic document timeout")
+            return original_request(method, url, **kwargs)
+
+        session.request = once
+        self.assertEqual(korean.extract(korean.fetch(ref)).status, st.OK)
+        self.assertEqual(korean.transport_retries, 1)
+        self.assertEqual([url for _, url, _ in session.calls].count(ref.url), 1)
+
+    def test_mnd_access_tls_and_malformed_body_failures_never_retry(self):
+        for failure in (
+            requests.exceptions.SSLError("synthetic invalid TLS certificate"),
+            Response(KR_LISTING, b"forbidden", 403),
+            Response(KR_LISTING, b"unavailable", 503),
+            Response(KR_LISTING, b"", 302),
+            Response(KR_LISTING, b'<html><title>Just a moment</title></html>'),
+            Response(KR_LISTING, b"<html>truncated"),
+        ):
+            with self.subTest(failure=type(failure).__name__):
+                korean, session = adapter("korea", {KR_LISTING: failure})
+                self.assertFalse(korean.discover(CollectionWindow(TARGET, 0)).ok)
+                self.assertEqual(korean.transport_retries, 0)
+                self.assertEqual([url for _, url, _ in session.calls].count(KR_LISTING), 1)
+
     def test_korea_robots_timeout_is_extended_for_only_one_request(self):
         korean, korean_session = adapter("korea")
         self.assertEqual(korean.discover(CollectionWindow(TARGET, 0)).status, st.OK)
@@ -325,14 +383,15 @@ class Access(Case):
         self.assertEqual(session.calls, [("GET", robots, None)])
         self.assertEqual([e["requested_url"] for e in korean.evidence], [robots])
 
-    def test_korea_listing_timeout_is_never_retried(self):
+    def test_korea_listing_timeout_retries_once_then_fails_closed(self):
         korean, session = adapter(
             "korea", {KR_LISTING: requests.Timeout("synthetic listing timeout")})
         outcome = korean.discover(CollectionWindow(TARGET, 0))
         self.assertEqual(outcome.status, st.TIMEOUT)
         self.assertEqual(korean.robots_timeout_retries, 0)
-        self.assertEqual([url for _, url, _ in session.calls].count(KR_LISTING), 1)
-        self.assertEqual(len(session.calls), 2)
+        self.assertEqual(korean.transport_retries, 1)
+        self.assertEqual([url for _, url, _ in session.calls].count(KR_LISTING), 2)
+        self.assertEqual(len(session.calls), 3)
 
     def test_indonesia_robots_timeout_remains_single_attempt(self):
         robots = "https://www.kemhan.go.id/robots.txt"
@@ -518,62 +577,14 @@ class Runner(Case):
         with self.assertRaisesRegex(ValueError, "outside state"):
             reviewer.export_commit(repo, bad_commit, "indonesia", Path(self.tmp.name) / "contaminated")
 
-    def test_workflow_preserves_manual_launch_and_explicit_success_only_state_destination(self):
+    def test_legacy_public_workflow_is_a_retired_no_source_tombstone(self):
         raw = (ROOT / ".github/workflows/indonesia_korea_shadow.yml").read_text()
         self.assertIn("workflow_dispatch:", raw)
-        self.assertIn("  schedule:", raw)
-        self.assertIn('git push origin "HEAD:refs/heads/$STATE_BRANCH"', raw)
-        self.assertIn("if: success()", raw)
-        self.assertNotIn("--force", raw)
-        self.assertNotIn("actions-gh-pages", raw)
-        self.assertEqual(reviewer.BRANCHES, {desk: spec[2] for desk, spec in runner.DESKS.items()})
-
-    def test_korea_attempt_artifacts_exclude_original_capture_and_shadow_db(self):
-        raw = (ROOT / ".github/workflows/indonesia_korea_shadow.yml").read_text()
-
-        def step(name):
-            return raw.split("      - name: " + name + "\n", 1)[1].split(
-                "      - name:", 1)[0]
-
-        korea = step("Preserve Korea attempt metadata only")
-        self.assertIn("if: ${{ always() && env.SHADOW_DESK == 'korea' }}", korea)
-        self.assertIn("name: candidate-shadow-korea-${{ github.run_id }}-${{ github.run_attempt }}", korea)
-        paths = korea.split("          path: |\n", 1)[1].split(
-            "          if-no-files-found:", 1)[0]
-        self.assertEqual([line.strip() for line in paths.strip().splitlines()], [
-            "${{ runner.temp }}/candidate-state/state/ledger/*.json",
-            "${{ runner.temp }}/candidate-state/state/clock.json",
-            "${{ runner.temp }}/candidate-run.log",
-        ])
-        # No bare state-directory glob may package archived HWPX, capture
-        # bodies, media, Korean full text or the SQLite source database.
-        self.assertNotIn("/candidate-state/state/\n", korea)
-        self.assertNotIn("/candidate-state/state/captures", korea)
-        self.assertNotIn("/candidate-state/state/shadow.db", korea)
-        self.assertIn("retention-days: 90", korea)
-
-        indonesia = step("Preserve Indonesia complete attempt evidence")
-        self.assertIn("if: ${{ always() && env.SHADOW_DESK == 'indonesia' }}", indonesia)
-        self.assertIn("name: candidate-shadow-indonesia-${{ github.run_id }}-${{ github.run_attempt }}", indonesia)
-        self.assertIn("${{ runner.temp }}/candidate-state/state/", indonesia)
-        self.assertIn("${{ runner.temp }}/candidate-run.log", indonesia)
-
-        unselected = step("Preserve unselected attempt log only")
-        self.assertIn("env.SHADOW_DESK != 'korea' && env.SHADOW_DESK != 'indonesia'", unselected)
-        self.assertIn("name: candidate-shadow-unselected-${{ github.run_id }}-${{ github.run_attempt }}", unselected)
-        self.assertIn("path: ${{ runner.temp }}/candidate-run.log", unselected)
-        self.assertNotIn("candidate-state/state/", unselected)
-
-    def test_workflow_shell_blocks_parse(self):
-        import re
-        import subprocess
-        import textwrap
-        raw = (ROOT / ".github/workflows/indonesia_korea_shadow.yml").read_text()
-        blocks = re.findall(r"        run: \|\n(.*?)(?=^      - name:|\Z)", raw, re.M | re.S)
-        for block in blocks:
-            block = block.split("\n      - name:", 1)[0]
-            subprocess.run(["bash", "-n"], input=textwrap.dedent(block), text=True, check=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertNotIn("  schedule:", raw)
+        self.assertNotIn("shadow/korea-policy-briefing", raw)
+        self.assertNotIn("scripts/shadow_collect_desk.py", raw)
+        self.assertNotIn("git push", raw)
+        self.assertNotIn("git clone", raw)
 
     def test_repository_paths_and_symlink_state_are_refused(self):
         with self.assertRaises(ValueError):
@@ -595,175 +606,14 @@ class Runner(Case):
         self.assertFalse(any("pla_watch.db" in s or "output/" in s for s in strings))
 
 
-class WorkflowCadence(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
-        self.raw = (ROOT / ".github/workflows/indonesia_korea_shadow.yml").read_text()
+class RetiredPublicWorkflow(unittest.TestCase):
+    def test_no_live_korea_collection_route_survives(self):
+        raw = (ROOT / ".github/workflows/indonesia_korea_shadow.yml").read_text()
+        self.assertEqual(raw.count("workflow_dispatch:"), 1)
+        self.assertNotIn("schedule:", raw)
+        self.assertNotIn("--state-dir", raw)
+        self.assertNotIn("shadow/korea-policy-briefing", raw)
 
-    def block(self, name):
-        import textwrap
-        step = self.raw.split("      - name: " + name + "\n", 1)[1].split("      - name:", 1)[0]
-        return textwrap.dedent(step.split("        run: |\n", 1)[1])
-
-    def shell(self, name, values):
-        import os
-        import subprocess
-        return subprocess.run(["bash", "-c", self.block(name)], cwd=self.root,
-                              env={**os.environ, **values}, text=True, capture_output=True)
-
-    def selection(self, event, schedule="", desk=""):
-        env_file = self.root / "selected-env"
-        env_file.write_text("")
-        result = self.shell("Select the fixed desk branch", {
-            "EVENT_NAME": event, "SCHEDULE_INPUT": schedule, "DESK_INPUT": desk,
-            "GITHUB_ENV": str(env_file),
-        })
-        values = dict(line.split("=", 1) for line in env_file.read_text().splitlines())
-        return result, values
-
-    def probes(self):
-        import os
-        import sys
-        directory = self.root / "bin"
-        directory.mkdir(exist_ok=True)
-        bodies = {
-            "git": "import sys\nassert sys.argv[1:] == ['rev-parse', 'HEAD']\nprint('fixture-collector')\n",
-            "python": "import json, os, sys\nfrom pathlib import Path\nPath(os.environ['PROBE_ARGS']).write_text(json.dumps(sys.argv[1:]))\n",
-        }
-        for name, body in bodies.items():
-            path = directory / name
-            path.write_text("#!" + sys.executable + "\n" + body)
-            path.chmod(0o755)
-        return str(directory) + os.pathsep + os.environ["PATH"]
-
-    def collection_args(self, values, event, target="", attempt="1"):
-        path = self.root / "args.json"
-        result = self.shell("Collect the declared window", {
-            **values, "PATH": self.probes(), "PROBE_ARGS": str(path),
-            "RUNNER_TEMP": str(self.root), "GITHUB_EVENT_NAME": event,
-            "GITHUB_RUN_ID": "fixture", "GITHUB_RUN_ATTEMPT": attempt,
-            "TARGET_DATE_INPUT": target,
-        })
-        self.assertEqual(result.returncode, 0, result.stderr)
-        args = json.loads(path.read_text())
-        self.assertEqual(args[0], "scripts/shadow_collect_desk.py")
-        return args[1:]
-
-    def test_each_schedule_selects_its_desk_even_with_conflicting_dispatch_input(self):
-        for cron, desk, branch, time in (
-            ("17 17 * * *", "indonesia", "shadow/indonesia-kemhan", "17:17"),
-            ("47 17 * * *", "korea", "shadow/korea-policy-briefing", "17:47"),
-        ):
-            with self.subTest(desk=desk):
-                result, values = self.selection("schedule", cron, "korea" if desk == "indonesia" else "indonesia")
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(values, {"SHADOW_DESK": desk, "STATE_BRANCH": branch, "SHADOW_CRON_UTC": time})
-
-    def test_manual_dispatch_keeps_its_selected_desk(self):
-        for desk, time in (("indonesia", "17:17"), ("korea", "17:47")):
-            result, values = self.selection("workflow_dispatch", "", desk)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(values["SHADOW_DESK"], desk)
-            self.assertEqual(values["SHADOW_CRON_UTC"], time)
-
-    def test_unknown_events_schedules_and_desks_fail_before_state_selection(self):
-        for event, schedule, desk in (
-            ("schedule", "", "indonesia"), ("schedule", "0 * * * *", "korea"),
-            ("push", "", "indonesia"), ("workflow_dispatch", "", "../foreign"),
-        ):
-            with self.subTest(event=event, schedule=schedule, desk=desk):
-                result, values = self.selection(event, schedule, desk)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertEqual(values, {})
-
-    def test_actual_workflow_arguments_preserve_scheduled_dates_across_midnight(self):
-        from contextlib import redirect_stdout
-        from datetime import datetime, timezone
-        for cron in ("17 17 * * *", "47 17 * * *"):
-            _, values = self.selection("schedule", cron)
-            args = self.collection_args(values, "schedule")
-            with mock.patch.object(runner, "datetime") as clock, mock.patch.object(runner, "run", return_value={"health": "ok"}) as collect:
-                clock.now.return_value = datetime(2026, 10, 7, 0, 15, tzinfo=timezone.utc)
-                with redirect_stdout(io.StringIO()):
-                    self.assertEqual(runner.main(args), 0)
-                self.assertEqual(collect.call_args.args[2], date(2026, 10, 6))
-                self.assertEqual(collect.call_args.kwargs["target_source"], "schedule-slot")
-
-    def test_actual_manual_arguments_keep_utc_today_or_explicit_recovery_date(self):
-        from contextlib import redirect_stdout
-        from datetime import datetime, timezone
-        _, values = self.selection("workflow_dispatch", "", "korea")
-        for target, expected, provenance in (("", date(2026, 10, 7), "manual-utc-date"),
-                                              ("2026-10-03", date(2026, 10, 3), "explicit")):
-            args = self.collection_args(values, "workflow_dispatch", target)
-            with mock.patch.object(runner, "datetime") as clock, mock.patch.object(runner, "run", return_value={"health": "ok"}) as collect:
-                clock.now.return_value = datetime(2026, 10, 7, 0, 15, tzinfo=timezone.utc)
-                with redirect_stdout(io.StringIO()):
-                    self.assertEqual(runner.main(args), 0)
-                self.assertEqual(collect.call_args.args[2], expected)
-                self.assertEqual(collect.call_args.kwargs["target_source"], provenance)
-
-    def test_scheduled_ui_rerun_still_refuses_an_ambiguous_date(self):
-        from contextlib import redirect_stderr
-        _, values = self.selection("schedule", "17 17 * * *")
-        args = self.collection_args(values, "schedule", attempt="2")
-        with mock.patch.object(runner, "run") as collect, redirect_stderr(io.StringIO()):
-            self.assertEqual(runner.main(args), 2)
-        collect.assert_not_called()
-        self.assertFalse((self.root / "candidate-state").exists())
-
-    def test_missing_scheduled_state_refuses_to_bootstrap_a_new_clock(self):
-        import sys
-        path = self.probes()
-        (self.root / "bin/git").write_text("#!" + sys.executable + "\nimport sys\nsys.exit(2 if sys.argv[1] == 'ls-remote' else 98)\n")
-        result = self.shell("Check out isolated state", {
-            "PATH": path, "RUNNER_TEMP": str(self.root), "GITHUB_EVENT_NAME": "schedule",
-            "STATE_BRANCH": "shadow/indonesia-kemhan", "STATE_REMOTE": "https://example.invalid/fixture",
-        })
-        self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn("refusing to restart its clock", result.stdout)
-        self.assertFalse((self.root / "candidate-state").exists())
-
-    def test_schedule_contract_keeps_daily_slots_main_guard_and_desk_serialization(self):
-        import re
-        self.assertEqual(re.findall(r"- cron: '([^']+)'", self.raw), ["17 17 * * *", "47 17 * * *"])
-        self.assertIn("if: github.ref == 'refs/heads/main'", self.raw)
-        group = next(line for line in self.raw.splitlines() if line.startswith("  group:"))
-        self.assertIn("inputs.desk ||", group)
-        self.assertIn("github.event.schedule == '17 17 * * *' && 'indonesia'", group)
-        self.assertIn("github.event.schedule == '47 17 * * *' && 'korea'", group)
-        self.assertIn("cancel-in-progress: false", self.raw)
-        self.assertIn('--lookback-days 6 --cap 40', self.raw)
-
-    def test_scheduled_state_requires_both_existing_database_and_clock(self):
-        import sys
-        path = self.probes()
-        (self.root / "bin/git").write_text("#!" + sys.executable + "\n" +
-            "import os, sys\nfrom pathlib import Path\n" +
-            "cmd = sys.argv[1]\n" +
-            "if cmd == 'ls-remote':\n    sys.exit(0)\n" +
-            "elif cmd == 'clone':\n" +
-            "    state = Path(sys.argv[-1]) / 'state'\n    state.mkdir(parents=True)\n" +
-            "    if os.environ['HAS_DB'] == '1': (state / 'shadow.db').write_bytes(b'fixture')\n" +
-            "    if os.environ['HAS_CLOCK'] == '1': (state / 'clock.json').write_text('{}')\n" +
-            "elif cmd == 'branch':\n    print(os.environ['STATE_BRANCH'])\n" +
-            "elif cmd == 'rev-parse':\n    print('fixture-collector')\n" +
-            "elif cmd == 'ls-tree':\n    print('state')\n" +
-            "else:\n    sys.exit(98)\n")
-        for has_db, has_clock, expected in (("1", "0", 1), ("0", "1", 1), ("1", "1", 0)):
-            with self.subTest(database=has_db, clock=has_clock):
-                run_temp = self.root / (has_db + has_clock)
-                run_temp.mkdir()
-                result = self.shell("Check out isolated state", {
-                    "PATH": path, "RUNNER_TEMP": str(run_temp), "GITHUB_EVENT_NAME": "schedule",
-                    "STATE_BRANCH": "shadow/korea-policy-briefing", "STATE_REMOTE": "https://example.invalid/fixture",
-                    "HAS_DB": has_db, "HAS_CLOCK": has_clock,
-                })
-                self.assertEqual(result.returncode, expected, result.stderr)
-                if expected:
-                    self.assertIn("refusing to restart its clock", result.stdout)
 
 
 if __name__ == "__main__":

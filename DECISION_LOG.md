@@ -4,6 +4,385 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-20 — Owner: standing Philippine NSC neutral links and attributed factual machine explanations
+
+The owner authorizes authentic first-party NSC Official Statements to enter
+the existing shared Philippines Daily, including **neutral metadata** (official
+permalink, publisher date, hosting publisher, verified identity) and **bounded
+private model processing** of English originals. Qualifying nonverbatim,
+source-grounded public explanations may be machine-labeled and attributed to
+the **NSC website or the correctly identified issuing institution**, not
+misrepresented as independently established fact. Every factual sentence
+needs source evidence. The website hosts statements from multiple issuing
+offices: NSC hosting/byline is not automatic evidence of original authorship.
+Public original titles, bodies, quotations/excerpts, screenshots, photographs,
+third-party content or wholesale reproduction remain unauthorized.
+
+Standing NSC limits match AFP: 90 combined explanation/flag words, $0.35
+**estimated** per run (not a billing-enforced cap), one record per run, two
+intended calls, bounded input/output tokens, zero hidden SDK retries, and
+five failed attempts before pausing the individual record. Existing publisher
+rights, source/capture/metadata version proof, relevance, topic, attribution,
+copying and quality gates remain mandatory. Human-written Briefs still
+require editorial approval.
+
+The NSC site category had an anomalous unrelated gambling-content observation.
+The Oct 2 official-category investigation did **not** reproduce it. An
+independent Oct 20 check of the official NSC category, official article
+permalinks, and six recognizable security statements (June 3–July 8)
+again found normal official content and no reproduction. The owner resolves
+**this historical category-warning for bounded release purposes only**.
+No unconditional trust of future NSC content is granted: strict official-host,
+WordPress-template, category, canonical permalink, captured body/identity,
+date, provenance and version checks must continue to refuse mismatches. Any
+new anomaly or ambiguous hosted/issued-content rights holds the specific
+record until independently resolved.
+
+Implement through existing private NSC originals custody, signed metadata
+admission, shared private Daily, and existing public Daily/Pages. The historical
+six statements are **not** yet stored in private custody: a real bounded
+historical collection and metadata admission must precede any paid analysis
+or public record release. Maintain the initial quiet-source state faithfully.
+This is standing policy and production-release authorization **conditional on
+these existing verification gates**; it is not evidence that a launch already
+occurred, nor authorization to bypass holds.
+
+## 2026-10-20 — Owner: standing AFP factual machine explanations; production held
+
+The owner approved standing private AFP model processing and automatic public
+publication of qualifying, independently worded, clearly machine-labeled English
+explanations of at most 90 words, with explicit AFP attribution and source links,
+subject to applicable source-use rights and existing provenance, relevance,
+attribution, copying and quality gates. No original AFP titles, bodies, images
+or restricted material may be reproduced. NSC remains separately held.
+
+Initial limits: $0.35 estimated per run, one record per run, at most two intended
+model calls, bounded input/output tokens, no SDK retries, and at most five failed
+queue attempts before pausing that record. `afp:1418` is explicitly excluded
+from machine publication; its failed private trial must never be forced through.
+The owner directed another genuine relevant preserved AFP record to be processed
+through shared Daily before release. These decisions are pinned in
+`config/philippines_daily_policy.json`; **no merge, production secret mutation,
+activation or deployment is authorized yet**.
+
+## 2026-10-20 — Owner: one bounded private AFP model trial
+
+The owner authorized private relevance screening and English summary/topics/
+model-flag processing of `afp:1418` at private source pin
+`442081916b3b41850e958ae75298bf12afe565b6`, after authentic version and
+source-use checks, with a **$0.35 total estimated allowance**. Use the shared
+Analyzer and Philippines quality gates; no translation, unlimited retries or
+public trial result. This is not standing AFP/NSC processing, public derivative
+rights, merging, credential mutation, schedule activation or deployment authority.
+The trial needs a securely configured private `ANTHROPIC_API_KEY`; do not request
+another spending approval or infer successful processing from offline checks.
+
+## 2026-10-20 — Standing owner ruling: finish operating desks; no unnecessary engineering
+
+**Applies to all Indo-Pacific Record desks, all coding agents, and future
+sessions.** The owner's purpose is an **operational, unattended public desk**,
+not a sequence of audits, rehearsal exercises, qualification checklists, shadow
+streaks, PRs or artificial readiness percentages. The prior 19 October shared
+Daily convergence decision is reaffirmed as the **default implementation
+requirement**, not an indefinitely deferred aspiration.
+
+- Preserve legitimate source-specific, private-first collection and custody;
+  bring authenticated, eligible outputs to **one shared Daily article/source-link
+  intake**, one desk-specific multilingual model engine, and one public
+  record/archive/search/desk renderer. No redundant country article pipelines,
+  duplicated scrapers, or routine manual machine-output release workflows.
+- For eligible, explicitly authorized records, automate language-appropriate
+  translation (none for English originals), source-grounded AI analysis and
+  **machine-labeled public output**, with bounded spending and automated rights/
+  quality checks. Failed or disallowed versions are **exception holds**; do not
+  delay other releases. A source cleared only for metadata remains link-only.
+  This does not grant new text, translation, derivative, media, access, model
+  processing or publication rights for any particular source family.
+- Finish implementation rather than serial preparation: inspect current facts,
+  identify the smallest missing production connection, reuse what works, make
+  coherent changes, run targeted checks while developing and the **existing
+  mandatory PR CI on the final exact revision**, obtain any one-time necessary
+  activation approvals, and verify an actual authorized production publication
+  and routine unattended behavior. Do not introduce arbitrary seven-/30-day
+  waits, duplicate full-suite local runs, extra rehearsal frameworks, or
+  unrelated desk expansions. One authentic production result is more meaningful
+  than many synthetic gates; do not skip checks that prevent real damage.
+- **Stop condition:** the agreed source-to-site service works, or there is one
+  named rights/access/external decision that prevents it. Report that blocker
+  precisely, rather than creating infrastructure or a fictitious 100% score.
+  Maintain real failures after launch. Briefs and human-bylined analysis retain
+  their separate editorial approval; do not relabel machine text as reviewed.
+
+This supersedes conflicting older *process preferences* and time-based
+prelaunch programs, including the seven-day minimum in the superseded
+15 October accelerated-path memo. It does **not** alter historical evidence,
+rights or editorial decisions, required repository CI, source access controls,
+production write authority, model spending permission or owner approval of a
+new exact-scope public activation. Detailed default and flow:
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
+## 2026-10-19 — Engineering rule (proposed in the Vietnam Daily PR; not an owner ruling): Vietnam joins the shared Daily only through sealed per-family source use
+
+Applying the shared-Daily direction above to Vietnam:
+
+- The ministry captures enter the common corpus through
+  `core/vietnam_corpus_bridge.py`, using explicit `VIETNAM_*` family profiles
+  on the shared analyzer. There is no Vietnam-specific database, analyzer or
+  site.
+- A record reaches a model only when its family's owner-sealed decision
+  (`core/vietnam_source_use.py`) grants both external model transmission and
+  public IPR analysis, and the registry has promoted the desk.
+- Each public column is projected from its own permission: original title,
+  original text, full translation, excerpt and analysis.
+- An attribution line or site footer is a condition of use, never a rights
+  basis.
+- The standing policy holds every permission for MPS and both MOIT families.
+  Engineering prepares `owner_decision_request(family)` and never fills in or
+  signs a decision.
+
+**Authority limit:** this ruling grants no rights. It also authorizes no model
+spend, schedule, promotion, merge or publication.
+
+## 2026-10-19 — Owner direction: converge all desks on one logical Daily
+
+The owner requested that the Philippines Desk and other IPR country desks use
+**one common, unattended, source-grounded article-processing and public
+publication architecture**, rather than perpetuating Korea-style separate
+country AI engines, article corpora, per-record review pipelines and public
+renderers. Existing officially authorized, independently scheduled collectors
+and private source custody should remain where access, provenance and source
+rights require them; validated outputs should converge through shared IPR
+Daily intake, explicit desk-specific processing profiles, common source-link/
+article distinctions, one public reader experience and coordinated deployment.
+"One Daily" is a logical processing and publication architecture, **not** a
+requirement for every source to scrape inside one Actions run.
+
+The Philippines example is simpler than Korea: AFP and NSC originals are
+English and need **no translation**. Reuse Singapore-style English screening
+and the shared analyzer with a distinct Philippines profile, rather than
+build a separate translation engine or routine manual review queue. For Korea,
+Korean-to-English translation requires its own terminology/quality checks;
+China-only PLA prompts must never be the default for unregistered desks.
+The desired long-term norm is automatic public release of qualifying,
+properly identified **machine-generated source-record explanations** after
+source-specific rights, quality, cost and accuracy controls; exceptional
+records hold for review. Human-controlled IPR Briefs and bylined analysis
+retain editorial acceptance and owner approval.
+
+**Authority limit:** This is a standing **design preference**, not an
+immediate authorization to spend on models, republish AFP/NSC text, publish
+machine derivatives, widen DAPA/other source rights, merge code, activate
+workflows, or bypass signed human editorial decisions. Existing AFP link-only
+ruling, unresolved NSC policy/anomaly and all historical source-specific holds
+remain unchanged. Implementation is governed by
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md` and the real evidence/publishing gates.
+
+## 2026-10-19 — Owner: Vietnam local encrypted backup and isolated restore
+
+Benjamin Yang, Founder and Director of Research and Editorial, Indo-Pacific
+Record, selected himself as custodian and authorized the existing-home private
+backup and separate restore-validation roots for the three complete Vietnam
+histories, original evidence and failed-attempt ZIPs. Permissions must restrict
+access to his account; storage must be encrypted and hashes, history/integrity
+and an actual isolated restore verified. Do not delete/modify originals, put
+backups in public Git/cloud/Actions artifacts, or expose encryption credentials.
+The existing FileVault-encrypted Data volume supplies the authorized storage
+encryption; no new credential is inferred. This is local same-device resilience,
+not a separate-device backup. Production cutover remains held until these checks
+actually succeed and the separately reserved activation actions are released.
+This storage authorization grants no original/public/AI reuse, collection
+activation, public-writer disabling, merge, credential provisioning or publication.
+
+## 2026-10-18 — Owner: standing AFP verified official-link metadata
+
+The owner explicitly authorized **automatic publication of verified neutral official-link
+metadata** for existing and future Armed Forces of the Philippines articles
+(`ph_afp_articles`), without per-record human approval and without an
+elapsed-day waiting period. This is a **Philippines AFP source-family decision**,
+separate from the earlier Kemhan-only authorization.
+
+Permitted public fields remain the canonical official URL, publisher-posted
+date, attributed official issuer/publisher/republisher, source identity,
+immutable source Git commit and metadata digest. Every published row must
+pass the established AFP source capture/version, provenance, link-use, rights,
+authenticity, anomaly and transactional release checks. A disputed,
+materially changed or missing previously released source, conflicting
+publisher identity/date/attribution, failed capture validation, or other
+substantive anomaly must hold rather than be silently treated as clean.
+Earlier editorial source holds and human decisions remain intact.
+
+The decision **does not** claim that post-pin records received individual
+human review. Receipt v2 must report such releases under
+`released_without_record_specific_review_*` and retain
+`record_specific_review_receipts_verified: false`. This authorization
+does not cover original AFP titles/bodies, raw captures, photographs,
+documents, translations, AI summaries, IPR analysis, NSC or other source
+families, or independent editorial publication. It does not authorize
+merging a PR, changing production/Pages, activating collectors, enabling
+bridge credentials, or bypassing the public→private source-custody cutover.
+
+The decision is pinned in
+`config/afp_kemhan_owner_link_activation.json` as a separate
+`standing_link_metadata_authorizations` entry for `ph_afp_articles`.
+The existing AFP validator and admission lane in draft #816 must be
+tested with this active policy before a separately authorized release.
+
+## 2026-10-18 — Japan Brief source review confirmed; No. 19 assigned
+
+After the existing requirement for human Japanese-source/claim/rights review
+was explained explicitly, the owner replied “yes. reviewed.” Record that actual
+confirmation against editorial fingerprint
+`bb1076095be5e02c9f0f5775d638057da1ef9c310f73e007b68edbe14bda182d`
+and the exact source-linked policy ruling for this manuscript. Do not attribute
+the review to Dylan individually or invent another date. The existing locked
+approval command assigned No.19, preserving all existing issue numbers. Reading
+presentation and cover acceptance were separately recorded earlier. The paired
+catalogue crop equals the already reviewed bytes. No merger, deployment, paid
+model call, live-desk promotion or publication has happened in this preparation.
+
+## 2026-10-18 — Japan Brief cover and reading presentation accepted
+
+After reviewing the updated article preview and same-image catalogue crop,
+Benjamin Yang replied “yes this works. how to publish?” The selected cover is
+DVIDS photo 8080849 / VIRIN 231017-F-VQ804-1198, Tylir Meyer, U.S. Air Force:
+a Japanese F-15DJ over the East China Sea on October 17, 2023. Its approved
+scope is the Japan Brief article and catalogue card, using the standard CSS
+gradient and retained creator, public-domain credit and exact DVIDS notice.
+The caption identifies historical context, not an October 2026 scramble.
+This also accepts the displayed reading presentation and Dylan's co-author
+card. The exact presentation receipt is recorded against its existing digest.
+It does not claim that the owner personally reviewed the Japanese originals,
+or authorize a merge/deployment. The independent source-review/policy gate
+remains explicit in the release dossier; do not manufacture its receipt.
+
+## 2026-10-18 — Owner: every Brief has a cover; Dylan card on the Japan Brief
+
+The owner reaffirmed that **every Brief, including historical Briefs, must
+have a cover image**. Carry the selected rights-checked photograph through
+the catalogue card and opened article. A fallback plate or text-led page
+handles missing/invalid media; it does not fulfill the cover requirement.
+Existing source-specific image holds are not blanket reuse permissions:
+use separately reviewed replacements where necessary. This Japan release
+does not expand into a historical cover backfill.
+
+For **Three Days of Chinese Flights, Six Months of Japanese Scrambles**, the
+owner requested Dylan Tanzi's author card and said everything else looked
+great, while requiring a cover before publication. Add his existing verified
+profile through the co-author-card pattern used for the Laos Brief. The
+manuscript's accepted prose, source references and six-month correction stay
+unchanged. Exact photograph selection, its paired crops and final modified
+credits remain concrete private review work; do not invent image approval or
+carry the earlier text-only fingerprint into the changed candidate.
+
+## 2026-10-18 — Owner: finish desks end to end; simplify redundant verification
+
+The owner directed IPR engineering to stop creating serial audit gates and
+deliver each desk as one complete, dependable official-source-to-publication
+service. A real source end-to-end demonstration and realistic failure/retry
+are the engineering acceptance criteria; seven-/30-day histories remain
+operational reliability measurements, not mandatory prelaunch waiting periods.
+Prior historical failures and human checkpoint reviews remain true and
+unchanged. Source-specific access/rights, language/source accuracy, human
+editorial approval, safe database operations, and explicit publication
+authorization remain mandatory. A reviewer or automation must not treat
+simulated data, CI success, or a PR merge as live publication proof.
+
+The owner also authorized a **bounded, fail-closed CI simplification**:
+docs-only and allowlisted timeline-presentation diffs use scoped checks;
+unknown or high-risk code, models, source custody, workflows, generated
+output, and publication paths retain full verification. The production daily
+pipeline is unchanged. Do not remove substantive security or source-rights
+negative tests, or create another verification framework. Implementation
+requires an independently reviewed PR and exact-head CI; this ruling
+does not authorize merging an unverified branch or changing deployed content.
+Governance details:
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
+
+## 2026-10-18 — Owner: standing Kemhan Berita link-metadata admission
+
+The owner approved standing automatic publication of verified link metadata
+for Kemhan Berita (`id_kemhan_news`) only, for existing and future records,
+with no per-record human review and no elapsed-time wait (VSSpowerlifting/
+IndoPacificRecord#812, owner comment 6254436315, confirmed in session). The
+admitted fields are the canonical official URL, publisher-posted date,
+attributed issuer/publisher and identity/version/provenance metadata. This
+supersedes the frozen-cohort-only restriction for that projection and
+nothing else. It does not assert that any post-pin record was reviewed.
+
+Still held: Yonif TP 880; any disputed or materially changed identity, date
+or attribution (including a released record later revised or missing);
+conflicting official facts; an unverifiable source, version or capture;
+failed access, provenance or authenticity checks; any other substantive
+anomaly. A prior human disposition or discrepancy is never silently turned
+into a clean record, and genuine failed scheduled runs stay in the record.
+
+Not authorized: headlines, titles, bodies, raw captures, PDFs, images,
+translations, AI summaries, editorial articles, other source families, merging
+#812 or the private bridge PR, activating credentials or schedules, paid
+models, or unrelated production operations. Robots/access compliance,
+private-evidence separation, the authenticated bridge, transactional and
+idempotent admission, and checked public output all remain required.
+
+Implementation uses the existing contracts: a pinned
+`standing_link_metadata_authorizations` entry in
+`config/afp_kemhan_owner_link_activation.json` (exact shape enforced by
+`load_owner_policy`), receipt v2 fields
+`standing_link_metadata_authorization_verified` and
+`released_without_record_specific_review_*` beside the unchanged
+`record_specific_review_receipts_verified: false`, and an `admit()` check that
+every previously released row is still present and unchanged.
+
+## 2026-10-18 — Kemhan Berita official links: no elapsed-day gate; truthful review basis
+
+Applies the owner entry above to the Indonesia official-link lane. No desk is
+promoted by this entry. For Kemhan Berita official links, the trusted
+validator requires no minimum number of days. It still authenticates every
+visible scheduled-run claim, healthy or failed, against GitHub's own run
+records and requires at least one authenticated healthy scheduled run, as an
+evidence-integrity check, not as a waiting period.
+
+Review basis (engineering reading of existing authority, not a new ruling):
+the Oct 15 owner policy covers the pinned frozen cohort (`0595c66`) and
+states that no machine-verifiable record-specific review receipts exist. The
+release receipt (`ipr-crossdesk-independent-release-proof/2`) says so, and
+the frozen cohort's 30 non-held records were admissible on that basis. The
+owner's standing authorization (entry above) now admits verified post-pin
+Berita link metadata too; Yonif TP 880 stays held. Implementation:
+`docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+
+## 2026-10-18 — Singapore desk analysis path: engineering record, owner adoption pending
+
+This entry is an engineering record. It is **not** an owner ruling, and it
+does not adopt anything. The 2026-09-29 repair (§5 of
+`docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md`) held Singapore out of the
+daily model queue until the owner decides what Singapore analysis should be.
+That hold was in force on `main` before this change.
+
+What the branch `claude/ipr-desk-completion-7e9246` builds:
+- **Relevance:** the desk screen `sg-relevance-v1`.
+- **Analysis:** one desk call, `sg-analysis-v1`, which returns an English
+  summary (concrete development first; official messaging, commitments,
+  implementation and inference kept apart) and the model flag with its
+  reason.
+- **Not produced:** a translation, PLA categories or an `executive_readout`.
+- **Rendering:** the record template states that an English-language source
+  needs no translation.
+- **Failure handling:** an invalid reply writes nothing and is retried as
+  pending analysis.
+- **Queue:** `SINGAPORE_PROFILE.daily_queue` is `True`; any other non-China
+  desk without its own analysis stays held.
+
+Merging that PR is the owner act that adopts the rubric (decision 1) and this
+analysis shape (decision 3), and starts paid daily processing of Singapore
+records. The estimate is about $1, order of magnitude, for the 71-record
+backlog (about $1.85 at the `max_tokens` output ceiling), then about 1–3
+cents per release. `sg-analysis-v1` has never run against the live model, so
+its first real outputs reach record pages, under machine labels, unsampled. Decision 2 (re-screening the 14 records rejected
+under the China rules) is not affected.
+
+Evidence is in §6 of the repair doc. It contains no observed scheduled
+analysis, because that can only follow the merge.
+
 ## 2026-10-14 — Owner-directed coastal visual identity
 
 The owner explicitly approved replacing active editorial crimson/pink and

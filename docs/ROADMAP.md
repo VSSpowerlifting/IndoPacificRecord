@@ -14,6 +14,14 @@ Pipeline-layer backlog (analyzer, scrapers, relevance filter) is in
 Completed work is recorded in `DECISION_LOG.md` and in Git history, not here.
 Current operational state is in `PROJECT_STATE.md`.
 
+**Owner supersession (2026-10-18):** See
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` for the
+complete-desk finish line and risk-scoped CI. The historical Day-30 Singapore
+review, old consecutive-day launch plans, and historical screening figures
+below document debt or past measurements—not general prelaunch gates or the
+current daily-queue configuration. Actual source/rights/editorial approvals
+and independently checked deployment still apply.
+
 The ordering principle: **research and review gates before presentation.** The
 project's credibility rests on the analytical publication cadence, on completed
 human reviews, and on honest coverage — not on the front end. Nothing below
@@ -251,17 +259,17 @@ in a hurry.
 record architecture launched, the component and homepage passes have landed,
 and additional visual refinement is not what the publication is short of.
 
-**Geographic promotion is deferred.** No new desk is declared, promoted or
-presented as coverage until an existing shadow desk completes 30 consecutive
-collecting days, its human checkpoint reviews, and an owner sign-off recorded in
-`DECISION_LOG.md`. The US Indo-Pacific desk stays `access_blocked` while
-`robots.txt` returns 403; a desk that cannot establish permission is not built.
-
-**One owner-authorized exception: the Vietnam Desk** (`DECISION_LOG.md`
-2026-10-05). It is declared at `research` with a built, locally rehearsed
-shadow collector that has not been launched. It shows no records, is not
-coverage and is not promoted. It moves to `shadow` only once collection
-actually runs; the deferral otherwise stands.
+**Geographic desk delivery — October 18 supersession.** The earlier blanket
+geographic deferral and 30-day waiting requirement are no longer launch rules.
+An agreed desk must complete its official-source, private evidence, permitted
+translation/analysis, public/editorial publication and ongoing operation
+contract, demonstrated on real originals and failure/recovery. Neither an
+elapsed-time streak nor a link-only index proves a complete desk. Actual
+publisher access/robots, rights, reviewer and safe-production safeguards remain
+binding; do not claim coverage that has not been achieved. The dated Vietnam
+exception and U.S. access findings above are historical, not current approvals
+or desk statuses. See the October 18 `DECISION_LOG.md` ruling and
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
 
 **The record archive is not on this list, and the old "archive weight" ticket
 is retired.** It was written against an 804 KB flat all-records page that no

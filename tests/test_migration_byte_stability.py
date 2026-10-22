@@ -52,6 +52,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from core.registry import sync_desk_config                       # noqa: E402
+from core.manifests import load_all_desks                         # noqa: E402
 from migrations.runner import apply_all, discover                # noqa: E402
 
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
@@ -360,7 +361,9 @@ class TestSidecarsCarryNoUnwrittenData(ByteStabilityCase):
             self.assertGreater(
                 conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0], 0)
             self.assertEqual(
-                conn.execute("SELECT COUNT(*) FROM desks").fetchone()[0], 2)
+                {row[0] for row in conn.execute("SELECT desk_id FROM desks")},
+                set(load_all_desks()),
+                "the standalone main file must include every configured desk")
         finally:
             conn.close()
 

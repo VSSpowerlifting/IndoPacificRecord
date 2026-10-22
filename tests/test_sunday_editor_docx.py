@@ -49,6 +49,20 @@ class WordHandoffTests(unittest.TestCase):
         self.assertEqual(len(targets), len(set(targets)))
         self.assertTrue(all(value.startswith("https://") for value in targets))
 
+    def test_cited_original_http_publisher_url_is_not_treated_as_missing(self):
+        # A canonical official-source URL may be HTTP in the stored corpus.
+        # The Word projection must link the exact, already cited publisher URL.
+        cited = _references(self.original)[0][2]
+        self.assertTrue(cited.startswith("https://"))
+        actual = "http://" + cited[len("https://"):]
+        packet = self.original.replace("URL: " + cited, "URL: " + actual, 1)
+        references = _references(packet)
+        self.assertIn(actual, [url for _, _, url in references])
+        doc = Document(BytesIO(render_editor_docx(packet)))
+        targets = [r.target_ref for r in doc.part.rels.values()
+                   if r.reltype.endswith("/hyperlink")]
+        self.assertIn(actual, targets)
+
     def test_invalid_manuscript_does_not_render(self):
         mutated = self.original.replace("=== EDITABLE MANUSCRIPT ===", "WRONG", 1)
         with self.assertRaises(ReadableEditorError):

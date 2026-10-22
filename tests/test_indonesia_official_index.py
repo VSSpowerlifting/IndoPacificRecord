@@ -154,8 +154,9 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
         for forbidden in ("text_original", "body_original", "state/shadow.db",
                           "NOT APPROVED FOR PUBLICATION"):
             self.assertNotIn(forbidden, page)
-        self.assertIn("Shadow evaluation — no public corpus records", page)
-        self.assertIn("Fifteen dated Berita links and two historical Siaran Pers", page)
+        self.assertIn("Verified official-source links admitted — original publisher references", page)
+        self.assertIn('aria-label="Admitted official publisher references"', page)
+        self.assertIn("Fifteen Berita and two Siaran Pers first-party links are available for navigation", page)
         notes = soup.select("div.desk-reference-reading-notes")
         self.assertEqual(len(notes), 1)
         self.assertEqual(len(notes[0].select("li")), 4)

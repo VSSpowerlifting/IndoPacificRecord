@@ -20,7 +20,7 @@ from urllib.request import Request, urlopen
 from scripts import audit_korea_actions_attempts as census
 from scripts import audit_indonesia_shadow_provenance as provenance
 
-REPO = "VSSpowerlifting/China-Mil-Watch"
+REPO = "VSSpowerlifting/IndoPacificRecord"
 WORKFLOW = provenance.WORKFLOW_ID
 API = "https://api.github.com/repos/" + REPO
 MAX_WORKFLOW_RUNS = 2000
@@ -132,8 +132,11 @@ def fetch_authenticated(get, as_of_utc):
     }
 
 
-def pinned_ledger_checkout(folder):
-    """Read ledger JSON only from a separate exact-commit shadow checkout."""
+def pinned_ledger_checkout(folder, *, expected_branch="shadow/korea-policy-briefing"):
+    """Read ledger JSON from a pinned sparse shadow or private archive checkout."""
+    require(expected_branch in ("shadow/korea-policy-briefing",
+                                "archive/korea-policy-briefing"),
+            "unsupported Korea custody branch")
     folder = Path(folder)
     require(folder.is_dir() and not folder.is_symlink(),
             "pinned shadow checkout absent or symlinked")
@@ -148,8 +151,10 @@ def pinned_ledger_checkout(folder):
         ["git", "-C", str(folder), "branch", "--show-current"],
         capture_output=True, text=True, check=False, timeout=10)
     require(branch.returncode == 0 and
-            branch.stdout.strip() == "shadow/korea-policy-briefing",
-            "checkout is not on the isolated Korea shadow branch")
+            branch.stdout.strip() == expected_branch,
+            ("checkout is not on the isolated Korea shadow branch"
+             if expected_branch == "shadow/korea-policy-briefing"
+             else "checkout is not on the expected private Korea custody branch"))
     directory = folder / "state" / "ledger"
     require(directory.is_dir() and not directory.is_symlink(),
             "Korea state ledger directory absent or symlinked")

@@ -244,6 +244,79 @@ class OverlayContracts(unittest.TestCase):
         self.assertFalse(joined["shadow_evidence_overlay"]["collection_verified"])
         self.assertFalse(joined["publication_authorized"])
 
+    def test_indonesia_private_handoff_displays_without_claiming_collection(self):
+        b = copy.deepcopy(self.bindings)
+        row = b["sources"][0]
+        row.update(trigger="private_handoff_pending", workflow=None, cron=None,
+                   evidence="private_handoff_pending_external_runs_unverified")
+        result = self.report(reports=[], bindings=b)
+        record = next(r for r in result["shadow_evidence_overlay"]["source_families"]
+                      if r["source_slug"] == "id_kemhan_news")
+        self.assertEqual(record["trigger"], "private_handoff_pending")
+        self.assertIsNone(record["workflow"])
+        self.assertFalse(record["collection_verified"])
+        self.assertFalse(record["production_eligible"])
+        self.assertEqual(record["slot_evidence_status"], "not_supplied")
+        with self.assertRaisesRegex(overlay.OverlayError, "non-scheduled"):
+            self.report(reports=[self.slot], bindings=b)
+        for field, val in (("workflow", "private-run.yml"), ("cron", "17 17 * * *"),
+                           ("state_branch", "shadow/ph-afp")):
+            forged = copy.deepcopy(b)
+            forged["sources"][0][field] = val
+            with self.assertRaisesRegex(overlay.OverlayError, "private handoff"):
+                self.report(reports=[], bindings=forged)
+
+    def test_private_handoff_cannot_be_assigned_to_another_family(self):
+        b = copy.deepcopy(self.bindings)
+        b["sources"][1].update(trigger="private_handoff_pending", state_branch="shadow/indonesia-kemhan",
+                               evidence="private_handoff_pending_external_runs_unverified")
+        with self.assertRaisesRegex(overlay.OverlayError, "private handoff"):
+            self.report(reports=[], bindings=b)
+
+    def test_private_dapa_schedule_does_not_attest_execution_or_admission(self):
+        from scripts import audit_shadow_workflow_bindings as bindings
+        native = bindings.validate(ops.ROOT)
+        snapshot = copy.deepcopy(self.base)
+        snapshot["shadow_source_manifests"] = ops.shadow_inventory(ops.SHADOW_ROOT, {})
+        result = overlay.attach(snapshot, native, [], root=ops.ROOT)
+        row = next(r for r in result["shadow_evidence_overlay"]["source_families"]
+                   if r["source_slug"] == "kr_policy_dapa_releases")
+        self.assertEqual(row["trigger"], "private_scheduled")
+        self.assertEqual(row["schedule_cron_utc"], "17 22 * * *")
+        self.assertEqual(row["slot_evidence_status"], "not_supplied")
+        self.assertFalse(row["collection_verified"])
+        self.assertFalse(row["production_eligible"])
+        nsc = next(r for r in result["shadow_evidence_overlay"]["source_families"]
+                   if r["source_slug"] == "ph_nsc_official_statements")
+        self.assertEqual(nsc["trigger"], "private_handoff_pending")
+        self.assertIsNone(nsc["workflow"])
+        self.assertFalse(nsc["collection_verified"])
+        self.assertFalse(nsc["production_eligible"])
+
+    def test_private_vietnam_declarations_stay_unverified_and_exactly_source_bound(self):
+        from scripts import audit_shadow_workflow_bindings as bindings
+        native = bindings.validate(ops.ROOT)
+        snapshot = copy.deepcopy(self.base)
+        snapshot["shadow_source_manifests"] = ops.shadow_inventory(ops.SHADOW_ROOT, {})
+        result = overlay.attach(snapshot, native, [], root=ops.ROOT)
+        rows = [r for r in result["shadow_evidence_overlay"]["source_families"]
+                if r["source_slug"].startswith(("vn_mps_", "vn_moit_"))]
+        self.assertEqual(len(rows), 3)
+        for row in rows:
+            self.assertEqual(row["trigger"], "private_scheduled")
+            self.assertEqual(row["schedule_cron_utc"], "17 18 * * *")
+            self.assertEqual(row["slot_evidence_status"], "not_supplied")
+            self.assertFalse(row["collection_verified"])
+            self.assertFalse(row["production_eligible"])
+            for field, value in (("state_branch", "archive/unreviewed"),
+                                 ("workflow", "https://example.invalid/forged.yml"),
+                                 ("cron", "18 18 * * *")):
+                forged = copy.deepcopy(native)
+                target = next(r for r in forged["sources"] if r["source_slug"] == row["source_slug"])
+                target[field] = value
+                with self.assertRaisesRegex(overlay.OverlayError, "private schedule"):
+                    overlay.attach(snapshot, forged, [], root=ops.ROOT)
+
     def test_snapshot_authorization_is_not_overridden(self):
         self.base["publication_authorized"] = True
         with self.assertRaisesRegex(overlay.OverlayError, "editorial authorization"):

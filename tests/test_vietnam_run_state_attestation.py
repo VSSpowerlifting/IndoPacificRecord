@@ -54,6 +54,12 @@ def fixture_maps(*, moit_anomaly=True):
 class FakeGitHub:
     def __init__(self, *, moit_anomaly=True):
         self.bindings = binding_audit()
+        # Historical public-run fixtures remain explicitly historical after
+        # the live declaration changes to a held private handoff.
+        for row in self.bindings["sources"]:
+            if row["source_slug"] in SOURCES:
+                row.update(state_branch={"vn_mps_foreign_affairs_vi":"shadow/vietnam-mps-foreign-affairs", "vn_moit_energy_vi":"shadow/vietnam-moit-energy", "vn_moit_foundational_industry_vi":"shadow/vietnam-moit-foundational-industry"}[row["source_slug"]], trigger="scheduled", cron="17 18 * * *",
+                           workflow=".github/workflows/vietnam_ministry_shadow.yml")
         self.routes = {}
         self.calls = []
         self.source_by_branch = {}
@@ -72,6 +78,7 @@ class FakeGitHub:
                 "desk_id": "vietnam", "source_slug": src,
                 "target_date": "2026-10-10", "target_date_source": "schedule-slot",
                 "run_id": RUN, "health": "ok",
+                "collector_commit": OTHER_HEAD,
                 "result": "ok_no_publications" if anomaly else "ok",
                 "day_zero_utc": clock["day_zero_utc"],
                 "new_records": 0 if anomaly else 1,
@@ -92,6 +99,8 @@ class FakeGitHub:
             "run_started_at": STARTED,
             "path": ".github/workflows/vietnam_ministry_shadow.yml",
         }
+        self.routes[PREFIX + "/actions/runs/38088742605/attempts/1/jobs?per_page=100"] = {
+            "total_count": 1, "jobs": [{"steps": []}]}
 
     def get(self, path):
         self.calls.append(path)
@@ -101,13 +110,28 @@ class FakeGitHub:
 
 
 class LiveRunAttestationTests(unittest.TestCase):
-    def test_actual_16_source_binding_audit_selects_only_three_vietnam(self):
+    def test_healthy_source_in_failed_batch_requires_successful_persistence(self):
+        api = FakeGitHub(moit_anomaly=False)
+        api.routes[PREFIX + "/actions/runs/38088742605/attempts/1"]["conclusion"] = "failure"
+        api.routes[PREFIX + "/actions/runs/38088742605/attempts/1/jobs?per_page=100"] = {
+            "total_count": 1, "jobs": [{"steps": [
+                {"name": "Assert collector checkout preservation", "conclusion": "success"},
+                {"name": "Publish successful state only", "conclusion": "success"},
+            ]}]}
+        report = observe(api, as_of="2026-10-10", binding_report=api.bindings)
+        self.assertIn('"batch_conclusion": "failure"', json.dumps(report))
+        jobs = api.routes[PREFIX + "/actions/runs/38088742605/attempts/1/jobs?per_page=100"]
+        jobs["jobs"][0]["steps"][1]["conclusion"] = "failure"
+        with self.assertRaises(AttestationHold):
+            observe(api, as_of="2026-10-10", binding_report=api.bindings)
+
+    def test_actual_source_binding_audit_selects_only_three_vietnam(self):
         b = binding_audit()
         self.assertEqual(b["schema"], "ipr-shadow-source-workflow-bindings/1")
-        self.assertEqual(b["source_families_checked"], 16)
+        self.assertEqual(b["source_families_checked"], 17)
         selected = [x for x in b["sources"] if x["source_slug"] in SOURCES]
         self.assertEqual(len(selected), 3)
-        self.assertTrue(all(x["trigger"] == "scheduled" for x in selected))
+        self.assertTrue(all(x["trigger"] == "private_scheduled" for x in selected))
         self.assertTrue(all(x["cron"] == "17 18 * * *" for x in selected))
 
     def test_three_pinned_sources_and_green_run_are_not_desk_qualification(self):
@@ -155,6 +179,8 @@ class LiveRunAttestationTests(unittest.TestCase):
               lambda x: x.__setitem__("source_slug", "jp_jcg_press_en"))),
             ("wrong day", lambda a: mutate_source(a, 0,
               lambda x: x.__setitem__("target_date", "2026-10-09"))),
+            ("wrong collector", lambda a: mutate_source(a, 0,
+              lambda x: x.__setitem__("collector_commit", "f" * 40))),
             ("wrong date provenance", lambda a: mutate_source(a, 0,
               lambda x: x.__setitem__("target_date_source", "explicit"))),
             ("unsuccessful run", lambda a: a.routes[

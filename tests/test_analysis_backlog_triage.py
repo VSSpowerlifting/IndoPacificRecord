@@ -15,12 +15,14 @@ from unittest.mock import patch
 
 from scripts import audit_analysis_backlog_triage as triage
 from scripts import audit_analysis_queue_by_source as queue_audit
+from tests.held_desk import HELD_DESK, HELD_SOURCE, register_held_desk
 
 NOW = datetime(2026, 10, 9, 12, tzinfo=timezone.utc)
 
 
 class TriageContracts(unittest.TestCase):
     def setUp(self):
+        register_held_desk(self)
         tmp = tempfile.TemporaryDirectory(prefix="ipr-triage-contract-")
         self.addCleanup(tmp.cleanup)
         self.folder = Path(tmp.name)
@@ -36,7 +38,7 @@ class TriageContracts(unittest.TestCase):
           );
         """)
         self.conn.executemany("INSERT INTO sources VALUES (?,?,?)", [
-            (1, "cn_mod", "china"), (2, "sg_mindef", "singapore"),
+            (1, "cn_mod", "china"), (2, HELD_SOURCE, HELD_DESK),
             (3, "undeclared", None)])
         self.conn.commit()
 
@@ -86,7 +88,7 @@ class TriageContracts(unittest.TestCase):
         self.assertEqual(report["metadata_flags"]["daily_missing_body"], 1)
         self.assertEqual(report["metadata_flags"]["daily_has_previous_failures"], 1)
         self.assertEqual(report["sources"][0]["desk_id"], "china")
-        self.assertEqual(report["sources"][1]["desk_id"], "singapore")
+        self.assertEqual(report["sources"][1]["desk_id"], HELD_DESK)
 
     def test_missing_body_is_only_a_review_flag_not_terminal(self):
         self.insert(1, body=None)
@@ -97,11 +99,12 @@ class TriageContracts(unittest.TestCase):
         self.assertFalse(report["text_extraction_verified"])
         self.assertFalse(report["model_spend_authorized"])
 
-    def test_unknown_desk_fallback_is_labeled_not_claimed_china(self):
+    def test_unknown_desk_is_held_without_china_fallback(self):
         self.insert(1, source=3)
         report = self.audit()
-        self.assertEqual(report["stored_daily_queue_eligible"], 1)
-        self.assertEqual(report["metadata_flags"]["daily_without_declared_desk"], 1)
+        self.assertEqual(report["stored_daily_queue_eligible"], 0)
+        self.assertEqual(report["stored_held_out_of_daily"], 1)
+        self.assertEqual(report["metadata_flags"]["daily_without_declared_desk"], 0)
         self.assertEqual(report["sources"][0]["desk_id"], "__undeclared_desk__")
 
     def test_historical_and_held_records_never_mix(self):

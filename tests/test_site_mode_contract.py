@@ -346,8 +346,9 @@ class TestCandidateBuild(unittest.TestCase):
     def test_us_official_metadata_is_live_while_pacom_remains_blocked(self):
         """Congressionally sourced links are distinct from PACOM originals."""
         html = (self.out / "us-indopacific.html").read_text(encoding="utf-8")
-        self.assertIn("Official congressional and Treasury metadata feeds live — PACOM collection blocked", html)
+        self.assertIn("Official USCC, Treasury and BIS link metadata feeds live — PACOM collection blocked", html)
         self.assertIn("Collected official congressional metadata links", html)
+        self.assertIn("BIS official press reference", html)
         self.assertIn("Direct PACOM command collection", html)
         self.assertIn("Admitted U.S. source-body articles", html)
         self.assertNotIn("Nothing has been configured, enabled or collected.", html)
@@ -357,9 +358,10 @@ class TestCandidateBuild(unittest.TestCase):
         from core.desk_registry import load_registry
         declared = {e.name: e for e in load_registry().public_entries}
         html = (self.out / "desks.html").read_text(encoding="utf-8")
-        # Korea and Indonesia were subsequently admitted as public reference/
-        # status-only pages. Neither has a production manifest or public corpus.
-        for name in ("South Korea Desk", "Indonesia Desk"):
+        # Indonesia was admitted as a public reference/status-only page with no
+        # production manifest or public corpus. Korea is now a live desk.
+        self.assertEqual(declared["South Korea Desk"].status, "live")
+        for name in ("Indonesia Desk",):
             with self.subTest(public_shadow=name):
                 entry = declared[name]
                 self.assertIn(name, html)

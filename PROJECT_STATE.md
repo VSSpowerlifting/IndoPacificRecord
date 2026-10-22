@@ -1,5 +1,251 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+**Owner architecture target (19 October 2026; not yet deployed):** All desks
+should ultimately converge on one logical shared Daily article-processing,
+model and public publishing architecture, while approved source collection,
+private originals and access schedules remain source-specific. Philippines
+AFP/NSC English originals need no translation; standing machine-record
+publication is a desired end state only after specific rights/quality/spend
+approval. Briefs remain human-controlled. This does **not** change any live
+desk status, consent or rights flag. Canonical target:
+`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
+**Philippines shared Daily integration (20 October 2026; review candidate):**
+Explicit English AFP/NSC profile, fail-closed unknown-desk routing, authenticated
+private source/version intake, shared Analyzer/quality/retry path, signed
+public-safe output and coordinated Daily/record/desk/archive/Sunday research
+integration are implemented on `codex/philippines-shared-daily-20261019`.
+The essential private companion invokes the same public engine without changing
+collectors. The owner approved standing AFP processing and qualifying factual
+machine explanations (≤90 words, explicit attribution/citation), $0.35 estimated
+per run, one record/two intended calls, no SDK retries, five failed attempts
+before individual pause. AFP policy is pinned; NSC remains independently held.
+General integration activation variables remain absent: no production release.
+Authentic offline replay: 32 AFP originals/captures match all 32 admitted link
+versions; NSC has zero records. No machine explanation has been released.
+Production DB/output and desk status are unchanged. The owner authorized one
+private `afp:1418` trial at `442081916b3b41850e958ae75298bf12afe565b6`,
+with a $0.35 total allowance, no translation, no automatic paid retry and no
+public output. Exact capture/content hashes and admitted link version reverified.
+The owner configured the private Actions key. Genuine trial: two calls, 1,251
+input / 584 output tokens, estimated $0.010581; no retries or translation.
+Response text, relevance judgment and source-specific review remain private.
+The trial did not produce a release-eligible record. Prompt v10 explicitly
+requires literal evidence punctuation and AFP/NSC in every sentence; strict
+gates remain unchanged. This is not a quality-passing production record.
+Private #21 retains the bounded trial command and private run receipts.
+`afp:1418` is explicitly excluded from processing, signing, intake and rendering.
+The owner requested genuine private verification of another relevant preserved
+record through shared Daily. Private review rejected another response for an
+unsupported geographic topic despite mechanical checks; its five attempts are
+preserved and paused. The shared quality gate now requires explicit source
+support for the South China Sea topic. The next genuine selection is `afp:1410`;
+its actual private receipt, admission/render result and final exact-head CI are
+reported in the existing PRs. No further model call is needed for a completed,
+quality-passing queue entry: retain it for the authorized production handoff.
+Separate merge/credentials/activation/deployment authorization remains required.
+Main's permanent working-desk ruling and newer U.S. metadata are retained.
+See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
+evidence distinctions and rollback. Review: public #835 and private #21, both
+inactive. Focused profile/custody/migration/retry checks, the private 81-test
+suite and synthetic production-render/Chromium checks passed. Full Linux CI on
+`f446d53861` passed 7,690 tests (three skips), with ten governed validator warnings.
+Updated-head CI exposed Python 3.12 fixture/date compatibility and a changed SDK
+dependency set: explicit SQLite closure, consistent ISO-date diagnostics and
+the existing SDK major/httpx contract are repaired. Final-head CI must pass.
+The development full local run was not
+green (subsequently repaired regressions, missing gpg/python-docx and macOS
+temporary-path constraints); do not present it as successful full CI.
+
+**Philippines Desk AFP official-link lane (19 October 2026):** released.
+The owner's standing authorization publishes verified neutral AFP link
+metadata for existing and future eligible records without per-record human
+review. It is pinned in `config/afp_kemhan_owner_link_activation.json` and
+recorded in `DECISION_LOG.md`. Source, rights or authenticity anomalies, and
+changed or missing released records, still hold. The Oct 15 frozen 23-record
+cohort remains the authenticated baseline (pin `8a63ba4`).
+
+**Production.** #816 merged pinned to `a9e7121`. The owner authorized the
+32-link selection at `shadow/ph-afp` `063c4b0`: the frozen 23 plus 9 released
+without record-specific review. Production run 39294019152 committed only
+`pla_watch.db` and `output/philippines.html` to main (`6ce01e6`), and only
+`philippines.html` to gh-pages (`cc219b7`). Checks:
+
+- SQLite has 32 `ph_afp_articles` rows from `063c4b0`;
+- main, gh-pages and the live HTTPS page are byte-identical, with 32 links equal to SQLite;
+- no AFP headline or body appears;
+- no thirty-day wording remains.
+
+**Collector handover (done 19 October 2026).** #797 retired the public AFP
+writer, and private #11 removed the `shadow/ph-afp` → `archive/ph-afp` mirror.
+Both are merged. `AFP_BRIDGE_KEY`, `AFP_METADATA_BRIDGE_ENABLED=true` and
+`AFP_PRIVATE_SCHEDULE_ENABLED=true` were configured on 2026-10-19 (18:27–18:41
+UTC). The private dispatch, run 39303137920, succeeded. `archive/ph-afp` is the AFP
+writer and may legitimately advance past the frozen public branch.
+
+**Philippines NSC (19 October 2026): built, held on an owner decision.**
+This branch adds:
+- m0014, which admits NSC into the shared `regional_official_source_links`.
+  The tracked `pla_watch.db` ships with 0014 already applied, so code and
+  schema land in one commit. It was generated by `migrations.cli --apply`
+  from main's exact DB, and the only changes are the CHECK clauses and one
+  ledger row;
+- `core/ph_nsc_official_link_admission.py`;
+- a signed-envelope production lane,
+  `ph_nsc_verified_official_link_production.yml`;
+- `ph_nsc_shadow.yml` reduced to a pull-request contract check. The public
+  `shadow/ph-nsc` branch freezes at its tip when this PR merges (`1a313e04`,
+  0 records, as of 2026-10-19).
+
+Private PR #19 continues the history on `archive/ph-nsc`. It also adds a
+no-model research packet for AFP and NSC. The packet labels screening,
+chronology and possible repeats, and leaves the analyst fields empty.
+
+Admission holds until the owner decides rights for NSC metadata. Both policy
+flags are `false`, and the category anomaly is unresolved. The source has
+posted nothing since 2026-07-08. The decision options and the merge order are
+in `docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md`.
+
+The Sanlakas holds F02 (the Galvan/Gavan name) and F06 (the venue) stay open.
+See `research/philippines/sanlakas_2026/`.
+
+Maintenance: the 48 KiB signed-envelope limit is reached near ~350 records,
+and it fails closed. Details:
+`docs/engineering/PHILIPPINES_DESK_COMPLETION_2026-10-18.md`.
+
+**Indonesia Desk official-link lane (18 October 2026, release candidate):**
+Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.
+This branch adds a trusted validator (pin ancestry, re-hashed captures,
+ledger↔commit reconciliation, every scheduled claim authenticated against
+GitHub, no minimum day count), a scratch-copy/atomic admission CLI and a
+Korea-pattern page-only production workflow, and fixes the shared reader's
+180-character identity cap that HOLDs Kemhan snapshots after Oct 15. Receipt
+v2 states the real review basis: the Oct 15 review covers the frozen cohort,
+and the owner's Oct 18 standing authorization (DECISION_LOG) admits verified
+post-pin Berita link metadata without claiming review. Yonif TP 880 and any
+anomaly (revised/missing released record, date/URL conflict, unverifiable
+capture) stay held. Real rehearsal on a DB copy at private tip `69b1f9b`:
+35 admitted (5 without record-specific review), Yonif held, idempotent
+replay. Post-cutover private
+records reach the public side only through a held HMAC handoff (companion
+private PR) needing owner credentials. Translation, analysis, editorial
+intake provenance and headline display remain outstanding; the desk is not
+complete end to end. First genuine private `schedule` run (39158713099,
+18 Oct): collection and preservation passed; the run failed at the
+held-candidate rebuild on main's 180-character cap, which this lane fixes.
+Details: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+PR #652 cross-check:
+`research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
+No production DB, output, Pages or schedule change made here.
+
+**Korea unified Daily (20 October 2026; activation PR open, processing off):**
+Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of
+the shared Daily. It adds:
+- the governed MND corpus ledger (m0016) and a source-pinned, fail-closed bridge
+  (`kr-corpus-bridge-v1`) into `articles`. A human-handoff receipt alone no
+  longer excludes a release; reviewed English, the frozen October baseline and
+  the research hold still do;
+- the explicit Korea profile on the shared engine: relevance `kr-relevance-v1`,
+  translation `kr-translation-v2` with `kr-glossary-v1`, analysis `kr-analysis-v1`,
+  deterministic QA `kr-qa-v1`;
+- a capped Korea lane that runs after China/Singapore and never fails the Daily;
+- unreviewed machine-translation labels on the existing record and desk pages;
+- the applied activation: live registry entry and `desks/korea/manifest.json`.
+
+Rehearsed on a disposable DB copy: the bridge admits one release
+(`korea-policy:156785691`), excludes three, and a replay changes nothing. The
+lane selects it and stops without a model. The render shows no unprocessed
+machine output. No paid call, no production DB write and no variable change has
+been made. Processing starts only when the owner merges and sets
+`KOREA_DAILY_AUTOMATION_ENABLED=true`; see
+`docs/engineering/KOREA_DAILY_ACTIVATION_2026-10-20.md`.
+
+**Korea desk acceptance (19 October 2026):**
+Public PRs #825/#826 and private PR #18 are merged; private-first MND custody
+is live (`archive/korea-policy-briefing` has one writer, MND is outside the
+mirror, `KOREA_MND_PRIVATE_COLLECTION_ENABLED=true` since 18:40 UTC). Manual
+private run `39304457445` preserved the new record `korea-policy:156785691`
+(17 stored, archive tip `02090fc2`, independent readback passed). Both public
+publishers passed post-cutover reruns (links `39302834158`, text `39302167309`)
+before that record existed; the first dispatch failed on a 403 read token that
+was then fixed. Production/Pages/HTTPS match: 15 MND + 1 DAPA links, 3 licensed
+originals, 3 reviewed English pairs; `156785161` stays link-only (chronology
+hold). The first genuine scheduled private MND run `39329889889` passed
+(October 19, 21:44 UTC, 0 new, ledger at `0fe16d7708`). The scheduled link
+(20:37 UTC) and text (21:17 UTC) publishers had not run by 23:43 UTC, so with
+explicit owner authorization the existing workflows were dispatched once
+(links `39344115247`, text `39344401457`): `156785691` is now admitted (17
+production rows, main `137c8b93c2`) and its KOGL Type 1 original is live
+(`7347a530e3`, HTTPS 200, 4 licensed originals). The English handoff delivered
+a private owner-only draft; no English page is public (human review pending).
+The scheduled link fallback subsequently passed at 23:55 UTC (`39344495959`):
+zero new, 16 unchanged, chronology hold retained. Still unobserved: the
+scheduled text fallback and DAPA's 22:17 UTC slot (prior DAPA run: healthy
+zero day `39179758230`). The Korea shadow watchdog still checks the
+frozen public branch and fails daily; separate fix. Registry stays `shadow`.
+See `docs/engineering/KOREA_DESK_OPERATION.md`.
+
+**Verification/desk-acceptance simplification (2026-10-18, PR #811):**
+Owner authorized one focused simplification: keep
+the existing stable PR check name and critical source/rights, browser,
+database and publication safeguards, while using a fail-closed docs/focused/
+full PR test scope and removing duplicate preflight tests. The same full suite
+still runs on high-risk code and in the daily production workflow. Shadow
+seven-/30-day histories become operating reliability metrics instead of
+automatic launch delays. Governing proposal:
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`. No other workflow,
+production database/output, publisher access or site release is changed.
+
+**Public China title completion (18 October 2026, released):**
+PR #796 merged as `e7436acfc5369ebc4383f582d50f2a8197e41861` after green
+7,486-test CI and verified current-main integration. All 168 missing titles are
+complete (original backlog 151 plus 17 newer titles): 20 by intervening Daily,
+148 in eight reserved, reviewed batches. All 857 eligible China records now have
+usable English display titles; zero remain. Provider usage prices to $0.520463;
+the conservative $3 ledger charges $0.5267576, retaining a 1.1x geography allowance
+for the intervening Daily. Invoice unavailable; all eight probes included, no
+failed title calls or automatic retries. Original Chinese, 653 prior valid English
+titles, screening/analysis states, source permissions and exclusions are preserved;
+no bodies or analysis were processed by the historical batches. Migration 0012
+is current. Output `b5c20b69bec36610920f8f78dcc8282b7c835c1a` deployed as
+`a0c29577e879cb489d5e45b203d3d99ffb49b720` via output-only run 39162790518;
+Pages run 39162817045 succeeded. All 1,968 deployed files match accepted output;
+168 title pages, both indexes and changed listings match actual HTTPS bytes.
+Live desktop/mobile/no-JS, English/Chinese search, citations and CSV/JSON pass;
+142 combined tests pass; validator zero errors/ten governed warnings; JS 9,879
+bytes. Daily is active at 20 titles/run with existing account controls; all 21
+paused writers are restored, and the historical workflow is disabled. The
+intervening full Daily retains its unrelated source-health alert. Exact SHAs,
+spending uncertainty, corrections and receipts:
+`docs/engineering/CHINA_TITLE_TRANSLATION_2026-10-17.md`. No title-release blocker
+or further release action remains.
+
+**Archive released (17 October 2026, PR #776):**
+Approved source `6d9368c2f60679f44aaa034c5bb5541976520f9b` merged as
+`027f3f56ca9ccef323545124f55ac3c3fb319e01`. The owner authorized the 981
+inherited main-output changes and Archive activation. Separate inherited and
+Archive output commits culminate at `f50524cb119b039c9d7e090a5f6bbd43a06d2917`;
+output-only deployment 39062144232 published the complete accepted build.
+Live corpus: 912 records / 1,006 public research items. All 1,892 public files
+match accepted bytes; eight live contracts cover research tools, legacy URLs,
+desktop/mobile/no-JS and Team/author routes. Validator: zero errors, ten governed
+warnings. Source Linux CI passed 7,376 tests with two explained skips. Database,
+editorial/permission records, retired exclusions, #766 and db53 are preserved.
+Exact commits, pins, coordination and evidence: `docs/ARCHIVE_RELEASE_2026-10-17.md`.
+No release blocker remains; future scheduled rendering uses the activated source.
+
+**Editorial team integration (17 October 2026, PR #770 review candidate):**
+The staff branch incorporates main `a4d7961e47` without conflicts. Three approved
+profiles and the Team directory use the shared utility material system; exact
+published credits distinguish authors, co-authors and research contributions.
+Historical shell bytes and Korean-original pages remain identical; no tracked
+output, database, source archive or approval changes are included relative to
+main. Pure `unittest` staff coverage and route-aware existing tests replace the
+failing contracts. Focused acceptance passes 98 tests; complete exact-head CI
+and maintainer review remain the release gates. Scope, visual evidence and
+reproduction: `docs/engineering/EDITORIAL_TEAM_INTEGRATION_2026-10-17.md`.
+No merge or deployment is authorized by this integration task.
+
 **Brief reading foundation approved; cartographic accent candidate (14 October 2026):**
 The owner approved PR #588 head `d5c3ca5169bf10eb7685897c234b06452c3592e5`
 as the Phase 2 design baseline. The follow-up on the same branch/PR adds only
@@ -57,7 +303,8 @@ Production and corpus figures below carry their own measurement dates. The
 first-brief research packet are in
 `docs/DESK_CONSOLIDATION_AND_BRIEF_PREP_2026-09-28.md` (its §7 corrects the
 Singapore recovery claim). The Singapore screening repair and re-screening
-plan are in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` (merged, PR #84).
+plan are in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` (merged, PR #84;
+§6 added 2026-10-18 as the desk's finish-line checklist).
 The image-only-release repair is in
 `docs/SINGAPORE_IMAGE_ONLY_RELEASES_2026-09-29.md`. The authorized September 22
 recovery is prepared for review (three inserts, eight duplicates; no analysis
@@ -82,23 +329,52 @@ promotion changes. Complete diagnosis, repaired assertions, source/rights
 matrix, CI/merge/deploy and live route hashes:
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`. No remaining Laos release blocker.
 
+**Japan Brief No. 19 (18 October 2026, PR #822, ready for release review):**
+Benjamin Yang confirmed the Japanese-source/claim review explicitly after the
+existing gate was explained: “yes. reviewed.” The exact editorial/policy and
+presentation receipts are recorded. Existing locked approval assigned No.19;
+Dylan's author card and the approved 2023 F-15DJ photograph are paired across
+article/catalogue with the accepted crop. CI repair #823 (e21d10e) is included.
+250 relevant tests pass; production-rendered output validates with zero errors
+and seven preserved historical warnings. Desktop/mobile QA passes; unchanged
+manuscript. Current main’s authorized metadata DB changes are preserved.
+Fourteen generated output paths add the Brief and its listings,
+feed, author links, previous/next navigation and assets. Exact-head CI remains
+required. No merge/deployment or live publication is claimed. Release dossier:
+`docs/JAPAN_BRIEF_RELEASE_2026-10-18.md`.
+
 Brief release approval was received 2026-10-05; its candidate,
 authorization recovery and QA evidence are in
 `docs/BRIEF_RELEASE_REVIEW_2026-10-04.md`. The older desk measurements below
 have not been refreshed by that work.
 
-Vietnam is declared at `research`; PR #107 merged on 2026-10-07 as
-`5ccc20ff9` and PR #114 merged the remote ministry path as `2c21b0d09`.
-Actions run `37656171920`, attempt 2 established durable Day 0 on 2026-10-07
-for MPS foreign affairs and the two MOIT families after attempt 1 stopped on a
-transient MOIT robots HTTP 502 without publication. State heads are
-`9098f48e` (MPS), `e4e97954` (MOIT energy), and `4da050e4` (MOIT
-foundational industry). A separate reliability-cadence PR proposes daily
-18:17 UTC collection with six-day lookback/cap 40 and explicit-date manual
-recovery, leading to human Day 7/14/30 checkpoints on 2026-10-14,
-2026-10-21, and 2026-11-06. Government News remains unapproved for remote
-dispatch or public capture retention; no production admission or automatic
-promotion is authorized.
+Vietnam MPS private collection and the official-link index are operational;
+automated corpus analysis remains held (verified 21 October 2026). Private
+`archive/vietnam-mps-foreign-affairs` remains at `25dae9889700e555f69710620d64f1577ac5e219`
+with 25 authenticated originals. Private verification #39697545306 and
+#39702405271 succeeded. Public metadata publication #39711288743 succeeded;
+Pages #39711423178 succeeded, and HTTPS `/vietnam.html` shows the three
+owner-reviewed MPS official links. These are metadata references, not analyzed
+articles. The production corpus has **zero Vietnam AI-analyzed articles**.
+
+Private MPS scheduled collection is enabled. Both article-lane flags
+(`VIETNAM_PRIVATE_DAILY_BRIDGE_ENABLED`, `VIETNAM_DAILY_HANDOFF_ENABLED`) and
+`VIETNAM_SOURCE_USE_REVIEW_KEY` in both repositories are absent. Existing
+metadata/bridge/provenance credentials are present; no values were disclosed.
+The registry stays shadow for corpus articles. MPS original-body external-model
+use has no sealed source-use decision; the footer asks attribution but does
+not establish that use, and the existing inquiry has no observed reply.
+Both MOIT families retain their separate rights/access holds.
+
+The shared runner now supplies the existing bounded QA second pass. MPS
+analysis can generate an independent English factual headline and summary
+without full translation; deterministic QA, signed handoff and the record page
+preserve that distinction and withhold bodies/translations. No real MPS model
+call or article activation was performed. The single external blocker is an
+owner-approved, evidence-backed decision covering private original-body
+transmission to Anthropic and attributable factual output. See
+`docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md` for exact
+scope, findings and remaining activation steps. No private repository changes.
 
 National Defence Journal English (desktop `tapchiqptd.vn/en/default.html`,
 mobile `m.tapchiqptd.vn/en`) is one additional **disabled, research-only**
@@ -151,16 +427,29 @@ No private activation, production database/output/Daily/deployment changes or C2
 Independent manager review remains the next C1 acceptance gate. Receipt:
 `docs/research/APPLICATION_CUSTODY_INTEGRATION_2026-10-10.md`.
 
-**Evidence Timelines (#181):** the inspected prerequisite at head
-`657e9f264` is integrated into this candidate in separate commit `b80b3e4`,
-preserving concurrent main changes. Versioned sidecars, strict reconciliation,
-approved-only static routes and a private review command remain governed by
-`docs/EVIDENCE_TIMELINES.md`. Maritime Cooperation 2026 remains an unpublished
-editorial draft with unchanged digest; Brief No. 15's approval is not inherited.
-Production emits no timeline route, library, tab or backlinks while none is
-separately approved. Private review is noindex and rejected by the deploy gate.
-Owner implementation review, merge/deployment decisions and separate approval
-of exact timeline editorial content remain outstanding.
+**Evidence Timelines (18 October 2026, owner-review candidate):** frontend #798
+merged at `3ee6735338`, preserving the engine already integrated by #279 from
+still-open #181. The selected Flowing Chronology, scoped decorative node glow
+and approval/reconciliation/private-review paths are intact. Engineering and
+browser receipts remain in `docs/EVIDENCE_TIMELINES.md`.
+The corrected six-entry draft has now been checked against all five complete
+captured originals: sea-phase reporting includes September 9 morning gunnery,
+and the closing headline is explicitly attributed. A source-passage locator now
+separates the September 8 excerpt from the later September 9 gunnery account;
+the review note carries the refreshed draft digest and validation limit.
+Ben selected a references-only public presentation: no quotations, source
+titles or links to full-body record pages on this timeline. Private review
+retains evidence, and publisher-link/editorial approval remain unresolved.
+The private candidate,
+six-row review, exact digest and current source-use measurements/choices are in
+`docs/research/MARITIME_TIMELINE_OWNER_REVIEW_2026-10-18.md`. All five record
+routes survive; related Brief No. 15, frontend, database and production output
+are unchanged. Draft status and pending human credits remain intact. Ben's
+next step is exact-content/credit review and a source-use decision for the
+actual quotations/titles, publisher links and full-body record destinations.
+Open #697 remains the preflight; #326 has no recorded rights resolution. #332's
+later private-storage direction does not grant rights or establish cutover.
+No publication is authorized.
 
 **Deduplication provenance workbench (2026-10-11, review candidate):** explicit
 private archive inventory and saved-source replay now share the production
@@ -244,7 +533,7 @@ for its **sources**.
 | Desk | Status | Public meaning |
 |---|---|---|
 | China | `live` | Collecting daily into the production corpus. The only mature collection. |
-| Singapore | `live` | Promoted 2026-09-21 (DECISION_LOG). One source, MINDEF releases. Measured 2026-09-28: 64 records, none analyzed; 14 screened, all rejected by the China-scoped relevance screen; 50 await screening. Desk-scoped screening is in source (2026-09-29); Singapore is held out of the daily model queue until the owner rules. |
+| Singapore | `live` | Promoted 2026-09-21 (DECISION_LOG). One source, MINDEF releases. Measured 2026-10-18: 86 records, none analysed; 14 rejected under the old China-scoped screen; 72 await screening (4936 withheld, blank body). Collection operating; the 2026-10-04→10-18 window reconciles 9/9. The desk analysis path (summary only, no translation, no categories) is built and demonstrated on isolated copies, but Singapore stays held from the daily model queue until the PR on `claude/ipr-desk-completion-7e9246` merges. That merge is the owner act that adopts decisions 1 and 3 in `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md` §5; §6 is the finish-line checklist. |
 | Japan | `shadow` | Isolated evaluation. No production records, no public counts. |
 | US Indo-Pacific | `access_blocked` | Declared scope only; the command website's `robots.txt` returns 403, so permission cannot be established. A separate DVIDS route runs in shadow only (§5); it is not public coverage. |
 
@@ -699,83 +988,42 @@ and incomplete attempts cannot push. This prevents an all-fetch-failure batch
 from consuming the same first cap on every run. These changes merged in PR #95;
 the successful post-merge run above did not exercise the failed-attempt path.
 
-**Philippines NSC official statements: adapter merged in PR #93; isolated
-runner/workflow merged in PR #94; activation merged in PR #96 (2026-10-02).**
-`scripts/shadow_collect_ph_nsc.py`, `ph_nsc_shadow.yml`, prospective seven-date
-windows, owner-approved public state branch `shadow/ph-nsc`, daily 10:10 UTC
-plus explicit manual `target_date` recovery via `core/shadow_schedule.py`. The manifest is
-now enabled only under `shadow/ph_nsc/`; no Philippines production manifest
-or registry entry exists. State remains outside the checkout, captures retain
-exact bytes and hashes, ledgers preserve adapter window/policy evidence and
-post-ID provenance, and failed attempts push nothing. The dedicated adapter
-suite now contains 105 authored tests: two 2026-10-04 cases for
-parser-rejected markup and repeated post IDs, plus two follow-ups pinning
-the specific ParserRejectedMarkup exception boundary and authoritative
-challenge headers. Exact-head CI is required before claiming a passing suite;
-additional runner/workflow tests exercise fixtures and a local bare remote.
-Neither output nor the production database is changed by this PR.
-[Run 37072106688](https://github.com/VSSpowerlifting/China-Mil-Watch/actions/runs/37072106688)
-used collector `302a74555a3503ea344351b1c99c64c128911104`, explicit target
-2026-10-02 and the September 26–October 2 window. Result `ok_no_publications`,
-health `ok`: robots/listing egress and initial public state persistence were
-verified, with zero article requests and zero discovered/selected/retrieved/
-inserted records. State branch `shadow/ph-nsc` was initialized at
-[commit 2dd38f1bcfc598f1eca66082b626146023edf7e7](https://github.com/VSSpowerlifting/China-Mil-Watch/commit/2dd38f1bcfc598f1eca66082b626146023edf7e7).
-The artifact matched state hashes; the collector checkout stayed clean and
-no SQLite sidecars remained. A quiet window establishes no article-body egress.
+**Philippines NSC official statements (historical, 2026-10-01 to 2026-10-19).**
+- PR #93 merged the adapter, PR #94 the runner and PR #96 the activation. The
+  public shadow then ran daily at 10:10 UTC.
+- Every window was quiet, so `shadow/ph-nsc` holds 0 records.
+- The 2026-10-02 rehearsal fetched `nsc:3108` and `nsc:2269` and wrote
+  nothing.
+- The live category shows six statements, dated 2026-06-03 to 2026-07-08.
+- The gambling-content anomaly is unresolved and has not reproduced.
 
-**Owner settings approved 2026-10-02:** public shadow state in the existing
-repository, excluded from the published site and production collection, with
-the unchanged full header `ChinaMilWatch-ShadowCollector/0.1
-(+https://chinamilwatch.org; research archive; contact via site)`. “Private” was
-planning wording, not a confidentiality requirement. No private remote, new
-credentials or contact details are introduced. Ordinary 10:10 UTC scheduling
-remains in place; one manual run establishes no multi-day reliability. The exact
-bounded post-merge verification procedure is in `shadow/ph_nsc/README.md`.
-
-An authorized 2026-10-02 rehearsal used the adapter's own `requests` transport:
-robots.txt and the category returned HTTP 200; discovery for 2026-06-16 through
-2026-07-08 returned exactly two expected references; both statement fetches and
-extractions succeeded (`nsc:3108`, `nsc:2269`) with no database, output or
-production writes. The live category exposes six statements from 2026-06-03
-through 2026-07-08 and no pagination. The sitemap contains only the homepage;
-the two-page author archive exposes those same six Official Statements and
-page 3 is 404. **Still open:** multi-day access reliability, reuse permission,
-pre-2026-06-03 historical completeness, the unresolved-but-not-reproduced
-gambling-content anomaly, article-body egress/extraction/capture persistence in
-Actions and human checkpoint review. Scheduled collector identity
-and public state visibility are owner-approved; reuse/republishing remains open.
-Two robots matchers will exist once draft PR #79 (AFP, untouched) lands; unify
-them then. Gate wording and evidence:
-`shadow/ph_nsc/README.md` and
+The public writer is retired by the custody transition at the top of this
+file. Evidence: `shadow/ph_nsc/README.md` and
 `docs/PH_NSC_ADAPTER_REVIEW_RECEIPT_2026-10-01.md`.
 
-**Vietnam Desk: built and rehearsed, not launched (PR #107 merged 2026-10-07).**
-An owner-authorized exception to the
-geographic deferral (DECISION_LOG 2026-10-05). The registry declares
-`vietnam` at `research`, manifest null, `has_production_records: false`; no
-count is shown. Pilot source: the English defense tag of Viet Nam Government
-News, `vn_vgp_defense_en`, Tier B newsroom reporting. Adapter
-`scraper/sources/vn_vgp.py`; runner `scripts/shadow_collect_vietnam.py`;
-dispatch-only `vietnam_shadow.yml`; review kit
-`scripts/review_vietnam_shadow_state.py`; manifest and scope in
-`shadow/vietnam/`. The orphan state branch `shadow/vietnam` does not exist on
-origin.
+**Vietnam Desk — metadata live; automatic article analysis held (21 October 2026).**
+The current MPS custody, metadata publication and source-use blocker are in the
+Vietnam snapshot above. The prior October 18–19 candidate/failed-source status
+is superseded by the completed private-first cutover and three-link release;
+see Git history and `docs/engineering/VIETNAM_PRIVATE_FIRST_CUTOVER_2026-10-19.md`.
+The shared corpus bridge, provenance migration and authenticated private
+handoff are merged. The runner's missing second-pass callback is repaired;
+MPS headline-only English output no longer depends on full translation rights.
+Focused pipeline/handoff verification passed 66 offline tests using synthetic
+model output and fixture custody. This is engineering evidence, **not** a real
+source-to-model-to-site article success. The first full CI ran 7,902 tests and found seven pre-existing Vietnam tests
+that assumed no admitted MPS links. Their scratch MPS rows and Vietnam page
+expectations are reconciled with the real three-link release; all 10 focused
+checks covering these failures now pass. Required final
+exact-revision CI is recorded on the implementation PR. Public DB and generated output are unchanged by this
+repair. Registry promotion and article flags remain disabled until the narrow
+source-use decision is actually supported and sealed; human Briefs remain
+separately approved.
 
-**Ministry continuation (2026-10-07, merged PR #107):** isolated adapters
-now read Public Security's Vietnamese foreign-affairs RSS and Industry and
-Trade's Vietnamese energy/foundational-industry first pages. All three passed
-body, duplicate and quiet live rehearsals (28 capped requests, five reports),
-with separate source state/clocks and deterministic local reviews. Both runners
-pass the shared cross-process host gate. Defence (`bqp.vn`/`mod.gov.vn`) remains
-at a robots script challenge; Finance (`www.mof.gov.vn`) at a robots app shell.
-No ministry workflow or remote state was published. Registry remains research;
-no activation or qualification. The continuation evidence is in
-`docs/VIETNAM_MINISTRY_EXPANSION_2026-10-07.md`. The separate readiness draft
-adds a main-only dispatch workflow for a serial ministry batch and source-bound
-Day 7/14/30 packets. No rehearsal clock is transferred. Exact budgets, public
-approved ministry retention/identity, publication failure boundaries and exact first
-action: `docs/VIETNAM_REMOTE_ACTIVATION_PROPOSAL_2026-10-07.md`.
+The original English Government News defense-tag pilot remains separate,
+`research`, with no approved remote dispatch and no `shadow/vietnam` branch.
+National Defence Journal remains disabled; MOD access remains challenged.
+Historical October 6 pilot measurements (not current ministry health):
 
 - **Measured 2026-10-06 UTC**, 26 requests under the full identity: the tag
   page lists 24 items, 2023-11-16 to 2026-09-09, with no published
@@ -853,16 +1101,21 @@ review date, not a qualification threshold. Neither desk is promoted.
     only `global_times_mil` and `xinhua_mil` supply.
   - Measured 2026-09-28: 7 paused, 5 retriable, 0 terminal.
   - Publicly, paused records are shown as `analysis_incomplete`.
-* **616 unscreened records** (China desk 566, Singapore 50). None of the China
-  ones is dated in 2026-09-14 → 09-27. This is not urgent, since no edition
-  cites them, but it is the defect class that previously stranded material.
-  Drain only in scoped, windowed chunks.
+* **Unscreened records.** First recorded as 616 (China desk 566, Singapore
+  50). Measured 2026-10-18 (`passed_relevance IS NULL`): 73, China 1 and
+  Singapore 72. The Singapore 72 drain once the desk analysis PR merges
+  (§6.5 of `docs/SINGAPORE_SCREENING_REPAIR_2026-09-29.md`). It is the defect
+  class that previously stranded material; drain only in scoped, windowed
+  chunks.
 * **Singapore was screened by China-scoped rules**, and all 14 of its screened
   records were rejected.
   - Fixed in source on 2026-09-29 (`processing/screening.py`): Singapore is
     judged against its registry scope.
   - Singapore records are held out of the daily queue and
-    `backfill_unscored.py`, because post-relevance analysis is China-only.
+    `backfill_unscored.py`, because post-relevance analysis was China-only.
+    The desk analysis path now exists on `claude/ipr-desk-completion-7e9246`
+    (2026-10-18). Merging it releases the hold; until then the hold stands
+    (repair doc §6).
   - No stored verdict changed.
   - Re-screening the 64 affected records costs about $0.27 at most, and needs
     authorization plus a human review of the proposal.
@@ -1086,8 +1339,12 @@ Full ordering and rationale in `docs/ROADMAP.md`. In short:
 2. Close Singapore's unrecorded Day 30 human-review evidence gap. The packet
    is verified; the human review is not done.
 3. Scoped screening/backfill for publication-ready windows only. For
-   Singapore: rule on the new rubric, authorize and review a re-screening
-   proposal, and decide what analysis follows a Singapore pass.
+   Singapore: the rubric and the post-pass analysis (summary only, no
+   translation, no categories) are built and verified on
+   `claude/ipr-desk-completion-7e9246`. Merging that PR adopts both and
+   starts daily paid screening (about $1, order of magnitude, for the
+   71-record backlog; about $1.85 at the output ceiling). Re-screening the 14 China-rule rejections still needs its own
+   authorized, reviewed `propose`.
 4. Collection continuity:
    - recover or disclose the 09-15 China gap;
    - review the September 22 recovery PR (PR #85 repair merged; three records

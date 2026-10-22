@@ -2,12 +2,19 @@
 
 Standing policy (DECISION_LOG 2026-10-13): photography first, a restrained
 editorial gradient, full provenance, and one photographic identity across the
-catalogue card and the opened article. This contract says what a Brief cover
-must carry and how the code enforces it. Its implemented scope is native
-Briefs from No. 17 on. It does not admit historical articles or earlier
-Briefs retroactively: each needs its own decision under these rules. It
-changes nothing for Briefs whose imagery is held by an existing ruling
-(Nos. 1, 10, 12 and 15) or for the catalogue admissions of Nos. 8 and 9.
+catalogue card and the opened article. **Owner clarification, 2026-10-18:
+every Brief must have a cover photograph, including historical Briefs.**
+A text-led or Editorial-plate fallback is failure handling, not a completed
+cover or an editorial choice to omit it. An existing issue's missing cover
+remains an explicit completion gap; historical replacement/admission work is
+separate from the release of a new manuscript.
+
+This contract says what each cover must carry and how the existing gates
+enforce it. The mandate does not license a held photograph or bulk-admit
+historical images: select separately rights-checked replacements where needed.
+Keep each source-specific restriction, original publication identity and
+historical manuscript intact. The chosen photograph must be reviewed in both
+the catalogue crop and the opened article before publication.
 
 A cover is not a Signal Veil. Existing Signal Veils are IPR treatments
 (duotone, transparency, crop) of real source photographs, whose provenance

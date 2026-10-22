@@ -1,0 +1,28 @@
+<article class="record-page">
+  <div class="record-body">
+    <p><span class="evidence evidence--model">Machine explanation</span> · <a href="../philippines.html">Philippines Desk</a></p>
+    <h1>{{ record.source_label }} official source — machine explanation</h1>
+    <p class="record-source-line">Publisher: {{ record.source_label }} · Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date }}</time></p>
+    <p><a href="{{ record.url }}" rel="noopener nofollow">Read the official publication</a></p>
+    <section class="record-section" aria-labelledby="machine-summary"><h2 id="machine-summary">Machine summary</h2>
+      <div class="interpretation"><p>{{ record.summary }}</p></div>
+      <p class="meta">Machine-generated from the English source; not reviewed by a human. No translation was needed. This is a reading of an institutional account, not independent verification of its claims.</p>
+      <p class="meta">{% if record.model_flagged %}Model-flagged for closer reading: {{ record.flag_reason }}{% else %}Not model-flagged for closer reading.{% endif %} A software triage cue, not an editorial judgment.</p>
+    </section>
+    <section class="record-section"><h2>Source custody and use</h2>
+      <p>The original title and body remain in private evidence custody. This page publishes a separately permitted IPR machine explanation and a link to the official source.</p>
+      <dl class="provenance">
+        <dt>Source identity</dt><dd>{{ record.source_identity }}</dd>
+        <dt>Publisher</dt><dd>{{ record.publisher }}</dd>
+        <dt>Issuing institution</dt><dd>{{ record.issuer or 'Not separately established in this source record' }}</dd>
+        <dt>Immutable source commit</dt><dd>{{ record.source_git_commit }}</dd>
+        <dt>Original content SHA-256</dt><dd>{{ record.content_sha256 }}</dd>
+        <dt>Preserved capture SHA-256</dt><dd>{{ record.capture_sha256 }}</dd>
+        <dt>Collection run</dt><dd>{{ record.source_run }}</dd>
+        <dt>Model / prompt</dt><dd>{{ record.model_id }} / {{ record.prompt_version }}</dd>
+      </dl>
+      <p class="meta">Publication dates describe when the source published, not necessarily when an event happened. Exercises do not independently establish readiness; announcements do not establish delivery or completed implementation.</p>
+    </section>
+    <section class="record-section"><h2>Citation</h2><p>Indo-Pacific Record. Machine explanation of {{ record.source_identity }} (source published {{ record.published_date }}). <a href="{{ record.url }}">Official source</a>.</p></section>
+  </div>
+</article>

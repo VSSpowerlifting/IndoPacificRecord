@@ -77,9 +77,12 @@ from config import SITE_ORIGIN                                    # noqa: E402
 
 from jinja2 import Environment, FileSystemLoader                    # noqa: E402
 from core.viewmodel import PublicView                               # noqa: E402
+from core.title_translation import english_title, receipts, processing_note  # noqa: E402
 from core.china_discovery import build_focus                        # noqa: E402
 from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
+from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
+KOREA_MANIFEST = "desks/korea/manifest.json"
 from scripts.desk_map import layout as desk_map_layout              # noqa: E402
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -174,14 +177,14 @@ BUILD_MODE = "indo-pacific-record"
 #: published edition said at the time.
 MAINTAINER = {
     "name": "Benjamin Yang",
-    "role": "Creator and Editor",
+    "role": "Founder & Director of Research and Editorial",
     "bio": ("Benjamin Yang studies International Affairs at George Washington "
             "University’s Elliott School, with interests in U.S.–China "
             "relations, public diplomacy, and security affairs. He founded "
             "Indo-Pacific Record, writes source-linked security and policy "
             "analysis, and maintains the project’s collection pipeline."),
     "email": "ben.yang@gwmail.gwu.edu",
-    "linkedin": "https://www.linkedin.com/in/benjamin-yang-42b525294",
+    "linkedin": "https://www.linkedin.com/in/benjamin-w-yang/",
 }
 
 #: The desk roster is NOT a constant here any more. It is loaded from
@@ -323,6 +326,8 @@ LOGICAL_FIELDS = (
     "is_significant", "content_hash", "scraped_at", "scrape_run_id",
     "text_original", "passed_relevance", "source_slug", "source_name",
     "language_tag", "institution_id", "institution",
+    "title_translation_source_sha256", "title_translation_value_sha256", "title_translation_model",
+    "title_translation_prompt", "title_translated_at",
 )
 
 
@@ -377,11 +382,11 @@ DECLARED_SNAPSHOT = {
 PROCESSING_STATES = [
     {"code": "analyzed", "label": "Analyzed", "model_flagged": True,
      "definition": "Passed relevance screening and completed analysis. "
-                   "English title and summary are machine-generated."},
+                   "The summary is machine-generated."},
     {"code": "not_selected", "label": "Not selected for analysis",
      "model_flagged": False,
      "definition": "Screened and not selected for analysis. The original "
-                   "record is stored; no translation or summary was produced."},
+                   "record is stored; no analysis summary was produced."},
     {"code": "awaiting_screening", "label": "Awaiting screening",
      "model_flagged": False,
      "definition": "Stored but not yet screened for machine relevance. No machine screening judgment "
@@ -465,10 +470,42 @@ def assert_snapshot(corpus, snapshot: dict) -> None:
 
 # ── Data (read-only, from a scratch copy) ─────────────────────────────────────
 
+def vietnam_publication(con) -> dict:
+    """Vietnam Desk provenance by article id; empty when none is held.
+
+    The rows come from core.vietnam_corpus_bridge, which writes them only under
+    a sealed source-use decision and a promoted registry entry. The renderer
+    re-checks the registry: Vietnam records under a desk the registry still
+    declares shadow (or without production records) refuse the build rather
+    than publish under a desk page that says nothing is admitted.
+    """
+    if con.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                   "AND name='vietnam_article_provenance'").fetchone() is None:
+        return {}
+    rows = con.execute(
+        "SELECT p.*, a.text_english FROM vietnam_article_provenance p "
+        "  JOIN articles a ON a.id = p.article_id ORDER BY p.article_id").fetchall()
+    if not rows:
+        return {}
+    entry = load_registry().get("vietnam")
+    if entry is None or not (entry.is_collecting and entry.has_production_records):
+        raise ValueError("Vietnam records require a live registry entry with production records")
+    out = {}
+    for row in rows:
+        row["permissions"] = json.loads(row.pop("permissions_json"))
+        row["qa"] = json.loads(row.pop("qa_json"))
+        out[row["article_id"]] = row
+    return out
+
+
 def load_corpus(db_path: Path) -> dict:
     """Everything the prototype renders. One pass, read-only, no mutation."""
     with _read_only(str(db_path)) as con:
         con.row_factory = _dict_row
+        # Korea rows render only once the governed bridge admitted them and
+        # processing finished; every query below applies the same predicate.
+        korea_publishable, korea_hidden = publication_gate(con)
+        visible = hidden_predicate(korea_hidden)
 
         sources = con.execute(
             "SELECT s.slug, s.display_name, s.language, s.language_tag, "
@@ -483,12 +520,12 @@ def load_corpus(db_path: Path) -> dict:
         counts = {r["source_slug"]: r["n"] for r in con.execute(
             "SELECT sr.slug AS source_slug, COUNT(a.id) AS n "
             "  FROM sources sr LEFT JOIN articles a ON a.source_id = sr.id "
-            " GROUP BY sr.slug").fetchall()}
+            "   AND " + visible + " GROUP BY sr.slug").fetchall()}
 
         last_pub = {r["source_slug"]: r["d"] for r in con.execute(
             "SELECT sr.slug AS source_slug, MAX(a.published_date) AS d "
             "  FROM sources sr LEFT JOIN articles a ON a.source_id = sr.id "
-            " GROUP BY sr.slug").fetchall()}
+            "   AND " + visible + " GROUP BY sr.slug").fetchall()}
 
         latest_run = con.execute(
             "SELECT id, started_at, completed_at, status, articles_scraped, "
@@ -530,11 +567,11 @@ def load_corpus(db_path: Path) -> dict:
             " WHERE institution_id IS NOT NULL").fetchone()["n"]
 
         totals = con.execute(
-            "SELECT (SELECT COUNT(*) FROM articles) AS articles, "
-            "       (SELECT COUNT(*) FROM articles WHERE analyzed_at IS NOT NULL) AS analyzed, "
+            "SELECT (SELECT COUNT(*) FROM articles a WHERE " + visible + ") AS articles, "
+            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + ") AS analyzed, "
             "       (SELECT COUNT(*) FROM scrape_runs) AS runs, "
-            "       (SELECT MIN(published_date) FROM articles) AS first_date, "
-            "       (SELECT MAX(published_date) FROM articles) AS last_date"
+            "       (SELECT MIN(published_date) FROM articles a WHERE " + visible + ") AS first_date, "
+            "       (SELECT MAX(published_date) FROM articles a WHERE " + visible + ") AS last_date"
         ).fetchone()
 
         # Recent analyzed articles for the archive surface. Bounded: the
@@ -552,7 +589,7 @@ def load_corpus(db_path: Path) -> dict:
             "  FROM articles a "
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
-            " WHERE " + STATE_CASE_SQL + " = 'analyzed' "
+            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " "
             " ORDER BY a.published_date DESC, a.id DESC LIMIT 60").fetchall()
 
         # Collection continuity: which calendar days have a run. The published
@@ -586,7 +623,30 @@ def load_corpus(db_path: Path) -> dict:
             "  FROM articles a "
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
+            " WHERE " + visible + " "
             " ORDER BY a.published_date DESC, a.id DESC").fetchall()
+
+        title_receipts = receipts(con, metadata=True)
+        vietnam = vietnam_publication(con)
+        desk_by_source = {s["slug"]: s.get("desk_id") for s in sources}
+        for rec in corpus + recent:
+            rec["desk_id"] = desk_by_source.get(rec["source_slug"])
+            rec.update(title_receipts.get(rec["id"], {}))
+            rec["title_english"] = english_title(rec)
+            value_hash = rec.get("title_translation_value_sha256")
+            if value_hash and rec["title_english"] and value_hash != hashlib.sha256(rec["title_english"].encode("utf-8")).hexdigest():
+                # The stored title was edited after this receipt. Preserve it
+                # without attributing the changed value to the old model run.
+                for key in ("title_translation_model", "title_translation_prompt", "title_translated_at"):
+                    rec.pop(key, None)
+
+        # The line-aligned machine translation is read only for gated Korean
+        # records; no other desk's record carries or renders this field.
+        korea_english = {}
+        if korea_publishable:
+            korea_english = {r["id"]: r["text_english"] for r in con.execute(
+                "SELECT id, text_english FROM articles WHERE id IN (%s)"
+                % ",".join(str(int(i)) for i in sorted(korea_publishable)))}
 
     for rec in corpus:
         rec["state_label"] = STATE_LABELS[rec["state"]]
@@ -597,6 +657,13 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
+        if rec["id"] in vietnam:
+            # Vietnam Desk rows only; every other record dict is unchanged.
+            rec["vietnam"] = vietnam[rec["id"]]
+        rec["korea_identity"] = korea_publishable.get(rec["id"])
+        if rec["korea_identity"]:
+            rec["korea_news_id"] = rec["korea_identity"].split(":", 1)[1]
+            rec["text_english"] = korea_english.get(rec["id"])
 
     for s in sources:
         s["article_count"] = counts.get(s["slug"], 0)
@@ -610,6 +677,7 @@ def load_corpus(db_path: Path) -> dict:
         "unmapped_executed": unmapped_executed,
         "institutions": institutions,
         "corpus": corpus,
+        "korea_publishable": korea_publishable,
         "state_counts": corpus_state_counts(corpus),
         "facets": corpus_facets(corpus),
         "weeks": corpus_weeks(corpus, run_days),
@@ -1154,6 +1222,9 @@ def _edition_identity_fields(sidecar_path: Path, data: dict) -> dict:
     except IdentityError as exc:
         raise IdentityError("sidecar %s: %s" % (sidecar_path.name, exc))
     return {
+        # Catalogue bylines follow the original edition, not today's staff role.
+        "author_name": identity["author_name"],
+        "author_title": identity["author_title"],
         "publication": identity["publication"],
         "publication_home_label": identity["publication_home_label"],
         "series_name": identity["series_name"],
@@ -2111,7 +2182,7 @@ CITATION_PROCESSING_NOTES = {
         "machine-generated and have not been reviewed by a human.",
     "not_selected":
         "This record was screened and not selected for analysis. No "
-        "translation and no summary were produced.",
+        "analysis summary was produced.",
     "awaiting_screening":
         "This record has not been machine-screened. No machine screening judgment has been "
         "made about it.",
@@ -2153,7 +2224,7 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
                 id=_require(record.get("id"), "record id", subject),
                 date=snapshot["date"],
                 records=snapshot["expected_records"]),
-        "note": CITATION_PROCESSING_NOTES[record["state"]],
+        "note": processing_note(record, CITATION_PROCESSING_NOTES),
     }
 
 
@@ -2411,12 +2482,23 @@ def build(out_dir: Path, title: str, db_path: Path,
     korea_public_rows = []
     korea_additional_rows = []
     korea_auto_official_rows = []
+    korea_production_link_count = 0
+    korea_dapa_production_link_count = 0
     korea_published_original_rows = []
     korea_english_publication_rows = []
     if korea_release_state is not None:
-        if (korea_release_state.status != "shadow"
-                or korea_release_state.manifest_path is not None
-                or korea_release_state.has_production_records):
+        # Two states only. The shadow declaration, or the owner-activated
+        # shared-Daily desk: live, its own production manifest, and corpus
+        # rows that exist only through the governed bridge (and render only
+        # through the publication gate in load_corpus). Anything in between
+        # is a half-applied activation and refuses to build.
+        korea_shadow = (korea_release_state.status == "shadow"
+                        and korea_release_state.manifest_path is None
+                        and not korea_release_state.has_production_records)
+        korea_live = (korea_release_state.status == "live"
+                      and korea_release_state.manifest_path == KOREA_MANIFEST
+                      and korea_release_state.has_production_records)
+        if not (korea_shadow or korea_live):
             raise ValueError("Korea production admission remains prohibited")
         if korea_release_state.public:
             from core.korea_public_bibliography import load_public_korea_links
@@ -2430,8 +2512,20 @@ def build(out_dir: Path, title: str, db_path: Path,
             from core.korea_official_live_links import load_live_korea_official_links
             frozen_ids = {r["source_identity"] for r in (
                 korea_public_rows + korea_additional_rows)}
-            korea_auto_official_rows = load_live_korea_official_links(
-                db_path, exclude=frozen_ids)
+            # A verified production metadata admission may overlap the
+            # historic curated link directory. Count ALL authenticated DB
+            # admissions, suppressing the overlap only in the new-link rail.
+            # An empty rail is not evidence that the live feed is empty.
+            korea_admitted_official_rows = load_live_korea_official_links(db_path)
+            korea_production_link_count = len(korea_admitted_official_rows)
+            korea_dapa_production_link_count = sum(
+                row["source_identity"].startswith("korea-dapa-policy:")
+                for row in korea_admitted_official_rows
+            )
+            korea_auto_official_rows = [
+                item for item in korea_admitted_official_rows
+                if item["source_identity"] not in frozen_ids
+            ]
             from core.korea_published_originals import read_release_index
             korea_published_original_rows = read_release_index()
             from core.korea_english_publication import public_registry
@@ -2495,6 +2589,28 @@ def build(out_dir: Path, title: str, db_path: Path,
 
     data = load_corpus(db_path)
 
+    # A Korean release that passed the publication gate is ONE reader record:
+    # record/<id>.html. Its bare official link is then reached from that
+    # record and is not repeated in the desk rail or the archive index. The
+    # licensed original-text exhibit stays listed exactly as released (the
+    # deployed-readback verifier pins that list and those page bytes) and is
+    # cross-linked to the record, as the reviewed English pages already are.
+    # The frozen baseline, the editor-reviewed English releases and the
+    # research hold can never become a machine record (fail closed), and a
+    # record must have its released original exhibit to link to.
+    korea_record_routes = {ident: "record/%d.html" % aid
+                           for aid, ident in data["korea_publishable"].items()}
+    if korea_record_routes:
+        from core.korea_corpus_bridge import excluded_identities
+        if set(korea_record_routes) & set(excluded_identities()):
+            raise ValueError("an excluded Korean identity reached the publication gate")
+        if not set(korea_record_routes) <= {
+                r["source_identity"] for r in korea_published_original_rows}:
+            raise ValueError("a Korean record has no released original exhibit")
+        korea_auto_official_rows = [
+            r for r in korea_auto_official_rows
+            if r["source_identity"] not in korea_record_routes]
+
     # Declared, not inferred. Fixtures pass their own snapshot; the default is
     # the production-preview assertion and is never relaxed for a fixture.
     assert_snapshot(data["corpus"], snapshot)
@@ -2523,6 +2639,8 @@ def build(out_dir: Path, title: str, db_path: Path,
     briefs_dir = BRIEFS_SOURCE if briefs_dir is None else Path(briefs_dir)
     collection = load_collection(editions, load_registry(), briefs_dir=briefs_dir,
                                  allow_synthetic=allow_synthetic_briefs)
+    # Freeze the approved collection before any private review can add a draft.
+    public_archive_collection = collection
     atmosphere = home_atmosphere(REPO_ROOT)
     veil = home_veil(REPO_ROOT)
 
@@ -2652,7 +2770,23 @@ def build(out_dir: Path, title: str, db_path: Path,
     # record routes, full corpus index and cited issue links remain unchanged.
     focus = build_focus(data["corpus"])
 
+    from core.archive_research import (analysis_records, build_index as build_archive_index,
+                                       digest as archive_digest, encoded as archive_encoded)
+    index = corpus_index(data["corpus"], data["sources"], snapshot, desks, focus=focus)
+    public_analyses = list(analysis_records(
+        public_archive_collection, editorial_research,
+        {row["entry"]["slug"]: json.loads((REPO_ROOT / "output/the-pla-watch/posts" /
+            (row["entry"]["slug"] + ".json")).read_text(encoding="utf-8"))
+         for row in public_archive_collection.rows if row["kind"] == "issue"},
+        edition_citation=edition_citation, state_labels=STATE_LABELS,
+        state_order=STATE_ORDER, language_label=language_label))
+    archive_official_groups = []
+    from core.staff_directory import load_staff, credited_works
+    team_members = load_staff(REPO_ROOT / "site/preview/staff.json")
+    team_by_name = {member["name"]: member for member in team_members}
+
     ctx = {
+        "archive_digest": archive_digest(archive_encoded(index)),
         "title": title,
         "focus": focus,
         "review_mode": bool(review_brief or review_timeline or review_presentation),
@@ -2667,6 +2801,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         "predecessor_name": PREDECESSOR_NAME,
         "predecessor_series": PREDECESSOR_SERIES,
         "maintainer": MAINTAINER,
+        "team": team_members,
+        "team_by_name": team_by_name,
         "snapshot_label": snapshot_label,
         "citation": citation,
         "institutions": data["institutions"],
@@ -2794,10 +2930,19 @@ def build(out_dir: Path, title: str, db_path: Path,
         "pla-watch.html": "pla_watch.html",
         "methodology.html": "methodology.html",
         "about.html": "about.html",
+        "team.html": "team.html",
     }
     written = []
     for target, template in pages.items():
-        page_html = env.get_template(template).render(page=target, **ctx)
+        if target == "archive.html":
+            continue  # Bind the complete current indexes before rendering the finder.
+        # A live, separately governed Korea metadata table is NOT an article
+        # corpus or a full-country source admission. Show its measured count
+        # only on the Desks directory, without reclassifying Korea as 'live'.
+        desk_index_lanes = ({"korea_mnd_live_link_count": (korea_production_link_count - korea_dapa_production_link_count)}
+                            if target == "desks.html" else {})
+        page_html = env.get_template(template).render(
+            page=target, **ctx, **desk_index_lanes)
         if target == "desks.html":
             # Desks embeds the canonical 1:50m map inline. Its accessible
             # directory keeps every status/limit, so trim only indentation
@@ -2807,6 +2952,29 @@ def build(out_dir: Path, title: str, db_path: Path,
             page_html = re.sub(r"(?m)^[ \t]+(?=<)", "", page_html)
         (out_dir / target).write_text(page_html, encoding="utf-8")
         written.append(target)
+
+    # Static staff profiles use exact published credits; historical authorship
+    # and the editorial release authority are unaffected.
+    (out_dir / "authors").mkdir(exist_ok=True)
+    profile_template = env.get_template("staff_profile.html")
+    for member in team_members:
+        schema = None
+        if (site_origin or "").strip():
+            profile_origin = site_origin.strip().rstrip("/")
+            schema = {"@context": "https://schema.org", "@type": "Person",
+                      "name": member["name"],
+                      "url": profile_origin + "/" + member["route"],
+                      "jobTitle": member["role"],
+                      "worksFor": {"@type": "Organization", "name": title,
+                                   "url": profile_origin + "/"}}
+            if member["links"]:
+                schema["sameAs"] = list(member["links"].values())
+        route = member["route"]
+        (out_dir / route).write_text(profile_template.render(
+            page=route, nested=True, member=member,
+            works=credited_works(collection, member["name"]),
+            staff_schema=schema, **ctx), encoding="utf-8")
+        written.append(route)
 
     if timelines:
         (out_dir / "timeline").mkdir()
@@ -2821,6 +2989,15 @@ def build(out_dir: Path, title: str, db_path: Path,
         (out_dir / "timelines.css").write_text(
             (Path(__file__).parent / "timelines.css").read_text(encoding="utf-8"), encoding="utf-8")
         written.append("timelines.css")
+        # The illustrative maritime texture ships only when its exact timeline
+        # is rendered. Draft public builds therefore receive neither page nor asset.
+        if any(t["slug"] == "maritime-cooperation-2026" for t in timelines):
+            route = "assets/timelines/maritime-ocean-texture.webp"
+            source = REPO_ROOT / "site" / route
+            target = out_dir / route
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read_bytes())
+            written.append(route)
 
     # ── The component and state gallery (maintenance only) ────────────────
     # Off by default and never requested by `site/render.py`, so no published
@@ -2997,16 +3174,34 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.us_bis_authenticated_metadata import load_public_links as load_bis_live_links
         bis_links = (load_bis_live_links(db_path)
                      if desk.slug == "us-indopacific" else [])
+        # Only already-admitted database metadata, never archived bodies.
+        from core.regional_official_link_render import load_admitted_links
+        from core.daily_machine_records import load as load_daily_machine_records
+        daily_machine_records = load_daily_machine_records(db_path) if desk.slug == "philippines" else []
+        regional_official_links = (
+            load_admitted_links(db_path, desk.slug)
+            if desk.slug in ("philippines", "indonesia", "vietnam") else [])
+        # Reuse the exact public results that render this build's desk pages.
+        archive_official_groups.extend([
+            (references, desk.slug, None, None),
+            (indonesia_official_links, desk.slug, "Kemhan Berita", "Kementerian Pertahanan Republik Indonesia"),
+            (indonesia_press_links, desk.slug, "Kemhan Siaran Pers", "Kementerian Pertahanan Republik Indonesia"),
+            (us_pacom_links, desk.slug, "U.S. Indo-Pacific Command official site", "U.S. Indo-Pacific Command"),
+            (uscc_links, desk.slug, "USCC press releases", "U.S.-China Economic and Security Review Commission"),
+            (treasury_links, desk.slug, "Treasury press releases", "U.S. Department of the Treasury"),
+            (bis_links, desk.slug, "BIS press releases", "U.S. Department of Commerce · Bureau of Industry and Security"),
+        ])
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
-        (out_dir / desk.route).write_text(
-            desk_tmpl.render(page=desk.route, desk=desk,
+        desk_page = desk_tmpl.render(page=desk.route, desk=desk,
                              public_source_links=references,
                              published_research=published_research,
                              public_source_options=source_options,
                              public_reference_languages=languages,
                              indonesia_official_links=indonesia_official_links,
                              indonesia_press_links=indonesia_press_links,
+                             regional_official_links=regional_official_links,
+                             daily_machine_records=daily_machine_records,
                              us_pacom_official_links=us_pacom_links,
                              uscc_official_links=uscc_links,
                              us_treasury_official_links=treasury_links,
@@ -3014,11 +3209,29 @@ def build(out_dir: Path, title: str, db_path: Path,
                              korea_public_links=(korea_public_rows if desk.slug == "korea" else []),
                              korea_additional_links=(korea_additional_rows if desk.slug == "korea" else []),
                              korea_auto_official_links=(korea_auto_official_rows if desk.slug == "korea" else []),
+                             korea_production_link_count=(korea_production_link_count if desk.slug == "korea" else 0),
+                             korea_dapa_production_link_count=(korea_dapa_production_link_count if desk.slug == "korea" else 0),
                              korea_published_originals=(korea_published_original_rows if desk.slug == "korea" else []),
+                             korea_record_routes=(korea_record_routes if desk.slug == "korea" else {}),
                              korea_english_publications=(korea_english_publication_rows if desk.slug == "korea" else []),
                              display_limits=public_desk_limits(
-                                 desk, source_views), **ctx),
-            encoding="utf-8")
+                                 desk, source_views), **ctx)
+        if desk.slug == "indonesia" and regional_official_links:
+            # The admitted URL/date-only entries are repetitive; keep every
+            # source, publisher and date, but compact layout whitespace and
+            # omit the per-row "metadata only" refrain already explained above.
+            # The all-route 120 KB budget remains unchanged.
+            pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
+            matches = re.findall(pattern, desk_page)
+            if len(matches) != len(regional_official_links):
+                raise ValueError("Indonesia admitted-index markup/count mismatch")
+            desk_page = re.sub(
+                pattern,
+                lambda m: re.sub(r'\s*\n\s*', ' ', m.group(0))
+                         .replace(' · Official-link metadata only', ''),
+                desk_page,
+            )
+        (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
 
     # Reproducible original Korean source pages are emitted ONLY when an
@@ -3029,7 +3242,10 @@ def build(out_dir: Path, title: str, db_path: Path,
         for record in korea_published_original_rows:
             target = out_dir / record["route"]
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(render_original_page(record), encoding="utf-8")
+            # Render candidate-safe noindex markup first; the shared site-origin
+            # pass below installs canonical and social URLs for actual release.
+            target.write_text(render_original_page(record, site_origin=None),
+                              encoding="utf-8")
             written.append(record["route"])
 
     # English pages are written only for explicitly registered, already
@@ -3040,8 +3256,10 @@ def build(out_dir: Path, title: str, db_path: Path,
         for release, editorial, source in korea_english_publication_rows:
             number = source["source_identity"].split(":")[1]
             for folder, markup in (
-                ("korea-translations", render_translation(release, editorial, source)),
-                ("korea-analysis", render_analysis(release, editorial, source)),
+                ("korea-translations", render_translation(
+                    release, editorial, source, site_origin=None)),
+                ("korea-analysis", render_analysis(
+                    release, editorial, source, site_origin=None)),
             ):
                 route = folder + "/" + number + ".html"
                 target = out_dir / route
@@ -3110,6 +3328,17 @@ def build(out_dir: Path, title: str, db_path: Path,
             encoding="utf-8")
         written.append("record/%d.html" % rec["id"])
 
+    from core.daily_machine_records import load as load_daily_machine_records, archive_rows as machine_archive_rows
+    machine_records = load_daily_machine_records(db_path)
+    machine_paths = {r["record_path"] for r in machine_records}
+    for stale in (out_dir / "record").glob("source-*.html"):
+        if "record/" + stale.name not in machine_paths:
+            stale.unlink()
+    for rec in machine_records:
+        (out_dir / rec["record_path"]).write_text(
+            record_tmpl.render(page="archive.html", record=rec, **ctx), encoding="utf-8")
+        written.append(rec["record_path"])
+
     # ── Week shards ──────────────────────────────────────────────────────────
     # Ordinary static pages. Every record is reachable from corpus.html through
     # plain links with JavaScript disabled — no facets, no result-count script,
@@ -3129,13 +3358,29 @@ def build(out_dir: Path, title: str, db_path: Path,
     # assert_snapshot() has passed, so an index can never describe a corpus the
     # build refused to publish. Sorted keys and fixed separators keep it
     # byte-deterministic.
-    index = corpus_index(data["corpus"], data["sources"], snapshot, desks,
-                         focus=focus)
     (out_dir / "corpus-index.json").write_text(
         json.dumps(index, ensure_ascii=False, sort_keys=True,
                    separators=(",", ":")) + "\n",
         encoding="utf-8")
     written.append("corpus-index.json")
+    archive_official_groups.append((korea_public_rows + korea_additional_rows + korea_auto_official_rows,
+        "korea", "Republic of Korea Policy Briefing", "Republic of Korea Ministry of National Defense"))
+    research_index = build_archive_index(
+        db_path, index, cite_record=record_citation, processing_notes=CITATION_PROCESSING_NOTES,
+        official_groups=archive_official_groups, originals=korea_published_original_rows,
+        machine_records=machine_archive_rows(machine_records),
+        english_publications=korea_english_publication_rows, analyses=public_analyses)
+    (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
+    written.append("archive-research-index.json")
+    ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
+    ctx["has_machine_explanations"] = bool(machine_records)
+    ctx["archive_public_sources"] = sorted({r["source"] for r in research_index["records"]
+        if r["record_type"] != "archive_record" and r["source"]})
+    ctx["archive_issuers"] = sorted({r["issuer"] for r in research_index["records"] if r["issuer"]})
+    (out_dir / "archive.html").write_text(
+        env.get_template("archive.html").render(page="archive.html", **ctx), encoding="utf-8")
+    if "archive.html" not in written:
+        written.append("archive.html")
 
     (out_dir / "browse.js").write_text(
         (Path(__file__).parent / "browse.js").read_text(encoding="utf-8"),
@@ -3175,7 +3420,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
-    for name in ("fonts.css", "support.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
+    for name in ("staff.css", "fonts.css", "support.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
     # Explicit named assets only: homepage relief sprites and Phase 4A Desks

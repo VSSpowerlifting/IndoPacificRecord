@@ -5,8 +5,14 @@ its reliability can be measured before anything it produces is treated as
 coverage. Nothing a shadow desk collects appears in the public site, in
 `pla_watch.db`, or in any public count.
 
-**Two shadow desks exist.** Neither is qualified, neither is approved for
-public promotion, and neither may be described as coverage.
+**Historical initial shadow roster (August–September 2026):** The two
+entries below describe the original isolated collectors, not today's desk
+status. Singapore was subsequently promoted to the production corpus; always
+read `desks/registry.json` and the current production manifest for status.
+For future desks, the October 18 owner decision replaces fixed seven-/30-day
+*prelaunch* waiting with real end-to-end acceptance and failure/retry evidence
+(`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`). Historical
+failed source days remain failed; no shadow collector grants publication rights.
 
 | Desk | State branch | Collector | Workflow | Scope document |
 |---|---|---|---|---|
@@ -24,6 +30,13 @@ not a confidentiality requirement: Git state and Actions artifacts are public,
 and no shadow record enters the published site or production collection. No
 private remote or new credentials are needed. The bounded post-merge verification
 procedure and remaining evidence gates are in `shadow/ph_nsc/README.md`.
+
+**NSC custody transition (19 October 2026, pending owner merge).** The public
+NSC writer is retired, and `shadow/ph-nsc` freezes at its tip on merge
+(`1a313e04`, 0 records, as of 2026-10-19).
+Collection continues privately on `archive/ph-nsc` in `ipr-source-evidence-private`
+(PR #19). Link publication waits on the owner decision in
+`docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md`.
 
 Ben authorized committing the Indonesia/South Korea candidates, opening their PR
 and establishing fresh durable shadow collection in this repository on 2026-10-06.
@@ -260,22 +273,21 @@ whose result is terminal-successful, written once into `clock.json` and never
 rewritten. A failed run neither starts nor advances the clock. An expected
 empty day is a success: it records history without inventing records.
 
-## Thirty-day qualification
+## Historical thirty-day checkpoint (not a current launch requirement)
 
-Reaching day 30 creates a **launch-review checkpoint**. It does not launch
-anything, and no code anywhere flips a mode based on it. **There is no
-automatic promotion**: no date, no counter and no collection milestone makes a
-shadow desk public. Promotion is an owner decision recorded in
-`DECISION_LOG.md`, and it comes after the reviews, not before them.
+Under the original procedure, day 30 triggered a review packet, never an
+automatic release. The October 18 owner ruling supersedes the elapsed-time
+launch prerequisite. A real source-specific review, permissioned release, and
+end-to-end operation remain required where applicable; neither a time counter
+nor a historical review alone establishes publication authority.
 
-A review may proceed only if every scheduled day has a recorded terminal
-result; expected empty days are distinguished from failures; no robots or
-access-policy violation occurred; no silent listing failure occurred; full-body
-extraction stayed reliable; identity and deduplication stayed deterministic; no
-shadow write reached a production artifact; manual corpus reviews happened
-around days 7, 14 and 30; any extraction break was repaired and followed by a
-fresh uninterrupted interval if the break invalidated reliability; and the
-corpus is substantively sufficient to represent a real desk.
+Historical checks assessed terminal collection results (including genuine
+quiet days and failures), robots/access compliance, retrieval completeness,
+source identity/deduplication, shadow-production isolation, original Day 7/14/30
+human reviews and repair after collection breaks. Preserve those observations
+as reliability evidence. New desk launches verify relevant authentic
+failure/recovery behavior directly; do not require another arbitrary streak.
+See `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`.
 
 ## Rollback
 

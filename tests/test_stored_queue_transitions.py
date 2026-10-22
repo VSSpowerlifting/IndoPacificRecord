@@ -15,12 +15,14 @@ from unittest.mock import patch
 
 from scripts import audit_stored_queue_transitions as diff
 from scripts import audit_analysis_queue_by_source as queue
+from tests.held_desk import HELD_DESK, HELD_SOURCE, register_held_desk
 
 NOW = datetime(2026, 10, 9, 12, tzinfo=timezone.utc)
 
 
 class StoredTransitions(unittest.TestCase):
     def setUp(self):
+        register_held_desk(self)
         tmp = tempfile.TemporaryDirectory(prefix="ipr-stored-transition-")
         self.addCleanup(tmp.cleanup)
         self.root = Path(tmp.name)
@@ -42,7 +44,7 @@ class StoredTransitions(unittest.TestCase):
                 );
             """)
             con.executemany("INSERT INTO sources VALUES (?,?,?)", [
-                (1, "mod_china", "china"), (2, "sg_mindef", "singapore")])
+                (1, "mod_china", "china"), (2, HELD_SOURCE, HELD_DESK)])
         shutil.copyfile(self.before, self.after)
 
     def insert(self, which, ident, *, source=1, passed=None,

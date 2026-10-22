@@ -49,6 +49,22 @@ class TimelineRendering(unittest.TestCase):
     def detail(self, root=None):
         return (root or self.preview) / 'timeline/maritime-cooperation-2026.html'
 
+    def test_maritime_water_asset_is_scoped_and_decorative(self):
+        # The unapproved timeline and its image must not leak into public output.
+        route = "assets/timelines/maritime-ocean-texture.webp"
+        self.assertFalse((self.public / route).exists())
+        for root in (self.preview, self.approved):
+            self.assertTrue((root / route).is_file())
+            self.assertEqual((root / route).read_bytes(),
+                             (ROOT / "site" / route).read_bytes())
+            html = self.detail(root).read_text()
+            self.assertIn('tl-narrative--maritime', html)
+            self.assertNotIn('tl-art-note', html)
+            self.assertNotIn('Illustrative AI-generated ocean texture', html)
+        css = (self.preview / "timelines.css").read_text()
+        self.assertIn('assets/timelines/maritime-ocean-texture.webp', css)
+        self.assertIn('@media(max-width:1050px)', css)
+
     def test_public_draft_exclusion_in_routes_links_feed_and_sitemap(self):
         self.assertFalse((self.public / 'timelines.html').exists())
         self.assertFalse((self.public / 'timeline').exists())
@@ -101,6 +117,34 @@ class TimelineRendering(unittest.TestCase):
                 self.assertIn('differs from its approved', ' '.join(errors))
             finally:
                 page.write_text(before)
+
+    def test_references_only_public_page_omits_publisher_text_and_local_body_links(self):
+        from bs4 import BeautifulSoup
+        sc = json.loads(self.pilot.read_text())
+        doc = BeautifulSoup(self.detail(self.approved).read_text(), 'html.parser')
+        private = BeautifulSoup(self.detail().read_text(), 'html.parser')
+        self.assertFalse(doc.select('blockquote,.tl-original,.tl-translation,a[href*="record/"]'))
+        self.assertTrue(private.select('blockquote,.tl-original,a[href*="record/"]'))
+        for entry in sc['entries']:
+            for ev in entry['evidence']:
+                self.assertIsNotNone(doc.select_one('#source-%s' % ev['record_id']))
+                self.assertIsNotNone(doc.find('a', href=ev['url']))
+                self.assertNotIn(ev['excerpt'], doc.get_text())
+        text = self.detail(self.approved).read_text()
+        path = self.detail(self.approved)
+        from core.brief_collection import load_briefs, brief_entry
+        from core.desk_registry import load_registry
+        published, _ = load_briefs(ROOT / 'briefs', load_registry(), historical_numbers=range(1, 15))
+        views, _ = t.load_timelines(ROOT / 'pla_watch.db',
+                                   {slug:brief_entry(slug, sc) for slug, sc in published}, self.sources)
+        try:
+            path.write_text(text.replace('</article>', '<a href="../record/4466.html">Body</a></article>', 1))
+            with mock.patch('core.timelines.load_timelines', return_value=(views, [])):
+                errors = []
+                validate_output._validate_timelines(self.approved, errors)
+                self.assertIn('exposes source text or full-body', ' '.join(errors))
+        finally:
+            path.write_text(text)
 
     def test_original_language_headline_is_escaped_in_native_evidence(self):
         from jinja2 import Environment, FileSystemLoader
@@ -156,6 +200,62 @@ class TimelineRendering(unittest.TestCase):
             self.assertLessEqual(budget['js_bytes'], 10000, budget)
             self.assertEqual(budget['external'], [])
         self.assertIn('src="../reveal.js"', self.detail().read_text())
+
+    def test_flowing_connectors_follow_wrapping_disclosures_and_resizing(self):
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page()
+            page.goto(self.detail().as_uri())
+            page.evaluate('document.fonts.ready')
+            # Deliberately long test-only titles and expanded evidence exercise
+            # variable row heights without editing the canonical pilot.
+            page.locator('.tl-entry h3').evaluate_all(
+                '(els)=>els.forEach(e=>e.textContent += " — wrapped title fixture ".repeat(4))')
+            page.locator('.tl-evidence').evaluate_all('(els)=>els.forEach(e=>e.open=true)')
+            page.evaluate("document.documentElement.style.setProperty('--display', 'Georgia, serif')")
+            for width in (1280, 1100, 1024, 768, 375, 320, 1280):
+                page.set_viewport_size({'width': width, 'height': 900})
+                with self.subTest(width=width):
+                    self.assertFalse(page.evaluate('document.documentElement.scrollWidth>innerWidth'))
+                    geometry = page.locator('.tl-entry').evaluate_all('''els=>els.map(e=>{
+                        const box=s=>e.querySelector(s).getBoundingClientRect();
+                        const rail=box('.tl-spine-segment'), branch=box('.tl-branch');
+                        const card=box('.tl-entry-body');
+                        return {railX:rail.x+rail.width/2, railBottom:rail.bottom,
+                            railTop:rail.top, left:branch.left, right:branch.right,
+                            top:branch.top, bottom:branch.bottom,
+                            cardLeft:card.left, cardRight:card.right,
+                            cardTop:card.top, cardBottom:card.bottom};
+                    })''')
+                    for i, g in enumerate(geometry):
+                        left_card = width > 1050 and i % 2 == 0
+                        self.assertAlmostEqual(g['right'] if left_card else g['left'], g['railX'], delta=.1)
+                        self.assertAlmostEqual(g['left'] if left_card else g['right'],
+                                               g['cardRight'] if left_card else g['cardLeft'], delta=.1)
+                        self.assertGreater(g['bottom'], g['cardTop'])
+                        self.assertLess(g['bottom'], g['cardBottom'])
+                        if i < len(geometry) - 1:
+                            self.assertAlmostEqual(g['railBottom'], geometry[i+1]['railTop'], delta=.1)
+            # No timeline entrance transform may detach the static rail.
+            self.assertEqual(page.locator('.tl-entry[data-reveal]').count(), 0)
+            browser.close()
+
+    def test_scope_and_planned_evidence_are_visible_without_context_disclosures(self):
+        from bs4 import BeautifulSoup
+        doc = BeautifulSoup(self.detail().read_text(), 'html.parser')
+        self.assertIn('not an independently verified operational history', doc.select_one('.tl-hero').get_text())
+        self.assertFalse(doc.select_one('.tl-context-tracks').has_attr('data-wide-open'))
+        sea = doc.select_one('#sea-phase')
+        self.assertIn('Planned activity:', sea.get_text())
+        self.assertIn('Later report:', sea.get_text())
+        self.assertEqual([a['href'] for a in doc.select('.tl-jump a')],
+                         ['#tl-narrative-heading', '#tl-reconcile-1', '#tl-ledger-heading'])
+        sc = json.loads(self.pilot.read_text())
+        for entry in sc['entries']:
+            rendered = doc.select_one('#' + entry['id'])
+            self.assertEqual({a['href'] for a in rendered.select('.tl-citations a')},
+                             {'#source-%s' % ev['record_id'] for ev in entry['evidence']})
 
     def test_offline_browser_mobile_keyboard_motion_print_and_primary_links(self):
         from playwright.sync_api import sync_playwright

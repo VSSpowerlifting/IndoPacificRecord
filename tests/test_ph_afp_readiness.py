@@ -348,7 +348,7 @@ class TestStatePublisher(StateCase):
 
 class TestPreparedWorkflow(unittest.TestCase):
     def test_workflow_is_scheduled_and_manual_isolated_and_keeps_job_failed(self):
-        text = (S.REPO_ROOT / ".github/workflows/ph_afp_shadow.yml").read_text()
+        text = (S.REPO_ROOT / "tests/fixtures/ph_afp_public_legacy_workflow.yml").read_text()
         self.assertIn("    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'", text)
         self.assertIn("--rehearsal --sample-limit 2", text)
         self.assertIn("steps.collect.outcome == 'success' && (github.event_name == 'schedule' || inputs.publish_state)", text)
@@ -364,7 +364,7 @@ class TestPreparedWorkflow(unittest.TestCase):
         self.assertIn('elif [ "$status" -eq 2 ]', text)
 
     def test_all_prepared_shell_blocks_parse(self):
-        text = (S.REPO_ROOT / ".github/workflows/ph_afp_shadow.yml").read_text()
+        text = (S.REPO_ROOT / "tests/fixtures/ph_afp_public_legacy_workflow.yml").read_text()
         blocks = re.findall(r"        run: \|\n((?:          .*\n|\n)+)", text)
         self.assertEqual(len(blocks), text.count("run: |"))
         self.assertTrue(blocks)
@@ -376,7 +376,7 @@ class TestPreparedWorkflow(unittest.TestCase):
     def test_actual_publish_block_uses_only_state_ref_and_rejects_a_divergent_writer(self):
         # Local bare remote only. Exercise the exact prepared shell block,
         # rather than inferring push safety from a substring assertion.
-        text = (S.REPO_ROOT / ".github/workflows/ph_afp_shadow.yml").read_text()
+        text = (S.REPO_ROOT / "tests/fixtures/ph_afp_public_legacy_workflow.yml").read_text()
         block = next(textwrap.dedent(b) for b in re.findall(
             r"        run: \|\n((?:          .*\n|\n)+)", text) if "git push" in b)
         with tempfile.TemporaryDirectory() as tmp:

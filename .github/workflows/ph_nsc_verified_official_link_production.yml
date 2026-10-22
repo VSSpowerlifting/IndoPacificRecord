@@ -1,0 +1,233 @@
+name: Philippines — Verified NSC Links to Production and Pages
+
+# Philippine National Security Council statements reach public production
+# ONLY as a private-runner HMAC envelope (nsc-envelope.json.gz + .mac) signed
+# from the private archive/ph-nsc custody branch. The envelope carries neutral
+# link metadata (official URL, publisher date, publisher identity, provenance
+# hashes); it never carries an NSC title, body, image, translation, model
+# output or IPR analysis, and this runner never sees one.
+#
+# Held by three independent gates, none of which this workflow can open:
+#   * vars.NSC_METADATA_BRIDGE_ENABLED must be 'true';
+#   * secrets.NSC_BRIDGE_KEY (separate from the AFP key) must be configured;
+#   * config/ph_nsc_official_link_policy.json must authorize the release
+#     (standing publication, or an owner-sealed exact-version decision
+#     verified with secrets.NSC_RELEASE_REVIEW_KEY).
+# See docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md.
+#
+# Retry: dispatch again with the same envelope. Admission is idempotent; a
+# run that pushed main but failed before Pages is reconciled by this workflow
+# or by the daily Philippines link reconciliation, which renders every
+# admitted Philippines family.
+on:
+  workflow_dispatch:
+    inputs:
+      envelope_b64:
+        description: 'Private-runner signed, gzip metadata-only NSC envelope (base64)'
+        required: true
+        type: string
+      envelope_mac:
+        description: 'HMAC-SHA256 of the gzip envelope bytes'
+        required: true
+        type: string
+      sealed_decision_b64:
+        description: 'Optional owner-sealed exact-version decision JSON (base64)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Shares the Philippines release group so AFP and NSC never race on the page.
+concurrency:
+  group: philippines-verified-official-link-production
+  cancel-in-progress: false
+
+jobs:
+  publish-philippines-nsc-links:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Hold unless the NSC metadata bridge is activated
+        env:
+          BRIDGE_ENABLED: ${{ vars.NSC_METADATA_BRIDGE_ENABLED }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$BRIDGE_ENABLED" = true || {
+            echo "::error::HOLD: NSC private metadata bridge is not activated"
+            exit 1
+          }
+      - name: Check out current production main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Pin exact main and refuse dirty or sidecar state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > "$RUNNER_TEMP/nsc-prod-main-before"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+      - name: Install existing source and site dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify NSC admission, handoff and renderer contracts
+        run: |
+          python -m unittest -v \
+            tests.test_ph_nsc_official_link_admission \
+            tests.test_admit_ph_nsc_official_links \
+            tests.test_regional_official_link_render
+      - name: Decode the signed envelope outside the workspace
+        env:
+          ENVELOPE_B64: ${{ inputs.envelope_b64 }}
+          ENVELOPE_MAC: ${{ inputs.envelope_mac }}
+          SEALED_B64: ${{ inputs.sealed_decision_b64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ENVELOPE_B64" | base64 -d > "$RUNNER_TEMP/nsc-envelope.json.gz"
+          printf '%s\n' "$ENVELOPE_MAC" > "$RUNNER_TEMP/nsc-envelope.mac"
+          if [ -n "$SEALED_B64" ]; then
+            printf '%s' "$SEALED_B64" | base64 -d > "$RUNNER_TEMP/nsc-sealed.json"
+            echo "SEALED_ARGS=--sealed-decision $RUNNER_TEMP/nsc-sealed.json" >> "$GITHUB_ENV"
+          fi
+      - name: Admit authenticated NSC links (scratch copy, atomic replace)
+        env:
+          NSC_BRIDGE_KEY: ${{ secrets.NSC_BRIDGE_KEY }}
+          NSC_RELEASE_REVIEW_KEY: ${{ secrets.NSC_RELEASE_REVIEW_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The only step that writes pla_watch.db. Schema first: NSC rows
+          # need migration 0014's family constraints.
+          python -m migrations.cli --apply --db "$GITHUB_WORKSPACE/pla_watch.db"
+          python scripts/verify_db_current.py
+          # shellcheck disable=SC2086
+          python scripts/admit_ph_nsc_official_links.py admit \
+            --production-db "$GITHUB_WORKSPACE/pla_watch.db" \
+            --signed-envelope "$RUNNER_TEMP/nsc-envelope.json.gz" \
+            --signed-mac "$RUNNER_TEMP/nsc-envelope.mac" ${SEALED_ARGS:-} \
+            | tee "$RUNNER_TEMP/nsc-receipt.json"
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+          python scripts/verify_db_current.py
+      - name: Render site; verify the Philippines page independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          python site/render.py
+          python scripts/validate_output.py
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          from bs4 import BeautifulSoup
+          db = sqlite3.connect("file:pla_watch.db?mode=ro", uri=True)
+          rows = {r[0]: r[1] for r in db.execute(
+              "SELECT source_identity, canonical_official_url FROM regional_official_source_links "
+              "WHERE desk='philippines'")}
+          nsc = {k: v for k, v in rows.items() if k.startswith("nsc:")}
+          page = Path("output/philippines.html").read_text(encoding="utf-8")
+          soup = BeautifulSoup(page, "html.parser")
+          items = soup.select("li[data-regional-official-source-id]")
+          got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
+          assert got == rows, "rendered Philippines links differ from SQLite"
+          assert all(u.startswith("https://nsc.gov.ph/") for u in nsc.values()), "NSC URL outside publisher"
+          for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
+              assert forbidden not in page, forbidden
+          print("Admitted Philippines links rendered:", len(rows), "NSC:", len(nsc))
+          PY
+          sha256sum output/philippines.html > "$RUNNER_TEMP/nsc-prod-page-sha"
+          echo "All rendered output changes listed for audit, not bulk publication:"
+          git diff --name-only -- output/
+      - name: Refuse a moved production main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$(cat "$RUNNER_TEMP/nsc-prod-main-before")" || {
+            echo "::error::Production main moved; retry rather than replacing a changed DB"
+            exit 1
+          }
+          sha256sum -c "$RUNNER_TEMP/nsc-prod-page-sha"
+      - name: Commit exactly live SQLite and Philippines HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- pla_watch.db output/philippines.html
+          staged="$(git diff --cached --name-only)"
+          if [ -z "$staged" ]; then
+            echo "No new admitted NSC links; nothing to commit"
+            exit 0
+          fi
+          if echo "$staged" | grep -vE '^(pla_watch.db|output/philippines.html)$'; then
+            echo "::error::Unexpected staged file; full-site publish prohibited"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Philippines: admit authenticated NSC link metadata and update page only"
+          git push origin HEAD:main
+      - name: Check out current Pages without uploading other files
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: philippines-existing-pages
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Publish only Philippines HTML to existing Pages branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c "$RUNNER_TEMP/nsc-prod-page-sha"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" || {
+            echo "::error::Main changed since this Philippines page was rendered"
+            exit 1
+          }
+          git show HEAD:output/philippines.html | cmp - output/philippines.html
+          cd philippines-existing-pages
+          test -z "$(git status --porcelain --untracked-files=all)"
+          pages_old="$(git rev-parse HEAD)"
+          cp ../output/philippines.html philippines.html
+          git add -- philippines.html
+          staged="$(git diff --cached --name-only)"
+          test -z "$staged" || test "$staged" = "philippines.html"
+          if [ -n "$staged" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Philippines: publish authenticated NSC outbound links only"
+          fi
+          git fetch origin gh-pages
+          test "$(git rev-parse origin/gh-pages)" = "$pages_old" || {
+            echo "::error::Pages moved; never overwrite a concurrent release"
+            exit 1
+          }
+          if [ -n "$staged" ]; then
+            git push origin HEAD:gh-pages
+          fi
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Independent readback of committed and deployed bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main gh-pages
+          main_sha="$(git show origin/main:output/philippines.html | sha256sum | cut -d' ' -f1)"
+          pages_sha="$(git show origin/gh-pages:philippines.html | sha256sum | cut -d' ' -f1)"
+          test "$main_sha" = "$pages_sha" || {
+            echo "::error::main output and gh-pages Philippines bytes differ"
+            exit 1
+          }
+          echo "PASS: main:output/philippines.html == gh-pages:philippines.html ($main_sha)"
+
+# NSC originals stay in private custody (archive/ph-nsc). No source clone,
+# artifact upload, bulk site push, AI request or editor email happens here.

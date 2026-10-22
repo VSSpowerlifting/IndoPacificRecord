@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = "ipr-shadow-source-workflow-bindings/1"
-TRIGGERS = frozenset(("scheduled", "manual_only", "research_only"))
+TRIGGERS = frozenset(("scheduled", "manual_only", "research_only", "private_handoff_pending", "private_scheduled"))
 FIELDS = frozenset(("manifest", "source_slug", "state_branch", "workflow", "cron", "trigger"))
 NAME = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
 CRON = re.compile(r"([0-9*,-/]+ ){4}[0-9*,-/]+\Z")
@@ -155,6 +155,100 @@ def validate(root=ROOT, contract_path=None):
             require(workflow is None and branch is None and cron is None,
                     "research-only source must not claim a workflow or branch")
             classification = "no_collection_workflow_declared"
+        elif trigger == "private_scheduled":
+            # A public-only source map cannot attest an external private run.
+            # Pin the existing Korea sources and the three coordinated Vietnam
+            # declarations; this says nothing about actual activation/success.
+            private_sources = {
+                "kr_policy_dapa_releases": (
+                    "shadow/kr_dapa_policy_briefing/manifest.json",
+                    "archive/korea-dapa-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_dapa_private_first_collector.yml",
+                    "17 22 * * *"),
+                "kr_policy_mnd_releases": (
+                    "shadow/kr_policy_briefing/manifest.json",
+                    "archive/korea-policy-briefing",
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/korea_mnd_private_first_collector.yml",
+                    "47 17 * * *"),
+            }
+            # This audit is a standalone stdlib CLI, before dependencies are
+            # installed. Keep its three explicitly reviewed bindings local.
+            vietnam_sources = {
+                "vn_mps_foreign_affairs_vi": "archive/vietnam-mps-foreign-affairs",
+                "vn_moit_energy_vi": "archive/vietnam-moit-energy",
+                "vn_moit_foundational_industry_vi": "archive/vietnam-moit-foundational-industry",
+            }
+            for family, private_ref in vietnam_sources.items():
+                private_sources[family] = (
+                    "shadow/vietnam_ministries/manifest.json",
+                    private_ref,
+                    "https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/main/.github/workflows/vietnam_private_first_collector.yml",
+                    "17 18 * * *")
+            require(slug in private_sources and
+                    (binding["manifest"], branch, workflow, cron) == private_sources[slug],
+                    "private schedule limited to exact source custody workflow")
+            if slug in vietnam_sources:
+                raw = (root / ".github/workflows/vietnam_ministry_shadow.yml").read_text()
+                require(not workflow_crons(raw) and re.search(r"(?m)^  shadow:\n    if: false(?:\s|$)", raw),
+                        "private Vietnam handoff still has a public original writer")
+            classification = "private_schedule_declared_external_runs_unverified"
+        elif trigger == "private_handoff_pending":
+            # Private writer histories are external to this public-repo audit.
+            # Exactly three individually governed source families are allowed
+            # to retire public collection; no source is inferred to be live.
+            require(workflow is None and cron is None,
+                    "private handoff cannot claim an active public collector")
+            if slug == "id_kemhan_news":
+                # The Indonesia *historical public* source ref remains
+                # accessible, but the old public writer must be retired before
+                # the owner can authorize private collection.
+                require(binding["manifest"] == "shadow/id_kemhan/manifest.json"
+                        and branch == "shadow/indonesia-kemhan",
+                        "private handoff limited to exact Indonesia Kemhan source")
+                legacy_path = root / ".github/workflows/indonesia_korea_shadow.yml"
+                require(legacy_path.is_file() and not legacy_path.is_symlink(),
+                        "missing Korea-only legacy workflow during private handoff")
+                raw = legacy_path.read_text(encoding="utf-8")
+                active = uncommented_workflow_text(raw)
+                require(workflow_crons(raw) == []
+                        and not contains_literal_branch(active, branch)
+                        and not contains_literal_branch(active, "shadow/korea-policy-briefing")
+                        and "candidate-shadow-indonesia-" not in active
+                        and not re.search(r"(?m)^\s*-\s*indonesia\s*$", active)
+                        and "scripts/shadow_collect_desk.py" not in active,
+                        "private Indonesia handoff still has a public writer or Korea cadence drift")
+            elif slug == "ph_afp_articles":
+                require(binding["manifest"] == "shadow/ph_afp/manifest.json"
+                        and branch == "shadow/ph-afp",
+                        "private AFP handoff requires exact source family and branch")
+                legacy_path = root / ".github/workflows/ph_afp_shadow.yml"
+                require(legacy_path.is_file() and not legacy_path.is_symlink(),
+                        "retired public AFP workflow missing")
+                raw = legacy_path.read_text(encoding="utf-8")
+                active = uncommented_workflow_text(raw)
+                require(not workflow_crons(raw)
+                        and not re.search(r"(?m)^\s*workflow_dispatch:\s*$", active)
+                        and not re.search(r"\bgit\s+push\b", active)
+                        and "pull_request:" in active,
+                        "private AFP handoff still has public writer or active trigger")
+            elif slug == "ph_nsc_official_statements":
+                require(binding["manifest"] == "shadow/ph_nsc/manifest.json"
+                        and branch == "shadow/ph-nsc",
+                        "private NSC handoff requires exact source family and branch")
+                legacy_path = root / ".github/workflows/ph_nsc_shadow.yml"
+                require(legacy_path.is_file() and not legacy_path.is_symlink(),
+                        "retired public NSC workflow missing")
+                raw = legacy_path.read_text(encoding="utf-8")
+                active = uncommented_workflow_text(raw)
+                require(not workflow_crons(raw)
+                        and not re.search(r"(?m)^\s*workflow_dispatch:\s*$", active)
+                        and not re.search(r"\bgit\s+push\b", active)
+                        and "shadow_collect_ph_nsc" not in active
+                        and "pull_request:" in active,
+                        "private NSC handoff still has public writer or active trigger")
+            else:
+                raise BindingError("private handoff limited to exact Indonesia Kemhan or Philippines AFP/NSC sources")
+            classification = "private_handoff_pending_external_runs_unverified"
         else:
             require(type(branch) is str and
                     re.fullmatch(r"shadow/[a-z0-9][a-z0-9_/-]*", branch),
@@ -213,7 +307,7 @@ def validate(root=ROOT, contract_path=None):
     # entire cron multiset to explicitly reviewed workflow-level expectations.
     by_workflow = {}
     for binding in config["sources"]:
-        if binding["workflow"] is not None:
+        if binding["workflow"] is not None and binding["trigger"] != "private_scheduled":
             by_workflow.setdefault(root / binding["workflow"], set())
             if binding["trigger"] == "scheduled":
                 by_workflow[root / binding["workflow"]].add(binding["cron"])

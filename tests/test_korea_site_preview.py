@@ -8,8 +8,64 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+#: The private review projection is a shadow-era tool; once the owner
+#: activation commit makes Korea a live Daily desk it must refuse to run.
+ACTIVATED = (ROOT / "desks" / "korea" / "manifest.json").is_file()
 
 
+def _generator():
+    import sys
+    sys.path.insert(0, str(ROOT / "site" / "preview"))
+    import generate_preview as gp
+    return gp
+
+
+class KoreaRegistryStateTests(unittest.TestCase):
+    def setUp(self):
+        self.gp = _generator()
+
+    def test_production_status_flip_still_refused(self):
+        """A half-applied activation (no production manifest) never builds."""
+        from dataclasses import replace
+        from core.desk_registry import DeskRegistry, load_registry
+        original = load_registry()
+        changed = DeskRegistry(entries=[
+            replace(e, status="live", has_production_records=True,
+                    manifest_path=None)
+            if e.slug == "korea" else e for e in original.entries
+        ])
+        with tempfile.TemporaryDirectory(prefix="ipr-korea-flip-") as tmp:
+            output = Path(tmp) / "must-not-build"
+            with patch.object(self.gp, "load_registry", return_value=changed):
+                with self.assertRaisesRegex(ValueError, "production admission"):
+                    self.gp.build(output, "No live Korea", ROOT / "pla_watch.db")
+            self.assertFalse(output.exists())
+
+    def test_normal_public_build_contains_fixed_korea_only(self):
+        from core.desk_registry import load_registry
+        from core.korea_public_bibliography import load_public_korea_links
+        desk = load_registry().get("korea")
+        self.assertTrue(desk.public)
+        if ACTIVATED:
+            self.assertEqual((desk.status, desk.manifest_path, desk.has_production_records),
+                             ("live", "desks/korea/manifest.json", True))
+        else:
+            self.assertEqual((desk.status, desk.manifest_path, desk.has_production_records),
+                             ("shadow", None, False))
+        self.assertIn("korea", [d.slug for d in load_registry().public_entries])
+        self.assertEqual(len(load_public_korea_links()), 5)
+
+    @unittest.skipUnless(ACTIVATED, "Korea is still a shadow desk")
+    def test_private_review_projection_refuses_a_live_desk(self):
+        with tempfile.TemporaryDirectory(prefix="ipr-korea-live-review-") as tmp:
+            output = Path(tmp) / "private-publication"
+            with self.assertRaisesRegex(ValueError, "nonpublic, unconfigured shadow desk"):
+                self.gp.build(output, "Korea Site Review", ROOT / "pla_watch.db",
+                              review_korea=True)
+            self.assertFalse(output.exists())
+
+
+@unittest.skipIf(ACTIVATED, "private review projection is shadow-only")
 class KoreaSitePreviewTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -49,6 +105,7 @@ class KoreaSitePreviewTests(unittest.TestCase):
         self.assertIn("Private design review", self.page)
         self.assertIn("not published IPR records", self.page)
         self.assertIn("human-approved references", self.page)
+        self.assertNotIn('data-korea-production-lanes', self.page)
         self.assertIn("0</strong>", self.page)
         # The real public official-source bibliography is now listed, while
         # this separately generated source-review preview stays noindex.
@@ -92,32 +149,6 @@ class KoreaSitePreviewTests(unittest.TestCase):
                               review_korea=True)
             self.assertEqual((dest / "keep.txt").read_text(), "Do not remove")
 
-    def test_production_status_flip_still_refused(self):
-        from dataclasses import replace
-        from core.desk_registry import DeskRegistry, load_registry
-        original = load_registry()
-        changed = DeskRegistry(entries=[
-            replace(e, status="live", has_production_records=True)
-            if e.slug == "korea" else e for e in original.entries
-        ])
-        with tempfile.TemporaryDirectory(prefix="ipr-korea-flip-") as tmp:
-            output = Path(tmp) / "must-not-build"
-            with patch.object(self.gp, "load_registry", return_value=changed):
-                with self.assertRaisesRegex(ValueError, "production admission"):
-                    self.gp.build(output, "No live Korea", ROOT / "pla_watch.db")
-            self.assertFalse(output.exists())
-
-    def test_normal_public_build_contains_fixed_korea_only(self):
-        from core.desk_registry import load_registry
-        from core.korea_public_bibliography import load_public_korea_links
-        desk = load_registry().get("korea")
-        self.assertTrue(desk.public)
-        self.assertEqual(desk.status, "shadow")
-        self.assertIsNone(desk.manifest_path)
-        self.assertFalse(desk.has_production_records)
-        self.assertIn("korea", [d.slug for d in load_registry().public_entries])
-        self.assertEqual(len(load_public_korea_links()), 5)
-
 
 if __name__ == "__main__":
     unittest.main()
@@ -154,6 +185,7 @@ class KoreaPrivateStructuralProjectionTests(unittest.TestCase):
             review_korea=True, korea_review_packet=self.packet)
         return result, out
 
+    @unittest.skipIf(ACTIVATED, "private review projection is shadow-only")
     def test_one_structural_reference_and_four_held_source_rows(self):
         result, output = self.preview()
         page = (output / "korea.html").read_text(encoding="utf-8")

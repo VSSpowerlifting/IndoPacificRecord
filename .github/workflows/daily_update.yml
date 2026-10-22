@@ -243,6 +243,34 @@ jobs:
         if: steps.timecheck.outputs.should_run == 'true'
         run: python -m unittest tests.test_reconcile -v
 
+      # ── 4b. Vietnam Desk: admit the private runner's approved articles ────
+      # The private evidence runner (ipr-source-evidence-private) runs the
+      # shared Vietnam bridge on its originals and signs only this run's
+      # published projections to its daily/vietnam branch. This step verifies
+      # that handoff against the owner-sealed decision committed here
+      # (config/vietnam_source_use/), the source holds and desk promotion, then
+      # inserts through the bridge's own write path; the pipeline below renders
+      # and commits them with everything else. A hold (exit 2) leaves the
+      # database untouched and never blocks the other desks. Off until the
+      # owner sets VIETNAM_DAILY_HANDOFF_ENABLED.
+      - name: Admit Vietnam Daily handoff
+        if: >
+          steps.timecheck.outputs.should_run == 'true' &&
+          vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          VIETNAM_PRIVATE_BRIDGE_KEY: ${{ secrets.VIETNAM_PRIVATE_BRIDGE_KEY }}
+          VIETNAM_SOURCE_USE_REVIEW_KEY: ${{ secrets.VIETNAM_SOURCE_USE_REVIEW_KEY }}
+          VIETNAM_PRIVATE_PROVENANCE_TOKEN: ${{ secrets.VIETNAM_PRIVATE_PROVENANCE_TOKEN }}
+        run: |
+          status=0
+          python -m core.vietnam_daily_handoff --database pla_watch.db || status=$?
+          if [ "$status" -eq 2 ]; then
+            echo "::notice title=Vietnam handoff held::No Vietnam records admitted this run; pla_watch.db unchanged."
+          elif [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+
       # ── 5. Run pipeline (all sources) ─────────────────────────────────────
       # `id: pipeline` exists so the persist step below can prove this step
       # actually ran. Without it the only signal available is job-scoped
@@ -269,6 +297,16 @@ jobs:
       # usage.py) at a file under $RUNNER_TEMP, outside the repository. The
       # pipeline writes ONLY there, so no tracked file is dirty while the rebase
       # steps below run; step 8b appends that one record to the tracked history.
+      - name: Fetch permitted shared Daily machine outputs
+        if: steps.timecheck.outputs.should_run == 'true' && vars.IPR_PRIVATE_DAILY_ENABLED == 'true'
+        env:
+          IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
+          GH_TOKEN: ${{ secrets.IPR_DAILY_OUTPUT_READ_TOKEN || secrets.IPR_PRIVATE_VAULT_READ_TOKEN }}
+          IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+        run: python -m scripts.fetch_daily_machine_outputs
+
+      # Korean MND texts come only from the already verified, released source index.
+      # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
       - name: Run pipeline
         id: pipeline
         if: steps.timecheck.outputs.should_run == 'true'
@@ -276,6 +314,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PLA_WATCH_DAILY_RUN_DATE: ${{ steps.timecheck.outputs.today_ny }}
           LLM_USAGE_RECORD_PATH: ${{ runner.temp }}/llm_usage_record.json
+          CHINA_TITLE_TRANSLATION_LIMIT: '20'
+          KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
+          KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
+          IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
+          DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
         run: python pipeline.py
 
       # ── 5b. Validate rendered output (blocks deploy on failure) ───────────

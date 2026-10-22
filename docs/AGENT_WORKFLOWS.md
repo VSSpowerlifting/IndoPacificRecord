@@ -15,7 +15,7 @@ it is making. Do not restate one document's content inside another.
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | technical layer map, commands, publishing and deployment |
 | `docs/AGENT_WORKFLOWS.md` (this file) | agent operating constraints and model routing |
-| `docs/ROADMAP.md` | current priority order |
+| `docs/ROADMAP.md` | dated plan; verify latest owner instructions |
 | `DECISION_LOG.md` | durable decisions that constrain future work |
 | Git history | superseded state and incident history |
 
@@ -46,27 +46,53 @@ lightweight model decide design direction, editorial meaning, or
 architecture.
 
 ### Standing rules (any model)
-- Read PROJECT_STATE.md at session start; read the relevant docs/*.md
-  before changing what they govern; update PROJECT_STATE.md after
-  meaningful work, keeping it a snapshot rather than a diary.
+- Start with current owner rulings and targeted PROJECT_STATE.md sections.
+  Verify operational claims against real source records, latest code, PRs,
+  Actions and site output. Update PROJECT_STATE only for meaningful changes
+  and only when its ownership is coordinated.
 - Editorial-integrity rules (PRODUCT_AND_EDITORIAL_DOCTRINE §4) bind every
   model at every tier: never invent Chinese text, translations, dates,
   ranks, sources, or claims — in code, copy, tests, or fixtures.
-- Never commit, push, deploy, publish, or regenerate output unless the
-  analyst explicitly asks.
+- An explicit engineering task may authorize tests, commits, pushes and a
+  review PR. Reuse legitimate standing approvals; don't infer permission for
+  merge, paid model operation, production mutations, schedule activation,
+  publication or external communication.
 - Never hand-edit `output/`; never modify `pla_watch.db` outside the pipeline;
   never modify shadow branches, ledgers or stored shadow records.
 - Never defeat a source's access challenge, impersonate a browser, or route
   around `robots.txt`, however much coverage it would unlock.
-- Never describe a shadow desk as qualified and never promote one. Promotion
-  needs 30 consecutive collecting days, completed human checkpoint reviews,
-  and owner sign-off in DECISION_LOG.md.
+- Never call a shadow desk complete or promote it automatically. The owner-approved
+  2026-10-18 standard requires end-to-end real-source operation, a tested
+  failure/recovery, verifiable publication, and an explicit release decision.
+  Seven-/30-day streaks are ongoing reliability measurements, not automatic
+  prelaunch holds. Retain historical checkpoint evidence and human review.
+  See docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md.
 - The production renderer is `site/render.py`; the deploy gate is
   `scripts/validate_output.py`, whose governed baseline is **10 warnings**.
   A new warning is explained, never invented away.
 - **Do not invent facts to fill a documentation gap.** State the uncertainty
   and name the authoritative source — the database, the ledger, the registry,
   the workflow file, or Git history.
+
+## 1a. Efficient complete-desk implementation
+
+Use the October 18 integrated acceptance and risk-based CI rules in
+`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` rather than creating
+another checklist. Start with direct official publisher records and preserved
+originals, actual review/rights decisions, GitHub run attempts and real
+SQLite/site output. Reconcile one eligible record end to end; verify relevant
+failure, duplicate/revision, unsafe-write and recovery behavior with existing
+tests, and distinguish configured, rehearsed and live-scheduled operation.
+
+Use relevant tools selectively: targeted Git/rg/Python/SQLite, connected
+GitHub, primary-source retrieval and authorized browser readback. Avoid
+scanning unrelated files, spawning needless agents, repeated full suites,
+duplicated authentication frameworks or serial preparation PRs. Separate
+worktrees and shared-file owners. Complete one assigned desk without widening
+its agreed source contract. Hand back one coherent review PR (and only if
+necessary a private companion), exact real evidence and one precise external
+blocker. Never invent human approval, full-text reuse permission or live
+publication from a successful test.
 
 ## 2. Skills
 

@@ -1,0 +1,15 @@
+{
+  "schema": "ipr-ph-nsc-official-link-policy/1",
+  "source_family": "ph_nsc_official_statements",
+  "standing_metadata_publication_authorized": true,
+  "owner_decision_reference": "DECISION_LOG 2026-10-20 — NSC standing official-link and machine explanation authorization",
+  "category_anomaly_resolved": true,
+  "category_anomaly_reference": "DECISION_LOG 2026-10-20 — NSC category anomaly bounded recheck; retain strict page fingerprint",
+  "permitted_fields": [
+    "source_identity",
+    "canonical_official_url",
+    "publisher_posted_date",
+    "official_publisher"
+  ],
+  "notes": "Owner-authorized neutral NSC official URL/date/publisher metadata only. Bounded current-category anomaly clearance after non-recurrence on Oct 2 and Oct 20, 2026; do not infer permanent site safety or lift per-page fingerprint, provenance, and original-use holds. See dated DECISION_LOG ruling. NSC hosting/byline is not independent issuer authentication."
+}

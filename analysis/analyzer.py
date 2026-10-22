@@ -244,6 +244,27 @@ class Analyzer:
         "input_schema": {**RELEVANCE_SCHEMA, "additionalProperties": False},
     }
 
+    # A desk that declares its own source language (Vietnam) is not scored as
+    # "Chinese military"; China and Singapore keep the tool above.
+    _DESK_RELEVANCE_TOOL: dict = {
+        "name": "emit_relevance",
+        "description": "Return the relevance score for the desk's stated focus and a concise reason.",
+        "input_schema": {**RELEVANCE_SCHEMA, "additionalProperties": False},
+    }
+
+    # Recover malformed raw-JSON summaries through the existing forced-tool
+    # API, which escapes quotation marks rather than returning raw JSON.
+    _SUMMARY_TOOL: dict = {
+        "name": "emit_summary",
+        "description": "Return the source-grounded English article summary.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"summary": {"type": "string"}},
+            "required": ["summary"],
+            "additionalProperties": False,
+        },
+    }
+
     _TRANSLATION_TOOL: dict = {
         "name": "emit_translation",
         "description": "Return the English translation of the article's title and body.",
@@ -427,8 +448,13 @@ class Analyzer:
                       [{"type": "text", "text": desk_system,
                         "cache_control": {"type": "ephemeral"}}])
         if RELEVANCE_TOOL_OUTPUT_ENABLED:
+            tool = (self._DESK_RELEVANCE_TOOL
+                    if getattr(profile, "source_language", None)
+                    else self._RELEVANCE_TOOL)
+            if getattr(profile, "desk_id", None) == "philippines":
+                tool = {**tool, "description": "Return a Philippine defense and national-security relevance score and source-grounded reason."}
             data = self._call_tool(
-                messages, self._RELEVANCE_TOOL, max_tokens=500,
+                messages, tool, max_tokens=500,
                 temperature=0.0, task=TASK_RELEVANCE,
                 model=RELEVANCE_MODEL, system=system,
             )
@@ -472,13 +498,19 @@ class Analyzer:
         Streams: TRANSLATION_MAX_TOKENS is far above the ~16K non-streaming
         threshold, and this is the only call that renders a full article body.
         """
-        messages = build_translation_messages(title, body)
+        return self._translate_with(build_translation_messages(title, body))
+
+    def _translate_with(
+        self, messages: list[dict], system: Optional[list] = None,
+    ) -> tuple[str, str]:
+        """The shared translation call; `system` None is the China default."""
         data = self._call_tool(
             messages,
             self._TRANSLATION_TOOL,
             max_tokens=TRANSLATION_MAX_TOKENS,
             temperature=0.3,
             task=TASK_TRANSLATION,
+            system=system,
         )
         # A forced tool call guarantees a structured *container*, not that each
         # value respects the advertised string schema. str(None) -> "None"
@@ -500,12 +532,44 @@ class Analyzer:
             )
         return title_en, body_en
 
+    def translate_title(self, title: str) -> str:
+        """Translate the exact headline alone; never call full analysis here."""
+        from core.title_translation import SYSTEM, TOOL, MAX_TOKENS, valid_english
+        data = self._call_tool(
+            [{"role": "user", "content": json.dumps({"headline": title}, ensure_ascii=False)}],
+            TOOL, max_tokens=MAX_TOKENS, temperature=0.0,
+            system=[{"type": "text", "text": SYSTEM}], task="title_translation")
+        value = data.get("title_en")
+        if (set(data) != {"title_en"} or not valid_english(value)
+                or "\n" in value or "\r" in value):
+            self.usage.mark_failed("title_translation", ANALYSIS_MODEL)
+            raise AnalysisError("Invalid title-only translation response")
+        return value
+
     def summarize(self, title_en: str, body_en: str) -> str:
         messages = build_summary_messages(title_en, body_en)
-        raw  = self._call(messages, max_tokens=1000, temperature=0.3,
-                          task=TASK_SUMMARY)
-        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
-        return str(data["summary"])
+        raw = self._call(messages, max_tokens=1000, temperature=0.3,
+                         task=TASK_SUMMARY)
+        try:
+            data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        except AnalysisError as exc:
+            if ("JSON parse failed" not in str(exc)
+                    or (hasattr(self, "_client") and not callable(
+                        getattr(self._client.messages, "stream", None)))):
+                # The fallback requires the streaming tool API. Standalone
+                # parser/test clients without that interface keep the original
+                # redacted parse error instead of raising an AttributeError.
+                raise
+            # Keep existing successful behavior. For a malformed JSON string,
+            # ask for the same schema using an SDK-parsed forced tool instead.
+            data = self._call_tool(
+                messages, self._SUMMARY_TOOL, max_tokens=1000,
+                temperature=0.0, task=TASK_SUMMARY)
+        summary = data.get("summary")
+        if not isinstance(summary, str) or not summary.strip():
+            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            raise AnalysisError("Summary response contains no usable text")
+        return summary
 
     def categorize(
         self, title_en: str, body_en: str
@@ -630,3 +694,207 @@ class Analyzer:
             "model_id":               ANALYSIS_MODEL,
             "prompt_version":         PROMPT_VERSION,
         }
+
+    # ── Desk analysis (a desk with its own post-pass path) ────────────────────
+
+    def analyze_record(self, title: str, body: str, profile=None) -> Optional[dict]:
+        """
+        Route one record by its desk's processing.screening profile.
+
+        None, or a profile without its own analysis (China), is exactly
+        `analyze()`; a desk profile with an analysis builder is `analyze_desk()`.
+        """
+        if profile is not None and profile.desk_id == "korea":
+            from analysis.korea_daily import analyze as analyze_korea
+            return analyze_korea(self, title, body, profile)
+        if profile is not None and profile.desk_id == "unsupported":
+            raise AnalysisError("unsupported_desk_processing_profile")
+        if profile is None or profile.translates:
+            return self.analyze(title, body)
+        return self.analyze_desk(title, body, profile)
+
+    def analyze_desk(self, title: str, body: str, profile) -> Optional[dict]:
+        """
+        Screen and analyse a record of a desk whose sources publish in the
+        language the record is read in (Singapore: English).
+
+        Relevance uses the desk's own rubric. A pass gets ONE ANALYSIS_MODEL
+        call for the summary and the model flag, built from the original text.
+        There is no translation and no PLA category call: `title_english` and
+        `text_english` are None, `categories` is empty, and
+        `requires_translation` is False so the caller writes the record without
+        an English title. The return keys and failure semantics are otherwise
+        those of `analyze()`: None when relevance fails, a partial result
+        without a summary when the analysis call fails, FatalAPIError raised.
+
+        A profile with `build_translation_messages` (Vietnam) also gets a full
+        translation through the shared translation tool and its event type
+        from `profile.categories`; a failed translation or an event type
+        outside the vocabulary leaves only the partial result.
+        """
+        try:
+            score, reasoning = self.score_relevance(title, body, profile=profile)
+        except FatalAPIError:
+            raise
+        except AnalysisError as exc:
+            logger.error("Relevance scoring failed: %s", exc)
+            return None
+
+        partial = {
+            "relevance_score":      score,
+            "relevance_reasoning":  reasoning,
+            "passed_relevance":     score >= RELEVANCE_THRESHOLD,
+            "requires_translation": False,
+            "model_id":             ANALYSIS_MODEL,
+            # Both rubrics the record went through, as the China path's one
+            # PROMPT_VERSION covers all four of its tasks.
+            "prompt_version":       "%s+%s" % (profile.prompt_version,
+                                               profile.analysis_prompt_version),
+        }
+        translator = getattr(profile, "build_translation_messages", None)
+        if translator is not None:
+            partial["requires_translation"] = True
+            partial["prompt_version"] += "+%s" % profile.translation_prompt_version
+        if not partial["passed_relevance"]:
+            return partial
+
+        try:
+            if profile.desk_id == "vietnam":
+                fields = self._desk_analysis_fields(title, body, profile)
+            else:
+                reading = self._desk_summary_and_flag(title, body, profile)
+                fields = {
+                    "summary": reading[0],
+                    "flag": reading[1],
+                    "flag_reason": reading[2],
+                    "categories": reading[3] if profile.categories else [],
+                    "facts": reading[4] if profile.categories else None,
+                    "flag_evidence": reading[5] if profile.categories else None,
+                }
+        except FatalAPIError:
+            raise
+        except AnalysisError as exc:
+            logger.error("Desk analysis failed: %s", exc)
+            return partial
+
+        title_en = text_en = None
+        if (profile.desk_id == "vietnam" and translator is None
+                and profile.source_family == "vn_mps_foreign_affairs_vi"):
+            title_en = fields.get("headline")
+        if translator is not None:
+            system = [{"type": "text", "text": profile.translation_system_prompt,
+                       "cache_control": {"type": "ephemeral"}}]
+            try:
+                title_en, text_en = self._translate_with(
+                    translator(title, body), system=system)
+            except FatalAPIError:
+                raise
+            except AnalysisError as exc:
+                logger.error("Desk translation failed: %s", exc)
+                return partial
+
+        return {
+            **partial,
+            **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
+               if profile.desk_id == "philippines" else {}),
+            "title_english":          title_en,
+            "text_english":           text_en,
+            "summary_english":        fields["summary"],
+            "categories":             fields["categories"],
+            "is_significant":         fields["flag"],
+            "significance_reasoning": fields["flag_reason"],
+        }
+
+    def _desk_summary_and_flag(
+        self, title: str, body: str, profile,
+    ) -> tuple[str, bool, Optional[str]]:
+        system = [{"type": "text", "text": profile.analysis_system_prompt,
+                   "cache_control": {"type": "ephemeral"}}]
+        raw = self._call(profile.build_analysis_messages(title, body),
+                         max_tokens=2200 if profile.categories else 1000,
+                         temperature=0.3, system=system,
+                         task=TASK_SUMMARY)
+        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        # Philippines evidence references are resolved exclusively against the
+        # unchanged original. A model supplies IDs, never authoritative quoted
+        # text; the existing private quality gate still checks every claim.
+        if profile.desk_id == "philippines" and isinstance(data, dict):
+            from analysis.philippines_prompts import evidence_passages
+            source_passages = dict(evidence_passages(body))
+            facts = data.get("facts")
+            if isinstance(facts, list):
+                resolved = []
+                for fact in facts:
+                    if isinstance(fact, dict) and "evidence_id" in fact:
+                        ref = fact["evidence_id"]
+                        if (set(fact) != {"sentence", "evidence_id"}
+                                or type(ref) is not str or ref not in source_passages):
+                            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                            raise AnalysisError("Invalid Philippines evidence reference")
+                        resolved.append({"sentence": fact["sentence"],
+                                         "evidence": source_passages[ref]})
+                    else:
+                        resolved.append(fact)  # legacy direct-span test fixtures
+                data["facts"] = resolved
+            if "flag_evidence_id" in data:
+                ref = data["flag_evidence_id"]
+                if ref is not None:
+                    if type(ref) is not str or ref not in source_passages:
+                        self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                        raise AnalysisError("Invalid Philippines flag evidence reference")
+                    data["flag_evidence"] = source_passages[ref]
+                del data["flag_evidence_id"]
+        summary = data.get("summary") if isinstance(data, dict) else None
+        flagged = data.get("flag") if isinstance(data, dict) else None
+        reason = data.get("flag_reason") if isinstance(data, dict) else None
+        if profile.categories:
+            categories = data.get("categories") if isinstance(data, dict) else None
+            if (not isinstance(categories, list) or not categories
+                    or any(not isinstance(c, str) or c not in profile.categories for c in categories)
+                    or len(set(categories)) != len(categories)):
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Invalid desk analysis categories")
+        # A paid response that does not carry a usable summary and an explicit
+        # flag is a failed call: nothing is written, and the record retries.
+        if (not isinstance(summary, str) or not summary.strip()
+                or not isinstance(flagged, bool)
+                or (flagged and (not isinstance(reason, str) or not reason.strip()))):
+            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
+        result = (summary, flagged, (reason if flagged else None))
+        return result + (categories, data.get("facts"), data.get("flag_evidence")) if profile.categories else result
+
+    def _desk_analysis_fields(self, title: str, body: str, profile) -> dict:
+        system = [{"type": "text", "text": profile.analysis_system_prompt,
+                   "cache_control": {"type": "ephemeral"}}]
+        raw = self._call(profile.build_analysis_messages(title, body),
+                         max_tokens=1000, temperature=0.3, system=system,
+                         task=TASK_SUMMARY)
+        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+        summary = data.get("summary") if isinstance(data, dict) else None
+        flagged = data.get("flag") if isinstance(data, dict) else None
+        reason = data.get("flag_reason") if isinstance(data, dict) else None
+        headline = data.get("headline") if isinstance(data, dict) else None
+        if profile.source_family == "vn_mps_foreign_affairs_vi":
+            from core.title_translation import valid_english
+            if not valid_english(headline) or len(headline) > 200:
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Invalid MPS factual headline")
+        # A paid response that does not carry a usable summary and an explicit
+        # flag is a failed call: nothing is written, and the record retries.
+        if (not isinstance(summary, str) or not summary.strip()
+                or not isinstance(flagged, bool)
+                or (flagged and (not isinstance(reason, str) or not reason.strip()))):
+            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
+        categories = []
+        vocabulary = getattr(profile, "categories", ())
+        if vocabulary:
+            event_type = data.get("event_type")
+            if not isinstance(event_type, str) or event_type not in vocabulary:
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Desk analysis event_type outside the desk vocabulary")
+            categories = [event_type]
+        return {"summary": summary, "flag": flagged, "headline": headline,
+                "flag_reason": reason if flagged else None,
+                "categories": categories}

@@ -384,12 +384,28 @@ class SourceRegistry:
         out = []
         for slug in self.slugs:
             try:
-                out.append(self.get_adapter(slug).healthcheck())
+                out.append(self.healthcheck(slug))
             except Exception as exc:
                 out.append(
                     SourceHealthResult(slug, st.ADAPTER_ERROR, str(exc)[:200])
                 )
         return out
+
+    def healthcheck(self, slug: str):
+        """Offline configuration healthcheck for one source.
+
+        A manual source has no adapter by design: the Daily never fetches it,
+        and its records arrive only through a governed admission step
+        (pipeline.run_governed_manual_sources). Its configuration is healthy;
+        whether it is producing is the liveness check's question.
+        """
+        from core.collection import status as st
+        from core.collection.contract import SourceHealthResult
+
+        if self.get_source(slug).access_method == "manual":
+            return SourceHealthResult(
+                slug, st.OK, "manual source: governed admission, never fetched")
+        return self.get_adapter(slug).healthcheck()
 
 
 _DEFAULT: Optional[SourceRegistry] = None

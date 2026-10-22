@@ -242,6 +242,20 @@ class PrivateCountryReaderTests(unittest.TestCase):
                 with self.assertRaises(ReaderHold):
                     build([a], country="indonesia")
 
+    def test_long_genuine_kemhan_path_is_bounded_by_url_not_display_cap(self):
+        # Shape of the real 2026-10-15 Berita path: 194 characters, which the
+        # 180-character display bound refused for every later snapshot.
+        path = "/2026/10/15/" + "-".join(["menhan-sjafrie-terima-kunjungan"] * 6) + ".html"
+        self.assertGreater(len("kemhan:" + path), 180)
+        a = self.fixture("id_kemhan_news", identity="kemhan:" + path,
+                         url="https://www.kemhan.go.id" + path, date="2026-10-15")
+        self.assertEqual(build([a], country="indonesia")["results"][0]["identity"],
+                         "kemhan:" + path)
+        # The bound is unchanged for families whose identity is not a URL path.
+        b = self.fixture("ph_afp_articles", identity="afp:" + "1" * 181)
+        with self.assertRaises(ReaderHold):
+            build([b], country="philippines")
+
     def test_casefold_query_and_country_filter_and_cap(self):
         a = self.fixture("ph_afp_articles", title="Sanlakas exercise",
                          content="SPECIAL maritime security reconnaissance")

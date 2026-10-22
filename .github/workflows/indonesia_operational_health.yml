@@ -2,9 +2,10 @@ name: Indonesia Desk — daily operational health (read only)
 
 # Inspect persisted Indonesia state plus published Pages. This does not collect,
 # open ministry pages, claim a complete Actions attempt audit or alter corpus.
+# HISTORICAL REPLAY ONLY: the public source branch stopped Oct 17 when
+# Indonesia switched to restricted private-first custody. This legacy monitor
+# must not run daily or claim to measure the new private collector.
 on:
-  schedule:
-    - cron: '17 3 * * *'
   push:
     branches:
       - main
@@ -13,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       expected_logical_day:
-        description: 'Optional YYYY-MM-DD nominal collection date to replay'
+        description: 'Frozen 2026-10-17 legacy public-source day (manual replay only)'
         required: false
-        default: ''
+        default: '2026-10-17'
         type: string
   pull_request:
     paths:
@@ -53,7 +54,6 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' &&
       (
-        github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'push' &&
          startsWith(github.event.head_commit.message, 'Enable Indonesia daily operational health (PR #438)'))

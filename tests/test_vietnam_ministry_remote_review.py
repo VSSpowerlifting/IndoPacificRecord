@@ -1,5 +1,6 @@
 """Offline Git-object review and serial remote publication boundaries."""
 import json
+import re
 import socket
 import subprocess
 import tempfile
@@ -18,6 +19,22 @@ COMMIT = "a" * 40
 BODIES = {MPS: ["mps-article-concordia.bin", "mps-article-tho-nhi-ky.bin"],
           ENERGY: ["derived-moit-article-thue-xang-dau.html", "derived-moit-article-nghi-dinh-xang-dau.html"],
           INDUSTRY: ["derived-moit-article-cnht-dinh-huong.html"]}
+
+
+class WorkflowTokenPermissions(unittest.TestCase):
+    def test_actions_api_jobs_keep_explicit_job_scoped_read_permissions(self):
+        text = (Path(remote.REPO) / ".github/workflows/vietnam_ministry_shadow.yml").read_text()
+        for name in ("shadow", "reviewed-release"):
+            with self.subTest(job=name):
+                job = re.search(r"(?ms)^  " + re.escape(name) +
+                                r":\n(.*?)(?=^  [\w-]+:\n|\Z)", text)
+                self.assertIsNotNone(job, "required Actions API job missing")
+                permissions = re.search(r"(?m)^    permissions:\n((?:      [^\n]+\n)+)",
+                                        job.group(1))
+                self.assertIsNotNone(permissions, "job must declare its own token scopes")
+                scopes = dict(line.strip().split(": ", 1)
+                              for line in permissions.group(1).splitlines())
+                self.assertEqual(scopes, {"contents": "write", "actions": "read"})
 
 
 def git(repo, *args):
@@ -155,17 +172,111 @@ class RemoteReview(unittest.TestCase):
                                             "invalid source-surface anomaly evidence"):
                     self.packet(ENERGY, "invalid-surface-%s" % index, commit)
 
-    def test_batch_failure_stops_all_remaining_sources(self):
+    def test_private_mps_only_collection_never_touches_moit_state(self):
+        successful = []
+        calls = []
+
+        def record(state, slug, *args, **kwargs):
+            calls.append(slug)
+            return self.collector(state, slug, *args, **kwargs)
+
+        remote.run_batch(
+            self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+            0, 2, "mps-only", COMMIT, record,
+            successful_sources=successful, private=True, sources=(MPS,))
+        self.assertEqual(calls, [MPS])
+        self.assertEqual(successful, [MPS])
+        for slug in (ENERGY, INDUSTRY):
+            self.assertFalse((self.repos / slug / "state").exists())
+        self.assertEqual(review.review(self.repos / MPS / "state", MPS)["failures"], 0)
+
+    def test_mps_only_scope_refused_outside_private_custody(self):
+        with self.assertRaisesRegex(ValueError, "unapproved Vietnam source scope"):
+            remote.run_batch(
+                self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                0, 2, "mps-only", COMMIT, self.collector, sources=(MPS,))
+        self.assertFalse((self.repos / MPS / "state").exists())
+
+    def test_private_mps_only_failure_never_attempts_moit(self):
+        calls = []
+
+        def fail(state, slug, *args, **kwargs):
+            calls.append(slug)
+            return {"health": "fail", "result": "source_unavailable"}
+
+        with self.assertRaisesRegex(ValueError, "batch has failed sources"):
+            remote.run_batch(
+                self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                0, 2, "mps-only", COMMIT, fail,
+                private=True, sources=(MPS,))
+        self.assertEqual(calls, [MPS])
+        for slug in (ENERGY, INDUSTRY):
+            self.assertFalse((self.repos / slug / "state").exists())
+
+    def test_batch_failure_preserves_failure_and_attempts_independent_sources(self):
         calls = []
         def failure(state, slug, *args, **kwargs):
             calls.append(slug)
             return {"health": "fail", "result": "access_challenged"}
-        with self.assertRaisesRegex(ValueError, "batch stopped"):
+        with self.assertRaisesRegex(ValueError, "batch has failed sources"):
             self.batch(failure)
-        self.assertEqual(calls, [MPS])
+        self.assertEqual(calls, list(remote.SOURCES))
         self.assertFalse((self.repos / ENERGY / "state").exists())
         for slug in remote.SOURCES:
             self.assertNotEqual(remote.git(["rev-parse", "--verify", "HEAD"], self.repos / slug, check=False).returncode, 0)
+
+    def test_failed_recovery_download_ignores_partial_set_and_keeps_moit_independent(self):
+        text = (Path(remote.REPO) / '.github/workflows/vietnam_ministry_shadow.yml').read_text()
+        self.assertIn('MPS_RECOVERY_OUTCOME: ${{ steps.mps_recovery.outcome }}', text)
+        start = text.index('          if [ -n "${MPS_RECOVERY_ATTEMPTS:-}" ]; then')
+        end = text.index('          python scripts/vietnam_ministry_remote.py', start)
+        partial = self.root / 'vn-mps-recovery-zips'
+        partial.mkdir()
+        (partial / '1234567-1.zip').write_bytes(b'partial download')
+        import os
+        env = dict(os.environ, RUNNER_TEMP=str(self.root), MPS_RECOVERY_ATTEMPTS='1234567-1',
+                   MPS_RECOVERY_OUTCOME='failure')
+        script = 'set -eu\nset --\n' + text[start:end] + '\nprintf "%s\\n" "$@"'
+        args = subprocess.check_output(['bash', '-c', script], env=env, text=True).splitlines()
+        self.assertEqual(args[0], '--mps-recovery-zips')
+        self.assertNotEqual(Path(args[1]), partial)
+        self.assertFalse(Path(args[1]).exists())
+        successful = []
+        def collector(state, slug, *args, **kwargs):
+            if slug == MPS:
+                return collect(state, slug, *args, adapter=adapter(MPS), **kwargs)
+            return self.collector(state, slug, *args, **kwargs)
+        with self.assertRaisesRegex(ValueError, MPS):
+            remote.run_batch(self.repos, self.gate, date(2026,10,5), date(2026,9,30),
+                0, 2, 'recovery-failed', COMMIT, collector, successful_sources=successful,
+                mps_recovery_dir=Path(args[1]), api=object())
+        self.assertEqual(successful, [ENERGY, INDUSTRY])
+
+    def test_one_failed_source_does_not_block_verified_sibling_state(self):
+        successful = []
+        def mixed(state, slug, *args, **kwargs):
+            if slug == MPS:
+                return {"health": "fail", "result": "listing_failure"}
+            return self.collector(state, slug, *args, **kwargs)
+        with self.assertRaisesRegex(ValueError, MPS):
+            remote.run_batch(self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                             0, 2, "remote-test", COMMIT, mixed, successful_sources=successful)
+        self.assertEqual(successful, [ENERGY, INDUSTRY])
+        self.assertFalse((self.repos / MPS / "state").exists())
+        for slug in successful:
+            self.assertEqual(review.review(self.repos / slug / "state", slug)["failures"], 0)
+
+    def test_success_list_contains_only_verified_families_after_validation_failure(self):
+        successful = []
+        def bad_review(state, slug, *args, **kwargs):
+            result = self.collector(state, slug, *args, **kwargs)
+            if slug == ENERGY:
+                (state / "captures").joinpath("unexpected.bin").write_bytes(b"invalid")
+            return result
+        with self.assertRaises((ValueError, review.formal.ReviewError)):
+            remote.run_batch(self.repos, self.gate, date(2026, 10, 5), date(2026, 9, 30),
+                             0, 2, "remote-test", COMMIT, bad_review, successful_sources=successful)
+        self.assertEqual(successful, [MPS])
 
     def test_prior_moit_states_seed_same_gate_before_any_request(self):
         self.batch()
@@ -292,11 +403,11 @@ class RemoteReview(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "artifact changed"):
             review.check_signoff(out, out / "signoff_template.json")
 
-    def test_workflow_is_daily_main_only_and_success_only_publication(self):
+    def test_public_original_writer_is_retired_and_historical_path_is_preserved(self):
         text = (Path(remote.REPO) / ".github/workflows/vietnam_ministry_shadow.yml").read_text()
         self.assertIn("workflow_dispatch:", text)
-        self.assertIn("schedule:", text)
-        self.assertIn("cron: '17 18 * * *'", text)
+        self.assertNotIn("  schedule:", text)
+        self.assertIn("  shadow:\n    if: false", text)
         self.assertIn("target_date:", text)
         self.assertIn("github.ref == 'refs/heads/main'", text)
         self.assertIn("cancel-in-progress: false", text)
@@ -308,7 +419,9 @@ class RemoteReview(unittest.TestCase):
         self.assertIn("scheduled reliability state branch missing", text)
         self.assertIn('test -f "$dest/state/clock.json"', text)
         self.assertIn("ref: ${{ github.sha }}", text)
-        self.assertIn("if: success()", text)
+        self.assertIn("steps.preservation.outcome == 'success'", text)
+        self.assertIn('--publication-list "${RUNNER_TEMP}/vn-ministry-successful-sources"', text)
+        self.assertIn('done < "$publication_list"', text)
         self.assertIn("if: always()", text)
         self.assertIn("retention-days: 90", text)
         self.assertNotIn("*/state/", text)

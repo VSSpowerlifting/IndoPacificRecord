@@ -54,6 +54,17 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
+
+# Both the scheduled Actions job and the registered Git merge driver execute
+# this file as "python scripts/reconcile_db.py". In that mode Python puts
+# scripts/, not the repository root, on sys.path; unlike -m or unit imports,
+# the production entry point cannot import core.retired_article_urls without
+# an explicit project-root bootstrap. Resolve from __file__, not cwd, so an
+# installed driver behaves consistently in Git's worktree.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from core.retired_article_urls import (is_retired, has_retired_table,
     next_available_article_id, verify_no_active_retired_urls)
@@ -606,6 +617,8 @@ def reconcile(base_path, origin_path, local_path, out_path):
     # test. Rows where origin already holds a decision are left alone, exactly
     # as before.
     set_clause = ",".join(f"{c}=?" for c in ANALYSIS_COLS)
+    from core.title_translation import english_title, receipts
+    title_receipts = receipts(con, metadata=True)
     pending_shared = con.execute(
         f"SELECT l.id AS lid, l.url AS url, {','.join('l.' + c for c in ANALYSIS_COLS)} "
         "FROM loc.articles l JOIN main.articles m ON m.url = l.url "
@@ -613,11 +626,25 @@ def reconcile(base_path, origin_path, local_path, out_path):
         "   OR (l.passed_relevance IS NOT NULL AND m.passed_relevance IS NULL)"
     ).fetchall()
     for r in pending_shared:
+        values = [r[c] for c in ANALYSIS_COLS]
+        # Analysis/relevance merging must not erase an independently completed
+        # China headline (or an existing human edit) with an empty local field.
+        held = con.execute(
+            "SELECT a.id,a.title_english,a.title_original,s.desk_id,s.language_tag "
+            "FROM articles a JOIN sources s ON s.id=a.source_id WHERE a.url=?",
+            (r["url"],)).fetchone()
+        if held and held["desk_id"] == "china":
+            current = dict(held)
+            current.update(title_receipts.get(held["id"], {}))
+            if english_title(current):
+                values[ANALYSIS_COLS.index("title_english")] = english_title(current)
         con.execute(
             f"UPDATE articles SET {set_clause} WHERE url=?",
-            [r[c] for c in ANALYSIS_COLS] + [r["url"]],
+            values + [r["url"]],
         )
     report["analysis_backfilled"] = len(pending_shared)
+    from storage.title_translation import reconcile_titles
+    reconcile_titles(con)
 
     # ── 5. categories for newly-analyzed shared rows ──────────────────────
     ac_shared = 0
@@ -761,6 +788,28 @@ def reconcile(base_path, origin_path, local_path, out_path):
             )
         report["source_results_expected"] = len(expected)
         report["source_results_from_origin"] = len(origin_keys)
+
+    # Shared machine explanations use stable source identities, never numeric
+    # article IDs. Preserve local admissions across Daily's normal main rebase.
+    # A conflict or changed parent version stops reconciliation atomically.
+    if _has_table(con, "loc", "daily_machine_records"):
+        machine_cols = [r[1] for r in con.execute("PRAGMA main.table_info(daily_machine_records)")]
+        local_columns = [r[1] for r in con.execute("PRAGMA loc.table_info(daily_machine_records)")]
+        if machine_cols != local_columns:
+            raise ValueError("daily_machine_record_schema_conflict")
+        for row in con.execute("SELECT * FROM loc.daily_machine_records").fetchall():
+            existing = con.execute("SELECT * FROM daily_machine_records WHERE source_family=? AND source_identity=?",
+                                   (row["source_family"], row["source_identity"])).fetchone()
+            if existing is not None:
+                if tuple(existing) != tuple(row):
+                    raise ValueError("daily_machine_record_version_conflict")
+                continue
+            parent = con.execute("SELECT metadata_version_sha256 FROM regional_official_source_links "
+                                 "WHERE source_family=? AND source_identity=?",
+                                 (row["source_family"], row["source_identity"])).fetchone()
+            if parent is None or parent[0] != row["metadata_version_sha256"]:
+                raise ValueError("daily_machine_record_parent_version_conflict")
+            con.execute("INSERT INTO daily_machine_records VALUES (" + ",".join("?" for _ in machine_cols) + ")", tuple(row))
 
     report["source_results_merged"] = srr_merged
     report["source_results_origin_won"] = srr_conflicts

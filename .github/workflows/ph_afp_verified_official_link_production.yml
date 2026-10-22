@@ -1,0 +1,261 @@
+name: Philippines — Verified AFP Links to Production and Pages
+
+# Owner decisions Oct 15 and Oct 18, 2026
+# (config/afp_kemhan_owner_link_activation.json): only verified neutral AFP
+# official-link metadata (URL, publisher date, attributed issuer and provenance)
+# may be published automatically. The Oct 15 frozen 23-record cohort remains
+# pinned as an independently verified baseline; the Oct 18 AFP-specific standing
+# authorization also permits verified non-held future records without per-record
+# human review. Disputes, version changes and source/rights anomalies still hold.
+# No original AFP headline, body,
+# photograph, translation, model summary or IPR analysis is published here.
+#
+# Sources:
+#   * the public shadow/ph-afp history (pre-cutover originals), validated
+#     here directly; and
+#   * post-cutover private originals, which reach this workflow only as a
+#     private-runner HMAC envelope (afp-envelope.json.gz + .mac). That path
+#     stays held unless AFP_METADATA_BRIDGE_ENABLED is 'true' and
+#     AFP_BRIDGE_KEY is configured.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ph_afp_verified_official_link_production.yml
+      - core/ph_afp_release_validator.py
+      - scripts/admit_ph_afp_official_links.py
+  schedule:
+    # Daily reconciliation/retry: recovers a run that committed main but
+    # failed before Pages, and re-verifies the source history. Idempotent.
+    - cron: '29 16 * * *'
+  workflow_dispatch:
+    inputs:
+      envelope_b64:
+        description: 'Private-runner signed, gzip metadata-only AFP envelope (base64)'
+        required: false
+        type: string
+      envelope_mac:
+        description: 'HMAC-SHA256 of the gzip envelope bytes'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Own group; cross-desk DB races are caught by the exact main/DB/Pages pins.
+concurrency:
+  group: philippines-verified-official-link-production
+  cancel-in-progress: false
+
+jobs:
+  publish-philippines-official-links:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out current production main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Pin exact main and refuse dirty or sidecar state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > "$RUNNER_TEMP/ph-prod-main-before"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+      - name: Install existing source and site dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify release, validator and renderer contracts
+        run: |
+          python -m unittest -v \
+            tests.test_ph_afp_release_validator \
+            tests.test_regional_official_link_release \
+            tests.test_regional_official_link_render
+      - name: Clone the public AFP source history
+        env:
+          SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          git clone --quiet --single-branch --branch shadow/ph-afp \
+            "$SRC_REMOTE" "$RUNNER_TEMP/afp-source"
+          test -z "$(git -C "$RUNNER_TEMP/afp-source" status --porcelain)"
+          git -C "$RUNNER_TEMP/afp-source" rev-parse HEAD > "$RUNNER_TEMP/ph-source-tip"
+      - name: Accept a private envelope only when the bridge is activated
+        if: ${{ inputs.envelope_b64 != '' || inputs.envelope_mac != '' }}
+        env:
+          BRIDGE_ENABLED: ${{ vars.AFP_METADATA_BRIDGE_ENABLED }}
+          ENVELOPE_B64: ${{ inputs.envelope_b64 }}
+          ENVELOPE_MAC: ${{ inputs.envelope_mac }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$BRIDGE_ENABLED" = true || {
+            echo "::error::HOLD: AFP private metadata bridge is not activated"
+            exit 1
+          }
+          test -n "$ENVELOPE_B64" && test -n "$ENVELOPE_MAC"
+          printf '%s' "$ENVELOPE_B64" | base64 -d > "$RUNNER_TEMP/afp-envelope.json.gz"
+          printf '%s\n' "$ENVELOPE_MAC" > "$RUNNER_TEMP/afp-envelope.mac"
+          echo "ENVELOPE_ARGS=--signed-envelope $RUNNER_TEMP/afp-envelope.json.gz --signed-mac $RUNNER_TEMP/afp-envelope.mac" >> "$GITHUB_ENV"
+      - name: Admit trusted-validated AFP links (scratch copy, atomic replace)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          AFP_BRIDGE_KEY: ${{ secrets.AFP_BRIDGE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Repair schema before admission, as every other link release does:
+          # a pending index extension (e.g. 0014 for NSC) is not a failed
+          # AFP collection. This is the only step that writes pla_watch.db.
+          python -m migrations.cli --apply --db "$GITHUB_WORKSPACE/pla_watch.db"
+          python scripts/verify_db_current.py
+          # shellcheck disable=SC2086
+          python -m scripts.admit_ph_afp_official_links admit \
+            --source-checkout "$RUNNER_TEMP/afp-source" \
+            --source-commit "$(cat "$RUNNER_TEMP/ph-source-tip")" \
+            --production-db "$GITHUB_WORKSPACE/pla_watch.db" ${ENVELOPE_ARGS:-}
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+          python scripts/verify_db_current.py
+      - name: Render site; verify the Philippines page independently
+        env:
+          SOURCE_DB: ${{ runner.temp }}/afp-source/state/shadow.db
+        shell: bash
+        run: |
+          set -euo pipefail
+          python site/render.py
+          python scripts/validate_output.py
+          python - <<'PY'
+          import os
+          import sqlite3
+          from pathlib import Path
+          from bs4 import BeautifulSoup
+          db = sqlite3.connect("file:pla_watch.db?mode=ro", uri=True)
+          # Every admitted Philippines family (AFP, and NSC once separately
+          # authorized) must render exactly; AFP keeps its frozen floor.
+          rows = {r[0]: r[1] for r in db.execute(
+              "SELECT source_identity, canonical_official_url FROM regional_official_source_links "
+              "WHERE desk='philippines'")}
+          afp = sum(1 for k in rows if k.startswith("afp:"))
+          page = Path("output/philippines.html").read_text(encoding="utf-8")
+          soup = BeautifulSoup(page, "html.parser")
+          items = soup.select("li[data-regional-official-source-id]")
+          got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
+          # At least the frozen 23, plus any further authorized verified AFP links.
+          assert afp >= 23 and got == rows, "rendered links differ from SQLite"
+          for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
+              assert forbidden not in page, forbidden
+          # No preserved AFP headline or body may reach the public page.
+          src = sqlite3.connect("file:%s?mode=ro" % os.environ["SOURCE_DB"], uri=True)
+          for title, body in src.execute("SELECT title_original, text_original FROM shadow_records"):
+              assert not (title and title in page), "original AFP headline on public page"
+              assert not (body and body[:120] in page), "original AFP body on public page"
+          print("Admitted Philippines links rendered:", len(rows), "AFP:", afp)
+          PY
+          sha256sum output/philippines.html > "$RUNNER_TEMP/ph-prod-page-sha"
+          echo "All rendered output changes listed for audit, not bulk publication:"
+          git diff --name-only -- output/
+      - name: Refuse a moved source history or production main
+        env:
+          SRC_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote "$SRC_REMOTE" refs/heads/shadow/ph-afp | cut -f1)" = \
+            "$(cat "$RUNNER_TEMP/ph-source-tip")" || {
+            echo "::error::AFP source branch moved; retry on the exact new version"
+            exit 1
+          }
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$(cat "$RUNNER_TEMP/ph-prod-main-before")" || {
+            echo "::error::Production main moved; aborting rather than replacing a changed DB"
+            exit 1
+          }
+          sha256sum -c "$RUNNER_TEMP/ph-prod-page-sha"
+      - name: Commit exactly live SQLite and Philippines HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- pla_watch.db output/philippines.html
+          staged="$(git diff --cached --name-only)"
+          if [ -z "$staged" ]; then
+            echo "No new admitted links; nothing to commit"
+            exit 0
+          fi
+          if echo "$staged" | grep -vE '^(pla_watch.db|output/philippines.html)$'; then
+            echo "::error::Unexpected staged file; full-site publish prohibited"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Philippines: admit verified AFP link metadata and update page only"
+          git push origin HEAD:main
+      - name: Check out current Pages without uploading other files
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: philippines-existing-pages
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Publish only Philippines HTML to existing Pages branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c "$RUNNER_TEMP/ph-prod-page-sha"
+          # Always reconcile Pages, even if an earlier attempt pushed main and
+          # then failed before gh-pages: this is the unattended retry path.
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" || {
+            echo "::error::Main changed since this Philippines page was rendered"
+            exit 1
+          }
+          git show HEAD:output/philippines.html | cmp - output/philippines.html
+          cd philippines-existing-pages
+          test -z "$(git status --porcelain --untracked-files=all)"
+          pages_old="$(git rev-parse HEAD)"
+          cp ../output/philippines.html philippines.html
+          git add -- philippines.html
+          staged="$(git diff --cached --name-only)"
+          test -z "$staged" || test "$staged" = "philippines.html"
+          if [ -n "$staged" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Philippines: publish verified AFP outbound links only"
+          fi
+          git fetch origin gh-pages
+          test "$(git rev-parse origin/gh-pages)" = "$pages_old" || {
+            echo "::error::Pages moved; never overwrite a concurrent release"
+            exit 1
+          }
+          if [ -n "$staged" ]; then
+            git push origin HEAD:gh-pages
+          fi
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Independent readback of committed and deployed bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main gh-pages
+          main_sha="$(git show origin/main:output/philippines.html | sha256sum | cut -d' ' -f1)"
+          pages_sha="$(git show origin/gh-pages:philippines.html | sha256sum | cut -d' ' -f1)"
+          test "$main_sha" = "$pages_sha" || {
+            echo "::error::main output and gh-pages Philippines bytes differ"
+            exit 1
+          }
+          echo "PASS: main:output/philippines.html == gh-pages:philippines.html ($main_sha)"
+
+# Original bytes stay in the preserved source branch and private custody.
+# No source artifact upload, bulk site push, AI request or editor email.

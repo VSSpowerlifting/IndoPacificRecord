@@ -1,8 +1,8 @@
 name: Korea Shadow — read-only mature collection-slot watchdog
 
-# One day after the preceding 17:47 UTC collector slot, after 6h grace.
-# This workflow never accesses korea.kr, reruns collection, distributes HWPX,
-# changes the isolated shadow, publishes sources or approves a Sunday Brief.
+# One day after the preceding private 17:47 UTC MND collector slot, after 6h grace.
+# Only private ledger/clock metadata are read, never source originals or media.
+# No collection, public writes, rights approval or Sunday Brief actions.
 on:
   schedule:
     - cron: '7 6 * * *'
@@ -55,20 +55,30 @@ jobs:
           python-version: '3.9'
       - name: Verify synthetic calendar and schedule/recovery separation
         run: python -m unittest tests.test_korea_shadow_slot_watchdog tests.test_korea_prospective_seven_slots -q
-      - name: Fetch ONLY metadata blobs of exact Korea shadow Git tip
+      - name: Fetch ONLY metadata of authenticated private MND archive Git tip
+        env:
+          KOREA_VAULT_READ_TOKEN: ${{ secrets.IPR_KOREA_PRIVATE_READ_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
+          umask 077
           export GIT_TERMINAL_PROMPT=0
+          test -n "${KOREA_VAULT_READ_TOKEN:-}" || {
+            echo "::error::Private MND archive read token unavailable; refuse misleading watchdog result"
+            exit 1
+          }
+          auth="$(printf 'x-access-token:%s' "$KOREA_VAULT_READ_TOKEN" | base64 -w0)"
           repo="$RUNNER_TEMP/korea-watch-state"
           git init -q "$repo"
-          git -C "$repo" remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git -C "$repo" remote add origin             "https://github.com/VSSpowerlifting/ipr-source-evidence-private.git"
           git -C "$repo" sparse-checkout init --no-cone
           git -C "$repo" sparse-checkout set '/state/ledger/**' '/state/clock.json'
-          git -C "$repo" fetch --quiet --no-tags --depth=1 --filter=blob:none \
-            origin refs/heads/shadow/korea-policy-briefing
-          git -C "$repo" checkout -q -b shadow/korea-policy-briefing FETCH_HEAD
-          test "$(git -C "$repo" branch --show-current)" = shadow/korea-policy-briefing
+          git -C "$repo" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth"             fetch --quiet --no-tags --depth=1 --filter=blob:none             origin refs/heads/archive/korea-policy-briefing
+          # Blob-filtered fetch lazily downloads selected ledger objects at checkout.
+          # Authenticate that read too, without writing credentials to Git config.
+          git -C "$repo" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            checkout -q -b archive/korea-policy-briefing FETCH_HEAD
+          test "$(git -C "$repo" branch --show-current)" = archive/korea-policy-briefing
           test "$(git -C "$repo" ls-tree --name-only HEAD)" = state
           test -d "$repo/state/ledger"
           test -f "$repo/state/clock.json"
@@ -91,5 +101,5 @@ jobs:
           test ! -e pla_watch.db-wal
           test ! -e pla_watch.db-shm
 
-# Metadata appears only in the Actions log. No artifacts, original files,
+# Private custody ledger-only metadata appears only in the Actions log. No artifacts, original files,
 # emailed content, workflow dispatches, state pushes or human signoffs.
