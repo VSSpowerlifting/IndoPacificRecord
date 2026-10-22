@@ -442,7 +442,7 @@ class TestVietnamMpsLiveCoverage(DeskCase):
     def test_the_vietnam_page_discloses_mps_only_without_invented_article_counts(self):
         html = self.page("vietnam.html")
         self.assertIn("Verified official-source links admitted", html)
-        self.assertIn("Sources enabled in production</dt><dd>1", html)
+        self.assertIn("Sources enabled</dt><dd>1", html)
         self.assertIn("Ministry of Public Security — foreign affairs (Vietnamese)", html)
         self.assertNotIn("Sources enabled in shadow", html)
         self.assertIn("MOIT", html)
@@ -453,8 +453,8 @@ class TestVietnamMpsLiveCoverage(DeskCase):
             actual = con.execute(
                 "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
                 "WHERE s.desk_id='vietnam'").fetchone()[0]
-        self.assertNotIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("Corpus records</dt>", html)
+        self.assertNotIn("Records</dt><dd>Not admitted", html)
+        self.assertIn("Records</dt><dd>", html)
         self.assertGreaterEqual(actual, 0)
 
     def test_the_vietnam_page_shows_no_collection_statistic(self):
@@ -498,8 +498,8 @@ class TestVietnamMpsLiveCoverage(DeskCase):
         block = [b.split("</section>", 1)[0]
                  for b in directory.split('<section class="desk')[1:]
                  if 'data-desk="vietnam"' in b][0]
-        self.assertIn("Corpus records</dt>", block)
-        self.assertNotIn("Corpus records</dt><dd>Not admitted", block)
+        self.assertIn("Records</dt>", block)
+        self.assertNotIn("Records</dt><dd>Not admitted", block)
         self.assertIn("Hanoi", block)
 
     def test_tablet_directory_uses_all_desk_plates_at_full_width(self):
@@ -585,9 +585,14 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                         philippines_links)
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
-                self.assertIn("Corpus records</dt><dd>Not admitted", page)
-                self.assertIn("Sources enabled in production</dt><dd>0", page)
-                self.assertNotIn('href="archive.html?desk=' + name + '"', page)
+                if name == "philippines":
+                    self.assertIn("Corpus records</dt><dd>Not admitted", page)
+                    self.assertIn("Sources enabled in production</dt><dd>0", page)
+                    self.assertNotIn('href="archive.html?desk=' + name + '"', page)
+                else:
+                    # MPS has one manual source; zero genuine records is allowed.
+                    self.assertIn("Records</dt><dd>", page)
+                    self.assertIn("Sources enabled</dt><dd>1", page)
                 self.assertNotIn("text_original", page)
                 self.assertNotIn("state/shadow.db", page)
         page = self.page("philippines.html")
@@ -598,21 +603,21 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
         self.assertEqual({d.slug for d in load_registry().public_entries},
             {"china", "singapore", "japan", "korea", "philippines", "vietnam", "indonesia", "us-indopacific"})
         self.assertEqual(sorted(d.slug for d in load_registry() if d.is_collecting),
-                         ["china", "korea", "singapore"])
+                         ["china", "korea", "singapore", "vietnam"])
 
 
 class TestPendingDeskReferenceBrowser(DeskCase):
     """No publication approvals means a transparent empty public bibliography."""
 
     def test_metadata_only_reference_lane_is_available_but_empty(self):
-        for slug in ("philippines", "vietnam"):
-            with self.subTest(desk=slug):
-                html = self.page(slug + ".html")
-                self.assertIn("Individually reviewed official-source references", html)
-                self.assertIn("No individual source references have completed", html)
-                self.assertNotIn('data-reference-list', html)
-                self.assertIn("Corpus records</dt><dd>Not admitted", html)
-                self.assertNotIn("archive.html?desk=" + slug, html)
+        # Philippines remains pending; Vietnam has an independent MPS lane.
+        slug = "philippines"
+        html = self.page(slug + ".html")
+        self.assertIn("Individually reviewed official-source references", html)
+        self.assertIn("No individual source references have completed", html)
+        self.assertNotIn('data-reference-list', html)
+        self.assertIn("Corpus records</dt><dd>Not admitted", html)
+        self.assertNotIn("archive.html?desk=" + slug, html)
 
     def test_progressive_enhancement_files_are_produced(self):
         for filename in ("desk-references.css", "desk-references.js"):
