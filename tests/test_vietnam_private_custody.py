@@ -6,6 +6,7 @@ import hmac
 import json
 import sqlite3
 import unittest
+from contextlib import closing
 from datetime import date
 from pathlib import Path
 
@@ -208,7 +209,7 @@ class PrivateCustody(unittest.TestCase):
         shutil.copyfile(publisher.ROOT/'pla_watch.db',target)
         # Synthetic private review must not collide with MPS links already
         # admitted to canonical production under different source commits.
-        with sqlite3.connect(str(target)) as conn:
+        with closing(sqlite3.connect(str(target))) as conn, conn:
             conn.execute("DELETE FROM regional_official_source_links WHERE desk='vietnam'")
         before=target.read_bytes()
         options=dict(api=self.public_api,secret=KEY,as_of_utc=NOW,
