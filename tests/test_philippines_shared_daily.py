@@ -87,6 +87,73 @@ class SharedDaily(unittest.TestCase):
         self.assertIn("Philippines", call.call_args_list[0].kwargs["system"][0]["text"])
         self.assertIsNone(result["text_english"])
 
+    def test_passage_references_supply_exact_original_evidence(self):
+        from analysis.analyzer import Analyzer
+        from analysis.philippines_prompts import analysis_messages, evidence_passages
+        item = record()
+        passages = evidence_passages(item["body"])
+        self.assertEqual(len(passages), 1)
+        self.assertEqual(passages[0][1], item["body"])
+        self.assertIn('"passages"', analysis_messages(item["title"], item["body"])[0]["content"])
+        source_reply = reading()
+        reply = dict(summary=source_reply["summary_english"], flag=False,
+                     flag_reason=None, flag_evidence_id=None,
+                     categories=source_reply["categories"],
+                     facts=[{"sentence": f["sentence"], "evidence_id": "P1"}
+                            for f in source_reply["facts"]])
+        a = Analyzer.__new__(Analyzer)
+        with patch.object(a, "_call", side_effect=[
+                json.dumps(dict(score=.9, reasoning="Synthetic relevance.")),
+                json.dumps(reply)]):
+            result = a.analyze_record(item["title"], item["body"], PHILIPPINES_PROFILE)
+        self.assertEqual([f["evidence"] for f in result["facts"]], [item["body"]] * 2)
+        self.assertNotIn("evidence_id", json.dumps(result))
+        self.assertTrue(d.quality_check(item, result))
+
+    def test_unknown_passage_reference_fails_closed(self):
+        from analysis.analyzer import Analyzer
+        source_reply = reading()
+        reply = dict(summary=source_reply["summary_english"], flag=False,
+                     flag_reason=None, flag_evidence_id=None,
+                     categories=source_reply["categories"],
+                     facts=[{"sentence": f["sentence"], "evidence_id": "P999"}
+                            for f in source_reply["facts"]])
+        a = Analyzer.__new__(Analyzer)
+        a._usage = Mock()  # usage is a read-only property on Analyzer
+        with patch.object(a, "_call", side_effect=[
+                json.dumps(dict(score=.9, reasoning="Synthetic relevance.")),
+                json.dumps(reply)]):
+            result = a.analyze_record(record()["title"], record()["body"],
+                                      PHILIPPINES_PROFILE)
+        self.assertTrue(result["passed_relevance"])
+        self.assertNotIn("summary_english", result)
+        a.usage.mark_failed.assert_called_once()
+
+    def test_long_paragraph_windows_are_exact_bounded_original_spans(self):
+        from analysis.philippines_prompts import evidence_passages
+        body = ("A source describes planned maritime security cooperation and "
+                "emphasizes that no delivery has occurred. " * 20)
+        passages = evidence_passages(body)
+        self.assertGreater(len(passages), 2)
+        self.assertEqual([ref for ref, _ in passages],
+                         ["P" + str(i + 1) for i in range(len(passages))])
+        self.assertTrue(all(20 <= len(span) <= 480 and span in body
+                            for _, span in passages))
+
+    def test_version_eleven_preserves_legacy_version_ten_public_outputs(self):
+        for version in ("ph-relevance-v1+ph-analysis-v10",
+                        "ph-relevance-v1+ph-analysis-v11"):
+            good = reading()
+            good["prompt_version"] = version
+            state, _ = d.process([record()], {}, family="ph_afp_articles",
+                                 policy=policy(),
+                                 analyzer_factory=lambda: fake_analyzer(good))
+            self.assertEqual(state["ph_afp_articles:afp:1"]["status"], "complete")
+            signed = d.sign_outputs(state, family="ph_afp_articles",
+                                    policy=policy(), key="synthetic-key-" * 4)
+            self.assertEqual(signed["packet"]["records"][0]["prompt_version"],
+                             version)
+
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError
         a = Analyzer.__new__(Analyzer)
