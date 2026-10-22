@@ -79,9 +79,9 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertIn("PublicView", source)
         self.assertTrue((REPO_ROOT / "desks" / "registry.json").is_file())
 
-    def test_china_singapore_and_korea_are_the_collecting_desks(self):
+    def test_china_singapore_korea_vietnam_are_the_collecting_desks(self):
         live = [e for e in load_registry() if e.is_collecting]
-        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore", "vietnam"])
 
     def test_a_collecting_desk_must_have_an_enabled_source(self):
         """Derived, not declared: the count comes from the desk's manifest."""
@@ -129,7 +129,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         cannot find it. If it ever lands in desks/, collection starts by
         accident."""
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "korea", "singapore"})
+        self.assertEqual(discovered, {"china", "korea", "singapore", "vietnam"})
 
     def test_the_us_is_not_a_live_desk(self):
         """
@@ -184,7 +184,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertEqual(sg.manifest_path, "desks/singapore/manifest.json")
         self.assertTrue((MANIFESTS / "singapore" / "manifest.json").exists())
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "korea", "singapore"})
+        self.assertEqual(discovered, {"china", "korea", "singapore", "vietnam"})
 
     def test_singapore_shows_no_stale_shadow_language(self):
         """
@@ -399,51 +399,63 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
                               % (label, figure), html)
 
 
-class TestVietnamShadowIsNotPublicCoverage(DeskCase):
+class TestVietnamMpsLiveCoverage(DeskCase):
     """
-    Three ministry families now operate isolated scheduled shadow collection,
-    but no Vietnam original is in the public production corpus. Government
-    News and the National Defence Journal are separate disabled candidates.
+    MPS Foreign Affairs is the sole live, manual/private-backed source.
+    Both MOIT families remain held; official-link metadata counts separately
+    from any actually admitted MPS article, which may legitimately be zero.
     """
 
     def test_the_vietnam_desk_page_exists_and_is_linked(self):
         self.assertTrue((self.out / "vietnam.html").is_file())
         self.assertIn('href="vietnam.html"', self.page("desks.html"))
 
-    def test_the_registry_declares_shadow_without_a_production_manifest(self):
+    def test_the_registry_declares_only_one_private_backed_mps_source(self):
         entry = load_registry().get("vietnam")
-        self.assertEqual(entry.status, "shadow")
+        self.assertEqual(entry.status, "live")
         self.assertTrue(entry.public)
-        self.assertIsNone(entry.manifest_path)
-        self.assertFalse(entry.has_production_records)
-        self.assertFalse(entry.is_collecting)
-        self.assertFalse(entry.may_show_record_count)
+        self.assertEqual(entry.manifest_path, "desks/vietnam/manifest.json")
+        self.assertTrue(entry.has_production_records)
+        self.assertTrue(entry.is_collecting)
+        self.assertTrue(entry.may_show_record_count)
         self.assertEqual((entry.configured_source_count,
-                          entry.enabled_source_count), (0, 0))
+                          entry.enabled_source_count), (1, 1))
+        self.assertEqual(entry.sources[0].slug, "vn_mps_foreign_affairs_vi")
+        self.assertEqual(entry.sources[0].access_method, "manual")
 
-    def test_no_vietnam_source_or_manifest_reaches_production(self):
-        """The shadow manifest exists, outside `desks/`; the production loader
-        and the database know nothing of Vietnam."""
+    def test_only_mps_manual_source_enters_the_production_manifest(self):
+        """The private collector is not duplicated inside public Daily.
+        MOIT and other Vietnam families cannot inherit its authorization."""
         from core.manifests import load_all_desks
         self.assertTrue((REPO_ROOT / "shadow" / "vietnam" / "manifest.json").is_file())
-        self.assertFalse((MANIFESTS / "vietnam").exists())
-        self.assertNotIn("vietnam", load_all_desks())
+        self.assertTrue((MANIFESTS / "vietnam" / "manifest.json").is_file())
+        cfg = load_all_desks()["vietnam"]
+        self.assertEqual(len(cfg.sources), 1)
+        self.assertEqual(cfg.sources[0].slug, "vn_mps_foreign_affairs_vi")
+        self.assertEqual(cfg.sources[0].access_method, "manual")
         with self.db() as con:
             rows = con.execute(
-                "SELECT slug FROM sources WHERE desk_id = 'vietnam' "
-                "OR slug LIKE 'vn%'").fetchall()
-        self.assertEqual(rows, [])
+                "SELECT slug, desk_id, enabled, access_method FROM sources "
+                "WHERE desk_id = 'vietnam'").fetchall()
+        self.assertEqual(rows, [("vn_mps_foreign_affairs_vi", "vietnam", 1, "manual")])
 
-    def test_the_vietnam_page_states_no_records_and_no_enabled_source(self):
+    def test_the_vietnam_page_discloses_mps_only_without_invented_article_counts(self):
         html = self.page("vietnam.html")
         self.assertIn("Verified official-source links admitted", html)
-        self.assertIn("Original headlines, article bodies, photos, documents, "
-                      "translations and automatic analysis are excluded.", " ".join(html.split()))
-        self.assertIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("Sources enabled in production</dt><dd>0", html)
-        self.assertNotIn("Sources enabled in shadow", html)
+        self.assertIn("Sources enabled in production</dt><dd>1", html)
         self.assertIn("Ministry of Public Security — foreign affairs (Vietnamese)", html)
-        self.assertIn("No source is enabled in production", html)
+        self.assertNotIn("Sources enabled in shadow", html)
+        self.assertIn("MOIT", html)
+        # Public article count is drawn from the real DB, never the 25 private
+        # originals or three metadata-only links. Either zero or a later real
+        # production count is valid for an unattended desk.
+        with self.db() as con:
+            actual = con.execute(
+                "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
+                "WHERE s.desk_id='vietnam'").fetchone()[0]
+        self.assertNotIn("Corpus records</dt><dd>Not admitted", html)
+        self.assertIn("Corpus records</dt>", html)
+        self.assertGreaterEqual(actual, 0)
 
     def test_the_vietnam_page_shows_no_collection_statistic(self):
         """Newsroom-tag listings are not production records or shadow counts."""
@@ -481,17 +493,13 @@ class TestVietnamShadowIsNotPublicCoverage(DeskCase):
             with self.subTest(term=evasion):
                 self.assertNotIn(evasion, html.lower())
 
-    def test_the_directory_plate_carries_the_same_state(self):
+    def test_the_directory_plate_carries_live_mps_status_without_fabricated_records(self):
         directory = self.page("desks.html")
         block = [b.split("</section>", 1)[0]
                  for b in directory.split('<section class="desk')[1:]
                  if 'data-desk="vietnam"' in b][0]
-        self.assertIn("Research published", block)
-        self.assertIn("Corpus records</dt><dd>Not admitted", block)
-        self.assertIn("Corpus records</dt><dd>Not admitted", block)
-        self.assertIn("Last corpus collection</dt><dd>Not admitted", block)
-        self.assertNotIn("Records</dt><dd>None collected", block)
-        self.assertNotIn("desk--live", block)
+        self.assertIn("Corpus records</dt>", block)
+        self.assertNotIn("Corpus records</dt><dd>Not admitted", block)
         self.assertIn("Hanoi", block)
 
     def test_tablet_directory_uses_all_desk_plates_at_full_width(self):
