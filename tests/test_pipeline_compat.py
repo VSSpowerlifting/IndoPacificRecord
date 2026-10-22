@@ -87,7 +87,8 @@ class TestRegistryDrivesCollection(unittest.TestCase):
         self.assertEqual(
             SourceRegistry().slugs,
             ["china_mil_online", "global_times_mil", "kr_policy_mnd_releases",
-             "mod_china", "pla_daily", "sg_mindef_releases", "xinhua_mil"],
+             "mod_china", "pla_daily", "sg_mindef_releases",
+             "vn_mps_foreign_affairs_vi", "xinhua_mil"],
         )
 
     def test_slug_view_answers_membership_and_keys(self):
@@ -224,9 +225,10 @@ class TestNoSourceStarvesAnother(unittest.TestCase):
             result("xinhua_mil", st.NOT_IMPLEMENTED),
             result("sg_mindef_releases", st.OK_NO_PUBLICATIONS),
             result("kr_policy_mnd_releases", st.OK_NO_PUBLICATIONS),
+            result("vn_mps_foreign_affairs_vi", st.SKIPPED_DISABLED),  # private-only collector
         ]
         report = machine_report(results)
-        self.assertEqual(report["source_count"], 7)
+        self.assertEqual(report["source_count"], 8)
         self.assertEqual(
             sorted(s["source_slug"] for s in report["sources"]),
             SourceRegistry().slugs,
@@ -375,9 +377,9 @@ class TestConfigSyncIsIdempotent(unittest.TestCase):
         desks = conn.execute("SELECT COUNT(*) FROM desks").fetchone()[0]
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(n, 7)
-        self.assertEqual(desks, 3)
-        self.assertEqual(insts, 7)      # Korea adds Policy Briefing and MND
+        self.assertEqual(n, 8)
+        self.assertEqual(desks, 4)
+        self.assertEqual(insts, 8)      # Vietnam adds the MPS institution
 
     def test_sync_populates_authority_and_originality(self):
         conn = connect(self.db_path)
@@ -415,7 +417,7 @@ class TestScrapersSlugView(unittest.TestCase):
 
     def test_iteration_and_len(self):
         self.assertEqual(sorted(self.pipeline.SCRAPERS), SourceRegistry().slugs)
-        self.assertEqual(len(self.pipeline.SCRAPERS), 7)
+        self.assertEqual(len(self.pipeline.SCRAPERS), 8)
 
     def test_subscripting_raises_with_a_pointer_to_the_real_api(self):
         with self.assertRaises(TypeError) as ctx:
@@ -609,7 +611,7 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
     def test_production_manifest_declares_no_russia_desk(self):
         configs = __import__("core.manifests", fromlist=["load_all_desks"]) \
             .load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(configs), ["china", "korea", "singapore", "vietnam"])
         for cfg in configs.values():
             for src in cfg.sources:
                 self.assertNotEqual(src.language_tag.split("-")[0], "ru")
@@ -637,10 +639,11 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
         with _read_only(str(prod)) as con:
             desks = {r[0] for r in con.execute("SELECT DISTINCT desk_id FROM desks")}
             slugs = {r[0] for r in con.execute("SELECT slug FROM sources")}
-        self.assertEqual(desks, {"china", "korea", "singapore"})
+        self.assertEqual(desks, {"china", "korea", "singapore", "vietnam"})
         self.assertEqual(slugs, {"pla_daily", "mod_china", "xinhua_mil",
                                  "global_times_mil", "china_mil_online",
-                                 "sg_mindef_releases", "kr_policy_mnd_releases"})
+                                 "sg_mindef_releases", "kr_policy_mnd_releases",
+                                 "vn_mps_foreign_affairs_vi"})
 
 
 class TestSyncAtomicityAtPersistence(unittest.TestCase):
