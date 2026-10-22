@@ -13,8 +13,7 @@ or article activation flag was created in this follow-up.
   This observation is not a finding that factual reporting requires a ministry
   licence, nor a legal determination that all model use is prohibited.
 - Connected GW Gmail contains the sent inquiry, subject “Clarification of MPS
-  Portal Reuse and English Translation Permissions”, 21 October 2026, 10:33 EDT
-  ([thread](https://mail.google.com/mail/u/?authuser=ben.yang%40gwmail.gwu.edu#all/1a15ee21718fcda1)).
+  Portal Reuse and English Translation Permissions”, 21 October 2026, 10:33 EDT.
   Searches of the contact, ministry domains and subject found no reply. No
   further correspondence was sent.
 - Current private main is `defd100a5bc6cfc1274e8f0e628d676b251dcc8b`;
@@ -55,6 +54,13 @@ needed. The public projection, deterministic headline checks, signed handoff
 and record-page label distinguish that headline from translation. Existing
 successful projection replay avoids new API calls after delayed public admission.
 Fixture pipeline/handoff tests passed; no real MPS AI run is claimed.
+The first full CI run executed 7,902 tests and exposed seven older Vietnam
+fixture/expectation failures after the real metadata release. Disposable
+admission databases now remove only their inherited MPS link identities before
+fictional review replay; page assertions compare the admitted Vietnam identities
+while retaining the zero-article claim. Production rows and release guards are
+unchanged. All 10 focused checks covering these failures pass after correction.
+The final exact-head gate is recorded on the PR.
 
 **Single remaining external decision.** The owner must approve an evidence-backed
 MPS source-use decision for original title/body transmission to Anthropic,

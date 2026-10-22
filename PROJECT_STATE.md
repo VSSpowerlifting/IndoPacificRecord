@@ -1011,8 +1011,11 @@ handoff are merged. The runner's missing second-pass callback is repaired;
 MPS headline-only English output no longer depends on full translation rights.
 Focused pipeline/handoff verification passed 66 offline tests using synthetic
 model output and fixture custody. This is engineering evidence, **not** a real
-source-to-model-to-site article success. Required exact-revision CI is recorded
-on the implementation PR. Public DB and generated output are unchanged by this
+source-to-model-to-site article success. The first full CI ran 7,902 tests and found seven pre-existing Vietnam tests
+that assumed no admitted MPS links. Their scratch MPS rows and Vietnam page
+expectations are reconciled with the real three-link release; all 10 focused
+checks covering these failures now pass. Required final
+exact-revision CI is recorded on the implementation PR. Public DB and generated output are unchanged by this
 repair. Registry promotion and article flags remain disabled until the narrow
 source-use decision is actually supported and sealed; human Briefs remain
 separately approved.
