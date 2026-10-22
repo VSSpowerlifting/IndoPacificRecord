@@ -14,7 +14,8 @@ permissions:
 
 jobs:
   offline-preflight:
-    runs-on: ubuntu-latest
+    # Keep Python 3.9 installable; ubuntu-latest currently points to 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
