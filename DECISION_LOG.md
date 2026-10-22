@@ -4,6 +4,41 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-22 — Owner: bounded MPS factual AI processing and automatic Daily release
+
+The owner explicitly **approves** the conditional-go policy and residual-risk
+acceptance in `docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md`
+(PR #851, merged). This is a **standing source-family decision** applying
+only to authenticated `vn_mps_foreign_affairs_vi` original releases, not
+MOIT, other Vietnam surfaces, or any third-party/embedded publication.
+
+Authorize private preservation under established access/custody rules; bounded
+submission of MPS original title/body to the commercial Anthropic API solely
+for relevance screening, independently worded English factual explanation,
+event classification, model flags and source-grounded QA; and unattended public
+release of qualifying, accurately attributed, clearly machine-labeled
+English headlines/explanations with official links, dates and publisher credit.
+
+**Not authorized:** public original Vietnamese titles or bodies, substantial
+quotes, full English translations, photos/media/attachments, training models,
+redistributing source archives, or misrepresenting MPS official claims as
+independently corroborated fact. Records with questionable authorship, source
+terms/access, provenance, attribution, accuracy, copying or spend stay held
+as **individual exceptions**. Weekly Briefs remain human-reviewed.
+
+Use the existing `core.vietnam_source_use` decision format and an independent
+`VIETNAM_SOURCE_USE_REVIEW_KEY` in the public/private repos, the existing
+shared Analyzer/QA/signed handoff and public Daily renderer. Authorize
+necessary narrow MPS-only registry promotion, signing/secret setup, scheduled
+workflow flags, limited initial model spending, publication and HTTPS readback
+following mandatory CI. No new pipeline or extra review framework. The
+source-use determination records accepted **residual uncertainty**, not a
+claim of permission from MPS or a legal guarantee.
+
+**State at decision:** 3 authentic MPS metadata links live; no model-analyzed
+Vietnam articles yet. Activation and real source-to-site readback must be
+independently verified; this decision alone is not evidence of launch.
+
 ## 2026-10-20 — Owner: standing Philippine NSC neutral links and attributed factual machine explanations
 
 The owner authorizes authentic first-party NSC Official Statements to enter
