@@ -234,9 +234,9 @@ class Handoff(unittest.TestCase):
             return code, json.loads(out.getvalue())
 
         before = hashlib.sha256(db.read_bytes()).hexdigest()
-        code, out = run()  # the real registry keeps Vietnam shadow
+        code, out = run()  # live MPS still requires a sealed owner decision
         self.assertEqual((code, out["status"], out["reason"]),
-                         (2, "HOLD", "vietnam_desk_not_promoted"))
+                         (2, "HOLD", "source_use_decision_unsealed"))
         self.assertEqual(hashlib.sha256(db.read_bytes()).hexdigest(), before)
         with patch.object(handoff, "DECISIONS", self.decisions()), \
                 patch.object(bridge, "desk_promoted", return_value=True):
