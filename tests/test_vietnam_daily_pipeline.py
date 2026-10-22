@@ -599,7 +599,8 @@ class BridgeRuns(unittest.TestCase):
             self.assertEqual(row[10], "public")
         source = self.conn.execute("SELECT is_active, enabled, access_method FROM sources"
                                    " WHERE slug=?", (MPS,)).fetchone()
-        self.assertEqual(source, (1, 1, "manual"))
+        # The synthetic private bridge must not enable a production collector.
+        self.assertEqual(source, (0, 0, "private_collector"))
         # A second identical run: zero new rows, zero model calls.
         again, analyzer2 = self.run_bridge(source_use=grant())
         self.assertEqual(self.outcomes(again), [bridge.DUPLICATE] * n)
