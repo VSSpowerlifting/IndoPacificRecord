@@ -7,6 +7,40 @@ or article activation flag was created in this follow-up.
 
 ## Production activation assessment — 21 October 2026
 
+**Standing-policy reconciliation, without article activation.** The MPS
+factual-reporting lane may use a dated, owner-sealed, independent source-use
+assessment rather than *always* requiring a ministry reuse license. This must
+be an actual source-specific document under `docs/engineering/` addressing
+private custody and full Vietnamese-body transmission to Anthropic under the
+relevant law and publisher terms. The seal records an owner's decision; it
+does not establish rights. This path is **MPS-only** and cannot approve public
+original headlines, text, excerpts, full translations, or media. An original
+IPR English analysis headline need not depend on displaying the original
+Vietnamese title. All other source holds, QA and spend limits remain.
+
+**Relevant evidence, not blanket clearance:**
+- MPS asserts copyright and requests source credit on reuse:
+  https://bocongan.gov.vn/ . It does not expressly authorize AI model inputs.
+- Vietnam's IP amendment No. 131/2025/QH15 took effect 1 April 2026:
+  https://chinhphu.vn/?classid=1&docid=216511&orggroupid=1&pageid=27160 .
+  Decree No. 134/2026/ND-CP addresses certain *noncommercial* AI text/data
+  uses; it is not a blanket authorization for every publisher-body-to-API call:
+  https://english.luatvietnam.vn/decree-no-134-2026-nd-cp-dated-april-06-2025-of-the-government-amending-and-supplementing-a-number-of-articles-of-the-governments-decree-no-17-202-432164-doc1.html .
+- U.S. fair use includes news reporting but depends on purpose, nature, amount
+  and market effects, and does not automatically establish rights abroad:
+  https://www.copyright.gov/fair-use/ .
+- Anthropic's commercial API does not use requests for training by default;
+  it generally deletes them within 30 days, subject to exceptions:
+  https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training
+  and https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data .
+  These vendor policies are not a publisher license.
+
+**Current conclusion:** The evidence supports an independent *review path*,
+not yet a supported finding that IPR may transmit complete MPS articles to
+Anthropic. This change creates no owner seal, paid model calls, live registry
+promotion, activation flags or public article release. Three MPS metadata
+links remain published.
+
 - Read the current [official MPS portal](https://www.bocongan.gov.vn/) footer:
   copyright belongs to MPS; reused information should credit the portal. It
   supplies no express external-model, retained-copy or full-translation scope.
@@ -68,10 +102,10 @@ private retention and attributable independent factual headlines/summaries,
 with public original bodies, complete translations, excerpts and media excluded.
 Use the existing `core.vietnam_source_use.verify_decision` format and a separate
 `VIETNAM_SOURCE_USE_REVIEW_KEY`; do not reuse the metadata review key or claim a
-publisher licence where the basis is an independent rights assessment. The
-current validator also requires `public_title_display` for public analysis;
-review that exact title scope rather than silently bypassing its dependency.
-No supported decision is ready to sign today.
+publisher licence where the basis is an independent rights assessment.
+For MPS, independent IPR English analysis no longer depends on publishing
+the original Vietnamese title. No supported source-to-external-model body
+decision is ready to sign today.
 
 After that decision, remaining ordinary release work is: provision the separate
 review key securely in both repositories, commit the validated seal under
