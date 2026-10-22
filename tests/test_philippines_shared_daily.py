@@ -140,9 +140,19 @@ class SharedDaily(unittest.TestCase):
         self.assertTrue(all(20 <= len(span) <= 480 and span in body
                             for _, span in passages))
 
-    def test_version_eleven_preserves_legacy_version_ten_public_outputs(self):
+    def test_version_twelve_requests_short_original_paraphrases(self):
+        from analysis.philippines_prompts import analysis_messages
+        from processing.screening import PHILIPPINES_PROFILE
+        prompt = analysis_messages(record()["title"], record()["body"])[0]["content"]
+        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v12")
+        self.assertIn("8–11 words each", prompt)
+        self.assertIn("at most 11 words", prompt)
+        self.assertIn("rephrase facts", prompt)
+
+    def test_version_twelve_preserves_legacy_public_outputs(self):
         for version in ("ph-relevance-v1+ph-analysis-v10",
-                        "ph-relevance-v1+ph-analysis-v11"):
+                        "ph-relevance-v1+ph-analysis-v11",
+                        "ph-relevance-v1+ph-analysis-v12"):
             good = reading()
             good["prompt_version"] = version
             state, _ = d.process([record()], {}, family="ph_afp_articles",
