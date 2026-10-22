@@ -268,7 +268,8 @@ class TestTheReaderItself(unittest.TestCase):
         self.assertIsInstance(doc, dict)
         self.assertEqual(doc["name"], "PR offline checks")
         job = doc["jobs"]["offline-checks"]
-        self.assertEqual(job["runs-on"], "ubuntu-latest")
+        # Python 3.9 is unavailable on ubuntu-latest (26.04); pin the runner.
+        self.assertEqual(job["runs-on"], "ubuntu-24.04")
         self.assertIsInstance(job["steps"], list)
         self.assertGreaterEqual(len(job["steps"]), 5)
         for step in job["steps"]:
