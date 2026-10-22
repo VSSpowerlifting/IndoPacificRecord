@@ -5,6 +5,143 @@ The metadata-only owner release and PR #848 are complete. They do not grant
 original-body model use. No article source-use seal, model call, source-use key
 or article activation flag was created in this follow-up.
 
+## Decision memorandum — 22 October 2026 (unsigned; production not activated)
+
+**Question.** May US-based Indo-Pacific Record use the already-authenticated
+first-party MPS Foreign Affairs reports to send Vietnamese source title/body
+text through the commercial Anthropic API solely for relevance screening,
+factual event classification and independently worded English explanations,
+while keeping source bodies, original titles, complete translations, images
+and substantial quotes out of the public site/database?
+
+**Recommendation: CONDITIONAL GO for this narrowly bounded reporting use,
+subject to an explicit owner acceptance of residual legal risk; NO GO for a
+blanket full-text/translation/republication licence.** This is an operational
+source-use assessment and not a legal opinion or publisher authorization.
+The owner has **not** yet accepted or signed the proposed MPS decision.
+No model calls, live registry promotion, new secret or article flags follow
+automatically from this recommendation. If the owner is unwilling to accept
+the documented uncertainty, hold the external-model lane and retain metadata
+publication; do not commission additional pipeline infrastructure.
+
+### Evidence and applicable distinctions
+
+1. **MPS terms:** The actual [MPS portal contact/footer](https://bocongan.gov.vn/lien-he)
+   states that copyright belongs to the ministry and requests the source credit
+   “Cổng Thông tin điện tử Bộ Công an” on reuse. It does not expressly grant
+   third-party model transmission, a full-text derivative licence or an
+   exemption from copyright. The published [MPS RSS index](https://www.bocongan.gov.vn/rss)
+   exposes its Foreign Affairs source. Access must remain ordinary, identifiable
+   and compliant with publisher restrictions. No official reply has been
+   received to the 21 October inquiry as of this assessment.
+2. **Vietnamese copyright law:** [Law 131/2025/QH15](https://vanban.chinhphu.vn/?classid=1&docid=216511&org=&pageid=27160)
+   has been effective since 1 April 2026. Article 15 of the consolidated
+   Intellectual Property Law excludes mere current-news facts, legal and
+   administrative documents, and facts/data from protection; this does not
+   exclude a creatively expressed ministry *article* as a whole. Article 25
+   offers specific quotation/news-reporting exceptions, not an automatic
+   right to transmit the whole protected article to a private model provider.
+   The distinction between official factual information and protected media
+   is also explained in [Vietnamese state broadcaster VOV's July 2026
+   reporting](https://vov.gov.vn/bao-chi-lay-tin-tu-mang-xa-hoi-cong-thong-tin-co-phai-xin-phep-dtnew-1152268).
+3. **Vietnamese AI exception:** [Decree 134/2026/ND-CP](https://chinhphu.vn/?classid=1&docid=217833&pageid=27160),
+   effective 9 April 2026, adds Article 37a's limited exception for
+   *noncommercial scientific research, experimentation and AI training*, with
+   lawful-source/access, technological-protection and market-substitution
+   conditions. The published [English rendering of Article 37a](https://english.luatvietnam.vn/decree-no-134-2026-nd-cp-dated-april-06-2025-of-the-government-amending-and-supplementing-a-number-of-articles-of-the-governments-decree-no-17-202-432164-doc1.html)
+   does **not clearly cover routine inference-based production news summaries**.
+   Do not use that provision as an automatic model-transmission authorization.
+4. **U.S. fair-use argument for a limited US-directed research workflow:**
+   [17 USC §107, as explained by the US Copyright Office](https://www.copyright.gov/fair-use/)
+   calls for a case-specific balance: (i) the independently analytical,
+   source-cited, potentially noncommercial purpose weighs favorably if IPR
+   truly operates that way; (ii) the published, predominantly factual official
+   release weighs favorably relative to creative journalism; (iii) transmitting
+   the **full** source body weighs against the use, albeit sometimes needed
+   for accurate verification; (iv) a brief nonverbatim English explanation
+   linking to the official original, not replacing a source archive or
+   translation market, reduces substitution risk. Neither nonprofit status
+   nor transformative purpose alone proves fair use. The processing location,
+   IPR's actual business model, source-by-source express conditions, and
+   possible cross-border claims remain relevant uncertainties. This US
+   rationale is not a determination that Vietnamese law permits every copy.
+5. **Third-party model handling:** [Anthropic commercial API data policy](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)
+   says it does not train on commercial customer inputs by default. Its
+   [standard API retention policy](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)
+   describes deletion within 30 days subject to enumerated exceptions;
+   vendor-specific product features can vary, so confirm the actual API mode.
+   These measures support purpose minimization but cannot grant the sender
+   rights over an MPS copyrighted article.
+
+### Exact decision for owner acceptance (not yet made)
+
+**Source family:** `vn_mps_foreign_affairs_vi` only; first-party MPS Foreign
+Affairs Vietnamese press/reporting pages authenticated by existing private
+custody. Exclude externally authored/embedded pieces, ambiguous attribution,
+expressly restricted items, or publisher access anomalies.
+
+**Permitted upon acceptance:** authenticated routine collection/preservation
+consistent with existing source access; bounded full-title/body API input
+*only* for source-grounded relevance/analysis and source-check QA; independently
+written, conspicuously machine-labeled English headlines, concise factual
+explanations and flags; exact official URL/date/publisher/source credit.
+Use existing source hashes, retry and QA limits. This is a **standing family
+decision**, never per-article editorial signoff unless a specific exception
+arises.
+
+**Not permitted by this decision:** public Vietnamese original titles or
+bodies, full or line-by-line machine translations, substantial excerpts,
+photographs, attachments, media, commercial dataset resale, use of third-party
+creative expressions, training another model, or extension to either MOIT
+family. The source's claims must remain attributed, not treated as corroboration.
+
+**Existing seven-permission proposal** for an owner-sealed decision under
+`config/vietnam_source_use/vn_mps_foreign_affairs_vi.json`, if and only if the
+owner accepts this risk assessment and the relevant source/API checks pass:
+
+```json
+{
+  "rights_basis_type": "documented_independent_source_use_assessment",
+  "rights_basis_reference": "docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md",
+  "permissions": {
+    "collect_preserve": true,
+    "external_model_transmission": true,
+    "public_original_storage": false,
+    "public_full_translation": false,
+    "public_excerpt": false,
+    "public_ipr_analysis": true,
+    "public_title_display": false
+  },
+  "attribution_text": "Cổng Thông tin điện tử Bộ Công an"
+}
+```
+
+The snippet is **not** the complete release/schema, a signed record or an
+owner approval; generate the full current schema and HMAC via established
+mechanisms only after accepted authorization. It intentionally distinguishes
+private reading/model inference from **public** original-title/body reuse.
+
+### Single next action and stop condition
+
+The owner should decide whether to accept **this specific bounded model-input
+and nonverbatim publication risk**, with confirmation that IPR's relevant
+activity is genuinely independent/non-substituting and that no affected MPS
+item or API term contradicts the scope. Independent legal counsel is advisable
+if those cross-border uncertainties cannot be accepted.
+
+If accepted, do **one** coordinated MPS production activation: sign the standing
+decision, provision the separate source-use key in private/public repositories,
+promote accurately to MPS-only live coverage, enable the two existing Vietnam
+Daily flags, verify a real source→model→QA→signed handoff→database→public HTTPS
+article and unattended next-cycle handling. Preserve existing three
+metadata links and all MOIT holds. No new pipeline, PR framework or repeating
+source-approval stages.
+
+If not accepted, **stop** the MPS article activation at its single named
+model-input hold while keeping authenticated collection and neutral official
+links operational. A green test or an owner's general support for automatic
+journalism does not substitute for the narrow decision above.
+
 ## Production activation assessment — 21 October 2026
 
 **Standing-policy reconciliation, without article activation.** The MPS
