@@ -645,7 +645,8 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
         self.assertEqual(slugs, {"pla_daily", "mod_china", "xinhua_mil",
                                  "global_times_mil", "china_mil_online",
                                  "sg_mindef_releases", "kr_policy_mnd_releases",
-                                 "vn_mps_foreign_affairs_vi"})
+                                 "vn_mps_foreign_affairs_vi",
+                                 "vn_vpcp_official_documents_vi"})
 
 
 class TestSyncAtomicityAtPersistence(unittest.TestCase):

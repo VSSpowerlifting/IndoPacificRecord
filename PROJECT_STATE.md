@@ -10,15 +10,21 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office documents (23 October 2026): bibliographic source, on this branch until merged.**
-`vn_vpcp_official_documents_vi` collects, in the scheduled Daily, the portal's
-first 50 listing entries, re-reads the Văn phòng Chính phủ ones (≤15) and lists
-topical records on the Vietnam Desk and in the archive as number, type, issuer,
-signatory, issue date, subject and official link. No attachments, no model, no
-translation, no explanation (`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md`,
-DECISION_LOG 2026-10-23). Enabled by repository variable
-`VIETNAM_VPCP_METADATA_ENABLED`; deployed/live status is recorded below the
-merge, not here.
+**Vietnam Government Office documents (23 October 2026): bibliographic integration merged; first production release awaiting retry.**
+PR #863 (`6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`) passed the mandatory
+7,945-test PR suite, browser and validator (10 governed warnings), then merged
+as `328ee95af58daeb10448e2d7a2c3ebf5a0adc896`. The shared Daily is active and
+`VIETNAM_VPCP_METADATA_ENABLED=true`. Its first release attempt, run
+`40016073780`, stopped before collection: the tracked-source assertion still
+expected eight sources after Daily's migration added the approved ninth source.
+The nested database-preservation test failed for the same reason. The narrow
+expectation repair passes the five affected focused checks; the production
+retry must pass its full offline suite before collection, rendering or deploy.
+No real source-to-public-HTTPS result is claimed yet. Scope remains verified
+Government Office bibliographic fields and official links, with no PDF
+retrieval, model input, translation or machine explanation; see
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md` and the separate
+owner activation in DECISION_LOG. Full-document work remains separately gated.
 
 **Philippines Desk (23 October 2026): operating, accuracy pass on this branch.**
 AFP and NSC run through the one shared Daily path: private collectors
