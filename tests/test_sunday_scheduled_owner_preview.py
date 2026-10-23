@@ -35,7 +35,7 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
                 pilot_owner_reviewed_sha256="a" * 64,
             )
 
-    def test_oct18_schedule_is_editor_only_despite_legacy_preview_flag(self):
+    def test_post_collection_auto_send_is_editor_only_despite_legacy_preview_flag(self):
         # The October 11 live failure combined both true modes. The workflow
         # now pins scheduled previews off; manual previews are still opt-in.
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -73,16 +73,21 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
 
     def test_scheduled_editor_send_is_default_but_manual_stays_opt_in(self):
         src = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("needs: verify_sunday_collection", src)
         self.assertIn(
-            "if: github.event_name == 'workflow_dispatch' || "
-            "github.event_name == 'schedule'", src,
+            "if: always() && (github.event_name == 'workflow_dispatch' || "
+            "(github.event_name == 'workflow_run' && github.run_attempt == 1 && "
+            "needs.verify_sunday_collection.result == 'success' && "
+            "needs.verify_sunday_collection.outputs.ready == 'true'))", src,
         )
         self.assertIn(
-            "SUNDAY_SEND: ${{ github.event_name == 'schedule' || "
+            "SUNDAY_SEND: ${{ github.event_name == 'workflow_run' || "
             "(github.event_name == 'workflow_dispatch' && "
             "vars.IPR_SUNDAY_EDITOR_DELIVERY_ENABLED == 'true' && "
             "inputs.send_email == true) }}", src,
         )
+        self.assertIn("workflows: [Daily PLA Watch Update]", src)
+        self.assertNotIn("  schedule:", src)
         # This default must NOT weaken the first-edition human approval,
         # both scheduled-mode exclusivity and the Sunday corpus freshness.
         self.assertIn('IPR_SUNDAY_OWNER_REVIEWED_SHA256', src)
