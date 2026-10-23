@@ -72,6 +72,7 @@ _SOURCE_AUTHORITY_TIER: dict[str, str] = {
     "sg_mindef_releases": "A",
     "kr_policy_mnd_releases": "B",
     "vn_mps_foreign_affairs_vi": "A",
+    "vn_vpcp_official_documents_vi": "A",
 }
 
 # Fallback only: used when an article dict carries no `source_slug` (the spec

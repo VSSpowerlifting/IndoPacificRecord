@@ -280,9 +280,9 @@
       "slug": "vietnam",
       "name": "Vietnam Desk",
       "route": "vietnam.html",
-      "scope": "Bounded research families: the Government News English defense tag, Public Security Vietnamese foreign-affairs RSS, and Industry and Trade Vietnamese energy and foundational-industry listings. The English National Defence Journal is a separate disabled military-journal research candidate, not an operating ministry source. The Government News family is a tag that editors apply, not a complete defense category. Government Office formal documents are a separate bounded bibliographic source: verified issuer, document number, issue date, signatory, subject and official links. No comprehensive ministry or document archive.",
+      "scope": "Bounded research families: the Government News English defense tag, Public Security Vietnamese foreign-affairs RSS, and Industry and Trade Vietnamese energy and foundational-industry listings. The English National Defence Journal is a separate disabled military-journal research candidate, not an operating ministry source. The Government News family is a tag that editors apply, not a complete defense category. Government Office documents are a separate bibliographic source. No comprehensive ministry archive.",
       "status": "live",
-      "status_explanation": "MPS Foreign Affairs is the Vietnam Desk's only live article-analysis family. The authenticated private MPS collector feeds the shared Daily system; qualifying source-grounded English factual explanations are released automatically after the owner-approved source-use, provenance, AI quality and spend gates. Original Vietnamese titles/bodies, complete translations and images are not published. Three verified MPS official-link references remain available independently. MOIT Energy/Foundational Industry stay held for separate access and source-use review; Government News, MOD and National Defence Journal are not operating article inputs. Coverage is intentionally selective; the public corpus count reflects actual admitted articles. Government Office documents are separately supported as bibliographic records through shared Daily; their original PDFs, translations and full-document analysis remain unavailable. Subject-based indexing uses only the portal metadata and does not establish document contents or implementation.",
+      "status_explanation": "MPS Foreign Affairs is the Vietnam Desk's only live article-analysis family. The authenticated private MPS collector feeds the shared Daily system; qualifying source-grounded English factual explanations are released automatically after the owner-approved source-use, provenance, AI quality and spend gates. Original Vietnamese titles/bodies, complete translations and images are not published. Three verified MPS official-link references remain available independently. MOIT Energy/Foundational Industry stay held for separate access and source-use review; Government News, MOD and National Defence Journal are not operating article inputs. Coverage is intentionally selective; the public corpus count reflects actual admitted articles. Government Office documents are bibliographic records only: no PDFs, translations or document analysis.",
       "public": true,
       "manifest": "desks/vietnam/manifest.json",
       "has_production_records": true,
@@ -307,7 +307,7 @@
           {
             "name": "Government portal",
             "format": "HTML portal — homepage read, not collected",
-            "note": "chinhphu.vn. Read once, which confirmed that it links the Government News estate as “Báo điện tử chính phủ”. It also links the Government's document system, vanban.chinhphu.vn; formal documents would be a separate Tier A family and are not part of this desk."
+            "note": "chinhphu.vn. Read once, which confirmed that it links the Government News estate as “Báo điện tử chính phủ”. It also links the Government's document system, vanban.chinhphu.vn; formal documents are covered by the Government Office row below."
           },
           {
             "name": "Ministry of Public Security — foreign affairs (Vietnamese)",

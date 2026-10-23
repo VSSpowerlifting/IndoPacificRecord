@@ -4,7 +4,23 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
-## 2026-10-23 — Engineering: Government Office documents, bibliographic-only (not an owner approval)
+## 2026-10-23 — Owner: Government Office bibliographic source activated (limited scope)
+
+The owner, in chat on 23 October 2026, **authorizes** the standing
+bibliographic-only source-use and publication scope for
+`vn_vpcp_official_documents_vi` as defined in PR #863: normal automated
+discovery, issuer verification, metadata versioning and publication of
+document number, type, issue date, signatory, original subject line, official
+issuer attribution and canonical link. It does **not** authorize publishing
+PDFs, transmitting document contents to an external model, full-document
+translation or AI-generated substantive explanation; those need a separate,
+exact owner decision for this family. The owner explicitly does not accept
+metadata-only publication as the long-term source: full-document access and
+source-use are evaluated as a follow-on (see the entry below once recorded).
+This entry records the owner's words, not an engineering determination; it
+authorizes activation of `VIETNAM_VPCP_METADATA_ENABLED`.
+
+## 2026-10-23 — Engineering: Government Office documents, bibliographic-only (engineering determination; owner activation recorded above)
 
 `vn_vpcp_official_documents_vi` (documents whose detail page names Văn phòng
 Chính phủ as issuer, hosted on vanban.chinhphu.vn) joins the Vietnam Desk

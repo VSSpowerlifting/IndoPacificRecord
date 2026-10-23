@@ -88,7 +88,8 @@ class TestRegistryDrivesCollection(unittest.TestCase):
             SourceRegistry().slugs,
             ["china_mil_online", "global_times_mil", "kr_policy_mnd_releases",
              "mod_china", "pla_daily", "sg_mindef_releases",
-             "vn_mps_foreign_affairs_vi", "xinhua_mil"],
+             "vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi",
+             "xinhua_mil"],
         )
 
     def test_slug_view_answers_membership_and_keys(self):
@@ -226,9 +227,10 @@ class TestNoSourceStarvesAnother(unittest.TestCase):
             result("sg_mindef_releases", st.OK_NO_PUBLICATIONS),
             result("kr_policy_mnd_releases", st.OK_NO_PUBLICATIONS),
             result("vn_mps_foreign_affairs_vi", st.NOT_IMPLEMENTED),
+            result("vn_vpcp_official_documents_vi", st.NOT_IMPLEMENTED),
         ]
         report = machine_report(results)
-        self.assertEqual(report["source_count"], 8)
+        self.assertEqual(report["source_count"], 9)
         self.assertEqual(
             sorted(s["source_slug"] for s in report["sources"]),
             SourceRegistry().slugs,
@@ -377,9 +379,9 @@ class TestConfigSyncIsIdempotent(unittest.TestCase):
         desks = conn.execute("SELECT COUNT(*) FROM desks").fetchone()[0]
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(n, 8)
+        self.assertEqual(n, 9)
         self.assertEqual(desks, 4)
-        self.assertEqual(insts, 8)      # Korea adds Policy Briefing and MND
+        self.assertEqual(insts, 9)      # Korea adds Policy Briefing and MND; Vietnam the Government Office
 
     def test_sync_populates_authority_and_originality(self):
         conn = connect(self.db_path)
@@ -417,7 +419,7 @@ class TestScrapersSlugView(unittest.TestCase):
 
     def test_iteration_and_len(self):
         self.assertEqual(sorted(self.pipeline.SCRAPERS), SourceRegistry().slugs)
-        self.assertEqual(len(self.pipeline.SCRAPERS), 8)
+        self.assertEqual(len(self.pipeline.SCRAPERS), 9)
 
     def test_subscripting_raises_with_a_pointer_to_the_real_api(self):
         with self.assertRaises(TypeError) as ctx:
