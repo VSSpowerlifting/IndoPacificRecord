@@ -42,7 +42,7 @@ jobs:
     # exclusivity check remain mandatory. Scheduled Sunday targets Dylan;
     # owner-only preview is an explicitly separate manual dispatch.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       SUNDAY_SEND: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && vars.IPR_SUNDAY_EDITOR_DELIVERY_ENABLED == 'true' && inputs.send_email == true) }}
