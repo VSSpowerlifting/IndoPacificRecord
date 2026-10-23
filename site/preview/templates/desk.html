@@ -97,16 +97,27 @@
   <ol class="desk-reference-list" aria-label="Admitted official publisher references">
     {% for ref in regional_official_links %}
     <li data-regional-official-source-id="{{ ref.source_identity }}">
-      <h3><a href="{{ ref.canonical_official_url }}" target="_blank"
+      <h3{% if ref.document | default(none) %} id="{{ ref.source_identity | replace(':', '-') }}"{% endif %}><a href="{{ ref.canonical_official_url }}" target="_blank"
              rel="noopener noreferrer">{{ ref.label }}</a></h3>
+      {% if ref.document | default(none) %}
+      <p lang="vi">{{ ref.document.subject }}</p>
+      <p>Issuer: {{ ref.issuer_label }} ({{ ref.document.issuer }}) · {{ ref.document_type_label }} ({{ ref.document.document_type }})
+        · Signatory: {{ ref.document.signatory }}</p>
+      <p class="meta">Subject index: {{ ref.topics | join(' · ') }}. Based on the portal's bibliographic subject only; the document text has not been read or analyzed.</p>
+      {% endif %}
       <p class="meta">Publisher: {{ ref.publisher_label }}
-        · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time>
+        · {{ 'Issue date' if ref.document | default(none) else 'Official date' }} <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time>
         · Official-link metadata only</p>
+      {% if ref.document | default(none) %}
+      <p class="meta">First observed: {{ ref.first_observed_utc }}. Posting date is not established.
+        {% if ref.document.effective_date %}Source-stated effective date: {{ ref.document.effective_date }}.{% else %}Effective date is not established.{% endif %}
+        PDF attachments remain on the official publisher's site; IPR has not downloaded, verified or translated them.</p>
+      {% endif %}
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">Original headlines, article bodies, photos, documents,
-  translations and automatic analysis are excluded. Held records cannot
+  <p class="meta">Article bodies, photos, document files,
+  translations and automatic analysis are excluded. Formal-document subjects are bibliographic metadata. Held records cannot
   appear in this index.</p>
   {% endif %}
 </section>
@@ -287,7 +298,11 @@
   </ol>
   <p class="meta">This preserves citation identity and IPR's own analysis, not
   a public rehost of the source documents. A URL or digest cannot restore an
-  original if its publisher later removes it.</p>
+  original if its publisher later removes it.{% if desk.status != 'shadow' %}
+  This list is human-reviewed editorial research and is
+  not a production source-text archive: records collected from official
+  publishers, and official-link references, are listed separately on this
+  page and in the Archive, each with its own processing label.{% endif %}</p>
 </section>
 {% endif %}
 

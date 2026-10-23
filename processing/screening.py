@@ -217,6 +217,13 @@ _PROFILES: Dict[str, ScreeningProfile] = {
 
 # Source-level profiles for sources without a desk manifest.
 _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
+# Government Office is explicitly bibliographic-only. Neither the common
+# public queue nor the ministry bridge may turn a subject line into analysis.
+_SOURCE_PROFILES["vn_vpcp_official_documents_vi"] = ScreeningProfile(
+    desk_id="vietnam", keyword_prefilter=False, daily_queue=False,
+    build_messages=_unsupported, build_analysis_messages=_unsupported,
+    prompt_version="vpcp-metadata-only-v1", source_language="vi",
+    source_family="vn_vpcp_official_documents_vi")
 
 # A non-China desk in the daily queue without its own analysis would have its
 # passes translated "from Chinese" and tagged with the PLA taxonomy.

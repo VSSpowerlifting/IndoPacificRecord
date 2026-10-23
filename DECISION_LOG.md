@@ -4,6 +4,37 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-23 — Owner: Government Office bibliographic source activated (limited scope)
+
+The owner, in chat on 23 October 2026, **authorizes** the standing
+bibliographic-only source-use and publication scope for
+`vn_vpcp_official_documents_vi` as defined in PR #863: normal automated
+discovery, issuer verification, metadata versioning and publication of
+document number, type, issue date, signatory, original subject line, official
+issuer attribution and canonical link. It does **not** authorize publishing
+PDFs, transmitting document contents to an external model, full-document
+translation or AI-generated substantive explanation; those need a separate,
+exact owner decision for this family. The owner explicitly does not accept
+metadata-only publication as the long-term source: full-document access and
+source-use are evaluated as a follow-on (see the entry below once recorded).
+This entry records the owner's words, not an engineering determination; it
+authorizes activation of `VIETNAM_VPCP_METADATA_ENABLED`.
+
+## 2026-10-23 — Engineering: Government Office documents, bibliographic-only (engineering determination; owner activation recorded above)
+
+`vn_vpcp_official_documents_vi` (documents whose detail page names Văn phòng
+Chính phủ as issuer, hosted on vanban.chinhphu.vn) joins the Vietnam Desk
+through the shared Daily as **metadata and official links only**: number,
+type, issuer, signatory, issue date, official subject line, link. The MPS
+decision and the MOIT hold are not inherited. No attachment retrieval (the PDF
+host returned 403 for robots.txt), no model transmission, no public body,
+translation or machine explanation; a subject line is never presented as
+analysis of the document. Basis, limits and operation:
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md`; enforced by
+`config/vietnam_vpcp_metadata_policy.json`. Model processing of document text
+needs its own owner source-use decision. Reverting the public Vietnamese
+subject line is a template/projection change, not a data change.
+
 ## 2026-10-22 — Owner: bounded MPS factual AI processing and automatic Daily release
 
 The owner explicitly **approves** the conditional-go policy and residual-risk

@@ -240,7 +240,7 @@ def admit_database(db: Path, records: List[tuple]) -> dict:
             conn.execute("PRAGMA foreign_keys=ON")
             from migrations.runner import applied_versions, apply_all, discover
             pending = {m.version for m in discover()} - set(applied_versions(conn))
-            if not pending <= {"0017"}:
+            if not pending <= {"0017", "0018"}:
                 raise HandoffError("unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             counts = admit(conn, records)
