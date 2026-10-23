@@ -10,6 +10,16 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**Vietnam Government Office documents (23 October 2026): bibliographic source, on this branch until merged.**
+`vn_vpcp_official_documents_vi` collects, in the scheduled Daily, the portal's
+first 50 listing entries, re-reads the Văn phòng Chính phủ ones (≤15) and lists
+topical records on the Vietnam Desk and in the archive as number, type, issuer,
+signatory, issue date, subject and official link. No attachments, no model, no
+translation, no explanation (`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md`,
+DECISION_LOG 2026-10-23). Enabled by repository variable
+`VIETNAM_VPCP_METADATA_ENABLED`; deployed/live status is recorded below the
+merge, not here.
+
 **Philippines Desk (23 October 2026): operating, accuracy pass on this branch.**
 AFP and NSC run through the one shared Daily path: private collectors
 (`afp_private_first_collector`, 06:40 UTC; `nsc_private_first_collector`,

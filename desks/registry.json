@@ -280,9 +280,9 @@
       "slug": "vietnam",
       "name": "Vietnam Desk",
       "route": "vietnam.html",
-      "scope": "Bounded research families: the Government News English defense tag, Public Security Vietnamese foreign-affairs RSS, and Industry and Trade Vietnamese energy and foundational-industry listings. The English National Defence Journal is a separate disabled military-journal research candidate, not an operating ministry source. The Government News family is a tag that editors apply, not a complete defense category. No comprehensive ministry archive or formal government-document collection.",
+      "scope": "Bounded research families: the Government News English defense tag, Public Security Vietnamese foreign-affairs RSS, and Industry and Trade Vietnamese energy and foundational-industry listings. The English National Defence Journal is a separate disabled military-journal research candidate, not an operating ministry source. The Government News family is a tag that editors apply, not a complete defense category. Government Office formal documents are a separate bounded bibliographic source: verified issuer, document number, issue date, signatory, subject and official links. No comprehensive ministry or document archive.",
       "status": "live",
-      "status_explanation": "MPS Foreign Affairs is the Vietnam Desk's only live article-analysis family. The authenticated private MPS collector feeds the shared Daily system; qualifying source-grounded English factual explanations are released automatically after the owner-approved source-use, provenance, AI quality and spend gates. Original Vietnamese titles/bodies, complete translations and images are not published. Three verified MPS official-link references remain available independently. MOIT Energy/Foundational Industry stay held for separate access and source-use review; Government News, MOD and National Defence Journal are not operating article inputs. Coverage is intentionally selective; the public corpus count reflects actual admitted articles.",
+      "status_explanation": "MPS Foreign Affairs is the Vietnam Desk's only live article-analysis family. The authenticated private MPS collector feeds the shared Daily system; qualifying source-grounded English factual explanations are released automatically after the owner-approved source-use, provenance, AI quality and spend gates. Original Vietnamese titles/bodies, complete translations and images are not published. Three verified MPS official-link references remain available independently. MOIT Energy/Foundational Industry stay held for separate access and source-use review; Government News, MOD and National Defence Journal are not operating article inputs. Coverage is intentionally selective; the public corpus count reflects actual admitted articles. Government Office documents are separately supported as bibliographic records through shared Daily; their original PDFs, translations and full-document analysis remain unavailable. Subject-based indexing uses only the portal metadata and does not establish document contents or implementation.",
       "public": true,
       "manifest": "desks/vietnam/manifest.json",
       "has_production_records": true,
@@ -336,6 +336,12 @@
             "name": "Ministry of Finance",
             "format": "Not reached — robots.txt returned an app shell",
             "note": "www.mof.gov.vn, the direct target of the supplied Google redirect. Its returned HTML was not a robots rules file; no ministry listing or body was requested."
+          },
+          {
+            "name": "Government Office of Vietnam — official documents (Vietnamese)",
+            "format": "Bounded first-page document metadata; formal issuer independently checked",
+            "note": "vanban.chinhphu.vn hosts multiple institutions. Only documents formally issued by Văn phòng Chính phủ in supported document types qualify. Issue dates are distinct from discovery dates; posting dates are not asserted. The PDF host returned 403 for robots.txt and no standing decision covers originals, so IPR does not retrieve or analyze attachments. Formal-document subjects are bibliographic metadata, not full-document analysis.",
+            "publisher_url": "https://vanban.chinhphu.vn/"
           }
         ],
         "observed_volume_subject": "Items the defense tag page listed",
@@ -383,7 +389,7 @@
       },
       "limits": [
         "MPS Foreign Affairs is the only approved Vietnam article-analysis family, collected in the authenticated private archive and admitted through the signed shared-Daily handoff. The public corpus count reflects actual admitted articles, not private captures or the three metadata-only links. Both MOIT families remain separate, restricted private research sources; the National Defence Journal has no active collection or production analysis.",
-        "Bounded newsroom and ministry publication families only. No comprehensive Vietnamese defense coverage, no complete ministry archive, no People’s Army Newspaper collection and no formal-document family.",
+        "Bounded newsroom and ministry publication families only. No comprehensive Vietnamese defense coverage, no complete ministry archive, no People’s Army Newspaper collection and only a bounded Government Office bibliographic family; no complete formal-document archive.",
         "Government News is the Government's newsroom. Its reports are not ministry statements, and a report that names a resolution or quotes a minister remains a newsroom report about it.",
         "Original Vietnamese text is private; qualifying public machine output consists of independent English factual headlines/explanations, explicit publisher attribution and original links, not public source text or complete translations.",
         "The owner approved the standing MPS Foreign Affairs bounded model-input and nonverbatim factual release on 2026-10-22. Other Vietnam families have no inherited permission. Historical 7/14/30-day checkpoints are reliability evidence, not a new launch waiting gate."

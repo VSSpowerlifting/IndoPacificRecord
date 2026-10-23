@@ -156,6 +156,10 @@ def _read_vietnam_links(conn):
     need(len(records) <= 5000, "unexpectedly_large_source_index")
     result = []
     for family, ident, url, day, issuer, publisher, republisher, commit, meta, proof, scope in records:
+        if family == "vn_vpcp_official_documents_vi":
+            # Independently validated below; it has a different formal issuer
+            # and hosting publisher from the ministry-news families.
+            continue
         need(family in ISSUERS and family not in HOLDS, "vietnam_source_rights_hold")
         need(issuer == publisher == ISSUERS[family] and republisher is None
              and type(commit) is str and SHA40.fullmatch(commit)
@@ -168,7 +172,8 @@ def _read_vietnam_links(conn):
         result.append({"source_identity": ident, "canonical_official_url": url,
                        "publisher_posted_date": day, "label": LABELS[family],
                        "publisher_label": "Vietnam Ministry of Public Security"})
-    return result
+    from processing.government_document_intake import read_links
+    return sorted(result + read_links(conn), key=lambda r: (r["publisher_posted_date"], r["source_identity"]), reverse=True)
 
 
 def render_live_links(conn: sqlite3.Connection, desk: str) -> str:

@@ -155,9 +155,9 @@ def official(rows, desk, source, issuer):
         citation = '. '.join(s for s in [record_issuer, ('“%s”' % title) if title else neutral,
                               r.get('published_date'), url, hold] if s) + '.'
         yield projection(id='official:' + ident, title=display, original_title=title,
-            date=r.get('published_date'), date_kind='source-stated publication',
+            date=r.get('published_date'), date_kind=r.get('date_kind') or 'source-stated publication',
             desks=[desk], source=r.get('source_name') or source, issuer=record_issuer,
-            record_type='official_link', processing='Official-link metadata only; this reference includes no source text or independent verification' + ('. ' + hold if hold else ''),
+            record_type='official_link', processing=r.get('processing_note') or ('Official-link metadata only; this reference includes no source text or independent verification' + ('. ' + hold if hold else '')),
             source_url=url, citation=citation)
 
 

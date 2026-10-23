@@ -3225,8 +3225,21 @@ def build(out_dir: Path, title: str, db_path: Path,
         regional_official_links = (
             load_admitted_links(db_path, desk.slug)
             if desk.slug in ("philippines", "indonesia", "vietnam") else [])
+        # Formal documents use the same public archive/search projection as
+        # other official links. The subject is metadata, never a document body.
+        document_references = [{"source_url": r["canonical_official_url"],
+            "source_identity": r["source_identity"],
+            "neutral_label": r["label"] + " · " + r["document"]["subject"]
+                + " · " + r["issuer_label"] + " · " + r["document"]["signatory"]
+                + " · " + " · ".join(r["topics"]),
+            "published_date": r["publisher_posted_date"], "source_name": r["publisher_label"],
+            "issuer_label": r["issuer_label"],
+            "date_kind": "document issue date",
+            "processing_note": "Bibliographic subject only; document text, translation and analysis unavailable."
+            } for r in regional_official_links if r.get("document")]
         # Reuse the exact public results that render this build's desk pages.
         archive_official_groups.extend([
+            (document_references, desk.slug, None, None),
             (references, desk.slug, None, None),
             (indonesia_official_links, desk.slug, "Kemhan Berita", "Kementerian Pertahanan Republik Indonesia"),
             (indonesia_press_links, desk.slug, "Kemhan Siaran Pers", "Kementerian Pertahanan Republik Indonesia"),

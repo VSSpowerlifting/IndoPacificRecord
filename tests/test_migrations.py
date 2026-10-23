@@ -358,7 +358,7 @@ class TestReconcileReversion(MigrationTestCase):
         self.assertTrue(v["ok"])
         # Four desks: China, Korea, Singapore and the manual Vietnam MPS source.
         self.assertEqual(desks, 4)
-        self.assertEqual(sources_with_desk, 8)
+        self.assertEqual(sources_with_desk, 9)  # Includes the manual VPCP metadata source.
 
 
 class TestRollback(MigrationTestCase):

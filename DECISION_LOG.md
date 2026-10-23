@@ -4,6 +4,21 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-23 — Engineering: Government Office documents, bibliographic-only (not an owner approval)
+
+`vn_vpcp_official_documents_vi` (documents whose detail page names Văn phòng
+Chính phủ as issuer, hosted on vanban.chinhphu.vn) joins the Vietnam Desk
+through the shared Daily as **metadata and official links only**: number,
+type, issuer, signatory, issue date, official subject line, link. The MPS
+decision and the MOIT hold are not inherited. No attachment retrieval (the PDF
+host returned 403 for robots.txt), no model transmission, no public body,
+translation or machine explanation; a subject line is never presented as
+analysis of the document. Basis, limits and operation:
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md`; enforced by
+`config/vietnam_vpcp_metadata_policy.json`. Model processing of document text
+needs its own owner source-use decision. Reverting the public Vietnamese
+subject line is a template/projection change, not a data change.
+
 ## 2026-10-22 — Owner: bounded MPS factual AI processing and automatic Daily release
 
 The owner explicitly **approves** the conditional-go policy and residual-risk

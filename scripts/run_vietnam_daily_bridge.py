@@ -134,7 +134,7 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
                 raise bridge.BridgeError("vietnam_daily_requires_single_file_journal")
             conn.execute("PRAGMA foreign_keys=ON")
             pending = {m.version for m in discover()} - set(applied_versions(conn))
-            if not pending <= {"0017"}:
+            if not pending <= {"0017", "0018"}:
                 raise bridge.BridgeError("unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             for family, commit in commits:
