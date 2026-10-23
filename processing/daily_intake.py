@@ -476,6 +476,7 @@ def validate_output(r, family, p):
          and all(type(c) is str and c in PHILIPPINES_PROFILE.categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
          and r["prompt_version"] in ("ph-relevance-v1+ph-analysis-v10",
-                                     "ph-relevance-v1+ph-analysis-v11"), "daily_output_incomplete")
+                                     "ph-relevance-v1+ph-analysis-v11",
+                                     "ph-relevance-v1+ph-analysis-v12"), "daily_output_incomplete")
     need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
          "daily_explanation_word_limit")
