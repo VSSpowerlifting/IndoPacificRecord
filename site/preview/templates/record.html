@@ -291,6 +291,7 @@
       </dl>
       <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>
     </div>
+    {% if dossier_records is defined and dossier_records[record.id] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}
     {% if timeline_records is defined and timeline_records[record.id] %}<section class="record-section" aria-labelledby="record-timelines"><h2 id="record-timelines">In Evidence Timelines</h2>{% for item in timeline_records[record.id] %}<p><a href="../{{ item.route }}">{{ item.title }}</a>{% if item.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
     {% if record.in_trails %}
     {# Listed in a published issue's source trail, matched on this record's

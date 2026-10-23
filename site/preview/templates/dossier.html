@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% from '_timeline_macros.html' import period with context %}
+{% block title %}{{ dossier.title }} — {{ title }}{% endblock %}
+{% block description %}{{ dossier.dek }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="../dossiers.css">{% endblock %}
+{% block main_class %} class="dossier-page"{% endblock %}
+{% macro source_links(ids) %}{% for rid in ids %}<a href="#source-{{ rid }}">Record {{ rid }}</a>{{ ' · ' if not loop.last }}{% endfor %}{% endmacro %}
+{% block content %}
+<nav class="ds-breadcrumb" aria-label="Breadcrumb"><a href="../analysis.html">Analysis</a> / Living Dossiers</nav>
+<article data-dossier-slug="{{ dossier.slug }}" data-editorial-status="{{ dossier.editorial_status }}" data-editorial-digest="{{ dossier.digest }}">
+<header class="ds-hero">
+<p class="evidence evidence--analysis">Living Dossier{% if dossier.is_review %} · unapproved draft{% endif %}</p>
+<p class="ds-question">{{ dossier.research_question }}</p>
+<h1>{{ dossier.title }}</h1>
+<p class="ds-dek">{{ dossier.dek }}</p>
+<div class="ds-answer"><p class="label-caps">What the selected evidence establishes</p><p>{{ dossier.overview }}</p></div>
+<p class="ds-credit">{{ dossier.author_name }}<br>Editor: {{ dossier.editor_name }} · {% if dossier.reviewed_on %}Reviewed {{ dossier.reviewed_on|reader_date }}{% else %}Human review has not occurred{% endif %}</p>
+<p class="ds-meta">Evidence cutoff: {{ dossier.scope.period_end|reader_date }} · Updated {{ dossier.updated_on|reader_date }} · Revision {{ dossier.revision }}</p>
+</header>
+<div class="ds-layout">
+<nav class="ds-contents" aria-label="In this dossier"><p class="label-caps">In this dossier</p>{% for section in dossier.sections %}<a href="#section-{{ section.id }}">{{ section.heading }}</a>{% endfor %}<a href="#chronology">Chronology</a><a href="#accounts">Comparing accounts</a><a href="#sources">Source ledger</a><a href="#scope">Scope and limitations</a><a href="#changes">Revision notes</a><a href="#citation">Citation</a></nav>
+<div class="ds-reading">
+{% for section in dossier.sections %}<section id="section-{{ section.id }}" aria-labelledby="heading-{{ section.id }}"><h2 id="heading-{{ section.id }}">{{ section.heading }}</h2><p>{{ section.intro }}</p>
+{% for claim in section.claims %}<section class="ds-finding" id="finding-{{ claim.id }}" aria-labelledby="label-{{ claim.id }}" tabindex="-1">
+<p class="ds-kind">{{ dossier.kind_labels[claim.claim_kind] }}</p><h3 id="label-{{ claim.id }}">{{ claim.heading|default(claim.id|replace('-', ' ')) }} <a href="#finding-{{ claim.id }}" aria-label="Link to finding: {{ claim.heading|default(claim.id) }}">§</a></h3>
+<p class="ds-finding-text">{{ claim.text }}</p><p class="ds-limits"><b>Qualification.</b> {{ claim.limits }}</p>
+<p class="ds-cites">Support: {{ source_links(claim.source_record_ids) }}</p>
+{% if claim.counterevidence_ids %}<p class="ds-cites">Differing account / material qualification: {{ source_links(claim.counterevidence_ids) }}</p>{% endif %}
+<details><summary>Inspect evidence and date basis</summary><div class="ds-evidence">
+{% if claim.event_period %}<p><b>Event period:</b> {{ period(claim.event_period.start, claim.event_period.end) }} · {{ claim.event_period.basis }}</p><p><b>Date basis:</b> {{ claim.event_period.date_basis }}</p>{% else %}<p>This comparison does not assign a separate event date.</p>{% endif %}
+{% for r in dossier.ledger if r.id in claim.source_record_ids + claim.counterevidence_ids %}<p><a href="#source-{{ r.id }}">{{ r.source_name }} · Record {{ r.id }}</a><br>Source published {{ r.published_on|reader_date }} · {{ r.institution_name }}</p>{% endfor %}
+</div></details></section>{% endfor %}</section>{% endfor %}
+<section id="chronology" aria-labelledby="chronology-heading"><h2 id="chronology-heading">The reported chronology</h2><p>Event dates and publication dates are separate. Ordered entries show the sequence of reported activity, without implying independent verification or cause and effect.</p>
+<ol class="ds-chronology">{% for e in dossier.chronology_entries %}<li id="event-{{ e.id }}"><p class="ds-event-date">{{ period(e.event.start, e.event.end) }}</p><h3>{{ e.headline }}</h3><p>{{ e.observation }}</p>{% if e.qualification %}<p class="ds-limits">{{ e.qualification }}</p>{% endif %}<p class="ds-cites">{% for ev in e.evidence %}<a href="#source-{{ ev.record_id }}">Record {{ ev.record_id }}</a> · published {{ ev.published_on|reader_date }} ({{ ev.basis }}){{ '; ' if not loop.last }}{% endfor %}</p><p class="ds-date-basis">{{ e.event.date_basis }}</p></li>{% endfor %}</ol>
+<p class="ds-meta">Chronology content is version-bound to the existing manuscript. {% if dossier.public_chronology %}<a href="../{{ dossier.public_chronology.route }}">Read the separately approved Evidence Timeline</a>.{% else %}Its separate Timeline publication remains unapproved and is not linked as a public product.{% endif %}</p></section>
+<section id="accounts" aria-labelledby="accounts-heading"><h2 id="accounts-heading">Comparing accounts</h2>{% for d in dossier.disagreements %}<section id="comparison-{{ d.id }}"><h3>{{ d.status|capitalize }}: starting boundary</h3><p>{{ d.note }}</p><p class="ds-cites">Read the findings: {% for id in d.claim_ids %}<a href="#finding-{{ id }}">{{ id|replace('-', ' ') }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p></section>{% endfor %}</section>
+<section id="sources" aria-labelledby="sources-heading"><h2 id="sources-heading">The source ledger</h2><p>{{ dossier.ledger|length }} publications, each listed once. Publisher and institutional attribution describe the preserved records; they do not imply independent confirmation. No publisher original titles, text, translations or images are reproduced here.</p>
+<ol class="ds-ledger">{% for r in dossier.ledger %}<li id="source-{{ r.id }}" tabindex="-1"><h3>{{ r.source_name }}</h3><p>{{ r.institution_name }} · {{ r.desk|capitalize }} · {{ r.language }}<br>Published <time datetime="{{ r.published_on }}">{{ r.published_on|reader_date }}</time> · Record {{ r.id }}</p><p><a href="../record/{{ r.id }}.html">Open canonical IPR record {{ r.id }}</a> · <a href="{{ r.url }}" rel="noopener nofollow">Official publisher reference</a></p><p class="ds-url">{{ r.url }}</p></li>{% endfor %}</ol></section>
+<section id="scope" aria-labelledby="scope-heading"><h2 id="scope-heading">Scope and limitations</h2><p>{{ dossier.scope.included }}</p><p><b>Outside this scope:</b> {{ dossier.scope.excluded }}</p><p>{{ dossier.scope.method }}</p><p>{{ dossier.scope.collection_limits }}</p>{% if dossier.is_review %}<details class="ds-review-holds"><summary>Outstanding editorial and source-use decisions</summary><p>This is private review. Links to existing full-body record pages and official publishers are review destinations, not a source-use grant. Public release requires the exact independently recorded source-use and human editorial decisions.</p><ul>{% for h in dossier.holds %}<li>{{ 'Source-use decision required for record ' ~ h.record_id if h.record_id is defined else 'Human approval of this exact dossier and rendered presentation is required' }}</li>{% endfor %}</ul><p>Publication of the related Brief does not approve this dossier or the Timeline.</p></details>{% endif %}</section>
+<section aria-labelledby="related-heading"><h2 id="related-heading">Related approved analysis</h2>{% for b in dossier.related %}<p><a href="../{{ b.url }}">{{ b.title }}</a> · Brief No. {{ b.issue }}</p>{% endfor %}</section>
+<section id="changes" aria-labelledby="changes-heading"><h2 id="changes-heading">Revision notes</h2>{% for change in dossier.changes %}<h3>Revision {{ change.revision }} · {{ change.changed_on|reader_date }}</h3><p>{{ change.summary }}</p><p class="ds-cites">Affected findings: {% for id in change.affected_claim_ids %}<a href="#finding-{{ id }}">{{ id|replace('-', ' ') }}</a>{{ '; ' if not loop.last }}{% endfor %}</p>{% endfor %}</section>
+<section id="citation" class="cite-block" aria-labelledby="citation-heading"><h2 id="citation-heading">Cite this dossier</h2><p id="dossier-citation" class="cite-text">{{ dossier.citation }}</p><button type="button" data-copy="dossier-citation" hidden>Copy citation</button><p class="cite-status" role="status" aria-live="polite"></p></section>
+</div></div></article>
+{% endblock %}
+{% block scripts %}<script src="../citation.js" defer></script><script src="../shell.js" defer></script>{% endblock %}

@@ -149,6 +149,7 @@ from core.catalogue_media import (                                   # noqa: E40
     load_admissions as load_catalogue_admissions,
     resolve_catalogue_media)
 from core.timelines import load_timelines
+from core.dossiers import load_dossiers, validate_review_destination
 from core.desk_registry import load_registry                         # noqa: E402
 from core.reviewed_source_links import load_public_desk_references    # noqa: E402
 from core.public_editorial_research import load_catalog as load_editorial_catalog, published_for_desk
@@ -2483,6 +2484,7 @@ def build(out_dir: Path, title: str, db_path: Path,
           allow_synthetic_briefs: bool = False, gallery: bool = False,
           review_brief: Path = None, timelines_dir: Path = None,
           review_timeline: Path = None, review_presentation: Path = None,
+          review_dossier: Path = None, dossiers_dir: Path = None,
           review_korea: bool = False,
           korea_review_packet: Path = None) -> dict:
     """
@@ -2584,6 +2586,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                 or resolved in REPO_ROOT.parents
                 or bool((site_origin or "").strip()) or allow_test_origin
                 or review_brief is not None or review_timeline is not None or review_presentation is not None
+                or review_dossier is not None
                 or allow_synthetic_briefs or gallery):
             raise ValueError("private Korea preview requires a new external directory, "
                              "no origin, no public/synthetic/other review mode")
@@ -2599,15 +2602,17 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.korea_reference_gate import approve, load_candidates
         korea_candidates = load_candidates()
         korea_prechecked_rows = approve(korea_candidates, korea_review_packet)
+    if review_dossier:
+        validate_review_destination(requested_out)
     out_dir = requested_out.resolve()
-    if (review_brief or review_timeline or review_presentation) and site_origin:
+    if (review_brief or review_timeline or review_presentation or review_dossier) and site_origin:
         raise ValueError("a draft review is private: no site origin, feed or sitemap")
     if review_timeline and (out_dir == REPO_ROOT or REPO_ROOT in out_dir.parents or out_dir in REPO_ROOT.parents):
         raise ValueError("timeline review requires a disposable destination outside the repository")
     if review_presentation and (out_dir.exists() or out_dir == REPO_ROOT or REPO_ROOT in out_dir.parents
                                 or out_dir in REPO_ROOT.parents):
         raise ValueError("presentation review requires a new destination outside the repository")
-    if sum(bool(v) for v in (review_brief, review_timeline, review_presentation)) > 1:
+    if sum(bool(v) for v in (review_brief, review_timeline, review_presentation, review_dossier)) > 1:
         raise ValueError("review one editorial artifact at a time")
     if out_dir == PRODUCTION_OUT or PRODUCTION_OUT in out_dir.parents:
         raise SystemExit(
@@ -2622,6 +2627,8 @@ def build(out_dir: Path, title: str, db_path: Path,
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
+    if review_dossier:
+        out_dir.chmod(0o700)
 
     data = load_corpus(db_path)
 
@@ -2761,6 +2768,17 @@ def build(out_dir: Path, title: str, db_path: Path,
     timelines, timelines_withheld = load_timelines(
         db_path, {e["slug"]: e for e in collection.briefs},
         review_path=review_timeline, **timeline_options)
+    dossier_options = {"source_dir": Path(dossiers_dir)} if dossiers_dir is not None else {}
+    dossiers, dossiers_withheld = load_dossiers(
+        db_path, {e["slug"]: e for e in collection.briefs},
+        review_path=review_dossier, related_timelines={t["slug"]: t for t in timelines},
+        **dossier_options)
+    dossier_records, dossier_briefs = defaultdict(list), defaultdict(list)
+    for item in dossiers:
+        for rec in item["ledger"]:
+            dossier_records[rec["id"]].append(item)
+        for brief in item["related_briefs"]:
+            dossier_briefs[brief].append(item)
     timeline_records = defaultdict(list)
     timeline_briefs = defaultdict(list)
     for item in timelines:
@@ -2807,6 +2825,7 @@ def build(out_dir: Path, title: str, db_path: Path,
     focus = build_focus(data["corpus"])
 
     from core.archive_research import (analysis_records, build_index as build_archive_index,
+                                       dossier_records as dossier_archive_records,
                                        digest as archive_digest, encoded as archive_encoded)
     index = corpus_index(data["corpus"], data["sources"], snapshot, desks, focus=focus)
     public_analyses = list(analysis_records(
@@ -2816,6 +2835,7 @@ def build(out_dir: Path, title: str, db_path: Path,
          for row in public_archive_collection.rows if row["kind"] == "issue"},
         edition_citation=edition_citation, state_labels=STATE_LABELS,
         state_order=STATE_ORDER, language_label=language_label))
+    public_analyses.extend(dossier_archive_records(dossiers))
     archive_official_groups = []
     from core.staff_directory import load_staff, credited_works
     team_members = load_staff(REPO_ROOT / "site/preview/staff.json")
@@ -2825,8 +2845,12 @@ def build(out_dir: Path, title: str, db_path: Path,
         "archive_digest": archive_digest(archive_encoded(index)),
         "title": title,
         "focus": focus,
-        "review_mode": bool(review_brief or review_timeline or review_presentation),
+        "review_mode": bool(review_brief or review_timeline or review_presentation or review_dossier),
         "catalogue_media": catalogue_media,
+        "has_dossiers": any(not d["is_review"] for d in dossiers),
+        "dossiers": dossiers,
+        "dossier_records": dossier_records,
+        "dossier_briefs": dossier_briefs,
         "timelines": timelines,
         "timeline_records": timeline_records,
         "timeline_briefs": timeline_briefs,
@@ -3020,6 +3044,16 @@ def build(out_dir: Path, title: str, db_path: Path,
             staff_schema=schema, **ctx), encoding="utf-8")
         written.append(route)
 
+    if dossiers:
+        (out_dir / "dossier").mkdir()
+        for dossier in dossiers:
+            (out_dir / dossier["route"]).write_text(
+                env.get_template("dossier.html").render(page="analysis.html", nested=True,
+                    dossier=dossier, **ctx), encoding="utf-8")
+            written.append(dossier["route"])
+        (out_dir / "dossiers.css").write_text(
+            (Path(__file__).parent / "dossiers.css").read_text(encoding="utf-8"), encoding="utf-8")
+        written.append("dossiers.css")
     if timelines:
         (out_dir / "timeline").mkdir()
         (out_dir / "timelines.html").write_text(
@@ -3836,6 +3870,8 @@ def build(out_dir: Path, title: str, db_path: Path,
             "briefs": len(collection.briefs),
             "briefs_withheld": len(collection.withheld),
             "briefs_feed": bool(briefs_feed and origin),
+            "dossiers": len(dossiers),
+            "dossiers_withheld": len(dossiers_withheld),
             "timelines": len(timelines),
             "timelines_withheld": len(timelines_withheld),
             "records": len(data["corpus"]), "weeks": len(data["weeks"]),

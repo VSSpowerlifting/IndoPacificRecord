@@ -1,0 +1,55 @@
+/* Living Dossiers: shared IPR tokens, with neutral evidence and jade editorial provenance. */
+.dossier-page { padding-bottom: 5rem; }
+.dossier-page .review-banner { margin-block: 1rem; }
+.ds-breadcrumb { margin: 1rem 0; font: .85rem var(--sans); }
+.ds-hero { max-width: 58rem; margin: 0 auto 3.5rem; }
+.ds-hero h1 { font: 400 clamp(2.2rem, 4.1vw, 3.4rem)/1.06 var(--display); margin: .8rem 0 1.2rem; }
+.ds-question { font: 1rem/1.65 var(--sans); max-width: 48rem; margin-top: 1.5rem; }
+.ds-dek { font: 1.2rem/1.6 var(--serif); max-width: 46rem; }
+.ds-answer { border-top: 2px solid var(--accent); border-bottom: 1px solid var(--line); padding: 1rem 0; margin: 1.5rem 0; }
+.ds-answer > p:last-child { font: 1.1rem/1.7 var(--serif); }
+.ds-credit, .ds-meta { font: .85rem/1.7 var(--sans); }
+.ds-layout { display: grid; grid-template-columns: 13rem minmax(0, 44rem); gap: 3.5rem; justify-content: center; }
+.ds-contents { align-self: start; border-top: 1px solid var(--line); padding-top: 1rem; font: .85rem/1.5 var(--sans); }
+.ds-contents a { display: block; padding: .6rem 0; }
+.ds-reading { min-width: 0; }
+.ds-reading > section { margin-bottom: 3.5rem; }
+.ds-reading h2 { font: 400 clamp(1.8rem, 3vw, 2.3rem)/1.2 var(--display); margin-bottom: 1rem; }
+.ds-reading h3 { font: 600 1.05rem/1.5 var(--sans); }
+.ds-reading p { font: 1.08rem/1.8 var(--serif); }
+.ds-finding { border-top: 1px solid var(--line); margin-top: 2rem; padding-top: 1.1rem; }
+.ds-finding .ds-kind { color: var(--editorial-ink); font: 600 .8rem/1.5 var(--sans); display: flex; justify-content: space-between; }
+.ds-reading .ds-limits { font: .96rem/1.7 var(--serif); border-left: 2px solid var(--line); padding-left: 1rem; }
+.ds-reading .ds-cites, .ds-reading .ds-meta, .ds-reading .ds-date-basis { font: .83rem/1.7 var(--sans); }
+.ds-reading details { margin-top: 1rem; border-block: 1px solid var(--line); }
+.ds-reading summary { cursor: pointer; padding: .9rem 0; font: 500 .9rem/1.6 var(--sans); }
+.ds-evidence { padding: .2rem 0 1rem; }
+.ds-evidence p { font: .9rem/1.7 var(--sans); }
+.ds-chronology { list-style: none; padding-left: 1.25rem; border-left: 2px solid var(--line); }
+.ds-chronology li { padding: 0 0 1.5rem 1rem; }
+.ds-reading .ds-event-date { font: 600 .9rem/1.6 var(--sans); color: var(--accent-ink); }
+.ds-ledger { padding: 0; list-style: none; }
+.ds-ledger li { padding: 1.5rem 0; border-top: 1px solid var(--line); }
+.ds-ledger p, .ds-review-holds p, .ds-review-holds li { font: .9rem/1.7 var(--sans); }
+.ds-url, .cite-text { overflow-wrap: anywhere; }
+.ds-reading [id], .ds-reading section, .ds-reading li { scroll-margin-top: 7rem; }
+.dossier-page a:focus-visible, .dossier-page summary:focus-visible, .dossier-page button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 4px; }
+.dossier-page :target { outline: 1px solid var(--accent); outline-offset: 5px; }
+.ds-reading button { font: 500 .9rem var(--sans); min-height: 44px; padding: .6rem 1rem; color: var(--ink); background: var(--paper); border: 1px solid var(--line); cursor: pointer; }
+.ds-reading .cite-status { font: .85rem/1.6 var(--sans); }
+.analysis-dossiers { margin-block: 2rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+@media (max-width: 900px) { .ds-layout { grid-template-columns: minmax(0, 44rem); gap: 1.5rem; } .ds-hero { margin-bottom: 2rem; } .ds-contents a { padding-block: .65rem; } }
+@media print {
+ .ds-layout { display: block; }
+ .ds-contents, .ds-breadcrumb, .dossier-page button { display: none; }
+ .dossier-page { color: #000; background: #fff; }
+ .ds-hero h1 { font-size: 28pt; }
+ .ds-reading details::details-content { display: contents; content-visibility: visible; }
+ .ds-reading details > * { display: block !important; }
+ .ds-reading summary { display: none; }
+ .ds-finding, .ds-ledger li { break-inside: avoid; }
+ .ds-reading [id], .ds-reading section, .ds-reading li { scroll-margin-top: 0; }
+ .dossier-page a { color: #000; }
+ .ds-cites a[href^="#"]::after { content: none; }
+ .ds-answer { border-color: #000; }
+}
