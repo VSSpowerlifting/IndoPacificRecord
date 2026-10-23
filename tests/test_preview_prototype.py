@@ -2163,7 +2163,18 @@ class TestRecordPages(PreviewCase):
         """
         live = PRODUCTION_OUT / "article"
         self.assertTrue(live.is_dir())
-        self.assertEqual(len(list(live.glob("*.html"))), self.analyzed_count)
+        expected = {r["id"] for r in self.data["corpus"] if r["state"] == "analyzed"}
+        compat = self.tmp / "compat"
+        gp.build(compat, "Test Title", TRACKED_DB, snapshot=self.snapshot,
+                 legacy_routes=True, briefs_dir=self.briefs)
+        generated = {int(p.stem) for p in (compat / "article").glob("*.html")}
+        self.assertEqual(generated, expected)
+        # Tracked output is the last deployed artifact; a failed Daily can
+        # admit records without completing its render. Preserve every old URL.
+        self.assertLessEqual({int(p.stem) for p in live.glob("*.html")}, generated)
+        for rec_id in generated:
+            self.assertIn('../record/%d.html' % rec_id,
+                          (compat / "article" / ("%d.html" % rec_id)).read_text())
 
     def test_no_public_canonical_and_no_production_sitemap_entry(self):
         for rec_id in (self.ids[0], self.ids[-1]):
@@ -2924,24 +2935,40 @@ class TestRecordSemantics(PreviewCase):
                                  path.read_text(encoding="utf-8"))
 
     def test_stored_source_text_heading_is_qualified(self):
-        for rec in self.data["corpus"][:200]:
+        for rec in self.data["corpus"]:
             html = self.record(rec["id"])
             with self.subTest(id=rec["id"]):
-                self.assertIn('<h2 id="record-text">Stored source text</h2>', html)
+                if rec.get("korea_identity"):
+                    self.assertIn('<h2 id="record-text">Korean original</h2>', html)
+                    self.assertIn('href="../korea-originals/%s.html"' % rec["korea_news_id"], html)
+                    self.assertIn("KOGL Type 1 text-use notice", html)
+                elif rec.get("vietnam", {}).get("original_withheld"):
+                    self.assertIn('<h2 id="record-text">Source text</h2>', html)
+                    self.assertIn("is not reproduced here", re.sub(r"\s+", " ", html))
+                    self.assertNotIn('class="original-text"', html)
+                    self.assertNotIn("Original text is unavailable", html)
+                    self.assertIsNone(rec["text_original"])
+                else:
+                    self.assertIn('<h2 id="record-text">Stored source text</h2>', html)
                 self.assertNotIn("<h2>Original text</h2>", html)
+
+    def captured_records(self):
+        return [r for r in self.data["corpus"]
+                if not r.get("korea_identity")
+                and not r.get("vietnam", {}).get("original_withheld")]
 
     def test_the_extraction_caveat_renders_on_every_record(self):
         caveat = ("Text captured from the source page. Extraction may omit "
                   "material\nor include unrelated page elements; consult the "
                   "original URL when exact wording\nor completeness matters.")
         flat = re.sub(r"\s+", " ", caveat)
-        for rec in self.data["corpus"][:200]:
+        for rec in self.captured_records():
             page = re.sub(r"\s+", " ", self.record(rec["id"]))
             with self.subTest(id=rec["id"]):
                 self.assertIn(flat, page)
 
     def test_the_caveat_renders_for_empty_and_noisy_captures_alike(self):
-        empty = next(r for r in self.data["corpus"] if not r["has_text"])
+        empty = next(r for r in self.captured_records() if not r["has_text"])
         html = self.record(empty["id"])
         self.assertIn("Extraction may omit material", re.sub(r"\s+", " ", html))
         self.assertIn("Original text is unavailable in this stored record.",
@@ -2957,7 +2984,7 @@ class TestRecordSemantics(PreviewCase):
         claim = re.compile(
             r"\b(verbatim|complete|completely|archival|corrected|permanent|"
             r"permanently)\b", re.I)
-        for rec in self.data["corpus"][:200]:
+        for rec in self.captured_records():
             section = self.record(rec["id"]).split(
                 '<h2 id="record-text">Stored source text</h2>', 1)[1].split("<h2", 1)[0]
             with self.subTest(id=rec["id"]):
@@ -3550,13 +3577,14 @@ class TestCorpusBrowserMarkup(PreviewCase):
         self.assertNotIn("could not be loaded", empty)
 
     def test_language_codes_render_as_editorial_labels(self):
-        self.assertEqual(gp.LANGUAGE_LABELS,
-                         {"zh-Hans": "Simplified Chinese", "en": "English"})
+        expected = {"zh-Hans": "Simplified Chinese", "en": "English",
+                    "ko": "Korean", "vi": "Vietnamese"}
+        self.assertEqual(gp.LANGUAGE_LABELS, expected)
         index = json.loads((self.out / "corpus-index.json").read_text(
             encoding="utf-8"))
         offered = {e["code"]: e["label"] for e in index["languages"]}
-        self.assertEqual(offered,
-                         {"zh-Hans": "Simplified Chinese", "en": "English"})
+        held = {r["language_tag"] for r in gp.load_corpus(TRACKED_DB)["corpus"]}
+        self.assertEqual(offered, {tag: expected[tag] for tag in held})
 
     def test_every_stored_language_tag_is_mapped(self):
         corpus = gp.load_corpus(TRACKED_DB)["corpus"]
@@ -5025,15 +5053,32 @@ class TestCorpusGuide(PreviewCase):
         promoted = [r for r in sg if r["scrape_run_id"] is None]
         self.assertEqual(len(promoted), 57)
         no_run = [r for r in self.corpus["corpus"] if r["scrape_run_id"] is None]
-        self.assertEqual({r["source_slug"] for r in no_run},
-                         {"sg_mindef_releases"})
-        self.assertEqual(self.stats["promoted_without_run"], len(no_run))
+        private = [r for r in no_run if r.get("vietnam")]
+        self.assertEqual(len(no_run), len(promoted) + len(private))
+        self.assertEqual(self.stats["promoted_without_run"], len(promoted))
+        self.assertEqual(self.stats["private_handoff_without_run"], len(private))
+        self.assertEqual(self.stats["other_without_run"], 0)
+        self.assertEqual(self.stats["without_run"], len(no_run))
 
         row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Collection run"]
         self.assertNotIn("Never absent", row["absent"])
         self.assertIn("{:,}".format(len(no_run)), row["absent"])
         self.assertIn("governed shadow promotion", row["absent"])
+        self.assertIn("%s Singapore records" % format(len(promoted), ","), row["absent"])
+        self.assertIn("%s Vietnam records" % format(len(private), ","), row["absent"])
+        self.assertIn("authenticated private handoff", row["absent"])
         self.assertIn("promotion ledger", row["limitation"])
+
+    def test_original_title_absence_is_measured_and_disclosed(self):
+        withheld = [r for r in self.corpus["corpus"] if not r.get("title_original")]
+        self.assertTrue(withheld)
+        for rec in withheld:
+            self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+            self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
+        self.assertEqual(self.stats["withheld_original_titles"], len(withheld))
+        row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Original title"]
+        self.assertIn("Withheld for %s records" % format(len(withheld), ","), row["absent"])
+        self.assertIn("source-use decisions", row["absent"])
 
     def test_the_machine_assessment_row_never_prints_the_stored_column_name(self):
         """`is_significant` carries the one word the public label may never
@@ -5337,11 +5382,15 @@ class TestSnapshotScopedCitations(PreviewCase):
         wrong = []
         for rec in self.corpus:
             cite = gp.record_citation(rec, "Test Title", self.snapshot)
-            for value in (rec["institution"], rec["title_original"],
-                          rec["source_name"], rec["published_date"],
-                          rec["url"]):
+            for value in (rec["institution"], rec["source_name"],
+                          rec["published_date"], rec["url"]):
                 if str(value) not in cite["source_text"]:
                     wrong.append((rec["id"], value))
+            if rec["title_original"]:
+                if rec["title_original"] not in cite["source_text"]:
+                    wrong.append((rec["id"], "original title"))
+            elif "Original title withheld under the source-use decision." not in cite["source_text"]:
+                wrong.append((rec["id"], "withheld title disclosure"))
             if "Record %d," % rec["id"] not in cite["as_held"]:
                 wrong.append((rec["id"], "id"))
         self.assertEqual(wrong[:10], [])
@@ -5363,6 +5412,12 @@ class TestSnapshotScopedCitations(PreviewCase):
             english = (rec.get("title_english") or "").strip()
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
+                if not original:
+                    self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+                    self.assertIn("Original title withheld under the source-use decision.",
+                                  cite["source_text"])
+                    self.assertNotIn(english, cite["source_text"])
+                    continue
                 self.assertIn('"%s."' % original, cite["source_text"])
                 if english and english not in original:
                     compared += 1
@@ -5383,8 +5438,11 @@ class TestSnapshotScopedCitations(PreviewCase):
             rec = self.by_id[rec_id]
             html = self.record(rec_id)
             with self.subTest(state=state):
-                self.assertIn(str(markupsafe.escape(
-                    '"%s."' % rec["title_original"])), html)
+                if not rec["title_original"]:
+                    self.assertIn("Original title withheld under the source-use decision.", html)
+                else:
+                    self.assertIn(str(markupsafe.escape(
+                        '"%s."' % rec["title_original"])), html)
 
     def test_all_record_pages_carry_the_snapshot_date_and_count(self):
         expected = ("Snapshot — %s (%s records)"

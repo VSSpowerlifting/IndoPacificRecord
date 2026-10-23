@@ -34,8 +34,10 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
         self.assertEqual(mnd_count + dapa_count, len(all_admitted))
         bibliography = load_public_korea_links() + load_additional_korea_official_links()
         frozen = {r["source_identity"] for r in bibliography}
+        article_routes = preview.load_corpus(db)["korea_publishable"]
+        article_identities = set(article_routes.values())
         newly_listed = [r for r in all_admitted
-                        if r["source_identity"] not in frozen]
+                        if r["source_identity"] not in frozen | article_identities]
         originals = read_release_index()
         reviewed = public_registry()
 
@@ -106,10 +108,12 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                     'data-korea-auto-official-link="%s"' % source["source_identity"],
                     html)
             for source in all_admitted:
-                expected = int(source["source_identity"] not in frozen)
+                expected = int(source["source_identity"] not in frozen | article_identities)
                 self.assertEqual(html.count(
                     'data-korea-auto-official-link="%s"' % source["source_identity"]
                 ), expected)
+            for article_id in article_routes:
+                self.assertIn('href="record/%d.html"' % article_id, html)
             self.assertIn("DAPA original documents and English assessments require separate review", html)
             self.assertNotIn("original-source archive remains restricted", html)
             self.assertNotIn("text_original", html)
