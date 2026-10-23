@@ -28,7 +28,7 @@ class KoreaPrivateDraftRecoveryContracts(unittest.TestCase):
     def test_failed_source_workflow_can_reach_guard_but_not_untrusted_branches(self):
         expression = self.section(
             "  send-unreviewed-korea-drafts-to-owner:\n",
-            "    runs-on: ubuntu-latest\n",
+            "    runs-on: ubuntu-24.04\n",
         )
         self.assertIn("github.event_name != 'pull_request'", expression)
         self.assertIn("github.event.workflow_run.head_branch == 'main'", expression)

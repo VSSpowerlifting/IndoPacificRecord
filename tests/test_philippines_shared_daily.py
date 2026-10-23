@@ -164,6 +164,24 @@ class SharedDaily(unittest.TestCase):
             self.assertEqual(signed["packet"]["records"][0]["prompt_version"],
                              version)
 
+    def test_public_validator_accepts_governed_v12_and_rejects_future_versions(self):
+        for family in ("ph_afp_articles", "ph_nsc_official_statements"):
+            p = policy()["sources"][family]
+            state, _ = d.process([record()], {}, family="ph_afp_articles",
+                                 policy=policy(), analyzer_factory=fake_analyzer)
+            approved = dict(state["ph_afp_articles:afp:1"]["output"])
+            approved["source_family"] = family
+            approved["policy_sha256"] = d.digest(p)
+            for version in ("ph-relevance-v1+ph-analysis-v10",
+                            "ph-relevance-v1+ph-analysis-v11",
+                            "ph-relevance-v1+ph-analysis-v12"):
+                with self.subTest(family=family, version=version):
+                    d.validate_output(dict(approved, prompt_version=version), family, p)
+            with self.subTest(family=family, version="unapproved"):
+                with self.assertRaisesRegex(d.IntakeHold, "daily_output_incomplete"):
+                    d.validate_output(dict(approved,
+                        prompt_version="ph-relevance-v1+ph-analysis-v13"), family, p)
+
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError
         a = Analyzer.__new__(Analyzer)
