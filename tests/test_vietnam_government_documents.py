@@ -176,20 +176,46 @@ class GovernmentDocuments(unittest.TestCase):
         self.assertNotIn("hold_reason", report)
         self.assertEqual(report["new"], 2)
         self.assertGreater(report["requests"], 2)
+        self.assertEqual(report["continuous_since_run"], "gap")
         self.assertEqual(self.conn.execute("SELECT count(*) FROM official_document_collection_runs").fetchone()[0], 2)
 
-    def test_backdated_order_and_budget_cap_never_hold_discovery(self):
+    def test_backdated_order_never_skips_a_listed_document(self):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup((FIX / "listing.html").read_text(), "html.parser")
         rows = [r for r in soup.select("table.search-result tr") if r.select_one(".code")]
         rows[0].insert_before(rows[-1].extract())  # Oldest entry now listed first.
-        self.assertEqual(len(listing(str(soup))), len(rows))
-        adapter = ReplayAdapter()
-        with patch("core.collection.vietnam_government_documents.MAX_DOCUMENTS", 1):
+        shuffled = listing(str(soup))
+        self.assertEqual({i["url"] for i in shuffled},
+                         {i["url"] for i in listing((FIX / "listing.html").read_text())})
+
+    def test_busy_week_budget_caps_only_rechecks_never_unseen_documents(self):
+        everything = ReplayAdapter().discover(None).references
+        self.assertGreater(len(everything), 2)
+        urls = [r.url for r in everything]
+        with patch("core.collection.vietnam_government_documents.RECHECK_BUDGET", 1):
+            adapter = ReplayAdapter(known_urls=urls[:-1])  # Only the last one is unseen.
             found = adapter.discover(None)
-        self.assertTrue(found.ok)
-        self.assertEqual(len(found.references), 1)
-        self.assertGreater(adapter.candidates_skipped, 0)
+            self.assertIn(urls[-1], [r.url for r in found.references])
+            self.assertEqual(len(found.references), 1 + 1)
+            self.assertEqual(adapter.rechecks_skipped, len(urls) - 2)
+            nothing_known = ReplayAdapter()
+            self.assertEqual(len(nothing_known.discover(None).references), len(urls))
+            self.assertEqual(nothing_known.rechecks_skipped, 0)
+
+    def test_gap_is_recorded_and_frontier_restarts_without_claiming_continuity(self):
+        old = {"listing_ids": [INDEX + "?pageid=27160&docid=1"], "continuous_since_run": "first"}
+        self.conn.execute("INSERT INTO official_document_collection_runs VALUES (?,?,?,?,?,?)",
+            (FAMILY, "old", "2026-10-01T00:00:00Z", SHA, "ok", json.dumps(old)))
+        gap = collect(self.conn, ReplayAdapter(), source_sha=SHA, run_id="gap", observed_utc=NOW)
+        self.assertTrue(gap["coverage_gap"])
+        self.assertEqual(gap["coverage_gaps"], [{"after_run": "old", "before_run": "gap"}])
+        self.assertEqual(gap["continuous_since_run"], "gap")
+        self.assertFalse(gap["archive_complete"])
+        again = collect(self.conn, ReplayAdapter(), source_sha=SHA, run_id="next",
+                        observed_utc="2026-10-23T17:00:00Z")
+        self.assertFalse(again["coverage_gap"])
+        self.assertEqual(again["coverage_gaps"], gap["coverage_gaps"])  # Never forgotten.
+        self.assertEqual(again["continuous_since_run"], "gap")
 
     def test_migration_replay_keeps_other_families_constraints(self):
         migration.up(self.conn)

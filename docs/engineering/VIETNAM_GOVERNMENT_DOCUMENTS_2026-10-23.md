@@ -33,9 +33,12 @@ authority a document refers to are stored and shown separately.
 
 The collector reuses the screened Vietnam transport (HTTPS, host allowlist,
 robots check, spacing, request/byte budget, no redirects off host, challenge
-detection). It makes at most 17 requests per run: robots, listing, and at most
-15 candidate detail pages. A heavy week caps the candidates (newest first) and
-reports `candidates_skipped_by_budget`; it never holds the source.
+detection). It makes at most 52 requests per run (robots, listing, and a
+detail page per Government Office candidate; the listing has at most 50
+entries). Documents not yet stored are always fetched, so a busy week cannot
+silently drop one. Only re-reads of already stored documents are capped (15,
+newest first) and the number skipped is reported as
+`rechecks_skipped_by_budget`.
 
 ## Permitted use (enforced)
 
@@ -84,7 +87,9 @@ reports `candidates_skipped_by_budget`; it never holds the source.
   public projection follows the newest validated version. A revised subject
   outside the topical set withdraws the projection but not the history.
 * A listing that no longer overlaps the previous window records
-  `coverage_gap: true` once and resumes from the visible window.
+  `coverage_gap: true`, appends to a permanent `coverage_gaps` chain and
+  restarts `continuous_since_run` at that run; documents that scrolled out
+  unseen are not claimed. Collection resumes from the visible window.
 * The listing window is the portal's first page, not an archive:
   `archive_complete: false` is carried in every report.
 

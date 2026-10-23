@@ -24,7 +24,8 @@ FAMILY = "vn_vpcp_official_documents_vi"
 INDEX = "https://vanban.chinhphu.vn/"
 ISSUER = "Văn phòng Chính phủ"
 PUBLISHER = "Cục Thông tin và Truyền thông Chính phủ"
-MAX_DOCUMENTS = 15
+RECHECK_BUDGET = 15  # Already-stored documents re-read per run; unseen ones are never capped.
+LISTING_ENTRIES = 50
 METADATA_FIELDS = {"document_id", "document_number", "official_url", "issuer",
     "publisher", "signatory", "document_type", "issue_date", "issue_date_original",
     "effective_date", "subject", "attachments"}
@@ -134,11 +135,12 @@ class GovernmentOfficeAdapter(ShadowHttpAdapter):
     """Reuse the screened Vietnam transport, robots, spacing and request budget."""
     robots_url = INDEX + "robots.txt"
 
-    def __init__(self, **kwargs):
-        super().__init__(SimpleNamespace(slug=FAMILY), max_requests=17, **kwargs)
+    def __init__(self, known_urls=(), **kwargs):
+        super().__init__(SimpleNamespace(slug=FAMILY), max_requests=LISTING_ENTRIES + 2, **kwargs)
         self.listed = []
         self.listing_sha256 = None
-        self.candidates_skipped = 0
+        self.known_urls = frozenset(known_urls)
+        self.rechecks_skipped = 0
 
     def _challenged(self, headers, text):
         return bool(CHALLENGE_RE.search(text) or re.search(
@@ -153,11 +155,15 @@ class GovernmentOfficeAdapter(ShadowHttpAdapter):
             self.listing_sha256 = hashlib.sha256(raw.body).hexdigest()
             # All visible VPCP entries are rechecked, even outside the date window.
             candidates = [i for i in self.listed if "VPCP" in i["number"]]
-            # A heavy week caps the per-run budget instead of holding the source;
-            # the newest entries come first and the cap is reported.
-            candidates.sort(key=lambda i: i["date"], reverse=True)
-            self.candidates_skipped = max(0, len(candidates) - MAX_DOCUMENTS)
-            candidates = candidates[:MAX_DOCUMENTS]
+            # Every document not yet stored is mandatory, so a busy week can never
+            # silently drop an unprocessed one (the listing is at most 50 entries,
+            # which bounds requests). Only re-reads of stored documents are capped,
+            # newest first, and the number skipped is reported.
+            fresh = [i for i in candidates if i["url"] not in self.known_urls]
+            known = sorted((i for i in candidates if i["url"] in self.known_urls),
+                           key=lambda i: i["date"], reverse=True)
+            self.rechecks_skipped = max(0, len(known) - RECHECK_BUDGET)
+            candidates = fresh + known[:RECHECK_BUDGET]
             refs = [CandidateReference(i["url"], FAMILY, INDEX, i["date"]) for i in candidates]
             return DiscoveryResult(FAMILY, st.OK if refs else st.OK_NO_PUBLICATIONS, refs)
         except (Refusal, ValueError, KeyError, TypeError):
