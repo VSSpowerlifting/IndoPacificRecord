@@ -17,9 +17,13 @@ as `328ee95af58daeb10448e2d7a2c3ebf5a0adc896`. The shared Daily is active and
 `VIETNAM_VPCP_METADATA_ENABLED=true`. Its first release attempt, run
 `40016073780`, stopped before collection: the tracked-source assertion still
 expected eight sources after Daily's migration added the approved ninth source.
-The nested database-preservation test failed for the same reason. The narrow
-expectation repair passes the five affected focused checks; the production
-retry must pass its full offline suite before collection, rendering or deploy.
+The nested database-preservation test failed for the same reason. Repair
+`6a3e009c67` passed the five affected focused checks; retry `40020518984`
+then cleared those failures but exposed a one-second local-ingestion-clock
+race in the private/public handoff test. Its correction compares all signed
+fields across databases while preserving the complete same-database
+idempotency check. The production retry must pass its full offline suite
+before collection, rendering or deploy.
 No real source-to-public-HTTPS result is claimed yet. Scope remains verified
 Government Office bibliographic fields and official links, with no PDF
 retrieval, model input, translation or machine explanation; see

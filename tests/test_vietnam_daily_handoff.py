@@ -76,14 +76,17 @@ class Handoff(unittest.TestCase):
         return dict(body, mac=handoff._mac(BRIDGE_KEY, body))
 
     @staticmethod
-    def corpus(conn):
+    def corpus(conn, *, shared_projection=False):
         arts = conn.execute("SELECT * FROM articles ORDER BY url").fetchall()
         cols = [d[0] for d in conn.execute("SELECT * FROM articles").description]
         prov = conn.execute("SELECT * FROM vietnam_article_provenance"
                             " ORDER BY source_identity").fetchall()
         pcols = [d[0] for d in conn.execute(
             "SELECT * FROM vietnam_article_provenance").description]
-        return ([{c: v for c, v in zip(cols, r) if c != "id"} for r in arts],
+        # scraped_at is SQLite's local insertion clock, not signed source
+        # evidence. Compare it within one DB for idempotency, not across DBs.
+        omitted = {"id", "scraped_at"} if shared_projection else {"id"}
+        return ([{c: v for c, v in zip(cols, r) if c not in omitted} for r in arts],
                 [{c: v for c, v in zip(pcols, r) if c != "article_id"} for r in prov])
 
     def test_round_trip_reproduces_the_private_projection_and_is_idempotent(self):
@@ -96,7 +99,14 @@ class Handoff(unittest.TestCase):
         public = self.public()
         records = self.verify(envelope)
         self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
-        self.assertEqual(self.corpus(public), self.corpus(self.conn))
+        # Force different insertion clocks so a second boundary cannot make
+        # this contract pass or fail by chance. Published source dates and all
+        # signed provenance remain part of the exact comparison.
+        self.conn.execute("UPDATE articles SET scraped_at=datetime(scraped_at, '-1 day')")
+        self.assertNotEqual(public.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone(),
+                            self.conn.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone())
+        self.assertEqual(self.corpus(public, shared_projection=True),
+                         self.corpus(self.conn, shared_projection=True))
         before = self.corpus(public)
         self.assertEqual(handoff.admit(public, self.verify(envelope)), {bridge.DUPLICATE: 2})
         self.assertEqual(self.corpus(public), before)
