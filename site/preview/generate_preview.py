@@ -2223,14 +2223,16 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
     if withheld_mps_title:
         # Explicitly disclose the omission; still require real issuer, outlet,
         # source-stated date and official URL below. Never insert a fake title.
-        source_prefix = "Official source (original title withheld under the source-use decision)."
+        source_prefix = "Official source."
+        source_title = "Original title withheld under the source-use decision."
     else:
-        source_prefix = 'Source text. "{original}."'.format(
+        source_prefix = "Source text."
+        source_title = '"{original}."'.format(
             original=_require(original, "original title", subject))
     return {
         "source_text":
-            '{prefix} {institution}. {outlet}, {date}. {url}.'.format(
-                prefix=source_prefix,
+            '{prefix} {institution}. {source_title} {outlet}, {date}. {url}.'.format(
+                prefix=source_prefix, source_title=source_title,
                 institution=_require(record.get("institution"),
                                      "publishing institution", subject),
                 outlet=_require(record.get("source_name"), "source outlet",
