@@ -83,9 +83,16 @@ actual admitted government originals, not editorial articles.</p>
         {% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}
         <div data-korea-directory-mnd-metadata="{{ korea_mnd_live_link_count }}"><dt>Live MND link metadata</dt><dd>{{ korea_mnd_live_link_count }}</dd></div>
         {% endif %}
+        {% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}
+        <div data-philippines-directory-links="{{ ph_official_link_count }}"><dt>Verified official links</dt><dd>{{ ph_official_link_count }}</dd></div>
+        <div data-philippines-directory-machine="{{ ph_machine_explanation_count | default(0) }}"><dt>Machine explanations</dt><dd>{{ ph_machine_explanation_count | default(0) }}</dd></div>
+        {% endif %}
       </dl>
       {% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}
       <p class="meta" data-korea-directory-scope>MND and DAPA links are admitted; see Korea Desk. This is not a full-country article corpus.</p>
+      {% endif %}
+      {% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}
+      <p class="meta" data-philippines-directory-scope>AFP and NSC links and attributed machine explanations are published automatically. Original documents are not in the corpus. See Philippines Desk.</p>
       {% endif %}
       <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Enter the {{ d.name }}">Enter desk <span aria-hidden="true">→</span></a></p>
     </section>
@@ -138,7 +145,7 @@ actual admitted government originals, not editorial articles.</p>
 {% for d in desks %}
   <div class="scope-entry">
     <dt><a href="{{ d.route }}">{{ d.name }}</a> <span class="desk-state desk-state--{{ d.status }}" aria-label="{{ 'Research published; source archive: ' ~ d.status_label if d.slug in editorial_published_desks | default([]) else d.status_label }}"{% if d.slug in editorial_published_desks | default([]) %} title="{{ d.status_label }}"{% endif %}>{{ "Research published" if d.slug in editorial_published_desks | default([]) else d.status_label }}</span></dt>
-    <dd><p>{{ d.scope }}</p><p class="blocking">{{ d.status_explanation }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}">MND: {{ korea_mnd_live_link_count }} verified links. See Korea Desk for DAPA admissions and reuse limits.</p>{% endif %}{% if d.record_count %}<p class="card-foot"><a href="archive.html?desk={{ d.slug }}">Browse its records</a></p>{% endif %}</dd>
+    <dd><p>{{ d.scope }}</p><p class="blocking">{{ d.status_explanation }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}">MND: {{ korea_mnd_live_link_count }} verified links. See Korea Desk for DAPA admissions and reuse limits.</p>{% endif %}{% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}<p class="meta" data-philippines-directory-scope-count="{{ ph_official_link_count }}">{{ ph_official_link_count }} verified official links and {{ ph_machine_explanation_count | default(0) }} machine explanations. These are separate from corpus records, which stay at none.</p>{% endif %}{% if d.record_count %}<p class="card-foot"><a href="archive.html?desk={{ d.slug }}">Browse its records</a></p>{% endif %}</dd>
   </div>
 {% endfor %}
 </dl>

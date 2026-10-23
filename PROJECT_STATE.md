@@ -10,52 +10,28 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Philippines shared Daily integration (20 October 2026; review candidate):**
-Explicit English AFP/NSC profile, fail-closed unknown-desk routing, authenticated
-private source/version intake, shared Analyzer/quality/retry path, signed
-public-safe output and coordinated Daily/record/desk/archive/Sunday research
-integration are implemented on `codex/philippines-shared-daily-20261019`.
-The essential private companion invokes the same public engine without changing
-collectors. The owner approved standing AFP processing and qualifying factual
-machine explanations (≤90 words, explicit attribution/citation), $0.35 estimated
-per run, one record/two intended calls, no SDK retries, five failed attempts
-before individual pause. AFP policy is pinned; NSC remains independently held.
-General integration activation variables remain absent: no production release.
-Authentic offline replay: 32 AFP originals/captures match all 32 admitted link
-versions; NSC has zero records. No machine explanation has been released.
-Production DB/output and desk status are unchanged. The owner authorized one
-private `afp:1418` trial at `442081916b3b41850e958ae75298bf12afe565b6`,
-with a $0.35 total allowance, no translation, no automatic paid retry and no
-public output. Exact capture/content hashes and admitted link version reverified.
-The owner configured the private Actions key. Genuine trial: two calls, 1,251
-input / 584 output tokens, estimated $0.010581; no retries or translation.
-Response text, relevance judgment and source-specific review remain private.
-The trial did not produce a release-eligible record. Prompt v10 explicitly
-requires literal evidence punctuation and AFP/NSC in every sentence; strict
-gates remain unchanged. This is not a quality-passing production record.
-Private #21 retains the bounded trial command and private run receipts.
-`afp:1418` is explicitly excluded from processing, signing, intake and rendering.
-The owner requested genuine private verification of another relevant preserved
-record through shared Daily. Private review rejected another response for an
-unsupported geographic topic despite mechanical checks; its five attempts are
-preserved and paused. The shared quality gate now requires explicit source
-support for the South China Sea topic. The next genuine selection is `afp:1410`;
-its actual private receipt, admission/render result and final exact-head CI are
-reported in the existing PRs. No further model call is needed for a completed,
-quality-passing queue entry: retain it for the authorized production handoff.
-Separate merge/credentials/activation/deployment authorization remains required.
-Main's permanent working-desk ruling and newer U.S. metadata are retained.
-See `docs/engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md` for scope,
-evidence distinctions and rollback. Review: public #835 and private #21, both
-inactive. Focused profile/custody/migration/retry checks, the private 81-test
-suite and synthetic production-render/Chromium checks passed. Full Linux CI on
-`f446d53861` passed 7,690 tests (three skips), with ten governed validator warnings.
-Updated-head CI exposed Python 3.12 fixture/date compatibility and a changed SDK
-dependency set: explicit SQLite closure, consistent ISO-date diagnostics and
-the existing SDK major/httpx contract are repaired. Final-head CI must pass.
-The development full local run was not
-green (subsequently repaired regressions, missing gpg/python-docx and macOS
-temporary-path constraints); do not present it as successful full CI.
+**Philippines Desk (23 October 2026): operating, accuracy pass on this branch.**
+AFP and NSC run through the one shared Daily path: private collectors
+(`afp_private_first_collector`, 06:40 UTC; `nsc_private_first_collector`,
+10:10 UTC) preserve originals, `shared_daily_processing` screens and explains
+eligible English records once, signed public-safe output is admitted, and the
+existing Daily/Pages build publishes it. Standing owner decisions (18 and 20
+October) cover neutral link metadata and ≤90-word attributed machine
+explanations for both sources; `afp:1418` stays excluded. Verified production
+state: 32 AFP and 1 NSC link rows, 3 released machine records (`afp:1409`,
+`afp:1410`, `nsc:3108`), no original-document corpus records. The desk keeps
+registry status `shadow` (not collecting into the corpus) with a reader label,
+`public_status_label`, that names the links and machine explanations.
+
+**Runner defect, 22-23 October.** `ubuntu-latest` became Ubuntu 26.04, which
+has no Python 3.9, so `setup-python` failed before repo code ran in every
+Philippines leg: public Daily (fixed #855), AFP link production (#858), private
+collectors and shared processing (private #25), and the NSC admission workflow
+and the AFP/NSC PR contract checks (this branch). Last cycle with every leg
+unattended and green: 21 October. No scheduled cycle has completed since the
+repairs; the next AFP collector, AFP link production and Daily windows are the
+remaining observation. An NSC quiet period (newest statement 2026-07-08) and an
+AFP run with only duplicates are not failures.
 
 **Philippines Desk AFP official-link lane (19 October 2026):** released.
 The owner's standing authorization publishes verified neutral AFP link
@@ -83,35 +59,13 @@ Both are merged. `AFP_BRIDGE_KEY`, `AFP_METADATA_BRIDGE_ENABLED=true` and
 UTC). The private dispatch, run 39303137920, succeeded. `archive/ph-afp` is the AFP
 writer and may legitimately advance past the frozen public branch.
 
-**Philippines NSC (19 October 2026): built, held on an owner decision.**
-This branch adds:
-- m0014, which admits NSC into the shared `regional_official_source_links`.
-  The tracked `pla_watch.db` ships with 0014 already applied, so code and
-  schema land in one commit. It was generated by `migrations.cli --apply`
-  from main's exact DB, and the only changes are the CHECK clauses and one
-  ledger row;
-- `core/ph_nsc_official_link_admission.py`;
-- a signed-envelope production lane,
-  `ph_nsc_verified_official_link_production.yml`;
-- `ph_nsc_shadow.yml` reduced to a pull-request contract check. The public
-  `shadow/ph-nsc` branch freezes at its tip when this PR merges (`1a313e04`,
-  0 records, as of 2026-10-19).
-
-Private PR #19 continues the history on `archive/ph-nsc`. It also adds a
-no-model research packet for AFP and NSC. The packet labels screening,
-chronology and possible repeats, and leaves the analyst fields empty.
-
-Admission holds until the owner decides rights for NSC metadata. Both policy
-flags are `false`, and the category anomaly is unresolved. The source has
-posted nothing since 2026-07-08. The decision options and the merge order are
-in `docs/philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md`.
-
-The Sanlakas holds F02 (the Galvan/Gavan name) and F06 (the venue) stay open.
-See `research/philippines/sanlakas_2026/`.
-
-Maintenance: the 48 KiB signed-envelope limit is reached near ~350 records,
-and it fails closed. Details:
-`docs/engineering/PHILIPPINES_DESK_COMPLETION_2026-10-18.md`.
+**Philippines NSC admission lane.** m0014 admits NSC into the shared
+`regional_official_source_links`; `ph_nsc_verified_official_link_production.yml`
+accepts only a signed private-runner envelope. The 20 October owner decision
+authorized NSC link metadata and machine explanations and resolved the
+historical category warning for bounded release only. The 48 KiB signed-envelope
+limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
+Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
 **Indonesia Desk official-link lane (18 October 2026, release candidate):**
 Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.

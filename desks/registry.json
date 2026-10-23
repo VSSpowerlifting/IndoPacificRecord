@@ -222,7 +222,8 @@
       "route": "philippines.html",
       "scope": "Bounded first-party Armed Forces of the Philippines (AFP) public-affairs publications and Philippine National Security Council (NSC) official statements. Not a comprehensive defense, military, foreign-policy or whole-of-government archive.",
       "status": "shadow",
-      "status_explanation": "Verified AFP official-link metadata is collected into private custody and published daily. Philippine NSC is shadow collection only, moving from the public collector to private custody, with no published links pending its own owner decision. Neither source is admitted to the production IPR corpus; titles, text and rights gates remain separate.",
+      "public_status_label": "Official links and machine explanations — not in corpus",
+      "status_explanation": "AFP and NSC are collected daily into private custody. Verified neutral official links and short, attributed, machine-labeled explanations are then published automatically, with no per-record human review. Original titles, bodies, images and translations stay private and are not republished. Neither source has original-document records in the IPR corpus, and a quiet source is not a failure.",
       "public": true,
       "manifest": null,
       "has_production_records": false,
@@ -230,38 +231,48 @@
         "source_families": [
           {
             "name": "Armed Forces of the Philippines — first-party publications",
-            "format": "Official English-language articles; separate scheduled shadow-state storage",
+            "format": "Official English-language news releases; private daily collection, link metadata and machine explanations published automatically",
             "publisher_url": "https://www.afp.mil.ph/",
-            "note": "Institutionally attributed AFP publications are the initial source-admission priority. Private preserved originals are not automatically approved public IPR references or archive records."
+            "note": "Verified neutral link metadata (official URL, publisher date, attributed issuer) is published automatically. Qualifying English releases also receive a short, independently worded explanation labeled as machine output and attributed to AFP. Preserved originals stay in private custody and are not public archive records."
           },
           {
             "name": "Philippine National Security Council — official statements",
-            "format": "Official statement source; independent shadow-state family",
+            "format": "Official English-language statements; private daily collection, link metadata and machine explanations published automatically",
             "publisher_url": "https://nsc.gov.ph/category/official-statements/",
-            "note": "Checked daily in isolation from October 2, 2026 by the public collector, which is being retired; collection continues in private custody once the owner activates it. No new statement was observed in that window. Do not infer missing publications or borrow AFP's approval; link publication requires its own owner decision."
+            "note": "Checked daily in private custody. The source posts infrequently, so quiet days are normal and are not a failure. The same lanes apply under NSC's own checks. The NSC site hosts statements from several offices, so NSC hosting is not treated as proof of authorship: explanations are attributed to the NSC website or the issuing institution."
           }
         ],
         "observed_volume": [],
-        "volume_caveat": "The private source inventories and ledgers are independently pinned for review. No shadow row contributes to the published IPR corpus or to the public reference index.",
+        "volume_caveat": "Private custody holds originals that are not counted anywhere on this page. Link and explanation counts describe what has been published, not what was collected.",
         "blockers": [
           [
-            "Only verified AFP official-link metadata is authorized for publication.",
-            "On October 18, 2026 the owner authorized automatic publication of verified neutral AFP link metadata (official URL, publisher date and attributed issuer) without per-record review or an elapsed-day waiting period. Links after the October 15 reviewed cohort are not individually reviewed, and changed or disputed sources are held. AFP titles, bodies, images and translations, and admission to the IPR corpus, still need their own source, rights and editorial review. NSC must qualify separately."
+            "Original documents are not in the IPR corpus.",
+            "Titles, article bodies, images, translations and long excerpts remain in private custody. Publishing any of them needs separate source-use permission for that material. The standing decisions cover neutral link metadata and short attributed machine explanations only."
           ],
           [
-            "Publisher-specific rights and canonical evidence custody remain unresolved.",
-            "Review the authorization for each intended use—private preservation, public Git, public title/link reference, excerpt or full body—before publication. The private reader is not a source-use license."
+            "Each record still passes its own checks.",
+            "Official-host, canonical-URL, date, version and provenance checks apply to every record, as do relevance, attribution, copying and quality gates. A record that fails one is held individually; the desk is not paused."
           ],
           [
             "Two institutional sources are not countrywide coverage.",
             "The Department of National Defense, most Philippine military releases and all other institutions are outside this initial source scope."
           ]
         ],
-        "resolved": []
+        "resolved": [
+          [
+            "Link metadata and machine explanations are authorized for both sources.",
+            "Owner decisions of October 18 (AFP links) and October 20, 2026 (AFP and NSC machine explanations, NSC link metadata, and the historical NSC category warning for bounded release) authorize these lanes. They are standing decisions for these uses, not a licence for originals."
+          ],
+          [
+            "Collection, processing and publication use the existing shared Daily path.",
+            "Private collectors preserve originals, the shared Daily processes eligible English records once, signed public-safe output is admitted, and the existing site build publishes it. No separate Philippines pipeline exists."
+          ]
+        ]
       },
       "limits": [
-        "No Philippine source is enabled in the public IPR corpus; any AFP links listed here are verified official-link metadata only (URL, date, publisher), and private AFP and NSC shadow states remain separate.",
-        "No original body, binary capture or shadow archive record becomes public by this desk declaration.",
+        "Original AFP and NSC titles, article bodies, images and translations are not published. Links are neutral metadata: official URL, publisher date and publisher.",
+        "Machine explanations are short, independently worded model output attributed to the publisher. They are not human-reviewed IPR analysis and do not verify the institution's claims. IPR analysis appears only in Briefs an editor has approved.",
+        "No AFP or NSC original-document records are in the public IPR corpus. Link and explanation counts on this page are separate from corpus counts.",
         "AFP and NSC are independently governed institutional sources, not comprehensive Philippine defense coverage."
       ]
     },
