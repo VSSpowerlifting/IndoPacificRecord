@@ -348,33 +348,34 @@ authorization recovery and QA evidence are in
 `docs/BRIEF_RELEASE_REVIEW_2026-10-04.md`. The older desk measurements below
 have not been refreshed by that work.
 
-Vietnam MPS private collection and the official-link index are operational;
-automated corpus analysis remains held (verified 21 October 2026). Private
-`archive/vietnam-mps-foreign-affairs` remains at `25dae9889700e555f69710620d64f1577ac5e219`
-with 25 authenticated originals. Private verification #39697545306 and
-#39702405271 succeeded. Public metadata publication #39711288743 succeeded;
-Pages #39711423178 succeeded, and HTTPS `/vietnam.html` shows the three
-owner-reviewed MPS official links. These are metadata references, not analyzed
-articles. The production corpus has **zero Vietnam AI-analyzed articles**.
+Vietnam MPS release has a CI repair candidate on PR #856 (22 October 2026).
+The 22 October standing owner source-use decision permits bounded private
+processing and attributable independent factual explanations; it prohibits
+public Vietnamese titles/bodies and full translations. Both MOIT families
+retain their separate rights/access holds. No policy or processing workflow
+changes are part of this repair.
 
-Private MPS scheduled collection is enabled. Both article-lane flags
-(`VIETNAM_PRIVATE_DAILY_BRIDGE_ENABLED`, `VIETNAM_DAILY_HANDOFF_ENABLED`) and
-`VIETNAM_SOURCE_USE_REVIEW_KEY` in both repositories are absent. Existing
-metadata/bridge/provenance credentials are present; no values were disclosed.
-The registry stays shadow for corpus articles. MPS original-body external-model
-use has no sealed source-use decision; the footer asks attribution but does
-not establish that use, and the existing inquiry has no observed reply.
-Both MOIT families retain their separate rights/access holds.
+Failed shared Daily #39869835145 admitted MPS records **5487 and 5488** to
+the production database, then stopped during rendering because citations
+required the deliberately withheld original title. Its recovery preserved
+the admitted records; tracked output remains the earlier artifact. Admission
+is not evidence of a successful public article release. Do not reprocess or
+overwrite these records.
 
-The shared runner now supplies the existing bounded QA second pass. MPS
-analysis can generate an independent English factual headline and summary
-without full translation; deterministic QA, signed handoff and the record page
-preserve that distinction and withhold bodies/translations. No real MPS model
-call or article activation was performed. The single external blocker is an
-owner-approved, evidence-backed decision covering private original-body
-transmission to Anthropic and attributable factual output. See
-`docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md` for exact
-scope, findings and remaining activation steps. No private repository changes.
+PR #856 repairs the narrowly attested withheld-title citation case and the
+complete-suite compatibility regressions exposed by that admission: eligible
+corpus counts, desk/link contracts, language labels, source-text disclosures,
+dictionary provenance, headline semantics, page size and test SQLite reads.
+Source-use, signed custody, QA and publication gates remain intact. No paid
+processing, Daily dispatch, merge, deployment or live readback is performed
+by this repair. The isolated production render passes the unchanged validator
+with 10 governed warnings. The local macOS full attempt ran 7,858 tests but
+encountered path/SQLite and missing-dependency failures; its newly exposed
+tooltip/isolation regressions were repaired and 113 focused checks pass.
+Tracked database/output remain unchanged with no SQLite sidecars. Required
+Linux CI on the final exact commit must pass before the separate release
+phase. See `docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md`
+for the unchanged source-use scope.
 
 National Defence Journal English (desktop `tapchiqptd.vn/en/default.html`,
 mobile `m.tapchiqptd.vn/en`) is one additional **disabled, research-only**
