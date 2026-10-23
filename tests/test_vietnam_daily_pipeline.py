@@ -1120,17 +1120,36 @@ class VietnamRecordRender(unittest.TestCase):
         sys.path.insert(0, str(TRACKED_DB.parent / "site" / "preview"))
         import generate_preview as gp
         report, _ = self.run_bridge(source_use=grant(permissions={
-            "public_original_storage": False, "public_full_translation": False,
-            "public_excerpt": False}))
+            "public_title_display": False, "public_original_storage": False,
+            "public_full_translation": False, "public_excerpt": False}))
         self.assertIn(qa.PUBLISHED, self.outcomes(report))
         self.conn.commit()
         row = self.conn.execute("SELECT a.id, a.url FROM articles a JOIN "
                                 "vietnam_article_provenance p ON p.article_id=a.id").fetchone()
+        record = next(r for r in gp.load_corpus(self.db_path)["corpus"]
+                      if r["id"] == row[0])
+        self.assertIsNone(record["title_original"])
+        cited = gp.record_citation(record, "Test Title", gp.DECLARED_SNAPSHOT)
+        self.assertIn("Original title withheld under the source-use decision.",
+                      cited["source_text"])
+        self.assertIn(row[1], cited["source_text"])
+        self.assertNotIn(record["title_english"], cited["source_text"])
+        # Omission is justified by an exact source-use decision, never a blank
+        # title on an arbitrary article or an unsigned change of permission.
+        wrong_source = copy.deepcopy(record)
+        wrong_source["source_slug"] = "xinhua_mil"
+        with self.assertRaises(gp.CitationDataMissing):
+            gp.record_citation(wrong_source, "Test Title", gp.DECLARED_SNAPSHOT)
+        wrong_permission = copy.deepcopy(record)
+        wrong_permission["vietnam"]["permissions"]["public_title_display"] = True
+        with self.assertRaises(gp.CitationDataMissing):
+            gp.record_citation(wrong_permission, "Test Title", gp.DECLARED_SNAPSHOT)
         with patch.object(gp, "load_registry", self.promoted_registry):
             gp.build(self.tmp / "out", "Test Title", self.db_path,
                      snapshot=gp.snapshot_from_corpus(self.db_path))
         page = (self.tmp / "out" / "record" / ("%d.html" % row[0])).read_text()
         self.assertIn("Synthetic IPR factual headline", page)
+        self.assertIn("Original title withheld under the source-use decision.", page)
         self.assertIn("According to the report", page)
         self.assertIn("Machine-generated headline", page)
         self.assertNotIn('id="record-translation"', page)
