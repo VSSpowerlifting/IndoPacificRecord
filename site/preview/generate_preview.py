@@ -2204,14 +2204,35 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
     function exists to make impossible.
     """
     subject = "record %s" % record.get("id")
+    original = record.get("title_original")
+    vietnam = record.get("vietnam") or {}
+    # The approved MPS lane deliberately cannot reproduce its original title.
+    # This is NOT a missing capture and NOT permission to substitute the
+    # independent machine-written headline in a citation to the source.
+    withheld_mps_title = (
+        not (original or "").strip()
+        and record.get("source_slug") == "vn_mps_foreign_affairs_vi"
+        and isinstance(vietnam, dict)
+        and vietnam.get("source_family") == record.get("source_slug")
+        and vietnam.get("canonical_official_url") == record.get("url")
+        and bool(vietnam.get("source_identity"))
+        and bool(vietnam.get("rights_decision_sha256"))
+        and isinstance(vietnam.get("permissions"), dict)
+        and vietnam["permissions"].get("public_title_display") is False
+    )
+    if withheld_mps_title:
+        # Explicitly disclose the omission; still require real issuer, outlet,
+        # source-stated date and official URL below. Never insert a fake title.
+        source_prefix = "Official source (original title withheld under the source-use decision)."
+    else:
+        source_prefix = 'Source text. "{original}."'.format(
+            original=_require(original, "original title", subject))
     return {
         "source_text":
-            'Source text. {institution}. "{original}." {outlet}, {date}. '
-            '{url}.'.format(
+            '{prefix} {institution}. {outlet}, {date}. {url}.'.format(
+                prefix=source_prefix,
                 institution=_require(record.get("institution"),
                                      "publishing institution", subject),
-                original=_require(record.get("title_original"),
-                                  "original title", subject),
                 outlet=_require(record.get("source_name"), "source outlet",
                                 subject),
                 date=_require(record.get("published_date"),
