@@ -2977,6 +2977,14 @@ def build(out_dir: Path, title: str, db_path: Path,
         # only on the Desks directory, without reclassifying Korea as 'live'.
         desk_index_lanes = ({"korea_mnd_live_link_count": (korea_production_link_count - korea_dapa_production_link_count)}
                             if target == "desks.html" else {})
+        if target == "desks.html":
+            # Philippines link metadata and machine explanations are real
+            # production lanes but not corpus originals; count each from its own
+            # governed table and never add them to a corpus figure.
+            from core.regional_official_link_render import load_admitted_links as ph_links
+            from core.daily_machine_records import load as ph_machine
+            desk_index_lanes["ph_official_link_count"] = len(ph_links(db_path, "philippines"))
+            desk_index_lanes["ph_machine_explanation_count"] = len(ph_machine(db_path))
         page_html = env.get_template(template).render(
             page=target, **ctx, **desk_index_lanes)
         if target == "desks.html":

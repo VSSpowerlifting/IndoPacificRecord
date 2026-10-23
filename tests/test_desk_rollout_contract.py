@@ -578,15 +578,17 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                     self.assertEqual(set(re.findall(
                         r'data-regional-official-source-id="([^"]+)"', page)), vietnam_links)
                 elif philippines_links:
-                    self.assertIn("Verified official-source links admitted", page)
+                    self.assertIn("Official links and machine explanations, published automatically", page)
                     self.assertEqual(set(re.findall(
                         r'data-regional-official-source-id="([^"]+)"', page)),
                         philippines_links)
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
                 if name == "philippines":
-                    self.assertIn("Corpus records</dt><dd>Not admitted", page)
-                    self.assertIn("Sources enabled in production</dt><dd>0", page)
+                    # Link metadata and machine explanations are not corpus
+                    # records; the page says so rather than showing zero-source rows.
+                    self.assertIn("Original documents in the IPR corpus</dt><dd>None", page)
+                    self.assertNotIn("Sources enabled in production", page)
                     self.assertNotIn('href="archive.html?desk=' + name + '"', page)
                 else:
                     with self.db() as con:
@@ -612,14 +614,17 @@ class TestPendingDeskReferenceBrowser(DeskCase):
     """No publication approvals means a transparent empty public bibliography."""
 
     def test_metadata_only_reference_lane_is_available_but_empty(self):
-        # Philippines remains pending; Vietnam has an independent MPS lane.
+        # No Philippines article reference has the separate title-review path;
+        # its admitted AFP/NSC links are a different, metadata-only lane, so the
+        # page must not also claim that no references exist.
         slug = "philippines"
         html = self.page(slug + ".html")
-        self.assertIn("Individually reviewed official-source references", html)
-        self.assertIn("No individual source references have completed", html)
+        self.assertNotIn("Individually reviewed official-source references", html)
+        self.assertNotIn("No individual source references have completed", html)
         self.assertNotIn('data-reference-list', html)
-        self.assertIn("Corpus records</dt><dd>Not admitted", html)
+        self.assertIn("Original documents in the IPR corpus</dt><dd>None", html)
         self.assertNotIn("archive.html?desk=" + slug, html)
+        self.assertIn("Individually reviewed official-source references", self.page("indonesia.html"))
 
     def test_progressive_enhancement_files_are_produced(self):
         for filename in ("desk-references.css", "desk-references.js"):
