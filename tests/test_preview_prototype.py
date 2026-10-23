@@ -5337,11 +5337,15 @@ class TestSnapshotScopedCitations(PreviewCase):
         wrong = []
         for rec in self.corpus:
             cite = gp.record_citation(rec, "Test Title", self.snapshot)
-            for value in (rec["institution"], rec["title_original"],
-                          rec["source_name"], rec["published_date"],
-                          rec["url"]):
+            for value in (rec["institution"], rec["source_name"],
+                          rec["published_date"], rec["url"]):
                 if str(value) not in cite["source_text"]:
                     wrong.append((rec["id"], value))
+            if rec["title_original"]:
+                if rec["title_original"] not in cite["source_text"]:
+                    wrong.append((rec["id"], "original title"))
+            elif "Original title withheld under the source-use decision." not in cite["source_text"]:
+                wrong.append((rec["id"], "withheld title disclosure"))
             if "Record %d," % rec["id"] not in cite["as_held"]:
                 wrong.append((rec["id"], "id"))
         self.assertEqual(wrong[:10], [])
@@ -5363,6 +5367,12 @@ class TestSnapshotScopedCitations(PreviewCase):
             english = (rec.get("title_english") or "").strip()
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
+                if not original:
+                    self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+                    self.assertIn("Original title withheld under the source-use decision.",
+                                  cite["source_text"])
+                    self.assertNotIn(english, cite["source_text"])
+                    continue
                 self.assertIn('"%s."' % original, cite["source_text"])
                 if english and english not in original:
                     compared += 1
@@ -5383,8 +5393,11 @@ class TestSnapshotScopedCitations(PreviewCase):
             rec = self.by_id[rec_id]
             html = self.record(rec_id)
             with self.subTest(state=state):
-                self.assertIn(str(markupsafe.escape(
-                    '"%s."' % rec["title_original"])), html)
+                if not rec["title_original"]:
+                    self.assertIn("Original title withheld under the source-use decision.", html)
+                else:
+                    self.assertIn(str(markupsafe.escape(
+                        '"%s."' % rec["title_original"])), html)
 
     def test_all_record_pages_carry_the_snapshot_date_and_count(self):
         expected = ("Snapshot — %s (%s records)"
