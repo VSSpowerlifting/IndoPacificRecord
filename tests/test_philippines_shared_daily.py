@@ -175,17 +175,18 @@ class SharedDaily(unittest.TestCase):
         envelope = d.sign_outputs(state, family="ph_afp_articles",
                                   policy=p, key="synthetic-test-key-" * 3)
         output = envelope["packet"]["records"][0]
-        d.validate_output(output, "ph_afp_articles", p)
+        per_source = p["sources"]["ph_afp_articles"]
+        d.validate_output(output, "ph_afp_articles", per_source)
         for version in ("ph-relevance-v1+ph-analysis-v9",
                         "ph-relevance-v1+ph-analysis-v13"):
             with self.subTest(version=version), self.assertRaisesRegex(
                     d.IntakeHold, "daily_output_incomplete"):
                 d.validate_output(dict(output, prompt_version=version),
-                                  "ph_afp_articles", p)
+                                  "ph_afp_articles", per_source)
         with self.assertRaisesRegex(
                 d.IntakeHold, "daily_output_schema_or_policy_invalid"):
             d.validate_output(dict(output, policy_sha256="f" * 64),
-                              "ph_afp_articles", p)
+                              "ph_afp_articles", per_source)
 
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError
