@@ -164,6 +164,29 @@ class SharedDaily(unittest.TestCase):
             self.assertEqual(signed["packet"]["records"][0]["prompt_version"],
                              version)
 
+    def test_public_validator_accepts_v12_and_preserves_strict_version_holds(self):
+        # Private grounded QA already accepts v12. A signed output must pass
+        # the public gate too, without accepting arbitrary model versions.
+        p = policy()
+        reply = reading()
+        reply["prompt_version"] = "ph-relevance-v1+ph-analysis-v12"
+        state, _ = d.process([record()], {}, family="ph_afp_articles",
+                             policy=p, analyzer_factory=lambda: fake_analyzer(reply))
+        envelope = d.sign_outputs(state, family="ph_afp_articles",
+                                  policy=p, key="synthetic-test-key-" * 3)
+        output = envelope["packet"]["records"][0]
+        d.validate_output(output, "ph_afp_articles", p)
+        for version in ("ph-relevance-v1+ph-analysis-v9",
+                        "ph-relevance-v1+ph-analysis-v13"):
+            with self.subTest(version=version), self.assertRaisesRegex(
+                    d.IntakeHold, "daily_output_incomplete"):
+                d.validate_output(dict(output, prompt_version=version),
+                                  "ph_afp_articles", p)
+        with self.assertRaisesRegex(
+                d.IntakeHold, "daily_output_schema_or_policy_invalid"):
+            d.validate_output(dict(output, policy_sha256="f" * 64),
+                              "ph_afp_articles", p)
+
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError
         a = Analyzer.__new__(Analyzer)
