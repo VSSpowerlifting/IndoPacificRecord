@@ -28,7 +28,7 @@ permissions:
 jobs:
   contract:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
       - name: Check out review merge
@@ -85,7 +85,7 @@ jobs:
 
   preview:
     if: github.event_name == 'workflow_dispatch' && inputs.publish == false && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
       - name: Check out main
@@ -153,7 +153,7 @@ jobs:
 
   publish:
     if: github.event_name == 'workflow_dispatch' && inputs.publish == true && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
       contents: write
