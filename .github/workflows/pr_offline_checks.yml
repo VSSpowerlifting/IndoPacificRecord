@@ -221,11 +221,25 @@ jobs:
           sys.exit(0 if result.wasSuccessful() else 1)
           PY
 
-      # The same gate the daily run uses before deploying. Check 8 compares
-      # analyzed articles in the database against rendered pages, so it reads
-      # the database — through the scratch-copy helper, never the tracked file.
+      # Failed Daily recovery can preserve admissions without completing the
+      # render. Exercise the repaired renderer on the exact synthetic merge in
+      # an isolated tree; the checkout's DB/output remain evidence, untouched.
+      # Keeping the normal repo layout also keeps validator check 8 enabled.
+      - name: Render isolated output for validation
+        id: validation_tree
+        if: ${{ steps.scope.outputs.mode != 'docs' }}
+        run: |
+          set -euo pipefail
+          candidate="$(mktemp -d "${RUNNER_TEMP}/ipr-pr-validation.XXXXXX")"
+          git archive HEAD | tar -x -C "$candidate"
+          python "$candidate/site/render.py" --site-origin https://indopacificrecord.org
+          echo "root=$candidate" >> "$GITHUB_OUTPUT"
+
+      # The unchanged deploy gate, including analyzed-record coverage, now
+      # checks the freshly rendered candidate rather than an older deployment.
       - name: Validate rendered output
         if: ${{ steps.scope.outputs.mode != 'docs' }}
+        working-directory: ${{ steps.validation_tree.outputs.root }}
         run: python scripts/validate_output.py
 
       # Must run even when a step above failed: a failing suite that also

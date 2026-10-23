@@ -348,7 +348,9 @@ class TestNothingUnexpectedIsDeclared(unittest.TestCase):
         """
         for step in steps_of(load_workflow()):
             with self.subTest(step=step["name"]):
-                unexpected = set(step) - self.STEP
+                allowed = self.STEP | ({"working-directory"}
+                                      if step["name"] == "Validate rendered output" else set())
+                unexpected = set(step) - allowed
                 self.assertEqual(unexpected, set(),
                                  "unexpected step key(s): %s" % sorted(unexpected))
 
@@ -524,6 +526,20 @@ class TestItRunsTheRealChecks(unittest.TestCase):
 
     def test_it_runs_the_production_validator(self):
         self.assertIn(self.VALIDATOR, run_bodies(load_workflow()))
+
+    def test_validation_renders_the_exact_merge_in_an_isolated_repo_layout(self):
+        steps = {s.get("name"): s for s in steps_of(load_workflow())}
+        render = steps["Render isolated output for validation"]
+        validator = steps["Validate rendered output"]
+        self.assertEqual(render["if"], validator["if"])
+        self.assertIn('${RUNNER_TEMP}/ipr-pr-validation.', render["run"])
+        self.assertIn('git archive HEAD | tar -x -C "$candidate"', render["run"])
+        self.assertIn('python "$candidate/site/render.py" --site-origin https://indopacificrecord.org',
+                      render["run"])
+        self.assertNotIn("--out", render["run"])
+        self.assertEqual(validator["working-directory"],
+                         "${{ steps.validation_tree.outputs.root }}")
+        self.assertEqual(validator["run"], self.VALIDATOR)
 
     def test_those_are_the_commands_the_daily_run_uses(self):
         """

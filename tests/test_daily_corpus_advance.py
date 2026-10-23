@@ -25,6 +25,7 @@ covers that separately.
 from __future__ import annotations
 
 import importlib.util
+from contextlib import closing
 import re
 import shutil
 import sqlite3
@@ -119,7 +120,13 @@ class TestTheDailyRenderFollowsTheCorpus(unittest.TestCase):
         cls.gp = load_gp()
         cls.tmp = Path(tempfile.mkdtemp(prefix="corpus-advance-"))
         cls.db = copy_corpus(cls.tmp)
-        cls.remaining = drop_records(cls.db, 40)
+        cls.before_ids = {r["id"] for r in cls.gp.load_corpus(cls.db)["corpus"]}
+        with closing(sqlite3.connect(cls.db)) as con:
+            cls.deleted_ids = {r[0] for r in con.execute(
+                "SELECT id FROM articles ORDER BY id DESC LIMIT 40")}
+        cls.raw_remaining = drop_records(cls.db, 40)
+        cls.after_ids = {r["id"] for r in cls.gp.load_corpus(cls.db)["corpus"]}
+        cls.remaining = len(cls.after_ids)
         cls.declared = dict(cls.gp.DECLARED_SNAPSHOT)
         cls.out = cls.tmp / "built"
         cls.report = cls.render.render_site(
@@ -133,6 +140,17 @@ class TestTheDailyRenderFollowsTheCorpus(unittest.TestCase):
     def test_the_temporary_corpus_really_differs_from_the_declared_one(self):
         """Otherwise every assertion below would pass for the wrong reason."""
         self.assertNotEqual(self.remaining, self.declared["expected_records"])
+
+    def test_only_deleted_eligible_records_leave_the_public_snapshot(self):
+        # Stored Korea candidates can be held by the publication gate. Raw SQL
+        # totals include them; they must never be promoted just to match a count.
+        self.assertEqual(self.after_ids, self.before_ids - self.deleted_ids)
+        self.assertGreater(len(self.before_ids), self.remaining)
+        with closing(sqlite3.connect(self.db)) as con:
+            _, hidden = self.gp.publication_gate(con)
+            held = con.execute("SELECT id FROM articles").fetchall()
+        self.assertEqual(self.raw_remaining - self.remaining,
+                         len({r[0] for r in held} & hidden))
 
     def test_render_site_succeeds_with_no_snapshot_supplied(self):
         self.assertEqual(self.report["mode"], self.render.INDO_PACIFIC_RECORD)

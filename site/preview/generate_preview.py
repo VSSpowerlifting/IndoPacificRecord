@@ -752,6 +752,8 @@ def corpus_facets(corpus: list) -> dict:
 LANGUAGE_LABELS = {
     "zh-Hans": "Simplified Chinese",
     "en": "English",
+    "ko": "Korean",
+    "vi": "Vietnamese",
 }
 
 
@@ -1730,7 +1732,9 @@ DICTIONARY_FIELDS = [
         "label": "Original title", "stored": "title_original",
         "origin": "Stored", "check": "title_original",
         "meaning": "The item's title as published, stored as captured.",
-        "absent": "Never absent.",
+        "absent": "Withheld for {withheld_original_titles} records under their "
+                  "source-use decisions. Other absent titles are missing "
+                  "capture data, not permission to substitute an English headline.",
         "limitation": "Held as captured and never edited, translated in place, "
                       "or normalized. It is the authoritative title for this "
                       "record.",
@@ -1817,16 +1821,19 @@ DICTIONARY_FIELDS = [
         "origin": "Stored", "check": "scrape_run_id",
         "meaning": "The pipeline run that stored the record, for records "
                    "the daily pipeline collected.",
-        "absent": "Absent for {promoted_without_run} records: those arrived "
-                  "through a governed shadow promotion rather than a "
-                  "pipeline run, and carry no scrape_run_id by design.",
+        "absent": "Absent for {without_run} records: {promoted_without_run} "
+                  "Singapore records arrived through a governed shadow promotion; "
+                  "{private_handoff_without_run} Vietnam records arrived through "
+                  "an authenticated private handoff; {other_without_run} other "
+                  "records have no run association.",
         "limitation": "Run history preserves no target publication date and no "
                       "historical source-level outcome, so a run identifier "
                       "does not establish which sources were reached or which "
                       "dates were sought. A record with no run association was "
                       "not necessarily uncollected — its provenance may "
                       "instead be a promotion ledger entry, documented at the "
-                      "record's own source.",
+                      "record's own source, or authenticated private-handoff "
+                      "provenance shown on the record page.",
     },
     {
         "label": "Collection timestamp", "stored": "scraped_at",
@@ -1931,12 +1938,18 @@ def corpus_guide_stats(corpus: list, run_days: list) -> dict:
         "non_analyzed": len(english["non_analyzed"]),
         "english_sets_identical": english["identical"],
         "outage_records_china": outage_records_china,
-        # Records with no pipeline-run association at all. Ordinary collected
-        # records always carry one; a governed shadow promotion legitimately
-        # does not, and its provenance instead lives in the promotion ledger
-        # (scripts/promote_shadow_records.py), not scrape_run_id.
+        "without_run": sum(1 for r in corpus if r.get("scrape_run_id") is None),
         "promoted_without_run": sum(
-            1 for r in corpus if r.get("scrape_run_id") is None),
+            1 for r in corpus if r.get("scrape_run_id") is None
+            and r.get("desk_id") == "singapore"),
+        "private_handoff_without_run": sum(
+            1 for r in corpus if r.get("scrape_run_id") is None and r.get("vietnam")),
+        "other_without_run": sum(
+            1 for r in corpus if r.get("scrape_run_id") is None
+            and r.get("desk_id") != "singapore" and not r.get("vietnam")),
+        "withheld_original_titles": sum(
+            1 for r in corpus if _blank(r.get("title_original"))
+            and r.get("vietnam", {}).get("permissions", {}).get("public_title_display") is False),
         "empty_text": sum(1 for r in corpus if _blank(r.get("text_original"))),
         "prompt_version_missing": sum(1 for r in analyzed
                                       if _blank(r.get("prompt_version"))),

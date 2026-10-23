@@ -454,8 +454,7 @@ class TestVietnamMpsLiveCoverage(DeskCase):
                 "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
                 "WHERE s.desk_id='vietnam'").fetchone()[0]
         self.assertNotIn("Records</dt><dd>Not admitted", html)
-        self.assertIn("Records</dt><dd>", html)
-        self.assertGreaterEqual(actual, 0)
+        self.assertIn("Source records</dt><dd>%s</dd>" % format(actual, ","), html)
 
     def test_the_vietnam_page_shows_no_collection_statistic(self):
         """Newsroom-tag listings are not production records or shadow counts."""
@@ -590,8 +589,11 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                     self.assertIn("Sources enabled in production</dt><dd>0", page)
                     self.assertNotIn('href="archive.html?desk=' + name + '"', page)
                 else:
-                    # MPS has one manual source; zero genuine records is allowed.
-                    self.assertIn("Records</dt><dd>", page)
+                    with self.db() as con:
+                        actual = con.execute(
+                            "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
+                            "WHERE s.desk_id='vietnam'").fetchone()[0]
+                    self.assertIn("Source records</dt><dd>%s</dd>" % format(actual, ","), page)
                     self.assertIn("Sources enabled</dt><dd>1", page)
                 self.assertNotIn("text_original", page)
                 self.assertNotIn("state/shadow.db", page)
