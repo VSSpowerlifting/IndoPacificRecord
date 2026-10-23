@@ -10,6 +10,21 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**Living Dossiers (23 October 2026): complete private review candidate, unpublished.**
+`dossiers/maritime-cooperation-2026.json` contains eight source-grounded findings,
+five exact archive body versions and the six-entry existing chronology bound
+by digest. `scripts/dossier.py check|ready|changes|preview` and the shared
+`site/render.py --review-dossier` provide the review workflow. Actual public
+loading requires independently recorded source-use and exact human approval;
+JSON approval assertions alone fail. The real draft adds no production route,
+archive entry or backlink. Approved-fixture tests exercise those paths and
+private revisions preserve the previous approved source. Brief No. 15,
+Timeline bytes, DB and tracked output are unchanged. Source-use clearance for
+the three publisher families and human review of this exact dossier remain
+outstanding; no publication authority is claimed. Commands, trust boundary and
+source-to-finding matrix: `docs/LIVING_DOSSIERS.md`. Task branch:
+`codex/living-dossiers-20261023`, base `6a3e009c67b6bdb706d099441d755ea4b21832bc`.
+
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
 PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged
 as `328ee95af58daeb10448e2d7a2c3ebf5a0adc896`. Production test repairs
