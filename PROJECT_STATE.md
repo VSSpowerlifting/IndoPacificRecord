@@ -10,25 +10,37 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office documents (23 October 2026): bibliographic integration merged; first production release awaiting retry.**
-PR #863 (`6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`) passed the mandatory
-7,945-test PR suite, browser and validator (10 governed warnings), then merged
-as `328ee95af58daeb10448e2d7a2c3ebf5a0adc896`. The shared Daily is active and
-`VIETNAM_VPCP_METADATA_ENABLED=true`. Its first release attempt, run
-`40016073780`, stopped before collection: the tracked-source assertion still
-expected eight sources after Daily's migration added the approved ninth source.
-The nested database-preservation test failed for the same reason. Repair
-`6a3e009c67` passed the five affected focused checks; retry `40020518984`
-then cleared those failures but exposed a one-second local-ingestion-clock
-race in the private/public handoff test. Its correction compares all signed
-fields across databases while preserving the complete same-database
-idempotency check. The production retry must pass its full offline suite
-before collection, rendering or deploy.
-No real source-to-public-HTTPS result is claimed yet. Scope remains verified
-Government Office bibliographic fields and official links, with no PDF
-retrieval, model input, translation or machine explanation; see
-`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md` and the separate
-owner activation in DECISION_LOG. Full-document work remains separately gated.
+**Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
+PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged
+as `328ee95af58daeb10448e2d7a2c3ebf5a0adc896`. Production test repairs
+`6a3e009c67` (the admitted ninth source) and `3e5b3f6faf` (handoff insertion
+clocks, retaining signed-field and idempotency checks) cleared both observed
+failures. Shared Daily run `40023459779` passed all 7,945 offline tests
+(15 skips), database-preservation and 55 reconciliation checks, then collected
+four topical bibliographic records from nine Government Office documents
+in 11 requests, with five filtered, zero held and zero model calls. Validator
+passed with the governed 10 warnings. Production commit `86658b8513` and
+Pages commit `a16d84f372` deployed successfully (Pages run `40025995816`).
+Public HTTPS Vietnam Desk, Archive and research index match the committed
+release byte for byte; live browser search finds `10790/VPCP-CN` and the desk
+shows both that document and `545/TB-VPCP` with correct issuer, signatory and
+issue date. Only the shared official-link, metadata-version and collection-run
+tables changed; existing articles, other official links and Archive records
+are unchanged. The existing Daily is active with
+`VIETNAM_VPCP_METADATA_ENABLED=true`; its next natural scheduled cycle has
+not yet occurred. This acceptance run used `vpcp_metadata_only=true` and did
+not advance the full-Daily success marker.
+
+The separately authorized bounded local access assessment retrieved the two
+exact official PDF links over ordinary verified HTTPS: 4/4 and 5/5 pages carry
+extractable text, without encryption or page failures. The full `545/TB-VPCP`
+identifier could not be matched in extracted text, so complete document
+verification is not claimed. No original text was transmitted to external
+models, admitted to production or publicly copied. Production remains
+metadata-only; attachment collection, translation and machine explanation
+remain disabled pending separate source/use/model/spend authority. See
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md` for receipts,
+technical access limits and the distinction from a production permission.
 
 **Philippines Desk (23 October 2026): operating, accuracy pass on this branch.**
 AFP and NSC run through the one shared Daily path: private collectors
