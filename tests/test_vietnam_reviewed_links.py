@@ -115,8 +115,20 @@ class VietnamReviewedLinksTests(unittest.TestCase):
         from core.desk_registry import load_registry
         desks = eligible_desks(load_registry())
         self.assertIn("vietnam", desks)
-        self.assertEqual([s.slug for s in load_registry().get("vietnam").sources],
-                         ["vn_mps_foreign_affairs_vi"])
+        sources = load_registry().get("vietnam").sources
+        self.assertEqual([s.slug for s in sources],
+                         ["vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"])
+        # Only MPS has an article-level model/AI source-use decision. The
+        # Government Office family is bibliographic-only and fail-closed, and
+        # no MOIT family is a configured source at all.
+        from processing.government_document_intake import policy
+        vpcp = policy()
+        self.assertTrue(vpcp["public_bibliographic_metadata"])
+        for held in ("external_model_transmission", "attachment_download",
+                     "public_document_body", "public_translation",
+                     "public_machine_explanation"):
+            self.assertIs(vpcp[held], False, held)
+        self.assertFalse([s for s in sources if "moit" in s.slug.lower()])
 
 
 if __name__ == "__main__":

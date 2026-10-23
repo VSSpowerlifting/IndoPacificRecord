@@ -28,11 +28,13 @@ LINKS = {
             "https://moit.gov.vn/tin-tuc/phat-trien-nang-luong",
         "Ministry of Industry and Trade — foundational industry (Vietnamese)":
             "https://moit.gov.vn/tin-tuc/phat-trien-cong-nghiep/cong-nghiep-nen-tang",
+        "Government Office of Vietnam — official documents (Vietnamese)":
+            "https://vanban.chinhphu.vn/",
     },
 }
 ALLOWED_HOSTS = {
     "www.mod.go.jp", "www.kaiho.mlit.go.jp", "en.baochinhphu.vn",
-    "bocongan.gov.vn", "moit.gov.vn",
+    "bocongan.gov.vn", "moit.gov.vn", "vanban.chinhphu.vn",
 }
 
 

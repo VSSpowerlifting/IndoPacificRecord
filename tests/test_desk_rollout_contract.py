@@ -419,8 +419,9 @@ class TestVietnamMpsLiveCoverage(DeskCase):
         self.assertTrue(entry.is_collecting)
         self.assertTrue(entry.may_show_record_count)
         self.assertEqual((entry.configured_source_count,
-                          entry.enabled_source_count), (1, 1))
-        self.assertEqual(entry.sources[0].slug, "vn_mps_foreign_affairs_vi")
+                          entry.enabled_source_count), (2, 2))
+        self.assertEqual([s.slug for s in entry.sources],
+                         ["vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"])
         self.assertEqual(entry.sources[0].access_method, "manual")
 
     def test_only_mps_manual_source_enters_the_production_manifest(self):
@@ -430,19 +431,23 @@ class TestVietnamMpsLiveCoverage(DeskCase):
         self.assertTrue((REPO_ROOT / "shadow" / "vietnam" / "manifest.json").is_file())
         self.assertTrue((MANIFESTS / "vietnam" / "manifest.json").is_file())
         cfg = load_all_desks()["vietnam"]
-        self.assertEqual(len(cfg.sources), 1)
-        self.assertEqual(cfg.sources[0].slug, "vn_mps_foreign_affairs_vi")
-        self.assertEqual(cfg.sources[0].access_method, "manual")
+        self.assertEqual([s.slug for s in cfg.sources],
+                         ["vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"])
+        self.assertTrue(all(s.access_method == "manual" for s in cfg.sources))
         with self.db() as con:
             rows = con.execute(
                 "SELECT slug, desk_id, enabled, access_method FROM sources "
-                "WHERE desk_id = 'vietnam'").fetchall()
-        self.assertEqual(rows, [("vn_mps_foreign_affairs_vi", "vietnam", 1, "manual")])
+                "WHERE desk_id = 'vietnam' ORDER BY slug").fetchall()
+        # The synchronised table may or may not yet carry the bibliographic
+        # Government Office row; MOIT and every other family must be absent.
+        self.assertEqual(rows[0], ("vn_mps_foreign_affairs_vi", "vietnam", 1, "manual"))
+        self.assertLessEqual({r[0] for r in rows},
+                             {"vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"})
 
     def test_the_vietnam_page_discloses_mps_only_without_invented_article_counts(self):
         html = self.page("vietnam.html")
         self.assertIn("Verified official-source links admitted", html)
-        self.assertIn("Sources enabled</dt><dd>1", html)
+        self.assertIn("Sources enabled</dt><dd>2", html)
         self.assertIn("Ministry of Public Security — foreign affairs (Vietnamese)", html)
         self.assertNotIn("Sources enabled in shadow", html)
         self.assertIn("MOIT", html)
@@ -596,7 +601,7 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                             "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
                             "WHERE s.desk_id='vietnam'").fetchone()[0]
                     self.assertIn("Source records</dt><dd>%s</dd>" % format(actual, ","), page)
-                    self.assertIn("Sources enabled</dt><dd>1", page)
+                    self.assertIn("Sources enabled</dt><dd>2", page)
                 self.assertNotIn("text_original", page)
                 self.assertNotIn("state/shadow.db", page)
         page = self.page("philippines.html")
