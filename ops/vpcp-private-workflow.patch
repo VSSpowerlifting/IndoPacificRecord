@@ -52,16 +52,15 @@
            for pair in vn_mps_foreign_affairs_vi:mps-foreign-affairs; do
              slug=${pair%%:*}; tail=${pair#*:}; ref="refs/heads/archive/vietnam-$tail"
              private_git -C "$work/custody" fetch --quiet --no-tags "$PRIVATE_URL" "$ref:$ref"
-@@ -336,7 +373,7 @@
+@@ -336,6 +373,7 @@
            cp ipr/pla_watch.db "$work/pla_watch.db"
            # Public run metadata is read unauthenticated; this token reads only this repository.
            status=0
--          VIETNAM_PRIVATE_PROVENANCE_TOKEN="$GH_TOKEN" GH_TOKEN= \
-+          VIETNAM_PRIVATE_PROVENANCE_TOKEN="$GH_TOKEN" VIETNAM_VPCP_SPEND_TOKEN="$GH_TOKEN" GH_TOKEN= \
++          VIETNAM_VPCP_SPEND_TOKEN="$GH_TOKEN" \
+           VIETNAM_PRIVATE_PROVENANCE_TOKEN="$GH_TOKEN" GH_TOKEN= \
              python ipr/scripts/run_vietnam_daily_bridge.py --database "$work/pla_watch.db" \
              --expected-db-sha256 "$(sha256sum "$work/pla_watch.db" | cut -d' ' -f1)" \
-             --state-repo "$work/custody" --private-state-repo "$work/custody" "${args[@]}" \
-@@ -370,10 +407,12 @@
+@@ -370,10 +408,12 @@
            for path in sorted((work/'ledgers').glob('*.json')):
                shutil.copyfile(path,dest/'ledgers'/path.name)
            (dest/'handoff.json').write_text(json.dumps(envelope,sort_keys=True,ensure_ascii=False))
