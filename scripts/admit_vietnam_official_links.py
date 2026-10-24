@@ -73,7 +73,7 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
             pending = {m.version for m in discover()} - set(done)
             # 0016 creates Korea's empty admission ledger; 0015 is the PH machine ledger;
             # 0018 adds the Government Office metadata tables (unrelated to MPS links).
-            vn.need(pending <= {"0013", "0015", "0016", "0018"}, "unrelated_pending_migrations")
+            vn.need(pending <= {"0013", "0015", "0016", "0018", "0019"}, "unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             conn.execute("BEGIN IMMEDIATE")
             if private_projection is None:

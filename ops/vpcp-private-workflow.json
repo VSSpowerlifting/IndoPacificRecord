@@ -1,0 +1,8 @@
+{
+  "repository": "VSSpowerlifting/ipr-source-evidence-private",
+  "path": ".github/workflows/vietnam_private_first_collector.yml",
+  "preimage_sha256": "c1bda60a6413b6a3ed1587ee36863c35402f99251ee563c684ce62d91c593378",
+  "postimage_sha256": "5ed2bd9e23c95e6807b1237c66bd41061f420241d59d1f204d4c7576e4a666f7",
+  "status": "owner_authorized_pending_exact_head_ci",
+  "activation_requires": "owner VPCP source-use/model/publication/spend approval and exact-head CI"
+}

@@ -1,8 +1,12 @@
 # Living Dossier — selected-reference visual repair, 24 October 2026
 
-**Final result: passed** for local visual/interaction QA. Required repository CI
-is a separate check; the preceding head failed three Vietnam tests that also
-fail on unchanged main. No green CI claim is made from these local checks.
+**Final result: passed** for local visual/interaction QA. The targeted calendar
+correction uses light on-dark tokens for closed/open/hover/keyboard focus, with
+a visible 2px light focus ring. Expanded 1280px desktop and 375px mobile captures
+were inspected in `dossier-calendar-correction/` beside the evidence directory
+below. All 42 focused dossier/admission/database checks pass after incorporating
+main `766aff33f4`, including its unchanged Vietnam fixture repairs. Mandatory
+final-revision CI is reported separately in PR #864.
 
 ## Source truth and actual comparison
 

@@ -136,7 +136,7 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
                 'Indo-Pacific Record', {'date': index['snapshot']['date'],
                                       'expected_records': index['snapshot']['records']})['as_held']
         yield projection(id='record:%d' % ident, title=english or original or None,
-            original_title=original or None, date=day or None, date_kind='source-stated publication',
+            original_title=original or None, date=day or None, date_kind=('document issue date' if source['code']=='vn_vpcp_official_documents_vi' else 'source-stated publication'),
             desks=[desk['code']] if desk.get('code') else [], source=source['label'], issuer=issuer,
             record_type='archive_record', processing=state['label'] + ' · ' + processing_note(title_record, processing_notes),
             ipr_url=ipr, citation=citation + ' ' + ipr)

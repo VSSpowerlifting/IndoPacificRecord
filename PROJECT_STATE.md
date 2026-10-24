@@ -27,12 +27,27 @@ archive entry or backlink. Approved-fixture tests exercise those paths and
 private revisions preserve the previous approved source. Brief No. 15,
 Timeline bytes, DB and tracked output are unchanged. Source-use clearance for
 the three publisher families and human review of this exact dossier remain
-outstanding; no publication authority is claimed. The `d99c9ff51a` required
-CI ran 7,973 tests and failed three Vietnam atomic-admission tests; all three
-also fail on unchanged main `d8aa9ebc6e`. They are outside this frontend repair.
+outstanding; no publication authority is claimed. The calendar summary retains
+light on-dark colors for closed/open/hover/keyboard focus and a light focus ring.
+Current main, including its Vietnam admission-fixture repairs, is incorporated
+without reimplementation. All 42 focused dossier/admission/database checks pass;
+expanded desktop/mobile screenshots were inspected. Final CI is reported in PR #864.
 Commands, trust boundary and
 source-to-finding matrix: `docs/LIVING_DOSSIERS.md`. Task branch:
-`codex/living-dossiers-20261023`, base `d8aa9ebc6e9dac4d25b469fb1b53255850a4e62d`.
+`codex/living-dossiers-20261023`, base `766aff33f439d54704a48ab0e78bc54a2eb4589c`.
+
+**Vietnam Government Office full-document integration (24 October 2026): owner authorized; final CI and acceptance pending.**
+The completed four-record metadata release remains operating. The source-text lane
+reuses existing private Git custody, shared Vietnam Daily Analyzer/QA/handoff and
+ordinary record/Archive rendering. Both cached acceptance PDFs pass identity,
+hash and complete-page checks; the 545 header uses visible numeric widget
+appearances. The sealed standing VPCP decision authorizes bounded Anthropic
+processing and independent English explanations, with 2 documents/run,
+32,000 complete-input bytes/document, $0.50/run, $1/day and $10/month ceilings.
+Administrative Quyết định remains individually held. Current provider prices,
+durable reservations and immutable version/route no-retry controls fail closed.
+The pinned private-workflow patch remains unapplied pending final exact-head CI.
+See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
 PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged

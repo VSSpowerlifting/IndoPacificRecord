@@ -156,13 +156,13 @@ The single private notice sits in the ivory opening, with honest preparation /
 review credits below. English source labels, dates and real manuscript facts
 are unchanged. `design-qa.md` records actual comparisons and expected differences.
 
-All 28 focused dossier source/rendering checks pass after the visual repair.
-The prior required run on `d99c9ff51a` executed 7,973 tests (15 skips) and failed
-three Vietnam atomic-admission fixtures. A control run on unchanged main
-`d8aa9ebc6e` reproduces the same failures: current VPCP rows remain in an MPS
-fixture that assumes only two Vietnam records. No unrelated fixture or source
-policy repair is included. Final-head CI and isolated production validation
-are separately evidenced in PR #864; these local checks are not substitutes.
+The final targeted correction scopes calendar summary colors to the navy
+comparison panel in closed/open/hover/keyboard-focus states and uses its light
+focus-ring token. Expanded desktop and mobile screenshots were inspected. All
+42 focused dossier, Vietnam admission and tracked-database checks pass after
+incorporating main `766aff33f4`; its existing Vietnam fixture repairs are retained
+unchanged. Final-head CI and isolated production validation are separately
+evidenced in PR #864; these local checks are not substitutes.
 
 ## Internal source-to-finding matrix (no source text)
 
