@@ -46,7 +46,7 @@
     <div class="record-actions"><a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Open original source</a><a href="#record-citation">Cite this record</a></div>
     <details class="record-history" data-wide-open><summary>Record history</summary>
     <ol class="custody" aria-label="How this record reached this page">
-      <li><b>Published</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
+      <li><b>{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }}</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
       <li><b>Collected</b>{{ record.scraped_at }}{% if record.scraped_at | length == 19 %} UTC{% endif %}{% if record.scrape_run_id is not none %}, run {{ record.scrape_run_id }}{% endif %}</li>
       <li class="{{ 'is-machine' if record.state in ['analyzed', 'not_selected', 'analysis_incomplete'] else 'is-absent' }}"><b>Machine reading</b>{{ record.state_label }}</li>
       <li class="{{ 'is-analysis' if record.in_trails else 'is-absent' }}"><b>Analysis</b>{% if record.in_trails %}In the source trail of {% for ref in record.in_trails %}{{ ref.series_name }} No. {{ ref.issue }}{{ ', ' if not loop.last }}{% endfor %}{% else %}Not in a published issue's source trail{% endif %}</li>
@@ -209,6 +209,13 @@
           <tr><th scope="row">Source attribution</th><td class="prov-value">{{ vn.attribution_text }}</td></tr>
           {% if vn.license_terms %}
           <tr><th scope="row">Licence terms</th><td class="prov-value">{{ vn.license_terms }}</td></tr>
+          {% endif %}
+          {% if vn.source_family == 'vn_vpcp_official_documents_vi' %}
+          {% set document = vn.qa.details.get('VPCP_DOCUMENT', {}).get('bibliographic', {}) %}
+          <tr><th scope="row">Official document</th><td class="prov-value">{{ document.get('document_number', 'Identity unavailable') }} · {{ document.get('document_type', '') }}</td></tr>
+          <tr><th scope="row">Issue date</th><td class="prov-value">{{ document.get('issue_date', '') }} — not a posting date</td></tr>
+          <tr><th scope="row">Formal issuer / signatory</th><td class="prov-value">{{ document.get('issuer', '') }} · {{ document.get('signatory', '') }}</td></tr>
+          <tr><th scope="row">Document evidence</th><td class="prov-value">{{ vn.qa.details.get('VPCP_DOCUMENT', {}).get('page_count', '') }} pages; original PDF preserved privately. This is a machine explanation, not an official translation or verification of implementation.</td></tr>
           {% endif %}
           <tr><th scope="row">Event type</th><td class="prov-value">{{ vn.event_type }} <span class="meta">— machine classification</span></td></tr>
           <tr><th scope="row">Source family</th><td class="prov-value">{{ vn.source_family }}</td></tr>

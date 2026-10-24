@@ -39,7 +39,7 @@ from typing import Callable, Dict, List, Optional
 from analysis.vietnam_prompts import terminology_version
 from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
-from core.collection.vietnam_sources import SOURCES
+from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 from core.retired_article_urls import is_retired, next_available_article_id
 from core.vietnam_source_use import SourceUse
 from processing.screening import profile_for_source
@@ -52,6 +52,7 @@ DUPLICATE = "duplicate"
 SETTLED = "settled"  # screened out or escalated earlier; not re-spent
 
 _INSTITUTIONS = {
+    "vn_vpcp": ("Government Office of Vietnam", "Văn phòng Chính phủ"),
     "vn_mps": ("Ministry of Public Security", "Bộ Công an"),
     "vn_moit": ("Ministry of Industry and Trade", "Bộ Công Thương"),
 }
@@ -220,6 +221,13 @@ def _insert(conn: sqlite3.Connection, family: str, record: dict, row: dict,
         if is_retired(conn, url):
             conn.rollback()
             return qa.HELD_SOURCE, None, "E_RETIRED_URL"
+        if family == "vn_vpcp_official_documents_vi":
+            proof = json.loads(provenance["qa_json"]).get("details",{}).get("VPCP_DOCUMENT",{})
+            live = conn.execute("SELECT l.metadata_version_sha256,v.metadata_json FROM regional_official_source_links l JOIN official_document_versions v ON v.source_family=l.source_family AND v.source_identity=l.source_identity AND v.metadata_sha256=l.metadata_version_sha256 WHERE l.source_family=? AND l.source_identity=?",(family,record["source_identity"])).fetchone()
+            expected = ({k:json.loads(live[1])[k] for k in ("document_number","document_type","issuer","signatory","issue_date","official_url")} if live else None)
+            if not live or proof.get("metadata_sha256") != live[0] or proof.get("bibliographic") != expected:
+                conn.rollback()
+                return qa.HELD_SOURCE,None,"E_MATERIAL_CHANGE"
         source_id = _ensure_source(conn, family)
         article_id = next_available_article_id(conn)
         cols = dict(row, id=article_id, url=url, source_id=source_id)
@@ -251,7 +259,9 @@ def model_second_pass(analyzer, family: str) -> Callable[[dict, str, str, dict],
     """
     from analysis.analyzer import ANALYSIS_MODEL
     from analysis.usage import TASK_SUMMARY
-    system = [{"type": "text", "text": profile_for_source(family).analysis_system_prompt}]
+    from processing.screening import private_document_profile
+    profile = private_document_profile() if family == "vn_vpcp_official_documents_vi" else profile_for_source(family)
+    system = [{"type": "text", "text": profile.analysis_system_prompt}]
 
     def run(record, title, body, result):
         raw = analyzer._call(qa.second_pass_messages(title, body, result), max_tokens=300,
@@ -269,7 +279,7 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *,
+def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *,
                api, as_of_utc, source_use: SourceUse, analyzer, ledger_path: Path,
                run_id: str, second_pass: Optional[Callable] = None,
                max_second_pass: int = 5, now: Callable[[], str] = _utc_now,
@@ -291,22 +301,37 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
         raise BridgeError("vietnam_desk_not_promoted")
     ledger = load_ledger(ledger_path, family)
     private = custody is not None
-    packet = vn.prepare(state_repo, commit, family, private=private)
-    if private:
-        proof = vn.authenticate_private(packet, state_repo, custody.public_frozen_tip,
-                                        api=custody.private_api, public_api=api)
-        custody_report = {"mode": "private", "source_ref": vn.private_ref(family),
-                          "public_frozen_tip": custody.public_frozen_tip,
-                          "private_attempts_verified": proof["private_attempts_verified"],
-                          "latest_run": proof["latest_run"]}
+    if family == "vn_vpcp_official_documents_vi":
+        from core.vietnam_document_custody import prepare
+        from processing.vpcp_policy import policy
+        if custody is None:
+            raise BridgeError("vpcp_private_custody_required")
+        packet, versions = prepare(state_repo, commit, api=custody.private_api)
+        custody_report = {"mode":"private", "source_ref":"archive/vietnam-vpcp"}
+        document_policy = policy()
     else:
-        vn.authenticate(packet, api, as_of_utc)
-        custody_report = {"mode": "public", "source_ref": SOURCES[family].state_branch}
-    versions = preserved_versions(state_repo, commit, family, private=private)
+        packet = vn.prepare(state_repo, commit, family, private=private)
+        if private:
+            proof = vn.authenticate_private(packet, state_repo, custody.public_frozen_tip,
+                                            api=custody.private_api, public_api=api)
+            custody_report = {"mode": "private", "source_ref": vn.private_ref(family),
+                              "public_frozen_tip": custody.public_frozen_tip,
+                              "private_attempts_verified": proof["private_attempts_verified"],
+                              "latest_run": proof["latest_run"]}
+        else:
+            vn.authenticate(packet, api, as_of_utc)
+            custody_report = {"mode": "public", "source_ref": SOURCES[family].state_branch}
+        versions = preserved_versions(state_repo, commit, family, private=private)
     budget = qa.SecondPassBudget(max_second_pass)
-    base_profile = profile_for_source(family)
+    if family == "vn_vpcp_official_documents_vi":
+        from processing.screening import private_document_profile
+        base_profile = private_document_profile()
+    else:
+        base_profile = profile_for_source(family)
     outcomes: List[dict] = []
 
+    documents_used = 0
+    document_guarded = False
     for record in packet["records"]:
         identity, sha = record["source_identity"], record["content_sha256"]
         prior_item = ledger["items"].get(identity) or {}
@@ -356,6 +381,10 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
                       or source_use.reason("public_ipr_analysis", identity))
             done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"], details={"E_RIGHTS_WITHHELD": reason})
             continue
+        if family == "vn_vpcp_official_documents_vi" and not (
+                document_policy["external_model_transmission"] and document_policy["public_ipr_analysis"]):
+            done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"])
+            continue
         stored = prior_item.get("article") if prior_item.get("content_sha256") == sha else None
         if (stored and prior_item.get("outcome") == qa.PUBLISHED
                 and stored["provenance"]["rights_decision_sha256"] == source_use.decision_sha256
@@ -370,11 +399,47 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
                  article=stored)
             continue
 
+        if family == "vn_vpcp_official_documents_vi":
+            from processing.vpcp_policy import require_permission
+            from processing.vpcp_document import output_failures as document_output_failures
+            if not document_policy["external_model_transmission"] or not document_policy["public_ipr_analysis"]:
+                done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"])
+                continue
+            current_link = conn.execute("SELECT metadata_version_sha256 FROM regional_official_source_links WHERE source_family=? AND source_identity=?",(family,identity)).fetchone()
+            if not current_link or current_link[0] != version["metadata_sha256"]:
+                done(qa.HELD_SOURCE, ["E_MATERIAL_CHANGE"])
+                continue
+            if qa._INJECTION.search(version["text_original"]):
+                done(qa.HELD_REVIEW, ["E_PROMPT_INJECTION"])
+                continue
+            if not version["content_labels"]:
+                done(qa.SCREENED_OUT)
+                continue
+            if len((version["title_original"]+version["text_original"]).encode()) > document_policy["max_input_bytes"]:
+                done(qa.HELD_SOURCE, ["E_SOURCE_BODY"])
+                continue
+            if documents_used >= document_policy["max_documents_per_run"]:
+                done(qa.HELD_RETRYABLE, ["E_SECOND_PASS_UNAVAILABLE"])
+                continue
+            documents_used += 1
         translate = source_use.allows("public_full_translation", identity)
         profile = (base_profile if translate else
                    dataclasses.replace(base_profile, build_translation_messages=None))
         title, body = version["title_original"], version["text_original"]
-        result = analyzer.analyze_record(title, body, profile)  # FatalAPIError aborts the run
+        if family == "vn_vpcp_official_documents_vi":
+            from processing.vpcp_policy import guard
+            if not document_guarded:
+                guard(analyzer, run_id)
+                document_guarded = True
+            model_body = "\n\n".join("[Page %d]\n%s" % (n,t) for n,t in version["pages"])
+            result = analyzer.analyze_record(title, model_body, profile)
+            if result and result.get("passed_relevance"):
+                document_holds = document_output_failures(version, result)
+                if document_holds:
+                    done(qa.HELD_REVIEW, ["E_ANALYSIS_INCOMPLETE"])
+                    continue
+        else:
+            result = analyzer.analyze_record(title, body, profile)  # FatalAPIError aborts the run
         permissions = source_use.snapshot(identity)
         show_title = permissions["public_title_display"]
         projection = {
@@ -382,7 +447,7 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
             "text_original": body if permissions["public_original_storage"] else None,
             # MPS analysis supplies an independent headline without a translation.
             "title_english": ((result or {}).get("title_english")
-                              if translate or family == "vn_mps_foreign_affairs_vi" else None),
+                              if translate or family in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi") else None),
             "text_english": (result or {}).get("text_english") if translate else None,
             "summary_english": (result or {}).get("summary_english"),
         }
@@ -391,12 +456,21 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
         verdict = qa.review(record, version, result, logical_date=packet["logical_date"],
                             translation_required=translate, permissions=permissions,
                             projection=projection, attempts=attempts,
-                            second_pass=second_pass, budget=budget)
+                            second_pass=second_pass, budget=budget,
+                            force_second_pass=family == "vn_vpcp_official_documents_vi")
         if verdict.outcome != qa.PUBLISHED:
             done(verdict.outcome, verdict.failures, details=verdict.details,
                  qa_json=verdict.as_json())
             continue
 
+        if family == "vn_vpcp_official_documents_vi":
+            from core.collection.vietnam_government_documents import digest
+            verdict.details["VPCP_DOCUMENT"] = {
+                "pdf_sha256": version["pdf_sha256"], "metadata_sha256":version["metadata_sha256"],
+                "bibliographic":version.get("bibliographic",{}),
+                "identity_checks":version["identity_checks"], "page_count":len(version["pages"]),
+                "evidence":[{"page":f["page"],"sha256":digest(f["evidence"]),"status":f["status"]}
+                            for f in result["document_facts"]]}
         processed = now()
         row = {
             "content_hash": sha,
@@ -453,3 +527,17 @@ def run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, *
         "qa_rubric_version": qa.RUBRIC_VERSION, "second_pass_used": budget.used,
         "counts": counts, "outcomes": outcomes,
     }
+
+
+def run_family(*args, **kwargs):
+    """Shared entry point; source-specific call bounds never leak to another family."""
+    analyzer=kwargs.get('analyzer')
+    call=getattr(analyzer,'_call',None)
+    client=getattr(analyzer,'_client',None)
+    try:
+        return _run_family(*args,**kwargs)
+    finally:
+        if call is not None:
+            analyzer._call=call
+        if client is not None:
+            analyzer._client=client

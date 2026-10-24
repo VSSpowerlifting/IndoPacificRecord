@@ -264,3 +264,17 @@ def profile_for_source(source_slug: Optional[str]) -> ScreeningProfile:
     if source_slug in ("ph_afp_articles", "ph_nsc_official_statements"):
         return PHILIPPINES_PROFILE
     return profile_for_desk(desk_for_source(source_slug))
+
+
+def private_document_profile():
+    """Only the private, source-use-gated bridge selects this profile."""
+    from analysis import vietnam_prompts as vn_prompts
+    return ScreeningProfile(
+        desk_id="vietnam", keyword_prefilter=False, daily_queue=False,
+        build_messages=vn_prompts.relevance_builder("vn_vpcp_official_documents_vi"),
+        build_system_prompt=vn_prompts.relevance_system_builder("vn_vpcp_official_documents_vi"),
+        build_analysis_messages=vn_prompts.analysis_builder("vn_vpcp_official_documents_vi"),
+        build_analysis_system_prompt=vn_prompts.analysis_system_builder("vn_vpcp_official_documents_vi"),
+        categories=vn_prompts.EVENT_TYPES, prompt_version="vn-vpcp-relevance-v1",
+        analysis_prompt_version="vn-vpcp-document-analysis-v1",source_language="vi",
+        source_family="vn_vpcp_official_documents_vi")

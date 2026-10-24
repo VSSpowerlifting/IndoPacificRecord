@@ -2222,9 +2222,9 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
     # The approved MPS lane deliberately cannot reproduce its original title.
     # This is NOT a missing capture and NOT permission to substitute the
     # independent machine-written headline in a citation to the source.
-    withheld_mps_title = (
+    withheld_vietnam_title = (
         not (original or "").strip()
-        and record.get("source_slug") == "vn_mps_foreign_affairs_vi"
+        and record.get("source_slug") in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi")
         and isinstance(vietnam, dict)
         and vietnam.get("source_family") == record.get("source_slug")
         and vietnam.get("canonical_official_url") == record.get("url")
@@ -2233,10 +2233,12 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
         and isinstance(vietnam.get("permissions"), dict)
         and vietnam["permissions"].get("public_title_display") is False
     )
-    if withheld_mps_title:
+    if withheld_vietnam_title:
         # Explicitly disclose the omission; still require real issuer, outlet,
         # source-stated date and official URL below. Never insert a fake title.
-        source_prefix = "Official source."
+        document = (vietnam.get("qa") or {}).get("details",{}).get("VPCP_DOCUMENT",{}).get("bibliographic",{})
+        source_prefix = ("Official document %s (issue date)." % document["document_number"]
+                         if record.get("source_slug") == "vn_vpcp_official_documents_vi" and document.get("document_number") else "Official source.")
         source_title = "Original title withheld under the source-use decision."
     else:
         source_prefix = "Source text."

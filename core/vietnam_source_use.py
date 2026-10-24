@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Dict, FrozenSet, Optional
 
-from core.collection.vietnam_sources import SOURCES
+from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 from core.regional_reviewed_evidence import _canonical, verify_review_seal
 from core.regional_typed_source_use_decision import RIGHTS
 
@@ -42,7 +42,9 @@ POLICY_VERSION = "vn-source-use-2026-10-19.1"
 # This records an owner-reviewed legal/source-use rationale, NOT a publisher license.
 # Only MPS may select it; public reproduction/translation remains separately held.
 INDEPENDENT_ASSESSMENT = "documented_independent_source_use_assessment"
-SOURCE_USE_BASES = RIGHTS | frozenset((INDEPENDENT_ASSESSMENT,))
+ADMINISTRATIVE_ASSESSMENT = "documented_administrative_document_assessment"
+VPCP = "vn_vpcp_official_documents_vi"
+SOURCE_USE_BASES = RIGHTS | frozenset((INDEPENDENT_ASSESSMENT, ADMINISTRATIVE_ASSESSMENT))
 
 PERMISSIONS = (
     "collect_preserve", "external_model_transmission", "public_original_storage",
@@ -66,7 +68,7 @@ _MPS_HOLD = "mps_reuse_and_model_terms_not_established"
 
 # Standing holds, per family and permission. A sealed decision replaces them.
 STANDING_HOLDS: Dict[str, Dict[str, str]] = {
-    slug: {perm: (_MPS_HOLD if slug == MPS else _MOIT_HOLD) for perm in PERMISSIONS}
+    slug: {perm: ("vpcp_owner_source_use_decision_pending" if slug == VPCP else _MPS_HOLD if slug == MPS else _MOIT_HOLD) for perm in PERMISSIONS}
     for slug in SOURCES
 }
 
@@ -119,7 +121,7 @@ class SourceUse:
     def _dependencies(self, permission: str):
         # MPS publishes a separately authored factual English headline, not
         # the Vietnamese original. Analysis need not inherit title reuse.
-        if self.source_family == MPS and permission == "public_ipr_analysis":
+        if self.source_family in (MPS, VPCP) and permission == "public_ipr_analysis":
             return ("external_model_transmission",)
         return REQUIRES.get(permission, ())
 
@@ -188,6 +190,8 @@ def verify_decision(sealed: dict, secret: bytes, family: str, *, as_of: str) -> 
         ref = review["rights_basis_reference"]
         _need(ref.startswith("docs/engineering/") and ref.endswith(".md"),
               "independent_assessment_document_required")
+    if basis == ADMINISTRATIVE_ASSESSMENT:
+        _need(family == VPCP and review["rights_basis_reference"] == "docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md", "administrative_assessment_scope")
     _text(review["attribution_text"], "source_use_attribution_text", 3)
     if review["license_terms"] is not None:
         _text(review["license_terms"], "source_use_license_terms", 3)
@@ -196,11 +200,13 @@ def verify_decision(sealed: dict, secret: bytes, family: str, *, as_of: str) -> 
     perms = review["permissions"]
     _need(isinstance(perms, dict) and set(perms) == set(PERMISSIONS)
           and all(type(v) is bool for v in perms.values()), "source_use_permissions")
-    if basis == INDEPENDENT_ASSESSMENT:
+    if basis in (INDEPENDENT_ASSESSMENT, ADMINISTRATIVE_ASSESSMENT):
         _need(not any(perms[p] for p in ("public_original_storage",
                                          "public_full_translation",
                                          "public_excerpt", "public_title_display")),
               "independent_assessment_cannot_grant_source_republication")
+    if family == VPCP:
+        _need(not any(perms[p] for p in ("public_original_storage", "public_full_translation", "public_excerpt", "public_title_display")), "vpcp_original_republication_held")
     excerpt = review["excerpt_max_chars"]
     if perms["public_excerpt"]:
         _need(type(excerpt) is int and 1 <= excerpt <= 600, "source_use_excerpt_limit")
@@ -247,15 +253,15 @@ def owner_decision_request(family: str) -> dict:
         },
         "evidence_required": [
             "rights_basis_type: one of " + ", ".join(sorted(
-                SOURCE_USE_BASES if family == MPS else RIGHTS))
+                SOURCE_USE_BASES if family in (MPS, VPCP) else RIGHTS))
             + " (a site footer or attribution line is not a basis)",
-            "rights_basis_reference: explicit official terms/permission, or for MPS "
-            "only a dated independent source-use assessment in docs/engineering/ "
+            "rights_basis_reference: explicit official terms/permission, or for MPS/VPCP "
+            "a dated source-specific independent source-use assessment in docs/engineering/ "
             "covering full-body Anthropic input, provenance, applicable law and "
             "its limits; the assessment is not a publisher license",
             "attribution_text and any license_terms the basis imposes",
         ] + ([] if family == MPS else [
-            "robots_review_reference: the dated robots.txt / access review for moit.gov.vn",
+            "robots_review_reference: the dated robots.txt / access review for " + ("vanban.chinhphu.vn and datafiles.chinhphu.vn" if family == VPCP else "moit.gov.vn"),
         ]),
         "unsigned_template": {
             "schema": SCHEMA, "source_family": family, "policy_version": POLICY_VERSION,

@@ -20,7 +20,7 @@ from datetime import date
 from typing import Callable, Dict, List, Optional, Sequence
 
 from analysis.vietnam_prompts import EVENT_TYPES
-from core.collection.vietnam_sources import SOURCES, content_sha256
+from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES, content_sha256
 
 RUBRIC_VERSION = "vn-qa-2026-10-21.1"
 SECOND_PASS_RUBRIC = "vn-qa-second-pass-2026-10-21.1"
@@ -355,7 +355,7 @@ def review(record: dict, version: dict, result: Optional[dict], *, logical_date:
            translation_required: bool, permissions: Dict[str, bool],
            projection: Dict[str, Optional[str]], attempts: int,
            second_pass: Optional[Callable[[dict, str, str, dict], dict]] = None,
-           budget: Optional[SecondPassBudget] = None) -> QAResult:
+           budget: Optional[SecondPassBudget] = None, force_second_pass: bool = False) -> QAResult:
     """Run every check and decide one outcome for one record."""
     title = version.get("title_original") or ""
     body = version.get("text_original") or ""
@@ -371,7 +371,7 @@ def review(record: dict, version: dict, result: Optional[dict], *, logical_date:
     details.update(out)
     fails = sorted(out)
     verdict = None
-    if not fails and needs_second_pass(result):
+    if not fails and (force_second_pass or needs_second_pass(result)):
         if second_pass is None or budget is None or not budget.take():
             fails = ["E_SECOND_PASS_UNAVAILABLE"]
         else:

@@ -157,6 +157,9 @@ class PdfExtraction:
     pages_with_text: int = 0
     pages_failed: int = 0
     detail: str = ""
+    #: Per-page normalised text as (1-based page number, text), only pages that
+    #: carried text, only when OK. Lets a caller cite a page; `text` is unchanged.
+    pages: tuple = ()
 
     @property
     def ok(self) -> bool:
@@ -165,7 +168,7 @@ class PdfExtraction:
     def __post_init__(self):
         # The invariant is the whole point of the module, so it is enforced
         # rather than documented and hoped for.
-        if self.text and self.status not in TEXT_BEARING:
+        if (self.text or self.pages) and self.status not in TEXT_BEARING:
             raise ValueError(
                 "PdfExtraction carries text with status %r; only %s may carry "
                 "text" % (self.status, sorted(TEXT_BEARING)))
@@ -244,8 +247,8 @@ def extract_pdf_text(data: bytes, *, max_bytes: int = MAX_BYTES,
                              detail="%d pages exceeds the %d-page ceiling"
                                     % (len(pages), max_pages))
 
-    chunks, with_text, failed = [], 0, 0
-    for page in pages:
+    chunks, with_text, failed, numbered = [], 0, 0, []
+    for number, page in enumerate(pages, 1):
         # One unreadable page must not cost the document. The count is carried
         # out so a body assembled from half a file is visibly that.
         try:
@@ -257,6 +260,7 @@ def extract_pdf_text(data: bytes, *, max_bytes: int = MAX_BYTES,
         if piece.strip():
             with_text += 1
             chunks.append(piece)
+            numbered.append((number, normalise(piece)))
 
     text = normalise("\n".join(chunks))
     if len(text) < min_chars:
@@ -269,4 +273,4 @@ def extract_pdf_text(data: bytes, *, max_bytes: int = MAX_BYTES,
 
     return PdfExtraction(OK, text=text, page_count=len(pages),
                          pages_with_text=with_text, pages_failed=failed,
-                         detail="")
+                         detail="", pages=tuple(numbered))
