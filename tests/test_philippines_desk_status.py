@@ -178,23 +178,40 @@ class MachineExplanationEligibility(unittest.TestCase):
     def identities(self):
         return {r["source_identity"] for r in load_machine_records(self.db)}
 
-    def test_baseline_publishes_the_three_released_records(self):
-        self.assertEqual(self.identities(), {"afp:1409", "afp:1410", "nsc:3108"})
+    def test_baseline_publishes_only_released_records(self):
+        # The shared Daily releases further records over time, so the set is
+        # read from the database, never pinned. These three were the first.
+        ids = self.identities()
+        self.assertTrue({"afp:1409", "afp:1410", "nsc:3108"} <= ids)
+        released = self.released_identities()
+        self.assertEqual(ids, released)
+
+    def released_identities(self):
+        con = sqlite3.connect(str(self.db))
+        try:
+            return {r[0] for r in con.execute(
+                "SELECT source_identity FROM daily_machine_records "
+                "WHERE publication_state='released'")} - {"afp:1418"}
+        finally:
+            con.close()
 
     def test_held_record_never_publishes(self):
+        before = self.identities()
         self.mutate("UPDATE daily_machine_records SET publication_state='held' "
                     "WHERE source_identity='afp:1409'")
-        self.assertEqual(self.identities(), {"afp:1410", "nsc:3108"})
+        self.assertEqual(self.identities(), before - {"afp:1409"})
 
     def test_record_without_matching_link_version_never_publishes(self):
+        before = self.identities()
         self.mutate("UPDATE daily_machine_records SET metadata_version_sha256=? "
                     "WHERE source_identity='nsc:3108'", "0" * 64)
-        self.assertEqual(self.identities(), {"afp:1409", "afp:1410"})
+        self.assertEqual(self.identities(), before - {"nsc:3108"})
 
     def test_owner_excluded_identity_never_publishes(self):
         self.mutate("UPDATE daily_machine_records SET source_identity='afp:1418' "
                     "WHERE source_identity='afp:1409'")
         self.assertNotIn("afp:1418", self.identities())
+        self.assertNotIn("afp:1409", self.identities())
 
 
 class PhilippinesWorkflowRunners(unittest.TestCase):
