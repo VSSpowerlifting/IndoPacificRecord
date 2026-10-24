@@ -10,17 +10,19 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office full-document integration (24 October 2026): owner authorized; final CI and acceptance pending.**
-The completed four-record metadata release remains operating. The source-text lane
-reuses existing private Git custody, shared Vietnam Daily Analyzer/QA/handoff and
-ordinary record/Archive rendering. Both cached acceptance PDFs pass identity,
-hash and complete-page checks; the 545 header uses visible numeric widget
-appearances. The sealed standing VPCP decision authorizes bounded Anthropic
-processing and independent English explanations, with 2 documents/run,
-32,000 complete-input bytes/document, $0.50/run, $1/day and $10/month ceilings.
-Administrative Quyết định remains individually held. Current provider prices,
-durable reservations and immutable version/route no-retry controls fail closed.
-The pinned private-workflow patch remains unapplied pending final exact-head CI.
+**Vietnam Government Office full-document integration (24 October 2026): released code; real output held before publication.**
+PR #865 merged as `4623535eb6`; required CI passed 7,978 tests (15 skips).
+The owner-sealed standing decision and all numerical limits are active. The
+pinned private workflow was verified/applied; an independently tested VPCP-only
+manual action avoids retrying an MPS attempt when unrelated public main moves.
+Real collection run `40113138035` preserved 545/TB-VPCP and 10747/VPCP-CN;
+545's fresh PDF hash matches the cached receipt. Bridge `40113402641` held both
+outputs at document QA, retaining metadata fallback. API token-based cost:
+$0.064870; cumulative reserved ceiling: $0.1982975. No VPCP explanation is live.
+The rejected versions remain held without paid retry. A bounded production repair
+retains precise private QA diagnostics and explicitly aligns prompt wording with
+unchanged per-sentence attribution and exact page-evidence requirements. Genuine
+source-to-live acceptance remains required on an unprocessed eligible document.
 See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**

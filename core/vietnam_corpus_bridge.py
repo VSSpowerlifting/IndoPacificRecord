@@ -445,7 +445,15 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             if result and result.get("passed_relevance"):
                 document_holds = document_output_failures(version, result)
                 if document_holds:
-                    done(qa.HELD_REVIEW, ["E_ANALYSIS_INCOMPLETE"])
+                    done(qa.HELD_REVIEW, ["E_ANALYSIS_INCOMPLETE"],
+                         details={"document_failures": document_holds})
+                    # Only the existing PRIVATE Daily ledger retains rejected
+                    # model evidence. Reports/handoffs never include these spans.
+                    ledger["items"][identity]["private_document_review"] = {
+                        "failures": document_holds,
+                        "reading": {k: result.get(k) for k in
+                            ("title_english", "summary_english", "document_facts",
+                             "model_id", "prompt_version", "relevance_score")}}
                     continue
         else:
             result = analyzer.analyze_record(title, body, profile)  # FatalAPIError aborts the run
