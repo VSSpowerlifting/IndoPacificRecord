@@ -110,7 +110,8 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                 if name == "verify_db_current" and proc.returncode == 1:
                     # Title receipts 0012, Vietnam links 0013, NSC 0014,
                     # shared Daily 0015, Korea corpus 0016, Vietnam provenance 0017
-                    # and Government Office document versions 0018
+                    # Government Office document versions 0018 and the
+                    # source-scoped provenance widening 0019
                     # may await separate production application, depending on
                     # this tracked snapshot. Accept exactly those known gaps,
                     # never an arbitrary pending migration or verifier failure.
@@ -121,7 +122,7 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                         pending = ({m.version for m in discover()}
                                    - applied)
                     self.assertTrue(pending)
-                    self.assertEqual({"0012", "0013", "0014", "0015", "0016", "0017", "0018"} - applied, pending,
+                    self.assertEqual({"0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019"} - applied, pending,
                                      "an unrecognized migration is pending")
                     self.assertIn("database is 'partially_applied'",
                                   proc.stderr)
