@@ -27,7 +27,11 @@
 .ds-comparison a, .ds-comparison a:visited { color: var(--band-ink); text-underline-offset: .2em; }
 .ds-comparison a:focus-visible { outline-color: var(--focus-band); }
 .ds-calendar { margin-top: .5rem; }
-.ds-calendar > summary { cursor: pointer; font: 400 .75rem/1.5 var(--sans); color: var(--band-muted); padding-block: .3rem; text-underline-offset: .2em; }
+.ds-comparison .ds-calendar > summary { cursor: pointer; font: 400 .75rem/1.5 var(--sans); color: var(--band-muted); padding-block: .3rem; text-underline-offset: .2em; }
+.ds-comparison .ds-calendar[open] > summary,
+.ds-comparison .ds-calendar > summary:hover,
+.ds-comparison .ds-calendar > summary:focus-visible { color: var(--band-ink); }
+.ds-comparison .ds-calendar > summary:focus-visible { outline: 2px solid var(--focus-band); outline-offset: 3px; }
 .ds-window-figure { margin: 1rem 0; }
 .ds-axis, .ds-window-bar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 .ds-axis { font: .75rem/1.5 var(--sans); color: var(--band-muted); text-align: center; }

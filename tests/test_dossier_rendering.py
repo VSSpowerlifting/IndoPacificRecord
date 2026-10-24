@@ -196,6 +196,54 @@ class DossierRendering(unittest.TestCase):
             self.assertTrue(page.url.endswith('#finding-preparation-and-opening'))
             browser.close()
 
+    def test_calendar_summary_keeps_on_dark_colors_in_all_states(self):
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            for width in (1280, 375):
+                with self.subTest(width=width):
+                    page = browser.new_page(viewport={'width':width, 'height':900})
+                    page.goto(self.url+'dossier/maritime-cooperation-2026.html')
+                    calendar = page.locator('.ds-calendar')
+                    summary = calendar.locator('summary')
+                    colors = page.locator('.ds-comparison').evaluate('''e => {
+                        const s = getComputedStyle(e);
+                        return ['--band-muted', '--band-ink', '--focus-band'].map(v => s.getPropertyValue(v).trim());
+                    }''')
+                    def color_matches(token):
+                        return summary.evaluate('''(e, token) => {
+                            const probe = document.createElement('span');
+                            probe.style.color = token; e.append(probe);
+                            const expected = getComputedStyle(probe).color;
+                            probe.remove(); return getComputedStyle(e).color === expected;
+                        }''', token)
+                    page.mouse.move(0, 0)
+                    self.assertTrue(color_matches(colors[0]))
+                    for opened in (False, True):
+                        summary.hover()
+                        self.assertTrue(color_matches(colors[1]))
+                        page.mouse.move(0, 0)
+                        summary.focus(); page.keyboard.press('Tab'); page.keyboard.press('Shift+Tab')
+                        self.assertTrue(summary.evaluate('e => e.matches(":focus-visible")'))
+                        self.assertTrue(color_matches(colors[1]))
+                        self.assertEqual(summary.evaluate('e => getComputedStyle(e).outlineStyle'), 'solid')
+                        self.assertEqual(summary.evaluate('e => getComputedStyle(e).outlineWidth'), '2px')
+                        self.assertTrue(summary.evaluate('''(e, token) => {
+                            const probe = document.createElement('span');
+                            probe.style.color = token; e.append(probe);
+                            const expected = getComputedStyle(probe).color;
+                            probe.remove(); return getComputedStyle(e).outlineColor === expected;
+                        }''', colors[2]))
+                        if not opened:
+                            page.keyboard.press('Enter')
+                            self.assertIsNotNone(calendar.get_attribute('open'))
+                            page.keyboard.press('Tab')
+                            self.assertTrue(color_matches(colors[1]))
+                            self.assertTrue(calendar.locator('figcaption').is_visible())
+                    self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'), width)
+                    page.close()
+            browser.close()
+
     def test_browser_reading_links_keyboard_copy_fallback_print_and_responsive(self):
         from playwright.sync_api import sync_playwright
         from bs4 import BeautifulSoup
