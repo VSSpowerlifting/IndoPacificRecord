@@ -779,7 +779,7 @@ class Analyzer:
 
         title_en = text_en = None
         if (profile.desk_id == "vietnam" and translator is None
-                and profile.source_family == "vn_mps_foreign_affairs_vi"):
+                and profile.source_family in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi")):
             title_en = fields.get("headline")
         if translator is not None:
             system = [{"type": "text", "text": profile.translation_system_prompt,
@@ -795,6 +795,7 @@ class Analyzer:
 
         return {
             **partial,
+            **({"document_facts":fields.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {}),
             **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
                if profile.desk_id == "philippines" else {}),
             "title_english":          title_en,
@@ -875,7 +876,7 @@ class Analyzer:
         flagged = data.get("flag") if isinstance(data, dict) else None
         reason = data.get("flag_reason") if isinstance(data, dict) else None
         headline = data.get("headline") if isinstance(data, dict) else None
-        if profile.source_family == "vn_mps_foreign_affairs_vi":
+        if profile.source_family in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"):
             from core.title_translation import valid_english
             if not valid_english(headline) or len(headline) > 200:
                 self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
@@ -897,4 +898,4 @@ class Analyzer:
             categories = [event_type]
         return {"summary": summary, "flag": flagged, "headline": headline,
                 "flag_reason": reason if flagged else None,
-                "categories": categories}
+                "categories": categories, **({"facts": data.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {})}

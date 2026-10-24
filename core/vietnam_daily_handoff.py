@@ -34,7 +34,7 @@ from core import vietnam_corpus_bridge as bridge
 from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as source_use
-from core.collection.vietnam_sources import SOURCES
+from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 
 SCHEMA = "ipr-vietnam-private-daily-articles/1"
 DOMAIN = b"IPR-VIETNAM-PRIVATE-DAILY-ARTICLES-v1\n"
@@ -148,11 +148,22 @@ def _check_record(family: str, entry: dict, policy, article) -> dict:
           and row["passed_relevance"] == 1
           and isinstance(row["summary_english"], str) and row["summary_english"].strip(),
           "vietnam_handoff_row_mismatch")
+    if family == source_use.VPCP:
+        proof = json.loads(prov["qa_json"])
+        _need(proof.get("outcome") == qa.PUBLISHED and proof.get("second_pass",{}).get("ok") is True,
+              "vpcp_handoff_quality_missing")
+        document = proof.get("details",{}).get("VPCP_DOCUMENT",{})
+        checks = document.get("identity_checks",{})
+        _need(document.get("pdf_sha256") == prov["capture_sha256"]
+              and type(document.get("page_count")) is int and 1 <= document["page_count"] <= 40
+              and all(checks.get(k)=="match" for k in ("number","date","issuer"))
+              and checks.get("basis") in ("page_text","page_text_and_widget_appearances"),
+              "vpcp_handoff_document_proof_missing")
     perms = policy.snapshot(identity)
     _need(prov["permissions_json"] == json.dumps(perms, sort_keys=True)
           and perms["external_model_transmission"] and perms["public_ipr_analysis"],
           "vietnam_handoff_permissions_mismatch")
-    analysis_headline = (family == source_use.MPS and not prov["translation_published"]
+    analysis_headline = (family in (source_use.MPS, source_use.VPCP) and not prov["translation_published"]
                          and prov["translation_prompt_version"] is None)
     if analysis_headline:
         from core.title_translation import valid_english
@@ -199,6 +210,9 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
             continue
         _need(family not in vn.HOLDS, "vietnam_handoff_source_hold")
         _need(bridge.desk_promoted(desk), "vietnam_desk_not_promoted")
+        if family == source_use.VPCP:
+            from processing.vpcp_policy import require_permission
+            require_permission("public_ipr_analysis")
         policy = _decision(family, review_key, as_of, decisions or DECISIONS)
         _need(entry["rights_decision_sha256"] == policy.decision_sha256,
               "vietnam_handoff_decision_mismatch")
@@ -240,7 +254,7 @@ def admit_database(db: Path, records: List[tuple]) -> dict:
             conn.execute("PRAGMA foreign_keys=ON")
             from migrations.runner import applied_versions, apply_all, discover
             pending = {m.version for m in discover()} - set(applied_versions(conn))
-            if not pending <= {"0017", "0018"}:
+            if not pending <= {"0017", "0018", "0019"}:
                 raise HandoffError("unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             counts = admit(conn, records)
