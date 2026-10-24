@@ -147,15 +147,22 @@ basis and publisher URLs even when disclosures were closed. Dossier CSS, JS and
 the existing illustrative texture ship only with a rendered dossier (or, for
 the texture, its existing rendered Timeline). A withheld draft adds none of them.
 
-Refinement verification: 120 focused contract/source/render/timeline checks,
-including browser journeys; the final anchor-treatment adjustment passed all
-10 dossier rendering checks. Local desktop/mobile captures compare the previous
-candidate with revision 2 at 1280×900 and 375×812, with 320/768/960 overflow,
-keyboard, no-JS, reduced-motion, print and local-request checks. The selected
-generated reference image was not available, so image-level fidelity is not
-claimed; the explicit owner composition governs. Exact-head required CI and
-isolated production validation remain separately evidenced in PR #864 checks.
-See `design-qa.md` for local visual evidence and limits.
+Visual repair (24 October): the owner supplied the actual selected reference
+and a two-file CSS/template patch. It was applied and refined using side-by-side
+reference/actual comparisons at 1440×1024 and 1280×900, plus 375px mobile and
+320px overflow checks. The year is shown in the window heading; the exact
+inclusive calendar is a native disclosure and remains expanded for print.
+The single private notice sits in the ivory opening, with honest preparation /
+review credits below. English source labels, dates and real manuscript facts
+are unchanged. `design-qa.md` records actual comparisons and expected differences.
+
+All 28 focused dossier source/rendering checks pass after the visual repair.
+The prior required run on `d99c9ff51a` executed 7,973 tests (15 skips) and failed
+three Vietnam atomic-admission fixtures. A control run on unchanged main
+`d8aa9ebc6e` reproduces the same failures: current VPCP rows remain in an MPS
+fixture that assumes only two Vietnam records. No unrelated fixture or source
+policy repair is included. Final-head CI and isolated production validation
+are separately evidenced in PR #864; these local checks are not substitutes.
 
 ## Internal source-to-finding matrix (no source text)
 

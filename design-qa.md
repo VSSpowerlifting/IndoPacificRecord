@@ -1,85 +1,84 @@
-# Living Dossier refinement — local design QA
+# Living Dossier — selected-reference visual repair, 24 October 2026
 
-**Final result: passed** against the owner's explicit written composition and
-reading requirements. Image-level fidelity is unverified: the selected generated
-image and named screenshot attachments were unavailable. The brief explicitly
-authorizes this fallback. No substitute design selection was made.
+**Final result: passed** for local visual/interaction QA. Required repository CI
+is a separate check; the preceding head failed three Vietnam tests that also
+fail on unchanged main. No green CI claim is made from these local checks.
 
-## Evidence and comparison
+## Source truth and actual comparison
 
-Source truth: `IPR_Dossier_Design_Refinement_Codex_Prompt.md`, selected first
-concept's written composition, current IPR tokens/fonts, and the actual previous
-private candidate at head `d569f00b8f75adbf4048bb3550f3d9ac9b781311`.
+The owner supplied `IPR_Dossier_Visual_Repair.zip`, with `READ_ME_FIRST.md`,
+`selected-reference.png` and a two-file patch based on `d99c9ff51a`. The patch
+passed `git apply --check`, was applied, rendered, inspected, then refined.
+Its sample prose and citations were not adopted as evidence or manuscript text.
 
-Local evidence directory (outside Git and private review trees):
-`/Users/benjaminyang/.codex/visualizations/2026/10/23/dossier-refinement/`.
-The before/after pairs are `before-` / `after-` plus `desktop.png`,
-`evidence.png`, `chronology.png`, `accounts.png`, `ledger.png`, `mobile.png`,
-`mobile-evidence.png` and `print.png`. Additional after states cover return,
-mobile windows/contents and no-JS. `qa.json` records computed geometry, fonts,
-requests, responsive sizes and contrast. No publisher original is pictured.
+Local evidence directory, outside Git:
+`/Users/benjaminyang/.codex/visualizations/2026/10/24/dossier-visual-repair/`.
+The supplied reference is preserved there. `comparison-1440.png` and
+`comparison-1280.png` put the reference and actual final rendering side by side
+in one comparison image. Both boards were opened and visually inspected.
 
-Desktop pairs: 1280×900 CSS and image pixels, device scale 1. Mobile pairs:
-375×812 CSS and image pixels, device scale 1. Both use locally loaded fonts and
-the same route, preserved source packet, draft status and interaction state.
-No density normalization was needed. Full openings and focused finding,
-chronology, ledger and print captures were opened and visually inspected.
-The before/after opening images were presented together for comparison.
-This is an intentional redesign of the previous candidate, not its reproduction.
+The reference is 1487×1058 pixels. It is fit proportionally into 1440×1024 or
+1280×900, with minimal letterboxing; actual captures use those exact CSS sizes
+and device scale 1. `before-opening-*` / `before-finding-*` show the previous
+head; `patch-v1-*` show the unrefined patch; `repair-v2-*` show the first repair.
+Final `after-*` captures include both desktop openings, the first finding,
+expanded evidence/calendar, mobile windows/contents, source ledger/return,
+chronology, accounts and print. Focused reading and mobile captures were also
+opened individually; whole-page comparison alone was not the acceptance test.
+There is no supplied mobile reference; 375px is the responsive adaptation.
 
-## Findings resolved
+## Comparison findings and fixes
 
-- Inherited generic heading padding/rules inflated the navy opening. Scoped
-  heading resets, a shorter actual draft title/overview and compact spacing
-  produce a balanced 60.8% / 39.2% opening. The first finding heading begins at
-  about 889px; comparison and answer finish within the first 900px. The prose
-  column is 680px, beside a 180px rail and 48px gutter.
-- Target styling initially tinted whole sections and outlined a source entry.
-  It now marks the finding/section heading or ledger heading only, retaining
-  native keyboard focus. Post-fix reading and ledger captures verify the change.
-- Early expanded-state captures caught the shared 180ms disclosure transition.
-  Final captures wait for its settled state. Evidence remains native and visible
-  without JS; print exposes closed disclosure contents.
+- The raw patch kept a full-width preview row above the split, leaving the navy
+  panel below the masthead. The one existing notice now sits in the ivory
+  column; the navy starts immediately below the unchanged shared masthead.
+  This is a local template placement change, not a privacy/publication decision.
+- The raw patch's type remained smaller and its panel too tall. The final title
+  is Instrument Serif, about 84px at 1440 and 74px at 1280; the subtitle, issuer
+  labels and dates share the reference's stronger display-serif treatment.
+  Tighter navy spacing keeps real citations, the unresolved-boundary note and
+  calendar control while balancing the columns naturally.
+- Labelled metadata has fine separators; compact, accurate Codex preparation /
+  pending-human-review credits occupy a row below the opening. These credits
+  remain present even though the mock omits them.
+- Finding headings are lighter, larger display serif. Desktop prose, citations
+  and evidence align with their heading after the quiet ordinal. Keyboard focus
+  marks the heading rather than outlining the entire long finding. Mobile
+  retains the full reading width and a 40px permalink column.
+- The first browser checks caught 320px metadata overflow. Two phone columns
+  plus a full-width cutoff row now wrap cleanly. Final 320/375/768/960/1280
+  checks have no document overflow.
 
-## Required surfaces and interactions
+Expected differences are deliberate: current IPR publication-status/masthead
+chrome is retained; actual manuscript text is longer than the mock's sample;
+real citations, a calendar disclosure, review credits and the real section intro
+remain. Consequently the first finding starts lower than in the concept image.
+Its heading starts around 878px at 1280×900 and 893px at 1440×1024. The reading
+plane is 740px with approximately 704px prose after the ordinal gutter, preserving
+readability rather than stretching the mock's sample text across the page.
 
-- Typography: actual Instrument Serif title 56px; Source Serif 4 finding
-  headings 26px desktop / 23px phone; reading text 19px / 18px at line-height
-  1.7. Inter metadata, dates and controls. Locally served fonts loaded correctly.
-- Layout: one split opening, one common-axis comparison, ruled scope strip,
-  quiet derived ordinals, event/publication tracks and deduplicated source
-  ledger. Rail disappears at 960px; mobile contents is one native disclosure.
-  No document overflow at 320, 375, 768, 960 or 1280px, or clipped date content.
-- Color: existing ivory/navy/turquoise tokens; source statements neutral.
-  Measured paper text pairs range 5.11–12.72:1; on-navy pairs 8.47–12.67:1.
-  Evidence tint and target treatment retain reading contrast.
-- Assets: existing IPR masthead retained; existing maritime texture is faint
-  at the navy outer edge. No generated/stock image, new logo or evidence image.
-- Content: manuscript revision 2 has a 45-word overview, all eight stable
-  findings, original source bindings and material limits. Exact seven-day
-  inclusive geometry agrees with bound claims/chronology. Starting boundary,
-  independent-performance and replenishment-transfer qualifications survive.
-- Interaction: keyboard disclosure/focus, desktop current-section state,
-  citation → ledger → finding, natural browser Back, canonical record links,
-  citation-copy success and selectable fallback, short-viewport rail scrolling,
-  mobile contents and touch links checked. No page errors, failed requests or
-  external requests in captured reading journeys. No-JS and reduced-motion
-  paths pass; reduced-motion transition duration is zero.
-- Print: neutral single-column output, both windows and caveat, expanded date
-  basis/source references, visible URLs and selectable citation. The 19-page A4
-  test PDF contains source publication dates and all material qualifications;
-  there is no decorative PDF control.
+## Verification surfaces
 
-## Verification boundary
+- Actual local Instrument Serif, Source Serif 4 and Inter fonts loaded.
+  Sustained prose remains Source Serif 4 at 19px desktop / 18px phone, line 1.7.
+- Existing ivory/navy/turquoise palette and maritime texture retained. Token
+  text contrast pairs range 5.11–12.72:1 on paper and 8.47–12.67:1 on navy.
+  No replacement logo, stock image, invented evidence graphic or new asset.
+- Both date ranges still derive from the same source-bound data. Their year is
+  visible in the panel heading; exact datetime attributes and inclusive cells
+  are retained. The optional calendar opens with native keyboard interaction,
+  works without JS, and prints even when closed.
+- Source → ledger → finding, browser Back, active/sticky contents, keyboard
+  focus, citation copy success/fallback, mobile contents, reduced motion and
+  print were exercised. Captured journeys recorded no page errors, failed
+  requests or external requests. Reduced-motion transitions are zero.
+- Closed calendar and evidence contents are visible in print. The test PDF
+  includes publication dates, qualifications and official URLs; no fake PDF UI.
+- All 28 focused dossier source/rendering checks passed. No manuscript, source
+  binding, core resolver, decision registry, DB, Brief/Timeline, generated output,
+  JavaScript or pipeline file changed in this visual repair.
 
-120 focused contract/source/render/timeline checks passed; all 10 dossier
-rendering checks passed after the final target-style adjustment. Exact final
-revision CI and isolated production validation are reported in PR #864, not
-inferred from these local checks. The real dossier remains draft and adds zero
-public routes, discovery entries, feeds, sitemap entries or backlinks.
-
-No remaining actionable P0/P1/P2 issue was observed against the written brief.
-The outstanding decisions are the narrow source-use determination for five
-bound versions across three publisher families, exact human editorial review,
-and separately authorized release. No human approval, merge or publication is
-claimed here.
+No actionable P0/P1/P2 visual issue remains against the supplied composition and
+retained real content. Remaining publication decisions are unchanged: exact human
+editorial review and the narrow source-use determination for the five bound
+versions. This candidate has not been merged, deployed or published.

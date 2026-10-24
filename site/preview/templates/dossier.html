@@ -1,4 +1,8 @@
 {% extends 'base.html' %}
+{# Place the shared notice in the ivory column. Python still owns all privacy
+   and publication gates; base.html uses this flag only to place that notice. #}
+{% set dossier_review_notice = review_mode|default(false) %}
+{% set review_mode = false %}
 {% from '_timeline_macros.html' import period with context %}
 {% block title %}{{ dossier.title }} — {{ title }}{% endblock %}
 {% block description %}{{ dossier.dek }}{% endblock %}
@@ -13,24 +17,26 @@
 <article data-dossier-slug="{{ dossier.slug }}" data-editorial-status="{{ dossier.editorial_status }}" data-editorial-digest="{{ dossier.digest }}">
 <div class="ds-opening">
 <header class="ds-hero">
+{% if dossier_review_notice %}<p class="review-banner" role="note">Private editorial preview · draft content is unapproved and unpublished.</p>{% endif %}
 <nav class="ds-breadcrumb" aria-label="Breadcrumb"><a href="../analysis.html">Analysis</a> / Living Dossiers</nav>
 <p class="ds-identity">Living Dossier</p>
 <h1>{{ dossier.title }}</h1>
 <p class="ds-dek">{{ dossier.dek }}</p>
 <p class="ds-answer">{{ dossier.overview }}</p>
-<p class="ds-credit">{{ dossier.author_name }}<br>Editor: {{ dossier.editor_name }}{% if dossier.reviewed_on %} · Reviewed {{ dossier.reviewed_on|reader_date }}{% else %}<span class="visually-hidden"> · Human review has not occurred</span>{% endif %}</p>
-<p class="ds-meta">Updated {{ dossier.updated_on|reader_date }} · Revision {{ dossier.revision }}</p>
-<div class="ds-strip" aria-label="Evidence scope"><span>{{ dossier.jurisdictions|join(' / ') }}</span><span>{{ dossier.ledger|length }} official publications</span><span>Evidence cutoff <time datetime="{{ dossier.publication_cutoff }}">{{ dossier.publication_cutoff|reader_date }}</time></span></div>
+<div class="ds-strip" aria-label="Evidence scope"><span><small>Countries</small>{{ dossier.jurisdictions|join(' / ') }}</span><span><small>Sources</small>{{ dossier.ledger|length }} official publications</span><span><small>Evidence cutoff</small><time datetime="{{ dossier.publication_cutoff }}">{{ dossier.publication_cutoff|reader_date }}</time></span></div>
 </header>
 {% if dossier.comparison %}<aside class="ds-comparison" aria-labelledby="windows-heading">
-<h2 id="windows-heading">Reported exercise windows</h2>
-{% for w in dossier.comparison.windows %}<div class="ds-window"><h3>{{ w.label }}</h3><p class="ds-window-dates"><time datetime="{{ w.start }}">{{ w.start[8:]|int }}</time>–<time datetime="{{ w.end }}">{{ w.end|reader_date }}</time></p><p class="ds-cites">{{ source_links(w.source_ids) }}</p></div>{% endfor %}
-<figure class="ds-window-figure"><div class="ds-axis" aria-hidden="true">{% for day in dossier.comparison.days %}<span>{{ day.day }}</span>{% endfor %}</div>
-{% for w in dossier.comparison.windows %}<div class="ds-window-bar" aria-hidden="true" data-window="{{ w.claim_id }}">{% for filled in w.cells %}<span{% if filled %} class="ds-day-filled"{% endif %}></span>{% endfor %}</div>{% endfor %}
-<figcaption>September {{ dossier.comparison.windows[0].start[:4] }} · Solid: China MND; outline: Singapore MINDEF. Each cell is an inclusive calendar day. Stated windows, not measured activity.</figcaption></figure>
+<h2 id="windows-heading">Reported exercise windows · {{ dossier.comparison.windows[0].start[:4] }}</h2>
+{% for w in dossier.comparison.windows %}<div class="ds-window"><h3>{{ w.label }}</h3><p class="ds-window-dates"><time datetime="{{ w.start }}">{{ w.start[8:]|int }}</time>–<time datetime="{{ w.end }}">{% if w.start[:7] == w.end[:7] %}{{ w.end[8:]|int }} {{ (w.end|reader_date).split(' ')[1] }}{% else %}{{ w.end|reader_date }}{% endif %}</time></p><p class="ds-cites">{{ source_links(w.source_ids) }}</p></div>{% endfor %}
+
 <p class="ds-boundary-note">The selected accounts do not explain the earlier September 3 boundary. <a href="#finding-boundary-unresolved">Read finding {{ dossier.findings['boundary-unresolved'].ordinal }}</a>.</p>
+<details class="ds-calendar"><summary>Compare on a common calendar</summary><figure class="ds-window-figure"><div class="ds-axis" aria-hidden="true">{% for day in dossier.comparison.days %}<span>{{ day.day }}</span>{% endfor %}</div>
+{% for w in dossier.comparison.windows %}<div class="ds-window-bar" aria-hidden="true" data-window="{{ w.claim_id }}">{% for filled in w.cells %}<span{% if filled %} class="ds-day-filled"{% endif %}></span>{% endfor %}</div>{% endfor %}
+<figcaption>September {{ dossier.comparison.windows[0].start[:4] }} · Solid: China MND; outline: Singapore MINDEF. Each cell is an inclusive calendar day. Stated windows, not measured activity.</figcaption></figure></details>
 </aside>{% endif %}
 </div>
+<div class="ds-reviewmeta" aria-label="Preparation and review status"><p class="ds-credit">{{ dossier.author_name }} · Editor: {{ dossier.editor_name }}{% if dossier.reviewed_on %} · Reviewed {{ dossier.reviewed_on|reader_date }}{% else %}<span class="visually-hidden"> · Human review has not occurred</span>{% endif %}</p>
+<p class="ds-meta">Updated {{ dossier.updated_on|reader_date }} · Revision {{ dossier.revision }}</p></div>
 <div class="ds-layout">
 <nav class="ds-contents" aria-label="In this dossier"><p>In this dossier</p>{{ contents() }}</nav>
 <div class="ds-reading">
