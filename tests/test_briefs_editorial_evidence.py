@@ -515,8 +515,13 @@ class SundayStrictToolContractTests(unittest.TestCase):
             calls.append(kwargs)
             return nullcontext(SimpleNamespace(get_final_message=lambda: response))
         fake = SimpleNamespace(messages=SimpleNamespace(stream=stream))
+        # This test pins the strict tool schema. Released production machine
+        # records (e.g. a Philippines record dated inside this fixed week) must
+        # not add supplemental sources the fixture manuscript does not cite.
         with patch("scripts.sunday_briefs_auto_writer.choose_evidence",
-                   return_value=evidence()):
+                   return_value=evidence()), \
+                patch("core.daily_machine_records.editorial_candidates",
+                      return_value=[]):
             compose({"week_start": "2026-10-04", "week_ending": SAT,
                      "desks": ["china", "singapore"], "source_trail": []},
                     SAT, client=fake)
