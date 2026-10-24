@@ -291,8 +291,25 @@ class ImmutableCustody(unittest.TestCase):
                     return original(args,root)
                 with patch.object(custody,'_git_bytes',side_effect=read):
                     packet,versions=custody.prepare(repo,commit,api=api);self.assertEqual(len(packet['records']),1)
+                    custody.hold(repo,'vpcp-vi:220077');git('add','state');git('commit','-m','Synthetic current-source hold')
+                    held_commit=git('rev-parse','HEAD')
+                    held_packet,_=custody.prepare(repo,held_commit,api=api)
+                    self.assertEqual(held_packet['records'],[])
+                    self.assertEqual(len(list((repo/'state/captures').glob('*.bin'))),2)
+                    self.assertEqual(custody.preserve(repo,m,b'%PDF- fixture B',**kw),'unchanged')
+                    self.assertEqual(json.loads((repo/custody.INDEX).read_text())['holds'],{})
+
                     receipt['conclusion']='failure'
                     with self.assertRaisesRegex(ValueError,'not_successful'):custody.prepare(repo,commit,api=api)
                     receipt['conclusion']='success'
                     with patch.dict(os.environ,{'VIETNAM_PRIVATE_BRIDGE_KEY':'wrong-fixture-key-000000000000000000'}):
                         with self.assertRaisesRegex(ValueError,'mac_invalid'):custody.prepare(repo,commit,api=api)
+
+
+class DecisionIsolation(unittest.TestCase):
+    def test_malformed_vpcp_decision_holds_only_this_family(self):
+        from scripts.run_vietnam_daily_bridge import _policies
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'malformed.json';path.write_text('{invalid')
+            result=_policies({VPCP:path},[VPCP],NOW[:10])
+            self.assertFalse(result[VPCP].allows('external_model_transmission'))

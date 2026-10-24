@@ -50,7 +50,7 @@ from core import vietnam_source_use as source_use
 from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 from migrations.runner import applied_versions, apply_all, discover
 from scripts.attest_vietnam_run_state import GithubRead
-from scripts.publish_shadow_review import strict_loads
+from scripts.publish_shadow_review import strict_loads, PublishError
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -96,13 +96,13 @@ def _policies(decisions, families, as_of):
         if path is None:
             out[family] = source_use.standing(family)
             continue
-        path = Path(path)
-        if not path.is_file() or path.is_symlink() or path.stat().st_size > 131072:
-            raise bridge.BridgeError("vietnam_source_use_decision_unavailable")
-        sealed = strict_loads(path.read_text(), "Vietnam source-use decision")
         try:
+            path = Path(path)
+            if not path.is_file() or path.is_symlink() or path.stat().st_size > 131072:
+                raise bridge.BridgeError("vietnam_source_use_decision_unavailable")
+            sealed = strict_loads(path.read_text(), "Vietnam source-use decision")
             out[family] = source_use.verify_decision(sealed, secret, family, as_of=as_of)
-        except source_use.SourceUseError:
+        except (ValueError, OSError, PublishError, bridge.BridgeError):
             if family != source_use.VPCP:
                 raise
             out[family] = source_use.standing(family)

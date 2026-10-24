@@ -65,8 +65,9 @@ def preserve(repo,metadata,data,*,collector_commit,source_run,workflow_sha,obser
     _immutable(repo/'state/documents'/(sha+'.json'),raw)
     path=repo/INDEX
     require(not path.is_symlink(),'vpcp_custody_symlink')
-    index=json.loads(path.read_text()) if path.exists() else {'schema':'ipr-vpcp-private-index/1','records':{},'checked':{}}
+    index=json.loads(path.read_text()) if path.exists() else {'schema':'ipr-vpcp-private-index/1','records':{},'checked':{},'holds':{}}
     index.setdefault('checked',{})[identity(metadata)]=observed_utc
+    index.setdefault('holds',{}).pop(identity(metadata),None)
     previous=index['records'].get(identity(metadata))
     # Identical source versions reuse the capture/run pin, avoiding needless work.
     if previous:
@@ -86,10 +87,13 @@ def prepare(repo,commit,*,api):
     repo=private_repo(repo)
     verify_state_commit(repo,commit,REF)
     index=json.loads(_git_bytes(['show',commit+':'+INDEX],repo))
-    require(set(index)=={'schema','records','checked'} and index['schema']=='ipr-vpcp-private-index/1'
+    require(set(index)=={'schema','records','checked','holds'} and index['schema']=='ipr-vpcp-private-index/1'
             and isinstance(index['records'],dict) and len(index['records'])<=1000,'vpcp_index_invalid')
     records=[];versions={};runs={}
+    require(isinstance(index['holds'],dict),'vpcp_index_holds_invalid')
     for ident,capture_sha in sorted(index['records'].items()):
+        if ident in index['holds']:
+            continue
         require(re.fullmatch('[a-f0-9]{64}',str(capture_sha)),'vpcp_capture_pin_invalid')
         raw=_git_bytes(['show',commit+':state/documents/'+capture_sha+'.json'],repo)
         require(len(raw)<=32000 and hashlib.sha256(raw).hexdigest()==capture_sha,'vpcp_capture_hash_invalid')
@@ -125,3 +129,15 @@ def prepare(repo,commit,*,api):
         records.append(r);versions[(ident,v['content_sha256'])]=v
     return ({'records':records,'logical_date':max((json.loads(_git_bytes(['show',commit+':state/documents/'+h+'.json'],repo))["capture"]['observed_utc'][:10] for h in index['records'].values()),default='1970-01-01'),
              'source_hold':None},versions)
+
+
+def hold(repo,ident):
+    """A failed current fetch/check cannot leave an older capture publishable."""
+    repo=private_repo(repo)
+    require(re.fullmatch(r'vpcp-vi:[1-9][0-9]{0,8}',ident),'vpcp_hold_identity_invalid')
+    path=repo/INDEX
+    require(not path.is_symlink(),'vpcp_custody_symlink')
+    index=json.loads(path.read_text()) if path.exists() else {'schema':'ipr-vpcp-private-index/1','records':{},'checked':{},'holds':{}}
+    index['holds'][ident]='current_source_verification_failed'
+    path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+    tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(index,sort_keys=True));os.chmod(tmp,0o600);tmp.replace(path)

@@ -15,7 +15,7 @@ from datetime import datetime,timezone
 from core.collection.vietnam_government_documents import FAMILY
 from core.collection.vietnam_vpcp_originals import OriginalsAdapter
 from core.collection.host_gate import HostGate
-from core.vietnam_document_custody import private_repo,preserve
+from core.vietnam_document_custody import private_repo,preserve,hold
 from processing.vpcp_policy import require_permission
 from scraper.sources.vn_shadow_http import Refusal
 
@@ -44,15 +44,17 @@ def collect(database,repo,gate_dir):
     adapter=OriginalsAdapter(6,gate=HostGate(gate_dir));adapter.open()
     outcomes=[]
     for m in sorted(candidates.values(),key=priority)[:6]:
-        if len(m['attachments'])!=1:outcomes.append('attachment_review');continue
+        if len(m['attachments'])!=1:
+            hold(repo,identity(m));outcomes.append('attachment_review');continue
         try:
             got=adapter.fetch(m['attachments'][0])
             outcomes.append(preserve(repo,m,got['body'],collector_commit=source_commit,
                 source_run=os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT'],
                 workflow_sha=os.environ['GITHUB_SHA'],observed_utc=now))
         except Refusal:
-            outcomes.append('held_access');break
-        except (ValueError,KeyError):outcomes.append('held_document')
+            hold(repo,identity(m));outcomes.append('held_access');break
+        except (ValueError,KeyError):
+            hold(repo,identity(m));outcomes.append('held_document')
     return {'source_family':FAMILY,'outcomes':outcomes,'model_calls':0}
 
 
