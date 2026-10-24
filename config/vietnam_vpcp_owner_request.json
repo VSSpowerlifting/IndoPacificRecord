@@ -1,0 +1,54 @@
+{
+  "source_family": "vn_vpcp_official_documents_vi",
+  "publisher": "Văn phòng Chính phủ",
+  "listing": "https://vanban.chinhphu.vn/",
+  "current_holds": {
+    "collect_preserve": "vpcp_owner_source_use_decision_pending",
+    "external_model_transmission": "vpcp_owner_source_use_decision_pending",
+    "public_original_storage": "vpcp_owner_source_use_decision_pending",
+    "public_full_translation": "vpcp_owner_source_use_decision_pending",
+    "public_excerpt": "vpcp_owner_source_use_decision_pending",
+    "public_ipr_analysis": "vpcp_owner_source_use_decision_pending",
+    "public_title_display": "vpcp_owner_source_use_decision_pending"
+  },
+  "questions": {
+    "collect_preserve": "May IPR keep operating the private collector and preserving originals from this listing?",
+    "external_model_transmission": "May the original Vietnamese text be sent to an external model provider (Anthropic) for translation and analysis?",
+    "public_original_storage": "May the Vietnamese original be stored in the public pla_watch.db and public Git history?",
+    "public_full_translation": "May IPR publish a complete machine English translation of each article?",
+    "public_excerpt": "May IPR publish short quotations, and up to how many characters?",
+    "public_ipr_analysis": "May IPR publish its own English summary and event classification of each article?",
+    "public_title_display": "May IPR show the original Vietnamese title with a link to the official page?"
+  },
+  "evidence_required": [
+    "rights_basis_type: one of documented_administrative_document_assessment, documented_independent_source_use_assessment, explicit_official_reuse_terms, written_rights_owner_permission (a site footer or attribution line is not a basis)",
+    "rights_basis_reference: explicit official terms/permission, or for MPS/VPCP a dated source-specific independent source-use assessment in docs/engineering/ covering full-body Anthropic input, provenance, applicable law and its limits; the assessment is not a publisher license",
+    "attribution_text and any license_terms the basis imposes",
+    "robots_review_reference: the dated robots.txt / access review for vanban.chinhphu.vn and datafiles.chinhphu.vn"
+  ],
+  "unsigned_template": {
+    "schema": "ipr-vietnam-source-use-decision/1",
+    "source_family": "vn_vpcp_official_documents_vi",
+    "policy_version": "vn-source-use-2026-10-19.1",
+    "decided_on": null,
+    "decided_by": null,
+    "rights_basis_type": null,
+    "rights_basis_reference": null,
+    "robots_review_reference": null,
+    "permissions": {
+      "collect_preserve": false,
+      "external_model_transmission": false,
+      "public_original_storage": false,
+      "public_full_translation": false,
+      "public_excerpt": false,
+      "public_ipr_analysis": false,
+      "public_title_display": false
+    },
+    "attribution_text": null,
+    "license_terms": null,
+    "excerpt_max_chars": null,
+    "item_exceptions": [],
+    "expires_on": null
+  },
+  "public_release_authorized": false
+}

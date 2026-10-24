@@ -1,0 +1,77 @@
+--- a/.github/workflows/vietnam_private_first_collector.yml
++++ b/.github/workflows/vietnam_private_first_collector.yml
+@@ -290,6 +290,36 @@
+           review(Path(sys.argv[1])/'state',sys.argv[2])
+           PY
+           done
++      - name: Collect permitted Government Office originals
++        continue-on-error: true
++        if: ${{ env.MODE == 'collect_after_cutover' && vars.VIETNAM_VPCP_TEXT_ENABLED == 'true' }}
++        env:
++          GH_TOKEN: ${{ github.token }}
++          VIETNAM_VPCP_TEXT_ENABLED: ${{ vars.VIETNAM_VPCP_TEXT_ENABLED }}
++          VIETNAM_PRIVATE_BRIDGE_KEY: ${{ secrets.VIETNAM_PRIVATE_BRIDGE_KEY }}
++        run: |
++          set -euo pipefail
++          umask 077
++          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
++          private_git() { git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" "$@"; }
++          dest="$RUNNER_TEMP/vpcp-custody"
++          if private_git ls-remote --exit-code "$PRIVATE_URL" refs/heads/archive/vietnam-vpcp > /dev/null; then
++            private_git clone --quiet --single-branch --branch archive/vietnam-vpcp "$PRIVATE_URL" "$dest"
++          else
++            git init --quiet -b archive/vietnam-vpcp "$dest"
++            git -C "$dest" remote add origin "$PRIVATE_URL"
++          fi
++          cd ipr
++          python -m scripts.collect_vpcp_private_documents --database pla_watch.db \
++            --private-repo "$dest" --gate-dir "$RUNNER_TEMP/vpcp-host-gate"
++          git -C "$dest" config user.name 'github-actions[bot]'
++          git -C "$dest" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
++          git -C "$dest" add state/
++          if ! git -C "$dest" diff --cached --quiet; then
++            git -C "$dest" commit -m "VPCP private source: $GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
++            private_git -C "$dest" push origin HEAD:refs/heads/archive/vietnam-vpcp
++          fi
++
+       # Shared Vietnam Daily, private half: the public repository's bridge runs
+       # here on the pushed archive tips, against a scratch copy of public
+       # main's database, so originals and model inputs never leave this
+@@ -317,7 +347,14 @@
+           work="$RUNNER_TEMP/vn-daily"; mkdir "$work" "$work/ledgers"
+           # One custody clone holding only the MPS archive ref; MOIT remains held.
+           git init --quiet "$work/custody"
++          git -C "$work/custody" remote add origin "$PRIVATE_URL"
+           args=()
++          if [ "${{ vars.VIETNAM_VPCP_TEXT_ENABLED }}" = "true" ] && [ -f ipr/config/vietnam_source_use/vn_vpcp_official_documents_vi.json ] && private_git -C "$work/custody" fetch "$PRIVATE_URL" refs/heads/archive/vietnam-vpcp:refs/heads/archive/vietnam-vpcp; then
++            args+=(--family "vn_vpcp_official_documents_vi=$(git -C "$work/custody" rev-parse archive/vietnam-vpcp)")
++            # VPCP starts in private custody; no legacy public-original archive exists.
++            args+=(--private-custody "vn_vpcp_official_documents_vi=$(git -C "$GITHUB_WORKSPACE/ipr" rev-parse HEAD)")
++            args+=(--decision vn_vpcp_official_documents_vi=ipr/config/vietnam_source_use/vn_vpcp_official_documents_vi.json)
++          fi
+           for pair in vn_mps_foreign_affairs_vi:mps-foreign-affairs; do
+             slug=${pair%%:*}; tail=${pair#*:}; ref="refs/heads/archive/vietnam-$tail"
+             private_git -C "$work/custody" fetch --quiet --no-tags "$PRIVATE_URL" "$ref:$ref"
+@@ -336,6 +373,7 @@
+           cp ipr/pla_watch.db "$work/pla_watch.db"
+           # Public run metadata is read unauthenticated; this token reads only this repository.
+           status=0
++          VIETNAM_VPCP_SPEND_TOKEN="$GH_TOKEN" \
+           VIETNAM_PRIVATE_PROVENANCE_TOKEN="$GH_TOKEN" GH_TOKEN= \
+             python ipr/scripts/run_vietnam_daily_bridge.py --database "$work/pla_watch.db" \
+             --expected-db-sha256 "$(sha256sum "$work/pla_watch.db" | cut -d' ' -f1)" \
+@@ -370,10 +408,12 @@
+           for path in sorted((work/'ledgers').glob('*.json')):
+               shutil.copyfile(path,dest/'ledgers'/path.name)
+           (dest/'handoff.json').write_text(json.dumps(envelope,sort_keys=True,ensure_ascii=False))
+-          # Counts only: no article text in the log.
++          usage={r['source_family']:r['model_usage'] for r in report['runs'] if 'model_usage' in r}
++          (dest/'vpcp-usage.json').write_text(json.dumps({'run_id':report['run_id'] if 'run_id' in report else os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT'],'usage':usage},sort_keys=True))
++          # Counts and token usage only: no article text in the log.
+           print(json.dumps({'run_id':envelope['run_id'],'deferred':envelope['deferred'],
+                             'records':{f['source_family']:len(f['records']) for f in envelope['families']},
+-                            'outcomes':{r['source_family']:r.get('counts') for r in report['runs']}},sort_keys=True))
++                            'outcomes':{r['source_family']:r.get('counts') for r in report['runs']},'model_usage':usage},sort_keys=True))
+           PY
+           git -C "$work/daily" config user.name 'github-actions[bot]'
+           git -C "$work/daily" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
