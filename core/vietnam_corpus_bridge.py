@@ -336,9 +336,12 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         identity, sha = record["source_identity"], record["content_sha256"]
         prior_item = ledger["items"].get(identity) or {}
         item = {"source_identity": identity, "content_sha256": sha}
+        document_attempted = False
 
         def done(outcome, failures=(), article_id=None, details=None, qa_json=None,
                  article=None):
+            if family == "vn_vpcp_official_documents_vi" and document_attempted and outcome == qa.HELD_RETRYABLE:
+                outcome = qa.HELD_REVIEW
             item.update(outcome=outcome, failures=list(failures), article_id=article_id)
             if details:
                 item["details"] = details
@@ -415,7 +418,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             if not version["content_labels"]:
                 done(qa.SCREENED_OUT)
                 continue
-            if len((version["title_original"]+version["text_original"]).encode()) > document_policy["max_input_bytes"]:
+            if len((version["title_original"]+"\n\n".join("[Page %d]\n%s" % (n,t) for n,t in version["pages"])).encode()) > document_policy["max_input_bytes"]:
                 done(qa.HELD_SOURCE, ["E_SOURCE_BODY"])
                 continue
             if documents_used >= document_policy["max_documents_per_run"]:
@@ -432,7 +435,13 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                 guard(analyzer, run_id)
                 document_guarded = True
             model_body = "\n\n".join("[Page %d]\n%s" % (n,t) for n,t in version["pages"])
-            result = analyzer.analyze_record(title, model_body, profile)
+            analyzer._vpcp_document_sha = sha
+            document_attempted = True
+            try:
+                result = analyzer.analyze_record(title, model_body, profile)
+            except BridgeError as exc:
+                done(qa.HELD_REVIEW, ["E_ANALYSIS_INCOMPLETE"], details={"document_hold": str(exc)})
+                continue
             if result and result.get("passed_relevance"):
                 document_holds = document_output_failures(version, result)
                 if document_holds:
@@ -534,8 +543,23 @@ def run_family(*args, **kwargs):
     analyzer=kwargs.get('analyzer')
     call=getattr(analyzer,'_call',None)
     client=getattr(analyzer,'_client',None)
+    usage=getattr(analyzer,'usage',None)
+    before={(r['task'],r['model']):r for r in usage.rows()} if usage else {}
     try:
-        return _run_family(*args,**kwargs)
+        report=_run_family(*args,**kwargs)
+        if report['source_family']=='vn_vpcp_official_documents_vi' and usage:
+            from analysis.pricing import estimate_usage_cost_usd
+            rows=[]
+            for r in usage.rows():
+                old=before.get((r['task'],r['model']),{})
+                delta={k:(v-old.get(k,0) if type(v) is int else v) for k,v in r.items()}
+                if delta.get('calls',0):
+                    delta['estimated_cost_usd']=estimate_usage_cost_usd(delta['model'],delta['input_tokens'],delta['output_tokens'],delta['cache_creation_input_tokens'],delta['cache_read_input_tokens'])
+                    if delta['estimated_cost_usd'] is None:raise BridgeError('vpcp_actual_usage_unpriced')
+                    rows.append(delta)
+            report['model_usage']={'basis':'provider-returned tokens at freshly verified standard prices','tasks':rows,
+                'cost_usd':sum(r['estimated_cost_usd'] for r in rows)}
+        return report
     finally:
         if call is not None:
             analyzer._call=call

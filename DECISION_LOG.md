@@ -4,6 +4,37 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-24 — Owner: Government Office bounded full-document processing and publication
+
+Benjamin Yang explicitly approves `vn_vpcp_official_documents_vi` in chat on
+24 October 2026. This standing decision covers verified first-party Government
+Office-issued Công văn and Thông báo primary PDFs; administrative Quyết định
+requires individual confirmation and is held by the initial implementation.
+Unrelated documents hosted on the same portal are excluded.
+
+Authorize compliant collection and private preservation in the existing evidence
+repository; complete identity/completeness-verified Vietnamese text to the existing
+Anthropic API; and independent, attributed English factual headlines and
+explanations of at most 90 words through shared Daily, existing QA, Archive and
+Vietnam Desk, without routine per-document approval. Preserve the bibliographic
+fallback and hold real authenticity, extraction, rights and factual exceptions.
+
+Binding ceilings: **2 documents/run, $0.50/run, $1/day, $10/calendar month,
+32,000 input bytes/document**. UTC defines checkpoint days/months. Hold oversized
+inputs; do not truncate. No automatic retries, cap increases, new providers or
+alternate paid processing. Exclude public originals/PDF copies, full translations,
+substantial excerpts, photographs, embedded materials, additional attachments,
+third-party annexes and Firecrawl PDF uploads. No broader classes without review.
+
+Record the decision using the existing source-use seal mechanism, referencing
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md` and its dated
+publisher/access evidence. Owner authorizes release of PR #865 after required
+exact-head CI/protections, pinned private-workflow application only after exact
+preimage verification, bounded activation and one genuine source-to-live
+acceptance. Preserve MPS, other desks and the dossiers worktree. Verify provider
+pricing, durable reservations and actual usage; fail closed if these cannot be
+verified. Approval is not evidence that publication has occurred.
+
 ## 2026-10-23 — Owner: Government Office bibliographic source activated (limited scope)
 
 The owner, in chat on 23 October 2026, **authorizes** the standing

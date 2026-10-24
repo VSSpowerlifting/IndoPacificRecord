@@ -61,3 +61,18 @@
              python ipr/scripts/run_vietnam_daily_bridge.py --database "$work/pla_watch.db" \
              --expected-db-sha256 "$(sha256sum "$work/pla_watch.db" | cut -d' ' -f1)" \
              --state-repo "$work/custody" --private-state-repo "$work/custody" "${args[@]}" \
+@@ -370,10 +407,12 @@
+           for path in sorted((work/'ledgers').glob('*.json')):
+               shutil.copyfile(path,dest/'ledgers'/path.name)
+           (dest/'handoff.json').write_text(json.dumps(envelope,sort_keys=True,ensure_ascii=False))
+-          # Counts only: no article text in the log.
++          usage={r['source_family']:r['model_usage'] for r in report['runs'] if 'model_usage' in r}
++          (dest/'vpcp-usage.json').write_text(json.dumps({'run_id':report['run_id'] if 'run_id' in report else os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT'],'usage':usage},sort_keys=True))
++          # Counts and token usage only: no article text in the log.
+           print(json.dumps({'run_id':envelope['run_id'],'deferred':envelope['deferred'],
+                             'records':{f['source_family']:len(f['records']) for f in envelope['families']},
+-                            'outcomes':{r['source_family']:r.get('counts') for r in report['runs']}},sort_keys=True))
++                            'outcomes':{r['source_family']:r.get('counts') for r in report['runs']},'model_usage':usage},sort_keys=True))
+           PY
+           git -C "$work/daily" config user.name 'github-actions[bot]'
+           git -C "$work/daily" config user.email '41898282+github-actions[bot]@users.noreply.github.com'

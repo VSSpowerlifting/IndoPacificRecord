@@ -96,12 +96,15 @@ class Fidelity(unittest.TestCase):
 
 
 class Policies(unittest.TestCase):
-    def test_production_is_inactive(self):
+    def test_owner_policy_and_missing_decision_remain_distinct(self):
         p=vpcp_policy.policy()
-        self.assertIsNone(p['owner_approval'])
+        self.assertTrue(p['owner_approval'].startswith('DECISION_LOG.md#2026-10-24'))
+        self.assertEqual((p['max_documents_per_run'],p['max_input_bytes'],p['max_cost_usd_per_run'],p['max_cost_usd_per_day'],p['max_cost_usd_per_month']),(2,32000,0.5,1,10))
+        p.update(owner_approval=None,collect_preserve=False,external_model_transmission=False,public_ipr_analysis=False)
         for k in ['collect_preserve','external_model_transmission','public_ipr_analysis']:
             self.assertFalse(p[k])
-            with self.assertRaises(ValueError):vpcp_policy.require_permission(k)
+            with patch.object(vpcp_policy,'policy',return_value=p):
+                with self.assertRaises(ValueError):vpcp_policy.require_permission(k)
         self.assertFalse(su.standing(VPCP).allows('external_model_transmission'))
     def test_collector_policy_precedes_network(self):
         from scripts.collect_vpcp_private_documents import collect
@@ -118,7 +121,8 @@ class Policies(unittest.TestCase):
         for term in ['responsible','conditional','deadlines','evidence','90 words']:self.assertIn(term,message)
     def test_unauthorized_guard_never_constructs_client(self):
         a=SimpleNamespace()
-        with self.assertRaises(ValueError):vpcp_policy.guard(a,'fixture')
+        with patch.object(vpcp_policy,'require_permission',side_effect=ValueError('policy held')):
+            with self.assertRaises(ValueError):vpcp_policy.guard(a,'fixture')
         self.assertFalse(hasattr(a,'_client'))
 
 
@@ -229,10 +233,12 @@ class SpendReservations(unittest.TestCase):
         from config import ANALYSIS_MODEL
         events=[]
         class Client:
+            base_url='https://api.anthropic.com'
             def with_options(self,**kw):self.options=kw;return self
-        a=SimpleNamespace(_client=Client(),_call=lambda *a,**kw:events.append('dispatch'))
+        a=SimpleNamespace(_vpcp_document_sha='a'*64,_client=Client(),_call=lambda *a,**kw:events.append('dispatch'))
+        self.addCleanup(patch.stopall);patch.object(vpcp_policy,'verify_pricing').start()
         p=vpcp_policy.policy();p.update(owner_approval='DECISION_LOG.md#fixture',external_model_transmission=True,public_ipr_analysis=True)
-        with patch.object(vpcp_policy,'policy',return_value=p),patch.object(vpcp_policy,'reserve_cost',side_effect=lambda *a:events.append('reserve')):
+        with patch.object(vpcp_policy,'policy',return_value=p),patch.object(vpcp_policy,'reserve_cost',side_effect=lambda *a,**kw:events.append('reserve')):
             vpcp_policy.guard(a,'123-1')
             a._call([{'role':'user','content':'Synthetic test'}],model=ANALYSIS_MODEL,max_tokens=1000,task='summary')
             self.assertEqual(events,['reserve','dispatch']);self.assertEqual(a._client.options,{'max_retries':0})
@@ -240,7 +246,8 @@ class SpendReservations(unittest.TestCase):
         self.assertEqual(events,['reserve','dispatch'])
     def test_checkpoint_failure_prevents_model_call(self):
         from config import ANALYSIS_MODEL
-        a=SimpleNamespace(_client=SimpleNamespace(with_options=lambda **kw:None),_call=unittest.mock.Mock())
+        a=SimpleNamespace(_vpcp_document_sha='a'*64,_client=SimpleNamespace(base_url='https://api.anthropic.com',with_options=lambda **kw:None),_call=unittest.mock.Mock())
+        self.addCleanup(patch.stopall);patch.object(vpcp_policy,'verify_pricing').start()
         p=vpcp_policy.policy();p.update(external_model_transmission=True,public_ipr_analysis=True)
         call=a._call
         with patch.object(vpcp_policy,'policy',return_value=p),patch.object(vpcp_policy,'reserve_cost',side_effect=bridge.BridgeError('fixture CAS failure')):
@@ -251,12 +258,12 @@ class SpendReservations(unittest.TestCase):
         import base64,requests
         from datetime import datetime,timezone
         day=datetime.now(timezone.utc).date().isoformat();p=vpcp_policy.policy()
-        for state in [dict(days={day:1},runs={}),dict(days={day[:8]+'01':10},runs={}),dict(days={},runs={'123-1':0.5})]:
-            body={'schema':'ipr-vpcp-spend/1',**state};response=SimpleNamespace(status_code=200,json=lambda:{'sha':'fixture','content':base64.b64encode(json.dumps(body).encode()).decode()})
+        for state in [dict(days={day:1},runs={'122-1':1}),dict(days={day[:8]+'01':10},runs={'122-1':10}),dict(days={day:0.5},runs={'123-1':0.5})]:
+            body={'schema':'ipr-vpcp-spend/1','documents':{},**state};response=SimpleNamespace(status_code=200,json=lambda:{'sha':'fixture','content':base64.b64encode(json.dumps(body).encode()).decode()})
             session=SimpleNamespace(headers={},get=lambda *a,**kw:response,put=unittest.mock.Mock())
             env={'GITHUB_REPOSITORY':'VSSpowerlifting/ipr-source-evidence-private','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','VIETNAM_VPCP_SPEND_TOKEN':'fictional'}
             with patch.dict('os.environ',env),patch.object(requests,'Session',return_value=session):
-                with self.assertRaisesRegex(bridge.BridgeError,'spend_cap'):vpcp_policy.reserve_cost('123-1',0.01,p)
+                with self.assertRaisesRegex(bridge.BridgeError,'spend_cap'):vpcp_policy.reserve_cost('123-1',0.01,p,document_sha='a'*64,route='relevance:500')
                 session.put.assert_not_called()
 
 
@@ -313,3 +320,42 @@ class DecisionIsolation(unittest.TestCase):
             path=Path(tmp)/'malformed.json';path.write_text('{invalid')
             result=_policies({VPCP:path},[VPCP],NOW[:10])
             self.assertFalse(result[VPCP].allows('external_model_transmission'))
+
+
+class OwnerReleaseGuards(unittest.TestCase):
+    def test_administrative_decision_needs_individual_confirmation(self):
+        m=metadata();m['document_type']='Quyết định'
+        with self.assertRaisesRegex(ValueError,'individual_review'):
+            doc.inspect_pdf(b'%PDF- synthetic',m)
+    def test_missing_checkpoint_or_version_retry_never_dispatches(self):
+        import base64,requests
+        from datetime import datetime,timezone
+        day=datetime.now(timezone.utc).date().isoformat()
+        states=[None,{'schema':'ipr-vpcp-spend/1','days':{day:0.01},'runs':{'122-1':0.01},
+            'documents':{'a'*64:{'run_id':'122-1','routes':['relevance:500']}}}]
+        for state in states:
+            response=SimpleNamespace(status_code=404 if state is None else 200,json=lambda:{'sha':'fixture','content':base64.b64encode(json.dumps(state).encode()).decode()})
+            session=SimpleNamespace(headers={},get=lambda *a,**kw:response,put=unittest.mock.Mock())
+            env={'GITHUB_REPOSITORY':'VSSpowerlifting/ipr-source-evidence-private','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','VIETNAM_VPCP_SPEND_TOKEN':'fictional'}
+            with patch.dict('os.environ',env),patch.object(requests,'Session',return_value=session):
+                with self.assertRaises(bridge.BridgeError):
+                    vpcp_policy.reserve_cost('123-1',0.01,vpcp_policy.policy(),document_sha='a'*64,route='relevance:500')
+                session.put.assert_not_called()
+    def test_pricing_refusal_fails_before_client_or_reservation(self):
+        a=SimpleNamespace()
+        with patch.object(vpcp_policy,'verify_pricing',side_effect=bridge.BridgeError('price unavailable')),patch.object(vpcp_policy,'reserve_cost') as reserve:
+            with self.assertRaises(bridge.BridgeError):vpcp_policy.guard(a,'123-1')
+            reserve.assert_not_called()
+
+    def test_shared_telemetry_counts_only_this_family(self):
+        from analysis.usage import UsageLedger
+        usage=UsageLedger()
+        usage.record_response('summary','claude-sonnet-4-6',SimpleNamespace(input_tokens=10,output_tokens=10,cache_creation_input_tokens=0,cache_read_input_tokens=0))
+        analyzer=SimpleNamespace(usage=usage)
+        def run(*a,**kw):
+            usage.record_response('summary','claude-sonnet-4-6',SimpleNamespace(input_tokens=100,output_tokens=20,cache_creation_input_tokens=0,cache_read_input_tokens=0))
+            return {'source_family':VPCP}
+        with patch.object(bridge,'_run_family',side_effect=run):
+            report=bridge.run_family(analyzer=analyzer)
+        self.assertAlmostEqual(report['model_usage']['cost_usd'],0.0006)
+        self.assertEqual(report['model_usage']['tasks'][0]['input_tokens'],100)

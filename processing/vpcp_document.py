@@ -95,6 +95,8 @@ def identity_header(reader, metadata):
 def _inspect_pdf(data, metadata, *, expected_sha256=None):
     from processing.government_document_intake import validate
     validate(metadata)
+    if metadata['document_type'] not in ('Công văn','Thông báo'):
+        raise ValueError('document_class_individual_review_required')
     if not isinstance(data, bytes) or len(data)>MAX_BYTES or not data.startswith(b'%PDF-'):
         raise ValueError('document_bytes_invalid')
     sha=hashlib.sha256(data).hexdigest()

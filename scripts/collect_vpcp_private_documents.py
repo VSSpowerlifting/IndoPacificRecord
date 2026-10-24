@@ -21,7 +21,7 @@ from scraper.sources.vn_shadow_http import Refusal
 
 
 def collect(database,repo,gate_dir):
-    require_permission('collect_preserve')
+    rules=require_permission('collect_preserve')
     if os.environ.get('VIETNAM_VPCP_TEXT_ENABLED')!='true':raise ValueError('vpcp_collection_inactive')
     if len(os.environ.get('VIETNAM_PRIVATE_BRIDGE_KEY',''))<32:raise ValueError('vpcp_capture_key_required')
     repo=private_repo(repo)
@@ -36,15 +36,16 @@ def collect(database,repo,gate_dir):
     from core.collection.vietnam_government_documents import digest,identity
     index_path=repo/'state/vpcp-index.json'
     index=json.loads(index_path.read_text()) if index_path.exists() else {'records':{},'checked':{}}
+    from processing.government_document_intake import topics
     def priority(m):
         old=index['records'].get(identity(m))
         previous=json.loads((repo/'state/documents'/(old+'.json')).read_text())['capture'] if old else None
         unseen=previous is None or previous['metadata_sha256']!=digest(m)
-        return (not unseen,index.get('checked',{}).get(identity(m),''),m['document_id'])
-    adapter=OriginalsAdapter(6,gate=HostGate(gate_dir));adapter.open()
+        return (not bool(topics(m)),not unseen,index.get('checked',{}).get(identity(m),''),-int(m['document_id']))
+    adapter=OriginalsAdapter(rules['max_documents_per_run'],gate=HostGate(gate_dir));adapter.open()
     outcomes=[]
-    for m in sorted(candidates.values(),key=priority)[:6]:
-        if len(m['attachments'])!=1:
+    for m in sorted(candidates.values(),key=priority)[:rules['max_documents_per_run']]:
+        if len(m['attachments'])!=1 or m['document_type'] not in ('Công văn','Thông báo'):
             hold(repo,identity(m));outcomes.append('attachment_review');continue
         try:
             got=adapter.fetch(m['attachments'][0])

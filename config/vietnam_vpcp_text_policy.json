@@ -1,12 +1,12 @@
 {
   "source_family": "vn_vpcp_official_documents_vi",
-  "owner_approval": null,
-  "collect_preserve": false,
-  "external_model_transmission": false,
-  "public_ipr_analysis": false,
+  "owner_approval": "DECISION_LOG.md#2026-10-24--owner-government-office-bounded-full-document-processing-and-publication",
+  "collect_preserve": true,
+  "external_model_transmission": true,
+  "public_ipr_analysis": true,
   "max_documents_per_run": 2,
   "max_input_bytes": 32000,
-  "max_cost_usd_per_run": 0.50,
-  "max_cost_usd_per_day": 1.00,
-  "max_cost_usd_per_month": 10.00
+  "max_cost_usd_per_run": 0.5,
+  "max_cost_usd_per_day": 1.0,
+  "max_cost_usd_per_month": 10.0
 }

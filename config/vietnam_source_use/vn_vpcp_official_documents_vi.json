@@ -1,0 +1,27 @@
+{
+  "hmac_sha256": "8939a099208294861d4a3c36b0d8121b5548bdca9c94a96f4e6c8ac09416a076",
+  "review": {
+    "attribution_text": "Government Office of Vietnam (Văn phòng Chính phủ); official primary document at vanban.chinhphu.vn",
+    "decided_by": "Benjamin Yang, Indo-Pacific Record owner (explicit chat authorization 2026-10-24)",
+    "decided_on": "2026-10-24",
+    "excerpt_max_chars": null,
+    "expires_on": null,
+    "item_exceptions": [],
+    "license_terms": "Standing owner source-use assessment, not a publisher license. First-party Government Office-issued Công văn and Thông báo only; administrative Quyết định requires separate individual confirmation. Complete identity/coverage-verified text to existing Anthropic API only; independent attributed English headline and <=90-word explanation, shared Daily/QA/Archive/Vietnam Desk, no routine item approval. Hold actual exceptions. Maximum 2 documents/run, $0.50/run, $1/day UTC, $10/calendar month UTC, 32000 input bytes/document; no truncation, automatic retry, cap increase, additional provider or alternate paid processing. No public originals, PDF copies, full translations, substantial excerpts, photographs, embedded materials, additional attachments, third-party annexes or Firecrawl PDF uploads.",
+    "permissions": {
+      "collect_preserve": true,
+      "external_model_transmission": true,
+      "public_excerpt": false,
+      "public_full_translation": false,
+      "public_ipr_analysis": true,
+      "public_original_storage": false,
+      "public_title_display": false
+    },
+    "policy_version": "vn-source-use-2026-10-19.1",
+    "rights_basis_reference": "docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md",
+    "rights_basis_type": "documented_administrative_document_assessment",
+    "robots_review_reference": "docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md; docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md (dated publisher/access evidence)",
+    "schema": "ipr-vietnam-source-use-decision/1",
+    "source_family": "vn_vpcp_official_documents_vi"
+  }
+}

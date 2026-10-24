@@ -10,17 +10,18 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office full-document integration (23 October 2026): inactive follow-on branch.**
-The completed four-record metadata release below remains operating. The source-text
-implementation reuses private Git evidence and the existing Vietnam Daily bridge,
-Analyzer, QA, signed handoff and ordinary corpus/record renderer. Cached acceptance
-PDF hashes and all 4/5 pages pass local checks; the 545 identifier/date mismatch is
-resolved as visible numeric widget appearances omitted by ordinary extraction.
-The owner has not authorized new external-model use or spending. VPCP collection,
-model and publication policy flags remain false; a narrow standing decision and
-$0.50/run, $1/day, $10/month ceilings are proposed for approval after exact-head CI.
-The additive existing-private-workflow patch is prepared but unapplied. See
-`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`.
+**Vietnam Government Office full-document integration (24 October 2026): owner authorized; final CI and acceptance pending.**
+The completed four-record metadata release remains operating. The source-text lane
+reuses existing private Git custody, shared Vietnam Daily Analyzer/QA/handoff and
+ordinary record/Archive rendering. Both cached acceptance PDFs pass identity,
+hash and complete-page checks; the 545 header uses visible numeric widget
+appearances. The sealed standing VPCP decision authorizes bounded Anthropic
+processing and independent English explanations, with 2 documents/run,
+32,000 complete-input bytes/document, $0.50/run, $1/day and $10/month ceilings.
+Administrative Quyết định remains individually held. Current provider prices,
+durable reservations and immutable version/route no-retry controls fail closed.
+The pinned private-workflow patch remains unapplied pending final exact-head CI.
+See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
 PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged

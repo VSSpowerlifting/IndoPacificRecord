@@ -1,5 +1,22 @@
-# Government Office primary documents — inactive full-text integration
+# Government Office primary documents — bounded full-text integration
 
+
+**Owner release decision, 24 October 2026:** the standing authorization below
+was explicitly approved in chat, recorded in `DECISION_LOG.md`, and sealed by
+private Actions run `40110461989` using the existing source-use key. The signing
+job verified the existing MPS seal before producing the VPCP envelope; collection
+and model processing did not run. The current release still requires final
+exact-head CI and real production acceptance.
+
+The activated policy enforces two documents/run for collection and processing,
+holds unconfirmed administrative Quyết định, and uses complete numbered-page
+input without truncation. Before each private processing run it verifies the
+provider's current public pricing table against the two pinned model rates.
+Before each call, a required, preinitialized CAS spending checkpoint reserves
+worst-case cost and records the immutable document version plus route. A missing
+checkpoint, repeat route or a version attempted in an earlier run fails closed;
+there is no automatic paid retry, even after an interrupted job. API-returned
+token usage is retained alongside the existing private Daily state.
 This follows the completed metadata release at `d8aa9ebc6e`. It does not
 reopen PR #863 or change the operating bibliographic collector. The owner has
 authorized technical implementation and bounded local assessment, **not new
@@ -146,8 +163,9 @@ conflicting or exhausted checkpoint prevents the call. Relevance, explanation
 and mandatory factual review are the only allowed model routes; all feed the
 existing usage telemetry.
 
-Approval must be recorded in the existing owner-sealed source-use decision and
-explicit VPCP policy fields. No approval has been recorded by this implementation.
+Approval was recorded on 24 October 2026 in the existing owner-sealed source-use
+decision and explicit VPCP policy fields. Actual activation and production
+acceptance remain separately verifiable release steps.
 The source-use review key remains separate from the capture/handoff key.
 
 ## Release configuration prepared, not activated

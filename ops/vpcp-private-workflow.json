@@ -2,7 +2,7 @@
   "repository": "VSSpowerlifting/ipr-source-evidence-private",
   "path": ".github/workflows/vietnam_private_first_collector.yml",
   "preimage_sha256": "c1bda60a6413b6a3ed1587ee36863c35402f99251ee563c684ce62d91c593378",
-  "postimage_sha256": "89b443cf8df76bf72986c1771a4adae621b933a872374f2c0f734e7b966938a8",
-  "status": "prepared_only_not_applied",
+  "postimage_sha256": "04dcb67442db9d8718512e1cd8006e4df2e6f715bfdb31696d976c06f222d67b",
+  "status": "owner_authorized_pending_exact_head_ci",
   "activation_requires": "owner VPCP source-use/model/publication/spend approval and exact-head CI"
 }
