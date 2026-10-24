@@ -185,6 +185,23 @@ class SharedBridge(unittest.TestCase):
             with patch('core.vietnam_document_custody.prepare',return_value=(packet,{(record['source_identity'],sha):version})),patch('processing.vpcp_policy.policy',return_value=p),patch('processing.vpcp_policy.guard') as guard:
                 held=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=su.standing(VPCP),**args)
                 self.assertEqual(held['counts'],{qa.HELD_RIGHTS:1});guard.assert_not_called()
+                # A rejected model response is retained only in private custody,
+                # with a precise reason; it never enters a handoff or paid retry.
+                original_facts=copy.deepcopy(reading['document_facts'])
+                reading['document_facts'][0]['evidence']='Synthetic missing private evidence span'
+                bad_args=dict(args,ledger_path=Path(tmp)/'bad-ledger.json')
+                bad=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**bad_args)
+                self.assertEqual(bad['counts'],{qa.HELD_REVIEW:1})
+                private=json.loads((Path(tmp)/'bad-ledger.json').read_text())['items'][record['source_identity']]['private_document_review']
+                self.assertEqual(private['failures'],['document_page_evidence_invalid'])
+                self.assertIn('Synthetic missing private evidence span',json.dumps(private))
+                self.assertNotIn('Synthetic missing private evidence span',json.dumps(bad))
+                held_envelope=handoff.sign([bad],{VPCP:json.loads((Path(tmp)/'bad-ledger.json').read_text())},key=b'fictional-bridge-key-0000000000000000',run_id='synthetic',generated_utc=NOW)
+                self.assertNotIn('Synthetic missing private evidence span',json.dumps(held_envelope))
+                settled=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**bad_args)
+                self.assertEqual(settled['counts'],{bridge.SETTLED:1})
+                self.assertEqual(guard.call_count,1)
+                guard.reset_mock();reading['document_facts']=original_facts
                 first=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
                 self.assertEqual(first['counts'],{qa.PUBLISHED:1})
                 second=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
