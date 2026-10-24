@@ -1,8 +1,8 @@
 {
   "dossier_schema": 1,
   "slug": "maritime-cooperation-2026",
-  "title": "Maritime Cooperation 2026: what Chinese and Singaporean official accounts establish",
-  "dek": "Five preserved official publications describe preparations, an opening, a sea phase and a conclusion at Zhanjiang. They leave the starting boundary unresolved.",
+  "title": "Maritime Cooperation 2026",
+  "dek": "One reported sequence. Two official starting dates.",
   "research_question": "What sequence of activity do the selected Chinese and Singaporean official accounts describe, and which differences in their exercise date boundaries remain unresolved?",
   "editorial_status": "draft",
   "author_name": "Codex (machine-assisted draft preparation)",
@@ -10,7 +10,7 @@
   "prepared_on": "2026-10-23",
   "updated_on": "2026-10-23",
   "reviewed_on": null,
-  "revision": 1,
+  "revision": 2,
   "scope": {
     "period_start": "2026-09-03",
     "period_end": "2026-09-14",
@@ -25,10 +25,10 @@
     ],
     "included": "Five preserved publications dated September 5–14, 2026: two Singapore MINDEF releases, two PLA Daily reports and one Chinese defence ministry answer. Reported exercise activity runs from the disputed September 3 boundary to the September 9 conclusion.",
     "excluded": "Other exercises and deployments, photographs, operational performance judgments and any claim to an exhaustive survey of Chinese or Singaporean reporting.",
-    "method": "Read the complete preserved originals, reconcile exact record identities and body versions, and compare dated institutional statements. Event dates remain distinct from publication dates; Chinese evidence is read in the original, not inferred from model summaries. The chronology reuses the existing timeline through a fixed content digest.",
+    "method": "Compare the complete preserved originals and dated institutional statements. Event dates remain distinct from publication dates; Chinese evidence is read in the original, not inferred from model summaries. The chronology follows the same selected evidence.",
     "collection_limits": "This is a bounded archival packet, not independent observation of the exercise. The five stored bodies were checked; their completeness against present-day publisher pages was not re-established. No new collection or paid model processing was performed."
   },
-  "overview": "The selected accounts describe preparations on September 4, an opening on September 5, activity at sea on September 8–9 and a conclusion on September 9. Those dates are attributable reports, not an independently observed operational history. Singapore’s MINDEF gives September 5–9 as the exercise interval; China’s defence ministry gives September 3–9. PLA Daily’s reporting supplies useful detail between those boundaries but does not explain the earlier ministry date. The packet therefore supports a sequence while leaving its starting boundary unresolved.",
+  "overview": "The selected official reports describe September 4 preparations, the September 5 opening, sea activity on September 8–9 and a September 9 conclusion. China MND dates the exercise September 3–9; Singapore MINDEF gives September 5–9. The earlier boundary remains unexplained. This is reporting, not independent observation.",
   "sources": [
     {
       "record_id": 3924,
@@ -94,13 +94,13 @@
   "sections": [
     {
       "id": "reported-sequence",
-      "heading": "The sequence the selected accounts support",
-      "intro": "Read the reports in two orders: when they were published and when they say activity occurred. Later publication can describe an earlier event without changing its date.",
+      "heading": "The reported sequence",
+      "intro": "Publication dates and reported event dates are kept separate.",
       "claims": [
         {
           "id": "preparation-and-opening",
           "claim_kind": "documented_publication",
-          "text": "PLA Daily’s September 6 report carries a September 5 Zhanjiang dateline. It describes high-level meetings and planning discussions on September 4, then an opening ceremony on September 5. MINDEF’s September 5 release also reports an opening earlier that day. This gives the reader a reported preparation-to-opening sequence, while preserving the difference between the dispatch date and the date the PLA Daily item was published.",
+          "text": "PLA Daily’s September 6 report, carrying a September 5 Zhanjiang dateline, dates meetings and planning to September 4 and the opening ceremony to September 5. MINDEF’s September 5 release also reports an opening earlier that day. The dispatch date and publication date remain distinct.",
           "source_record_ids": [
             3924,
             4466
@@ -118,7 +118,7 @@
         {
           "id": "sea-phase-plan-and-report",
           "claim_kind": "documented_publication",
-          "text": "On September 5, MINDEF announced a shore phase for September 5–7 and a sea phase for September 8–9. PLA Daily’s September 12 retrospective reports a transition to sea on September 8 and gunnery on the morning of September 9. The later account supports reported activity on both sea-phase days. It does not independently establish that every announced serial took place as planned.",
+          "text": "MINDEF’s September 5 release announced shore activities for September 5–7 and a sea phase for September 8–9. PLA Daily’s September 12 retrospective reports the move to sea on September 8 and gunnery on the morning of September 9. It supports reported activity on both days.",
           "source_record_ids": [
             4102,
             4466
@@ -136,7 +136,7 @@
         {
           "id": "shared-conclusion",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF’s September 9 release says the exercise concluded earlier that day. PLA Daily’s September 12 retrospective likewise dates the conclusion to September 9 and describes a five-day exercise. The selected closing accounts thus agree on an ending date even though the Chinese ministry’s later answer gives a wider starting interval.",
+          "text": "MINDEF’s September 9 release says the exercise concluded earlier that day. PLA Daily’s September 12 retrospective also dates the conclusion to September 9 and describes a five-day exercise. The closing accounts agree on the endpoint.",
           "source_record_ids": [
             4102,
             4472
@@ -157,13 +157,13 @@
     },
     {
       "id": "different-boundaries",
-      "heading": "Where the accounts draw different boundaries",
-      "intro": "Keep each institution’s interval attached to its source. Selecting one as the corrected master date would conceal the question this dossier is meant to preserve.",
+      "heading": "Different starting boundaries",
+      "intro": "Each institution’s interval stays attached to its source.",
       "claims": [
         {
           "id": "ministry-window",
           "claim_kind": "issuer_statement",
-          "text": "China’s defence ministry’s September 14 answer places Maritime Cooperation 2026 on September 3–9 near Zhanjiang. The answer lists shore activities and exercise serials but does not identify a separate event on September 3 or explain why its interval begins that day.",
+          "text": "China’s defence ministry’s September 14 answer places the exercise near Zhanjiang on September 3–9. It lists shore activities and exercise serials without identifying a separate September 3 event or explaining that starting date.",
           "source_record_ids": [
             4164
           ],
@@ -184,7 +184,7 @@
         {
           "id": "singapore-window",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF’s opening release places the Singapore navy’s participation at Zhanjiang on September 5–9. Its closing release again describes the exercise as held on September 5–9. Those two releases give a consistent Singaporean interval beginning two days after the Chinese ministry’s boundary.",
+          "text": "MINDEF’s opening release dates the Singapore navy’s participation at Zhanjiang to September 5–9. Its closing release describes the exercise itself as held on September 5–9. The wording differs, while the interval stays consistent.",
           "source_record_ids": [
             4466,
             4472
@@ -204,7 +204,7 @@
         {
           "id": "boundary-unresolved",
           "claim_kind": "editorial_interpretation",
-          "text": "The selected evidence does not reconcile the two starting dates. Preparations on September 4 and an opening on September 5 make it possible to distinguish stages of activity, but neither supplies a documented reason for September 3. Different counting conventions are a possible explanation, not a finding. Resolving the boundary would require an attributable explanation beyond this packet.",
+          "text": "September 4 preparations and a September 5 opening distinguish stages of activity but supply no documented reason for September 3. Different counting conventions are a possible explanation, not a finding. An attributable explanation beyond this packet is needed to reconcile the boundary.",
           "source_record_ids": [
             3924,
             4102,
@@ -226,13 +226,13 @@
     },
     {
       "id": "limits-of-comparison",
-      "heading": "What these publications cannot establish",
-      "intro": "Official accounts are evidence of institutional reporting. Their lists of activities and assessments of cooperation have a narrower evidentiary role than an independent evaluation.",
+      "heading": "Limits of comparison",
+      "intro": "Activity descriptions and participant assessments have narrower evidentiary roles than independent evaluation.",
       "claims": [
         {
           "id": "activity-versus-performance",
           "claim_kind": "editorial_interpretation",
-          "text": "Both ministries describe communications, firing, search-and-rescue and casualty-related drills. Their accounts also assess the exercise in terms of cooperation and trust. These are participant descriptions and assessments. The packet contains no independent performance measures with which to establish improved readiness, interoperability or operational effectiveness.",
+          "text": "Both ministries describe communications, firing, search-and-rescue and casualty-related drills, and assess cooperation and trust. These are participant accounts. The packet supplies no independent measures of improved readiness, interoperability or operational effectiveness.",
           "source_record_ids": [
             4164,
             4466,
@@ -246,7 +246,7 @@
         {
           "id": "replenishment-limit",
           "claim_kind": "documented_publication",
-          "text": "China’s ministry includes replenishment in its activity list. PLA Daily describes replenishment positioning and line handling. Neither cited MINDEF release names replenishment, and the selected Chinese descriptions do not establish that fuel or stores were transferred. The defensible comparison is between what these publications describe, not a conclusion that an omitted activity did not occur.",
+          "text": "China’s ministry lists replenishment; PLA Daily describes positioning and line handling. Neither MINDEF release names replenishment. The selected Chinese descriptions do not establish a transfer of fuel or stores; the Singaporean omission does not establish that an activity did not occur.",
           "source_record_ids": [
             4102,
             4164
@@ -287,6 +287,21 @@
       "revision": 1,
       "changed_on": "2026-10-23",
       "summary": "Initial machine-assisted draft for human review. Eight findings bind the five preserved bodies and the existing six-entry chronology; the starting-date disagreement and source-use holds remain explicit. No prior approved dossier version exists.",
+      "affected_claim_ids": [
+        "activity-versus-performance",
+        "boundary-unresolved",
+        "ministry-window",
+        "preparation-and-opening",
+        "replenishment-limit",
+        "sea-phase-plan-and-report",
+        "shared-conclusion",
+        "singapore-window"
+      ]
+    },
+    {
+      "revision": 2,
+      "changed_on": "2026-10-23",
+      "summary": "Shortened the title and opening answer, tightened repeated finding prose and refined the reading presentation. All eight finding IDs, source bindings, date qualifications and replenishment/performance limits remain. Human review and source-use clearance are still pending.",
       "affected_claim_ids": [
         "activity-versus-performance",
         "boundary-unresolved",

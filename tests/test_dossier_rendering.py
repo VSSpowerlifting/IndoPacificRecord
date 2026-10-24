@@ -75,6 +75,8 @@ class DossierRendering(unittest.TestCase):
     def test_draft_zero_public_routes_discovery_backlinks_feed_or_text(self):
         self.assertFalse((self.public/'dossier').exists())
         self.assertFalse((self.public/'dossiers.css').exists())
+        self.assertFalse((self.public/'dossier.js').exists())
+        self.assertFalse((self.public/'assets/timelines/maritime-ocean-texture.webp').exists())
         self.assertFalse((self.public/'timeline').exists())
         self.assertNotIn('value="living_dossier"',(self.public/'archive.html').read_text())
         marker=read_dossier(PILOT)['overview']
@@ -130,8 +132,60 @@ class DossierRendering(unittest.TestCase):
     def test_dossier_render_and_projection_deterministic(self):
         second=self.root/'deterministic'
         self.build(second,review_dossier=PILOT)
-        for name in ['dossier/maritime-cooperation-2026.html','dossiers.css','archive-research-index.json']:
+        for name in ['dossier/maritime-cooperation-2026.html','dossiers.css','dossier.js','archive-research-index.json']:
             self.assertEqual((second/name).read_bytes(),(self.private/name).read_bytes())
+
+    def test_reading_comparison_navigation_and_actual_type_geometry(self):
+        from playwright.sync_api import sync_playwright
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.detail(self.private).read_text(), 'html.parser')
+        self.assertEqual([n.get_text(strip=True) for n in soup.select('.ds-ordinal')],
+                         ['%02d' % n for n in range(1, 9)])
+        self.assertEqual(len(soup.select('.review-banner')), 1)
+        self.assertFalse(soup.select('article [lang="zh-Hans"]'))
+        for finding in soup.select('.ds-finding'):
+            count = len(finding.select('.ds-evidence li'))
+            self.assertIn('%s sources' % count, finding.select_one('summary').get_text())
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page(viewport={'width':1280, 'height':900})
+            page.goto(self.url+'dossier/maritime-cooperation-2026.html', wait_until='networkidle')
+            page.evaluate('document.fonts.ready')
+            heading = page.locator('.ds-finding-heading h3').first
+            self.assertIn('Source Serif 4', heading.evaluate('(e)=>getComputedStyle(e).fontFamily'))
+            self.assertGreaterEqual(heading.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)'), 23)
+            self.assertLess(heading.bounding_box()['y'], 920)
+            self.assertEqual(page.locator('.ds-reading').evaluate('(e)=>e.getBoundingClientRect().width'), 680)
+            self.assertEqual(page.locator('.ds-contents a[aria-current="location"]').inner_text(), 'Findings')
+            china = page.locator('[data-window="ministry-window"] .ds-day-filled')
+            singapore = page.locator('[data-window="singapore-window"] .ds-day-filled')
+            self.assertEqual(china.count(), 7); self.assertEqual(singapore.count(), 5)
+            self.assertAlmostEqual(china.last.bounding_box()['x']+china.last.bounding_box()['width'],
+                                   singapore.last.bounding_box()['x']+singapore.last.bounding_box()['width'])
+            self.assertGreater(singapore.first.bounding_box()['x'], china.first.bounding_box()['x'])
+            page.locator('#finding-preparation-and-opening .ds-cites a').first.click()
+            page.locator('#source-3924 a[aria-label^="Back to finding 01"]').click()
+            self.assertTrue(page.url.endswith('#finding-preparation-and-opening'))
+            page.go_back()
+            self.assertTrue(page.url.endswith('#source-3924'))
+            page.locator('.ds-contents a[href="#chronology"]').click()
+            page.wait_for_function('document.querySelector(\'.ds-contents a[href="#chronology"]\').getAttribute("aria-current") === "location"')
+            # An unusually short desktop viewport can scroll the rail itself.
+            page.set_viewport_size({'width':1280, 'height':360})
+            self.assertLessEqual(page.locator('.ds-contents').bounding_box()['height'], 312)
+            for width in [960, 768, 375, 320]:
+                page.set_viewport_size({'width':width, 'height':812})
+                self.assertFalse(page.locator('.ds-contents').is_visible())
+                contents = page.locator('.ds-mobile-contents')
+                self.assertTrue(contents.is_visible())
+                self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'), width)
+            contents.locator('summary').focus(); page.keyboard.press('Enter')
+            self.assertIsNotNone(contents.get_attribute('open'))
+            contents.locator('a[href="#sources"]').click()
+            self.assertTrue(page.url.endswith('#sources'))
+            page.locator('#source-3924 a[aria-label^="Back to finding 01"]').click()
+            self.assertTrue(page.url.endswith('#finding-preparation-and-opening'))
+            browser.close()
 
     def test_browser_reading_links_keyboard_copy_fallback_print_and_responsive(self):
         from playwright.sync_api import sync_playwright

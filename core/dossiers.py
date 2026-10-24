@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+from datetime import date, timedelta
 from pathlib import Path
 
 from core.dossier_contract import (
@@ -23,7 +24,7 @@ from scripts.reconcile_db import read_only
 PUBLIC_FIELDS = frozenset({'attribution', 'publication_date', 'publisher_link',
                            'record_link', 'ipr_paraphrase'})
 KIND_LABELS = {'issuer_statement': 'Issuer statement',
-               'documented_publication': 'Documented publication',
+               'documented_publication': 'Publication fact',
                'editorial_interpretation': 'Editorial interpretation'}
 
 
@@ -154,11 +155,93 @@ def publication_holds(sc):
     return holds
 
 
+def reported_windows(sc, chronology):
+    """One inclusive day axis, derived from the reconciled manuscript.
+
+    The pilot's verified date assertions intentionally fail on drift. A changed
+    source claim needs review before this comparison can be represented again.
+    No independent editable interval copy is passed to the template.
+    """
+    if sc['slug'] != 'maritime-cooperation-2026':
+        return None
+    claims = {c['id']: c for s in sc['sections'] for c in s['claims']}
+    entries = {e['id']: e for e in chronology}
+    windows = []
+    for cid, eid, label, expected, ids in (
+        ('ministry-window', 'ministry-interval', 'China MND',
+         ('2026-09-03', '2026-09-09'), {4164}),
+        ('singapore-window', 'singapore-interval', 'Singapore MINDEF',
+         ('2026-09-05', '2026-09-09'), {4466, 4472}),
+    ):
+        claim, entry = claims.get(cid), entries.get(eid)
+        event = claim.get('event_period') if claim else None
+        if (not event or not entry
+                or tuple(event[k] for k in ('start', 'end')) != expected
+                or tuple(entry['event'][k] for k in ('start', 'end')) != expected
+                or set(claim['source_record_ids']) != ids
+                or {e['record_id'] for e in entry['evidence']} != ids):
+            _fail('reported_window_binding_mismatch', claims=[cid])
+        windows.append(dict(label=label, claim_id=cid, start=event['start'],
+                            end=event['end'], source_ids=claim['source_record_ids']))
+    start = date.fromisoformat(min(w['start'] for w in windows))
+    end = date.fromisoformat(max(w['end'] for w in windows))
+    days = [start + timedelta(days=n) for n in range((end - start).days + 1)]
+    for window in windows:
+        window['cells'] = [window['start'] <= day.isoformat() <= window['end'] for day in days]
+    return dict(windows=windows, days=[dict(iso=d.isoformat(), day=d.day) for d in days])
+
+
+def reading_view(sc, records, chronology):
+    """Derived reading metadata, never additional source text or authority."""
+    sources = {s['record_id']: s for s in sc['sources']}
+    labels = {'pla_daily': 'PLA Daily', 'mod_china': 'China MND',
+              'sg_mindef_releases': 'MINDEF'}
+    claims = {}
+    ordinal = 0
+    sections = []
+    for section in sc['sections']:
+        items = []
+        for claim in section['claims']:
+            ordinal += 1
+            ids = set(claim['source_record_ids'] + claim['counterevidence_ids'])
+            item = dict(claim, ordinal='%02d' % ordinal, evidence_count=len(ids),
+                        counter_label='Different account' if claim['id'] in
+                        ('ministry-window', 'singapore-window') else 'Qualification sources')
+            claims[claim['id']] = item
+            items.append(item)
+        sections.append(dict(section, claims=items))
+    ledger = []
+    for rec in sorted(records.values(), key=lambda r: (r['published_on'], r['id'])):
+        ledger.append(dict(rec, short_name=labels.get(sources[rec['id']]['source_id'], rec['source_name']),
+            language_name={'zh-Hans': 'Chinese (Simplified)', 'en': 'English'}.get(rec['language'], rec['language']),
+            findings=[c for c in claims.values() if rec['id'] in c['source_record_ids'] + c['counterevidence_ids']]))
+    events = []
+    for entry in chronology:
+        ids = {e['record_id'] for e in entry['evidence']}
+        candidates = [c for c in claims.values() if c['event_period']
+            and c['claim_kind'] != 'editorial_interpretation'
+            and c['event_period']['start'] <= entry['event']['start']
+            and c['event_period']['end'] >= entry['event']['end']
+            and ids.issubset(c['source_record_ids'])]
+        if candidates:
+            shortest = min((date.fromisoformat(c['event_period']['end']) -
+                            date.fromisoformat(c['event_period']['start'])).days for c in candidates)
+            candidates = [c for c in candidates if (date.fromisoformat(c['event_period']['end']) -
+                date.fromisoformat(c['event_period']['start'])).days == shortest]
+        events.append(dict(entry, findings=candidates,
+            interval_claim=entry['id'] in ('ministry-interval', 'singapore-interval')))
+    return dict(sections=sections, findings=claims, ledger=ledger,
+                records={r['id']: r for r in ledger}, chronology_entries=events,
+                jurisdictions=sorted({s['desk'].capitalize() for s in sources.values()}),
+                publication_cutoff=max(r['published_on'] for r in ledger),
+                comparison=reported_windows(sc, chronology))
+
+
 def dossier_view(sc, records, related, chronology, holds, is_review=False):
     result = dict(sc, route='dossier/%s.html' % sc['slug'], is_review=is_review,
                   digest=dossier_content_digest(sc), chronology_entries=chronology,
                   holds=holds, kind_labels=KIND_LABELS)
-    result['ledger'] = sorted(records.values(), key=lambda r: (r['published_on'], r['id']))
+    result.update(reading_view(sc, records, chronology))
     result['related'] = [related[slug] for slug in sc['related_briefs']]
     result['citation'] = '%s. “%s.” Indo-Pacific Record, Living Dossier, revision %s, %s%s.' % (
         sc['author_name'], sc['title'], sc['revision'], sc['updated_on'],

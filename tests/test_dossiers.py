@@ -116,6 +116,41 @@ class DossierSources(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'chronology_version_mismatch'):
             d.chronology_view(self.sc,records)
 
+    def test_reported_windows_share_exact_inclusive_axis_and_bound_sources(self):
+        records = d.reconcile_dossier_sources(self.sc, self.db)
+        chronology = d.chronology_view(self.sc, records)
+        view = d.reading_view(self.sc, records, chronology)
+        comparison = view['comparison']
+        self.assertEqual([day['iso'] for day in comparison['days']],
+                         ['2026-09-%02d' % n for n in range(3, 10)])
+        china, singapore = comparison['windows']
+        self.assertEqual(china['source_ids'], [4164])
+        self.assertEqual(singapore['source_ids'], [4466, 4472])
+        self.assertEqual(china['cells'], [True] * 7)
+        self.assertEqual(singapore['cells'], [False, False] + [True] * 5)
+        self.assertEqual(china['end'], singapore['end'])
+        self.assertEqual([c['ordinal'] for c in view['findings'].values()],
+                         ['%02d' % n for n in range(1, 9)])
+        for rec in view['ledger']:
+            self.assertEqual([c['id'] for c in rec['findings']],
+                             d.affected_findings(self.sc, rec['id']))
+        for event in view['chronology_entries']:
+            self.assertTrue(event['findings'], event['id'])
+
+    def test_window_claim_chronology_or_citation_drift_is_rejected(self):
+        records = d.reconcile_dossier_sources(self.sc, self.db)
+        chronology = d.chronology_view(self.sc, records)
+        for change in ('claim_date', 'chronology_date', 'claim_sources', 'chronology_sources'):
+            sc, entries = copy.deepcopy(self.sc), copy.deepcopy(chronology)
+            claim = next(c for s in sc['sections'] for c in s['claims'] if c['id'] == 'ministry-window')
+            entry = next(e for e in entries if e['id'] == 'ministry-interval')
+            if change == 'claim_date': claim['event_period']['start'] = '2026-09-04'
+            if change == 'chronology_date': entry['event']['start'] = '2026-09-04'
+            if change == 'claim_sources': claim['source_record_ids'] = [3924]
+            if change == 'chronology_sources': entry['evidence'][0]['record_id'] = 3924
+            with self.subTest(change=change), self.assertRaisesRegex(ValueError, 'reported_window_binding_mismatch.*ministry-window'):
+                d.reported_windows(sc, entries)
+
     def test_approval_like_assertions_have_no_authority(self):
         approve_fixture(self.sc)
         validate_dossier_shape(self.sc)

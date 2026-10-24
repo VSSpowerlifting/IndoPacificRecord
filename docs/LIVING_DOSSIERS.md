@@ -92,7 +92,8 @@ an authorized release.
 
 ## Reviewed revisions
 
-The initial draft has revision 1 and one real initial-preparation note; no prior
+The current draft is revision 2: a shorter title/answer and tighter finding
+prose, with the original revision 1 preparation note retained. No prior human
 approval or history is invented. Edit manuscript JSON through a structured
 JSON writer and rerun `check`; never edit generated HTML. Preserve stable
 finding IDs. Add one concise sequential note for a new revision, naming the
@@ -126,6 +127,35 @@ fixtures. Required PR offline CI runs the full suite and a fresh isolated
 `site/render.py` + `scripts/validate_output.py` on GitHub's PR merge ref. A green
 local subset is not that gate. Tracked DB, output, Brief sidecars and Timeline
 must remain unchanged; the accepted output-validator baseline is 10 warnings.
+
+## Reading presentation
+
+The dossier opening uses the existing paper shell and navy comparison panel.
+`reported_windows` derives its inclusive September 3–9 day cells from the two
+claims and checks their dates/source sets against the bound chronology and the
+verified pilot assertions. Both endpoints count; cell fill is a stated window,
+not intensity or independent confirmation. Source drift fails before rendering.
+`reading_view` derives ordinals, evidence counts, publication-order ledger entries,
+readable source/language labels and finding returns without changing custody or
+authorization. English publisher abbreviations are English text, even when the
+source document is Chinese; the stored language remains available in metadata.
+
+A small optional `dossier.js` marks desktop reading location and measures a
+fixed/sticky masthead if present. Native links, history and disclosures work
+without it; mobile has one contents disclosure. Print exposes evidence/date
+basis and publisher URLs even when disclosures were closed. Dossier CSS, JS and
+the existing illustrative texture ship only with a rendered dossier (or, for
+the texture, its existing rendered Timeline). A withheld draft adds none of them.
+
+Refinement verification: 120 focused contract/source/render/timeline checks,
+including browser journeys; the final anchor-treatment adjustment passed all
+10 dossier rendering checks. Local desktop/mobile captures compare the previous
+candidate with revision 2 at 1280×900 and 375×812, with 320/768/960 overflow,
+keyboard, no-JS, reduced-motion, print and local-request checks. The selected
+generated reference image was not available, so image-level fidelity is not
+claimed; the explicit owner composition governs. Exact-head required CI and
+isolated production validation remain separately evidenced in PR #864 checks.
+See `design-qa.md` for local visual evidence and limits.
 
 ## Internal source-to-finding matrix (no source text)
 
