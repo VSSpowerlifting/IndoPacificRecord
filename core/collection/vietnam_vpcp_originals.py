@@ -111,5 +111,3 @@ class OriginalsAdapter(_Retrieval):
             raise Refusal(st.FETCH_FAILURE, "length_mismatch", url, raw.status)
         return {"sha256": hashlib.sha256(raw.body).hexdigest(), "bytes": len(raw.body),
                 "content_type": ctype, "retrieved_at": raw.retrieved_at, "body": raw.body}
-
-

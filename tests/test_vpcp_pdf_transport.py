@@ -141,5 +141,3 @@ class ObjectValidation(unittest.TestCase):
             with self.subTest(url), self.assertRaises(Refusal):
                 adapter.fetch(url)
         self.assertEqual(len(adapter.request_log), 1)  # robots only
-
-
