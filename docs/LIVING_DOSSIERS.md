@@ -1,10 +1,17 @@
 # Living Dossiers: maintain and review
 
-The Maritime Cooperation 2026 manuscript in `dossiers/` is a complete **draft**:
-eight findings, five exact preserved source versions, and six chronology entries.
-It has no human approval or source-use grant. It is prepared by Codex; neither
-Benjamin Yang nor Dylan is credited with a review they have not performed.
-This assignment authorizes a private candidate and review PR, not release.
+The Maritime Cooperation 2026 manuscript remains revision 2: eight findings,
+five exact preserved source versions and six chronology entries. On 25 October
+2026 Benjamin Yang reaffirmed his approval of revision 2 and its reviewed
+presentation at head `38f9f2bf8f45e258ad9592272b865d41cd29d72f`. The actual
+editorial receipt is recorded in `DECISION_LOG.md`, the dossier metadata and
+`core/dossier_decisions.py`. Codex remains credited for preparation; Benjamin
+Yang is the responsible human editor. The confirmation date is recorded without
+inventing an earlier review date. No finding or presentation source changed.
+
+Release readiness still requires the separate narrow source-use decision for
+the five bound versions. Editorial approval alone does not grant it. Merge,
+deployment and publication remain unauthorized by this preparation task.
 
 ## Ordinary workflow
 
@@ -16,20 +23,24 @@ below). From the task worktree:
 .venv/bin/python scripts/dossier.py check dossiers/maritime-cooperation-2026.json
 .venv/bin/python scripts/dossier.py changes dossiers/maritime-cooperation-2026.json
 .venv/bin/python scripts/dossier.py ready dossiers/maritime-cooperation-2026.json
-.venv/bin/python scripts/dossier.py preview dossiers/maritime-cooperation-2026.json \
+.venv/bin/python scripts/dossier.py preview dossiers/drafts/maritime-cooperation-2026.json \
   --out /tmp/ipr-dossier-new-private-review
 python3 -m http.server 8785 --bind 127.0.0.1 \
   --directory /tmp/ipr-dossier-new-private-review
 ```
 
-Open `http://127.0.0.1:8785/dossier/maritime-cooperation-2026.html`.
+The preview example requires an actual next draft in `dossiers/drafts/`; it does
+not create one. Open `http://127.0.0.1:8785/dossier/maritime-cooperation-2026.html`.
 `check` returns 0 after shape, actual source reconciliation and chronology
 binding pass; it prints separate source-use/editorial holds. `ready` returns 1
 while those decisions are missing, 2 on invalid/stale input, 0 only after all
 gates pass. `changes` shows actual authored notes. `--db` selects a frozen input;
 all source reads use `scripts.reconcile_db.read_only` scratch custody.
 `site/render.py --review-dossier PATH --out NEW_EXTERNAL_DIRECTORY` is the same
-shared renderer entry point. No model call is involved.
+shared renderer entry point for draft revisions. The approved canonical file
+is not a draft and cannot use that preview flag. A release candidate uses an
+isolated normal shared render, which fails closed while source-use holds remain.
+No model call is involved.
 
 Review trees are new, disposable directories outside every Git working tree,
 with mode 0700. Existing destinations and user-created symlink paths are refused;
@@ -65,9 +76,10 @@ explicit owner decision, an authorized maintainer records its narrow scope in
 `core/dossier_decisions.py`: `SOURCE_USES` binds the exact sources and public
 fields, and `PUBLICATIONS` binds the exact content digest **and** human approval
 receipt. There is no environment flag or CLI argument that grants either.
-The registry is empty because no dossier decision has been supplied. Synthetic
-authority is injected only by tests. Hashes establish integrity, not authorship
-or legal rights; do not add a registry entry merely because a JSON receipt looks
+The revision 2 editorial decision is recorded; the source-use map remains empty
+until its separate decision is supplied. Synthetic authority is injected only
+by tests, whose draft fixtures are independent of the real canonical status.
+Hashes establish integrity, not authorship or legal rights; do not add a registry entry merely because a JSON receipt looks
 plausible. A later authentic decision may supersede a hold without reopening
 settled questions. Publisher correspondence is not assumed necessary for every
 reporting use.
@@ -81,9 +93,9 @@ only to identify related approved analysis. It approves neither this dossier
 nor these new source uses. No private companion access was necessary: all five
 originals are available in the assigned archive.
 
-The human decision is to accept/correct the exact findings, scope, chronology,
-qualifications and credits after rendered/source review, and record the narrow
-source-use determination for the three publisher families. Full originals,
+The editorial decision on the exact findings, scope, chronology, qualifications
+and reviewed presentation is now recorded. The remaining human decision is the
+narrow source-use determination for the three publisher families. Full originals,
 translations, substantial excerpts and media are outside this dossier's public
 projection. Subsequent release still needs explicit merge/deploy/publication
 authority. The separately tracked Pages writer race/guard work is not resolved
@@ -92,10 +104,11 @@ an authorized release.
 
 ## Reviewed revisions
 
-The current draft is revision 2: a shorter title/answer and tighter finding
-prose, with the original revision 1 preparation note retained. No prior human
-approval or history is invented. Edit manuscript JSON through a structured
-JSON writer and rerun `check`; never edit generated HTML. Preserve stable
+The approved manuscript is revision 2: a shorter title/answer and tighter finding
+prose, with the original revision 1 preparation note retained. The 25 October
+approval reaffirmation changes only status, editor/review metadata and its exact
+receipt; it does not create revision 3 or rewrite the authored change history.
+Edit manuscript JSON through a structured JSON writer and rerun `check`; never edit generated HTML. Preserve stable
 finding IDs. Add one concise sequential note for a new revision, naming the
 affected current findings and explaining removals in its summary.
 

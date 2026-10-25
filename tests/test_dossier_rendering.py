@@ -14,7 +14,7 @@ from core import dossiers as d
 from core.archive_research import dossier_records
 from core.dossier_contract import read_dossier
 from scripts import validate_output
-from tests.test_dossiers import PILOT, ROOT, approve_fixture, fixture_decisions
+from tests.test_dossiers import PILOT, ROOT, approve_fixture, fixture_decisions, draft_fixture
 
 sys.path.insert(0,str(ROOT/'site/preview'))
 import generate_preview as gp
@@ -30,9 +30,14 @@ class DossierRendering(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp=tempfile.TemporaryDirectory()
         cls.root=Path(cls.tmp.name)
+        authority = mock.patch.multiple(d.dossier_decisions, SOURCE_USES={}, PUBLICATIONS={})
+        authority.start(); cls.addClassCleanup(authority.stop)
+        cls.draft_sources=cls.root/'draft-fixtures'; cls.draft_sources.mkdir()
+        cls.draft_pilot=cls.draft_sources/PILOT.name
+        cls.draft_pilot.write_text(json.dumps(draft_fixture(read_dossier(PILOT))))
         cls.snapshot=gp.snapshot_from_corpus(ROOT/'pla_watch.db')
         cls.private=cls.root/'private';cls.public=cls.root/'public';cls.approved=cls.root/'approved'
-        cls.build(cls.private,review_dossier=PILOT)
+        cls.build(cls.private,review_dossier=cls.draft_pilot)
         cls.build(cls.public,site_origin='https://fixture.test',allow_test_origin=True)
         cls.sc=approve_fixture(read_dossier(PILOT))
         cls.sc['title']='Synthetic approved dossier & discovery fixture'
@@ -49,6 +54,7 @@ class DossierRendering(unittest.TestCase):
 
     @classmethod
     def build(cls,out,**options):
+        options.setdefault('dossiers_dir', cls.draft_sources)
         return gp.build(out,'Indo-Pacific Record',ROOT/'pla_watch.db',snapshot=cls.snapshot,**options)
 
     @classmethod
@@ -58,6 +64,15 @@ class DossierRendering(unittest.TestCase):
 
     def detail(self,root):
         return root/'dossier/maritime-cooperation-2026.html'
+
+    def validate(self, output, sources):
+        actual = d.load_dossiers
+        def loader(db, related, source_dir, *args, **kwargs):
+            return actual(db, related, sources, *args, **kwargs)
+        with mock.patch('core.dossiers.load_dossiers', side_effect=loader):
+            errors = []
+            validate_output._validate_dossiers(output, errors)
+            return errors
 
     def test_complete_real_private_draft_no_original_text_and_noindex(self):
         html=self.detail(self.private).read_text()
@@ -85,7 +100,7 @@ class DossierRendering(unittest.TestCase):
                 text=path.read_text()
                 self.assertNotIn('dossier/maritime-cooperation-2026.html',text,str(path))
                 self.assertNotIn(marker,text,str(path))
-        errors=[];validate_output._validate_dossiers(self.public,errors)
+        errors=self.validate(self.public,self.draft_sources)
         self.assertEqual(errors,[])
 
     def test_synthetic_approved_same_path_once_in_discovery_and_backlinks(self):
@@ -106,15 +121,8 @@ class DossierRendering(unittest.TestCase):
             self.assertIn('../dossier/maritime-cooperation-2026.html',(self.approved/route).read_text())
         self.assertFalse((self.approved/'timeline').exists())
         self.assertIn('value="living_dossier"',(self.approved/'archive.html').read_text())
-        with fixture_decisions(self.sc),mock.patch.object(validate_output,'REPO_ROOT',ROOT),mock.patch('core.dossiers.DOSSIERS_DIR',self.sources):
-            # Validator passes an explicit directory, so intercept only the
-            # default source location while retaining the actual loader.
-            actual=d.load_dossiers
-            def loader(db,related,source_dir,*args,**kwargs):
-                return actual(db,related,self.sources,*args,**kwargs)
-            with mock.patch('core.dossiers.load_dossiers',side_effect=loader):
-                errors=[];validate_output._validate_dossiers(self.approved,errors)
-                self.assertEqual(errors,[])
+        with fixture_decisions(self.sc):
+            self.assertEqual(self.validate(self.approved,self.sources),[])
 
     def test_invalid_asserted_approved_stops_shared_build(self):
         with self.assertRaisesRegex(ValueError,'publication_validation_failed'):
@@ -123,15 +131,15 @@ class DossierRendering(unittest.TestCase):
     def test_preview_cannot_be_given_origin_or_overwrite(self):
         for options in [dict(site_origin='https://fixture.test',allow_test_origin=True),{}]:
             with self.subTest(options=options),self.assertRaises(ValueError):
-                self.build(self.private,review_dossier=PILOT,**options)
+                self.build(self.private,review_dossier=self.draft_pilot,**options)
 
     def test_deploy_gate_rejects_private_or_stale_dossier(self):
-        errors=[];validate_output._validate_dossiers(self.private,errors)
+        errors=self.validate(self.private,self.draft_sources)
         self.assertTrue(any('no approved dossier' in e for e in errors))
 
     def test_dossier_render_and_projection_deterministic(self):
         second=self.root/'deterministic'
-        self.build(second,review_dossier=PILOT)
+        self.build(second,review_dossier=self.draft_pilot)
         for name in ['dossier/maritime-cooperation-2026.html','dossiers.css','dossier.js','archive-research-index.json']:
             self.assertEqual((second/name).read_bytes(),(self.private/name).read_bytes())
 

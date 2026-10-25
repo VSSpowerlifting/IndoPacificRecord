@@ -17,6 +17,16 @@ ROOT = Path(__file__).resolve().parent.parent
 PILOT = ROOT / 'dossiers/maritime-cooperation-2026.json'
 
 
+def draft_fixture(sc):
+    """Exercise unapproved paths independently of the real publication status."""
+    sc = copy.deepcopy(sc)
+    sc.update(editorial_status='draft', editor_name='Pending human editorial review', reviewed_on=None)
+    sc.pop('approval', None)
+    for source in sc['sources']:
+        source['source_use_decision_ref'] = None
+    return sc
+
+
 def approve_fixture(sc):
     """An explicitly synthetic editorial assertion, never sufficient authority."""
     sc['editorial_status'] = 'approved'
@@ -45,13 +55,15 @@ class DossierSources(unittest.TestCase):
         # The original is NEVER opened through sqlite3.connect.
         with read_only(ROOT / 'pla_watch.db') as con, sqlite3.connect(cls.frozen) as target:
             con.backup(target)
-        cls.original = read_dossier(PILOT)
+        cls.original = draft_fixture(read_dossier(PILOT))
 
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
     def setUp(self):
+        authority = mock.patch.multiple(dossier_decisions, SOURCE_USES={}, PUBLICATIONS={})
+        authority.start(); self.addCleanup(authority.stop)
         self.sc = copy.deepcopy(self.original)
         self.case = tempfile.TemporaryDirectory(dir=self.root)
         self.addCleanup(self.case.cleanup)

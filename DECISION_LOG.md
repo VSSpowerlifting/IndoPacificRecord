@@ -4,6 +4,26 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-25 — Owner: Maritime dossier revision 2 editorial approval reaffirmed
+
+Benjamin Yang reaffirmed in this task that his approval of revision 2 and its
+reviewed presentation remains valid, and instructed the maintainer to record
+that actual approval and prepare a release candidate. The reviewed repository
+head is `38f9f2bf8f45e258ad9592272b865d41cd29d72f`; the reviewed draft content
+SHA-256 is `65444d8057e6facdeeb0fc9594cb83ad2f3be2fa4e35ecb9b01a82caff869c45`.
+This entry records the 25 October reaffirmation, not an invented earlier review
+date. Benjamin Yang is the responsible human editor; Codex remains credited
+for machine-assisted preparation. Findings, qualifications, source versions,
+chronology and reviewed CSS/template presentation are not reopened.
+
+Approval/status metadata and the resulting exact approval digest may be
+recorded through `core/dossier_decisions.py`. The separate source-use registry
+must still bind an actual decision for attribution, publication dates,
+independent IPR paraphrases and official/canonical-record links for the five
+bound versions; editorial approval alone does not invent that decision.
+Original text, translations, substantial excerpts and media remain outside this
+projection. This instruction does not authorize merge, deployment or publication.
+
 ## 2026-10-24 — Owner: Government Office bounded full-document processing and publication
 
 Benjamin Yang explicitly approves `vn_vpcp_official_documents_vi` in chat on

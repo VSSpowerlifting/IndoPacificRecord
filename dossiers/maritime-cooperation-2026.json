@@ -4,12 +4,12 @@
   "title": "Maritime Cooperation 2026",
   "dek": "One reported sequence. Two official starting dates.",
   "research_question": "What sequence of activity do the selected Chinese and Singaporean official accounts describe, and which differences in their exercise date boundaries remain unresolved?",
-  "editorial_status": "draft",
+  "editorial_status": "approved",
   "author_name": "Codex (machine-assisted draft preparation)",
-  "editor_name": "Pending human editorial review",
+  "editor_name": "Benjamin Yang",
   "prepared_on": "2026-10-23",
   "updated_on": "2026-10-23",
-  "reviewed_on": null,
+  "reviewed_on": "2026-10-25",
   "revision": 2,
   "scope": {
     "period_start": "2026-09-03",
@@ -313,5 +313,11 @@
         "singapore-window"
       ]
     }
-  ]
+  ],
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-10-25",
+    "reference": "DECISION_LOG.md#2026-10-25--owner-maritime-dossier-revision-2-editorial-approval-reaffirmed",
+    "content_sha256": "5b23f8a1215985e4bd6449dbd27d89ba7edf35caffca56d308b46a90444bab6f"
+  }
 }

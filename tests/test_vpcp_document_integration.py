@@ -65,6 +65,49 @@ class Header(unittest.TestCase):
     def test_normalization_does_not_change_digits(self):
         self.assertEqual(doc.normalized('545 / TB – VPCP'),doc.normalized('545/TB-VPCP'))
         self.assertNotEqual(doc.normalized('546/TB-VPCP'),doc.normalized('545/TB-VPCP'))
+    def test_same_line_date_column_does_not_become_part_of_number(self):
+        m=metadata();p=HeaderPage(m)
+        text=p.extract_text().replace('\nHà Nội,',' Hà Nội,')
+        p.extract_text=lambda:text
+        self.assertEqual(doc.identity_header(SimpleNamespace(pages=[p]),m)['number'],'match')
+        p.extract_text=lambda:text.replace(m['document_number'],'99999/VPCP-CN')
+        with self.assertRaisesRegex(ValueError,'number_conflict'):
+            doc.identity_header(SimpleNamespace(pages=[p]),m)
+        p.extract_text=lambda:text.replace(' Hà Nội,',' extra-number Hà Nội,')
+        with self.assertRaisesRegex(ValueError,'number_conflict'):
+            doc.identity_header(SimpleNamespace(pages=[p]),m)
+
+
+def numbered_page(extra=b''):
+    page=PageObject.create_blank_page(width=595,height=842)
+    form=widget('2')['/AP']['/N']
+    page[NameObject('/Resources')]=form['/Resources']
+    stream=DecodedStreamObject();stream.set_data(form.get_data()+extra)
+    page[NameObject('/Contents')]=stream
+    return page
+
+
+class NumberedNoncontentPage(unittest.TestCase):
+    def test_number_only_page_is_retained_in_complete_input(self):
+        m=metadata();r=SimpleNamespace(pages=[HeaderPage(m),numbered_page()],is_encrypted=False,attachments={})
+        first=('Synthetic test document with sufficient text. '*8)+m['signatory']
+        extraction=PdfExtraction(status='ok',text=first+'\n2',page_count=2,pages_with_text=2,pages_failed=0,pages=((1,first),(2,'2')))
+        with patch.object(doc,'PdfReader',return_value=r),patch.object(doc,'extract_pdf_text',return_value=extraction):
+            result=doc.inspect_pdf(b'%PDF- synthetic numbered page',m)
+        self.assertEqual(result['pages'],[(1,first),(2,'2')])
+        self.assertIn(['page-2','2'],json.loads(result['blocks_json']))
+    def test_images_forms_annotations_and_paint_hold(self):
+        for kind in ['image','form','annotation','paint','unknown','extra_text','type3']:
+            p=numbered_page()
+            if kind in ('image','form'):
+                p['/Resources'][NameObject('/XObject')]=DictionaryObject({NameObject('/X1'):DictionaryObject({NameObject('/Subtype'):NameObject('/Image' if kind=='image' else '/Form')})})
+            elif kind=='annotation':p[NameObject('/Annots')]=ArrayObject([widget('2')])
+            elif kind=='type3':p['/Resources']['/Font']['/F1'][NameObject('/Subtype')]=NameObject('/Type3')
+            else:p=numbered_page({'paint':b' 0 0 m 10 10 l S','unknown':b' /Something sh','extra_text':b' BT /F1 12 Tf (hidden text) Tj ET'}[kind])
+            self.assertFalse(doc.page_number_only(p,2,'2'),kind)
+    def test_sparse_text_and_wrong_page_number_hold(self):
+        for number,text in [(1,'2'),(2,''),(2,'2 missing body'),(2,'22')]:
+            self.assertFalse(doc.page_number_only(numbered_page(),number,text))
 
 
 class Fidelity(unittest.TestCase):
@@ -226,14 +269,25 @@ class SharedBridge(unittest.TestCase):
                 saved=copy.deepcopy(reading);saved['model_id']=ANALYSIS_MODEL
                 resume_path=Path(tmp)/'resume-ledger.json'
                 resume_ledger=bridge.load_ledger(resume_path,VPCP)
-                resume_ledger['items'][record['source_identity']]={'content_sha256':sha,'outcome':qa.HELD_REVIEW,'failures':['E_ANALYSIS_INCOMPLETE'],'attempts':0,'private_document_review':{'failures':['document_summary_coverage'],'reading':saved}}
+                resume_ledger['items'][record['source_identity']]={'content_sha256':sha,'outcome':qa.HELD_REVIEW,'failures':['E_ANALYSIS_INCOMPLETE'],'attempts':0,'run_id':'original-generation','private_document_review':{'failures':['document_summary_coverage'],'reading':saved}}
                 bridge.save_ledger(resume_path,resume_ledger)
                 no_regeneration=SimpleNamespace(analyze_record=unittest.mock.Mock(side_effect=AssertionError('paid draft must not be regenerated')))
                 first_review=unittest.mock.Mock(return_value={'ok':True,'reason':'Synthetic first factual review.'})
+                # A later deterministic gate must retain the paid draft and
+                # original reservation origin, even across an intervening run.
+                with patch.object(qa,'review',return_value=qa.QAResult(qa.HELD_REVIEW,['E_ACRONYM'],details={'E_ACRONYM':'Synthetic pre-review hold'})):
+                    pre_review=bridge.run_family(resume_conn,'unused','b'*40,VPCP,source_use=approved,**dict(args,run_id='pre-review-hold',analyzer=no_regeneration,second_pass=first_review,ledger_path=resume_path))
+                self.assertEqual(pre_review['counts'],{qa.HELD_REVIEW:1})
+                first_review.assert_not_called();no_regeneration.analyze_record.assert_not_called()
+                retained=bridge.load_ledger(resume_path,VPCP)['items'][record['source_identity']]
+                self.assertEqual(retained['run_id'],'pre-review-hold')
+                self.assertEqual(retained['private_document_review']['generation_run_id'],'original-generation')
+                self.assertEqual(retained['private_document_review']['reading']['document_facts'],saved['document_facts'])
                 recovered=bridge.run_family(resume_conn,'unused','b'*40,VPCP,source_use=approved,**dict(args,analyzer=no_regeneration,second_pass=first_review,ledger_path=resume_path))
                 self.assertEqual(recovered['counts'],{qa.PUBLISHED:1})
                 no_regeneration.analyze_record.assert_not_called();first_review.assert_called_once()
                 self.assertTrue(no_regeneration._vpcp_first_qa_continuation)
+                self.assertEqual(no_regeneration._vpcp_generation_run_id,'original-generation')
                 resume_conn.close();guard.reset_mock()
                 first=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
                 self.assertEqual(first['counts'],{qa.PUBLISHED:1})
@@ -438,6 +492,65 @@ class OwnerReleaseGuards(unittest.TestCase):
 
 
 class EvidenceSupportAndFirstReview(unittest.TestCase):
+    def test_pm_abbreviation_requires_both_expansion_and_source_role_for_vpcp_only(self):
+        from core import vietnam_daily_qa as qa
+        result={'summary_english':'The Government Office said the Prime Minister requested a synthetic review.',
+                'categories':['policy_document'],'is_significant':False}
+        def failures(family,body='Synthetic language-token fixture: Thủ tướng.',headline='Synthetic PM test headline'):
+            return qa.output_failures({'source_family':family},'Synthetic title',body,result,
+                translation_required=False,permissions={'public_ipr_analysis':True},projection={'title_english':headline})
+        self.assertNotIn('E_ACRONYM',failures(VPCP))
+        self.assertIn('E_ACRONYM',failures('vn_mps_foreign_affairs_vi'))
+        self.assertIn('E_ACRONYM',failures(VPCP,body='Synthetic source without the role'))
+        self.assertIn('E_ACRONYM',failures(VPCP,headline='Synthetic PM ZZZ test headline'))
+        result['summary_english']='The Government Office said a synthetic review was requested.'
+        self.assertIn('E_ACRONYM',failures(VPCP))
+    def test_first_review_keeps_complete_source_and_header_rule_is_source_specific(self):
+        body='Synthetic complete source. '*500+'END-OF-COMPLETE-SOURCE'
+        for family in (VPCP,'vn_mps_foreign_affairs_vi'):
+            analyzer=SimpleNamespace(_call=unittest.mock.Mock(return_value='fixture'),
+                _parse_task_json=lambda *args:{'ok':True,'reason':'Synthetic verdict'})
+            review=bridge.model_second_pass(analyzer,family)
+            self.assertTrue(review({},'Synthetic title',body,{'document_facts':[]})['ok'])
+            message=analyzer._call.call_args.args[0][0]['content']
+            self.assertIn(body,message)
+            self.assertEqual('by the document header' in message,family==VPCP)
+    def test_verified_header_supports_bibliographic_numbers_without_weakening_fact_support(self):
+        from config import ANALYSIS_MODEL
+        source='Synthetic conditional source material about a fictional test and approval.'
+        facts=[{'sentence':sentence,'page':1,'evidence':source,'status':'conditional'} for sentence in
+               ['The Government Office said action would follow if approved.','The Government Office said approval would be conditional.']]
+        reading={'summary_english':'The Government Office issued notice 1234 on 1 October 2026. Action would follow if approved.',
+                 'document_facts':facts,'is_significant':False,'title_english':'Synthetic Government Office notice',
+                 'model_id':ANALYSIS_MODEL,'prompt_version':'fixture','relevance_score':0.85,'categories':['policy_document']}
+        version={'pages':[(1,source)],'text_original':source,
+                 'identity_checks':{'number':'match','date':'match','issuer':'match'},
+                 'bibliographic':{'document_number':'1234/TB-VPCP','issue_date':'2026-10-01','document_type':'Thông báo'}}
+        self.assertEqual(doc.output_failures(version,reading),[])
+        from core import vietnam_daily_qa as qa
+        kwargs=dict(translation_required=False,permissions={'public_ipr_analysis':True},projection={'title_english':reading['title_english']})
+        self.assertNotIn('E_NUMBER_MISMATCH',qa.output_failures({'source_family':VPCP},'Synthetic',source,reading,version=version,**kwargs))
+        self.assertIn('E_NUMBER_MISMATCH',qa.output_failures({'source_family':VPCP},'Synthetic',source,reading,**kwargs))
+        self.assertIn('E_NUMBER_MISMATCH',qa.output_failures({'source_family':'vn_mps_foreign_affairs_vi'},'Synthetic',source,reading,version=version,**kwargs))
+        for key in ('number','date','issuer'):
+            changed=copy.deepcopy(version);changed['identity_checks'][key]='missing'
+            self.assertEqual(doc.output_failures(changed,reading),['document_numeric_evidence_mismatch'])
+        changed=copy.deepcopy(version);changed['bibliographic']['issue_date']='invalid'
+        self.assertTrue(doc.output_failures(changed,reading))
+        reading['summary_english']+=' There are 9999 test cases.'
+        self.assertEqual(doc.output_failures(version,reading),['document_numeric_evidence_mismatch'])
+        item={'outcome':'held_review','private_document_review':{'failures':['document_numeric_evidence_mismatch'],'reading':reading}}
+        self.assertIsNone(doc.retained_format_draft(item,version))
+        reading['summary_english']=reading['summary_english'].split(' There are')[0]
+        saved=copy.deepcopy(reading)
+        self.assertEqual(doc.retained_format_draft(item,version)['summary_english'],saved['summary_english'])
+        self.assertEqual(reading,saved)
+        reading['title_english']+=' ZZZ'
+        self.assertIsNone(doc.retained_format_draft(item,version))
+        reading['title_english']=saved['title_english']
+        facts[0]['sentence']+=' The Government Office referred to 1234.'
+        self.assertEqual(doc.output_failures(version,reading),['document_numeric_evidence_mismatch'])
+        self.assertIsNone(doc.retained_format_draft(item,version))
     def test_administrative_attribution_is_source_specific(self):
         from core import vietnam_daily_qa as qa
         permissions={'public_ipr_analysis':True}

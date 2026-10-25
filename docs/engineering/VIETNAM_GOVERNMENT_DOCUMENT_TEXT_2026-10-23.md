@@ -170,20 +170,32 @@ decision and explicit VPCP policy fields. Actual activation and production
 acceptance remain separately verifiable release steps.
 The source-use review key remains separate from the capture/handoff key.
 
-## Release configuration prepared, not activated
+## Release configuration and activation
 
 `ops/vpcp-private-workflow.patch` is the exact additive change to the **existing**
 private Vietnam collection/bridge workflow, with pre/postimage hashes in its
-adjacent JSON manifest. It adds a default-off collection step, the source archive
-ref and VPCP bridge arguments; no new scheduler or model engine. It has not been
-applied to the private repository. Apply only after the same owner authorization,
-public exact-head CI and current private workflow preimage match; preserve
-repository protections. An absent decision or archive does not stop MPS.
+adjacent JSON manifest (a historical prepared-patch receipt, not live activation
+state). It adds a default-off collection step, the source archive
+ref and VPCP bridge arguments; no new scheduler or model engine. It was applied
+after owner authorization, public exact-head CI and the private preimage check.
+The subsequent manual collection action remains in that same private workflow,
+at `42bf7adbf54ed2bdcdc83ffe3e56c3d8d88a118e`; its current SHA-256 is
+`761d08439b1e27123b40ec0321e6d88dac123cd6eacd5bd869f6aa3ce496116f`.
+MPS conditions and repository protections were preserved. The existing private
+collection and bridge schedules are active; no additional scheduler was made.
+An absent source-specific decision or archive does not authorize model use and
+does not stop MPS.
 
 The operating public metadata flag and completed October 23 deployment are not
 changed. Full-document source-to-live-site verification must follow actual
 approval and one genuine production record; offline and cached-PDF checks do not
 substitute for it.
+
+As of 25 October, real collection, generation and independent factual review
+have executed, but no VPCP explanation has passed factual QA. This activation
+is not source-to-live acceptance. The completed metadata publication remains
+intact. See `VIETNAM_GOVERNMENT_DOCUMENT_RELEASE_2026-10-25.md` for the final
+run receipts, document holds, spending checkpoint and pending no-retry exception.
 
 ## Offline evidence before PR CI
 
@@ -247,3 +259,77 @@ bibliographic selection is unchanged, and complete-document relevance, source
 identity, rights, budgets and independent factual review remain mandatory.
 The public Daily acceptance attempt `40158637403` was canceled at its offline
 gate because the actual factual review produced no releasable VPCP handoff.
+
+## 25 October local PDF fidelity correction
+
+10744/VPCP-CN exposed two conservative extraction false rejections. Its PDF
+first page renders `10744/VPCP-CN` and the Hanoi issue date, 21 October 2026,
+in separate columns. pypdf joins those columns on one line. The identity check
+now separates only the recognized Hanoi date column and still compares the
+entire remaining identifier; wrong or additional identifier text remains held.
+Local rasterization and Apple Vision OCR agree with the pypdf identity fields
+and portal metadata. No hosted OCR or external-model processing was used.
+
+The second page contains only its printed page number, `2`. It has one text
+operation, no image/form objects, annotations, painted paths or unsupported
+fonts. The sparse-text check now recognizes that narrowly defined non-content
+page and retains it in the complete, page-aware input. Image/form objects,
+annotations, additional text operations, painting and unknown operators prevent
+the exception. Scanned, failed, absent and materially sparse content still hold.
+
+The cached two-page PDF is 264,119 bytes, SHA-256
+`121670635f065b0ecb1ef38641c5236d634fc5777dc3aa1cc0330caf7580f575`.
+Complete extraction is 2,778 UTF-8 bytes, including page 2; content identity is
+`842585a4cc35857bf6301e55228c7662d03adc3eeb1bed3a3872cfd3916db56e`.
+Issuer, number, issue date and signatory pass local validation. This establishes
+extraction eligibility only; ordinary relevance, source-use, spend and factual
+publication gates remain mandatory. This version has incurred no model calls.
+
+The PDF repair merged in PR #870 as `d33e127a2c` after exact-head CI
+`40186397670` passed 7,988 tests (15 skips), browser, renderer, validation and
+preservation gates. Private collection `40188963795` captured 10744/VPCP-CN
+with exactly the expected PDF and complete-text hashes. Bridge `40189202615`
+made its first relevance and explanation calls ($0.017751). The 86-word draft
+has three literal page citations, but was mechanically held before factual QA:
+the public paragraph's document number `10744` and issue day `21` occur in the
+verified PDF header rather than the three selected body spans.
+
+The numerical support rule now also recognizes the separately verified document
+number and issue date when issuer, number and date identity checks all match.
+It does not accept numbers from unverified metadata. Other public numbers still
+require literal cited-span support, and private evidence notes remain bound to
+their cited pages. The complete-source independent factual review remains
+mandatory; numeric presence alone establishes no semantic correctness.
+The retained draft may proceed only if all current mechanical checks pass, using
+the existing first-review continuation and its durable single-use reservation.
+Neither relevance nor generation is repeated; an already-executed factual
+review cannot run again. Cumulative provider-token cost before this first review
+is $0.153260 across ten API calls; durable reservations are $0.48976375.
+
+PR #871 merged as `dd74966e8b` after exact-head CI `40189895824` passed
+7,990 tests (15 skips), renderer, validation and preservation checks. Private
+bridge `40192646938` made **zero API calls**: shared deterministic QA rejected
+`PM` in the headline before factual review, although the summary expands
+Prime Minister and the Vietnamese source contains that role. Government Office
+output now recognizes this abbreviation only with both the English expansion
+and Vietnamese source-role support. The factual reviewer still checks the
+actual responsible authority; other source families keep their existing rule.
+
+All shared deterministic checks now run before a retained draft can reopen its
+unexecuted first-review route. An unresolved hold settles without consuming
+document slots repeatedly. The shared numeric check also receives the verified
+header proof, consistently with document-specific QA. Pre-review holds preserve
+the unchanged paid draft and its original generation-run identity; factual
+review failures remain terminal under the persistent single-use route guard.
+
+The previous hold omitted its draft from the current ledger, but the original
+paid receipt is intact at private Git commit
+`3364d3072421ffd13450ac2e29db705c8705d95c`. Recovery is prepared using the
+existing ledger reader/writer, retaining the current `E_ACRONYM` QA outcome
+and restoring only the identical saved reading with its original funding run
+`40189202615-1`. Its canonical reading SHA-256 is
+`26efd68a6cd71b95605da9fe7ed833d098ce675bfc428378612d91ace7066ed7`.
+The draft passes every current deterministic check without editing or model
+generation. Apply this one-time recovery only against the verified current
+private ledger preimage after the correction passes CI; spending state,
+other records and the signed public handoff remain untouched by recovery.

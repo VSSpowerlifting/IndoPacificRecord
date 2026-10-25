@@ -35,6 +35,9 @@ def identity_header(reader, metadata):
     if not number or not stamp or normalized(ISSUER) not in normalized(first[:400]):
         raise ValueError('document_header_missing')
     value = number.group(1).strip()
+    # Some PDFs place the two header columns in one extracted line. Remove
+    # only the recognized Hanoi date column; still compare the entire number.
+    value = re.split(r'\s+Hà\s+Nội\s*,\s*ngày\b', value, maxsplit=1, flags=re.I)[0].strip()
     fields = list(stamp.groups())
     basis = 'page_text'
     slots = {'number':[], 'day':[], 'month':[], 'year':[]}
@@ -92,6 +95,32 @@ def identity_header(reader, metadata):
     return {'number':'match','date':'match','issuer':'match','basis':basis}
 
 
+def page_number_only(page, number, text):
+    """Recognize a non-content numbered page without overlooking scanned text.
+
+    Keep the page in the extracted input. Any image/form, annotation, paint
+    operation, extra text operation or unsupported font prevents the exception.
+    """
+    if text.strip()!=str(number) or page.get('/Annots'):
+        return False
+    resources=page.get('/Resources', {})
+    if resources.get('/XObject') or resources.get('/Pattern') or resources.get('/ExtGState'):
+        return False
+    fonts=resources.get('/Font', {})
+    if not fonts or any(f.get_object().get('/Subtype') not in ('/TrueType','/Type1') for f in fonts.values()):
+        return False
+    contents=page.get_contents()
+    if contents is None:
+        return False
+    operations=contents.operations
+    # Paths are allowed only for clipping, never painting. Unknown operators
+    # fail closed rather than treating a sparse scanned page as complete.
+    allowed={b'cm',b'q',b'Q',b'm',b'l',b'h',b'W',b'W*',b'n',
+             b'BT',b'ET',b'Tf',b'Tm',b'Td',b'TD',b'T*',b'g',b'G',b'Tj',b'TJ'}
+    return (all(op in allowed for _,op in operations)
+            and sum(op in (b'Tj',b'TJ') for _,op in operations)==1)
+
+
 def _inspect_pdf(data, metadata, *, expected_sha256=None):
     from processing.government_document_intake import validate
     validate(metadata)
@@ -110,7 +139,8 @@ def _inspect_pdf(data, metadata, *, expected_sha256=None):
         raise ValueError('document_page_coverage_failed')
     if [n for n,_ in extracted.pages]!=list(range(1,extracted.page_count+1)):
         raise ValueError('document_pages_lost')
-    if any(len(re.findall(r'\w',text))<120 for _,text in extracted.pages):
+    if any(len(re.findall(r'\w',text))<120 and not page_number_only(reader.pages[n-1],n,text)
+           for n,text in extracted.pages):
         raise ValueError('document_page_text_too_sparse')
     if normalized(metadata['signatory']) not in normalized(extracted.text):
         raise ValueError('document_signatory_missing')
@@ -134,6 +164,19 @@ def _inspect_pdf(data, metadata, *, expected_sha256=None):
     return version
 
 
+def verified_bibliographic_numbers(version):
+    """Numeric attribution fields supported by the separately verified header."""
+    checks=version.get('identity_checks',{})
+    if any(checks.get(k)!='match' for k in ('number','date','issuer')):
+        return set()
+    fields=version.get('bibliographic',{})
+    try:
+        issued=date.fromisoformat(fields['issue_date'])
+        return set(re.findall(r'\d+',fields['document_number']))|{str(issued.year),str(issued.month),str(issued.day)}
+    except (KeyError,TypeError,ValueError):
+        return set()
+
+
 def output_failures(version,reading):
     """Page-pinned private support; conservative errors hold the entire output."""
     facts=reading.get('document_facts');summary=reading.get('summary_english','')
@@ -145,7 +188,9 @@ def output_failures(version,reading):
         return ['document_summary_coverage']
     # Private evidence notes need not duplicate the shorter public paragraph.
     # Semantic coverage is checked by the mandatory independent factual review.
-    if set(re.findall(r'\d+',summary))-set(re.findall(r'\d+',' '.join(str(f.get('evidence','')) for f in facts))):
+    if (set(re.findall(r'\d+',summary))
+        -set(re.findall(r'\d+',' '.join(str(f.get('evidence','')) for f in facts)))
+        -verified_bibliographic_numbers(version)):
         return ['document_numeric_evidence_mismatch']
     pages=dict(version['pages'])
     for fact in facts:
@@ -158,7 +203,7 @@ def output_failures(version,reading):
         if not isinstance(sentence,str) or not re.search(r'Government Office',sentence):
             return ['document_attribution_missing']
         # Private notes may add context from their cited page beyond the short
-        # literal span. Public-summary numbers remain bound to cited spans above.
+        # literal span. Public numbers require cited spans or verified header fields.
         if set(re.findall(r'\d+',sentence))-set(re.findall(r'\d+',pages[fact['page']])):
             return ['document_numeric_evidence_mismatch']
         if fact['status']=='proposed' and not re.search(r'propos|consider|draft',sentence,re.I):
@@ -186,12 +231,22 @@ def inspect_pdf(data, metadata, *, expected_sha256=None):
         raise ValueError('document_parser_failed') from None
 
 
+def retain_review(reading, failures, generation_run_id):
+    """Private-only paid draft receipt, retaining the original spending origin."""
+    return {'failures':list(failures),'generation_run_id':generation_run_id,
+            'reading':{k:reading.get(k) for k in
+                ('title_english','summary_english','document_facts','model_id','prompt_version',
+                 'relevance_score','relevance_reasoning','passed_relevance','categories',
+                 'is_significant','significance_reasoning','requires_translation')}}
+
+
 def retained_format_draft(item,version):
     """Complete an unexecuted QA stage; never regenerate a paid draft."""
     from config import ANALYSIS_MODEL,RELEVANCE_THRESHOLD
     review=item.get('private_document_review') or {}
     saved=review.get('reading')
-    if (item.get('outcome')!='held_review' or review.get('failures')!=['document_summary_coverage']
+    if (item.get('outcome')!='held_review' or review.get('failures') not in
+        (['document_summary_coverage'],['document_numeric_evidence_mismatch'],['E_ACRONYM'])
         or not isinstance(saved,dict) or saved.get('model_id')!=ANALYSIS_MODEL
         or not isinstance(saved.get('prompt_version'),str)
         or type(saved.get('relevance_score')) not in (int,float)
@@ -206,4 +261,14 @@ def retained_format_draft(item,version):
     result.update(passed_relevance=True,requires_translation=False,is_significant=False,
         significance_reasoning=None,text_english=None)
     result.setdefault('relevance_reasoning','The retained source-specific relevance screen scored this verified Government Office administrative communication %.2f.'%saved['relevance_score'])
-    return result if not output_failures(version,result) else None
+    if output_failures(version,result):
+        return None
+    # An unresolved shared deterministic hold must settle without consuming a
+    # document slot or reopening any paid route on each unattended run.
+    from core import vietnam_daily_qa as qa
+    failures=qa.output_failures(
+        {'source_family':FAMILY,'publisher_posted_date':version.get('bibliographic',{}).get('issue_date')},
+        version.get('title_original',''),version['text_original'],result,
+        translation_required=False,permissions={'public_ipr_analysis':True},version=version,
+        projection={'title_english':result.get('title_english'),'summary_english':result['summary_english']})
+    return result if not failures else None
