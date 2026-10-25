@@ -9,9 +9,12 @@ editorial receipt is recorded in `DECISION_LOG.md`, the dossier metadata and
 Yang is the responsible human editor. The confirmation date is recorded without
 inventing an earlier review date. No finding or presentation source changed.
 
-Release readiness still requires the separate narrow source-use decision for
-the five bound versions. Editorial approval alone does not grant it. Merge,
-deployment and publication remain unauthorized by this preparation task.
+Benjamin Yang separately approved the narrow five-source public projection on
+25 October: institutional attribution, publication dates, independent IPR
+paraphrases, official links and links to existing IPR record pages. Exact
+source identities, body hashes and those fields are recorded in `SOURCE_USES`.
+Readiness has no outstanding decision holds. Merge, deployment and publication
+remain unauthorized by this preparation task.
 
 ## Ordinary workflow
 
@@ -39,7 +42,8 @@ all source reads use `scripts.reconcile_db.read_only` scratch custody.
 `site/render.py --review-dossier PATH --out NEW_EXTERNAL_DIRECTORY` is the same
 shared renderer entry point for draft revisions. The approved canonical file
 is not a draft and cannot use that preview flag. A release candidate uses an
-isolated normal shared render, which fails closed while source-use holds remain.
+isolated normal shared render after readiness passes. A missing or stale
+source-use/approval binding still fails closed.
 No model call is involved.
 
 Review trees are new, disposable directories outside every Git working tree,
@@ -76,11 +80,11 @@ explicit owner decision, an authorized maintainer records its narrow scope in
 `core/dossier_decisions.py`: `SOURCE_USES` binds the exact sources and public
 fields, and `PUBLICATIONS` binds the exact content digest **and** human approval
 receipt. There is no environment flag or CLI argument that grants either.
-The revision 2 editorial decision is recorded; the source-use map remains empty
-until its separate decision is supplied. Synthetic authority is injected only
+The revision 2 editorial decision and the separate narrow five-source
+projection decision are recorded. Synthetic authority is injected only
 by tests, whose draft fixtures are independent of the real canonical status.
-Hashes establish integrity, not authorship or legal rights; do not add a registry entry merely because a JSON receipt looks
-plausible. A later authentic decision may supersede a hold without reopening
+Hashes establish integrity, not authorship or legal rights; do not add a registry
+entry merely because a JSON receipt looks plausible. A later authentic decision may supersede a hold without reopening
 settled questions. Publisher correspondence is not assumed necessary for every
 reporting use.
 
@@ -94,8 +98,8 @@ nor these new source uses. No private companion access was necessary: all five
 originals are available in the assigned archive.
 
 The editorial decision on the exact findings, scope, chronology, qualifications
-and reviewed presentation is now recorded. The remaining human decision is the
-narrow source-use determination for the three publisher families. Full originals,
+and reviewed presentation is now recorded, alongside the actual narrow
+source-use decision for the three publisher families. Full originals,
 translations, substantial excerpts and media are outside this dossier's public
 projection. Subsequent release still needs explicit merge/deploy/publication
 authority. The separately tracked Pages writer race/guard work is not resolved
@@ -107,9 +111,10 @@ an authorized release.
 The approved manuscript is revision 2: a shorter title/answer and tighter finding
 prose, with the original revision 1 preparation note retained. The 25 October
 approval reaffirmation changes only status, editor/review metadata and its exact
-receipt; it does not create revision 3 or rewrite the authored change history.
-Edit manuscript JSON through a structured JSON writer and rerun `check`; never edit generated HTML. Preserve stable
-finding IDs. Add one concise sequential note for a new revision, naming the
+receipt, followed by source-use references and the corresponding digest; it
+does not create revision 3 or rewrite the authored change history.
+Edit manuscript JSON through a structured JSON writer and rerun `check`; never
+edit generated HTML. Preserve stable finding IDs. Add one concise sequential note for a new revision, naming the
 affected current findings and explaining removals in its summary.
 
 After a dossier is approved, keep `dossiers/<slug>.json` as the last approved

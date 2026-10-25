@@ -4,6 +4,22 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-25 — Owner: Maritime dossier narrow five-source public projection
+
+Benjamin Yang explicitly answered “Also approve that narrow five-source public
+projection” in this task. The scope is institutional attribution, publication
+dates, independent IPR paraphrases, official links and links to existing IPR
+record pages for the five exact versions bound by Maritime Cooperation 2026
+revision 2: records 3924, 4102, 4164, 4466 and 4472 (PLA Daily, China MND and
+Singapore MINDEF). `core/dossier_decisions.py` records each complete source
+identity and body SHA with only those five public fields. This is an actual
+owner source-use decision, separate from the reaffirmed editorial approval.
+Original text, translations, excerpts and media are excluded. No source version,
+finding, qualification, chronology or reviewed presentation is changed by the
+grant. Its references and the resulting exact approval digest are administrative
+bindings, not an authored revision. Merge, deployment and publication remain
+outside this release-preparation authority.
+
 ## 2026-10-25 — Owner: Maritime dossier revision 2 editorial approval reaffirmed
 
 Benjamin Yang reaffirmed in this task that his approval of revision 2 and its

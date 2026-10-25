@@ -10,22 +10,21 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Living Dossiers (25 October 2026): revision 2 editorial approval recorded; source-use release holds remain.**
+**Living Dossiers (25 October 2026): revision 2 release candidate; editorial and narrow source-use approval recorded.**
 Ben reaffirmed approval of revision 2 and the reviewed presentation at
-`38f9f2bf8f45e258ad9592272b865d41cd29d72f`. The actual 25 October reaffirmation
-is recorded in `DECISION_LOG.md`, the canonical dossier approval metadata and
-`core/dossier_decisions.py`; Benjamin Yang is credited as human editor and Codex
-as machine-assisted preparer. Findings, source versions, chronology and reviewed
-CSS/template presentation are unchanged. The sole main conflict in this status
-file retains both projects' entries; base is
-`ad2afef5798690e483fa4be876226207c945d647`. Readiness recognizes editorial
-approval but retains five independent source-use holds. No source-use decision,
-merge, deployment or publication is inferred. All 96 focused dossier
-contract/source/rendering checks pass. Of 51 additional Timeline/Government
-Office checks, two shared-render checks fail at the five dossier source-use
-holds; the other 49 pass. Readiness returns 1 for exactly those five source-use
-holds, with no editorial hold. This preparation revision is held, not ready
-for merge/deployment. Required final-revision CI is reported in PR #864.
+`38f9f2bf8f45e258ad9592272b865d41cd29d72f`, then separately approved the narrow
+five-source public projection. Both actual decisions are in `DECISION_LOG.md`
+and `core/dossier_decisions.py`; exact approval/source references are in the
+canonical dossier. Benjamin Yang is credited as human editor and Codex as
+machine-assisted preparer. Readiness passes with no holds. Findings, source
+versions, chronology and reviewed CSS/template presentation are unchanged;
+only approval/review metadata, source-use references and their digest changed.
+The sole main conflict in this status file retains both projects' entries;
+base is `ad2afef5798690e483fa4be876226207c945d647`. Synthetic publication fixtures
+explicitly supply their own dossier inputs instead of depending on the live
+canonical publication state. Focused checks, final-revision required CI and
+isolated production validation are reported in PR #864. Runner repairs remain
+outside this task. No merge, deployment or publication is authorized or performed.
 Workflow and decision boundary: `docs/LIVING_DOSSIERS.md`.
 
 **Vietnam Government Office full-document integration (25 October 2026): activated; first public acceptance held by factual QA.**

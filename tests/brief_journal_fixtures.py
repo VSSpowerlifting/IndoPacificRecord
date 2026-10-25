@@ -143,5 +143,6 @@ def build_private_fixtures(out_dir):
                 mock.patch.object(gp, "article_cover", side_effect=private_cover):
             gp.build(out, gp.PUBLIC_TITLE, ROOT / "pla_watch.db",
                      snapshot=gp.snapshot_from_corpus(ROOT / "pla_watch.db"),
-                     briefs_dir=briefs, allow_synthetic_briefs=True)
+                     briefs_dir=briefs, allow_synthetic_briefs=True,
+                     dossiers_dir=scratch / "no-dossiers")
     return {bc.brief_route(slug): description for slug, description in VARIANTS.items()}

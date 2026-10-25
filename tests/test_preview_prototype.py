@@ -314,6 +314,7 @@ class PreviewCase(unittest.TestCase):
         # This prototype snapshot exercises the predecessor issue collection.
         # Native publication has separate fixtures; a real approved Brief must
         # not silently change this snapshot's lead, routes or issue set.
+        # Dossiers depending on those native Briefs are likewise absent here.
         cls.briefs = cls.tmp / "briefs"
         cls.briefs.mkdir()
         cls.snapshot = snapshot_of(TRACKED_DB)
@@ -334,7 +335,8 @@ class PreviewCase(unittest.TestCase):
             1 for r in _data["corpus"] if r.get("analyzed_at"))
         cls.week_count = len(_data["weeks"])
         cls.result = gp.build(cls.out, "Test Title", TRACKED_DB,
-                              snapshot=cls.snapshot, briefs_dir=cls.briefs)
+                              snapshot=cls.snapshot, briefs_dir=cls.briefs,
+                              dossiers_dir=cls.tmp / "no-dossiers")
         # Measured from the built tree, so necessarily after the build.
         cls.shard_count = len(list(cls.out.glob("week-*.html")))
         cls.source_count = len(list(cls.out.glob("source/*.html")))
@@ -2166,7 +2168,8 @@ class TestRecordPages(PreviewCase):
         expected = {r["id"] for r in self.data["corpus"] if r["state"] == "analyzed"}
         compat = self.tmp / "compat"
         gp.build(compat, "Test Title", TRACKED_DB, snapshot=self.snapshot,
-                 legacy_routes=True, briefs_dir=self.briefs)
+                 legacy_routes=True, briefs_dir=self.briefs,
+                 dossiers_dir=self.tmp / "no-dossiers")
         generated = {int(p.stem) for p in (compat / "article").glob("*.html")}
         self.assertEqual(generated, expected)
         # Tracked output is the last deployed artifact; a failed Daily can
@@ -6890,7 +6893,7 @@ class TestPreviewEditionIdentity(unittest.TestCase):
             briefs.mkdir()
             gp.build(tmp / "out", "Test Title", TRACKED_DB,
                      snapshot=gp.snapshot_from_corpus(TRACKED_DB),
-                     briefs_dir=briefs)
+                     briefs_dir=briefs, dossiers_dir=tmp / "no-dossiers")
         finally:
             gp.load_editions = real
         pages = {name: (tmp / "out" / name).read_text(encoding="utf-8")

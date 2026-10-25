@@ -40,6 +40,8 @@ class TimelineRendering(unittest.TestCase):
 
     @classmethod
     def build(cls, out, **options):
+        # Keep Timeline publication/asset fixtures independent of live dossiers.
+        options.setdefault('dossiers_dir', cls.root / 'no-dossiers')
         return gp.build(out, 'Indo-Pacific Record', ROOT / 'pla_watch.db', snapshot=cls.snapshot, **options)
 
     @classmethod

@@ -40,7 +40,7 @@
       "url": "http://www.81.cn/yw_208727/16483866.html",
       "stored_original_sha256": "b7a6ef0bc4c7c6e63132144ba50577c28f0ec42f7fbf7b4574d22f166d63d7e8",
       "editorial_admission_ref": "archive:passed_relevance=1",
-      "source_use_decision_ref": null
+      "source_use_decision_ref": "DECISION_LOG.md#2026-10-25--owner-maritime-dossier-narrow-five-source-public-projection"
     },
     {
       "record_id": 4102,
@@ -52,7 +52,7 @@
       "url": "http://www.81.cn/yw_208727/16485244.html",
       "stored_original_sha256": "3b3f2b09fcf6150d570258de6381d8ae9d9dcb8fbb725f2ded912465572b9886",
       "editorial_admission_ref": "archive:passed_relevance=1",
-      "source_use_decision_ref": null
+      "source_use_decision_ref": "DECISION_LOG.md#2026-10-25--owner-maritime-dossier-narrow-five-source-public-projection"
     },
     {
       "record_id": 4164,
@@ -64,7 +64,7 @@
       "url": "http://www.mod.gov.cn/gfbw/xwfyr/yzxwfb/16486365.html",
       "stored_original_sha256": "756ab518a72e86c3c60a20462f22bbc1652d788a0bee3a1fe0b7fccc1a807cac",
       "editorial_admission_ref": "archive:passed_relevance=1",
-      "source_use_decision_ref": null
+      "source_use_decision_ref": "DECISION_LOG.md#2026-10-25--owner-maritime-dossier-narrow-five-source-public-projection"
     },
     {
       "record_id": 4466,
@@ -76,7 +76,7 @@
       "url": "https://www.mindef.gov.sg/news-and-events/latest-releases/5sep26-nr2/",
       "stored_original_sha256": "ef18634fd29ff57894eb35d35339cd60bf6b1d2339fe6038875bc7b5bea49878",
       "editorial_admission_ref": "archive:passed_relevance=1",
-      "source_use_decision_ref": null
+      "source_use_decision_ref": "DECISION_LOG.md#2026-10-25--owner-maritime-dossier-narrow-five-source-public-projection"
     },
     {
       "record_id": 4472,
@@ -88,7 +88,7 @@
       "url": "https://www.mindef.gov.sg/news-and-events/latest-releases/9sep26-nr/",
       "stored_original_sha256": "0e4d1a580c8267e9f2b486f742c17e95551761943cac53013fa4f292dc87d078",
       "editorial_admission_ref": "archive:passed_relevance=1",
-      "source_use_decision_ref": null
+      "source_use_decision_ref": "DECISION_LOG.md#2026-10-25--owner-maritime-dossier-narrow-five-source-public-projection"
     }
   ],
   "sections": [
@@ -318,6 +318,6 @@
     "approved_by": "Benjamin Yang",
     "approved_on": "2026-10-25",
     "reference": "DECISION_LOG.md#2026-10-25--owner-maritime-dossier-revision-2-editorial-approval-reaffirmed",
-    "content_sha256": "5b23f8a1215985e4bd6449dbd27d89ba7edf35caffca56d308b46a90444bab6f"
+    "content_sha256": "3f774c00ec432fa64fe0a19695e3d4dde3c6b34704264bc752a268a7aa4e7039"
   }
 }

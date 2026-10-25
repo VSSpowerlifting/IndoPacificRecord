@@ -560,9 +560,11 @@ class HeroPhotographTests(unittest.TestCase):
         gp.load_collection = functools.partial(original_collection, unreconciled=frozenset())
         try:
             gp.build(cls.root / "default", gp.PUBLIC_TITLE, db, snapshot=snap, briefs_dir=briefs,
+                     dossiers_dir=cls.root / "no-dossiers",
                      site_origin="https://briefs-review.test", allow_test_origin=True)
             gp.resolve_catalogue_media = admit_the_lead
             gp.build(cls.root / "admitted", gp.PUBLIC_TITLE, db, snapshot=snap, briefs_dir=briefs,
+                     dossiers_dir=cls.root / "no-dossiers",
                      site_origin="https://briefs-review.test", allow_test_origin=True)
         finally:
             gp.resolve_catalogue_media = original_resolve
