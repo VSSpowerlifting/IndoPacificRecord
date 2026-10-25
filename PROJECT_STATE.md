@@ -10,37 +10,35 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office full-document integration (25 October 2026): activated; first public acceptance held by factual QA.**
-PRs #865, #866, #868–#872 are merged. Latest code merge is
-`b735161305e3096a4006e7a6e9705ead48782429`; required exact-head CI
-`40195436669` passed 7,991 tests (15 skips), browser, renderer, validator and
-tracked-data preservation. The existing private collector and shared Daily
-bridge are active under the owner's sealed, bounded standing decision. MPS
-behavior, common publishing architecture and the completed metadata release
-are preserved. No Government Office English explanation is live.
+**Vietnam Government Office full-document integration (25 October 2026): corrected analysis passed; public consumer repair pending.**
+PR #874 merged as `46298fe95ccb50b472a7908b1e5716b71cd56dcc` after exact-head
+CI `40215557973` passed 7,995 tests (15 skips), browser, renderer, validator
+and data-preservation gates. The owner's one-time exact-version 10744 correction
+is **consumed**, not renewed by repeated confirmation. Private run `40217218707`
+made exactly one corrected generation and one independent factual review; both
+passed. Its 65-word explanation separates the Prime Minister's instructions,
+Government Office transmission, and ministry/provincial responsibilities.
+Prior rejection and routes remain intact; all other VPCP holds and the MPS ledger
+are byte-identical. No more model calls on this version are authorized.
 
-The queue and PDF fidelity fixes reached all nine current identities. Seven
-primary PDFs were captured; two remain source-held. The last candidate,
-10744/VPCP-CN, has a verified complete two-page source and an unchanged paid
-86-word draft. After the mechanical false holds were repaired and the original
-paid receipt recovered without another generation call, private run
-`40197695872` executed its first factual review. That reviewer rejected the
-draft for assigning the Prime Minister's instructions to the issuing Government
-Office. It remains held; its paid routes cannot repeat. 10790/VPCP-CN also
-remains factually held. Two earlier drafts are unavailable, two documents fail
-source checks, and three were screened out. A fresh bounded first-page listing
-contains no new Government Office identity.
+The actual public readback prevented a false completion claim. Public Daily
+`40217519927` passed 7,995 tests, 55 reconciliation checks, rendering, validator
+(10 warnings) and Pages deployment, but its handoff step reported
+`vietnam_handoff_source_hold` and admitted **zero** VPCP articles. The workflow
+intentionally converts a source hold into a successful step so other desks
+continue; a green step is not proof of admission. The consumer incorrectly
+applies the legacy all-non-MPS original/link hold to the separately authorized
+Government Office private-text projection. A focused repair leaves that legacy
+hold intact, requires the dedicated VPCP policy plus sealed source-use decision,
+signed handoff and successful document QA, and tests the real public consumer.
+No regeneration, factual-review retry, cap increase or other desk change is needed.
 
-Provider-returned usage reconciles to **11 calls, $0.162665** at freshly verified
-prices; durable reservations total **$0.53030875**, within every approved cap.
-Production retains four bibliographic records and zero VPCP corpus articles.
-The owner has now approved one manual correction for this exact immutable 10744
-source version: one generation and one independent factual review, at most
-$0.15 additional reserved spend, retaining every existing cap and no further
-retry. `DECISION_LOG.md` records the exact hashes and prior rejection. The
-attribution repair and guarded exception await exact-head CI and execution;
-no paid correction or successful publication is claimed yet. Future eligible first-pass records retain
-the existing unattended path; real source-to-live acceptance is not claimed.
+Provider-token cost is **$0.022971** for the correction, **$0.185636 across 13
+calls** cumulatively. New reservations were **$0.08767125**; total reservations
+are **$0.61798**, within every existing cap. The signed approved record remains
+in private Daily commit `7fa140ec8b80c0677370ffe6d22d7963d7adb008`. Production
+still has four bibliographic records and zero VPCP corpus articles; source-to-live
+acceptance remains outstanding. Both scheduled workflows remain active.
 See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_RELEASE_2026-10-25.md`.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
