@@ -218,3 +218,32 @@ explanation are not repeated, and an executed factual-review route cannot run
 again. A continuation records its own run/cost reservation and counts toward the
 two-document run limit. First-party/source identity, current rights, complete
 extraction and current metadata are rechecked before review or publication.
+
+
+## Actual first factual review and queue correction (24 October)
+
+PR #868 merged as `3c326f85ac` after required CI `40156015343` passed all
+7,982 tests (15 skips), browser, renderer, validation and preservation gates.
+Private bridge `40157663479` made exactly one previously unexecuted factual
+review call for 10790/VPCP-CN. The reviewer rejected its reassignment of a
+ministry responsibility to provincial chairpersons. It remains held; the
+explanation and review will not be regenerated or repeated. The API returned
+6,490 input and 271 output Sonnet tokens: $0.023535 at the verified rates.
+Cumulative usage cost is $0.124666; durable worst-case reservations are
+$0.39265125. The three captured documents remain individually held.
+
+The existing metadata store also contains five permitted, uncaptured Government
+Office documents. The previous topic-first queue repeatedly refreshed already
+attempted topical captures instead of reaching them. Prioritizing unseen unheld
+versions first fixes that starvation without expanding source discovery, document
+classes, the two-document limit or the content-screening/model gates. A previous
+source hold cannot monopolize collection slots ahead of an unattempted document.
+Title-based metadata filtering also previously prevented the text lane from
+considering these documents at all. The shared pre-model and final-insertion
+checks now accept a subject-filtered identity only when its verified metadata
+store has exactly one unambiguous version. Multiple filtered versions or a
+withdrawn topical reference remain held; no current version is guessed. Public
+bibliographic selection is unchanged, and complete-document relevance, source
+identity, rights, budgets and independent factual review remain mandatory.
+The public Daily acceptance attempt `40158637403` was canceled at its offline
+gate because the actual factual review produced no releasable VPCP handoff.

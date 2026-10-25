@@ -1,14 +1,14 @@
 {
   "manifest_version": 1,
   "_comment": [
-    "Production configuration for Vietnam MPS Foreign Affairs only, owner-authorized 2026-10-22.",
+    "Production configuration for separately owner-authorized Vietnam MPS and Government Office sources.",
     "This is a MANUAL source: public Daily never scrapes the MPS website.",
     "The scheduled private-first collector retains original Vietnamese evidence;",
     "the signed Vietnam Daily handoff admits only independently written English",
     "factual output under an owner-sealed MPS source-use decision and QA.",
     "MOIT, Government News, MOD, other Vietnamese publications and source media",
     "are not covered by this manifest or its standing authorization.",
-    "Government Office formal documents have a separate bibliographic-only Daily collector; no PDF/model rights are inherited from MPS."
+    "Government Office bibliographic collection and its bounded private primary-document lane have their own source-use decision; no PDF/model rights are inherited from MPS."
   ],
   "desk": {
     "desk_id": "vietnam",
@@ -57,7 +57,7 @@
     {
       "slug": "vn_vpcp_official_documents_vi",
       "institution_id": "vn_vpcp",
-      "display_name": "Government Office — official document metadata",
+      "display_name": "Government Office — official documents",
       "base_url": "https://vanban.chinhphu.vn",
       "language_tag": "vi",
       "access_method": "manual",
@@ -68,7 +68,7 @@
       "listing_endpoints": [
         "https://vanban.chinhphu.vn/"
       ],
-      "notes": "Shared Daily collects the published first 50 listing entries and rechecks at most 15 VPCP candidates. Issuer must be Văn phòng Chính phủ. Bibliographic subjects, document numbers, issue dates, signatories and official links only; no PDF downloads, source-body storage, translations or models. No complete archive or full-document relevance claim. Source-use policy: config/vietnam_vpcp_metadata_policy.json."
+      "notes": "Public Daily retains the bounded bibliographic fallback: first 50 listing entries, at most 15 known-candidate rechecks, verified Government Office issuer. Separately authorized first-party administrative primary PDFs are preserved privately and screened from complete verified text. Source-specific Anthropic and spending gates plus independent factual QA govern short attributed English explanations through the shared Daily. No public original, PDF, full translation, substantial excerpt or media. No complete-archive claim. Policies: config/vietnam_vpcp_metadata_policy.json, config/vietnam_vpcp_text_policy.json and the sealed source-use decision."
     }
   ]
 }

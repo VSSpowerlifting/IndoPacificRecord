@@ -320,5 +320,8 @@ def document_analysis_messages(title, body):
         "is NOT the public summary: keep private evidence notes separate from the shorter "
         "public summary. The independent reviewer will verify every public claim "
         "against the complete document and cited evidence. Evidence stays private. "
+        "Tie each public action to its exact responsible authority. Never merge a ministry's "
+        "task into instructions for provincial authorities when shortening the summary. "
+        "Distinguish the issuing office from the official giving the instruction. "
         "Any missing fact must be omitted; do not invent a responsible authority or deadline.\n"+
         _UNTRUSTED+"\n"+_source(title, body)}]

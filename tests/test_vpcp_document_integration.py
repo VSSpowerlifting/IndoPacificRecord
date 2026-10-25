@@ -145,6 +145,22 @@ class Projection(unittest.TestCase):
 if __name__=='__main__':unittest.main()
 
 class SharedBridge(unittest.TestCase):
+    def test_filtered_metadata_requires_one_unambiguous_version(self):
+        from tests.test_vietnam_government_documents import database
+        from processing.government_document_intake import admit,processing_metadata
+        from core.collection.vietnam_government_documents import digest,identity
+        conn=database();self.addCleanup(conn.close)
+        m=metadata();m['subject']='Synthetic topic-free heading'
+        admit(conn,[(m,'a'*64)],source_sha='b'*40,run_id='synthetic',observed_utc=NOW)
+        self.assertEqual(processing_metadata(conn,identity(m))[0],digest(m))
+        changed=copy.deepcopy(m);changed['subject']+=' revised'
+        admit(conn,[(changed,'c'*64)],source_sha='b'*40,run_id='synthetic-revised',observed_utc=NOW)
+        self.assertIsNone(processing_metadata(conn,identity(m)))
+        topical=metadata('220078')
+        admit(conn,[(topical,'d'*64)],source_sha='b'*40,run_id='synthetic-topical',observed_utc=NOW)
+        self.assertEqual(processing_metadata(conn,identity(topical))[0],digest(topical))
+        conn.execute('DELETE FROM regional_official_source_links WHERE source_identity=?',(identity(topical),))
+        self.assertIsNone(processing_metadata(conn,identity(topical)))
     def test_private_to_ordinary_corpus_is_gated_and_idempotent(self):
         from core.collection.vietnam_sources import content_sha256
         from processing.government_document_intake import admit
@@ -154,7 +170,7 @@ class SharedBridge(unittest.TestCase):
         from core.vietnam_corpus_bridge import PrivateCustody
         body='The Government Office said a synthetic test instruction applies. The Government Office asked a fictional test agency to report.'
         sentences=['The Government Office instructed the test action.','The Government Office asked the test agency to report.']
-        m=metadata();capture='a'*64
+        m=metadata();m.update(document_id='909903',official_url='https://vanban.chinhphu.vn/?pageid=27160&docid=909903',subject='Synthetic heading without topical keywords');capture='a'*64
         blocks=[['page-1',body]];lead=digest(m)+':'+capture
         sha=content_sha256(doc.HASH_RULE,m['subject'],lead,blocks)
         version={'title_original':m['subject'],'text_original':body,'lead_original':lead,
@@ -163,7 +179,7 @@ class SharedBridge(unittest.TestCase):
             'pdf_sha256':capture,'metadata_sha256':digest(m),
             'bibliographic':{k:m[k] for k in ('document_number','document_type','issuer','signatory','issue_date','official_url')},
             'identity_checks':{'number':'match','date':'match','issuer':'match','basis':'page_text'}}
-        record={'source_family':VPCP,'source_identity':'vpcp-vi:220077','canonical_official_url':m['official_url'],
+        record={'source_family':VPCP,'source_identity':'vpcp-vi:'+m['document_id'],'canonical_official_url':m['official_url'],
             'publisher_posted_date':m['issue_date'],'content_sha256':sha,'capture_sha256':capture,
             'source_git_commit':'b'*40,'collector_commit':'c'*40}
         reading={'passed_relevance':True,'relevance_score':0.9,'relevance_reasoning':'Synthetic test explanation.',
@@ -302,6 +318,30 @@ class SpendReservations(unittest.TestCase):
 
 
 class ImmutableCustody(unittest.TestCase):
+    def test_unseen_permitted_documents_are_not_starved_by_refreshes_or_holds(self):
+        import sqlite3
+        from scripts import collect_vpcp_private_documents as collector
+        from core.collection.vietnam_government_documents import digest,identity
+        known=metadata('220078');held=copy.deepcopy(metadata())
+        held.update(document_id='909902',subject='Synthetic topical held test document')
+        fresh=[]
+        for ident in ('909900','909901'):
+            m=copy.deepcopy(metadata());m.update(document_id=ident,subject='Synthetic topic-free test document')
+            fresh.append(m)
+        with tempfile.TemporaryDirectory() as tmp:
+            repo=Path(tmp)/'private';(repo/'state/documents').mkdir(parents=True)
+            old='a'*64
+            (repo/'state/documents'/(old+'.json')).write_text(json.dumps({'capture':{'metadata_sha256':digest(known)}}))
+            (repo/'state/vpcp-index.json').write_text(json.dumps({'records':{identity(known):old},'checked':{},'holds':{identity(held):'source hold'}}))
+            db=Path(tmp)/'metadata.db';c=sqlite3.connect(db)
+            c.execute('CREATE TABLE official_document_versions(source_family,metadata_json,first_observed_utc)')
+            c.executemany('INSERT INTO official_document_versions VALUES (?,?,?)',[(VPCP,json.dumps(m),NOW) for m in [known,held]+fresh]);c.commit();c.close()
+            adapter=unittest.mock.Mock();adapter.fetch.return_value={'body':b'%PDF- synthetic'}
+            with patch.dict('os.environ',{'VIETNAM_VPCP_TEXT_ENABLED':'true','VIETNAM_PRIVATE_BRIDGE_KEY':'fictional-fixture-key-0000000000000000','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','GITHUB_SHA':'b'*40}),patch.object(collector,'private_repo',return_value=repo),patch.object(collector,'OriginalsAdapter',return_value=adapter),patch.object(collector,'preserve',return_value='new') as preserve,patch('processing.government_document_intake.topics',side_effect=lambda m: ['energy'] if m['document_id'] in ('220078','909902') else []):
+                result=collector.collect(db,repo,Path(tmp)/'gate')
+            self.assertEqual(result['outcomes'],['new','new'])
+            self.assertEqual([call.args[1]['document_id'] for call in preserve.call_args_list],['909901','909900'])
+            self.assertEqual(adapter.fetch.call_count,2)
     def test_changed_bytes_are_preserved_and_same_version_is_not_reprocessed(self):
         import subprocess,os
         from core import vietnam_document_custody as custody
@@ -332,7 +372,9 @@ class ImmutableCustody(unittest.TestCase):
                     return original(args,root)
                 with patch.object(custody,'_git_bytes',side_effect=read):
                     packet,versions=custody.prepare(repo,commit,api=api);self.assertEqual(len(packet['records']),1)
-                    custody.hold(repo,'vpcp-vi:220077');git('add','state');git('commit','-m','Synthetic current-source hold')
+                    custody.hold(repo,'vpcp-vi:220077',observed_utc=NOW)
+                    self.assertEqual(json.loads((repo/custody.INDEX).read_text())['checked']['vpcp-vi:220077'],NOW)
+                    git('add','state');git('commit','-m','Synthetic current-source hold')
                     held_commit=git('rev-parse','HEAD')
                     held_packet,_=custody.prepare(repo,held_commit,api=api)
                     self.assertEqual(held_packet['records'],[])
