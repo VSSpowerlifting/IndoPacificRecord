@@ -118,6 +118,35 @@ class ManuscriptBoundaryIntegrity(unittest.TestCase):
                 mail.assert_not_called()
             self.assertFalse(destination.exists())
 
+    def test_saturday_full_week_without_research_does_not_load_friday_pack(self):
+        # Regression: the Oct 25 scheduled run composed a manuscript, then
+        # crashed because the Friday-only Vietnam pack loader rejected a
+        # Saturday as-of when the research packet was empty.
+        with tempfile.TemporaryDirectory() as folder:
+            sidecar = Path(folder) / "scaffold.json"
+            destination = Path(folder) / "owner-only.txt"
+            sidecar.write_text(json.dumps(scaffold()), encoding="utf-8")
+            with patch("scripts.sunday_briefs_auto_writer.compose",
+                       return_value=valid_manuscript()), patch(
+                    "core.vietnam_briefs_handoff.load_candidates") as loader:
+                main([
+                    "--sidecar", str(sidecar), "--out", str(destination),
+                    "--full-week", "--write-automatic", "--as-of", "2026-10-10",
+                ])
+                loader.assert_not_called()
+            self.assertTrue(destination.exists())
+
+    def test_friday_provisional_still_loads_candidate_pack(self):
+        with tempfile.TemporaryDirectory() as folder:
+            sidecar = Path(folder) / "scaffold.json"
+            destination = Path(folder) / "worksheet.txt"
+            sidecar.write_text(json.dumps(scaffold()), encoding="utf-8")
+            with patch("core.vietnam_briefs_handoff.load_candidates",
+                       return_value=[]) as loader:
+                main(["--sidecar", str(sidecar), "--out", str(destination),
+                      "--as-of", "2026-10-09"])
+                loader.assert_called_once_with("2026-10-10", "2026-10-09")
+
     def test_citation_bookkeeping_not_modified(self):
         sample = valid_manuscript()
         citations = copy.deepcopy(sample["citations"])

@@ -383,7 +383,11 @@ def main(argv=None):
     # handoff after the immutable production source appendix. Never send them
     # to the model or count them as live, production-backed desk evidence.
     vietnam_candidates = []
-    if args.as_of and not research:
+    # The legacy candidate pack is defined only for a Friday provisional
+    # cutoff. A Saturday full-week run (as_of == week_ending) takes its
+    # Vietnam material from the research packet instead; an empty packet there
+    # means no candidates, not an invalid pack request.
+    if args.as_of and not research and args.as_of != sidecar["week_ending"]:
         from core.vietnam_briefs_handoff import load_candidates
         vietnam_candidates = load_candidates(sidecar["week_ending"], args.as_of)
     text = render_packet(sidecar, manuscript=manuscript, as_of=args.as_of,
