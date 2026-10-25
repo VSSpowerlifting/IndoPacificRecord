@@ -504,6 +504,59 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
         self.assertIn("kemhan:/2026/10/18/wamenhan-terima-audiensi.html", self.rows())
         self.assertNotIn(v.HELD_IDENTITY, self.rows())
 
+    def test_daily_cycles_after_private_release_neither_hold_nor_rewrite(self):
+        """The scheduled retry (frozen only) and later envelope dispatches must
+        keep working once a private record is released, and still fail closed."""
+        body, mac, public_tip, main = self._signed()
+        frozen = self.validate(public_tip)
+        out = self._open(body, mac, public_tip, main)
+        receipts, total = cli.admit_validated(self.db, [frozen, out], frozen_first=True,
+                                              as_of_utc="2026-10-18T19:43:00Z")
+        self.assertEqual(([r["new_official_links"] for r in receipts], total), ([8, 1], 9))
+        released = sha(self.db)
+        # Without the baseline exemption the frozen packet alone would refuse
+        # the nine stored rows: this is the failure the exemption removes.
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip)],
+                        as_of_utc="2026-10-19T19:43:00Z")
+        # 19:43 scheduled reconciliation: frozen history only, no envelope.
+        receipts, total = cli.admit_validated(self.db, [self.validate(public_tip)],
+                                              frozen_first=True, as_of_utc="2026-10-19T19:43:00Z")
+        self.assertEqual((receipts, total), ([], 9))
+        # Next day's dispatch: frozen baseline plus the same envelope again.
+        receipts, total = cli.admit_validated(
+            self.db, [self.validate(public_tip), self._open(body, mac, public_tip, main)],
+            frozen_first=True, as_of_utc="2026-10-20T19:43:00Z")
+        self.assertEqual(([(r["new_official_links"], r["unchanged_official_links"])
+                           for r in receipts], total), ([(0, 9)], 9))
+        self.assertEqual(sha(self.db), released, "replays must not rewrite the database")
+        # A frozen row altered in SQLite is never waved through.
+        with sqlite3.connect(self.db) as cx:
+            cx.execute("UPDATE regional_official_source_links SET publisher_posted_date="
+                       "'2026-10-01' WHERE source_identity=?", ("kemhan:/2026/10/05/menhan-terima-kunjungan.html",))
+        tampered = sha(self.db)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip)],
+                        frozen_first=True, as_of_utc="2026-10-21T19:43:00Z")
+        self.assertEqual(sha(self.db), tampered)
+
+    def test_envelope_that_drops_a_released_private_record_still_holds(self):
+        body, mac, public_tip, main = self._signed()
+        cli.admit_validated(self.db, [self.validate(public_tip),
+                                      self._open(body, mac, public_tip, main)],
+                            frozen_first=True, as_of_utc="2026-10-18T19:43:00Z")
+        before = sha(self.db)
+        revised = self.h.records[-1]
+        path = "/2026/10/17/" + revised[0].rsplit("/", 1)[1]
+        revised[0], revised[1], revised[5] = ("kemhan:" + path,
+                                              "https://www.kemhan.go.id" + path, "2026-10-17")
+        later = self.validate(self.h.attempt("39145984712-1", "2026-10-19",
+                                             kind="private", source="manual-utc-date"))
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip), later],
+                        frozen_first=True, as_of_utc="2026-10-19T20:00:00Z")
+        self.assertEqual(sha(self.db), before)
+
     def test_signed_private_envelope_without_standing_authorization_holds_new_record(self):
         self.without_standing_authorization()
         out = self._open(*self._signed())

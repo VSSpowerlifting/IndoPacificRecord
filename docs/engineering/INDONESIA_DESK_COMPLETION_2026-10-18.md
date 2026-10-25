@@ -203,6 +203,40 @@ partial batches, robots timeout, over-cap windows) are already covered in
 
    Then merge the private PR.
 
+## Steady state after the first private release (25 October 2026)
+
+A rehearsal of the real private tip `d8859b5` (49 eligible, production 34)
+found that the lane could publish once and then stop. `admit()` requires every
+stored Kemhan row to be in the packet it is admitting, and the workflow always
+admits the frozen public packet (34 rows) first. After the envelope released
+the 15 newer rows, the 19:43 UTC retry (frozen only) and every later envelope
+dispatch would HOLD `previously_released_source_missing_or_changed`.
+
+`admit_validated(..., frozen_first=True)` now lets the **frozen baseline
+packet only** step aside when every row it approves is already stored exactly
+as approved and later released rows exist. It never inserts, so original
+frozen provenance is kept. A missing or altered frozen row, or any later packet
+(envelope) that omits or changes a released row, still HOLDs, and the shared
+`admit()` is unchanged (Philippines and Vietnam unaffected). Rows beyond the
+frozen cohort are re-verified at each envelope, not by the frozen-only retry.
+
+Real-data rehearsal on a copy of production `pla_watch.db` (private
+`d8859b5`, scratch key): frozen + envelope admits 15 new / 34 unchanged
+(49 rows, 34 keep the frozen commit, 15 the private commit); frozen-only
+retry and a repeated envelope leave the file byte-identical; a forged MAC and a
+wrong key HOLD with the file untouched; Yonif TP 880 absent; other desks'
+rows unchanged; the rendered page equals the 49 SQLite rows.
+
+Known limit: the validator rejects envelopes over 48 KiB (about 150 bytes per
+record, so roughly 320 records) and fails closed, ahead of the shared reader's
+300-record cap (about February 2027).
+
+**Activation order.** (1) Merge the public PR carrying this change (its
+push-triggered run replays the frozen history; no data change). (2) Set the
+same random `KEMHAN_BRIDGE_KEY` secret in both repositories. (3) Set
+`KEMHAN_METADATA_BRIDGE_ENABLED=true` in both. (4) Merge private PR #17.
+Activating before step 1 reproduces the single-publication failure above.
+
 ## Scope: this is the official-link lane, not the whole desk
 
 This change completes the automated official-link publication lane only. The
