@@ -131,7 +131,7 @@ def prepare(repo,commit,*,api):
              'source_hold':None},versions)
 
 
-def hold(repo,ident):
+def hold(repo,ident,*,observed_utc=None):
     """A failed current fetch/check cannot leave an older capture publishable."""
     repo=private_repo(repo)
     require(re.fullmatch(r'vpcp-vi:[1-9][0-9]{0,8}',ident),'vpcp_hold_identity_invalid')
@@ -139,5 +139,7 @@ def hold(repo,ident):
     require(not path.is_symlink(),'vpcp_custody_symlink')
     index=json.loads(path.read_text()) if path.exists() else {'schema':'ipr-vpcp-private-index/1','records':{},'checked':{},'holds':{}}
     index['holds'][ident]='current_source_verification_failed'
+    from datetime import datetime,timezone
+    index.setdefault('checked',{})[ident]=observed_utc or datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(index,sort_keys=True));os.chmod(tmp,0o600);tmp.replace(path)

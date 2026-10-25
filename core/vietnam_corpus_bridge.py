@@ -223,8 +223,9 @@ def _insert(conn: sqlite3.Connection, family: str, record: dict, row: dict,
             return qa.HELD_SOURCE, None, "E_RETIRED_URL"
         if family == "vn_vpcp_official_documents_vi":
             proof = json.loads(provenance["qa_json"]).get("details",{}).get("VPCP_DOCUMENT",{})
-            live = conn.execute("SELECT l.metadata_version_sha256,v.metadata_json FROM regional_official_source_links l JOIN official_document_versions v ON v.source_family=l.source_family AND v.source_identity=l.source_identity AND v.metadata_sha256=l.metadata_version_sha256 WHERE l.source_family=? AND l.source_identity=?",(family,record["source_identity"])).fetchone()
-            expected = ({k:json.loads(live[1])[k] for k in ("document_number","document_type","issuer","signatory","issue_date","official_url")} if live else None)
+            from processing.government_document_intake import processing_metadata
+            live = processing_metadata(conn,record["source_identity"])
+            expected = ({k:live[1][k] for k in ("document_number","document_type","issuer","signatory","issue_date","official_url")} if live else None)
             if not live or proof.get("metadata_sha256") != live[0] or proof.get("bibliographic") != expected:
                 conn.rollback()
                 return qa.HELD_SOURCE,None,"E_MATERIAL_CHANGE"
@@ -264,7 +265,16 @@ def model_second_pass(analyzer, family: str) -> Callable[[dict, str, str, dict],
     system = [{"type": "text", "text": profile.analysis_system_prompt}]
 
     def run(record, title, body, result):
-        raw = analyzer._call(qa.second_pass_messages(title, body, result), max_tokens=300,
+        messages=qa.second_pass_messages(title, body, result)
+        if family == "vn_vpcp_official_documents_vi":
+            messages[0]["content"] += (
+                "\nPrivate page-pinned evidence notes follow. They need not repeat the "
+                "shorter public summary verbatim. Every PUBLIC headline/summary claim "
+                "must be supported by these cited spans AND the complete document above. "
+                "Reject unsupported authorities, deadlines, numbers, implementation claims "
+                "or changed conditionality. Keep reason in English without source quotations.\n"
+                + json.dumps(result.get("document_facts"),ensure_ascii=False))
+        raw = analyzer._call(messages, max_tokens=300,
                              temperature=0.0, system=system, task=TASK_SUMMARY)
         data = analyzer._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
         if not isinstance(data, dict) or not isinstance(data.get("ok"), bool):
@@ -365,7 +375,13 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             else:
                 done(qa.HELD_SOURCE, ["E_MATERIAL_CHANGE"], prior[0])
             continue
-        if prior_item.get("content_sha256") == sha and prior_item.get("outcome") in (
+        format_draft = None
+        if family == "vn_vpcp_official_documents_vi" and prior_item.get("content_sha256") == sha:
+            from processing.vpcp_document import retained_format_draft
+            candidate_version=versions.get((identity,sha))
+            if candidate_version is not None:
+                format_draft=retained_format_draft(prior_item,candidate_version)
+        if format_draft is None and prior_item.get("content_sha256") == sha and prior_item.get("outcome") in (
                 qa.SCREENED_OUT, qa.HELD_REVIEW, qa.HELD_ESCALATED):
             # Settled earlier; do not re-spend a model call on the same version.
             done(SETTLED)
@@ -408,7 +424,8 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             if not document_policy["external_model_transmission"] or not document_policy["public_ipr_analysis"]:
                 done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"])
                 continue
-            current_link = conn.execute("SELECT metadata_version_sha256 FROM regional_official_source_links WHERE source_family=? AND source_identity=?",(family,identity)).fetchone()
+            from processing.government_document_intake import processing_metadata
+            current_link = processing_metadata(conn,identity)
             if not current_link or current_link[0] != version["metadata_sha256"]:
                 done(qa.HELD_SOURCE, ["E_MATERIAL_CHANGE"])
                 continue
@@ -436,9 +453,11 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                 document_guarded = True
             model_body = "\n\n".join("[Page %d]\n%s" % (n,t) for n,t in version["pages"])
             analyzer._vpcp_document_sha = sha
+            analyzer._vpcp_first_qa_continuation = format_draft is not None
+            analyzer._vpcp_generation_run_id = prior_item.get("run_id") if format_draft is not None else None
             document_attempted = True
             try:
-                result = analyzer.analyze_record(title, model_body, profile)
+                result = format_draft if format_draft is not None else analyzer.analyze_record(title, model_body, profile)
             except BridgeError as exc:
                 done(qa.HELD_REVIEW, ["E_ANALYSIS_INCOMPLETE"], details={"document_hold": str(exc)})
                 continue
@@ -453,7 +472,9 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                         "failures": document_holds,
                         "reading": {k: result.get(k) for k in
                             ("title_english", "summary_english", "document_facts",
-                             "model_id", "prompt_version", "relevance_score")}}
+                             "model_id", "prompt_version", "relevance_score",
+                             "relevance_reasoning", "passed_relevance", "categories",
+                             "is_significant", "significance_reasoning", "requires_translation")}}
                     continue
         else:
             result = analyzer.analyze_record(title, body, profile)  # FatalAPIError aborts the run

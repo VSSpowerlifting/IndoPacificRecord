@@ -14,8 +14,10 @@ input without truncation. Before each private processing run it verifies the
 provider's current public pricing table against the two pinned model rates.
 Before each call, a required, preinitialized CAS spending checkpoint reserves
 worst-case cost and records the immutable document version plus route. A missing
-checkpoint, repeat route or a version attempted in an earlier run fails closed;
-there is no automatic paid retry, even after an interrupted job. API-returned
+checkpoint or repeated paid route fails closed. A format-held retained draft may
+complete its previously unexecuted mandatory factual review in a later run;
+relevance, explanation and factual-review calls are each dispatched at most once
+per immutable version. This does not retry a failed factual review. API-returned
 token usage is retained alongside the existing private Daily state.
 This follows the completed metadata release at `d8aa9ebc6e`. It does not
 reopen PR #863 or change the operating bibliographic collector. The owner has
@@ -194,3 +196,54 @@ identity/page/hash verifier; transport-fault tests used synthetic bytes only.
 The private workflow patch parsed as YAML and applied cleanly to its pinned
 preimage in a temporary directory. Exact-head PR CI remains the merge gate;
 none of these offline results claims production model output.
+
+
+## 24 October production format correction
+
+The retained 10790/VPCP-CN receipt has an 82-word public summary and 122 words of
+private evidence notes. All three Vietnamese spans match their cited pages.
+Requiring those notes to duplicate the public paragraph verbatim incorrectly
+held the draft before its first independent factual review. The corrected rule
+keeps the public 90-word ceiling, literal page evidence, number and modality
+checks; mandatory independent review now checks every public claim against the
+complete source and cited spans. It does not grant publication from a format
+check alone. Complete serialized model input is also bounded before reservation.
+Private-note numbers must occur on their cited page; public-summary numbers must
+occur in the cited spans. The shared attribution check additionally recognizes
+Government Office-issued instructions for this source alone. The retained real
+draft passes offline mechanical checks; its first-review request is 18,080 bytes.
+
+The existing paid draft is reused for this never-executed review. Relevance and
+explanation are not repeated, and an executed factual-review route cannot run
+again. A continuation records its own run/cost reservation and counts toward the
+two-document run limit. First-party/source identity, current rights, complete
+extraction and current metadata are rechecked before review or publication.
+
+
+## Actual first factual review and queue correction (24 October)
+
+PR #868 merged as `3c326f85ac` after required CI `40156015343` passed all
+7,982 tests (15 skips), browser, renderer, validation and preservation gates.
+Private bridge `40157663479` made exactly one previously unexecuted factual
+review call for 10790/VPCP-CN. The reviewer rejected its reassignment of a
+ministry responsibility to provincial chairpersons. It remains held; the
+explanation and review will not be regenerated or repeated. The API returned
+6,490 input and 271 output Sonnet tokens: $0.023535 at the verified rates.
+Cumulative usage cost is $0.124666; durable worst-case reservations are
+$0.39265125. The three captured documents remain individually held.
+
+The existing metadata store also contains five permitted, uncaptured Government
+Office documents. The previous topic-first queue repeatedly refreshed already
+attempted topical captures instead of reaching them. Prioritizing unseen unheld
+versions first fixes that starvation without expanding source discovery, document
+classes, the two-document limit or the content-screening/model gates. A previous
+source hold cannot monopolize collection slots ahead of an unattempted document.
+Title-based metadata filtering also previously prevented the text lane from
+considering these documents at all. The shared pre-model and final-insertion
+checks now accept a subject-filtered identity only when its verified metadata
+store has exactly one unambiguous version. Multiple filtered versions or a
+withdrawn topical reference remain held; no current version is guessed. Public
+bibliographic selection is unchanged, and complete-document relevance, source
+identity, rights, budgets and independent factual review remain mandatory.
+The public Daily acceptance attempt `40158637403` was canceled at its offline
+gate because the actual factual review produced no releasable VPCP handoff.

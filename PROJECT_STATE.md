@@ -34,22 +34,33 @@ without reimplementation. All 42 focused dossier/admission/database checks pass;
 expanded desktop/mobile screenshots were inspected. Final CI is reported in PR #864.
 Commands, trust boundary and
 source-to-finding matrix: `docs/LIVING_DOSSIERS.md`. Task branch:
-`codex/living-dossiers-20261023`, base `a0e3e1e003542d546ba47f091a48228cd1e8d542`.
+`codex/living-dossiers-20261023`, base `358d6f6752fb2ff8af90cb322d27f6a6eb27ba52`.
 
-**Vietnam Government Office full-document integration (24 October 2026): released code; real output held before publication.**
-PR #865 merged as `4623535eb6`; required CI passed 7,978 tests (15 skips).
-The owner-sealed standing decision and all numerical limits are active. The
-pinned private workflow was verified/applied; an independently tested VPCP-only
-manual action avoids retrying an MPS attempt when unrelated public main moves.
-Real collection run `40113138035` preserved 545/TB-VPCP and 10747/VPCP-CN;
-545's fresh PDF hash matches the cached receipt. Bridge `40113402641` held both
-outputs at document QA, retaining metadata fallback. API token-based cost:
-$0.064870; cumulative reserved ceiling: $0.1982975. No VPCP explanation is live.
-The rejected versions remain held without paid retry. A bounded production repair
-retains precise private QA diagnostics and explicitly aligns prompt wording with
-unchanged per-sentence attribution and exact page-evidence requirements. Genuine
-source-to-live acceptance remains required on an unprocessed eligible document.
-See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`.
+**Vietnam Government Office full-document integration (24 October 2026): real factual QA holds; uncaptured queue repair pending.**
+PRs #865, #866 and #868 are merged; #868's required exact-head CI passed
+7,982 tests (15 skips), rendering, validation and tracked-data preservation.
+Private run `40157663479` reused 10790/VPCP-CN's paid draft and executed only
+its first independent factual review. QA correctly rejected a summary that
+assigned a Ministry of Industry and Trade responsibility to provincial
+chairpersons. This immutable version is held and cannot repeat any paid route.
+The earlier unretained drafts and 10744/VPCP-CN source exception remain held.
+Cumulative provider-token cost is $0.124666; durable reservations total
+$0.39265125. No Government Office machine explanation is live.
+The collector currently refreshes four topical attempted records ahead of five
+uncaptured permitted documents already in the metadata store. A narrow queue
+repair prioritizes unseen unheld versions before refreshes and previous holds,
+retaining the two-document limit and content-based screening. The text lane
+may bind a title-filtered document to its sole verified metadata version;
+ambiguous revisions and withdrawn topical identities stay held. Public metadata
+selection is unchanged. Both processing and final insertion use this binding.
+New explanations explicitly keep each authority's responsibilities separate. No prior paid
+version is regenerated. The owner-approved source/use/spend scope is unchanged.
+The 7,984-test run exposed one delayed-handoff fixture still comparing local
+SQLite insertion clocks across two databases. It now deliberately varies those
+clocks and compares all signed fields through the existing shared-projection
+helper; same-database idempotency retains its full-row comparison.
+The manual public Daily acceptance run was canceled at its offline gate because
+there was no signed quality-passing VPCP output; metadata publication is intact.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
 PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged

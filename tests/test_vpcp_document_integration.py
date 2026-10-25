@@ -145,6 +145,22 @@ class Projection(unittest.TestCase):
 if __name__=='__main__':unittest.main()
 
 class SharedBridge(unittest.TestCase):
+    def test_filtered_metadata_requires_one_unambiguous_version(self):
+        from tests.test_vietnam_government_documents import database
+        from processing.government_document_intake import admit,processing_metadata
+        from core.collection.vietnam_government_documents import digest,identity
+        conn=database();self.addCleanup(conn.close)
+        m=metadata();m['subject']='Synthetic topic-free heading'
+        admit(conn,[(m,'a'*64)],source_sha='b'*40,run_id='synthetic',observed_utc=NOW)
+        self.assertEqual(processing_metadata(conn,identity(m))[0],digest(m))
+        changed=copy.deepcopy(m);changed['subject']+=' revised'
+        admit(conn,[(changed,'c'*64)],source_sha='b'*40,run_id='synthetic-revised',observed_utc=NOW)
+        self.assertIsNone(processing_metadata(conn,identity(m)))
+        topical=metadata('220078')
+        admit(conn,[(topical,'d'*64)],source_sha='b'*40,run_id='synthetic-topical',observed_utc=NOW)
+        self.assertEqual(processing_metadata(conn,identity(topical))[0],digest(topical))
+        conn.execute('DELETE FROM regional_official_source_links WHERE source_identity=?',(identity(topical),))
+        self.assertIsNone(processing_metadata(conn,identity(topical)))
     def test_private_to_ordinary_corpus_is_gated_and_idempotent(self):
         from core.collection.vietnam_sources import content_sha256
         from processing.government_document_intake import admit
@@ -154,7 +170,7 @@ class SharedBridge(unittest.TestCase):
         from core.vietnam_corpus_bridge import PrivateCustody
         body='The Government Office said a synthetic test instruction applies. The Government Office asked a fictional test agency to report.'
         sentences=['The Government Office instructed the test action.','The Government Office asked the test agency to report.']
-        m=metadata();capture='a'*64
+        m=metadata();m.update(document_id='909903',official_url='https://vanban.chinhphu.vn/?pageid=27160&docid=909903',subject='Synthetic heading without topical keywords');capture='a'*64
         blocks=[['page-1',body]];lead=digest(m)+':'+capture
         sha=content_sha256(doc.HASH_RULE,m['subject'],lead,blocks)
         version={'title_original':m['subject'],'text_original':body,'lead_original':lead,
@@ -163,7 +179,7 @@ class SharedBridge(unittest.TestCase):
             'pdf_sha256':capture,'metadata_sha256':digest(m),
             'bibliographic':{k:m[k] for k in ('document_number','document_type','issuer','signatory','issue_date','official_url')},
             'identity_checks':{'number':'match','date':'match','issuer':'match','basis':'page_text'}}
-        record={'source_family':VPCP,'source_identity':'vpcp-vi:220077','canonical_official_url':m['official_url'],
+        record={'source_family':VPCP,'source_identity':'vpcp-vi:'+m['document_id'],'canonical_official_url':m['official_url'],
             'publisher_posted_date':m['issue_date'],'content_sha256':sha,'capture_sha256':capture,
             'source_git_commit':'b'*40,'collector_commit':'c'*40}
         reading={'passed_relevance':True,'relevance_score':0.9,'relevance_reasoning':'Synthetic test explanation.',
@@ -202,6 +218,23 @@ class SharedBridge(unittest.TestCase):
                 self.assertEqual(settled['counts'],{bridge.SETTLED:1})
                 self.assertEqual(guard.call_count,1)
                 guard.reset_mock();reading['document_facts']=original_facts
+                # Complete a never-run factual review from a retained format draft.
+                # Relevance and explanation are not dispatched again.
+                from config import ANALYSIS_MODEL
+                resume_conn=clone_schema(Path(tmp)/'resume.db');migration.up(resume_conn)
+                admit(resume_conn,[(m,capture)],source_sha='c'*40,run_id='synthetic',observed_utc=NOW);resume_conn.commit()
+                saved=copy.deepcopy(reading);saved['model_id']=ANALYSIS_MODEL
+                resume_path=Path(tmp)/'resume-ledger.json'
+                resume_ledger=bridge.load_ledger(resume_path,VPCP)
+                resume_ledger['items'][record['source_identity']]={'content_sha256':sha,'outcome':qa.HELD_REVIEW,'failures':['E_ANALYSIS_INCOMPLETE'],'attempts':0,'private_document_review':{'failures':['document_summary_coverage'],'reading':saved}}
+                bridge.save_ledger(resume_path,resume_ledger)
+                no_regeneration=SimpleNamespace(analyze_record=unittest.mock.Mock(side_effect=AssertionError('paid draft must not be regenerated')))
+                first_review=unittest.mock.Mock(return_value={'ok':True,'reason':'Synthetic first factual review.'})
+                recovered=bridge.run_family(resume_conn,'unused','b'*40,VPCP,source_use=approved,**dict(args,analyzer=no_regeneration,second_pass=first_review,ledger_path=resume_path))
+                self.assertEqual(recovered['counts'],{qa.PUBLISHED:1})
+                no_regeneration.analyze_record.assert_not_called();first_review.assert_called_once()
+                self.assertTrue(no_regeneration._vpcp_first_qa_continuation)
+                resume_conn.close();guard.reset_mock()
                 first=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
                 self.assertEqual(first['counts'],{qa.PUBLISHED:1})
                 second=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
@@ -285,6 +318,30 @@ class SpendReservations(unittest.TestCase):
 
 
 class ImmutableCustody(unittest.TestCase):
+    def test_unseen_permitted_documents_are_not_starved_by_refreshes_or_holds(self):
+        import sqlite3
+        from scripts import collect_vpcp_private_documents as collector
+        from core.collection.vietnam_government_documents import digest,identity
+        known=metadata('220078');held=copy.deepcopy(metadata())
+        held.update(document_id='909902',subject='Synthetic topical held test document')
+        fresh=[]
+        for ident in ('909900','909901'):
+            m=copy.deepcopy(metadata());m.update(document_id=ident,subject='Synthetic topic-free test document')
+            fresh.append(m)
+        with tempfile.TemporaryDirectory() as tmp:
+            repo=Path(tmp)/'private';(repo/'state/documents').mkdir(parents=True)
+            old='a'*64
+            (repo/'state/documents'/(old+'.json')).write_text(json.dumps({'capture':{'metadata_sha256':digest(known)}}))
+            (repo/'state/vpcp-index.json').write_text(json.dumps({'records':{identity(known):old},'checked':{},'holds':{identity(held):'source hold'}}))
+            db=Path(tmp)/'metadata.db';c=sqlite3.connect(db)
+            c.execute('CREATE TABLE official_document_versions(source_family,metadata_json,first_observed_utc)')
+            c.executemany('INSERT INTO official_document_versions VALUES (?,?,?)',[(VPCP,json.dumps(m),NOW) for m in [known,held]+fresh]);c.commit();c.close()
+            adapter=unittest.mock.Mock();adapter.fetch.return_value={'body':b'%PDF- synthetic'}
+            with patch.dict('os.environ',{'VIETNAM_VPCP_TEXT_ENABLED':'true','VIETNAM_PRIVATE_BRIDGE_KEY':'fictional-fixture-key-0000000000000000','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','GITHUB_SHA':'b'*40}),patch.object(collector,'private_repo',return_value=repo),patch.object(collector,'OriginalsAdapter',return_value=adapter),patch.object(collector,'preserve',return_value='new') as preserve,patch('processing.government_document_intake.topics',side_effect=lambda m: ['energy'] if m['document_id'] in ('220078','909902') else []):
+                result=collector.collect(db,repo,Path(tmp)/'gate')
+            self.assertEqual(result['outcomes'],['new','new'])
+            self.assertEqual([call.args[1]['document_id'] for call in preserve.call_args_list],['909901','909900'])
+            self.assertEqual(adapter.fetch.call_count,2)
     def test_changed_bytes_are_preserved_and_same_version_is_not_reprocessed(self):
         import subprocess,os
         from core import vietnam_document_custody as custody
@@ -315,7 +372,9 @@ class ImmutableCustody(unittest.TestCase):
                     return original(args,root)
                 with patch.object(custody,'_git_bytes',side_effect=read):
                     packet,versions=custody.prepare(repo,commit,api=api);self.assertEqual(len(packet['records']),1)
-                    custody.hold(repo,'vpcp-vi:220077');git('add','state');git('commit','-m','Synthetic current-source hold')
+                    custody.hold(repo,'vpcp-vi:220077',observed_utc=NOW)
+                    self.assertEqual(json.loads((repo/custody.INDEX).read_text())['checked']['vpcp-vi:220077'],NOW)
+                    git('add','state');git('commit','-m','Synthetic current-source hold')
                     held_commit=git('rev-parse','HEAD')
                     held_packet,_=custody.prepare(repo,held_commit,api=api)
                     self.assertEqual(held_packet['records'],[])
@@ -376,3 +435,72 @@ class OwnerReleaseGuards(unittest.TestCase):
             report=bridge.run_family(analyzer=analyzer)
         self.assertAlmostEqual(report['model_usage']['cost_usd'],0.0006)
         self.assertEqual(report['model_usage']['tasks'][0]['input_tokens'],100)
+
+
+class EvidenceSupportAndFirstReview(unittest.TestCase):
+    def test_administrative_attribution_is_source_specific(self):
+        from core import vietnam_daily_qa as qa
+        permissions={'public_ipr_analysis':True}
+        projection={'title_english':'Government Office administrative instructions'}
+        for verb in ('issued','instructs','requests'):
+            summary='The Government Office '+verb+' an administrative instruction.'
+            result={'summary_english':summary,'categories':['policy_document'],'is_significant':False}
+            def check(family):
+                return qa.output_failures({'source_family':family},'Synthetic','Synthetic',result,
+                    translation_required=False,permissions=permissions,projection=projection)
+            self.assertNotIn('E_UNATTRIBUTED',check(VPCP))
+            self.assertIn('E_UNATTRIBUTED',check('vn_mps_foreign_affairs_vi'))
+        result['summary_english']='The instruction requires administrative action.'
+        self.assertIn('E_UNATTRIBUTED',check(VPCP))
+    def test_private_notes_may_be_longer_than_the_bounded_public_summary(self):
+        from config import ANALYSIS_MODEL
+        evidence='Synthetic conditional source material about a fictional test and approval.'
+        summary='The Government Office said action would follow if approved.'
+        facts=[{'sentence':'The Government Office said the proposed fictional action would remain conditional until a test authority had reviewed the supporting paperwork.','page':1,'evidence':evidence,'status':'conditional'},
+               {'sentence':'The Government Office said approval would depend on a separate test review, with no claim that any action had already taken place.','page':1,'evidence':evidence,'status':'conditional'}]
+        reading={'summary_english':summary,'document_facts':facts,'is_significant':False,'title_english':'Synthetic conditional Government Office notice','model_id':ANALYSIS_MODEL,'prompt_version':'fixture','relevance_score':0.85}
+        version={'pages':[(1,evidence)],'text_original':evidence,'bibliographic':{'document_type':'Công văn'}}
+        self.assertEqual(doc.output_failures(version,reading),[])
+        facts[0]['sentence']+=' The Government Office referred to 2026.'
+        version['pages']=[(1,evidence+' 2026')]
+        self.assertEqual(doc.output_failures(version,reading),[])
+        facts[0]['sentence']+=' The Government Office referred to 9999.'
+        self.assertEqual(doc.output_failures(version,reading),['document_numeric_evidence_mismatch'])
+        facts[0]['sentence']=facts[0]['sentence'].split(' The Government Office referred to 9999.')[0]
+        item={'outcome':'held_review','private_document_review':{'failures':['document_summary_coverage'],'reading':reading}}
+        draft=doc.retained_format_draft(item,version)
+        self.assertEqual(draft['summary_english'],summary)
+        reading['summary_english']='word '*91
+        self.assertIsNone(doc.retained_format_draft(item,version))
+        reading['summary_english']=summary;item['private_document_review']['failures']=['document_page_evidence_invalid']
+        self.assertIsNone(doc.retained_format_draft(item,version))
+    def test_only_a_never_executed_factual_review_can_continue(self):
+        import base64,requests
+        from datetime import datetime,timezone
+        day=datetime.now(timezone.utc).date().isoformat()
+        state={'schema':'ipr-vpcp-spend/1','days':{day:0.01},'runs':{'122-1':0.01},'documents':{'a'*64:{'run_id':'122-1','routes':['relevance:500','summary:1000']}}}
+        puts=[]
+        def get(*a,**kw):return SimpleNamespace(status_code=200,json=lambda:{'sha':'fixture','content':base64.b64encode(json.dumps(state).encode()).decode()})
+        def put(*a,**kw):
+            puts.append(kw['json']);state.clear();state.update(json.loads(base64.b64decode(kw['json']['content'])))
+            return SimpleNamespace(status_code=200)
+        session=SimpleNamespace(headers={},get=get,put=put)
+        env={'GITHUB_REPOSITORY':'VSSpowerlifting/ipr-source-evidence-private','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','VIETNAM_VPCP_SPEND_TOKEN':'fictional'}
+        with patch.dict('os.environ',env),patch.object(requests,'Session',return_value=session):
+            p=vpcp_policy.policy()
+            with self.assertRaises(bridge.BridgeError):vpcp_policy.reserve_cost('123-1',0.01,p,document_sha='a'*64,route='summary:1000',allow_first_qa=True)
+            vpcp_policy.reserve_cost('123-1',0.01,p,document_sha='a'*64,route='summary:300',allow_first_qa=True,generation_run_id='122-1')
+            self.assertEqual(state['documents']['a'*64]['qa_run_id'],'123-1')
+            with self.assertRaises(bridge.BridgeError):vpcp_policy.reserve_cost('123-1',0.01,p,document_sha='a'*64,route='summary:300',allow_first_qa=True,generation_run_id='122-1')
+            self.assertEqual(len(puts),1)
+            self.assertAlmostEqual(state['runs']['123-1'],0.01)
+    def test_oversize_complete_request_is_held_before_reservation(self):
+        from config import ANALYSIS_MODEL
+        client=SimpleNamespace(base_url='https://api.anthropic.com',with_options=lambda **kw:None)
+        a=SimpleNamespace(_client=client,_call=unittest.mock.Mock(),_vpcp_document_sha='a'*64)
+        original=a._call
+        with patch.object(vpcp_policy,'verify_pricing'),patch.object(vpcp_policy,'reserve_cost') as reserve:
+            vpcp_policy.guard(a,'123-1')
+            with self.assertRaisesRegex(bridge.BridgeError,'complete_model_input_limit'):
+                a._call([{'role':'user','content':'x'*32001}],model=ANALYSIS_MODEL,max_tokens=1000,task='summary')
+            reserve.assert_not_called();original.assert_not_called()
