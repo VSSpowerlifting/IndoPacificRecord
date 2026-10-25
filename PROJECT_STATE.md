@@ -10,6 +10,18 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**PR #864 baseline maintenance (25 October 2026).** The three baseline
+assertions from offline run `40240196861` are repaired separately from the
+Living Dossiers branch. Withheld original titles must match authenticated
+source provenance and an explicit `public_title_display: false` permission;
+disclosure and exclusion of machine headlines remain enforced. Source-link
+matching uses HTML escaping and retains keyboard-access checks. Only the eight
+failing contract jobs in seven workflows are pinned to Ubuntu 24.04 / Python
+3.9; triggers, permissions, commands and release jobs are preserved. No database,
+generated output, source-use grant or dossier content changes. Exact-head CI and
+the eight affected Actions checks are recorded in the maintenance PR before
+handoff; merge and deployment require separate authorization.
+
 **Vietnam Government Office full-document integration (25 October 2026): corrected analysis passed; public consumer repair pending.**
 PR #874 merged as `46298fe95ccb50b472a7908b1e5716b71cd56dcc` after exact-head
 CI `40215557973` passed 7,995 tests (15 skips), browser, renderer, validator

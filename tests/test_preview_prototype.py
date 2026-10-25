@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import html as html_lib
 import inspect
 import json
 import re
@@ -2349,7 +2350,7 @@ class TestRecordPages(PreviewCase):
     def test_the_original_source_link_is_keyboard_reachable(self):
         rec = self.by_id[self.ids[-1]]
         html = self.record(rec["id"])
-        self.assertIn('<a href="%s"' % rec["url"], html)
+        self.assertIn('<a href="%s"' % html_lib.escape(rec["url"], quote=True), html)
         self.assertNotIn("tabindex=\"-1\"", html)
 
     def test_urls_and_hashes_can_wrap_at_320px(self):
@@ -5073,8 +5074,12 @@ class TestCorpusGuide(PreviewCase):
         withheld = [r for r in self.corpus["corpus"] if not r.get("title_original")]
         self.assertTrue(withheld)
         for rec in withheld:
-            self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
-            self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
+            provenance = rec["vietnam"]
+            self.assertEqual(provenance["source_family"], rec["source_slug"])
+            self.assertEqual(provenance["canonical_official_url"], rec["url"])
+            self.assertTrue(provenance["source_identity"])
+            self.assertRegex(provenance["rights_decision_sha256"], r"^[0-9a-f]{64}$")
+            self.assertIs(provenance["permissions"]["public_title_display"], False)
         self.assertEqual(self.stats["withheld_original_titles"], len(withheld))
         row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Original title"]
         self.assertIn("Withheld for %s records" % format(len(withheld), ","), row["absent"])
@@ -5413,7 +5418,12 @@ class TestSnapshotScopedCitations(PreviewCase):
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
                 if not original:
-                    self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+                    provenance = rec["vietnam"]
+                    self.assertEqual(provenance["source_family"], rec["source_slug"])
+                    self.assertEqual(provenance["canonical_official_url"], rec["url"])
+                    self.assertTrue(provenance["source_identity"])
+                    self.assertRegex(provenance["rights_decision_sha256"], r"^[0-9a-f]{64}$")
+                    self.assertIs(provenance["permissions"]["public_title_display"], False)
                     self.assertIn("Original title withheld under the source-use decision.",
                                   cite["source_text"])
                     self.assertNotIn(english, cite["source_text"])
