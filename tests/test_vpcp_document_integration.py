@@ -65,6 +65,49 @@ class Header(unittest.TestCase):
     def test_normalization_does_not_change_digits(self):
         self.assertEqual(doc.normalized('545 / TB – VPCP'),doc.normalized('545/TB-VPCP'))
         self.assertNotEqual(doc.normalized('546/TB-VPCP'),doc.normalized('545/TB-VPCP'))
+    def test_same_line_date_column_does_not_become_part_of_number(self):
+        m=metadata();p=HeaderPage(m)
+        text=p.extract_text().replace('\nHà Nội,',' Hà Nội,')
+        p.extract_text=lambda:text
+        self.assertEqual(doc.identity_header(SimpleNamespace(pages=[p]),m)['number'],'match')
+        p.extract_text=lambda:text.replace(m['document_number'],'99999/VPCP-CN')
+        with self.assertRaisesRegex(ValueError,'number_conflict'):
+            doc.identity_header(SimpleNamespace(pages=[p]),m)
+        p.extract_text=lambda:text.replace(' Hà Nội,',' extra-number Hà Nội,')
+        with self.assertRaisesRegex(ValueError,'number_conflict'):
+            doc.identity_header(SimpleNamespace(pages=[p]),m)
+
+
+def numbered_page(extra=b''):
+    page=PageObject.create_blank_page(width=595,height=842)
+    form=widget('2')['/AP']['/N']
+    page[NameObject('/Resources')]=form['/Resources']
+    stream=DecodedStreamObject();stream.set_data(form.get_data()+extra)
+    page[NameObject('/Contents')]=stream
+    return page
+
+
+class NumberedNoncontentPage(unittest.TestCase):
+    def test_number_only_page_is_retained_in_complete_input(self):
+        m=metadata();r=SimpleNamespace(pages=[HeaderPage(m),numbered_page()],is_encrypted=False,attachments={})
+        first=('Synthetic test document with sufficient text. '*8)+m['signatory']
+        extraction=PdfExtraction(status='ok',text=first+'\n2',page_count=2,pages_with_text=2,pages_failed=0,pages=((1,first),(2,'2')))
+        with patch.object(doc,'PdfReader',return_value=r),patch.object(doc,'extract_pdf_text',return_value=extraction):
+            result=doc.inspect_pdf(b'%PDF- synthetic numbered page',m)
+        self.assertEqual(result['pages'],[(1,first),(2,'2')])
+        self.assertIn(['page-2','2'],json.loads(result['blocks_json']))
+    def test_images_forms_annotations_and_paint_hold(self):
+        for kind in ['image','form','annotation','paint','unknown','extra_text','type3']:
+            p=numbered_page()
+            if kind in ('image','form'):
+                p['/Resources'][NameObject('/XObject')]=DictionaryObject({NameObject('/X1'):DictionaryObject({NameObject('/Subtype'):NameObject('/Image' if kind=='image' else '/Form')})})
+            elif kind=='annotation':p[NameObject('/Annots')]=ArrayObject([widget('2')])
+            elif kind=='type3':p['/Resources']['/Font']['/F1'][NameObject('/Subtype')]=NameObject('/Type3')
+            else:p=numbered_page({'paint':b' 0 0 m 10 10 l S','unknown':b' /Something sh','extra_text':b' BT /F1 12 Tf (hidden text) Tj ET'}[kind])
+            self.assertFalse(doc.page_number_only(p,2,'2'),kind)
+    def test_sparse_text_and_wrong_page_number_hold(self):
+        for number,text in [(1,'2'),(2,''),(2,'2 missing body'),(2,'22')]:
+            self.assertFalse(doc.page_number_only(numbered_page(),number,text))
 
 
 class Fidelity(unittest.TestCase):
