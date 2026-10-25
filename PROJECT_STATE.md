@@ -10,31 +10,37 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office full-document integration (24 October 2026): real factual QA holds; uncaptured queue repair pending.**
-PRs #865, #866 and #868 are merged; #868's required exact-head CI passed
-7,982 tests (15 skips), rendering, validation and tracked-data preservation.
-Private run `40157663479` reused 10790/VPCP-CN's paid draft and executed only
-its first independent factual review. QA correctly rejected a summary that
-assigned a Ministry of Industry and Trade responsibility to provincial
-chairpersons. This immutable version is held and cannot repeat any paid route.
-The earlier unretained drafts and 10744/VPCP-CN source exception remain held.
-Cumulative provider-token cost is $0.124666; durable reservations total
-$0.39265125. No Government Office machine explanation is live.
-The collector currently refreshes four topical attempted records ahead of five
-uncaptured permitted documents already in the metadata store. A narrow queue
-repair prioritizes unseen unheld versions before refreshes and previous holds,
-retaining the two-document limit and content-based screening. The text lane
-may bind a title-filtered document to its sole verified metadata version;
-ambiguous revisions and withdrawn topical identities stay held. Public metadata
-selection is unchanged. Both processing and final insertion use this binding.
-New explanations explicitly keep each authority's responsibilities separate. No prior paid
-version is regenerated. The owner-approved source/use/spend scope is unchanged.
-The 7,984-test run exposed one delayed-handoff fixture still comparing local
-SQLite insertion clocks across two databases. It now deliberately varies those
-clocks and compares all signed fields through the existing shared-projection
-helper; same-database idempotency retains its full-row comparison.
-The manual public Daily acceptance run was canceled at its offline gate because
-there was no signed quality-passing VPCP output; metadata publication is intact.
+**Vietnam Government Office full-document integration (25 October 2026): activated; first public acceptance held by factual QA.**
+PRs #865, #866, #868–#872 are merged. Latest code merge is
+`b735161305e3096a4006e7a6e9705ead48782429`; required exact-head CI
+`40195436669` passed 7,991 tests (15 skips), browser, renderer, validator and
+tracked-data preservation. The existing private collector and shared Daily
+bridge are active under the owner's sealed, bounded standing decision. MPS
+behavior, common publishing architecture and the completed metadata release
+are preserved. No Government Office English explanation is live.
+
+The queue and PDF fidelity fixes reached all nine current identities. Seven
+primary PDFs were captured; two remain source-held. The last candidate,
+10744/VPCP-CN, has a verified complete two-page source and an unchanged paid
+86-word draft. After the mechanical false holds were repaired and the original
+paid receipt recovered without another generation call, private run
+`40197695872` executed its first factual review. That reviewer rejected the
+draft for assigning the Prime Minister's instructions to the issuing Government
+Office. It remains held; its paid routes cannot repeat. 10790/VPCP-CN also
+remains factually held. Two earlier drafts are unavailable, two documents fail
+source checks, and three were screened out. A fresh bounded first-page listing
+contains no new Government Office identity.
+
+Provider-returned usage reconciles to **11 calls, $0.162665** at freshly verified
+prices; durable reservations total **$0.53030875**, within every approved cap.
+Production retains four bibliographic records and zero VPCP corpus articles.
+No new public Daily was dispatched after that final rejection. A single owner
+decision is pending: a one-time correction attempt for this exact 10744 source
+version, at most two additional calls and $0.15 additional reserved spend,
+otherwise retaining all existing limits and no further retry. This exception
+is **not authorized or activated**. Future eligible first-pass records retain
+the existing unattended path; real source-to-live acceptance is not claimed.
+See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_RELEASE_2026-10-25.md`.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
 PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged
@@ -57,14 +63,16 @@ are unchanged. The existing Daily is active with
 not yet occurred. This acceptance run used `vpcp_metadata_only=true` and did
 not advance the full-Daily success marker.
 
-The separately authorized bounded local access assessment retrieved the two
+At that October 23 acceptance, the separately authorized local access assessment retrieved the two
 exact official PDF links over ordinary verified HTTPS: 4/4 and 5/5 pages carry
 extractable text, without encryption or page failures. The full `545/TB-VPCP`
 identifier could not be matched in extracted text, so complete document
 verification is not claimed. No original text was transmitted to external
-models, admitted to production or publicly copied. Production remains
+models, admitted to production or publicly copied. Production then remained
 metadata-only; attachment collection, translation and machine explanation
-remain disabled pending separate source/use/model/spend authority. See
+were disabled pending separate source/use/model/spend authority. The subsequent
+October 24 standing decision and current October 25 status above supersede
+that historical restriction. See
 `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md` for receipts,
 technical access limits and the distinction from a production permission.
 
