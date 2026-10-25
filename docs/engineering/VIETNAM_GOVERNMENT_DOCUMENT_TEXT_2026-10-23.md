@@ -247,3 +247,28 @@ bibliographic selection is unchanged, and complete-document relevance, source
 identity, rights, budgets and independent factual review remain mandatory.
 The public Daily acceptance attempt `40158637403` was canceled at its offline
 gate because the actual factual review produced no releasable VPCP handoff.
+
+## 25 October local PDF fidelity correction
+
+10744/VPCP-CN exposed two conservative extraction false rejections. Its PDF
+first page renders `10744/VPCP-CN` and the Hanoi issue date, 21 October 2026,
+in separate columns. pypdf joins those columns on one line. The identity check
+now separates only the recognized Hanoi date column and still compares the
+entire remaining identifier; wrong or additional identifier text remains held.
+Local rasterization and Apple Vision OCR agree with the pypdf identity fields
+and portal metadata. No hosted OCR or external-model processing was used.
+
+The second page contains only its printed page number, `2`. It has one text
+operation, no image/form objects, annotations, painted paths or unsupported
+fonts. The sparse-text check now recognizes that narrowly defined non-content
+page and retains it in the complete, page-aware input. Image/form objects,
+annotations, additional text operations, painting and unknown operators prevent
+the exception. Scanned, failed, absent and materially sparse content still hold.
+
+The cached two-page PDF is 264,119 bytes, SHA-256
+`121670635f065b0ecb1ef38641c5236d634fc5777dc3aa1cc0330caf7580f575`.
+Complete extraction is 2,778 UTF-8 bytes, including page 2; content identity is
+`842585a4cc35857bf6301e55228c7662d03adc3eeb1bed3a3872cfd3916db56e`.
+Issuer, number, issue date and signatory pass local validation. This establishes
+extraction eligibility only; ordinary relevance, source-use, spend and factual
+publication gates remain mandatory. This version has incurred no model calls.
