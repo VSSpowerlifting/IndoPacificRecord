@@ -1,5 +1,18 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Sunday selection reform — private review candidate (25 October 2026)
+
+PR #805 is being extended from its old ten-source comparison to complete
+eligible-week discovery in the existing Sunday writer. The October 24 editorial comparison and proposed article brief are held
+outside the public repository for Ben's private review. The delivered TXT
+remains unchanged and Dylan has not been sent a replacement.
+The [selection contract](docs/BRIEFS_WEEKLY_SELECTION.md) describes source
+content digests, duplicate grouping, quality floors, optional connection
+weighting and explicit no-send abstention. A committed production-only audit
+contains metadata/hashes, not publisher bodies or a paid manuscript. This is
+an unmerged engineering candidate, not evidence of live model/editor operation.
+Existing collection, source-use, owner, DOCX/TXT and publishing gates remain.
+
 **Owner architecture target (19 October 2026; not yet deployed):** All desks
 should ultimately converge on one logical shared Daily article-processing,
 model and public publishing architecture, while approved source collection,

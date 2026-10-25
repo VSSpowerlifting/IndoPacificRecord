@@ -4,6 +4,23 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-25 — Owner task: compare the whole eligible week before Brief composition
+
+The owner requested an October 18–24 reassessment and durable selection repair
+within the existing Sunday handoff/PR #805. Compare substantive alternatives
+using source content, preserve coverage gaps and separate held/metadata/private
+research lanes. Do not force a country quota or multinational thesis; permit
+explicit abstention. The implementation keeps the existing score weights as
+a baseline and normalizes the other dimensions when connection is inapplicable,
+with minimum evidence/novelty floors before commitment. Scores are provisional
+judgments, never factual/source-rights approval. The signed thematic-preview
+contract and final single-desk publication-exception rule remain unchanged.
+The private October 24 recommendation awaits owner review; no second
+manuscript, editor message, paid model call, merge or publication is authorized.
+See `docs/BRIEFS_WEEKLY_SELECTION.md`; the editorial assessment is retained
+outside this public repository. This entry records the task's constraint,
+not a claim that the owner approved the replacement article.
+
 ## 2026-10-25 — Owner: one manual 10744 attribution correction
 
 Benjamin Yang explicitly approves one exceptional correction in chat, confirmed
