@@ -29,6 +29,10 @@ ambiguous revisions and withdrawn topical identities stay held. Public metadata
 selection is unchanged. Both processing and final insertion use this binding.
 New explanations explicitly keep each authority's responsibilities separate. No prior paid
 version is regenerated. The owner-approved source/use/spend scope is unchanged.
+The 7,984-test run exposed one delayed-handoff fixture still comparing local
+SQLite insertion clocks across two databases. It now deliberately varies those
+clocks and compares all signed fields through the existing shared-projection
+helper; same-database idempotency retains its full-row comparison.
 The manual public Daily acceptance run was canceled at its offline gate because
 there was no signed quality-passing VPCP output; metadata publication is intact.
 

@@ -143,7 +143,13 @@ class Handoff(unittest.TestCase):
 
         public = self.public()
         self.assertEqual(handoff.admit(public, self.verify(envelope)), {qa.PUBLISHED: 2})
-        self.assertEqual(self.corpus(public), self.corpus(self.conn))
+        # Delay necessarily permits distinct local insertion clocks; signed
+        # dates/provenance must still match exactly, as in the round-trip case.
+        self.conn.execute("UPDATE articles SET scraped_at=datetime(scraped_at, '-1 day')")
+        self.assertNotEqual(public.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone(),
+                            self.conn.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone())
+        self.assertEqual(self.corpus(public, shared_projection=True),
+                         self.corpus(self.conn, shared_projection=True))
 
         # Even a valid MAC must not turn a malformed historical commit into
         # acceptable provenance.
