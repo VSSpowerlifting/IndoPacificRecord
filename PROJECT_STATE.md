@@ -34,11 +34,12 @@ contains no new Government Office identity.
 Provider-returned usage reconciles to **11 calls, $0.162665** at freshly verified
 prices; durable reservations total **$0.53030875**, within every approved cap.
 Production retains four bibliographic records and zero VPCP corpus articles.
-No new public Daily was dispatched after that final rejection. A single owner
-decision is pending: a one-time correction attempt for this exact 10744 source
-version, at most two additional calls and $0.15 additional reserved spend,
-otherwise retaining all existing limits and no further retry. This exception
-is **not authorized or activated**. Future eligible first-pass records retain
+The owner has now approved one manual correction for this exact immutable 10744
+source version: one generation and one independent factual review, at most
+$0.15 additional reserved spend, retaining every existing cap and no further
+retry. `DECISION_LOG.md` records the exact hashes and prior rejection. The
+attribution repair and guarded exception await exact-head CI and execution;
+no paid correction or successful publication is claimed yet. Future eligible first-pass records retain
 the existing unattended path; real source-to-live acceptance is not claimed.
 See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_RELEASE_2026-10-25.md`.
 
