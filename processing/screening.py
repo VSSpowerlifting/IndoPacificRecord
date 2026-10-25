@@ -276,5 +276,5 @@ def private_document_profile():
         build_analysis_messages=vn_prompts.analysis_builder("vn_vpcp_official_documents_vi"),
         build_analysis_system_prompt=vn_prompts.analysis_system_builder("vn_vpcp_official_documents_vi"),
         categories=vn_prompts.EVENT_TYPES, prompt_version="vn-vpcp-relevance-v1",
-        analysis_prompt_version="vn-vpcp-document-analysis-v1",source_language="vi",
+        analysis_prompt_version="vn-vpcp-document-analysis-v2",source_language="vi",
         source_family="vn_vpcp_official_documents_vi")
