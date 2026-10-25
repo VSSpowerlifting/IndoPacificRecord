@@ -280,7 +280,7 @@
       "slug": "vietnam",
       "name": "Vietnam Desk",
       "route": "vietnam.html",
-      "scope": "Public Security foreign-affairs releases and eligible Government Office administrative documents use separate source-use decisions and the shared Daily. Bibliographic references remain. Other source families are restricted or inactive; coverage is selective.",
+      "scope": "Public Security foreign-affairs releases and eligible Government Office administrative documents use separate source-use decisions and the shared Daily. Bibliographic references remain. Other source families are restricted or inactive; coverage is selective. Government News is a tag that editors apply, not a complete defense category.",
       "status": "live",
       "status_explanation": "Approved records enter from private custody after source, rights, factual-QA and spending gates. Public output is attributed English machine explanation; Government Office output is capped at 90 words. Originals, PDFs, full translations and images stay private. Bibliographic references remain. Counts exclude private captures; MOIT remains held.",
       "public": true,
