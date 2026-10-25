@@ -150,6 +150,24 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         lines.extend(format_private_source_use(
             manuscript, trail, research_evidence))
         lines.append("")
+        selection = manuscript.get("story_selection")
+        if selection:
+            # Private decision trace for Ben/Dylan, not published editorial
+            # evidence. This never appears in the readable DOCX or mail body.
+            from core.regional_editorial_slate import heuristic_score
+            lines.append("AUTOMATIC STORY TRIAGE (MODEL PROPOSALS, NOT FACT CHECKS):")
+            lines.append("Selected: " + one_line(selection["selected_slug"]))
+            lines.append("Why selected: " + one_line(selection["selection_rationale"]))
+            for option in selection["candidates"]:
+                lines.append(
+                    "- {}: {:.2f}/5; {}; limitations: {}; source IDs: {}".format(
+                        one_line(option["slug"]),
+                        heuristic_score(option["scores"]),
+                        one_line(option["thesis"]),
+                        one_line(option["limitation"]),
+                        ", ".join(str(i) for i in option["production_ids"] +
+                                  option["research_ids"])))
+            lines.append("")
     for desk in desks:
         stats = sidecar.get("coverage_by_desk", {}).get(desk, {})
         screened = stats.get("by_screening", {})
@@ -377,8 +395,14 @@ def main(argv=None):
             parser.error("--write-automatic requires --as-of source cutoff")
         from scripts.sunday_briefs_auto_writer import compose
         # Fail closed before file creation/email if any evidence or model check fails.
-        manuscript = (compose(sidecar, args.as_of, supplemental=research)
-                      if research else compose(sidecar, args.as_of))
+        # The same Sunday model call now evaluates up to three grounded
+        # stories and writes only the chosen manuscript. No extra model call,
+        # owner choice, parallel queue, or publication permission.
+        manuscript = (compose(sidecar, args.as_of, supplemental=research,
+                              automatic_story_selection=args.full_week)
+                      if research else compose(
+                          sidecar, args.as_of,
+                          automatic_story_selection=args.full_week))
     # These unapproved metadata pointers appear only in the PRIVATE human
     # handoff after the immutable production source appendix. Never send them
     # to the model or count them as live, production-backed desk evidence.
