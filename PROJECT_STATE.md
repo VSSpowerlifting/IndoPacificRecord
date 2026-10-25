@@ -23,8 +23,9 @@ The sole main conflict in this status file retains both projects' entries;
 base is `ad2afef5798690e483fa4be876226207c945d647`. Synthetic publication fixtures
 explicitly supply their own dossier inputs instead of depending on the live
 canonical publication state. Focused checks, final-revision required CI and
-isolated production validation are reported in PR #864. Runner repairs remain
-outside this task. No merge, deployment or publication is authorized or performed.
+isolated production validation are reported in PR #864. Fourteen shared-renderer
+outputs prepare the public route, discovery, backlinks and scoped assets; no
+unrelated generated page changes. Runner repairs remain outside this task. No merge, deployment or publication is authorized or performed.
 Workflow and decision boundary: `docs/LIVING_DOSSIERS.md`.
 
 **Vietnam Government Office full-document integration (25 October 2026): activated; first public acceptance held by factual QA.**

@@ -144,7 +144,8 @@ keyboard/citation/no-JS/print/responsive behavior. No original text is copied in
 fixtures. Required PR offline CI runs the full suite and a fresh isolated
 `site/render.py` + `scripts/validate_output.py` on GitHub's PR merge ref. A green
 local subset is not that gate. Tracked DB, output, Brief sidecars and Timeline
-must remain unchanged; the accepted output-validator baseline is 10 warnings.
+must remain unchanged during tests; release output is generated separately
+through the shared renderer. The accepted output-validator baseline is 10 warnings.
 
 ## Reading presentation
 
