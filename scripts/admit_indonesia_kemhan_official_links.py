@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -115,20 +116,33 @@ def _superseded_by_later_release(conn, validation):
     frozen packet because those later rows are not in it, so every scheduled
     retry and every later envelope dispatch would HOLD. Such a packet has
     nothing left to insert, so it is not re-admitted, but only when every row
-    it approves is already stored exactly as approved and later rows exist.
+    it approves is already stored exactly as approved (including its original
+    Git commit and metadata version, never compared with a later snapshot) and
+    later rows exist.
     A missing or altered frozen row keeps the packet in play and ``admit()``
     still HOLDs. Rows beyond the packet are re-verified by the next envelope.
     """
     stored = {r[0]: tuple(r[1:]) for r in conn.execute(
-        "SELECT source_identity,%s FROM %s WHERE desk='indonesia' AND source_family=?"
+        "SELECT source_identity,%s,source_git_commit,metadata_version_sha256,"
+        "release_proof_sha256 FROM %s WHERE desk='indonesia' AND source_family=?"
         % (_STABLE_COLUMNS, TABLE), (validator.FAMILY,))}
     eligible = {r["source_identity"] for r in validation["eligible"]}
     if not set(stored) - eligible:
         return False
-    return all(stored.get(r["source_identity"]) == (
-        r["canonical_official_url"], r["publisher_posted_date"], r["official_issuer"],
-        r["official_publisher"], r["official_republisher"], r["first_seen_run"])
-        for r in validation["approved"])
+    proofs = set()
+    for r in validation["approved"]:
+        row = stored.get(r["source_identity"])
+        # The frozen packet is pinned, so its rows keep their ORIGINAL commit and
+        # version digest; they are not compared with any later snapshot.
+        if row is None or row[:8] != (
+                r["canonical_official_url"], r["publisher_posted_date"], r["official_issuer"],
+                r["official_publisher"], r["official_republisher"], r["first_seen_run"],
+                r["source_git_commit"], r["metadata_version_sha256"]):
+            return False
+        proofs.add(row[8])
+    # One admission batch wrote the frozen rows, so they share one proof digest
+    # (release_scope is fixed by a schema CHECK constraint).
+    return len(proofs) == 1 and re.fullmatch(r"[0-9a-f]{64}", next(iter(proofs))) is not None
 
 
 def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None,

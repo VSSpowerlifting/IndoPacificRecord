@@ -540,6 +540,38 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
                         frozen_first=True, as_of_utc="2026-10-21T19:43:00Z")
         self.assertEqual(sha(self.db), tampered)
 
+    def test_frozen_retry_rejects_altered_provenance_columns(self):
+        """Bibliographic fields can match while a stored frozen row's provenance
+        was altered; the frozen-only retry must not wave that through."""
+        body, mac, public_tip, main = self._signed()
+        cli.admit_validated(self.db, [self.validate(public_tip),
+                                      self._open(body, mac, public_tip, main)],
+                            frozen_first=True, as_of_utc="2026-10-18T19:43:00Z")
+        frozen_id = "kemhan:/2026/10/05/menhan-terima-kunjungan.html"
+        retry = lambda: cli.admit_validated(  # noqa: E731
+            self.db, [self.validate(public_tip)], frozen_first=True,
+            as_of_utc="2026-10-19T19:43:00Z")
+        self.assertEqual(retry()[0], [])  # untouched rows pass
+        with sqlite3.connect(self.db) as cx, self.assertRaises(sqlite3.IntegrityError):
+            cx.execute("UPDATE regional_official_source_links SET release_scope='full_text' "
+                       "WHERE source_identity=?", (frozen_id,))  # schema CHECK pins the scope
+        for column, bad in (("source_git_commit", "f" * 40),
+                            ("metadata_version_sha256", "0" * 64),
+                            ("release_proof_sha256", "0" * 64)):
+            with self.subTest(column=column):
+                with sqlite3.connect(self.db) as cx:
+                    original = cx.execute("SELECT %s FROM regional_official_source_links "
+                                          "WHERE source_identity=?" % column, (frozen_id,)).fetchone()[0]
+                    cx.execute("UPDATE regional_official_source_links SET %s=? "
+                               "WHERE source_identity=?" % column, (bad, frozen_id))
+                altered = sha(self.db)
+                self.assertHold("previously_released_source_missing_or_changed", retry)
+                self.assertEqual(sha(self.db), altered)
+                with sqlite3.connect(self.db) as cx:
+                    cx.execute("UPDATE regional_official_source_links SET %s=? "
+                               "WHERE source_identity=?" % column, (original, frozen_id))
+        self.assertEqual(retry()[0], [])  # restored rows pass again
+
     def test_envelope_that_drops_a_released_private_record_still_holds(self):
         body, mac, public_tip, main = self._signed()
         cli.admit_validated(self.db, [self.validate(public_tip),

@@ -214,7 +214,10 @@ dispatch would HOLD `previously_released_source_missing_or_changed`.
 
 `admit_validated(..., frozen_first=True)` now lets the **frozen baseline
 packet only** step aside when every row it approves is already stored exactly
-as approved and later released rows exist. It never inserts, so original
+as approved and later released rows exist. "Exactly as approved" includes the
+stored original Git commit and metadata version digest (equal to the pinned frozen
+packet's, never to a later snapshot) and a single well-formed shared proof digest;
+`release_scope` is pinned by a schema CHECK. An altered provenance column HOLDs. It never inserts, so original
 frozen provenance is kept. A missing or altered frozen row, or any later packet
 (envelope) that omits or changes a released row, still HOLDs, and the shared
 `admit()` is unchanged (Philippines and Vietnam unaffected). Rows beyond the
