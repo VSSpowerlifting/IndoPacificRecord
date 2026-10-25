@@ -23,8 +23,8 @@ Every eligible source contributes a fuller labeled machine synopsis and exact
 source-sentence excerpts selected for changes, outcomes, plans and limitations. Whole originals are read locally for integrity
 and deterministic clustering, not copied wholesale into an expanded prompt.
 Character-shingle similarity groups near-duplicate originals across issuing
-surfaces; the model must recognize further related developments and can split
-or combine these suggestions. A cluster is not independent corroboration or
+surfaces; the model must recognize further related developments and can combine
+related groups. Duplicate groups cannot multiply shortlist slots. A cluster is not independent corroboration or
 a certified semantic event. All source digests remain available. Desk
 interleaving changes presentation order, not eligibility or shortlist quotas.
 The recent six approved Brief titles provide continuity context.

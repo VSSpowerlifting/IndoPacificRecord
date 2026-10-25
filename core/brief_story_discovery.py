@@ -107,7 +107,8 @@ def discovery_packet(chosen, supplemental, *, inventory=(), coverage=(), continu
     """Every eligible source gets content; overflow refuses before spending.
 
     Deterministic clusters are suggestions, never semantic truth. The model
-    may join related clusters or split a broad cluster, retaining exact IDs.
+    may join related clusters for a candidate, retaining exact IDs. Duplicate
+    groups cannot multiply shortlist slots.
     No desk quota or significance/recency order decides the shortlist.
     """
     sources = []
@@ -235,9 +236,10 @@ def validate_selection(selection, packet):
                 any(type(i) is not int or i not in sources or sources[i]["lane"] != "production_record" for i in option["production_ids"]) or
                 any(type(i) is not str or i not in sources or sources[i]["lane"] != "private_research" for i in option["research_ids"])):
             raise ValueError("story candidate used unavailable source IDs")
-        if any(len(set(ids) & prior) / len(set(ids) | prior) > .5 for prior in attributed):
+        clusters = {sources[i]["cluster"] for i in ids}
+        if any(len(clusters & prior) / len(clusters | prior) > .5 for prior in attributed):
             raise ValueError("duplicate stories cannot occupy the shortlist")
-        attributed.append(set(ids))
+        attributed.append(clusters)
         notes = option["evidence_notes"]
         if not isinstance(notes, list) or not 1 <= len(notes) <= 10:
             raise ValueError("candidate lacks content evidence notes")

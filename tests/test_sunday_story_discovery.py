@@ -106,7 +106,9 @@ class DiscoveryContracts(unittest.TestCase):
         self.assertEqual(len(packet['clusters']),2)
         self.assertEqual(set(packet['clusters'][0]['source_ids']),set(range(1,7)))
         # Renaming an idea while retaining the same evidence cannot multiply slots.
-        a = proposal(packet,[1]); b=copy.deepcopy(a);b['slug']='another-title'
+        # Different numeric records republishing the same story must not evade
+        # deduplication merely by avoiding shared record IDs.
+        a = proposal(packet,[1]); b=proposal(packet,[2],slug='another-title')
         with self.assertRaisesRegex(ValueError,'duplicate stories'):
             validate_selection(decision([a,b],a['slug']),packet)
 
@@ -120,7 +122,8 @@ class DiscoveryContracts(unittest.TestCase):
         validate_selection(decision([other,winner],winner['slug']),p)
 
     def test_single_country_beats_weak_forced_comparison(self):
-        p=discovery_packet([(r,r['text_original']) for r in [source(1),source(2,'singapore'),source(3,'korea'),source(4)]],[])
+        p=discovery_packet([(r,r['text_original']) for r in [source(1),source(2,'singapore'),source(3,'korea'),
+            source(4,body='A separate personnel policy changes qualification requirements and training assessment. '*12)]],[])
         single=proposal(p,[1],values=(4,4,4,0,4))
         multi=proposal(p,[2,3],slug='regional-comparison',values=(3,3,3,5,3),connection=True)
         self.assertGreater(decision_score(single),decision_score(multi))
