@@ -170,20 +170,32 @@ decision and explicit VPCP policy fields. Actual activation and production
 acceptance remain separately verifiable release steps.
 The source-use review key remains separate from the capture/handoff key.
 
-## Release configuration prepared, not activated
+## Release configuration and activation
 
 `ops/vpcp-private-workflow.patch` is the exact additive change to the **existing**
 private Vietnam collection/bridge workflow, with pre/postimage hashes in its
-adjacent JSON manifest. It adds a default-off collection step, the source archive
-ref and VPCP bridge arguments; no new scheduler or model engine. It has not been
-applied to the private repository. Apply only after the same owner authorization,
-public exact-head CI and current private workflow preimage match; preserve
-repository protections. An absent decision or archive does not stop MPS.
+adjacent JSON manifest (a historical prepared-patch receipt, not live activation
+state). It adds a default-off collection step, the source archive
+ref and VPCP bridge arguments; no new scheduler or model engine. It was applied
+after owner authorization, public exact-head CI and the private preimage check.
+The subsequent manual collection action remains in that same private workflow,
+at `42bf7adbf54ed2bdcdc83ffe3e56c3d8d88a118e`; its current SHA-256 is
+`761d08439b1e27123b40ec0321e6d88dac123cd6eacd5bd869f6aa3ce496116f`.
+MPS conditions and repository protections were preserved. The existing private
+collection and bridge schedules are active; no additional scheduler was made.
+An absent source-specific decision or archive does not authorize model use and
+does not stop MPS.
 
 The operating public metadata flag and completed October 23 deployment are not
 changed. Full-document source-to-live-site verification must follow actual
 approval and one genuine production record; offline and cached-PDF checks do not
 substitute for it.
+
+As of 25 October, real collection, generation and independent factual review
+have executed, but no VPCP explanation has passed factual QA. This activation
+is not source-to-live acceptance. The completed metadata publication remains
+intact. See `VIETNAM_GOVERNMENT_DOCUMENT_RELEASE_2026-10-25.md` for the final
+run receipts, document holds, spending checkpoint and pending no-retry exception.
 
 ## Offline evidence before PR CI
 
