@@ -275,7 +275,11 @@ def model_second_pass(analyzer, family: str) -> Callable[[dict, str, str, dict],
                 "by the document header. Substantive instructions, authorities, "
                 "deadlines and other facts must also be supported by these cited spans. "
                 "Reject unsupported authorities, deadlines, numbers, implementation claims "
-                "or changed conditionality. Keep reason in English without source quotations.\n"
+                "or changed conditionality. The Government Office's formal issuance or transmission "
+                "does not make it the giver of the Prime Minister's instructions. Reject that "
+                "misattribution and any reassignment of a ministry's responsibility to provincial "
+                "chairpersons. Verify the actor and action in each public claim and private fact "
+                "against its cited page. Keep reason in English without source quotations.\n"
                 + json.dumps(result.get("document_facts"),ensure_ascii=False))
         raw = analyzer._call(messages, max_tokens=300,
                              temperature=0.0, system=system, task=TASK_SUMMARY)
@@ -350,6 +354,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         prior_item = ledger["items"].get(identity) or {}
         item = {"source_identity": identity, "content_sha256": sha}
         document_attempted = False
+        manual_correction = False
 
         def done(outcome, failures=(), article_id=None, details=None, qa_json=None,
                  article=None):
@@ -367,6 +372,15 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                     "content_sha256": sha, "outcome": outcome, "failures": list(failures),
                     "attempts": attempts, "updated_utc": now(), "run_id": run_id,
                     "qa": qa_json}
+                if manual_correction:
+                    from processing.vpcp_correction import DECISION
+                    ledger["items"][identity]["manual_correction"] = {
+                        "decision": DECISION, "run_id": run_id,
+                        "prior_rejection": prior_item}
+                elif same and prior_item.get("manual_correction"):
+                    ledger["items"][identity]["manual_correction"] = prior_item["manual_correction"]
+                    if prior_item.get("private_document_review"):
+                        ledger["items"][identity]["private_document_review"] = prior_item["private_document_review"]
                 if article is not None:
                     # Only the permitted projection; offered again, never re-analysed.
                     ledger["items"][identity]["article"] = article
@@ -381,10 +395,12 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         format_draft = None
         if family == "vn_vpcp_official_documents_vi" and prior_item.get("content_sha256") == sha:
             from processing.vpcp_document import retained_format_draft
+            from processing.vpcp_correction import eligible
             candidate_version=versions.get((identity,sha))
             if candidate_version is not None:
                 format_draft=retained_format_draft(prior_item,candidate_version)
-        if format_draft is None and prior_item.get("content_sha256") == sha and prior_item.get("outcome") in (
+                manual_correction=eligible(identity,prior_item,candidate_version)
+        if format_draft is None and not manual_correction and prior_item.get("content_sha256") == sha and prior_item.get("outcome") in (
                 qa.SCREENED_OUT, qa.HELD_REVIEW, qa.HELD_ESCALATED):
             # Settled earlier; do not re-spend a model call on the same version.
             done(SETTLED)
@@ -450,6 +466,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                    dataclasses.replace(base_profile, build_translation_messages=None))
         title, body = version["title_original"], version["text_original"]
         if family == "vn_vpcp_official_documents_vi":
+            from analysis.analyzer import AnalysisError
             from processing.vpcp_policy import guard
             from processing.vpcp_document import retain_review
             if not document_guarded:
@@ -457,14 +474,19 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                 document_guarded = True
             model_body = "\n\n".join("[Page %d]\n%s" % (n,t) for n,t in version["pages"])
             analyzer._vpcp_document_sha = sha
+            analyzer._vpcp_manual_correction = manual_correction
             analyzer._vpcp_first_qa_continuation = format_draft is not None
             generation_run_id = ((prior_item.get("private_document_review") or {}).get("generation_run_id")
                                  or prior_item.get("run_id")) if format_draft is not None else run_id
             analyzer._vpcp_generation_run_id = generation_run_id if format_draft is not None else None
             document_attempted = True
             try:
-                result = format_draft if format_draft is not None else analyzer.analyze_record(title, model_body, profile)
-            except BridgeError as exc:
+                if manual_correction:
+                    from processing.vpcp_correction import generate
+                    result = generate(analyzer,title,model_body,profile)
+                else:
+                    result = format_draft if format_draft is not None else analyzer.analyze_record(title, model_body, profile)
+            except (BridgeError, AnalysisError) as exc:
                 done(qa.HELD_REVIEW, ["E_ANALYSIS_INCOMPLETE"], details={"document_hold": str(exc)})
                 continue
             if result and result.get("passed_relevance"):
@@ -500,7 +522,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         if verdict.outcome != qa.PUBLISHED:
             done(verdict.outcome, verdict.failures, details=verdict.details,
                  qa_json=verdict.as_json())
-            if (family == "vn_vpcp_official_documents_vi" and verdict.second_pass is None
+            if (family == "vn_vpcp_official_documents_vi" and (verdict.second_pass is None or manual_correction)
                     and result and result.get("passed_relevance")):
                 ledger["items"][identity]["private_document_review"] = retain_review(
                     result, verdict.failures, generation_run_id)
@@ -556,6 +578,8 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         outcome, article_id, code = _insert(conn, family, record, row, provenance)
         done(outcome, [code] if code else [], article_id, qa_json=verdict.as_json(),
              article={"row": row, "provenance": provenance} if outcome == qa.PUBLISHED else None)
+        if manual_correction:
+            ledger["items"][identity]["private_document_review"] = retain_review(result, verdict.failures, generation_run_id)
 
     save_ledger(ledger_path, ledger)
     counts: Dict[str, int] = {}

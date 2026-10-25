@@ -186,6 +186,8 @@ def output_failures(version,reading):
     if len({f.get('sentence') for f in facts})!=len(facts):return ['document_duplicate_facts']
     if not isinstance(summary,str) or not summary.strip() or len(summary.split())>90:
         return ['document_summary_coverage']
+    if not re.search(r'\bGovernment Office\b',summary):
+        return ['document_attribution_missing']
     # Private evidence notes need not duplicate the shorter public paragraph.
     # Semantic coverage is checked by the mandatory independent factual review.
     if (set(re.findall(r'\d+',summary))
@@ -200,8 +202,8 @@ def output_failures(version,reading):
             or fact['status'] not in ('instructed','proposed','conditional','reported','established')):
             return ['document_page_evidence_invalid']
         sentence=fact['sentence']
-        if not isinstance(sentence,str) or not re.search(r'Government Office',sentence):
-            return ['document_attribution_missing']
+        if not isinstance(sentence,str) or not sentence.strip():
+            return ['document_fact_sentence_missing']
         # Private notes may add context from their cited page beyond the short
         # literal span. Public numbers require cited spans or verified header fields.
         if set(re.findall(r'\d+',sentence))-set(re.findall(r'\d+',pages[fact['page']])):
@@ -242,6 +244,7 @@ def retain_review(reading, failures, generation_run_id):
 
 def retained_format_draft(item,version):
     """Complete an unexecuted QA stage; never regenerate a paid draft."""
+    if item.get('manual_correction'):return None
     from config import ANALYSIS_MODEL,RELEVANCE_THRESHOLD
     review=item.get('private_document_review') or {}
     saved=review.get('reading')

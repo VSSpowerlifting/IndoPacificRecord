@@ -157,13 +157,22 @@ dispatched after the final rejection. The earlier acceptance attempt
 `40158637403` was canceled at its offline gate after its candidate failed
 factual QA; it did not publish a Government Office explanation.
 
-The current release constraint is the owner's **no-retry rule** after factual
-QA rejected the last supported, unspent candidate. The owner has been asked
-once whether to authorize one manual correction attempt for this exact 10744
-source version: one corrected-generation call and one new factual-review call,
-at most **$0.15 additional reserved spend**, with every existing source-use,
-provider, input and spending limit retained, and no further retry. This is a
-pending request, **not a standing decision or activated exception**. Otherwise
-the held versions remain held and future eligible first-pass documents use
-the already active, bounded shared pipeline. Full-document source-to-live
-acceptance remains outstanding.
+The owner has now approved **one** manual correction for this exact immutable
+10744 version, confirmed twice without adding an allowance. The dated
+`DECISION_LOG.md` entry binds the source, PDF and metadata hashes and prior
+generation/rejection runs. At most one shared corrected-generation call and one
+independent factual review may reserve **$0.15 additional total**; all existing
+source-use, provider, input and aggregate spending caps remain unchanged. Other
+holds remain settled. The attribution repair removes compulsory issuer names
+from each private fact sentence, retains public source attribution, and requires
+the actual actor/action supported by page evidence. Independent factual review
+explicitly rejects issuer/instruction-giver and ministry/provincial confusion.
+
+Only a manual private Daily bridge dispatch can use this allowance. The CAS
+checkpoint appends a separate correction receipt within the same immutable
+document entry, preserving all old routes and costs. One generation and then one
+review in the same run are the only allowed additional routes. A failed stage
+cannot continue automatically; the private ledger retains the previous rejection
+and corrected reading. Exact-head CI and actual execution remain to be verified.
+Future eligible first-pass documents use the already active shared pipeline.
+Full-document source-to-live acceptance remains outstanding.
