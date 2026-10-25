@@ -86,3 +86,28 @@ No actionable P0/P1/P2 visual issue remains against the supplied composition and
 retained real content. Remaining publication decisions are unchanged: exact human
 editorial review and the narrow source-use determination for the five bound
 versions. This candidate has not been merged, deployed or published.
+
+## Release preparation — 25 October 2026
+
+Actual owner editorial approval and the separately confirmed narrow five-source
+public projection are recorded through the existing decision log/registries.
+The public candidate shows Benjamin Yang as editor and the 25 October review
+confirmation; it omits the private notice. No findings, qualifications, source
+versions, chronology or approved dossier CSS/JS/template were changed.
+
+The committed-route budget gate caught an accidental full `support.css` load:
+137,798 HTML+CSS bytes exceeded the existing 120,000 cap. The base now loads a
+1.3 KB `dossier-shell.css` subset containing only the same supporting-shell
+rules used by the dossier, in the same cascade position; other routes keep
+their existing stylesheet selection. The shared renderer copies that asset
+only with a dossier. HTML+CSS is now 111,195 bytes; JavaScript remains 6,953
+bytes. No budget or publication check was relaxed.
+
+Actual before/after full-page screenshots are byte-identical for 1440px desktop
+closed and expanded, 375px mobile expanded and print. All 989 elements' computed
+styles, before/after pseudo styles and geometry match (local origins normalized
+only for comparing resolved asset URLs). The source reference and public
+opening/expanded desktop/mobile captures were opened and inspected. Evidence:
+`/Users/benjaminyang/.codex/visualizations/2026/10/25/dossier-release-budget/comparison.json`
+and the adjacent `*-before.png` / `*-after.png` files. Reference-review captures:
+`/Users/benjaminyang/.codex/visualizations/2026/10/25/dossier-release-76097c0f/`.

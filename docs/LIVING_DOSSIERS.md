@@ -183,6 +183,19 @@ incorporating main `766aff33f4`; its existing Vietnam fixture repairs are retain
 unchanged. Final-head CI and isolated production validation are separately
 evidenced in PR #864; these local checks are not substitutes.
 
+Release preparation (25 October) records the actual editorial and narrow
+source-use decisions. Public output displays the real human editor/review date
+and removes the private-draft notice; findings and reviewed presentation remain
+unchanged. The dossier uses `dossier-shell.css` for the existing mobile/print
+shell rules instead of loading all 27.9 KB of utility-page `support.css`.
+The shared base selects this subset only when a dossier is rendered; the
+renderer copies it only with dossier output. The approved dossier CSS, JS and
+dossier template are unchanged. Actual HTML plus CSS is 111,195 bytes and JS is
+6,953 bytes, below the unchanged 120,000 / 10,000 byte caps. Before/after full-page
+screenshots and all 989 elements' computed/pseudo styles and geometry are
+identical in desktop closed/open, mobile expanded and print modes. Evidence:
+`/Users/benjaminyang/.codex/visualizations/2026/10/25/dossier-release-budget/`.
+
 ## Internal source-to-finding matrix (no source text)
 
 All five bodies were read in full on October 23, 2026 and checked through the

@@ -90,6 +90,7 @@ class DossierRendering(unittest.TestCase):
     def test_draft_zero_public_routes_discovery_backlinks_feed_or_text(self):
         self.assertFalse((self.public/'dossier').exists())
         self.assertFalse((self.public/'dossiers.css').exists())
+        self.assertFalse((self.public/'dossier-shell.css').exists())
         self.assertFalse((self.public/'dossier.js').exists())
         self.assertFalse((self.public/'assets/timelines/maritime-ocean-texture.webp').exists())
         self.assertFalse((self.public/'timeline').exists())
@@ -137,10 +138,20 @@ class DossierRendering(unittest.TestCase):
         errors=self.validate(self.private,self.draft_sources)
         self.assertTrue(any('no approved dossier' in e for e in errors))
 
+    def test_private_and_approved_dossiers_meet_complete_delivery_budgets(self):
+        from core.frontend_budget import measure_page
+        for root in (self.private, self.approved):
+            with self.subTest(root=root.name):
+                delivery = measure_page(self.detail(root), root)
+                self.assertLessEqual(delivery['html_css_bytes'], 120000)
+                self.assertLessEqual(delivery['js_bytes'], 10000)
+                self.assertIn('dossier-shell.css', delivery['css'])
+                self.assertNotIn('support.css', delivery['css'])
+
     def test_dossier_render_and_projection_deterministic(self):
         second=self.root/'deterministic'
         self.build(second,review_dossier=self.draft_pilot)
-        for name in ['dossier/maritime-cooperation-2026.html','dossiers.css','dossier.js','archive-research-index.json']:
+        for name in ['dossier/maritime-cooperation-2026.html','dossier-shell.css','dossiers.css','dossier.js','archive-research-index.json']:
             self.assertEqual((second/name).read_bytes(),(self.private/name).read_bytes())
 
     def test_reading_comparison_navigation_and_actual_type_geometry(self):

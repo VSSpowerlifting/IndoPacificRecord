@@ -18,12 +18,15 @@ and `core/dossier_decisions.py`; exact approval/source references are in the
 canonical dossier. Benjamin Yang is credited as human editor and Codex as
 machine-assisted preparer. Readiness passes with no holds. Findings, source
 versions, chronology and reviewed CSS/template presentation are unchanged;
-only approval/review metadata, source-use references and their digest changed.
+approval/review metadata, source-use references and their digest are updated.
+A delivery-only shell stylesheet split keeps HTML plus CSS at 111,195 bytes
+under the unchanged 120,000-byte cap. Desktop closed/open, mobile expanded and
+print screenshots, computed styles and geometry are identical before/after.
 Status and decision-log resolutions retain both projects' entries;
 base is `46298fe95ccb50b472a7908b1e5716b71cd56dcc`. Synthetic publication fixtures
 explicitly supply their own dossier inputs instead of depending on the live
 canonical publication state. Focused checks, final-revision required CI and
-isolated production validation are reported in PR #864. Fourteen shared-renderer
+isolated production validation are reported in PR #864. Fifteen shared-renderer
 outputs prepare the public route, discovery, backlinks and scoped assets; no
 unrelated generated page changes. Runner repairs remain outside this task. No merge, deployment or publication is authorized or performed.
 Workflow and decision boundary: `docs/LIVING_DOSSIERS.md`.
