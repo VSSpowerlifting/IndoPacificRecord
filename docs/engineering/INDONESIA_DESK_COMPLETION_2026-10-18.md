@@ -233,7 +233,8 @@ record, so roughly 320 records) and fails closed, ahead of the shared reader's
 
 **Activation order.** (1) Merge the public PR carrying this change (its
 push-triggered run replays the frozen history; no data change). (2) Set the
-same random `KEMHAN_BRIDGE_KEY` secret in both repositories. (3) Set
+same random `KEMHAN_BRIDGE_KEY` secret (at least 32 random bytes; a shorter key HOLDs)
+in both repositories. (3) Set
 `KEMHAN_METADATA_BRIDGE_ENABLED=true` in both. (4) Merge private PR #17.
 Activating before step 1 reproduces the single-publication failure above.
 
