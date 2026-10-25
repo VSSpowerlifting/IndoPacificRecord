@@ -208,9 +208,14 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
         family = entry["source_family"]
         if not entry["records"]:
             continue
-        _need(family not in vn.HOLDS, "vietnam_handoff_source_hold")
+        if family != source_use.VPCP:
+            _need(family not in vn.HOLDS, "vietnam_handoff_source_hold")
         _need(bridge.desk_promoted(desk), "vietnam_desk_not_promoted")
         if family == source_use.VPCP:
+            # The legacy original/link-admission map holds every non-MPS
+            # source. This separately authorized private-text projection uses
+            # its own fail-closed policy, sealed decision and document QA below.
+            # Do not clear the original-admission hold or another family's hold.
             from processing.vpcp_policy import require_permission
             require_permission("public_ipr_analysis")
         policy = _decision(family, review_key, as_of, decisions or DECISIONS)
