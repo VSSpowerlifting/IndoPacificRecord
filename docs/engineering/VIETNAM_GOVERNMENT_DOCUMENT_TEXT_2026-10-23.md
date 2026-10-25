@@ -272,3 +272,24 @@ Complete extraction is 2,778 UTF-8 bytes, including page 2; content identity is
 Issuer, number, issue date and signatory pass local validation. This establishes
 extraction eligibility only; ordinary relevance, source-use, spend and factual
 publication gates remain mandatory. This version has incurred no model calls.
+
+The PDF repair merged in PR #870 as `d33e127a2c` after exact-head CI
+`40186397670` passed 7,988 tests (15 skips), browser, renderer, validation and
+preservation gates. Private collection `40188963795` captured 10744/VPCP-CN
+with exactly the expected PDF and complete-text hashes. Bridge `40189202615`
+made its first relevance and explanation calls ($0.017751). The 86-word draft
+has three literal page citations, but was mechanically held before factual QA:
+the public paragraph's document number `10744` and issue day `21` occur in the
+verified PDF header rather than the three selected body spans.
+
+The numerical support rule now also recognizes the separately verified document
+number and issue date when issuer, number and date identity checks all match.
+It does not accept numbers from unverified metadata. Other public numbers still
+require literal cited-span support, and private evidence notes remain bound to
+their cited pages. The complete-source independent factual review remains
+mandatory; numeric presence alone establishes no semantic correctness.
+The retained draft may proceed only if all current mechanical checks pass, using
+the existing first-review continuation and its durable single-use reservation.
+Neither relevance nor generation is repeated; an already-executed factual
+review cannot run again. Cumulative provider-token cost before this first review
+is $0.153260 across ten API calls; durable reservations are $0.48976375.

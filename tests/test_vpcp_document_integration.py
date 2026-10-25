@@ -481,6 +481,44 @@ class OwnerReleaseGuards(unittest.TestCase):
 
 
 class EvidenceSupportAndFirstReview(unittest.TestCase):
+    def test_first_review_keeps_complete_source_and_header_rule_is_source_specific(self):
+        body='Synthetic complete source. '*500+'END-OF-COMPLETE-SOURCE'
+        for family in (VPCP,'vn_mps_foreign_affairs_vi'):
+            analyzer=SimpleNamespace(_call=unittest.mock.Mock(return_value='fixture'),
+                _parse_task_json=lambda *args:{'ok':True,'reason':'Synthetic verdict'})
+            review=bridge.model_second_pass(analyzer,family)
+            self.assertTrue(review({},'Synthetic title',body,{'document_facts':[]})['ok'])
+            message=analyzer._call.call_args.args[0][0]['content']
+            self.assertIn(body,message)
+            self.assertEqual('by the document header' in message,family==VPCP)
+    def test_verified_header_supports_bibliographic_numbers_without_weakening_fact_support(self):
+        from config import ANALYSIS_MODEL
+        source='Synthetic conditional source material about a fictional test and approval.'
+        facts=[{'sentence':sentence,'page':1,'evidence':source,'status':'conditional'} for sentence in
+               ['The Government Office said action would follow if approved.','The Government Office said approval would be conditional.']]
+        reading={'summary_english':'The Government Office issued notice 1234 on 1 October 2026. Action would follow if approved.',
+                 'document_facts':facts,'is_significant':False,'title_english':'Synthetic Government Office notice',
+                 'model_id':ANALYSIS_MODEL,'prompt_version':'fixture','relevance_score':0.85,'categories':['policy_document']}
+        version={'pages':[(1,source)],'text_original':source,
+                 'identity_checks':{'number':'match','date':'match','issuer':'match'},
+                 'bibliographic':{'document_number':'1234/TB-VPCP','issue_date':'2026-10-01','document_type':'Thông báo'}}
+        self.assertEqual(doc.output_failures(version,reading),[])
+        for key in ('number','date','issuer'):
+            changed=copy.deepcopy(version);changed['identity_checks'][key]='missing'
+            self.assertEqual(doc.output_failures(changed,reading),['document_numeric_evidence_mismatch'])
+        changed=copy.deepcopy(version);changed['bibliographic']['issue_date']='invalid'
+        self.assertTrue(doc.output_failures(changed,reading))
+        reading['summary_english']+=' There are 9999 test cases.'
+        self.assertEqual(doc.output_failures(version,reading),['document_numeric_evidence_mismatch'])
+        item={'outcome':'held_review','private_document_review':{'failures':['document_numeric_evidence_mismatch'],'reading':reading}}
+        self.assertIsNone(doc.retained_format_draft(item,version))
+        reading['summary_english']=reading['summary_english'].split(' There are')[0]
+        saved=copy.deepcopy(reading)
+        self.assertEqual(doc.retained_format_draft(item,version)['summary_english'],saved['summary_english'])
+        self.assertEqual(reading,saved)
+        facts[0]['sentence']+=' The Government Office referred to 1234.'
+        self.assertEqual(doc.output_failures(version,reading),['document_numeric_evidence_mismatch'])
+        self.assertIsNone(doc.retained_format_draft(item,version))
     def test_administrative_attribution_is_source_specific(self):
         from core import vietnam_daily_qa as qa
         permissions={'public_ipr_analysis':True}

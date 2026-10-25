@@ -270,7 +270,10 @@ def model_second_pass(analyzer, family: str) -> Callable[[dict, str, str, dict],
             messages[0]["content"] += (
                 "\nPrivate page-pinned evidence notes follow. They need not repeat the "
                 "shorter public summary verbatim. Every PUBLIC headline/summary claim "
-                "must be supported by these cited spans AND the complete document above. "
+                "must be supported by the complete document above. Bibliographic "
+                "attribution (document number, issue date and issuer) may be supported "
+                "by the document header. Substantive instructions, authorities, "
+                "deadlines and other facts must also be supported by these cited spans. "
                 "Reject unsupported authorities, deadlines, numbers, implementation claims "
                 "or changed conditionality. Keep reason in English without source quotations.\n"
                 + json.dumps(result.get("document_facts"),ensure_ascii=False))

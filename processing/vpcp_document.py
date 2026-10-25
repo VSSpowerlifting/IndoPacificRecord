@@ -164,6 +164,19 @@ def _inspect_pdf(data, metadata, *, expected_sha256=None):
     return version
 
 
+def verified_bibliographic_numbers(version):
+    """Numeric attribution fields supported by the separately verified header."""
+    checks=version.get('identity_checks',{})
+    if any(checks.get(k)!='match' for k in ('number','date','issuer')):
+        return set()
+    fields=version.get('bibliographic',{})
+    try:
+        issued=date.fromisoformat(fields['issue_date'])
+        return set(re.findall(r'\d+',fields['document_number']))|{str(issued.year),str(issued.month),str(issued.day)}
+    except (KeyError,TypeError,ValueError):
+        return set()
+
+
 def output_failures(version,reading):
     """Page-pinned private support; conservative errors hold the entire output."""
     facts=reading.get('document_facts');summary=reading.get('summary_english','')
@@ -175,7 +188,9 @@ def output_failures(version,reading):
         return ['document_summary_coverage']
     # Private evidence notes need not duplicate the shorter public paragraph.
     # Semantic coverage is checked by the mandatory independent factual review.
-    if set(re.findall(r'\d+',summary))-set(re.findall(r'\d+',' '.join(str(f.get('evidence','')) for f in facts))):
+    if (set(re.findall(r'\d+',summary))
+        -set(re.findall(r'\d+',' '.join(str(f.get('evidence','')) for f in facts)))
+        -verified_bibliographic_numbers(version)):
         return ['document_numeric_evidence_mismatch']
     pages=dict(version['pages'])
     for fact in facts:
@@ -188,7 +203,7 @@ def output_failures(version,reading):
         if not isinstance(sentence,str) or not re.search(r'Government Office',sentence):
             return ['document_attribution_missing']
         # Private notes may add context from their cited page beyond the short
-        # literal span. Public-summary numbers remain bound to cited spans above.
+        # literal span. Public numbers require cited spans or verified header fields.
         if set(re.findall(r'\d+',sentence))-set(re.findall(r'\d+',pages[fact['page']])):
             return ['document_numeric_evidence_mismatch']
         if fact['status']=='proposed' and not re.search(r'propos|consider|draft',sentence,re.I):
@@ -221,7 +236,8 @@ def retained_format_draft(item,version):
     from config import ANALYSIS_MODEL,RELEVANCE_THRESHOLD
     review=item.get('private_document_review') or {}
     saved=review.get('reading')
-    if (item.get('outcome')!='held_review' or review.get('failures')!=['document_summary_coverage']
+    if (item.get('outcome')!='held_review' or review.get('failures') not in
+        (['document_summary_coverage'],['document_numeric_evidence_mismatch'])
         or not isinstance(saved,dict) or saved.get('model_id')!=ANALYSIS_MODEL
         or not isinstance(saved.get('prompt_version'),str)
         or type(saved.get('relevance_score')) not in (int,float)
