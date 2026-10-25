@@ -23,7 +23,7 @@ A delivery-only shell stylesheet split keeps HTML plus CSS at 111,195 bytes
 under the unchanged 120,000-byte cap. Desktop closed/open, mobile expanded and
 print screenshots, computed styles and geometry are identical before/after.
 Status and decision-log resolutions retain both projects' entries;
-base is `0284af23be2a056a319a3312b7c626426f7e2a52`. Synthetic publication fixtures
+base is `fdb3cc8973753c3cb2db4ae4ad0425839f6bd94d`. Synthetic publication fixtures
 explicitly supply their own dossier inputs instead of depending on the live
 canonical publication state. Focused checks, final-revision required CI and
 isolated production validation are reported in PR #864. Fifteen shared-renderer
