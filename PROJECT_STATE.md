@@ -24,6 +24,10 @@ unexecuted first QA stage; no relevance, explanation or QA route may be repeated
 The retained real draft passes offline mechanical checks, including cited-page
 private-note numbers and source-specific administrative attribution; its complete
 first-review request is 18,080 bytes. Overnight scheduled runs added no charges.
+Initial repair CI exposed four stale test-fixture assumptions after main admitted
+AFP `afp:1402`: fixed-count Philippines assertions and an unisolated Briefs schema
+fixture. Test-only corrections preserve both production pipelines and the DB;
+the updated exact revision still requires the complete PR check.
 Prior unretained drafts remain held. API token-based expenditure so far:
 $0.101131; cumulative durable reservation: $0.31267125. No VPCP explanation is
 live, and the completed metadata release remains intact.

@@ -178,18 +178,23 @@ class MachineExplanationEligibility(unittest.TestCase):
     def identities(self):
         return {r["source_identity"] for r in load_machine_records(self.db)}
 
-    def test_baseline_publishes_the_three_released_records(self):
-        self.assertEqual(self.identities(), {"afp:1409", "afp:1410", "nsc:3108"})
+    def test_baseline_includes_the_three_released_fixture_records(self):
+        # Daily may legitimately add eligible records to the tracked corpus.
+        self.assertTrue({"afp:1409", "afp:1410", "nsc:3108"} <= self.identities())
 
     def test_held_record_never_publishes(self):
+        before = self.identities()
+        self.assertIn("afp:1409", before)
         self.mutate("UPDATE daily_machine_records SET publication_state='held' "
                     "WHERE source_identity='afp:1409'")
-        self.assertEqual(self.identities(), {"afp:1410", "nsc:3108"})
+        self.assertEqual(self.identities(), before - {"afp:1409"})
 
     def test_record_without_matching_link_version_never_publishes(self):
+        before = self.identities()
+        self.assertIn("nsc:3108", before)
         self.mutate("UPDATE daily_machine_records SET metadata_version_sha256=? "
                     "WHERE source_identity='nsc:3108'", "0" * 64)
-        self.assertEqual(self.identities(), {"afp:1409", "afp:1410"})
+        self.assertEqual(self.identities(), before - {"nsc:3108"})
 
     def test_owner_excluded_identity_never_publishes(self):
         self.mutate("UPDATE daily_machine_records SET source_identity='afp:1418' "

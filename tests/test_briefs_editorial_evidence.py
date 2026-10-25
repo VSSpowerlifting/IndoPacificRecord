@@ -516,7 +516,8 @@ class SundayStrictToolContractTests(unittest.TestCase):
             return nullcontext(SimpleNamespace(get_final_message=lambda: response))
         fake = SimpleNamespace(messages=SimpleNamespace(stream=stream))
         with patch("scripts.sunday_briefs_auto_writer.choose_evidence",
-                   return_value=evidence()):
+                   return_value=evidence()), patch(
+                       "core.daily_machine_records.editorial_candidates", return_value=[]):
             compose({"week_start": "2026-10-04", "week_ending": SAT,
                      "desks": ["china", "singapore"], "source_trail": []},
                     SAT, client=fake)
