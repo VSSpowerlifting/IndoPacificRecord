@@ -377,7 +377,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                     ledger["items"][identity]["manual_correction"] = {
                         "decision": DECISION, "run_id": run_id,
                         "prior_rejection": prior_item}
-                elif prior_item.get("manual_correction"):
+                elif same and prior_item.get("manual_correction"):
                     ledger["items"][identity]["manual_correction"] = prior_item["manual_correction"]
                     if prior_item.get("private_document_review"):
                         ledger["items"][identity]["private_document_review"] = prior_item["private_document_review"]
