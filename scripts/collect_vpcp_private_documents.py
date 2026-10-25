@@ -41,21 +41,25 @@ def collect(database,repo,gate_dir):
         old=index['records'].get(identity(m))
         previous=json.loads((repo/'state/documents'/(old+'.json')).read_text())['capture'] if old else None
         unseen=previous is None or previous['metadata_sha256']!=digest(m)
-        return (not bool(topics(m)),not unseen,index.get('checked',{}).get(identity(m),''),-int(m['document_id']))
+        # Process new versions before refreshing settled captures. A previously
+        # held item must not consume every slot ahead of unseen permitted PDFs.
+        fresh=unseen and (previous is not None or identity(m) not in index.get('holds',{}))
+        return (not fresh,index.get('checked',{}).get(identity(m),''),
+                not bool(topics(m)),-int(m['document_id']))
     adapter=OriginalsAdapter(rules['max_documents_per_run'],gate=HostGate(gate_dir));adapter.open()
     outcomes=[]
     for m in sorted(candidates.values(),key=priority)[:rules['max_documents_per_run']]:
         if len(m['attachments'])!=1 or m['document_type'] not in ('Công văn','Thông báo'):
-            hold(repo,identity(m));outcomes.append('attachment_review');continue
+            hold(repo,identity(m),observed_utc=now);outcomes.append('attachment_review');continue
         try:
             got=adapter.fetch(m['attachments'][0])
             outcomes.append(preserve(repo,m,got['body'],collector_commit=source_commit,
                 source_run=os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT'],
                 workflow_sha=os.environ['GITHUB_SHA'],observed_utc=now))
         except Refusal:
-            hold(repo,identity(m));outcomes.append('held_access');break
+            hold(repo,identity(m),observed_utc=now);outcomes.append('held_access');break
         except (ValueError,KeyError):
-            hold(repo,identity(m));outcomes.append('held_document')
+            hold(repo,identity(m),observed_utc=now);outcomes.append('held_document')
     return {'source_family':FAMILY,'outcomes':outcomes,'model_calls':0}
 
 

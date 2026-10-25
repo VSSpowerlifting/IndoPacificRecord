@@ -302,6 +302,30 @@ class SpendReservations(unittest.TestCase):
 
 
 class ImmutableCustody(unittest.TestCase):
+    def test_unseen_permitted_documents_are_not_starved_by_refreshes_or_holds(self):
+        import sqlite3
+        from scripts import collect_vpcp_private_documents as collector
+        from core.collection.vietnam_government_documents import digest,identity
+        known=metadata('220078');held=copy.deepcopy(metadata())
+        held.update(document_id='909902',subject='Synthetic topical held test document')
+        fresh=[]
+        for ident in ('909900','909901'):
+            m=copy.deepcopy(metadata());m.update(document_id=ident,subject='Synthetic topic-free test document')
+            fresh.append(m)
+        with tempfile.TemporaryDirectory() as tmp:
+            repo=Path(tmp)/'private';(repo/'state/documents').mkdir(parents=True)
+            old='a'*64
+            (repo/'state/documents'/(old+'.json')).write_text(json.dumps({'capture':{'metadata_sha256':digest(known)}}))
+            (repo/'state/vpcp-index.json').write_text(json.dumps({'records':{identity(known):old},'checked':{},'holds':{identity(held):'source hold'}}))
+            db=Path(tmp)/'metadata.db';c=sqlite3.connect(db)
+            c.execute('CREATE TABLE official_document_versions(source_family,metadata_json,first_observed_utc)')
+            c.executemany('INSERT INTO official_document_versions VALUES (?,?,?)',[(VPCP,json.dumps(m),NOW) for m in [known,held]+fresh]);c.commit();c.close()
+            adapter=unittest.mock.Mock();adapter.fetch.return_value={'body':b'%PDF- synthetic'}
+            with patch.dict('os.environ',{'VIETNAM_VPCP_TEXT_ENABLED':'true','VIETNAM_PRIVATE_BRIDGE_KEY':'fictional-fixture-key-0000000000000000','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','GITHUB_SHA':'b'*40}),patch.object(collector,'private_repo',return_value=repo),patch.object(collector,'OriginalsAdapter',return_value=adapter),patch.object(collector,'preserve',return_value='new') as preserve,patch('processing.government_document_intake.topics',side_effect=lambda m: ['energy'] if m['document_id'] in ('220078','909902') else []):
+                result=collector.collect(db,repo,Path(tmp)/'gate')
+            self.assertEqual(result['outcomes'],['new','new'])
+            self.assertEqual([call.args[1]['document_id'] for call in preserve.call_args_list],['909901','909900'])
+            self.assertEqual(adapter.fetch.call_count,2)
     def test_changed_bytes_are_preserved_and_same_version_is_not_reprocessed(self):
         import subprocess,os
         from core import vietnam_document_custody as custody
@@ -332,7 +356,9 @@ class ImmutableCustody(unittest.TestCase):
                     return original(args,root)
                 with patch.object(custody,'_git_bytes',side_effect=read):
                     packet,versions=custody.prepare(repo,commit,api=api);self.assertEqual(len(packet['records']),1)
-                    custody.hold(repo,'vpcp-vi:220077');git('add','state');git('commit','-m','Synthetic current-source hold')
+                    custody.hold(repo,'vpcp-vi:220077',observed_utc=NOW)
+                    self.assertEqual(json.loads((repo/custody.INDEX).read_text())['checked']['vpcp-vi:220077'],NOW)
+                    git('add','state');git('commit','-m','Synthetic current-source hold')
                     held_commit=git('rev-parse','HEAD')
                     held_packet,_=custody.prepare(repo,held_commit,api=api)
                     self.assertEqual(held_packet['records'],[])

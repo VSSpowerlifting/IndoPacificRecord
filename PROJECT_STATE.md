@@ -10,27 +10,24 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office full-document integration (24 October 2026): real format fault isolated; publication acceptance pending.**
-PR #865 and diagnostic repair #866 are merged with required exact-head CI.
-Real custody holds three complete verified PDFs; 10744/VPCP-CN is individually
-held at source verification. The retained 10790/VPCP-CN receipt exposed the fault:
-its 82-word public summary was rejected because private evidence notes contained
-122 words and were required to duplicate it verbatim. All three spans match the
-cited pages. No independent factual-QA call has yet run for this document.
-The repair separates bounded public summaries from private support notes and
-requires independent review of every public claim against both cited evidence
-and the complete source. A saved format-held draft may complete its previously
-unexecuted first QA stage; no relevance, explanation or QA route may be repeated.
-The retained real draft passes offline mechanical checks, including cited-page
-private-note numbers and source-specific administrative attribution; its complete
-first-review request is 18,080 bytes. Overnight scheduled runs added no charges.
-Initial repair CI exposed four stale test-fixture assumptions after main admitted
-AFP `afp:1402`: fixed-count Philippines assertions and an unisolated Briefs schema
-fixture. Test-only corrections preserve both production pipelines and the DB;
-the updated exact revision still requires the complete PR check.
-Prior unretained drafts remain held. API token-based expenditure so far:
-$0.101131; cumulative durable reservation: $0.31267125. No VPCP explanation is
-live, and the completed metadata release remains intact.
+**Vietnam Government Office full-document integration (24 October 2026): real factual QA holds; uncaptured queue repair pending.**
+PRs #865, #866 and #868 are merged; #868's required exact-head CI passed
+7,982 tests (15 skips), rendering, validation and tracked-data preservation.
+Private run `40157663479` reused 10790/VPCP-CN's paid draft and executed only
+its first independent factual review. QA correctly rejected a summary that
+assigned a Ministry of Industry and Trade responsibility to provincial
+chairpersons. This immutable version is held and cannot repeat any paid route.
+The earlier unretained drafts and 10744/VPCP-CN source exception remain held.
+Cumulative provider-token cost is $0.124666; durable reservations total
+$0.39265125. No Government Office machine explanation is live.
+The collector currently refreshes four topical attempted records ahead of five
+uncaptured permitted documents already in the metadata store. A narrow queue
+repair prioritizes unseen unheld versions before refreshes and previous holds,
+retaining the two-document limit and content-based screening. New explanations
+explicitly keep each authority's responsibilities separate. No prior paid
+version is regenerated. The owner-approved source/use/spend scope is unchanged.
+The manual public Daily acceptance run was canceled at its offline gate because
+there was no signed quality-passing VPCP output; metadata publication is intact.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
 PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged
