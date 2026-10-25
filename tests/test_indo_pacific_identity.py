@@ -131,6 +131,9 @@ class TestTheMastheadIsTheNewIdentity(IdentityCase):
                 # description is the editor's dek, not the site tagline.
                 source = REPO_ROOT / "briefs" / (Path(name).stem + ".json")
                 description = json.loads(source.read_text(encoding="utf-8"))["dek"]
+            elif name.startswith("dossier/"):
+                source = REPO_ROOT / "dossiers" / (Path(name).stem + ".json")
+                description = json.loads(source.read_text(encoding="utf-8"))["dek"]
             elif name == "team.html":
                 description = "Meet the team behind Indo-Pacific Record's source-grounded defense and security research."
             elif name.startswith("authors/"):
