@@ -35,6 +35,12 @@ class Handoff(unittest.TestCase):
     run_private = pipeline.PrivateCustodyDaily.run_private
     originals = pipeline.PrivateCustodyDaily.originals
 
+    def test_mps_source_hold_is_still_enforced_for_signed_projection(self):
+        envelope=self.signed()
+        with patch.dict(vn.HOLDS,{MPS:'synthetic explicit MPS hold'}):
+            with self.assertRaisesRegex(handoff.HandoffError,'vietnam_handoff_source_hold'):
+                self.verify(envelope)
+
     def decisions(self, **overrides):
         folder = self.tmp / "decisions"
         folder.mkdir(exist_ok=True)

@@ -176,3 +176,56 @@ cannot continue automatically; the private ledger retains the previous rejection
 and corrected reading. Exact-head CI and actual execution remain to be verified.
 Future eligible first-pass documents use the already active shared pipeline.
 Full-document source-to-live acceptance remains outstanding.
+
+
+## Actual correction and consumer-boundary readback (25 October)
+
+The single approved correction has executed and **must not repeat**. PR #874,
+head `cf1d9fadcde10254836ee1debb74af7021ba4e47`, passed required full CI
+`40215557973` (7,995 tests, 15 skips, Chromium, render, validator 10 warnings,
+tracked-data preservation) and merged as
+`46298fe95ccb50b472a7908b1e5716b71cd56dcc`. Private workflow main remains
+`42bf7adbf54ed2bdcdc83ffe3e56c3d8d88a118e`, with exact workflow SHA-256
+`761d08439b1e27123b40ec0321e6d88dac123cd6eacd5bd869f6aa3ce496116f`;
+no further private workflow patch was necessary.
+
+Private Daily [40217218707](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/40217218707)
+made exactly two successful Sonnet calls: corrected generation then independent
+factual review, no relevance repeat. The accepted explanation is 65 words and
+its headline is 20 words. Private Daily commit
+`7fa140ec8b80c0677370ffe6d22d7963d7adb008` retains the prior rejection and
+corrected reading; every other VPCP ledger item and the MPS ledger are unchanged.
+The source remains the approved complete two-page 10744 PDF/version. Its
+processing provenance pins source archive commit
+`ba58d2bc38e1c73f7aa6e11b00e0f3758a0aa8c8` and the existing sealed rights decision.
+
+Provider-returned usage: 4,137 input and 704 output tokens, zero cache tokens,
+**$0.022971** at freshly verified prices. Correction reservations were
+**$0.08767125**, below the $0.15 allowance. Cumulative history is **13 calls,
+$0.185636 token-based cost, $0.61798 reserved**. Checkpoint blob
+`1a6ce3bfc036522b678bd68287d3ec9c69b62d85`, SHA-256
+`ef8dc12bdff2e3f75e4e3918bd2403171307601fd264136506d8483c11ae708e`, preserves
+all original run/routes and adds the one correction receipt. UTC 25 October
+reservations total $0.30530875; calendar-month reservations total $0.61798.
+These are provider-token charges at official prices, not a retrieved invoice.
+
+Public Daily [40217519927](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40217519927)
+passed its full offline suite (7,995/15), 55 reconciliation checks, pipeline,
+validator and deployment. Production commit
+`c6df7a123fbeb061537845886091b8bbd4c5d30e` and Pages commit
+`7f6ad86008d92be8ea7595dc882e012d7f382cfd` deployed through successful Pages
+run `40219969391`. **This did not publish the VPCP record.** Independent database
+readback found zero VPCP articles. The admission report explicitly held with
+`vietnam_handoff_source_hold`; its successful workflow step preserves other
+desks after a hold and is not an admission receipt.
+
+The defect is the consumer's legacy original/link hold map, which assigns the
+MOIT consent/robots hold to every non-MPS family, including VPCP. The narrow
+consumer repair routes only the VPCP private projection through its dedicated
+permission gate, owner-sealed decision, envelope MAC and document/second-pass QA.
+The general original/link hold and all other families' holds remain intact.
+A regression now goes from private signing through actual public verification
+and admission, including policy denials, rejected QA, forbidden originals,
+idempotency and MPS-hold compatibility. The existing signed approved record can
+be admitted after the repair without any new model call. Exact-head CI and
+actual source-to-live readback of that repair remain required.

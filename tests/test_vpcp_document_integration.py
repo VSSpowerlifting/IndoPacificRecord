@@ -329,6 +329,38 @@ class SharedBridge(unittest.TestCase):
                 article=ledger['items'][record['source_identity']]['article'];self.assertNotIn('document_facts',article['row'])
                 envelope=handoff.sign([first],{VPCP:ledger},key=b'fictional-bridge-key-0000000000000000',run_id='synthetic',generated_utc=NOW)
                 self.assertEqual(envelope['families'][0]['source_ref'],'archive/vietnam-vpcp')
+                # Exercise the REAL public consumer, not only private signing
+                # and the insertion helper: legacy original-admission holds
+                # must not veto this separately authorized private projection.
+                from tests.test_vietnam_daily_pipeline import decision,KEY
+                from core import vietnam_official_link_admission as vn
+                decisions=Path(tmp)/'decisions';decisions.mkdir()
+                (decisions/(VPCP+'.json')).write_text(json.dumps(decision(VPCP,permissions=permissions)))
+                verify_args=dict(bridge_key=b'fictional-bridge-key-0000000000000000',review_key=KEY,
+                                 as_of=NOW,desk=PROMOTED,decisions=decisions)
+                self.assertIn(VPCP,vn.HOLDS)  # General original/link hold stays.
+                verified=handoff.verify(envelope,**verify_args)
+                for field,expected in [('review','vpcp_handoff_quality_missing'),('original','vietnam_handoff_withheld_field')]:
+                    changed=copy.deepcopy(envelope)
+                    changed_article=changed['families'][0]['records'][0]
+                    if field=='review':
+                        proof=json.loads(changed_article['provenance']['qa_json']);proof['second_pass']['ok']=False
+                        changed_article['provenance']['qa_json']=json.dumps(proof)
+                    else:changed_article['row']['text_original']='Synthetic forbidden original'
+                    body={k:v for k,v in changed.items() if k!='mac'}
+                    changed['mac']=handoff._mac(verify_args['bridge_key'],body)
+                    with self.assertRaisesRegex(handoff.HandoffError,expected):
+                        handoff.verify(changed,**verify_args)
+                consumer=clone_schema(Path(tmp)/'consumer.db');migration.up(consumer)
+                admit(consumer,[(m,capture)],source_sha='c'*40,run_id='synthetic',observed_utc=NOW);consumer.commit()
+                self.assertEqual(handoff.admit(consumer,verified),{qa.PUBLISHED:1})
+                self.assertEqual(handoff.admit(consumer,handoff.verify(envelope,**verify_args)),{bridge.DUPLICATE:1})
+                self.assertEqual(consumer.execute('select title_original,text_original,text_english from articles').fetchone(),(None,None,None))
+                consumer.close()
+                disabled=dict(p,public_ipr_analysis=False)
+                with patch('processing.vpcp_policy.policy',return_value=disabled):
+                    with self.assertRaisesRegex(ValueError,'public_ipr_analysis_held'):
+                        handoff.verify(envelope,**verify_args)
                 # The ordinary source citation accepts withheld titles without substituting the machine headline.
                 import sys
                 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'site/preview'))
