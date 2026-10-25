@@ -49,6 +49,29 @@ def selected():
         "selection_rationale": "The first option has stronger dated source evidence "
         "and a narrower claim; the second relies on weaker implied connections.",
     }
+    draft["story_selection"]["candidates"].append({
+        "slug": "research-context-only", "thesis": "A further official account offers a distinct but less supported research lead.",
+        "limitation": "This private research synopsis lacks sufficient evidence of new operational outcomes.",
+        "production_ids": [], "research_ids": ["JP-W41-02"],
+        "scores": score(2, 2, 2, 0, 3)})
+    draft["citations"]["opening_note"] = [1]
+    draft["story_selection"]["omission_rationale"] = (
+        "Other source clusters were considered routine or insufficiently documented for a distinct article.")
+    from core.brief_story_discovery import discovery_packet
+    sources = {s["id"]: s for s in discovery_packet(
+        evidence(), load_editorial_evidence(SAT, SAT))["sources"]}
+    for option in draft["story_selection"]["candidates"]:
+        option.update(why_now="The dated source disclosures fall within this reporting week.",
+            novelty_basis="These specific new measures differ from the earlier institutional practice.",
+            counterevidence="The participant accounts do not independently establish operational success.",
+            counterevidence_ids=[], connection_applicable=True,
+            connection_basis="The distinct institutions describe the same specific cooperation measures.",
+            score_reasoning="Concrete source detail supports this rating while implementation remains uncertain.",
+            readiness="ready", evidence_notes=[{"id": i, "excerpt": sources[i]["excerpts"][0][:30]}
+                for i in option["production_ids"] + option["research_ids"]])
+    last = draft["story_selection"]["candidates"][-1]
+    last["connection_applicable"] = False
+    last["readiness"] = "review"
     return draft
 
 
@@ -63,18 +86,18 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
             automatic_story_selection=True)
         self.assertIn("story_selection", schema["required"])
         self.assertEqual(schema["properties"]["story_selection"]
-                         ["properties"]["candidates"]["maxItems"], 3)
+                         ["properties"]["candidates"]["maxItems"], 5)
         self.assertNotIn("story_selection", writing_schema([1, 2])["required"])
 
-    def test_one_true_story_is_allowed_and_no_approval_is_inferred(self):
+    def test_broad_corpus_requires_comparison_and_never_infers_approval(self):
         draft = selected()
         self.assertIs(validate_manuscript(
             draft, evidence(), supplemental=self.research,
             automatic_story_selection=True), draft)
         draft["story_selection"]["candidates"] = draft["story_selection"]["candidates"][:1]
-        self.assertIs(validate_manuscript(
-            draft, evidence(), supplemental=self.research,
-            automatic_story_selection=True), draft)
+        with self.assertRaisesRegex(ValueError, "three distinct"):
+            validate_manuscript(draft, evidence(), supplemental=self.research,
+                                automatic_story_selection=True)
 
     def test_rejects_forged_duplicate_unscored_unrelated_options(self):
         cases = [
@@ -87,7 +110,7 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
             ("lost-scores", lambda x: x["candidates"][0]
              ["scores"].pop("timeliness"), "scores"),
             ("wrong-lead", lambda x: x.update(selected_slug="secondary-cooperation"),
-             "highest-scoring"),
+             "evidence and novelty floors"),
             ("fake-lead", lambda x: x.update(selected_slug="invented-story"),
              "selected"),
         ]
@@ -102,8 +125,7 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
 
     def test_selected_story_must_appear_in_actual_opening_citations(self):
         draft = selected()
-        draft["story_selection"]["candidates"][0]["production_ids"] = []
-        draft["story_selection"]["candidates"][0]["research_ids"] = ["VN-MPS-1791199100"]
+        draft["citations"]["development"] = [2]
         with self.assertRaisesRegex(ValueError, "opening"):
             validate_manuscript(
                 draft, evidence(), supplemental=self.research,
