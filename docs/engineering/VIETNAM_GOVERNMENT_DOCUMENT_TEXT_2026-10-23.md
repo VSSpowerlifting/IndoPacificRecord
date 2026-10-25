@@ -14,8 +14,10 @@ input without truncation. Before each private processing run it verifies the
 provider's current public pricing table against the two pinned model rates.
 Before each call, a required, preinitialized CAS spending checkpoint reserves
 worst-case cost and records the immutable document version plus route. A missing
-checkpoint, repeat route or a version attempted in an earlier run fails closed;
-there is no automatic paid retry, even after an interrupted job. API-returned
+checkpoint or repeated paid route fails closed. A format-held retained draft may
+complete its previously unexecuted mandatory factual review in a later run;
+relevance, explanation and factual-review calls are each dispatched at most once
+per immutable version. This does not retry a failed factual review. API-returned
 token usage is retained alongside the existing private Daily state.
 This follows the completed metadata release at `d8aa9ebc6e`. It does not
 reopen PR #863 or change the operating bibliographic collector. The owner has
@@ -194,3 +196,25 @@ identity/page/hash verifier; transport-fault tests used synthetic bytes only.
 The private workflow patch parsed as YAML and applied cleanly to its pinned
 preimage in a temporary directory. Exact-head PR CI remains the merge gate;
 none of these offline results claims production model output.
+
+
+## 24 October production format correction
+
+The retained 10790/VPCP-CN receipt has an 82-word public summary and 122 words of
+private evidence notes. All three Vietnamese spans match their cited pages.
+Requiring those notes to duplicate the public paragraph verbatim incorrectly
+held the draft before its first independent factual review. The corrected rule
+keeps the public 90-word ceiling, literal page evidence, number and modality
+checks; mandatory independent review now checks every public claim against the
+complete source and cited spans. It does not grant publication from a format
+check alone. Complete serialized model input is also bounded before reservation.
+Private-note numbers must occur on their cited page; public-summary numbers must
+occur in the cited spans. The shared attribution check additionally recognizes
+Government Office-issued instructions for this source alone. The retained real
+draft passes offline mechanical checks; its first-review request is 18,080 bytes.
+
+The existing paid draft is reused for this never-executed review. Relevance and
+explanation are not repeated, and an executed factual-review route cannot run
+again. A continuation records its own run/cost reservation and counts toward the
+two-document run limit. First-party/source identity, current rights, complete
+extraction and current metadata are rechecked before review or publication.

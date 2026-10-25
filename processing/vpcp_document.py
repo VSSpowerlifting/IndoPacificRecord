@@ -141,8 +141,12 @@ def output_failures(version,reading):
         return ['document_facts_missing']
     if any(not isinstance(f,dict) for f in facts):return ['document_facts_invalid']
     if len({f.get('sentence') for f in facts})!=len(facts):return ['document_duplicate_facts']
-    if ' '.join(str(f.get('sentence','')) for f in facts)!=summary or len(summary.split())>90:
+    if not isinstance(summary,str) or not summary.strip() or len(summary.split())>90:
         return ['document_summary_coverage']
+    # Private evidence notes need not duplicate the shorter public paragraph.
+    # Semantic coverage is checked by the mandatory independent factual review.
+    if set(re.findall(r'\d+',summary))-set(re.findall(r'\d+',' '.join(str(f.get('evidence','')) for f in facts))):
+        return ['document_numeric_evidence_mismatch']
     pages=dict(version['pages'])
     for fact in facts:
         if (set(fact)!={'sentence','page','evidence','status'} or type(fact['page']) is not int
@@ -153,7 +157,9 @@ def output_failures(version,reading):
         sentence=fact['sentence']
         if not isinstance(sentence,str) or not re.search(r'Government Office',sentence):
             return ['document_attribution_missing']
-        if set(re.findall(r'\d+',sentence))-set(re.findall(r'\d+',fact['evidence'])):
+        # Private notes may add context from their cited page beyond the short
+        # literal span. Public-summary numbers remain bound to cited spans above.
+        if set(re.findall(r'\d+',sentence))-set(re.findall(r'\d+',pages[fact['page']])):
             return ['document_numeric_evidence_mismatch']
         if fact['status']=='proposed' and not re.search(r'propos|consider|draft',sentence,re.I):
             return ['document_modality_mismatch']
@@ -178,3 +184,26 @@ def inspect_pdf(data, metadata, *, expected_sha256=None):
         raise
     except Exception:
         raise ValueError('document_parser_failed') from None
+
+
+def retained_format_draft(item,version):
+    """Complete an unexecuted QA stage; never regenerate a paid draft."""
+    from config import ANALYSIS_MODEL,RELEVANCE_THRESHOLD
+    review=item.get('private_document_review') or {}
+    saved=review.get('reading')
+    if (item.get('outcome')!='held_review' or review.get('failures')!=['document_summary_coverage']
+        or not isinstance(saved,dict) or saved.get('model_id')!=ANALYSIS_MODEL
+        or not isinstance(saved.get('prompt_version'),str)
+        or type(saved.get('relevance_score')) not in (int,float)
+        or not RELEVANCE_THRESHOLD<=saved['relevance_score']<=1):
+        return None
+    result=dict(saved)
+    # Old receipts omitted classification fields. This one narrow fallback is
+    # deterministic from verified administrative-letter metadata, not a model claim.
+    if 'categories' not in result:
+        if version.get('bibliographic',{}).get('document_type')!='Công văn':return None
+        result['categories']=['policy_document']
+    result.update(passed_relevance=True,requires_translation=False,is_significant=False,
+        significance_reasoning=None,text_english=None)
+    result.setdefault('relevance_reasoning','The retained source-specific relevance screen scored this verified Government Office administrative communication %.2f.'%saved['relevance_score'])
+    return result if not output_failures(version,result) else None

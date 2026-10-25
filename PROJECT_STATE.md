@@ -10,20 +10,27 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office full-document integration (24 October 2026): released code; real output held before publication.**
-PR #865 merged as `4623535eb6`; required CI passed 7,978 tests (15 skips).
-The owner-sealed standing decision and all numerical limits are active. The
-pinned private workflow was verified/applied; an independently tested VPCP-only
-manual action avoids retrying an MPS attempt when unrelated public main moves.
-Real collection run `40113138035` preserved 545/TB-VPCP and 10747/VPCP-CN;
-545's fresh PDF hash matches the cached receipt. Bridge `40113402641` held both
-outputs at document QA, retaining metadata fallback. API token-based cost:
-$0.064870; cumulative reserved ceiling: $0.1982975. No VPCP explanation is live.
-The rejected versions remain held without paid retry. A bounded production repair
-retains precise private QA diagnostics and explicitly aligns prompt wording with
-unchanged per-sentence attribution and exact page-evidence requirements. Genuine
-source-to-live acceptance remains required on an unprocessed eligible document.
-See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`.
+**Vietnam Government Office full-document integration (24 October 2026): real format fault isolated; publication acceptance pending.**
+PR #865 and diagnostic repair #866 are merged with required exact-head CI.
+Real custody holds three complete verified PDFs; 10744/VPCP-CN is individually
+held at source verification. The retained 10790/VPCP-CN receipt exposed the fault:
+its 82-word public summary was rejected because private evidence notes contained
+122 words and were required to duplicate it verbatim. All three spans match the
+cited pages. No independent factual-QA call has yet run for this document.
+The repair separates bounded public summaries from private support notes and
+requires independent review of every public claim against both cited evidence
+and the complete source. A saved format-held draft may complete its previously
+unexecuted first QA stage; no relevance, explanation or QA route may be repeated.
+The retained real draft passes offline mechanical checks, including cited-page
+private-note numbers and source-specific administrative attribution; its complete
+first-review request is 18,080 bytes. Overnight scheduled runs added no charges.
+Initial repair CI exposed four stale test-fixture assumptions after main admitted
+AFP `afp:1402`: fixed-count Philippines assertions and an unisolated Briefs schema
+fixture. Test-only corrections preserve both production pipelines and the DB;
+the updated exact revision still requires the complete PR check.
+Prior unretained drafts remain held. API token-based expenditure so far:
+$0.101131; cumulative durable reservation: $0.31267125. No VPCP explanation is
+live, and the completed metadata release remains intact.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**
 PR #863, approved head `6fe9e11c7341cef0aaf2d05b6e10ebf893aaf775`, merged

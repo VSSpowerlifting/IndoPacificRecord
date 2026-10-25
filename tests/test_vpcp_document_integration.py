@@ -202,6 +202,23 @@ class SharedBridge(unittest.TestCase):
                 self.assertEqual(settled['counts'],{bridge.SETTLED:1})
                 self.assertEqual(guard.call_count,1)
                 guard.reset_mock();reading['document_facts']=original_facts
+                # Complete a never-run factual review from a retained format draft.
+                # Relevance and explanation are not dispatched again.
+                from config import ANALYSIS_MODEL
+                resume_conn=clone_schema(Path(tmp)/'resume.db');migration.up(resume_conn)
+                admit(resume_conn,[(m,capture)],source_sha='c'*40,run_id='synthetic',observed_utc=NOW);resume_conn.commit()
+                saved=copy.deepcopy(reading);saved['model_id']=ANALYSIS_MODEL
+                resume_path=Path(tmp)/'resume-ledger.json'
+                resume_ledger=bridge.load_ledger(resume_path,VPCP)
+                resume_ledger['items'][record['source_identity']]={'content_sha256':sha,'outcome':qa.HELD_REVIEW,'failures':['E_ANALYSIS_INCOMPLETE'],'attempts':0,'private_document_review':{'failures':['document_summary_coverage'],'reading':saved}}
+                bridge.save_ledger(resume_path,resume_ledger)
+                no_regeneration=SimpleNamespace(analyze_record=unittest.mock.Mock(side_effect=AssertionError('paid draft must not be regenerated')))
+                first_review=unittest.mock.Mock(return_value={'ok':True,'reason':'Synthetic first factual review.'})
+                recovered=bridge.run_family(resume_conn,'unused','b'*40,VPCP,source_use=approved,**dict(args,analyzer=no_regeneration,second_pass=first_review,ledger_path=resume_path))
+                self.assertEqual(recovered['counts'],{qa.PUBLISHED:1})
+                no_regeneration.analyze_record.assert_not_called();first_review.assert_called_once()
+                self.assertTrue(no_regeneration._vpcp_first_qa_continuation)
+                resume_conn.close();guard.reset_mock()
                 first=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
                 self.assertEqual(first['counts'],{qa.PUBLISHED:1})
                 second=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
@@ -376,3 +393,72 @@ class OwnerReleaseGuards(unittest.TestCase):
             report=bridge.run_family(analyzer=analyzer)
         self.assertAlmostEqual(report['model_usage']['cost_usd'],0.0006)
         self.assertEqual(report['model_usage']['tasks'][0]['input_tokens'],100)
+
+
+class EvidenceSupportAndFirstReview(unittest.TestCase):
+    def test_administrative_attribution_is_source_specific(self):
+        from core import vietnam_daily_qa as qa
+        permissions={'public_ipr_analysis':True}
+        projection={'title_english':'Government Office administrative instructions'}
+        for verb in ('issued','instructs','requests'):
+            summary='The Government Office '+verb+' an administrative instruction.'
+            result={'summary_english':summary,'categories':['policy_document'],'is_significant':False}
+            def check(family):
+                return qa.output_failures({'source_family':family},'Synthetic','Synthetic',result,
+                    translation_required=False,permissions=permissions,projection=projection)
+            self.assertNotIn('E_UNATTRIBUTED',check(VPCP))
+            self.assertIn('E_UNATTRIBUTED',check('vn_mps_foreign_affairs_vi'))
+        result['summary_english']='The instruction requires administrative action.'
+        self.assertIn('E_UNATTRIBUTED',check(VPCP))
+    def test_private_notes_may_be_longer_than_the_bounded_public_summary(self):
+        from config import ANALYSIS_MODEL
+        evidence='Synthetic conditional source material about a fictional test and approval.'
+        summary='The Government Office said action would follow if approved.'
+        facts=[{'sentence':'The Government Office said the proposed fictional action would remain conditional until a test authority had reviewed the supporting paperwork.','page':1,'evidence':evidence,'status':'conditional'},
+               {'sentence':'The Government Office said approval would depend on a separate test review, with no claim that any action had already taken place.','page':1,'evidence':evidence,'status':'conditional'}]
+        reading={'summary_english':summary,'document_facts':facts,'is_significant':False,'title_english':'Synthetic conditional Government Office notice','model_id':ANALYSIS_MODEL,'prompt_version':'fixture','relevance_score':0.85}
+        version={'pages':[(1,evidence)],'text_original':evidence,'bibliographic':{'document_type':'Công văn'}}
+        self.assertEqual(doc.output_failures(version,reading),[])
+        facts[0]['sentence']+=' The Government Office referred to 2026.'
+        version['pages']=[(1,evidence+' 2026')]
+        self.assertEqual(doc.output_failures(version,reading),[])
+        facts[0]['sentence']+=' The Government Office referred to 9999.'
+        self.assertEqual(doc.output_failures(version,reading),['document_numeric_evidence_mismatch'])
+        facts[0]['sentence']=facts[0]['sentence'].split(' The Government Office referred to 9999.')[0]
+        item={'outcome':'held_review','private_document_review':{'failures':['document_summary_coverage'],'reading':reading}}
+        draft=doc.retained_format_draft(item,version)
+        self.assertEqual(draft['summary_english'],summary)
+        reading['summary_english']='word '*91
+        self.assertIsNone(doc.retained_format_draft(item,version))
+        reading['summary_english']=summary;item['private_document_review']['failures']=['document_page_evidence_invalid']
+        self.assertIsNone(doc.retained_format_draft(item,version))
+    def test_only_a_never_executed_factual_review_can_continue(self):
+        import base64,requests
+        from datetime import datetime,timezone
+        day=datetime.now(timezone.utc).date().isoformat()
+        state={'schema':'ipr-vpcp-spend/1','days':{day:0.01},'runs':{'122-1':0.01},'documents':{'a'*64:{'run_id':'122-1','routes':['relevance:500','summary:1000']}}}
+        puts=[]
+        def get(*a,**kw):return SimpleNamespace(status_code=200,json=lambda:{'sha':'fixture','content':base64.b64encode(json.dumps(state).encode()).decode()})
+        def put(*a,**kw):
+            puts.append(kw['json']);state.clear();state.update(json.loads(base64.b64decode(kw['json']['content'])))
+            return SimpleNamespace(status_code=200)
+        session=SimpleNamespace(headers={},get=get,put=put)
+        env={'GITHUB_REPOSITORY':'VSSpowerlifting/ipr-source-evidence-private','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','VIETNAM_VPCP_SPEND_TOKEN':'fictional'}
+        with patch.dict('os.environ',env),patch.object(requests,'Session',return_value=session):
+            p=vpcp_policy.policy()
+            with self.assertRaises(bridge.BridgeError):vpcp_policy.reserve_cost('123-1',0.01,p,document_sha='a'*64,route='summary:1000',allow_first_qa=True)
+            vpcp_policy.reserve_cost('123-1',0.01,p,document_sha='a'*64,route='summary:300',allow_first_qa=True,generation_run_id='122-1')
+            self.assertEqual(state['documents']['a'*64]['qa_run_id'],'123-1')
+            with self.assertRaises(bridge.BridgeError):vpcp_policy.reserve_cost('123-1',0.01,p,document_sha='a'*64,route='summary:300',allow_first_qa=True,generation_run_id='122-1')
+            self.assertEqual(len(puts),1)
+            self.assertAlmostEqual(state['runs']['123-1'],0.01)
+    def test_oversize_complete_request_is_held_before_reservation(self):
+        from config import ANALYSIS_MODEL
+        client=SimpleNamespace(base_url='https://api.anthropic.com',with_options=lambda **kw:None)
+        a=SimpleNamespace(_client=client,_call=unittest.mock.Mock(),_vpcp_document_sha='a'*64)
+        original=a._call
+        with patch.object(vpcp_policy,'verify_pricing'),patch.object(vpcp_policy,'reserve_cost') as reserve:
+            vpcp_policy.guard(a,'123-1')
+            with self.assertRaisesRegex(bridge.BridgeError,'complete_model_input_limit'):
+                a._call([{'role':'user','content':'x'*32001}],model=ANALYSIS_MODEL,max_tokens=1000,task='summary')
+            reserve.assert_not_called();original.assert_not_called()

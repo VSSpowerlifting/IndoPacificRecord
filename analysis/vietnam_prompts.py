@@ -317,6 +317,8 @@ def document_analysis_messages(title, body):
         "approval or other), flag (false), flag_reason (null), facts (2-3 objects: sentence, "
         "page [1-based], evidence [exact short Vietnamese span from that page], status "
         "[instructed, proposed, conditional, reported, established]). Joining fact sentences "
-        "with one space must reproduce summary exactly. Evidence stays private. "
+        "is NOT the public summary: keep private evidence notes separate from the shorter "
+        "public summary. The independent reviewer will verify every public claim "
+        "against the complete document and cited evidence. Evidence stays private. "
         "Any missing fact must be omitted; do not invent a responsible authority or deadline.\n"+
         _UNTRUSTED+"\n"+_source(title, body)}]
