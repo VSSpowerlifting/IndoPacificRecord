@@ -309,7 +309,7 @@ def output_failures(record: dict, title: str, body: str, result: Optional[dict],
     if event in ("completion",) and not any(k in original.lower() for k in _OUTCOME_VI):
         f["E_OUTCOME_CLAIM"] = "completion event without a completion term in the source"
     document_attribution = (record.get("source_family") == "vn_vpcp_official_documents_vi"
-        and re.search(r"\bGovernment Office\s+(?:issued|instructs?|requests?|directs?|requires?)\b",
+        and re.search(r"\bGovernment Office\s+(?:issued|conveys?|conveyed|transmits?|transmitted|communicates?|communicated|instructs?|requests?|directs?|requires?)\b",
                       summary, re.I))
     if not _ATTRIBUTION.search(summary) and not document_attribution:
         f["E_UNATTRIBUTED"] = "summary attributes nothing to the source"

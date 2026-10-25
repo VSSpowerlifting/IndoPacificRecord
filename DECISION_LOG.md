@@ -40,6 +40,39 @@ bound versions; editorial approval alone does not invent that decision.
 Original text, translations, substantial excerpts and media remain outside this
 projection. This instruction does not authorize merge, deployment or publication.
 
+## 2026-10-25 — Owner: one manual 10744 attribution correction
+
+Benjamin Yang explicitly approves one exceptional correction in chat, confirmed
+again on 25 October 2026. These confirmations are **one allowance**, not two.
+Only `10744/VPCP-CN`, identity `vpcp-vi:220065`, is eligible:
+
+- PDF SHA-256 `121670635f065b0ecb1ef38641c5236d634fc5777dc3aa1cc0330caf7580f575`.
+- Immutable content SHA-256 `842585a4cc35857bf6301e55228c7662d03adc3eeb1bed3a3872cfd3916db56e`.
+- Metadata SHA-256 `4bf6537753bfdbed85f39359a596b4de6ce17eb6a3c7d3aad9ee76d4f2a7d695`.
+- Existing generation `40189202615-1` and factual rejection `40197695872-1`
+  remain immutable history; their route reservations are not reset.
+
+Before spending, repair the institutional attribution rule and add regressions
+for Prime Ministerial instructions, the Government Office's transmission, and
+implementing-ministry versus provincial responsibilities, including the previous
+10790 failure without retrying that held document. Source attribution must remain
+explicit, but every fact sentence need not repeat "Government Office". Each
+substantive actor and action requires page-specific original evidence. Preserve
+strict independent factual review and all publication standards.
+
+Authorize **at most one corrected-generation call and one independent factual
+review, $0.15 additional reserved spending total**, only in a manually dispatched
+private shared Daily bridge run. No new relevance call. All standing per-run,
+day/month, document, complete-input, provider and source-use limits remain in
+force, including the dated administrative-document and access assessment in
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`. No other held
+document is reopened. A failed stage retains the final hold with no further
+attempt, including no unattended continuation of this correction. Preserve prior
+generation, review, rejection and spending evidence. Required exact-head CI and
+repository protections apply; a quality-passing result may proceed through the
+authorized ordinary production Daily to actual article, Vietnam Desk and Archive
+verification. This exception changes no rights seal or other desk policy.
+
 ## 2026-10-24 — Owner: Government Office bounded full-document processing and publication
 
 Benjamin Yang explicitly approves `vn_vpcp_official_documents_vi` in chat on

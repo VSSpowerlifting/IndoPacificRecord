@@ -19,8 +19,8 @@ canonical dossier. Benjamin Yang is credited as human editor and Codex as
 machine-assisted preparer. Readiness passes with no holds. Findings, source
 versions, chronology and reviewed CSS/template presentation are unchanged;
 only approval/review metadata, source-use references and their digest changed.
-The sole main conflict in this status file retains both projects' entries;
-base is `ad2afef5798690e483fa4be876226207c945d647`. Synthetic publication fixtures
+Status and decision-log resolutions retain both projects' entries;
+base is `46298fe95ccb50b472a7908b1e5716b71cd56dcc`. Synthetic publication fixtures
 explicitly supply their own dossier inputs instead of depending on the live
 canonical publication state. Focused checks, final-revision required CI and
 isolated production validation are reported in PR #864. Fourteen shared-renderer
@@ -52,11 +52,12 @@ contains no new Government Office identity.
 Provider-returned usage reconciles to **11 calls, $0.162665** at freshly verified
 prices; durable reservations total **$0.53030875**, within every approved cap.
 Production retains four bibliographic records and zero VPCP corpus articles.
-No new public Daily was dispatched after that final rejection. A single owner
-decision is pending: a one-time correction attempt for this exact 10744 source
-version, at most two additional calls and $0.15 additional reserved spend,
-otherwise retaining all existing limits and no further retry. This exception
-is **not authorized or activated**. Future eligible first-pass records retain
+The owner has now approved one manual correction for this exact immutable 10744
+source version: one generation and one independent factual review, at most
+$0.15 additional reserved spend, retaining every existing cap and no further
+retry. `DECISION_LOG.md` records the exact hashes and prior rejection. The
+attribution repair and guarded exception await exact-head CI and execution;
+no paid correction or successful publication is claimed yet. Future eligible first-pass records retain
 the existing unattended path; real source-to-live acceptance is not claimed.
 See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_RELEASE_2026-10-25.md`.
 

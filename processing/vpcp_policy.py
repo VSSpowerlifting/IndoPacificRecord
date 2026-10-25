@@ -30,7 +30,7 @@ def require_permission(name):
     return p
 
 
-def reserve_cost(run_id,cost,p,*,document_sha,route,allow_first_qa=False,generation_run_id=None):
+def reserve_cost(run_id,cost,p,*,document_sha,route,allow_first_qa=False,generation_run_id=None,manual_correction=False):
     """Durable CAS reservation in the EXISTING private source archive branch.
 
     Reserve before dispatch, never refund failed/aborted calls. No retry on a
@@ -40,6 +40,7 @@ def reserve_cost(run_id,cost,p,*,document_sha,route,allow_first_qa=False,generat
     from datetime import datetime,timezone
     from core.vietnam_document_custody import PRIVATE_REPO,REF
     from core.vietnam_corpus_bridge import BridgeError
+    from processing import vpcp_correction as correction
     if (os.environ.get('GITHUB_REPOSITORY')!=PRIVATE_REPO
         or run_id!=os.environ.get('GITHUB_RUN_ID','')+'-'+os.environ.get('GITHUB_RUN_ATTEMPT','')):
         raise BridgeError('vpcp_private_spend_context_required')
@@ -59,18 +60,44 @@ def reserve_cost(run_id,cost,p,*,document_sha,route,allow_first_qa=False,generat
     import re
     if (not re.fullmatch('[a-f0-9]{64}',document_sha or '') or route not in ('relevance:500','summary:1000','summary:300')
         or not isinstance(state['documents'],dict) or any(not re.fullmatch('[a-f0-9]{64}',k) or not isinstance(v,dict)
-            or set(v) not in ({'run_id','routes'},{'run_id','routes','qa_run_id'}) or v['run_id'] not in state['runs'] or ('qa_run_id' in v and v['qa_run_id'] not in state['runs']) or not isinstance(v['routes'],list)
+            or set(v) not in ({'run_id','routes'},{'run_id','routes','qa_run_id'},{'run_id','routes','qa_run_id','manual_correction'}) or v['run_id'] not in state['runs'] or ('qa_run_id' in v and v['qa_run_id'] not in state['runs']) or not isinstance(v['routes'],list)
             or not v['routes'] or len(v['routes'])!=len(set(v['routes'])) or set(v['routes'])-{'relevance:500','summary:1000','summary:300'}
             for k,v in state['documents'].items())
         or abs(sum(state['days'].values())-sum(state['runs'].values()))>1e-8):
         raise BridgeError('vpcp_spend_checkpoint_invalid')
+    for key,entry in state['documents'].items():
+        if 'manual_correction' not in entry:continue
+        c=entry['manual_correction']
+        if (key!=correction.CONTENT or not isinstance(c,dict)
+            or set(c)!={'decision','run_id','routes','reserved_cost_usd'}
+            or c['decision']!=correction.DECISION or c['run_id'] not in state['runs']
+            or c['routes'] not in (['summary:1000'],['summary:1000','summary:300'])
+            or type(c['reserved_cost_usd']) not in (int,float) or not math.isfinite(c['reserved_cost_usd'])
+            or not 0<c['reserved_cost_usd']<=correction.MAX_RESERVED
+            or c['reserved_cost_usd']>state['runs'][c['run_id']]
+            or entry['run_id']!=correction.GENERATION_RUN or entry['qa_run_id']!=correction.REJECTED_RUN
+            or entry['routes']!=['relevance:500','summary:1000','summary:300']):
+            raise BridgeError('vpcp_spend_checkpoint_invalid')
     prior=state['documents'].get(document_sha)
+    if type(cost) not in (int,float) or not math.isfinite(cost) or cost<=0:
+        raise BridgeError('vpcp_spend_cost_invalid')
+    corrected=(prior or {}).get('manual_correction')
+    if manual_correction:
+        if (manual_correction is not True or not correction.manual_context()
+            or document_sha!=correction.CONTENT or not prior
+            or prior['run_id']!=correction.GENERATION_RUN or prior.get('qa_run_id')!=correction.REJECTED_RUN
+            or prior['routes']!=['relevance:500','summary:1000','summary:300']
+            or (not corrected and route!='summary:1000')
+            or (corrected and (corrected['run_id']!=run_id or corrected['routes']!=['summary:1000'] or route!='summary:300'))):
+            raise BridgeError('vpcp_document_retry_not_authorized')
+        if cost+(corrected or {}).get('reserved_cost_usd',0)>correction.MAX_RESERVED:
+            raise BridgeError('vpcp_correction_spend_cap')
     continuation=bool(allow_first_qa is True and prior and prior['run_id']==generation_run_id and prior['run_id']!=run_id
         and route=='summary:300' and prior['routes']==['relevance:500','summary:1000'])
-    if prior and (route in prior['routes'] or (prior['run_id']!=run_id and not continuation)):
+    if not manual_correction and prior and (route in prior['routes'] or (prior['run_id']!=run_id and not continuation)):
         raise BridgeError('vpcp_document_retry_not_authorized')
-    used=sum(v['run_id']==run_id or v.get('qa_run_id')==run_id for v in state['documents'].values())
-    if ((prior is None and route!='relevance:500') or ((prior is None or continuation) and used>=p['max_documents_per_run'])):
+    used=sum(v['run_id']==run_id or v.get('qa_run_id')==run_id or (v.get('manual_correction') or {}).get('run_id')==run_id for v in state['documents'].values())
+    if ((prior is None and route!='relevance:500') or ((prior is None or continuation or (manual_correction and not corrected)) and used>=p['max_documents_per_run'])):
         raise BridgeError('vpcp_document_run_limit')
     day=datetime.now(timezone.utc).date().isoformat()
     today=state['days'].get(day,0);month=sum(v for k,v in state['days'].items() if k.startswith(day[:7]));run=state['runs'].get(run_id,0)
@@ -78,7 +105,11 @@ def reserve_cost(run_id,cost,p,*,document_sha,route,allow_first_qa=False,generat
         raise BridgeError('vpcp_spend_cap')
     state['days'][day]=today+cost;state['runs'][run_id]=run+cost
     entry=dict(prior) if prior else {'run_id':run_id,'routes':[]}
-    entry['routes']=entry['routes']+[route]
+    if manual_correction:
+        entry['manual_correction']={'decision':correction.DECISION,'run_id':run_id,
+            'routes':(corrected or {}).get('routes',[])+[route],
+            'reserved_cost_usd':(corrected or {}).get('reserved_cost_usd',0)+cost}
+    else:entry['routes']=entry['routes']+[route]
     if continuation:entry['qa_run_id']=run_id
     state['documents'][document_sha]=entry
     payload={'message':'Daily: reserve bounded VPCP processing cost','branch':REF,
@@ -111,7 +142,7 @@ def guard(analyzer,run_id):
         size=input_bytes+2048
         cost=estimate_usage_cost_usd(actual,0,max_tokens,size,0)
         if cost is None:raise BridgeError('vpcp_model_price_unknown')
-        reserve_cost(run_id,cost,p,document_sha=getattr(analyzer,'_vpcp_document_sha',None),route=task+':'+str(max_tokens),allow_first_qa=getattr(analyzer,'_vpcp_first_qa_continuation',False),generation_run_id=getattr(analyzer,'_vpcp_generation_run_id',None))
+        reserve_cost(run_id,cost,p,document_sha=getattr(analyzer,'_vpcp_document_sha',None),route=task+':'+str(max_tokens),allow_first_qa=getattr(analyzer,'_vpcp_first_qa_continuation',False),generation_run_id=getattr(analyzer,'_vpcp_generation_run_id',None),manual_correction=getattr(analyzer,'_vpcp_manual_correction',False))
         calls+=1
         return call(messages,model=model,max_tokens=max_tokens,task=task,**kwargs)
     analyzer._call=bounded

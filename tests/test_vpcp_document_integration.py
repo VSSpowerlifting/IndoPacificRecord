@@ -289,6 +289,35 @@ class SharedBridge(unittest.TestCase):
                 self.assertTrue(no_regeneration._vpcp_first_qa_continuation)
                 self.assertEqual(no_regeneration._vpcp_generation_run_id,'original-generation')
                 resume_conn.close();guard.reset_mock()
+                # The exceptional correction uses one shared generation and
+                # still terminates on a negative independent review. Preserve
+                # the rejected reading and the prior rejection privately.
+                correction_conn=clone_schema(Path(tmp)/'correction.db');migration.up(correction_conn)
+                admit(correction_conn,[(m,capture)],source_sha='c'*40,run_id='synthetic',observed_utc=NOW);correction_conn.commit()
+                correction_path=Path(tmp)/'correction-ledger.json'
+                correction_ledger=bridge.load_ledger(correction_path,VPCP)
+                old_rejection={'content_sha256':sha,'outcome':qa.HELD_REVIEW,'failures':['E_SECOND_PASS'],
+                               'attempts':0,'run_id':'rejected-fixture','qa':{'second_pass':{'ok':False}}}
+                correction_ledger['items'][record['source_identity']]=old_rejection
+                bridge.save_ledger(correction_path,correction_ledger)
+                correction_model=SimpleNamespace(_desk_analysis_fields=unittest.mock.Mock(return_value={
+                    'headline':reading['title_english'],'summary':reading['summary_english'],
+                    'facts':reading['document_facts'],'categories':['policy_document'],'flag':False,'flag_reason':None}),
+                    analyze_record=unittest.mock.Mock(side_effect=AssertionError('no repeated relevance')))
+                rejected_review=unittest.mock.Mock(return_value={'ok':False,'reason':'Synthetic actor misattribution'})
+                with patch('processing.vpcp_correction.eligible',side_effect=lambda identity,prior,version:prior.get('run_id')=='rejected-fixture'):
+                    correction_args=dict(args,analyzer=correction_model,second_pass=rejected_review,ledger_path=correction_path)
+                    corrected=bridge.run_family(correction_conn,'unused','b'*40,VPCP,source_use=approved,**correction_args)
+                    self.assertEqual(corrected['counts'],{qa.HELD_REVIEW:1})
+                    saved_correction=bridge.load_ledger(correction_path,VPCP)['items'][record['source_identity']]
+                    self.assertEqual(saved_correction['manual_correction']['prior_rejection'],old_rejection)
+                    self.assertEqual(saved_correction['private_document_review']['reading']['document_facts'],reading['document_facts'])
+                    terminal=bridge.run_family(correction_conn,'unused','b'*40,VPCP,source_use=approved,**correction_args)
+                    self.assertEqual(terminal['counts'],{bridge.SETTLED:1})
+                correction_model._desk_analysis_fields.assert_called_once();rejected_review.assert_called_once()
+                correction_model.analyze_record.assert_not_called()
+                self.assertEqual(correction_conn.execute('select count(*) from articles').fetchone()[0],0)
+                correction_conn.close();guard.reset_mock()
                 first=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
                 self.assertEqual(first['counts'],{qa.PUBLISHED:1})
                 second=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
@@ -492,6 +521,107 @@ class OwnerReleaseGuards(unittest.TestCase):
 
 
 class EvidenceSupportAndFirstReview(unittest.TestCase):
+    def test_10744_issuer_and_instruction_giver_are_distinct(self):
+        from analysis.vietnam_prompts import document_analysis_messages
+        from processing.screening import private_document_profile
+        from processing.vpcp_correction import generate
+        evidence='Synthetic fixture: the Prime Minister asked the test ministry to review supplies; provincial chairs must report violations.'
+        facts=[{'sentence':'The Prime Minister instructed the test ministry to review supplies.','page':1,'evidence':evidence,'status':'instructed'},
+               {'sentence':'Provincial chairs were asked to report violations.','page':1,'evidence':evidence,'status':'instructed'}]
+        fields={'headline':'Prime Minister requests synthetic supply review',
+                'summary':"The Government Office conveyed the Prime Minister's instructions. The test ministry must review supplies, and provincial chairs must report violations.",
+                'facts':facts,'categories':['policy_document'],'flag':False,'flag_reason':None}
+        analyzer=SimpleNamespace(_desk_analysis_fields=unittest.mock.Mock(return_value=fields),
+                                 analyze_record=unittest.mock.Mock(side_effect=AssertionError('no relevance retry')))
+        result=generate(analyzer,'Synthetic 10744 attribution regression',evidence,private_document_profile())
+        self.assertEqual(doc.output_failures({'pages':[(1,evidence)],'text_original':evidence},result),[])
+        from core import vietnam_daily_qa as qa
+        self.assertNotIn('E_UNATTRIBUTED',qa.output_failures({'source_family':VPCP},'Synthetic',evidence,result,
+            translation_required=False,permissions={'public_ipr_analysis':True},projection={'title_english':result['title_english']}))
+        analyzer._desk_analysis_fields.assert_called_once();analyzer.analyze_record.assert_not_called()
+        prompt=document_analysis_messages('Synthetic','Synthetic')[0]['content']
+        self.assertIn('actual actor and action',prompt)
+        self.assertNotIn('repeat that attribution in every sentence',prompt)
+        result['summary_english']='The Prime Minister instructed a test ministry to review supplies.'
+        self.assertEqual(doc.output_failures({'pages':[(1,evidence)],'text_original':evidence},result),['document_attribution_missing'])
+
+    def test_10790_ministry_responsibility_and_10744_issuer_errors_still_fail_independent_review(self):
+        # English synthetic fixtures only; neither held official source is retried.
+        from core import vietnam_daily_qa as qa
+        for error in ('Government Office instructs instead of conveying Prime Minister instructions',
+                      'provincial chairs incorrectly assigned the ministry supply-coordination task'):
+            analyzer=SimpleNamespace(_call=unittest.mock.Mock(return_value='synthetic-review'),
+                _parse_task_json=lambda *a:{'ok':False,'reason':error})
+            reviewer=bridge.model_second_pass(analyzer,VPCP)
+            result=reviewer({},'Synthetic attribution regression','Synthetic page-specific complete evidence',{'document_facts':[]})
+            self.assertIs(result['ok'],False)
+            prompt=analyzer._call.call_args.args[0][0]['content']
+            self.assertIn("Prime Minister's instructions",prompt)
+            self.assertIn("ministry's responsibility to provincial",prompt)
+            analyzer._call.assert_called_once()
+            with patch.object(qa,'source_failures',return_value=[]),patch.object(qa,'output_failures',return_value=[]):
+                verdict=qa.review({'source_family':VPCP},{'title_original':'Synthetic','text_original':'Synthetic'},
+                    {'passed_relevance':True},logical_date='2026-10-25',translation_required=False,
+                    permissions={'public_ipr_analysis':True},projection={},attempts=1,
+                    second_pass=lambda *a:result,budget=qa.SecondPassBudget(1),force_second_pass=True)
+            self.assertNotEqual(verdict.outcome,qa.PUBLISHED)
+            self.assertIn('E_SECOND_PASS',verdict.failures)
+
+    def test_manual_exception_binds_exact_rejection_source_and_context(self):
+        from processing import vpcp_correction as c
+        prior={'content_sha256':c.CONTENT,'run_id':c.REJECTED_RUN,'outcome':'held_review',
+               'failures':['E_SECOND_PASS'],'qa':{'second_pass':{'ok':False}}}
+        version={'content_sha256':c.CONTENT,'pdf_sha256':c.PDF,'metadata_sha256':c.METADATA,
+                 'identity_checks':dict.fromkeys(('number','date','issuer'),'match')}
+        with patch.object(c,'manual_context',return_value=True):
+            self.assertTrue(c.eligible(c.IDENTITY,prior,version))
+            for field in ('content_sha256','pdf_sha256','metadata_sha256'):
+                changed=copy.deepcopy(version);changed[field]='f'*64
+                self.assertFalse(c.eligible(c.IDENTITY,prior,changed))
+            self.assertFalse(c.eligible('vpcp-vi:220077',prior,version))
+            changed=copy.deepcopy(prior);changed['qa']['second_pass']['ok']=True
+            self.assertFalse(c.eligible(c.IDENTITY,changed,version))
+            changed=copy.deepcopy(prior);changed['manual_correction']={'run_id':'attempted'}
+            self.assertFalse(c.eligible(c.IDENTITY,changed,version))
+            self.assertIsNone(doc.retained_format_draft(changed,version))
+        with patch.object(c,'manual_context',return_value=False):
+            self.assertFalse(c.eligible(c.IDENTITY,prior,version))
+
+    def test_manual_correction_reserves_two_routes_once_without_resetting_history(self):
+        import base64,requests
+        from datetime import datetime,timezone
+        from processing import vpcp_correction as c
+        day=datetime.now(timezone.utc).date().isoformat()
+        old={'run_id':c.GENERATION_RUN,'qa_run_id':c.REJECTED_RUN,
+             'routes':['relevance:500','summary:1000','summary:300']}
+        state={'schema':'ipr-vpcp-spend/1','days':{day:0.02},
+               'runs':{c.GENERATION_RUN:0.01,c.REJECTED_RUN:0.01},'documents':{c.CONTENT:copy.deepcopy(old)}}
+        puts=[]
+        def get(*a,**kw):return SimpleNamespace(status_code=200,json=lambda:{'sha':'fixture','content':base64.b64encode(json.dumps(state).encode()).decode()})
+        def put(*a,**kw):
+            puts.append(kw['json']);state.clear();state.update(json.loads(base64.b64decode(kw['json']['content'])))
+            return SimpleNamespace(status_code=200)
+        session=SimpleNamespace(headers={},get=get,put=put)
+        env={'GITHUB_REPOSITORY':'VSSpowerlifting/ipr-source-evidence-private','GITHUB_EVENT_NAME':'workflow_dispatch',
+             'MODE':'daily-bridge','GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'1','VIETNAM_VPCP_SPEND_TOKEN':'fictional'}
+        def reserve(route,cost=.05,**kw):
+            return vpcp_policy.reserve_cost('123-1',cost,vpcp_policy.policy(),document_sha=c.CONTENT,route=route,**kw)
+        with patch.dict('os.environ',env),patch.object(requests,'Session',return_value=session):
+            with self.assertRaisesRegex(bridge.BridgeError,'retry_not_authorized'):reserve('summary:1000')
+            for route in ('relevance:500','summary:300'):
+                with self.assertRaises(bridge.BridgeError):reserve(route,manual_correction=True)
+            with patch.dict('os.environ',{'GITHUB_EVENT_NAME':'schedule'}):
+                with self.assertRaises(bridge.BridgeError):reserve('summary:1000',manual_correction=True)
+            reserve('summary:1000',manual_correction=True)
+            with self.assertRaisesRegex(bridge.BridgeError,'retry_not_authorized'):reserve('summary:1000',manual_correction=True)
+            with self.assertRaisesRegex(bridge.BridgeError,'correction_spend_cap'):reserve('summary:300',.11,manual_correction=True)
+            reserve('summary:300',manual_correction=True)
+            for route in ('summary:1000','summary:300'):
+                with self.assertRaisesRegex(bridge.BridgeError,'retry_not_authorized'):reserve(route,manual_correction=True)
+            self.assertEqual({k:state['documents'][c.CONTENT][k] for k in old},old)
+            self.assertEqual(state['documents'][c.CONTENT]['manual_correction']['routes'],['summary:1000','summary:300'])
+            self.assertEqual(len(puts),2)
+            self.assertAlmostEqual(sum(state['runs'].values()),.12)
     def test_pm_abbreviation_requires_both_expansion_and_source_role_for_vpcp_only(self):
         from core import vietnam_daily_qa as qa
         result={'summary_english':'The Government Office said the Prime Minister requested a synthetic review.',
@@ -555,7 +685,7 @@ class EvidenceSupportAndFirstReview(unittest.TestCase):
         from core import vietnam_daily_qa as qa
         permissions={'public_ipr_analysis':True}
         projection={'title_english':'Government Office administrative instructions'}
-        for verb in ('issued','instructs','requests'):
+        for verb in ('issued','instructs','requests','conveys','conveyed','transmits','transmitted','communicates','communicated'):
             summary='The Government Office '+verb+' an administrative instruction.'
             result={'summary_english':summary,'categories':['policy_document'],'is_significant':False}
             def check(family):
