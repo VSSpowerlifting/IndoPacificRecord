@@ -238,5 +238,12 @@ attempted topical captures instead of reaching them. Prioritizing unseen unheld
 versions first fixes that starvation without expanding source discovery, document
 classes, the two-document limit or the content-screening/model gates. A previous
 source hold cannot monopolize collection slots ahead of an unattempted document.
+Title-based metadata filtering also previously prevented the text lane from
+considering these documents at all. The shared pre-model and final-insertion
+checks now accept a subject-filtered identity only when its verified metadata
+store has exactly one unambiguous version. Multiple filtered versions or a
+withdrawn topical reference remain held; no current version is guessed. Public
+bibliographic selection is unchanged, and complete-document relevance, source
+identity, rights, budgets and independent factual review remain mandatory.
 The public Daily acceptance attempt `40158637403` was canceled at its offline
 gate because the actual factual review produced no releasable VPCP handoff.

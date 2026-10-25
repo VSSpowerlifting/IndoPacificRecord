@@ -97,6 +97,28 @@ def admit(conn, captures, *, source_sha, run_id, observed_utc):
             "scope": "bibliographic_metadata_only", "model_calls": 0}
 
 
+def processing_metadata(conn,ident):
+    """Bind text processing to metadata, independently of title-only routing.
+
+    A public link pins a current topical version. Without one, only a single
+    verified, subject-filtered version is unambiguous; revised or withdrawn
+    topical identities remain held rather than guessing the current version.
+    """
+    row=conn.execute("SELECT v.metadata_sha256,v.metadata_json FROM regional_official_source_links l "
+        "JOIN official_document_versions v ON v.source_family=l.source_family AND v.source_identity=l.source_identity "
+        "AND v.metadata_sha256=l.metadata_version_sha256 WHERE l.source_family=? AND l.source_identity=?",
+        (FAMILY,ident)).fetchone()
+    if row is None:
+        rows=conn.execute("SELECT metadata_sha256,metadata_json FROM official_document_versions "
+            "WHERE source_family=? AND source_identity=? LIMIT 2",(FAMILY,ident)).fetchall()
+        if len(rows)!=1:return None
+        row=rows[0]
+        if topics(json.loads(row[1])):return None
+    metadata=json.loads(row[1]);validate(metadata)
+    need(identity(metadata)==ident and digest(metadata)==row[0],'vpcp_processing_metadata_mismatch')
+    return row[0],metadata
+
+
 def read_links(conn):
     """Current versions only; no raw captures, body or model output exists here."""
     table = conn.execute("SELECT 1 FROM sqlite_master WHERE name='official_document_versions'").fetchone()

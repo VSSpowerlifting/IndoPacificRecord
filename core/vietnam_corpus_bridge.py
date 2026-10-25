@@ -223,8 +223,9 @@ def _insert(conn: sqlite3.Connection, family: str, record: dict, row: dict,
             return qa.HELD_SOURCE, None, "E_RETIRED_URL"
         if family == "vn_vpcp_official_documents_vi":
             proof = json.loads(provenance["qa_json"]).get("details",{}).get("VPCP_DOCUMENT",{})
-            live = conn.execute("SELECT l.metadata_version_sha256,v.metadata_json FROM regional_official_source_links l JOIN official_document_versions v ON v.source_family=l.source_family AND v.source_identity=l.source_identity AND v.metadata_sha256=l.metadata_version_sha256 WHERE l.source_family=? AND l.source_identity=?",(family,record["source_identity"])).fetchone()
-            expected = ({k:json.loads(live[1])[k] for k in ("document_number","document_type","issuer","signatory","issue_date","official_url")} if live else None)
+            from processing.government_document_intake import processing_metadata
+            live = processing_metadata(conn,record["source_identity"])
+            expected = ({k:live[1][k] for k in ("document_number","document_type","issuer","signatory","issue_date","official_url")} if live else None)
             if not live or proof.get("metadata_sha256") != live[0] or proof.get("bibliographic") != expected:
                 conn.rollback()
                 return qa.HELD_SOURCE,None,"E_MATERIAL_CHANGE"
@@ -423,7 +424,8 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             if not document_policy["external_model_transmission"] or not document_policy["public_ipr_analysis"]:
                 done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"])
                 continue
-            current_link = conn.execute("SELECT metadata_version_sha256 FROM regional_official_source_links WHERE source_family=? AND source_identity=?",(family,identity)).fetchone()
+            from processing.government_document_intake import processing_metadata
+            current_link = processing_metadata(conn,identity)
             if not current_link or current_link[0] != version["metadata_sha256"]:
                 done(qa.HELD_SOURCE, ["E_MATERIAL_CHANGE"])
                 continue

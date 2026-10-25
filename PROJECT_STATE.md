@@ -23,8 +23,11 @@ $0.39265125. No Government Office machine explanation is live.
 The collector currently refreshes four topical attempted records ahead of five
 uncaptured permitted documents already in the metadata store. A narrow queue
 repair prioritizes unseen unheld versions before refreshes and previous holds,
-retaining the two-document limit and content-based screening. New explanations
-explicitly keep each authority's responsibilities separate. No prior paid
+retaining the two-document limit and content-based screening. The text lane
+may bind a title-filtered document to its sole verified metadata version;
+ambiguous revisions and withdrawn topical identities stay held. Public metadata
+selection is unchanged. Both processing and final insertion use this binding.
+New explanations explicitly keep each authority's responsibilities separate. No prior paid
 version is regenerated. The owner-approved source/use/spend scope is unchanged.
 The manual public Daily acceptance run was canceled at its offline gate because
 there was no signed quality-passing VPCP output; metadata publication is intact.

@@ -145,6 +145,22 @@ class Projection(unittest.TestCase):
 if __name__=='__main__':unittest.main()
 
 class SharedBridge(unittest.TestCase):
+    def test_filtered_metadata_requires_one_unambiguous_version(self):
+        from tests.test_vietnam_government_documents import database
+        from processing.government_document_intake import admit,processing_metadata
+        from core.collection.vietnam_government_documents import digest,identity
+        conn=database();self.addCleanup(conn.close)
+        m=metadata();m['subject']='Synthetic topic-free heading'
+        admit(conn,[(m,'a'*64)],source_sha='b'*40,run_id='synthetic',observed_utc=NOW)
+        self.assertEqual(processing_metadata(conn,identity(m))[0],digest(m))
+        changed=copy.deepcopy(m);changed['subject']+=' revised'
+        admit(conn,[(changed,'c'*64)],source_sha='b'*40,run_id='synthetic-revised',observed_utc=NOW)
+        self.assertIsNone(processing_metadata(conn,identity(m)))
+        topical=metadata('220078')
+        admit(conn,[(topical,'d'*64)],source_sha='b'*40,run_id='synthetic-topical',observed_utc=NOW)
+        self.assertEqual(processing_metadata(conn,identity(topical))[0],digest(topical))
+        conn.execute('DELETE FROM regional_official_source_links WHERE source_identity=?',(identity(topical),))
+        self.assertIsNone(processing_metadata(conn,identity(topical)))
     def test_private_to_ordinary_corpus_is_gated_and_idempotent(self):
         from core.collection.vietnam_sources import content_sha256
         from processing.government_document_intake import admit
@@ -154,7 +170,7 @@ class SharedBridge(unittest.TestCase):
         from core.vietnam_corpus_bridge import PrivateCustody
         body='The Government Office said a synthetic test instruction applies. The Government Office asked a fictional test agency to report.'
         sentences=['The Government Office instructed the test action.','The Government Office asked the test agency to report.']
-        m=metadata();capture='a'*64
+        m=metadata();m.update(document_id='909903',official_url='https://vanban.chinhphu.vn/?pageid=27160&docid=909903',subject='Synthetic heading without topical keywords');capture='a'*64
         blocks=[['page-1',body]];lead=digest(m)+':'+capture
         sha=content_sha256(doc.HASH_RULE,m['subject'],lead,blocks)
         version={'title_original':m['subject'],'text_original':body,'lead_original':lead,
@@ -163,7 +179,7 @@ class SharedBridge(unittest.TestCase):
             'pdf_sha256':capture,'metadata_sha256':digest(m),
             'bibliographic':{k:m[k] for k in ('document_number','document_type','issuer','signatory','issue_date','official_url')},
             'identity_checks':{'number':'match','date':'match','issuer':'match','basis':'page_text'}}
-        record={'source_family':VPCP,'source_identity':'vpcp-vi:220077','canonical_official_url':m['official_url'],
+        record={'source_family':VPCP,'source_identity':'vpcp-vi:'+m['document_id'],'canonical_official_url':m['official_url'],
             'publisher_posted_date':m['issue_date'],'content_sha256':sha,'capture_sha256':capture,
             'source_git_commit':'b'*40,'collector_commit':'c'*40}
         reading={'passed_relevance':True,'relevance_score':0.9,'relevance_reasoning':'Synthetic test explanation.',
