@@ -269,14 +269,25 @@ class SharedBridge(unittest.TestCase):
                 saved=copy.deepcopy(reading);saved['model_id']=ANALYSIS_MODEL
                 resume_path=Path(tmp)/'resume-ledger.json'
                 resume_ledger=bridge.load_ledger(resume_path,VPCP)
-                resume_ledger['items'][record['source_identity']]={'content_sha256':sha,'outcome':qa.HELD_REVIEW,'failures':['E_ANALYSIS_INCOMPLETE'],'attempts':0,'private_document_review':{'failures':['document_summary_coverage'],'reading':saved}}
+                resume_ledger['items'][record['source_identity']]={'content_sha256':sha,'outcome':qa.HELD_REVIEW,'failures':['E_ANALYSIS_INCOMPLETE'],'attempts':0,'run_id':'original-generation','private_document_review':{'failures':['document_summary_coverage'],'reading':saved}}
                 bridge.save_ledger(resume_path,resume_ledger)
                 no_regeneration=SimpleNamespace(analyze_record=unittest.mock.Mock(side_effect=AssertionError('paid draft must not be regenerated')))
                 first_review=unittest.mock.Mock(return_value={'ok':True,'reason':'Synthetic first factual review.'})
+                # A later deterministic gate must retain the paid draft and
+                # original reservation origin, even across an intervening run.
+                with patch.object(qa,'review',return_value=qa.QAResult(qa.HELD_REVIEW,['E_ACRONYM'],details={'E_ACRONYM':'Synthetic pre-review hold'})):
+                    pre_review=bridge.run_family(resume_conn,'unused','b'*40,VPCP,source_use=approved,**dict(args,run_id='pre-review-hold',analyzer=no_regeneration,second_pass=first_review,ledger_path=resume_path))
+                self.assertEqual(pre_review['counts'],{qa.HELD_REVIEW:1})
+                first_review.assert_not_called();no_regeneration.analyze_record.assert_not_called()
+                retained=bridge.load_ledger(resume_path,VPCP)['items'][record['source_identity']]
+                self.assertEqual(retained['run_id'],'pre-review-hold')
+                self.assertEqual(retained['private_document_review']['generation_run_id'],'original-generation')
+                self.assertEqual(retained['private_document_review']['reading']['document_facts'],saved['document_facts'])
                 recovered=bridge.run_family(resume_conn,'unused','b'*40,VPCP,source_use=approved,**dict(args,analyzer=no_regeneration,second_pass=first_review,ledger_path=resume_path))
                 self.assertEqual(recovered['counts'],{qa.PUBLISHED:1})
                 no_regeneration.analyze_record.assert_not_called();first_review.assert_called_once()
                 self.assertTrue(no_regeneration._vpcp_first_qa_continuation)
+                self.assertEqual(no_regeneration._vpcp_generation_run_id,'original-generation')
                 resume_conn.close();guard.reset_mock()
                 first=bridge.run_family(conn,'unused','b'*40,VPCP,source_use=approved,**args)
                 self.assertEqual(first['counts'],{qa.PUBLISHED:1})
@@ -481,6 +492,19 @@ class OwnerReleaseGuards(unittest.TestCase):
 
 
 class EvidenceSupportAndFirstReview(unittest.TestCase):
+    def test_pm_abbreviation_requires_both_expansion_and_source_role_for_vpcp_only(self):
+        from core import vietnam_daily_qa as qa
+        result={'summary_english':'The Government Office said the Prime Minister requested a synthetic review.',
+                'categories':['policy_document'],'is_significant':False}
+        def failures(family,body='Synthetic language-token fixture: Thủ tướng.',headline='Synthetic PM test headline'):
+            return qa.output_failures({'source_family':family},'Synthetic title',body,result,
+                translation_required=False,permissions={'public_ipr_analysis':True},projection={'title_english':headline})
+        self.assertNotIn('E_ACRONYM',failures(VPCP))
+        self.assertIn('E_ACRONYM',failures('vn_mps_foreign_affairs_vi'))
+        self.assertIn('E_ACRONYM',failures(VPCP,body='Synthetic source without the role'))
+        self.assertIn('E_ACRONYM',failures(VPCP,headline='Synthetic PM ZZZ test headline'))
+        result['summary_english']='The Government Office said a synthetic review was requested.'
+        self.assertIn('E_ACRONYM',failures(VPCP))
     def test_first_review_keeps_complete_source_and_header_rule_is_source_specific(self):
         body='Synthetic complete source. '*500+'END-OF-COMPLETE-SOURCE'
         for family in (VPCP,'vn_mps_foreign_affairs_vi'):
@@ -503,6 +527,11 @@ class EvidenceSupportAndFirstReview(unittest.TestCase):
                  'identity_checks':{'number':'match','date':'match','issuer':'match'},
                  'bibliographic':{'document_number':'1234/TB-VPCP','issue_date':'2026-10-01','document_type':'Thông báo'}}
         self.assertEqual(doc.output_failures(version,reading),[])
+        from core import vietnam_daily_qa as qa
+        kwargs=dict(translation_required=False,permissions={'public_ipr_analysis':True},projection={'title_english':reading['title_english']})
+        self.assertNotIn('E_NUMBER_MISMATCH',qa.output_failures({'source_family':VPCP},'Synthetic',source,reading,version=version,**kwargs))
+        self.assertIn('E_NUMBER_MISMATCH',qa.output_failures({'source_family':VPCP},'Synthetic',source,reading,**kwargs))
+        self.assertIn('E_NUMBER_MISMATCH',qa.output_failures({'source_family':'vn_mps_foreign_affairs_vi'},'Synthetic',source,reading,version=version,**kwargs))
         for key in ('number','date','issuer'):
             changed=copy.deepcopy(version);changed['identity_checks'][key]='missing'
             self.assertEqual(doc.output_failures(changed,reading),['document_numeric_evidence_mismatch'])
@@ -516,6 +545,9 @@ class EvidenceSupportAndFirstReview(unittest.TestCase):
         saved=copy.deepcopy(reading)
         self.assertEqual(doc.retained_format_draft(item,version)['summary_english'],saved['summary_english'])
         self.assertEqual(reading,saved)
+        reading['title_english']+=' ZZZ'
+        self.assertIsNone(doc.retained_format_draft(item,version))
+        reading['title_english']=saved['title_english']
         facts[0]['sentence']+=' The Government Office referred to 1234.'
         self.assertEqual(doc.output_failures(version,reading),['document_numeric_evidence_mismatch'])
         self.assertIsNone(doc.retained_format_draft(item,version))

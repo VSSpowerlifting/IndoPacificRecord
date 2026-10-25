@@ -451,13 +451,16 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         title, body = version["title_original"], version["text_original"]
         if family == "vn_vpcp_official_documents_vi":
             from processing.vpcp_policy import guard
+            from processing.vpcp_document import retain_review
             if not document_guarded:
                 guard(analyzer, run_id)
                 document_guarded = True
             model_body = "\n\n".join("[Page %d]\n%s" % (n,t) for n,t in version["pages"])
             analyzer._vpcp_document_sha = sha
             analyzer._vpcp_first_qa_continuation = format_draft is not None
-            analyzer._vpcp_generation_run_id = prior_item.get("run_id") if format_draft is not None else None
+            generation_run_id = ((prior_item.get("private_document_review") or {}).get("generation_run_id")
+                                 or prior_item.get("run_id")) if format_draft is not None else run_id
+            analyzer._vpcp_generation_run_id = generation_run_id if format_draft is not None else None
             document_attempted = True
             try:
                 result = format_draft if format_draft is not None else analyzer.analyze_record(title, model_body, profile)
@@ -471,13 +474,8 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                          details={"document_failures": document_holds})
                     # Only the existing PRIVATE Daily ledger retains rejected
                     # model evidence. Reports/handoffs never include these spans.
-                    ledger["items"][identity]["private_document_review"] = {
-                        "failures": document_holds,
-                        "reading": {k: result.get(k) for k in
-                            ("title_english", "summary_english", "document_facts",
-                             "model_id", "prompt_version", "relevance_score",
-                             "relevance_reasoning", "passed_relevance", "categories",
-                             "is_significant", "significance_reasoning", "requires_translation")}}
+                    ledger["items"][identity]["private_document_review"] = retain_review(
+                        result, document_holds, generation_run_id)
                     continue
         else:
             result = analyzer.analyze_record(title, body, profile)  # FatalAPIError aborts the run
@@ -502,6 +500,10 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         if verdict.outcome != qa.PUBLISHED:
             done(verdict.outcome, verdict.failures, details=verdict.details,
                  qa_json=verdict.as_json())
+            if (family == "vn_vpcp_official_documents_vi" and verdict.second_pass is None
+                    and result and result.get("passed_relevance")):
+                ledger["items"][identity]["private_document_review"] = retain_review(
+                    result, verdict.failures, generation_run_id)
             continue
 
         if family == "vn_vpcp_official_documents_vi":
