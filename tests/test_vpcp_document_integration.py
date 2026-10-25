@@ -535,6 +535,9 @@ class EvidenceSupportAndFirstReview(unittest.TestCase):
                                  analyze_record=unittest.mock.Mock(side_effect=AssertionError('no relevance retry')))
         result=generate(analyzer,'Synthetic 10744 attribution regression',evidence,private_document_profile())
         self.assertEqual(doc.output_failures({'pages':[(1,evidence)],'text_original':evidence},result),[])
+        from core import vietnam_daily_qa as qa
+        self.assertNotIn('E_UNATTRIBUTED',qa.output_failures({'source_family':VPCP},'Synthetic',evidence,result,
+            translation_required=False,permissions={'public_ipr_analysis':True},projection={'title_english':result['title_english']}))
         analyzer._desk_analysis_fields.assert_called_once();analyzer.analyze_record.assert_not_called()
         prompt=document_analysis_messages('Synthetic','Synthetic')[0]['content']
         self.assertIn('actual actor and action',prompt)
@@ -682,7 +685,7 @@ class EvidenceSupportAndFirstReview(unittest.TestCase):
         from core import vietnam_daily_qa as qa
         permissions={'public_ipr_analysis':True}
         projection={'title_english':'Government Office administrative instructions'}
-        for verb in ('issued','instructs','requests'):
+        for verb in ('issued','instructs','requests','conveys','conveyed','transmits','transmitted','communicates','communicated'):
             summary='The Government Office '+verb+' an administrative instruction.'
             result={'summary_english':summary,'categories':['policy_document'],'is_significant':False}
             def check(family):
