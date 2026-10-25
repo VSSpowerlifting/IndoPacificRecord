@@ -293,3 +293,31 @@ the existing first-review continuation and its durable single-use reservation.
 Neither relevance nor generation is repeated; an already-executed factual
 review cannot run again. Cumulative provider-token cost before this first review
 is $0.153260 across ten API calls; durable reservations are $0.48976375.
+
+PR #871 merged as `dd74966e8b` after exact-head CI `40189895824` passed
+7,990 tests (15 skips), renderer, validation and preservation checks. Private
+bridge `40192646938` made **zero API calls**: shared deterministic QA rejected
+`PM` in the headline before factual review, although the summary expands
+Prime Minister and the Vietnamese source contains that role. Government Office
+output now recognizes this abbreviation only with both the English expansion
+and Vietnamese source-role support. The factual reviewer still checks the
+actual responsible authority; other source families keep their existing rule.
+
+All shared deterministic checks now run before a retained draft can reopen its
+unexecuted first-review route. An unresolved hold settles without consuming
+document slots repeatedly. The shared numeric check also receives the verified
+header proof, consistently with document-specific QA. Pre-review holds preserve
+the unchanged paid draft and its original generation-run identity; factual
+review failures remain terminal under the persistent single-use route guard.
+
+The previous hold omitted its draft from the current ledger, but the original
+paid receipt is intact at private Git commit
+`3364d3072421ffd13450ac2e29db705c8705d95c`. Recovery is prepared using the
+existing ledger reader/writer, retaining the current `E_ACRONYM` QA outcome
+and restoring only the identical saved reading with its original funding run
+`40189202615-1`. Its canonical reading SHA-256 is
+`26efd68a6cd71b95605da9fe7ed833d098ce675bfc428378612d91ace7066ed7`.
+The draft passes every current deterministic check without editing or model
+generation. Apply this one-time recovery only against the verified current
+private ledger preimage after the correction passes CI; spending state,
+other records and the signed public handoff remain untouched by recovery.

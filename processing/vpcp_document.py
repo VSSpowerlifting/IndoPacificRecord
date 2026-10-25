@@ -231,13 +231,22 @@ def inspect_pdf(data, metadata, *, expected_sha256=None):
         raise ValueError('document_parser_failed') from None
 
 
+def retain_review(reading, failures, generation_run_id):
+    """Private-only paid draft receipt, retaining the original spending origin."""
+    return {'failures':list(failures),'generation_run_id':generation_run_id,
+            'reading':{k:reading.get(k) for k in
+                ('title_english','summary_english','document_facts','model_id','prompt_version',
+                 'relevance_score','relevance_reasoning','passed_relevance','categories',
+                 'is_significant','significance_reasoning','requires_translation')}}
+
+
 def retained_format_draft(item,version):
     """Complete an unexecuted QA stage; never regenerate a paid draft."""
     from config import ANALYSIS_MODEL,RELEVANCE_THRESHOLD
     review=item.get('private_document_review') or {}
     saved=review.get('reading')
     if (item.get('outcome')!='held_review' or review.get('failures') not in
-        (['document_summary_coverage'],['document_numeric_evidence_mismatch'])
+        (['document_summary_coverage'],['document_numeric_evidence_mismatch'],['E_ACRONYM'])
         or not isinstance(saved,dict) or saved.get('model_id')!=ANALYSIS_MODEL
         or not isinstance(saved.get('prompt_version'),str)
         or type(saved.get('relevance_score')) not in (int,float)
@@ -252,4 +261,14 @@ def retained_format_draft(item,version):
     result.update(passed_relevance=True,requires_translation=False,is_significant=False,
         significance_reasoning=None,text_english=None)
     result.setdefault('relevance_reasoning','The retained source-specific relevance screen scored this verified Government Office administrative communication %.2f.'%saved['relevance_score'])
-    return result if not output_failures(version,result) else None
+    if output_failures(version,result):
+        return None
+    # An unresolved shared deterministic hold must settle without consuming a
+    # document slot or reopening any paid route on each unattended run.
+    from core import vietnam_daily_qa as qa
+    failures=qa.output_failures(
+        {'source_family':FAMILY,'publisher_posted_date':version.get('bibliographic',{}).get('issue_date')},
+        version.get('title_original',''),version['text_original'],result,
+        translation_required=False,permissions={'public_ipr_analysis':True},version=version,
+        projection={'title_english':result.get('title_english'),'summary_english':result['summary_english']})
+    return result if not failures else None
