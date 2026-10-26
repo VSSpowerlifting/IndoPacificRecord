@@ -55,6 +55,7 @@ EXPECTED = {
     17: am.PHOTOGRAPH,   # trident-resolve-basarnas-drone, a brief cover (PoC)
     18: am.PHOTOGRAPH,   # source-linked editorial analysis, museum aircraft context (not Ban Keun)
     19: am.PHOTOGRAPH,   # owner-approved 2023 JASDF F-15DJ context photograph
+    20: am.PHOTOGRAPH,   # owner-approved 2022 HMS Tamar context photograph
 }
 
 #: Han, kana and CJK punctuation: script that needs a declared language.
@@ -411,7 +412,13 @@ class ArticleMediaPagesTests(unittest.TestCase):
         prev19 = self.native[19][2].select_one("nav.brief-issue-nav a[rel=prev]")
         self.assertEqual(prev19["href"], "what-is-being-built-in-laos.html")
         self.assertIn("No. 18", prev19.get_text())
-        self.assertIsNone(self.native[19][2].select_one("nav.brief-issue-nav a[rel=next]"))
+        next19 = self.native[19][2].select_one("nav.brief-issue-nav a[rel=next]")
+        self.assertEqual(next19["href"], self.native[20][0]["slug"] + ".html")
+        self.assertIn("No. 20", next19.get_text())
+        prev20 = self.native[20][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        self.assertEqual(prev20["href"], self.native[19][0]["slug"] + ".html")
+        self.assertIn("No. 19", prev20.get_text())
+        self.assertIsNone(self.native[20][2].select_one("nav.brief-issue-nav a[rel=next]"))
 
     def test_historical_pages_load_the_shared_nav_and_media_rules(self):
         # The coordinated journal release ships every historical page together
