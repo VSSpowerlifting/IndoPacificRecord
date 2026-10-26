@@ -300,8 +300,8 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
-  "issue_number": null,
+  "editorial_status": "approved",
+  "issue_number": 20,
   "week_start": "2026-10-18",
   "week_ending": "2026-10-24",
   "desks": [],
@@ -414,5 +414,31 @@
         "s2"
       ]
     }
-  ]
+  ],
+  "editorial_review": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-10-25",
+    "reference": "docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343",
+    "checks": {
+      "authorship": true,
+      "chronology": true,
+      "claim_support": true,
+      "limited_source_use": true,
+      "manuscript_fidelity": true,
+      "original_language": true,
+      "rendered_review": true
+    }
+  },
+  "policy_ruling": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-10-25",
+    "reference": "docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343"
+  },
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-10-25",
+    "reference": "DECISION_LOG.md#2026-10-25--bersama-lima-brief-sole-authorship-source-review-headings-and-cover"
+  }
 }

@@ -1,9 +1,7 @@
 # Bersama Lima Brief — release preparation, October 25, 2026
 
-**Status: staged, not approved, not numbered, not published.** Every human
-attestation below is **open**. Nothing in this file is an approval receipt, and
-none of the sidecar's `editorial_review`, `policy_ruling` or `approval` fields,
-or the presentation receipt, has been filled in.
+**Status: attested by the owner on October 25, 2026; numbering and publication
+follow below.** Receipts record the owner's own chat attestation only.
 
 Brief: *Bersama Lima 2026 Tests Five-Power Coordination at Sea*, week
 18–24 October 2026, slug `bersama-lima-2026-five-power-coordination-at-sea`.
@@ -61,17 +59,29 @@ needs a DVIDS login and was not accessed. The owner's 25 October correction desc
 "approved" after the preview and crop were shown; the DECISION_LOG entry naming
 the image, scope and treatment is recorded at release approval.
 
-## Open gates (smallest explicit human approvals)
+## Confirmed source review and release preparation
 
-1. Exact-version source, rights and editorial review of fingerprint `0d017fb6…3343`
-   (the seven `editorial_review` checks) and the source-linked evidence policy
-   ruling.
-2. Presentation approval: four headings, excerpts (none), media, rendered page.
-3. Cover and 720 × 480 crop: DECISION_LOG entry (owner statement above).
-4. Then, and only then: `author_brief.py approve` (the command assigns the
-   number; expected No. 20 if No. 19 is still the highest), the paired catalogue
-   admission, the `tests/test_catalogue_media.py` allow-list lines, render,
-   validator, full CI, one PR.
+On October 25, 2026 Benjamin Yang attested in chat: "I personally reviewed the six
+original sources against fingerprint 0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343 and attest all
+seven editorial_review checks and the source-linked policy ruling." This is the
+actual human attestation for the exact manuscript, recorded as his and not as the
+preparing agent's source comparison above. The `editorial_review` and
+`policy_ruling` receipts bind that fingerprint. Authorship is Dylan Tanzi as sole
+author by the owner's correction; see DECISION_LOG 2026-10-25.
+
+## Presentation approval
+
+In the same message he approved "the four headings and the rendered page"
+(sections 1–3, 4–8, 9–14, 15–16; no excerpts, evidence or inline figures; the
+cover is shown through the existing admitted-media path). The presentation receipt
+binds digest `4556c3d415283b520996c719e08c1dd8edf5aacdc8ae5d172974641631b2bb01`. The cover was accepted separately as recorded in
+DECISION_LOG and the cover receipt.
+
+## Remaining release steps
+
+`author_brief.py approve` assigns the number; the paired catalogue admission and
+test allow-list lines follow it; then render, validator, full CI, one PR, merge,
+deploy and live verification. Approval of content does not assert deployment.
 
 ## Receipts
 

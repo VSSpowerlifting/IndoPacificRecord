@@ -2,7 +2,7 @@
   "version": "brief-presentation-v1",
   "article": "bersama-lima-2026-five-power-coordination-at-sea",
   "manuscript_fingerprint": "0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343",
-  "status": "draft",
+  "status": "approved",
   "sections": [
     {
       "id": "reading-exercise",
@@ -29,5 +29,16 @@
       "heading": "What to watch next"
     }
   ],
-  "approval": null
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-10-25",
+    "reference": "docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md#presentation-approval",
+    "fingerprint": "4556c3d415283b520996c719e08c1dd8edf5aacdc8ae5d172974641631b2bb01",
+    "checks": {
+      "excerpts": true,
+      "headings": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
 }
