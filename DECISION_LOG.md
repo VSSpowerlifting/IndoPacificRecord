@@ -20,12 +20,15 @@ approval remain pending; this entry records neither.
 
 **No approval is recorded here.** This entry records decisions that remain
 open. The draft `dossiers/china-singapore-naval-cooperation.json` (revision 0,
-content digest `f68063c585e3428f97b3f8f18d60aa72a8817e2ab1b9c1b3522aee32a6559001`) was prepared with machine assistance (Claude).
+content digest `f5afba596391e8ca2e47c277d16884b89e10ea22df934f2cfb8d33ee569060a0`) was prepared with machine assistance (Claude).
+It replaces the earlier draft digest `f68063c585e3428f97b3f8f18d60aa72a8817e2ab1b9c1b3522aee32a6559001` after the owner's 26 October
+review requested an editorial completion pass; that earlier digest was not
+approved and no approval carries over from it.
 Benjamin Yang is named as the responsible editor but has not approved it. It
 stays withheld from production until he decides on two points:
 
 1. editorial approval of that exact digest, including its findings,
-   qualifications, chronology and comparison of official accounts;
+   qualifications, chronology and closing synthesis;
 2. a source-use decision for the 13 bound corpus records (3513, 3663, 3924,
    4102, 4164, 4211, 4452, 4454, 4466, 4472, 4849, 4911, 5528) and the nine
    linked official pages x1–x9, limited to institutional attribution,

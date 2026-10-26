@@ -23,12 +23,12 @@
       "cn_mnd",
       "sg_mindef"
     ],
-    "included": "Thirteen publications preserved in IPR’s record from August–October 2026 and nine linked official pages from 2015–2024. The preserved records are PLA Daily reports, China defence ministry statements, MINDEF releases and one Xinhua report carried by PLA Daily. The linked pages are seven MINDEF publications, including a parliamentary reply and a factsheet, and two Xinhua reports published on China’s defence ministry website.",
+    "included": "Thirteen publications preserved in IPR’s record from July–October 2026 and nine linked official pages from 2015–2025. The preserved records are PLA Daily reports, China defence ministry statements, MINDEF releases and one Xinhua report carried by PLA Daily. The linked pages are seven MINDEF publications, including a parliamentary reply and a factsheet, and two Xinhua reports published on China’s defence ministry website.",
     "excluded": "Unpublished activity, media and think-tank commentary, coast guard and non-naval cooperation, photographs and any claim to an exhaustive survey of either government’s reporting.",
     "method": "Compare dated official accounts edition by edition. Event dates stay distinct from publication dates, and plans stay distinct from reported execution. Chinese evidence is read in the original. Linked pages outside the record are cited by publisher, date and link only.",
-    "collection_limits": "The record covers recent months; earlier editions rely on linked official pages checked on October 26, 2026 and not preserved by IPR. No paid model processing was used. Restricted source text is not reproduced."
+    "collection_limits": "The preserved record covers July to October 2026. Earlier editions rely on linked official pages checked on October 26, 2026 and not preserved by IPR. No paid model processing was used. Restricted source text is not reproduced."
   },
-  "overview": "The public record shows one recurring bilateral exercise, Maritime Cooperation, held five times: in 2015 and then every year from 2023 to 2026, with the host alternating since 2023. Official accounts list more activities over time, but Singapore sent one or two ships to each edition whose participants are named. Around the exercise sit routine technical port stops, multinational cadet events and ministerial meetings. China describes deepening cooperation; Singapore presents one partnership among many. The record is official self-description. It does not establish interoperability, readiness or strategic alignment.",
+  "overview": "Official Chinese and Singaporean publications show a regular, institutionalised and modest naval relationship. The bilateral exercise Maritime Cooperation has been held five times: once in 2015 and every year since 2023, with the host alternating between Singapore and Zhanjiang. It sits within a 2008 defence agreement, enhanced in 2019 with commitments to regular and larger bilateral exercises and to visiting-forces and logistics arrangements. Each edition brought one or two ships from each navy for a few days of planning, professional exchange and sea serials such as gunnery, communications and manoeuvring, search and rescue and medical evacuation, with mine warfare and helicopter deck landings in some years. Around the exercise sit a routine PLA Navy technical stop at Changi, multinational cadet events and ministerial meetings. China describes the cooperation as deepening; Singapore places it among many naval partnerships. The record is official self-description. It documents regularity, institutional commitments and the activities each government chose to report; it does not measure interoperability, readiness or strategic alignment.",
   "sources": [
     {
       "record_id": 3513,
@@ -288,7 +288,7 @@
         {
           "id": "inaugural-2015",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF reported the inaugural edition in Singapore on May 20 and May 23–25, 2015. Singapore sent RSS Intrepid and RSS Valiant; the PLA Navy sent the frigate Yulin.",
+          "text": "MINDEF reported the inaugural edition in Singapore on May 20 and May 23–25, 2015. Singapore sent RSS Intrepid and RSS Valiant; the PLA Navy sent the frigate Yulin. MINDEF listed gunnery and manoeuvring serials at sea.",
           "source_record_ids": [],
           "event_period": {
             "start": "2015-05-20",
@@ -319,7 +319,7 @@
         {
           "id": "second-2023",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF announced the second edition for April 28 to May 1, 2023, eight years after the first.",
+          "text": "MINDEF announced the second edition for April 28 to May 1, 2023, eight years after the first, opening at Changi Naval Base. Singapore sent the frigate RSS Intrepid and the mine countermeasures vessel RSS Punggol; the PLA Navy sent the frigate Yulin and the minesweeper Chibi. The planned sea phase in the southern South China Sea included helicopter cross-deck landings, gunnery, replenishment-at-sea approaches, search and rescue, simulated minefield transits, and communications and manoeuvring drills.",
           "source_record_ids": [],
           "event_period": {
             "start": "2023-04-28",
@@ -327,7 +327,7 @@
             "basis": "planned",
             "date_basis": "MINDEF’s April 28, 2023 release announced the exercise window on its first day."
           },
-          "limits": "The dates come from a release issued on the opening day. This dossier did not review a closing release for the 2023 edition, so the dates are the announced plan.",
+          "limits": "The release was issued on the opening day and describes planned activity. This dossier did not review a closing release or a Chinese account of the 2023 edition.",
           "counterevidence_ids": [],
           "heading": "2023: the second edition, eight years later",
           "external_source_ids": [
@@ -337,7 +337,7 @@
         {
           "id": "third-2024",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF announced the third edition for September 1–5, 2024 at Zhanjiang. A Xinhua report published on China’s defence ministry website described it as the two navies’ first bilateral exercise held in China.",
+          "text": "MINDEF announced the third edition for September 1–5, 2024 at Zhanjiang, with the frigate RSS Stalwart. A Xinhua report published on China’s defence ministry website described it as the two navies’ first bilateral exercise held in China. It listed the PLA Navy’s forces as the missile frigate Sanya, the mine countermeasures vessel Hejian, shipborne helicopters and a marine detachment.",
           "source_record_ids": [],
           "event_period": {
             "start": "2024-09-01",
@@ -357,7 +357,7 @@
         {
           "id": "fourth-2025",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF announced the fourth edition for May 9–16, 2025. Singapore sent the frigate RSS Steadfast and the mine countermeasures vessel RSS Bedok.",
+          "text": "MINDEF announced the fourth edition for May 9–16, 2025 in Singapore. Singapore sent the frigate RSS Steadfast and the mine countermeasures vessel RSS Bedok; the PLA Navy sent the frigate Xuchang and the minesweeper Chishui, which had attended the IMDEX Asia 2025 show. MINDEF listed gunnery, search and rescue and medical evacuation for the sea phase.",
           "source_record_ids": [],
           "event_period": {
             "start": "2025-05-09",
@@ -438,13 +438,13 @@
     },
     {
       "id": "content-and-scale",
-      "heading": "Broader serials, constant scale",
-      "intro": "Official descriptions list more activities over time. The forces committed did not grow in step, and a plan announced before an exercise is not a record of what was done.",
+      "heading": "Activities and participation",
+      "intro": "Each edition paired one or two ships from each navy with planning ashore and a set of basic sea serials. The two governments often describe the same serials in different words, and a plan announced before an exercise is not a record of what was done.",
       "claims": [
         {
           "id": "vbss-plan-2024",
           "claim_kind": "issuer_statement",
-          "text": "Before the 2024 edition, a Xinhua report published on China’s defence ministry website said the exercise was held under the annual plan and by mutual consensus. It listed visit, board, search and seizure among the planned activities.",
+          "text": "Before the 2024 edition, a Xinhua report published on China’s defence ministry website said the exercise was held under the annual plan and by mutual consensus. It listed a joint surface strike, replenishment-at-sea positioning, joint search and rescue, and visit, board, search and seizure among the planned sea serials.",
           "source_record_ids": [],
           "event_period": {
             "start": "2024-09-01",
@@ -452,85 +452,80 @@
             "basis": "planned",
             "date_basis": "The Xinhua report described the planned content on August 29, 2024, before the exercise opened."
           },
-          "limits": "This is a pre-exercise plan. It does not show who carried out the boarding serial or whether it was conducted jointly.",
+          "limits": "This is a pre-exercise plan. It does not say which navy would conduct each serial; Singapore’s account of its ship’s role follows.",
           "counterevidence_ids": [],
           "heading": "China’s 2024 plan listed boarding",
           "external_source_ids": [
             "x8"
-          ],
-          "external_counterevidence_ids": [
-            "x3"
           ]
         },
         {
           "id": "observer-role-2024",
-          "claim_kind": "issuer_statement",
-          "text": "MINDEF’s pre-exercise release for 2024 said RSS Stalwart would observe PLA Navy demonstrations of boarding and mine clearance, rather than describing them as joint serials.",
+          "claim_kind": "editorial_interpretation",
+          "text": "MINDEF’s pre-exercise release for 2024 said RSS Stalwart would observe PLA Navy serials in vessel boarding and mine clearance. The two accounts are complementary: China listed boarding among the exercise’s planned content and a marine detachment among its forces, and Singapore described its own frigate’s part in those serials as observation.",
           "source_record_ids": [],
           "event_period": null,
-          "limits": "This is also a pre-exercise description. No closing account was reviewed to show what was finally conducted.",
+          "limits": "Both are pre-exercise accounts. No closing account of the 2024 edition was reviewed, so neither shows what was finally conducted.",
           "counterevidence_ids": [],
           "heading": "Singapore described an observer role",
           "external_source_ids": [
-            "x3"
-          ],
-          "external_counterevidence_ids": [
+            "x3",
             "x8"
           ]
         },
         {
           "id": "depth-2024",
           "claim_kind": "issuer_statement",
-          "text": "As the 2024 edition opened, a Xinhua report published on China’s defence ministry website said it was longer, had more serials and involved deeper exchange than before. It said the two navies were building the exercise series into a signature programme.",
+          "text": "As the 2024 edition opened, a Xinhua report published on China’s defence ministry website said that, compared with the two earlier editions, it ran longer, had more serials and involved deeper exchange. It said the two navies were building the exercise series into a signature programme.",
           "source_record_ids": [],
           "event_period": null,
-          "limits": "This is a self-assessment by one participant. More listed serials and longer duration do not measure the depth of cooperation.",
+          "limits": "This is one participant’s self-assessment. The longer window is consistent with MINDEF’s dates (five days in 2024, four in 2023), but duration and the number of serials do not by themselves measure depth.",
           "counterevidence_ids": [],
           "heading": "China called 2024 longer and deeper",
           "external_source_ids": [
+            "x2",
+            "x3",
             "x9"
-          ],
-          "external_counterevidence_ids": [
-            "x3"
           ]
         },
         {
           "id": "activities-2026",
           "claim_kind": "documented_publication",
-          "text": "MINDEF’s concluding release lists sea-rider exchanges, gunnery, communications and manoeuvring drills, joint search and rescue, medical evacuation and planning exercises ashore. China’s defence ministry lists a similar set, adding replenishment at sea and live firing. PLA Daily’s opening report had listed a joint surface strike among the planned serials; neither concluding account names one.",
+          "text": "The two concluding accounts describe largely the same activity in different terms. China’s defence ministry lists live firing, formation movement, casualty transfer and treatment, and an exchange of observers; MINDEF lists gunnery firings, manoeuvring, medical evacuation and an exchange of sea riders. Both list communications drills and joint search and rescue, with planning ashore, which China’s account calls a tabletop exercise. Only the Chinese accounts list replenishment at sea, ship tours and a deck reception. PLA Daily’s opening report also listed a joint surface strike among the planned serials; neither concluding account names one.",
           "source_record_ids": [
             3924,
             4164,
             4472
           ],
           "event_period": {
-            "start": "2026-09-08",
+            "start": "2026-09-03",
             "end": "2026-09-09",
-            "basis": "reported",
-            "date_basis": "Both ministries report the sea phase as concluding on September 9; PLA Daily places its start on September 8."
+            "basis": "uncertain",
+            "date_basis": "The accounts cover the whole exercise. China’s defence ministry dates it from September 3 and MINDEF from September 5; both end it on September 9."
           },
-          "limits": "Both concluding accounts are official summaries. Their silence on the planned strike serial does not show that it was dropped.",
+          "limits": "The pairing of terms is IPR’s reading; neither government defines its terms. Both lists are official summaries, and their silence on the planned strike serial does not show that it was dropped.",
           "counterevidence_ids": [],
-          "heading": "2026: what the concluding accounts list"
+          "heading": "2026: the same serials in two vocabularies"
         },
         {
           "id": "constant-scale",
           "claim_kind": "editorial_interpretation",
-          "text": "Singapore committed one or two ships to each edition whose participants are named in the releases reviewed: two in 2015, one frigate in 2024, a frigate and a mine countermeasures vessel in 2025, and one frigate in 2026. The lists of activities lengthened; the forces did not.",
+          "text": "Across the five editions Singapore sent one or two ships: two in 2015, 2023 and 2025, and one frigate in 2024 and 2026. The PLA Navy’s named contribution was one ship in 2015, two in 2023, 2024 and 2025, and one frigate in 2026. The two-ship editions added mine warfare vessels, and in 2024 China also listed shipborne helicopters and a marine detachment. Announced windows ran from four days in 2023 to eight in 2025. The comparable counts establish that Singapore’s ship commitment has stayed at one or two vessels; they do not show a rise in either navy’s ships, although China’s 2024 pre-exercise report stated an aim of expanding the exercise’s scale. The listed serials vary by edition rather than growing steadily.",
           "source_record_ids": [
-            4466
+            3924,
+            4466,
+            4472
           ],
           "event_period": null,
-          "limits": "Ship counts are an incomplete measure, and personnel numbers were not consistently available. The 2023 ship list was not checked. Publicity is not depth, and a stable force size does not show that cooperation stagnated.",
+          "limits": "Ship numbers are one measure. Capability mix, duration and serials changed from edition to edition, personnel numbers are not consistently published, and no reviewed source measures the complexity of a serial. Durations are announced windows. A steady ship count shows neither stagnation nor deepening.",
           "counterevidence_ids": [],
-          "heading": "Scale has not grown with the listed activity",
+          "heading": "Singapore has sent one or two ships to each edition",
           "external_source_ids": [
             "x1",
+            "x2",
             "x3",
-            "x4"
-          ],
-          "external_counterevidence_ids": [
-            "x9"
+            "x4",
+            "x8"
           ]
         }
       ]
@@ -566,7 +561,7 @@
             5528
           ],
           "event_period": null,
-          "limits": "Both governments use the same category for the Changi call. A technical stop is a logistical port call, not a ceremonial visit or a bilateral activity.",
+          "limits": "Both governments use the same category for the Changi call. The label describes the call’s purpose, a logistical stop rather than a ceremonial visit; it does not exclude accompanying contacts, though neither account reports any.",
           "counterevidence_ids": [],
           "heading": "China listed Singapore as a technical stop"
         },
@@ -610,23 +605,42 @@
     {
       "id": "agreements",
       "heading": "Agreements and mechanisms",
-      "intro": "The formal framework is thin in the public record: a defence agreement of commitments, and a stated aim of regular exercising.",
+      "intro": "MINDEF traces the first exercise to a Four-Point Consensus of November 2014. The main published framework is a 2008 defence agreement, enhanced in 2019. The record shows its exercise commitment in practice more clearly than its other naval-relevant provisions.",
       "claims": [
         {
           "id": "adesc-2019",
           "claim_kind": "issuer_statement",
-          "text": "A MINDEF factsheet dated October 20, 2019 describes an enhanced version of the two countries’ 2008 Agreement on Defence Exchanges and Security Cooperation. It sets out commitments for future activity.",
+          "text": "A MINDEF factsheet records that defence ministers Ng Eng Hen and Wei Fenghe signed an enhanced Agreement on Defence Exchanges and Security Cooperation on October 20, 2019, updating the 2008 original. Three of its new areas bear on naval activity: regularising and scaling up bilateral exercises across the army, navy and air force; a Visiting Forces Agreement for troops in bilateral exercises; and a mutual logistics support arrangement. The others are a regular ministerial dialogue, academic exchanges and a bilateral hotline.",
           "source_record_ids": [],
           "event_period": {
             "start": "2019-10-20",
             "end": "2019-10-20",
-            "basis": "uncertain",
-            "date_basis": "This is the factsheet’s publication date; the signing date was not independently checked."
+            "basis": "reported",
+            "date_basis": "The factsheet, published on the day, gives October 20, 2019 as the signing date."
           },
-          "limits": "The factsheet records commitments, not their execution. This dossier does not treat any listed commitment as carried out unless a later publication reports it.",
+          "limits": "The factsheet lists commitments, not their execution.",
           "counterevidence_ids": [],
           "heading": "2019: an enhanced defence agreement",
           "external_source_ids": [
+            "x5"
+          ]
+        },
+        {
+          "id": "adesc-implementation",
+          "claim_kind": "editorial_interpretation",
+          "text": "Of the agreement’s naval-relevant commitments, the reviewed publications document one in practice: bilateral exercising, which has been annual since 2023. The defence ministers’ meeting at the Xiangshan Forum in September 2026 is consistent with the ministerial-dialogue commitment. No publication reviewed here reports the Visiting Forces Agreement, the logistics arrangement or the hotline in use.",
+          "source_record_ids": [
+            4211,
+            4466
+          ],
+          "event_period": null,
+          "limits": "This is IPR’s comparison of commitments with published activity. Not finding a provision in use in this review is not evidence that it is unused.",
+          "counterevidence_ids": [],
+          "heading": "Commitments and documented practice",
+          "external_source_ids": [
+            "x2",
+            "x3",
+            "x4",
             "x5"
           ]
         },
@@ -648,7 +662,7 @@
     {
       "id": "official-accounts",
       "heading": "How each government describes it",
-      "intro": "The two governments describe the same activity in different registers. Neither account is independent of its author.",
+      "intro": "The two governments describe the same activity with different emphases. Neither account is independent of its author.",
       "claims": [
         {
           "id": "chinese-framing",
@@ -659,31 +673,24 @@
             4164
           ],
           "event_period": null,
-          "limits": "PLA Daily, the defence ministry and Xinhua are all Chinese state outlets. Agreement among them is one state’s outlets repeating one another, not corroboration.",
-          "counterevidence_ids": [
-            4466
-          ],
+          "limits": "PLA Daily, the defence ministry and Xinhua are all Chinese state outlets. Shared affiliation limits how far their agreement counts as independent confirmation; it does not show that one copied another.",
+          "counterevidence_ids": [],
           "heading": "China: deepening cooperation",
           "external_source_ids": [
             "x9"
-          ],
-          "external_counterevidence_ids": [
-            "x6"
           ]
         },
         {
           "id": "singapore-framing",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF presents the exercise as part of a wide network of naval partnerships and of long-standing, warm relations between the two navies. Its releases stress professional exchange rather than strategic purpose.",
+          "text": "MINDEF presents the exercise as part of a wide network of naval partnerships and of long-standing, warm relations between the two navies. Its releases stress professional exchange rather than strategic purpose. The two governments’ framings differ in emphasis, not in the facts they report, and both can be accurate.",
           "source_record_ids": [
             4466,
             4472
           ],
           "event_period": null,
           "limits": "This is Singapore’s self-description; omitting strategic language is not evidence about strategic intent.",
-          "counterevidence_ids": [
-            3924
-          ],
+          "counterevidence_ids": [],
           "heading": "Singapore: one partnership among many",
           "external_source_ids": [
             "x6"
@@ -715,7 +722,7 @@
           "text": "MINDEF’s 2015 release used the word interoperability to describe the purpose of the first edition. No publication reviewed here measures interoperability or readiness, and this dossier does not claim either.",
           "source_record_ids": [],
           "event_period": null,
-          "limits": "Stated aims are attributed to their author. Five short exercises with one or two ships a side cannot establish interoperability.",
+          "limits": "Stated aims are attributed to their author. The record does not measure interoperability: five short exercises with one or two ships a side neither establish nor rule it out.",
           "counterevidence_ids": [],
           "heading": "Interoperability is MINDEF’s word, not a finding",
           "external_source_ids": [
@@ -727,7 +734,7 @@
     {
       "id": "limits",
       "heading": "Where the record runs out",
-      "intro": "The public record supports a narrow finding. These limits apply to every section.",
+      "intro": "These limits apply to every section.",
       "claims": [
         {
           "id": "official-only",
@@ -749,18 +756,16 @@
         {
           "id": "not-alignment",
           "claim_kind": "editorial_interpretation",
-          "text": "The record shows recurring, small, publicised exercising and routine port access. It does not show strategic alignment: in the same months the same Singaporean frigate exercised with the United States, Japan and others.",
+          "text": "The record shows recurring, small, publicised exercising and routine port access. It does not measure strategic alignment in either direction. In the same months the same Singaporean frigate exercised with the United States, Japan and others; that shows a broad calendar, and neither establishes nor disproves alignment with any one partner.",
           "source_record_ids": [
             4452,
             4454,
             4466
           ],
           "event_period": null,
-          "limits": "This is IPR’s interpretation. It does not exclude cooperation that is not published.",
-          "counterevidence_ids": [
-            3924
-          ],
-          "heading": "Exercising is not alignment",
+          "limits": "This is IPR’s interpretation. Unpublished cooperation and intentions neither government states lie outside the record.",
+          "counterevidence_ids": [],
+          "heading": "The record does not measure alignment",
           "external_source_ids": [
             "x6"
           ]
@@ -768,7 +773,7 @@
         {
           "id": "gaps",
           "claim_kind": "editorial_interpretation",
-          "text": "Chinese accounts of the 2015, 2023 and 2025 editions, closing releases for 2023–2025 and any record of a 2020 edition were not reviewed. Personnel numbers are not given consistently. Absence from this dossier is not absence from the record.",
+          "text": "This dossier did not review Chinese accounts of the 2015, 2023 and 2025 editions, closing releases for the 2023–2025 editions, or any record of a 2020 edition. Personnel numbers are not given consistently. Absence from this dossier is not absence from the record.",
           "source_record_ids": [],
           "event_period": null,
           "limits": "The external research was a bounded check of linked official pages on October 26, 2026. It was not a comprehensive search.",
@@ -781,28 +786,41 @@
           ]
         }
       ]
-    }
-  ],
-  "disagreements": [
-    {
-      "id": "boarding-role-in-2024",
-      "claim_ids": [
-        "observer-role-2024",
-        "vbss-plan-2024"
-      ],
-      "status": "unresolved",
-      "note": "Before the 2024 edition, a Xinhua report published on China’s defence ministry website listed boarding among the planned activities, while MINDEF described RSS Stalwart observing PLA Navy boarding and mine-clearance demonstrations. Both are pre-exercise accounts; neither settles what was conducted. Both are preserved."
     },
     {
-      "id": "depth-of-cooperation",
-      "claim_ids": [
-        "chinese-framing",
-        "singapore-framing"
-      ],
-      "status": "unresolved",
-      "note": "China’s outlets describe deepening cooperation and a signature programme; Singapore places the exercise within a wide network of partnerships. These are different emphases rather than contradictory facts, and this dossier does not choose between them."
+      "id": "synthesis",
+      "heading": "What the record establishes",
+      "intro": "Read together, the publications support a bounded but substantive conclusion.",
+      "claims": [
+        {
+          "id": "synthesis",
+          "claim_kind": "editorial_interpretation",
+          "text": "China–Singapore naval cooperation has become regular. After a single edition in 2015 and an eight-year gap, Maritime Cooperation has been held every year since 2023, with the host alternating between Singapore and Zhanjiang. It rests on published institutional arrangements: a 2008 defence agreement enhanced in 2019 with commitments to regular and larger exercises, visiting-forces and logistics arrangements and a regular ministerial dialogue, and the two defence ministers met again in 2026. Its practical content is consistent across editions: one or two ships a side, a few days of planning and professional exchange ashore, and sea serials in gunnery, communications and manoeuvring, search and rescue and medical evacuation, with mine warfare and helicopter deck landings in some years. Around it, a PLA Navy task force made a routine technical stop at Changi and Singaporean cadets joined a PLA Navy multinational camp. The record does not demonstrate depth beyond this. The ship count has stayed at one or two a side; the one advanced joint serial named in a 2026 plan, a joint surface strike, appears in neither concluding account; and no publication reviewed shows the visiting-forces or logistics arrangements in use. The evidence supports describing an established, regular and modest professional exercise relationship, framed by China as deepening and by Singapore as one of many naval partnerships.",
+          "source_record_ids": [
+            3663,
+            3924,
+            4164,
+            4211,
+            4466,
+            4472,
+            4911
+          ],
+          "event_period": null,
+          "limits": "This is IPR’s synthesis of official publications. It describes what was published, not what was achieved, and would change with closing accounts of earlier editions or evidence of the agreement’s other provisions in use.",
+          "counterevidence_ids": [],
+          "heading": "Regular and institutionalised, with modest demonstrated depth",
+          "external_source_ids": [
+            "x1",
+            "x2",
+            "x3",
+            "x4",
+            "x5"
+          ]
+        }
+      ]
     }
   ],
+  "disagreements": [],
   "case_studies": [
     "maritime-cooperation-2026"
   ],
