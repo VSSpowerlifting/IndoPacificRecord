@@ -32,6 +32,42 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+**Living Dossiers (26 October 2026): complete revision 2 candidate in PR #864.**
+The approved eight findings, five source versions, six chronology entries and
+reviewed presentation are preserved byte for byte from `99506199a1`.
+Readiness reconciles every source and returns no holds; editorial digest
+`3f774c00ec432fa64fe0a19695e3d4dde3c6b34704264bc752a268a7aa4e7039`
+still matches the independent editorial/source-use decisions. All five preserved
+originals were reread against the finding matrix; no new collection or model run.
+Current main `3478fd759d` and the existing PR #879 repair `7f6ceb6996` are
+incorporated, preserving newer Briefs, staff, Daily records and decisions.
+CI then exposed the same Python 3.9 / Ubuntu 26.04 setup failure in the
+Indonesia press-link rehearsal; only the runner lines of the two triggered
+Indonesia PR render checks are pinned to 24.04, retaining their release gates.
+The 190 affected dossier/renderer/baseline checks pass. Public-route desktop,
+375/320px mobile, keyboard disclosures, source/return links, archive discovery,
+citation copy and print were verified; captures are indexed in `design-qa.md`.
+All 2,226 routes pass delivery budgets; the dossier uses 111,195 HTML+CSS bytes
+and 6,953 JS bytes. Shared rendering and validation retain 10 governed warnings.
+The generated diff against main contains only the fifteen dossier/discovery/
+backlink/assets outputs. An unrelated renderer refresh of Philippines directory
+counts in `desks.html` was inspected and restored to main. Database matches main;
+canonical Briefs and Timeline are unchanged. Final-commit CI receipts belong in
+PR #864; no earlier-head result is substituted. No merge, deployment or public
+release was performed. Workflow: `docs/LIVING_DOSSIERS.md`.
+
+**PR #864 baseline maintenance (25 October 2026).** PR #879 pins only the
+eight failing contract jobs in seven workflows to Ubuntu 24.04 / Python 3.9;
+triggers, permissions, commands and release jobs are preserved. Main's #878
+also repaired the three baseline assertions from offline run `40240196861`;
+this maintenance retains those fixes and adds source-family, official-URL,
+source-identity and rights-decision-digest checks for withheld original titles.
+Disclosure, machine-headline exclusion, VPCP document QA and keyboard-access
+checks remain enforced. No database, generated output, source-use grant or
+dossier content changes are introduced relative to the incorporated main.
+Exact-head CI and all eight affected Actions checks are recorded in PR #879
+before handoff; merge and deployment require separate authorization.
+
 **Vietnam Government Office full-document integration (25 October 2026): 10744 published through the shared Daily.**
 The single authorized correction passed generation and independent factual review
 in private run `40217218707`; its prior rejection, costs and routes remain intact.

@@ -258,3 +258,16 @@ sidecars with `scripts/rerender_pla_watch.py`. `scripts/generate_pla_watch.py`
 authors nothing new, and `generate_pla_watch_draft.yml`, which only dispatched
 it, is retired (DECISION_LOG 2026-09-23). After any publication, update
 PROJECT_STATE.md and record constraining rulings in DECISION_LOG.md.
+
+## Living Dossiers
+
+`core/dossier_contract.py` owns shape/digest; `core/dossiers.py` reconciles the
+exact read-only archive inputs and loads only independently authorized approved
+versions. `core/dossier_decisions.py` records actual owner decisions separately
+from manuscript assertions. The existing production renderer, Analysis context,
+record/Brief backlinks and `core/archive_research.py` metadata projection serve
+approved dossiers; drafts use an explicit external, local-only review mode.
+The chronology is bound to the existing Timeline manuscript without copying or
+approving that product. Private `dossiers/drafts/` revisions preserve the last
+approved canonical source. See [LIVING_DOSSIERS.md](LIVING_DOSSIERS.md) for the
+maintainer workflow and the real Maritime draft's outstanding decisions.

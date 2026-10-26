@@ -4,6 +4,41 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-25 — Owner: Maritime dossier narrow five-source public projection
+
+Benjamin Yang explicitly answered “Also approve that narrow five-source public
+projection” in this task. The scope is institutional attribution, publication
+dates, independent IPR paraphrases, official links and links to existing IPR
+record pages for the five exact versions bound by Maritime Cooperation 2026
+revision 2: records 3924, 4102, 4164, 4466 and 4472 (PLA Daily, China MND and
+Singapore MINDEF). `core/dossier_decisions.py` records each complete source
+identity and body SHA with only those five public fields. This is an actual
+owner source-use decision, separate from the reaffirmed editorial approval.
+Original text, translations, excerpts and media are excluded. No source version,
+finding, qualification, chronology or reviewed presentation is changed by the
+grant. Its references and the resulting exact approval digest are administrative
+bindings, not an authored revision. Merge, deployment and publication remain
+outside this release-preparation authority.
+
+## 2026-10-25 — Owner: Maritime dossier revision 2 editorial approval reaffirmed
+
+Benjamin Yang reaffirmed in this task that his approval of revision 2 and its
+reviewed presentation remains valid, and instructed the maintainer to record
+that actual approval and prepare a release candidate. The reviewed repository
+head is `38f9f2bf8f45e258ad9592272b865d41cd29d72f`; the reviewed draft content
+SHA-256 is `65444d8057e6facdeeb0fc9594cb83ad2f3be2fa4e35ecb9b01a82caff869c45`.
+This entry records the 25 October reaffirmation, not an invented earlier review
+date. Benjamin Yang is the responsible human editor; Codex remains credited
+for machine-assisted preparation. Findings, qualifications, source versions,
+chronology and reviewed CSS/template presentation are not reopened.
+
+Approval/status metadata and the resulting exact approval digest may be
+recorded through `core/dossier_decisions.py`. The separate source-use registry
+must still bind an actual decision for attribution, publication dates,
+independent IPR paraphrases and official/canonical-record links for the five
+bound versions; editorial approval alone does not invent that decision.
+Original text, translations, substantial excerpts and media remain outside this
+projection. This instruction does not authorize merge, deployment or publication.
 ## 2026-10-25 — Owner task: compare the whole eligible week before Brief composition
 
 The owner requested an October 18–24 reassessment and durable selection repair
