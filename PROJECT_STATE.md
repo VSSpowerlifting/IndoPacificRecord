@@ -1,5 +1,15 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Briefs narrative reform — review candidate (25 October 2026)
+
+Branch `claude/ipr-briefs-narrative-reform-0bf379` (stacked on PR #805's tree). Sunday drafts
+are article-first (`core/brief_prose_standard.py`, writer/handoff/readable/DOCX/importer
+updated, legacy layouts preserved), with a narrative quality report in the private appendix
+and a counts-only line in the owner preview, plus `scripts/analyze_editor_return.py` for the
+offline Dylan-return loop. Offline tests: `tests/test_briefs_narrative_reform.py`. No live
+model call, send or publication has occurred; the first live check is the owner's. Standard:
+`docs/IPR_BRIEFS_WRITING_STANDARD.md`; demo: `docs/evidence/briefs-narrative-reform-2026-10-25/`.
+
 ## Sunday selection reform — private review candidate (25 October 2026)
 
 PR #805 is being extended from its old ten-source comparison to complete

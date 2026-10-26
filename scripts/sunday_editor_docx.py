@@ -18,7 +18,8 @@ from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.shared import Inches, Pt
 
 from scripts.sunday_editor_readable import (
-    APPENDIX, BEGIN, PROSE_TITLES, editable_sections,
+    APPENDIX, ARTICLE_KEY, BEGIN, PROSE_TITLES, accounting_citations,
+    editable_sections, is_article_layout, split_article,
 )
 
 RECORD_PREFIX = "SOURCE RECORD IDS:"
@@ -33,7 +34,10 @@ def _references(packet):
     manuscript = packet.split(BEGIN, 1)[1].split(APPENDIX, 1)[0]
     appendix = packet.split(APPENDIX, 1)[1]
     cited = []
-    for line in manuscript.splitlines():
+    if re.search(r"^## " + ARTICLE_KEY + r"$", manuscript, re.MULTILINE):
+        # Article-first worksheets keep the citation map in the appendix.
+        cited = accounting_citations(packet)
+    for line in ([] if cited else manuscript.splitlines()):
         kind = None
         if line.startswith(RECORD_PREFIX):
             kind = "Record"
@@ -152,6 +156,13 @@ def render_editor_docx(worksheet):
         elif key == "DEK":
             p = doc.add_paragraph(style="Subtitle")
             _rich_paragraph(p, value)
+        elif key == ARTICLE_KEY:
+            for kind, text in split_article(value):
+                if kind == "subhead":
+                    doc.add_heading(text, level=2)
+                else:
+                    p = doc.add_paragraph()
+                    _rich_paragraph(p, text)
         else:
             doc.add_heading(PROSE_TITLES[key], level=2)
             for block in re.split(r"\n\s*\n", value):

@@ -16,7 +16,15 @@ from email.message import EmailMessage
 from email.utils import getaddresses
 from pathlib import Path
 
+from core.brief_prose_standard import check_article, fingerprint, format_report_lines, summary_line
 from scripts.sunday_pilot_owner_review import require_owner_review, require_exact_reviewed_manuscript
+
+# Article-first layout: one continuous editable ARTICLE section. The citation
+# map lives in the hash-validated appendix (keyed by paragraph fingerprint), so
+# Dylan can reorder, merge or rewrite paragraphs without touching source lines.
+ARTICLE_LAYOUT = "ipr-article-first/1"
+ARTICLE_KEY = "ARTICLE"
+ACCOUNTING_END = "END OF ARTICLE SOURCE ACCOUNTING"
 
 
 EDIT_SECTIONS = (
@@ -37,6 +45,44 @@ EDIT_SECTIONS = (
 def one_line(value):
     """Prevent source-supplied line breaks from masquerading as packet headings."""
     return " ".join(str(value or "").split())
+
+
+def article_text(blocks):
+    """Editable ARTICLE body: optional ``**subhead**`` lines then paragraphs."""
+    parts = []
+    for block in blocks:
+        heading = block["heading"].strip()
+        if heading:
+            parts.append("**" + heading + "**")
+        parts.append(block["text"].strip())
+    return "\n\n".join(parts)
+
+
+def _id_list(values, empty="none"):
+    return ", ".join(str(v) for v in values) if values else empty
+
+
+def article_accounting_lines(manuscript):
+    """Private, appendix-resident source accounting for an article-first draft."""
+    audit = manuscript["audit"]
+    lines = [
+        "ARTICLE SOURCE ACCOUNTING (private; Dylan's edits never change these records):",
+        "Layout: " + ARTICLE_LAYOUT,
+    ]
+    for index, block in enumerate(manuscript["article"], 1):
+        lines.append("Block {} | fp {} | records {} | external {}".format(
+            index, fingerprint(block["text"]), _id_list(block["citations"]),
+            _id_list(block.get("supplemental_citations", []))))
+    lines.append("Audit notes | records {} | external {}".format(
+        _id_list(audit["citations"]), _id_list(audit.get("supplemental_citations", []))))
+    for label, key in (("Development anchor", "development"),
+                       ("Baseline and routine", "baseline_and_routine"),
+                       ("Cross-desk assessment", "cross_desk_assessment"),
+                       ("Limitations ledger", "limitations"),
+                       ("Terms to verify", "terms_to_verify")):
+        lines.append(label + ": " + one_line(audit[key]))
+    lines.append(ACCOUNTING_END)
+    return lines
 
 
 def render_packet(sidecar, *, manuscript=None, as_of=None,
@@ -81,10 +127,17 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         coverage_warning,
         "Desks: " + ", ".join(desks),
         "",
-        "DYLAN: Edit the writing sections below and REPLY with this .txt attached.",
-        "Keep the source appendix intact. Give record IDs for factual claims.",
-        "Do not guess at translations, infer coordination, or assign an issue number.",
-        "Source listings are candidates, not endorsed editorial selections.",
+        *(("DYLAN: Edit the title, dek and ARTICLE below for language, flow and structure,",
+           "and REPLY with this .txt attached. You may reorder, merge, split or rewrite",
+           "paragraphs and subheads. Keep the source appendix intact.",
+           "You do not supply record IDs or settle permissions; Ben checks sources and rights.",
+           "Flag anything that looks wrong. Do not guess at translations or assign an issue number.",
+           "Source listings are candidates, not endorsed editorial selections.")
+          if isinstance(manuscript, dict) and "article" in manuscript else
+          ("DYLAN: Edit the writing sections below and REPLY with this .txt attached.",
+           "Keep the source appendix intact. Give record IDs for factual claims.",
+           "Do not guess at translations, infer coordination, or assign an issue number.",
+           "Source listings are candidates, not endorsed editorial selections.")),
         ("Private model research: {} source-linked official-source candidate(s) "
          "available for drafting; all require independent human verification. "
          "They are NOT production records, desk promotion, or publication approval."
@@ -108,32 +161,45 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
             raise ValueError("research-assisted manuscript has no single editorial focus")
         if research_evidence:
             lines.extend(("\n## EDITORIAL FOCUS", one_line(manuscript["editorial_focus"]), ""))
-        # The caller validated against the full-text evidence selection;
-        # do not silently convert the article into a release-ready sidecar.
-        headings = (
-            ("title", "WORKING TITLE"),
-            ("dek", "DEK"),
-            ("development", "CONCRETE DEVELOPMENT"),
-            ("opening_note", "OPENING NOTE"),
-            ("what_stood_out", "WHAT STOOD OUT"),
-            ("why_it_matters", "WHY IT MATTERS"),
-            ("what_was_routine", "WHAT WAS ROUTINE"),
-            ("what_im_watching_next", "WHAT I'M WATCHING NEXT"),
-            ("cross_desk_comparison", "CROSS-DESK COMPARISON"),
-            ("editorial_questions", "EDITORIAL QUESTIONS / SATURDAY FOLLOW-UP"),
-        )
-        for key, heading in headings:
-            lines.extend(("\n## " + heading, manuscript[key], ""))
-            if key in CITED_FIELDS:
-                production_ids = manuscript["citations"][key]
-                external_ids = (manuscript["supplemental_citations"][key]
-                                if research_evidence else [])
-                if production_ids:
-                    lines.append("SOURCE RECORD IDS: " + ", ".join(
-                        str(i) for i in production_ids))
-                if external_ids:
-                    lines.append("EXTERNAL SOURCE IDS: " + ", ".join(external_ids))
-                lines.append("")
+        if "article" in manuscript:
+            if not manuscript["article"] or any(
+                    line.startswith("**") and line.endswith("**") and "\n" not in line
+                    for block in manuscript["article"] for line in block["text"].split("\n\n")):
+                raise ValueError("malformed article blocks")
+            lines.extend((
+                "\n## WORKING TITLE", one_line(manuscript["title"]), "",
+                "\n## DEK", manuscript["dek"], "",
+                "\n## " + ARTICLE_KEY, article_text(manuscript["article"]), "",
+                "\n## EDITORIAL QUESTIONS / SATURDAY FOLLOW-UP",
+                manuscript["editorial_questions"], "",
+            ))
+        else:
+            # The caller validated against the full-text evidence selection;
+            # do not silently convert the article into a release-ready sidecar.
+            headings = (
+                ("title", "WORKING TITLE"),
+                ("dek", "DEK"),
+                ("development", "CONCRETE DEVELOPMENT"),
+                ("opening_note", "OPENING NOTE"),
+                ("what_stood_out", "WHAT STOOD OUT"),
+                ("why_it_matters", "WHY IT MATTERS"),
+                ("what_was_routine", "WHAT WAS ROUTINE"),
+                ("what_im_watching_next", "WHAT I'M WATCHING NEXT"),
+                ("cross_desk_comparison", "CROSS-DESK COMPARISON"),
+                ("editorial_questions", "EDITORIAL QUESTIONS / SATURDAY FOLLOW-UP"),
+            )
+            for key, heading in headings:
+                lines.extend(("\n## " + heading, manuscript[key], ""))
+                if key in CITED_FIELDS:
+                    production_ids = manuscript["citations"][key]
+                    external_ids = (manuscript["supplemental_citations"][key]
+                                    if research_evidence else [])
+                    if production_ids:
+                        lines.append("SOURCE RECORD IDS: " + ", ".join(
+                            str(i) for i in production_ids))
+                    if external_ids:
+                        lines.append("EXTERNAL SOURCE IDS: " + ", ".join(external_ids))
+                    lines.append("")
     lines.extend((
         "=== SOURCE APPENDIX — DO NOT EDIT ===",
         "The appendix comes from the tracked production corpus; URLs and titles",
@@ -150,6 +216,13 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         lines.extend(format_private_source_use(
             manuscript, trail, research_evidence))
         lines.append("")
+        if "article" in manuscript:
+            lines.extend(article_accounting_lines(manuscript))
+            lines.append("")
+            report = manuscript.get("_prose_quality") or check_article(
+                manuscript, desk_by_id={e["record_id"]: e["desk"] for e in trail})
+            lines.extend(format_report_lines(report))
+            lines.append("")
         selection = manuscript.get("story_selection")
         if selection:
             # Private decision trace for Ben/Dylan, not published editorial
@@ -269,6 +342,14 @@ def single_address(value, name):
     return parsed[0][1]
 
 
+def quality_summary(packet_text):
+    """The one-line narrative QA verdict (counts only) from a rendered packet, or ''."""
+    for line in packet_text.splitlines():
+        if line.startswith("Narrative QA: "):
+            return line
+    return ""
+
+
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
                 preview_to_owner=False):
     require_owner_review(
@@ -310,7 +391,10 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             "meaning and any unsupported claims. You must separately authorize "
             "editor delivery after independent source verification.\n\n"
             "Do not publish, number or forward as an approved Brief.\n\n"
-            "Exact attached manuscript SHA-256: "
+            + ((quality_summary(original_attachment.decode("utf-8")) + "\n"
+                "The full narrative report is in the attachment's private appendix.\n\n")
+               if quality_summary(original_attachment.decode("utf-8")) else "")
+            + "Exact attached manuscript SHA-256: "
             + hashlib.sha256(original_attachment).hexdigest() + "\n"
         )
     elif full_week:
@@ -440,6 +524,8 @@ def main(argv=None):
                          vietnam_candidates=vietnam_candidates,
                          research_evidence=research)
     args.out.write_text(text, encoding="utf-8")
+    if quality_summary(text):
+        print(quality_summary(text))
     print("Prepared unapproved {}: {} ({} production records; {} Vietnam shadow links requiring human review)".format(
         "machine-drafted editorial manuscript" if manuscript is not None else "editorial worksheet",
         args.out.name, len(sidecar["source_trail"]), len(vietnam_candidates)))

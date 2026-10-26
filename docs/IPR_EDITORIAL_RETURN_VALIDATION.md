@@ -38,6 +38,19 @@ machine draft, not a completed Saturday-ending Brief.
    imports briefs, assigns issue numbers, generates a website, publishes
    records, triggers Claude, or emails anyone.
 
+
+## Article-first worksheets (narrative reform, 25 October 2026)
+
+New worksheets have one editable `## ARTICLE` section instead of the fixed outline
+and carry no `SOURCE RECORD IDS:` lines in the editable text. Dylan may reorder,
+merge, cut or re-head paragraphs and edit `**bold-only**` subheads; the
+block-to-record map stays in the byte-identical **ARTICLE SOURCE ACCOUNTING** inside
+the appendix. The validator is unchanged in what it enforces (identical header and
+appendix, identical `##` headings, prose beyond any citation lines); the Word
+importer treats Heading paragraphs after the dek as subheads of the one article.
+Worksheets already sent in the fixed-outline layout validate exactly as before.
+To learn from a return, run `scripts/analyze_editor_return.py` offline; see
+`docs/IPR_BRIEFS_WRITING_STANDARD.md` §6. It never changes a prompt.
 ## Failure handling
 
 The checker refuses missing/extra section headings, changed packet metadata,

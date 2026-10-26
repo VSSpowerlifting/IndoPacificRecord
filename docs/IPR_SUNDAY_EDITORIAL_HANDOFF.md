@@ -1,5 +1,18 @@
 # Sunday IPR Briefs — full-week draft to Dylan (staged migration)
 
+## Narrative reform — article-first manuscript (25 October 2026)
+
+The writer now asks for one cohesive article (lead on the concrete development, optional
+story-specific subheads, no forced sections) plus a private `audit` block, under the
+standard in `docs/IPR_BRIEFS_WRITING_STANDARD.md`. Dylan's TXT/Word/email show the title,
+dek, article and (TXT only) the editorial questions; the audit notes, source accounting,
+limitations ledger, source-use receipt and a **NARRATIVE QUALITY REPORT** stay in the
+private appendix. The owner preview adds a counts-only quality line. Mechanical failures
+(placeholder, truncation, doubled words, duplicated or forced material) mark a hold that
+rides the existing owner-review gate; style findings are advisory and never trigger a
+second model call. Nothing in this reform sends, numbers, publishes or spends; the
+first live use is a separate owner-authorized step.
+
 ## Scheduled-delivery correction — October 11, 2026
 
 After this change, the Sunday 19:17 UTC schedule **attempts one guarded

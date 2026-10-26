@@ -4,6 +4,22 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-25 — Briefs narrative reform: article-first drafts, offline editor-feedback loop
+
+Ben ordered a durable fix for the mechanical, over-caveated Sunday manuscript (not a rewrite
+of the October 24 draft). Decisions: (1) the machine draft is one article with optional
+story-specific headings, a lead on the development, and a private audit block; the fixed
+outline is retired for new drafts and retained only so already-sent worksheets still
+validate; (2) necessary qualifications stay in the article once, research-process
+commentary moves to the audit, and nothing is deleted; (3) a deterministic-plus-heuristic
+quality gate reports before handoff, mechanical majors use the existing owner-review hold,
+style flags are advisory, and there is no second paid call or unbounded retry; (4) citations
+are mapped per block in the hash-validated appendix, so Dylan's reordering cannot corrupt
+them; (5) editor returns can be analysed offline, but an analysis never changes a prompt
+and promoting a rule needs explicit owner approval. Ben owns accuracy, argument and
+publication; Dylan is the language and structure editor. This authorizes no model call,
+send, numbering, merge or publication. See `docs/IPR_BRIEFS_WRITING_STANDARD.md`.
+
 ## 2026-10-25 — Owner task: compare the whole eligible week before Brief composition
 
 The owner requested an October 18–24 reassessment and durable selection repair
