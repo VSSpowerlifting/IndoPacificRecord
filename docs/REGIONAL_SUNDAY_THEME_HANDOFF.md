@@ -1,5 +1,11 @@
 # Owner-approved thematic Sunday manuscript trial
 
+The private review candidate described in
+[BRIEFS_WEEKLY_SELECTION.md](BRIEFS_WEEKLY_SELECTION.md) extends PR #805's
+ordinary full-week selection separately. It does not pass an automatic choice
+into this signed trial or change its reviewed-synopsis, HMAC or no-send scope.
+References below to the old ordinary ranking describe the historical baseline.
+
 Stage 3C of [Regional Editorial Intelligence #256](https://github.com/VSSpowerlifting/China-Mil-Watch/issues/256).
 
 **Status: optional, private, no-send, human-initiated engineering trial.** It

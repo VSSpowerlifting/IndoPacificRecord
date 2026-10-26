@@ -1,5 +1,27 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Sunday selection reform — private review candidate (26 October 2026)
+
+PR #805 is being extended from its old ten-source comparison to complete
+eligible-week discovery in the existing Sunday writer. The October 24 editorial comparison and proposed article brief are held
+outside the public repository for Ben's private review. The delivered TXT
+remains unchanged and Dylan has not been sent a replacement.
+The [selection contract](docs/BRIEFS_WEEKLY_SELECTION.md) describes source
+content digests, duplicate grouping, quality floors, optional connection
+weighting and explicit no-send abstention. A committed production-only audit
+contains metadata/hashes, not publisher bodies or a paid manuscript. This is
+an unmerged engineering candidate, not evidence of live model/editor operation.
+Existing collection, source-use, owner, DOCX/TXT and publishing gates remain.
+Current main `71beedb3ba` is integrated. Review found and repaired lost closing
+qualifications in long digest sentences, contradictory abstention/focus
+instructions, and the automatic prompt's missing private-paraphrase caution;
+comparison/manuscript word budgets now share the existing 5,400-token ceiling.
+The frozen receipt is preserved. Historical and today's database replays both
+offer 127 sources/124 clusters; today's adds four AFP metadata-only links.
+See the contract's dated review for scope and limitations. Final merge
+readiness depends on the exact-head PR offline checks and human review;
+no paid call, email, new manuscript or publication was performed here.
+
 **Owner architecture target (19 October 2026; not yet deployed):** All desks
 should ultimately converge on one logical shared Daily article-processing,
 model and public publishing architecture, while approved source collection,
@@ -17,7 +39,7 @@ Readiness reconciles every source and returns no holds; editorial digest
 `3f774c00ec432fa64fe0a19695e3d4dde3c6b34704264bc752a268a7aa4e7039`
 still matches the independent editorial/source-use decisions. All five preserved
 originals were reread against the finding matrix; no new collection or model run.
-Current main `71beedb3ba` and the existing PR #879 repair `7f6ceb6996` are
+Current main `3478fd759d` and the existing PR #879 repair `7f6ceb6996` are
 incorporated, preserving newer Briefs, staff, Daily records and decisions.
 CI then exposed the same Python 3.9 / Ubuntu 26.04 setup failure in the
 Indonesia press-link rehearsal; only the runner lines of the two triggered

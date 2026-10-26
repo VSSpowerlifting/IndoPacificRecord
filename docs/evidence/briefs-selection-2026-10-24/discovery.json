@@ -1,0 +1,3692 @@
+{
+  "schema": "ipr-sunday-discovery/1",
+  "inventory": [
+    {
+      "id": "afp:1418",
+      "desk": "philippines",
+      "date": "2026-10-18",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "vpcp-vi:220077",
+      "desk": "vietnam",
+      "date": "2026-10-22",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "vpcp-vi:220078",
+      "desk": "vietnam",
+      "date": "2026-10-22",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "vpcp-vi:220079",
+      "desk": "vietnam",
+      "date": "2026-10-21",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "vpcp-vi:220065",
+      "desk": "vietnam",
+      "date": "2026-10-21",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "korea-policy:156785986",
+      "desk": "korea",
+      "date": "2026-10-21",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "korea-policy:156785987",
+      "desk": "korea",
+      "date": "2026-10-21",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "korea-policy:156786043",
+      "desk": "korea",
+      "date": "2026-10-21",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "korea-policy:156785888",
+      "desk": "korea",
+      "date": "2026-10-20",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "korea-policy:156785691",
+      "desk": "korea",
+      "date": "2026-10-19",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "us-treasury-press:sb0663",
+      "desk": "us-indopacific",
+      "date": "2026-10-19",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "us-treasury-press:sb0664",
+      "desk": "us-indopacific",
+      "date": "2026-10-21",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": "us-treasury-press:sb0665",
+      "desk": "us-indopacific",
+      "date": "2026-10-22",
+      "reason": "official_link_lane_not_full_text_evidence"
+    },
+    {
+      "id": 5615,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5614,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5613,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5612,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5611,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5610,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5609,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5608,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5607,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5606,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5605,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "awaiting_screening_or_analysis"
+    },
+    {
+      "id": 5604,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5603,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5602,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5601,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5600,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5599,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5598,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5597,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5596,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5595,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5594,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5593,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5592,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5591,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5590,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5589,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5588,
+      "desk": "china",
+      "date": "2026-10-24",
+      "reason": "eligible"
+    },
+    {
+      "id": 5583,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5582,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5581,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5580,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5579,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5578,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5577,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5576,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5575,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5574,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5573,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5572,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5571,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5570,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5569,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5568,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5567,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5566,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5565,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5564,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5563,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5562,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5561,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5560,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5559,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5558,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5557,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5556,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5555,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5554,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5553,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5552,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5551,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5550,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5549,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5548,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5547,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5546,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5545,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5544,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5543,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5542,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5541,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5540,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5539,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5538,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5537,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5536,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5535,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5534,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5533,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5532,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5531,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5530,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5529,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5528,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5527,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5526,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5525,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5524,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5523,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5522,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5521,
+      "desk": "china",
+      "date": "2026-10-23",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5517,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5516,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5515,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5514,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5513,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5512,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5511,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5510,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5509,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5508,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5507,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5506,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5505,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5504,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5503,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5502,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5501,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5500,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5499,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5498,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5497,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5496,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5495,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5494,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5493,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5492,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5491,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5490,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "eligible"
+    },
+    {
+      "id": 5489,
+      "desk": "china",
+      "date": "2026-10-22",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5486,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5485,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5484,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5483,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5482,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5481,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5480,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5479,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5478,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5477,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5476,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5475,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5474,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5473,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5472,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5471,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5470,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5469,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5468,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5467,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5466,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5465,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5464,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5463,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5462,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5461,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5460,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5459,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5456,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5455,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5454,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5453,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5452,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5451,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5450,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5449,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5448,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5447,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5446,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5445,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5444,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5443,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5442,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5441,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5440,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5439,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5438,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5437,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5436,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5435,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5434,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5433,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5432,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5431,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5430,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5429,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5428,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5427,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5426,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "eligible"
+    },
+    {
+      "id": 5425,
+      "desk": "china",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5423,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5422,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5421,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5420,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5419,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5418,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5417,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5416,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5415,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5414,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5413,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5412,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5411,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5410,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5409,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5408,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5407,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5406,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5405,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5404,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5403,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5402,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5401,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5400,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5399,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5398,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5397,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5396,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5395,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5394,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5393,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5392,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5391,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5390,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5389,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5388,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5387,
+      "desk": "china",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5386,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5385,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5384,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5383,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5382,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5381,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5380,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5379,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5378,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5377,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5376,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5375,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5374,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5373,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5372,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5371,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5370,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5369,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5368,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5367,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5366,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5365,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5364,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5363,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5362,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5361,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5360,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5359,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5358,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5357,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5356,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5355,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5354,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5353,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5352,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5351,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5350,
+      "desk": "china",
+      "date": "2026-10-19",
+      "reason": "eligible"
+    },
+    {
+      "id": 5349,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5348,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5347,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5346,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5345,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5344,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5343,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5342,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5341,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5340,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5339,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5338,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5337,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5336,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5335,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5334,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5333,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5332,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    },
+    {
+      "id": 5331,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5330,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5329,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5328,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5327,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5326,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5325,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5324,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5323,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5322,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5321,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5319,
+      "desk": "china",
+      "date": "2026-10-18",
+      "reason": "eligible"
+    },
+    {
+      "id": 5520,
+      "desk": "korea",
+      "date": "2026-10-21",
+      "reason": "awaiting_screening_or_analysis"
+    },
+    {
+      "id": 5519,
+      "desk": "korea",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5518,
+      "desk": "korea",
+      "date": "2026-10-21",
+      "reason": "not_in_current_source_trail"
+    },
+    {
+      "id": 5458,
+      "desk": "korea",
+      "date": "2026-10-20",
+      "reason": "awaiting_screening_or_analysis"
+    },
+    {
+      "id": 5457,
+      "desk": "korea",
+      "date": "2026-10-19",
+      "reason": "awaiting_screening_or_analysis"
+    },
+    {
+      "id": 5587,
+      "desk": "singapore",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5586,
+      "desk": "singapore",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5585,
+      "desk": "singapore",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5584,
+      "desk": "singapore",
+      "date": "2026-10-23",
+      "reason": "eligible"
+    },
+    {
+      "id": 5424,
+      "desk": "singapore",
+      "date": "2026-10-20",
+      "reason": "eligible"
+    },
+    {
+      "id": 5646,
+      "desk": "vietnam",
+      "date": "2026-10-21",
+      "reason": "no_original_full_text_metadata_or_derived_record"
+    }
+  ],
+  "coverage": [
+    {
+      "desk": "china",
+      "status": "live",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    },
+    {
+      "desk": "singapore",
+      "status": "live",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    },
+    {
+      "desk": "japan",
+      "status": "shadow",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    },
+    {
+      "desk": "korea",
+      "status": "live",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    },
+    {
+      "desk": "philippines",
+      "status": "shadow",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    },
+    {
+      "desk": "vietnam",
+      "status": "live",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    },
+    {
+      "desk": "indonesia",
+      "status": "shadow",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    },
+    {
+      "desk": "us-indopacific",
+      "status": "access_blocked",
+      "reason": "weekly corpus is not comprehensive source collection; no research offered"
+    }
+  ],
+  "continuity": [
+    {
+      "title": "Maritime Cooperation 2026: One Exercise, Two Official Accounts",
+      "week_ending": "2026-09-19"
+    },
+    {
+      "title": "Different Security Frames, Concrete Defense Ties",
+      "week_ending": "2026-09-19"
+    },
+    {
+      "title": "Trident Resolve: What the Exercise Looked Like From Singapore and China",
+      "week_ending": "2026-09-26"
+    },
+    {
+      "title": "What Is Being Built in Laos?",
+      "week_ending": "2026-10-10"
+    },
+    {
+      "title": "Three Days of Chinese Flights, Six Months of Japanese Scrambles",
+      "week_ending": "2026-10-17"
+    }
+  ],
+  "clusters": [
+    {
+      "id": "cluster-1",
+      "source_ids": [
+        5319
+      ]
+    },
+    {
+      "id": "cluster-2",
+      "source_ids": [
+        5424
+      ]
+    },
+    {
+      "id": "cluster-3",
+      "source_ids": [
+        5321
+      ]
+    },
+    {
+      "id": "cluster-4",
+      "source_ids": [
+        5584
+      ]
+    },
+    {
+      "id": "cluster-5",
+      "source_ids": [
+        5322
+      ]
+    },
+    {
+      "id": "cluster-6",
+      "source_ids": [
+        5585
+      ]
+    },
+    {
+      "id": "cluster-7",
+      "source_ids": [
+        5323
+      ]
+    },
+    {
+      "id": "cluster-8",
+      "source_ids": [
+        5586
+      ]
+    },
+    {
+      "id": "cluster-9",
+      "source_ids": [
+        5324
+      ]
+    },
+    {
+      "id": "cluster-10",
+      "source_ids": [
+        5587
+      ]
+    },
+    {
+      "id": "cluster-11",
+      "source_ids": [
+        5328
+      ]
+    },
+    {
+      "id": "cluster-12",
+      "source_ids": [
+        5329
+      ]
+    },
+    {
+      "id": "cluster-13",
+      "source_ids": [
+        5330
+      ]
+    },
+    {
+      "id": "cluster-14",
+      "source_ids": [
+        5333
+      ]
+    },
+    {
+      "id": "cluster-15",
+      "source_ids": [
+        5335
+      ]
+    },
+    {
+      "id": "cluster-16",
+      "source_ids": [
+        5339
+      ]
+    },
+    {
+      "id": "cluster-17",
+      "source_ids": [
+        5340
+      ]
+    },
+    {
+      "id": "cluster-18",
+      "source_ids": [
+        5350
+      ]
+    },
+    {
+      "id": "cluster-19",
+      "source_ids": [
+        5351
+      ]
+    },
+    {
+      "id": "cluster-20",
+      "source_ids": [
+        5352
+      ]
+    },
+    {
+      "id": "cluster-21",
+      "source_ids": [
+        5353
+      ]
+    },
+    {
+      "id": "cluster-22",
+      "source_ids": [
+        5355
+      ]
+    },
+    {
+      "id": "cluster-23",
+      "source_ids": [
+        5356
+      ]
+    },
+    {
+      "id": "cluster-24",
+      "source_ids": [
+        5359
+      ]
+    },
+    {
+      "id": "cluster-25",
+      "source_ids": [
+        5360
+      ]
+    },
+    {
+      "id": "cluster-26",
+      "source_ids": [
+        5361
+      ]
+    },
+    {
+      "id": "cluster-27",
+      "source_ids": [
+        5362
+      ]
+    },
+    {
+      "id": "cluster-28",
+      "source_ids": [
+        5363
+      ]
+    },
+    {
+      "id": "cluster-29",
+      "source_ids": [
+        5369
+      ]
+    },
+    {
+      "id": "cluster-30",
+      "source_ids": [
+        5370
+      ]
+    },
+    {
+      "id": "cluster-31",
+      "source_ids": [
+        5387
+      ]
+    },
+    {
+      "id": "cluster-32",
+      "source_ids": [
+        5388
+      ]
+    },
+    {
+      "id": "cluster-33",
+      "source_ids": [
+        5389
+      ]
+    },
+    {
+      "id": "cluster-34",
+      "source_ids": [
+        5390
+      ]
+    },
+    {
+      "id": "cluster-35",
+      "source_ids": [
+        5391
+      ]
+    },
+    {
+      "id": "cluster-36",
+      "source_ids": [
+        5392
+      ]
+    },
+    {
+      "id": "cluster-37",
+      "source_ids": [
+        5394
+      ]
+    },
+    {
+      "id": "cluster-38",
+      "source_ids": [
+        5397
+      ]
+    },
+    {
+      "id": "cluster-39",
+      "source_ids": [
+        5398
+      ]
+    },
+    {
+      "id": "cluster-40",
+      "source_ids": [
+        5399
+      ]
+    },
+    {
+      "id": "cluster-41",
+      "source_ids": [
+        5401
+      ]
+    },
+    {
+      "id": "cluster-42",
+      "source_ids": [
+        5402
+      ]
+    },
+    {
+      "id": "cluster-43",
+      "source_ids": [
+        5403
+      ]
+    },
+    {
+      "id": "cluster-44",
+      "source_ids": [
+        5404
+      ]
+    },
+    {
+      "id": "cluster-45",
+      "source_ids": [
+        5405
+      ]
+    },
+    {
+      "id": "cluster-46",
+      "source_ids": [
+        5407
+      ]
+    },
+    {
+      "id": "cluster-47",
+      "source_ids": [
+        5408
+      ]
+    },
+    {
+      "id": "cluster-48",
+      "source_ids": [
+        5411
+      ]
+    },
+    {
+      "id": "cluster-49",
+      "source_ids": [
+        5412
+      ]
+    },
+    {
+      "id": "cluster-50",
+      "source_ids": [
+        5413
+      ]
+    },
+    {
+      "id": "cluster-51",
+      "source_ids": [
+        5426
+      ]
+    },
+    {
+      "id": "cluster-52",
+      "source_ids": [
+        5428
+      ]
+    },
+    {
+      "id": "cluster-53",
+      "source_ids": [
+        5429
+      ]
+    },
+    {
+      "id": "cluster-54",
+      "source_ids": [
+        5430
+      ]
+    },
+    {
+      "id": "cluster-55",
+      "source_ids": [
+        5432
+      ]
+    },
+    {
+      "id": "cluster-56",
+      "source_ids": [
+        5433
+      ]
+    },
+    {
+      "id": "cluster-57",
+      "source_ids": [
+        5434
+      ]
+    },
+    {
+      "id": "cluster-58",
+      "source_ids": [
+        5436
+      ]
+    },
+    {
+      "id": "cluster-59",
+      "source_ids": [
+        5437
+      ]
+    },
+    {
+      "id": "cluster-60",
+      "source_ids": [
+        5438
+      ]
+    },
+    {
+      "id": "cluster-61",
+      "source_ids": [
+        5440
+      ]
+    },
+    {
+      "id": "cluster-62",
+      "source_ids": [
+        5445
+      ]
+    },
+    {
+      "id": "cluster-63",
+      "source_ids": [
+        5459
+      ]
+    },
+    {
+      "id": "cluster-64",
+      "source_ids": [
+        5464
+      ]
+    },
+    {
+      "id": "cluster-65",
+      "source_ids": [
+        5465
+      ]
+    },
+    {
+      "id": "cluster-66",
+      "source_ids": [
+        5469
+      ]
+    },
+    {
+      "id": "cluster-67",
+      "source_ids": [
+        5470
+      ]
+    },
+    {
+      "id": "cluster-68",
+      "source_ids": [
+        5473
+      ]
+    },
+    {
+      "id": "cluster-69",
+      "source_ids": [
+        5490
+      ]
+    },
+    {
+      "id": "cluster-70",
+      "source_ids": [
+        5491
+      ]
+    },
+    {
+      "id": "cluster-71",
+      "source_ids": [
+        5492
+      ]
+    },
+    {
+      "id": "cluster-72",
+      "source_ids": [
+        5494
+      ]
+    },
+    {
+      "id": "cluster-73",
+      "source_ids": [
+        5495
+      ]
+    },
+    {
+      "id": "cluster-74",
+      "source_ids": [
+        5496
+      ]
+    },
+    {
+      "id": "cluster-75",
+      "source_ids": [
+        5498
+      ]
+    },
+    {
+      "id": "cluster-76",
+      "source_ids": [
+        5500
+      ]
+    },
+    {
+      "id": "cluster-77",
+      "source_ids": [
+        5504
+      ]
+    },
+    {
+      "id": "cluster-78",
+      "source_ids": [
+        5506
+      ]
+    },
+    {
+      "id": "cluster-79",
+      "source_ids": [
+        5510
+      ]
+    },
+    {
+      "id": "cluster-80",
+      "source_ids": [
+        5523
+      ]
+    },
+    {
+      "id": "cluster-81",
+      "source_ids": [
+        5524
+      ]
+    },
+    {
+      "id": "cluster-82",
+      "source_ids": [
+        5526
+      ]
+    },
+    {
+      "id": "cluster-83",
+      "source_ids": [
+        5528
+      ]
+    },
+    {
+      "id": "cluster-84",
+      "source_ids": [
+        5531
+      ]
+    },
+    {
+      "id": "cluster-85",
+      "source_ids": [
+        5532
+      ]
+    },
+    {
+      "id": "cluster-86",
+      "source_ids": [
+        5533,
+        5559
+      ]
+    },
+    {
+      "id": "cluster-87",
+      "source_ids": [
+        5534,
+        5561
+      ]
+    },
+    {
+      "id": "cluster-88",
+      "source_ids": [
+        5535
+      ]
+    },
+    {
+      "id": "cluster-89",
+      "source_ids": [
+        5536
+      ]
+    },
+    {
+      "id": "cluster-90",
+      "source_ids": [
+        5537
+      ]
+    },
+    {
+      "id": "cluster-91",
+      "source_ids": [
+        5538
+      ]
+    },
+    {
+      "id": "cluster-92",
+      "source_ids": [
+        5539
+      ]
+    },
+    {
+      "id": "cluster-93",
+      "source_ids": [
+        5540,
+        5560
+      ]
+    },
+    {
+      "id": "cluster-94",
+      "source_ids": [
+        5541
+      ]
+    },
+    {
+      "id": "cluster-95",
+      "source_ids": [
+        5542
+      ]
+    },
+    {
+      "id": "cluster-96",
+      "source_ids": [
+        5543
+      ]
+    },
+    {
+      "id": "cluster-97",
+      "source_ids": [
+        5544
+      ]
+    },
+    {
+      "id": "cluster-98",
+      "source_ids": [
+        5545
+      ]
+    },
+    {
+      "id": "cluster-99",
+      "source_ids": [
+        5548
+      ]
+    },
+    {
+      "id": "cluster-100",
+      "source_ids": [
+        5555
+      ]
+    },
+    {
+      "id": "cluster-101",
+      "source_ids": [
+        5556
+      ]
+    },
+    {
+      "id": "cluster-102",
+      "source_ids": [
+        5558
+      ]
+    },
+    {
+      "id": "cluster-103",
+      "source_ids": [
+        5566
+      ]
+    },
+    {
+      "id": "cluster-104",
+      "source_ids": [
+        5567
+      ]
+    },
+    {
+      "id": "cluster-105",
+      "source_ids": [
+        5569
+      ]
+    },
+    {
+      "id": "cluster-106",
+      "source_ids": [
+        5570
+      ]
+    },
+    {
+      "id": "cluster-107",
+      "source_ids": [
+        5571
+      ]
+    },
+    {
+      "id": "cluster-108",
+      "source_ids": [
+        5576
+      ]
+    },
+    {
+      "id": "cluster-109",
+      "source_ids": [
+        5577
+      ]
+    },
+    {
+      "id": "cluster-110",
+      "source_ids": [
+        5588
+      ]
+    },
+    {
+      "id": "cluster-111",
+      "source_ids": [
+        5589
+      ]
+    },
+    {
+      "id": "cluster-112",
+      "source_ids": [
+        5595
+      ]
+    },
+    {
+      "id": "cluster-113",
+      "source_ids": [
+        5596
+      ]
+    },
+    {
+      "id": "cluster-114",
+      "source_ids": [
+        5597
+      ]
+    },
+    {
+      "id": "cluster-115",
+      "source_ids": [
+        5599
+      ]
+    },
+    {
+      "id": "cluster-116",
+      "source_ids": [
+        5602
+      ]
+    },
+    {
+      "id": "cluster-117",
+      "source_ids": [
+        5603
+      ]
+    },
+    {
+      "id": "cluster-118",
+      "source_ids": [
+        5604
+      ]
+    },
+    {
+      "id": "cluster-119",
+      "source_ids": [
+        5608
+      ]
+    },
+    {
+      "id": "cluster-120",
+      "source_ids": [
+        5609
+      ]
+    },
+    {
+      "id": "cluster-121",
+      "source_ids": [
+        5611
+      ]
+    },
+    {
+      "id": "cluster-122",
+      "source_ids": [
+        5612
+      ]
+    },
+    {
+      "id": "cluster-123",
+      "source_ids": [
+        5613
+      ]
+    },
+    {
+      "id": "cluster-124",
+      "source_ids": [
+        5614
+      ]
+    }
+  ],
+  "input_sha256": "803f55f0666dceea4967216de471e602c274e552cee8d584ce0b6ef1b258c2d2",
+  "input_chars": 246662,
+  "source_pins": [
+    {
+      "id": 5319,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "53c55a550b96163cc515479c786ea5a6af163e8a7168249ea0bcfc410bdf3430",
+      "cluster": "cluster-1"
+    },
+    {
+      "id": 5424,
+      "desk": "singapore",
+      "lane": "production_record",
+      "body_sha256": "e1d36c64ca522a7b3878065b8322b9e12e81195bae0b1560f1b43f5726b1ab89",
+      "cluster": "cluster-2"
+    },
+    {
+      "id": 5321,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "299926ca1148690bee2af00a8d2249a35d878a3b102c2b17281bf074a300d8b8",
+      "cluster": "cluster-3"
+    },
+    {
+      "id": 5584,
+      "desk": "singapore",
+      "lane": "production_record",
+      "body_sha256": "13b8aad72532cad9d9aefc8b969f88de6d567552aa45c61daa44ea390f38a73e",
+      "cluster": "cluster-4"
+    },
+    {
+      "id": 5322,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "527d04c3d0e2588f9a8b68dde6b619a664624662ceb90dafabe3e0538f0ea697",
+      "cluster": "cluster-5"
+    },
+    {
+      "id": 5585,
+      "desk": "singapore",
+      "lane": "production_record",
+      "body_sha256": "7d79fef2b444aadfb2f89199c9294f522b53781a68b467033038e0d234106baa",
+      "cluster": "cluster-6"
+    },
+    {
+      "id": 5323,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5a7503b27a4caa9c6ab53ebe8972bf7360477dc07d622f90ac3edc7c930028e1",
+      "cluster": "cluster-7"
+    },
+    {
+      "id": 5586,
+      "desk": "singapore",
+      "lane": "production_record",
+      "body_sha256": "48f822b633439dbb06c763cc729aef3b3a397dfe17b450f014e214702cd20524",
+      "cluster": "cluster-8"
+    },
+    {
+      "id": 5324,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "cae0196a182742521e0b4a4defd1e5c07e865897e8207b11123b39c78baecd0e",
+      "cluster": "cluster-9"
+    },
+    {
+      "id": 5587,
+      "desk": "singapore",
+      "lane": "production_record",
+      "body_sha256": "ff2004a74eea2a6036db6af70ed453fd1009b932a14ed27bb9079dd3aa78c6e4",
+      "cluster": "cluster-10"
+    },
+    {
+      "id": 5328,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "e738d8215d8da39874fdb5c2239bad40218c83a974c6219ce6b9fe507bda7444",
+      "cluster": "cluster-11"
+    },
+    {
+      "id": 5329,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5d672faf6ec4d3159cc5a7390e8b8c7404fcd99c08e254209788e93a5ed311ad",
+      "cluster": "cluster-12"
+    },
+    {
+      "id": 5330,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "3a4c56c8f9a2f48c1a30ea5045d5b720123051862a288aca5c4ffd8711d034b1",
+      "cluster": "cluster-13"
+    },
+    {
+      "id": 5333,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "c6c1b13220697aaf2ef879d83b5af6a16a8054faccda6800fd88bfbf3523b550",
+      "cluster": "cluster-14"
+    },
+    {
+      "id": 5335,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a0383a9334dfa9f9cc8d1c9baa54314f6e79f89e7fc6d028cf0abd9095a17cb3",
+      "cluster": "cluster-15"
+    },
+    {
+      "id": 5339,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "8c2340b52c74f1d11bfcb1a0f5b4ae6495dc027d01a18568b4a57c94dadeb4df",
+      "cluster": "cluster-16"
+    },
+    {
+      "id": 5340,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "47efb4ae685c3db4ccaa75868a16d4e9fabe02f1ff4a4c4faf285ce1dca28d2b",
+      "cluster": "cluster-17"
+    },
+    {
+      "id": 5350,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "302e9591b80d3af897c2194878fb8804a4b54456ffaee7e27281f643b93aa04d",
+      "cluster": "cluster-18"
+    },
+    {
+      "id": 5351,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "3b2b4964b3a1f8ef6cb1475fb7f153ed7636cbb73bf635014ccc575126de98a0",
+      "cluster": "cluster-19"
+    },
+    {
+      "id": 5352,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "b3a59de9e8448d46eecfee378fffffcd0a8c46c5a0d90126439081bf1bf442a8",
+      "cluster": "cluster-20"
+    },
+    {
+      "id": 5353,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5ad736a41ca0a38e4e5d7ac13a036df4304eeeda58cf27dae3463f464ae00fe2",
+      "cluster": "cluster-21"
+    },
+    {
+      "id": 5355,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "ea9c37a0a5d6096556b78c29d0bb0af6e9476cdbb97e675fccfed31feeb93b1f",
+      "cluster": "cluster-22"
+    },
+    {
+      "id": 5356,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "31131f2e7548cd3e50ece1e9ce7027b1f0cb63375c9f1e99a93c64840a22069a",
+      "cluster": "cluster-23"
+    },
+    {
+      "id": 5359,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "e4c8c43fabc8d324479c2961b41163a86af67596b08637d92cc4ee17597c7b66",
+      "cluster": "cluster-24"
+    },
+    {
+      "id": 5360,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "d4c10fd1cc0c8a4f21bb327c6ab8000e79d4c4b2c1e6f32fea634796ccac921a",
+      "cluster": "cluster-25"
+    },
+    {
+      "id": 5361,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "4ac26a1370759588bdbda44016b0eba9b469cc461e17d5edadde07b1ab26f894",
+      "cluster": "cluster-26"
+    },
+    {
+      "id": 5362,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "1aad3a758f588ef1a2dd622c29b9d37abad157369ef7db7ba65daa0735f74b1e",
+      "cluster": "cluster-27"
+    },
+    {
+      "id": 5363,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "05314f164708760cce2ed9582a53b1d409cf3d3e60f5b265e75d0492f8211c3b",
+      "cluster": "cluster-28"
+    },
+    {
+      "id": 5369,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "63d665cfe89bd05d241d88c1e9bddcd91e4c68779e417bda3ad898c4c7a10384",
+      "cluster": "cluster-29"
+    },
+    {
+      "id": 5370,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "fc44d7d7b61cdaacac23baaa86a82d79f0ccef928df2e7558b75a7d4a4120c34",
+      "cluster": "cluster-30"
+    },
+    {
+      "id": 5387,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "dcc33959fdd667bce34355e13571dab52491ba521239852df03a398c4faa2bbe",
+      "cluster": "cluster-31"
+    },
+    {
+      "id": 5388,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "bc5ae884468888044b0805ad9dfe638a068855dd271b0f495a643bac1ddc88c3",
+      "cluster": "cluster-32"
+    },
+    {
+      "id": 5389,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "7598e0c7ef0327e1c2b17df61f7674c50ee90db7884082b108c3878b51894f99",
+      "cluster": "cluster-33"
+    },
+    {
+      "id": 5390,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "450da0ef20caaa2c30672d2885ba305b649bf081e6970bc1d69fb0a2b059bc93",
+      "cluster": "cluster-34"
+    },
+    {
+      "id": 5391,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "cf5a74e97bf986d6fb6bcda5e27b42983315c8bd4337e718c9685fb7744de9c2",
+      "cluster": "cluster-35"
+    },
+    {
+      "id": 5392,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "90bb722eb13275b12a868291a09dafb40e12e4617fe1e1239f86ffea63e2ecf9",
+      "cluster": "cluster-36"
+    },
+    {
+      "id": 5394,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a550251363ee2361c6958fafabbe5ec25be83e0fbf60734f3de0ec2c0b19da20",
+      "cluster": "cluster-37"
+    },
+    {
+      "id": 5397,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "97a437f74593019e9938a4bea2e03abda7e2cd6046d15e3a78d283c457c039ae",
+      "cluster": "cluster-38"
+    },
+    {
+      "id": 5398,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5e168acc51be62b813232cefb629df0c8b2446ef020210515c0c004aedae8a64",
+      "cluster": "cluster-39"
+    },
+    {
+      "id": 5399,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "832ca62cd883a5a3c91f172e2fad68c96880d4db93995c042faee75665ef9ba0",
+      "cluster": "cluster-40"
+    },
+    {
+      "id": 5401,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "1e8e336916cad066792ee044533df1b94b1a086d06f09396477e3ae45bc98929",
+      "cluster": "cluster-41"
+    },
+    {
+      "id": 5402,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "48142b5acdd2604fffb638f999b30b416f7b4cad5b4c4117e8912c021b0032dd",
+      "cluster": "cluster-42"
+    },
+    {
+      "id": 5403,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "2bd1af6421ea371fcb0de2f8f96f2f1e2e6534ce658b2121abbe38b262b911a7",
+      "cluster": "cluster-43"
+    },
+    {
+      "id": 5404,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "c4ea0871a7be885490d1abd62ed13f64c5f48cb6b21b183af6ace5390f11959b",
+      "cluster": "cluster-44"
+    },
+    {
+      "id": 5405,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "38dbf8f81b4f4a6649dd9c716f6cb4a105bdae0235428f0e0b863ca8192cefe9",
+      "cluster": "cluster-45"
+    },
+    {
+      "id": 5407,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a2d61b63567f51c8568086667759910593cde288f86952d3a1f9365e2003e28e",
+      "cluster": "cluster-46"
+    },
+    {
+      "id": 5408,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "79ea08757a429fb4c815af3c12d7261c497570daad92605b395d415001f56ab8",
+      "cluster": "cluster-47"
+    },
+    {
+      "id": 5411,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "4a55606627755d355da1df616c91748a875449bc608745272a2d1510308d744a",
+      "cluster": "cluster-48"
+    },
+    {
+      "id": 5412,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "e839a82c440ee6151b4cc9e8aa94884e021c8d643d245b6b2b06cef5e7d24cbc",
+      "cluster": "cluster-49"
+    },
+    {
+      "id": 5413,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "547979c622521c2d30ce783cc54ee69ac22eaf45fed3d0e65cfa660f6857b43f",
+      "cluster": "cluster-50"
+    },
+    {
+      "id": 5426,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a2fb73e74bf467da07153d1ef25d5c4c8555e7b0b2929e5ec46c5f05b85880cb",
+      "cluster": "cluster-51"
+    },
+    {
+      "id": 5428,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "1f8c5d0c7162f6de44ea684b67d606601da154779f1ed3e880ba29d11f20d1c9",
+      "cluster": "cluster-52"
+    },
+    {
+      "id": 5429,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "8eb66ef8ca59d26daff2c465c6f673aeac28cd986f72ea01fdbe9ae4d322edd9",
+      "cluster": "cluster-53"
+    },
+    {
+      "id": 5430,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "13bbf6522c0e1d40fb78c563e019ea81e9cced30d6093b0e605b18a269fa12ce",
+      "cluster": "cluster-54"
+    },
+    {
+      "id": 5432,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "34153c655409e18730c1f9752927ec4fe9c80c1537169fbd0b803cf62e905e3f",
+      "cluster": "cluster-55"
+    },
+    {
+      "id": 5433,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "91186a57b8d487a7d449fe820a263c71d556d2026f1c2414d534ad60cef6ce7e",
+      "cluster": "cluster-56"
+    },
+    {
+      "id": 5434,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "781091769fa7ad302eb6cca1d31dc60022ae1fc04ded8125197725c3456713c3",
+      "cluster": "cluster-57"
+    },
+    {
+      "id": 5436,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a218cc8d6c07fba0a6dbfb6577fb7bf262bd1ccce5d1b7aea68e02d3ceff4564",
+      "cluster": "cluster-58"
+    },
+    {
+      "id": 5437,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "9fe3cdef2dfdcf4cbadef0fab5d25cbc381e9a1031d2a53e4081aae5dcd4d7ad",
+      "cluster": "cluster-59"
+    },
+    {
+      "id": 5438,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "fe2d33188b0d4ad2e949f237acbeb9954a91d4b4ec76f1340148cfc5fc28a6bb",
+      "cluster": "cluster-60"
+    },
+    {
+      "id": 5440,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "f0ddb7410187bb05750071a645211db36d7eb2e3515475225524f4a85cee8cf8",
+      "cluster": "cluster-61"
+    },
+    {
+      "id": 5445,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "c0caadfaa6126172c9629e242fcadca335cb767d975f583a35eb31150462d122",
+      "cluster": "cluster-62"
+    },
+    {
+      "id": 5459,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "cb6c30e32774e8c37bce7dc4eea337252580a8d55a524c9fe37095ed2271c791",
+      "cluster": "cluster-63"
+    },
+    {
+      "id": 5464,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "fa0c5e95770195942292e01080bd071aad67a8c4f3cc9914305eff816faa0549",
+      "cluster": "cluster-64"
+    },
+    {
+      "id": 5465,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5937e10d7b052171731994f7cdb760f8795e82d74e355073739731083dce2644",
+      "cluster": "cluster-65"
+    },
+    {
+      "id": 5469,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "210400ba6da5985629cc451417782dfd099248ee8682ad9f9923d2baa5f967a2",
+      "cluster": "cluster-66"
+    },
+    {
+      "id": 5470,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "8f19f293f32bec99875a11a07c0ad84d106625915bf6770403f92a2c2521dac7",
+      "cluster": "cluster-67"
+    },
+    {
+      "id": 5473,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "cbdf29b8aa1aa75f066ecef821a4a5e890ec6e1c611e99f92c532e971d5219dd",
+      "cluster": "cluster-68"
+    },
+    {
+      "id": 5490,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5b9ebe8cc546ee11d7e9e8d38dc073413d5abe0003029e59250b01d9caa6fa02",
+      "cluster": "cluster-69"
+    },
+    {
+      "id": 5491,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "c70369f1cf66d75ee5498b83d8531710216679502672d7d2218eb4fa07af2479",
+      "cluster": "cluster-70"
+    },
+    {
+      "id": 5492,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "7ec40f2b9ab6b1cf733d55995b6b024bdc8bc2d2529adb7f83fc80f89a2e54c4",
+      "cluster": "cluster-71"
+    },
+    {
+      "id": 5494,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "51b9a9815aab056706003eaf1db695e5cb39ad5eac0f482ce896e4d9f2f1a240",
+      "cluster": "cluster-72"
+    },
+    {
+      "id": 5495,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "b899c4351c5bbf2720ea86d93758538bc4b516e1f07db987636be68851934406",
+      "cluster": "cluster-73"
+    },
+    {
+      "id": 5496,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "4d59d8e2973dd935cb0e0c67c71b5c23d148631a305c52b47c5c572e4fec57d7",
+      "cluster": "cluster-74"
+    },
+    {
+      "id": 5498,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5ea3c29cae7b4812590c7a5cb8e535f78dd6c28467980b173306301b17b000db",
+      "cluster": "cluster-75"
+    },
+    {
+      "id": 5500,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "d2bb0a54a6668498257346bc887b0827161c9862fb0174e3fd91eca8ec6f40c2",
+      "cluster": "cluster-76"
+    },
+    {
+      "id": 5504,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "746eb6616f9b613902492f998615718322270ffa7a4a440ccb567b8893f6b507",
+      "cluster": "cluster-77"
+    },
+    {
+      "id": 5506,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "e6c264533fcf6d71a121f0e3f74e58119121169b15dda28922dd669c79177b0d",
+      "cluster": "cluster-78"
+    },
+    {
+      "id": 5510,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "4848a40612463fba0e45789dcb3c808cc7afb879d9789af6fbc1bc054b0a0453",
+      "cluster": "cluster-79"
+    },
+    {
+      "id": 5523,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "e0b18ea91ce5b6cb78b4d2847a405af56f47e47952024da401c59b9d431a4e17",
+      "cluster": "cluster-80"
+    },
+    {
+      "id": 5524,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "036f09328c69ce552cfb3edd0c5fc3f6c67bf535e210be54471ef73b4e5112db",
+      "cluster": "cluster-81"
+    },
+    {
+      "id": 5526,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "f256c78f3241471a371fe6883661569b3dc40c76bc87b27dd558977533244ecd",
+      "cluster": "cluster-82"
+    },
+    {
+      "id": 5528,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a6030e51042019eba71b21d160665a133622bca73e82034e73312121dfabe501",
+      "cluster": "cluster-83"
+    },
+    {
+      "id": 5531,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "82f35e0d7fb5f1ead36060e12da836e360b4d8da3db5da150e4ddfee94bf7d43",
+      "cluster": "cluster-84"
+    },
+    {
+      "id": 5532,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "72c247351693a9251c0b9de6cb2c594525b11eedcd3f0c74b4ee90e85f757c5d",
+      "cluster": "cluster-85"
+    },
+    {
+      "id": 5533,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "3a578d7b58198045e967472746ab0e44a40b0819209370f2acb1f4cc2afb31ef",
+      "cluster": "cluster-86"
+    },
+    {
+      "id": 5534,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "6ebb498bdcec5b1ef4926614a5b03b1a9d5cf0a852dec78c1eed50ef9d8d1870",
+      "cluster": "cluster-87"
+    },
+    {
+      "id": 5535,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "49dd2fc5fd27243de28ed42dc9d4565256c03cce0aee7d677f216f0cc5405fd0",
+      "cluster": "cluster-88"
+    },
+    {
+      "id": 5536,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "b3f073a1eb3cd891f2ddfc844e7ba1e5ef7d6e1765cc44918c0063eff3ce31fb",
+      "cluster": "cluster-89"
+    },
+    {
+      "id": 5537,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "1e6f5576e8d9cd7a0aeafb13b8c70e4182bb34d4b531aed082209ad75151826e",
+      "cluster": "cluster-90"
+    },
+    {
+      "id": 5538,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "55fa0a1c0a87aa3da0b8e548f9388e2c3cd036c56bb3570a657808612be8f797",
+      "cluster": "cluster-91"
+    },
+    {
+      "id": 5539,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "c80c5a73f20de5b1c6924ef0de0f476bf87b6e3a3d3aa2d57f61da5fe25cafe9",
+      "cluster": "cluster-92"
+    },
+    {
+      "id": 5540,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "26777aefac9122e74ca861b1d44ee5b072aecea5f205c4c5d9410e9eed8c0828",
+      "cluster": "cluster-93"
+    },
+    {
+      "id": 5541,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "b28f1b23fa81d0a17ff79571489931edc3c5bd63648eaafcd5b23b0e6caab172",
+      "cluster": "cluster-94"
+    },
+    {
+      "id": 5542,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "7489eb6223cdf29820692d419d980f91a9c057fd28f398421ee54748b347e301",
+      "cluster": "cluster-95"
+    },
+    {
+      "id": 5543,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "51e431fede9751a7b005a2a3ce16ae88b251da879020da1a97eaa3520e442a2f",
+      "cluster": "cluster-96"
+    },
+    {
+      "id": 5544,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "08d0be646c9378906a03e17ddbba40e8f4e0e04089e772e5e4d638d2b19f191e",
+      "cluster": "cluster-97"
+    },
+    {
+      "id": 5545,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "866bb119b64c3fb8a987fb92608a195d33b2643228acffc6b0be6fc7ea11110c",
+      "cluster": "cluster-98"
+    },
+    {
+      "id": 5548,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "f96a493a13310c5b482012dc205020dfbe82dc4abd7665737305f326331f40c0",
+      "cluster": "cluster-99"
+    },
+    {
+      "id": 5555,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "f006c0328453c074694ab6fc2a9af40f643056f111597a5bebb6d4fbd9cd3563",
+      "cluster": "cluster-100"
+    },
+    {
+      "id": 5556,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "5d7e2d4c3c670765fa2bb4fbd754b13ff3524038b85ad649f8f6d6fd8215fccd",
+      "cluster": "cluster-101"
+    },
+    {
+      "id": 5558,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "4f76b360cce80222337838d3cc92cf5ff69e1b1957d1d76dffcd6d782c07e67c",
+      "cluster": "cluster-102"
+    },
+    {
+      "id": 5559,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "229d41c2bd7aa324fe3d94772f4d7c3584da60f26aa1f3c5b27e4194131ac334",
+      "cluster": "cluster-86"
+    },
+    {
+      "id": 5560,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "67f71d56e0564702a2e33b804e27f2875cbc7a47fffd7d3d42e18a5c204da718",
+      "cluster": "cluster-93"
+    },
+    {
+      "id": 5561,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "2a68189a2afbc40710ef71d27feaae798df9eea6f1fe1f656329640cce4930ba",
+      "cluster": "cluster-87"
+    },
+    {
+      "id": 5566,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a8271d24ad361675626a890f26407d38b53b9dad566acaab02de79a32aadc2e9",
+      "cluster": "cluster-103"
+    },
+    {
+      "id": 5567,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "6d7c7628e2b124f0a32750c66b0aa3a9fc45e6f98b09c8df5b5f8cac25a93bce",
+      "cluster": "cluster-104"
+    },
+    {
+      "id": 5569,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "60afded89d12cf652b7a9cd8a831ff52b7b5d1e6b2a26e866ba018556cb91eb1",
+      "cluster": "cluster-105"
+    },
+    {
+      "id": 5570,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "1c1bd2b05ff9f6da00e2fed348163cfd5e50e04f6c77096be33db594e26ca987",
+      "cluster": "cluster-106"
+    },
+    {
+      "id": 5571,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "d2e2f2e38a08506a125022c24b14eda795aaeae51bc5f0bb937aa06f9095c463",
+      "cluster": "cluster-107"
+    },
+    {
+      "id": 5576,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "96bfb79b6b2f3b1db9f3d0825c620e2bb7b6e8434ff894366e839ef9c8da965b",
+      "cluster": "cluster-108"
+    },
+    {
+      "id": 5577,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "601468699a352bc8da34095ec99c086c19808eb87c22b0be5edd06f48d067c46",
+      "cluster": "cluster-109"
+    },
+    {
+      "id": 5588,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a4b57f5db550ea9d73c79b81686fd7555f16f9fa0a08f90a13b981e79713173c",
+      "cluster": "cluster-110"
+    },
+    {
+      "id": 5589,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "0e1fb01b2c8ddad9c17b30b69a607ef8a367c5cca89d55f3f0439582f5eee794",
+      "cluster": "cluster-111"
+    },
+    {
+      "id": 5595,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "fe51c419dd41354730f9891ca00f5ce5661f988d3fcbc8593c37adb0bfd204d9",
+      "cluster": "cluster-112"
+    },
+    {
+      "id": 5596,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "63969b1a4892214d6b1ffafd5431ee2595e204dbaae17cd1d1e92f8c3fc25110",
+      "cluster": "cluster-113"
+    },
+    {
+      "id": 5597,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "30f8e95ebc9ea32dbb22991df4939b3a38304bd0c3959aad2b658566aa51255d",
+      "cluster": "cluster-114"
+    },
+    {
+      "id": 5599,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "9809b3be4546f13fbcb17fec4e59af36e00383ad74e5353beb1fd5de7182db7e",
+      "cluster": "cluster-115"
+    },
+    {
+      "id": 5602,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "3ec97eb86ce7a99166c12e32853bab761f6451d003f48eefa51057d904401241",
+      "cluster": "cluster-116"
+    },
+    {
+      "id": 5603,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "8204dac97618678831c1670ff6bb360bf42984a855812320899fd214ff586d88",
+      "cluster": "cluster-117"
+    },
+    {
+      "id": 5604,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "59cf267ed182686f2e6a8ec1eec3c8cddb13cd07bbc070319aa0323737a3a46f",
+      "cluster": "cluster-118"
+    },
+    {
+      "id": 5608,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "a5eb9639e2e5f02ea83eb47b0393cde9497e6013426b3b2a6ff9961ca2244b26",
+      "cluster": "cluster-119"
+    },
+    {
+      "id": 5609,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "597ddd86ef439b7ca27f0cf89846dcde79871b62befbf6e8a88b6240cb3bb495",
+      "cluster": "cluster-120"
+    },
+    {
+      "id": 5611,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "9b7c5e2da6e5a63c7cecc168b70edb911f756285c3356e3e4f18ba91ba2dcff6",
+      "cluster": "cluster-121"
+    },
+    {
+      "id": 5612,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "7a9c1bac01102a8ee18839ab9afa7a94fda8bdd34c5c1593d1da48aa01c97d69",
+      "cluster": "cluster-122"
+    },
+    {
+      "id": 5613,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "426e2679cf1a5b453433d69f082a8278e95cb6e5e37a8af1289d3f2950fd7a2f",
+      "cluster": "cluster-123"
+    },
+    {
+      "id": 5614,
+      "desk": "china",
+      "lane": "production_record",
+      "body_sha256": "3120131e9a25fd607d6b14bfa1e73ff4071f3e1b7254547ffda5a0d1ae665f35",
+      "cluster": "cluster-124"
+    }
+  ],
+  "unscored_cluster_ids": [
+    "cluster-1",
+    "cluster-2",
+    "cluster-3",
+    "cluster-4",
+    "cluster-5",
+    "cluster-6",
+    "cluster-7",
+    "cluster-8",
+    "cluster-9",
+    "cluster-10",
+    "cluster-11",
+    "cluster-12",
+    "cluster-13",
+    "cluster-14",
+    "cluster-15",
+    "cluster-16",
+    "cluster-17",
+    "cluster-18",
+    "cluster-19",
+    "cluster-20",
+    "cluster-21",
+    "cluster-22",
+    "cluster-23",
+    "cluster-24",
+    "cluster-25",
+    "cluster-26",
+    "cluster-27",
+    "cluster-28",
+    "cluster-29",
+    "cluster-30",
+    "cluster-31",
+    "cluster-32",
+    "cluster-33",
+    "cluster-34",
+    "cluster-35",
+    "cluster-36",
+    "cluster-37",
+    "cluster-38",
+    "cluster-39",
+    "cluster-40",
+    "cluster-41",
+    "cluster-42",
+    "cluster-43",
+    "cluster-44",
+    "cluster-45",
+    "cluster-46",
+    "cluster-47",
+    "cluster-48",
+    "cluster-49",
+    "cluster-50",
+    "cluster-51",
+    "cluster-52",
+    "cluster-53",
+    "cluster-54",
+    "cluster-55",
+    "cluster-56",
+    "cluster-57",
+    "cluster-58",
+    "cluster-59",
+    "cluster-60",
+    "cluster-61",
+    "cluster-62",
+    "cluster-63",
+    "cluster-64",
+    "cluster-65",
+    "cluster-66",
+    "cluster-67",
+    "cluster-68",
+    "cluster-69",
+    "cluster-70",
+    "cluster-71",
+    "cluster-72",
+    "cluster-73",
+    "cluster-74",
+    "cluster-75",
+    "cluster-76",
+    "cluster-77",
+    "cluster-78",
+    "cluster-79",
+    "cluster-80",
+    "cluster-81",
+    "cluster-82",
+    "cluster-83",
+    "cluster-84",
+    "cluster-85",
+    "cluster-86",
+    "cluster-87",
+    "cluster-88",
+    "cluster-89",
+    "cluster-90",
+    "cluster-91",
+    "cluster-92",
+    "cluster-93",
+    "cluster-94",
+    "cluster-95",
+    "cluster-96",
+    "cluster-97",
+    "cluster-98",
+    "cluster-99",
+    "cluster-100",
+    "cluster-101",
+    "cluster-102",
+    "cluster-103",
+    "cluster-104",
+    "cluster-105",
+    "cluster-106",
+    "cluster-107",
+    "cluster-108",
+    "cluster-109",
+    "cluster-110",
+    "cluster-111",
+    "cluster-112",
+    "cluster-113",
+    "cluster-114",
+    "cluster-115",
+    "cluster-116",
+    "cluster-117",
+    "cluster-118",
+    "cluster-119",
+    "cluster-120",
+    "cluster-121",
+    "cluster-122",
+    "cluster-123",
+    "cluster-124"
+  ],
+  "source_accuracy_verified": false,
+  "publication_authorized": false,
+  "week_start": "2026-10-18",
+  "week_ending": "2026-10-24",
+  "research_scope": "production-only audit; no private packet supplied",
+  "model_calls": 0,
+  "email_sent": false
+}
