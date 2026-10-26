@@ -956,7 +956,75 @@
       }
     ],
     "built_with": {
-      "pillow": "12.3.0"
+      "pillow": "11.3.0"
+    }
+  },
+  {
+    "id": "hms-tamar-puerto-princesa-2022",
+    "file": "hms-tamar-puerto-princesa-2022.jpg",
+    "sha256": "a04b7b7a50aa80fd795e4b8bdc3b427acc7512796f7227418192a870f48b939d",
+    "alt": "HMS Tamar, a Royal Navy patrol ship with hull number P233 and grey geometric camouflage, underway on calm water below forested hills.",
+    "caption": "HMS Tamar (P233) sailing into Puerto Princesa, Philippines, during Pacific Partnership 2022, 11 August 2022.",
+    "date_note": "Context image from Pacific Partnership 2022, not photographed at Bersama Lima 2026.",
+    "credit": "Jacob Woitzel, U.S. Navy · Public domain · via DVIDS",
+    "creator": "Jacob Woitzel, U.S. Navy",
+    "license": "Public domain",
+    "license_url": "https://www.dvidshub.net/about/copyright",
+    "license_basis": "DVIDS image 7379876 / VIRIN 220811-N-AU520-1096 explicitly marked PUBLIC DOMAIN and credited to Mass Communication Specialist 2nd Class Jacob Woitzel, U.S. Navy (Commander, Logistics Group Western Pacific). Publisher source page and restrictions (https://www.dvidshub.net/about/copyright) read 2026-10-25/26; historical and newsworthy use is authorised and the non-endorsement notice is displayed. The master download requires a DVIDS login and was not attempted past an anonymous request (HTTP 403); the retained file is the publicly served 2000w preview (2000x1331), not the 4928x3280 original. Owner approval of this exact image, caption and crop: PENDING, none recorded.",
+    "source_page": "https://www.dvidshub.net/image/7379876/hms-tamar-p233-sails-into-puerto-princesa-pacific-partnership-2022",
+    "source_label": "DVIDS",
+    "original_url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2208/7379876/2000w_q95.jpg",
+    "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+    "cover_treatment": "gradient",
+    "depicts": "context",
+    "focal": "68% 70%",
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "surfaces": [
+      "article"
+    ],
+    "match": {
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": [],
+      "briefs": [
+        "bersama-lima-2026-five-power-coordination-at-sea"
+      ]
+    },
+    "retrieval": {
+      "url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2208/7379876/2000w_q95.jpg",
+      "retrieved_at": "2026-10-26T02:47:29+00:00",
+      "http_status": 200,
+      "size_bytes": 695783,
+      "etag": "\"1429c4e1eeb43876cd3dffe07e5050a2\"",
+      "sha256": "a04b7b7a50aa80fd795e4b8bdc3b427acc7512796f7227418192a870f48b939d",
+      "user_agent": "IndoPacificRecord editorial image review (+https://indopacificrecord.org)",
+      "robots_status": 404
+    },
+    "note": "Staged for owner review. Context image only: HMS Tamar in August 2022, not Exercise Bersama Lima 2026. Article-only until the exact image and crop are accepted and the numbering command assigns the issue; the catalogue admission is added afterwards.",
+    "derivatives": [
+      {
+        "file": "derivatives/hms-tamar-puerto-princesa-2022-1600.jpg",
+        "width": 1600,
+        "height": 1065,
+        "sha256": "759aee91335f72c37a5d0befb7c865f201ec75ab4a3f03481ba45470155f9477"
+      },
+      {
+        "file": "derivatives/hms-tamar-puerto-princesa-2022-800.webp",
+        "width": 800,
+        "height": 532,
+        "sha256": "6979243aa216e0a115a36421e0c4ca7a4ff02de3d489b51b3f68703ed0012cb6"
+      },
+      {
+        "file": "derivatives/hms-tamar-puerto-princesa-2022-1600.webp",
+        "width": 1600,
+        "height": 1065,
+        "sha256": "75ad154c5216c3ceca01ef69262040c5cb2dbe8a515f9833def71cd2eb4eb74c"
+      }
+    ],
+    "built_with": {
+      "pillow": "11.3.0"
     }
   }
 ]
