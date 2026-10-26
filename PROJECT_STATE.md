@@ -1,5 +1,16 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## PR offline timeout maintenance — review candidate (26 October 2026)
+
+The PR offline job budget increases from 35 to 45 minutes. Run
+[40346079812 attempt 1](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40346079812/attempts/1)
+hit the limit after a successful 12m19s Chromium installation, 21m52s suite,
+isolated render, validation and preservation checks. The same feature head
+passed attempt 2 in 20 minutes with a 24-second install; evidence supports
+setup variance rather than a test hang. All existing verification steps,
+conditions and security gates are unchanged. Final-head CI evidence belongs
+in the maintenance PR; this candidate does not authorize merge or deployment.
+
 ## Sunday selection reform — private review candidate (26 October 2026)
 
 PR #805 is being extended from its old ten-source comparison to complete
