@@ -64,16 +64,19 @@ It never edits or deletes prose, never calls a model and never retries.
 Structural or source-ID failures (the existing validator) get the existing single bounded
 retry; style findings never raise, so they cannot trigger a second paid call.
 
-**The hold is enforced at send time.** The pre-existing owner-review gate
-(`require_owner_review`) covers only the October 10 pilot week, so it cannot stop a later
-scheduled Sunday. `send_packet` therefore calls `require_quality_release` before any SMTP
-connection: an editor delivery whose packet reports *OWNER REVIEW REQUIRED BEFORE EDITOR
-DELIVERY* (or an article-first packet that has lost its quality line) is refused unless
-the repository variable `IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256` equals the SHA-256 of
-those exact bytes. The scheduled run then fails visibly instead of mailing Dylan. The
-owner-only preview is never blocked; it is how Ben reviews the held draft and obtains the
-digest. Style flags alone never hold. The headline count appears in the owner preview;
-the full report appears only in the private appendix.
+**The hold is enforced at send time, and is releasable.** The pre-existing owner-review
+gate (`require_owner_review`) covers only the October 10 pilot week, so it cannot stop a
+later scheduled Sunday. `send_packet` therefore treats an editor delivery whose packet
+reports *OWNER REVIEW REQUIRED BEFORE EDITOR DELIVERY* (or an article-first packet that has
+lost its quality line) as held: it is converted to an owner-only notice carrying the
+identical TXT and Word bytes and the SHA-256, is never addressed to Dylan, and the job then
+fails visibly. With no usable distinct owner address nothing is sent. The release path is
+the existing offline `scripts.sunday_send_reviewed_packet` (exact digest, explicit
+`--confirm-owner-reviewed`, no model call). Honest limitations: the scheduled workflow
+cannot be rerun for a held week without a new model call and possibly a separate Dylan
+email, and the manual sender cannot see an earlier Dylan send, so Ben checks Gmail Sent
+first. Style flags alone never hold. The headline count appears in the owner preview; the
+full report appears only in the private appendix.
 
 ## 5. Roles
 
@@ -94,12 +97,27 @@ labelled *owner consideration*, never promoted. Promoting a rule into
 `PROMPT_STANDARD` or the lexicons is a separate, explicitly owner-approved change with its
 own tests.
 
+## 6a. After Dylan edits: reconciliation is mandatory
+
+A substantially edited article is a different text from the one the appendix describes.
+The ARTICLE SOURCE ACCOUNTING maps the **original** blocks (by text fingerprint) to their
+verified records; `validate_return` and the Word importer prove only that the header,
+headings and appendix were not tampered with ("STRUCTURAL REVIEW ONLY — UNAPPROVED"). Neither
+is factual, citation or editorial approval of a rewritten paragraph. Before any Brief is
+drafted from a return, Ben (or an editorial reviewer) reconciles each changed claim, figure,
+name, title, quotation and citation against the original records, working through the
+"Reconciliation required before any Brief" list that `scripts/analyze_editor_return.py`
+prints. Items it lists: cited blocks that are no longer intact, edited or added paragraphs,
+title/dek changes, new figures, new quotations. An added or reworked claim with no verified
+record behind it is cut or sourced first; the immutable appendix is never edited to fit.
+The checklist is in `EDITORIAL_QA_CHECKLIST.md`.
+
 ## 7. What this does not authorize
 
 No model call, SMTP delivery, issue numbering, source-rights decision, merge or
 publication. **First safe live check (owner-authorized, manual):** on the next eligible
 week, run `sunday_briefs_editorial_handoff.yml` by `workflow_dispatch` with *preview to
-owner* on and editor delivery off. Ben opens the TXT, then inspects the DOCX/email
-projection, the *Narrative QA* line and the appendix's ARTICLE SOURCE ACCOUNTING against
+owner* on and editor delivery off. Ben receives both the TXT and the Word copy (the owner
+preview attaches both, to the owner only), opens the TXT, then inspects the Word copy, the *Narrative QA* line and the appendix's ARTICLE SOURCE ACCOUNTING against
 the original sources, and sends nothing to Dylan until satisfied. This spends one model
 call and one owner-only email, so it needs fresh authorization.

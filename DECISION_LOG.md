@@ -13,13 +13,22 @@ outline is retired for new drafts and retained only so already-sent worksheets s
 validate; (2) necessary qualifications stay in the article once, research-process
 commentary moves to the audit, and nothing is deleted; (3) a deterministic-plus-heuristic
 quality gate reports before handoff, mechanical majors are enforced as a send-time hold
-(`IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256` pinned to the exact packet bytes; the pilot-week
-owner gate did not cover later weeks), style flags are advisory, and there is no second paid call or unbounded retry; (4) citations
+(the pilot-week owner gate did not cover later weeks): a held draft is emailed, as the
+identical TXT + DOCX bytes, to the owner-only preview address and never to Dylan, and the
+job fails visibly; the owner releases those exact bytes with the existing
+`scripts.sunday_send_reviewed_packet` (digest-pinned, `--confirm-owner-reviewed`), which
+makes no model call. Style flags are advisory, and there is no second paid call or
+unbounded retry; (4) citations
 are mapped per block in the hash-validated appendix, so Dylan's reordering cannot corrupt
 them; (5) editor returns can be analysed offline, but an analysis never changes a prompt
 and promoting a rule needs explicit owner approval. Ben owns accuracy, argument and
-publication; Dylan is the language and structure editor. This authorizes no model call,
-send, numbering, merge or publication. See `docs/IPR_BRIEFS_WRITING_STANDARD.md`.
+publication; Dylan is the language and structure editor. (6) After Dylan substantially
+edits an article, final publication requires reconciling every changed claim, figure,
+name, quotation and citation against the original records: the unchanged appendix and a
+passing `validate_return` are structural only, and the appendix describes the ORIGINAL
+text, never the edited paragraphs; the offline analyzer lists the items to reconcile.
+This authorizes no model call, send, numbering, merge or publication. See
+`docs/IPR_BRIEFS_WRITING_STANDARD.md`.
 
 ## 2026-10-25 — Owner task: compare the whole eligible week before Brief composition
 

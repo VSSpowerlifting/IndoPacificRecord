@@ -9,11 +9,22 @@ dek, article and (TXT only) the editorial questions; the audit notes, source acc
 limitations ledger, source-use receipt and a **NARRATIVE QUALITY REPORT** stay in the
 private appendix. The owner preview adds a counts-only quality line. Mechanical failures
 (placeholder, truncation, doubled words, duplicated or forced material) mark a hold that
-is enforced in `send_packet` before any SMTP call: Dylan delivery is refused unless
-`IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256` equals the exact packet's SHA-256 (the
-October 10 pilot gate does not cover later weeks). Style findings are advisory and never
-trigger a second model call. Nothing in this reform sends, numbers, publishes or spends; the
-first live use is a separate owner-authorized step.
+is enforced in `send_packet` (the October 10 pilot gate does not cover later weeks): a
+held draft is **never mailed to Dylan**. Instead the identical TXT and Word bytes go to the
+owner-only `IPR_PREVIEW_TO` address as a "HELD BY QUALITY GATE" notice stating the SHA-256,
+and the job then fails visibly. If `IPR_PREVIEW_TO` is missing or equals the editor
+address, nothing is sent. To release, Ben saves the TXT from that notice, reviews or
+corrects it, and runs `scripts.sunday_send_reviewed_packet` with the file, the week and
+`IPR_SUNDAY_OWNER_REVIEWED_WEEK` / `IPR_SUNDAY_OWNER_REVIEWED_SHA256` set to its digest
+(dry run first; `--send --confirm-owner-reviewed` to mail Dylan). That path sends exactly
+those bytes, makes no model call and accepts article-first and legacy worksheets.
+Limitations: **do not rerun the scheduled delivery for a held week**; a rerun
+regenerates a different draft (a new model call) and, if clean, could email Dylan
+separately. The manual sender cannot detect an earlier Dylan send, so check Gmail Sent
+before releasing. Owner previews now attach both TXT and Word; they go only to the
+owner. Style findings are advisory and never trigger a second model call. Nothing in this
+reform sends, numbers, publishes or spends; the first live use is a separate
+owner-authorized step.
 
 ## Scheduled-delivery correction — October 11, 2026
 

@@ -354,9 +354,6 @@ def quality_summary(packet_text):
     return ""
 
 
-QUALITY_RELEASE_VARIABLE = "IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256"
-
-
 def quality_hold(packet_text):
     """True when the packet carries a major mechanical hold, or an article-first
     packet has lost its quality line (fail closed; nothing is inferred as clean)."""
@@ -366,29 +363,18 @@ def quality_hold(packet_text):
     return "\n## ARTICLE\n" in packet_text
 
 
-def require_quality_release(*, packet_bytes, sending, released_sha256):
-    """A held manuscript reaches Dylan only if the owner released these exact bytes.
-
-    ``require_owner_review`` covers only the October 10 pilot week, so every later
-    scheduled Sunday needs its own fail-closed check before any SMTP call. The
-    owner-only preview is never blocked: that is how the hold is reviewed.
-    """
-    if type(sending) is not bool:
-        raise OwnerReviewRequired("editor send state must be an explicit boolean")
-    if not sending or not quality_hold(packet_bytes.decode("utf-8")):
-        return False
-    digest = hashlib.sha256(packet_bytes).hexdigest()
-    if released_sha256 != digest:
-        raise OwnerReviewRequired(
-            "Refused: the narrative quality gate holds this manuscript for owner "
-            "review (mechanical defect or missing report). Review it in the "
-            "owner-only preview, fix or accept it, then set "
-            + QUALITY_RELEASE_VARIABLE + " to its exact SHA-256. No Dylan delivery.")
-    return True
-
-
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
-                preview_to_owner=False):
+                preview_to_owner=False, owner_released=False):
+    """Mail the exact bytes at ``path``.
+
+    A packet that carries a narrative-quality hold is never mailed to the editor
+    unless ``owner_released`` is true, which only scripts/sunday_send_reviewed_packet
+    sets, after the owner confirmed the exact reviewed digest. Otherwise the same
+    bytes go to the owner-only address as a HELD notice (so they can be reviewed and
+    released without a new model generation), and OwnerReviewRequired is raised.
+    ``require_owner_review`` covers only the October 10 pilot week, so this is the
+    only barrier on later scheduled Sundays.
+    """
     require_owner_review(
         week_ending=week_ending, sending=not preview_to_owner,
         approved_week=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_WEEK", ""),
@@ -401,10 +387,10 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         manuscript_bytes=original_attachment,
         approved_sha256=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_SHA256", ""),
     )
-    require_quality_release(
-        packet_bytes=original_attachment, sending=not preview_to_owner,
-        released_sha256=os.environ.get(QUALITY_RELEASE_VARIABLE, ""),
-    )
+    held = (not preview_to_owner and not owner_released
+            and quality_hold(original_attachment.decode("utf-8")))
+    if held:
+        preview_to_owner = True
     editor = single_address(os.environ.get("IPR_EDITOR_TO", ""), "IPR_EDITOR_TO")
     if preview_to_owner:
         recipient = single_address(os.environ.get("IPR_PREVIEW_TO", ""), "IPR_PREVIEW_TO")
@@ -416,6 +402,23 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     password = "".join(os.environ.get("IPR_SMTP_APP_PASSWORD", "").split())
     if len(password) != 16 or not password.isascii() or not password.isalnum():
         raise ValueError("IPR_SMTP_APP_PASSWORD must be a Google-generated 16-character app password")
+    # Dylan edits the friendly DOCX, while the exact reviewed original TXT stays
+    # attached as the immutable citation/audit record. Both derive from the same
+    # already-validated bytes. The owner-only preview and HELD notice carry the
+    # identical pair, so the owner inspects exactly what Dylan would receive.
+    edited_copy, docx_note = None, ""
+    if full_week:
+        from scripts.sunday_editor_docx import render_editor_docx
+        from scripts.sunday_editor_readable import ReadableEditorError
+        try:
+            edited_copy = render_editor_docx(original_attachment.decode("utf-8"))
+        except ReadableEditorError as exc:
+            if not preview_to_owner:
+                raise
+            # A preview must still arrive and say plainly that the Word copy
+            # Dylan would receive cannot be produced from these bytes.
+            docx_note = ("WORD COPY NOT GENERATED ({}). Dylan delivery would fail "
+                         "for this file.\n\n".format(exc))
     message = EmailMessage()
     message["From"] = sender
     message["To"] = recipient
@@ -423,9 +426,16 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     if preview_to_owner:
         if not full_week:
             raise ValueError("owner previews require the complete Saturday-ending week")
-        message["Subject"] = "IPR Briefs | OWNER-ONLY UNSENT EDITORIAL PREVIEW | {}".format(week_ending)
+        message["Subject"] = "IPR Briefs | {} | {}".format(
+            "HELD BY QUALITY GATE — OWNER-ONLY, NOT SENT TO DYLAN" if held
+            else "OWNER-ONLY UNSENT EDITORIAL PREVIEW", week_ending)
         message.set_content(
-            "Private owner-only preview of the unapproved Sunday IPR Brief.\n\n"
+            ("HELD: the narrative quality gate found a mechanical defect, so this draft was "
+             "NOT sent to Dylan. To release these exact bytes without a new model run, review "
+             "them, then use scripts.sunday_send_reviewed_packet with this digest "
+             "(see docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md).\n\n" if held else "")
+            + docx_note
+            + "Private owner-only preview of the unapproved Sunday IPR Brief.\n\n"
             "This attachment was NOT delivered to Dylan. Inspect the generated "
             "single-theme manuscript, all numeric production record citations, "
             "typed official-source research references, their source-language "
@@ -463,12 +473,7 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     message.add_attachment(
         original_attachment, maintype="text", subtype="plain", filename=path.name
     )
-    if full_week and not preview_to_owner:
-        # Dylan edits the friendly DOCX, while the exact reviewed original
-        # TXT remains attached as an immutable citation/audit reference.
-        # Both are derived from precisely the same already-validated bytes.
-        from scripts.sunday_editor_docx import render_editor_docx
-        edited_copy = render_editor_docx(original_attachment.decode("utf-8"))
+    if edited_copy is not None:
         message.add_attachment(
             edited_copy, maintype="application",
             subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -477,6 +482,10 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=30) as smtp:
         smtp.login(sender, password)
         smtp.send_message(message)
+    if held:
+        raise OwnerReviewRequired(
+            "Held by the narrative quality gate: NOT sent to Dylan. The identical "
+            "bytes (TXT + DOCX) were sent to the owner-only preview address.")
 
 
 def main(argv=None):

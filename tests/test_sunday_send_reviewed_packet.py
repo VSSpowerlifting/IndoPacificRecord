@@ -95,7 +95,10 @@ class ReviewedPacketManualHandoff(unittest.TestCase):
             approved_bytes = file.read_bytes()
             digest = hashlib.sha256(approved_bytes).hexdigest()
             captured = []
-            def fake_send(path, week_ending, *, provisional=False, full_week=False):
+            def fake_send(path, week_ending, *, provisional=False, full_week=False,
+                          owner_released=False):
+                # The owner's confirmed exact-digest approval is the release.
+                self.assertTrue(owner_released)
                 captured.append((week_ending, path.read_bytes(), full_week, provisional))
                 self.assertNotEqual(path, file)
             with patch.dict(os.environ, {

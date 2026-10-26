@@ -13,6 +13,7 @@ import json
 import re
 import tempfile
 import unittest
+from datetime import datetime
 from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
@@ -720,72 +721,260 @@ class EditorReturnAnalysisTests(unittest.TestCase):
             self.assertNotIn("import " + forbidden.strip(), source)
 
 
-class QualityHoldGateTests(unittest.TestCase):
-    """A held manuscript must never reach SMTP on a scheduled (non-pilot) week."""
+class FakeSmtp:
+    """Captures every message instead of reaching a network."""
 
-    # require_owner_review only covers the October 10 pilot week; later weeks
-    # depend on this gate alone.
+    def __init__(self, sink):
+        self.sink = sink
 
-    def held_packet(self):
+    def __call__(self, *args, **kwargs):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def login(self, *args):
+        pass
+
+    def send_message(self, message):
+        self.sink.append(message)
+
+
+ENV = {"IPR_EDITOR_TO": "dylan@example.com", "IPR_SMTP_USER": "ipr@example.com",
+       "IPR_SMTP_APP_PASSWORD": "abcdabcdabcdabcd", "IPR_PREVIEW_TO": "owner@example.com"}
+
+
+def attachments(message):
+    return {part.get_filename(): part.get_payload(decode=True)
+            for part in message.iter_attachments()}
+
+
+class OperationalGateTests(unittest.TestCase):
+    """Owner preview, hold, release and reconciliation: offline and send-proof.
+
+    ``require_owner_review`` covers only the October 10 pilot week, so every test
+    here uses a later week and patches SMTP to a capture object.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.clean = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
         broken = article_manuscript()
         broken["article"][0]["text"] += " TODO check this figure."
         broken["_prose_quality"] = check_article(broken, desk_by_id=DESKS)
-        self.assertTrue(broken["_prose_quality"]["hold"])
-        return render_packet(scaffold(), manuscript=broken, as_of=SAT)
+        assert broken["_prose_quality"]["hold"]
+        cls.held = render_packet(scaffold(), manuscript=broken, as_of=SAT)
+        # Re-address the worksheet to a post-pilot Saturday (identity line only).
+        cls.clean = cls.clean.replace("Packet: IPR-" + SAT, "Packet: IPR-" + LATER_WEEK, 1)
+        cls.held = cls.held.replace("Packet: IPR-" + SAT, "Packet: IPR-" + LATER_WEEK, 1)
 
-    def send(self, text, preview=False, **env):
+    def run_send(self, text, *, env=None, **kwargs):
         from scripts import sunday_editorial_handoff as handoff
-        base = {"IPR_EDITOR_TO": "dylan@example.com", "IPR_SMTP_USER": "ipr@example.com",
-                "IPR_SMTP_APP_PASSWORD": "abcdabcdabcdabcd",
-                "IPR_PREVIEW_TO": "owner@example.com"}
-        base.update(env)
+        sent = []
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "m.txt"
             path.write_text(text, encoding="utf-8")
-            with patch.dict("os.environ", base, clear=True), \
-                    patch("smtplib.SMTP_SSL", side_effect=AssertionError("SMTP reached")) as smtp:
+            with patch.dict("os.environ", dict(ENV if env is None else env), clear=True), \
+                    patch("smtplib.SMTP_SSL", FakeSmtp(sent)):
                 try:
-                    handoff.send_packet(path, LATER_WEEK, provisional=True, full_week=True,
-                                        preview_to_owner=preview)
-                finally:
-                    self.smtp_calls = smtp.call_count
+                    outcome = handoff.send_packet(path, LATER_WEEK, provisional=True,
+                                                  full_week=True, **kwargs)
+                except Exception as exc:  # returned to the caller's assertions
+                    outcome = exc
+        return sent, outcome
 
-    def test_held_manuscript_is_refused_before_smtp_for_editor_delivery(self):
+    def recipients(self, message):
+        return {a for h in ("To", "Cc", "Bcc") for a in (message[h] or "").split(",") if a.strip()}
+
+    # 1. owner-only preview of both artefacts ---------------------------------
+    def test_owner_preview_carries_docx_and_exact_txt_and_only_the_owner_receives_it(self):
+        sent, outcome = self.run_send(self.clean, preview_to_owner=True)
+        self.assertIsNone(outcome)
+        self.assertEqual(len(sent), 1)
+        message = sent[0]
+        self.assertEqual(self.recipients(message), {"owner@example.com"})
+        files = attachments(message)
+        txt = next(v for k, v in files.items() if k.endswith(".txt"))
+        docx = next(v for k, v in files.items() if k.endswith(".docx"))
+        self.assertEqual(txt, self.clean.encode("utf-8"))
+        digest = hashlib.sha256(txt).hexdigest()
+        self.assertIn(digest, message.get_body(("plain",)).get_content())
+        self.assertIn("NOT delivered to Dylan", message.get_body(("plain",)).get_content())
+        text = docx_text(docx)
+        self.assertIn("The Tavaran Navy has spent three weeks", text)
+        self.assertNotIn("NARRATIVE QUALITY", text)
+        self.assertNotIn("dylan@example.com", str(message))
+
+    def test_preview_that_cannot_make_the_word_copy_still_arrives_and_says_so(self):
+        broken = self.clean.replace("\n## ARTICLE\n", "\n## NOT-ARTICLE\n")
+        sent, outcome = self.run_send(broken, preview_to_owner=True)
+        self.assertIsNone(outcome)
+        self.assertEqual(len(sent), 1)
+        self.assertIn("WORD COPY NOT GENERATED", sent[0].get_body(("plain",)).get_content())
+        self.assertFalse([k for k in attachments(sent[0]) if k.endswith(".docx")])
+        sent, outcome = self.run_send(broken)  # a real Dylan send fails closed
+        self.assertEqual(sent, [])
+        self.assertIsInstance(outcome, Exception)
+
+    # 2. hold, held notice and release -----------------------------------------
+    def test_scheduled_delivery_of_a_held_draft_goes_only_to_the_owner(self):
         from scripts.sunday_pilot_owner_review import OwnerReviewRequired
-        text = self.held_packet()
-        self.assertIn("OWNER REVIEW REQUIRED BEFORE EDITOR DELIVERY", text)
-        with self.assertRaisesRegex(OwnerReviewRequired, "narrative quality gate"):
-            self.send(text)
-        self.assertEqual(self.smtp_calls, 0)
-        with self.assertRaisesRegex(OwnerReviewRequired, "narrative quality gate"):
-            self.send(text, IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256="0" * 64)
-        self.assertEqual(self.smtp_calls, 0)
+        self.assertIn("OWNER REVIEW REQUIRED BEFORE EDITOR DELIVERY", self.held)
+        sent, outcome = self.run_send(self.held)
+        self.assertIsInstance(outcome, OwnerReviewRequired)
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(self.recipients(sent[0]), {"owner@example.com"})
+        self.assertIn("HELD BY QUALITY GATE", sent[0]["Subject"])
+        files = attachments(sent[0])
+        txt = next(v for k, v in files.items() if k.endswith(".txt"))
+        self.assertEqual(txt, self.held.encode("utf-8"))
+        self.assertTrue(any(k.endswith(".docx") for k in files))
+        body = sent[0].get_body(("plain",)).get_content()
+        self.assertIn(hashlib.sha256(txt).hexdigest(), body)
+        self.assertIn("sunday_send_reviewed_packet", body)
 
-    def test_only_the_exact_released_bytes_pass_the_gate(self):
-        text = self.held_packet()
-        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        # Past the gate the patched SMTP is reached, which proves release works.
-        with self.assertRaisesRegex(AssertionError, "SMTP reached"):
-            self.send(text, IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256=digest)
-        with self.assertRaises(Exception):
-            self.send(text + "\n", IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256=digest)
-        self.assertEqual(self.smtp_calls, 0)
+    def test_held_draft_without_an_owner_address_sends_nothing_at_all(self):
+        env = {k: v for k, v in ENV.items() if k != "IPR_PREVIEW_TO"}
+        sent, outcome = self.run_send(self.held, env=env)
+        self.assertEqual(sent, [])
+        self.assertIsInstance(outcome, ValueError)
+        sent, outcome = self.run_send(self.held, env=dict(ENV, IPR_PREVIEW_TO=ENV["IPR_EDITOR_TO"]))
+        self.assertEqual(sent, [])
 
-    def test_clean_manuscripts_and_owner_previews_are_not_blocked(self):
-        clean = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
-        with self.assertRaisesRegex(AssertionError, "SMTP reached"):
-            self.send(clean)
-        with self.assertRaisesRegex(AssertionError, "SMTP reached"):
-            self.send(self.held_packet(), preview=True)
+    def test_clean_draft_still_goes_to_the_editor_with_both_attachments(self):
+        sent, outcome = self.run_send(self.clean)
+        self.assertIsNone(outcome)
+        self.assertEqual(self.recipients(sent[0]), {"dylan@example.com"})
+        self.assertEqual(sorted(k.rsplit(".", 1)[1] for k in attachments(sent[0])), ["docx", "txt"])
 
     def test_article_packet_missing_its_quality_line_fails_closed(self):
         from scripts.sunday_editorial_handoff import quality_hold
-        clean = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
-        stripped = "\n".join(l for l in clean.splitlines() if not l.startswith("Narrative QA: "))
-        self.assertFalse(quality_hold(clean))
+        stripped = "\n".join(l for l in self.clean.splitlines() if not l.startswith("Narrative QA: "))
+        self.assertFalse(quality_hold(self.clean))
         self.assertTrue(quality_hold(stripped))
+        self.assertFalse(quality_hold(render_packet(scaffold(), manuscript=legacy_manuscript(), as_of=SAT)))
+        sent, outcome = self.run_send(stripped)
+        self.assertEqual({tuple(self.recipients(m)) for m in sent}, {("owner@example.com",)})
+
+    def test_exact_reviewed_bytes_are_released_without_a_model_call_or_second_email(self):
+        from scripts import sunday_send_reviewed_packet as reviewed
+        NY = reviewed.NY
+        now = datetime(2026, 10, 25, 12, 0, tzinfo=NY)
+        # 1. The held notice reaches only the owner.
+        held_sent, _ = self.run_send(self.held)
+        saved = next(v for k, v in attachments(held_sent[0]).items() if k.endswith(".txt"))
+        digest = hashlib.sha256(saved).hexdigest()
+        self.assertEqual(saved, self.held.encode("utf-8"))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "IPR-Briefs-Editorial-{}.txt".format(LATER_WEEK)
+            path.write_bytes(saved)  # what the owner saved from the email
+            env = dict(ENV, IPR_SUNDAY_OWNER_REVIEWED_WEEK=LATER_WEEK,
+                       IPR_SUNDAY_OWNER_REVIEWED_SHA256=digest)
+            with patch.dict("os.environ", env, clear=True):
+                dry = reviewed.handoff(path, LATER_WEEK, now=now)
+            self.assertTrue(dry["quality_hold_present"])
+            self.assertTrue(dry["exact_owner_approval_matches"])
+            self.assertEqual(dry["attachment_sha256"], digest)
+            self.assertFalse(dry["email_sent"])
+            # 2. Without the owner's confirmation or with a wrong digest: nothing sent.
+            released = []
+            with patch.dict("os.environ", env, clear=True), patch("smtplib.SMTP_SSL", FakeSmtp(released)), \
+                    patch("scripts.sunday_briefs_auto_writer.compose", side_effect=AssertionError("model called")):
+                with self.assertRaises(reviewed.ReviewedHandoffRefused):
+                    reviewed.handoff(path, LATER_WEEK, send=True, now=now)
+                with patch.dict("os.environ", {"IPR_SUNDAY_OWNER_REVIEWED_SHA256": "0" * 64}):
+                    with self.assertRaises(reviewed.ReviewedHandoffRefused):
+                        reviewed.handoff(path, LATER_WEEK, send=True, owner_confirmed=True, now=now)
+                self.assertEqual(released, [])
+                # 3. Confirmed exact digest: exactly one editor email, same bytes.
+                receipt = reviewed.handoff(path, LATER_WEEK, send=True, owner_confirmed=True, now=now)
+            self.assertTrue(receipt["email_sent"])
+            self.assertFalse(receipt["automated_model_called"])
+            self.assertEqual(len(released), 1)
+            self.assertEqual(self.recipients(released[0]), {"dylan@example.com"})
+            sent_txt = next(v for k, v in attachments(released[0]).items() if k.endswith(".txt"))
+            self.assertEqual(hashlib.sha256(sent_txt).hexdigest(), digest)
+
+    def test_reviewed_sender_accepts_article_layout_and_still_refuses_malformed_files(self):
+        from scripts import sunday_send_reviewed_packet as reviewed
+        now = datetime(2026, 10, 25, 12, 0, tzinfo=reviewed.NY)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "m.txt"
+            path.write_text(self.clean, encoding="utf-8")
+            self.assertEqual(reviewed.validate_file(path, LATER_WEEK, now=now), self.clean.encode("utf-8"))
+            for broken in (self.clean.replace("\n## ARTICLE\n", "\n## BODY\n"),
+                           self.clean.replace("ARTICLE SOURCE ACCOUNTING (private;", "ACCOUNTING ("),
+                           self.clean.replace("=== SOURCE APPENDIX — DO NOT EDIT ===", "")):
+                path.write_text(broken, encoding="utf-8")
+                with self.assertRaises(reviewed.ReviewedHandoffRefused):
+                    reviewed.validate_file(path, LATER_WEEK, now=now)
+
+    def test_delivery_audit_attachment_digest_is_byte_exact_through_mime(self):
+        sent, _ = self.run_send(self.clean, preview_to_owner=True)
+        body = sent[0].get_body(("plain",)).get_content()
+        stated = re.search(r"SHA-256: ([0-9a-f]{64})", body).group(1)
+        txt = next(v for k, v in attachments(sent[0]).items() if k.endswith(".txt"))
+        self.assertEqual(hashlib.sha256(txt).hexdigest(), stated)
+        # A message round-tripped through serialisation keeps the same bytes.
+        from email import message_from_bytes, policy
+        again = message_from_bytes(sent[0].as_bytes(), policy=policy.default)
+        txt2 = next(v for k, v in attachments(again).items() if k.endswith(".txt"))
+        self.assertEqual(hashlib.sha256(txt2).hexdigest(), stated)
+
+    # 3. reconciliation after Dylan's edit --------------------------------------
+    def test_edited_return_is_never_reported_as_factually_approved(self):
+        packet = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
+        lead = ARTICLE_BLOCKS[0][1].split("\n\n")[0]
+        edited = packet.replace(lead, lead.replace("11 kilometres", "13 kilometres")
+                                + ' Voss added: "the array exceeded every earlier trial".')
+        receipt = validate_return(packet, edited)
+        self.assertEqual(receipt["review_status"], "STRUCTURAL REVIEW ONLY — UNAPPROVED")
+        report = analyzer.analyze(packet, edited)
+        rec = report["reconciliation"]
+        self.assertTrue(rec["required"])
+        self.assertIs(rec["factual_approval"], False)
+        self.assertIs(rec["validate_return_is_factual_approval"], False)
+        kinds = {i["kind"] for i in rec["items"]}
+        self.assertTrue({"cited_block", "new_figures", "new_quotations"} <= kinds)
+        block = next(i for i in rec["items"] if i["kind"] == "cited_block")
+        self.assertEqual(block["records"], ["2"])
+        self.assertIn("13", next(i for i in rec["items"] if i["kind"] == "new_figures")["reason"])
+        markdown = analyzer.render_markdown(report)
+        self.assertIn("## Reconciliation required before any Brief", markdown)
+        self.assertIn("NOT factual, citation or editorial approval", markdown)
+        self.assertIn("describes the ORIGINAL", markdown)
+
+    def test_reconciliation_exists_even_for_a_light_edit_and_for_legacy_returns(self):
+        packet = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
+        light = analyzer.analyze(packet, packet.replace("The Tavaran Navy has spent", "The navy spent", 1))
+        self.assertTrue(light["reconciliation"]["required"])
+        self.assertIs(light["reconciliation"]["factual_approval"], False)
         legacy = render_packet(scaffold(), manuscript=legacy_manuscript(), as_of=SAT)
-        self.assertFalse(quality_hold(legacy))
+        edited = legacy.replace("I am watching whether the navy publishes further information.",
+                                "The navy has published an extra 40 pages.")
+        rec = analyzer.analyze(legacy, edited)["reconciliation"]
+        self.assertTrue(any(i["kind"] == "edited_paragraphs" for i in rec["items"]))
+
+    def test_word_importer_states_that_factual_review_has_not_happened(self):
+        packet = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
+        data = edit_docx(render_editor_docx(packet), lambda doc: set_text(
+            next(p for p in doc.paragraphs if p.text.startswith("The Tavaran Navy has spent")),
+            "For three weeks the navy towed a new sonar array in the Kesh Strait."))
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "o.txt").write_text(packet, encoding="utf-8")
+            (d / "e.docx").write_bytes(data)
+            out = io.StringIO()
+            from contextlib import redirect_stdout
+            from scripts.import_sunday_editor_docx import main as importer
+            with redirect_stdout(out):
+                importer(["--original", str(d / "o.txt"), "--edited-word", str(d / "e.docx"),
+                          "--out", str(d / "c.txt")])
+        self.assertIn("factual and citation review of the edited text has NOT been done", out.getvalue())
+        self.assertIn("analyze_editor_return", out.getvalue())
 
 
 class NoSideEffectTests(unittest.TestCase):

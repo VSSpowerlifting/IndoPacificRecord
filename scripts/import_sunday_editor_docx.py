@@ -170,6 +170,8 @@ def main(argv=None):
     print("Changed sections:", receipt["changed_sections"])
     print("Source appendix SHA-256:", receipt["appendix_sha256"])
     print("No Brief imported, approved, numbered, sent or published.")
+    print("STRUCTURE ONLY: factual and citation review of the edited text has NOT been done.")
+    print("Run scripts.analyze_editor_return and reconcile every changed claim against the original records.")
     return 0
 
 

@@ -42,6 +42,12 @@ SAME, LIGHT, MATCH = 0.98, 0.80, 0.45
 RECURRING_AFTER = 3
 CITATION_PREFIXES = ("SOURCE RECORD IDS:", "EXTERNAL SOURCE IDS:")
 NUMBER = re.compile(r"\b\d[\d,.]*\d\b|\b\d\b")
+QUOTED = re.compile(r"[\"“]([^\"”]{12,}?)[\"”]")
+RECONCILIATION_STATEMENT = (
+    "A passing validate_return and an unchanged source appendix prove structure only. They are NOT "
+    "factual, citation or editorial approval of the returned text. The appendix describes the ORIGINAL "
+    "paragraphs; a rewritten, added, merged or moved paragraph is unverified until Ben has checked each "
+    "claim, figure, name, date and quotation in it against the original records and assigned its citations again.")
 PROSE_SECTIONS = tuple(h for h in HEADINGS if h not in ("WORKING TITLE", "DEK"))
 
 
@@ -225,6 +231,35 @@ def analyze(original, edited):
             cited.append({"block": entry["block"], "records": entry["records"],
                           "external": entry["external"], "verdict": verdict})
 
+    old_quotes, new_quotes = set(QUOTED.findall(old_text)), set(QUOTED.findall(new_text))
+    items = []
+    for entry in cited:
+        if entry["verdict"] != "intact":
+            items.append({"kind": "cited_block", "where": "block {}".format(entry["block"]),
+                          "records": entry["records"], "external": entry["external"],
+                          "reason": entry["verdict"]})
+    if old["layout"] != "article-first":
+        touched = [i + 1 for i, v in sorted(status.items()) if v != "unchanged"]
+        if touched:
+            items.append({"kind": "edited_paragraphs", "where": "paragraphs " + ", ".join(map(str, touched)),
+                          "reason": "edited, moved or cut in a fixed-outline worksheet; re-check against its SOURCE RECORD IDS"})
+    for j in added:
+        items.append({"kind": "added_paragraph", "where": "returned paragraph {}".format(j + 1),
+                      "reason": "new text with no citation mapping"})
+    if old["sections"].get("WORKING TITLE") != new["sections"].get("WORKING TITLE"):
+        items.append({"kind": "title", "where": "title", "reason": "changed; confirm it claims no more than the records"})
+    if old["sections"].get("DEK") != new["sections"].get("DEK"):
+        items.append({"kind": "dek", "where": "dek", "reason": "changed; confirm it claims no more than the records"})
+    if new_nums - old_nums:
+        items.append({"kind": "new_figures", "where": "article",
+                      "reason": "figures absent from the sent text: " + ", ".join(sorted(new_nums - old_nums))})
+    if new_quotes - old_quotes:
+        items.append({"kind": "new_quotations", "where": "article",
+                      "reason": "{} quotation(s) absent from the sent text; verify wording against the original".format(
+                          len(new_quotes - old_quotes))})
+    reconciliation = {"required": True, "items": items, "factual_approval": False,
+                      "validate_return_is_factual_approval": False, "statement": RECONCILIATION_STATEMENT}
+
     old_subs = [t for k, t, _ in old["units"] if k == "subhead"]
     new_subs = [t for k, t, _ in new["units"] if k == "subhead"]
     cut_pct = round(100.0 * (after["words"] - before["words"]) / before["words"], 1) if before["words"] else 0.0
@@ -291,6 +326,7 @@ def analyze(original, edited):
         "added_paragraphs": [{"index": j + 1, "starts": _snippet(new_paras[j])} for j in added],
         "cut_paragraphs": [{"index": i + 1, "starts": _snippet(old_paras[i])} for i in deleted],
         "cited_blocks": cited,
+        "reconciliation": reconciliation,
         "heuristic_flags": {"original": sorted(old_flags), "returned": sorted(new_flags)},
         "candidate_patterns": candidates,
         "governance": {
@@ -318,6 +354,11 @@ def render_markdown(report):
         "Title changed: {}. Dek changed: {}.".format(report["title_changed"], report["dek_changed"]),
         "",
     ]
+    rec = report["reconciliation"]
+    lines += ["## Reconciliation required before any Brief", rec["statement"], ""]
+    lines += ["- {} ({}): {}".format(i["where"], i["kind"], i["reason"]) for i in rec["items"]] or [
+        "- No paragraph, title, figure or quotation changed; the sent text still needs Ben's own review."]
+    lines.append("")
     if report["cited_blocks"]:
         lines.append("## Source-bearing blocks (re-check before any Brief)")
         for b in report["cited_blocks"]:

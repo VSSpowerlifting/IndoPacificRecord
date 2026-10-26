@@ -390,7 +390,6 @@ jobs:
           IPR_PREVIEW_REQUESTED: ${{ env.SUNDAY_OWNER_PREVIEW == 'true' || (github.event_name == 'workflow_dispatch' && inputs.preview_to_owner == true) }}
           IPR_SUNDAY_OWNER_REVIEWED_WEEK: ${{ vars.IPR_SUNDAY_OWNER_REVIEWED_WEEK }}
           IPR_SUNDAY_OWNER_REVIEWED_SHA256: ${{ vars.IPR_SUNDAY_OWNER_REVIEWED_SHA256 }}
-          IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256: ${{ vars.IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256 }}
           PRIVATE_WEEK_PACKET: ${{ steps.editor_scope.outputs.packet }}
         shell: bash
         run: |

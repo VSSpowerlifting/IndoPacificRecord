@@ -10,6 +10,18 @@ offline Dylan-return loop. Offline tests: `tests/test_briefs_narrative_reform.py
 model call, send or publication has occurred; the first live check is the owner's. Standard:
 `docs/IPR_BRIEFS_WRITING_STANDARD.md`; demo: `docs/evidence/briefs-narrative-reform-2026-10-25/`.
 
+Operational acceptance (same date): owner previews attach the exact TXT and the Word copy to
+the owner only; a quality-held draft is never mailed to Dylan but sent to the owner as a
+HELD notice (identical bytes + SHA-256) and the job fails, and release is the existing
+digest-pinned `scripts.sunday_send_reviewed_packet` (no model call; article-first layout now
+accepted). Do not rerun scheduled delivery for a held week; the manual sender cannot see an
+earlier Dylan send. After Dylan edits, final publication requires reconciling changed claims
+and citations against the original records (analyzer lists them; `validate_return` and the
+unchanged appendix are structural only). Baseline note: PR #805's three offline-CI failures
+(`tests/test_preview_prototype.py`) predate this branch's merge with `main`; `main`'s
+`6acc920699` already fixes them in this tree (the three test classes pass), so PR #879 was
+not imported; its open state is separate. Exact-head CI is read after the final push.
+
 ## Sunday selection reform — private review candidate (25 October 2026)
 
 PR #805 is being extended from its old ten-source comparison to complete
