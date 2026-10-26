@@ -10,26 +10,26 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Living Dossiers (25 October 2026): revision 2 release candidate; editorial and narrow source-use approval recorded.**
-Ben reaffirmed approval of revision 2 and the reviewed presentation at
-`38f9f2bf8f45e258ad9592272b865d41cd29d72f`, then separately approved the narrow
-five-source public projection. Both actual decisions are in `DECISION_LOG.md`
-and `core/dossier_decisions.py`; exact approval/source references are in the
-canonical dossier. Benjamin Yang is credited as human editor and Codex as
-machine-assisted preparer. Readiness passes with no holds. Findings, source
-versions, chronology and reviewed CSS/template presentation are unchanged;
-approval/review metadata, source-use references and their digest are updated.
-A delivery-only shell stylesheet split keeps HTML plus CSS at 111,195 bytes
-under the unchanged 120,000-byte cap. Desktop closed/open, mobile expanded and
-print screenshots, computed styles and geometry are identical before/after.
-Status and decision-log resolutions retain both projects' entries;
-base is `fdb3cc8973753c3cb2db4ae4ad0425839f6bd94d`. Synthetic publication fixtures
-explicitly supply their own dossier inputs instead of depending on the live
-canonical publication state. Focused checks, final-revision required CI and
-isolated production validation are reported in PR #864. Fifteen shared-renderer
-outputs prepare the public route, discovery, backlinks and scoped assets; no
-unrelated generated page changes. Runner repairs remain outside this task. No merge, deployment or publication is authorized or performed.
-Workflow and decision boundary: `docs/LIVING_DOSSIERS.md`.
+**Living Dossiers (26 October 2026): complete revision 2 candidate in PR #864.**
+The approved eight findings, five source versions, six chronology entries and
+reviewed presentation are preserved byte for byte from `99506199a1`.
+Readiness reconciles every source and returns no holds; editorial digest
+`3f774c00ec432fa64fe0a19695e3d4dde3c6b34704264bc752a268a7aa4e7039`
+still matches the independent editorial/source-use decisions. All five preserved
+originals were reread against the finding matrix; no new collection or model run.
+Current main `71beedb3ba` and the existing PR #879 repair `7f6ceb6996` are
+incorporated, preserving newer Briefs, staff, Daily records and decisions.
+The 190 affected dossier/renderer/baseline checks pass. Public-route desktop,
+375/320px mobile, keyboard disclosures, source/return links, archive discovery,
+citation copy and print were verified; captures are indexed in `design-qa.md`.
+All 2,226 routes pass delivery budgets; the dossier uses 111,195 HTML+CSS bytes
+and 6,953 JS bytes. Shared rendering and validation retain 10 governed warnings.
+The generated diff against main contains only the fifteen dossier/discovery/
+backlink/assets outputs. An unrelated renderer refresh of Philippines directory
+counts in `desks.html` was inspected and restored to main. Database matches main;
+canonical Briefs and Timeline are unchanged. Final-commit CI receipts belong in
+PR #864; no earlier-head result is substituted. No merge, deployment or public
+release was performed. Workflow: `docs/LIVING_DOSSIERS.md`.
 
 **PR #864 baseline maintenance (25 October 2026).** PR #879 pins only the
 eight failing contract jobs in seven workflows to Ubuntu 24.04 / Python 3.9;

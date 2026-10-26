@@ -111,3 +111,32 @@ opening/expanded desktop/mobile captures were opened and inspected. Evidence:
 `/Users/benjaminyang/.codex/visualizations/2026/10/25/dossier-release-budget/comparison.json`
 and the adjacent `*-before.png` / `*-after.png` files. Reference-review captures:
 `/Users/benjaminyang/.codex/visualizations/2026/10/25/dossier-release-76097c0f/`.
+
+## Completion verification — 26 October 2026
+
+The public candidate retains the approved revision 2 manuscript, chronology,
+source versions and reviewed template/CSS/JS byte for byte from `99506199a1`.
+All five preserved originals were reread against the internal finding matrix.
+Readiness passes with the approved digest and no holds. The bounded packet's
+present-day publisher completeness remains unverified, as disclosed in Scope;
+no additional retrieval was necessary. No originals, translations, excerpts or
+publisher media were added to the public dossier projection.
+
+Actual public-route 1280px desktop, 375/320px mobile and print captures were
+opened and inspected. The opening, expanded evidence, chronology, common calendar,
+source ledger returns, keyboard outlines and print evidence remain readable.
+Browser checks cover eight findings, five sources, four event entries plus two
+separate interval statements, keyboard/calendar/date disclosures, citation copy,
+archive discovery and zero mobile horizontal overflow. No JavaScript errors or
+failed local requests were observed. Archive results intentionally carry the
+production canonical URL; its exact dossier path was checked against local output
+rather than treating an unpublished production route as a preview failure.
+
+Evidence: `/Users/benjaminyang/.codex/visualizations/2026/10/26/dossier-completion/`
+contains `browser-results.json`, desktop opening/full/calendar/evidence/chronology,
+375/320px mobile opening/full/evidence, print opening/evidence and `dossier.pdf`.
+The 190 affected dossier, renderer, Brief-presentation and repaired baseline tests
+pass. All 2,226 routes pass delivery budgets (dossier HTML+CSS 111,195 bytes;
+JS 6,953 bytes), and validation retains the 10 governed warnings. Mandatory CI
+and final-commit replay results are reported with exact SHAs in PR #864.
+No visual rewrite, new editorial revision, collection, model spend or release.
