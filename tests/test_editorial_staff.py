@@ -71,7 +71,7 @@ class EditorialStaffTests(unittest.TestCase):
         jophy = next(p for p in people if p["slug"] == "jophy-lin")
         self.assertEqual(jophy["name"], "Jophy Lin")
         self.assertEqual(jophy["role"], "Communications Editor")
-        self.assertEqual(jophy["bio"], "Biography forthcoming.")
+        self.assertEqual(jophy["bio"], "Jophy Lin studies International Affairs at the George Washington University’s Elliott School of International Affairs, where he is pursuing a Bachelor of Science with a second major in Finance on a pre-law track. As Communications Editor at the Indo-Pacific Record, he oversees the platform’s communications strategy and digital presence, working to make research and reporting on the Indo-Pacific accessible to a broader audience.")
         self.assertEqual(jophy["links"], {})
         self.assertFalse(any(p["slug"] == "christin-sawyer" for p in people))
 
