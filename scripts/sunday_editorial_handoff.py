@@ -16,8 +16,12 @@ from email.message import EmailMessage
 from email.utils import getaddresses
 from pathlib import Path
 
-from core.brief_prose_standard import check_article, fingerprint, format_report_lines, summary_line
-from scripts.sunday_pilot_owner_review import require_owner_review, require_exact_reviewed_manuscript
+from core.brief_prose_standard import (
+    HOLD_PHRASE, check_article, fingerprint, format_report_lines, summary_line,
+)
+from scripts.sunday_pilot_owner_review import (
+    OwnerReviewRequired, require_owner_review, require_exact_reviewed_manuscript,
+)
 
 # Article-first layout: one continuous editable ARTICLE section. The citation
 # map lives in the hash-validated appendix (keyed by paragraph fingerprint), so
@@ -350,6 +354,39 @@ def quality_summary(packet_text):
     return ""
 
 
+QUALITY_RELEASE_VARIABLE = "IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256"
+
+
+def quality_hold(packet_text):
+    """True when the packet carries a major mechanical hold, or an article-first
+    packet has lost its quality line (fail closed; nothing is inferred as clean)."""
+    line = quality_summary(packet_text)
+    if line:
+        return HOLD_PHRASE in line
+    return "\n## ARTICLE\n" in packet_text
+
+
+def require_quality_release(*, packet_bytes, sending, released_sha256):
+    """A held manuscript reaches Dylan only if the owner released these exact bytes.
+
+    ``require_owner_review`` covers only the October 10 pilot week, so every later
+    scheduled Sunday needs its own fail-closed check before any SMTP call. The
+    owner-only preview is never blocked: that is how the hold is reviewed.
+    """
+    if type(sending) is not bool:
+        raise OwnerReviewRequired("editor send state must be an explicit boolean")
+    if not sending or not quality_hold(packet_bytes.decode("utf-8")):
+        return False
+    digest = hashlib.sha256(packet_bytes).hexdigest()
+    if released_sha256 != digest:
+        raise OwnerReviewRequired(
+            "Refused: the narrative quality gate holds this manuscript for owner "
+            "review (mechanical defect or missing report). Review it in the "
+            "owner-only preview, fix or accept it, then set "
+            + QUALITY_RELEASE_VARIABLE + " to its exact SHA-256. No Dylan delivery.")
+    return True
+
+
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
                 preview_to_owner=False):
     require_owner_review(
@@ -363,6 +400,10 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         week_ending=week_ending, sending=not preview_to_owner,
         manuscript_bytes=original_attachment,
         approved_sha256=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_SHA256", ""),
+    )
+    require_quality_release(
+        packet_bytes=original_attachment, sending=not preview_to_owner,
+        released_sha256=os.environ.get(QUALITY_RELEASE_VARIABLE, ""),
     )
     editor = single_address(os.environ.get("IPR_EDITOR_TO", ""), "IPR_EDITOR_TO")
     if preview_to_owner:

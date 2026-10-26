@@ -12,8 +12,9 @@ story-specific headings, a lead on the development, and a private audit block; t
 outline is retired for new drafts and retained only so already-sent worksheets still
 validate; (2) necessary qualifications stay in the article once, research-process
 commentary moves to the audit, and nothing is deleted; (3) a deterministic-plus-heuristic
-quality gate reports before handoff, mechanical majors use the existing owner-review hold,
-style flags are advisory, and there is no second paid call or unbounded retry; (4) citations
+quality gate reports before handoff, mechanical majors are enforced as a send-time hold
+(`IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256` pinned to the exact packet bytes; the pilot-week
+owner gate did not cover later weeks), style flags are advisory, and there is no second paid call or unbounded retry; (4) citations
 are mapped per block in the hash-validated appendix, so Dylan's reordering cannot corrupt
 them; (5) editor returns can be analysed offline, but an analysis never changes a prompt
 and promoting a rule needs explicit owner approval. Ben owns accuracy, argument and

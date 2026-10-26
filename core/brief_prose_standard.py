@@ -369,11 +369,14 @@ def check_article(manuscript, *, desk_by_id=None):
             "metrics": metrics, "hold": hold}
 
 
+HOLD_PHRASE = "OWNER REVIEW REQUIRED BEFORE EDITOR DELIVERY"
+
+
 def summary_line(report):
     majors = sum(1 for e in report["errors"] if e["major"])
     return ("Narrative QA: {} mechanical error(s) ({} major), {} editorial flag(s); {}".format(
         len(report["errors"]), majors, len(report["flags"]),
-        "OWNER REVIEW REQUIRED BEFORE EDITOR DELIVERY" if report["hold"]
+        HOLD_PHRASE if report["hold"]
         else "no mechanical hold"))
 
 

@@ -7,6 +7,7 @@ All manuscript text is the synthetic Tavaran Navy fixture.
 from __future__ import annotations
 
 import copy
+import hashlib
 import io
 import json
 import re
@@ -35,6 +36,7 @@ from tests.briefs_narrative_fixtures import (
     ARTICLE_BLOCKS, AUDIT, SAT, article_manuscript, evidence, legacy_manuscript, scaffold)
 
 DESKS = {1: "china", 2: "singapore"}
+LATER_WEEK = "2026-10-24"
 PRIVATE_MARKERS = (
     AUDIT["baseline_and_routine"][:40], AUDIT["limitations"][:40],
     AUDIT["terms_to_verify"][:40], AUDIT["cross_desk_assessment"][:40],
@@ -716,6 +718,74 @@ class EditorReturnAnalysisTests(unittest.TestCase):
         for forbidden in ("smtplib", "imaplib", "anthropic", "requests", "urllib", "sqlite3",
                           "subprocess", "git "):
             self.assertNotIn("import " + forbidden.strip(), source)
+
+
+class QualityHoldGateTests(unittest.TestCase):
+    """A held manuscript must never reach SMTP on a scheduled (non-pilot) week."""
+
+    # require_owner_review only covers the October 10 pilot week; later weeks
+    # depend on this gate alone.
+
+    def held_packet(self):
+        broken = article_manuscript()
+        broken["article"][0]["text"] += " TODO check this figure."
+        broken["_prose_quality"] = check_article(broken, desk_by_id=DESKS)
+        self.assertTrue(broken["_prose_quality"]["hold"])
+        return render_packet(scaffold(), manuscript=broken, as_of=SAT)
+
+    def send(self, text, preview=False, **env):
+        from scripts import sunday_editorial_handoff as handoff
+        base = {"IPR_EDITOR_TO": "dylan@example.com", "IPR_SMTP_USER": "ipr@example.com",
+                "IPR_SMTP_APP_PASSWORD": "abcdabcdabcdabcd",
+                "IPR_PREVIEW_TO": "owner@example.com"}
+        base.update(env)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "m.txt"
+            path.write_text(text, encoding="utf-8")
+            with patch.dict("os.environ", base, clear=True), \
+                    patch("smtplib.SMTP_SSL", side_effect=AssertionError("SMTP reached")) as smtp:
+                try:
+                    handoff.send_packet(path, LATER_WEEK, provisional=True, full_week=True,
+                                        preview_to_owner=preview)
+                finally:
+                    self.smtp_calls = smtp.call_count
+
+    def test_held_manuscript_is_refused_before_smtp_for_editor_delivery(self):
+        from scripts.sunday_pilot_owner_review import OwnerReviewRequired
+        text = self.held_packet()
+        self.assertIn("OWNER REVIEW REQUIRED BEFORE EDITOR DELIVERY", text)
+        with self.assertRaisesRegex(OwnerReviewRequired, "narrative quality gate"):
+            self.send(text)
+        self.assertEqual(self.smtp_calls, 0)
+        with self.assertRaisesRegex(OwnerReviewRequired, "narrative quality gate"):
+            self.send(text, IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256="0" * 64)
+        self.assertEqual(self.smtp_calls, 0)
+
+    def test_only_the_exact_released_bytes_pass_the_gate(self):
+        text = self.held_packet()
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        # Past the gate the patched SMTP is reached, which proves release works.
+        with self.assertRaisesRegex(AssertionError, "SMTP reached"):
+            self.send(text, IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256=digest)
+        with self.assertRaises(Exception):
+            self.send(text + "\n", IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256=digest)
+        self.assertEqual(self.smtp_calls, 0)
+
+    def test_clean_manuscripts_and_owner_previews_are_not_blocked(self):
+        clean = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
+        with self.assertRaisesRegex(AssertionError, "SMTP reached"):
+            self.send(clean)
+        with self.assertRaisesRegex(AssertionError, "SMTP reached"):
+            self.send(self.held_packet(), preview=True)
+
+    def test_article_packet_missing_its_quality_line_fails_closed(self):
+        from scripts.sunday_editorial_handoff import quality_hold
+        clean = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
+        stripped = "\n".join(l for l in clean.splitlines() if not l.startswith("Narrative QA: "))
+        self.assertFalse(quality_hold(clean))
+        self.assertTrue(quality_hold(stripped))
+        legacy = render_packet(scaffold(), manuscript=legacy_manuscript(), as_of=SAT)
+        self.assertFalse(quality_hold(legacy))
 
 
 class NoSideEffectTests(unittest.TestCase):

@@ -9,8 +9,10 @@ dek, article and (TXT only) the editorial questions; the audit notes, source acc
 limitations ledger, source-use receipt and a **NARRATIVE QUALITY REPORT** stay in the
 private appendix. The owner preview adds a counts-only quality line. Mechanical failures
 (placeholder, truncation, doubled words, duplicated or forced material) mark a hold that
-rides the existing owner-review gate; style findings are advisory and never trigger a
-second model call. Nothing in this reform sends, numbers, publishes or spends; the
+is enforced in `send_packet` before any SMTP call: Dylan delivery is refused unless
+`IPR_SUNDAY_QUALITY_HOLD_RELEASED_SHA256` equals the exact packet's SHA-256 (the
+October 10 pilot gate does not cover later weeks). Style findings are advisory and never
+trigger a second model call. Nothing in this reform sends, numbers, publishes or spends; the
 first live use is a separate owner-authorized step.
 
 ## Scheduled-delivery correction — October 11, 2026
