@@ -923,6 +923,15 @@ class OperationalGateTests(unittest.TestCase):
         again = message_from_bytes(sent[0].as_bytes(), policy=policy.default)
         txt2 = next(v for k, v in attachments(again).items() if k.endswith(".txt"))
         self.assertEqual(hashlib.sha256(txt2).hexdigest(), stated)
+        # smtplib flattens with CRLF line endings; the saved file must still hash to the
+        # digest printed in the notice, and the TXT part must be base64 (not re-wrapped text).
+        wire = message_from_bytes(sent[0].as_bytes(policy=policy.SMTP), policy=policy.default)
+        parts = {p.get_filename(): p for p in wire.iter_attachments()}
+        txt_part = next(v for k, v in parts.items() if k.endswith(".txt"))
+        self.assertEqual(txt_part["Content-Transfer-Encoding"], "base64")
+        self.assertEqual(hashlib.sha256(txt_part.get_payload(decode=True)).hexdigest(), stated)
+        self.assertIn(b"\r\n", sent[0].as_bytes(policy=policy.SMTP))
+        self.assertNotIn(b"\r", txt_part.get_payload(decode=True).replace(b"\r\n", b""))
 
     # 3. reconciliation after Dylan's edit --------------------------------------
     def test_edited_return_is_never_reported_as_factually_approved(self):
