@@ -20,7 +20,8 @@ key defining only the kinds shown. The homepage entry appears only once the
 thematic dossier is approved. Brief URLs, titles, numbering, feeds and
 citations are unchanged; the production diff is mostly the nav label "Briefs"
 → "Analysis". Validation keeps the 10 governed warnings, and the 129 dossier
-and timeline tests pass. A review render (`--review-dossier`) was checked at
+and timeline tests pass. CI passes on `4e6dd2df7f` after the historical pages were
+regenerated for the new nav label. A review render (`--review-dossier`) was checked at
 1280/375/320 px for headings, overflow, focus, evidence disclosures, no-JS and
 print. **Not merged, deployed, published or editorially approved.** Release
 needs Ben's editorial approval of that exact digest and a source-use decision
