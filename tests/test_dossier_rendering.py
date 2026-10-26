@@ -371,7 +371,10 @@ class ThematicDossierRendering(unittest.TestCase):
         cls.sources=cls.root/'dossiers'; cls.sources.mkdir()
         (cls.sources/PILOT.name).write_text(json.dumps(cls.sc))
         cls.thematic=cls.sources/THEMATIC.name
-        cls.thematic.write_text(THEMATIC.read_text())
+        # Review mode is exercised with the pre-approval shape of the real manuscript.
+        draft=json.loads(THEMATIC.read_text()); draft.pop('approval')
+        draft.update(editorial_status='draft',revision=0,reviewed_on=None,changes=[])
+        cls.thematic.write_text(json.dumps(draft,ensure_ascii=False))
         cls.out=cls.root/'review'
         snapshot=gp.snapshot_from_corpus(ROOT/'pla_watch.db')
         with mock.patch.multiple(d.dossier_decisions, SOURCE_USES={}, PUBLICATIONS={}), fixture_decisions(cls.sc):

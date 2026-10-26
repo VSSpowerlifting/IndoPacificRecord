@@ -4,13 +4,13 @@
   "title": "China–Singapore Naval Cooperation",
   "dek": "What official Chinese and Singaporean publications establish about the two navies’ cooperation since 2015, and where that record stops.",
   "research_question": "How is China–Singapore naval cooperation evolving, and what does the public record establish about its scope, depth, and limits?",
-  "editorial_status": "draft",
+  "editorial_status": "approved",
   "author_name": "Claude (machine-assisted draft preparation)",
   "editor_name": "Benjamin Yang",
   "prepared_on": "2026-10-26",
   "updated_on": "2026-10-26",
-  "reviewed_on": null,
-  "revision": 0,
+  "reviewed_on": "2026-10-26",
+  "revision": 1,
   "scope": {
     "period_start": "2015-05-20",
     "period_end": "2026-10-26",
@@ -828,5 +828,47 @@
     "maritime-cooperation-2026"
   ],
   "related_timelines": [],
-  "changes": []
+  "changes": [
+    {
+      "revision": 1,
+      "changed_on": "2026-10-26",
+      "summary": "First release. Machine-assisted draft prepared from thirteen preserved records and nine linked official pages; Benjamin Yang approved the reviewed manuscript at draft digest 5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e. Source use is limited to attribution, dates, independent IPR paraphrases and links.",
+      "affected_claim_ids": [
+        "activities-2026",
+        "adesc-2019",
+        "adesc-implementation",
+        "alternating-hosts",
+        "cadet-camp-2026",
+        "chinese-framing",
+        "constant-scale",
+        "depth-2024",
+        "fifth-2026",
+        "fourth-2025",
+        "gaps",
+        "inaugural-2015",
+        "interoperability-word",
+        "not-alignment",
+        "observer-role-2024",
+        "official-only",
+        "one-of-two",
+        "planned-2020",
+        "second-2023",
+        "since-2015",
+        "singapore-framing",
+        "steadfast-season-2026",
+        "synthesis",
+        "technical-not-friendly",
+        "technical-stop-2026",
+        "third-2024",
+        "vbss-plan-2024",
+        "xiangshan-2026"
+      ]
+    }
+  ],
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-10-26",
+    "reference": "DECISION_LOG.md#2026-10-26--owner-china-singapore-naval-dossier-editorial-approval",
+    "content_sha256": "9e9471553354ecfb441c387dc12dc958658d10c8b5db04fb060b39d281462a1a"
+  }
 }

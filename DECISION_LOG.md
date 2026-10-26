@@ -4,6 +4,47 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-26 — Owner: China-Singapore naval dossier editorial approval
+
+Benjamin Yang wrote in this task: “I approve the complete China–Singapore Naval
+Cooperation manuscript at content digest:
+5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e”. That is the
+revision 0 draft recorded as pending in the entry below, including its
+findings, qualifications, chronology and closing synthesis. This resolves
+point 1 of that entry. Claude remains credited for machine-assisted
+preparation; Benjamin Yang is the responsible human editor.
+
+Recording the approval sets `editorial_status` to approved, `revision` 1,
+`reviewed_on` 26 October and one first-release change note. It adds the
+approval object. No finding, source binding, date or sentence of the reviewed
+text changes. The resulting approval digest is
+`9e9471553354ecfb441c387dc12dc958658d10c8b5db04fb060b39d281462a1a`, pinned in
+`core/dossier_decisions.py` `PUBLICATIONS`. In the same message he authorized
+generating the production output and, after all required checks pass on the
+final release candidate, merging and publishing through the existing release
+process.
+
+## 2026-10-26 — Owner: China-Singapore naval dossier source use
+
+Benjamin Yang approved the following in this task, resolving point 2 of the
+pending entry below:
+
+1. “Extending the existing Maritime grant to this dossier for R3924, R4102,
+   R4164, R4466 and R4472.”
+2. “Dossier-specific use of R3513, R3663, R4211, R4452, R4454, R4849, R4911
+   and R5528.”
+3. “Linked-source use of x1–x9.”
+
+He stated: “All three cover attribution, dates, independent IPR paraphrases and
+links only. Originals, translations, excerpts and media remain excluded.”
+`core/dossier_decisions.py` records each grant under this entry's anchor. The
+13 corpus records are bound to their exact source identity and stored-original
+SHA, with the five Maritime public fields. The nine linked official pages x1–x9
+are bound to their exact identity without the IPR record-link field, because
+IPR holds no record page for them. The grant applies only to China–Singapore
+Naval Cooperation. The 25 October Maritime grant remains separate and
+unchanged.
+
 ## 2026-10-26 — Owner: Maritime Cooperation 2026 becomes an exercise case study
 
 Benjamin Yang wrote in this task: “I approve the structural decision: Maritime

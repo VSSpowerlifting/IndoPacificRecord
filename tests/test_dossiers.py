@@ -257,6 +257,8 @@ class DossierSources(unittest.TestCase):
 
 
 THEMATIC = ROOT / 'dossiers/china-singapore-naval-cooperation.json'
+REAL_SOURCE_USES = dossier_decisions.SOURCE_USES
+REAL_PUBLICATIONS = dossier_decisions.PUBLICATIONS
 
 
 class ThematicDossierSources(unittest.TestCase):
@@ -278,9 +280,12 @@ class ThematicDossierSources(unittest.TestCase):
         authority.start(); self.addCleanup(authority.stop)
         self.sc = copy.deepcopy(self.original)
 
-    def test_real_draft_is_unapproved_and_every_source_is_held(self):
-        self.assertEqual(self.sc['editorial_status'], 'draft')
-        self.assertNotIn('approval', self.sc)
+    def test_real_approval_clears_only_with_recorded_decisions(self):
+        self.assertEqual(self.sc['editorial_status'], 'approved')
+        self.assertEqual(self.sc['approval']['content_sha256'], dossier_content_digest(self.sc))
+        with mock.patch.multiple(dossier_decisions, SOURCE_USES=REAL_SOURCE_USES,
+                                 PUBLICATIONS=REAL_PUBLICATIONS):
+            self.assertEqual(d.publication_holds(self.sc), [])
         holds = d.publication_holds(self.sc)
         self.assertEqual({h.get('external_id') for h in holds if 'external_id' in h},
                          {x['id'] for x in self.sc['external_sources']})
