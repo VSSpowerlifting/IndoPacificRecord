@@ -15,16 +15,29 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from core.frontend_budget import measure_page
 
+INDEX_NAMES = ('index.html', 'archive.html', 'analysis.html', 'corpus.html', 'pla-watch.html', 'desks.html')
+# Owner authorization, DECISION_LOG 2026-10-26: individual dossier pages
+# (dossier/<slug>.html only) may deliver up to 200 KB of HTML+CSS.
+DOSSIER_HTML_CSS_CAP = 200000
+
+
+def html_css_cap(route):
+    parts = route.split('/')
+    if parts[0] == 'dossier':
+        # Nothing under dossier/ takes the hub allowance; nested or index
+        # paths keep the strict cap.
+        return DOSSIER_HTML_CSS_CAP if len(parts) == 2 and parts[1] != 'index.html' else 120000
+    # Index/archive hubs have the governed 300 KB allowance. Individual
+    # records, Briefs, week shards and the dossier collection retain 120 KB.
+    return 300000 if parts[-1] in INDEX_NAMES else 120000
+
 
 def verify(root):
     root = Path(root).resolve()
     routes, failures = [], []
     for page in sorted(root.rglob('*.html')):
         route = page.relative_to(root).as_posix()
-        # Index/archive hubs have the governed 300 KB allowance. Individual
-        # records, Briefs and week shards retain the stricter 120 KB cap.
-        index = page.name in ('index.html', 'archive.html', 'analysis.html', 'corpus.html', 'pla-watch.html', 'desks.html')
-        html_cap = 300000 if index else 120000
+        html_cap = html_css_cap(route)
         js_cap = 12000 if route == 'index.html' else 10000
         values = measure_page(page, root)
         item = dict(route=route, html_css_limit=html_cap, js_limit=js_cap, **values)

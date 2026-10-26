@@ -4,6 +4,38 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-26 — Owner: 200 KB delivery budget for individual dossier pages
+
+Benjamin Yang wrote in this task: “I authorize a maximum 200,000-byte combined
+HTML+CSS delivery budget specifically for individual dossier pages. Preserve
+all existing budgets for records, Briefs, weeks and hubs. Do not introduce a
+broad exemption.” He added that the dossier stays on one page and that its
+content, approved digest and evidence layout must not change to fit.
+
+The cap applies only to `dossier/<slug>.html`
+(`scripts/verify_frontend_delivery.py`, `html_css_cap`). The `dossiers.html`
+collection, `dossier/index.html` and any nested path under `dossier/` keep
+120 KB. Records, Briefs and week pages keep 120 KB, and hubs keep 300 KB. JS
+caps are unchanged. `tests/test_briefs_enrichment.py` proves the allowance
+covers only those routes and still rejects a dossier at 200,001 bytes.
+
+Measured at approval (approval digest `9e947155…`): 193,118 bytes for
+`dossier/china-singapore-naval-cooperation.html`, made up of:
+- 133,810 bytes of HTML
+- `styles.css`, 31,620
+- `dossiers.css`, 18,904
+- `surfaces.css`, 5,630
+- `fonts.css`, 1,855
+- `dossier-shell.css`, 1,299
+
+Dossiers already load the 1.3 KB `dossier-shell.css` in place of the 28.4 KB
+`support.css`. The remaining clean reductions, the collection-only rules in
+`dossiers.css` and markup whitespace, total about 4 KB. They were not taken.
+About 60% of `styles.css` goes unused on this page, but it is the sitewide
+base sheet, linked from the single-owner `base.html`, so subsetting it would
+be a redesign. Headroom is about 6.9 KB. A future dossier that needs more must
+come back to the owner rather than raise this cap.
+
 ## 2026-10-26 — Owner: China-Singapore naval dossier editorial approval
 
 Benjamin Yang wrote in this task: “I approve the complete China–Singapore Naval
