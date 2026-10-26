@@ -25,7 +25,9 @@ and deterministic clustering, not copied wholesale into an expanded prompt.
 Character-shingle similarity groups near-duplicate originals across issuing
 surfaces; the model must recognize further related developments and can combine
 related groups. Duplicate groups cannot multiply shortlist slots. A cluster is not independent corroboration or
-a certified semantic event. All source digests remain available. Desk
+a certified semantic event; suspected conflation must be flagged for editorial
+review rather than forced into a connection or used to fill multiple slots.
+All source digests remain available. Desk
 interleaving changes presentation order, not eligibility or shortlist quotas.
 The recent six approved Brief titles provide continuity context.
 
@@ -81,6 +83,53 @@ instructions/schema. These are character bounds, **not a dollar/token quota**;
 actual model usage still needs normal operational spend observation. Overflow
 refuses before spending rather than silently sampling the week. No paid call
 or editor send was made to develop this change.
+
+The comparison is instructed to stay within 650 words and prefer three
+candidates, with a 650–850-word manuscript across the existing fields. This
+reserves room for both in one response without raising the token ceiling;
+word targets are guidance, not a tokenizer guarantee. Truncation or invalid
+structured output fails without a paid retry or send. Abstention explicitly
+overrides prose, focus and citation requirements, including the tool's focus
+description. Research summaries remain paraphrases requiring human verification.
+
+## Review against current main (26 October 2026)
+
+Main `71beedb3ba59279948719e5bc091f854d5e3390e` is integrated into this
+existing branch. The private October 24 reassessment was recovered read-only;
+its proposals and manuscript material remain outside this repository.
+
+- **Representation:** the historical scratch database replay matches the frozen
+  inventory and coverage: 127 eligible production sources (122 China, five
+  Singapore), 13 official-link records, ten metadata/derived body holds, four
+  awaiting screening, and 154 outside the current source trail. No current-week
+  governed private packet was available. Registry gaps remain explicit.
+  Today's database offers the same 127 source body hashes and 124 clusters,
+  plus four later-admitted AFP link records (17 metadata-only links total).
+  These are availability snapshots, not evidence of institutional silence.
+- **Compression and duplication:** a demonstrated 220-character excerpt defect
+  dropped a long trial sentence's closing qualification. Ordinary selected
+  sentences now remain whole up to 360 characters; longer ones retain separate
+  cue-context and closing passages, each exact. Body-context omission counts
+  and any synopsis truncation are inspectable in the program-owned receipt.
+  Other omitted sentences/middle passages and fuzzy grouping still need human
+  review. All digests remain offered regardless of clustering or source volume.
+- **Significance:** existing normalized weights, readiness floors, baseline and
+  counterevidence requirements remain. Tests verify those mechanics and exact
+  offered anchors; they cannot establish novelty, source truth or the meaning
+  of a multinational connection. No particular historical candidate must win.
+- **Request/failure bounds:** revised production-only discovery serializes to
+  271,231 characters against the historical scratch database and 271,279 against
+  today's database, below the unchanged 280,000-character/256-record limits.
+  The frozen receipt remains unchanged at 246,662 characters: its older digest
+  algorithm is not the revised replay. Extra research or a larger future week
+  can overflow and must fail before spending. The input bounds are not a
+  token/context or dollar guarantee. No paid model-quality acceptance is claimed.
+
+The focused selection tests pass (23 cases); broader Sunday/source-use,
+thematic-preview, owner, delivery and editor-return checks passed during this
+review. The final PR head still requires the normal full offline Actions gate.
+Database and generated output changes from integrating main are inherited
+unchanged; the PR introduces no content or output change relative to that main.
 
 Read-only replay, with no API key, model or SMTP:
 

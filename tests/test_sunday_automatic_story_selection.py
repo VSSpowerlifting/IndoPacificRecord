@@ -152,6 +152,14 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
                          "official-military-cooperation")
         self.assertIn("AUTOMATIC STORY SELECTION", offered[0]["messages"][0]["content"])
         self.assertEqual(offered[0]["model"], "claude-sonnet-4-6")
+        instruction = offered[0]["messages"][0]["content"]
+        self.assertIn("overrides manuscript length, focus and citation requirements", instruction)
+        self.assertIn("Private research summaries are NOT verbatim primary-source bodies", instruction)
+        self.assertIn("650–850 words", instruction)
+        self.assertEqual(offered[0]["max_tokens"], 5400)
+        focus = offered[0]["tools"][0]["input_schema"]["properties"]["editorial_focus"]
+        self.assertIn("empty string", focus["description"])
+        self.assertNotIn("never blank", focus["description"])
 
     def test_private_selection_receipt_not_in_dylan_editable_prose(self):
         artifact = render_packet(

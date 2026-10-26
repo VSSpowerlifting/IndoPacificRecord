@@ -54,6 +54,7 @@ def content_digest(body, summary=""):
     substrings of normalized stored text; the full body hash remains separate.
     """
     body, summary = compact(body), compact(summary)
+    synopsis_omitted = max(0, len(summary) - 1600)
     # Retain the tail's caveats when an unusually long synopsis exceeds its
     # per-source allowance. Ordinary stored summaries fit in full.
     if len(summary) > 1600:
@@ -79,10 +80,23 @@ def content_digest(body, summary=""):
             selected.append(sentence)
     excerpts = []
     for sentence in selected:
-        match = re.search("|".join(cues), sentence, re.I)
-        start = max(0, match.start() - 60) if match else 0
-        excerpts.append(sentence[start:start + 220])
-    return {"machine_synopsis": summary, "excerpts": excerpts}
+        # A cue-centered prefix alone can turn a qualified trial into a
+        # completed capability by dropping the sentence's closing limitation.
+        # Keep ordinary sentences whole; long ones retain the cue's context
+        # and closing text as exact anchors, never as a spliced quotation.
+        if len(sentence) <= 360:
+            excerpts.append(sentence)
+        else:
+            match = re.search("|".join(cues), sentence, re.I)
+            start = max(0, match.start() - 60) if match else 0
+            tail = len(sentence) - 180
+            if start + 180 >= tail:
+                excerpts.append(sentence[min(start, tail):])
+            else:
+                excerpts.extend((sentence[start:start + 180], sentence[tail:]))
+    return {"machine_synopsis": summary, "excerpts": excerpts,
+            "omitted_body_chars": len(body) - sum(len(s) for s in excerpts),
+            **({"omitted_synopsis_chars": synopsis_omitted} if synopsis_omitted else {})}
 
 
 def prompt_packet(packet):
@@ -160,7 +174,11 @@ def discovery_packet(chosen, supplemental, *, inventory=(), coverage=(), continu
         source["cluster"] = clusters[target]["id"]
     packet = {"schema": "ipr-sunday-discovery/1", "inventory": list(inventory),
               "coverage": list(coverage), "continuity": list(continuity),
-              "sources": sources, "clusters": clusters}
+              "sources": sources, "clusters": clusters,
+              "digest_limits": "Lossy source excerpts and machine synopses, not complete bodies. "
+              "A synopsis over 1600 characters omits its middle; long selected sentences "
+              "offer cue-context/tail anchors. Unoffered context can change the judgment. "
+              "Unknown baseline or unresolved chronology/limitations requires review."}
     encoded = json.dumps(prompt_packet(packet), ensure_ascii=False, sort_keys=True)
     if len(encoded) > MAX_DISCOVERY_CHARS:
         raise ValueError("weekly discovery character budget exceeded; no silent sampling")
@@ -299,7 +317,9 @@ def receipt(packet, selection=None):
     developed = {i for option in (selection or {}).get("candidates", [])
                  for i in option["production_ids"] + option["research_ids"]}
     return {k: v for k, v in packet.items() if k != "sources"} | {
-        "source_pins": [{k: s[k] for k in ("id", "desk", "lane", "body_sha256", "cluster")} for s in packet["sources"]],
+        "source_pins": [{k: s[k] for k in ("id", "desk", "lane", "body_sha256", "cluster",
+                                         "omitted_body_chars", "omitted_synopsis_chars") if k in s}
+                        for s in packet["sources"]],
         "unscored_cluster_ids": [c["id"] for c in packet["clusters"]
                                  if not developed.intersection(c["source_ids"])],
         "source_accuracy_verified": False, "publication_authorized": False}
