@@ -193,15 +193,21 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
-**Indonesia Kemhan bridge steady state (25 October 2026):** PR #812 is merged
-and production has 34 Kemhan rows (live page equals SQLite). The private
-collector runs daily and is green; its tip `d8859b5` holds 49 eligible links
-(15 newer than production). The bridge is inactive: private PR #17 is unmerged
-and `KEMHAN_BRIDGE_KEY` / `KEMHAN_METADATA_BRIDGE_ENABLED` are unset in both
-repositories, so the public workflow only replays the frozen history. A rehearsal
-also showed the lane would publish once and then HOLD every retry; the frozen
-baseline now steps aside once later rows are released (`frozen_first`). Activation
-order and evidence: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+**Indonesia Kemhan bridge steady state (26 October 2026):** PR #877 incorporates
+main `1c204352da`, including its existing Vietnam baseline assertion repairs.
+The checked-out main database has 34 Kemhan rows; the 25 October rehearsal at
+private tip `d8859b5` had 49 eligible links (15 newer). Private scheduled collector
+run `40406030668` succeeded. Private PR #17 remains open at `5b45d521c3`;
+`KEMHAN_BRIDGE_KEY` and `KEMHAN_METADATA_BRIDGE_ENABLED` remain absent in both
+repositories (names/configuration checked read-only; credentials not read).
+The frozen baseline alone may step aside after a later release, only when its
+approved rows are fully satisfied with original provenance. Regression coverage
+includes initial admission, later signed additions, byte-identical retries,
+missing/altered frozen rows, omitted/changed released private rows, forged
+authentication, Yonif exclusion, rollback and concurrent writers. Exact-head CI
+evidence belongs in #877. No live admission, activation or publication was run.
+Activation order and prior real-data rehearsal:
+`docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
 
 **Indonesia Desk official-link lane (18 October 2026, release candidate):**
 Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.

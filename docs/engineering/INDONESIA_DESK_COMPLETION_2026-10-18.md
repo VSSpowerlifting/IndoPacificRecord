@@ -241,6 +241,27 @@ in both repositories. (3) Set
 `KEMHAN_METADATA_BRIDGE_ENABLED=true` in both. (4) Merge private PR #17.
 Activating before step 1 reproduces the single-publication failure above.
 
+**26 October review refresh (PR #877).** Integrated main `1c204352da` without
+changing shared admission or the separately owned PR CI timeout workflow.
+Main already carries the Vietnam source-use/HTML-escaping assertion repairs
+that failed in the prior #877 run `40241230490`; those changes are reused.
+The regression cycle now admits the baseline separately, admits and retries a
+signed private envelope, then adds another record through a later signed
+envelope while retaining frozen provenance. Missing frozen rows, omitted or
+changed released private rows in valid signed envelopes, and forged
+authentication after release all leave the test database unchanged. Existing
+Yonif, atomic rollback, concurrent-writer and unrelated-desk checks remain.
+These are offline Git/SQLite tests, not new live-operation evidence; the
+49-row real-data rehearsal above is the earlier 25 October result.
+
+Read-only activation check: private PR #17 is still open at `5b45d521c3`;
+the bridge key and enabling variable are absent in both repositories. The
+private dispatch-token secret name exists, but its validity/scope was not
+tested. Private scheduled collector run `40406030668` succeeded. No production
+database, generated output, credential, variable or workflow activation was
+changed. Final-head required-check and isolated-render results are recorded in
+the PR description; this review does not authorize merge or activation.
+
 ## Scope: this is the official-link lane, not the whole desk
 
 This change completes the automated official-link publication lane only. The
