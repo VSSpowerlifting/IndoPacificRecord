@@ -31,6 +31,18 @@ outputs prepare the public route, discovery, backlinks and scoped assets; no
 unrelated generated page changes. Runner repairs remain outside this task. No merge, deployment or publication is authorized or performed.
 Workflow and decision boundary: `docs/LIVING_DOSSIERS.md`.
 
+**PR #864 baseline maintenance (25 October 2026).** PR #879 pins only the
+eight failing contract jobs in seven workflows to Ubuntu 24.04 / Python 3.9;
+triggers, permissions, commands and release jobs are preserved. Main's #878
+also repaired the three baseline assertions from offline run `40240196861`;
+this maintenance retains those fixes and adds source-family, official-URL,
+source-identity and rights-decision-digest checks for withheld original titles.
+Disclosure, machine-headline exclusion, VPCP document QA and keyboard-access
+checks remain enforced. No database, generated output, source-use grant or
+dossier content changes are introduced relative to the incorporated main.
+Exact-head CI and all eight affected Actions checks are recorded in PR #879
+before handoff; merge and deployment require separate authorization.
+
 **Vietnam Government Office full-document integration (25 October 2026): 10744 published through the shared Daily.**
 The single authorized correction passed generation and independent factual review
 in private run `40217218707`; its prior rejection, costs and routes remain intact.

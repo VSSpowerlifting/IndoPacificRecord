@@ -5078,6 +5078,9 @@ class TestCorpusGuide(PreviewCase):
         for rec in withheld:
             self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
             self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+            self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+            self.assertTrue(rec["vietnam"]["source_identity"])
+            self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
             self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
         self.assertEqual(self.stats["withheld_original_titles"], len(withheld))
         row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Original title"]
@@ -5418,6 +5421,10 @@ class TestSnapshotScopedCitations(PreviewCase):
             with self.subTest(record=rec["id"]):
                 if not original:
                     self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+                    self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+                    self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+                    self.assertTrue(rec["vietnam"]["source_identity"])
+                    self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
                     self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
                     if rec["source_slug"] == "vn_vpcp_official_documents_vi":
                         proof = rec["vietnam"]["qa"]
