@@ -21,6 +21,33 @@ See `docs/BRIEFS_WEEKLY_SELECTION.md`; the editorial assessment is retained
 outside this public repository. This entry records the task's constraint,
 not a claim that the owner approved the replacement article.
 
+## 2026-10-25 — Bersama Lima Brief: sole authorship, source review, headings and cover
+
+Benjamin Yang corrected the Brief's authorship in chat: **Dylan Tanzi, Lead
+Research Analyst, is the sole author**; Benjamin remains Founder & Director of
+Research and Editorial with final oversight and publication approval and is not a
+credited co-author of this issue. Dylan's official title is Lead Research
+Analyst, never "Managing Editor". Briefs may alternate lead authorship issue by
+issue; co-authorship is not automatic. Historical authorship is unchanged.
+
+Benjamin then attested in chat, against editorial fingerprint
+`0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343`: that he personally reviewed the six original
+sources and attests all seven `editorial_review` checks and the source-linked
+policy ruling, and that he approves the four headings and the rendered page.
+This is his own attestation, not an AI-assisted or inferred review; the
+agent's earlier source comparison is preparation only. The presentation receipt
+binds digest `4556c3d415283b520996c719e08c1dd8edf5aacdc8ae5d172974641631b2bb01`.
+
+He also described the **HMS Tamar context cover** as approved after seeing the
+article preview and the 720 × 480 crop (focal 68% 70%). Image: DVIDS 7379876 /
+VIRIN 220811-N-AU520-1096, MC2 Jacob Woitzel, U.S. Navy, public domain, taken
+11 August 2022, Puerto Princesa. Scope: this Brief's article and catalogue card,
+standard CSS gradient, retained creator/public-domain credit and exact DVIDS
+notice. It is context from Pacific Partnership 2022, **not** an image of Bersama
+Lima 2026, and the caption says so. The retained file is the public 2000-pixel
+preview because DVIDS's master requires a login. No mindef.gov.sg source or
+image is used. Evidence: `docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md`.
+
 ## 2026-10-25 — Owner: one manual 10744 attribution correction
 
 Benjamin Yang explicitly approves one exceptional correction in chat, confirmed
