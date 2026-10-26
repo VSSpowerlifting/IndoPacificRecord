@@ -504,6 +504,136 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
         self.assertIn("kemhan:/2026/10/18/wamenhan-terima-audiensi.html", self.rows())
         self.assertNotIn(v.HELD_IDENTITY, self.rows())
 
+    def test_daily_cycles_after_private_release_neither_hold_nor_rewrite(self):
+        """The scheduled retry (frozen only) and later envelope dispatches must
+        keep working once a private record is released, and still fail closed."""
+        body, mac, public_tip, main = self._signed()
+        frozen = self.validate(public_tip)
+        receipts, total = cli.admit_validated(self.db, [frozen], frozen_first=True,
+                                              as_of_utc="2026-10-18T19:00:00Z")
+        self.assertEqual(([r["new_official_links"] for r in receipts], total), ([8], 8))
+        frozen_rows = self.rows()
+        out = self._open(body, mac, public_tip, main)
+        receipts, total = cli.admit_validated(self.db, [frozen, out], frozen_first=True,
+                                              as_of_utc="2026-10-18T19:43:00Z")
+        self.assertEqual(([r["new_official_links"] for r in receipts], total), ([0, 1], 9))
+        self.assertEqual({k: self.rows()[k] for k in frozen_rows}, frozen_rows)
+        released = sha(self.db)
+        # Without the baseline exemption the frozen packet alone would refuse
+        # the nine stored rows: this is the failure the exemption removes.
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip)],
+                        as_of_utc="2026-10-19T19:43:00Z")
+        # 19:43 scheduled reconciliation: frozen history only, no envelope.
+        receipts, total = cli.admit_validated(self.db, [self.validate(public_tip)],
+                                              frozen_first=True, as_of_utc="2026-10-19T19:43:00Z")
+        self.assertEqual((receipts, total), ([], 9))
+        # Next day's dispatch: frozen baseline plus the same envelope again.
+        receipts, total = cli.admit_validated(
+            self.db, [self.validate(public_tip), self._open(body, mac, public_tip, main)],
+            frozen_first=True, as_of_utc="2026-10-20T19:43:00Z")
+        self.assertEqual(([(r["new_official_links"], r["unchanged_official_links"])
+                           for r in receipts], total), ([(0, 9)], 9))
+        self.assertEqual(sha(self.db), released, "replays must not rewrite the database")
+        # A subsequent authenticated envelope may add another record.
+        tip = self.h.attempt("39145984712-1", "2026-10-19", kind="private",
+                             source="manual-utc-date", new=[
+            ("/2026/10/19/wamenhan-terima-audiensi.html", "2026-10-19")])
+        later = v.validate_source_checkout(self.h.folder, tip, fetch_run=self.fetch,
+                                            validator_ref=git(main, "rev-parse", "HEAD"))
+        body, mac = v.sign_envelope(later, key=KEY, source_run_attempt="39145984712-1",
+                                    public_frozen_tip=public_tip)
+        receipts, total = cli.admit_validated(
+            self.db, [self.validate(public_tip), self._open(body, mac, public_tip, main)],
+            frozen_first=True, as_of_utc="2026-10-20T20:00:00Z")
+        self.assertEqual(([(r["new_official_links"], r["unchanged_official_links"])
+                           for r in receipts], total), ([(1, 9)], 10))
+        self.assertEqual({k: self.rows()[k] for k in frozen_rows}, frozen_rows)
+        self.assertNotIn(v.HELD_IDENTITY, self.rows())
+        # A frozen row altered in SQLite is never waved through.
+        with sqlite3.connect(self.db) as cx:
+            cx.execute("UPDATE regional_official_source_links SET publisher_posted_date="
+                       "'2026-10-01' WHERE source_identity=?", ("kemhan:/2026/10/05/menhan-terima-kunjungan.html",))
+        tampered = sha(self.db)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip)],
+                        frozen_first=True, as_of_utc="2026-10-21T19:43:00Z")
+        self.assertEqual(sha(self.db), tampered)
+
+    def test_frozen_retry_rejects_altered_provenance_columns(self):
+        """Bibliographic fields can match while a stored frozen row's provenance
+        was altered; the frozen-only retry must not wave that through."""
+        body, mac, public_tip, main = self._signed()
+        cli.admit_validated(self.db, [self.validate(public_tip),
+                                      self._open(body, mac, public_tip, main)],
+                            frozen_first=True, as_of_utc="2026-10-18T19:43:00Z")
+        frozen_id = "kemhan:/2026/10/05/menhan-terima-kunjungan.html"
+        retry = lambda: cli.admit_validated(  # noqa: E731
+            self.db, [self.validate(public_tip)], frozen_first=True,
+            as_of_utc="2026-10-19T19:43:00Z")
+        self.assertEqual(retry()[0], [])  # untouched rows pass
+        with sqlite3.connect(self.db) as cx, self.assertRaises(sqlite3.IntegrityError):
+            cx.execute("UPDATE regional_official_source_links SET release_scope='full_text' "
+                       "WHERE source_identity=?", (frozen_id,))  # schema CHECK pins the scope
+        for column, bad in (("source_git_commit", "f" * 40),
+                            ("metadata_version_sha256", "0" * 64),
+                            ("release_proof_sha256", "0" * 64)):
+            with self.subTest(column=column):
+                with sqlite3.connect(self.db) as cx:
+                    original = cx.execute("SELECT %s FROM regional_official_source_links "
+                                          "WHERE source_identity=?" % column, (frozen_id,)).fetchone()[0]
+                    cx.execute("UPDATE regional_official_source_links SET %s=? "
+                               "WHERE source_identity=?" % column, (bad, frozen_id))
+                altered = sha(self.db)
+                self.assertHold("previously_released_source_missing_or_changed", retry)
+                self.assertEqual(sha(self.db), altered)
+                with sqlite3.connect(self.db) as cx:
+                    cx.execute("UPDATE regional_official_source_links SET %s=? "
+                               "WHERE source_identity=?" % column, (original, frozen_id))
+        self.assertEqual(retry()[0], [])  # restored rows pass again
+
+    def test_frozen_retry_rejects_missing_frozen_row(self):
+        body, mac, public_tip, main = self._signed()
+        cli.admit_validated(self.db, [self.validate(public_tip),
+                                      self._open(body, mac, public_tip, main)],
+                            frozen_first=True, as_of_utc="2026-10-18T19:43:00Z")
+        with sqlite3.connect(self.db) as cx:
+            cx.execute("DELETE FROM regional_official_source_links WHERE source_identity=?",
+                       ("kemhan:/2026/10/05/menhan-terima-kunjungan.html",))
+        before = sha(self.db)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip)],
+                        frozen_first=True, as_of_utc="2026-10-19T19:43:00Z")
+        self.assertEqual(sha(self.db), before)
+
+    def _assert_later_signed_envelope_holds(self, *, omit):
+        body, mac, public_tip, main = self._signed()
+        cli.admit_validated(self.db, [self.validate(public_tip),
+                                      self._open(body, mac, public_tip, main)],
+                            frozen_first=True, as_of_utc="2026-10-18T19:43:00Z")
+        before = sha(self.db)
+        if omit:
+            self.h.records.pop()
+        else:
+            self.h.records[-1][10] = "38958633428-1"
+        tip = self.h.attempt("39145984712-1", "2026-10-19",
+                             kind="private", source="manual-utc-date")
+        later = v.validate_source_checkout(self.h.folder, tip, fetch_run=self.fetch,
+                                            validator_ref=git(main, "rev-parse", "HEAD"))
+        body, mac = v.sign_envelope(later, key=KEY, source_run_attempt="39145984712-1",
+                                    public_frozen_tip=public_tip)
+        later = self._open(body, mac, public_tip, main)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip), later],
+                        frozen_first=True, as_of_utc="2026-10-19T20:00:00Z")
+        self.assertEqual(sha(self.db), before)
+
+    def test_envelope_that_drops_a_released_private_record_still_holds(self):
+        self._assert_later_signed_envelope_holds(omit=True)
+
+    def test_envelope_that_changes_released_private_provenance_still_holds(self):
+        self._assert_later_signed_envelope_holds(omit=False)
+
     def test_signed_private_envelope_without_standing_authorization_holds_new_record(self):
         self.without_standing_authorization()
         out = self._open(*self._signed())
@@ -514,6 +644,10 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
 
     def test_signed_envelope_forgery_and_binding_failures_hold(self):
         body, mac, public_tip, main = self._signed()
+        cli.admit_validated(self.db, [self.validate(public_tip),
+                                      self._open(body, mac, public_tip, main)],
+                            frozen_first=True, as_of_utc="2026-10-18T19:43:00Z")
+        before = sha(self.db)
         self.assertHold("signed_envelope_mac_invalid", self._open, body, "0" * 64, public_tip, main)
         self.assertHold("signed_envelope_mac_invalid", self._open, body, mac, public_tip, main,
                         key=b"x" * 32)
@@ -533,6 +667,7 @@ class KemhanReleaseValidatorTests(unittest.TestCase):
                         body, mac, public_tip, unrelated)
         self.assertHold("bridge_key_missing_or_short", self._open, body, mac, public_tip, main,
                         key=b"")
+        self.assertEqual(sha(self.db), before)
 
     # --- CLI boundaries ---------------------------------------------------
 
