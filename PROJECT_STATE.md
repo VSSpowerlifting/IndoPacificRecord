@@ -1,5 +1,27 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Sunday selection reform — private review candidate (26 October 2026)
+
+PR #805 is being extended from its old ten-source comparison to complete
+eligible-week discovery in the existing Sunday writer. The October 24 editorial comparison and proposed article brief are held
+outside the public repository for Ben's private review. The delivered TXT
+remains unchanged and Dylan has not been sent a replacement.
+The [selection contract](docs/BRIEFS_WEEKLY_SELECTION.md) describes source
+content digests, duplicate grouping, quality floors, optional connection
+weighting and explicit no-send abstention. A committed production-only audit
+contains metadata/hashes, not publisher bodies or a paid manuscript. This is
+an unmerged engineering candidate, not evidence of live model/editor operation.
+Existing collection, source-use, owner, DOCX/TXT and publishing gates remain.
+Current main `71beedb3ba` is integrated. Review found and repaired lost closing
+qualifications in long digest sentences, contradictory abstention/focus
+instructions, and the automatic prompt's missing private-paraphrase caution;
+comparison/manuscript word budgets now share the existing 5,400-token ceiling.
+The frozen receipt is preserved. Historical and today's database replays both
+offer 127 sources/124 clusters; today's adds four AFP metadata-only links.
+See the contract's dated review for scope and limitations. Final merge
+readiness depends on the exact-head PR offline checks and human review;
+no paid call, email, new manuscript or publication was performed here.
+
 **Owner architecture target (19 October 2026; not yet deployed):** All desks
 should ultimately converge on one logical shared Daily article-processing,
 model and public publishing architecture, while approved source collection,
@@ -10,35 +32,74 @@ approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
-**Vietnam Government Office full-document integration (25 October 2026): corrected analysis passed; public consumer repair pending.**
-PR #874 merged as `46298fe95ccb50b472a7908b1e5716b71cd56dcc` after exact-head
-CI `40215557973` passed 7,995 tests (15 skips), browser, renderer, validator
-and data-preservation gates. The owner's one-time exact-version 10744 correction
-is **consumed**, not renewed by repeated confirmation. Private run `40217218707`
-made exactly one corrected generation and one independent factual review; both
-passed. Its 65-word explanation separates the Prime Minister's instructions,
-Government Office transmission, and ministry/provincial responsibilities.
-Prior rejection and routes remain intact; all other VPCP holds and the MPS ledger
-are byte-identical. No more model calls on this version are authorized.
+**Living Dossiers (26 October 2026): complete revision 2 candidate in PR #864.**
+The approved eight findings, five source versions, six chronology entries and
+reviewed presentation are preserved byte for byte from `99506199a1`.
+Readiness reconciles every source and returns no holds; editorial digest
+`3f774c00ec432fa64fe0a19695e3d4dde3c6b34704264bc752a268a7aa4e7039`
+still matches the independent editorial/source-use decisions. All five preserved
+originals were reread against the finding matrix; no new collection or model run.
+Current main `3478fd759d` and the existing PR #879 repair `7f6ceb6996` are
+incorporated, preserving newer Briefs, staff, Daily records and decisions.
+CI then exposed the same Python 3.9 / Ubuntu 26.04 setup failure in the
+Indonesia press-link rehearsal; only the runner lines of the two triggered
+Indonesia PR render checks are pinned to 24.04, retaining their release gates.
+The 190 affected dossier/renderer/baseline checks pass. Public-route desktop,
+375/320px mobile, keyboard disclosures, source/return links, archive discovery,
+citation copy and print were verified; captures are indexed in `design-qa.md`.
+All 2,226 routes pass delivery budgets; the dossier uses 111,195 HTML+CSS bytes
+and 6,953 JS bytes. Shared rendering and validation retain 10 governed warnings.
+The generated diff against main contains only the fifteen dossier/discovery/
+backlink/assets outputs. An unrelated renderer refresh of Philippines directory
+counts in `desks.html` was inspected and restored to main. Database matches main;
+canonical Briefs and Timeline are unchanged. Final-commit CI receipts belong in
+PR #864; no earlier-head result is substituted. No merge, deployment or public
+release was performed. Workflow: `docs/LIVING_DOSSIERS.md`.
 
-The actual public readback prevented a false completion claim. Public Daily
-`40217519927` passed 7,995 tests, 55 reconciliation checks, rendering, validator
-(10 warnings) and Pages deployment, but its handoff step reported
-`vietnam_handoff_source_hold` and admitted **zero** VPCP articles. The workflow
-intentionally converts a source hold into a successful step so other desks
-continue; a green step is not proof of admission. The consumer incorrectly
-applies the legacy all-non-MPS original/link hold to the separately authorized
-Government Office private-text projection. A focused repair leaves that legacy
-hold intact, requires the dedicated VPCP policy plus sealed source-use decision,
-signed handoff and successful document QA, and tests the real public consumer.
-No regeneration, factual-review retry, cap increase or other desk change is needed.
+**PR #864 baseline maintenance (25 October 2026).** PR #879 pins only the
+eight failing contract jobs in seven workflows to Ubuntu 24.04 / Python 3.9;
+triggers, permissions, commands and release jobs are preserved. Main's #878
+also repaired the three baseline assertions from offline run `40240196861`;
+this maintenance retains those fixes and adds source-family, official-URL,
+source-identity and rights-decision-digest checks for withheld original titles.
+Disclosure, machine-headline exclusion, VPCP document QA and keyboard-access
+checks remain enforced. No database, generated output, source-use grant or
+dossier content changes are introduced relative to the incorporated main.
+Exact-head CI and all eight affected Actions checks are recorded in PR #879
+before handoff; merge and deployment require separate authorization.
 
-Provider-token cost is **$0.022971** for the correction, **$0.185636 across 13
-calls** cumulatively. New reservations were **$0.08767125**; total reservations
-are **$0.61798**, within every existing cap. The signed approved record remains
-in private Daily commit `7fa140ec8b80c0677370ffe6d22d7963d7adb008`. Production
-still has four bibliographic records and zero VPCP corpus articles; source-to-live
-acceptance remains outstanding. Both scheduled workflows remain active.
+**Vietnam Government Office full-document integration (25 October 2026): 10744 published through the shared Daily.**
+The single authorized correction passed generation and independent factual review
+in private run `40217218707`; its prior rejection, costs and routes remain intact.
+No further model attempt on this immutable version is authorized. PR #874 merged
+as `46298fe95ccb50b472a7908b1e5716b71cd56dcc`; the consumer fix in PR #875 merged
+as `6475e9d92ecc89d7bd5d0f19d3d4b3461d30d085` after exact-head CI `40220705488`
+passed 7,996 tests (15 skips), browser, render, validator and preservation gates.
+
+Public Daily `40237439135` passed 7,996 tests (15 skips), reconciliation,
+validation (10 governed warnings) and deployment. Its authenticated handoff
+reported `OK`, `published: 1`. Production commit
+`9d6d690efd3de0b6b17dd0a233d00b67ad51f508` contains article 5646 for
+`10744/VPCP-CN`, source `vpcp-vi:220065`, with the verified PDF/content hashes,
+sealed rights decision and positive independent review. Database integrity and
+foreign keys pass. Original title/body/full translation are null. The generated
+and live [record](https://indopacificrecord.org/record/5646.html) have identical
+SHA-256 `7db74272acbee32f4deb79b6f9c69e2504112e5cea1ee38dac96e8bbf9eee850`.
+Pages run `40239937602` deployed commit `985992425fc7049c9105a0d95221b47b04779d4b`.
+
+The common Desk template now lists admitted Vietnam explanations with the
+ordinary record-row macro and links matching bibliographic entries. This fixes
+the live readback's missing direct Desk link and inaccurate metadata-only copy;
+the four-entry bibliography stays intact. It changes neither processing nor
+source permissions. Other desks' generated pages and the database are unchanged.
+
+The correction cost **$0.022971**, with **$0.08767125 reserved**. Cumulative
+Government Office usage remains **13 calls, $0.185636 token-based cost,
+$0.61798 reserved**, checkpoint blob `1a6ce3bfc036522b678bd68287d3ec9c69b62d85`.
+All other VPCP dispositions and the MPS ledger remain unchanged. Existing private
+collection/bridge and public Daily schedules and flags remain active; future
+eligible first-pass documents require no routine owner approval. Authenticity,
+completeness, factual QA, pricing or reservation failures hold individually.
 See `docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_RELEASE_2026-10-25.md`.
 
 **Vietnam Government Office documents (23 October 2026): public source operational with limited use.**

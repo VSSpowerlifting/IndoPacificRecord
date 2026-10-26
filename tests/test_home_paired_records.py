@@ -223,7 +223,7 @@ class HomeCase(unittest.TestCase):
         cls.briefs.mkdir()
         gp.build(cls.out, gp.PUBLIC_TITLE, TRACKED_DB,
                  snapshot=gp.snapshot_from_corpus(TRACKED_DB),
-                 briefs_dir=cls.briefs)
+                 briefs_dir=cls.briefs, dossiers_dir=cls.tmp / "no-dossiers")
         cls.home = (cls.out / "index.html").read_text(encoding="utf-8")
         cls.data = gp.load_corpus(TRACKED_DB)
         cls.view = PublicView(TRACKED_DB)

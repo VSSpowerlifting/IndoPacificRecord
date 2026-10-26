@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   korea-not-published:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 22
     steps:
       - uses: actions/checkout@v4

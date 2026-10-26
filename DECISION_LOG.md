@@ -4,6 +4,85 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-25 — Owner: Maritime dossier narrow five-source public projection
+
+Benjamin Yang explicitly answered “Also approve that narrow five-source public
+projection” in this task. The scope is institutional attribution, publication
+dates, independent IPR paraphrases, official links and links to existing IPR
+record pages for the five exact versions bound by Maritime Cooperation 2026
+revision 2: records 3924, 4102, 4164, 4466 and 4472 (PLA Daily, China MND and
+Singapore MINDEF). `core/dossier_decisions.py` records each complete source
+identity and body SHA with only those five public fields. This is an actual
+owner source-use decision, separate from the reaffirmed editorial approval.
+Original text, translations, excerpts and media are excluded. No source version,
+finding, qualification, chronology or reviewed presentation is changed by the
+grant. Its references and the resulting exact approval digest are administrative
+bindings, not an authored revision. Merge, deployment and publication remain
+outside this release-preparation authority.
+
+## 2026-10-25 — Owner: Maritime dossier revision 2 editorial approval reaffirmed
+
+Benjamin Yang reaffirmed in this task that his approval of revision 2 and its
+reviewed presentation remains valid, and instructed the maintainer to record
+that actual approval and prepare a release candidate. The reviewed repository
+head is `38f9f2bf8f45e258ad9592272b865d41cd29d72f`; the reviewed draft content
+SHA-256 is `65444d8057e6facdeeb0fc9594cb83ad2f3be2fa4e35ecb9b01a82caff869c45`.
+This entry records the 25 October reaffirmation, not an invented earlier review
+date. Benjamin Yang is the responsible human editor; Codex remains credited
+for machine-assisted preparation. Findings, qualifications, source versions,
+chronology and reviewed CSS/template presentation are not reopened.
+
+Approval/status metadata and the resulting exact approval digest may be
+recorded through `core/dossier_decisions.py`. The separate source-use registry
+must still bind an actual decision for attribution, publication dates,
+independent IPR paraphrases and official/canonical-record links for the five
+bound versions; editorial approval alone does not invent that decision.
+Original text, translations, substantial excerpts and media remain outside this
+projection. This instruction does not authorize merge, deployment or publication.
+## 2026-10-25 — Owner task: compare the whole eligible week before Brief composition
+
+The owner requested an October 18–24 reassessment and durable selection repair
+within the existing Sunday handoff/PR #805. Compare substantive alternatives
+using source content, preserve coverage gaps and separate held/metadata/private
+research lanes. Do not force a country quota or multinational thesis; permit
+explicit abstention. The implementation keeps the existing score weights as
+a baseline and normalizes the other dimensions when connection is inapplicable,
+with minimum evidence/novelty floors before commitment. Scores are provisional
+judgments, never factual/source-rights approval. The signed thematic-preview
+contract and final single-desk publication-exception rule remain unchanged.
+The private October 24 recommendation awaits owner review; no second
+manuscript, editor message, paid model call, merge or publication is authorized.
+See `docs/BRIEFS_WEEKLY_SELECTION.md`; the editorial assessment is retained
+outside this public repository. This entry records the task's constraint,
+not a claim that the owner approved the replacement article.
+
+## 2026-10-25 — Bersama Lima Brief: sole authorship, source review, headings and cover
+
+Benjamin Yang corrected the Brief's authorship in chat: **Dylan Tanzi, Lead
+Research Analyst, is the sole author**; Benjamin remains Founder & Director of
+Research and Editorial with final oversight and publication approval and is not a
+credited co-author of this issue. Dylan's official title is Lead Research
+Analyst, never "Managing Editor". Briefs may alternate lead authorship issue by
+issue; co-authorship is not automatic. Historical authorship is unchanged.
+
+Benjamin then attested in chat, against editorial fingerprint
+`0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343`: that he personally reviewed the six original
+sources and attests all seven `editorial_review` checks and the source-linked
+policy ruling, and that he approves the four headings and the rendered page.
+This is his own attestation, not an AI-assisted or inferred review; the
+agent's earlier source comparison is preparation only. The presentation receipt
+binds digest `4556c3d415283b520996c719e08c1dd8edf5aacdc8ae5d172974641631b2bb01`.
+
+He also described the **HMS Tamar context cover** as approved after seeing the
+article preview and the 720 × 480 crop (focal 68% 70%). Image: DVIDS 7379876 /
+VIRIN 220811-N-AU520-1096, MC2 Jacob Woitzel, U.S. Navy, public domain, taken
+11 August 2022, Puerto Princesa. Scope: this Brief's article and catalogue card,
+standard CSS gradient, retained creator/public-domain credit and exact DVIDS
+notice. It is context from Pacific Partnership 2022, **not** an image of Bersama
+Lima 2026, and the caption says so. The retained file is the public 2000-pixel
+preview because DVIDS's master requires a login. No mindef.gov.sg source or
+image is used. Evidence: `docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md`.
+
 ## 2026-10-25 — Owner: one manual 10744 attribution correction
 
 Benjamin Yang explicitly approves one exceptional correction in chat, confirmed

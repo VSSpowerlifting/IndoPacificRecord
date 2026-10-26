@@ -150,6 +150,38 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         lines.extend(format_private_source_use(
             manuscript, trail, research_evidence))
         lines.append("")
+        selection = manuscript.get("story_selection")
+        if selection:
+            # Private decision trace for Ben/Dylan, not published editorial
+            # evidence. This never appears in the readable DOCX or mail body.
+            from core.regional_editorial_slate import heuristic_score
+            from core.brief_story_discovery import decision_score
+            lines.append("AUTOMATIC STORY TRIAGE (MODEL PROPOSALS, NOT FACT CHECKS):")
+            lines.append("Selected: " + one_line(selection["selected_slug"]))
+            lines.append("Why selected: " + one_line(selection["selection_rationale"]))
+            for option in selection["candidates"]:
+                lines.append(
+                    "- {}: {:.2f}/5 baseline; {:.2f}/5 decision; {}; limitations: {}; source IDs: {}".format(
+                        one_line(option["slug"]),
+                        heuristic_score(option["scores"]),
+                        decision_score(option),
+                        one_line(option["thesis"]),
+                        one_line(option["limitation"]),
+                        ", ".join(str(i) for i in option["production_ids"] +
+                                  option["research_ids"])))
+                for field in ("why_now", "novelty_basis", "counterevidence", "score_reasoning", "readiness"):
+                    lines.append("  " + field + ": " + one_line(option[field]))
+                lines.append("  Scores: " + json.dumps(option["scores"], sort_keys=True))
+                lines.append("  Connection applicable: " + str(option["connection_applicable"]) +
+                             "; " + one_line(option["connection_basis"]))
+                for note in option["evidence_notes"]:
+                    lines.append("  Offered-content anchor {}: {}".format(
+                        note["id"], one_line(note["excerpt"])))
+            lines.append("Important omissions: " + one_line(selection["omission_rationale"]))
+            if manuscript.get("_story_discovery"):
+                lines.append("DISCOVERY RECEIPT (private, no source body): " +
+                             json.dumps(manuscript["_story_discovery"], sort_keys=True))
+            lines.append("")
     for desk in desks:
         stats = sidecar.get("coverage_by_desk", {}).get(desk, {})
         screened = stats.get("by_screening", {})
@@ -377,13 +409,31 @@ def main(argv=None):
             parser.error("--write-automatic requires --as-of source cutoff")
         from scripts.sunday_briefs_auto_writer import compose
         # Fail closed before file creation/email if any evidence or model check fails.
-        manuscript = (compose(sidecar, args.as_of, supplemental=research)
-                      if research else compose(sidecar, args.as_of))
+        # Same invocation, complete discovery, then a provisional manuscript.
+        # An explicit abstention saves its private decision evidence only.
+        from core.brief_story_discovery import NoQualifyingStory
+        try:
+            manuscript = (compose(sidecar, args.as_of, supplemental=research,
+                                  automatic_story_selection=args.full_week)
+                          if research else compose(
+                              sidecar, args.as_of,
+                              automatic_story_selection=args.full_week))
+        except NoQualifyingStory as exc:
+            receipt_path = args.out.with_suffix(".selection.json")
+            with os.fdopen(os.open(str(receipt_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600),
+                           "w", encoding="utf-8") as handle:
+                handle.write(json.dumps(exc.receipt, ensure_ascii=False, indent=2) + "\n")
+            print("No qualifying story; private selection receipt saved. No manuscript or email.")
+            return
     # These unapproved metadata pointers appear only in the PRIVATE human
     # handoff after the immutable production source appendix. Never send them
     # to the model or count them as live, production-backed desk evidence.
     vietnam_candidates = []
-    if args.as_of and not research:
+    # The legacy candidate pack is defined only for a Friday provisional
+    # cutoff. A Saturday full-week run (as_of == week_ending) takes its
+    # Vietnam material from the research packet instead; an empty packet there
+    # means no candidates, not an invalid pack request.
+    if args.as_of and not research and args.as_of != sidecar["week_ending"]:
         from core.vietnam_briefs_handoff import load_candidates
         vietnam_candidates = load_candidates(sidecar["week_ending"], args.as_of)
     text = render_packet(sidecar, manuscript=manuscript, as_of=args.as_of,

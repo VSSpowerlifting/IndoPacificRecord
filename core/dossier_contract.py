@@ -19,6 +19,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parent.parent
 DOSSIERS_DIR = ROOT / "dossiers"
 SCHEMA = 1
+IDENTIFIER = re.compile(r"[a-z][a-z0-9_]*(?:-[a-z0-9_]+)*\Z")
 SLUG = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
@@ -73,7 +74,7 @@ def _object(value, fields, location, optional=frozenset()):
 
 
 def _integer(value, location, *, minimum=0):
-    if type(value) is not int or value < minimum:
+    if type(value) is not int or value < minimum or value > 2**63 - 1:
         _fail(location, f"expected integer >= {minimum}")
     return value
 
@@ -84,7 +85,7 @@ def _text(value, location, *, limit=2500):
         _fail(location, f"expected trimmed nonempty plain text <= {limit} characters")
     if unicodedata.normalize("NFC", value) != value:
         _fail(location, "text must use Unicode NFC")
-    if any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in value):
+    if any(ord(c) < 32 or 127 <= ord(c) <= 159 or 0xD800 <= ord(c) <= 0xDFFF for c in value):
         _fail(location, "control characters not allowed")
     if MARKUP.search(value):
         _fail(location, "markup, links and template delimiters are not allowed")
@@ -170,7 +171,7 @@ def _receipt(value, location):
 
 def dossier_content_digest(sidecar):
     """SHA-256 of every authored field except approval; never a signature."""
-    _object(sidecar, ROOT_FIELDS, "dossier", optional={"approval"})
+    _object(sidecar, ROOT_FIELDS, "dossier", optional={"approval", "chronology"})
     encoded = json.dumps(
         {k: v for k, v in sidecar.items() if k != "approval"},
         ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False,
@@ -180,7 +181,7 @@ def dossier_content_digest(sidecar):
 
 def validate_dossier_shape(sc):
     """Validate exact proposed v1 data shape, not admissibility or publication."""
-    _object(sc, ROOT_FIELDS, "dossier", optional={"approval"})
+    _object(sc, ROOT_FIELDS, "dossier", optional={"approval", "chronology"})
     if type(sc["dossier_schema"]) is not int or sc["dossier_schema"] != SCHEMA:
         _fail("dossier_schema", "unsupported v1 contract")
     _slug(sc["slug"], "slug")
@@ -207,7 +208,11 @@ def validate_dossier_shape(sc):
     if period_start > period_end or period_end > updated:
         _fail("scope", "invalid or not-yet-observed scope period")
     _slug_list(scope["jurisdictions"], "scope.jurisdictions", minimum=1)
-    _slug_list(scope["institutions"], "scope.institutions", minimum=1)
+    institutions = _list(scope["institutions"], "scope.institutions", minimum=1)
+    for value in institutions:
+        if type(value) is not str or len(value) > 80 or not IDENTIFIER.fullmatch(value):
+            _fail("scope.institutions", "invalid registered identifier")
+    _sorted_unique(institutions, "scope.institutions")
     for field in ("included", "excluded", "method", "collection_limits"):
         _text(scope[field], "scope." + field)
 
@@ -219,7 +224,9 @@ def validate_dossier_shape(sc):
         rid = _integer(source["record_id"], at + ".record_id", minimum=1)
         ledger_ids.append(rid)
         for key in ("desk", "source_id", "institution_id"):
-            _slug(source[key], at + "." + key)
+            value = source[key]
+            if type(value) is not str or len(value) > 80 or not IDENTIFIER.fullmatch(value):
+                _fail(at + "." + key, "invalid registered identifier")
         _text(source["language"], at + ".language", limit=30)
         if _day(source["published_on"], at + ".published_on") > updated:
             _fail(at, "source publication date follows this version")
@@ -242,7 +249,9 @@ def validate_dossier_shape(sc):
         claims = _list(section["claims"], at + ".claims", minimum=1, maximum=100)
         for j, claim in enumerate(claims):
             where = f"{at}.claims[{j}]"
-            _object(claim, CLAIM_FIELDS, where)
+            _object(claim, CLAIM_FIELDS, where, optional={"heading"})
+            if "heading" in claim:
+                _text(claim["heading"], where + ".heading", limit=180)
             all_claim_ids.append(_slug(claim["id"], where + ".id"))
             if type(claim["claim_kind"]) is not str or claim["claim_kind"] not in KINDS:
                 _fail(where + ".claim_kind", "invalid attribution class")
@@ -280,6 +289,10 @@ def validate_dossier_shape(sc):
     _unique(dispute_ids, "disagreements")
     _slug_list(sc["related_briefs"], "related_briefs")
     _slug_list(sc["related_timelines"], "related_timelines")
+    if "chronology" in sc:
+        chronology = _object(sc["chronology"], {"timeline_slug", "content_sha256"}, "chronology")
+        _slug(chronology["timeline_slug"], "chronology.timeline_slug")
+        _sha(chronology["content_sha256"], "chronology.content_sha256")
 
     changes = _list(sc["changes"], "changes", maximum=200)
     if len(changes) != revision:

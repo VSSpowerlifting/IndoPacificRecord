@@ -314,6 +314,7 @@ class PreviewCase(unittest.TestCase):
         # This prototype snapshot exercises the predecessor issue collection.
         # Native publication has separate fixtures; a real approved Brief must
         # not silently change this snapshot's lead, routes or issue set.
+        # Dossiers depending on those native Briefs are likewise absent here.
         cls.briefs = cls.tmp / "briefs"
         cls.briefs.mkdir()
         cls.snapshot = snapshot_of(TRACKED_DB)
@@ -334,7 +335,8 @@ class PreviewCase(unittest.TestCase):
             1 for r in _data["corpus"] if r.get("analyzed_at"))
         cls.week_count = len(_data["weeks"])
         cls.result = gp.build(cls.out, "Test Title", TRACKED_DB,
-                              snapshot=cls.snapshot, briefs_dir=cls.briefs)
+                              snapshot=cls.snapshot, briefs_dir=cls.briefs,
+                              dossiers_dir=cls.tmp / "no-dossiers")
         # Measured from the built tree, so necessarily after the build.
         cls.shard_count = len(list(cls.out.glob("week-*.html")))
         cls.source_count = len(list(cls.out.glob("source/*.html")))
@@ -2166,7 +2168,8 @@ class TestRecordPages(PreviewCase):
         expected = {r["id"] for r in self.data["corpus"] if r["state"] == "analyzed"}
         compat = self.tmp / "compat"
         gp.build(compat, "Test Title", TRACKED_DB, snapshot=self.snapshot,
-                 legacy_routes=True, briefs_dir=self.briefs)
+                 legacy_routes=True, briefs_dir=self.briefs,
+                 dossiers_dir=self.tmp / "no-dossiers")
         generated = {int(p.stem) for p in (compat / "article").glob("*.html")}
         self.assertEqual(generated, expected)
         # Tracked output is the last deployed artifact; a failed Daily can
@@ -2349,7 +2352,7 @@ class TestRecordPages(PreviewCase):
     def test_the_original_source_link_is_keyboard_reachable(self):
         rec = self.by_id[self.ids[-1]]
         html = self.record(rec["id"])
-        self.assertIn('<a href="%s"' % rec["url"], html)
+        self.assertIn('<a href="%s"' % markupsafe.escape(rec["url"]), html)
         self.assertNotIn("tabindex=\"-1\"", html)
 
     def test_urls_and_hashes_can_wrap_at_320px(self):
@@ -5073,7 +5076,11 @@ class TestCorpusGuide(PreviewCase):
         withheld = [r for r in self.corpus["corpus"] if not r.get("title_original")]
         self.assertTrue(withheld)
         for rec in withheld:
-            self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+            self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+            self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+            self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+            self.assertTrue(rec["vietnam"]["source_identity"])
+            self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
             self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
         self.assertEqual(self.stats["withheld_original_titles"], len(withheld))
         row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Original title"]
@@ -5413,7 +5420,17 @@ class TestSnapshotScopedCitations(PreviewCase):
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
                 if not original:
-                    self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+                    self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+                    self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+                    self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+                    self.assertTrue(rec["vietnam"]["source_identity"])
+                    self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
+                    self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
+                    if rec["source_slug"] == "vn_vpcp_official_documents_vi":
+                        proof = rec["vietnam"]["qa"]
+                        self.assertIs(proof["second_pass"]["ok"], True)
+                        number = proof["details"]["VPCP_DOCUMENT"]["bibliographic"]["document_number"]
+                        self.assertIn("Official document " + number, cite["source_text"])
                     self.assertIn("Original title withheld under the source-use decision.",
                                   cite["source_text"])
                     self.assertNotIn(english, cite["source_text"])
@@ -6890,7 +6907,7 @@ class TestPreviewEditionIdentity(unittest.TestCase):
             briefs.mkdir()
             gp.build(tmp / "out", "Test Title", TRACKED_DB,
                      snapshot=gp.snapshot_from_corpus(TRACKED_DB),
-                     briefs_dir=briefs)
+                     briefs_dir=briefs, dossiers_dir=tmp / "no-dossiers")
         finally:
             gp.load_editions = real
         pages = {name: (tmp / "out" / name).read_text(encoding="utf-8")

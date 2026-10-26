@@ -87,6 +87,7 @@
 {% endblock %}
 
 {% block content %}
+{% if dossiers %}<section class="analysis-dossiers" aria-labelledby="dossier-heading"><h2 id="dossier-heading">Living Dossiers</h2><p>Bounded research questions, inspectable findings and reviewed revisions.</p>{% for d in dossiers %}<p><a href="{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
 {% if timelines %}{% set analysis_current = 'briefs' %}{% include '_analysis_nav.html' %}{% endif %}
 {% if collection.rows %}
 {% set n_rows = collection.rows|length %}

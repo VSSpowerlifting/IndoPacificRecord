@@ -259,17 +259,31 @@ class TestSingaporeRunsThroughTheDailyPipeline(unittest.TestCase):
         from unittest import mock
         from tests.integration.test_pipeline_run import scraper_factory
         analyzer = fake_analyzer(client)
-        with mock.patch.object(self.case.pipeline, "ANTHROPIC_API_KEY", "test-key"), \
-                mock.patch("analysis.analyzer.Analyzer", return_value=analyzer), \
-                self.assertLogs("pipeline", level="INFO") as logs:
-            try:
-                self.case.run_pipeline(
-                    {"china_mil_online": scraper_factory(urls=[])},
-                    no_analysis=False)
-            except SystemExit as exc:
-                self.assertEqual(exc.code, exit_code)
-            else:
-                self.assertIsNone(exit_code)
+        import sys
+        from functools import partial
+        from core import dossiers
+        # The renderer imports a fresh module each run. Give its real dossier
+        # loader an empty fixture collection: this tiny DB has no live sources.
+        actual_loader = dossiers.load_dossiers
+        dossier_loader = partial(actual_loader, source_dir=self.case.tmp / "dossiers")
+        try:
+            with mock.patch.object(dossiers, "load_dossiers", side_effect=dossier_loader), \
+                    mock.patch.object(self.case.pipeline, "ANTHROPIC_API_KEY", "test-key"), \
+                    mock.patch("analysis.analyzer.Analyzer", return_value=analyzer), \
+                    self.assertLogs("pipeline", level="INFO") as logs:
+                try:
+                    self.case.run_pipeline(
+                        {"china_mil_online": scraper_factory(urls=[])},
+                        no_analysis=False)
+                except SystemExit as exc:
+                    self.assertEqual(exc.code, exit_code)
+                else:
+                    self.assertIsNone(exit_code)
+        finally:
+            # Do not leave the fixture binding in the newly imported renderer.
+            preview = sys.modules.get("generate_preview")
+            if preview is not None:
+                preview.load_dossiers = actual_loader
         return "\n".join(logs.output)
 
     def rows(self):

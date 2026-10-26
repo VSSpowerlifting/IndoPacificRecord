@@ -253,7 +253,8 @@ class PublicationChecks(unittest.TestCase):
         before = self.path.read_bytes()
         gp.build(out, gp.PUBLIC_TITLE, ROOT / 'pla_watch.db',
                  snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
-                 briefs_dir=self.briefs, review_brief=self.path)
+                 briefs_dir=self.briefs, dossiers_dir=self.root / 'no-dossiers',
+                 review_brief=self.path)
         article = (out / 'briefs/fixture.html').read_text()
         self.assertIn('unapproved, unnumbered and unpublished', article)
         self.assertIn('noindex', article)
@@ -277,7 +278,8 @@ class PublicationChecks(unittest.TestCase):
         for out in outputs:
             gp.build(out, gp.PUBLIC_TITLE, ROOT / 'pla_watch.db',
                      snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
-                     briefs_dir=self.briefs, site_origin='https://fixture.test',
+                     briefs_dir=self.briefs, dossiers_dir=self.root / 'no-dossiers',
+                     site_origin='https://fixture.test',
                      allow_test_origin=True)
             article = (out / routes[0]).read_text()
             self.assertIn(self.pending['title'], article)
