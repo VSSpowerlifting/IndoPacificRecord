@@ -23,7 +23,7 @@
       "cn_mnd",
       "sg_mindef"
     ],
-    "included": "Thirteen publications preserved in IPR’s record from August–October 2026 and nine linked official pages from 2015–2024: Singapore MINDEF releases, a parliamentary reply and a factsheet, PLA Daily reports, China defence ministry statements and one Xinhua report.",
+    "included": "Thirteen publications preserved in IPR’s record from August–October 2026 and nine linked official pages from 2015–2024. The preserved records are PLA Daily reports, China defence ministry statements, MINDEF releases and one Xinhua report carried by PLA Daily. The linked pages are seven MINDEF publications, including a parliamentary reply and a factsheet, and two Xinhua reports published on China’s defence ministry website.",
     "excluded": "Unpublished activity, media and think-tank commentary, coast guard and non-naval cooperation, photographs and any claim to an exhaustive survey of either government’s reporting.",
     "method": "Compare dated official accounts edition by edition. Event dates stay distinct from publication dates, and plans stay distinct from reported execution. Chinese evidence is read in the original. Linked pages outside the record are cited by publisher, date and link only.",
     "collection_limits": "The record covers recent months; earlier editions rely on linked official pages checked on October 26, 2026 and not preserved by IPR. No paid model processing was used. Restricted source text is not reproduced."
@@ -337,15 +337,15 @@
         {
           "id": "third-2024",
           "claim_kind": "issuer_statement",
-          "text": "MINDEF announced the third edition for September 1–5, 2024 at Zhanjiang. China’s defence ministry described it as the first edition held in China.",
+          "text": "MINDEF announced the third edition for September 1–5, 2024 at Zhanjiang. A Xinhua report published on China’s defence ministry website described it as the two navies’ first bilateral exercise held in China.",
           "source_record_ids": [],
           "event_period": {
             "start": "2024-09-01",
             "end": "2024-09-05",
             "basis": "planned",
-            "date_basis": "MINDEF’s August 29, 2024 release gave the window in advance; China’s ministry described the exercise as it began."
+            "date_basis": "MINDEF’s August 29, 2024 release gave the window in advance; Xinhua’s reports on China’s defence ministry website described the exercise before and as it began."
           },
-          "limits": "The window comes from releases issued before or during the exercise. Both ministries describe their own exercise; neither is an independent observer.",
+          "limits": "The window comes from releases issued before or during the exercise. Singapore’s ministry and China’s state news agency each describe their own country’s exercise; neither is an independent observer.",
           "counterevidence_ids": [],
           "heading": "2024: the first edition held in China",
           "external_source_ids": [
@@ -416,12 +416,12 @@
         {
           "id": "alternating-hosts",
           "claim_kind": "editorial_interpretation",
-          "text": "Since 2023 the host has alternated each year: Singapore in 2023, Zhanjiang in 2024, Singapore in 2025 and Zhanjiang in 2026. Before the 2024 edition, China’s defence ministry stated an aim of a regular mechanism with hosts alternating annually.",
+          "text": "Since 2023 the host has alternated each year: Singapore in 2023, Zhanjiang in 2024, Singapore in 2025 and Zhanjiang in 2026. Before the 2024 edition, a Xinhua report published on China’s defence ministry website stated an aim of a regular mechanism with hosts alternating annually.",
           "source_record_ids": [
             4466
           ],
           "event_period": null,
-          "limits": "Four years make a pattern, not a commitment. China’s ministry stated an aim; this dossier found no published bilateral agreement that fixes the arrangement, and no Singaporean statement of the same aim was reviewed.",
+          "limits": "Four years make a pattern, not a commitment. The Chinese report stated an aim; this dossier found no published bilateral agreement that fixes the arrangement, and no Singaporean statement of the same aim was reviewed.",
           "counterevidence_ids": [],
           "heading": "Hosts have alternated since 2023",
           "external_source_ids": [
@@ -444,13 +444,13 @@
         {
           "id": "vbss-plan-2024",
           "claim_kind": "issuer_statement",
-          "text": "Before the 2024 edition, China’s defence ministry said it was held under the annual plan and by mutual consensus. It listed visit, board, search and seizure among the planned activities.",
+          "text": "Before the 2024 edition, a Xinhua report published on China’s defence ministry website said the exercise was held under the annual plan and by mutual consensus. It listed visit, board, search and seizure among the planned activities.",
           "source_record_ids": [],
           "event_period": {
             "start": "2024-09-01",
             "end": "2024-09-05",
             "basis": "planned",
-            "date_basis": "China’s ministry described the planned content on August 29, 2024, before the exercise opened."
+            "date_basis": "The Xinhua report described the planned content on August 29, 2024, before the exercise opened."
           },
           "limits": "This is a pre-exercise plan. It does not show who carried out the boarding serial or whether it was conducted jointly.",
           "counterevidence_ids": [],
@@ -481,7 +481,7 @@
         {
           "id": "depth-2024",
           "claim_kind": "issuer_statement",
-          "text": "As the 2024 edition opened, a defence-ministry account said it was longer, had more serials and involved deeper exchange than before. It described the exercise as a flagship programme of the two militaries.",
+          "text": "As the 2024 edition opened, a Xinhua report published on China’s defence ministry website said it was longer, had more serials and involved deeper exchange than before. It said the two navies were building the exercise series into a signature programme.",
           "source_record_ids": [],
           "event_period": null,
           "limits": "This is a self-assessment by one participant. More listed serials and longer duration do not measure the depth of cooperation.",
@@ -560,7 +560,7 @@
         {
           "id": "technical-not-friendly",
           "claim_kind": "documented_publication",
-          "text": "Xinhua’s report on the task force’s October 23 return to Qingdao distinguishes friendly visits to Bangladesh, Myanmar and Malaysia from technical stops at Oman, Kenya, Singapore and other countries.",
+          "text": "Xinhua’s report, carried by PLA Daily, on the task force’s October 23 return to Qingdao distinguishes friendly visits to Bangladesh, Myanmar and Malaysia from technical stops at Oman, Kenya, Singapore and other countries.",
           "source_record_ids": [
             4911,
             5528
@@ -591,7 +591,7 @@
         {
           "id": "xiangshan-2026",
           "claim_kind": "documented_publication",
-          "text": "PLA Daily reported that China’s defence minister Dong Jun met Singapore’s defence minister Chan Chun Sing at the Beijing Xiangshan Forum on September 16, 2026. In PLA Daily’s account, Chan called the two militaries’ cooperation in joint exercises, training and personnel development fruitful.",
+          "text": "A China defence ministry report carried by PLA Daily said that China’s defence minister Dong Jun met Singapore’s defence minister Chan Chun Sing at the Beijing Xiangshan Forum on September 16, 2026. In that account, Chan called the two militaries’ cooperation in joint exercises, training and personnel development fruitful.",
           "source_record_ids": [
             4211
           ],
@@ -599,7 +599,7 @@
             "start": "2026-09-16",
             "end": "2026-09-16",
             "basis": "reported",
-            "date_basis": "PLA Daily reports the meeting on the day it took place."
+            "date_basis": "The report is dated the day of the meeting."
           },
           "limits": "This is the Chinese account of a Singaporean minister’s remarks. No Singaporean account of the meeting was reviewed.",
           "counterevidence_ids": [],
@@ -659,7 +659,7 @@
             4164
           ],
           "event_period": null,
-          "limits": "PLA Daily, the defence ministry and Xinhua are all Chinese state outlets. Agreement among them is one institution repeating itself, not corroboration.",
+          "limits": "PLA Daily, the defence ministry and Xinhua are all Chinese state outlets. Agreement among them is one state’s outlets repeating one another, not corroboration.",
           "counterevidence_ids": [
             4466
           ],
@@ -791,7 +791,7 @@
         "vbss-plan-2024"
       ],
       "status": "unresolved",
-      "note": "Before the 2024 edition, China’s defence ministry listed boarding among the planned activities, while MINDEF described RSS Stalwart observing PLA Navy boarding and mine-clearance demonstrations. Both are pre-exercise accounts; neither settles what was conducted. Both are preserved."
+      "note": "Before the 2024 edition, a Xinhua report published on China’s defence ministry website listed boarding among the planned activities, while MINDEF described RSS Stalwart observing PLA Navy boarding and mine-clearance demonstrations. Both are pre-exercise accounts; neither settles what was conducted. Both are preserved."
     },
     {
       "id": "depth-of-cooperation",
@@ -800,7 +800,7 @@
         "singapore-framing"
       ],
       "status": "unresolved",
-      "note": "China’s outlets describe deepening cooperation and a flagship programme; Singapore places the exercise within a wide network of partnerships. These are different emphases rather than contradictory facts, and this dossier does not choose between them."
+      "note": "China’s outlets describe deepening cooperation and a signature programme; Singapore places the exercise within a wide network of partnerships. These are different emphases rather than contradictory facts, and this dossier does not choose between them."
     }
   ],
   "case_studies": [

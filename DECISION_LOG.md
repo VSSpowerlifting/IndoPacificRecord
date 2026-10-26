@@ -4,13 +4,25 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-26 — Owner: Maritime Cooperation 2026 becomes an exercise case study
+
+Benjamin Yang wrote in this task: “I approve the structural decision: Maritime
+Cooperation 2026 should be labelled "Exercise case study" under China–Singapore
+Naval Cooperation, preserving its URL and approved substance.” This approves
+structure only. `/dossier/maritime-cooperation-2026.html`, its revision 2
+content, its editorial approval and its five-source grant are unchanged. The
+label and breadcrumb appear only when the thematic dossier itself is rendered,
+so production shows no change until the thematic dossier is approved. He
+stated in the same message that editorial approval and additional source-use
+approval remain pending; this entry records neither.
+
 ## 2026-10-26 — Pending owner decision: China–Singapore thematic dossier
 
-**No approval is recorded here.** This entry records a decision that remains
+**No approval is recorded here.** This entry records decisions that remain
 open. The draft `dossiers/china-singapore-naval-cooperation.json` (revision 0,
-content digest `fad235088151184cb7c31ee88b7b3c4db1d9c82dc97915180e293376b2b3b109`) was prepared with machine assistance (Claude).
-Benjamin Yang is named as the responsible editor but has not reviewed it. It
-stays withheld from production until he decides on three points:
+content digest `f68063c585e3428f97b3f8f18d60aa72a8817e2ab1b9c1b3522aee32a6559001`) was prepared with machine assistance (Claude).
+Benjamin Yang is named as the responsible editor but has not approved it. It
+stays withheld from production until he decides on two points:
 
 1. editorial approval of that exact digest, including its findings,
    qualifications, chronology and comparison of official accounts;
@@ -18,14 +30,11 @@ stays withheld from production until he decides on three points:
    4102, 4164, 4211, 4452, 4454, 4466, 4472, 4849, 4911, 5528) and the nine
    linked official pages x1–x9, limited to institutional attribution,
    publication dates, independent IPR paraphrase and official/IPR-record
-   links, and excluding original text, translations, excerpts and media;
-3. acceptance that, once the thematic dossier is public, the approved
-   Maritime Cooperation 2026 dossier is labelled "Exercise case study" and
-   carries a breadcrumb to it. Its URL, revision 2 content and existing
-   approvals are unchanged.
+   links, and excluding original text, translations, excerpts and media.
 
-The Maritime grant of 25 October covers five of these records for that dossier
-only; it is not extended to the thematic dossier by this entry.
+The third point, the case-study label, was approved on 26 October (entry
+above). The Maritime grant of 25 October covers five of these records for that
+dossier only; it is not extended to the thematic dossier by this entry.
 
 ## 2026-10-25 — Owner: Maritime dossier narrow five-source public projection
 
