@@ -19,6 +19,9 @@ still matches the independent editorial/source-use decisions. All five preserved
 originals were reread against the finding matrix; no new collection or model run.
 Current main `71beedb3ba` and the existing PR #879 repair `7f6ceb6996` are
 incorporated, preserving newer Briefs, staff, Daily records and decisions.
+CI then exposed the same Python 3.9 / Ubuntu 26.04 setup failure in the
+Indonesia press-link rehearsal; only the runner lines of the two triggered
+Indonesia PR render checks are pinned to 24.04, retaining their release gates.
 The 190 affected dossier/renderer/baseline checks pass. Public-route desktop,
 375/320px mobile, keyboard disclosures, source/return links, archive discovery,
 citation copy and print were verified; captures are indexed in `design-qa.md`.
