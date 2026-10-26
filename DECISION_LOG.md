@@ -20,10 +20,12 @@ approval remain pending; this entry records neither.
 
 **No approval is recorded here.** This entry records decisions that remain
 open. The draft `dossiers/china-singapore-naval-cooperation.json` (revision 0,
-content digest `f5afba596391e8ca2e47c277d16884b89e10ea22df934f2cfb8d33ee569060a0`) was prepared with machine assistance (Claude).
+content digest `5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e`) was prepared with machine assistance (Claude).
 It replaces the earlier draft digest `f68063c585e3428f97b3f8f18d60aa72a8817e2ab1b9c1b3522aee32a6559001` after the owner's 26 October
-review requested an editorial completion pass; that earlier digest was not
-approved and no approval carries over from it.
+review requested an editorial completion pass, and then `f5afba59…` after the
+owner asked for a final correction to the synthesis's wording on the planned
+2026 joint surface strike. Neither earlier digest was approved and no approval
+carries over from them.
 Benjamin Yang is named as the responsible editor but has not approved it. It
 stays withheld from production until he decides on two points:
 

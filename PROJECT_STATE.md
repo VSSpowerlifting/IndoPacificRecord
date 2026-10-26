@@ -10,7 +10,7 @@ official pages that are linked only (x1–x7 MINDEF; x8–x9 Xinhua reports on C
 defence ministry website), so corpus evidence and new source-linked research stay
 apart. A 26 October attribution check credited x8/x9 to Xinhua and R4211 to the
 defence ministry (carried by PLA Daily). After the owner's 26 October editorial review it was revised; its content digest is
-`f5afba596391e8ca2e47c277d16884b89e10ea22df934f2cfb8d33ee569060a0` (the earlier `f68063c5…` draft was not approved). Maritime Cooperation 2026 keeps its URL, revision 2 approvals and
+`5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e` after a final synthesis correction (the earlier `f68063c5…` and `f5afba59…` drafts were not approved). Maritime Cooperation 2026 keeps its URL, revision 2 approvals and
 source bindings. Ben approved on 26 October that it becomes the "Exercise
 case study" nested under the thematic dossier; that label appears only when the
 thematic dossier is rendered. The site gains an "Analysis" main-nav entry,
