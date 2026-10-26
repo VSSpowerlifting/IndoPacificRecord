@@ -1,9 +1,12 @@
 # Government Office document integration — 25 October 2026 receipt
 
-**Status: technical integration merged and activated; public full-document
-acceptance is NOT complete.** Real source collection, model generation and
-independent factual review ran. Neither reviewed explanation passed factual QA.
-No Government Office English explanation was admitted to production or deployed.
+**Status: the approved 10744 correction is published as article 5646.**
+Private correction, independent factual review, authenticated public admission,
+production database, generated article and live HTTPS readback have succeeded.
+The browser readback additionally identified missing direct Desk presentation;
+the common renderer now lists admitted explanations and links the retained
+bibliography. Post-deployment Desk/Archive browser evidence belongs to the
+presentation release PR. Historical rejected attempts below remain recorded.
 The completed October 23 metadata release, PR #863 and evidence `d8aa9ebc6e`,
 remain intact and were not rebuilt.
 
@@ -102,11 +105,12 @@ were unchanged by recovery. The original QA hold was retained.
 returned `ok: false`, `E_SECOND_PASS`: the explanation assigned instructions
 to the Government Office when that office was conveying the Prime Minister's
 instructions. The draft remains held, and all three paid routes for this
-immutable source version are now spent. No corrected generation or repeated
-factual review has been authorized or attempted. Final private Daily commit:
+immutable source version are now spent. At that checkpoint no corrected generation or repeated
+factual review had been authorized or attempted; the later single owner exception
+and its actual execution are recorded below. Final private Daily commit:
 `3599a8af74cd1498957c7902b48203760fe00a9d`; approved VPCP handoff records: zero.
 
-## Current document dispositions
+## Initial document dispositions before the one-time correction
 
 | Official document / portal identity | Disposition |
 | --- | --- |
@@ -127,7 +131,7 @@ page or PDF, and found no new Government Office identity in the existing
 This is a quiet bounded frontier, not an access failure or proof that the entire
 government portal has no other documents. No broader crawl was attempted.
 
-## Expenditure and durable reservations
+## Historical expenditure before the one-time correction
 
 Provider-returned usage reconciles to **11 API calls, $0.162665** at the freshly
 verified standard prices. This is token-priced usage, not a separately retrieved
@@ -144,7 +148,7 @@ The `10744` entry records generation `40189202615-1`, first review
 `40197695872-1` and exactly the existing relevance, generation and review
 routes. Pricing or checkpoint uncertainty still fails closed before dispatch.
 
-## Production readback and remaining release constraint
+## Historical production readback before the one-time correction
 
 At main `b735161305e3096a4006e7a6e9705ead48782429`, the production database
 retains **four VPCP bibliographic records and zero VPCP corpus articles**.
@@ -229,3 +233,59 @@ and admission, including policy denials, rejected QA, forbidden originals,
 idempotency and MPS-hold compatibility. The existing signed approved record can
 be admitted after the repair without any new model call. Exact-head CI and
 actual source-to-live readback of that repair remain required.
+
+
+## Actual public admission and presentation release
+
+Consumer PR #875, head `8cf858572ae043674f9def688bf6c696c22fd243`, passed
+exact-head CI `40220705488` (7,996 tests, 15 skips, browser, renderer,
+validator ten warnings, tracked-data preservation) and merged as
+`6475e9d92ecc89d7bd5d0f19d3d4b3461d30d085`. It changes only the VPCP private
+projection boundary; the legacy original/link holds and other-family policy
+remain enforced.
+
+Public Daily [40237439135](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40237439135)
+ran the mandatory 7,996-test suite (15 skips), database-preservation and
+reconciliation gates, normal pipeline, output validator and deployment.
+The actual admission report was `status: OK`, `counts: {published: 1}`,
+`run_id: 40217218707-1`; this is not inferred from a successful step.
+Production commit `9d6d690efd3de0b6b17dd0a233d00b67ad51f508` and telemetry commit
+`fdb3cc8973753c3cb2db4ae4ad0425839f6bd94d` preserve the concurrent AFP metadata
+and Sunday handoff repairs. No other desk pipeline or worktree was edited.
+Pages [40239937602](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40239937602)
+succeeded at `985992425fc7049c9105a0d95221b47b04779d4b`.
+
+The production database has genuine article **5646**, source `vpcp-vi:220065`,
+issued 21 October 2026. Its PDF/content/metadata identity is the exact approved
+10744 version above, source archive commit
+`ba58d2bc38e1c73f7aa6e11b00e0f3758a0aa8c8`, sealed rights decision
+`cb8daea696a892936be617f64dca2988d5d77dd402fdb42cab29d3ab22995f65`,
+positive independent QA, two complete pages and 65-word English explanation.
+The 20-word headline plus explanation total 85 words. Database integrity and
+foreign keys pass; original title, original body and complete translation are
+null. Generated and live [article](https://indopacificrecord.org/record/5646.html)
+returned identical SHA-256
+`7db74272acbee32f4deb79b6f9c69e2504112e5cea1ee38dac96e8bbf9eee850`.
+
+The first Desk browser readback correctly failed: the common desk page exposed
+only the metadata entry, despite the accepted article being in the corpus and
+Archive. The repair reuses the ordinary `_records.html` rows for the latest
+admitted, published Vietnam explanations. Matching bibliographic entries link
+to their English record; the bibliography remains separate and cannot admit
+private captures or held documents. Metadata copy no longer falsely says the
+PDF has never been read. The renderer changes no database or other desk page.
+The ordinary source page continues to link to its filtered Archive; it has no
+per-article list for any source. It is checked as that source-navigation surface,
+not treated as a second article renderer.
+
+No new Government Office model calls were made by public admission or this
+presentation repair. Read-only reconciliation after the public run confirmed
+**13 calls, $0.185636 provider-token cost, $0.61798 durable reservations**,
+unchanged checkpoint blob `1a6ce3bfc036522b678bd68287d3ec9c69b62d85` and file hash
+`ef8dc12bdff2e3f75e4e3918bd2403171307601fd264136506d8483c11ae708e`.
+The manual allowance is consumed permanently; 10790 and the other holds remain
+unchanged. Existing active collection, private bridge and public Daily schedules
+provide the unattended first-pass path under the original caps and source-use
+exclusions. Quyết định remain held for individual administrative classification;
+unsupported extraction/attachments, factual errors and material version drift
+remain individual exceptions, not permission to retry paid routes.

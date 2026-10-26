@@ -385,6 +385,14 @@ class SharedBridge(unittest.TestCase):
                 self.assertIn('not an official translation',html)
                 self.assertNotIn('id="record-translation"',html)
                 self.assertNotIn(version['text_original'],html)
+                desk_html=(Path(tmp)/'rendered/vietnam.html').read_text()
+                self.assertIn('data-vietnam-published-records',desk_html)
+                self.assertIn('record/%s.html'%article_id,desk_html)
+                self.assertIn(reading['title_english'],desk_html)
+                self.assertIn('Read the published English machine explanation',desk_html)
+                self.assertNotIn('the document text has not been read or analyzed',desk_html)
+                self.assertNotIn('IPR has not downloaded, verified or translated them',desk_html)
+                self.assertNotIn(version['text_original'],desk_html)
 
                 # Changed immutable bytes hold without overwriting the existing article.
                 changed=copy.deepcopy(record);changed['content_sha256']='f'*64
