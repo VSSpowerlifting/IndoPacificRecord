@@ -2352,7 +2352,7 @@ class TestRecordPages(PreviewCase):
     def test_the_original_source_link_is_keyboard_reachable(self):
         rec = self.by_id[self.ids[-1]]
         html = self.record(rec["id"])
-        self.assertIn('<a href="%s"' % rec["url"], html)
+        self.assertIn('<a href="%s"' % markupsafe.escape(rec["url"]), html)
         self.assertNotIn("tabindex=\"-1\"", html)
 
     def test_urls_and_hashes_can_wrap_at_320px(self):
@@ -5076,7 +5076,8 @@ class TestCorpusGuide(PreviewCase):
         withheld = [r for r in self.corpus["corpus"] if not r.get("title_original")]
         self.assertTrue(withheld)
         for rec in withheld:
-            self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+            self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+            self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
             self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
         self.assertEqual(self.stats["withheld_original_titles"], len(withheld))
         row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Original title"]
@@ -5416,7 +5417,13 @@ class TestSnapshotScopedCitations(PreviewCase):
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
                 if not original:
-                    self.assertEqual(rec["source_slug"], "vn_mps_foreign_affairs_vi")
+                    self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+                    self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
+                    if rec["source_slug"] == "vn_vpcp_official_documents_vi":
+                        proof = rec["vietnam"]["qa"]
+                        self.assertIs(proof["second_pass"]["ok"], True)
+                        number = proof["details"]["VPCP_DOCUMENT"]["bibliographic"]["document_number"]
+                        self.assertIn("Official document " + number, cite["source_text"])
                     self.assertIn("Original title withheld under the source-use decision.",
                                   cite["source_text"])
                     self.assertNotIn(english, cite["source_text"])

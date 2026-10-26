@@ -1,0 +1,17 @@
+HTTP/2 200 
+content-type: image/jpeg
+content-length: 695783
+server: AmazonS3
+date: Mon, 26 Oct 2026 02:47:29 GMT
+last-modified: Sun, 16 Apr 2023 17:38:19 GMT
+etag: "1429c4e1eeb43876cd3dffe07e5050a2"
+x-amz-storage-class: ONEZONE_IA
+x-amz-server-side-encryption: AES256
+accept-ranges: bytes
+x-cache: Miss from cloudfront
+via: 1.1 1f1067e4f193aaabd2c24b99bcdc4e88.cloudfront.net (CloudFront)
+x-amz-cf-pop: IAD12-P3
+alt-svc: h3=":443"; ma=86400
+x-amz-cf-id: 3GKOrnGR1DdHjzZppROpefeJ9jzS1o5S4PcrIUXD2aX2duWDkLCwaQ==
+vary: Origin
+

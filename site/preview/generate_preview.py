@@ -3261,6 +3261,15 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.regional_official_link_render import load_admitted_links
         from core.daily_machine_records import load as load_daily_machine_records
         daily_machine_records = load_daily_machine_records(db_path) if desk.slug == "philippines" else []
+        # Reuse the admitted corpus and its ordinary record rows. Private
+        # captures and bibliographic references cannot enter this list.
+        vietnam_records = sorted((r for r in data["corpus"]
+            if desk.slug == "vietnam" and r.get("vietnam")
+            and r["state"] == "analyzed"
+            and r["vietnam"]["qa"]["outcome"] == "published"),
+            key=lambda r: (r["published_date"], r["id"]), reverse=True)
+        vietnam_explained = {r["vietnam"]["source_identity"]: r["record_path"]
+                             for r in vietnam_records}
         regional_official_links = (
             load_admitted_links(db_path, desk.slug)
             if desk.slug in ("philippines", "indonesia", "vietnam") else [])
@@ -3274,7 +3283,7 @@ def build(out_dir: Path, title: str, db_path: Path,
             "published_date": r["publisher_posted_date"], "source_name": r["publisher_label"],
             "issuer_label": r["issuer_label"],
             "date_kind": "document issue date",
-            "processing_note": "Bibliographic subject only; document text, translation and analysis unavailable."
+            "processing_note": "Bibliographic subject only; permitted machine explanations are separate published records."
             } for r in regional_official_links if r.get("document")]
         # Reuse the exact public results that render this build's desk pages.
         archive_official_groups.extend([
@@ -3298,6 +3307,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                              indonesia_press_links=indonesia_press_links,
                              regional_official_links=regional_official_links,
                              daily_machine_records=daily_machine_records,
+                             vietnam_records=vietnam_records[:20],
+                             vietnam_explained=vietnam_explained,
                              us_pacom_official_links=us_pacom_links,
                              uscc_official_links=uscc_links,
                              us_treasury_official_links=treasury_links,
