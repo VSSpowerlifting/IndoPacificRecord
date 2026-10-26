@@ -1,5 +1,28 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
+
+The first continuing thematic dossier, `dossiers/china-singapore-naval-cooperation.json`,
+is a **draft (revision 0) withheld from production**. It asks how China–Singapore
+naval cooperation is evolving and what the public record establishes about its
+scope, depth and limits. It binds 13 preserved corpus records and nine additional
+official pages that are linked only (x1–x9, MINDEF and China MND), so corpus evidence
+and new source-linked research stay apart. Its content digest is
+`fad235088151184cb7c31ee88b7b3c4db1d9c82dc97915180e293376b2b3b109`. Maritime Cooperation 2026 keeps its URL, revision 2 approvals and
+source bindings. Rendered for review, it becomes the "Exercise case study"
+nested under the thematic dossier. The site gains an "Analysis" main-nav entry,
+Briefs/Dossiers tabs and a `dossiers.html` collection that lists only rendered
+dossiers. In production that is the approved Maritime dossier alone, with the
+key defining only the kinds shown. The homepage entry appears only once the
+thematic dossier is approved. Brief URLs, titles, numbering, feeds and
+citations are unchanged; the production diff is mostly the nav label "Briefs"
+→ "Analysis". Validation keeps the 10 governed warnings, and the 129 dossier
+and timeline tests pass. A review render (`--review-dossier`) was checked at
+1280/375/320 px for headings, overflow, focus, evidence disclosures, no-JS and
+print. **Not merged, deployed, published or approved.** Release needs Ben's
+editorial approval of that exact digest and a source-use decision (see the
+26 October DECISION_LOG entry). No model spend, collection or outside contact.
+
 ## Sunday selection reform — private review candidate (26 October 2026)
 
 PR #805 is being extended from its old ten-source comparison to complete

@@ -140,3 +140,21 @@ pass. All 2,226 routes pass delivery budgets (dossier HTML+CSS 111,195 bytes;
 JS 6,953 bytes), and validation retains the 10 governed warnings. Mandatory CI
 and final-commit replay results are reported with exact SHAs in PR #864.
 No visual rewrite, new editorial revision, collection, model spend or release.
+
+## Thematic dossier and Dossiers collection — 26 October 2026
+
+Review render of the draft China–Singapore thematic dossier, plus the production
+render of the Analysis tabs and `dossiers.html`. Pages checked at 1280, 375 and
+320 px: home, Analysis, Dossiers, the thematic dossier and Maritime as a case
+study. Each has a single h1, no skipped heading levels and no horizontal overflow.
+Focus outlines are a solid 2 px. Evidence disclosures open and show nine
+linked-only external rows apart from corpus records. Citation is present.
+With JavaScript disabled, the full text renders. Print output is legible. Review
+pages are noindex with no canonical. Production `dossiers.html` has a canonical
+link and a sitemap entry, lists only Maritime, and defines only "Living Dossier"
+in its key. Navigation path verified: home → Analysis → Dossiers → thematic dossier
+(review render). Captures, kept in the session scratchpad and not committed:
+`qa4/` and `shots/` (home entry, analysis tabs, collection, thematic opening and
+case-study section, Maritime case-study header, focus, no-JS, `thematic-print.pdf`).
+Live production was not checked because nothing has been released.
+

@@ -4,6 +4,29 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-26 — Pending owner decision: China–Singapore thematic dossier
+
+**No approval is recorded here.** This entry records a decision that remains
+open. The draft `dossiers/china-singapore-naval-cooperation.json` (revision 0,
+content digest `fad235088151184cb7c31ee88b7b3c4db1d9c82dc97915180e293376b2b3b109`) was prepared with machine assistance (Claude).
+Benjamin Yang is named as the responsible editor but has not reviewed it. It
+stays withheld from production until he decides on three points:
+
+1. editorial approval of that exact digest, including its findings,
+   qualifications, chronology and comparison of official accounts;
+2. a source-use decision for the 13 bound corpus records (3513, 3663, 3924,
+   4102, 4164, 4211, 4452, 4454, 4466, 4472, 4849, 4911, 5528) and the nine
+   linked official pages x1–x9, limited to institutional attribution,
+   publication dates, independent IPR paraphrase and official/IPR-record
+   links, and excluding original text, translations, excerpts and media;
+3. acceptance that, once the thematic dossier is public, the approved
+   Maritime Cooperation 2026 dossier is labelled "Exercise case study" and
+   carries a breadcrumb to it. Its URL, revision 2 content and existing
+   approvals are unchanged.
+
+The Maritime grant of 25 October covers five of these records for that dossier
+only; it is not extended to the thematic dossier by this entry.
+
 ## 2026-10-25 — Owner: Maritime dossier narrow five-source public projection
 
 Benjamin Yang explicitly answered “Also approve that narrow five-source public

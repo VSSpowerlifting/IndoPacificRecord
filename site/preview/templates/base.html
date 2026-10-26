@@ -48,7 +48,7 @@
            sizes="(max-width:500px) 56px, 72px" width="160" height="{{ 133 if shell_dark else 130 }}" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
       <span class="brand-name">Indo-Pacific<span>Record</span></span>
     </a>
-    {% set nav = [('archive.html','Records'),('analysis.html','Briefs')] %}
+    {% set nav = [('archive.html','Records'),('analysis.html','Analysis')] %}
     {% if timelines %}{% set nav = nav + [('timelines.html','Timelines')] %}{% endif %}
     {% set nav = nav + [('desks.html','Desks')] %}
     {% set desk_routes = desks | map(attribute='route') | list if desks else [] %}

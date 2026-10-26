@@ -191,7 +191,12 @@ def _validate_dossiers(output_dir, errors):
     for path in (output_dir / 'dossier').rglob('*'):
         if path.is_file() and path.relative_to(output_dir).as_posix() not in expected:
             errors.append("%s: no approved dossier source; drafts/stale files cannot deploy" % path)
-    analysis = (output_dir / 'analysis.html').read_text(encoding='utf-8') if (output_dir / 'analysis.html').is_file() else ''
+    library_path = output_dir / 'dossiers.html'
+    library = library_path.read_text(encoding='utf-8') if library_path.is_file() else ''
+    if dossiers and not library:
+        errors.append('dossiers.html: Dossiers collection page is missing')
+    if not dossiers and library_path.exists():
+        errors.append('dossiers.html: no approved dossier to list')
     sitemap = (output_dir / 'sitemap.xml').read_text(encoding='utf-8') if (output_dir / 'sitemap.xml').is_file() else ''
     index_path = output_dir / 'archive-research-index.json'
     try:
@@ -212,8 +217,10 @@ def _validate_dossiers(output_dir, errors):
                 break
         if 'content="noindex' in text or 'rel="canonical"' not in text:
             errors.append('%s requires indexable metadata and canonical' % route)
-        if ('href="%s"' % route) not in analysis or ('/%s</loc>' % route) not in sitemap:
-            errors.append('%s missing from Analysis or sitemap' % route)
+        if ('href="%s"' % route) not in library or ('/%s</loc>' % route) not in sitemap:
+            errors.append('%s missing from the Dossiers collection or sitemap' % route)
+    if dossiers and '/dossiers.html</loc>' not in sitemap:
+        errors.append('dossiers.html missing from sitemap')
         for r in item['ledger']:
             if not (output_dir / ('record/%s.html' % r['id'])).is_file():
                 errors.append('%s has a missing canonical source destination' % route)

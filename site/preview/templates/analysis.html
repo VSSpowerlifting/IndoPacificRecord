@@ -36,6 +36,7 @@
   {{ terrain('hero', reveal=true) }}
   <div class="wrap briefs-head-inner">
     <div class="briefs-masthead">
+      {% if timelines or dossiers %}{% set analysis_current = 'briefs' %}{% include '_analysis_nav.html' %}{% endif %}
       <p class="briefs-kicker">Analysis</p>
       <h1 id="briefs-title" class="page-name">{{ collection_name }}</h1>
       <p class="briefs-lede">{% if has_source_linked %}Human-controlled analysis with explicit sources and named editors. Briefs distinguish preserved corpus records from source-linked editorial references.{% else %}Human-controlled analysis built from preserved records.
@@ -87,8 +88,7 @@
 {% endblock %}
 
 {% block content %}
-{% if dossiers %}<section class="analysis-dossiers" aria-labelledby="dossier-heading"><h2 id="dossier-heading">Living Dossiers</h2><p>Bounded research questions, inspectable findings and reviewed revisions.</p>{% for d in dossiers %}<p><a href="{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
-{% if timelines %}{% set analysis_current = 'briefs' %}{% include '_analysis_nav.html' %}{% endif %}
+{% if dossiers %}<section class="analysis-dossiers" aria-labelledby="dossier-heading"><h2 id="dossier-heading">Dossiers</h2><p>Dossiers are a separate collection: bounded research questions with inspectable findings and reviewed revisions. <a href="dossiers.html">All dossiers</a></p>{% for d in dossiers if not d.parent_dossiers %}<p><a href="{{ d.route }}">{{ d.title }}</a> · {{ d.kind_label }}{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
 {% if collection.rows %}
 {% set n_rows = collection.rows|length %}
 <section class="briefs-index" aria-labelledby="briefs-published">
