@@ -79,6 +79,14 @@ that historical restriction. See
 technical access limits and the distinction from a production permission.
 
 **Philippines Desk (23 October 2026): operating, accuracy pass on this branch.**
+The October 26 explanation-quality review proposes `ph-analysis-v13`: natural
+sentence lengths and varied explicit attribution, concrete evidence-supported
+detail, and precise actor/status/host-versus-issuer wording. The shared Analyzer,
+90-word combined ceiling, evidence/copying gates and accepted older versions
+remain intact. This is an offline prompt candidate; it does not establish live
+model quality or reprocess existing records. Source-grounded examples, rubric
+and verification limits: [review](docs/engineering/MACHINE_EXPLANATION_QUALITY_2026-10-26.md).
+
 AFP and NSC run through the one shared Daily path: private collectors
 (`afp_private_first_collector`, 06:40 UTC; `nsc_private_first_collector`,
 10:10 UTC) preserve originals, `shared_daily_processing` screens and explains
