@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import ast
 import hashlib
-import html as html_lib
 import inspect
 import json
 import re
@@ -2350,7 +2349,7 @@ class TestRecordPages(PreviewCase):
     def test_the_original_source_link_is_keyboard_reachable(self):
         rec = self.by_id[self.ids[-1]]
         html = self.record(rec["id"])
-        self.assertIn('<a href="%s"' % html_lib.escape(rec["url"], quote=True), html)
+        self.assertIn('<a href="%s"' % markupsafe.escape(rec["url"]), html)
         self.assertNotIn("tabindex=\"-1\"", html)
 
     def test_urls_and_hashes_can_wrap_at_320px(self):
@@ -5074,12 +5073,12 @@ class TestCorpusGuide(PreviewCase):
         withheld = [r for r in self.corpus["corpus"] if not r.get("title_original")]
         self.assertTrue(withheld)
         for rec in withheld:
-            provenance = rec["vietnam"]
-            self.assertEqual(provenance["source_family"], rec["source_slug"])
-            self.assertEqual(provenance["canonical_official_url"], rec["url"])
-            self.assertTrue(provenance["source_identity"])
-            self.assertRegex(provenance["rights_decision_sha256"], r"^[0-9a-f]{64}$")
-            self.assertIs(provenance["permissions"]["public_title_display"], False)
+            self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+            self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+            self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+            self.assertTrue(rec["vietnam"]["source_identity"])
+            self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
+            self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
         self.assertEqual(self.stats["withheld_original_titles"], len(withheld))
         row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Original title"]
         self.assertIn("Withheld for %s records" % format(len(withheld), ","), row["absent"])
@@ -5418,12 +5417,17 @@ class TestSnapshotScopedCitations(PreviewCase):
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
                 if not original:
-                    provenance = rec["vietnam"]
-                    self.assertEqual(provenance["source_family"], rec["source_slug"])
-                    self.assertEqual(provenance["canonical_official_url"], rec["url"])
-                    self.assertTrue(provenance["source_identity"])
-                    self.assertRegex(provenance["rights_decision_sha256"], r"^[0-9a-f]{64}$")
-                    self.assertIs(provenance["permissions"]["public_title_display"], False)
+                    self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+                    self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+                    self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+                    self.assertTrue(rec["vietnam"]["source_identity"])
+                    self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
+                    self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
+                    if rec["source_slug"] == "vn_vpcp_official_documents_vi":
+                        proof = rec["vietnam"]["qa"]
+                        self.assertIs(proof["second_pass"]["ok"], True)
+                        number = proof["details"]["VPCP_DOCUMENT"]["bibliographic"]["document_number"]
+                        self.assertIn("Official document " + number, cite["source_text"])
                     self.assertIn("Original title withheld under the source-use decision.",
                                   cite["source_text"])
                     self.assertNotIn(english, cite["source_text"])
