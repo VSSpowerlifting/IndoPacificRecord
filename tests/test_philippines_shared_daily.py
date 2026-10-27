@@ -140,19 +140,24 @@ class SharedDaily(unittest.TestCase):
         self.assertTrue(all(20 <= len(span) <= 480 and span in body
                             for _, span in passages))
 
-    def test_version_twelve_requests_short_original_paraphrases(self):
+    def test_version_thirteen_requests_specific_independent_explanations(self):
         from analysis.philippines_prompts import analysis_messages
         from processing.screening import PHILIPPINES_PROFILE
         prompt = analysis_messages(record()["title"], record()["body"])[0]["content"]
-        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v12")
-        self.assertIn("8–11 words each", prompt)
-        self.assertIn("at most 11 words", prompt)
+        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v13")
+        self.assertIn("no fixed per-sentence length", prompt)
+        self.assertIn("at most 90 words", prompt)
+        self.assertIn("NSC hosting does not establish authorship", prompt)
+        self.assertIn("Do not force a why-it-matters sentence", prompt)
+        self.assertIn("announcement, proposal, instruction", prompt)
+        self.assertIn("sequences of 12 source words", prompt)
         self.assertIn("rephrase facts", prompt)
 
-    def test_version_twelve_preserves_legacy_public_outputs(self):
+    def test_version_thirteen_preserves_legacy_public_outputs(self):
         for version in ("ph-relevance-v1+ph-analysis-v10",
                         "ph-relevance-v1+ph-analysis-v11",
-                        "ph-relevance-v1+ph-analysis-v12"):
+                        "ph-relevance-v1+ph-analysis-v12",
+                        "ph-relevance-v1+ph-analysis-v13"):
             good = reading()
             good["prompt_version"] = version
             state, _ = d.process([record()], {}, family="ph_afp_articles",
@@ -164,7 +169,7 @@ class SharedDaily(unittest.TestCase):
             self.assertEqual(signed["packet"]["records"][0]["prompt_version"],
                              version)
 
-    def test_public_validator_accepts_governed_v12_and_rejects_future_versions(self):
+    def test_public_validator_accepts_governed_v13_and_rejects_future_versions(self):
         for family in ("ph_afp_articles", "ph_nsc_official_statements"):
             p = policy()["sources"][family]
             state, _ = d.process([record()], {}, family="ph_afp_articles",
@@ -174,13 +179,14 @@ class SharedDaily(unittest.TestCase):
             approved["policy_sha256"] = d.digest(p)
             for version in ("ph-relevance-v1+ph-analysis-v10",
                             "ph-relevance-v1+ph-analysis-v11",
-                            "ph-relevance-v1+ph-analysis-v12"):
+                            "ph-relevance-v1+ph-analysis-v12",
+                            "ph-relevance-v1+ph-analysis-v13"):
                 with self.subTest(family=family, version=version):
                     d.validate_output(dict(approved, prompt_version=version), family, p)
             with self.subTest(family=family, version="unapproved"):
                 with self.assertRaisesRegex(d.IntakeHold, "daily_output_incomplete"):
                     d.validate_output(dict(approved,
-                        prompt_version="ph-relevance-v1+ph-analysis-v13"), family, p)
+                        prompt_version="ph-relevance-v1+ph-analysis-v14"), family, p)
 
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError

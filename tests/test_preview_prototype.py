@@ -3755,7 +3755,7 @@ class TestCorpusBrowserMarkup(PreviewCase):
         nav = self.page("archive.html").split('aria-label="Primary"', 1)[1]
         nav = nav.split("</nav>", 1)[0]
         labels = re.findall(r">([A-Za-z ]+)</a>", nav)
-        self.assertEqual(labels, ["Records", "Briefs", "Desks", "Sources",
+        self.assertEqual(labels, ["Records", "Analysis", "Desks", "Sources",
                                   "Coverage", "Methodology", "Team", "About"])
         self.assertNotIn("Corpus", labels)
         self.assertNotIn("Archive", labels)

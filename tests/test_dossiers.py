@@ -254,3 +254,78 @@ class DossierSources(unittest.TestCase):
         self.assertTrue(private[0]['is_review'])
         self.assertEqual(len(private),1)
         self.assertEqual(json.loads(canonical.read_text()),approved)
+
+
+THEMATIC = ROOT / 'dossiers/china-singapore-naval-cooperation.json'
+REAL_SOURCE_USES = dossier_decisions.SOURCE_USES
+REAL_PUBLICATIONS = dossier_decisions.PUBLICATIONS
+
+
+class ThematicDossierSources(unittest.TestCase):
+    """Link-only official pages, derived chronology and case-study binding."""
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.db = Path(cls.tmp.name) / 'frozen.db'
+        with read_only(ROOT / 'pla_watch.db') as con, sqlite3.connect(cls.db) as target:
+            con.backup(target)
+        cls.original = read_dossier(THEMATIC)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def setUp(self):
+        authority = mock.patch.multiple(dossier_decisions, SOURCE_USES={}, PUBLICATIONS={})
+        authority.start(); self.addCleanup(authority.stop)
+        self.sc = copy.deepcopy(self.original)
+
+    def test_real_approval_clears_only_with_recorded_decisions(self):
+        self.assertEqual(self.sc['editorial_status'], 'approved')
+        self.assertEqual(self.sc['approval']['content_sha256'], dossier_content_digest(self.sc))
+        with mock.patch.multiple(dossier_decisions, SOURCE_USES=REAL_SOURCE_USES,
+                                 PUBLICATIONS=REAL_PUBLICATIONS):
+            self.assertEqual(d.publication_holds(self.sc), [])
+        holds = d.publication_holds(self.sc)
+        self.assertEqual({h.get('external_id') for h in holds if 'external_id' in h},
+                         {x['id'] for x in self.sc['external_sources']})
+        self.assertEqual({h.get('record_id') for h in holds if 'record_id' in h},
+                         {s['record_id'] for s in self.sc['sources']})
+        self.assertIn('editorial_hold', [h['code'] for h in holds])
+
+    def test_external_sources_are_registered_institutions_and_link_only(self):
+        externals = d.reconcile_external_sources(self.sc, self.db)
+        self.assertEqual(sorted(externals), sorted(x['id'] for x in self.sc['external_sources']))
+        for ext in externals.values():
+            self.assertTrue(ext['institution_name'])
+            self.assertRegex(ext['url'], r'^https?://')
+            for field in ('text', 'title', 'text_original', 'stored_original_sha256'):
+                self.assertNotIn(field, ext)
+        self.sc['external_sources'][0]['institution_id'] = 'not-a-registered-institution'
+        with self.assertRaisesRegex(ValueError, 'unknown_external_institution'):
+            d.reconcile_external_sources(self.sc, self.db)
+
+    def test_derived_chronology_orders_by_event_and_keeps_interpretation_out(self):
+        entries = d.derived_chronology(self.sc)
+        claims = {c['id']: c for s in self.sc['sections'] for c in s['claims']}
+        self.assertTrue(entries)
+        self.assertEqual(entries, sorted(entries, key=lambda e: (e['event']['start'], e['event']['end'], e['id'])))
+        for entry in entries:
+            claim = claims[entry['derived_from']]
+            self.assertNotEqual(claim['claim_kind'], 'editorial_interpretation')
+            self.assertEqual([e['record_id'] for e in entry['evidence']],
+                             claim['source_record_ids'] + claim.get('external_source_ids', []))
+            # Publication dates are never substituted for event dates.
+            self.assertTrue(all(e['published_on'] is None for e in entry['evidence']))
+        self.assertTrue(any(e['record_id'].startswith('x') for entry in entries for e in entry['evidence']))
+
+    def test_case_study_must_be_rendered_alongside(self):
+        view = dict(slug=self.sc['slug'], case_studies=['maritime-cooperation-2026'], case_study_views=[])
+        with self.assertRaisesRegex(ValueError, 'case_study_not_published'):
+            d.link_case_studies([view])
+        case = dict(slug='maritime-cooperation-2026', case_studies=[], case_study_views=[],
+                    parent_dossiers=[], kind='living', kind_label='Living Dossier')
+        d.link_case_studies([view, case])
+        self.assertEqual(view['case_study_views'], [case])
+        self.assertEqual(case['parent_dossiers'], [view])
+        self.assertEqual((case['kind'], case['kind_label']), ('case_study', 'Exercise case study'))

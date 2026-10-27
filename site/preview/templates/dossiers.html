@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Dossiers — {{ title }}{% endblock %}
+{% block description %}Continuing research questions built from preserved official records and source-linked research, with findings, counterevidence and revision history.{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="dossiers.css">{% endblock %}
+{% block main_class %} class="dossier-library"{% endblock %}
+{% block content %}
+{% set analysis_current = 'dossiers' %}{% include '_analysis_nav.html' %}
+{#- Lists only the dossiers being rendered: in production, approved ones.
+    A case study is listed under its thematic dossier, never twice. -#}
+<header class="dl-head">
+  <p class="evidence evidence--analysis">Analysis</p>
+  <h1>Dossiers</h1>
+  <p class="dl-dek">One research question, followed over time. Each finding names its sources and the evidence that qualifies it.</p>
+</header>
+{#- The key defines only the kinds listed below, so a reader never meets an empty category. -#}
+{% set kinds = dossiers|map(attribute='kind')|list %}
+<dl class="dl-key">
+  {% if 'thematic' in kinds %}<div><dt>Thematic dossier</dt><dd>A continuing question across years, revised as the record grows.</dd></div>{% endif %}
+  {% if 'case_study' in kinds %}<div><dt>Case study</dt><dd>One event examined closely, linked from the thematic dossier it informs.</dd></div>{% endif %}
+  {% if 'dossier' in kinds %}<div><dt>Living Dossier</dt><dd>One bounded question with inspectable findings and reviewed revisions.</dd></div>{% endif %}
+  <div><dt>Brief</dt><dd>Signed weekly analysis in the separate <a href="analysis.html">Briefs</a> collection.</dd></div>
+</dl>
+<ol class="dl-list">
+{% for d in dossiers if not d.parent_dossiers %}
+<li><article class="dl-item" aria-labelledby="dl-{{ d.slug }}">
+  <p class="dl-kind">{{ d.kind_label }}{% if d.is_review %} · Unpublished draft for review{% endif %}</p>
+  <h2 id="dl-{{ d.slug }}"><a href="{{ d.route }}">{{ d.title }}</a></h2>
+  <p>{{ d.dek }}</p>
+  <p class="dl-meta">{% if d.kind == 'thematic' %}{{ d.scope.period_start[:4] }}–{{ d.scope.period_end[:4] }} · {{ d.ledger|length }} preserved records · {{ d.external_ledger|length }} linked official pages{% else %}{{ d.ledger|length }} preserved records{% endif %} · {% if d.reviewed_on %}Reviewed {{ d.reviewed_on|reader_date }}{% else %}Not yet reviewed{% endif %} · Revision {{ d.revision }}</p>
+  {% for c in d.case_study_views %}<div class="dl-case"><p class="dl-kind">{{ c.kind_label }}</p><h3><a href="{{ c.route }}">{{ c.title }}</a></h3><p>{{ c.dek }}</p></div>{% endfor %}
+  {% set briefs = (d.related + (d.case_study_views|map(attribute='related')|sum(start=[])))|unique(attribute='slug')|list %}
+  {% if briefs %}<p class="dl-meta">Related Brief{{ 's' if briefs|length > 1 }}: {% for b in briefs %}<a href="{{ b.url }}">{{ b.title }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
+</article></li>
+{% endfor %}
+</ol>
+<aside class="dl-method"><h2>How dossiers are kept</h2><p>Each dossier separates records preserved in IPR’s archive from official pages it only links to. Event dates are kept apart from publication dates, and differing official accounts stay side by side until the record settles them.</p><a href="methodology.html">How the record is preserved</a></aside>
+{% endblock %}

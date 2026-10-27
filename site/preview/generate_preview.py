@@ -3060,6 +3060,9 @@ def build(out_dir: Path, title: str, db_path: Path,
         (out_dir / "dossier.js").write_text(
             (Path(__file__).parent / "dossier.js").read_text(encoding="utf-8"), encoding="utf-8")
         written.append("dossier.js")
+        (out_dir / "dossiers.html").write_text(
+            env.get_template("dossiers.html").render(page="analysis.html", **ctx), encoding="utf-8")
+        written.append("dossiers.html")
     if timelines:
         (out_dir / "timeline").mkdir()
         (out_dir / "timelines.html").write_text(

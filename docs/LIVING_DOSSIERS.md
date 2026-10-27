@@ -56,6 +56,32 @@ copy those bodies/screenshots into a public review artifact. The dossier page
 itself contains IPR prose, source metadata and links, never original titles,
 quotations, bodies, translations or images.
 
+## Thematic dossiers, case studies and the Dossiers collection
+
+A manuscript with a `case_studies` list is a **thematic dossier**: a continuing
+question across years. Each listed slug (currently `maritime-cooperation-2026`)
+is shown as its case study, labelled by `CASE_STUDY_LABELS` in
+`core/dossiers.py`, with a breadcrumb back to the thematic page. The case study
+keeps its own URL, revision history and approvals; nesting changes labels and
+links only, never its content digest. `dossiers.html` lists the rendered
+dossiers (in production, approved ones only) with case studies under their
+parent, and its key defines only the kinds present. The Analysis page carries
+Briefs/Dossiers tabs; Brief URLs and numbering are unchanged.
+
+To review the thematic draft, render into a new directory each time (an existing
+one is refused):
+
+```sh
+env -u PLA_WATCH_SITE_ORIGIN .venv/bin/python site/render.py \
+  --out /tmp/ipr-thematic-review-NEW \
+  --review-dossier dossiers/china-singapore-naval-cooperation.json
+```
+
+External sources (`external_sources`, ids `x1`…) are official pages that are
+linked but not preserved in the corpus. They carry institution, publication date
+and URL only, and are listed separately from corpus records in Evidence and
+methods.
+
 ## Source evidence and exact approval
 
 `core/dossier_contract.py` remains the v1 shape/digest contract. Registered

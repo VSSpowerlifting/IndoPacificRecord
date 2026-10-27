@@ -91,6 +91,7 @@ class DossierRendering(unittest.TestCase):
         self.assertFalse((self.public/'dossier').exists())
         self.assertFalse((self.public/'dossiers.css').exists())
         self.assertFalse((self.public/'dossier-shell.css').exists())
+        self.assertFalse((self.public/'dossiers.html').exists())
         self.assertFalse((self.public/'dossier.js').exists())
         self.assertFalse((self.public/'assets/timelines/maritime-ocean-texture.webp').exists())
         self.assertFalse((self.public/'timeline').exists())
@@ -111,6 +112,11 @@ class DossierRendering(unittest.TestCase):
         self.assertIn('rel="canonical"',html)
         self.assertNotIn('content="noindex',html)
         self.assertIn('dossier/maritime-cooperation-2026.html',(self.approved/'analysis.html').read_text())
+        self.assertIn('href="dossier/maritime-cooperation-2026.html"',(self.approved/'dossiers.html').read_text())
+        self.assertEqual((self.approved/'sitemap.xml').read_text().count('/dossiers.html</loc>'),1)
+        key=(self.approved/'dossiers.html').read_text()
+        self.assertIn('<dt>Living Dossier</dt>',key)
+        self.assertNotIn('<dt>Thematic dossier</dt>',key)
         rows=json.loads((self.approved/'archive-research-index.json').read_text())['records']
         found=[r for r in rows if r['record_type']=='living_dossier']
         self.assertEqual(len(found),1)
@@ -352,3 +358,61 @@ class DossierRendering(unittest.TestCase):
                 context.close();browser.close()
         finally:
             server.shutdown();server.server_close();thread.join()
+
+
+class ThematicDossierRendering(unittest.TestCase):
+    """Private thematic review beside an approved case study; production unchanged."""
+    @classmethod
+    def setUpClass(cls):
+        from tests.test_dossiers import THEMATIC
+        from core.dossier_contract import dossier_content_digest
+        cls.tmp=tempfile.TemporaryDirectory(); cls.root=Path(cls.tmp.name)
+        cls.sc=approve_fixture(read_dossier(PILOT))
+        cls.sources=cls.root/'dossiers'; cls.sources.mkdir()
+        (cls.sources/PILOT.name).write_text(json.dumps(cls.sc))
+        cls.thematic=cls.sources/THEMATIC.name
+        # Review mode is exercised with the pre-approval shape of the real manuscript.
+        draft=json.loads(THEMATIC.read_text()); draft.pop('approval')
+        draft.update(editorial_status='draft',revision=0,reviewed_on=None,changes=[])
+        cls.thematic.write_text(json.dumps(draft,ensure_ascii=False))
+        cls.out=cls.root/'review'
+        snapshot=gp.snapshot_from_corpus(ROOT/'pla_watch.db')
+        with mock.patch.multiple(d.dossier_decisions, SOURCE_USES={}, PUBLICATIONS={}), fixture_decisions(cls.sc):
+            gp.build(cls.out,'Indo-Pacific Record',ROOT/'pla_watch.db',snapshot=snapshot,
+                     dossiers_dir=cls.sources,review_dossier=cls.thematic)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def read(self,route):
+        return (self.out/route).read_text()
+
+    def test_collection_lists_thematic_with_nested_case_study_and_labels(self):
+        html=self.read('dossiers.html')
+        for text in ['<h1>Dossiers</h1>','Thematic dossier','Exercise case study','Unpublished draft for review',
+                     'href="dossier/china-singapore-naval-cooperation.html"',
+                     'href="briefs/maritime-cooperation-2026.html"','aria-current="page">Dossiers']:
+            self.assertIn(text,html)
+        self.assertEqual(html.count('href="dossier/maritime-cooperation-2026.html"'),1)
+        self.assertIn('<dt>Case study</dt>',html)
+        self.assertIn('Related Brief: ',html)
+        self.assertNotIn('<dt>Living Dossier</dt>',html)
+        self.assertIn('href="dossiers.html"',self.read('analysis.html'))
+        self.assertIn('>Analysis</a>',self.read('index.html'))
+        self.assertIn('Thematic dossier · Unpublished draft for review',self.read('index.html'))
+
+    def test_thematic_page_separates_linked_pages_and_holds_review(self):
+        html=self.read('dossier/china-singapore-naval-cooperation.html')
+        for text in ['Research question','Additional source-linked research','Linked page, not preserved by IPR',
+                     'id="case-study"','maritime-cooperation-2026.html','noindex, nofollow',
+                     'Not yet reviewed by the editor','../dossiers.html']+['id="source-x%d"'%i for i in range(1,10)]:
+            self.assertIn(text,html)
+        self.assertNotIn('rel="canonical"',html)
+        self.assertNotIn('<blockquote',html)
+
+    def test_case_study_keeps_route_and_names_its_parent(self):
+        html=self.read('dossier/maritime-cooperation-2026.html')
+        for text in ['Exercise case study','Part of the thematic dossier','../dossiers.html',
+                     'data-editorial-digest="%s"'%self.sc['approval']['content_sha256']]:
+            self.assertIn(text,html)

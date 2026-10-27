@@ -11,6 +11,35 @@ setup variance rather than a test hang. All existing verification steps,
 conditions and security gates are unchanged. Final-head CI evidence belongs
 in the maintenance PR; this candidate does not authorize merge or deployment.
 
+## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
+
+The first continuing thematic dossier, `dossiers/china-singapore-naval-cooperation.json`,
+is a **draft (revision 0) withheld from production**. It asks how China–Singapore
+naval cooperation is evolving and what the public record establishes about its
+scope, depth and limits. It binds 13 preserved corpus records and nine additional
+official pages that are linked only (x1–x7 MINDEF; x8–x9 Xinhua reports on China's
+defence ministry website), so corpus evidence and new source-linked research stay
+apart. A 26 October attribution check credited x8/x9 to Xinhua and R4211 to the
+defence ministry (carried by PLA Daily). After the owner's 26 October editorial review it was revised; its content digest is
+`5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e` after a final synthesis correction (the earlier `f68063c5…` and `f5afba59…` drafts were not approved). Maritime Cooperation 2026 keeps its URL, revision 2 approvals and
+source bindings. Ben approved on 26 October that it becomes the "Exercise
+case study" nested under the thematic dossier; that label appears only when the
+thematic dossier is rendered. The site gains an "Analysis" main-nav entry,
+Briefs/Dossiers tabs and a `dossiers.html` collection that lists only rendered
+dossiers. In production that is the approved Maritime dossier alone, with the
+key defining only the kinds shown. The homepage entry appears only once the
+thematic dossier is approved. Brief URLs, titles, numbering, feeds and
+citations are unchanged; the production diff is mostly the nav label "Briefs"
+→ "Analysis". Validation keeps the 10 governed warnings, and the 129 dossier
+and timeline tests pass. CI passes on `4e6dd2df7f` after the historical pages were
+regenerated for the new nav label. A review render (`--review-dossier`) was checked at
+1280/375/320 px for headings, overflow, focus, evidence disclosures, no-JS and
+print. **Not merged, deployed, published or editorially approved.** Release
+needs Ben's editorial approval of that exact digest and a source-use decision
+(see the 26 October DECISION_LOG entries). Five records have a Maritime-only
+grant; eight records and x1–x9 need new coverage. No model spend, collection or
+outside contact.
+
 ## Sunday selection reform — private review candidate (26 October 2026)
 
 PR #805 is being extended from its old ten-source comparison to complete
@@ -148,6 +177,14 @@ that historical restriction. See
 technical access limits and the distinction from a production permission.
 
 **Philippines Desk (23 October 2026): operating, accuracy pass on this branch.**
+The October 26 explanation-quality review proposes `ph-analysis-v13`: natural
+sentence lengths and varied explicit attribution, concrete evidence-supported
+detail, and precise actor/status/host-versus-issuer wording. The shared Analyzer,
+90-word combined ceiling, evidence/copying gates and accepted older versions
+remain intact. This is an offline prompt candidate; it does not establish live
+model quality or reprocess existing records. Source-grounded examples, rubric
+and verification limits: [review](docs/engineering/MACHINE_EXPLANATION_QUALITY_2026-10-26.md).
+
 AFP and NSC run through the one shared Daily path: private collectors
 (`afp_private_first_collector`, 06:40 UTC; `nsc_private_first_collector`,
 10:10 UTC) preserve originals, `shared_daily_processing` screens and explains
@@ -203,6 +240,22 @@ authorized NSC link metadata and machine explanations and resolved the
 historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
+
+**Indonesia Kemhan bridge steady state (26 October 2026):** PR #877 incorporates
+main `1c204352da`, including its existing Vietnam baseline assertion repairs.
+The checked-out main database has 34 Kemhan rows; the 25 October rehearsal at
+private tip `d8859b5` had 49 eligible links (15 newer). Private scheduled collector
+run `40406030668` succeeded. Private PR #17 remains open at `5b45d521c3`;
+`KEMHAN_BRIDGE_KEY` and `KEMHAN_METADATA_BRIDGE_ENABLED` remain absent in both
+repositories (names/configuration checked read-only; credentials not read).
+The frozen baseline alone may step aside after a later release, only when its
+approved rows are fully satisfied with original provenance. Regression coverage
+includes initial admission, later signed additions, byte-identical retries,
+missing/altered frozen rows, omitted/changed released private rows, forged
+authentication, Yonif exclusion, rollback and concurrent writers. Exact-head CI
+evidence belongs in #877. No live admission, activation or publication was run.
+Activation order and prior real-data rehearsal:
+`docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
 
 **Indonesia Desk official-link lane (18 October 2026, release candidate):**
 Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.
