@@ -6,6 +6,8 @@ shadow/corpus admission, imply full source retrieval, or approve an article.
 import unittest
 from urllib.parse import urlsplit
 
+from bs4 import BeautifulSoup
+
 from core.desk_registry import load_registry
 from tests.test_desk_rollout_contract import DeskCase
 
@@ -139,12 +141,16 @@ class CountryPublisherNavigationTests(DeskCase):
             "external official-source links only",
             "not archived IPR records",
             "rights-approved by IPR",
-            "All Japan production records remain held",
             "repository gate was observed unset or unavailable",
             "October 8 shadow capture is HTML text only",
             "Post-Day-0 source candidate; not a qualifying collecting day",
         ):
             self.assertIn(phrase, html)
+        if BeautifulSoup(html, "html.parser").select_one("section.regional-official-live-links"):
+            self.assertIn("Japan original-text production records remain held.", html)
+            self.assertNotIn("All Japan production records remain held", html)
+        else:
+            self.assertIn("All Japan production records remain held", html)
         self.assertIn("https://www.kaiho.mlit.go.jp/questions/post-1.html", html)
         self.assertNotIn('href="archive.html?desk=japan"', html)
         self.assertNotIn("data-reference-list", html)
@@ -173,7 +179,13 @@ class CountryPublisherNavigationTests(DeskCase):
 
         html = self.page("japan.html")
         parser = OfficialPDFLinks()
-        parser.feed(html)
+        # The historical bibliography is separate from the admitted RSS feed;
+        # a source can legitimately appear in both sections after release.
+        soup = BeautifulSoup(html, "html.parser")
+        section = soup.select_one(
+            'section[aria-labelledby="japan-mod-original-pdfs-title"]')
+        self.assertIsNotNone(section)
+        parser.feed(str(section))
         expected = (
             "08/27b.pdf",
             "08/28a.pdf",
@@ -197,10 +209,14 @@ class CountryPublisherNavigationTests(DeskCase):
             "conflicting with the later October 5 original",
             "not proof the activity occurred",
             "archived-text extraction parity",
-            "no production or model use is authorized",
             "repository gate was observed unset or unavailable",
         ):
             self.assertIn(phrase, html)
+        if soup.select_one("section.regional-official-live-links"):
+            self.assertIn("original-text and model use remain held.", str(section))
+            self.assertNotIn("no production or model use is authorized", str(section))
+        else:
+            self.assertIn("no production or model use is authorized", str(section))
         for forbidden in ('href="archive.html?desk=japan"', "data-reference-list",
                           "state/shadow.db", "text_original", "body_original"):
             self.assertNotIn(forbidden, html)

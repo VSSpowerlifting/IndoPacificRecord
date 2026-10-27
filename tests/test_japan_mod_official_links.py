@@ -3,6 +3,7 @@ import copy
 import json
 import os
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -167,6 +168,14 @@ class JapanModAdmission(unittest.TestCase):
             with patch("scripts.verify_japan_mod_official_links.subprocess.check_output", return_value=b"different"):
                 with self.assertRaisesRegex(RegionalLinkHold, "pages_bytes"):
                     verify(db, page, pages_repo=root)
+            with patch("scripts.verify_japan_mod_official_links.urlopen") as request:
+                response = request.return_value.__enter__.return_value
+                response.status = 200
+                response.read.return_value = b"stale public page"
+                with self.assertRaisesRegex(RegionalLinkHold, "https_bytes_disagree"):
+                    verify(db, page, live=True)
+                response.read.return_value = html.encode()
+                self.assertEqual(verify(db, page, live=True)["admitted_links"], 7)
             page.write_text(html.replace('Publisher:', 'Unexpected copied prose Publisher:', 1))
             with self.assertRaisesRegex(RegionalLinkHold, "unapproved_content"):
                 verify(db, page)
@@ -184,6 +193,37 @@ class JapanModAdmission(unittest.TestCase):
         for name, rows in before.items():
             self.assertEqual(scratch.execute('SELECT * FROM "' + name + '" ORDER BY rowid').fetchall(), rows, name)
         scratch.close()
+
+
+class JapanDailyReadbackPropagation(unittest.TestCase):
+    def test_real_workflow_accepts_later_propagation_but_rejects_persistent_mismatch(self):
+        workflow = (ROOT / ".github/workflows/daily_update.yml").read_text()
+        step = workflow.split("      - name: Reconcile Japan SQLite, HTML and Pages\n", 1)[1]
+        step = step.split("\n      - name:", 1)[0]
+        script = step.split("        run: |\n", 1)[1]
+        # Execute the actual bounded workflow with deterministic read outcomes,
+        # no network, production writes or wall-clock sleeps.
+        stubs = '''
+readback_tries=0
+git() { :; }
+sleep() { :; }
+python() {
+  if [[ "$*" == *"--live"* ]]; then
+    readback_tries=$((readback_tries + 1))
+    printf '%s' "$readback_tries" > "$READBACK_COUNT"
+    [ "$readback_tries" -ge "$READBACK_SUCCESS_AFTER" ]
+  fi
+}
+'''
+        for success_after, exit_code, tries in ((4, 0, 4), (99, 1, 12)):
+            with self.subTest(success_after=success_after), tempfile.TemporaryDirectory() as tmp:
+                count = Path(tmp) / "readbacks"
+                env = dict(os.environ, READBACK_COUNT=str(count),
+                           READBACK_SUCCESS_AFTER=str(success_after))
+                result = subprocess.run(["bash", "-c", stubs + script], env=env,
+                                        capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, exit_code, result.stderr)
+                self.assertEqual(int(count.read_text()), tries)
 
 
 @unittest.skipUnless(os.environ.get("JAPAN_MOD_FROZEN_REPLAY") == "1",

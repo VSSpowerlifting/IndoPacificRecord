@@ -1,30 +1,36 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Japan MOD news official links — source use approved, release held (27 October 2026)
+## Japan MOD news official links — seven published; unattended recovery held (27 October 2026)
 
-Prepared an off-by-default integration from the existing `shadow/jp-mod`
-collector into the shared Daily, regional metadata table, desk and archive/search
-renderer, existing Pages writer and exact readback. Real scheduled run
-`40433531306-1` and its preserved SQLite hash support seven successfully retrieved
-news-feed PDF metadata candidates. Challenged and unverified records stay held;
-dates are explicitly RSS pubDate, not verified document issue dates. Ben approved
-the narrow standing source-use policy on 27 October; its true authorization flag
-references that actual `DECISION_LOG.md` decision. He explicitly withheld merge,
-intake activation, manual workflow dispatch and deployment pending verification
-and a separate release decision. The existing Daily activation variable remains
-unset, and the production admission CLI independently enforces it. No production
-DB/output, collector, schedule, model spending or public content was changed. Private
-rehearsal proved seven admissions, zero on retry, byte-identical retry state and
-preservation of all non-Japan rows across 24 tables. The precise owner decision,
-evidence, validation limits and release procedure are in
-`docs/engineering/JAPAN_MOD_OFFICIAL_LINK_PRODUCTION_2026-10-27.md`.
-The prior revision's 8,080-test full run had only the pre-existing Indonesia page
-budget failure remaining. Current main `8b69d1f2c6` brings the separately merged
-#889 budget fix, #887 dossier presentation and #885 CI timeout maintenance into
-this branch. Their content and safeguards are preserved. Four triggered read-only
-contract jobs are pinned to Ubuntu 24.04 for Python 3.9 compatibility, retaining
-their triggers, permissions and release boundaries. Final-head CI and private
-admission/readback evidence are recorded in PR #888; no release is authorized.
+The owner authorized controlled release of #888 at reviewed head `de53827ce0`,
+with 23 passing PR checks, then activation for the next scheduled shared Daily.
+Merge `475b67c9161f414e0efe8cbdb10fb9a6dff5d1d9` was confirmed before activation.
+Scheduled Daily `40556964471` admitted seven verified `jp_mod_news_ja` PDF-linked
+metadata rows and deployed them through the existing writer. Failed/challenged
+records remain excluded; original text, publisher headlines, PDFs, translations,
+AI explanations and additional families remain outside the grant.
+
+Independent public verification at 19:17 UTC proved exact agreement between
+production SQLite, committed Japan/Archive/search output, Pages Git and HTTPS,
+with seven explicit RSS-date labels. The public Archive browser returned seven
+neutral links without index or JavaScript errors. All 94 earlier regional rows
+were preserved. Repeating admission on a private copy of actual released SQLite
+added zero rows and left its bytes and original release provenance unchanged;
+this is private repeat evidence, not a completed second production intake.
+
+The initial Daily's final HTTPS gate failed before native Pages deployment
+finished. Natural retry `40565258649` then failed two historical-navigation tests
+that assumed no Japan metadata had been admitted; admission/deployment were
+skipped. Launch is **incomplete as an unattended service**. Further intake was
+held with `JAPAN_MOD_OFFICIAL_LINKS_ENABLED=false` at 19:47:18 UTC; the seven
+legitimate public rows remain intact. The recovery candidate scopes historical
+link assertions separately from admitted references and allows a bounded
+two-minute Pages wait, preserving exact-byte failure and the success-marker gate.
+It has no release authority and is not merged. No manual dispatch, separate
+deployment, paid processing, source expansion or changes to PR #880 occurred.
+
+See `docs/engineering/JAPAN_MOD_OFFICIAL_LINK_PRODUCTION_2026-10-27.md` for exact
+commits, public hashes, source evidence and the recovery boundary.
 
 ## PR offline timeout maintenance — review candidate (26 October 2026)
 

@@ -4,6 +4,26 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-27 — Owner: controlled Japan MOD metadata release
+
+Benjamin Yang explicitly authorized merging PR #888 only after verifying reviewed
+head `de53827ce01304ef0ff545e32a6153d9f04e2741` against current main, then enabling
+`JAPAN_MOD_OFFICIAL_LINKS_ENABLED=true`. The next ordinarily scheduled eligible
+shared Daily must admit and publish the previously authorized `jp_mod_news_ja`
+metadata. No manual Daily dispatch or separate deployment is authorized.
+PR #880 must not be touched or merged.
+
+The initial launch is complete only after genuine eligible records agree across
+production SQLite, Japan Desk, Archive/search, Pages Git and public HTTPS, with
+RSS dates distinguished from document issue dates. Verify failed/challenged
+exclusions and repeat-run provenance/idempotence when evidence permits. Failed
+admission, differing output or no production records means incomplete launch;
+disable further Japan intake if necessary, preserving legitimate released rows
+and all safeguards. The standing source-use exclusions below remain unchanged.
+This release decision does not authorize merging a later corrective revision.
+Actual release evidence and the recovery hold are recorded in
+`docs/engineering/JAPAN_MOD_OFFICIAL_LINK_PRODUCTION_2026-10-27.md`.
+
 ## 2026-10-27 — Owner: Japan MOD news PDF-linked metadata authorization
 
 Benjamin Yang approved standing, unattended publication of verified Japan
