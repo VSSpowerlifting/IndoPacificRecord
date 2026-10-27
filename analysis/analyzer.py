@@ -797,7 +797,7 @@ class Analyzer:
             **partial,
             **({"document_facts":fields.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {}),
             **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
-               if profile.desk_id == "philippines" else {}),
+               if profile.desk_id in ("philippines", "indonesia") else {}),
             "title_english":          title_en,
             "text_english":           text_en,
             "summary_english":        fields["summary"],
@@ -816,10 +816,10 @@ class Analyzer:
                          temperature=0.3, system=system,
                          task=TASK_SUMMARY)
         data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
-        # Philippines evidence references are resolved exclusively against the
+        # Private-source evidence references are resolved exclusively against the
         # unchanged original. A model supplies IDs, never authoritative quoted
         # text; the existing private quality gate still checks every claim.
-        if profile.desk_id == "philippines" and isinstance(data, dict):
+        if profile.desk_id in ("philippines", "indonesia") and isinstance(data, dict):
             from analysis.philippines_prompts import evidence_passages
             source_passages = dict(evidence_passages(body))
             facts = data.get("facts")
@@ -828,12 +828,15 @@ class Analyzer:
                 for fact in facts:
                     if isinstance(fact, dict) and "evidence_id" in fact:
                         ref = fact["evidence_id"]
-                        if (set(fact) != {"sentence", "evidence_id"}
+                        if (set(fact) != ({"sentence", "evidence_id", "evidence_translation"}
+                                          if profile.desk_id == "indonesia" else {"sentence", "evidence_id"})
                                 or type(ref) is not str or ref not in source_passages):
                             self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
-                            raise AnalysisError("Invalid Philippines evidence reference")
+                            raise AnalysisError("Invalid private-source evidence reference")
                         resolved.append({"sentence": fact["sentence"],
-                                         "evidence": source_passages[ref]})
+                                         "evidence": source_passages[ref],
+                                         **({"evidence_translation": fact["evidence_translation"]}
+                                            if profile.desk_id == "indonesia" else {})})
                     else:
                         resolved.append(fact)  # legacy direct-span test fixtures
                 data["facts"] = resolved
@@ -842,7 +845,7 @@ class Analyzer:
                 if ref is not None:
                     if type(ref) is not str or ref not in source_passages:
                         self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
-                        raise AnalysisError("Invalid Philippines flag evidence reference")
+                        raise AnalysisError("Invalid private-source flag evidence reference")
                     data["flag_evidence"] = source_passages[ref]
                 del data["flag_evidence_id"]
         summary = data.get("summary") if isinstance(data, dict) else None

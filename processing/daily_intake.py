@@ -17,13 +17,14 @@ from pathlib import Path
 
 from core import processing_state
 from core.crossdesk_official_metadata_candidates import canonical
-from processing.screening import PHILIPPINES_PROFILE
+from processing.screening import PHILIPPINES_PROFILE, profile_for_source
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "config/philippines_daily_policy.json"
 PRIVATE_REPO = "VSSpowerlifting/ipr-source-evidence-private"
 REFS = {"ph_afp_articles": "archive/ph-afp",
-        "ph_nsc_official_statements": "archive/ph-nsc"}
+        "ph_nsc_official_statements": "archive/ph-nsc",
+        "id_kemhan_news": "archive/indonesia-kemhan"}
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 COMMIT = re.compile(r"[a-f0-9]{40}\Z")
 DOMAIN = b"ipr-shared-daily-machine-output/1\n"
@@ -53,7 +54,7 @@ def load_policy(path=POLICY_PATH):
     need(set(value) == {"schema", "sources"}
          and value["schema"] == "ipr-daily-source-policy/1"
          and set(value["sources"]) == set(REFS), "daily_policy_invalid")
-    for p in value["sources"].values():
+    for family, p in value["sources"].items():
         need(set(p) == {"private_model_processing", "public_machine_explanation",
                        "unattended_release", "owner_decision",
                        "max_records_per_run", "max_input_characters",
@@ -69,7 +70,7 @@ def load_policy(path=POLICY_PATH):
              "daily_spend_bound_invalid")
         excluded = p["excluded_source_identities"]
         need(type(excluded) is list and len(excluded) <= 100
-             and all(type(v) is str and 0 < len(v) < 120 for v in excluded)
+             and all(type(v) is str and 0 < len(v) < (2000 if family == "id_kemhan_news" else 120) for v in excluded)
              and len(set(excluded)) == len(excluded), "daily_policy_invalid")
         need(not any(p[k] for k in ("private_model_processing", "public_machine_explanation",
                                    "unattended_release"))
@@ -101,6 +102,11 @@ def verified_source(repo, commit, family):
         packet = candidate_packet(repo, commit)
         # Metadata candidate builder uses `records` for the public-safe links.
         links = packet["records"]
+    elif family == "id_kemhan_news":
+        from core.indonesia_kemhan_release_validator import verify_history, candidate_packet
+        verify_history(repo, commit)
+        packet = candidate_packet(repo, commit)
+        links = packet["records"]
     else:
         from core.ph_nsc_official_link_admission import prepare
         packet = prepare(repo, commit, REFS[family])
@@ -117,7 +123,7 @@ def verified_source(repo, commit, family):
         r = rows[link["source_identity"]]
         need(r["url"] == link["canonical_official_url"]
              and r["published_date"] == link["publisher_posted_date"]
-             and r["language_tag"] == "en"
+             and r["language_tag"] == ("id" if family == "id_kemhan_news" else "en")
              and hashlib.sha256(r["text_original"].encode()).hexdigest() == r["content_sha256"],
              "daily_source_version_mismatch")
         result.append({**link, "source_family": family, "source_git_commit": commit,
@@ -129,7 +135,7 @@ def verified_source(repo, commit, family):
 
 
 def bound_private_calls(analyzer, policy):
-    """Guard the shared Analyzer's two English calls before dispatch."""
+    """Reserve cost before the shared relevance and private reading calls."""
     from config import ANALYSIS_MODEL, RELEVANCE_MODEL, RELEVANCE_TOOL_OUTPUT_ENABLED
     from analysis.pricing import estimate_usage_cost_usd
     need(not RELEVANCE_TOOL_OUTPUT_ENABLED, "daily_private_tool_route_not_authorized")
@@ -162,6 +168,9 @@ def quality_check(record, reading):
     must carry a verbatim evidence span; novel numerical/name/rank tokens and
     unsupported completion language hold. Evidence spans stay private.
     """
+    if record["source_family"] == "id_kemhan_news":
+        from processing.indonesia_quality import quality_check as indonesia_quality
+        return indonesia_quality(record, reading)
     need(type(reading) is dict and reading.get("passed_relevance") is True
          and reading.get("requires_translation") is False, "daily_analysis_incomplete")
     summary = reading.get("summary_english")
@@ -288,6 +297,9 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
         version = digest({k: r[k] for k in ("metadata_version_sha256", "content_sha256",
                                            "capture_sha256")})
         prior = result.get(key, {})
+        if known_source_hold(r):
+            result[key] = {**prior, "status": "held", "reason": "source_semantic_anomaly"}
+            continue
         if r["source_identity"] in p["excluded_source_identities"]:
             result[key] = {**prior, "status": "held", "reason": "owner_excluded_source_identity"}
             continue
@@ -296,7 +308,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
             continue
         if prior.get("status") == "complete" and p["private_model_processing"]:
             prior["output"]["policy_sha256"] = digest(p)
-        if prior.get("status") in ("complete", "not_selected", "paused", "held"):
+        if prior.get("status") in ("complete", "not_selected", "paused", "held", "terminal"):
             # Rights holds can resume automatically after an actual policy change.
             if not (prior.get("reason") == "model_rights_held" and p["private_model_processing"]):
                 continue
@@ -308,6 +320,13 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
         if family == "ph_afp_articles" and not (
                 r.get("official_issuer") == r.get("official_publisher") == "ph_afp"
                 and r.get("official_republisher") is None):
+            entry.update(status="held", reason="source_rights_not_first_party")
+            continue
+        if family == "id_kemhan_news" and (
+                r.get("official_publisher") != "id_kemhan"
+                or r.get("official_issuer") not in (None, "id_kemhan")
+                or r.get("official_republisher") is not None
+                or re.search(r"(?im)^\s*(?:sumber|source|credit)\s*:", r["body"])):
             entry.update(status="held", reason="source_rights_not_first_party")
             continue
         if family == "ph_nsc_official_statements":
@@ -328,7 +347,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 bound_private_calls(analyzer, p)
         used += 1
         try:
-            reading = analyzer.analyze_record(r["title"], r["body"], PHILIPPINES_PROFILE)
+            reading = analyzer.analyze_record(r["title"], r["body"], profile_for_source(family))
             if reading_observer is not None:
                 reading_observer(r["source_identity"], reading)
             if reading and reading.get("passed_relevance") is False:
@@ -463,6 +482,7 @@ def validate_output(r, family, p):
     need(type(r) is dict and set(r) == set(PUBLIC_FIELDS)
          and r["source_family"] == family and r["policy_sha256"] == digest(p),
          "daily_output_schema_or_policy_invalid")
+    need(not known_source_hold(r), "daily_source_semantic_anomaly")
     need(r["source_identity"] not in p["excluded_source_identities"],
          "daily_owner_excluded_source_identity")
     need(all(type(r[k]) is str and SHA.fullmatch(r[k]) for k in (
@@ -474,11 +494,26 @@ def validate_output(r, family, p):
          and ((not r["model_flagged"] and r["flag_reason"] is None) or
               (r["model_flagged"] and type(r["flag_reason"]) is str and bool(r["flag_reason"].strip())))
          and type(r["categories"]) is list and r["categories"]
-         and all(type(c) is str and c in PHILIPPINES_PROFILE.categories for c in r["categories"])
+         and all(type(c) is str and c in profile_for_source(family).categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
-         and r["prompt_version"] in ("ph-relevance-v1+ph-analysis-v10",
-                                     "ph-relevance-v1+ph-analysis-v11",
-                                     "ph-relevance-v1+ph-analysis-v12",
-                                     "ph-relevance-v1+ph-analysis-v13"), "daily_output_incomplete")
+         and r["prompt_version"] in allowed_prompt_versions(family), "daily_output_incomplete")
+    if family == "id_kemhan_news":
+        need(not r["model_flagged"] and "Kemhan" in r["summary"], "daily_indonesia_flag_or_attribution_held")
     need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
          "daily_explanation_word_limit")
+
+
+def allowed_prompt_versions(family):
+    if family == "id_kemhan_news":
+        return ("id-relevance-v1+id-analysis-v1",)
+    return ("ph-relevance-v1+ph-analysis-v10",
+            "ph-relevance-v1+ph-analysis-v11",
+            "ph-relevance-v1+ph-analysis-v12",
+            "ph-relevance-v1+ph-analysis-v13")
+
+
+def known_source_hold(record):
+    if record["source_family"] != "id_kemhan_news":
+        return False
+    from core.indonesia_kemhan_release_validator import HELD_IDENTITY
+    return record["source_identity"] == HELD_IDENTITY or bool(record.get("semantic_exception_hold"))

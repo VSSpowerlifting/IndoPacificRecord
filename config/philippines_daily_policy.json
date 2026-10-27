@@ -22,6 +22,18 @@
       "excluded_source_identities": [],
       "max_records_per_run": 1,
       "max_input_characters": 16000
+    },
+    "id_kemhan_news": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": "PROPOSED ONLY: docs/engineering/INDONESIA_SHARED_DAILY_2026-10-27.md; no owner authorization or production activation",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [
+        "kemhan:/2026/10/02/kunker-ke-kaltara-menhan-sjafrie-tinjau-yonif-tp-880-banuanta-di-bulungan-tegaskan-kemampuan-tempur-dan-teritorial-pembangunan-untuk-kedaulatan-perbatasan.html"
+      ],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
     }
   }
 }

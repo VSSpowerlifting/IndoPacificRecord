@@ -60,7 +60,7 @@ class SharedDaily(unittest.TestCase):
         d.quality_check(r, reading)
 
     def test_explicit_profiles_and_fail_closed_fallback(self):
-        for slug in d.REFS:
+        for slug in ("ph_afp_articles", "ph_nsc_official_statements"):
             self.assertIs(profile_for_source(slug), PHILIPPINES_PROFILE)
         for slug in ("unknown-source", None):
             self.assertIs(profile_for_source(slug), UNSUPPORTED_PROFILE)

@@ -66,6 +66,24 @@
 {% endif %}
 {% endif -%}
 
+{% if desk.slug == 'indonesia' and daily_machine_records | default([]) %}
+<section class="desk-section" aria-labelledby="daily-machine-heading" data-indonesia-machine-explanations>
+  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
+  <h2 id="daily-machine-heading">Machine explanations of official publications</h2>
+  <p>Latest source-grounded English readings of Kemhan Berita. They describe the ministry's account, not independently verified outcomes. Original text and working translations remain private.</p>
+  <ol class="desk-reference-list" aria-label="Machine explanations">
+    {% for rec in daily_machine_records[:5] %}
+    <li data-machine-source="{{ rec.source_identity }}">
+      <p><time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · Kemhan</p>
+      <p>{{ rec.summary }}</p>
+      <p class="meta"><a href="{{ rec.record_path }}">Record and model details</a> · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p><a href="archive.html?desk=indonesia&amp;scope=published">Browse all {{ daily_machine_records | length }} Indonesia machine explanations</a></p>
+</section>
+{% endif -%}
+
 {% if desk.slug == 'vietnam' and vietnam_records | default([]) %}
 <section aria-labelledby="vn-published-title" data-vietnam-published-records>
   <p class="eyebrow">Published records · machine explanations</p>

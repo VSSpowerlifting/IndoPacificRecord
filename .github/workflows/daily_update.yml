@@ -345,6 +345,7 @@ jobs:
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
+          DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
         run: |
           if [ "$VPCP_METADATA_ONLY" = "true" ]; then

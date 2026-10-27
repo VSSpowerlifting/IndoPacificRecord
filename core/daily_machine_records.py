@@ -36,12 +36,16 @@ def load(db_path):
                 from core.ph_nsc_official_link_admission import load_policy as nsc_policy
                 if not nsc_policy()["category_anomaly_resolved"]:
                     continue
-            label = "AFP" if family == "ph_afp_articles" else "NSC"
+            label, publisher, desk = {
+                "ph_afp_articles": ("AFP", "Armed Forces of the Philippines", "philippines"),
+                "ph_nsc_official_statements": ("NSC", "National Security Council", "philippines"),
+                "id_kemhan_news": ("Kemhan", "Kementerian Pertahanan Republik Indonesia", "indonesia"),
+            }[family]
             path = "record/source-" + hashlib.sha256((family + ":" + r["source_identity"]).encode()).hexdigest()[:24] + ".html"
             result.append({**r, "record_path": path, "source_label": label,
                            "url": link[0], "published_date": link[1],
-                           "publisher": ("Armed Forces of the Philippines" if label == "AFP" else "National Security Council"),
-                           "issuer": ("Armed Forces of the Philippines" if label == "AFP" else None), "desk_id": "philippines",
+                           "publisher": publisher,
+                           "issuer": ("Armed Forces of the Philippines" if label == "AFP" else None), "desk_id": desk,
                            "machine_only": True})
     return sorted(result, key=lambda r: (r["published_date"], r["source_identity"]), reverse=True)
 
@@ -52,7 +56,7 @@ def archive_rows(records):
         yield projection(id="machine:" + r["source_identity"],
             title=r["source_label"] + " official source — machine explanation",
             summary=r["summary"], date=r["published_date"], date_kind="source-stated publication",
-            desks=["philippines"], source=r["source_label"], issuer=r["publisher"],
+            desks=[r["desk_id"]], source=r["source_label"], issuer=r["publisher"],
             record_type="machine_explanation", processing="Machine-generated; not human-reviewed. Official account, not independent verification.",
             ipr_url=ORIGIN + "/" + r["record_path"], source_url=r["url"],
             citation="Indo-Pacific Record machine explanation of " + r["source_identity"] + ". " + r["url"])
@@ -69,7 +73,7 @@ def editorial_candidates(db_path, start, cutoff, *, limit=2):
     limit = min(2, limit)
     result = []
     for r in load(db_path):
-        if not start <= r["published_date"] <= cutoff:
+        if r["desk_id"] != "philippines" or not start <= r["published_date"] <= cutoff:
             continue
         ident = "PH-DAILY-" + r["source_label"] + "-" + r["content_sha256"][:24]
         result.append(dict(id=ident, desk="philippines", source_name=r["source_label"],
