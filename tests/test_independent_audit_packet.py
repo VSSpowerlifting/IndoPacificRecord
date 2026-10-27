@@ -101,6 +101,45 @@ class AuditPacketTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'evidence changed'):
             audit.verify(self.path)
 
+    def test_original_identity_and_version_are_bound(self):
+        db = sqlite3.connect(':memory:')
+        self.addCleanup(db.close)
+        disk = sqlite3.connect(self.root / 'pla_watch.db')
+        disk.backup(db)
+        disk.close()
+        paths = {'output/record/%s.html' % i for i in range(1, 24)}
+        original = audit.load_frame(db, paths)[0][0]
+        for column, value in (('url', 'https://example.org/changed'),
+                              ('source_id', 2),
+                              ('text_original', '[SYNTHETIC REVISED BODY]')):
+            db.execute('SAVEPOINT fixture')
+            db.execute('UPDATE articles SET ' + column + '=? WHERE id=1', (value,))
+            changed = audit.load_frame(db, paths)[0][0]
+            self.assertEqual(original['identity'], changed['identity'])
+            self.assertNotEqual(original['version_sha256'], changed['version_sha256'])
+            db.execute('ROLLBACK TO fixture')
+            db.execute('RELEASE fixture')
+
+    def test_database_tampering_detected(self):
+        self.build()
+        with (self.path / 'snapshot/pla_watch.db').open('ab') as handle:
+            handle.write(b'SYNTHETIC TAMPER')
+        with self.assertRaisesRegex(ValueError, 'evidence changed: snapshot/pla_watch.db'):
+            audit.verify(self.path)
+
+    def test_linked_machine_provenance_not_lost(self):
+        db = sqlite3.connect(':memory:')
+        self.addCleanup(db.close)
+        db.row_factory = sqlite3.Row
+        db.executescript('''
+          CREATE TABLE regional_official_source_links(source_identity TEXT, canonical_official_url TEXT);
+          INSERT INTO regional_official_source_links VALUES('fixture:1','https://example.org/fixture');
+          CREATE TABLE daily_machine_records(source_identity TEXT, content_sha256 TEXT);
+          INSERT INTO daily_machine_records VALUES('fixture:1','synthetic-hash');
+        ''')
+        refs = audit.provenance(db, 'https://example.org/fixture', 'machine:fixture:1')
+        self.assertEqual('synthetic-hash', refs['daily_machine_records'][0]['content_sha256'])
+
     def test_human_verdict_cannot_be_unsigned_or_future_dated(self):
         items = [{'identity': 'synthetic:1'}]
         reviews = audit.pending_reviews(items)
