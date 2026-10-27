@@ -125,7 +125,7 @@ class FakeAnalyzer:
 
 
 def clone_schema(path):
-    """The tracked corpus schema (no rows but desks) plus migration 0017."""
+    """Current shared schema, without corpus rows or source activation."""
     with read_only(TRACKED_DB) as src:
         rows = src.execute("SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL"
                            " AND name NOT LIKE 'sqlite_%'").fetchall()
@@ -138,7 +138,11 @@ def clone_schema(path):
     conn.executemany("INSERT INTO desks VALUES (%s)" % ",".join("?" * len(desks[0])), desks)
     conn.executemany("INSERT INTO schema_migrations VALUES (%s)"
                      % ",".join("?" * len(applied[0])), applied)
-    m0017.up(conn)
+    # Source-specific commands intentionally refuse unrelated pending upgrades.
+    # Their fixtures must start after shared Daily's schema migration step.
+    from migrations.runner import apply_all
+    conn.commit()
+    apply_all(conn, sync_config=False)
     conn.commit()
     conn.execute("PRAGMA foreign_keys = ON")
     return conn

@@ -4,6 +4,29 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-27 — Owner: Japan MOD news PDF-linked metadata authorization
+
+Benjamin Yang approved standing, unattended publication of verified Japan
+Ministry of Defense news PDF-linked metadata for `jp_mod_news_ja` through IPR's
+existing shared Daily system. The grant covers canonical official URLs, source
+identities, Japan MOD attribution, and RSS publication dates explicitly labeled
+as RSS dates rather than independently verified document issue dates.
+
+Successfully retrieved and verified news-feed PDFs may be admitted automatically
+without per-record approval. Challenged, failed, undated, unassigned or otherwise
+unverified records remain excluded. Publisher headlines, original document text,
+PDF copies, media, translations, AI-generated explanations and external model
+processing are outside the grant. Human Briefs retain their existing approvals.
+
+The owner explicitly stated: “This is standing source-use authorization, not yet
+permission to merge, enable production intake, manually dispatch workflows, or
+deploy.” A separate release decision after verification is required for those
+actions. PR #888 must integrate current main, resolve outstanding CI failures and
+verify existing publishing safeguards before release review. This decision
+creates no new Japan publishing pipeline, schedule, spending or activation.
+`config/japan_mod_official_link_policy.json` references this source-use grant;
+the existing Daily activation variable remains unset.
+
 ## 2026-10-26 — Owner: 200 KB delivery budget for individual dossier pages
 
 Benjamin Yang wrote in this task: “I authorize a maximum 200,000-byte combined
@@ -149,7 +172,6 @@ independent IPR paraphrases and official/canonical-record links for the five
 bound versions; editorial approval alone does not invent that decision.
 Original text, translations, substantial excerpts and media remain outside this
 projection. This instruction does not authorize merge, deployment or publication.
-
 ## 2026-10-25 — Briefs narrative reform: article-first drafts, offline editor-feedback loop
 
 Ben ordered a durable fix for the mechanical, over-caveated Sunday manuscript (not a rewrite
