@@ -4,6 +4,7 @@ An official publisher section is external navigation only; it does not enable
 shadow/corpus admission, imply full source retrieval, or approve an article.
 """
 import unittest
+from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from core.desk_registry import load_registry
@@ -39,6 +40,19 @@ ALLOWED_HOSTS = {
 
 
 class CountryPublisherNavigationTests(DeskCase):
+    @classmethod
+    def setUpClass(cls):
+        # These contracts exercise the historical held-only Japan references.
+        # Daily metadata admission must not silently change that fixture into
+        # the released-link branch (covered by the Japan admission contracts).
+        from core.regional_official_link_render import load_admitted_links
+
+        def links(db_path, desk):
+            return [] if desk == "japan" else load_admitted_links(db_path, desk)
+
+        with patch("core.regional_official_link_render.load_admitted_links", side_effect=links):
+            super().setUpClass()
+
     def test_exact_verified_indices_and_separate_moit_clocks(self):
         for slug, expected in LINKS.items():
             desk = load_registry().get(slug)

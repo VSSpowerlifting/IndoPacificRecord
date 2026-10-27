@@ -17,6 +17,12 @@ mandatory final-revision CI belongs in the implementation PR. No independent
 human audit, assignment to Dylan, source collection, model call, correction,
 publication or source-use expansion occurred. Working packets remain outside
 the repository; no DB, generated output or canonical sidecar change is included.
+The first full CI ran 8,091 tests and exposed two Japan historical-navigation
+fixture failures, reproduced on unchanged base `11df894846`. Those tests now
+explicitly select the held-only reference branch, independently of admitted
+Daily metadata; existing navigation/rights assertions are retained. The 28
+focused audit/navigation/admission checks pass (two frozen replays skip locally).
+The final-head full CI result is recorded in the PR, not inferred from this run.
 
 ## Japan MOD news official links — source use approved, release held (27 October 2026)
 
