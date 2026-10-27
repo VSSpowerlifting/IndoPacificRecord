@@ -1,4 +1,65 @@
-# Japan MOD news official links — source use approved, release held
+# Japan MOD news official links — controlled release and recovery hold
+
+## Controlled release and observed failure — 27 October
+
+The owner's later controlled-release decision superseded the pre-release hold
+documented below, limited to reviewed #888 head `de53827ce01304ef0ff545e32a6153d9f04e2741`.
+That head remained current, MERGEABLE/CLEAN against main `8b69d1f2c6`, with 23
+successful checks. Required CI `40521272434` passed 8,082 tests (15 skipped),
+output validation and tracked DB/output preservation. #888 merged normally as
+`475b67c9161f414e0efe8cbdb10fb9a6dff5d1d9` at 15:11:54 UTC, then the existing
+Japan variable was enabled at 15:12:02 UTC. No manual dispatch or separate deploy
+was performed. PR #880 was untouched.
+
+Scheduled Daily [40556964471](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40556964471)
+passed 8,082 offline tests (17 skipped), admitted **seven** new metadata rows
+at 18:31:40 UTC from the same authenticated source snapshot, and committed
+DB/output `dbbb9da8857743b9206313a5e3aea3460bce74de`. Its ordinary Pages writer
+created `6d1905f6e493b96e0d515dd1445cd8125dbecbad`. SQLite→HTML and Pages Git exact
+checks passed, but the three public reads ended at 18:57:04 UTC, before native
+Pages deployment `7367618926` succeeded at 18:57:16. The run correctly failed
+and did not write a success marker. That failure is not reclassified as green.
+
+Independent public verification at **19:17:48 UTC** succeeded. All files below
+returned HTTP 200 and were byte-identical across committed output, Pages Git
+and HTTPS:
+
+| Public path | Bytes | SHA-256 |
+|---|---:|---|
+| `japan.html` | 31,276 | `8b4695042612bdd83b994ccc7f4381e8601f5861b3dd5aeef8cfb26168a5eb3b` |
+| `archive.html` | 77,600 | `15470ac63b71cc4343ffa68a33ac71564280a2fdcb70faeb760ca659445d51b5` |
+| `archive-research-index.json` | 1,985,290 | `764a9e32859de986e1fa217f02127539d5e4ff76c2cd060cda4b5f9399c399f7` |
+
+All seven production identities, metadata versions, source commits, first-seen
+runs and release proofs reconcile to authentic collector evidence. None overlap
+the 194 challenged entries or three other failed originals. All 94 previously
+released regional rows remain unchanged. Archive/search preserves null original
+titles, summaries and text, neutral filename labels and explicit RSS date kinds;
+its page/index digest agrees. Real public Chromium search returned seven results
+with those labels and no index or JavaScript error. Replaying admission on a
+private copy of this actual production DB added zero, retained seven unchanged
+and left the complete DB byte-identical, including original release provenance.
+No second production intake is claimed from that private check.
+
+Natural scheduled retry [40565258649](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40565258649)
+failed its offline gate: 8,082 tests, two failures, 17 skipped. Both failures are
+in `test_japan_vietnam_publisher_navigation`: historical assertions required all
+Japan production to remain held and counted admitted feed links as historical
+PDF links. The seven legitimate public rows caused those stale assumptions to
+fail. Admission, deployment, final readback and success marker were skipped.
+
+**The unattended launch remains incomplete.** Further Japan intake was disabled
+at 19:47:18 UTC; released rows and public presentation are preserved. The recovery
+candidate changes only the historical assertions, strict readback timing and
+their regression checks, plus this status/decision documentation. Persistent
+HTTPS mismatch must still fail the Daily; the loop now allows up to two minutes
+for native Pages propagation. No source-use, collector, schema, model or pipeline
+permission is expanded. The candidate has no merge/activation authority: the
+owner's release grant named #888's reviewed head. Once a corrective revision is
+separately authorized and green, use another ordinary scheduled eligible Daily,
+with the same real production reconciliation and repeat-provenance checks.
+
+## Earlier review — before the controlled-release authorization
 
 The initial review found no standing Japan MOD grant. Benjamin Yang then
 explicitly approved the narrow `jp_mod_news_ja` standing source-use scope on
