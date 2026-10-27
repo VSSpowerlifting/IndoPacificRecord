@@ -67,7 +67,9 @@ jobs:
     # A skipped draft check is never full-suite evidence for an exact-head merge.
     if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    # Run 40346079812 attempt 1 exhausted 35m after a 12m19s Chromium
+    # install and 21m52s suite; allow setup variance without weakening gates.
+    timeout-minutes: 45
 
     steps:
       # No `ref:` — for a pull_request event this checks out the merge of the

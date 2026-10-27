@@ -23,9 +23,7 @@ EVIDENCE = {k: v for k, v in FIXTURE.items() if k not in ("rows", "actions", "so
 
 
 def policy():
-    p = gate.load_policy()
-    return dict(p, standing_metadata_publication_authorized=True,
-                owner_decision_reference="DECISION_LOG.md#test-fixture-only-not-an-owner-act")
+    return gate.load_policy()
 
 
 def database():
@@ -39,6 +37,12 @@ def database():
 
 
 class JapanModAdmission(unittest.TestCase):
+    def test_rss_date_uses_tokyo_day_when_schedule_crosses_japanese_midnight(self):
+        self.assertTrue(gate.verified_rss_day("2026-10-28", "2026-10-27T22:40:00+00:00"))
+        self.assertFalse(gate.verified_rss_day("2026-10-29", "2026-10-27T22:40:00+00:00"))
+        self.assertFalse(gate.verified_rss_day("2026-02-31", "2026-10-27T22:40:00+00:00"))
+        self.assertFalse(gate.verified_rss_day("2026-10-27", "2026-10-27T22:40:00"))
+
     def setUp(self):
         self.con = database()
         self.rows = copy.deepcopy(FIXTURE["rows"])
@@ -55,13 +59,22 @@ class JapanModAdmission(unittest.TestCase):
     def stored(self):
         return self.con.execute("SELECT * FROM regional_official_source_links ORDER BY source_identity").fetchall()
 
-    def test_proposed_policy_and_cli_fail_before_writes_or_source_reads(self):
-        self.assertFalse(gate.load_policy()["standing_metadata_publication_authorized"])
-        with patch("scripts.admit_japan_mod_official_links.candidates") as source:
+    def test_missing_policy_fails_before_writes_or_source_reads(self):
+        held = dict(gate.load_policy(), standing_metadata_publication_authorized=False)
+        with patch.object(gate, "load_policy", return_value=held), \
+                patch("scripts.admit_japan_mod_official_links.candidates") as source:
             with self.assertRaisesRegex(RegionalLinkHold, "authorization_missing"):
                 run("unused", "a" * 40, "must-not-be-created.sqlite")
             source.assert_not_called()
         self.assertEqual(self.stored(), [])
+
+    def test_standing_source_grant_does_not_enable_production_intake(self):
+        self.assertTrue(gate.require_authorization()["standing_metadata_publication_authorized"])
+        with patch.dict(os.environ, {"JAPAN_MOD_OFFICIAL_LINKS_ENABLED": ""}), \
+                patch("scripts.admit_japan_mod_official_links.candidates") as source:
+            with self.assertRaisesRegex(RegionalLinkHold, "activation_missing"):
+                run("unused", FIXTURE["source_commit"], ROOT / "pla_watch.db")
+            source.assert_not_called()
 
     def test_exact_metadata_only_rows_repeat_idempotently_across_commits(self):
         self.assertEqual(self.admit()["new_official_links"], 7)

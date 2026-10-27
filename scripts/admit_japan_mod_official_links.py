@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import subprocess
 from pathlib import Path
@@ -14,7 +15,7 @@ from pathlib import Path
 from core.japan_mod_official_links import (
     ROOT, SOURCE_REF, SOURCE_REPOSITORY, admit, candidates, require_authorization,
 )
-from core.regional_official_link_release import RegionalLinkHold
+from core.regional_official_link_release import RegionalLinkHold, need
 
 
 def github_run(run_id):
@@ -25,6 +26,9 @@ def github_run(run_id):
 
 def run(repo, commit, db, *, fetch_run=github_run):
     require_authorization()  # Before fetching originals, API calls or DB writes.
+    need(Path(db).resolve() != (ROOT / "pla_watch.db").resolve()
+         or os.environ.get("JAPAN_MOD_OFFICIAL_LINKS_ENABLED") == "true",
+         "japan_production_intake_activation_missing")
     cache = {}
     def fetch(number):
         if number not in cache:

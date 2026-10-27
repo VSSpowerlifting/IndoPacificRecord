@@ -1,37 +1,103 @@
 {% extends 'base.html' %}
 {% block title %}Dossiers — {{ title }}{% endblock %}
 {% block description %}Continuing research questions built from preserved official records and source-linked research, with findings, counterevidence and revision history.{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="dossiers.css">{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="dossiers-library.css">{% endblock %}
 {% block main_class %} class="dossier-library"{% endblock %}
 {% block content %}
 {% set analysis_current = 'dossiers' %}{% include '_analysis_nav.html' %}
 {#- Lists only the dossiers being rendered: in production, approved ones.
-    A case study is listed under its thematic dossier, never twice. -#}
+    A case study is listed under its thematic dossier, never twice. The first
+    top-level dossier is featured; any others follow in a compact list. -#}
 <header class="dl-head">
-  <p class="evidence evidence--analysis">Analysis</p>
-  <h1>Dossiers</h1>
+  <div>
+    <p class="evidence evidence--analysis">Analysis</p>
+    <h1>Dossiers</h1>
+  </div>
   <p class="dl-dek">One research question, followed over time. Each finding names its sources and the evidence that qualifies it.</p>
 </header>
-{#- The key defines only the kinds listed below, so a reader never meets an empty category. -#}
-{% set kinds = dossiers|map(attribute='kind')|list %}
-<dl class="dl-key">
-  {% if 'thematic' in kinds %}<div><dt>Thematic dossier</dt><dd>A continuing question across years, revised as the record grows.</dd></div>{% endif %}
-  {% if 'case_study' in kinds %}<div><dt>Case study</dt><dd>One event examined closely, linked from the thematic dossier it informs.</dd></div>{% endif %}
-  {% if 'dossier' in kinds %}<div><dt>Living Dossier</dt><dd>One bounded question with inspectable findings and reviewed revisions.</dd></div>{% endif %}
-  <div><dt>Brief</dt><dd>Signed weekly analysis in the separate <a href="analysis.html">Briefs</a> collection.</dd></div>
-</dl>
-<ol class="dl-list">
-{% for d in dossiers if not d.parent_dossiers %}
+{% set top = dossiers|rejectattr('parent_dossiers')|list %}
+{% macro meta(d) -%}
+{% if d.kind == 'thematic' %}{{ d.scope.period_start[:4] }}–{{ d.scope.period_end[:4] }} · {{ d.ledger|length }} preserved records · {{ d.external_ledger|length }} linked official pages{% else %}{{ d.ledger|length }} preserved records{% endif %} · {% if d.reviewed_on %}Reviewed {{ d.reviewed_on|reader_date }}{% else %}Not yet reviewed{% endif %} · Revision {{ d.revision }}
+{%- endmacro %}
+{% for d in top %}{% if loop.first %}
+{#- The preview is the overview's opening sentence, verbatim, and the
+    dossier's own section headings: nothing the dossier page does not say. -#}
+{% set lead = d.overview.split('. ')|first %}{% if lead != d.overview %}{% set lead = lead ~ '.' %}{% endif %}
+<article class="dl-feature" aria-labelledby="dl-{{ d.slug }}">
+  <div class="dl-feature-text">
+    <p class="dl-kind">{{ d.kind_label }}{% if d.is_review %} · Unpublished draft for review{% endif %}</p>
+    <h2 id="dl-{{ d.slug }}"><a href="{{ d.route }}">{{ d.title }}</a></h2>
+    <p class="dl-feature-dek">{{ d.dek }}</p>
+    <p class="dl-lead">{{ lead }}</p>
+    <div class="dl-contents">
+      <p class="dl-label" id="dl-{{ d.slug }}-contents">Inside the dossier</p>
+      <ol aria-labelledby="dl-{{ d.slug }}-contents">{% for s in d.sections %}<li>{{ s.heading }}</li>{% endfor %}</ol>
+    </div>
+    <a class="dl-read" href="{{ d.route }}">Read the dossier<span aria-hidden="true"> →</span></a>
+  </div>
+  <div class="dl-panel">
+    <p class="dl-label">The record behind it</p>
+    <div class="dl-counts">
+      <p><b>{{ d.ledger|length }}</b> preserved records<span>Archived by IPR</span></p>
+      {% if d.external_ledger %}<p><b>{{ d.external_ledger|length }}</b> linked official pages<span>Linked, not preserved</span></p>{% endif %}
+    </div>
+    <dl class="dl-facts">
+      <div><dt>Coverage</dt><dd><time datetime="{{ d.scope.period_start }}">{{ d.scope.period_start|reader_date }}</time> – <time datetime="{{ d.scope.period_end }}">{{ d.scope.period_end|reader_date }}</time></dd></div>
+      {% if d.jurisdictions %}<div><dt>Countries</dt><dd>{{ d.jurisdictions|join(' · ') }}</dd></div>{% endif %}
+      <div><dt>Findings</dt><dd>{{ d.sections|map(attribute='claims')|map('length')|sum }} in {{ d.sections|length }} sections</dd></div>
+      <div><dt>Reviewed</dt><dd>{% if d.reviewed_on %}<time datetime="{{ d.reviewed_on }}">{{ d.reviewed_on|reader_date }}</time>{% else %}Not yet reviewed{% endif %}</dd></div>
+      <div><dt>Revision</dt><dd>{{ d.revision }}</dd></div>
+    </dl>
+  </div>
+</article>
+{% set briefs = (d.related + (d.case_study_views|map(attribute='related')|sum(start=[])))|unique(attribute='slug')|list %}
+{% if d.case_study_views or briefs %}
+<section class="dl-companions" aria-labelledby="dl-companions-heading">
+  <h2 id="dl-companions-heading">Read alongside</h2>
+  <div class="dl-companion-list">
+  {% for c in d.case_study_views %}<div class="dl-companion">
+    <p class="dl-kind">{{ c.kind_label }}</p>
+    <h3><a href="{{ c.route }}">{{ c.title }}</a></h3>
+    <p>{{ c.dek }}</p>
+    <p class="dl-role">One event examined closely, as part of this dossier.</p>
+  </div>{% endfor %}
+  {% for b in briefs %}<div class="dl-companion">
+    <p class="dl-kind">Related Brief</p>
+    <h3><a href="{{ b.url }}">{{ b.title }}</a></h3>
+    <p>{{ b.dek }}</p>
+    <p class="dl-role">Signed analysis{% if b.author_name %} by {{ b.author_name }}{% endif %}, in the <a href="analysis.html">Briefs</a> collection.</p>
+  </div>{% endfor %}
+  </div>
+</section>
+{% endif %}
+{% if top|length > 1 %}<h2 class="dl-more-heading">More dossiers</h2><ol class="dl-list">{% endif %}
+{% else %}
 <li><article class="dl-item" aria-labelledby="dl-{{ d.slug }}">
   <p class="dl-kind">{{ d.kind_label }}{% if d.is_review %} · Unpublished draft for review{% endif %}</p>
-  <h2 id="dl-{{ d.slug }}"><a href="{{ d.route }}">{{ d.title }}</a></h2>
-  <p>{{ d.dek }}</p>
-  <p class="dl-meta">{% if d.kind == 'thematic' %}{{ d.scope.period_start[:4] }}–{{ d.scope.period_end[:4] }} · {{ d.ledger|length }} preserved records · {{ d.external_ledger|length }} linked official pages{% else %}{{ d.ledger|length }} preserved records{% endif %} · {% if d.reviewed_on %}Reviewed {{ d.reviewed_on|reader_date }}{% else %}Not yet reviewed{% endif %} · Revision {{ d.revision }}</p>
-  {% for c in d.case_study_views %}<div class="dl-case"><p class="dl-kind">{{ c.kind_label }}</p><h3><a href="{{ c.route }}">{{ c.title }}</a></h3><p>{{ c.dek }}</p></div>{% endfor %}
+  <h3 id="dl-{{ d.slug }}"><a href="{{ d.route }}">{{ d.title }}</a></h3>
+  <p class="dl-item-dek">{{ d.dek }}</p>
+  <p class="dl-meta">{{ meta(d) }}</p>
+  {% for c in d.case_study_views %}<p class="dl-meta">{{ c.kind_label }}: <a href="{{ c.route }}">{{ c.title }}</a></p>{% endfor %}
   {% set briefs = (d.related + (d.case_study_views|map(attribute='related')|sum(start=[])))|unique(attribute='slug')|list %}
   {% if briefs %}<p class="dl-meta">Related Brief{{ 's' if briefs|length > 1 }}: {% for b in briefs %}<a href="{{ b.url }}">{{ b.title }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
 </article></li>
-{% endfor %}
-</ol>
-<aside class="dl-method"><h2>How dossiers are kept</h2><p>Each dossier separates records preserved in IPR’s archive from official pages it only links to. Event dates are kept apart from publication dates, and differing official accounts stay side by side until the record settles them.</p><a href="methodology.html">How the record is preserved</a></aside>
+{% if loop.last %}</ol>{% endif %}
+{% endif %}{% endfor %}
+<footer class="dl-foot">
+  <section class="dl-method" aria-labelledby="dl-method-heading">
+    <h2 id="dl-method-heading">How dossiers are kept</h2>
+    <p>Each dossier separates records preserved in IPR’s archive from official pages it only links to. Event dates are kept apart from publication dates, and differing official accounts stay side by side until the record settles them. <a href="methodology.html">How the record is preserved</a></p>
+  </section>
+  {#- The key defines only the kinds listed above, so a reader never meets an empty category. -#}
+  {% set kinds = dossiers|map(attribute='kind')|list %}
+  <section class="dl-formats" aria-labelledby="dl-formats-heading">
+    <h2 id="dl-formats-heading">Formats</h2>
+    <dl class="dl-key">
+      {% if 'thematic' in kinds %}<div><dt>Thematic dossier</dt><dd>A continuing question across years, revised as the record grows.</dd></div>{% endif %}
+      {% if 'case_study' in kinds %}<div><dt>Case study</dt><dd>One event examined closely, linked from the thematic dossier it informs.</dd></div>{% endif %}
+      {% if 'dossier' in kinds %}<div><dt>Living Dossier</dt><dd>One bounded question with inspectable findings and reviewed revisions.</dd></div>{% endif %}
+      <div><dt>Brief</dt><dd>Signed weekly analysis in the separate <a href="analysis.html">Briefs</a> collection.</dd></div>
+    </dl>
+  </section>
+</footer>
 {% endblock %}

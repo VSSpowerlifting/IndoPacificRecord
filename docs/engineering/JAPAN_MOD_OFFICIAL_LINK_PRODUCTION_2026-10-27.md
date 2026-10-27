@@ -1,11 +1,14 @@
-# Japan MOD news official links — prepared, authorization blocked
+# Japan MOD news official links — source use approved, release held
 
-No standing Japan MOD production grant was found in the repository decisions,
-manifest or source-use configuration on 27 October 2026. The existing historical
-PDF navigation and Japan Brief approvals do not authorize a continuing feed.
-`config/japan_mod_official_link_policy.json` is a **proposal**, with authorization
-false and no owner decision reference. No production data, schedules, repository
-variables or public output are changed by this task.
+The initial review found no standing Japan MOD grant. Benjamin Yang then
+explicitly approved the narrow `jp_mod_news_ja` standing source-use scope on
+27 October 2026. `config/japan_mod_official_link_policy.json` records that grant
+and references its `DECISION_LOG.md` entry. The grant excludes merge, intake
+activation, manual workflow dispatch and deployment: those require a separate
+release decision after verification. The shared Daily activation variable is
+unset, and the production admission CLI checks that gate independently. No
+production data, schedules, repository variables or public output are changed
+by this task. Historical PDF navigation and Brief approvals are separate grants.
 
 ## Genuine source evidence
 
@@ -56,7 +59,7 @@ provenance comes from actual recorded runs, not a newly invented receipt. The
 source manifest attributes this Japanese ministry news family to `jp_mod`; it
 does not carry the separate Joint Staff source.
 
-## Existing production path, disabled until approval
+## Existing production path, intake disabled until release approval
 
 ```text
 existing scheduled Japan collector → immutable shadow/jp-mod state
@@ -84,7 +87,7 @@ translation, copied title, PDF/media mirror or machine explanation.
 
 ## Verification and limits
 
-Private rehearsal used a disposable production DB copy and a **test-only in-process
+The initial private rehearsal used a disposable production DB copy and a **test-only in-process
 policy override**, never an edited approval file. Seven links were admitted;
 the repeat admitted zero and left the database byte-identical. All non-Japan rows
 in all 24 existing tables were unchanged. Source replay, invalid/duplicate
@@ -94,6 +97,14 @@ runs in the existing required PR check, using pinned Git source objects and the
 metadata-only saved API receipts; this offline replay does not assert a new live
 API verification at CI time.
 
+After the owner's source-use approval and current-main integration, the private
+rehearsal was repeated under the actual policy with fresh read-only Actions API
+checks, without a policy override. Seven links were admitted, zero on retry;
+existing rows in all 24 tables were preserved, with only the expected 0020
+schema-ledger addition and Japan metadata rows. The production database remained
+byte-identical. The 239-test focused run passed. A separate activation-boundary
+test verifies that the approved source grant alone cannot write production.
+
 The production renderer was exercised in an external scratch output tree, carrying
 the existing publication data and historical pages. Its validator passed with
 seven warnings (the scratch carry path includes historical LinkedIn files). The
@@ -101,27 +112,32 @@ unchanged tracked output separately passed with its ten governed warnings.
 Japan HTML+CSS was 102,354 bytes with the final neutral filename labels,
 under the existing 120,000-byte cap. Browser checks at 1280 and 375 pixels found
 seven admitted entries and no horizontal overflow. The all-route delivery check
-also reports an **existing unrelated Indonesia page excess**: 127,903 bytes in
-both the tracked baseline and rehearsal. This task does not raise any budget.
+originally reported an unrelated Indonesia page excess: 127,903 bytes in both
+the then-current tracked baseline and rehearsal. Main subsequently fixed that
+in #889; this branch integrates the approved repair and raises no budget.
+The post-integration private render passes all 2,298 route budgets. Japan remains
+102,354 HTML+CSS bytes, with seven rows and no overflow at 1280 or 375 pixels.
 
 The first full PR run (`40453284956`, 8,080 tests) exposed migration-fixture
 compatibility and template extraction assertions; these were repaired without
 widening Vietnam's production migration guards. The expanded 167-test focused
 run then passed, including the previously failing tests. The read-only-tool
 failure was its explicit pending-version assertion, not actual DB residue.
-The required full check also rejects the unchanged Indonesia page budget above;
-`output/indonesia.html` is byte-identical to `main` (SHA-256
+The prior revision's second full run (`40456671270`, 8,080 tests) had only the
+Indonesia budget failure remaining. At that revision the page was identical to
+its main baseline (SHA-256
 `7cd4712fc4343cbbddb31c9dfd90728c25305dabd050ef841ec8256ead5d037a`).
 Final-head CI status is recorded in the PR; passing focused checks does not
 establish a green full gate. Four ancillary workflows additionally failed before
 tests because their Ubuntu 26.04 runners could not install Python 3.9.
 Production admission, Pages publication and HTTPS readback remain **unexecuted**
-because the owner has not authorized this source family or release activation.
+because the owner has explicitly withheld release activation and deployment.
 The readback command is prepared, not claimed successful on a public page.
 
-## Minimum owner decision and release procedure
+## Recorded owner decision and separate release procedure
 
-Proposed decision for review:
+Standing source-use scope approved by the owner (the authoritative wording is
+recorded in `DECISION_LOG.md`):
 
 > Authorize standing, unattended publication of existing and future verified
 > `jp_mod_news_ja` official-link metadata through the existing shared Daily:
@@ -133,15 +149,16 @@ Proposed decision for review:
 > machine explanations are authorized. No routine per-record approval is
 > required within that scope; actual exceptions remain held individually.
 
-That decision and explicit permission to merge and activate this prepared
-service remain absent. The existing shared CI budget failure must also be
-resolved before release; this task does not change an unrelated desk's content
-or presentation or relax its cap. An approval should be recorded faithfully in
-`DECISION_LOG.md`, referenced in the policy, and its authorization boolean set to
-true. Do not set either merely because this PR's tests pass.
+The source-use decision is now recorded and the policy authorization is true.
+The owner explicitly requires current-main integration, CI repair and safeguard
+verification before a separate release decision. Current main `8b69d1f2c6`
+contains the independently merged Indonesia budget repair (#889), dossier
+presentation (#887) and PR timeout maintenance (#885). This branch integrates
+those changes intact; it does not relax a budget. The four observed Python 3.9
+setup failures are addressed by pinning their read-only jobs to Ubuntu 24.04.
 
-After those owner acts, review the exact policy/release revision and pass the
-required PR offline check. Merge only when authorized. Set repository variable
+Review the exact policy/release revision and pass the required PR offline check.
+Merge only under a separate owner release decision. Set repository variable
 `JAPAN_MOD_OFFICIAL_LINKS_ENABLED=true` only under explicit activation authority.
 The next eligible existing Daily run fetches the collector state and admits
 metadata; a separately authorized manual Daily dispatch can be used instead.

@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from core.regional_official_link_release import digest, need, store_verified_links
 
@@ -30,6 +31,17 @@ HASH = re.compile(r"[0-9a-f]{64}\Z")
 URL = re.compile(r"https://www\.mod\.go\.jp/j/press/news/(20[0-9]{2})/([01][0-9])/([0-3][0-9])[a-z]*\.pdf\Z")
 RUN = re.compile(r"([1-9][0-9]*)(?:-([1-9][0-9]*))?\Z")
 FEED = "https://www.mod.go.jp/j/rss/news.xml"
+
+
+def verified_rss_day(day, observed_utc):
+    """Keep the feed's calendar date; bound it by the publisher's Tokyo day."""
+    try:
+        observed = datetime.fromisoformat(observed_utc)
+        return (type(day) is str and date.fromisoformat(day).isoformat() == day
+                and observed.tzinfo is not None
+                and date.fromisoformat(day) <= observed.astimezone(ZoneInfo("Asia/Tokyo")).date())
+    except (TypeError, ValueError):
+        return False
 
 
 def load_policy():
@@ -142,8 +154,7 @@ def candidates(repo, commit, *, fetch_run):
         ident = source_identity(url)
         need(ident not in seen, "japan_duplicate_source_identity")
         seen.add(ident)
-        need(type(day) is str and date.fromisoformat(day).isoformat() == day
-             and day <= latest["finished_utc"][:10], "japan_rss_date_unverified")
+        need(verified_rss_day(day, latest["finished_utc"]), "japan_rss_date_unverified")
         need(parser.can_fetch("*", url), "japan_original_policy_refused")
         need(type(capture_hash) is str and HASH.fullmatch(capture_hash)
              and hashlib.sha256(original.encode()).hexdigest() == content_hash,

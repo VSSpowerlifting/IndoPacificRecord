@@ -1,24 +1,41 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Japan MOD news official links — authorization blocked (27 October 2026)
+## Japan MOD news official links — source use approved, release held (27 October 2026)
 
 Prepared an off-by-default integration from the existing `shadow/jp-mod`
 collector into the shared Daily, regional metadata table, desk and archive/search
 renderer, existing Pages writer and exact readback. Real scheduled run
 `40433531306-1` and its preserved SQLite hash support seven successfully retrieved
 news-feed PDF metadata candidates. Challenged and unverified records stay held;
-dates are explicitly RSS pubDate, not verified document issue dates. No standing
-Japan source-family production grant was found. The proposed source policy is
-false with no owner reference; no production DB/output, collector, activation
-variable, schedule, model spending or public content was changed. Private
+dates are explicitly RSS pubDate, not verified document issue dates. Ben approved
+the narrow standing source-use policy on 27 October; its true authorization flag
+references that actual `DECISION_LOG.md` decision. He explicitly withheld merge,
+intake activation, manual workflow dispatch and deployment pending verification
+and a separate release decision. The existing Daily activation variable remains
+unset, and the production admission CLI independently enforces it. No production
+DB/output, collector, schedule, model spending or public content was changed. Private
 rehearsal proved seven admissions, zero on retry, byte-identical retry state and
 preservation of all non-Japan rows across 24 tables. The precise owner decision,
 evidence, validation limits and release procedure are in
 `docs/engineering/JAPAN_MOD_OFFICIAL_LINK_PRODUCTION_2026-10-27.md`.
-The expanded 167-test focused run passes after migration-fixture compatibility
-repairs. The required full check also exposes the existing Indonesia page budget
-failure (127,903/120,000 bytes, identical on main); this PR is not merge-ready and
-does not waive that gate. Final-head CI evidence is in PR #888.
+The prior revision's 8,080-test full run had only the pre-existing Indonesia page
+budget failure remaining. Current main `8b69d1f2c6` brings the separately merged
+#889 budget fix, #887 dossier presentation and #885 CI timeout maintenance into
+this branch. Their content and safeguards are preserved. Four triggered read-only
+contract jobs are pinned to Ubuntu 24.04 for Python 3.9 compatibility, retaining
+their triggers, permissions and release boundaries. Final-head CI and private
+admission/readback evidence are recorded in PR #888; no release is authorized.
+
+## PR offline timeout maintenance — review candidate (26 October 2026)
+
+The PR offline job budget increases from 35 to 45 minutes. Run
+[40346079812 attempt 1](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40346079812/attempts/1)
+hit the limit after a successful 12m19s Chromium installation, 21m52s suite,
+isolated render, validation and preservation checks. The same feature head
+passed attempt 2 in 20 minutes with a 24-second install; evidence supports
+setup variance rather than a test hang. All existing verification steps,
+conditions and security gates are unchanged. Final-head CI evidence belongs
+in the maintenance PR; this candidate does not authorize merge or deployment.
 
 ## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
 
@@ -249,6 +266,16 @@ authorized NSC link metadata and machine explanations and resolved the
 historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
+
+**Indonesia delivery-budget repair (27 October 2026, review candidate):**
+The 49 admitted Kemhan links are retained. The 15-link addition after #877
+raised Indonesia's HTML+CSS from 119,943 to 127,903 bytes. An Indonesia-only
+3,672-byte subset replaces the 28,412-byte supporting stylesheet, reducing
+delivery to 103,171 bytes under the unchanged 120,000-byte cap. HTML changes
+only its stylesheet URL; shared CSS, other generated pages, source metadata,
+approved Dossiers content and approval digests are unchanged. The production
+render, all-route budget gate and validator pass (10 governed warnings).
+Final-head CI evidence belongs in the maintenance PR; no merge or deployment.
 
 **Indonesia Kemhan bridge steady state (26 October 2026):** PR #877 incorporates
 main `1c204352da`, including its existing Vietnam baseline assertion repairs.

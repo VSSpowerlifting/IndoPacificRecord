@@ -1,11 +1,11 @@
 {
   "schema": "ipr-japan-mod-official-link-policy/1",
   "source_family": "jp_mod_news_ja",
-  "standing_metadata_publication_authorized": false,
-  "owner_decision_reference": null,
+  "standing_metadata_publication_authorized": true,
+  "owner_decision_reference": "DECISION_LOG.md#2026-10-27--owner-japan-mod-news-pdf-linked-metadata-authorization",
   "permitted_fields": ["source_identity", "canonical_official_url", "rss_date", "date_type", "official_issuer", "official_publisher"],
   "date_type": "RSS pubDate (not independently verified document issue date)",
   "eligible_scope": "Successfully retrieved news-feed PDF records only; challenged, failed, undated and unassigned records excluded",
   "excluded_uses": ["publisher headlines", "original bodies", "excerpts", "PDF copies", "photographs", "translations", "external model processing", "machine explanations"],
-  "notes": "PROPOSED ONLY. No Japan standing production grant was found on 2026-10-27. Owner approval and a separate release/activation instruction are required. No authority is inherited from the collector or other desks."
+  "notes": "Standing source-use authorization approved by Benjamin Yang on 2026-10-27. This does not authorize merge, intake activation, manual workflow dispatch or deployment; a separate release decision is required. The shared Daily activation variable remains unset. No authority is inherited from the collector or other desks."
 }

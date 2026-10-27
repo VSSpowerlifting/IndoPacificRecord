@@ -323,6 +323,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
         run: |
           set -euo pipefail
           python -c 'from core.japan_mod_official_links import require_authorization; require_authorization()'
