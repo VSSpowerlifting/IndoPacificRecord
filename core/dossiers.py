@@ -23,6 +23,9 @@ from scripts.reconcile_db import read_only
 # Intentionally no publisher original titles, bodies, quotations or model text.
 PUBLIC_FIELDS = frozenset({'attribution', 'publication_date', 'publisher_link',
                            'record_link', 'ipr_paraphrase'})
+# Case studies are labelled in code, never by their own manuscript. The label
+# appears only while a public thematic dossier actually declares the relation.
+CASE_STUDY_LABELS = {'maritime-cooperation-2026': 'Exercise case study'}
 KIND_LABELS = {'issuer_statement': 'Issuer statement',
                'documented_publication': 'Publication fact',
                'editorial_interpretation': 'Editorial interpretation'}
@@ -39,9 +42,15 @@ def _fail(code, rid=None, claims=(), field=None):
     raise DossierValidationError(message)
 
 
+def claim_source_ids(claim):
+    """Corpus record ids (int) and linked external ids ('x1', str) together."""
+    return (claim['source_record_ids'] + claim['counterevidence_ids']
+            + claim.get('external_source_ids', []) + claim.get('external_counterevidence_ids', []))
+
+
 def affected_findings(sc, rid):
     return [c['id'] for section in sc['sections'] for c in section['claims']
-            if rid in c['source_record_ids'] + c['counterevidence_ids']]
+            if rid in claim_source_ids(c)]
 
 
 def source_binding(source):
@@ -108,11 +117,49 @@ def reconcile_dossier_sources(sc, db_path, registry=None):
     return records
 
 
+def reconcile_external_sources(sc, db_path):
+    """Link-only official sources outside the corpus: identity checks only.
+
+    Nothing is fetched or stored; IPR projects attribution, date, publisher link
+    and its own paraphrase. The issuing institution must already be registered.
+    """
+    externals = sc.get('external_sources', [])
+    if not externals:
+        return {}
+    with read_only(db_path) as con:
+        names = dict(con.execute('SELECT institution_id, display_name FROM institutions').fetchall())
+    result = {}
+    for ext in externals:
+        if not names.get(ext['institution_id']):
+            _fail('unknown_external_institution', ext['id'], affected_findings(sc, ext['id']))
+        result[ext['id']] = dict(id=ext['id'], url=ext['url'], published_on=ext['published_on'],
+            publisher=ext['publisher'], institution_id=ext['institution_id'],
+            institution_name=names[ext['institution_id']],
+            language=ext['language'], retrieved_on=ext['retrieved_on'])
+    return result
+
+
+def derived_chronology(sc):
+    """Without a bound Timeline, list dated non-interpretive findings by event date."""
+    entries = []
+    for section in sc['sections']:
+        for claim in section['claims']:
+            event = claim['event_period']
+            if not event or claim['claim_kind'] == 'editorial_interpretation':
+                continue
+            evidence = [dict(record_id=rid, basis=event['basis'], published_on=None)
+                        for rid in claim['source_record_ids'] + claim.get('external_source_ids', [])]
+            entries.append(dict(id=claim['id'], headline=claim.get('heading', claim['id']),
+                event=event, observation='', evidence=evidence, qualification=None,
+                derived_from=claim['id']))
+    return sorted(entries, key=lambda e: (e['event']['start'], e['event']['end'], e['id']))
+
+
 def chronology_view(sc, records, timelines_dir=TIMELINES_DIR):
     """Reuse the canonical chronology as content, never its approval status."""
     binding = sc.get('chronology')
     if not binding:
-        return []
+        return derived_chronology(sc)
     timeline = read_timeline(Path(timelines_dir) / (binding['timeline_slug'] + '.json'), timelines_dir)
     if content_digest(timeline) != binding['content_sha256']:
         _fail('chronology_version_mismatch', claims=[c['id'] for s in sc['sections'] for c in s['claims']])
@@ -148,6 +195,12 @@ def publication_holds(sc):
         if grant != want:
             holds.append(dict(code='source_use_hold', record_id=rid,
                               findings=affected_findings(sc, rid)))
+    for ext in sc.get('external_sources', []):
+        grant = dossier_decisions.SOURCE_USES.get(ext['source_use_decision_ref'], {}).get(ext['id'])
+        want = dict(source_binding(ext), public_fields=sorted(PUBLIC_FIELDS - {'record_link'}))
+        if grant != want:
+            holds.append(dict(code='source_use_hold', external_id=ext['id'],
+                              findings=affected_findings(sc, ext['id'])))
     decision = dossier_decisions.PUBLICATIONS.get(sc['slug'])
     expected = dict(content_sha256=dossier_content_digest(sc), approval=sc.get('approval'))
     if sc['editorial_status'] != 'approved' or not decision or decision != expected:
@@ -191,9 +244,11 @@ def reported_windows(sc, chronology):
     return dict(windows=windows, days=[dict(iso=d.isoformat(), day=d.day) for d in days])
 
 
-def reading_view(sc, records, chronology):
+def reading_view(sc, records, chronology, externals=None):
     """Derived reading metadata, never additional source text or authority."""
+    externals = externals or {}
     sources = {s['record_id']: s for s in sc['sources']}
+    disputed = {cid for d in sc['disagreements'] for cid in d['claim_ids']}
     labels = {'pla_daily': 'PLA Daily', 'mod_china': 'China MND',
               'sg_mindef_releases': 'MINDEF'}
     claims = {}
@@ -203,10 +258,13 @@ def reading_view(sc, records, chronology):
         items = []
         for claim in section['claims']:
             ordinal += 1
-            ids = set(claim['source_record_ids'] + claim['counterevidence_ids'])
+            ids = set(claim_source_ids(claim))
+            different = (claim['id'] in ('ministry-window', 'singapore-window')
+                         or (not sc.get('chronology') and claim['id'] in disputed))
             item = dict(claim, ordinal='%02d' % ordinal, evidence_count=len(ids),
-                        counter_label='Different account' if claim['id'] in
-                        ('ministry-window', 'singapore-window') else 'Qualification sources')
+                        external_source_ids=claim.get('external_source_ids', []),
+                        external_counterevidence_ids=claim.get('external_counterevidence_ids', []),
+                        counter_label='Different account' if different else 'Qualification sources')
             claims[claim['id']] = item
             items.append(item)
         sections.append(dict(section, claims=items))
@@ -215,8 +273,21 @@ def reading_view(sc, records, chronology):
         ledger.append(dict(rec, short_name=labels.get(sources[rec['id']]['source_id'], rec['source_name']),
             language_name={'zh-Hans': 'Chinese (Simplified)', 'en': 'English'}.get(rec['language'], rec['language']),
             findings=[c for c in claims.values() if rec['id'] in c['source_record_ids'] + c['counterevidence_ids']]))
+    external_ledger = [dict(ext, short_name={'sg_mindef': 'MINDEF', 'cn_mnd': 'China MND'}.get(
+            ext['institution_id'], ext['publisher']), external=True,
+            language_name={'zh-Hans': 'Chinese (Simplified)', 'en': 'English'}.get(ext['language'], ext['language']),
+            findings=[c for c in claims.values() if ext['id'] in
+                      c['external_source_ids'] + c['external_counterevidence_ids']])
+        for ext in sorted(externals.values(), key=lambda e: (e['published_on'], int(e['id'][1:])))]
+    cited = {**{r['id']: r for r in ledger}, **{e['id']: e for e in external_ledger}}
     events = []
     for entry in chronology:
+        if entry.get('derived_from'):
+            evidence = [dict(ev, published_on=cited[ev['record_id']]['published_on'])
+                        for ev in entry['evidence']]
+            events.append(dict(entry, evidence=evidence, findings=[claims[entry['derived_from']]],
+                               interval_claim=False))
+            continue
         ids = {e['record_id'] for e in entry['evidence']}
         candidates = [c for c in claims.values() if c['event_period']
             and c['claim_kind'] != 'editorial_interpretation'
@@ -230,21 +301,24 @@ def reading_view(sc, records, chronology):
                 date.fromisoformat(c['event_period']['start'])).days == shortest]
         events.append(dict(entry, findings=candidates,
             interval_claim=entry['id'] in ('ministry-interval', 'singapore-interval')))
-    return dict(sections=sections, findings=claims, ledger=ledger,
-                records={r['id']: r for r in ledger}, chronology_entries=events,
+    return dict(sections=sections, findings=claims, ledger=ledger, external_ledger=external_ledger,
+                records=cited, chronology_entries=events,
                 jurisdictions=sorted({s['desk'].capitalize() for s in sources.values()}),
-                publication_cutoff=max(r['published_on'] for r in ledger),
+                publication_cutoff=max(r['published_on'] for r in cited.values()),
                 comparison=reported_windows(sc, chronology))
 
 
-def dossier_view(sc, records, related, chronology, holds, is_review=False):
+def dossier_view(sc, records, related, chronology, holds, is_review=False, externals=None):
     result = dict(sc, route='dossier/%s.html' % sc['slug'], is_review=is_review,
                   digest=dossier_content_digest(sc), chronology_entries=chronology,
-                  holds=holds, kind_labels=KIND_LABELS)
-    result.update(reading_view(sc, records, chronology))
+                  holds=holds, kind_labels=KIND_LABELS,
+                  kind='thematic' if 'case_studies' in sc else 'dossier',
+                  kind_label='Thematic dossier' if 'case_studies' in sc else 'Living Dossier',
+                  case_study_views=[], parent_dossiers=[])
+    result.update(reading_view(sc, records, chronology, externals))
     result['related'] = [related[slug] for slug in sc['related_briefs']]
-    result['citation'] = '%s. “%s.” Indo-Pacific Record, Living Dossier, revision %s, %s%s.' % (
-        sc['author_name'], sc['title'], sc['revision'], sc['updated_on'],
+    result['citation'] = '%s. “%s.” Indo-Pacific Record, %s, revision %s, %s%s.' % (
+        sc['author_name'], sc['title'], result['kind_label'], sc['revision'], sc['updated_on'],
         ' (unapproved draft; private review)' if is_review else '')
     if not is_review:
         result['citation'] += ' https://indopacificrecord.org/' + result['route']
@@ -286,18 +360,34 @@ def load_dossiers(db_path, related, source_dir=DOSSIERS_DIR, review_path=None,
             if not item or item.get('is_review') or item['editorial_status'] != 'approved':
                 _fail('related_timeline_not_approved')
         records = reconcile_dossier_sources(sc, db_path, registry)
+        externals = reconcile_external_sources(sc, db_path)
         chronology = chronology_view(sc, records, timelines_dir)
         holds = publication_holds(sc)
         if not selected and holds:
             _fail('publication_validation_failed: ' + '; '.join(
-                h['code'] + (' record %s' % h['record_id'] if 'record_id' in h else '') for h in holds))
-        view = dossier_view(sc, records, related, chronology, holds, selected)
+                h['code'] + (' record %s' % h['record_id'] if 'record_id' in h else '')
+                + (' external %s' % h['external_id'] if 'external_id' in h else '') for h in holds))
+        view = dossier_view(sc, records, related, chronology, holds, selected, externals)
         timeline = (related_timelines or {}).get(sc.get('chronology', {}).get('timeline_slug'))
         view['public_chronology'] = timeline if timeline and not timeline.get('is_review') else None
         views.append(view)
     if review is not None and not found:
         _fail('review_source_not_found')
+    link_case_studies(views)
     return sorted(views, key=lambda d: (d['updated_on'], d['slug']), reverse=True), withheld
+
+
+def link_case_studies(views):
+    """Bind thematic → case-study pairs among the views actually being rendered."""
+    by_slug = {v['slug']: v for v in views}
+    for view in views:
+        for slug in view.get('case_studies', []):
+            case = by_slug.get(slug)
+            if case is None or slug not in CASE_STUDY_LABELS:
+                _fail('case_study_not_published', field=slug)
+            view['case_study_views'].append(case)
+            case['parent_dossiers'].append(view)
+            case['kind'], case['kind_label'] = 'case_study', CASE_STUDY_LABELS[slug]
 
 
 def validate_review_destination(destination, repo_root=ROOT):

@@ -434,3 +434,10 @@ thead { break-after: avoid; break-inside: avoid; }
 h1, h2, h3 { break-after: avoid; }
 }
 
+
+/* Analysis formats above the Briefs masthead: Dossiers must not sit only beneath a Briefs-branded page. */
+.briefs-head .analysis-nav { border-bottom-color: var(--band-rule); margin: 0 0 1.6rem; }
+.briefs-head .analysis-nav a { color: var(--band-dek); }
+.briefs-head .analysis-nav a[aria-current] { color: var(--band-ink); }
+.briefs-head .analysis-nav a::after { background: var(--focus-band); }
+.briefs-head .analysis-nav a:focus-visible { outline: 2px solid var(--focus-band); outline-offset: 4px; }
