@@ -7,7 +7,8 @@ import unittest
 from urllib.parse import urlsplit
 
 from core.desk_registry import load_registry
-from tests.test_desk_rollout_contract import DeskCase
+from tests.test_desk_rollout_contract import DeskCase, TRACKED_DB
+from core.regional_official_link_render import load_admitted_links
 
 
 LINKS = {
@@ -139,7 +140,8 @@ class CountryPublisherNavigationTests(DeskCase):
             "external official-source links only",
             "not archived IPR records",
             "rights-approved by IPR",
-            "All Japan production records remain held",
+            ("Japan original-text production records remain held" if load_admitted_links(TRACKED_DB, "japan")
+             else "All Japan production records remain held"),
             "repository gate was observed unset or unavailable",
             "October 8 shadow capture is HTML text only",
             "Post-Day-0 source candidate; not a qualifying collecting day",
@@ -173,7 +175,10 @@ class CountryPublisherNavigationTests(DeskCase):
 
         html = self.page("japan.html")
         parser = OfficialPDFLinks()
-        parser.feed(html)
+        # The seven reviewed historical notices are a separate directory from
+        # live, admitted news-feed metadata, which may contain newer PDFs.
+        historical = html.split('aria-labelledby="japan-mod-original-pdfs-title">', 1)[1].split('</section>', 1)[0]
+        parser.feed(historical)
         expected = (
             "08/27b.pdf",
             "08/28a.pdf",
@@ -197,7 +202,8 @@ class CountryPublisherNavigationTests(DeskCase):
             "conflicting with the later October 5 original",
             "not proof the activity occurred",
             "archived-text extraction parity",
-            "no production or model use is authorized",
+            ("original-text and model use remain held" if load_admitted_links(TRACKED_DB, "japan")
+             else "no production or model use is authorized"),
             "repository gate was observed unset or unavailable",
         ):
             self.assertIn(phrase, html)

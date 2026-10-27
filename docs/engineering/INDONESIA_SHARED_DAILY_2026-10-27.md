@@ -150,3 +150,12 @@ All 2,369 routes pass delivery budgets. The isolated production publication
 render passes the validator with seven warnings; unchanged committed output
 passes with its ten governed warnings. Exact-revision CI is recorded in the
 PR description. No generated output or content-data changes are committed.
+
+The first PR CI run exposed two stale Japan navigation assertions. Both fail
+on the unchanged base `11df894846` in a disposable worktree: they treat the
+historical seven-PDF directory as the entire admitted Japan index and claim
+all Japan production is held. The bounded CI repair scopes the historical
+parser to its existing section and checks original-text/model holds against
+the actual admitted metadata state. All seven navigation tests pass locally;
+no Japan data, policy or renderer changes are included. Required full CI runs
+again on the final revision because this observed failure justified it.

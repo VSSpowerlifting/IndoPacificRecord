@@ -294,7 +294,11 @@ Archive/search index through `site/render.py`. It is not live model/translation
 quality or public-release evidence. Focused tests include negation, planned
 versus completed events, source attribution, rights, version/anomaly holds,
 bounded retries/spend and existing Philippines behavior. Exact-head CI,
-browser/delivery and validator evidence belong in the review PR.
+browser/delivery and validator evidence belong in the review PR. Two stale
+Japan navigation assertions reproduced on unchanged base `11df894846`; the
+small test-only correction separates its historical directory from its already
+admitted metadata. Japan content/policy/rendering is unchanged, all seven
+navigation tests pass, and required full CI is rerun at the final head.
 
 **Remaining release decision:** adopt or reject the narrow standing first-party
 Kemhan private-API/factual-English-output grant and $0.35 estimated per run
