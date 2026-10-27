@@ -104,7 +104,17 @@ seven admitted entries and no horizontal overflow. The all-route delivery check
 also reports an **existing unrelated Indonesia page excess**: 127,903 bytes in
 both the tracked baseline and rehearsal. This task does not raise any budget.
 
-Final PR CI and final neutral-label measurements are recorded in the PR evidence.
+The first full PR run (`40453284956`, 8,080 tests) exposed migration-fixture
+compatibility and template extraction assertions; these were repaired without
+widening Vietnam's production migration guards. The expanded 167-test focused
+run then passed, including the previously failing tests. The read-only-tool
+failure was its explicit pending-version assertion, not actual DB residue.
+The required full check also rejects the unchanged Indonesia page budget above;
+`output/indonesia.html` is byte-identical to `main` (SHA-256
+`7cd4712fc4343cbbddb31c9dfd90728c25305dabd050ef841ec8256ead5d037a`).
+Final-head CI status is recorded in the PR; passing focused checks does not
+establish a green full gate. Four ancillary workflows additionally failed before
+tests because their Ubuntu 26.04 runners could not install Python 3.9.
 Production admission, Pages publication and HTTPS readback remain **unexecuted**
 because the owner has not authorized this source family or release activation.
 The readback command is prepared, not claimed successful on a public page.
@@ -124,7 +134,9 @@ Proposed decision for review:
 > required within that scope; actual exceptions remain held individually.
 
 That decision and explicit permission to merge and activate this prepared
-service are the external blocker. An approval should be recorded faithfully in
+service remain absent. The existing shared CI budget failure must also be
+resolved before release; this task does not change an unrelated desk's content
+or presentation or relax its cap. An approval should be recorded faithfully in
 `DECISION_LOG.md`, referenced in the policy, and its authorization boolean set to
 true. Do not set either merely because this PR's tests pass.
 

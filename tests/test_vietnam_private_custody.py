@@ -209,6 +209,8 @@ class PrivateCustody(unittest.TestCase):
         shutil.copyfile(publisher.ROOT/'pla_watch.db',target)
         # Keep real, already-released MPS identities out of a fictional review.
         with closing(sqlite3.connect(str(target))) as conn:
+            from migrations.runner import apply_all
+            apply_all(conn, sync_config=False)
             conn.execute("DELETE FROM regional_official_source_links "
                          "WHERE desk='vietnam' AND source_family=?", (self.FAMILY,))
             conn.commit()

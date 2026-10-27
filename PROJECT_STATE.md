@@ -15,6 +15,10 @@ rehearsal proved seven admissions, zero on retry, byte-identical retry state and
 preservation of all non-Japan rows across 24 tables. The precise owner decision,
 evidence, validation limits and release procedure are in
 `docs/engineering/JAPAN_MOD_OFFICIAL_LINK_PRODUCTION_2026-10-27.md`.
+The expanded 167-test focused run passes after migration-fixture compatibility
+repairs. The required full check also exposes the existing Indonesia page budget
+failure (127,903/120,000 bytes, identical on main); this PR is not merge-ready and
+does not waive that gate. Final-head CI evidence is in PR #888.
 
 ## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
 

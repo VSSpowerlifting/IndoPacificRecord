@@ -80,7 +80,7 @@
 
 {# Regional official-link index: only actual production SQLite admission,
    never shadow captures, the reviewer dossier or static publisher directories. #}
-{% if desk.slug in ('philippines', 'indonesia', 'vietnam', 'japan') and regional_official_links | default([]) %}
+{% if desk.slug in ('philippines', 'indonesia', 'vietnam') and regional_official_links | default([]) or desk.slug == 'japan' and regional_official_links | default([]) %}
 <section class="desk-references regional-official-live-links"
          data-source-scope="official-link-only"
          aria-labelledby="regional-official-live-links-title">
