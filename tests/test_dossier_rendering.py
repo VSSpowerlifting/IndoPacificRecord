@@ -90,6 +90,7 @@ class DossierRendering(unittest.TestCase):
     def test_draft_zero_public_routes_discovery_backlinks_feed_or_text(self):
         self.assertFalse((self.public/'dossier').exists())
         self.assertFalse((self.public/'dossiers.css').exists())
+        self.assertFalse((self.public/'dossiers-library.css').exists())
         self.assertFalse((self.public/'dossier-shell.css').exists())
         self.assertFalse((self.public/'dossiers.html').exists())
         self.assertFalse((self.public/'dossier.js').exists())
@@ -396,7 +397,7 @@ class ThematicDossierRendering(unittest.TestCase):
             self.assertIn(text,html)
         self.assertEqual(html.count('href="dossier/maritime-cooperation-2026.html"'),1)
         self.assertIn('<dt>Case study</dt>',html)
-        self.assertIn('Related Brief: ',html)
+        self.assertIn('>Related Brief<',html)
         self.assertNotIn('<dt>Living Dossier</dt>',html)
         self.assertIn('href="dossiers.html"',self.read('analysis.html'))
         self.assertIn('>Analysis</a>',self.read('index.html'))
