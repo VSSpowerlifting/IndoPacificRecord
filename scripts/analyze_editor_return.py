@@ -38,7 +38,7 @@ from scripts.validate_editorial_return import (
 
 SCHEMA = "ipr-editor-return-analysis/1"
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SAME, LIGHT, MATCH = 0.98, 0.80, 0.45
+LIGHT, MATCH = 0.80, 0.45
 RECURRING_AFTER = 3
 CITATION_PREFIXES = ("SOURCE RECORD IDS:", "EXTERNAL SOURCE IDS:")
 NUMBER = re.compile(r"\b\d[\d,.]*\d\b|\b\d\b")
@@ -194,7 +194,9 @@ def analyze(original, edited):
     moved = _moved(pairs)
     status = {}
     for i, j, ratio in pairs:
-        status[i] = ("unchanged" if ratio >= SAME else "tightened-or-lightly-edited"
+        # Similarity finds corresponding paragraphs, never factual equivalence:
+        # even a one-word actor/negation change must be reconciled to its source.
+        status[i] = ("unchanged" if old_paras[i] == new_paras[j] else "tightened-or-lightly-edited"
                      if ratio >= LIGHT else "rewritten")
         if i in moved:
             status[i] += "+moved"

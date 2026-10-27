@@ -330,3 +330,16 @@ def display_records(compact, records):
         if desk.get('code') == 'china' and english and lang.get('code') != 'en':
             result[r['id']]['title_note'] = 'Machine-translated title · human review not recorded'
     return result
+
+
+def dossier_records(dossiers):
+    """Approved bibliographic metadata only; no cited originals or export expansion."""
+    for d in dossiers:
+        if d['is_review'] or d['editorial_status'] != 'approved':
+            continue
+        yield projection(id='dossier:' + d['slug'], title=d['title'], summary=d['dek'],
+            date=d['updated_on'], date_kind='IPR editorial update',
+            desks=d['scope']['jurisdictions'], source='Indo-Pacific Record',
+            issuer='Indo-Pacific Record', record_type='living_dossier',
+            processing='Editorial dossier; machine-assisted preparation, human-approved version',
+            ipr_url=ORIGIN + '/' + d['route'], citation=d['citation'])

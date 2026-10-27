@@ -333,6 +333,8 @@ class ProductionIsolationTests(unittest.TestCase):
 
 
 def _production_build(out, **options):
+    # This helper exercises synthetic Brief/Timeline collections.
+    options.setdefault("dossiers_dir", out.parent / "no-dossiers")
     sys.path.insert(0, str(PREVIEW))
     import generate_preview as gp
     gp.build(out, gp.PUBLIC_TITLE, TRACKED_DB,

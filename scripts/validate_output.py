@@ -164,8 +164,66 @@ def validate(output_dir: Path) -> tuple[list[str], list[str]]:
 
     _validate_briefs(output_dir, errors)
     _validate_timelines(output_dir, errors)
+    _validate_dossiers(output_dir, errors)
 
     return (errors, warnings)
+
+
+def _validate_dossiers(output_dir, errors):
+    """No private/stale dossier or approval assertion may cross the deploy gate."""
+    from core.dossiers import load_dossiers
+    from core.brief_collection import load_briefs, brief_entry
+    from core.desk_registry import load_registry
+    from html import escape
+    try:
+        numbers = [json.loads(p.read_text(encoding="utf-8"))["issue_number"]
+                   for p in (REPO_ROOT / "output/the-pla-watch/posts").glob("*.json")]
+        published, _ = load_briefs(REPO_ROOT / "briefs", load_registry(), historical_numbers=numbers)
+        related = {slug: brief_entry(slug, sc) for slug, sc in published}
+        from core.timelines import load_timelines
+        timelines, _ = load_timelines(REPO_ROOT / "pla_watch.db", related, REPO_ROOT / "timelines")
+        dossiers, _ = load_dossiers(REPO_ROOT / "pla_watch.db", related,
+            REPO_ROOT / "dossiers", related_timelines={t['slug']: t for t in timelines})
+    except (OSError, ValueError, KeyError) as exc:
+        errors.append("Dossier sources: %s" % exc)
+        return
+    expected = {d['route'] for d in dossiers}
+    for path in (output_dir / 'dossier').rglob('*'):
+        if path.is_file() and path.relative_to(output_dir).as_posix() not in expected:
+            errors.append("%s: no approved dossier source; drafts/stale files cannot deploy" % path)
+    library_path = output_dir / 'dossiers.html'
+    library = library_path.read_text(encoding='utf-8') if library_path.is_file() else ''
+    if dossiers and not library:
+        errors.append('dossiers.html: Dossiers collection page is missing')
+    if not dossiers and library_path.exists():
+        errors.append('dossiers.html: no approved dossier to list')
+    sitemap = (output_dir / 'sitemap.xml').read_text(encoding='utf-8') if (output_dir / 'sitemap.xml').is_file() else ''
+    index_path = output_dir / 'archive-research-index.json'
+    try:
+        index = json.loads(index_path.read_text(encoding='utf-8')) if index_path.exists() else {'records': []}
+        indexed = [r for r in index['records'] if r['record_type'] == 'living_dossier']
+        if {r['ipr_url'].split('/', 3)[-1] for r in indexed} != expected or len(indexed) != len(expected):
+            errors.append('Dossier archive discovery differs from approved sources')
+    except (ValueError, KeyError):
+        errors.append('Dossier archive discovery is malformed')
+    for item in dossiers:
+        route = item['route']
+        page = output_dir / route
+        text = page.read_text(encoding='utf-8') if page.is_file() else ''
+        for marker in (escape(item['title']), 'data-editorial-status="approved"',
+                       'data-editorial-digest="%s"' % item['digest']):
+            if marker not in text:
+                errors.append('%s differs from its approved editorial source' % route)
+                break
+        if 'content="noindex' in text or 'rel="canonical"' not in text:
+            errors.append('%s requires indexable metadata and canonical' % route)
+        if ('href="%s"' % route) not in library or ('/%s</loc>' % route) not in sitemap:
+            errors.append('%s missing from the Dossiers collection or sitemap' % route)
+    if dossiers and '/dossiers.html</loc>' not in sitemap:
+        errors.append('dossiers.html missing from sitemap')
+        for r in item['ledger']:
+            if not (output_dir / ('record/%s.html' % r['id'])).is_file():
+                errors.append('%s has a missing canonical source destination' % route)
 
 
 def _validate_timelines(output_dir, errors):

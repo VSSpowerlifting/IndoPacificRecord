@@ -4,6 +4,152 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-26 — Owner: 200 KB delivery budget for individual dossier pages
+
+Benjamin Yang wrote in this task: “I authorize a maximum 200,000-byte combined
+HTML+CSS delivery budget specifically for individual dossier pages. Preserve
+all existing budgets for records, Briefs, weeks and hubs. Do not introduce a
+broad exemption.” He added that the dossier stays on one page and that its
+content, approved digest and evidence layout must not change to fit.
+
+The cap applies only to `dossier/<slug>.html`
+(`scripts/verify_frontend_delivery.py`, `html_css_cap`). The `dossiers.html`
+collection, `dossier/index.html` and any nested path under `dossier/` keep
+120 KB. Records, Briefs and week pages keep 120 KB, and hubs keep 300 KB. JS
+caps are unchanged. `tests/test_briefs_enrichment.py` proves the allowance
+covers only those routes and still rejects a dossier at 200,001 bytes.
+
+Measured at approval (approval digest `9e947155…`): 193,118 bytes for
+`dossier/china-singapore-naval-cooperation.html`, made up of:
+- 133,810 bytes of HTML
+- `styles.css`, 31,620
+- `dossiers.css`, 18,904
+- `surfaces.css`, 5,630
+- `fonts.css`, 1,855
+- `dossier-shell.css`, 1,299
+
+Dossiers already load the 1.3 KB `dossier-shell.css` in place of the 28.4 KB
+`support.css`. The remaining clean reductions, the collection-only rules in
+`dossiers.css` and markup whitespace, total about 4 KB. They were not taken.
+About 60% of `styles.css` goes unused on this page, but it is the sitewide
+base sheet, linked from the single-owner `base.html`, so subsetting it would
+be a redesign. Headroom is about 6.9 KB. A future dossier that needs more must
+come back to the owner rather than raise this cap.
+
+## 2026-10-26 — Owner: China-Singapore naval dossier editorial approval
+
+Benjamin Yang wrote in this task: “I approve the complete China–Singapore Naval
+Cooperation manuscript at content digest:
+5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e”. That is the
+revision 0 draft recorded as pending in the entry below, including its
+findings, qualifications, chronology and closing synthesis. This resolves
+point 1 of that entry. Claude remains credited for machine-assisted
+preparation; Benjamin Yang is the responsible human editor.
+
+Recording the approval sets `editorial_status` to approved, `revision` 1,
+`reviewed_on` 26 October and one first-release change note. It adds the
+approval object. No finding, source binding, date or sentence of the reviewed
+text changes. The resulting approval digest is
+`9e9471553354ecfb441c387dc12dc958658d10c8b5db04fb060b39d281462a1a`, pinned in
+`core/dossier_decisions.py` `PUBLICATIONS`. In the same message he authorized
+generating the production output and, after all required checks pass on the
+final release candidate, merging and publishing through the existing release
+process.
+
+## 2026-10-26 — Owner: China-Singapore naval dossier source use
+
+Benjamin Yang approved the following in this task, resolving point 2 of the
+pending entry below:
+
+1. “Extending the existing Maritime grant to this dossier for R3924, R4102,
+   R4164, R4466 and R4472.”
+2. “Dossier-specific use of R3513, R3663, R4211, R4452, R4454, R4849, R4911
+   and R5528.”
+3. “Linked-source use of x1–x9.”
+
+He stated: “All three cover attribution, dates, independent IPR paraphrases and
+links only. Originals, translations, excerpts and media remain excluded.”
+`core/dossier_decisions.py` records each grant under this entry's anchor. The
+13 corpus records are bound to their exact source identity and stored-original
+SHA, with the five Maritime public fields. The nine linked official pages x1–x9
+are bound to their exact identity without the IPR record-link field, because
+IPR holds no record page for them. The grant applies only to China–Singapore
+Naval Cooperation. The 25 October Maritime grant remains separate and
+unchanged.
+
+## 2026-10-26 — Owner: Maritime Cooperation 2026 becomes an exercise case study
+
+Benjamin Yang wrote in this task: “I approve the structural decision: Maritime
+Cooperation 2026 should be labelled "Exercise case study" under China–Singapore
+Naval Cooperation, preserving its URL and approved substance.” This approves
+structure only. `/dossier/maritime-cooperation-2026.html`, its revision 2
+content, its editorial approval and its five-source grant are unchanged. The
+label and breadcrumb appear only when the thematic dossier itself is rendered,
+so production shows no change until the thematic dossier is approved. He
+stated in the same message that editorial approval and additional source-use
+approval remain pending; this entry records neither.
+
+## 2026-10-26 — Pending owner decision: China–Singapore thematic dossier
+
+**No approval is recorded here.** This entry records decisions that remain
+open. The draft `dossiers/china-singapore-naval-cooperation.json` (revision 0,
+content digest `5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e`) was prepared with machine assistance (Claude).
+It replaces the earlier draft digest `f68063c585e3428f97b3f8f18d60aa72a8817e2ab1b9c1b3522aee32a6559001` after the owner's 26 October
+review requested an editorial completion pass, and then `f5afba59…` after the
+owner asked for a final correction to the synthesis's wording on the planned
+2026 joint surface strike. Neither earlier digest was approved and no approval
+carries over from them.
+Benjamin Yang is named as the responsible editor but has not approved it. It
+stays withheld from production until he decides on two points:
+
+1. editorial approval of that exact digest, including its findings,
+   qualifications, chronology and closing synthesis;
+2. a source-use decision for the 13 bound corpus records (3513, 3663, 3924,
+   4102, 4164, 4211, 4452, 4454, 4466, 4472, 4849, 4911, 5528) and the nine
+   linked official pages x1–x9, limited to institutional attribution,
+   publication dates, independent IPR paraphrase and official/IPR-record
+   links, and excluding original text, translations, excerpts and media.
+
+The third point, the case-study label, was approved on 26 October (entry
+above). The Maritime grant of 25 October covers five of these records for that
+dossier only; it is not extended to the thematic dossier by this entry.
+
+## 2026-10-25 — Owner: Maritime dossier narrow five-source public projection
+
+Benjamin Yang explicitly answered “Also approve that narrow five-source public
+projection” in this task. The scope is institutional attribution, publication
+dates, independent IPR paraphrases, official links and links to existing IPR
+record pages for the five exact versions bound by Maritime Cooperation 2026
+revision 2: records 3924, 4102, 4164, 4466 and 4472 (PLA Daily, China MND and
+Singapore MINDEF). `core/dossier_decisions.py` records each complete source
+identity and body SHA with only those five public fields. This is an actual
+owner source-use decision, separate from the reaffirmed editorial approval.
+Original text, translations, excerpts and media are excluded. No source version,
+finding, qualification, chronology or reviewed presentation is changed by the
+grant. Its references and the resulting exact approval digest are administrative
+bindings, not an authored revision. Merge, deployment and publication remain
+outside this release-preparation authority.
+
+## 2026-10-25 — Owner: Maritime dossier revision 2 editorial approval reaffirmed
+
+Benjamin Yang reaffirmed in this task that his approval of revision 2 and its
+reviewed presentation remains valid, and instructed the maintainer to record
+that actual approval and prepare a release candidate. The reviewed repository
+head is `38f9f2bf8f45e258ad9592272b865d41cd29d72f`; the reviewed draft content
+SHA-256 is `65444d8057e6facdeeb0fc9594cb83ad2f3be2fa4e35ecb9b01a82caff869c45`.
+This entry records the 25 October reaffirmation, not an invented earlier review
+date. Benjamin Yang is the responsible human editor; Codex remains credited
+for machine-assisted preparation. Findings, qualifications, source versions,
+chronology and reviewed CSS/template presentation are not reopened.
+
+Approval/status metadata and the resulting exact approval digest may be
+recorded through `core/dossier_decisions.py`. The separate source-use registry
+must still bind an actual decision for attribution, publication dates,
+independent IPR paraphrases and official/canonical-record links for the five
+bound versions; editorial approval alone does not invent that decision.
+Original text, translations, substantial excerpts and media remain outside this
+projection. This instruction does not authorize merge, deployment or publication.
+
 ## 2026-10-25 — Briefs narrative reform: article-first drafts, offline editor-feedback loop
 
 Ben ordered a durable fix for the mechanical, over-caveated Sunday manuscript (not a rewrite
@@ -46,6 +192,33 @@ manuscript, editor message, paid model call, merge or publication is authorized.
 See `docs/BRIEFS_WEEKLY_SELECTION.md`; the editorial assessment is retained
 outside this public repository. This entry records the task's constraint,
 not a claim that the owner approved the replacement article.
+
+## 2026-10-25 — Bersama Lima Brief: sole authorship, source review, headings and cover
+
+Benjamin Yang corrected the Brief's authorship in chat: **Dylan Tanzi, Lead
+Research Analyst, is the sole author**; Benjamin remains Founder & Director of
+Research and Editorial with final oversight and publication approval and is not a
+credited co-author of this issue. Dylan's official title is Lead Research
+Analyst, never "Managing Editor". Briefs may alternate lead authorship issue by
+issue; co-authorship is not automatic. Historical authorship is unchanged.
+
+Benjamin then attested in chat, against editorial fingerprint
+`0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343`: that he personally reviewed the six original
+sources and attests all seven `editorial_review` checks and the source-linked
+policy ruling, and that he approves the four headings and the rendered page.
+This is his own attestation, not an AI-assisted or inferred review; the
+agent's earlier source comparison is preparation only. The presentation receipt
+binds digest `4556c3d415283b520996c719e08c1dd8edf5aacdc8ae5d172974641631b2bb01`.
+
+He also described the **HMS Tamar context cover** as approved after seeing the
+article preview and the 720 × 480 crop (focal 68% 70%). Image: DVIDS 7379876 /
+VIRIN 220811-N-AU520-1096, MC2 Jacob Woitzel, U.S. Navy, public domain, taken
+11 August 2022, Puerto Princesa. Scope: this Brief's article and catalogue card,
+standard CSS gradient, retained creator/public-domain credit and exact DVIDS
+notice. It is context from Pacific Partnership 2022, **not** an image of Bersama
+Lima 2026, and the caption says so. The retained file is the public 2000-pixel
+preview because DVIDS's master requires a login. No mindef.gov.sg source or
+image is used. Evidence: `docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md`.
 
 ## 2026-10-25 — Owner: one manual 10744 attribution correction
 

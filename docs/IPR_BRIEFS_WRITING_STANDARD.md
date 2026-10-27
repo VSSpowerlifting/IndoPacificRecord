@@ -78,6 +78,11 @@ email, and the manual sender cannot see an earlier Dylan send, so Ben checks Gma
 first. Style flags alone never hold. The headline count appears in the owner preview; the
 full report appears only in the private appendix.
 
+The Word projection uses fixed ZIP timestamps so the same reviewed TXT produces
+identical DOCX bytes with the same renderer and dependencies. Owner notices include
+SHA-256 for both attachments; compare both when releasing. A corrected TXT is a new
+artifact requiring its own review and digest.
+
 ## 5. Roles
 
 Ben owns accuracy, the argument and publication. Dylan is the language and structure

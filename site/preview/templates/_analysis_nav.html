@@ -1,4 +1,5 @@
 <nav class="analysis-nav" aria-label="Analysis formats">
   <a href="{{ '../' if nested else '' }}analysis.html"{% if analysis_current == 'briefs' %} aria-current="page"{% endif %}>Briefs</a>
-  <a href="{{ '../' if nested else '' }}timelines.html"{% if analysis_current == 'timelines' %} aria-current="{{ 'true' if nested else 'page' }}"{% endif %}>Timelines</a>
+  {% if dossiers %}<a href="{{ '../' if nested else '' }}dossiers.html"{% if analysis_current == 'dossiers' %} aria-current="page"{% endif %}>Dossiers</a>{% endif %}
+  {% if timelines %}<a href="{{ '../' if nested else '' }}timelines.html"{% if analysis_current == 'timelines' %} aria-current="{{ 'true' if nested else 'page' }}"{% endif %}>Timelines</a>{% endif %}
 </nav>

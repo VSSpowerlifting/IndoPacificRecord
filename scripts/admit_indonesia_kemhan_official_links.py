@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -103,8 +104,55 @@ def _unrelated_digest(conn):
     return h.hexdigest()
 
 
-def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None):
-    """Atomically admit one or more validated packets; returns receipts."""
+_STABLE_COLUMNS = ("canonical_official_url,publisher_posted_date,official_issuer,"
+                   "official_publisher,official_republisher,first_seen_run")
+
+
+def _superseded_by_later_release(conn, validation):
+    """True when the frozen baseline is an older snapshot of what is released.
+
+    The frozen public cohort is a fixed prefix of the family. Once a signed
+    private envelope has released later records, ``admit()`` would refuse the
+    frozen packet because those later rows are not in it, so every scheduled
+    retry and every later envelope dispatch would HOLD. Such a packet has
+    nothing left to insert, so it is not re-admitted, but only when every row
+    it approves is already stored exactly as approved (including its original
+    Git commit and metadata version, never compared with a later snapshot) and
+    later rows exist.
+    A missing or altered frozen row keeps the packet in play and ``admit()``
+    still HOLDs. Rows beyond the packet are re-verified by the next envelope.
+    """
+    stored = {r[0]: tuple(r[1:]) for r in conn.execute(
+        "SELECT source_identity,%s,source_git_commit,metadata_version_sha256,"
+        "release_proof_sha256 FROM %s WHERE desk='indonesia' AND source_family=?"
+        % (_STABLE_COLUMNS, TABLE), (validator.FAMILY,))}
+    eligible = {r["source_identity"] for r in validation["eligible"]}
+    if not set(stored) - eligible:
+        return False
+    proofs = set()
+    for r in validation["approved"]:
+        row = stored.get(r["source_identity"])
+        # The frozen packet is pinned, so its rows keep their ORIGINAL commit and
+        # version digest; they are not compared with any later snapshot.
+        if row is None or row[:8] != (
+                r["canonical_official_url"], r["publisher_posted_date"], r["official_issuer"],
+                r["official_publisher"], r["official_republisher"], r["first_seen_run"],
+                r["source_git_commit"], r["metadata_version_sha256"]):
+            return False
+        proofs.add(row[8])
+    # One admission batch wrote the frozen rows, so they share one proof digest
+    # (release_scope is fixed by a schema CHECK constraint).
+    return len(proofs) == 1 and re.fullmatch(r"[0-9a-f]{64}", next(iter(proofs))) is not None
+
+
+def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None,
+                    frozen_first=False):
+    """Atomically admit one or more validated packets; returns receipts.
+
+    ``frozen_first`` marks ``validations[0]`` as the frozen public baseline,
+    the only packet allowed to step aside for later released rows. A later
+    packet that omits or alters a released row always HOLDs.
+    """
     db_path = Path(db_path)
     before = _sha256(db_path)
     fd, tmp_name = tempfile.mkstemp(prefix=".%s.indonesia-admission-" % db_path.name,
@@ -116,7 +164,9 @@ def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None):
         with sqlite3.connect(str(tmp)) as conn:
             unrelated_before = _unrelated_digest(conn)
             receipts = []
-            for v in validations:
+            for position, v in enumerate(validations):
+                if frozen_first and position == 0 and _superseded_by_later_release(conn, v):
+                    continue
                 receipts.append(admit(
                     conn, v["packet"], v["policy"], v["receipt"],
                     as_of_utc=as_of_utc, trusted_validator=v["trusted_validator"],
@@ -177,7 +227,7 @@ def cmd_admit(args):
         validations.append(validator.validate_signed_envelope(
             body, mac, key=key, public_checkout=checkout, public_frozen_tip=tip,
             validator_ref=ref, public_main=ROOT, fetch_run=fetch))
-    receipts, total = admit_validated(db, validations, as_of_utc=_now())
+    receipts, total = admit_validated(db, validations, as_of_utc=_now(), frozen_first=True)
     print(json.dumps({
         "status": "ADMITTED", "desk": DESK,
         "validations": [{"source_git_commit": v["packet"]["source_git_commit"],

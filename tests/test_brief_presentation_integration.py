@@ -154,7 +154,7 @@ class PresentationIntegrationTests(unittest.TestCase):
             out = Path(directory) / "private-review"
             gp.build(out, gp.PUBLIC_TITLE, ROOT / "pla_watch.db",
                      snapshot=gp.snapshot_from_corpus(ROOT / "pla_watch.db"),
-                     briefs_dir=briefs,
+                     briefs_dir=briefs, dossiers_dir=Path(directory) / "no-dossiers",
                      review_presentation=ROOT / "briefs/presentation" / source.name)
             html = (out / "briefs" / (SLUG + ".html")).read_text()
             self.assertIn("Private presentation review", html)
@@ -184,7 +184,8 @@ class PresentationIntegrationTests(unittest.TestCase):
             manifest_path.write_text(json.dumps(stale))
             out = Path(directory) / "public-build"
             options = dict(snapshot=gp.snapshot_from_corpus(ROOT / "pla_watch.db"),
-                           briefs_dir=briefs, site_origin="https://indopacificrecord.org")
+                           briefs_dir=briefs, dossiers_dir=Path(directory) / "no-dossiers",
+                           site_origin="https://indopacificrecord.org")
             gp.build(out, gp.PUBLIC_TITLE, ROOT / "pla_watch.db", **options)
             html = (out / "briefs" / source.with_suffix(".html").name).read_text()
             self.assertEqual(manuscript_html_errors(self.article, html), [])

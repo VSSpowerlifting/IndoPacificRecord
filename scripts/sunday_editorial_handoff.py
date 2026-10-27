@@ -447,6 +447,8 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
                if quality_summary(original_attachment.decode("utf-8")) else "")
             + "Exact attached manuscript SHA-256: "
             + hashlib.sha256(original_attachment).hexdigest() + "\n"
+            + (("Exact attached Word copy SHA-256: "
+                + hashlib.sha256(edited_copy).hexdigest() + "\n") if edited_copy is not None else "")
         )
     elif full_week:
         # The exact immutable TXT was already checked against the owner's

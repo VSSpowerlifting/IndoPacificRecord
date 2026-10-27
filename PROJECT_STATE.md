@@ -1,28 +1,61 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Briefs narrative reform — review candidate (25 October 2026)
+## Briefs narrative reform — PR #880 integration candidate (27 October 2026)
 
-Branch `claude/ipr-briefs-narrative-reform-0bf379` (stacked on PR #805's tree). Sunday drafts
-are article-first (`core/brief_prose_standard.py`, writer/handoff/readable/DOCX/importer
-updated, legacy layouts preserved), with a narrative quality report in the private appendix
-and a counts-only line in the owner preview, plus `scripts/analyze_editor_return.py` for the
-offline Dylan-return loop. Offline tests: `tests/test_briefs_narrative_reform.py`. No live
-model call, send or publication has occurred; the first live check is the owner's. Standard:
-`docs/IPR_BRIEFS_WRITING_STANDARD.md`; demo: `docs/evidence/briefs-narrative-reform-2026-10-25/`.
+PR #880 integrates main `448991c561`, including merged #805's complete-week
+selection, digest qualifications, no-send abstention and one-call budget.
+Sunday drafts are article-first with block-level source accounting, private audit
+notes and a deterministic narrative quality report; legacy worksheets still work.
+Quality-held drafts go only to the owner with exact TXT and DOCX attachments.
+Release requires the existing explicit owner confirmation and matching TXT SHA-256.
+Word ZIP timestamps are fixed so preview/release bytes match with the same renderer
+and dependencies; the owner notice includes both attachment digests. A corrected
+TXT needs new review. The offline editor-return analyzer remains private/advisory;
+only exactly equal paragraph text counts as intact, including small actor edits.
 
-Operational acceptance (same date): owner previews attach the exact TXT and the Word copy to
-the owner only; a quality-held draft is never mailed to Dylan but sent to the owner as a
-HELD notice (identical bytes + SHA-256) and the job fails, and release is the existing
-digest-pinned `scripts.sunday_send_reviewed_packet` (no model call; article-first layout now
-accepted). Do not rerun scheduled delivery for a held week; the manual sender cannot see an
-earlier Dylan send. After Dylan edits, final publication requires reconciling changed claims
-and citations against the original records (analyzer lists them; `validate_return` and the
-unchanged appendix are structural only). Baseline note: PR #805's three offline-CI failures
-(`tests/test_preview_prototype.py`) predate this branch's merge with `main`; `main`'s
-`6acc920699` already fixes them in this tree (the three test classes pass), so PR #879 was
-not imported; its open state is separate. Exact-head CI is read after the final push.
+The integration resolves writer and documentation conflicts without changing
+published content, production DB/output, source grants, model/retry budgets,
+permissions or schedules. No paid call, SMTP, dispatch, publication or deployment.
+The initial 718-test Sunday/Briefs/editor/owner sweep found one unrelated failure:
+`test_briefs_enrichment.CompleteDelivery.test_every_committed_generated_route_meets_complete_budgets`
+reports `indonesia.html` at 127,903 HTML+CSS bytes against its 120,000-byte cap.
+That test/output are unchanged from main; baseline reproduction and final-head CI
+receipts are recorded in PR #880. Do not treat this candidate as fully verified
+until mandatory exact-head checks pass. Do not rerun scheduled delivery for a
+held week; manual release still cannot detect an earlier Dylan send.
+Standard: `docs/IPR_BRIEFS_WRITING_STANDARD.md`; offline acceptance:
+`tests/test_briefs_narrative_reform.py`. Live prose quality remains untested.
 
-## Sunday selection reform — private review candidate (25 October 2026)
+## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
+
+The first continuing thematic dossier, `dossiers/china-singapore-naval-cooperation.json`,
+is a **draft (revision 0) withheld from production**. It asks how China–Singapore
+naval cooperation is evolving and what the public record establishes about its
+scope, depth and limits. It binds 13 preserved corpus records and nine additional
+official pages that are linked only (x1–x7 MINDEF; x8–x9 Xinhua reports on China's
+defence ministry website), so corpus evidence and new source-linked research stay
+apart. A 26 October attribution check credited x8/x9 to Xinhua and R4211 to the
+defence ministry (carried by PLA Daily). After the owner's 26 October editorial review it was revised; its content digest is
+`5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e` after a final synthesis correction (the earlier `f68063c5…` and `f5afba59…` drafts were not approved). Maritime Cooperation 2026 keeps its URL, revision 2 approvals and
+source bindings. Ben approved on 26 October that it becomes the "Exercise
+case study" nested under the thematic dossier; that label appears only when the
+thematic dossier is rendered. The site gains an "Analysis" main-nav entry,
+Briefs/Dossiers tabs and a `dossiers.html` collection that lists only rendered
+dossiers. In production that is the approved Maritime dossier alone, with the
+key defining only the kinds shown. The homepage entry appears only once the
+thematic dossier is approved. Brief URLs, titles, numbering, feeds and
+citations are unchanged; the production diff is mostly the nav label "Briefs"
+→ "Analysis". Validation keeps the 10 governed warnings, and the 129 dossier
+and timeline tests pass. CI passes on `4e6dd2df7f` after the historical pages were
+regenerated for the new nav label. A review render (`--review-dossier`) was checked at
+1280/375/320 px for headings, overflow, focus, evidence disclosures, no-JS and
+print. **Not merged, deployed, published or editorially approved.** Release
+needs Ben's editorial approval of that exact digest and a source-use decision
+(see the 26 October DECISION_LOG entries). Five records have a Maritime-only
+grant; eight records and x1–x9 need new coverage. No model spend, collection or
+outside contact.
+
+## Sunday selection reform — private review candidate (26 October 2026)
 
 PR #805 is being extended from its old ten-source comparison to complete
 eligible-week discovery in the existing Sunday writer. The October 24 editorial comparison and proposed article brief are held
@@ -34,6 +67,15 @@ weighting and explicit no-send abstention. A committed production-only audit
 contains metadata/hashes, not publisher bodies or a paid manuscript. This is
 an unmerged engineering candidate, not evidence of live model/editor operation.
 Existing collection, source-use, owner, DOCX/TXT and publishing gates remain.
+Current main `71beedb3ba` is integrated. Review found and repaired lost closing
+qualifications in long digest sentences, contradictory abstention/focus
+instructions, and the automatic prompt's missing private-paraphrase caution;
+comparison/manuscript word budgets now share the existing 5,400-token ceiling.
+The frozen receipt is preserved. Historical and today's database replays both
+offer 127 sources/124 clusters; today's adds four AFP metadata-only links.
+See the contract's dated review for scope and limitations. Final merge
+readiness depends on the exact-head PR offline checks and human review;
+no paid call, email, new manuscript or publication was performed here.
 
 **Owner architecture target (19 October 2026; not yet deployed):** All desks
 should ultimately converge on one logical shared Daily article-processing,
@@ -44,6 +86,42 @@ publication is a desired end state only after specific rights/quality/spend
 approval. Briefs remain human-controlled. This does **not** change any live
 desk status, consent or rights flag. Canonical target:
 `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
+**Living Dossiers (26 October 2026): complete revision 2 candidate in PR #864.**
+The approved eight findings, five source versions, six chronology entries and
+reviewed presentation are preserved byte for byte from `99506199a1`.
+Readiness reconciles every source and returns no holds; editorial digest
+`3f774c00ec432fa64fe0a19695e3d4dde3c6b34704264bc752a268a7aa4e7039`
+still matches the independent editorial/source-use decisions. All five preserved
+originals were reread against the finding matrix; no new collection or model run.
+Current main `3478fd759d` and the existing PR #879 repair `7f6ceb6996` are
+incorporated, preserving newer Briefs, staff, Daily records and decisions.
+CI then exposed the same Python 3.9 / Ubuntu 26.04 setup failure in the
+Indonesia press-link rehearsal; only the runner lines of the two triggered
+Indonesia PR render checks are pinned to 24.04, retaining their release gates.
+The 190 affected dossier/renderer/baseline checks pass. Public-route desktop,
+375/320px mobile, keyboard disclosures, source/return links, archive discovery,
+citation copy and print were verified; captures are indexed in `design-qa.md`.
+All 2,226 routes pass delivery budgets; the dossier uses 111,195 HTML+CSS bytes
+and 6,953 JS bytes. Shared rendering and validation retain 10 governed warnings.
+The generated diff against main contains only the fifteen dossier/discovery/
+backlink/assets outputs. An unrelated renderer refresh of Philippines directory
+counts in `desks.html` was inspected and restored to main. Database matches main;
+canonical Briefs and Timeline are unchanged. Final-commit CI receipts belong in
+PR #864; no earlier-head result is substituted. No merge, deployment or public
+release was performed. Workflow: `docs/LIVING_DOSSIERS.md`.
+
+**PR #864 baseline maintenance (25 October 2026).** PR #879 pins only the
+eight failing contract jobs in seven workflows to Ubuntu 24.04 / Python 3.9;
+triggers, permissions, commands and release jobs are preserved. Main's #878
+also repaired the three baseline assertions from offline run `40240196861`;
+this maintenance retains those fixes and adds source-family, official-URL,
+source-identity and rights-decision-digest checks for withheld original titles.
+Disclosure, machine-headline exclusion, VPCP document QA and keyboard-access
+checks remain enforced. No database, generated output, source-use grant or
+dossier content changes are introduced relative to the incorporated main.
+Exact-head CI and all eight affected Actions checks are recorded in PR #879
+before handoff; merge and deployment require separate authorization.
 
 **Vietnam Government Office full-document integration (25 October 2026): 10744 published through the shared Daily.**
 The single authorized correction passed generation and independent factual review
@@ -169,6 +247,22 @@ authorized NSC link metadata and machine explanations and resolved the
 historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
+
+**Indonesia Kemhan bridge steady state (26 October 2026):** PR #877 incorporates
+main `1c204352da`, including its existing Vietnam baseline assertion repairs.
+The checked-out main database has 34 Kemhan rows; the 25 October rehearsal at
+private tip `d8859b5` had 49 eligible links (15 newer). Private scheduled collector
+run `40406030668` succeeded. Private PR #17 remains open at `5b45d521c3`;
+`KEMHAN_BRIDGE_KEY` and `KEMHAN_METADATA_BRIDGE_ENABLED` remain absent in both
+repositories (names/configuration checked read-only; credentials not read).
+The frozen baseline alone may step aside after a later release, only when its
+approved rows are fully satisfied with original provenance. Regression coverage
+includes initial admission, later signed additions, byte-identical retries,
+missing/altered frozen rows, omitted/changed released private rows, forged
+authentication, Yonif exclusion, rollback and concurrent writers. Exact-head CI
+evidence belongs in #877. No live admission, activation or publication was run.
+Activation order and prior real-data rehearsal:
+`docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
 
 **Indonesia Desk official-link lane (18 October 2026, release candidate):**
 Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.

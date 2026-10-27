@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import re
+import zipfile
 from urllib.parse import urlsplit
 
 from docx import Document
@@ -187,4 +188,11 @@ def render_editor_docx(worksheet):
 
     output = io.BytesIO()
     doc.save(output)
-    return output.getvalue()
+    # ZIP wall-clock timestamps otherwise change the Word attachment between
+    # owner preview and exact-TXT release, even though its contents are identical.
+    stable = io.BytesIO()
+    with zipfile.ZipFile(output) as source, zipfile.ZipFile(stable, "w") as target:
+        for entry in source.infolist():
+            entry.date_time = (1980, 1, 1, 0, 0, 0)
+            target.writestr(entry, source.read(entry.filename))
+    return stable.getvalue()

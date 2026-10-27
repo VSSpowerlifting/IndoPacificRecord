@@ -19,9 +19,11 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parent.parent
 DOSSIERS_DIR = ROOT / "dossiers"
 SCHEMA = 1
+IDENTIFIER = re.compile(r"[a-z][a-z0-9_]*(?:-[a-z0-9_]+)*\Z")
 SLUG = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
+EXTERNAL_ID = re.compile(r"x[1-9][0-9]{0,3}\Z")
 MARKUP = re.compile(r"<[^>]*>|[<{]%|{{|}}|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)")
 KINDS = {"issuer_statement", "documented_publication", "editorial_interpretation"}
 EVENT_BASES = {"planned", "reported", "retrospective", "uncertain"}
@@ -41,6 +43,14 @@ SOURCE_FIELDS = {
     "published_on", "url", "stored_original_sha256",
     "editorial_admission_ref", "source_use_decision_ref",
 }
+# Bounded primary-source research outside the IPR corpus: identity and link
+# only. No title, text, excerpt or translation is carried or projected.
+EXTERNAL_FIELDS = {
+    "id", "institution_id", "publisher", "language", "published_on", "url",
+    "retrieved_on", "source_use_decision_ref",
+}
+ROOT_OPTIONAL = frozenset({"approval", "case_studies", "chronology", "external_sources"})
+CLAIM_OPTIONAL = frozenset({"heading", "external_source_ids", "external_counterevidence_ids"})
 SECTION_FIELDS = {"id", "heading", "intro", "claims"}
 CLAIM_FIELDS = {
     "id", "claim_kind", "text", "source_record_ids", "event_period",
@@ -73,7 +83,7 @@ def _object(value, fields, location, optional=frozenset()):
 
 
 def _integer(value, location, *, minimum=0):
-    if type(value) is not int or value < minimum:
+    if type(value) is not int or value < minimum or value > 2**63 - 1:
         _fail(location, f"expected integer >= {minimum}")
     return value
 
@@ -84,7 +94,7 @@ def _text(value, location, *, limit=2500):
         _fail(location, f"expected trimmed nonempty plain text <= {limit} characters")
     if unicodedata.normalize("NFC", value) != value:
         _fail(location, "text must use Unicode NFC")
-    if any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in value):
+    if any(ord(c) < 32 or 127 <= ord(c) <= 159 or 0xD800 <= ord(c) <= 0xDFFF for c in value):
         _fail(location, "control characters not allowed")
     if MARKUP.search(value):
         _fail(location, "markup, links and template delimiters are not allowed")
@@ -139,6 +149,17 @@ def _record_ids(value, location, *, minimum=0):
     return values
 
 
+def _external_ids(value, location):
+    values = _list(value, location)
+    for v in values:
+        if type(v) is not str or not EXTERNAL_ID.fullmatch(v):
+            _fail(location, "expected external source identifiers x1, x2, ...")
+    _unique(values, location)
+    if values != sorted(values, key=lambda v: int(v[1:])):
+        _fail(location, "must be in canonical ascending order")
+    return values
+
+
 def _sha(value, location):
     if type(value) is not str or not HEX64.fullmatch(value):
         _fail(location, "expected lowercase 64-hex digest")
@@ -170,7 +191,7 @@ def _receipt(value, location):
 
 def dossier_content_digest(sidecar):
     """SHA-256 of every authored field except approval; never a signature."""
-    _object(sidecar, ROOT_FIELDS, "dossier", optional={"approval"})
+    _object(sidecar, ROOT_FIELDS, "dossier", optional=ROOT_OPTIONAL)
     encoded = json.dumps(
         {k: v for k, v in sidecar.items() if k != "approval"},
         ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False,
@@ -180,7 +201,7 @@ def dossier_content_digest(sidecar):
 
 def validate_dossier_shape(sc):
     """Validate exact proposed v1 data shape, not admissibility or publication."""
-    _object(sc, ROOT_FIELDS, "dossier", optional={"approval"})
+    _object(sc, ROOT_FIELDS, "dossier", optional=ROOT_OPTIONAL)
     if type(sc["dossier_schema"]) is not int or sc["dossier_schema"] != SCHEMA:
         _fail("dossier_schema", "unsupported v1 contract")
     _slug(sc["slug"], "slug")
@@ -207,7 +228,11 @@ def validate_dossier_shape(sc):
     if period_start > period_end or period_end > updated:
         _fail("scope", "invalid or not-yet-observed scope period")
     _slug_list(scope["jurisdictions"], "scope.jurisdictions", minimum=1)
-    _slug_list(scope["institutions"], "scope.institutions", minimum=1)
+    institutions = _list(scope["institutions"], "scope.institutions", minimum=1)
+    for value in institutions:
+        if type(value) is not str or len(value) > 80 or not IDENTIFIER.fullmatch(value):
+            _fail("scope.institutions", "invalid registered identifier")
+    _sorted_unique(institutions, "scope.institutions")
     for field in ("included", "excluded", "method", "collection_limits"):
         _text(scope[field], "scope." + field)
 
@@ -219,7 +244,9 @@ def validate_dossier_shape(sc):
         rid = _integer(source["record_id"], at + ".record_id", minimum=1)
         ledger_ids.append(rid)
         for key in ("desk", "source_id", "institution_id"):
-            _slug(source[key], at + "." + key)
+            value = source[key]
+            if type(value) is not str or len(value) > 80 or not IDENTIFIER.fullmatch(value):
+                _fail(at + "." + key, "invalid registered identifier")
         _text(source["language"], at + ".language", limit=30)
         if _day(source["published_on"], at + ".published_on") > updated:
             _fail(at, "source publication date follows this version")
@@ -229,6 +256,27 @@ def validate_dossier_shape(sc):
         _receipt(source["source_use_decision_ref"], at + ".source_use_decision_ref")
     _sorted_unique(ledger_ids, "sources.record_ids")
     allowed_ids = set(ledger_ids)
+
+    external_ids = []
+    for i, source in enumerate(_list(sc.get("external_sources", []), "external_sources", maximum=100)):
+        at = f"external_sources[{i}]"
+        _object(source, EXTERNAL_FIELDS, at)
+        external_ids.append(source["id"])
+        value = source["institution_id"]
+        if type(value) is not str or len(value) > 80 or not IDENTIFIER.fullmatch(value):
+            _fail(at + ".institution_id", "invalid registered identifier")
+        _text(source["publisher"], at + ".publisher", limit=160)
+        _text(source["language"], at + ".language", limit=30)
+        published = _day(source["published_on"], at + ".published_on")
+        retrieved = _day(source["retrieved_on"], at + ".retrieved_on")
+        if published > retrieved or retrieved > updated:
+            _fail(at, "source must be published and retrieved before this version")
+        _url(source["url"], at + ".url")
+        _receipt(source["source_use_decision_ref"], at + ".source_use_decision_ref")
+    _external_ids(external_ids, "external_sources.ids")
+    if "external_sources" in sc and not external_ids:
+        _fail("external_sources", "omit the field rather than leaving it empty")
+    allowed_external = set(external_ids)
 
     sections = _list(sc["sections"], "sections", minimum=2, maximum=30)
     section_ids = []
@@ -242,16 +290,28 @@ def validate_dossier_shape(sc):
         claims = _list(section["claims"], at + ".claims", minimum=1, maximum=100)
         for j, claim in enumerate(claims):
             where = f"{at}.claims[{j}]"
-            _object(claim, CLAIM_FIELDS, where)
+            _object(claim, CLAIM_FIELDS, where, optional=CLAIM_OPTIONAL)
+            if "heading" in claim:
+                _text(claim["heading"], where + ".heading", limit=180)
             all_claim_ids.append(_slug(claim["id"], where + ".id"))
             if type(claim["claim_kind"]) is not str or claim["claim_kind"] not in KINDS:
                 _fail(where + ".claim_kind", "invalid attribution class")
             _text(claim["text"], where + ".text")
             _text(claim["limits"], where + ".limits")
-            positive = _record_ids(claim["source_record_ids"], where + ".source_record_ids", minimum=1)
+            positive = _record_ids(claim["source_record_ids"], where + ".source_record_ids")
             contrary = _record_ids(claim["counterevidence_ids"], where + ".counterevidence_ids")
             if not set(positive + contrary) <= allowed_ids:
                 _fail(where, "claim cites a record absent from the source ledger")
+            ext_positive = _external_ids(claim.get("external_source_ids", []), where + ".external_source_ids")
+            ext_contrary = _external_ids(claim.get("external_counterevidence_ids", []),
+                                         where + ".external_counterevidence_ids")
+            for key in ("external_source_ids", "external_counterevidence_ids"):
+                if key in claim and not claim[key]:
+                    _fail(where + "." + key, "omit the field rather than leaving it empty")
+            if not set(ext_positive + ext_contrary) <= allowed_external:
+                _fail(where, "claim cites an external source absent from the external ledger")
+            if not positive and not ext_positive:
+                _fail(where, "claim requires at least one supporting source")
             event = claim["event_period"]
             if event is not None:
                 _object(event, EVENT_FIELDS, where + ".event_period")
@@ -280,6 +340,14 @@ def validate_dossier_shape(sc):
     _unique(dispute_ids, "disagreements")
     _slug_list(sc["related_briefs"], "related_briefs")
     _slug_list(sc["related_timelines"], "related_timelines")
+    if "case_studies" in sc:
+        # Declared on the thematic dossier only; the case study never claims a parent.
+        if sc["slug"] in _slug_list(sc["case_studies"], "case_studies", minimum=1):
+            _fail("case_studies", "a dossier cannot be its own case study")
+    if "chronology" in sc:
+        chronology = _object(sc["chronology"], {"timeline_slug", "content_sha256"}, "chronology")
+        _slug(chronology["timeline_slug"], "chronology.timeline_slug")
+        _sha(chronology["content_sha256"], "chronology.content_sha256")
 
     changes = _list(sc["changes"], "changes", maximum=200)
     if len(changes) != revision:

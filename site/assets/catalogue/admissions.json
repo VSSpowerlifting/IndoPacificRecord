@@ -496,6 +496,35 @@
       "review_note": "Benjamin Yang approved the exact article image and catalogue crop on October 18, 2026; docs/JAPAN_BRIEF_RELEASE_2026-10-18.md records the actual acceptance.",
       "creator_native": "",
       "creator_native_lang": ""
+    },
+    {
+      "alt": "HMS Tamar, a Royal Navy patrol ship with hull number P233 and grey geometric camouflage, underway on calm water below forested hills.",
+      "caption": "HMS Tamar (P233) sailing into Puerto Princesa, Philippines, during Pacific Partnership 2022, 11 August 2022.",
+      "date_note": "Context image from Pacific Partnership 2022, not photographed at Bersama Lima 2026.",
+      "creator": "Jacob Woitzel, U.S. Navy",
+      "license": "Public domain",
+      "license_url": "https://www.dvidshub.net/about/copyright",
+      "source_page": "https://www.dvidshub.net/image/7379876/hms-tamar-p233-sails-into-puerto-princesa-pacific-partnership-2022",
+      "source_label": "DVIDS",
+      "credit": "Jacob Woitzel, U.S. Navy · Public domain · via DVIDS",
+      "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+      "depicts": "context",
+      "cover_treatment": "gradient",
+      "issue": 20,
+      "week_ending": "2026-10-24",
+      "status": "admitted",
+      "source_file": "site/assets/editorial/derivatives/hms-tamar-puerto-princesa-2022-1600.jpg",
+      "source_manifest_id": "hms-tamar-puerto-princesa-2022",
+      "focal": "68% 70%",
+      "served": "assets/catalogue/media/no-20-hms-tamar-puerto-princesa-2022.jpg",
+      "width": 720,
+      "height": 480,
+      "source_sha256": "759aee91335f72c37a5d0befb7c865f201ec75ab4a3f03481ba45470155f9477",
+      "served_sha256": "1806aa6b63d3e82a7a906d54fcee50635e40f780b2ea5457488d62e380aabbfc",
+      "change_note": "Cropped and resized by IPR; IPR gradient overlaid.",
+      "review_note": "Benjamin Yang approved the exact HMS Tamar context cover on October 25, 2026 (DECISION_LOG 2026-10-25; docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md).",
+      "creator_native": "",
+      "creator_native_lang": ""
     }
   ]
 }

@@ -92,3 +92,31 @@ class CompleteDelivery(unittest.TestCase):
             values = verify(root)
             self.assertEqual(values['routes_checked'], 3)
             self.assertEqual([v['route'] for v in values['failures']], ['record/large.html', 'record/scripts.html'])
+
+    def test_dossier_allowance_covers_only_individual_dossier_pages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for folder in ('dossier/nested', 'record', 'briefs', 'the-pla-watch/posts'):
+                (root / folder).mkdir(parents=True)
+            # Linked CSS counts toward the dossier's combined allowance.
+            (root / 'dossiers.css').write_text('x' * 50000)
+            link = '<link rel="stylesheet" href="../dossiers.css">'
+            (root / 'dossier/within.html').write_text(link + 'x' * (200000 - 50000 - len(link)))
+            (root / 'dossier/over.html').write_text(link + 'x' * (200001 - 50000 - len(link)))
+            (root / 'dossier/plain.html').write_text('x' * 199999)
+            (root / 'dossier/large.html').write_text('x' * 200001)
+            for route in ('dossiers.html', 'dossier/index.html', 'dossier/nested/page.html', 'record/1.html',
+                          'briefs/brief.html', 'the-pla-watch/posts/week.html'):
+                (root / route).write_text('x' * 120001)
+            (root / 'dossier/scripts.html').write_text('<script src="../a.js"></script>')
+            (root / 'a.js').write_text('x' * 10001)
+            values = verify(root)
+            failed = {v['route']: v['html_css_limit'] for v in values['failures']}
+            self.assertEqual(failed, {'briefs/brief.html': 120000, 'dossier/index.html': 120000,
+                                      'dossier/large.html': 200000, 'dossier/nested/page.html': 120000,
+                                      'dossier/over.html': 200000, 'dossier/scripts.html': 200000,
+                                      'dossiers.html': 120000, 'record/1.html': 120000,
+                                      'the-pla-watch/posts/week.html': 120000})
+            limits = {v['route']: (v['html_css_limit'], v['js_limit']) for v in values['routes']}
+            self.assertEqual(limits['dossier/within.html'], (200000, 10000))
+            self.assertEqual(limits['dossier/plain.html'], (200000, 10000))

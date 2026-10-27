@@ -802,6 +802,7 @@ class OperationalGateTests(unittest.TestCase):
         self.assertEqual(txt, self.clean.encode("utf-8"))
         digest = hashlib.sha256(txt).hexdigest()
         self.assertIn(digest, message.get_body(("plain",)).get_content())
+        self.assertIn(hashlib.sha256(docx).hexdigest(), message.get_body(("plain",)).get_content())
         self.assertIn("NOT delivered to Dylan", message.get_body(("plain",)).get_content())
         text = docx_text(docx)
         self.assertIn("The Tavaran Navy has spent three weeks", text)
@@ -864,8 +865,10 @@ class OperationalGateTests(unittest.TestCase):
         NY = reviewed.NY
         now = datetime(2026, 10, 25, 12, 0, tzinfo=NY)
         # 1. The held notice reaches only the owner.
-        held_sent, _ = self.run_send(self.held)
+        with patch("zipfile.time.localtime", return_value=(2026, 10, 25, 12, 0, 0, 6, 298, 0)):
+            held_sent, _ = self.run_send(self.held)
         saved = next(v for k, v in attachments(held_sent[0]).items() if k.endswith(".txt"))
+        saved_docx = next(v for k, v in attachments(held_sent[0]).items() if k.endswith(".docx"))
         digest = hashlib.sha256(saved).hexdigest()
         self.assertEqual(saved, self.held.encode("utf-8"))
         with tempfile.TemporaryDirectory() as tmp:
@@ -890,13 +893,16 @@ class OperationalGateTests(unittest.TestCase):
                         reviewed.handoff(path, LATER_WEEK, send=True, owner_confirmed=True, now=now)
                 self.assertEqual(released, [])
                 # 3. Confirmed exact digest: exactly one editor email, same bytes.
-                receipt = reviewed.handoff(path, LATER_WEEK, send=True, owner_confirmed=True, now=now)
+                with patch("zipfile.time.localtime", return_value=(2026, 10, 27, 12, 0, 0, 1, 300, 0)):
+                    receipt = reviewed.handoff(path, LATER_WEEK, send=True, owner_confirmed=True, now=now)
             self.assertTrue(receipt["email_sent"])
             self.assertFalse(receipt["automated_model_called"])
             self.assertEqual(len(released), 1)
             self.assertEqual(self.recipients(released[0]), {"dylan@example.com"})
             sent_txt = next(v for k, v in attachments(released[0]).items() if k.endswith(".txt"))
             self.assertEqual(hashlib.sha256(sent_txt).hexdigest(), digest)
+            sent_docx = next(v for k, v in attachments(released[0]).items() if k.endswith(".docx"))
+            self.assertEqual(sent_docx, saved_docx)
 
     def test_reviewed_sender_accepts_article_layout_and_still_refuses_malformed_files(self):
         from scripts import sunday_send_reviewed_packet as reviewed
@@ -966,6 +972,15 @@ class OperationalGateTests(unittest.TestCase):
                                 "The navy has published an extra 40 pages.")
         rec = analyzer.analyze(legacy, edited)["reconciliation"]
         self.assertTrue(any(i["kind"] == "edited_paragraphs" for i in rec["items"]))
+
+    def test_small_actor_change_still_requires_cited_block_reconciliation(self):
+        packet = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)
+        edited = packet.replace("The Tavaran Navy has spent", "The Tavaran Army has spent", 1)
+        result = analyzer.analyze(packet, edited)
+        block = next(b for b in result["cited_blocks"] if b["block"] == 1)
+        self.assertNotEqual(block["verdict"], "intact")
+        self.assertTrue(any(i["kind"] == "cited_block" and i["where"] == "block 1"
+                            for i in result["reconciliation"]["items"]))
 
     def test_word_importer_states_that_factual_review_has_not_happened(self):
         packet = render_packet(scaffold(), manuscript=article_manuscript(), as_of=SAT)

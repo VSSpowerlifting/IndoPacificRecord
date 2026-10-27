@@ -131,6 +131,13 @@ class TestTheMastheadIsTheNewIdentity(IdentityCase):
                 # description is the editor's dek, not the site tagline.
                 source = REPO_ROOT / "briefs" / (Path(name).stem + ".json")
                 description = json.loads(source.read_text(encoding="utf-8"))["dek"]
+            elif name.startswith("dossier/"):
+                source = REPO_ROOT / "dossiers" / (Path(name).stem + ".json")
+                description = json.loads(source.read_text(encoding="utf-8"))["dek"]
+            elif name == "dossiers.html":
+                # The Dossiers collection describes what a dossier is (2026-10-26).
+                description = ("Continuing research questions built from preserved official records "
+                               "and source-linked research, with findings, counterevidence and revision history.")
             elif name == "team.html":
                 description = "Meet the team behind Indo-Pacific Record's source-grounded defense and security research."
             elif name.startswith("authors/"):
@@ -193,7 +200,7 @@ class TestTheMastheadIsTheNewIdentity(IdentityCase):
         # Analysis), the collection (Desks, Sources, Coverage) and the method
         # (Methodology, About). "Records" is the destination formerly labelled
         # "Atlas"; its address is unchanged.
-        self.assertEqual(labels, ["Records", "Briefs", "Desks", "Sources",
+        self.assertEqual(labels, ["Records", "Analysis", "Desks", "Sources",
                                   "Coverage", "Methodology", "Team", "About"])
 
 

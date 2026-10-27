@@ -83,6 +83,26 @@ class DiscoveryContracts(unittest.TestCase):
                 'The exercise marks the inaugural deployment of land unmanned systems. ')
         self.assertIn('inaugural deployment', ' '.join(content_digest(body)['excerpts']))
 
+    def test_long_sentence_keeps_closing_limitation_as_an_exact_anchor(self):
+        body = ('The unit completed an inaugural test involving ' +
+                'several supporting units and their field equipment ' * 7 +
+                '; however, this was a simulation and no operational capability was fielded.')
+        digest = content_digest(body)
+        self.assertIn('inaugural test', ' '.join(digest['excerpts']))
+        self.assertIn('no operational capability was fielded', ' '.join(digest['excerpts']))
+        self.assertTrue(all(excerpt in body for excerpt in digest['excerpts']))
+        self.assertGreater(digest['omitted_body_chars'], 0)
+        self.assertLessEqual(sum(map(len, digest['excerpts'])), 360)
+
+    def test_long_sentence_retains_a_cue_after_its_preamble(self):
+        body = ('Background detail about participants and equipment, ' * 8 +
+                'an inaugural capability trial, ' + 'with supporting personnel, ' * 12 +
+                'remains a simulation without operational validation.')
+        digest = content_digest(body)
+        self.assertIn('inaugural capability trial', ' '.join(digest['excerpts']))
+        self.assertIn('without operational validation', ' '.join(digest['excerpts']))
+        self.assertTrue(all(excerpt in body for excerpt in digest['excerpts']))
+
     def test_high_volume_week_offers_all_content_including_stronger_singapore(self):
         rows = [source(i) for i in range(1,41)] + [source(99,'singapore')]
         chosen, audit = inventory(rows)
@@ -183,7 +203,9 @@ class DiscoveryContracts(unittest.TestCase):
         outcome=decision([option],None)
         fake=SimpleNamespace(messages=SimpleNamespace(stream=lambda **kw:nullcontext(SimpleNamespace(
             get_final_message=lambda:SimpleNamespace(stop_reason='tool_use',content=[SimpleNamespace(
-                type='tool_use',name='compose_editorial_draft',input={'story_selection':outcome})])))))
+                type='tool_use',name='compose_editorial_draft',input={
+                    **dict.fromkeys(valid_manuscript(), ''), 'story_selection':outcome,
+                    'citations': {k: [] for k in valid_manuscript()['citations']}})])))))
         with patch('scripts.sunday_briefs_auto_writer.choose_evidence',return_value=chosen):
             with self.assertRaises(NoQualifyingStory):
                 compose(sidecar(rows),SAT,client=fake,automatic_story_selection=True)
@@ -214,5 +236,6 @@ class DiscoveryContracts(unittest.TestCase):
         r=source(1);p=discovery_packet([(r,r['text_original'])],[])
         report=receipt(p)
         self.assertEqual(report['source_pins'][0]['id'],1)
+        self.assertIn('omitted_body_chars', report['source_pins'][0])
         self.assertNotIn(r['text_original'],json.dumps(report))
         self.assertIs(report['publication_authorized'],False)

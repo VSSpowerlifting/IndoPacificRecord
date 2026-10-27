@@ -63,6 +63,8 @@ def real_brief(sidecar: dict) -> dict:
 
 
 def build(out: Path, **kw) -> dict:
+    # Synthetic Brief collections do not include the live dossier's related Brief.
+    kw.setdefault("dossiers_dir", out.parent / "no-dossiers")
     return gp.build(out, gp.PUBLIC_TITLE, TRACKED_DB,
                     snapshot=gp.snapshot_from_corpus(TRACKED_DB), **kw)
 
