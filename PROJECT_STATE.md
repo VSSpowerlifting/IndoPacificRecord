@@ -1,32 +1,40 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Briefs narrative reform — PR #880 integration candidate (27 October 2026)
+## Briefs narrative reform — PR #880 compatibility candidate (27 October 2026)
 
-PR #880 integrates main `8b69d1f2c6`, including merged #805's complete-week
-selection, digest qualifications, no-send abstention and 5,400-token/one-call budget.
-Sunday drafts are article-first with block-level source accounting, private audit
-notes and a deterministic narrative quality report; legacy worksheets still work.
-Quality-held drafts go only to the owner with exact TXT and DOCX attachments.
-Release requires the existing explicit owner confirmation and matching TXT SHA-256.
-Word ZIP timestamps are fixed so preview/release bytes match with the same renderer
-and dependencies; the owner notice includes both attachment digests. A corrected
-TXT needs new review. The offline editor-return analyzer remains private/advisory;
-only exactly equal paragraph text counts as intact, including small actor edits.
+PR #880 integrates main `8b69d1f2c6`, including #805's complete-week selection,
+source qualifications, no-send abstention and 5,400-token/one-call budget.
+Article-first drafts retain block-level citations, a private audit and narrative
+quality report. Held drafts reach only the owner with exact TXT and deterministic
+DOCX attachments; release requires explicit owner confirmation and matching TXT
+SHA-256. The offline return analyzer requires source reconciliation for changed
+text, including small actor edits. Human factual/editorial approval stays separate.
 
-The current-main reconciliation resolves only a status-document conflict and
-preserves #889's Indonesia delivery-budget repair, #887's Dossiers presentation
-and #885's 45-minute CI budget. No generated output, production DB, source grants,
-model/retry budgets, permissions or schedules differ from main because of this
-reform. No paid call, SMTP, dispatch, publication or deployment was performed.
-The earlier CI failure was the Indonesia budget defect now repaired by #889;
-all 238 affected checks pass locally. Mandatory CI must pass at the reconciled
-exact head before merge consideration. Final-head receipts belong in PR #880. Do not rerun scheduled
-delivery for a held week; manual release still cannot detect an earlier Dylan send.
-Standard: `docs/IPR_BRIEFS_WRITING_STANDARD.md`; offline acceptance:
-`tests/test_briefs_narrative_reform.py`. Live prose quality remains untested.
-The selection contract remains `docs/BRIEFS_WEEKLY_SELECTION.md`; the October 24
-assessment and proposed article remain outside the public repository, and the
-delivered TXT is unchanged. Dylan has not been sent a replacement.
+Engineering head `68466a4b94` passed 8,125 mandatory CI tests (15 skips), all seven
+Sunday workflows, actual Chromium launch, isolated render, validation (10 governed
+warnings) and preservation checks. Its separately authorized first live trial
+then failed before generation: the provider rejected `maxItems` in the strict
+selection schema. No manuscript or usage receipt was returned; private trial
+inputs and diagnostics remain outside the repository. Live prose quality is
+therefore still unestablished.
+
+The compatibility repair removes all 15 occurrences of the unsupported
+`maxItems`, `uniqueItems`, `minimum` and `maximum` keywords from the nested
+API-facing selection schema, retaining their rules as descriptions and unchanged
+Python validation. Recursive tests capture the actual assembled request in all
+eight combinations of automatic/ordinary selection, article/legacy format and
+supplemental/no-research input. Negative tests preserve count, uniqueness, score,
+source-identity, abstention and citation enforcement. All 145 focused tests pass;
+mandatory CI must pass at the new exact head, with receipts in PR #880.
+
+This repair changes no model/request budget, strict-tool setting, source grant,
+schedule, DB or generated output, and makes no paid call, retry, email or workflow
+dispatch. No merge/deployment or second live trial is authorized. Another live
+trial requires separate owner approval. Standards: `docs/IPR_BRIEFS_WRITING_STANDARD.md`
+and `docs/BRIEFS_WEEKLY_SELECTION.md`. The private October 24 assessment, delivered
+TXT and frozen source-selection receipt remain unchanged.
+Do not rerun scheduled delivery for a held week; manual release still cannot
+detect an earlier Dylan send.
 
 ## PR offline timeout maintenance — review candidate (26 October 2026)
 
