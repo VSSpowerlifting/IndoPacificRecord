@@ -31,7 +31,7 @@
 {# Head scripts, declared per page rather than inherited by all of them. The
    week shards carry a contract that they ship no <script> at all, and the
    record pages carry no bytes for behaviour they do not have. #}
-{% if dossier is defined %}<link rel="stylesheet" href="{{ root }}dossier-shell.css">{% elif record is not defined and brief is not defined and not timeline_surface | default(false) and page != 'index.html' %}<link rel="stylesheet" href="{{ root }}support.css">{% endif %}
+{% if dossier is defined %}<link rel="stylesheet" href="{{ root }}dossier-shell.css">{% elif record is not defined and brief is not defined and not timeline_surface | default(false) and page != 'index.html' %}<link rel="stylesheet" href="{{ root }}{{ support_stylesheet | default('support.css') }}">{% endif %}
 <link rel="stylesheet" href="{{ root }}surfaces.css">
 {% block head_scripts %}{% endblock %}
 </head>
