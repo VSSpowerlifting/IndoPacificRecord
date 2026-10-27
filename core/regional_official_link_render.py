@@ -21,6 +21,7 @@ DESK_TO_FAMILY = {
     "philippines": "ph_afp_articles",
     "indonesia": "id_kemhan_news",
     "vietnam": "vn_mps_foreign_affairs_vi",
+    "japan": "jp_mod_news_ja",
 }
 NEUTRAL_LABELS = {
     "ph_afp_articles": "AFP official source",
@@ -49,6 +50,9 @@ def read_live_links(conn: sqlite3.Connection, desk: str):
     """Rows are drawn only from the production admission table, never shadow."""
     need(desk in DESK_TO_FAMILY, "not_a_supported_regional_live_desk")
     family = DESK_TO_FAMILY[desk]
+    if desk == "japan":
+        from core.japan_mod_official_links import read_public_links
+        return read_public_links(conn)
     if desk == "vietnam":
         return _read_vietnam_links(conn)
     schema = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % TABLE)}
@@ -182,7 +186,7 @@ def render_live_links(conn: sqlite3.Connection, desk: str) -> str:
     if not rows:
         return ""
     label = {"philippines": "Philippines AFP and NSC", "indonesia": "Indonesia Kemhan",
-             "vietnam": "Vietnam ministries"}[desk]
+             "vietnam": "Vietnam ministries", "japan": "Japan MOD"}[desk]
     lines = [
         '<section class="regional-official-source-links" '
         'data-source-scope="official-link-only" '
@@ -197,10 +201,12 @@ def render_live_links(conn: sqlite3.Connection, desk: str) -> str:
         ident = html.escape(r["source_identity"], quote=True)
         day = html.escape(r["publisher_posted_date"], quote=True)
         safe_label = html.escape(r["label"], quote=True)
+        date_kind = html.escape(r.get("date_kind", ""), quote=True)
+        date_prefix = date_kind + " " if date_kind else ""
         lines.append(
             '<li data-official-source-id="%s"><a href="%s" rel="noopener noreferrer">'
-            '%s</a> <time datetime="%s">%s</time></li>'
-            % (ident, url, safe_label, day, day))
+            '%s</a> %s<time datetime="%s">%s</time></li>'
+            % (ident, url, safe_label, date_prefix, day, day))
     lines += ["</ul>", "</section>"]
     return "\n".join(lines)
 

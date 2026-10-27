@@ -1,5 +1,31 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Japan MOD news official links — source use approved, release held (27 October 2026)
+
+Prepared an off-by-default integration from the existing `shadow/jp-mod`
+collector into the shared Daily, regional metadata table, desk and archive/search
+renderer, existing Pages writer and exact readback. Real scheduled run
+`40433531306-1` and its preserved SQLite hash support seven successfully retrieved
+news-feed PDF metadata candidates. Challenged and unverified records stay held;
+dates are explicitly RSS pubDate, not verified document issue dates. Ben approved
+the narrow standing source-use policy on 27 October; its true authorization flag
+references that actual `DECISION_LOG.md` decision. He explicitly withheld merge,
+intake activation, manual workflow dispatch and deployment pending verification
+and a separate release decision. The existing Daily activation variable remains
+unset, and the production admission CLI independently enforces it. No production
+DB/output, collector, schedule, model spending or public content was changed. Private
+rehearsal proved seven admissions, zero on retry, byte-identical retry state and
+preservation of all non-Japan rows across 24 tables. The precise owner decision,
+evidence, validation limits and release procedure are in
+`docs/engineering/JAPAN_MOD_OFFICIAL_LINK_PRODUCTION_2026-10-27.md`.
+The prior revision's 8,080-test full run had only the pre-existing Indonesia page
+budget failure remaining. Current main `8b69d1f2c6` brings the separately merged
+#889 budget fix, #887 dossier presentation and #885 CI timeout maintenance into
+this branch. Their content and safeguards are preserved. Four triggered read-only
+contract jobs are pinned to Ubuntu 24.04 for Python 3.9 compatibility, retaining
+their triggers, permissions and release boundaries. Final-head CI and private
+admission/readback evidence are recorded in PR #888; no release is authorized.
+
 ## PR offline timeout maintenance — review candidate (26 October 2026)
 
 The PR offline job budget increases from 35 to 45 minutes. Run

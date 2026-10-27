@@ -101,7 +101,7 @@ class RegionalRenderTests(unittest.TestCase):
         insert(cx)
         with self.assertRaisesRegex(RegionalRenderHold,
                                     "not_a_supported_regional_live_desk"):
-            render_live_links(cx,"japan")
+            render_live_links(cx,"unknown-desk")
 
     def test_render_does_not_modify_underlying_sqlite(self):
         cx=db()

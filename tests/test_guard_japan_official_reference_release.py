@@ -18,6 +18,15 @@ def example_html():
 
 
 class JapanOfficialReferenceReleaseTests(unittest.TestCase):
+    def test_live_feed_is_separate_from_frozen_historical_navigation(self):
+        html = example_html().replace("All Japan production records remain held",
+            "Japan original-text production records remain held").replace(
+            "Japan remains shadow-only; no production or model use is authorized",
+            "The news-feed official-link metadata service is separate; original-text and model use remain held")
+        html += ('<section class="regional-official-live-links"><a href="' + MOD_LINKS[0]
+                 + '">Separate admitted record</a></section>')
+        self.assertEqual(validate_japan_release_html(html), [])
+
     def test_all_thirteen_exact_reviewed_links_pass(self):
         self.assertEqual(len(JCG_LINKS), 6)
         self.assertEqual(len(MOD_LINKS), 7)
