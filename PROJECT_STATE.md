@@ -1,33 +1,42 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
+## China–Singapore Naval Cooperation thematic dossier — live (27 October 2026)
 
-The first continuing thematic dossier, `dossiers/china-singapore-naval-cooperation.json`,
-is a **draft (revision 0) withheld from production**. It asks how China–Singapore
+The first continuing thematic dossier, `dossiers/china-singapore-naval-cooperation.json`
+(revision 1, reviewed 26 October), is published at
+`/dossier/china-singapore-naval-cooperation.html`. It asks how China–Singapore
 naval cooperation is evolving and what the public record establishes about its
-scope, depth and limits. It binds 13 preserved corpus records and nine additional
-official pages that are linked only (x1–x7 MINDEF; x8–x9 Xinhua reports on China's
-defence ministry website), so corpus evidence and new source-linked research stay
-apart. A 26 October attribution check credited x8/x9 to Xinhua and R4211 to the
-defence ministry (carried by PLA Daily). After the owner's 26 October editorial review it was revised; its content digest is
-`5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e` after a final synthesis correction (the earlier `f68063c5…` and `f5afba59…` drafts were not approved). Maritime Cooperation 2026 keeps its URL, revision 2 approvals and
-source bindings. Ben approved on 26 October that it becomes the "Exercise
-case study" nested under the thematic dossier; that label appears only when the
-thematic dossier is rendered. The site gains an "Analysis" main-nav entry,
-Briefs/Dossiers tabs and a `dossiers.html` collection that lists only rendered
-dossiers. In production that is the approved Maritime dossier alone, with the
-key defining only the kinds shown. The homepage entry appears only once the
-thematic dossier is approved. Brief URLs, titles, numbering, feeds and
-citations are unchanged; the production diff is mostly the nav label "Briefs"
-→ "Analysis". Validation keeps the 10 governed warnings, and the 129 dossier
-and timeline tests pass. CI passes on `4e6dd2df7f` after the historical pages were
-regenerated for the new nav label. A review render (`--review-dossier`) was checked at
-1280/375/320 px for headings, overflow, focus, evidence disclosures, no-JS and
-print. **Not merged, deployed, published or editorially approved.** Release
-needs Ben's editorial approval of that exact digest and a source-use decision
-(see the 26 October DECISION_LOG entries). Five records have a Maritime-only
-grant; eight records and x1–x9 need new coverage. No model spend, collection or
-outside contact.
+scope, depth and limits. It binds 13 preserved corpus records and nine official
+pages that are linked only (x1–x7 MINDEF; x8–x9 Xinhua reports on China's
+defence ministry website). Ben approved the manuscript at content digest
+`5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e` and its
+source use (attribution, dates, independent IPR paraphrase and links only; no
+originals, translations, excerpts or media). See the 26 October DECISION_LOG
+entries. Maritime Cooperation 2026 keeps its URL and revision 2 approvals and
+now appears as the "Exercise case study" nested under the thematic dossier. The
+site has an "Analysis" main-nav entry, Briefs/Dossiers tabs, a `dossiers.html`
+collection and a homepage entry for the dossier.
+
+Individual dossier pages have an owner-authorized 200,000-byte HTML+CSS budget
+(DECISION_LOG 2026-10-26). This page delivers 193,118 bytes, leaving about
+6.9 KB of headroom. Every other route keeps its existing cap.
+
+**Release.** PR #884 was merged on 27 October at 00:02Z as `9e9dc2c70eb4`. The
+merge was pinned to head `553e9d5bdd4c`, on which every required check passed.
+The "Deploy Rendered Output" run 40423807264 published gh-pages `0481f2d810c0`,
+and the Pages build completed. These pages were verified live over HTTPS:
+
+- `/dossier/china-singapore-naval-cooperation.html`
+- `dossiers.html`
+- `/dossier/maritime-cooperation-2026.html`
+- `/briefs/maritime-cooperation-2026.html`
+- the homepage
+- `analysis.html`
+
+Each was byte-identical to the merged output and checked at 1280 and 375 px:
+no overflow, no console errors and no failed requests. All 29 internal links
+on the dossier resolved. A scheduled Daily redeploy that includes the dossier
+had not yet been observed at the time of release.
 
 ## Sunday selection reform — private review candidate (26 October 2026)
 
