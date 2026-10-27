@@ -203,7 +203,7 @@ PHILIPPINES_PROFILE = ScreeningProfile(
     prompt_version="ph-relevance-v1", build_system_prompt=system_prompt,
     build_analysis_messages=analysis_messages,
     build_analysis_system_prompt=system_prompt,
-    analysis_prompt_version="ph-analysis-v12", categories=CATEGORIES,
+    analysis_prompt_version="ph-analysis-v13", categories=CATEGORIES,
 )
 
 _PROFILES: Dict[str, ScreeningProfile] = {

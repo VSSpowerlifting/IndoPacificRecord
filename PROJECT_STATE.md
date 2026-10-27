@@ -2,8 +2,8 @@
 
 ## Briefs narrative reform — PR #880 integration candidate (27 October 2026)
 
-PR #880 integrates main `448991c561`, including merged #805's complete-week
-selection, digest qualifications, no-send abstention and one-call budget.
+PR #880 integrates main `8b69d1f2c6`, including merged #805's complete-week
+selection, digest qualifications, no-send abstention and 5,400-token/one-call budget.
 Sunday drafts are article-first with block-level source accounting, private audit
 notes and a deterministic narrative quality report; legacy worksheets still work.
 Quality-held drafts go only to the owner with exact TXT and DOCX attachments.
@@ -13,18 +13,31 @@ and dependencies; the owner notice includes both attachment digests. A corrected
 TXT needs new review. The offline editor-return analyzer remains private/advisory;
 only exactly equal paragraph text counts as intact, including small actor edits.
 
-The integration resolves writer and documentation conflicts without changing
-published content, production DB/output, source grants, model/retry budgets,
-permissions or schedules. No paid call, SMTP, dispatch, publication or deployment.
-The initial 718-test Sunday/Briefs/editor/owner sweep found one unrelated failure:
-`test_briefs_enrichment.CompleteDelivery.test_every_committed_generated_route_meets_complete_budgets`
-reports `indonesia.html` at 127,903 HTML+CSS bytes against its 120,000-byte cap.
-That test/output are unchanged from main; baseline reproduction and final-head CI
-receipts are recorded in PR #880. Do not treat this candidate as fully verified
-until mandatory exact-head checks pass. Do not rerun scheduled delivery for a
-held week; manual release still cannot detect an earlier Dylan send.
+The current-main reconciliation resolves only a status-document conflict and
+preserves #889's Indonesia delivery-budget repair, #887's Dossiers presentation
+and #885's 45-minute CI budget. No generated output, production DB, source grants,
+model/retry budgets, permissions or schedules differ from main because of this
+reform. No paid call, SMTP, dispatch, publication or deployment was performed.
+The earlier CI failure was the Indonesia budget defect now repaired by #889;
+all 238 affected checks pass locally. Mandatory CI must pass at the reconciled
+exact head before merge consideration. Final-head receipts belong in PR #880. Do not rerun scheduled
+delivery for a held week; manual release still cannot detect an earlier Dylan send.
 Standard: `docs/IPR_BRIEFS_WRITING_STANDARD.md`; offline acceptance:
 `tests/test_briefs_narrative_reform.py`. Live prose quality remains untested.
+The selection contract remains `docs/BRIEFS_WEEKLY_SELECTION.md`; the October 24
+assessment and proposed article remain outside the public repository, and the
+delivered TXT is unchanged. Dylan has not been sent a replacement.
+
+## PR offline timeout maintenance — review candidate (26 October 2026)
+
+The PR offline job budget increases from 35 to 45 minutes. Run
+[40346079812 attempt 1](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40346079812/attempts/1)
+hit the limit after a successful 12m19s Chromium installation, 21m52s suite,
+isolated render, validation and preservation checks. The same feature head
+passed attempt 2 in 20 minutes with a 24-second install; evidence supports
+setup variance rather than a test hang. All existing verification steps,
+conditions and security gates are unchanged. Final-head CI evidence belongs
+in the maintenance PR; this candidate does not authorize merge or deployment.
 
 ## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
 
@@ -54,28 +67,6 @@ needs Ben's editorial approval of that exact digest and a source-use decision
 (see the 26 October DECISION_LOG entries). Five records have a Maritime-only
 grant; eight records and x1–x9 need new coverage. No model spend, collection or
 outside contact.
-
-## Sunday selection reform — private review candidate (26 October 2026)
-
-PR #805 is being extended from its old ten-source comparison to complete
-eligible-week discovery in the existing Sunday writer. The October 24 editorial comparison and proposed article brief are held
-outside the public repository for Ben's private review. The delivered TXT
-remains unchanged and Dylan has not been sent a replacement.
-The [selection contract](docs/BRIEFS_WEEKLY_SELECTION.md) describes source
-content digests, duplicate grouping, quality floors, optional connection
-weighting and explicit no-send abstention. A committed production-only audit
-contains metadata/hashes, not publisher bodies or a paid manuscript. This is
-an unmerged engineering candidate, not evidence of live model/editor operation.
-Existing collection, source-use, owner, DOCX/TXT and publishing gates remain.
-Current main `71beedb3ba` is integrated. Review found and repaired lost closing
-qualifications in long digest sentences, contradictory abstention/focus
-instructions, and the automatic prompt's missing private-paraphrase caution;
-comparison/manuscript word budgets now share the existing 5,400-token ceiling.
-The frozen receipt is preserved. Historical and today's database replays both
-offer 127 sources/124 clusters; today's adds four AFP metadata-only links.
-See the contract's dated review for scope and limitations. Final merge
-readiness depends on the exact-head PR offline checks and human review;
-no paid call, email, new manuscript or publication was performed here.
 
 **Owner architecture target (19 October 2026; not yet deployed):** All desks
 should ultimately converge on one logical shared Daily article-processing,
@@ -192,6 +183,14 @@ that historical restriction. See
 technical access limits and the distinction from a production permission.
 
 **Philippines Desk (23 October 2026): operating, accuracy pass on this branch.**
+The October 26 explanation-quality review proposes `ph-analysis-v13`: natural
+sentence lengths and varied explicit attribution, concrete evidence-supported
+detail, and precise actor/status/host-versus-issuer wording. The shared Analyzer,
+90-word combined ceiling, evidence/copying gates and accepted older versions
+remain intact. This is an offline prompt candidate; it does not establish live
+model quality or reprocess existing records. Source-grounded examples, rubric
+and verification limits: [review](docs/engineering/MACHINE_EXPLANATION_QUALITY_2026-10-26.md).
+
 AFP and NSC run through the one shared Daily path: private collectors
 (`afp_private_first_collector`, 06:40 UTC; `nsc_private_first_collector`,
 10:10 UTC) preserve originals, `shared_daily_processing` screens and explains
@@ -247,6 +246,16 @@ authorized NSC link metadata and machine explanations and resolved the
 historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
+
+**Indonesia delivery-budget repair (27 October 2026, review candidate):**
+The 49 admitted Kemhan links are retained. The 15-link addition after #877
+raised Indonesia's HTML+CSS from 119,943 to 127,903 bytes. An Indonesia-only
+3,672-byte subset replaces the 28,412-byte supporting stylesheet, reducing
+delivery to 103,171 bytes under the unchanged 120,000-byte cap. HTML changes
+only its stylesheet URL; shared CSS, other generated pages, source metadata,
+approved Dossiers content and approval digests are unchanged. The production
+render, all-route budget gate and validator pass (10 governed warnings).
+Final-head CI evidence belongs in the maintenance PR; no merge or deployment.
 
 **Indonesia Kemhan bridge steady state (26 October 2026):** PR #877 incorporates
 main `1c204352da`, including its existing Vietnam baseline assertion repairs.
