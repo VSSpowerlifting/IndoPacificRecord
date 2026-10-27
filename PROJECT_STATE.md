@@ -230,6 +230,16 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
+**Indonesia delivery-budget repair (27 October 2026, review candidate):**
+The 49 admitted Kemhan links are retained. The 15-link addition after #877
+raised Indonesia's HTML+CSS from 119,943 to 127,903 bytes. An Indonesia-only
+3,672-byte subset replaces the 28,412-byte supporting stylesheet, reducing
+delivery to 103,171 bytes under the unchanged 120,000-byte cap. HTML changes
+only its stylesheet URL; shared CSS, other generated pages, source metadata,
+approved Dossiers content and approval digests are unchanged. The production
+render, all-route budget gate and validator pass (10 governed warnings).
+Final-head CI evidence belongs in the maintenance PR; no merge or deployment.
+
 **Indonesia Kemhan bridge steady state (26 October 2026):** PR #877 incorporates
 main `1c204352da`, including its existing Vietnam baseline assertion repairs.
 The checked-out main database has 34 Kemhan rows; the 25 October rehearsal at
