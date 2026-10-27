@@ -202,9 +202,14 @@ def qualifies(candidate):
 
 
 def selection_schema(production_ids, research_ids):
+    """Strict-tool subset; validate_selection enforces bounds and uniqueness.
+
+    Anthropic does not support numerical constraints, maxItems or uniqueItems
+    in strict schemas. Keep those rules in descriptions and Python validation.
+    """
     string = {"type": "string"}
     scores = {"type": "object", "additionalProperties": False,
-              "properties": {k: {"type": "integer", "minimum": 0, "maximum": 5} for k in WEIGHTS},
+              "properties": {k: {"type": "integer", "description": "Score from 0 to 5 inclusive."} for k in WEIGHTS},
               "required": list(WEIGHTS)}
     identity = {"anyOf": ([{"type": "integer", "enum": list(production_ids)}] if production_ids else []) +
                 ([{"type": "string", "enum": list(research_ids)}] if research_ids else [])}
@@ -212,15 +217,16 @@ def selection_schema(production_ids, research_ids):
             "properties": {"id": identity, "excerpt": string}, "required": ["id", "excerpt"]}
     properties = {k: string for k in ("slug", "thesis", "why_now", "novelty_basis",
         "counterevidence", "limitation", "connection_basis", "score_reasoning")}
-    properties.update({"production_ids": {"type": "array", "items": {"type": "integer", "enum": list(production_ids)}, "uniqueItems": True},
-        "research_ids": {"type": "array", "items": ({"type": "string", "enum": list(research_ids)} if research_ids else string), "uniqueItems": True},
-        "evidence_notes": {"type": "array", "items": note, "minItems": 1, "maxItems": 10},
-        "counterevidence_ids": {"type": "array", "items": identity, "uniqueItems": True},
+    properties.update({"production_ids": {"type": "array", "items": {"type": "integer", "enum": list(production_ids)}, "description": "Unique production record IDs."},
+        "research_ids": {"type": "array", "items": ({"type": "string", "enum": list(research_ids)} if research_ids else string), "description": "Unique typed research IDs."},
+        "evidence_notes": {"type": "array", "items": note, "minItems": 1, "description": "One to ten exact source-content anchors."},
+        "counterevidence_ids": {"type": "array", "items": identity, "description": "Unique source IDs with exact counterevidence anchors."},
         "connection_applicable": {"type": "boolean"}, "scores": scores,
         "readiness": {"type": "string", "enum": ["ready", "review", "reject"]}})
     candidate = {"type": "object", "properties": properties,
                  "required": list(properties), "additionalProperties": False}
-    fields = {"candidates": {"type": "array", "items": candidate, "maxItems": MAX_CANDIDATES},
+    fields = {"candidates": {"type": "array", "items": candidate,
+                             "description": "At most {} distinct story candidates.".format(MAX_CANDIDATES)},
               "selected_slug": {"type": ["string", "null"]},
               "selection_rationale": string, "omission_rationale": string}
     return {"type": "object", "properties": fields, "required": list(fields), "additionalProperties": False}

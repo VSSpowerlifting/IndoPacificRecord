@@ -85,8 +85,9 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
             [1, 2], supplemental_ids=["JP-W41-01"],
             automatic_story_selection=True)
         self.assertIn("story_selection", schema["required"])
-        self.assertEqual(schema["properties"]["story_selection"]
-                         ["properties"]["candidates"]["maxItems"], 5)
+        candidates = schema["properties"]["story_selection"]["properties"]["candidates"]
+        self.assertNotIn("maxItems", candidates)
+        self.assertIn("At most 5", candidates["description"])
         self.assertNotIn("story_selection", writing_schema([1, 2])["required"])
 
     def test_broad_corpus_requires_comparison_and_never_infers_approval(self):
