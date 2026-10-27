@@ -1,0 +1,168 @@
+{
+  "source_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+  "latest_run": "40433531306-1",
+  "state_sha256": "76917f9a5b839d3224faf9a03a3718f41e25f1d97a40c93b6f8971130c6829a1",
+  "eligible_links": 7,
+  "date_type": "RSS pubDate (not independently verified document issue date)",
+  "source_db_git_blob": "ed4801d23dac6ff4fcd9965723f6d8606b0be815",
+  "rows": [
+    {
+      "source_family": "jp_mod_news_ja",
+      "source_identity": "jp_mod_news_ja:/j/press/news/2026/08/27b.pdf",
+      "desk": "japan",
+      "canonical_official_url": "https://www.mod.go.jp/j/press/news/2026/08/27b.pdf",
+      "publisher_posted_date": "2026-08-27",
+      "official_issuer": "jp_mod",
+      "official_publisher": "jp_mod",
+      "official_republisher": null,
+      "first_seen_run": "33147429840",
+      "source_git_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+      "metadata_version_sha256": "05a312b9428d42363b9f677c6f43d7de68197a69b2912c70efcb291e3787327a"
+    },
+    {
+      "source_family": "jp_mod_news_ja",
+      "source_identity": "jp_mod_news_ja:/j/press/news/2026/08/28a.pdf",
+      "desk": "japan",
+      "canonical_official_url": "https://www.mod.go.jp/j/press/news/2026/08/28a.pdf",
+      "publisher_posted_date": "2026-08-28",
+      "official_issuer": "jp_mod",
+      "official_publisher": "jp_mod",
+      "official_republisher": null,
+      "first_seen_run": "33232394996",
+      "source_git_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+      "metadata_version_sha256": "441950bf194ccef49dbdf3a549da2e32d6a4dceb366ac5f04f9a930713effb1d"
+    },
+    {
+      "source_family": "jp_mod_news_ja",
+      "source_identity": "jp_mod_news_ja:/j/press/news/2026/08/28b.pdf",
+      "desk": "japan",
+      "canonical_official_url": "https://www.mod.go.jp/j/press/news/2026/08/28b.pdf",
+      "publisher_posted_date": "2026-08-28",
+      "official_issuer": "jp_mod",
+      "official_publisher": "jp_mod",
+      "official_republisher": null,
+      "first_seen_run": "33232394996",
+      "source_git_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+      "metadata_version_sha256": "54bf45d9d5453c0ff3a27329a2f2f144d123cf34db4a04cbbef6bbaf602f74a8"
+    },
+    {
+      "source_family": "jp_mod_news_ja",
+      "source_identity": "jp_mod_news_ja:/j/press/news/2026/08/28f.pdf",
+      "desk": "japan",
+      "canonical_official_url": "https://www.mod.go.jp/j/press/news/2026/08/28f.pdf",
+      "publisher_posted_date": "2026-08-28",
+      "official_issuer": "jp_mod",
+      "official_publisher": "jp_mod",
+      "official_republisher": null,
+      "first_seen_run": "33232394996",
+      "source_git_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+      "metadata_version_sha256": "3c6559baf6684b33791b05c07d0ed6a7071e890eae962e63beb072c37e976aa8"
+    },
+    {
+      "source_family": "jp_mod_news_ja",
+      "source_identity": "jp_mod_news_ja:/j/press/news/2026/10/05b.pdf",
+      "desk": "japan",
+      "canonical_official_url": "https://www.mod.go.jp/j/press/news/2026/10/05b.pdf",
+      "publisher_posted_date": "2026-10-05",
+      "official_issuer": "jp_mod",
+      "official_publisher": "jp_mod",
+      "official_republisher": null,
+      "first_seen_run": "37404326269-1",
+      "source_git_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+      "metadata_version_sha256": "a85da1124230e0a0a7ca2a975a3349d37fc91319e0778fa8211e295d09b1c8dc"
+    },
+    {
+      "source_family": "jp_mod_news_ja",
+      "source_identity": "jp_mod_news_ja:/j/press/news/2026/10/22a.pdf",
+      "desk": "japan",
+      "canonical_official_url": "https://www.mod.go.jp/j/press/news/2026/10/22a.pdf",
+      "publisher_posted_date": "2026-10-22",
+      "official_issuer": "jp_mod",
+      "official_publisher": "jp_mod",
+      "official_republisher": null,
+      "first_seen_run": "40047801924-1",
+      "source_git_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+      "metadata_version_sha256": "d44537970083b3b5618f641682d15e72b67702e353c3766d0b51e4a445a0880a"
+    },
+    {
+      "source_family": "jp_mod_news_ja",
+      "source_identity": "jp_mod_news_ja:/j/press/news/2026/10/23a.pdf",
+      "desk": "japan",
+      "canonical_official_url": "https://www.mod.go.jp/j/press/news/2026/10/23a.pdf",
+      "publisher_posted_date": "2026-10-23",
+      "official_issuer": "jp_mod",
+      "official_publisher": "jp_mod",
+      "official_republisher": null,
+      "first_seen_run": "40047801924-1",
+      "source_git_commit": "4ac08f6f95e8d8859501ffa567d6bd76a049091b",
+      "metadata_version_sha256": "e2bdafc450c28a23e6a325fddbd28cded1ae0a18ae8607f6f4d3ce002b2bb7ac"
+    }
+  ],
+  "actions": {
+    "40433531306": {
+      "id": 40433531306,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "head_branch": "main",
+      "head_sha": "448991c5619de9980454416d426d5cf944e28c89",
+      "repository": {
+        "full_name": "VSSpowerlifting/IndoPacificRecord"
+      },
+      "path": ".github/workflows/japan_shadow.yml",
+      "event": "schedule"
+    },
+    "33147429840": {
+      "id": 33147429840,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "head_branch": "main",
+      "head_sha": "cef89e0c56e212310a78b3ea20eeecc8ce703aa0",
+      "repository": {
+        "full_name": "VSSpowerlifting/IndoPacificRecord"
+      },
+      "path": ".github/workflows/japan_shadow.yml",
+      "event": "schedule"
+    },
+    "33232394996": {
+      "id": 33232394996,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "head_branch": "main",
+      "head_sha": "c51881986cbf818b2c10a5c07c453119d7826bc2",
+      "repository": {
+        "full_name": "VSSpowerlifting/IndoPacificRecord"
+      },
+      "path": ".github/workflows/japan_shadow.yml",
+      "event": "schedule"
+    },
+    "37404326269": {
+      "id": 37404326269,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "head_branch": "main",
+      "head_sha": "9bf842f2d313c7b10c817fc5ec8e2ade32f47811",
+      "repository": {
+        "full_name": "VSSpowerlifting/IndoPacificRecord"
+      },
+      "path": ".github/workflows/japan_shadow.yml",
+      "event": "schedule"
+    },
+    "40047801924": {
+      "id": 40047801924,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "head_branch": "main",
+      "head_sha": "d8aa9ebc6e9dac4d25b469fb1b53255850a4e62d",
+      "repository": {
+        "full_name": "VSSpowerlifting/IndoPacificRecord"
+      },
+      "path": ".github/workflows/japan_shadow.yml",
+      "event": "schedule"
+    }
+  }
+}

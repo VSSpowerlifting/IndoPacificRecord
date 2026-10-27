@@ -1,0 +1,11 @@
+{
+  "schema": "ipr-japan-mod-official-link-policy/1",
+  "source_family": "jp_mod_news_ja",
+  "standing_metadata_publication_authorized": false,
+  "owner_decision_reference": null,
+  "permitted_fields": ["source_identity", "canonical_official_url", "rss_date", "date_type", "official_issuer", "official_publisher"],
+  "date_type": "RSS pubDate (not independently verified document issue date)",
+  "eligible_scope": "Successfully retrieved news-feed PDF records only; challenged, failed, undated and unassigned records excluded",
+  "excluded_uses": ["publisher headlines", "original bodies", "excerpts", "PDF copies", "photographs", "translations", "external model processing", "machine explanations"],
+  "notes": "PROPOSED ONLY. No Japan standing production grant was found on 2026-10-27. Owner approval and a separate release/activation instruction are required. No authority is inherited from the collector or other desks."
+}

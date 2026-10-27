@@ -426,6 +426,33 @@ def merge_government_document_metadata(con):
             con.execute("INSERT INTO " + table + " VALUES (" + ",".join("?" for _ in after) + ")", after)
 
 
+def merge_japan_official_links(con):
+    """Retain immutable Japan metadata when Daily rebases over another desk.
+
+    This family has one writer and no update/delete operation. Concurrent
+    changes to an existing released identity require review, never overwrite.
+    """
+    table, family = "regional_official_source_links", "jp_mod_news_ja"
+    def rows(schema):
+        if not _has_table(con, schema, table):
+            return {}
+        return {r["source_identity"]: tuple(r) for r in con.execute(
+            "SELECT * FROM " + schema + "." + table + " WHERE source_family=?", (family,))}
+    base, local, origin = rows("bse"), rows("loc"), rows("main")
+    for ident, row in local.items():
+        if ident in base and row != base[ident]:
+            raise ValueError("japan_released_metadata_changed")
+        if ident in origin:
+            if row != origin[ident]:
+                raise ValueError("japan_released_metadata_conflict")
+        elif ident in base:
+            raise ValueError("japan_released_metadata_removed")
+        else:
+            con.execute("INSERT INTO " + table + " VALUES (" + ",".join("?" for _ in row) + ")", row)
+    if set(base) - set(local):
+        raise ValueError("japan_released_metadata_removed")
+
+
 def normalize_schema(out_path):
     """
     Bring the output copy to the current schema BEFORE any row is merged.
@@ -832,6 +859,7 @@ def reconcile(base_path, origin_path, local_path, out_path):
         report["source_results_from_origin"] = len(origin_keys)
 
     merge_government_document_metadata(con)
+    merge_japan_official_links(con)
 
     # Shared machine explanations use stable source identities, never numeric
     # article IDs. Preserve local admissions across Daily's normal main rebase.

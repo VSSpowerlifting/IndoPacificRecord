@@ -139,6 +139,15 @@ jobs:
                   raise SystemExit('Frozen source blob mismatch: ' + name)
               subprocess.run(['git', 'cat-file', '-e', actual], check=True)
               print('Frozen object verified:', name, spec, actual, flush=True)
+          japan = json.loads(Path('tests/fixtures/japan_mod_official_links.json').read_text())
+          subprocess.run(['git', 'fetch', '--no-tags', '--depth=1',
+              'https://github.com/VSSpowerlifting/IndoPacificRecord.git', japan['source_commit']], check=True)
+          actual = subprocess.check_output(['git', 'rev-parse',
+              japan['source_commit'] + ':state/shadow.db'], text=True).strip()
+          if actual != japan['source_db_git_blob']:
+              raise SystemExit('Japan frozen collection blob mismatch')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write('JAPAN_MOD_FROZEN_REPLAY=1\n')
           PYTHON
 
       # First execution of PR-controlled content.

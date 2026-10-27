@@ -315,6 +315,20 @@ jobs:
         run: |
           python -m scripts.collect_vietnam_government_documents --database pla_watch.db --gate-dir "$RUNNER_TEMP/vpcp-host-gate"
 
+      # Reuse the existing Japan collector and this Daily's SQLite/render/Pages
+      # writer. Both a recorded source policy and explicit owner activation are
+      # required. No model call, source fetch, new schedule or parallel publisher.
+      - name: Admit authorized Japan MOD news official links
+        if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -c 'from core.japan_mod_official_links import require_authorization; require_authorization()'
+          git fetch --no-tags origin refs/heads/shadow/jp-mod:refs/remotes/origin/shadow/jp-mod
+          python -m scripts.admit_japan_mod_official_links
+
       # Korean MND texts come only from the already verified, released source index.
       # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
       - name: Run pipeline
@@ -486,6 +500,8 @@ jobs:
       # ── 6. Commit DB + site output back to main ───────────────────────────
       - name: Commit updated database and site output
         if: steps.timecheck.outputs.should_run == 'true'
+        env:
+          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -509,6 +525,16 @@ jobs:
             git diff --quiet HEAD -- pla_watch.db
             python scripts/verify_db_current.py
 
+            # The reconciler preserves immutable Japan metadata. Render from
+            # the final DB; never deploy pre-rebase HTML against a different DB.
+            if [ "${JAPAN_MOD_OFFICIAL_LINKS_ENABLED:-}" = 'true' ]; then
+              python site/render.py
+              python scripts/validate_output.py
+              python -m scripts.verify_japan_mod_official_links
+              git add pla_watch.db output/
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+            fi
+
             git push
           fi
 
@@ -524,6 +550,20 @@ jobs:
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
           commit_message: 'Deploy: ${{ github.run_id }}'
+
+      - name: Reconcile Japan SQLite, HTML and Pages
+        if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin gh-pages
+          python -m scripts.verify_japan_mod_official_links --pages-repo .
+          # Pages/CDN propagation is bounded. A mismatch fails the run and
+          # prevents the success marker; it never rewrites released records.
+          for attempt in 1 2 3; do
+            if python -m scripts.verify_japan_mod_official_links --live; then exit 0; fi
+            sleep 10
+          done
+          exit 1
 
       # ── 8. Record successful run ───────────────────────────────────────────
       # Written here — after deploy — so a deploy failure does not mark today

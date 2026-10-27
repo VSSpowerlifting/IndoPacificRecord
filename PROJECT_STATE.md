@@ -1,5 +1,21 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Japan MOD news official links — authorization blocked (27 October 2026)
+
+Prepared an off-by-default integration from the existing `shadow/jp-mod`
+collector into the shared Daily, regional metadata table, desk and archive/search
+renderer, existing Pages writer and exact readback. Real scheduled run
+`40433531306-1` and its preserved SQLite hash support seven successfully retrieved
+news-feed PDF metadata candidates. Challenged and unverified records stay held;
+dates are explicitly RSS pubDate, not verified document issue dates. No standing
+Japan source-family production grant was found. The proposed source policy is
+false with no owner reference; no production DB/output, collector, activation
+variable, schedule, model spending or public content was changed. Private
+rehearsal proved seven admissions, zero on retry, byte-identical retry state and
+preservation of all non-Japan rows across 24 tables. The precise owner decision,
+evidence, validation limits and release procedure are in
+`docs/engineering/JAPAN_MOD_OFFICIAL_LINK_PRODUCTION_2026-10-27.md`.
+
 ## China–Singapore Naval Cooperation thematic dossier — review candidate (26 October 2026)
 
 The first continuing thematic dossier, `dossiers/china-singapore-naval-cooperation.json`,

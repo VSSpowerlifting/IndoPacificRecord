@@ -1,0 +1,140 @@
+# Japan MOD news official links — prepared, authorization blocked
+
+No standing Japan MOD production grant was found in the repository decisions,
+manifest or source-use configuration on 27 October 2026. The existing historical
+PDF navigation and Japan Brief approvals do not authorize a continuing feed.
+`config/japan_mod_official_link_policy.json` is a **proposal**, with authorization
+false and no owner decision reference. No production data, schedules, repository
+variables or public output are changed by this task.
+
+## Genuine source evidence
+
+The latest completed scheduled collection inspected was
+[40433531306, attempt 1](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40433531306),
+finished 27 October at 01:37:14 UTC for the **26 October schedule slot**. Its
+collector revision was `448991c5619de9980454416d426d5cf944e28c89`.
+The preserved state is commit `4ac08f6f95e8d8859501ffa567d6bd76a049091b`
+on `shadow/jp-mod`; SQLite SHA-256 is
+`76917f9a5b839d3224faf9a03a3718f41e25f1d97a40c93b6f8971130c6829a1`,
+matching the exact ledger in both Git and artifact `12703107202`.
+
+The news source discovered 135 entries: 87 known challenges, two extraction
+failures and one oversized PDF retrieval failure were recorded in its source
+bucket. The overall collector reports partial health and 197 outstanding gaps
+across both feeds. Workflow success does not qualify these entries for release.
+
+Seven successfully retrieved, text-bearing records have `source_slug` exactly
+`jp_mod_news_ja`. Their official paths are:
+
+| MOD `/j/press/news/` path | Preserved RSS date | First-seen run |
+|---|---|---|
+| `2026/08/27b.pdf` | 2026-08-27 | 33147429840 |
+| `2026/08/28a.pdf` | 2026-08-28 | 33232394996 |
+| `2026/08/28b.pdf` | 2026-08-28 | 33232394996 |
+| `2026/08/28f.pdf` | 2026-08-28 | 33232394996 |
+| `2026/10/05b.pdf` | 2026-10-05 | 37404326269-1 |
+| `2026/10/22a.pdf` | 2026-10-22 | 40047801924-1 |
+| `2026/10/23a.pdf` | 2026-10-23 | 40047801924-1 |
+
+The four first-seen run identities and the latest run were checked against the
+GitHub Actions API: repository, workflow path, event, branch, attempt, successful
+completion and collector SHA. The extracted-text hashes match the first-seen
+ledgers. The latest real robots observation is rehashed and checked for the feed
+and every eligible URL. No request is made to a challenged publisher route.
+
+The collector stores `hint_published_date` from RSS `pubDate` directly in each
+record. It does not establish the document's issue date. The public label is
+**RSS pubDate (not independently verified document issue date)**; a date is never
+inferred from the filename or changed to the run's date. The existing regional
+column `publisher_posted_date` retains its name; this family's presentation and
+archive/search projection always carry the explicit RSS date type.
+
+This is replay of authenticated collector state, **not a fresh PDF byte audit**:
+the state retains extracted text and PDF capture hashes, but not raw PDF or RSS
+bytes. No headline or body is exported in the public metadata fixture. First-seen
+provenance comes from actual recorded runs, not a newly invented receipt. The
+source manifest attributes this Japanese ministry news family to `jp_mod`; it
+does not carry the separate Joint Staff source.
+
+## Existing production path, disabled until approval
+
+```text
+existing scheduled Japan collector → immutable shadow/jp-mod state
+  → shared Daily (explicit activation variable + recorded owner policy)
+  → source-specific evidence checks → shared regional_official_source_links
+  → existing production desk + archive/search renderer → existing Pages writer
+  → exact SQLite/HTML/Pages Git bytes and HTTPS readback
+```
+
+Migration 0020 extends the existing table constraints and preserves its current
+Vietnam document family and every existing row. It creates no Japan article or
+parallel corpus. The shared atomic store rejects duplicates, changed released
+metadata and legacy article URL collisions. Unchanged retries preserve the
+original release commit, proof and timestamp. The shared DB reconciler preserves
+Japan additions over unrelated Daily rebases; the final database is rendered
+again before deployment. Failed Japan intake rolls back and leaves other desks'
+intake available; it cannot manufacture an empty successful source observation.
+
+Only successfully retrieved news-feed PDF records qualify. Challenged HTML,
+failed PDFs, site-update RSS, undated/unassigned and pre-bootstrap rows are
+excluded. The two visually reviewed September PDFs remain historical navigation,
+not automatically admitted records. Existing curated links remain separately
+labeled and are not counted as a second admission. There is no model call,
+translation, copied title, PDF/media mirror or machine explanation.
+
+## Verification and limits
+
+Private rehearsal used a disposable production DB copy and a **test-only in-process
+policy override**, never an edited approval file. Seven links were admitted;
+the repeat admitted zero and left the database byte-identical. All non-Japan rows
+in all 24 existing tables were unchanged. Source replay, invalid/duplicate
+rejection, atomic rollback, policy refusal, first-release preservation, rebase
+preservation and exact HTML readback have focused tests. The frozen source replay
+runs in the existing required PR check, using pinned Git source objects and the
+metadata-only saved API receipts; this offline replay does not assert a new live
+API verification at CI time.
+
+The production renderer was exercised in an external scratch output tree, carrying
+the existing publication data and historical pages. Its validator passed with
+seven warnings (the scratch carry path includes historical LinkedIn files). The
+unchanged tracked output separately passed with its ten governed warnings.
+Japan HTML+CSS was 102,354 bytes with the final neutral filename labels,
+under the existing 120,000-byte cap. Browser checks at 1280 and 375 pixels found
+seven admitted entries and no horizontal overflow. The all-route delivery check
+also reports an **existing unrelated Indonesia page excess**: 127,903 bytes in
+both the tracked baseline and rehearsal. This task does not raise any budget.
+
+Final PR CI and final neutral-label measurements are recorded in the PR evidence.
+Production admission, Pages publication and HTTPS readback remain **unexecuted**
+because the owner has not authorized this source family or release activation.
+The readback command is prepared, not claimed successful on a public page.
+
+## Minimum owner decision and release procedure
+
+Proposed decision for review:
+
+> Authorize standing, unattended publication of existing and future verified
+> `jp_mod_news_ja` official-link metadata through the existing shared Daily:
+> canonical official URL, source identity, RSS pubDate with its explicit date
+> type, and Japan Ministry of Defense institutional attribution. Limit initial
+> eligibility to successfully retrieved news-feed PDFs. Exclude challenged,
+> failed, undated and unassigned records. No original headlines, bodies,
+> excerpts, PDF copies, photographs, translations, external model processing or
+> machine explanations are authorized. No routine per-record approval is
+> required within that scope; actual exceptions remain held individually.
+
+That decision and explicit permission to merge and activate this prepared
+service are the external blocker. An approval should be recorded faithfully in
+`DECISION_LOG.md`, referenced in the policy, and its authorization boolean set to
+true. Do not set either merely because this PR's tests pass.
+
+After those owner acts, review the exact policy/release revision and pass the
+required PR offline check. Merge only when authorized. Set repository variable
+`JAPAN_MOD_OFFICIAL_LINKS_ENABLED=true` only under explicit activation authority.
+The next eligible existing Daily run fetches the collector state and admits
+metadata; a separately authorized manual Daily dispatch can be used instead.
+Confirm the run's Japan admission and readback steps, including at least one real
+public result, before calling the service operational. Future eligible records
+then follow the same path without per-item approvals. No paid processing or
+additional schedule is needed. To pause new intake, unset the variable; preserve
+already released rows and their approved presentation.
