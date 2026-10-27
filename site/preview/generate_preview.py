@@ -3053,7 +3053,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                 env.get_template("dossier.html").render(page="analysis.html", nested=True,
                     dossier=dossier, **ctx), encoding="utf-8")
             written.append(dossier["route"])
-        for asset in ("dossier-shell.css", "dossiers.css"):
+        for asset in ("dossier-shell.css", "dossiers.css", "dossiers-library.css"):
             (out_dir / asset).write_text(
                 (Path(__file__).parent / asset).read_text(encoding="utf-8"), encoding="utf-8")
             written.append(asset)
