@@ -1,5 +1,23 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Independent quality audit — unsigned packet workflow (27 October 2026)
+
+`scripts/build_independent_audit_packet.py` prepares a private offline packet
+from an exact committed revision: manifest, frozen DB/index/selected pages,
+pending reviewer worksheet/ledger and sampling methodology. Rebuild/verification
+commands and custody limits: [audit methodology](docs/INDEPENDENT_QUALITY_AUDIT.md).
+The initial frame has 1,316 preserved-body records in 17 source-family/quarter
+strata; the deterministic 20-item sample contains PLA Daily 6, China Military
+Online 3, Global Times 3, MOD China 3, Xinhua 2, Singapore MINDEF 2 and Korea
+Policy Briefing 1. Four separate supplement items cover Indonesia/Japan/U.S.
+metadata and a Philippine machine explanation. Known problem candidates remain
+separate; natural overlap stays in the sample. All 120 check outcomes start
+pending. Nine synthetic focused tests and initial snapshot reproduction pass;
+mandatory final-revision CI belongs in the implementation PR. No independent
+human audit, assignment to Dylan, source collection, model call, correction,
+publication or source-use expansion occurred. Working packets remain outside
+the repository; no DB, generated output or canonical sidecar change is included.
+
 ## Japan MOD news official links — source use approved, release held (27 October 2026)
 
 Prepared an off-by-default integration from the existing `shadow/jp-mod`
