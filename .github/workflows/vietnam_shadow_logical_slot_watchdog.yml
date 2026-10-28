@@ -1,12 +1,11 @@
 name: Vietnam Shadow Logical Collection Slot Watchdog
 
-# Read-only health check for the isolated MPS state. Separate from the
-# nightly collector and Sunday model-readiness audit. Never re-run historical
-# jobs, backdate stored state, infer government silence, or send editorial mail.
+# RETIRED: the public shadow branch is frozen after private-first cutover.
+# The authenticated MPS + VPCP slot watchdog belongs to the private repository
+# (.github/workflows/vietnam_private_cycle_watchdog.yml). Never claim old
+# public-shadow ledgers attest current ministry collection.
+# Companion: merge/activate the private monitoring PR before retiring this job.
 on:
-  schedule:
-    # 12:07 UTC daily; previous 18:17 UTC slot is >12h old by this check.
-    - cron: '7 12 * * *'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +17,7 @@ concurrency:
 
 jobs:
   inspect-mps-slot:
-    if: github.ref == 'refs/heads/main'
+    if: false # Historic shadow watcher retired; no stale manual result either
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
