@@ -234,3 +234,60 @@ $0.35 reservation path, inspect it privately, and publish only if QA and manual
 first-result checks pass. Do not relabel or publish the old diagnostic readings.
 The source-use approval remains valid. The private family gate stays disabled
 throughout this repair; source-to-live and automatic follow-on are unverified.
+
+
+## Office-title and copied-credentials repair (28 October 2026)
+
+Public #893 is merged as `e31977934fcf62ce32790aa37c352a920a990d8a`.
+One subsequent genuine v2 medical reading used two calls (2,735 input / 608
+output tokens, estimated $0.014187); no explanation was signed or published.
+The controlled inspection first rejected English “Head” for Indonesian “Kepala”
+and also found a 15-word normalized name/rank/credential sequence. Private queue
+`26d903c2d5c8da5a6196f7301536cb82f3b1108f` now retains three medical failures
+(two attempts left) and one industry failure (four left); source-version digests
+above are unchanged. `KEMHAN_DAILY_ENABLED` remains absent/disabled.
+
+This repair phase permits offline implementation, verification and one review
+PR only. Prompt/QA v3 adds a narrow Head-of appositive check: the institution
+and complete named holder must match the same cited Kepala role. Only the
+observed rank/honorific prefixes may be omitted; spelling and identifiers are
+not normalized or rewritten. Unsupported forms, changed institution/actor and
+acting/deputy/former qualifications remain held. The check uses a local lexical
+projection; it does not edit generated public text or copying inputs.
+
+Generation separates faithful private passage translation from minimal public
+actor identity: keep substantive actors, institutions, roles and actions;
+omit unnecessary public credentials, honorific stacks and extended ranks.
+Names and identifiers that remain must be accurate. The existing 12-word
+copying threshold and complete-sentence prohibition are unchanged, with no
+name exemption, padding or cosmetic identifier edits.
+
+Full private predicate replay reproduced both observed failures and exposed
+another previously masked check: the private translation expanded a named
+office abbreviation using a name absent from that passage. That existing
+local-evidence gate remains unchanged; the prompt keeps named abbreviations
+literal. The unchanged retained reading still fails copying and private-name
+locality, plus old-prompt provenance under v3. A labeled diagnostic that omits
+public credentials and retains the local private abbreviation passes every
+applicable QA predicate. It is an edited offline example, not a new model
+result, recovered reading, queue recovery or publication authorization.
+
+Public regressions contain synthetic actors/evidence only. They cover local
+Head/Kepala with holder/institution parity, wrong office/actor, cross-passage
+support, role qualifications, copied credential sequences and a concise
+alternative. Existing date, negation, action-status, rights, copying and retry
+checks remain. Focused Indonesia/Philippines/date checks: 95 passed. Source
+versions exclude prompt revisions; medical/industry counts and all
+held/paused/terminal entries retain their existing treatment. Public admission
+accepts v3 only; no Kemhan machine result has been released. Private originals,
+translations and replay receipts remain outside public commits/logs/artifacts.
+
+
+The #899 amendment fixes ordinary clinical “head injury/injuries” falsely
+entering office validation. It requires the medical term in the same cited
+passage (Indonesian `cedera kepala` or the literal English term). Office
+mentions in the same fact still require the unchanged institution/holder
+binding, including lowercase forms. Copying uses the unmodified public fact;
+no general Head whitelist or capitalization bypass is introduced. Synthetic
+regressions cover medical usage, absent/cross-passage medical support, mixed
+medical/office usage and lowercase supported/rejected office titles.

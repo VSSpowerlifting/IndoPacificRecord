@@ -281,35 +281,51 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
-**Indonesia Kemhan shared Daily (28 October UTC, live quality repair):**
-Public #891 merged as `455a1c73f58cf4d8bd0f41474b94a0dd14ee5114`; private
-#26 merged as `c1cbff0c0aea493957d156d973c872174d5fd3fd`. The owner's narrow
-source-use/spend/release decision is recorded; the three public policy switches
-are true. `KEMHAN_DAILY_ENABLED` stays absent/disabled. The existing 49-link
-metadata service remains active; no machine explanation was signed or published.
-Final #891 CI passed 8,099 tests (15 skips), Chromium and the validator's ten
-warnings without changing production DB/output.
+**Indonesia Kemhan shared Daily (28 October 2026, office/credentials repair):**
+Public repair #893 merged at `e31977934fcf62ce32790aa37c352a920a990d8a`,
+reviewed head `6b93d6026ec4c63ec69ef0380c13f022a4ded588`. All five final-head
+workflows passed; required CI `40711167763` passed 8,112 tests (15 skips),
+Chromium, DB/output preservation and validation with ten governed warnings.
+Public #891 and private #26 remain merged; the existing metadata service and
+three public source-use policy switches remain active.
 
-Four bounded live invocations made seven successful API calls, reporting 9,289
-input and 2,066 output tokens, estimated $0.047021 (not an invoice). One record
-was rejected for relevance. Two substantive records failed the duplicate-summary
-contract; the industry reading also completed cited fragments and asserted an
-unsupported action. Its named-month date was semantically correct formatting,
-not a changed event date. All actual parsed readings and source captures were
-found and privately replayed; raw HTTP/SDK envelopes were not retained.
+One genuine v2 medical-evacuation inspection used the existing private runner
+with signing disabled: two successful API calls, 2,735 input / 608 output tokens,
+estimated $0.014187 under the $0.35 reservation ceiling (not an invoice).
+QA rejected capitalized English “Head” against Indonesian “Kepala” in fact 2
+(`daily_name_or_office_unsupported`). First-result inspection also found a
+15-word normalized source overlap in its name/rank/credential sequence, exceeding
+the existing 12-word prohibition. Both cited translations, dates, aircraft
+identifier, attribution, negation and action status were inspected; no semantic
+discrepancy was observed. This does not override either release gate.
 
-The bounded repair derives the summary from two retained facts, supplies complete
-source passages, compares equivalent calendar dates and strengthens private
-translation/local-evidence checks. Review correction: numbered-document `No.`
-abbreviations neither count as negation nor preserve an actual source negation.
-Rubric v2 does not reset source-version attempts: medical evacuation has two failures (three left); defense industry
-has one (four left). Queue state `63f79b71439b7b7deca2e416f1f8b8f99bcf2018`
-remains unchanged. Offline projection clears only the medical contract mismatch;
-the industry reading stays held, including its 93-word fact budget. No old
-reading is promoted. This phase permits one checked repair PR, with no paid
-calls, merge, activation or publication. The remaining release step is a real
-quality-passing v2 inspection and source-to-live Daily result. Details and
-source-version checkpoint: `docs/engineering/INDONESIA_SHARED_DAILY_2026-10-27.md`.
+Private queue commit `26d903c2d5c8da5a6196f7301536cb82f3b1108f` preserves medical's
+third failure (two attempts left), industry's one failure (four left), the
+relevance rejection and all source-version bindings. Only the medical entry
+changed. Source pin remains `97668de31f0c01e8d000ad71518c16caac18f670`.
+No old reading was promoted; no explanation was signed or published.
+`KEMHAN_DAILY_ENABLED` remains absent/disabled: neither follow-on configuration
+nor an automatic Kemhan machine-output run is claimed. No publication/deploy
+workflow was dispatched. The authorized offline repair introduces prompt/QA
+v3: Head/Kepala requires the same cited institution and complete named holder;
+unknown role forms and changed acting/deputy status remain held. Generation
+uses minimal actor identity and omits unnecessary public credentials; the
+12-word copying rule is unchanged, including for names. The ordinary clinical
+phrases “head injury/injuries” require support in the same cited passage and
+do not bypass office checks, including lowercase office forms. Private replay also
+exposed a previously hidden cross-passage office-abbreviation expansion; its
+existing gate stays intact and generation now keeps local abbreviations literal.
+
+All applicable checks were evaluated on the unchanged retained reading. Under
+v3 it still fails copying, private-name locality and old-prompt provenance.
+A separately labeled edited diagnostic (concise public actor plus literal local
+private office abbreviation) passes offline QA; it is not a model result or a
+recovered publication. Focused Indonesia/Philippines/date checks: 95 passed.
+Required exact-head CI belongs to the repair PR. No paid calls, queue changes,
+merge, activation or publication in this phase. Private receipts:
+`~/.codex/private-evidence/kemhan-controlled-v2-20261028/office-replay-{before,after}.json`.
+Next: review the repair PR, then a separately authorized genuine bounded reading
+within the unchanged remaining attempts before any release.
 
 **Korea unified Daily (20 October 2026; activation PR open, processing off):**
 Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of

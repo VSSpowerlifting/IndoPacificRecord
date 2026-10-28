@@ -100,6 +100,50 @@ def check_status(evidence, english):
                  "daily_completed_action_unsupported")
 
 
+def office_checked_text(evidence, sentence):
+    """Resolve only the observed Head-of appositive, with a local holder.
+
+    Conservative grammar: institution and named holder are comma-delimited.
+    A locally supported head-injury compound is medical vocabulary. Other
+    unknown forms remain held. This is neither a name nor a word whitelist.
+    """
+    from processing.daily_intake import need
+    source_roles = list(re.finditer(
+        r"\bKepala (?P<institution>[^,;\n]+), (?P<holder>[^,;\n]+),", evidence))
+    translated = re.compile(
+        r"\bHead of (?P<institution>[^,;\n]+), (?P<holder>[^,;\n]+),", re.I)
+    replacements = []
+    for head in re.finditer(r"\bhead\b", sentence, re.I):
+        if re.match(r"head injur(?:y|ies)\b", sentence[head.start():], re.I):
+            need(re.search(r"\b(?:cedera kepala|head injur(?:y|ies))\b", evidence, re.I)
+                 is not None, "daily_name_or_office_unsupported")
+            # Lexical projection only: copying still uses the unmodified fact.
+            replacements.append((head.start(), head.end(), "head"))
+            continue
+        role = translated.match(sentence, head.start())
+        supported = False
+        if role and not re.search(r"\b(?:acting|deputy|former|assistant|vice)\s+$",
+                                  sentence[:head.start()], re.I):
+            for source in source_roles:
+                # Do not turn an acting/deputy/former role into an unqualified one.
+                if re.search(r"(?:\bPlt\.|\bWakil|\bMantan)\s+$",
+                             evidence[:source.start()], re.I):
+                    continue
+                holder = source['holder']
+                # Only observed rank/honorific prefixes may be omitted; the
+                # complete personal name must remain, with exact spelling.
+                name = re.sub(r"^(?:Brigjen TNI |dr\. )+", "", holder)
+                if (role['institution'] == source['institution']
+                        and role['holder'] in (holder, name)):
+                    supported = True
+                    break
+        need(supported, "daily_name_or_office_unsupported")
+        replacements.append((head.start(), head.end(), "Kepala"))
+    for start, end, replacement in reversed(replacements):
+        sentence = sentence[:start] + replacement + sentence[end:]
+    return sentence
+
+
 def quality_check(record, reading):
     from processing.daily_intake import need, digest
     need(type(reading) is dict and reading.get("passed_relevance") is True
@@ -135,7 +179,7 @@ def quality_check(record, reading):
         # Names in a sentence must be local to its cited passage. Date words
         # were already compared semantically. Ordinary translated labels must
         # retain their Indonesian concept in that same passage.
-        for token in re.findall(r"\b[A-Z][A-Za-z'-]+\b", sentence_text):
+        for token in re.findall(r"\b[A-Z][A-Za-z'-]+\b", office_checked_text(evidence, sentence_text)):
             if token not in {"Kemhan", "The", "According", "It", "This"}:
                 need(token in evidence or (token in TRANSLATED_LABELS
                      and re.search(TRANSLATED_LABELS[token], evidence, re.I)),
@@ -177,4 +221,4 @@ def quality_check(record, reading):
          "daily_indonesia_flag_held")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
          and reading.get("prompt_version") == VERSION, "daily_model_provenance_incomplete")
-    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v2"})
+    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v3"})
