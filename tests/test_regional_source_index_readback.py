@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import copy
 import json
 import shutil
 import sqlite3
@@ -11,7 +12,8 @@ from pathlib import Path
 
 from core.regional_official_link_release import SCHEMA_SQL
 from scripts.verify_regional_source_index_readback import (
-    ReadbackHold, main, validate_page, verify,
+    ReadbackHold, MetadataOnlySourceParser, main, validate_page, verify,
+    vietnam_explanations, verify_vietnam_https,
 )
 from tests.test_regional_live_site_wiring import html_for
 from tests.test_regional_official_link_render import insert
@@ -202,6 +204,129 @@ class RegionalReadbackTests(unittest.TestCase):
         self.assertNotIn("original_title",blob)
         self.assertNotIn("publisher_body",blob)
         self.assertIn("source_families",packet)
+
+
+class VietnamExplanationReadbackTests(unittest.TestCase):
+    """Replay committed admissions read-only; no synthetic operational claim."""
+
+    def setUp(self):
+        self.db = Path(__file__).resolve().parents[1] / "pla_watch.db"
+        self.page = self.db.parent / "output/vietnam.html"
+        self.rows = load_admitted_links(self.db, "vietnam")
+        self.bindings = vietnam_explanations(self.db, self.rows)
+        self.html = self.page.read_text()
+        self.sid = "vpcp-vi:220065"
+        self.route = self.bindings[self.sid]
+
+    def test_committed_bibliography_and_explanation_share_exact_identity(self):
+        before = hashlib.sha256(self.db.read_bytes()).hexdigest()
+        self.assertEqual(validate_page(self.html, self.rows,
+                                       explanations=self.bindings), len(self.rows))
+        self.assertEqual(hashlib.sha256(self.db.read_bytes()).hexdigest(), before)
+        self.assertEqual(self.page.read_text(), self.html)
+        self.assertFalse(Path(str(self.db) + "-wal").exists())
+        self.assertFalse(Path(str(self.db) + "-shm").exists())
+
+    def test_internal_link_needs_committed_admission_not_just_a_record_path(self):
+        with self.assertRaisesRegex(ReadbackHold, "explanation_does_not_match"):
+            validate_page(self.html, self.rows)
+        wrong = dict(self.bindings, **{self.sid: "record/1.html"})
+        with self.assertRaisesRegex(ReadbackHold, "explanation_does_not_match"):
+            validate_page(self.html, self.rows, explanations=wrong)
+
+    def test_vpcp_subject_stays_bibliography_separate_from_english_explanation(self):
+        parser = MetadataOnlySourceParser()
+        parser.feed(self.html)
+        parser.close()
+        row = next(r for r in parser.rows if r["source_identity"] == self.sid)
+        expected = next(r for r in self.rows if r["source_identity"] == self.sid)
+        self.assertEqual(row["label"].strip(), expected["document"]["document_number"])
+        self.assertIn(expected["document"]["subject"], self.html)
+        self.assertEqual(row["explanation"], self.route)
+        self.assertNotIn("English machine explanation", row["label"])
+
+    def test_second_official_url_stays_held_even_if_identical(self):
+        row = next(r for r in self.rows if r["source_identity"] == self.sid)
+        from html import escape
+        for url in (row["canonical_official_url"],
+                    row["canonical_official_url"].replace("220065", "220077")):
+            changed = self.html.replace('href="' + self.route + '">Read',
+                'rel="noopener noreferrer" href="' + escape(url, quote=True) + '">Read')
+            with self.subTest(url=url), self.assertRaisesRegex(
+                    ReadbackHold, "more_than_one_official_source_url"):
+                validate_page(changed, self.rows, explanations=self.bindings)
+
+    def test_repeated_explanation_is_not_an_extra_record_or_ignored(self):
+        changed = self.html.replace('href="' + self.route + '">Read',
+            'href="' + self.route + '">Duplicate</a><a href="' + self.route + '">Read')
+        with self.assertRaisesRegex(ReadbackHold, "more_than_one_published_explanation"):
+            validate_page(changed, self.rows, explanations=self.bindings)
+
+    def test_same_official_url_under_conflicting_identities_stays_held(self):
+        rows = copy.deepcopy(self.rows)
+        rows[1]["canonical_official_url"] = rows[0]["canonical_official_url"]
+        with self.assertRaisesRegex(ReadbackHold, "official_url_shared_by_source_identities"):
+            validate_page(self.html, rows, explanations=self.bindings)
+
+    def test_changed_bibliography_invalidates_stale_explanation(self):
+        rows = copy.deepcopy(self.rows)
+        row = next(r for r in rows if r["source_identity"] == self.sid)
+        row["document"]["signatory"] = "Synthetic changed signatory"
+        with self.assertRaisesRegex(ReadbackHold, "explanation_does_not_match"):
+            vietnam_explanations(self.db, rows)
+
+    def test_changed_content_or_rejected_qa_cannot_supply_explanation_binding(self):
+        from scripts.reconcile_db import read_only
+        for fault in ("content", "qa"):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as tmp:
+                db = Path(tmp) / "scratch.db"
+                with read_only(str(self.db)) as source, sqlite3.connect(str(db)) as conn:
+                    source.backup(conn)
+                    if fault == "content":
+                        conn.execute("UPDATE articles SET content_hash=? WHERE id=5646", ("a" * 64,))
+                    else:
+                        proof = json.loads(conn.execute("SELECT qa_json FROM vietnam_article_provenance "
+                            "WHERE article_id=5646").fetchone()[0])
+                        proof["outcome"] = "held_review"
+                        conn.execute("UPDATE vietnam_article_provenance SET qa_json=? WHERE article_id=5646",
+                                     (json.dumps(proof),))
+                with self.assertRaisesRegex(ReadbackHold, "explanation_does_not_match"):
+                    vietnam_explanations(db, self.rows)
+
+    def test_different_official_url_cannot_borrow_an_admitted_explanation(self):
+        rows = copy.deepcopy(self.rows)
+        row = next(r for r in rows if r["source_identity"] == self.sid)
+        row["canonical_official_url"] += "&unverified=1"
+        with self.assertRaisesRegex(ReadbackHold, "explanation_does_not_match"):
+            vietnam_explanations(self.db, rows)
+
+    def test_internal_link_cannot_borrow_another_source_identity(self):
+        changed = self.html.replace('data-regional-official-source-id="' + self.sid + '"',
+                                    'data-regional-official-source-id="mps-vi:1"')
+        with self.assertRaisesRegex(ReadbackHold, "unadmitted_or_duplicate_source_id"):
+            validate_page(changed, self.rows, explanations=self.bindings)
+
+    def test_https_readback_requires_exact_bytes_and_same_source_binding(self):
+        receipt = verify_vietnam_https(self.db, self.page.parent,
+                                      fetch=lambda url: self.page.read_bytes())
+        self.assertEqual(receipt["admitted_official_link_count"], len(self.rows))
+        with self.assertRaisesRegex(ReadbackHold, "https_bytes_differ"):
+            verify_vietnam_https(self.db, self.page.parent,
+                                 fetch=lambda url: self.page.read_bytes() + b"stale")
+
+    def test_ordinary_daily_checks_vietnam_after_deploy_before_success_marker(self):
+        workflow = (self.db.parent / ".github/workflows/daily_update.yml").read_text()
+        name = "      - name: Reconcile Vietnam SQLite, HTML and Pages"
+        start = workflow.index(name)
+        step = workflow[start:workflow.index("      - name:", start + len(name))]
+        self.assertLess(workflow.index("- name: Deploy to GitHub Pages"), start)
+        self.assertLess(start, workflow.index("- name: Record successful run"))
+        self.assertNotIn("continue-on-error", step)
+        self.assertIn("VIETNAM_DAILY_HANDOFF_ENABLED == 'true'", step)
+        self.assertIn("--deployed-dir", step)
+        self.assertIn("--vietnam-https", step)
+        self.assertIn("for attempt in 1 2 3", step)
+        self.assertIn("exit 1", step)
 
 
 if __name__ == "__main__":

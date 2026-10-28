@@ -148,6 +148,23 @@ dossier content changes are introduced relative to the incorporated main.
 Exact-head CI and all eight affected Actions checks are recorded in PR #879
 before handoff; merge and deployment require separate authorization.
 
+**Vietnam unattended verification candidate (28 October 2026).**
+Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
+5487/5488/5646 match byte for byte. Scheduled private collector `40594206247`
+and bridge `40604368261` are authenticated: MPS has two individual QA holds;
+the new VPCP document is screened out; no new handoff articles. The false
+`more_than_one_official_source_url` HOLD comes from counting 5646's internal
+explanation link as an official URL. The candidate validates that link against
+exact admitted identity/URL/version and adds existing readback to normal Daily.
+No count/template, policy, paid retry, database or output change is included;
+PR #895 and #893 remain independent. Dependable unattended readiness is not
+certified: the private source-cycle health signal remains incomplete (frozen
+MPS public watchdog; suppressed VPCP failures and quiet-cycle receipt gap).
+Latest public Daily failures are separate Japan gates, owned by PR #892.
+Evidence and pass/fail matrix:
+`docs/engineering/VIETNAM_UNATTENDED_ACCEPTANCE_2026-10-28.md`.
+Exact-head verification belongs in the review PR; no merge or release occurred.
+
 **Vietnam Government Office full-document integration (25 October 2026): 10744 published through the shared Daily.**
 The single authorized correction passed generation and independent factual review
 in private run `40217218707`; its prior rejection, costs and routes remain intact.
