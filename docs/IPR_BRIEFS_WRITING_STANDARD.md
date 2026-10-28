@@ -11,14 +11,19 @@ DOCX and importer scripts, and `scripts/analyze_editor_return.py`. Demonstration
 
 The model returns `title`, `dek`, `article`, `audit` and `editorial_questions`.
 
-- `article` is 3–7 blocks (about 450–1,500 words). Block 1 is the lead: it has no
-  subhead and presents the concrete development, with the actors, the date and the
-  number or action that makes it a story, **before** any statement about sources or
-  method.
-- Other blocks may carry a short, story-specific subhead or none. Forced section
-  names (Overview, What stood out, Why it matters, What was routine, Across the region)
-  are flagged. A comparison section appears only when two or more desks' verified
-  records actually bear on the same question; a single-country story stays single-country.
+- `article` is 3–7 blocks (about 450–1,500 words). Block 1 is the unheaded
+  opening: it presents the development, actors, date and telling action before
+  unnecessary discussion of the source-gathering process.
+- **The manuscript remains sectioned:** after the opening, there are **2–4
+  substantive sections with visible subheadings**. The first body block begins
+  a section; longer sections may have additional unheaded continuation blocks.
+  A missing section structure is held for owner review at the offline no-send
+  gate, not regenerated with an extra paid style-rewrite call.
+- Headings should be recognizable and useful but specific to the evidence and
+  argument; use them to organize the Brief, **not as a repeatable sentence or
+  paragraph template**. Generic labels (Overview, Why it matters, What was
+  routine, Across the region) are flagged. A comparison section is justified
+  only where multiple verified sources actually bear on the same question.
 - Technical terms are explained once, in plain English, where the reader first meets
   them. Acronyms are expanded on first use. Quotations and figures keep their
   attribution.
@@ -32,7 +37,8 @@ The model returns `title`, `dek`, `article`, `audit` and `editorial_questions`.
 
 The article-first writer's `PROMPT_STANDARD` in `core/brief_prose_standard.py`
 implements [IPR Briefs Editorial Voice v2](IPR_BRIEFS_EDITORIAL_VOICE_GUIDE.md)
-within the **existing** paid writer call. The governing instruction begins
+within the **existing** paid writer call, with an opening and **2–4 headed
+body sections**. The governing instruction begins
 “Report first. Explain second. Interpret carefully. Stop when the point is made.”
 It rules out automatic five-act policy-memo structure, repetitive
 fact/caveat/interpretation paragraphs, phantom debates, manufactured country
