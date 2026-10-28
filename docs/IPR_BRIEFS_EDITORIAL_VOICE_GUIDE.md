@@ -2,7 +2,7 @@
 
 **Version:** 2.0 — 28 October 2026  
 **Owner:** Founder & Director of Research and Editorial  
-**Status:** Editorial direction approved; implementation in the automated Sunday writer is a separate, reviewable change.  
+**Status:** Editorial voice v2 incorporated into the first-pass article-first Sunday writer prompt; effectiveness requires a separate owner-only live manuscript review.  
 **Applies to:** Initial machine-assisted Sunday manuscripts, their human editing, and new IPR Briefs when the same voice is appropriate. It does not retroactively rewrite published Briefs or govern the model-labeled Daily record.
 
 > **Report first. Explain second. Interpret carefully. Stop when the point is made.**
@@ -161,9 +161,9 @@ The Sunday model should follow these decisions **while generating the first manu
 
 **For the editor:** Read aloud without source appendices. Mark repeated sentence architecture, inflated abstractions, false parallels, forced symmetry, “-ing” significance tails, and endings that could appear under any Indo-Pacific story. Change paragraph order before polishing individual words. Then reconcile any altered claims against the actual verified record.
 
-**For technical implementation:** Existing offline narrative checks may flag a *pattern* for human review; they must not claim to detect AI, auto-delete caveats, block publication over stylistic preferences alone, or trigger extra paid calls. Do not raise model token budgets or create a new pipeline for these changes. A later writer-prompt integration must use the active article-first contract once PR #880 is merged; until then this is a documentation standard.
+**For technical implementation:** Existing offline narrative checks may flag a *pattern* for human review; they must not claim to detect AI, auto-delete caveats, block publication over stylistic preferences alone, or trigger extra paid calls. Do not raise model token budgets or create a new pipeline for these changes. The article-first writer incorporates these composition rules in its first-pass `PROMPT_STANDARD`; offline editorial checks remain advisory.
 
-### Preferred stronger prompt (for a separate implementation review; not live)
+### Preferred stronger prompt (editorial reference; condensed into the live writer prompt)
 
 > Write an IPR article, not a policy-memo outline. Lead with the sharpest verified action or discrepancy. Choose the story's own sequence; do not automatically cycle through background, significance, challenges and outlook. In every paragraph, contribute a specific new fact, explanatory mechanism, real comparison or supported inference. Let straightforward reporting stand without added interpretation. Do not use rhetorical contrasts unless the opposing interpretation has actually arisen. Do not build triples or matched country sections just for symmetry. Remove detachable “-ing” significance clauses, generic regional-stakes language, repeated thesis restatements and compulsory caveat endings. Attribute official assertions; distinguish plans, activity and demonstrated results. Preserve every material source limitation where it changes a claim. End on the strongest established finding or a documented next indicator. Never invent operational detail, history, quotation, intent or a baseline to make the article more vivid. If the evidence is thin, write less or abstain. Produce the normal private source audit and all required source-to-block mappings.
 
@@ -318,7 +318,7 @@ When a first draft is machine-assisted, apply this guide **during first-pass gen
 9. Maintain every required citation/provenance mapping, original-language verification boundary and source-use restriction.
 10. Abstain, narrow the thesis or escalate to human review if the evidence cannot sustain the desired article.
 
-**Compact prompt passage for later integration (not currently runtime-active):**
+**Compact prompt reference (its instructions are incorporated into the runtime `PROMPT_STANDARD`, not pasted verbatim):**
 
 ~~~text
 IPR EDITORIAL VOICE. Write as a source-grounded foreign-policy journalist with
@@ -362,7 +362,7 @@ The current intended order is:
 
 **Eligible verified weekly evidence → story selection/abstention → first-pass article using this voice → existing offline structure/provenance checks → human language edit → claim-by-claim reconciliation → owner approval and governed publication.**
 
-- The Sunday writer's planned article-first contract and offline prose QA are in **PR #880**. That PR is **unmerged at the time this guide is written**. Its own technical document, **docs/IPR_BRIEFS_WRITING_STANDARD.md**, governs field shapes, block limits, private source accounting, warning/hold behavior and editor returns once released. This guide defines the editorial voice; it does not pretend those mechanisms are live today.
+- The article-first Sunday writer and offline prose QA were merged in **PR #880**. Its technical specification, **docs/IPR_BRIEFS_WRITING_STANDARD.md**, governs field shapes, limits, source accounting, warning/hold behavior and editor returns. Voice v2 is now part of the initial generation prompt, but a live model trial is still needed to assess the prose.
 - Treat mechanical defects and unsupported claims as reasons for correction/hold under existing rules. Treat clichés, caveat density and rhythmic sameness as **advisory editorial flags**; false positives are expected.
 - Do not add automatic “humanizer” passes, model retries, a second prose engine or higher token budgets merely to chase style. First compare a real owner-only draft against this guide.
 - Where available, compare the original first pass and Dylan's edited return offline. A repeated preference becomes a candidate for a prompt change only after the owner approves it and corresponding regression checks are added.
@@ -402,4 +402,4 @@ The guide is **research-informed**, not an AI-detection manual. Corpus studies c
 
 ---
 
-**Governing boundaries:** docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md; EDITORIAL_QA_CHECKLIST.md; current source-use and approval decisions. **Related implementation candidate:** PR #880 and its proposed docs/IPR_BRIEFS_WRITING_STANDARD.md. In any conflict, evidence integrity, source permissions and publication approval take precedence over style.
+**Governing boundaries:** docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md; EDITORIAL_QA_CHECKLIST.md; current source-use and approval decisions. **Related implementation:** merged PR #880 and docs/IPR_BRIEFS_WRITING_STANDARD.md. In any conflict, evidence integrity, source permissions and publication approval take precedence over style.
