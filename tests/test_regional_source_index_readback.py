@@ -1,4 +1,4 @@
-"""Strict independent regional index readback checks, entirely synthetic."""
+"""Synthetic index boundaries and read-only committed Vietnam source bindings."""
 from __future__ import annotations
 
 import hashlib

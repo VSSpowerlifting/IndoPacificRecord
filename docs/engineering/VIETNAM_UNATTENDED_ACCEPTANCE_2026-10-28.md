@@ -183,6 +183,16 @@ and its public admission/readback. Until then, keep the following verdicts.
 
 ## Verification and review state
 
+The first PR-head auxiliary checks `40718743382` (historical MPS contract) and
+`40718743607` (regional readback contract) both failed before any test at Python
+setup: their unchanged base workflows requested Python 3.9 on Ubuntu 26.04.
+Their workflow blobs were identical to the base revision. This candidate pins
+only those two directly implicated test jobs to Ubuntu 24.04; the regional job
+uses declared project requirements for the new committed Vietnam binding tests.
+No assertion is removed or relaxed. These are test-runner repairs, not private
+collection or source-health activation. The earlier unfinished full-suite run
+is not substituted for final-head CI.
+
 Focused tests cover exact duplicate references, real conflicting URLs/identities,
 MPS withheld titles, bibliographic subjects versus English explanations,
 unchanged signed-input admission, an isolated VPCP hold with successful MPS
