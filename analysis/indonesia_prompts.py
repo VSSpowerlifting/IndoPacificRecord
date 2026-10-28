@@ -1,9 +1,53 @@
 """Kemhan Berita: private Indonesian evidence, public factual English only."""
 import json
+import re
 
-from analysis.philippines_prompts import CATEGORIES, evidence_passages
+from analysis.philippines_prompts import CATEGORIES
 
-VERSION = "id-relevance-v1+id-analysis-v1"
+VERSION = "id-relevance-v1+id-analysis-v2"
+
+
+def evidence_passages(body):
+    """Exact, complete sentences/paragraphs; never finish a truncated fragment.
+
+    Long individual sentences are unavailable for citation rather than cut.
+    Abbreviations stay with the following name. Other desks keep their builder.
+    """
+    passages = []
+    for paragraph in re.split(r"\r?\n[ \t]*\r?\n+", body):
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+        if len(paragraph) <= 500:
+            chunks = [paragraph]
+        else:
+            chunks, sentences, start = [], [], 0
+            for boundary in re.finditer(r"(?<=[.!?])\s+", paragraph):
+                before = paragraph[start:boundary.start()]
+                if re.search(r"(?:\b(?:dr|Dr|Prof|Sp|Subsp)|\b(?:[A-Z]\.)*[A-Z])\.$", before):
+                    continue
+                sentences.append((start, boundary.start()))
+                start = boundary.end()
+            sentences.append((start, len(paragraph)))
+            chunk_start, chunk_end = None, None
+            for start, end in sentences:
+                if end - start > 500:
+                    if chunk_start is not None:
+                        chunks.append(paragraph[chunk_start:chunk_end])
+                    chunk_start = chunk_end = None
+                    continue
+                if chunk_start is not None and end - chunk_start > 500:
+                    chunks.append(paragraph[chunk_start:chunk_end])
+                    chunk_start = None
+                if chunk_start is None:
+                    chunk_start = start
+                chunk_end = end
+            if chunk_start is not None:
+                chunks.append(paragraph[chunk_start:chunk_end])
+        for chunk in chunks:
+            if len(chunk) >= 20:
+                passages.append(("P" + str(len(passages) + 1), chunk))
+    return passages
 
 
 def system_prompt(scope):
@@ -40,19 +84,24 @@ def analysis_messages(title, body):
         "actor and reported status. evidence_translation is private processing "
         "context, never public output. Do not translate the entire article. "
         "Preserve proper names, offices, ranks, units and numeric/date notation "
-        "exactly; avoid translating named offices or month names in the public "
+        "exactly in both fields; never fill in missing names or dates from another "
+        "passage or from the title. Do not add bracketed completions. Avoid "
+        "translating named offices or month names in the public "
         "sentence when that would obscure source matching. Preserve akan, "
         "rencana, belum, tidak, membahas and menjajaki: a plan or discussion "
         "is not an agreement, signing or completed event. Do not infer outcomes "
         "or strategic implications. Attribute institutional assertions. "
         "No quotations, copied sentences or sequences of 12 original words. "
-        "Summary is both sentences joined with a space, at most 90 words. "
+        "The TWO fact sentences together must be at most 90 words. Return no "
+        "summary field: code joins the validated sentences without shortening "
+        "or dropping claims. Use short facts wholly supported by their own "
+        "single passage, including every named participant and action status. "
         "Use categories ONLY from: " + ", ".join(CATEGORIES) + ". Use "
         "south_china_sea only when the original names Laut Cina Selatan, "
         "Laut China Selatan or South China Sea. Set flag=false and "
         "flag_reason=null, flag_evidence_id=null; substantive English explanation "
         "does not by itself warrant a significance flag. Return only JSON: "
-        "summary, flag, flag_reason, flag_evidence_id, categories and facts "
+        "flag, flag_reason, flag_evidence_id, categories and facts "
         "(exactly two objects: sentence, evidence_id, evidence_translation). "
         "Cite only supplied IDs. Each sentence must use only its cited passage.\n" +
         json.dumps({"title": title, "passages": [

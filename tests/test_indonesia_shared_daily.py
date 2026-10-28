@@ -35,7 +35,7 @@ def denied_policy():
 
 def record():
     # Explicitly synthetic Indonesian text, never represented as publisher text.
-    body = 'Latihan direncanakan akan berlangsung pada 23 Oktober. Pertemuan membahas rencana latihan bersama.'
+    body = 'Latihan direncanakan akan berlangsung pada 23 Oktober.\n\nPertemuan membahas rencana latihan bersama.'
     return dict(ph_record(), source_family=FAMILY,
         source_identity='kemhan:/2026/10/19/synthetic-fixture.html',
         canonical_official_url='https://www.kemhan.go.id/2026/10/19/synthetic-fixture.html',
@@ -80,11 +80,11 @@ class IndonesiaSharedDaily(unittest.TestCase):
 
     def test_actual_analyzer_two_calls_resolve_private_translations(self):
         r, reply = record(), reading()
-        out = dict(summary=reply['summary_english'], flag=False, flag_reason=None,
+        out = dict(flag=False, flag_reason=None,
             flag_evidence_id=None, categories=['exercises'], facts=[
-                dict(sentence=f['sentence'], evidence_id='P1',
-                     evidence_translation='An exercise is planned for 23 Oktober. The meeting discusses joint exercise plans.')
-                for f in reply['facts']])
+                dict(sentence=f['sentence'], evidence_id='P'+str(i+1),
+                     evidence_translation=f['evidence_translation'])
+                for i,f in enumerate(reply['facts'])])
         a = Analyzer.__new__(Analyzer)
         with patch.object(a, '_call', side_effect=[json.dumps(dict(score=.9, reasoning='Offline.')),json.dumps(out)]) as call, \
              patch.object(a, 'translate', side_effect=AssertionError('China route')), \
@@ -95,6 +95,136 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertIsNone(result['text_english'])
         self.assertIsNone(result['title_english'])
         self.assertEqual(len(d.quality_check(r,result)), 64)
+
+    def test_fact_only_contract_derives_summary_without_an_extra_call(self):
+        r, reply = record(), reading()
+        payload = dict(flag=False, flag_reason=None, flag_evidence_id=None,
+            categories=reply['categories'], facts=[
+                dict(sentence=f['sentence'], evidence_id='P'+str(i+1),
+                     evidence_translation=f['evidence_translation'])
+                for i,f in enumerate(reply['facts'])])
+        a = Analyzer.__new__(Analyzer)
+        with patch.object(a, '_call', return_value=json.dumps(payload)) as call:
+            result = a._desk_summary_and_flag(r['title'],r['body'],INDONESIA_PROFILE)
+        self.assertEqual(result[0],reply['summary_english'])
+        call.assert_called_once()
+        # Unexpected duplicate text must not be silently dropped to gain a pass.
+        for change in ({'summary':'Unsupported additional claim.'},
+                       {'flag_reason':'Unsupported additional claim.'},
+                       {'facts':[dict(payload['facts'][0],evidence_id='P999'),payload['facts'][1]]},
+                       {'facts':[dict(payload['facts'][0],evidence_id='P2'),payload['facts'][1]]}):
+            with self.subTest(change=list(change)):
+                changed=dict(payload,**change)
+                with patch.object(a,'_call',return_value=json.dumps(changed)):
+                    if ('summary' in change or 'flag_reason' in change
+                            or changed['facts'][0]['evidence_id']=='P999'):
+                        from analysis.analyzer import AnalysisError
+                        with self.assertRaises(AnalysisError):
+                            a._desk_summary_and_flag(r['title'],r['body'],INDONESIA_PROFILE)
+                    else:
+                        summary,flag,reason,cats,facts,_=a._desk_summary_and_flag(r['title'],r['body'],INDONESIA_PROFILE)
+                        bad=dict(reply,summary_english=summary,facts=facts)
+                        with self.assertRaises(d.IntakeHold):d.quality_check(r,bad)
+
+    def test_complete_passages_do_not_cut_or_complete_long_sentences(self):
+        from analysis.indonesia_prompts import evidence_passages
+        first='SYNTHETIC '+('latihan ' * 48).strip()+'.'
+        second='SYNTHETIC '+('peserta ' * 32).strip()+'.'
+        body=first+' '+second
+        self.assertGreater(len(body),500)
+        self.assertEqual([t for _,t in evidence_passages(body)],[first,second])
+        body=first+'   \n'+second
+        self.assertTrue(all(t in body for _,t in evidence_passages(body)))
+        self.assertEqual(evidence_passages('SYNTHETIC '+('kata '*130)+'.'),[])
+        body='SYNTHETIC '+('latihan ' * 55)+'dr. Contoh memimpin latihan. '+second
+        self.assertTrue(any('dr. Contoh' in t for _,t in evidence_passages(body)))
+        self.assertTrue(all(t in body and len(t)<=500 for _,t in evidence_passages(body)))
+
+    def dated_reading(self):
+        r=record();reply=reading()
+        r['body']='Latihan dilaksanakan pada 21/10/2026.\n\nPertemuan membahas rencana latihan bersama.'
+        # Publication is later than the actual event.
+        r['publisher_posted_date']='2026-10-23'
+        reply['facts'][0]=dict(sentence='Kemhan reports an exercise on 21 Oktober 2026.',
+            evidence=r['body'].split('\n\n')[0],evidence_translation='An exercise was held on 21 October 2026.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_equivalent_date_formats_are_not_changed_events(self):
+        r,reply=self.dated_reading()
+        for date_text in ('21 Oktober 2026','21 October 2026','21/10/2026','2026-10-21','21-10-2026'):
+            with self.subTest(date=date_text):
+                reply['facts'][0]['sentence']='Kemhan reports an exercise on '+date_text+'.'
+                reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def test_wrong_dates_and_private_translation_still_fail(self):
+        for field,value in (('sentence','Kemhan reports an exercise on 23 October 2026.'),
+                            ('evidence_translation','An exercise was held on 22 October 2026.'),
+                            ('evidence_translation','An exercise was held on 21 November 2026.')):
+            r,reply=self.dated_reading();reply['facts'][0][field]=value
+            reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+            with self.subTest(field=field,value=value),self.assertRaisesRegex(d.IntakeHold,'daily_quantity_or_date_unsupported'):
+                d.quality_check(r,reply)
+        r,reply=self.dated_reading();reply['facts'][0]['sentence']='Kemhan reports an exercise on 31/02/2026.'
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_date_invalid'):d.quality_check(r,reply)
+
+    def test_private_translation_cannot_add_cross_passage_names_or_completions(self):
+        r,reply=self.dated_reading();r['body']+='\n\nSYNTHETIC Contoh menghadiri kegiatan terpisah.'
+        for translation,reason in (
+            ('An exercise was held on 21 October 2026 with Contoh.','daily_private_translation_name_unsupported'),
+            ('An exercise was held on 21 October 2026 with [Contoh].','daily_private_translation_completion_held')):
+            reply['facts'][0]['evidence_translation']=translation
+            with self.subTest(reason=reason),self.assertRaisesRegex(d.IntakeHold,reason):d.quality_check(r,reply)
+
+    def test_private_translation_must_preserve_negation_and_action_status(self):
+        r,reply=self.dated_reading()
+        reply['facts'][0]['evidence_translation']='An exercise was completed on 21 October 2026.'
+        with self.assertRaisesRegex(d.IntakeHold,'daily_completed_action_unsupported'):d.quality_check(r,reply)
+        r=record();reply=reading();r['body']=r['body'].replace('direncanakan akan','tidak akan')
+        reply['facts'][0]['evidence']=r['body'].split('\n\n')[0]
+        reply['facts'][0]['sentence']='Kemhan reports an exercise will not be held on 23 Oktober.'
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        # Public negation cannot excuse its loss in the private translation.
+        with self.assertRaisesRegex(d.IntakeHold,'daily_negation_lost'):d.quality_check(r,reply)
+
+    def test_private_translation_cannot_invent_negation_or_change_unit_suffix(self):
+        r,reply=self.dated_reading()
+        reply['facts'][0]['evidence_translation']='An exercise was not held on 21 October 2026.'
+        with self.assertRaisesRegex(d.IntakeHold,'daily_negation_unsupported'):d.quality_check(r,reply)
+        r,reply=self.dated_reading()
+        r['body']=r['body'].replace('dilaksanakan','dilaksanakan menggunakan SYN-120B')
+        reply['facts'][0]['evidence']=r['body'].split('\n\n')[0]
+        reply['facts'][0]['evidence_translation']='An exercise used SYN-120C on 21 October 2026.'
+        with self.assertRaisesRegex(d.IntakeHold,'daily_quantity_or_date_unsupported'):d.quality_check(r,reply)
+
+    def test_cross_passage_industry_claim_is_not_supported_by_the_article(self):
+        r,reply=self.dated_reading()
+        r['body']+='\n\nSYNTHETIC program pengembangan sumber daya manusia.'
+        for field in ('sentence','evidence_translation'):
+            bad=copy.deepcopy(reply)
+            bad['facts'][0][field]+=' The exercise supports human-resource development.'
+            bad['summary_english']=' '.join(f['sentence'] for f in bad['facts'])
+            with self.subTest(field=field),self.assertRaisesRegex(d.IntakeHold,'daily_cross_passage_claim_unsupported'):d.quality_check(r,bad)
+
+    def test_derived_summary_cannot_shorten_an_over_budget_fact(self):
+        r,reply=self.dated_reading();reply['facts'][0]['sentence']+=' reported'*90
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_summary_invalid'):d.quality_check(r,reply)
+
+    def test_prompt_revision_keeps_source_version_attempts_and_exhaustion(self):
+        for previous_failures in (1,2):
+            state=self.process(a=analyzer({}));key=next(iter(state))
+            state[key]['attempts']=previous_failures
+            a=analyzer({})
+            for _ in range(5):state=self.process(state=state,a=a)
+            self.assertEqual(a.analyze_record.call_count,5-previous_failures)
+            self.assertEqual((state[key]['attempts'],state[key]['status']),(5,'paused'))
+        for status in ('paused','terminal','held'):
+            state[key].update(status=status,attempts=5,reason='existing_exception')
+            a=analyzer();out=self.process(state=state,a=a);a.analyze_record.assert_not_called()
+            self.assertEqual(out[key],state[key])
 
     def test_unapproved_rights_never_construct_model(self):
         factory = Mock(side_effect=AssertionError('unauthorized model'))
@@ -135,7 +265,7 @@ class IndonesiaSharedDaily(unittest.TestCase):
 
     def test_lost_negation_and_planned_event_as_completed_are_held(self):
         r=record();r['body']=r['body'].replace('direncanakan akan','tidak akan')
-        reply=reading();reply['facts'][0]['evidence']=r['body'].split('. ')[0]+'.'
+        reply=reading();reply['facts'][0]['evidence']=r['body'].split('\n\n')[0]
         with self.assertRaisesRegex(d.IntakeHold,'daily_negation_lost'):
             d.quality_check(r,reply)
         for past in ('took place', 'was held', 'was conducted', 'has been completed'):
@@ -264,6 +394,9 @@ class IndonesiaSharedDaily(unittest.TestCase):
             self.assertNotIn(private,text)
         out=env['packet']['records'][0]
         d.validate_output(out,FAMILY,policy()['sources'][FAMILY])
+        self.assertEqual(d.allowed_prompt_versions(FAMILY),(VERSION,))
+        with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+            d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v1'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='ph-relevance-v1+ph-analysis-v13'),FAMILY,policy()['sources'][FAMILY])
 

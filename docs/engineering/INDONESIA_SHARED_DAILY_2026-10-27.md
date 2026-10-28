@@ -1,10 +1,13 @@
 # Kemhan Berita shared Daily — authorized release, 27 October 2026
 
 The owner approved the narrow standing source-use, spending and controlled
-release decision on 27 October 2026; see the matching `DECISION_LOG.md` entry.
-The three Kemhan policy switches are enabled in this release candidate.
-Final-head CI, merges, first live model quality and deployed publication remain
-release checks; this document does not claim their completion.
+release decision on 27 October 2026; see `DECISION_LOG.md`. Public #891 merged
+as `455a1c73f58cf4d8bd0f41474b94a0dd14ee5114`; private #26 merged as
+`c1cbff0c0aea493957d156d973c872174d5fd3fd`. The three public policy switches
+are true, but `KEMHAN_DAILY_ENABLED` remains absent/disabled. First live
+processing exposed the quality blocker below; no explanation was signed or
+published. The repair phase permits offline work and one checked PR only:
+no paid calls, merge, activation or publication.
 
 ## Scope and implementation
 
@@ -22,7 +25,8 @@ to the exact original. Private translations and evidence spans never enter the
 public database, queue ledger or signed envelope. No full-article translation,
 China prompt, new model engine, renderer or article corpus is introduced.
 
-The per-sentence QA checks attribution, exact numbers/date notation, names,
+The per-sentence QA checks attribution, exact quantities/unit identifiers,
+semantically equivalent calendar dates, names,
 source-supported geography, Indonesian negation/plans and completed-action
 language. Initial output has no model significance flag. These conservative
 checks **do not certify arbitrary bilingual meaning**; real model quality must
@@ -162,3 +166,71 @@ parser to its existing section and checks original-text/model holds against
 the actual admitted metadata state. All seven navigation tests pass locally;
 no Japan data, policy or renderer changes are included. Required full CI runs
 again on the final revision because this observed failure justified it.
+
+## Live failure diagnosis and bounded repair (28 October UTC)
+
+Private immutable source pin `97668de31f0c01e8d000ad71518c16caac18f670` and
+all three retained rejected readings were located and hash-checked. These are
+actual parsed Analyzer/QA inputs, including exact resolved source evidence and
+private translations; the original HTTP/SDK response envelopes were not retained.
+No rejected response was reconstructed. The private custody history, capture
+hashes and public-admitted metadata bindings validate. The remote queue still
+matches private state commit `63f79b71439b7b7deca2e416f1f8b8f99bcf2018`.
+Source bodies and rejected readings are absent from public code, logs and CI
+artifacts. Private reproduction and detailed receipts remain under the owner's
+private `kemhan-release-20261027` evidence directory.
+
+Both medical-evacuation readings fail only the redundant summary equality
+contract under v1: independently generated summary text differs from the two
+fact sentences, which total 65 words. The industry reading has 93 fact words
+hidden behind a shorter 58-word summary; merely joining those facts must still
+fail. Replaying every applicable check also finds claims/names outside the
+cited passage and an unsupported completed action. Its private translations
+complete cut-off source fragments with bracketed additions. The named-month
+event date is semantically equivalent to the numeric source date; v1's literal
+numeric/name comparison incorrectly calls that formatting a date defect.
+Changed dates and use of the later publication date remain prohibited.
+
+The `id-relevance-v1+id-analysis-v2` repair asks for exactly two attributed fact
+sentences and their private translations, with no independently generated
+summary. Code joins all fact sentences; the existing quality gate validates
+each fact and the complete 90-word budget before any output persists. Unexpected
+summary fields fail instead of silently discarding potential extra claims.
+Evidence IDs resolve only to exact complete paragraphs/sentences of at most
+500 characters; longer single sentences are unavailable, never sliced or
+completed. Other desks retain their existing passage builder and contract.
+Date comparison accepts equivalent Indonesian/English month and numeric formats
+while retaining exact quantities and unit/model suffixes. Both private and
+public fields must retain supported action status and negation. Private
+translations cannot insert source names from another passage or bracketed
+completions. Observed industry concepts require local source support. These
+bounded checks do not certify arbitrary bilingual semantics; a future real
+v2 reading still requires the authorized first-release inspection.
+
+Private offline replay distinguishes unchanged rejected inputs from a diagnostic
+projection that only joins their fact sentences and selects the v2 rubric.
+That projection passes both medical readings; the industry reading still fails
+word count, evidence locality, private-translation and action-status gates.
+It is not a new model result, a queue recovery, or release authority. Public
+regressions use explicitly synthetic text and fake calls, alongside this separate
+actual-artifact replay. No paid call or queue write occurs in the repair.
+
+### Controlled-release checkpoint
+
+The source-version key still hashes only metadata/content/capture versions,
+not the prompt. No retry accounting or queue recovery code changes. Failed
+attempts, relevance rejection and terminal/paused/held states are preserved.
+The public admission allowlist accepts v2 only; no v1 Kemhan output was released.
+
+| Affected source version (queue digest) | Failures retained | Attempts remaining before five-failure pause |
+|---|---:|---:|
+| Medical evacuation: `4269fad7a8154336314b59d88e9bf5498227bcb05cc85b89c4b46c16fafa5ec1` | 2 | 3 |
+| Defense industry: `8788720e8689b1cc24da5d99b2937a507a2f775f48f5eb2053e4cbc7f6460824` | 1 | 4 |
+
+After repair review and final-head CI, resume controlled release only in its
+separate authorized phase. Reuse the real private queue without resetting
+attempts; obtain a genuine v2 reading through the same two-call, one-record,
+$0.35 reservation path, inspect it privately, and publish only if QA and manual
+first-result checks pass. Do not relabel or publish the old diagnostic readings.
+The source-use approval remains valid. The private family gate stays disabled
+throughout this repair; source-to-live and automatic follow-on are unverified.

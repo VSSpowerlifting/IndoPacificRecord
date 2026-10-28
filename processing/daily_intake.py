@@ -505,7 +505,7 @@ def validate_output(r, family, p):
 
 def allowed_prompt_versions(family):
     if family == "id_kemhan_news":
-        return ("id-relevance-v1+id-analysis-v1",)
+        return ("id-relevance-v1+id-analysis-v2",)
     return ("ph-relevance-v1+ph-analysis-v10",
             "ph-relevance-v1+ph-analysis-v11",
             "ph-relevance-v1+ph-analysis-v12",
