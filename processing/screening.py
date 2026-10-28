@@ -214,7 +214,7 @@ INDONESIA_PROFILE = ScreeningProfile(
     prompt_version="id-relevance-v1", build_system_prompt=id_prompts.system_prompt,
     build_analysis_messages=id_prompts.analysis_messages,
     build_analysis_system_prompt=id_prompts.system_prompt,
-    analysis_prompt_version="id-analysis-v1", source_language="id",
+    analysis_prompt_version="id-analysis-v2", source_language="id",
     source_family="id_kemhan_news", categories=id_prompts.CATEGORIES,
 )
 

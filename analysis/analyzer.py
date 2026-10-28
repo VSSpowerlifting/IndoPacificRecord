@@ -821,6 +821,13 @@ class Analyzer:
         # text; the existing private quality gate still checks every claim.
         if profile.desk_id in ("philippines", "indonesia") and isinstance(data, dict):
             from analysis.philippines_prompts import evidence_passages
+            if profile.desk_id == "indonesia":
+                from analysis.indonesia_prompts import evidence_passages
+                if (set(data) != {"flag", "flag_reason", "flag_evidence_id", "categories", "facts"}
+                        or data.get("flag") is not False or data.get("flag_reason") is not None
+                        or data.get("flag_evidence_id") is not None):
+                    self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                    raise AnalysisError("Invalid Indonesian fact-only contract")
             source_passages = dict(evidence_passages(body))
             facts = data.get("facts")
             if isinstance(facts, list):
@@ -838,7 +845,10 @@ class Analyzer:
                                          **({"evidence_translation": fact["evidence_translation"]}
                                             if profile.desk_id == "indonesia" else {})})
                     else:
-                        resolved.append(fact)  # legacy direct-span test fixtures
+                        if profile.desk_id == "indonesia":
+                            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                            raise AnalysisError("Invalid private-source evidence reference")
+                        resolved.append(fact)  # legacy Philippines test fixtures
                 data["facts"] = resolved
             if "flag_evidence_id" in data:
                 ref = data["flag_evidence_id"]
@@ -848,7 +858,18 @@ class Analyzer:
                         raise AnalysisError("Invalid private-source flag evidence reference")
                     data["flag_evidence"] = source_passages[ref]
                 del data["flag_evidence_id"]
-        summary = data.get("summary") if isinstance(data, dict) else None
+        if profile.desk_id == "indonesia":
+            facts = data.get("facts") if isinstance(data, dict) else None
+            if (not isinstance(facts, list) or len(facts) != 2
+                    or any(not isinstance(f, dict) or not isinstance(f.get("sentence"), str)
+                           or not f["sentence"].strip() for f in facts)):
+                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                raise AnalysisError("Invalid Indonesian facts")
+            # QA validates every retained fact and the combined word budget
+            # before persistence. Never truncate or silently drop a claim.
+            summary = " ".join(f["sentence"] for f in facts)
+        else:
+            summary = data.get("summary") if isinstance(data, dict) else None
         flagged = data.get("flag") if isinstance(data, dict) else None
         reason = data.get("flag_reason") if isinstance(data, dict) else None
         if profile.categories:
