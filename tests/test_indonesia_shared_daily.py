@@ -199,6 +199,47 @@ class IndonesiaSharedDaily(unittest.TestCase):
         reply['facts'][0]['evidence_translation']='An exercise used SYN-120C on 21 October 2026.'
         with self.assertRaisesRegex(d.IntakeHold,'daily_quantity_or_date_unsupported'):d.quality_check(r,reply)
 
+    def numbered_reading(self, abbreviation='No. 17', negative=False):
+        r,reply=record(),reading()
+        first='Dokumen '+abbreviation+(' tidak mengubah' if negative else ' menjelaskan')+' rencana latihan.'
+        r['body']=first+'\n\n'+r['body'].split('\n\n')[1]
+        reply['facts'][0]=dict(evidence=first,
+            sentence='Kemhan reports '+('no change to plans' if negative else 'exercise plans')+' in document '+abbreviation+'.',
+            evidence_translation='Document '+abbreviation+(' does not change exercise plans.' if negative else ' describes exercise plans.'))
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_document_number_abbreviation_is_not_negation(self):
+        for abbreviation in ('No. 17','No.17','NO. 17','no. 17'):
+            r,reply=self.numbered_reading(abbreviation)
+            with self.subTest(abbreviation=abbreviation):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+        # Ignoring the abbreviation for negation never ignores the number.
+        reply['facts'][0]['sentence']=reply['facts'][0]['sentence'].replace('17','18')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_quantity_or_date_unsupported'):d.quality_check(r,reply)
+
+    def test_document_number_does_not_hide_invented_negation(self):
+        r,reply=self.numbered_reading()
+        for field,text in (
+            ('sentence','Kemhan reports no exercise plans in document No. 17.'),
+            ('evidence_translation','Document No. 17 contains no exercise plans.')):
+            bad=copy.deepcopy(reply);bad['facts'][0][field]=text
+            bad['summary_english']=' '.join(f['sentence'] for f in bad['facts'])
+            with self.subTest(field=field),self.assertRaisesRegex(d.IntakeHold,'daily_negation_unsupported'):
+                d.quality_check(r,bad)
+
+    def test_document_number_cannot_replace_actual_source_negation(self):
+        r,reply=self.numbered_reading(negative=True)
+        self.assertEqual(len(d.quality_check(r,reply)),64)
+        for field,text in (
+            ('sentence','Kemhan reports exercise plans in document No. 17.'),
+            ('evidence_translation','Document No. 17 describes exercise plans.')):
+            bad=copy.deepcopy(reply);bad['facts'][0][field]=text
+            bad['summary_english']=' '.join(f['sentence'] for f in bad['facts'])
+            with self.subTest(field=field),self.assertRaisesRegex(d.IntakeHold,'daily_negation_lost'):
+                d.quality_check(r,bad)
+
     def test_cross_passage_industry_claim_is_not_supported_by_the_article(self):
         r,reply=self.dated_reading()
         r['body']+='\n\nSYNTHETIC program pengembangan sumber daya manusia.'

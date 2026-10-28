@@ -286,8 +286,9 @@ found and privately replayed; raw HTTP/SDK envelopes were not retained.
 
 The bounded repair derives the summary from two retained facts, supplies complete
 source passages, compares equivalent calendar dates and strengthens private
-translation/local-evidence checks. Rubric v2 does not reset source-version
-attempts: medical evacuation has two failures (three left); defense industry
+translation/local-evidence checks. Review correction: numbered-document `No.`
+abbreviations neither count as negation nor preserve an actual source negation.
+Rubric v2 does not reset source-version attempts: medical evacuation has two failures (three left); defense industry
 has one (four left). Queue state `63f79b71439b7b7deca2e416f1f8b8f99bcf2018`
 remains unchanged. Offline projection clears only the medical contract mismatch;
 the industry reading stays held, including its 93-word fact budget. No old

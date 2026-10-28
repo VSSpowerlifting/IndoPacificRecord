@@ -80,7 +80,9 @@ def check_status(evidence, english):
         need(re.search(EN_TENTATIVE, english, re.I) is not None,
              "daily_modality_or_contradiction_hold")
     negative = re.search(r"\b(?:tidak|belum|bukan|tak|tanpa)\b", evidence, re.I)
-    english_negative = re.search(r"\b(?:not|no|never|without)\b|n['’]t\b", english, re.I)
+    # A numbered-document abbreviation is not negation and cannot preserve
+    # a real source negation. Keep every other negative token eligible.
+    english_negative = re.search(r"\b(?:not|never|without)\b|\bno\b(?!\.\s*\d)|n['’]t\b", english, re.I)
     if negative:
         need(english_negative is not None, "daily_negation_lost")
     else:
