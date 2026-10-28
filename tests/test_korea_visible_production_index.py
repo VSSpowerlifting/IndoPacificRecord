@@ -7,6 +7,11 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import io
+import os
+import re
+import textwrap
+from contextlib import redirect_stdout
 from pathlib import Path
 import sys
 
@@ -47,6 +52,35 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
                           snapshot=preview.snapshot_from_corpus(db),
                           site_origin="https://indopacificrecord.org")
             html = (out / "korea.html").read_text(encoding="utf-8")
+            # Execute the publishers' actual post-render gates. A completed
+            # shared record replaces its bare link in the renderer; comparing
+            # the rail against every DB admission used to fail both writers.
+            for name in ("korea_verified_official_link_production.yml",
+                         "korea_standing_original_text_production.yml"):
+                flow = (ROOT / ".github/workflows" / name).read_text()
+                blocks = re.findall(r"          python - <<'PY'\n(.*?)          PY", flow, re.S)
+                check = next(block for block in blocks
+                             if "data-korea-auto-official-link=" in block)
+                work = Path(tmp) / "runner"
+                work.mkdir(exist_ok=True)
+                if not (work / "output").exists():
+                    (work / "output").symlink_to(out, target_is_directory=True)
+                    (work / "pla_watch.db").symlink_to(db)
+                previous = Path.cwd()
+                try:
+                    os.chdir(work)
+                    with redirect_stdout(io.StringIO()):
+                        exec(compile(textwrap.dedent(check), name, "exec"), {})
+                    # Missing or duplicated metadata still fails the real gate.
+                    for changed in (html.replace('data-korea-auto-official-link=',
+                                                  'data-missing-link=', 1),
+                                    html + '<li data-korea-auto-official-link="duplicate">'):
+                        (out / "korea.html").write_text(changed, encoding="utf-8")
+                        with self.assertRaises(AssertionError), redirect_stdout(io.StringIO()):
+                            exec(compile(textwrap.dedent(check), name, "exec"), {})
+                finally:
+                    os.chdir(previous)
+                    (out / "korea.html").write_text(html, encoding="utf-8")
             directory = (out / "desks.html").read_text(encoding="utf-8")
             self.assertIn(
                 'data-korea-directory-mnd-metadata="%d"' % mnd_count,
