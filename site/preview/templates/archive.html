@@ -27,9 +27,10 @@
       <div class="finder-field">
         <label for="f-scope">Browse collection</label>
         <select id="f-scope" name="scope">
-          <option value="focus" selected>Research focus ({{ focus.all_focus | count }} records)</option>
-          <option value="all">Full preserved record ({{ corpus_total | count }} records)</option>
-          <option value="published">All published material</option>
+          <option value="focus" data-noun="research-focus records" selected>Research focus ({{ focus.all_focus | count }} records)</option>
+          <option data-noun="preserved records" value="all">Full preserved record ({{ corpus_total | count }} records)</option>
+          <option value="records" data-noun="source records">Source records, all desks ({{ public_records.total | count }})</option>
+          <option value="published" data-noun="published items">All published material</option>
         </select>
       </div>
       <div class="finder-field finder-field--q">
@@ -58,7 +59,7 @@
         <label for="f-desk">Desk</label>
         <select id="f-desk" name="desk">
           <option value="">All desks</option>
-          {% for d in desks %}<option value="{{ d.slug }}">{{ d.name }}{% if d.record_count is not none %} ({{ d.record_count | count }} preserved){% endif %}</option>{% endfor %}
+          {% for d in desks %}<option value="{{ d.slug }}">{{ d.name }}{% if public_records.desks[d.slug].records %} ({{ public_records.desks[d.slug].records | count }} records){% endif %}</option>{% endfor %}
         </select>
       </div>
       <div class="finder-field">
@@ -123,7 +124,7 @@
 
     <details class="finder-about">
       <summary>Search scope and counts</summary>
-    <p id="research-help">Title contains keeps literal title matching. Keywords require every term or quoted phrase. All published material adds public official-link references, registered originals, reviewed English artifacts and human-controlled analysis. Archive dates remain source-stated. IPR publication dates come from public release records; unrecorded dates stay unrecorded. Dates use YYYY-MM-DD. Processing state, institution, original language and source-trail filters apply to archive records. Search counts are documents, not events or independent corroboration.</p>
+    <p id="research-help">Title contains keeps literal title matching. Keywords require every term or quoted phrase. Source records lists every desk's admitted source publications once each: an official link, its original text, its translation and its explanation are one record, with the other parts linked inside it. All published material also adds human-controlled analysis. Archive dates remain source-stated. IPR publication dates come from public release records; unrecorded dates stay unrecorded. Dates use YYYY-MM-DD. Processing state, institution, original language and source-trail filters apply to archive records. Search counts are documents, not events or independent corroboration.</p>
     <p class="finder-note">Archive title search covers titles only — the English title where one
     exists, and the original title always. It does not search machine summaries
     or stored source text.</p>
@@ -216,12 +217,12 @@ Remove a filter, widen the date range, or try the original-language title.</p></
 </figure>
 
 <details class="archive-coverage"><summary>Corpus scope and coverage</summary>
-{{ spine(desks, snapshot, corpus_total) }}
+{{ spine(desks, snapshot, public_records) }}
 <p class="meta" id="guide-link">Stored fields and limits: <a href="corpus-guide.html">Corpus Guide</a>. <span id="volume-jump"><a href="#volume-heading">View records by publication week</a>.</span></p>
 </details>
 {% include "_volume.html" %}
 {% endblock %}
 {% block scripts %}
-<template id="archive-row"><li class="record-row"><div><h3><a data-text="title"></a></h3><p class="original" data-text="original"></p><p class="meta" data-text="title_note"></p><p class="row-tags"><span data-text="analyzed"></span><span class="trail-tag" data-text="trail_label"></span></p><p class="archive-snippet" data-text="summary"></p><p class="archive-hold" data-text="hold"></p><div class="archive-actions"><label class="keep-record"><input type="checkbox">Keep in research list</label><details><summary>Citation and provenance</summary><p data-text="processing"></p><p data-text="date_info"></p><p class="archive-citation" tabindex="0" data-text="citation"></p><button type="button" aria-live="polite" aria-atomic="true">Copy citation</button></details></div></div><p class="row-side"><span class="row-who" data-text="who"></span><span class="row-via" data-text="via"></span><a data-text="desk_name"></a><span data-text="state"></span></p></li></template>
+<template id="archive-row"><li class="record-row"><div><h3><a data-text="title"></a></h3><p class="original" data-text="original"></p><p class="meta" data-text="title_note"></p><p class="row-tags"><span data-text="analyzed"></span><span class="trail-tag" data-text="trail_label"></span></p><p class="row-parts"><span>Also in this record</span></p><p class="archive-snippet" data-text="summary"></p><p class="archive-hold" data-text="hold"></p><div class="archive-actions"><label class="keep-record"><input type="checkbox">Keep in research list</label><details><summary>Citation and provenance</summary><p data-text="processing"></p><p data-text="date_info"></p><p class="archive-citation" tabindex="0" data-text="citation"></p><button type="button" aria-live="polite" aria-atomic="true">Copy citation</button></details></div></div><p class="row-side"><span class="row-who" data-text="who"></span><span class="row-via" data-text="via"></span><a data-text="desk_name"></a><span data-text="state"></span></p></li></template>
 <template id="archive-day"><section class="records-day"><p class="day-date"><time><span class="day-num"></span><span class="day-month"></span><span class="day-week"></span></time></p><ul class="record-list"></ul></section></template>
 <script src="browse.js" defer></script>{% endblock %}

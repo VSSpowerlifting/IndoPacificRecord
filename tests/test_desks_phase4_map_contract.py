@@ -36,7 +36,8 @@ class DesksPhase4MapContract(unittest.TestCase):
     def test_registry_drives_status_not_geography(self):
         self.assertIn("d.status_label", self.html)
         self.assertIn("d.status_explanation", self.html)
-        self.assertIn("d.record_count", self.html)
+        # Counts come from the shared public-record projection.
+        self.assertIn("pr[d.slug].records", self.html)
         self.assertIn("d.last_successful_run", self.html)
         self.assertIn("Not admitted", self.html)
         self.assertIn("if d.slug not in placed", self.html)

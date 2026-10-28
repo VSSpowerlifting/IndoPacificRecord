@@ -469,11 +469,14 @@ class TestNoFabricatedCoverage(PreviewCase):
                 self.assertNotRegex(
                     block, r"\b\d[\d,]*\s+(records|runs|articles)\b",
                     "%s must not show a public corpus count" % entry.name)
-                if entry.status == "shadow":
-                    self.assertIn("Corpus records</dt><dd>Not admitted", block)
-                    self.assertIn("Last corpus collection</dt><dd>Not admitted", block)
-                else:
-                    self.assertIn("Records</dt><dd>None collected", block)
+                # The figure is the shared public-record count, never a
+                # corpus total, and the desk is never presented as collecting.
+                count = json.loads(self.page("archive-research-index.json"))[
+                    "public_records"]["desks"][entry.slug]["records"]
+                self.assertIn("Records</dt><dd>%s</dd>" % format(count, ","), block)
+                self.assertNotIn("Corpus records", block)
+                self.assertNotIn("Live — collecting", block)
+                self.assertNotIn("desk--live", block)
                 self.assertIn(entry.status_label, block)
 
     def test_desk_directory_states_the_live_count_honestly(self):
@@ -498,8 +501,8 @@ class TestNoFabricatedCoverage(PreviewCase):
         desk it governs.
         """
         desks = self.page("desks.html")
-        self.assertIn("Corpus records</dt><dd>Not admitted", desks)
-        self.assertIn("Only collecting desks show public-corpus record totals", desks)
+        self.assertIn("Last corpus collection", desks)
+        self.assertIn("counted once per source publication; corpus collection is separate", desks)
         self.assertIn("Consecutive days required</dt><dd>30",
                       self.page("singapore.html"))
         self.assertIn("Desks", self.page("index.html"))
@@ -1433,8 +1436,8 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         self.assertIn("Corpus records</dt><dd>Not admitted", japan)
         # The directory must carry the claim too, not defer all of it.
         desks = self.page("desks.html")
-        self.assertIn("Access blocked — not collecting", desks)
-        self.assertIn("Records</dt><dd>None collected", desks)
+        self.assertIn("Official links — not in corpus", desks)
+        self.assertIn("RSS listing date, not verified issue date", desks)
 
     def test_us_reference_desk_distinguishes_live_congressional_metadata_from_pacom_hold(self):
         """USCC metadata is collected; direct PACOM source access remains blocked."""
@@ -1442,8 +1445,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         block = [b.split("</section>", 1)[0]
                  for b in directory.split('<section class="desk')[1:]
                  if "US Indo-Pacific Reference Desk" in b][0]
-        self.assertIn("Access blocked — not collecting", block)
-        self.assertIn("Records</dt><dd>None collected", block)
+        self.assertIn("INDOPACOM collection blocked", block)
         self.assertNotIn("Live — collecting", block)
         self.assertNotIn("desk--live", block)
 
@@ -1562,7 +1564,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         so "Analyzed and published" conflated two different claims.
         """
         html = self.page("china.html")
-        for label in ("Source records", "Analyzed records",
+        for label in ("Records", "Analyzed records",
                       "Not analyzed"):
             with self.subTest(label=label):
                 self.assertIn(label, html)
@@ -3942,7 +3944,8 @@ class TestCoverageTableSemantics(PreviewCase):
         # added so the four can be read against each other rather than only as
         # separate cards. Both are `<thead>` column headers; neither is a
         # promoted body cell, which is what this guard is actually protecting.
-        expected = {"china.html": 5, "japan.html": 8, "sources.html": 7,
+        # The shared "Sources and coverage" table adds two columns per desk page.
+        expected = {"china.html": 7, "japan.html": 10, "sources.html": 7,
                     "desks.html": 8}
         for name, count in expected.items():
             html = (self.out / name).read_text(encoding="utf-8")
@@ -3951,7 +3954,7 @@ class TestCoverageTableSemantics(PreviewCase):
                 self.assertEqual(len(re.findall(r'scope="row"', html)), 0)
                 outside = re.sub(r"<thead>.*?</thead>", " ", html, flags=re.S)
                 self.assertNotIn("<th", outside)
-        self.assertEqual(sum(expected.values()), 28)
+        self.assertEqual(sum(expected.values()), 32)
 
     def test_source_pages_label_rows_not_columns(self):
         for path in sorted(self.out.glob("source/*.html")):

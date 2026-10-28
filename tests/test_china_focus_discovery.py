@@ -120,8 +120,12 @@ class ChinaFocusDiscoveryTest(unittest.TestCase):
         self.assertIn('href="corpus.html"', template)
         self.assertIn("not individually fact-checked or editor-approved", template)
         self.assertIn("data-focus-records", template)
-        self.assertIn('k === "scope" && v === "focus"', js)
-        self.assertIn('get("scope") === "focus"', js)
+        # Focus is the default scope, omitted from the URL like every default,
+        # and the result count names it through the option's own noun.
+        self.assertIn('DEFAULT = {sort:"new", scope:"focus"}', js)
+        self.assertIn("v !== DEFAULT[k]", js)
+        self.assertIn('value="focus" data-noun="research-focus records" selected', template)
+        self.assertIn("F.scope.selectedOptions[0].dataset.noun", js)
         self.assertIn('crypto.subtle.digest("SHA-256"', js)
         self.assertIn('actual !== expected', js)
         self.assertIn("focus = build_focus(data[\"corpus\"])", generator)

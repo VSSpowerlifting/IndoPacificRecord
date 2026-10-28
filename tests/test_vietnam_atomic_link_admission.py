@@ -11,6 +11,7 @@ from scripts import admit_vietnam_official_links as publisher
 from scripts.verify_regional_source_index_readback import verify_vietnam_https, ReadbackHold
 from core.regional_official_link_render import read_live_links
 from tests import test_vietnam_official_link_admission as fixtures
+from tests.test_vietnam_official_link_admission import MACROS, desk_fragment_env
 
 
 class AtomicAdmission(unittest.TestCase):
@@ -106,15 +107,14 @@ class AtomicAdmission(unittest.TestCase):
     def test_sqlite_generated_html_and_independent_https_bytes_agree(self):
         self.run_admit()
         site = self.f.fixture.root / 'rendered'; site.mkdir()
-        from jinja2 import Environment, select_autoescape
         from types import SimpleNamespace
         source = (publisher.ROOT/'site/preview/templates/desk.html').read_text()
         start = source.index("{% if desk.slug in ('philippines', 'indonesia', 'vietnam')",
                              source.index('{# Regional official-link index:'))
         end = source.index('{# US: first-party publisher URLs', start)
         with closing(sqlite3.connect(str(self.db))) as conn:
-            data = Environment(autoescape=select_autoescape(default_for_string=True)).from_string(
-                source[start:end]).render(desk=SimpleNamespace(slug='vietnam'),
+            data = desk_fragment_env().from_string(
+                MACROS + source[start:end]).render(desk=SimpleNamespace(slug='vietnam'), explained={},
                                          regional_official_links=read_live_links(conn,'vietnam')).encode()
         (site/'vietnam.html').write_bytes(data)
         receipt = verify_vietnam_https(self.db, site, fetch=lambda url: data)

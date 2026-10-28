@@ -9,6 +9,7 @@
 .desk-reference-list li{border-bottom:1px solid var(--rule);padding:12px 4px}
 .desk-reference-list li[hidden]{display:none}
 .desk-reference-list li p{margin:0 0 5px}
+.desk-reference-list .record-part{border-left:2px dotted var(--machine-ink);padding-left:12px;margin:8px 0 4px;max-width:70ch}
 @media(max-width:520px){.desk-reference-filters{grid-template-columns:1fr}}
 
 

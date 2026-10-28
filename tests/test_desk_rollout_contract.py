@@ -13,6 +13,7 @@ Nothing here collects, enables a source, or writes to the tracked database.
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import sys
@@ -51,6 +52,11 @@ class DeskCase(unittest.TestCase):
 
     def page(self, name: str) -> str:
         return (self.out / name).read_text(encoding="utf-8")
+
+    def public_records(self, slug: str) -> int:
+        """The shared projection's record count, as every surface shows it."""
+        index = json.loads(self.page("archive-research-index.json"))
+        return index["public_records"]["desks"][slug]["records"]
 
     @staticmethod
     def db():
@@ -144,7 +150,8 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertFalse(us.is_collecting)
         self.assertEqual(us.configured_source_count, 0)
         self.assertEqual(us.enabled_source_count, 0)
-        self.assertIn("not collecting", us.status_label.lower())
+        # The desk publishes other official links; only INDOPACOM is blocked.
+        self.assertIn("indopacom collection blocked", us.status_label.lower())
 
     def test_us_desk_limit_uses_owner_approved_neutral_evidence_standard(self):
         us = load_registry().get("us-indopacific")
@@ -318,7 +325,7 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
         html = self.page("desks.html")
         self.assertIn("Indonesia Desk", html)
         self.assertIn("8 declared", html)
-        self.assertIn("4 collecting into the record", html)
+        self.assertIn("4 collecting into the corpus", html)
         self.assertEqual(
             sorted(x.slug for x in load_registry() if x.is_collecting),
             ["china", "korea", "singapore", "vietnam"])
@@ -382,12 +389,22 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
     def test_no_planned_desk_is_counted_as_a_live_one(self):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.page("index.html"), "html.parser")
-        public_desks = [d for d in gp.PublicView(TRACKED_DB).desk_directory() if d.record_count]
+        # Home lists exactly the desks with public records, by the shared
+        # projection; a declared desk with none is never shown as one.
+        public_desks = [d for d in gp.PublicView(TRACKED_DB).desk_directory()
+                        if self.public_records(d.slug)]
         shown = soup.select(".home-desk-list a")
         self.assertEqual({a.get("href") for a in shown},
                          {d.slug + ".html" for d in public_desks})
-        self.assertNotIn("japan.html", {a.get("href") for a in shown})
-        self.assertIn("Other desks contribute no public records", soup.main.get_text(" "))
+        for a in shown:
+            slug = a.get("href")[:-5]
+            self.assertIn("%s public records" % format(self.public_records(slug), ","),
+                          a.get_text(" "))
+        text = soup.main.get_text(" ")
+        if len(public_desks) == len(load_registry().entries):
+            self.assertNotIn("Other desks contribute no public records", text)
+        else:
+            self.assertIn("Other desks contribute no public records", text)
 
     def test_the_volume_rows_still_name_the_joint_staff(self):
         """The row subject moved from the template into the registry so each
@@ -459,7 +476,14 @@ class TestVietnamMpsLiveCoverage(DeskCase):
                 "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
                 "WHERE s.desk_id='vietnam'").fetchone()[0]
         self.assertNotIn("Records</dt><dd>Not admitted", html)
-        self.assertIn("Source records</dt><dd>%s</dd>" % format(actual, ","), html)
+        # One record per admitted publication: a corpus article and its own
+        # verified link count once, and private originals never count.
+        with self.db() as con:
+            links = con.execute("SELECT COUNT(*) FROM regional_official_source_links "
+                                "WHERE desk='vietnam'").fetchone()[0]
+        shown = self.public_records("vietnam")
+        self.assertTrue(max(actual, links) <= shown <= actual + links)
+        self.assertIn("Records</dt><dd>%s</dd>" % format(shown, ","), html)
 
     def test_the_vietnam_page_shows_no_collection_statistic(self):
         """Newsroom-tag listings are not production records or shadow counts."""
@@ -600,7 +624,9 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                         actual = con.execute(
                             "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
                             "WHERE s.desk_id='vietnam'").fetchone()[0]
-                    self.assertIn("Source records</dt><dd>%s</dd>" % format(actual, ","), page)
+                    shown = self.public_records(name)
+                    self.assertTrue(actual <= shown)
+                    self.assertIn("Records</dt><dd>%s</dd>" % format(shown, ","), page)
                     self.assertIn("Sources enabled</dt><dd>2", page)
                 self.assertNotIn("text_original", page)
                 self.assertNotIn("state/shadow.db", page)

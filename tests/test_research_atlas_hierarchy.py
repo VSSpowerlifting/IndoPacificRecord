@@ -80,10 +80,15 @@ class ResearchAtlasHierarchy(unittest.TestCase):
         home = BeautifulSoup(self.html("index.html"), "html.parser").select_one(".home-desks")
         self.assertIn("Coverage is selective", home.get_text(" "))
         shown = home.select(".home-desk-list a")
-        public_desks = [d for d in gp.PublicView(gp.TRACKED_DB).desk_directory() if d.record_count]
+        # Counts come from the shared public-record projection, so a desk whose
+        # only public records are official links is listed too.
+        projection = json.loads(self.html("archive-research-index.json"))["public_records"]["desks"]
+        public_desks = [d for d in gp.PublicView(gp.TRACKED_DB).desk_directory()
+                        if projection[d.slug]["records"]]
         self.assertEqual({a.get("href") for a in shown}, {d.route for d in public_desks})
         for desk in public_desks:
-            self.assertIn("{:,} public records in this snapshot".format(desk.record_count), home.get_text(" "))
+            self.assertIn("{:,} public records in this snapshot".format(projection[desk.slug]["records"]),
+                          home.get_text(" "))
         self.assertTrue(home.select('a[href="coverage.html"]'))
         self.assertIn("Paused — collection stopped", self.html("desks.html"))
         self.assertIn("Planned — nothing collected", self.html("desks.html"))

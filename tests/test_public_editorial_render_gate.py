@@ -149,7 +149,7 @@ class RenderedPermanentResearchContracts(unittest.TestCase):
         self.assertIn("Research published", directory)
         self.assertIn("source archive:", directory)
         self.assertIn('title="{{ d.status_label }}"', directory)
-        self.assertIn("Corpus records", directory)
+        self.assertIn("Last corpus collection", directory)
         self.assertIn("editorial_published_desks", directory)
         self.assertIn("editorial_published_desks", renderer)
 

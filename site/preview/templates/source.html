@@ -12,7 +12,7 @@
 {% if source_desk %}Part of the <a href="../{{ source_desk.route }}">{{ source_desk.name }}</a>, currently {{ source_desk.status_label|lower }}.{% endif %}</p>
 {% if source.record_count %}<p><a class="btn btn--secondary" href="../archive.html?source={{ source.slug }}">Browse its {{ source.record_count|count }} records</a></p>{% endif %}
 </header>
-{{ spine(desks, snapshot, corpus_total, true, source_desk) }}
+{{ spine(desks, snapshot, public_records, true, source_desk) }}
 
 <div class="table-scroll">
 <table class="provenance">

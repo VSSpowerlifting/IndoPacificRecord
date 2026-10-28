@@ -24,6 +24,7 @@ No network. No writes to the tracked database or `output/`.
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import shutil
 import sys
@@ -332,12 +333,17 @@ class TestCandidateBuild(unittest.TestCase):
     def test_the_registry_collecting_desks_are_linked_from_home(self):
         html = (self.out / "desks.html").read_text(encoding="utf-8")
         self.assertIn("Live — collecting", html)
-        self.assertIn("Access blocked — not collecting", html)
+        # A blocked source no longer labels a desk that publishes other links.
+        self.assertIn("INDOPACOM collection blocked", html)
         from bs4 import BeautifulSoup
         home = BeautifulSoup((self.out / "index.html").read_text(encoding="utf-8"), "html.parser")
         from core.desk_registry import load_registry
+        # Home links every desk with public records, by the shared projection.
+        counts = json.loads((self.out / "archive-research-index.json").read_text(
+            encoding="utf-8"))["public_records"]["desks"]
         self.assertEqual({a.get("href") for a in home.select(".home-desk-list a")},
-                         {d.route for d in load_registry().entries if d.is_collecting})
+                         {d.route for d in load_registry().entries
+                          if counts.get(d.slug, {}).get("records")})
 
     def test_japan_renders_with_no_admitted_corpus_records(self):
         html = (self.out / "japan.html").read_text(encoding="utf-8")

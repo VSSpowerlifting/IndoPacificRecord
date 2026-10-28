@@ -1,5 +1,5 @@
 {# Shared record-site furniture. All dates, counts and states come from the
-   render context; a shadow or blocked desk never receives a production count. #}
+   render context; record counts come from the shared public-record projection. #}
 {% macro breadcrumb(items) -%}
 <nav class="atlas-breadcrumb" aria-label="Breadcrumb">
   <ol>
@@ -10,22 +10,32 @@
 </nav>
 {%- endmacro %}
 
-{# The desk line: which declared desks contribute to the record, in their own
-   words, beside the snapshot it describes. Rendered where desk coverage is
-   the subject — Records, Desks, Coverage and a desk's own page — rather than
-   repeated above every page. A desk that does not collect is named with its
-   status and no count, never a zero. #}
-{% macro spine(desks, snapshot, corpus_total, nested=false, focus=none) -%}
+{# The desk line: which declared desks contribute public records, in their own
+   words, beside the snapshot it describes. Counts are the shared public-record
+   projection (core/public_records.py): one admitted source publication is one
+   record, whatever components it carries. #}
+{% macro spine(desks, snapshot, records, nested=false, focus=none) -%}
 <aside class="atlas-spine" aria-label="Desk collection status">
   <p><strong>Snapshot <time datetime="{{ snapshot.date }}">{{ snapshot.date }}</time></strong>
-    · {% if focus %}{% if focus.record_count is not none %}{{ focus.record_count|count }} records held by this desk{% else %}no production record count for this desk{% endif %}{% else %}{{ corpus_total|count }} records held{% endif %}
+    · {% if focus %}{{ records.desks[focus.slug].records|count }} public records on this desk{% else %}{{ records.total|count }} public records{% endif %}
     · <a href="{{ '../' if nested else '' }}coverage.html">collection evidence</a></p>
-  <ul aria-label="Desk collection states">
+  <ul aria-label="Desk statuses and public records">
   {% for desk in desks if not focus or desk.slug == focus.slug %}
     <li><a href="{{ '../' if nested else '' }}{{ desk.route }}">{{ desk.name }}</a>
-      <span class="desk-state desk-state--{{ desk.status }}">{{ desk.status_label }}</span>{% if desk.record_count is not none %}
-      <span class="atlas-spine-count">{{ desk.record_count|count }} records</span>{% endif %}</li>
+      <span class="desk-state desk-state--{{ desk.status }}">{{ desk.status_label }}</span>
+      <span class="atlas-spine-count">{{ records.desks[desk.slug].records|count }} records</span></li>
   {% endfor %}
   </ul>
 </aside>
+{%- endmacro %}
+
+{# The one desk card body every directory surface uses: the same Records count
+   and the same latest-record rule (newest date stated on any of the desk's
+   public records, named by its kind, so an RSS listing date never reads as an
+   issue date). #}
+{% macro record_stats(r) -%}
+<dl class="deskmap-stats">
+  <div><dt>Records</dt><dd>{{ r.records|count if r.records else 'None yet' }}</dd></div>
+  <div><dt>Latest record</dt><dd>{% if r.latest %}<time datetime="{{ r.latest }}">{{ r.latest }}</time><small>{{ r.latest_label }}</small>{% else %}None{% endif %}</dd></div>
+</dl>
 {%- endmacro %}

@@ -72,6 +72,15 @@
   </div>
 </div>
 
+<section class="desk-section" aria-labelledby="desk-records-title" data-public-records>
+  <h2 id="desk-records-title">Public records</h2>
+  <dl class="deskmap-stats">
+  <div><dt>Records</dt><dd>9</dd></div>
+  <div><dt>Latest record</dt><dd><time datetime="2026-10-22">2026-10-22</time><small>document issue date</small></dd></div>
+</dl>
+<p><a class="btn btn--primary" href="archive.html?scope=records&amp;desk=vietnam">Browse the Vietnam Desk's 9 records</a></p>  <p class="meta">One admitted source publication is one record. Its official link, original, translation and explanation are parts of that record and are not counted again.</p>
+</section>
+
 <section aria-labelledby="vn-published-title" data-vietnam-published-records>
   <p class="eyebrow">Published records · machine explanations</p>
   <h2 id="vn-published-title">Latest source-grounded English explanations</h2>
@@ -211,6 +220,7 @@ Effective date is not established.        PDF attachments remain on the official
         · Official-link metadata only</p>
     </li>
   </ol>
+  
   <p class="meta">Article bodies, photos, document files,
   translations and automatic analysis are excluded. Formal-document subjects are bibliographic metadata. Held records cannot
   appear in this index.</p>
@@ -268,10 +278,10 @@ qualification are separate.</p>
 
 <h2 class="plain">The record, as it actually stands</h2>
 <p class="eyebrow eyebrow--corpus">As published.</p>
-<p>3 records from 2 sources across
+<p>3 originals collected into the corpus from 2 sources across
 2 institutions, 2026-10-02 to 2026-10-21.</p>
 <dl class="stat-rows">
-  <div class="stat-row"><dt>Source records</dt><dd>3</dd></div>
+  <div class="stat-row"><dt>Corpus originals</dt><dd>3</dd></div>
   <div class="stat-row"><dt>Analyzed records</dt><dd>3</dd></div>
   <div class="stat-row"><dt>Not analyzed</dt><dd>0</dd></div>
   <div class="stat-row"><dt>Earliest item</dt><dd>2026-10-02</dd></div>
@@ -284,7 +294,6 @@ qualification are separate.</p>
 completed a reading of the record — it says nothing about publication. "Not analyzed"
 includes records awaiting screening, screened out, and incomplete analysis;
 it is not an analysis queue. <a href="corpus-guide.html#states">Read the four processing states</a>.</p>
-<p><a class="btn btn--primary" href="archive.html?desk=vietnam">Browse the Vietnam Desk's 3 records</a></p>
 
 <figure class="week-strip" data-reveal aria-labelledby="week-strip-title-h2">
   <figcaption class="week-strip-head">
@@ -327,26 +336,40 @@ it is not an analysis queue. <a href="corpus-guide.html#states">Read the four pr
 <span><i class="k-edge" aria-hidden="true"></i>Snapshot boundary</span></p>
 </figure>
 
-<h2>Sources</h2>
+<h2 id="desk-sources-heading">Sources and coverage</h2>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>Every source declared for this desk, whether it is enabled, and how
-  much of the record it accounts for.</caption>
-  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Records</th></tr></thead>
+  <caption>Public records from each source, counted once per source publication.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col" class="num">Records</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Source">Cục Thông tin và Truyền thông Chính phủ</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=vietnam&amp;source=C%E1%BB%A5c%20Th%C3%B4ng%20tin%20v%C3%A0%20Truy%E1%BB%81n%20th%C3%B4ng%20Ch%C3%ADnh%20ph%E1%BB%A7">3</a></td></tr>
+    <tr><td data-label="Source">Government Office — official document metadata</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=vietnam&amp;source=Government%20Office%20%E2%80%94%20official%20document%20metadata">1</a></td></tr>
+    <tr><td data-label="Source">Ministry of Public Security — Foreign Affairs</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=vietnam&amp;source=Ministry%20of%20Public%20Security%20%E2%80%94%20Foreign%20Affairs">2</a></td></tr>
+    <tr><td data-label="Source">Vietnam Ministry of Public Security</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=vietnam&amp;source=Vietnam%20Ministry%20of%20Public%20Security">3</a></td></tr>
+  </tbody>
+</table>
+</div>
+<p class="meta">A publisher can appear under more than one label when separate collection lanes admitted its publications. Each publication is counted once, under the lane that admitted it.</p>
+<h3>Collection configuration</h3>
+<div class="table-scroll">
+<table class="stacking">
+  <caption>Every source configured for this desk, whether it is enabled, and how
+  many originals it has contributed to the corpus.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Corpus originals</th></tr></thead>
   <tbody>
     <tr>
       <td data-label="Source"><a href="source/vn_mps_foreign_affairs_vi.html">Ministry of Public Security — Foreign Affairs</a></td>
       <td data-label="Institution">Ministry of Public Security</td>
       <td data-label="Authority">A</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=vn_mps_foreign_affairs_vi">2</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=vn_mps_foreign_affairs_vi">2</a></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/vn_vpcp_official_documents_vi.html">Government Office — official document metadata</a></td>
       <td data-label="Institution">Government Office of Vietnam</td>
       <td data-label="Authority">A</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=vn_vpcp_official_documents_vi">1</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=vn_vpcp_official_documents_vi">1</a></td>
     </tr>
   </tbody>
 </table>

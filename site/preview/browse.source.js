@@ -8,12 +8,12 @@
    prev = $("page-prev"), next = $("page-next"), chips = $("chips"), reset = $("f-reset"),
    list = $("research-list"), note = $("selection-note"), error = $("research-error"), E = ArchiveSearch,
    KEYS = "scope q desk source status sort institution language from to trail keywords record_type issuer".split(" "),
-   F = form.elements, PER = 50,
-   storage = "ipr/1";
- let research, prepared, pending, view = [], page = 1, selected = new Set();
+   F = form.elements, PER = 50, DEFAULT = {sort:"new", scope:"focus"},
+   storage = "ipr/1", stored = () => JSON.parse(sessionStorage.getItem(storage) || "[]");
+ let research, records, prepared, pending, view = [], page = 1, selected = new Set();
  function get(k) { return F[k].type === "checkbox" ? (F[k].checked ? "1" : "") : F[k].value.trim(); }
  function put(k, value) {
-  const e = F[k], v = value || (k === "sort" ? "new" : k === "scope" ? "focus" : "");
+  const e = F[k], v = value || DEFAULT[k] || "";
   if (e.type === "checkbox") e.checked = v === "1";
   else {
    if (["issuer", "source"].includes(k) && v && ![...e.options].some(o => o.value === v)) e.add(new Option(v, v));
@@ -26,7 +26,7 @@
  }
  function writeUrl(push) {
   const p = new URLSearchParams();
-  KEYS.forEach(k => { const v = get(k); if (v && !(k === "sort" && v === "new") && !(k === "scope" && v === "focus")) p.set(k, v); });
+  KEYS.forEach(k => { const v = get(k); if (v && v !== DEFAULT[k]) p.set(k, v); });
   if (page > 1) p.set("page", page);
   history[push ? "pushState" : "replaceState"](null, "", location.pathname + (p.size ? "?" + p : ""));
  }
@@ -46,16 +46,18 @@
    if (meta.title_lang) find("h3").lang = meta.title_lang;
    if (find(".original") && meta.lang) find(".original").lang = meta.lang;
    if (meta.desk_route) find(".row-side a").href = meta.desk_route;
-   const state = li.querySelector('[data-text="analyzed"],[data-text="state"]'); state.className = meta.state_class;
+   const state = find('[data-text="analyzed"],[data-text="state"]'); state.className = meta.state_class;
   }
-  if (!find(".row-tags").children.length) find(".row-tags").remove();
+  const tags = find(".row-tags"), parts = records.parts[r.id], also = find(".row-parts");
+  if (!tags.children.length) tags.remove();
+  if (parts) also.append(...parts.map(([t, u]) => { const a = el("a", 0, t); a.href = u; return a; })); else also.remove();
   const citation = find(".archive-citation"), copy = find("details button"), check = find("input");
   check.checked = selected.has(r.id); check.setAttribute("aria-label", "Keep: " + fields.title);
   check.onchange = () => { check.checked ? selected.add(r.id) : selected.delete(r.id); updateList(); };
   copy.onclick = async () => {
    try { await navigator.clipboard.writeText(r.citation); copy.textContent = "Copied"; }
    catch (_) { citation.focus(); const rng = document.createRange(); rng.selectNodeContents(citation);
-    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rng); copy.textContent = "Select text to copy"; }
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rng); copy.textContent = "Select text to copy"; }
   };
   return li;
  }
@@ -66,9 +68,9 @@
   return sec;
  }
  function matches(r) {
-  const m = research.display[r.id], q = get("q").toLowerCase();
+  const m = research.display[r.id], q = get("q").toLowerCase(), s = get("scope");
   return (!q || ((m && !m.english ? "" : r.title || "") + " " + (r.original_title || "")).toLowerCase().includes(q)) &&
-   (get("scope") === "published" || m && (get("scope") === "all" || m.focus)) &&
+   (wide() ? (get("record_type") || !records.lead[r.id]) && (s === "published" || !records.analysis[r.id]) : m && (s === "all" || m.focus)) &&
    ["source","status","institution","language"].every(k => !get(k) || get(k) === (m || r)[k]) && (!get("trail") || m && m.trail);
  }
  function render() {
@@ -77,17 +79,20 @@
   let last, ul; wrap.setAttribute("data-from-index", "");
   rows.forEach(r => { if (r.date !== last) { last = r.date; const sec = wrap.appendChild(day(last)); ul = sec.querySelector("ul"); } ul.appendChild(card(r)); });
   out.replaceChildren(wrap);
-  const msg = total ? "Showing " + (start + 1).toLocaleString("en-US") + "–" + (start + rows.length).toLocaleString("en-US") + " of " + total.toLocaleString("en-US") +
-   (get("scope") === "focus" ? " research-focus records" : get("scope") === "all" ? " preserved records" : " published items") +
+  const msg = total ? "Showing " + n(start + 1) + "–" + n(start + rows.length) + " of " + n(total) +
+   " " + F.scope.selectedOptions[0].dataset.noun +
    (filtered() ? " matching filters" : "") : "No records match these filters.";
   range.textContent = total ? msg + (pages > 1 ? " · page " + page + " of " + pages : "") : "";
   live.textContent = msg; none.hidden = total !== 0;
   prev.hidden = next.hidden = pages < 2; prev.disabled = page <= 1; next.disabled = page >= pages;
  }
- function filtered() { return KEYS.some(k => !["scope","sort"].includes(k) && get(k)); }
+ const active = () => KEYS.filter(k => !(k in DEFAULT) && get(k)), filtered = () => active().length,
+  n = x => x.toLocaleString("en-US"),
+  // Source records and all published material list a public record once; its other components show inside it.
+  wide = () => ["published","records"].includes(get("scope"));
  function drawChips() {
   chips.replaceChildren(); reset.hidden = !filtered();
-  KEYS.filter(k => !["scope","sort"].includes(k) && get(k)).forEach(k => {
+  active().forEach(k => {
    const e = F[k], label = e.labels[0].textContent.trim() + (e.type === "checkbox" ? "" : ": " + (e.tagName === "SELECT" ? e.selectedOptions[0].text : get(k))),
     b = chips.appendChild(el("li")).appendChild(el("button", "chip", label));
    b.type = "button"; b.setAttribute("aria-label", "Remove filter: " + label);
@@ -113,8 +118,8 @@
    };
    pending = fetchJson("corpus-index.json", root.dataset.archiveDigest)
     .then(() => fetchJson("archive-research-index.json", root.dataset.researchDigest)).then(r => {
-    research = r; prepared = E.prepare(r.records);
-    try { const ids = JSON.parse(sessionStorage.getItem(storage) || "[]"); if (A(ids)) selected = new Set(ids.filter(id => r.records.some(x => x.id === id))); } catch (_) {}
+    research = r; records = r.public_records; prepared = E.prepare(r.records);
+    try { const ids = stored(); if (A(ids)) selected = new Set(ids.filter(id => r.records.some(x => x.id === id))); } catch (_) {}
     wait.hidden = true; updateList();
    }); pending.catch(unavailable);
   } return pending;
@@ -125,8 +130,8 @@
    try {
     error.hidden = true;
     view = E.search(prepared, {q:get("keywords"), desk:get("desk"), issuer:get("issuer"), record_type:get("record_type"),
-      from:get("from"), to:get("to"), sort:get("sort") === "relevance" ? "relevance" : get("sort") === "old" ? "oldest" : "newest"}).map(h => h.record).filter(matches);
-    if (get("scope") !== "published" && get("sort") !== "relevance") {
+      from:get("from"), to:get("to"), sort:{relevance:"relevance", old:"oldest"}[get("sort")] || "newest"}).map(h => h.record).filter(matches);
+    if (!wide() && get("sort") !== "relevance") {
      view.sort((a,b) => research.display[a.id].order-research.display[b.id].order); if (get("sort") === "old") view.reverse();
     }
     drawChips(); render(); writeUrl(push);
@@ -150,6 +155,6 @@
  window.onpopstate = () => { readUrl(); go(false); };
  root.hidden = form.hidden = next.hidden = list.hidden = false;
  list.open = !matchMedia("(max-width:680px)").matches; readUrl();
- if (filtered() || page > 1 || get("scope") !== "focus" || get("sort") !== "new") go(false);
- else try { if (JSON.parse(sessionStorage.getItem(storage) || "[]").length) load(); } catch (_) {}
+ if (filtered() || page > 1 || ["scope","sort"].some(k => get(k) !== DEFAULT[k])) go(false);
+ else try { if (stored().length) load(); } catch (_) {}
 })();

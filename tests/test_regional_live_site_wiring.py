@@ -8,6 +8,7 @@ import hashlib
 import sqlite3
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -37,11 +38,21 @@ def desk(slug):
     )
 
 
+def projection(slug, references):
+    # The desk card reads the shared public-records projection; here each
+    # admitted link is one record, as the production projection counts it.
+    sources = Counter(r.get("publisher_label") or "Official source" for r in references)
+    return {"desks": {slug: {"records": len(references), "latest": None,
+                             "latest_label": None, "sources": dict(sources)}}}
+
+
 def html_for(slug, references):
     env = Environment(loader=FileSystemLoader(
         str(ROOT / "site" / "preview" / "templates")),
         autoescape=True, trim_blocks=True, lstrip_blocks=True)
+    env.filters["count"] = lambda n: "{:,}".format(n) if isinstance(n, int) else n
     return env.get_template("desk.html").render(
+        public_records=projection(slug, references),
         title="Indo-Pacific Record", page=slug + ".html",
         desk=desk(slug),
         maintainer=SimpleNamespace(name="Example Maintainer",

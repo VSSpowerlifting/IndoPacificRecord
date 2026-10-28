@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% from "_atlas.html" import breadcrumb %}
+{% from "_atlas.html" import breadcrumb, record_stats %}
 {% from "_weeks.html" import week_strip %}
-{% from "_records.html" import record_days %}
+{% from "_records.html" import record_days, explanation_part, explanation_details %}
 {% block title %}{{ desk.name }} — {{ title }}{% endblock %}
 {% block head_scripts %}{% if desk.slug in ('vietnam', 'philippines', 'korea', 'indonesia', 'japan', 'us-indopacific') or korea_preview | default(false) %}<link rel="stylesheet" href="desk-references.css">{% endif %}{% endblock %}
 {% block content %}
@@ -14,20 +14,33 @@
 {# The status, designed as the page's first fact rather than a footnote. A
    desk that does not collect is a first-class state with its own reason, not
    an empty version of a desk that does. #}
-<div class="status-panel status-panel--{{ desk.status }}">
-  <span class="status-glyph desk-state desk-state--{{ desk.status }}" aria-hidden="true"></span>
+{% set pr = public_records.desks[desk.slug] %}
+{# A blocked source does not mark a publishing desk blocked: the glyph follows
+   what the desk publishes, while the registry status and its label stay. #}
+{% set glyph = 'shadow' if desk.status == 'access_blocked' and pr.records else desk.status %}
+<div class="status-panel status-panel--{{ glyph }}">
+  <span class="status-glyph desk-state desk-state--{{ glyph }}" aria-hidden="true"></span>
   <div>
     <h2>{% if desk.slug == 'philippines' %}Official links and machine explanations, published automatically{% elif desk.slug == 'vietnam' and vietnam_records | default([]) %}Verified official-source links admitted · English machine explanations published{% elif desk.slug == 'japan' and regional_official_links | default([]) %}Japan MOD news official links admitted automatically{% elif desk.slug in ('indonesia', 'vietnam') and regional_official_links | default([]) %}Verified official-source links admitted — original publisher references{% elif desk.slug == 'korea' and not korea_preview | default(false) and (korea_production_link_count | default(0) > 0 or korea_published_originals | default([])) %}{% if korea_dapa_production_link_count | default(0) > 0 %}MND and DAPA official-source archive{% else %}MND official-source production live — DAPA not yet qualified{% endif %}{% elif desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}Official USCC, Treasury and BIS link metadata feeds live — PACOM collection blocked{% elif desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}Official congressional and Treasury metadata feeds live — PACOM collection blocked{% elif desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}Official congressional metadata feed live — PACOM collection blocked{% elif published_research | default([]) and desk.status == 'shadow' %}IPR research published — official originals linked{% else %}{{ "Shadow evaluation — no public corpus records" if desk.slug == "indonesia" else ('Official references available — collection remains in shadow' if desk.slug == 'korea' and not korea_preview | default(false) else desk.status_label) }}{% endif %}</h2>
     <p>{% if desk.slug == 'philippines' or (desk.slug == 'vietnam' and vietnam_records | default([])) %}{{ desk.status_explanation }}{% elif desk.slug == 'japan' and regional_official_links | default([]) %}The Ministry of Defense news RSS supplies the official PDF links below through the shared Daily system. RSS dates and institutional attribution are metadata only. The original-text corpus remains in shadow, and other Japanese sources are outside this feed.{% elif desk.slug in ('indonesia', 'vietnam') and regional_official_links | default([]) %}These references have been individually admitted to IPR's official-source link index. They identify publisher URLs and dates, not independently verified defense outcomes, and do not include copied original articles or images.{% elif desk.slug == 'korea' and not korea_preview | default(false) and (korea_production_link_count | default(0) > 0 or korea_published_originals | default([])) %}The live Korea government-link database contains {{ korea_production_link_count | default(0) }} separately admitted official-link metadata records, and this desk links to {{ korea_published_originals | default([]) | length }} licensed Korean original-text releases and {{ korea_english_publications | default([]) | length }} editor-approved English translation and source-grounded analysis pairs. Historical references can overlap with production metadata and are counted only once as admitted records. Different content lanes have different permissions: original documents and media are not mirrored automatically, {% if desk.status == 'live' %}editor-approved English assessments require editorial approval, MND releases with published Korean text are machine-translated and summarized automatically under an unreviewed-machine-output label, {% else %}English assessments require editorial approval, {% endif %}and DAPA original documents and English assessments require separate review. Collection may be incomplete or interrupted.{% elif desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}The U.S. Desk displays automatically admitted official URL, publisher date and issuer metadata from the U.S.-China Economic and Security Review Commission (congressional), U.S. Treasury (executive) and Commerce Bureau of Industry and Security (executive). BIS references come only from its bounded first-party homepage teasers, not the full BIS publication directory. Direct PACOM collection remains access-blocked and DVIDS paused; these neutral external links are neither comprehensive Indo-Pacific military-source coverage nor automatic republication of headlines, source bodies, translations, photographs or analysis.{% elif desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}The U.S. Desk now automatically collects verified official URL, date and issuer metadata from two distinct sources: the U.S.-China Economic and Security Review Commission (congressional) and U.S. Department of the Treasury (executive). Direct PACOM collection remains access-blocked and DVIDS paused; this is not full military-source coverage and no publisher bodies, headlines, translations or analysis are automatically republished.{% elif desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}The U.S. Desk now automatically collects verified official URL, date and issuer metadata from the U.S.-China Economic and Security Review Commission, a congressional commission. Direct U.S. Pacific Command collection remains access-blocked and DVIDS remains paused; original publisher headlines, article text, photographs and analysis are not automatically republished.{% elif published_research | default([]) and desk.status == 'shadow' %}IPR's approved original research is publicly available. Its cited government originals remain on the official publishers' sites; this is not a production source-text archive or a claim of comprehensive collecting coverage.{% else %}{% if desk.slug == "korea" and not korea_preview | default(false) %}Public official-source directory: five original headline/date entries, nine additional historical links, and separately admitted new official-link metadata when available. Original document bodies and substantive analysis remain outside the production archive.{% else %}{{ desk.status_explanation }}{% endif %}{% endif %}</p>
   </div>
 </div>
 
+{# The shared desk card: one record per admitted source publication, the same
+   count and latest date the Desks directory and Archive show. #}
+<section class="desk-section" aria-labelledby="desk-records-title" data-public-records>
+  <h2 id="desk-records-title">Public records</h2>
+  {{ record_stats(pr) }}
+  {% if pr.records %}<p><a class="btn btn--primary" href="archive.html?scope=records&amp;desk={{ desk.slug }}">Browse the {{ desk.name }}'s {{ pr.records|count }} records</a></p>{% endif %}
+  <p class="meta">One admitted source publication is one record. Its official link, original, translation and explanation are parts of that record and are not counted again.</p>
+</section>
+
 {% if desk.slug == 'philippines' %}
 {% set ph_links = regional_official_links | default([]) %}
 {% set ph_afp = ph_links | selectattr('publisher_label', 'equalto', 'Armed Forces of the Philippines') | list %}
 {% set ph_nsc = ph_links | selectattr('publisher_label', 'equalto', 'National Security Council') | list %}
 {% set ph_machine = daily_machine_records | default([]) %}
-{% set ph_explained = ph_machine | map(attribute='source_identity') | list %}
+
 {# Counts come only from admitted production rows and released machine
    records. Private originals and shadow history are never counted here. #}
 <dl class="stat-rows" data-philippines-lanes>
@@ -38,50 +51,10 @@
 </dl>
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
-  <ul>{% if ph_machine %}<li><a href="#daily-machine-heading">Machine explanations ({{ ph_machine | length }})</a></li>{% endif %}
-      {% if ph_afp %}<li><a href="#ph-afp-links">AFP links ({{ ph_afp | length }})</a></li>{% endif %}
+  <ul>{% if ph_afp %}<li><a href="#ph-afp-links">AFP links ({{ ph_afp | length }})</a></li>{% endif %}
       {% if ph_nsc %}<li><a href="#ph-nsc-links">NSC links ({{ ph_nsc | length }})</a></li>{% endif %}
       <li><a href="#ph-desk-operations-title">How this desk works</a></li></ul>
 </nav>
-{% if ph_machine %}
-<section class="desk-section" aria-labelledby="daily-machine-heading" data-philippines-machine-explanations>
-  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
-  <h2 id="daily-machine-heading">Machine explanations of official publications</h2>
-  <p>Short readings of AFP and NSC publications, written by a model in its own words and attributed to the publisher. They describe what an institution reports. They do not verify events and are not IPR analysis. Newest official date first.</p>
-  <ol class="desk-reference-list" aria-label="Machine explanations">
-    {% for rec in ph_machine %}
-    <li data-machine-explanation-id="{{ rec.source_identity }}">
-      <h3><a href="{{ rec.record_path }}">{{ rec.source_label }} · {{ rec.published_date }} · {{ rec.source_identity }}</a></h3>
-      <p>{{ rec.summary }}</p>
-      <p class="meta"><span class="evidence evidence--model">Machine explanation</span>
-        Publisher: {{ rec.publisher }} · Official date <time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time>
-        · {% if rec.model_flagged %}Model-flagged for closer reading: {{ rec.flag_reason }}{% else %}Not model-flagged{% endif %}
-        · Topics (machine-assigned): {{ rec.categories | map('replace', '_', ' ') | map('title') | join(', ') }}
-        · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
-    </li>
-    {% endfor %}
-  </ol>
-  <p class="meta">Each explanation links to its own record with source custody and model details. Original titles, bodies and images are not republished.</p>
-</section>
-{% endif %}
-{% endif -%}
-
-{% if desk.slug == 'indonesia' and daily_machine_records | default([]) %}
-<section class="desk-section" aria-labelledby="daily-machine-heading" data-indonesia-machine-explanations>
-  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
-  <h2 id="daily-machine-heading">Machine explanations of official publications</h2>
-  <p>Latest source-grounded English readings of Kemhan Berita. They describe the ministry's account, not independently verified outcomes. Original text and working translations remain private.</p>
-  <ol class="desk-reference-list" aria-label="Machine explanations">
-    {% for rec in daily_machine_records[:5] %}
-    <li data-machine-source="{{ rec.source_identity }}">
-      <p><time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · Kemhan</p>
-      <p>{{ rec.summary }}</p>
-      <p class="meta"><a href="{{ rec.record_path }}">Record and model details</a> · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
-    </li>
-    {% endfor %}
-  </ol>
-  <p><a href="archive.html?desk=indonesia&amp;scope=published">Browse all {{ daily_machine_records | length }} Indonesia machine explanations</a></p>
-</section>
 {% endif -%}
 
 {% if desk.slug == 'vietnam' and vietnam_records | default([]) %}
@@ -99,6 +72,8 @@
 {# Regional official-link index: only actual production SQLite admission,
    never shadow captures, the reviewer dossier or static publisher directories. #}
 {% if desk.slug in ('philippines', 'indonesia', 'vietnam') and regional_official_links | default([]) or desk.slug == 'japan' and regional_official_links | default([]) %}
+{# Explanations by the source identity of the link they explain. #}
+{% set explained = {} %}{% for m in daily_machine_records | default([]) %}{% set _ = explained.update({m.source_identity: m}) %}{% endfor %}
 <section class="desk-references regional-official-live-links"
          data-source-scope="official-link-only"
          aria-labelledby="regional-official-live-links-title">
@@ -125,14 +100,15 @@
       <p><a href="{{ ref.canonical_official_url }}" target="_blank"
             rel="noopener noreferrer">{{ ref.label }}</a>
         · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time></p>
-      <p class="meta">Official-link metadata only{% if ref.source_identity in ph_explained %} · <span class="evidence evidence--model">Machine explanation published above</span>{% endif %}</p>
+      {% if ref.source_identity in explained %}{{ explanation_part(explained[ref.source_identity], false) }}{% else %}<p class="meta">Official-link metadata only</p>{% endif %}
     </li>
     {% endfor %}
   </ol>
+  {{ explanation_details(group, explained) }}
   {% endfor %}
   <p class="meta">Original headlines, article bodies, photos, documents and
-  translations are excluded from this list. Machine explanations are listed
-  separately above. Held records cannot appear in this index.</p>
+  translations are excluded from this list. A machine explanation appears
+  inside the record of the publication it explains. Held records cannot appear in this index.</p>
   {% else %}
   <ol class="desk-reference-list" aria-label="Admitted official publisher references">
     {% for ref in regional_official_links %}
@@ -151,6 +127,7 @@
       <p class="meta">Publisher: {{ ref.publisher_label }}
         · {{ ref.date_kind | default('Issue date' if ref.document | default(none) else 'Official date') }} <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time>
         · Official-link metadata only</p>
+      {% if ref.source_identity in explained %}{{ explanation_part(explained[ref.source_identity], false) }}{% endif %}
       {% if ref.document | default(none) %}
       <p class="meta">First observed: {{ ref.first_observed_utc }}. Posting date is not established.
         {% if ref.document.effective_date %}Source-stated effective date: {{ ref.document.effective_date }}.{% else %}Effective date is not established.{% endif %}
@@ -159,6 +136,7 @@
     </li>
     {% endfor %}
   </ol>
+  {{ explanation_details(regional_official_links, explained) }}
   <p class="meta">Article bodies, photos, document files,
   translations and automatic analysis are excluded. Formal-document subjects are bibliographic metadata. Held records cannot
   appear in this index.</p>
@@ -852,7 +830,7 @@ qualification are separate.</p>
   {% if korea_dapa_production_link_count | default(0) > 0 %}<div class="stat-row"><dt>Live DAPA official-link metadata</dt><dd>{{ korea_dapa_production_link_count }}</dd></div>{% endif %}
   <div class="stat-row"><dt>Published Korean originals</dt><dd>{{ korea_published_originals | default([]) | length }}</dd></div>
   <div class="stat-row"><dt>Reviewed English translations and analyses</dt><dd>{{ korea_english_publications | default([]) | length }}</dd></div>
-  <div class="stat-row"><dt>Article-corpus records</dt><dd>{% if desk.status != 'live' %}Not admitted{% elif desk.record_count %}{{ desk.record_count|count }}{% else %}None yet{% endif %}</dd></div>
+  <div class="stat-row"><dt>Article-corpus originals</dt><dd>{% if desk.status != 'live' %}Not admitted{% elif desk.record_count %}{{ desk.record_count|count }}{% else %}None yet{% endif %}</dd></div>
   <div class="stat-row"><dt>DAPA production source</dt><dd>{% if korea_dapa_production_link_count | default(0) > 0 %}Link metadata admitted; full desk qualification pending{% else %}Not qualified{% endif %}</dd></div>
 </dl>
 {% if desk.status == 'live' %}<p class="meta">The MND feed writes official URLs, publisher dates and issuer metadata
@@ -871,12 +849,12 @@ individually approved publications.</p>{% endif %}
 {% if desk.record_count is not none %}
 <h2 class="plain">The record, as it actually stands</h2>
 <p class="eyebrow eyebrow--corpus">{{ corpus_eyebrow }}</p>
-<p>{{ desk.record_count|count }} records from {{ desk.configured_source_count }} sources across
+<p>{{ desk.record_count|count }} originals collected into the corpus from {{ desk.configured_source_count }} sources across
 {{ desk.institution_count }} institutions, {{ desk.first_published }} to {{ desk.last_published }}.</p>
 {# "Analyzed" is articles.analyzed_at IS NOT NULL — nothing about
    publication. "Not analyzed" is the complement and is not a queue. #}
 <dl class="stat-rows">
-  <div class="stat-row"><dt>Source records</dt><dd>{{ desk.record_count|count }}</dd></div>
+  <div class="stat-row"><dt>Corpus originals</dt><dd>{{ desk.record_count|count }}</dd></div>
   <div class="stat-row"><dt>Analyzed records</dt><dd>{{ desk.analyzed_count|count }}</dd></div>
   <div class="stat-row"><dt>Not analyzed</dt><dd>{{ (desk.record_count - desk.analyzed_count)|count }}</dd></div>
   <div class="stat-row"><dt>Earliest item</dt><dd>{{ desk.first_published or '—' }}</dd></div>
@@ -889,7 +867,6 @@ individually approved publications.</p>{% endif %}
 completed a reading of the record — it says nothing about publication. "Not analyzed"
 includes records awaiting screening, screened out, and incomplete analysis;
 it is not an analysis queue. <a href="corpus-guide.html#states">Read the four processing states</a>.</p>
-<p><a class="btn btn--primary" href="archive.html?desk={{ desk.slug }}">Browse the {{ desk.name }}'s {{ desk.record_count|count }} records</a></p>
 {% if desk.slug == 'korea' and not korea_preview | default(false) %}{{ korea_production_lanes() }}{% endif %}
 
 {% set dweeks = desk_weeks.get(desk.slug) if desk_weeks else none %}
@@ -930,13 +907,33 @@ PACOM military statement has been collected through it.</p>
 {% endif %}
 {% endif %}
 
-{% if desk.sources %}
-<h2>Sources</h2>
+{% set pr_sources = pr.sources %}
+<h2 id="desk-sources-heading">Sources and coverage</h2>
+{% if pr_sources %}
 <div class="table-scroll">
 <table class="stacking">
-  <caption>Every source declared for this desk, whether it is enabled, and how
-  much of the record it accounts for.</caption>
-  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Records</th></tr></thead>
+  <caption>Public records from each source, counted once per source publication.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col" class="num">Records</th></tr></thead>
+  <tbody>
+  {% for label, n in pr_sources.items() %}
+    <tr><td data-label="Source">{{ label }}</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk={{ desk.slug }}&amp;source={{ label|urlencode }}">{{ n|count }}</a></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if pr_sources|length > 1 %}<p class="meta">A publisher can appear under more than one label when separate collection lanes admitted its publications. Each publication is counted once, under the lane that admitted it.</p>{% endif %}
+{% else %}
+<p class="meta">No source has a public record on this desk yet.</p>
+{% endif %}
+{% if desk.status == 'access_blocked' %}<p class="meta">{{ desk.status_label }}. A blocked source stops only its own collection; the records above come from this desk's other admitted sources and verified references.</p>{% endif %}
+
+{% if desk.sources %}
+<h3>Collection configuration</h3>
+<div class="table-scroll">
+<table class="stacking">
+  <caption>Every source configured for this desk, whether it is enabled, and how
+  many originals it has contributed to the corpus.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Corpus originals</th></tr></thead>
   <tbody>
   {% for s in desk.sources %}
     <tr>
@@ -944,7 +941,7 @@ PACOM military statement has been collected through it.</p>
       <td data-label="Institution">{{ s.institution or '—' }}</td>
       <td data-label="Authority">{{ s.authority_tier or '—' }}</td>
       <td data-label="Enabled">{{ 'Yes' if s.enabled else 'No' }}</td>
-      <td data-label="Records" class="num">{% if s.record_count is not none %}<a href="archive.html?source={{ s.slug }}">{{ s.record_count|count }}</a>{% else %}<span class="meta">none</span>{% endif %}</td>
+      <td data-label="Corpus originals" class="num">{% if s.record_count is not none %}<a href="archive.html?source={{ s.slug }}">{{ s.record_count|count }}</a>{% else %}<span class="meta">none</span>{% endif %}</td>
     </tr>
   {% endfor %}
   </tbody>

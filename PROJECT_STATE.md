@@ -1,5 +1,27 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared public-record model across desks — review candidate (28 October 2026)
+
+One admitted source publication is now one public record on every surface.
+`core/public_records.py` is a read-only post-pass over the Archive research
+index: it groups already public components (official link, original,
+editor-reviewed translation/analysis, machine explanation, corpus record) by
+exact source identity or verified corpus binding with a matching official URL.
+It never compares titles or subjects, reports mismatches and shared URLs
+instead of merging them, and excludes Briefs and dossiers from totals. The
+Desks directory, desk pages, home, Archive filter and the index's
+`public_records` block all read the same counts: China 1,226, Singapore 97,
+Indonesia 51, Philippines 38, US Indo-Pacific 37, Korea 22, Vietnam 9,
+Japan 7 (total 1,487; zero unresolved, zero shared URLs). Latest dates keep
+their kind; Japan's says "RSS listing date, not verified issue date".
+The bulk export gains only 75 link-only records (PH 38, ID 34, VN 3) that were
+already public on base desk pages; link components still carry no summary or
+text, and holds/exclusions are unchanged. No collector, model, retry, source-use,
+activation or database change. The Vietnam readback `HOLD
+more_than_one_official_source_url` is pre-existing on base and untouched.
+`tests/test_public_records.py` pins the grouping rules and cross-surface
+reconciliation. Merge and deployment are not authorized.
+
 ## Japan MOD news official links — source use approved, release held (27 October 2026)
 
 Prepared an off-by-default integration from the existing `shadow/jp-mod`

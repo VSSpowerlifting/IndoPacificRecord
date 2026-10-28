@@ -168,7 +168,11 @@ class DeskMapResponsiveBrowser(unittest.TestCase):
             background = page.locator(".dm-sea").evaluate(
                 "(el) => getComputedStyle(el).fill"
             )
+            # Every desk may hold public records, so a quiet country is optional.
+            self.assertGreater(page.locator(".dm-country.is-live use").count(), 0)
             for selector in (".dm-country.is-live use", ".dm-country.is-quiet use"):
+                if not page.locator(selector).count():
+                    continue
                 with self.subTest(selector=selector):
                     fill = page.locator(selector).first.evaluate(
                         "(el) => getComputedStyle(el).fill"
