@@ -326,6 +326,9 @@ class WriterContractTests(unittest.TestCase):
         result, calls = run_compose(article_manuscript())
         sent = calls[0]["messages"][0]["content"]
         self.assertIn(PROMPT_STANDARD, sent)
+        self.assertIn("SECTIONED, STORY-LED SHAPE", sent)
+        self.assertIn("TWO TO FOUR substantive", sent)
+        self.assertIn("Preserve the sections while making EACH SENTENCE", sent)
         # V2 governs the FIRST paid manuscript call, not an after-call rewrite.
         for rule in (
                 "IPR EDITORIAL VOICE V2",
@@ -344,6 +347,9 @@ class WriterContractTests(unittest.TestCase):
         self.assertEqual(calls[0]["max_tokens"], 4600)
         self.assertIs(calls[0]["tools"][0]["strict"], True)
         self.assertIn("article", calls[0]["tools"][0]["input_schema"]["properties"])
+        self.assertIn("TWO TO FOUR substantive sections",
+                      calls[0]["tools"][0]["input_schema"]["properties"]
+                      ["article"]["items"]["properties"]["heading"]["description"])
 
     def test_style_findings_are_reported_and_never_trigger_a_second_model_call(self):
         weak = with_blocks(
@@ -359,6 +365,32 @@ class WriterContractTests(unittest.TestCase):
         self.assertIn("stock_subhead", codes(result["_prose_quality"]))
         self.assertIn("significance_stock", codes(result["_prose_quality"]))
         self.assertFalse(result["_prose_quality"]["hold"])
+
+    def test_sectioned_layout_holds_unheaded_body_without_any_style_retry(self):
+        # Structural article validation still accepts the source-linked blocks.
+        # The no-send prose QA holds drafts missing the owner-required sections,
+        # without spending another model call or rewriting the prose.
+        unsectioned = article_manuscript()
+        for block in unsectioned["article"][1:]:
+            block["heading"] = ""
+        self.assertIs(validate_manuscript(unsectioned, evidence()), unsectioned)
+        result, calls = run_compose(unsectioned)
+        self.assertEqual(len(calls), 1)
+        self.assertIn("missing_editorial_sections", codes(result["_prose_quality"], "errors"))
+        self.assertTrue(result["_prose_quality"]["hold"])
+        self.assertIn("OWNER REVIEW REQUIRED BEFORE EDITOR DELIVERY",
+                      __import__("core.brief_prose_standard", fromlist=["summary_line"])
+                      .summary_line(result["_prose_quality"]))
+
+        insufficient = article_manuscript()
+        insufficient["article"][2]["heading"] = ""
+        insufficient["article"][3]["heading"] = ""
+        self.assertIn("missing_editorial_sections", codes(report(insufficient), "errors"))
+        self.assertTrue(report(insufficient)["hold"])
+
+        enough = article_manuscript()
+        self.assertFalse(report(enough)["hold"])
+        self.assertNotIn("missing_editorial_sections", codes(report(enough), "errors"))
 
     def test_structural_failure_gets_exactly_one_bounded_retry(self):
         bad = article_manuscript()

@@ -52,13 +52,20 @@ PROMPT_STANDARD = (
     "is the event, say so, but do not reflexively begin with the research workflow "
     "or a broad regional-security preamble. Do not manufacture a scene, baseline, "
     "history or vivid detail the offered sources do not support.\n"
-    "2. STORY-LED SHAPE. Write three to six connected blocks. Let the specific "
-    "evidence determine the order. Never impose a five-act policy-memo outline of "
-    "background, significance, challenges and outlook. Chronology, an operational "
-    "mechanism, a real document discrepancy, or an implementation gap may each "
-    "organize a story. Use a short specific subhead only if useful, never a stock "
-    "Overview, Why It Matters, What Was Routine or Across the Region label. "
-    "The opening block has no subhead; do not recap it at the end.\n"
+    "2. SECTIONED, STORY-LED SHAPE. Keep the Brief's recognizable editorial "
+    "structure: an unheaded opening followed by TWO TO FOUR substantive "
+    "sections, each introduced by a short, meaningful subheading. Use "
+    "three to seven connected blocks total; a long section may have "
+    "additional unheaded continuation blocks after its titled first block. "
+    "The first body block after the opening must have a heading. Every "
+    "section covers a distinct development, mechanism, baseline, verified "
+    "comparison, consequence or material unresolved question. Let the "
+    "source evidence determine the actual headings, order and emphasis; "
+    "do not force a five-act policy-memo outline of background, significance, "
+    "challenges and outlook. Do not use hollow labels such as Overview, "
+    "Why It Matters, What Was Routine or Across the Region. Preserve the "
+    "sections while making EACH SENTENCE and paragraph natural, specific "
+    "and non-repetitive. Never recap the lead in the close.\n"
     "3. PARAGRAPH WORK. Each paragraph should add a source-supported fact, an "
     "accurate explanation, a meaningful baseline, a real comparison or a "
     "defensible inference; each paragraph must connect to what came before. "
@@ -212,6 +219,14 @@ def check_article(manuscript, *, desk_by_id=None):
         flags.append({"code": code, "where": where, "detail": detail})
 
     blocks = article_blocks(manuscript)
+    # User-required section anatomy is a presentational delivery requirement,
+    # not a reason to buy another model pass. Hold an unsectioned article for
+    # owner review in the existing no-send QA gate; legacy outlines are exempt.
+    if isinstance(manuscript.get("article"), list) and blocks:
+        body_headings = [heading for heading, _ in blocks[1:] if heading]
+        if len(body_headings) < 2 or len(body_headings) > 4 or not blocks[1][0]:
+            err("missing_editorial_sections", "article",
+                "requires an unheaded lead followed by 2–4 titled sections")
     all_paras = []
     for index, (heading, text) in enumerate(blocks, 1):
         where = "block {}".format(index)

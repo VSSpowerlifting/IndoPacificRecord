@@ -157,6 +157,9 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
         self.assertIn("overrides manuscript length, focus and citation requirements", instruction)
         self.assertIn("Private research summaries are NOT verbatim primary-source bodies", instruction)
         self.assertIn("650–850 words", instruction)
+        self.assertIn("SECTIONED, STORY-LED SHAPE", instruction)
+        self.assertIn("TWO TO FOUR substantive", instruction)
+        self.assertIn("Preserve the sections while making EACH SENTENCE", instruction)
         # Auto-selection and its selected article share the same v2 first-pass voice.
         self.assertIn("IPR EDITORIAL VOICE V2", instruction)
         self.assertIn("A paragraph can report a fact and stop.", instruction)
