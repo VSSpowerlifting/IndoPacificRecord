@@ -4,11 +4,13 @@ Only fake Korean bodies used, no live source downloads and no site writes.
 """
 from __future__ import annotations
 import hashlib
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from contextlib import redirect_stdout
 
 from core.korea_published_originals import SCHEMA, read_release_index
 from core.standing_source_rights import StandingLicenseHold, POLICIES
@@ -224,6 +226,26 @@ class KoreaStandingAutoTextsTests(unittest.TestCase):
             sut.validate_standing_context(env)
         env["GITHUB_EVENT_NAME"] = "schedule"
         self.assertEqual(sut.validate_standing_context(env)["scope"], sut.SCOPE)
+
+    def test_cli_reports_safe_gate_reason_without_private_exception_text(self):
+        for error, expected in (
+            (sut.PolicyHold("official_policy_unavailable"), "official_policy_unavailable"),
+            (OSError("PRIVATE SOURCE CONTENT"), "korea_original_publication_check_failed"),
+            (sut.MarkHold("PRIVATE SOURCE CONTENT"), "korea_original_publication_check_failed"),
+        ):
+            with self.subTest(error=type(error).__name__), \
+                    patch.object(sut, "validate_standing_context", return_value=self.context), \
+                    patch.object(sut, "admit_eligible", side_effect=error):
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    result = sut.main(["--source-checkout", str(self.root),
+                                       "--standing-owner-approval-original-text-only"])
+                self.assertEqual(result, 2)
+                receipt = json.loads(output.getvalue())
+                self.assertEqual(receipt["reason"], expected)
+                self.assertFalse(receipt["production_db_changed"])
+                self.assertFalse(receipt["source_bodies_logged"])
+                self.assertNotIn("PRIVATE SOURCE CONTENT", output.getvalue())
 
 
 if __name__ == "__main__":

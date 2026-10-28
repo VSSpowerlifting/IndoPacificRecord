@@ -14,7 +14,7 @@ import json
 import re
 import sqlite3
 import subprocess
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from core.korea_dapa_official_metadata_policy import read_policy
@@ -192,6 +192,26 @@ def _git(path, *args):
     return p.stdout.strip()
 
 
+def collection_date_proven(ledger, run_attempt):
+    """Accept explicit recovery or the collector's first, nominal 22:17 slot.
+
+    The private receipt authenticates this ledger. Recompute the slot from its
+    preserved start, never today's clock or the metadata retry's start time.
+    """
+    from core.shadow_schedule import SOURCE_EXPLICIT, SOURCE_SCHEDULE, scheduled_slot_date
+
+    source = ledger.get("target_date_source")
+    if source == SOURCE_EXPLICIT:
+        return valid_date(ledger.get("target_date"))
+    if source != SOURCE_SCHEDULE or not run_attempt.endswith("-1"):
+        return False
+    try:
+        started = datetime.fromisoformat(ledger["started_utc"].replace("Z", "+00:00"))
+        return scheduled_slot_date(started, "22:17").isoformat() == ledger.get("target_date")
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
 def export_from_private_checkout(checkout, run_attempt):
     """Execute ONLY inside the authenticated private repository workflow.
 
@@ -245,7 +265,7 @@ def export_from_private_checkout(checkout, run_attempt):
          and ledger.get("extraction_failures") == 0
          and ledger.get("access_failures") == 0
          and ledger.get("failures") == []
-         and ledger.get("target_date_source") == "explicit"
+         and collection_date_proven(ledger, run_attempt)
          and valid_date(ledger.get("target_date"))
          and ledger.get("target_date") >= "2026-10-16"
          and type(ledger.get("cap")) is int

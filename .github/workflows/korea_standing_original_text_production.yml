@@ -165,6 +165,8 @@ jobs:
           from core.korea_public_bibliography import load_public_korea_links
           from core.korea_additional_public_links import load_additional_korea_official_links
           from core.korea_official_live_links import load_live_korea_official_links
+          from core.korea_corpus_bridge import publication_gate
+          from scripts.reconcile_db import read_only
           rows=read_release_index()
           desk=Path("output/korea.html").read_text(encoding="utf-8")
           wanted={row["route"] for row in rows}
@@ -173,11 +175,16 @@ jobs:
           assert observed==wanted
           assert desk.count('data-korea-original-text=')==len(rows)
           fixed=load_public_korea_links()+load_additional_korea_official_links()
+          with read_only("pla_watch.db") as db:
+              records, _ = publication_gate(db)
           auto=load_live_korea_official_links("pla_watch.db",exclude={
-              x["source_identity"] for x in fixed})
+              x["source_identity"] for x in fixed} | set(records.values()))
           assert desk.count('data-korea-public-link=')==5
           assert desk.count('data-korea-additional-link=')==9
           assert desk.count('data-korea-auto-official-link=')==len(auto)
+          for article_id, identity in records.items():
+              assert 'data-korea-auto-official-link="' + identity + '"' not in desk
+              assert 'record/%d.html' % article_id in desk
           for row in rows:
               page=Path("output",row["route"]).read_text(encoding="utf-8")
               assert row["route"] in desk and row["official_url"] in desk
