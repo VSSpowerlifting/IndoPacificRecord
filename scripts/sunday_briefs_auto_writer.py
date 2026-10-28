@@ -275,8 +275,11 @@ def article_writing_schema(ids, extra_ids, *, automatic_story_selection=False):
 
     block_props = {
         "heading": {"type": "string", "description": (
-            "Short, specific subhead for this block, or an empty string. The first "
-            "block must have none. Never a stock label such as Overview or Why It Matters.")},
+            "The first block MUST have an empty heading. From block 2 onward, "
+            "introduce TWO TO FOUR substantive sections with short, descriptive "
+            "headings; block 2 MUST start a section. Extra continuation blocks "
+            "within an existing section may have an empty heading. Avoid generic "
+            "Overview or Why It Matters labels; section titles follow the story.")},
         "text": {"type": "string", "description": (
             "One to three paragraphs of article prose separated by a blank line. No "
             "headings, bullets, source-ID lines or citation labels.")},
@@ -310,8 +313,10 @@ def article_writing_schema(ids, extra_ids, *, automatic_story_selection=False):
             "type": "array", "minItems": 0 if automatic_story_selection else 1,
             "items": {"type": "object", "properties": block_props,
                       "required": block_required, "additionalProperties": False},
-            "description": ("Three to six connected blocks that tell one story in the order "
-                            "that story needs. Target 700–1,100 words in total."),
+            "description": ("Three to seven connected blocks: one unheaded lead and "
+                            "two to four substantive titled body sections. If needed, "
+                            "continue a section in an unheaded block, without starting "
+                            "another. Target 700–1,100 words in total."),
         },
         "audit": {"type": "object", "properties": audit_props,
                   "required": audit_required, "additionalProperties": False},
