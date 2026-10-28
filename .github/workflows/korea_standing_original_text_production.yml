@@ -80,14 +80,20 @@ jobs:
           from scripts.admit_korea_standing_original_texts import baseline
           proof=build(os.path.join(os.environ["RUNNER_TEMP"],"korea-future-baseline"))
           historical=baseline()
-          published={x["source_identity"] for x in read_release_index()}
+          released={x["source_identity"]:x for x in read_release_index()}
+          published=set(released)
           source_ids={x["source_identity"] for x in proof["records"]}
           assert len(historical)==14 and historical<=source_ids
           assert len(source_ids)==proof["source_original_count"]
-          assert published<=source_ids
+          # The legacy public archive stopped at private cutover. It proves
+          # the historical frontier, not custody of later private originals.
+          for item in proof["records"]:
+              if item["source_identity"] in released:
+                  assert item["original_text_sha256"] == released[item["source_identity"]]["original_text_sha256"]
           future=source_ids-historical-published
           print("Archived excluded:",len(historical))
-          print("Previously published, retained:",len(published))
+          print("Published source hashes replayed in legacy archive:",len(published & source_ids))
+          print("Published originals outside legacy snapshot (not replayed here):",len(published-source_ids))
           print("Future-only candidates as of source snapshot:",len(future))
           print("Real source branch version:",proof["source_git_commit"])
           PY

@@ -6,7 +6,10 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
+import re
 import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -246,6 +249,30 @@ class KoreaStandingAutoTextsTests(unittest.TestCase):
                 self.assertFalse(receipt["production_db_changed"])
                 self.assertFalse(receipt["source_bodies_logged"])
                 self.assertNotIn("PRIVATE SOURCE CONTENT", output.getvalue())
+
+    def test_frozen_public_frontier_does_not_claim_later_private_custody(self):
+        flow = (Path(__file__).resolve().parents[1] / ".github/workflows/"
+                "korea_standing_original_text_production.yml").read_text()
+        blocks = re.findall(r"          python - <<'PY'\n(.*?)          PY", flow, re.S)
+        code = textwrap.dedent(next(block for block in blocks if "proof=build(" in block))
+        releases = [entry(OLD_ID), entry(NEW)]
+        with patch.object(sut.stage, "build", return_value=self.packet), \
+                patch.object(sut, "baseline", return_value=BASE_IDS), \
+                patch("core.korea_published_originals.read_release_index", return_value=releases), \
+                patch.dict(os.environ, {"RUNNER_TEMP": str(self.root)}):
+            # Newer licensed originals live only in private custody. A frozen
+            # public snapshot must still prove its complete 14-source baseline.
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exec(compile(code, "historical-frontier", "exec"), {})
+            self.assertIn("outside legacy snapshot (not replayed here): 1", output.getvalue())
+            releases[0]["original_text_sha256"] = "0" * 64
+            with self.assertRaises(AssertionError), redirect_stdout(io.StringIO()):
+                exec(compile(code, "historical-frontier", "exec"), {})
+            releases[0] = entry(OLD_ID)
+            self.packet["records"].pop()
+            with self.assertRaises(AssertionError), redirect_stdout(io.StringIO()):
+                exec(compile(code, "historical-frontier", "exec"), {})
 
 
 if __name__ == "__main__":

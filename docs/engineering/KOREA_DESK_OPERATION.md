@@ -49,6 +49,11 @@ Recent publisher logs prove authenticated private MND read access works.
    allowing policy/access/source faults to be distinguished. Arbitrary parser,
    filesystem or source-bearing exception text is never logged. No retry or
    rights check was relaxed to explain the historical generic failure.
+4. The original-text PR's historical public-source replay still expected every
+   subsequently published original in the retired public archive. It now
+   verifies all fourteen baseline identities and every overlapping published
+   text hash, explicitly reporting later private originals as unverified by
+   this historical replay. Production still authenticates the private archive.
 
 The private workflow reads the exporter from public main, so no private
 companion change is necessary. No new scheduler, model engine or renderer.
@@ -57,7 +62,7 @@ was changed by this phase.
 
 ### Acceptance evidence and remaining action
 
-- Focused offline checks: 36 collector/export/publisher contracts and 135
+- Focused offline checks: 37 collector/export/publisher contracts and 135
   watchdog/shared-Daily/corpus/QA/render/retry contracts passed. The tests
   execute both actual publisher post-render Python blocks and reject missing
   and duplicate rail entries, not just YAML string shape. Mandatory final-head
