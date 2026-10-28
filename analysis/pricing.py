@@ -17,6 +17,18 @@ Rates verified 2026-10-01 against that page:
     claude-sonnet-4-6   $3 / $15 per MTok (input / output)
     claude-haiku-4-5    $1 / $5  per MTok
     5-minute cache write = 1.25 x base input; cache read = 0.10 x base input.
+
+Rates verified 2026-10-28 against that page, for the opt-in model only:
+
+    claude-haiku-5-5    prompt <= 100,000 tokens: $0.10 / $0.50 per MTok
+                        prompt  > 100,000 tokens: $0.50 / $2.50 per MTok
+    "A request's prompt length counts all of its input tokens, including cache
+    reads and cache writes. Each request is priced on its own." Cache
+    multipliers are the same as above.
+
+A request-tiered model is deliberately NOT in `PRICING_USD_PER_MTOK`: that flat
+table is read directly by `scripts/spend_guard.py`, `scripts/rescreen_desk.py`
+and `processing/vpcp_policy.py`, none of which can apply a per-request band.
 """
 
 from __future__ import annotations
@@ -31,6 +43,17 @@ PRICING_USD_PER_MTOK = {
     "claude-sonnet-4-6":          {"input": 3.00, "output": 15.00},
     "claude-haiku-4-5":           {"input": 1.00, "output":  5.00},
     "claude-haiku-4-5-20251001":  {"input": 1.00, "output":  5.00},
+}
+
+#: Models priced per request in two bands by that request's total prompt
+#: (uncached input + cache writes + cache reads). The whole request is priced
+#: in its band; a prompt of exactly the threshold is in the lower band.
+TIERED_PRICING_USD_PER_MTOK = {
+    "claude-haiku-5-5": {
+        "threshold_prompt_tokens": 100_000,
+        "base": {"input": 0.10, "output": 0.50},
+        "long": {"input": 0.50, "output": 2.50},
+    },
 }
 
 #: Multipliers on the base input rate. The pipeline marks its system prompt
@@ -51,11 +74,22 @@ def estimate_usage_cost_usd(
     Estimated USD for one model's token counts, or None if the model has no
     price on file.
 
+    For a model in `TIERED_PRICING_USD_PER_MTOK` the counts must be ONE
+    response's: the band is chosen from that response's total prompt. Summing
+    such responses means summing their costs, never their tokens — the ledger
+    in analysis/usage.py does exactly that.
+
     `input_tokens` is the uncached input the API reports; cache writes and
     reads are reported separately by the API and are priced here from their own
     multipliers, so the four terms never overlap.
     """
     price = PRICING_USD_PER_MTOK.get(model)
+    tiered = TIERED_PRICING_USD_PER_MTOK.get(model)
+    if tiered is not None:
+        prompt = (input_tokens + cache_creation_input_tokens
+                  + cache_read_input_tokens)
+        price = tiered["long" if prompt > tiered["threshold_prompt_tokens"]
+                       else "base"]
     if price is None:
         return None
     rate_in, rate_out = price["input"], price["output"]

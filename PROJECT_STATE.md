@@ -1,5 +1,21 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Haiku 5.5 opt-in compatibility and request-level cost accounting — review candidate (28 October 2026)
+
+`ANALYSIS_MODEL=claude-haiku-5-5` is now a valid opt-in for the shared Analyzer.
+- For that model, requests drop sampling fields and send disabled thinking with
+  high effort.
+- Responses are read by block type. Refusal, context-limit and truncation stops
+  fail closed, and each paid response is recorded exactly once.
+- Each response is priced in its own 100k-prompt band.
+- `scripts/spend_guard.py` refuses bulk estimates for the model.
+
+Defaults (`claude-haiku-4-5-20251001` / `claude-sonnet-4-6`, cap 55), prompts,
+ceilings, DB, output, sidecars and usage history are unchanged. No paid call was
+made, and model quality is not evaluated. A separate decision is needed for a
+$3-capped comparison on authorized source versions. See
+`docs/engineering/HAIKU_5_5_COMPATIBILITY_2026-10-28.md`. Not merged.
+
 ## Homepage "As published." register redesign — draft PR (28 October 2026)
 
 Branch `claude/ipr-homepage-editorial-design-1e4180` replaces the homepage's
@@ -1280,10 +1296,10 @@ review date, not a qualification threshold. Neither desk is promoted.
   warning, three missing LinkedIn files (eds. 1–3), and one cadence gap
   (2026-07-18 → 2026-08-01). Any **new** warning must be explained here before
   it is accepted; none is ever fixed by invention.
-* **LLM usage is now recorded per run (2026-10-01), but no record exists
-  yet.** `.github/state/llm_usage.jsonl` is appended by the workflow's own
-  telemetry step on the first CI run after the telemetry lands (the pipeline
-  writes only a runtime file, so local runs never touch it). It is operational
+* **LLM usage is recorded per run (2026-10-01); 31 records cover 2–28
+  October.** `.github/state/llm_usage.jsonl` is appended only by the workflow's
+  own telemetry step (the pipeline writes only a runtime file, so local runs
+  never touch it). It is operational
   accounting with estimated cost from a pinned price table
   (`analysis/pricing.py`), not an invoice. Two decisions wait on it: whether to
   merge summary and categorization into one call, and whether categorization
