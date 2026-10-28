@@ -64,13 +64,22 @@
   <p class="lede">One publication family: official releases from the Singapore Ministry of Defence, which publishes for itself and for the Singapore Armed Forces.</p>
 </header>
 
-<div class="status-panel status-panel--live">
+<div class="status-panel status-panel--live" data-registry-status="live">
   <span class="status-glyph desk-state desk-state--live" aria-hidden="true"></span>
   <div>
     <h2>Live — collecting</h2>
     <p>Promoted 2026-09-21 (DECISION_LOG), after 33 elapsed shadow-collection days, completed Day 7 and Day 14 human checkpoint reviews, and owner sign-off. The corpus began as a one-time governed promotion of 57 corrected shadow records; the same adapter, already run daily by the shadow collector since 2026-08-19, is now also invoked by the ordinary scheduled production pipeline, so the corpus grows from further scheduled runs going forward. Two records stay held out of the promotable set for unrepaired charset damage.</p>
   </div>
 </div>
+
+<section class="desk-section" aria-labelledby="desk-records-title" data-public-records>
+  <h2 id="desk-records-title">Public records</h2>
+  <dl class="deskmap-stats">
+  <div><dt>Records</dt><dd>97</dd></div>
+  <div><dt>Latest record</dt><dd><time datetime="2026-10-27">2026-10-27</time><small>publication date</small></dd></div>
+</dl>
+<p><a class="btn btn--primary" href="archive.html?scope=records&amp;desk=singapore">Browse the Singapore Desk's 97 records</a></p>  <p class="meta">One admitted source publication is one record. Its official link, original, translation and explanation are parts of that record and are not counted again.</p>
+</section>
 
 
 
@@ -86,10 +95,10 @@
 
 <h2 class="plain">The record, as it actually stands</h2>
 <p class="eyebrow eyebrow--corpus">As published.</p>
-<p>97 records from 1 sources across
+<p>97 originals collected into the corpus from 1 sources across
 1 institutions, 2026-07-21 to 2026-10-27.</p>
 <dl class="stat-rows">
-  <div class="stat-row"><dt>Source records</dt><dd>97</dd></div>
+  <div class="stat-row"><dt>Corpus originals</dt><dd>97</dd></div>
   <div class="stat-row"><dt>Analyzed records</dt><dd>75</dd></div>
   <div class="stat-row"><dt>Not analyzed</dt><dd>22</dd></div>
   <div class="stat-row"><dt>Earliest item</dt><dd>2026-07-21</dd></div>
@@ -102,7 +111,6 @@
 completed a reading of the record — it says nothing about publication. "Not analyzed"
 includes records awaiting screening, screened out, and incomplete analysis;
 it is not an analysis queue. <a href="corpus-guide.html#states">Read the four processing states</a>.</p>
-<p><a class="btn btn--primary" href="archive.html?desk=singapore">Browse the Singapore Desk's 97 records</a></p>
 
 <figure class="week-strip" data-reveal aria-labelledby="week-strip-title-h2">
   <figcaption class="week-strip-head">
@@ -195,19 +203,30 @@ it is not an analysis queue. <a href="corpus-guide.html#states">Read the four pr
 <span><i class="k-edge" aria-hidden="true"></i>Snapshot boundary</span></p>
 </figure>
 
-<h2>Sources</h2>
+<h2 id="desk-sources-heading">Sources and coverage</h2>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>Every source declared for this desk, whether it is enabled, and how
-  much of the record it accounts for.</caption>
-  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Records</th></tr></thead>
+  <caption>Public records from each source, counted once per source publication.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col" class="num">Records</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Source">MINDEF Singapore — official releases</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=singapore&amp;source=MINDEF%20Singapore%20%E2%80%94%20official%20releases">97</a></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Collection configuration</h3>
+<div class="table-scroll">
+<table class="stacking">
+  <caption>Every source configured for this desk, whether it is enabled, and how
+  many originals it has contributed to the corpus.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Corpus originals</th></tr></thead>
   <tbody>
     <tr>
       <td data-label="Source"><a href="source/sg_mindef_releases.html">MINDEF Singapore — official releases</a></td>
       <td data-label="Institution">Ministry of Defence</td>
       <td data-label="Authority">A</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=sg_mindef_releases">97</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=sg_mindef_releases">97</a></td>
     </tr>
   </tbody>
 </table>

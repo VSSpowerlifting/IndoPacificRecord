@@ -64,13 +64,22 @@
   <p class="lede">Official Japanese-language Ministry of Defense RSS discovery from its news and site-update streams, plus a separate Japan Coast Guard English press-release shadow pilot. Neither covers all Japanese defense or maritime-security publications, and neither MOD feed represents Joint Staff or English MOD releases.</p>
 </header>
 
-<div class="status-panel status-panel--shadow">
+<div class="status-panel status-panel--shadow" data-registry-status="shadow">
   <span class="status-glyph desk-state desk-state--shadow" aria-hidden="true"></span>
   <div>
     <h2>Japan MOD news official links admitted automatically</h2>
     <p>The Ministry of Defense news RSS supplies the official PDF links below through the shared Daily system. RSS dates and institutional attribution are metadata only. The original-text corpus remains in shadow, and other Japanese sources are outside this feed.</p>
   </div>
 </div>
+
+<section class="desk-section" aria-labelledby="desk-records-title" data-public-records>
+  <h2 id="desk-records-title">Public records</h2>
+  <dl class="deskmap-stats">
+  <div><dt>Records</dt><dd>7</dd></div>
+  <div><dt>Latest record</dt><dd><time datetime="2026-10-23">2026-10-23</time><small>RSS listing date, not verified issue date</small></dd></div>
+</dl>
+<p><a class="btn btn--primary" href="archive.html?scope=records&amp;desk=japan">Browse the Japan Desk's 7 records</a></p>  <p class="meta">One admitted source publication is one record. Its official link, original, translation and explanation are parts of that record and are not counted again.</p>
+</section>
 
 <section class="desk-references regional-official-live-links"
          data-source-scope="official-link-only"
@@ -138,6 +147,7 @@
         · Official-link metadata only</p>
     </li>
   </ol>
+  
   <p class="meta">Article bodies, photos, document files,
   translations and automatic analysis are excluded. Formal-document subjects are bibliographic metadata. Held records cannot
   appear in this index.</p>
@@ -227,40 +237,51 @@
 </dl>
 <p class="meta">This desk has no admitted records in the public IPR corpus. Any independently collected shadow originals remain separate, and no number on this page counts them.</p>
 
-<h2>Sources</h2>
+<h2 id="desk-sources-heading">Sources and coverage</h2>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>Every source declared for this desk, whether it is enabled, and how
-  much of the record it accounts for.</caption>
-  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Records</th></tr></thead>
+  <caption>Public records from each source, counted once per source publication.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col" class="num">Records</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Source">Japan Ministry of Defense</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=japan&amp;source=Japan%20Ministry%20of%20Defense">7</a></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Collection configuration</h3>
+<div class="table-scroll">
+<table class="stacking">
+  <caption>Every source configured for this desk, whether it is enabled, and how
+  many originals it has contributed to the corpus.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Corpus originals</th></tr></thead>
   <tbody>
     <tr>
       <td data-label="Source"><a href="source/jp_mod_news_ja.html">防衛省・自衛隊 — news feed (Japanese)</a></td>
       <td data-label="Institution">—</td>
       <td data-label="Authority">—</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><span class="meta">none</span></td>
+      <td data-label="Corpus originals" class="num"><span class="meta">none</span></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/jp_mod_siteupdate_ja.html">防衛省・自衛隊 — site update feed (Japanese)</a></td>
       <td data-label="Institution">—</td>
       <td data-label="Authority">—</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><span class="meta">none</span></td>
+      <td data-label="Corpus originals" class="num"><span class="meta">none</span></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/jp_joint_staff_en.html">統合幕僚監部 Joint Staff — press releases (English)</a></td>
       <td data-label="Institution">—</td>
       <td data-label="Authority">—</td>
       <td data-label="Enabled">No</td>
-      <td data-label="Records" class="num"><span class="meta">none</span></td>
+      <td data-label="Corpus originals" class="num"><span class="meta">none</span></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/jp_mod_press_en.html">Ministry of Defense — press releases (English)</a></td>
       <td data-label="Institution">—</td>
       <td data-label="Authority">—</td>
       <td data-label="Enabled">No</td>
-      <td data-label="Records" class="num"><span class="meta">none</span></td>
+      <td data-label="Corpus originals" class="num"><span class="meta">none</span></td>
     </tr>
   </tbody>
 </table>

@@ -62,6 +62,7 @@
 .deskmap-stats div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 .75rem; padding: .22rem 0; border-top: 1px solid var(--rule-soft); }
 .deskmap-stats dt { margin: 0; font-size: .6875rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
 .deskmap-stats dd { font-size: .8125rem; font-weight: 600; margin-left: auto; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
+.deskmap-stats dd small { display: block; font-size: .6875rem; font-weight: 400; color: var(--muted); white-space: normal; }
 .deskmap-enter { margin: .4rem 0 0; font-size: .8125rem; font-weight: 600; }
 .deskmap-enter a { display: inline-flex; align-items: center; gap: .3rem; min-height: 24px; }
 .deskmap-enter span { transition: transform var(--dur-fast) var(--ease-out); }

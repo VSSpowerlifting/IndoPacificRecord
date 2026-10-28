@@ -64,13 +64,22 @@
   <p class="lede">Chinese official and state-linked defense publication surfaces: the armed forces newspaper, the defense ministry, the state news agency&#39;s military desk, and two English-language portals.</p>
 </header>
 
-<div class="status-panel status-panel--live">
+<div class="status-panel status-panel--live" data-registry-status="live">
   <span class="status-glyph desk-state desk-state--live" aria-hidden="true"></span>
   <div>
     <h2>Live — collecting</h2>
     <p>Collecting daily into the production corpus. This is the only mature collection in the project.</p>
   </div>
 </div>
+
+<section class="desk-section" aria-labelledby="desk-records-title" data-public-records>
+  <h2 id="desk-records-title">Public records</h2>
+  <dl class="deskmap-stats">
+  <div><dt>Records</dt><dd>1,226</dd></div>
+  <div><dt>Latest record</dt><dd><time datetime="2026-10-27">2026-10-27</time><small>publication date</small></dd></div>
+</dl>
+<p><a class="btn btn--primary" href="archive.html?scope=records&amp;desk=china">Browse the China Desk's 1,226 records</a></p>  <p class="meta">One admitted source publication is one record. Its official link, original, translation and explanation are parts of that record and are not counted again.</p>
+</section>
 
 
 
@@ -86,10 +95,10 @@
 
 <h2 class="plain">The record, as it actually stands</h2>
 <p class="eyebrow eyebrow--corpus">As published.</p>
-<p>1,226 records from 5 sources across
+<p>1,226 originals collected into the corpus from 5 sources across
 4 institutions, 2026-05-07 to 2026-10-27.</p>
 <dl class="stat-rows">
-  <div class="stat-row"><dt>Source records</dt><dd>1,226</dd></div>
+  <div class="stat-row"><dt>Corpus originals</dt><dd>1,226</dd></div>
   <div class="stat-row"><dt>Analyzed records</dt><dd>840</dd></div>
   <div class="stat-row"><dt>Not analyzed</dt><dd>386</dd></div>
   <div class="stat-row"><dt>Earliest item</dt><dd>2026-05-07</dd></div>
@@ -102,7 +111,6 @@
 completed a reading of the record — it says nothing about publication. "Not analyzed"
 includes records awaiting screening, screened out, and incomplete analysis;
 it is not an analysis queue. <a href="corpus-guide.html#states">Read the four processing states</a>.</p>
-<p><a class="btn btn--primary" href="archive.html?desk=china">Browse the China Desk's 1,226 records</a></p>
 
 <figure class="week-strip" data-reveal aria-labelledby="week-strip-title-h2">
   <figcaption class="week-strip-head">
@@ -250,47 +258,62 @@ it is not an analysis queue. <a href="corpus-guide.html#states">Read the four pr
 <span><i class="k-outage" aria-hidden="true"></i>Known collection interruption</span><span><i class="k-edge" aria-hidden="true"></i>Snapshot boundary</span></p>
 </figure>
 
-<h2>Sources</h2>
+<h2 id="desk-sources-heading">Sources and coverage</h2>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>Every source declared for this desk, whether it is enabled, and how
-  much of the record it accounts for.</caption>
-  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Records</th></tr></thead>
+  <caption>Public records from each source, counted once per source publication.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col" class="num">Records</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Source">China Military Online (EN)</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=china&amp;source=China%20Military%20Online%20%28EN%29">181</a></td></tr>
+    <tr><td data-label="Source">Global Times — Defense</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=china&amp;source=Global%20Times%20%E2%80%94%20Defense">46</a></td></tr>
+    <tr><td data-label="Source">MOD China (国防部)</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=china&amp;source=MOD%20China%20%28%E5%9B%BD%E9%98%B2%E9%83%A8%29">186</a></td></tr>
+    <tr><td data-label="Source">PLA Daily (解放军报)</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=china&amp;source=PLA%20Daily%20%28%E8%A7%A3%E6%94%BE%E5%86%9B%E6%8A%A5%29">627</a></td></tr>
+    <tr><td data-label="Source">Xinhua Military (新华军事)</td><td data-label="Records" class="num"><a href="archive.html?scope=records&amp;desk=china&amp;source=Xinhua%20Military%20%28%E6%96%B0%E5%8D%8E%E5%86%9B%E4%BA%8B%29">186</a></td></tr>
+  </tbody>
+</table>
+</div>
+<p class="meta">A publisher can appear under more than one label when separate collection lanes admitted its publications. Each publication is counted once, under the lane that admitted it.</p>
+<h3>Collection configuration</h3>
+<div class="table-scroll">
+<table class="stacking">
+  <caption>Every source configured for this desk, whether it is enabled, and how
+  many originals it has contributed to the corpus.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Corpus originals</th></tr></thead>
   <tbody>
     <tr>
       <td data-label="Source"><a href="source/pla_daily.html">PLA Daily (解放军报)</a></td>
       <td data-label="Institution">CMC Political Work Department</td>
       <td data-label="Authority">B</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=pla_daily">627</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=pla_daily">627</a></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/mod_china.html">MOD China (国防部)</a></td>
       <td data-label="Institution">Ministry of National Defense</td>
       <td data-label="Authority">A</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=mod_china">186</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=mod_china">186</a></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/xinhua_mil.html">Xinhua Military (新华军事)</a></td>
       <td data-label="Institution">Xinhua News Agency</td>
       <td data-label="Authority">C</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=xinhua_mil">186</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=xinhua_mil">186</a></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/global_times_mil.html">Global Times — Defense</a></td>
       <td data-label="Institution">People&#39;s Daily Group</td>
       <td data-label="Authority">D</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=global_times_mil">46</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=global_times_mil">46</a></td>
     </tr>
     <tr>
       <td data-label="Source"><a href="source/china_mil_online.html">China Military Online (EN)</a></td>
       <td data-label="Institution">CMC Political Work Department</td>
       <td data-label="Authority">B</td>
       <td data-label="Enabled">Yes</td>
-      <td data-label="Records" class="num"><a href="archive.html?source=china_mil_online">181</a></td>
+      <td data-label="Corpus originals" class="num"><a href="archive.html?source=china_mil_online">181</a></td>
     </tr>
   </tbody>
 </table>

@@ -2981,6 +2981,140 @@ def build(out_dir: Path, title: str, db_path: Path,
                                    .read_text(encoding="utf-8"))["symbols"],
     }
 
+    # Each desk's admitted public inputs, gathered once before any page renders
+    # so every count comes from the same projection. Explicitly approved
+    # IPR-authored Briefs only; no shadow original content. Approved official-
+    # source references are public records, never production corpus rows, and
+    # never change a desk's collection status.
+    desk_inputs = {}
+    public_record_aliases, public_record_bindings, public_record_corpus_urls = {}, {}, {}
+    for desk in desks:
+        references = load_public_desk_references(desk.slug)
+        published_research = published_for_desk(desk.slug, editorial_research)
+        # A separate first-party link index is NOT an independently reviewed
+        # reference, production record, publisher-content copy or source feed.
+        indonesia_official_links = (load_indonesia_official_index()
+                                    if desk.slug == "indonesia" else [])
+        indonesia_press_links = (load_indonesia_press_index()
+                                 if desk.slug == "indonesia" else [])
+        from core.us_pacom_official_links import load_us_pacom_official_links
+        us_pacom_links = (load_us_pacom_official_links()
+                          if desk.slug == "us-indopacific" else [])
+        # Only actually admitted congressional commission metadata are shown.
+        # PACOM's static index and blocked collector remain distinct.
+        from core.uscc_official_metadata import load_public_links as load_uscc_live_links
+        uscc_links = (load_uscc_live_links(db_path)
+                      if desk.slug == "us-indopacific" else [])
+        # Executive-branch Treasury links are a distinct admitted source family.
+        # No headline, article body, media or topic inference enters this view.
+        from core.us_treasury_official_metadata import load_public_links as load_treasury_live_links
+        treasury_links = (load_treasury_live_links(db_path)
+                          if desk.slug == "us-indopacific" else [])
+        # BIS belongs to Commerce, not Treasury, USCC, PACOM or DVIDS.
+        # Only the separately authenticated scheduled-run metadata table can
+        # appear here; unauthenticated scratch receipts remain inaccessible.
+        from core.us_bis_authenticated_metadata import load_public_links as load_bis_live_links
+        bis_links = (load_bis_live_links(db_path)
+                     if desk.slug == "us-indopacific" else [])
+        # Only already-admitted database metadata, never archived bodies.
+        from core.regional_official_link_render import load_admitted_links
+        from core.daily_machine_records import load as load_daily_machine_records
+        daily_machine_records = ([r for r in load_daily_machine_records(db_path)
+                                  if r["desk_id"] == desk.slug]
+                                 if desk.slug in ("philippines", "indonesia") else [])
+        # Reuse the admitted corpus and its ordinary record rows. Private
+        # captures and bibliographic references cannot enter this list.
+        vietnam_records = sorted((r for r in data["corpus"]
+            if desk.slug == "vietnam" and r.get("vietnam")
+            and r["state"] == "analyzed"
+            and r["vietnam"]["qa"]["outcome"] == "published"),
+            key=lambda r: (r["published_date"], r["id"]), reverse=True)
+        vietnam_explained = {r["vietnam"]["source_identity"]: r["record_path"]
+                             for r in vietnam_records}
+        regional_official_links = (
+            load_admitted_links(db_path, desk.slug)
+            if desk.slug in ("philippines", "indonesia", "vietnam", "japan") else [])
+        japan_references = [{"source_url": r["canonical_official_url"],
+            "source_identity": r["source_identity"],
+            "neutral_label": r["label"], "source_name": r["publisher_label"],
+            "published_date": r["publisher_posted_date"], "date_kind": r["date_kind"]}
+            for r in regional_official_links if desk.slug == "japan"]
+        # Formal documents use the same public archive/search projection as
+        # other official links. The subject is metadata, never a document body.
+        document_references = [{"source_url": r["canonical_official_url"],
+            "source_identity": r["source_identity"],
+            "neutral_label": r["label"] + " · " + r["document"]["subject"]
+                + " · " + r["issuer_label"] + " · " + r["document"]["signatory"]
+                + " · " + " · ".join(r["topics"]),
+            # The document's own stated issue date, never its posting date.
+            "published_date": r["document"]["issue_date"] or r["publisher_posted_date"],
+            "source_name": r["publisher_label"],
+            "issuer_label": r["issuer_label"],
+            "date_kind": "document issue date" if r["document"]["issue_date"] else r["date_kind"],
+            "processing_note": "Bibliographic subject only; permitted machine explanations are separate published records."
+            } for r in regional_official_links if r.get("document")]
+        # Admitted Philippines, Kemhan and Vietnam ministry link rows are public
+        # records in their own right, with neutral labels and no source text.
+        # A Kemhan row whose exact URL is already a Berita index entry is the
+        # same publication: it is not listed twice, and its identity is an
+        # alias of that entry so its later explanation attaches there.
+        berita_by_url = {r["source_url"]: str(r.get("source_identity") or r.get("id")
+                                              or archive_digest(r["source_url"].encode()))
+                         for r in indonesia_official_links}
+        regional_link_references = []
+        for r in regional_official_links:
+            if desk.slug == "japan" or r.get("document"):
+                continue
+            if r["canonical_official_url"] in berita_by_url:
+                public_record_aliases[r["source_identity"]] = berita_by_url[r["canonical_official_url"]]
+                continue
+            regional_link_references.append({"source_url": r["canonical_official_url"],
+                "source_identity": r["source_identity"], "neutral_label": r["label"],
+                "source_name": r["publisher_label"], "published_date": r["publisher_posted_date"],
+                "date_kind": "publisher-posted date"})
+        for r in vietnam_records:
+            public_record_bindings[r["id"]] = r["vietnam"]["source_identity"]
+            public_record_corpus_urls[r["id"]] = r["url"]
+        # Reuse the exact public results that render this build's desk pages.
+        archive_official_groups.extend([
+            (regional_link_references, desk.slug, None, None),
+            (japan_references, desk.slug, "Japan MOD news RSS", "Japan Ministry of Defense"),
+            (document_references, desk.slug, None, None),
+            (references, desk.slug, None, None),
+            (indonesia_official_links, desk.slug, "Kemhan Berita", "Kementerian Pertahanan Republik Indonesia"),
+            (indonesia_press_links, desk.slug, "Kemhan Siaran Pers", "Kementerian Pertahanan Republik Indonesia"),
+            (us_pacom_links, desk.slug, "U.S. Indo-Pacific Command official site", "U.S. Indo-Pacific Command"),
+            (uscc_links, desk.slug, "USCC press releases", "U.S.-China Economic and Security Review Commission"),
+            (treasury_links, desk.slug, "Treasury press releases", "U.S. Department of the Treasury"),
+            (bis_links, desk.slug, "BIS press releases", "U.S. Department of Commerce · Bureau of Industry and Security"),
+        ])
+        desk_inputs[desk.slug] = (references, published_research, indonesia_official_links,
+            indonesia_press_links, regional_official_links, daily_machine_records,
+            vietnam_records, vietnam_explained, us_pacom_links, uscc_links,
+            treasury_links, bis_links)
+
+    # One public collection: the Archive research index, grouped into one
+    # record per source publication, feeds Desks, every desk page and Archive.
+    from core.daily_machine_records import load as load_daily_machine_records, archive_rows as machine_archive_rows
+    from core.public_records import project as project_public_records
+    machine_records = load_daily_machine_records(db_path)
+    archive_official_groups.append((korea_public_rows + korea_additional_rows + korea_auto_official_rows,
+        "korea", "Republic of Korea Policy Briefing", "Republic of Korea Ministry of National Defense"))
+    research_index = build_archive_index(
+        db_path, index, cite_record=record_citation, processing_notes=CITATION_PROCESSING_NOTES,
+        official_groups=archive_official_groups, originals=korea_published_original_rows,
+        machine_records=machine_archive_rows(machine_records),
+        english_publications=korea_english_publication_rows, analyses=public_analyses)
+    corpus_url = {r["id"]: r["url"] for r in data["corpus"]}
+    for aid, ident in data["korea_publishable"].items():
+        public_record_bindings[aid] = ident
+        public_record_corpus_urls[aid] = corpus_url[aid]
+    research_index["public_records"] = project_public_records(
+        research_index["records"], [d.slug for d in desks],
+        aliases=public_record_aliases, bindings=public_record_bindings,
+        corpus_urls=public_record_corpus_urls)
+    ctx["public_records"] = research_index["public_records"]
+
     pages = {
         "index.html": "home.html",
         "desks.html": "desks.html",
@@ -3229,84 +3363,11 @@ def build(out_dir: Path, title: str, db_path: Path,
     # Every public desk gets a page, including the ones that collect nothing.
     # A declared desk with no page would be a desk a reader cannot check.
     desk_tmpl = env.get_template("desk.html")
-    # Explicitly approved IPR-authored Briefs only; no shadow original content.
-    # Individually approved official-source references are distinct from the
-    # production corpus and never change a desk's collection status or counts.
     for desk in desks:
-        references = load_public_desk_references(desk.slug)
-        published_research = published_for_desk(desk.slug, editorial_research)
-        # A separate first-party link index is NOT an independently reviewed
-        # reference, production record, publisher-content copy or source feed.
-        indonesia_official_links = (load_indonesia_official_index()
-                                    if desk.slug == "indonesia" else [])
-        indonesia_press_links = (load_indonesia_press_index()
-                                 if desk.slug == "indonesia" else [])
-        from core.us_pacom_official_links import load_us_pacom_official_links
-        us_pacom_links = (load_us_pacom_official_links()
-                          if desk.slug == "us-indopacific" else [])
-        # Only actually admitted congressional commission metadata are shown.
-        # PACOM's static index and blocked collector remain distinct.
-        from core.uscc_official_metadata import load_public_links as load_uscc_live_links
-        uscc_links = (load_uscc_live_links(db_path)
-                      if desk.slug == "us-indopacific" else [])
-        # Executive-branch Treasury links are a distinct admitted source family.
-        # No headline, article body, media or topic inference enters this view.
-        from core.us_treasury_official_metadata import load_public_links as load_treasury_live_links
-        treasury_links = (load_treasury_live_links(db_path)
-                          if desk.slug == "us-indopacific" else [])
-        # BIS belongs to Commerce, not Treasury, USCC, PACOM or DVIDS.
-        # Only the separately authenticated scheduled-run metadata table can
-        # appear here; unauthenticated scratch receipts remain inaccessible.
-        from core.us_bis_authenticated_metadata import load_public_links as load_bis_live_links
-        bis_links = (load_bis_live_links(db_path)
-                     if desk.slug == "us-indopacific" else [])
-        # Only already-admitted database metadata, never archived bodies.
-        from core.regional_official_link_render import load_admitted_links
-        from core.daily_machine_records import load as load_daily_machine_records
-        daily_machine_records = ([r for r in load_daily_machine_records(db_path)
-                                  if r["desk_id"] == desk.slug]
-                                 if desk.slug in ("philippines", "indonesia") else [])
-        # Reuse the admitted corpus and its ordinary record rows. Private
-        # captures and bibliographic references cannot enter this list.
-        vietnam_records = sorted((r for r in data["corpus"]
-            if desk.slug == "vietnam" and r.get("vietnam")
-            and r["state"] == "analyzed"
-            and r["vietnam"]["qa"]["outcome"] == "published"),
-            key=lambda r: (r["published_date"], r["id"]), reverse=True)
-        vietnam_explained = {r["vietnam"]["source_identity"]: r["record_path"]
-                             for r in vietnam_records}
-        regional_official_links = (
-            load_admitted_links(db_path, desk.slug)
-            if desk.slug in ("philippines", "indonesia", "vietnam", "japan") else [])
-        japan_references = [{"source_url": r["canonical_official_url"],
-            "source_identity": r["source_identity"],
-            "neutral_label": r["label"], "source_name": r["publisher_label"],
-            "published_date": r["publisher_posted_date"], "date_kind": r["date_kind"]}
-            for r in regional_official_links if desk.slug == "japan"]
-        # Formal documents use the same public archive/search projection as
-        # other official links. The subject is metadata, never a document body.
-        document_references = [{"source_url": r["canonical_official_url"],
-            "source_identity": r["source_identity"],
-            "neutral_label": r["label"] + " · " + r["document"]["subject"]
-                + " · " + r["issuer_label"] + " · " + r["document"]["signatory"]
-                + " · " + " · ".join(r["topics"]),
-            "published_date": r["publisher_posted_date"], "source_name": r["publisher_label"],
-            "issuer_label": r["issuer_label"],
-            "date_kind": "document issue date",
-            "processing_note": "Bibliographic subject only; permitted machine explanations are separate published records."
-            } for r in regional_official_links if r.get("document")]
-        # Reuse the exact public results that render this build's desk pages.
-        archive_official_groups.extend([
-            (japan_references, desk.slug, "Japan MOD news RSS", "Japan Ministry of Defense"),
-            (document_references, desk.slug, None, None),
-            (references, desk.slug, None, None),
-            (indonesia_official_links, desk.slug, "Kemhan Berita", "Kementerian Pertahanan Republik Indonesia"),
-            (indonesia_press_links, desk.slug, "Kemhan Siaran Pers", "Kementerian Pertahanan Republik Indonesia"),
-            (us_pacom_links, desk.slug, "U.S. Indo-Pacific Command official site", "U.S. Indo-Pacific Command"),
-            (uscc_links, desk.slug, "USCC press releases", "U.S.-China Economic and Security Review Commission"),
-            (treasury_links, desk.slug, "Treasury press releases", "U.S. Department of the Treasury"),
-            (bis_links, desk.slug, "BIS press releases", "U.S. Department of Commerce · Bureau of Industry and Security"),
-        ])
+        (references, published_research, indonesia_official_links,
+         indonesia_press_links, regional_official_links, daily_machine_records,
+         vietnam_records, vietnam_explained, us_pacom_links, uscc_links,
+         treasury_links, bis_links) = desk_inputs[desk.slug]
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
         desk_page = desk_tmpl.render(page=desk.route, desk=desk,
@@ -3448,8 +3509,6 @@ def build(out_dir: Path, title: str, db_path: Path,
             encoding="utf-8")
         written.append("record/%d.html" % rec["id"])
 
-    from core.daily_machine_records import load as load_daily_machine_records, archive_rows as machine_archive_rows
-    machine_records = load_daily_machine_records(db_path)
     machine_paths = {r["record_path"] for r in machine_records}
     for stale in (out_dir / "record").glob("source-*.html"):
         if "record/" + stale.name not in machine_paths:
@@ -3483,13 +3542,6 @@ def build(out_dir: Path, title: str, db_path: Path,
                    separators=(",", ":")) + "\n",
         encoding="utf-8")
     written.append("corpus-index.json")
-    archive_official_groups.append((korea_public_rows + korea_additional_rows + korea_auto_official_rows,
-        "korea", "Republic of Korea Policy Briefing", "Republic of Korea Ministry of National Defense"))
-    research_index = build_archive_index(
-        db_path, index, cite_record=record_citation, processing_notes=CITATION_PROCESSING_NOTES,
-        official_groups=archive_official_groups, originals=korea_published_original_rows,
-        machine_records=machine_archive_rows(machine_records),
-        english_publications=korea_english_publication_rows, analyses=public_analyses)
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))

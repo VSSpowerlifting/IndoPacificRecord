@@ -50,6 +50,7 @@
 .deskmap-stats>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-top:1px solid var(--rule);padding:5px 0}
 .deskmap-stats dt{font:12px/1.5 var(--sans);color:var(--ink-2);text-transform:none;letter-spacing:0}
 .deskmap-stats dd{font:600 13px/1.5 var(--sans);margin:0;text-align:right}
+.deskmap-stats dd small{display:block;font:400 11px/1.4 var(--sans);color:var(--ink-2)}
 .deskmap-seat{font:13px/1.55 var(--sans);margin:0;color:var(--ink-2)}
 .deskmap-seat span{font-size:12px}
 .deskmap-enter{margin:5px 0 0;font-size:13px}.deskmap-enter a{min-height:44px;display:inline-flex;align-items:center}

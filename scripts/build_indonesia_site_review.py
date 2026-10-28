@@ -83,6 +83,10 @@ def render_private(out_dir: Path, candidate_path=None):
     env.filters["brief_prose"] = lambda value: Markup(presentation.linked_prose(value))
     page = env.get_template("desk.html").render(
         page="indonesia.html", desk=desk,
+        # The desk card reads the shared projection; this private review
+        # admits nothing, so the desk holds no public records.
+        public_records={"desks": {"indonesia": {"records": 0, "latest": None,
+                                                "latest_label": None, "sources": {}}}},
         indonesia_preview=True, indonesia_preview_candidates=raw["candidates"],
         public_source_links=[], public_source_options=[],
         public_reference_languages=[], display_limits=desk.limits,

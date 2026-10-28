@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_atlas.html" import spine %}
+{% from "_atlas.html" import spine, record_stats %}
 {% from "_relief.html" import flag with context %}
 {% block title %}Desks — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="relief.css"><link rel="stylesheet" href="desk-map.css">{% endblock %}
@@ -12,7 +12,7 @@ its scope is declared. Published IPR editorial research is shown separately from
 collection into the production source archive; corpus statistics still describe
 actual admitted government originals, not editorial articles.</p>
 <p class="meta">{{ desks.declared_count }} declared ·
-{{ desks.collecting_count }} collecting into the record ·
+{{ desks.collecting_count }} collecting into the corpus ·
 {{ desks.not_collecting_count }} not collecting.</p>
 </header>
 {# The map locates each verified institutional seat. At ordinary viewport widths,
@@ -26,10 +26,12 @@ actual admitted government originals, not editorial articles.</p>
    the map, and the map keeps the anchors.
 
    Each plate is still a `section.desk`: the no-fabricated-coverage guards
-   split this page on it to check each desk's block in isolation. A desk that
-   is in shadow evaluation shows "Not admitted" for corpus records and dates;
-   it may still hold originals in isolated private source state. #}
+   split this page on it to check each desk's block in isolation. Every plate,
+   map fill, leader and anchor reads the same shared public-record projection:
+   a desk with public records is drawn as publishing, whatever its collection
+   status, so one blocked source never marks a publishing desk as blocked. #}
 {% set placed = desk_map.desks %}
+{% set pr = public_records.desks %}
 <figure class="deskmap" aria-labelledby="deskmap-key">
   <div class="deskmap-controls" hidden>
     <div class="deskmap-selectors" role="group" aria-label="Select a desk on the map">
@@ -48,18 +50,18 @@ actual admitted government originals, not editorial articles.</p>
 {% include "_desk_map_geo.svg" %}
       {# Regional U.S. Indo-Pacific is a Hawaii seat, never an America polygon. #}
       {% for d in desks if d.slug in placed and d.slug != 'us-indopacific' %}
-      <a class="dm-country {{ 'is-live' if d.is_collecting else 'is-quiet' }}" href="#desk-{{ d.slug }}" tabindex="-1" data-desk="{{ d.slug }}"><use href="#dm-geo-{{ d.slug }}"/></a>
+      <a class="dm-country {{ 'is-live' if pr[d.slug].records else 'is-quiet' }}" href="#desk-{{ d.slug }}" tabindex="-1" data-desk="{{ d.slug }}"><use href="#dm-geo-{{ d.slug }}"/></a>
       {% endfor %}
       </g>
       <g class="dm-leaders">
       {% for d in desks if d.slug in placed %}
-        <polyline class="dm-leader dm-leader--wide{{ ' is-quiet' if not d.is_collecting }}" data-desk="{{ d.slug }}" points="{{ placed[d.slug].wide.points }}"/>
-        <polyline class="dm-leader dm-leader--mid{{ ' is-quiet' if not d.is_collecting }}" data-desk="{{ d.slug }}" points="{{ placed[d.slug].mid.points }}"/>
+        <polyline class="dm-leader dm-leader--wide{{ ' is-quiet' if not pr[d.slug].records }}" data-desk="{{ d.slug }}" points="{{ placed[d.slug].wide.points }}"/>
+        <polyline class="dm-leader dm-leader--mid{{ ' is-quiet' if not pr[d.slug].records }}" data-desk="{{ d.slug }}" points="{{ placed[d.slug].mid.points }}"/>
       {% endfor %}
       </g>
       <text class="dm-ocean" x="{{ desk_map.width * 0.67 }}" y="{{ desk_map.height * 0.60 }}" text-anchor="middle">Pacific Ocean</text>
       {% for d in desks if d.slug in placed %}
-      <a href="#desk-{{ d.slug }}" tabindex="-1" class="dm-anchor{{ ' is-quiet' if not d.is_collecting }}" data-desk="{{ d.slug }}" transform="translate({{ placed[d.slug].x }} {{ placed[d.slug].y }})">
+      <a href="#desk-{{ d.slug }}" tabindex="-1" class="dm-anchor{{ ' is-quiet' if not pr[d.slug].records }}" data-desk="{{ d.slug }}" transform="translate({{ placed[d.slug].x }} {{ placed[d.slug].y }})">
         <circle class="dm-hit" r="50"/>
         <circle class="dm-ring" r="25"/>
         <circle class="dm-dot" r="1"/>
@@ -70,30 +72,14 @@ actual admitted government originals, not editorial articles.</p>
     </div>
     <div class="deskmap-register">
     {% for d in desks if d.slug in placed %}{% set m = placed[d.slug] %}
-    <section class="desk desk--{{ d.status }} deskmap-plate rl-plate {{ 'is-collecting is-live' if d.is_collecting else 'is-blocked' if d.status == 'access_blocked' else 'is-shadow is-quiet' }}" id="desk-{{ d.slug }}" data-desk="{{ d.slug }}"
+    <section class="desk desk--{{ d.status }} deskmap-plate rl-plate {{ 'is-live' if pr[d.slug].records else 'is-quiet' }}" id="desk-{{ d.slug }}" data-desk="{{ d.slug }}"
       style="--wl:{{ m.wide.left }};--wt:{{ m.wide.top }};--wtx:{{ m.wide.tx }};--wty:{{ m.wide.ty }};--ml:{{ m.mid.left }};--mt:{{ m.mid.top }};--mtx:{{ m.mid.tx }};--mty:{{ m.mid.ty }}">
       <span class="deskmap-flag-tab" aria-hidden="true">{{ flag(d.slug) }}</span>
       <span class="deskmap-selected-label" hidden>Selected desk</span>
       <p class="card-meta"><span class="desk-state desk-state--{{ d.status }}"{% if d.slug in editorial_published_desks | default([]) %} aria-label="Research published; source archive: {{ d.status_label }}" title="{{ d.status_label }}"{% endif %}>{{ "Research published" if d.slug in editorial_published_desks | default([]) else d.status_label }}</span></p>
       <h2 class="plain"><a href="{{ d.route }}">{{ d.name }}</a></h2>
       <p class="deskmap-seat">{{ m.seat }} <span>{{ m.coords }}</span></p>
-      <dl class="deskmap-stats">
-        <div><dt>{{ 'Corpus records' if d.status == 'shadow' else 'Records' }}</dt><dd>{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'Not admitted' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
-        <div><dt>{{ 'Last corpus collection' if d.status == 'shadow' else 'Last collection' }}</dt><dd>{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'None') }}</dd></div>
-        {% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}
-        <div data-korea-directory-mnd-metadata="{{ korea_mnd_live_link_count }}"><dt>Live MND link metadata</dt><dd>{{ korea_mnd_live_link_count }}</dd></div>
-        {% endif %}
-        {% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}
-        <div data-philippines-directory-links="{{ ph_official_link_count }}"><dt>Verified official links</dt><dd>{{ ph_official_link_count }}</dd></div>
-        <div data-philippines-directory-machine="{{ ph_machine_explanation_count | default(0) }}"><dt>Machine explanations</dt><dd>{{ ph_machine_explanation_count | default(0) }}</dd></div>
-        {% endif %}
-      </dl>
-      {% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}
-      <p class="meta" data-korea-directory-scope>MND and DAPA links are admitted; see Korea Desk. This is not a full-country article corpus.</p>
-      {% endif %}
-      {% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}
-      <p class="meta" data-philippines-directory-scope>AFP and NSC links and attributed machine explanations are published automatically. Original documents are not in the corpus. See Philippines Desk.</p>
-      {% endif %}
+      {{ record_stats(pr[d.slug]) }}
       <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Enter the {{ d.name }}">Enter desk <span aria-hidden="true">→</span></a></p>
     </section>
     {% endfor %}
@@ -106,10 +92,10 @@ actual admitted government originals, not editorial articles.</p>
       {% for d in desks if d.slug in placed %}<div class="deskmap-context-entry" data-context-desk="{{ d.slug }}" hidden><p class="deskmap-context-title">{{ d.name }}</p><p>{{ d.scope|truncate(190, True) }}</p><p>{{ d.status_explanation|truncate(110, True) }}</p><a href="#desk-scopes">Read full scope and limitations</a> · <a href="{{ d.route }}">Open {{ d.name }}</a></div>{% endfor %}
     </div>
   <figcaption id="deskmap-key" class="deskmap-key">
-    <span class="deskmap-key-item"><span class="deskmap-key-swatch" aria-hidden="true"></span>Collecting into the record</span>
-    <span class="deskmap-key-item"><span class="deskmap-key-swatch is-quiet" aria-hidden="true"></span>Declared, not collecting</span>
+    <span class="deskmap-key-item"><span class="deskmap-key-swatch" aria-hidden="true"></span>Publishing public records</span>
+    <span class="deskmap-key-item"><span class="deskmap-key-swatch is-quiet" aria-hidden="true"></span>Declared, no public records yet</span>
     <span class="deskmap-key-item"><span class="deskmap-key-swatch is-seat" aria-hidden="true"></span>Seat only: regional reference, not a country fill</span>
-    <span class="deskmap-key-note">Each point marks where a desk's publishing institutions are based, not an area of coverage. Statuses come from the desk registry; record counts come from the corpus, and only a collecting desk has one. Boundaries are Natural Earth 1:50m (public domain), generalized, showing de facto lines; no boundary claim is made. Miller projection.</span>
+    <span class="deskmap-key-note">Each point marks where a desk's publishing institutions are based, not an area of coverage. Statuses come from the desk registry. Records follow one rule: one admitted source publication is one record, with its link, original, translation and explanation counted once. Boundaries are Natural Earth 1:50m (public domain), generalized, showing de facto lines; no boundary claim is made. Miller projection.</span>
   </figcaption>
 </figure>
 {# Hover or focus on a plate, its leader, or its country lights all three. One
@@ -124,15 +110,12 @@ actual admitted government originals, not editorial articles.</p>
   <p class="card-meta"><span class="desk-state desk-state--{{ d.status }}" aria-label="{{ 'Research published; source archive: ' ~ d.status_label if d.slug in editorial_published_desks | default([]) else d.status_label }}"{% if d.slug in editorial_published_desks | default([]) %} title="{{ d.status_label }}"{% endif %}>{{ "Research published" if d.slug in editorial_published_desks | default([]) else d.status_label }}</span></p>
   <h2 class="plain"><a href="{{ d.route }}">{{ d.name }}</a></h2>
   <p class="deskmap-seat">Institutional seat not plotted on this map.</p>
-  <dl class="deskmap-stats">
-    <div><dt>{{ 'Corpus records' if d.status == 'shadow' else 'Records' }}</dt><dd>{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'Not admitted' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
-    <div><dt>{{ 'Last corpus collection' if d.status == 'shadow' else 'Last collection' }}</dt><dd>{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'None') }}</dd></div>
-  </dl>
+  {{ record_stats(pr[d.slug]) }}
   <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Enter the {{ d.name }}">Enter desk <span aria-hidden="true">→</span></a></p>
 </section>
 {% endfor %}
 
-{{ spine(desks, snapshot, corpus_total) }}
+{{ spine(desks, snapshot, public_records) }}
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
   <ul><li><a href="#desk-scopes">What each desk reads</a></li>
@@ -144,8 +127,9 @@ actual admitted government originals, not editorial articles.</p>
 <dl class="scope-register">
 {% for d in desks %}
   <div class="scope-entry">
-    <dt><a href="{{ d.route }}">{{ d.name }}</a> <span class="desk-state desk-state--{{ d.status }}" aria-label="{{ 'Research published; source archive: ' ~ d.status_label if d.slug in editorial_published_desks | default([]) else d.status_label }}"{% if d.slug in editorial_published_desks | default([]) %} title="{{ d.status_label }}"{% endif %}>{{ "Research published" if d.slug in editorial_published_desks | default([]) else d.status_label }}</span></dt>
-    <dd><p>{{ d.scope }}</p><p class="blocking">{{ d.status_explanation }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}">MND: {{ korea_mnd_live_link_count }} verified links. See Korea Desk for DAPA admissions and reuse limits.</p>{% endif %}{% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}<p class="meta" data-philippines-directory-scope-count="{{ ph_official_link_count }}">{{ ph_official_link_count }} verified official links and {{ ph_machine_explanation_count | default(0) }} machine explanations. These are separate from corpus records, which stay at none.</p>{% endif %}{% if d.record_count %}<p class="card-foot"><a href="archive.html?desk={{ d.slug }}">Browse its records</a></p>{% endif %}</dd>
+    {# aria-label only where it differs from the visible state text. #}
+    <dt><a href="{{ d.route }}">{{ d.name }}</a> <span class="desk-state desk-state--{{ d.status }}"{% if d.slug in editorial_published_desks | default([]) %} aria-label="Research published; source archive: {{ d.status_label }}" title="{{ d.status_label }}"{% endif %}>{{ "Research published" if d.slug in editorial_published_desks | default([]) else d.status_label }}</span></dt>
+    <dd><p>{{ d.scope }}</p><p class="blocking">{{ d.status_explanation }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}" data-korea-directory-mnd-metadata="{{ korea_mnd_live_link_count }}">Live MND link metadata: {{ korea_mnd_live_link_count }} verified links. DAPA and reuse limits: see Korea Desk. This is not a full-country article corpus.</p>{% endif %}{% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}<p class="meta" data-philippines-directory-scope-count="{{ ph_official_link_count }}">{{ ph_official_link_count }} verified official links; {{ ph_machine_explanation_count | default(0) }} carry a machine explanation inside the same record. Originals are not in the corpus.</p>{% endif %}{% if pr[d.slug].records %}<p class="card-foot"><a href="archive.html?scope=records&amp;desk={{ d.slug }}">Browse its {{ pr[d.slug].records|count }} records</a></p>{% endif %}</dd>
   </div>
 {% endfor %}
 </dl>
@@ -153,8 +137,8 @@ actual admitted government originals, not editorial articles.</p>
 <h2 id="desk-comparison">Every desk, side by side</h2>
 <div class="table-scroll">
 <table class="stacking desk-table">
-  <caption>The same {{ desks.declared_count }} desks as the map above. Only a
-  collecting desk has a record count.</caption>
+  <caption>The same {{ desks.declared_count }} desks as the map above. Records are
+  public records, counted once per source publication; corpus collection is separate.</caption>
   <thead>
     <tr><th scope="col">Desk</th><th scope="col">Status</th>
         <th scope="col" class="num">Configured</th><th scope="col" class="num">Enabled</th>
@@ -167,7 +151,7 @@ actual admitted government originals, not editorial articles.</p>
       <td data-label="Status"><span class="desk-state desk-state--{{ d.status }}" aria-label="{{ 'Research published; source archive: ' ~ d.status_label if d.slug in editorial_published_desks | default([]) else d.status_label }}"{% if d.slug in editorial_published_desks | default([]) %} title="{{ d.status_label }}"{% endif %}>{{ "Research published" if d.slug in editorial_published_desks | default([]) else d.status_label }}</span></td>
       <td data-label="Configured" class="num">{{ d.configured_source_count }}</td>
       <td data-label="Enabled" class="num">{{ d.enabled_source_count }}</td>
-      <td data-label="Records" class="num">{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}<span class="meta">none — see status</span>{% endif %}</td>
+      <td data-label="Records" class="num">{{ pr[d.slug].records|count }}</td>
       <td data-label="Last corpus collection">{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'None') }}</td>
     </tr>
   {% endfor %}
@@ -182,11 +166,11 @@ actual admitted government originals, not editorial articles.</p>
   <thead><tr><th scope="col">Status</th><th scope="col">Meaning</th></tr></thead>
   <tbody>
     <tr><td data-label="Status"><span class="desk-state desk-state--live">Live — collecting</span></td>
-        <td data-label="Meaning">Sources are enabled and a scheduled run collects into the record. Only these desks have record counts.</td></tr>
+        <td data-label="Meaning">Sources are enabled and a scheduled run collects admitted originals into the corpus.</td></tr>
     <tr><td data-label="Status"><span class="desk-state desk-state--shadow">Shadow evaluation — not in corpus</span></td>
-        <td data-label="Meaning">Source material is evaluated in isolated shadow state, not admitted to the public IPR corpus or its record counts. A public desk page may separately provide scope information or approved official-source links; those are not archived IPR records.</td></tr>
+        <td data-label="Meaning">Source material is evaluated in isolated shadow state, not admitted to the public IPR corpus. Its approved official-source links may still be public records that point to the official source, without original text.</td></tr>
     <tr><td data-label="Status"><span class="desk-state desk-state--access_blocked">Access blocked — not collecting</span></td>
-        <td data-label="Meaning">Researched and reachable in principle, but the institution's discovery surface is not available to an honestly identified collector. Nothing has been collected.</td></tr>
+        <td data-label="Meaning">Researched and reachable in principle, but the institution's discovery surface is not available to an honestly identified collector. Nothing is collected from it; the desk's other admitted sources may still publish records.</td></tr>
     <tr><td data-label="Status"><span class="desk-state desk-state--research">Researched — not yet collecting</span></td>
         <td data-label="Meaning">The source universe is documented and no source is enabled. Nothing is collected; where a collector has been built, it has not been launched.</td></tr>
     <tr><td data-label="Status"><span class="desk-state desk-state--planned">Planned — nothing collected</span></td>
@@ -196,8 +180,7 @@ actual admitted government originals, not editorial articles.</p>
   </tbody>
 </table>
 </div>
-<p class="meta">Only collecting desks show public-corpus record totals. A shadow desk\'s "Not admitted"
-means its independently preserved material is excluded from those totals and dates; it does not
-mean no private originals were collected.</p>
+<p class="meta">A shadow desk's "Not admitted" corpus collection means private originals, candidates and held
+versions stay out of the corpus and out of every public count; it does not mean none were collected.</p>
 {% endblock %}
 {% block scripts %}<script src="desk-map.js" defer></script>{% endblock %}

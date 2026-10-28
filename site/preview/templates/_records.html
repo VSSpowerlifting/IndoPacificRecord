@@ -164,3 +164,23 @@
 {% endfor %}
 </div>
 {%- endmacro %}
+
+{# A machine explanation shown inside the official-source record it explains.
+   It is a component of that record, never a second record, so desk pages put
+   it in the record's list item instead of a separate list. The regional
+   readback gate allows one link per official-source row (the official URL),
+   so there the details link sits in `explanation_details` under the list. #}
+{% macro explanation_part(rec, details_link=true) -%}
+<div class="record-part" data-machine-explanation-id="{{ rec.source_identity }}">
+  <p><span class="evidence evidence--model">Machine explanation</span> {{ rec.summary }}</p>
+  <p class="meta">Not human-reviewed · {% if rec.model_flagged %}Model-flagged for closer reading: {{ rec.flag_reason }}{% else %}Not model-flagged{% endif %}{% if rec.categories %} · Topics (machine-assigned): {{ rec.categories | map('replace', '_', ' ') | map('title') | join(', ') }}{% endif %}{% if details_link %} · <a href="{{ rec.record_path }}">Record and model details</a>{% else %} · Record and model details linked below the list{% endif %}</p>
+</div>
+{%- endmacro %}
+
+{% macro explanation_details(refs, explained) -%}
+{% set shown = refs | selectattr('source_identity', 'in', explained) | list %}
+{% if shown %}
+<p class="meta">Record and model details for each machine explanation:
+  {% for ref in shown %}<a href="{{ explained[ref.source_identity].record_path }}">{{ ref.label }}, {{ ref.publisher_posted_date }}</a>{{ '' if loop.last else ' · ' }}{% endfor %}</p>
+{% endif %}
+{%- endmacro %}

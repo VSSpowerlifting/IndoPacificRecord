@@ -16,8 +16,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from bs4 import BeautifulSoup
+
 from core.daily_machine_records import load as load_machine_records
 from core.desk_registry import RegistryError, load_registry
+from core.domain import DESK_STATUS_LABELS
 from core.regional_official_link_render import load_admitted_links
 from scripts.verify_regional_source_index_readback import validate_page
 from tests.test_desk_rollout_contract import REPO_ROOT, TRACKED_DB, DeskCase
@@ -56,9 +59,19 @@ class PhilippinesRegistry(unittest.TestCase):
         self.assertNotIn("Live", desk.status_label)
 
     def test_other_desks_keep_their_standard_labels(self):
-        japan = load_registry().get("japan")
-        self.assertEqual(japan.status_label, "Shadow evaluation — not in corpus")
-        self.assertIsNone(japan.public_status_label)
+        # Desks that publish official links say so in reader wording; the
+        # gated status stays put. Desks without a label keep the standard one.
+        registry = load_registry()
+        for slug in ("japan", "indonesia", "us-indopacific"):
+            desk = registry.get(slug)
+            self.assertTrue(desk.status_label.startswith("Official links"))
+            self.assertFalse(desk.is_collecting)
+        self.assertEqual(registry.get("japan").status, "shadow")
+        self.assertEqual(registry.get("us-indopacific").status, "access_blocked")
+        self.assertIn("blocked", registry.get("us-indopacific").status_label)
+        for desk in registry.entries:
+            if desk.public_status_label is None:
+                self.assertEqual(desk.status_label, DESK_STATUS_LABELS[desk.status])
 
     def test_custom_label_is_refused_on_a_collecting_desk(self):
         raw = json.loads((REPO_ROOT / "desks" / "registry.json").read_text("utf-8"))
@@ -120,9 +133,18 @@ class PhilippinesPublicPages(DeskCase):
                 self.assertIn("Machine explanation", page)
         self.assertIn("not human-reviewed", page)
         self.assertEqual(page.count("data-machine-explanation-id="), len(machine))
-        # A link whose machine explanation exists says so; the row keeps exactly
-        # one outbound anchor so the readback gate still parses it.
-        self.assertEqual(page.count("Machine explanation published above"), len(machine))
+        # The explanation sits inside its link's row, so the pair reads as one
+        # record. The row keeps exactly one outbound anchor so the readback
+        # gate still parses it; the details link sits under the list.
+        rows = {li.get("data-regional-official-source-id"): li
+                for li in BeautifulSoup(page, "html.parser").select(
+                    "li[data-regional-official-source-id]")}
+        for rec in machine:
+            row = rows[rec["source_identity"]]
+            self.assertIsNotNone(row.select_one(
+                '[data-machine-explanation-id="%s"]' % rec["source_identity"]))
+            self.assertEqual(len(row.find_all("a")), 1)
+        self.assertEqual(page.count("Record and model details linked below the list"), len(machine))
 
     def test_no_obsolete_or_contradictory_language(self):
         page = self.page("philippines.html")
@@ -147,11 +169,15 @@ class PhilippinesPublicPages(DeskCase):
                           desks, re.S).group(0)
         self.assertIn("Official links and machine explanations — not in corpus", plate)
         self.assertNotIn("Shadow evaluation", plate)
-        self.assertIn("<dt>Verified official links</dt><dd>%d</dd>" % len(links), plate)
-        self.assertIn("<dt>Machine explanations</dt><dd>%d</dd>" % len(machine), plate)
-        self.assertIn("<dt>Corpus records</dt><dd>Not admitted</dd>", plate)
+        # One record per admitted link: an explanation is counted inside its
+        # link's record, never added to it, and nothing claims corpus records.
+        self.assertTrue(machine and len(machine) <= len(links))
+        self.assertIn("<dt>Records</dt><dd>%d</dd>" % len(links), plate)
+        self.assertNotIn("<dt>Corpus records</dt>", plate)
+        self.assertNotIn("<dd>%d</dd>" % (len(links) + len(machine)), plate)
         scope = desks.split('id="desk-scopes"', 1)[1]
         self.assertIn('data-philippines-directory-scope-count="%d"' % len(links), scope)
+        self.assertIn("Originals are not in the corpus", scope)
         for other in ("china", "singapore", "japan", "korea", "vietnam", "us-indopacific"):
             other_plate = re.search(r'<section class="desk[^"]*" (?:id="desk-%s"|data-desk="%s")' % (other, other), desks)
             if other_plate:

@@ -16,6 +16,16 @@ from migrations.versions import m0013_vietnam_regional_official_links as migrati
 from scripts.verify_regional_source_index_readback import validate_page
 from tests import test_vietnam_ministry_remote_review as fixtures
 
+# The regional fragment of desk.html calls the shared record macros, which the
+# full template imports at its top; a fragment render imports them the same way.
+MACROS = '{% from "_records.html" import explanation_part, explanation_details %}'
+
+
+def desk_fragment_env():
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    return Environment(loader=FileSystemLoader(str(Path(__file__).resolve().parents[1] / "site/preview/templates")),
+                       autoescape=select_autoescape(default_for_string=True))
+
 MPS, ENERGY, INDUSTRY = fixtures.MPS, fixtures.ENERGY, fixtures.INDUSTRY
 
 KEY = b"fictional-test-only-owner-key-0000000000"
@@ -103,14 +113,13 @@ class VietnamAdmission(unittest.TestCase):
         public = read_live_links(self.cx, "vietnam")
         self.assertEqual(len(public), 2)
         # Exercise the shared independent HTML readback with this desk's rows.
-        from jinja2 import Environment, select_autoescape
         from types import SimpleNamespace
-        env = Environment(autoescape=select_autoescape(default_for_string=True))
+        env = desk_fragment_env()
         source = Path("site/preview/templates/desk.html").read_text()
         start = source.index("{% if desk.slug in ('philippines', 'indonesia', 'vietnam')", source.index("{# Regional official-link index:"))
         end = source.index("{# US: first-party publisher URLs", start)
-        rendered = env.from_string(source[start:end]).render(
-            desk=SimpleNamespace(slug="vietnam"), regional_official_links=public)
+        rendered = env.from_string(MACROS + source[start:end]).render(
+            desk=SimpleNamespace(slug="vietnam"), explained={}, regional_official_links=public)
         self.assertEqual(validate_page(rendered, public), 2)
         self.assertNotIn("Indonesian Ministry", rendered)
         self.assertNotIn("text_original", rendered)

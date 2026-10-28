@@ -4,6 +4,11 @@
 .stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: .45rem 0; border-bottom: 1px solid var(--rule-soft); list-style: none; max-width: none; }
 .stat-row dt { margin: 0; color: var(--ink-2); font-size: .9375rem; }
 .stat-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; }
+.deskmap-stats { margin: .4rem 0 0; padding: 0; }
+.deskmap-stats div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 .75rem; padding: .22rem 0; border-top: 1px solid var(--rule-soft); }
+.deskmap-stats dt { margin: 0; font-size: .6875rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.deskmap-stats dd { font-size: .8125rem; font-weight: 600; margin-left: auto; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
+.deskmap-stats dd small { display: block; font-size: .6875rem; font-weight: 400; color: var(--muted); white-space: normal; }
 .blockers dt { margin-top: .9rem; }
 .blockers dd { margin: .25rem 0 0; color: var(--ink-2); }
 .status-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .2rem 1rem; align-items: start; margin: 1.2rem 0 1.6rem; padding: 1rem 1.15rem; border: 1px solid var(--rule); border-left: 4px solid var(--ink); background: var(--surface); }
