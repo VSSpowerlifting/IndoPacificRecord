@@ -4,6 +4,33 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-27 — Owner: Kemhan Berita shared Daily release authorization
+
+Benjamin Yang approved the narrow standing source-use proposal in
+`docs/engineering/INDONESIA_SHARED_DAILY_2026-10-27.md` for `id_kemhan_news`:
+verified first-party text may undergo private commercial API processing and
+private evidence translation to produce independently worded, Kemhan-attributed
+English machine explanations of at most 90 words. He accepted the documented
+API handling and authorized unattended publication of eligible QA-passing
+explanations with source links, dates, version bindings and machine disclosures.
+
+Public originals, full translations, quotations, media, third-party
+republications, disputed versions, Yonif TP 880 and human Briefs remain excluded.
+The existing $0.35 estimated reservation ceiling is authorized per invocation,
+with one record and at most two calls, five failed attempts then pause, no
+archive-wide backfill and no retry-budget reset.
+
+The owner explicitly authorized recording this decision, changing only Kemhan's
+policy switches, merging public #891 and essential private companion #26 after
+required final-head checks, and controlled activation with existing credentials
+and workflows. The first live run is limited to one record; inspect Indonesian
+evidence, private translations, English explanation, attribution, dates,
+quantities, negation and action status before publication. Failed gates and
+defective output must not be overridden. Verify the actual deployed shared
+Daily surfaces and source/version bindings. Report configured follow-on
+automation separately from an observed automatic run; no arbitrary waiting
+period is required. This decision records authority, not a claimed live result.
+
 ## 2026-10-27 — Owner: Japan MOD news PDF-linked metadata authorization
 
 Benjamin Yang approved standing, unattended publication of verified Japan

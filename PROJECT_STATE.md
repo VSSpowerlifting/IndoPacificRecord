@@ -267,56 +267,47 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
-**Indonesia delivery-budget repair (27 October 2026, review candidate):**
-The 49 admitted Kemhan links are retained. The 15-link addition after #877
-raised Indonesia's HTML+CSS from 119,943 to 127,903 bytes. An Indonesia-only
-3,672-byte subset replaces the 28,412-byte supporting stylesheet, reducing
-delivery to 103,171 bytes under the unchanged 120,000-byte cap. HTML changes
-only its stylesheet URL; shared CSS, other generated pages, source metadata,
-approved Dossiers content and approval digests are unchanged. The production
-render, all-route budget gate and validator pass (10 governed warnings).
-Final-head CI evidence belongs in the maintenance PR; no merge or deployment.
+**Indonesia Kemhan shared Daily (27 October 2026, owner-authorized release candidate):**
+Public #877 merged as `ebed6190c09992939e0a4639c7f1cf18bac985c3`; private
+#17 merged as `036ca8fb5b4f80784d71773382c6114d64c10726`. The metadata bridge
+variables are true in both repositories, production has 49 admitted links,
+and public metadata workflow `40443002910` succeeded on 27 October. Delivery
+repair #889 is merged (`eeb71ff0ad`), retaining the 120,000-byte page cap.
+Private collector `40423685946` succeeded; immutable archive
+`d9ad1ce4421ea274cff3c2d7dda797dac6d7a6e8` validates 50 records, with Yonif TP
+880 still held. This supersedes the stale unmerged/disabled/zero-row status.
 
-**Indonesia Kemhan bridge steady state (26 October 2026):** PR #877 incorporates
-main `1c204352da`, including its existing Vietnam baseline assertion repairs.
-The checked-out main database has 34 Kemhan rows; the 25 October rehearsal at
-private tip `d8859b5` had 49 eligible links (15 newer). Private scheduled collector
-run `40406030668` succeeded. Private PR #17 remains open at `5b45d521c3`;
-`KEMHAN_BRIDGE_KEY` and `KEMHAN_METADATA_BRIDGE_ENABLED` remain absent in both
-repositories (names/configuration checked read-only; credentials not read).
-The frozen baseline alone may step aside after a later release, only when its
-approved rows are fully satisfied with original provenance. Regression coverage
-includes initial admission, later signed additions, byte-identical retries,
-missing/altered frozen rows, omitted/changed released private rows, forged
-authentication, Yonif exclusion, rollback and concurrent writers. Exact-head CI
-evidence belongs in #877. No live admission, activation or publication was run.
-Activation order and prior real-data rehearsal:
-`docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
+The review candidate extends the existing private shared Daily intake,
+Analyzer, retry/cost controls, signed machine-output table, record renderer,
+Archive/search and Indonesia page. It uses an explicit Indonesian profile,
+privately translates cited passages, and publishes only independently worded,
+attributed English machine explanations after source/version/rights/QA gates.
+Originals and translations remain private. All three Kemhan model/output
+policy switches are enabled by the owner's 27 October release authorization;
+the essential private companion adds a separate
+absent/disabled `KEMHAN_DAILY_ENABLED` gate and reuses the existing bridge key.
+No credentials, variables, production DB/output or schedules were changed.
 
-**Indonesia Desk official-link lane (18 October 2026, release candidate):**
-Production `pla_watch.db` has migration 0010 but **zero** Kemhan link rows.
-This branch adds a trusted validator (pin ancestry, re-hashed captures,
-ledger↔commit reconciliation, every scheduled claim authenticated against
-GitHub, no minimum day count), a scratch-copy/atomic admission CLI and a
-Korea-pattern page-only production workflow, and fixes the shared reader's
-180-character identity cap that HOLDs Kemhan snapshots after Oct 15. Receipt
-v2 states the real review basis: the Oct 15 review covers the frozen cohort,
-and the owner's Oct 18 standing authorization (DECISION_LOG) admits verified
-post-pin Berita link metadata without claiming review. Yonif TP 880 and any
-anomaly (revised/missing released record, date/URL conflict, unverifiable
-capture) stay held. Real rehearsal on a DB copy at private tip `69b1f9b`:
-35 admitted (5 without record-specific review), Yonif held, idempotent
-replay. Post-cutover private
-records reach the public side only through a held HMAC handoff (companion
-private PR) needing owner credentials. Translation, analysis, editorial
-intake provenance and headline display remain outstanding; the desk is not
-complete end to end. First genuine private `schedule` run (39158713099,
-18 Oct): collection and preservation passed; the run failed at the
-held-candidate rebuild on main's 180-character cap, which this lane fixes.
-Details: `docs/engineering/INDONESIA_DESK_COMPLETION_2026-10-18.md`.
-PR #652 cross-check:
-`research/indonesia/MTC17_PRESERVED_ORIGINAL_CROSSCHECK_2026-10-18.md`.
-No production DB, output, Pages or schedule change made here.
+A real-capture replay on a disposable DB bound 49 public versions, admitted
+one **mocked-model** explanation, admitted zero on retry, preserved other desks
+and production bytes, and reconciled the Indonesia desk, record and shared
+Archive/search index through `site/render.py`. It is not live model/translation
+quality or public-release evidence. Focused tests include negation, planned
+versus completed events, source attribution, rights, version/anomaly holds,
+bounded retries/spend and existing Philippines behavior. Exact-head CI,
+browser/delivery and validator evidence belong in the review PR. Two stale
+Japan navigation assertions reproduced on unchanged base `11df894846`; the
+small test-only correction separates its historical directory from its already
+admitted metadata. Japan content/policy/rendering is unchanged, all seven
+navigation tests pass, and required full CI is rerun at the final head.
+
+**Remaining release checks:** the owner approved the narrow first-party
+Kemhan private-API/factual-English-output grant and $0.35 estimated per run
+(one record, two calls, five-failure pause), including merge, activation and
+controlled first-release authority. See `DECISION_LOG.md` and
+`docs/engineering/INDONESIA_SHARED_DAILY_2026-10-27.md`. Final-head CI, merges,
+first real model quality inspection and source-to-live verification remain;
+the complete Daily desk is not yet claimed operational.
 
 **Korea unified Daily (20 October 2026; activation PR open, processing off):**
 Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of

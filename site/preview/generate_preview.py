@@ -3010,7 +3010,7 @@ def build(out_dir: Path, title: str, db_path: Path,
             from core.regional_official_link_render import load_admitted_links as ph_links
             from core.daily_machine_records import load as ph_machine
             desk_index_lanes["ph_official_link_count"] = len(ph_links(db_path, "philippines"))
-            desk_index_lanes["ph_machine_explanation_count"] = len(ph_machine(db_path))
+            desk_index_lanes["ph_machine_explanation_count"] = sum(r["desk_id"] == "philippines" for r in ph_machine(db_path))
         page_html = env.get_template(template).render(
             page=target, **ctx, **desk_index_lanes)
         if target == "desks.html":
@@ -3263,7 +3263,9 @@ def build(out_dir: Path, title: str, db_path: Path,
         # Only already-admitted database metadata, never archived bodies.
         from core.regional_official_link_render import load_admitted_links
         from core.daily_machine_records import load as load_daily_machine_records
-        daily_machine_records = load_daily_machine_records(db_path) if desk.slug == "philippines" else []
+        daily_machine_records = ([r for r in load_daily_machine_records(db_path)
+                                  if r["desk_id"] == desk.slug]
+                                 if desk.slug in ("philippines", "indonesia") else [])
         # Reuse the admitted corpus and its ordinary record rows. Private
         # captures and bibliographic references cannot enter this list.
         vietnam_records = sorted((r for r in data["corpus"]

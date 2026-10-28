@@ -206,6 +206,18 @@ PHILIPPINES_PROFILE = ScreeningProfile(
     analysis_prompt_version="ph-analysis-v13", categories=CATEGORIES,
 )
 
+from analysis import indonesia_prompts as id_prompts
+
+INDONESIA_PROFILE = ScreeningProfile(
+    desk_id="indonesia", keyword_prefilter=False, daily_queue=False,
+    build_messages=id_prompts.relevance_messages,
+    prompt_version="id-relevance-v1", build_system_prompt=id_prompts.system_prompt,
+    build_analysis_messages=id_prompts.analysis_messages,
+    build_analysis_system_prompt=id_prompts.system_prompt,
+    analysis_prompt_version="id-analysis-v1", source_language="id",
+    source_family="id_kemhan_news", categories=id_prompts.CATEGORIES,
+)
+
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
@@ -213,10 +225,12 @@ _PROFILES: Dict[str, ScreeningProfile] = {
     # reach the Vietnam bridge by source family, never the shared daily queue.
     "korea": KOREA_PROFILE,
     "philippines": PHILIPPINES_PROFILE,
+    "indonesia": INDONESIA_PROFILE,
 }
 
 # Source-level profiles for sources without a desk manifest.
 _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
+_SOURCE_PROFILES["id_kemhan_news"] = INDONESIA_PROFILE
 # Government Office is explicitly bibliographic-only. Neither the common
 # public queue nor the ministry bridge may turn a subject line into analysis.
 _SOURCE_PROFILES["vn_vpcp_official_documents_vi"] = ScreeningProfile(

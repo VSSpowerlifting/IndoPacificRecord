@@ -556,8 +556,12 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # moves with a ruling. VPCP_METADATA_ONLY carries the dispatch input
         # that confines a Government Office metadata run to the renderer
         # (DECISION_LOG 2026-10-23); it never reaches a model or another source.
+        # Kemhan reuses its existing source-specific bridge secret under the
+        # shared Daily MAC domain; this mapping does not enable the source.
+        self.assertIn("DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}", pipeline)
         self.assertEqual(sorted(env_keys),
                          ["ANTHROPIC_API_KEY", "CHINA_TITLE_TRANSLATION_LIMIT",
+                          "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "IPR_DAILY_INTAKE_DIR", "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
