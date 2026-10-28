@@ -349,3 +349,7 @@ and “Meanwhile”; an institution embedded after an introductory word cannot
 hide an alias. Substantive institutional modifiers remain part of the literal
 comparison. Regressions cover exact local names after introductions, unsupported
 prefixed aliases and a changed institutional modifier.
+
+Known institutional stems are detected even when lowercased; detection does not
+normalize their spelling or grant an alias. Regressions reject lowercase
+abbreviations and expansions in both fields against the unchanged local forms.

@@ -36,6 +36,13 @@ def institutional_forms(text):
             r"[A-Za-z][A-Za-z'-]*(?:[ \t]+[A-Z][A-Za-z'-]*)*", text):
         if match[0][0].islower():
             forms.add(match[0])
+    # Detect lowercased known institutional stems too; detection must not
+    # become case-insensitive permission to substitute a source spelling.
+    for match in re.finditer(
+            r"\b(?i:Kemen\w*|Kemhan|Puskeshan|Kapuskeshan|Pusat|Badan|Lembaga|Direktorat|Universitas|Institut|Dewan)\b"
+            r"(?:[ \t]+[A-Z][A-Za-z'-]*)*", text):
+        if match[0][0].islower():
+            forms.add(match[0])
     return sorted(forms)
 
 

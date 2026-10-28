@@ -307,7 +307,9 @@ class IndonesiaSharedDaily(unittest.TestCase):
 
     def test_institution_acronyms_expansions_and_translations_are_not_inferred(self):
         for source,alias in (('Kementerian Contoh','Kemencontoh'),
+                             ('Kementerian Contoh','kemencontoh'),
                              ('Kemencontoh','Kementerian Contoh'),
+                             ('Kemencontoh','kementerian contoh'),
                              ('Kementerian Contoh','Ministry of Contoh'),
                              ('Kementerian Contoh','ministry of contoh')):
             for field in ('sentence','evidence_translation'):
