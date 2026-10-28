@@ -281,7 +281,7 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
-**Indonesia Kemhan shared Daily (28 October 2026, controlled v2 held):**
+**Indonesia Kemhan shared Daily (28 October 2026, office/credentials repair):**
 Public repair #893 merged at `e31977934fcf62ce32790aa37c352a920a990d8a`,
 reviewed head `6b93d6026ec4c63ec69ef0380c13f022a4ded588`. All five final-head
 workflows passed; required CI `40711167763` passed 8,112 tests (15 skips),
@@ -306,10 +306,24 @@ changed. Source pin remains `97668de31f0c01e8d000ad71518c16caac18f670`.
 No old reading was promoted; no explanation was signed or published.
 `KEMHAN_DAILY_ENABLED` remains absent/disabled: neither follow-on configuration
 nor an automatic Kemhan machine-output run is claimed. No publication/deploy
-workflow was dispatched. Stop at this QA blocker; a separately authorized repair
-must address office-title handling and overlong copied credential sequences
-before another bounded live attempt. Private evidence and claim ledger:
-`~/.codex/private-evidence/kemhan-controlled-v2-20261028/release-checkpoint.json`.
+workflow was dispatched. The authorized offline repair introduces prompt/QA
+v3: Head/Kepala requires the same cited institution and complete named holder;
+unknown role forms and changed acting/deputy status remain held. Generation
+uses minimal actor identity and omits unnecessary public credentials; the
+12-word copying rule is unchanged, including for names. Private replay also
+exposed a previously hidden cross-passage office-abbreviation expansion; its
+existing gate stays intact and generation now keeps local abbreviations literal.
+
+All applicable checks were evaluated on the unchanged retained reading. Under
+v3 it still fails copying, private-name locality and old-prompt provenance.
+A separately labeled edited diagnostic (concise public actor plus literal local
+private office abbreviation) passes offline QA; it is not a model result or a
+recovered publication. Focused Indonesia/Philippines/date checks: 93 passed.
+Required exact-head CI belongs to the repair PR. No paid calls, queue changes,
+merge, activation or publication in this phase. Private receipts:
+`~/.codex/private-evidence/kemhan-controlled-v2-20261028/office-replay-{before,after}.json`.
+Next: review the repair PR, then a separately authorized genuine bounded reading
+within the unchanged remaining attempts before any release.
 
 **Korea unified Daily (20 October 2026; activation PR open, processing off):**
 Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of

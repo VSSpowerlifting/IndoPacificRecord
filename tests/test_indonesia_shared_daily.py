@@ -255,7 +255,7 @@ class IndonesiaSharedDaily(unittest.TestCase):
         with self.assertRaisesRegex(d.IntakeHold,'daily_summary_invalid'):d.quality_check(r,reply)
 
     def test_prompt_revision_keeps_source_version_attempts_and_exhaustion(self):
-        for previous_failures in (1,2):
+        for previous_failures in (1,2,3):
             state=self.process(a=analyzer({}));key=next(iter(state))
             state[key]['attempts']=previous_failures
             a=analyzer({})
@@ -266,6 +266,71 @@ class IndonesiaSharedDaily(unittest.TestCase):
             state[key].update(status=status,attempts=5,reason='existing_exception')
             a=analyzer();out=self.process(state=state,a=a);a.analyze_record.assert_not_called()
             self.assertEqual(out[key],state[key])
+
+    def office_reading(self):
+        # Entirely synthetic names, institution and credential suffixes.
+        r,reply=record(),reading()
+        first=('Kepala RS Contoh, Brigjen TNI dr. Nama Uji, M.Kes., '
+               'Sp. SYN., Subsp.A.B.(C), menyampaikan kesiapan rumah sakit.')
+        r['body']=first+'\n\n'+reply['facts'][1]['evidence']
+        reply['facts'][0]=dict(evidence=first,
+            sentence='Kemhan reports that Head of RS Contoh, Nama Uji, described hospital readiness.',
+            evidence_translation=('The Head of RS Contoh, Brigjen TNI dr. Nama Uji, M.Kes., '
+                'Sp. SYN., Subsp.A.B.(C), described hospital readiness.'))
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_head_translation_binds_institution_and_full_named_holder(self):
+        r,reply=self.office_reading()
+        self.assertEqual(len(d.quality_check(r,reply)),64)
+        for head in ('Head','head'):
+            for old,new in (('RS Contoh','RS Lain'),('Nama Uji','Tokoh Lain'),
+                            ('Nama Uji','Uji'),('Head','Director'),('Head','deputy Head')):
+                bad=copy.deepcopy(reply)
+                bad['facts'][0]['sentence']=bad['facts'][0]['sentence'].replace(old,new).replace('Head',head)
+                # All these names and offices occur in the same passage, but
+                # belonging to a different holder cannot support this role.
+                extra=' Kepala RS Lain, Tokoh Lain, menyampaikan kesiapan.'
+                rr=dict(r,body=r['body'].replace(reply['facts'][0]['evidence'],reply['facts'][0]['evidence']+extra))
+                bad['facts'][0]['evidence']+=extra
+                bad['facts'][0]['evidence_translation']+=' Head of RS Lain, Tokoh Lain, described readiness.'
+                bad['summary_english']=' '.join(f['sentence'] for f in bad['facts'])
+                with self.subTest(head=head,change=new),self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+                    d.quality_check(rr,bad)
+
+    def test_head_not_whitelisted_or_supported_by_another_passage(self):
+        r,reply=self.office_reading();first=reply['facts'][0]['evidence']
+        for evidence in ('SYNTHETIC kegiatan rumah sakit bersama Nama Uji dan RS Contoh.',
+                         first.replace('Kepala','Direktur'),first.replace('Kepala','Plt. Kepala')):
+            bad=copy.deepcopy(reply);rr=dict(r,body=evidence+'\n\n'+r['body'])
+            bad['facts'][0]['evidence']=evidence
+            bad['facts'][0]['evidence_translation']='A hospital activity involves Nama Uji and RS Contoh.'
+            with self.subTest(evidence=evidence),self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+                d.quality_check(rr,bad)
+
+    def test_copied_credentials_still_fail_after_office_translation_passes(self):
+        r,reply=self.office_reading()
+        reply['facts'][0]['sentence']=(
+            'Kemhan reports that Head of RS Contoh, Brigjen TNI dr. Nama Uji, '
+            'M.Kes., Sp. SYN., Subsp.A.B.(C), described hospital readiness.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_original_excerpt_prohibited'):
+            d.quality_check(r,reply)
+        # Private translation retains the full credential chain; public output
+        # omits it while retaining the complete holder, institution and role.
+        _,concise=self.office_reading()
+        self.assertEqual(len(d.quality_check(r,concise)),64)
+
+    def test_private_office_abbreviation_cannot_borrow_an_expansion(self):
+        r,reply=self.office_reading()
+        first=reply['facts'][0]['evidence'].replace('Kepala RS Contoh','Kapuscontoh Kemhan')
+        r['body']=first+'\n\n'+r['body']
+        reply['facts'][0].update(evidence=first,
+            sentence='Kemhan reports that Kapuscontoh Kemhan, Nama Uji, described hospital readiness.',
+            evidence_translation='The Head of RS Contoh, Nama Uji, described hospital readiness.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_private_translation_name_unsupported'):
+            d.quality_check(r,reply)
 
     def test_unapproved_rights_never_construct_model(self):
         factory = Mock(side_effect=AssertionError('unauthorized model'))
@@ -438,6 +503,8 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertEqual(d.allowed_prompt_versions(FAMILY),(VERSION,))
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v1'),FAMILY,policy()['sources'][FAMILY])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+            d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v2'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='ph-relevance-v1+ph-analysis-v13'),FAMILY,policy()['sources'][FAMILY])
 
