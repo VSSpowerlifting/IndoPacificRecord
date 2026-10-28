@@ -157,6 +157,9 @@ class VietnamWatchdogTests(unittest.TestCase):
                     "workflows/vietnam_shadow_logical_slot_watchdog.yml"
                     ).read_text(encoding="utf-8")
         self.assertIn("7 12 * * *", workflow)
+        self.assertNotIn("  schedule:", workflow)
+        self.assertIn("if: ${{ false }}", workflow)
+        self.assertIn("ipr-source-evidence-private", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("shadow/vietnam-mps-foreign-affairs", workflow)
         self.assertIn("scripts.watch_vietnam_shadow_slots", workflow)

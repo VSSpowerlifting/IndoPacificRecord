@@ -82,6 +82,36 @@ def preserve(repo,metadata,data,*,collector_commit,source_run,workflow_sha,obser
     return 'new' if previous is None else 'revised'
 
 
+def completed_collection(receipt, *, api, run, attempt, commit):
+    """A red sibling cannot invalidate independently persisted VPCP custody.
+
+    Legacy green runs retain their established authentication. A failed overall
+    run additionally needs the new pinned cycle receipt and successful VPCP
+    custody/readback step; failed collection or source holds stay inadmissible.
+    """
+    if receipt.get('conclusion') == 'success':
+        return True
+    if receipt.get('conclusion') != 'failure':
+        return False
+    from scripts.attest_vietnam_run_state import encoded_content
+    try:
+        cycle=encoded_content(api,'state/cycle_receipts/'+run+'-'+attempt+'.json',
+                              commit,prefix='/repos/'+PRIVATE_REPO)
+        require(cycle.get('schema')=='ipr-vietnam-vpcp-private-cycle/1'
+            and cycle.get('source_family')==FAMILY and cycle.get('run_attempt')==run+'-'+attempt
+            and cycle.get('workflow_commit')==receipt.get('head_sha')
+            and cycle.get('event')==receipt.get('event')
+            and cycle.get('status') in ('ok','quiet') and cycle.get('collector_exit_status')==0
+            and cycle.get('public_release_authorized') is False,'vpcp_cycle_not_successful')
+        jobs=api.get('/repos/'+PRIVATE_REPO+'/actions/runs/'+run+'/attempts/'+attempt+'/jobs?per_page=100')
+        require(type(jobs) is dict and jobs.get('total_count',101)<=100,'vpcp_jobs_unbounded')
+        steps=[s for j in jobs.get('jobs',[]) for s in j.get('steps',[])
+               if s.get('name')=='Collect permitted Government Office originals']
+        return len(steps)==1 and steps[0].get('conclusion')=='success'
+    except (ValueError,KeyError,TypeError):
+        return False
+
+
 def prepare(repo,commit,*,api):
     """Replay pinned bytes, metadata, all pages and successful private Action."""
     repo=private_repo(repo)
@@ -112,7 +142,7 @@ def prepare(repo,commit,*,api):
         run,attempt=cap['source_run'].split('-')
         if (run,attempt) not in runs:
             receipt=api.get('/repos/'+PRIVATE_REPO+'/actions/runs/'+run+'/attempts/'+attempt)
-            require(receipt.get('status')=='completed' and receipt.get('conclusion')=='success'
+            require(receipt.get('status')=='completed' and completed_collection(receipt,api=api,run=run,attempt=attempt,commit=commit)
                 and receipt.get('path')=='.github/workflows/vietnam_private_first_collector.yml'
                 and receipt.get('event') in ('schedule','workflow_dispatch')
                 and (receipt.get('repository') or {}).get('full_name')==PRIVATE_REPO,
