@@ -212,7 +212,12 @@ Choose the shape that fits the evidence:
 - **Implementation** when the gap between an announcement and actual activity is the story.
 - **Evidence tension** when the most interesting finding is a verifiable discrepancy.
 
-These are editorial possibilities, **not required sections**. Use short, story-specific subheads only where they aid navigation. Avoid boilerplate headings such as “Overview,” “What Stood Out,” “Why It Matters,” “Across the Region” and “Conclusion.” A no-subhead article is acceptable when it reads better.
+These are possible ways to organize the **required sections**, not mandatory
+section names. Each automated weekly Brief has an unheaded opening followed by
+two to four headed sections. Use short, story-specific headings and avoid
+boilerplate such as “Overview,” “What Stood Out,” “Why It Matters,” “Across the
+Region” and “Conclusion.” The topic and sequence can change from week to week;
+the reader still receives a consistently navigable article.
 
 Do not invent extra analytical paragraphs merely to hit a word target. Follow the active writer's technical length and block limits, but value purposeful development over padding.
 
@@ -263,7 +268,11 @@ A weak claim plus many disclaimers is not an analytical accomplishment. Often th
 
 **Dek:** Add a new fact, distinction or important qualification; do not repeat the title in longer words. Usually one or two sentences.
 
-**Subheads:** Describe what the following section actually does. They are optional and should not be identical from one Brief to the next.
+**Subheads:** The automated weekly Brief keeps an unheaded opening followed by
+**two to four substantive, visibly headed sections**. Use recognizable,
+story-specific descriptions of the material rather than automatically
+repeating the same labels. Subheadings structure the article; the prose within
+them must not revert to a templated fact/caveat/significance pattern.
 
 **Ending:** Finish with a concrete consequence, documented open question, meaningful difference between accounts or specific indicator to watch. Do not automatically recap the introduction. Avoid ending every paragraph—and especially every article—with “more evidence is needed.” Sometimes the most honest ending is a precise finding that is already established.
 
@@ -313,7 +322,7 @@ When a first draft is machine-assisted, apply this guide **during first-pass gen
 4. Use concrete details that **actually appear in permitted evidence**; never fabricate a scene, extra context or technical explanation.
 5. Explain terms in clear language, distinguishing direct evidence from IPR interpretation.
 6. State each material limitation at the point of use and keep editorial process notes in private audit fields.
-7. Vary syntax naturally, avoid stock significance claims, and use headings only when useful.
+7. Keep two to four useful, visible body section headings while varying sentence and paragraph construction; avoid stock significance claims.
 8. End on an earned finding or observable next indicator, not a generic geopolitical summary.
 9. Maintain every required citation/provenance mapping, original-language verification boundary and source-use restriction.
 10. Abstain, narrow the thesis or escalate to human review if the evidence cannot sustain the desired article.
@@ -335,7 +344,8 @@ explanation. Attribute official claims and distinguish intention,
 announcement, implementation and demonstrated result. Keep each material
 uncertainty near the claim it limits, once when possible; never suppress an
 essential caveat. Keep source-processing commentary and unresolved editorial
-checks in private audit fields. Use only story-specific optional headings.
+checks in private audit fields. Preserve the unheaded opening and two to four
+story-specific headed sections.
 End on a concrete finding or verifiable next indicator. Do not fabricate
 scenes, context, comparisons, intent, figures, quotations or supporting
 evidence. If support is insufficient, say less or abstain.
