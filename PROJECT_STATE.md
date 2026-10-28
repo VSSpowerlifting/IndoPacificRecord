@@ -281,7 +281,7 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
-**Indonesia Kemhan shared Daily (28 October 2026, controlled v3 held):**
+**Indonesia Kemhan shared Daily (28 October 2026, institution-name repair):**
 Repair #899 merged as `30bd2ba8a5b88ab0ed64e6c91f1f26bf16feeed4`, from reviewed
 head `e659e26a928c547e54811e97d14d2bc194fd4f37`. Required final-head CI
 `40743389758` passed 8,186 tests (15 skips), Chromium, isolated rendering,
@@ -306,10 +306,24 @@ are unchanged; prior queue commit `26d903c2d5c8da5a6196f7301536cb82f3b1108f`
 remains in history. Source pin is `97668de31f0c01e8d000ad71518c16caac18f670`.
 No second invocation, edited-reading promotion, signing, publication or
 publication workflow dispatch occurred. `KEMHAN_DAILY_ENABLED` remains
-absent/disabled, with no automatic follow-on observed. Stop at the precise
-cited-passage abbreviation blocker; no engineering expansion in this phase.
-Private evidence, usage and per-fact ledger:
-`~/.codex/private-evidence/kemhan-controlled-v3-20261028/release-checkpoint.json`.
+absent/disabled, with no automatic follow-on observed. The authorized offline
+repair aligns both public facts and private translations: named institutional
+forms must be literal to their cited passage; no alias glossary is enabled.
+Prompt/QA v4 uses the existing passage IDs with locally computed literal-name
+hints, excludes the title from reading input and retains the existing fact
+response shape. The same conservative formal-name/initialism recognizer checks
+both fields; it does not resolve arbitrary entities or certify bilingual meaning.
+Existing office/holder, copying, date, negation and action checks remain intact.
+
+All five retained readings were hash-checked and privately replayed through every
+applicable predicate; all stay held. A separately labeled edited diagnostic
+using literal local institution forms passes offline QA, without changing or
+recovering any rejected reading. Focused Indonesia/Philippines/date checks:
+100 passed. Mandatory exact-head CI belongs to the review PR. This phase has
+no paid calls, queue writes, merge, activation or publication. Medical retains
+one attempt, industry four, with unchanged source-version identities.
+Private replay receipts: `~/.codex/private-evidence/kemhan-institution-repair-20261028/`.
+Next: review the repair PR before any separately authorized live attempt.
 
 **Korea unified Daily (20 October 2026; activation PR open, processing off):**
 Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of

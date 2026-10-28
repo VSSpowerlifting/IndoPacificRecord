@@ -4,7 +4,36 @@ import re
 
 from analysis.philippines_prompts import CATEGORIES
 
-VERSION = "id-relevance-v1+id-analysis-v3"
+VERSION = "id-relevance-v1+id-analysis-v4"
+
+
+def institutional_forms(text):
+    """Literal formal names/initialisms, not an alias or entity resolver.
+
+    Conservative Kemhan vocabulary assists the existing passage-ID contract.
+    Parentheses split forms; never synthesize an acronym or expand one.
+    Office labels are checked separately, against their named holder.
+    """
+    text = re.sub(r"\bNo\.(?=\s*\d)", " ", text, flags=re.I)
+    word = r"[A-Z][A-Za-z'-]*"
+    runs = re.findall(r"\b" + word + r"(?:[ \t]+(?:(?:of|the|for)[ \t]+)*" + word + r")*\b", text)
+    forms = set()
+    for form in runs:
+        form = re.sub(r"^(?:The |A |An )", "", form)
+        form = re.sub(r"^(?:Head of |Kepala )", "", form, flags=re.I)
+        first = form.split()[0]
+        if (re.match(r"(?:Kemen\w*|Kemhan|Puskeshan|Kapuskeshan|Pusat|Rumah Sakit|Badan|Lembaga|Direktorat|Universitas|Institut|Dewan)\b", form)
+                or (len(form.split()) > 1 and re.search(
+                    r"\b(?:Ministry|Department|Agency|Center|Centre|Hospital|Forces?|Council|University|Institute|Authority|Office)\b", form))
+                or (first.isalpha() and sum(c.isupper() for c in first) >= 2)):
+            forms.add(form)
+    # Lowercasing a formal English institution must not evade this check.
+    for match in re.finditer(
+            r"\b(?i:ministry|department|agency|office) (?i:of) (?:(?i:the) )?"
+            r"[A-Za-z][A-Za-z'-]*(?:[ \t]+[A-Z][A-Za-z'-]*)*", text):
+        if match[0][0].islower():
+            forms.add(match[0])
+    return sorted(forms)
 
 
 def evidence_passages(body):
@@ -86,7 +115,16 @@ def analysis_messages(title, body):
         "Translate the complete cited passage faithfully in the private field, "
         "retaining its names, ranks and credentials. Keep named office abbreviations "
         "literal even in private translation; do not expand them using another "
-        "passage. In public facts use the minimum necessary actor identity: "
+        "passage. INSTITUTION RULE FOR BOTH FIELDS: use the exact institutional "
+        "form in the ONE cited passage, including its spelling, word order and "
+        "abbreviation. Do not independently abbreviate, expand, translate or "
+        "substitute an institutional alias from knowledge, the title or another "
+        "passage. institutional_forms lists literal local forms as a selection "
+        "aid, not aliases or an instruction to reproduce every name. No institution "
+        "translation glossary is enabled. Existing supported office/medical term "
+        "mappings do not authorize institutional aliases. Keep original institutional "
+        "forms while translating the surrounding private evidence. "
+        "In public facts use the minimum necessary actor identity: "
         "retain substantive actors, their institutions, roles and actions, but "
         "omit unnecessary academic credentials, honorific stacks and extended "
         "rank strings. Preserve quantities, dates and unit/model identifiers "
@@ -118,6 +156,7 @@ def analysis_messages(title, body):
         "flag, flag_reason, flag_evidence_id, categories and facts "
         "(exactly two objects: sentence, evidence_id, evidence_translation). "
         "Cite only supplied IDs. Each sentence must use only its cited passage.\n" +
-        json.dumps({"title": title, "passages": [
-            {"id": ref, "text": text} for ref, text in evidence_passages(body)
+        json.dumps({"passages": [
+            {"id": ref, "text": text, "institutional_forms": institutional_forms(text)}
+            for ref, text in evidence_passages(body)
         ]}, ensure_ascii=False))}]

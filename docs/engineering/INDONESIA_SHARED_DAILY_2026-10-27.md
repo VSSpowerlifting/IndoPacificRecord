@@ -291,3 +291,55 @@ binding, including lowercase forms. Copying uses the unmodified public fact;
 no general Head whitelist or capitalization bypass is introduced. Synthetic
 regressions cover medical usage, absent/cross-passage medical support, mixed
 medical/office usage and lowercase supported/rejected office titles.
+
+
+## Institutional-name consistency repair (28 October 2026)
+
+The genuine v3 result after #899 remains held: a public fact used a title-only
+institution abbreviation, while its cited passage spelled out that institution.
+No other applicable v3 QA defect was found. Private queue
+`89d23af8974dd360c9369a0add446c18104a6a08` preserves four medical failures
+(one attempt left) and one industry failure (four left). This offline repair
+authorizes no new calls, queue recovery, merge, activation or publication.
+
+**One institution-name rule for both fields:** use the exact institutional form
+present in the cited passage. Do not independently abbreviate, expand, translate
+or substitute an alias using knowledge, the title or another passage. No
+institution-translation glossary is enabled for this profile. Existing supported
+Head/Kepala and medical vocabulary checks remain; they confer no institution
+alias permission. The fixed public Kemhan publisher attribution remains separate
+from the reported actor's name. Private translations retain original institution
+forms while translating the surrounding evidence.
+
+Prompt/QA v4 reuses the unchanged passage-ID/fact-reference contract. Each input
+passage carries locally computed literal formal-name/initialism hints; reading
+input excludes the title. The model still returns exactly two facts with their
+existing sentence, evidence ID and private translation fields. The validator
+recomputes local forms from the resolved original passage, never a model-supplied
+name list, and applies the same comparison to public and private text. Names in
+the hints are literal source spans, not generated aliases or obligations to copy
+every name. Parenthesized forms stay separate; a name may not be assembled from
+pieces found across punctuation or other passages. A conservative Kemhan/formal
+institution vocabulary and initialism grammar bounds this assistance; it is not
+general entity resolution or a certificate of arbitrary bilingual semantics.
+Generic translated nouns are distinguished from formal institution names.
+
+Public regressions use synthetic institutions and cover full name to unsupported
+acronym, acronym to unsupported expansion, untranslated exact local forms,
+English translations (including lowercase formal names), wrong institutions,
+cross-passage borrowing and assembling names from individually present words.
+Office-holder identity, copied credentials, clinical head-injury vocabulary,
+dates, quantities, negation and action status remain covered. Prompt revision
+retains source-version keys and all failure/held/paused/terminal states, including
+the medical version's fourth failure. Public admission accepts v4 only; there
+are no released Kemhan machine records to migrate.
+
+All five retained failures were replayed privately against verified immutable
+captures, with every applicable predicate evaluated. The v3 input remains held;
+under v4, its translated private institution names are also inconsistent with
+the literal-form rule. A clearly labeled edited diagnostic uses the exact local
+forms in both fields and passes offline QA. This is not new model output, a
+recovered rejected reading or publication authority. Artifacts remain unchanged
+and private; the remote queue still matches its preserved checkpoint. Focused
+Indonesia/Philippines/date checks: 100 passed. Mandatory final-head CI belongs
+to the repair PR; no generated output or production database changes occur.

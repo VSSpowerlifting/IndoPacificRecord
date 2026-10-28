@@ -2,7 +2,7 @@
 import re
 from datetime import date
 
-from analysis.indonesia_prompts import CATEGORIES, VERSION, evidence_passages
+from analysis.indonesia_prompts import CATEGORIES, VERSION, evidence_passages, institutional_forms
 
 # Conservative lexical gates supplement (not certify) bilingual model reading.
 NUMBER = r"(?<!\w)[+-]?\d+(?:[.,:/-]\d+)*(?:%)?"
@@ -171,7 +171,7 @@ def quality_check(record, reading):
              "daily_private_translation_incomplete")
         need(not re.search(r"[\[\]]", translation), "daily_private_translation_completion_held")
         need(re.search(r"\bKemhan\b", sentence) is not None, "daily_attribution_missing")
-        original_values, _ = factual_values(evidence)
+        original_values, evidence_text = factual_values(evidence)
         translation_values, translation_text = factual_values(translation)
         sentence_values, sentence_text = factual_values(sentence)
         need(translation_values == original_values and sentence_values <= original_values,
@@ -190,6 +190,16 @@ def quality_check(record, reading):
             if re.search(r"\b" + re.escape(token) + r"\b", source):
                 need(re.search(r"\b" + re.escape(token) + r"\b", evidence) is not None,
                      "daily_private_translation_name_unsupported")
+        # One rule for public facts and private translations. There is no
+        # institutional alias glossary; ordinary Head/medical mappings above
+        # do not exempt names. Kemhan's fixed public publisher attribution is
+        # distinct from the reported institutional actors.
+        local_forms = set(institutional_forms(evidence_text))
+        for public, english in ((True, sentence_text), (False, translation_text)):
+            mentioned = set(institutional_forms(english))
+            if public:
+                mentioned.discard("Kemhan")
+            need(mentioned <= local_forms, "daily_institution_form_not_local")
         for english in (translation, sentence):
             for concept, support in CONCEPTS.items():
                 if re.search(concept, english, re.I):
@@ -221,4 +231,4 @@ def quality_check(record, reading):
          "daily_indonesia_flag_held")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
          and reading.get("prompt_version") == VERSION, "daily_model_provenance_incomplete")
-    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v3"})
+    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v4"})
