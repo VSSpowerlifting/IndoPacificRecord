@@ -28,6 +28,32 @@ The model returns `title`, `dek`, `article`, `audit` and `editorial_questions`.
   no recap of the lead. This is a register to write toward, not an imitation of any
   one writer.
 
+## 1a. Editorial voice v2 is active in the FIRST Sunday draft
+
+The article-first writer's `PROMPT_STANDARD` in `core/brief_prose_standard.py`
+implements [IPR Briefs Editorial Voice v2](IPR_BRIEFS_EDITORIAL_VOICE_GUIDE.md)
+within the **existing** paid writer call. The governing instruction begins
+“Report first. Explain second. Interpret carefully. Stop when the point is made.”
+It rules out automatic five-act policy-memo structure, repetitive
+fact/caveat/interpretation paragraphs, phantom debates, manufactured country
+symmetry, unsupported geopolitical implications, ceremonial significance
+clauses and generic conclusions. A paragraph may report a fact and end.
+
+The model checks whether each paragraph contributes a grounded fact, mechanism,
+meaningful baseline, actual comparison or defensible inference; it removes
+empty transitions and generic recaps **during initial composition**. It does
+not run a separate humanizing model call or silently rewrite stored prose.
+These are editorial preferences rather than an AI-detection score or proof
+of authorship. They never supersede precise attribution, essential caveats,
+source rights, allowed citations or human review. Style findings remain
+advisory and do not trigger paid retries or automatic holds.
+
+This same prompt applies to article-first manual, owner-selected and automatic
+story-selection manuscripts. The legacy fixed-outline compatibility path is
+unchanged, and all schema, selection/abstention, budgets and editorial release
+controls are unchanged. A first live owner-only trial still requires its own
+authorization; a passing offline test is not evidence of good live prose.
+
 ## 2. Uncertainty: say it once, where it matters
 
 A necessary qualification is never removed. What changes is where it lives:

@@ -1,7 +1,105 @@
 # Korea desk operation
 
-Verified October 18–19, 2026. This procedure uses existing systems
-and grants no new source, model or release permission.
+## Current verification — 28 October 2026
+
+**ENGINEERING READY — RELEASE OR FOLLOW-ON VERIFICATION PENDING.** The repairs
+below are a review candidate, not a production release. The October 18–19
+checkpoint later in this document is historical. In particular, the private
+cutover, Daily activation and watchdog have progressed since that checkpoint.
+This procedure grants no source, spending, merge or release permission.
+
+Verified against public main `cc25e3c88da3bc7afb9bca7a03f96e1dbfae7224`,
+private main `c1cbff0c0aea493957d156d973c872174d5fd3fd`, their current Actions,
+immutable private archive tips, tracked production SQLite, Pages and HTTPS.
+Shared `PROJECT_STATE.md` was left untouched while other desk PRs are open.
+
+| Stage | Observed state |
+| --- | --- |
+| MND collection/custody | Genuine scheduled [40587103070](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/40587103070), nominal October 27: robots read, complete October 21–27 listing, 7 selected/retrieved/extracted, 1 inserted, 6 duplicates, no failures, 25 stored. Private readback passed. Archive `cfe7ed77084290cf73de85e5325d1a5cd8a3d711`; independently verified all 164 capture hashes and the source/HWPX inventory. |
+| DAPA collection/custody | Genuine scheduled [40614736442 attempt 1](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/40614736442/attempts/1), nominal October 27, executed October 28 UTC: robots read, complete one-day listing, 1 selected/retrieved/extracted/inserted, no failures. Original `korea-dapa-policy:156786687` is preserved at `f268cc5720469bb0788cea4d359aea2bac4c9d1d`; all 13 capture hashes verified. Collection and independent custody readback succeeded; the subsequent metadata export failed. |
+| Public links | Production contains 20 MND + 1 DAPA records. Four additional eligible MND identities remain private: `156786154`, `156786296`, `156786306`, `156786587`. The metadata publisher admits them in runner scratch, then fails its obsolete render-count assertion before committing. The new DAPA identity has not reached public admission. |
+| Licensed MND text | Eight original texts are public. The latest scheduled genuine new-text release, [39696987609](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/39696987609), released three originals and verified actual HTTPS. Current scheduled [40609331696](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40609331696) stopped with an undifferentiated `HOLD`; its exact cause is not recoverable from that receipt. Preserved-source replay against disposable index/text copies and the current official policy qualified the four pending originals, without production writes. This does not prove the scheduled runner's next attempt. |
+| Shared Daily | `KOREA_DAILY_AUTOMATION_ENABLED=true` (since October 21). The registered Korea profile and source-version bridge are active. Five corpus admissions exist: three QA-held, two screened out; zero completed machine analyses. Processing is configured and prior paid attempts are recorded, but a successful machine-analysis-to-live continuation is unverified. |
+| Reviewed English | Three reviewed translation/analysis pairs remain public and source-pinned. They remain excluded from machine admission; the existing supersession rule is unchanged. |
+| Monitoring | Scheduled private-ledger watchdog [40690021177](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40690021177) passed for the mature October 27 MND slot. It truthfully retains earlier missing slots, including October 22. That failure and DAPA's corresponding failure were Python 3.9 setup on Ubuntu 26.04, before collection; current private workflows already pin Ubuntu 24.04. They were infrastructure failures, not publisher denials or quiet days. DAPA Actions exposes the present handoff failure; recipient delivery of operational notifications was not tested. |
+
+The enabled private variables were independently read as true:
+`KOREA_MND_PRIVATE_COLLECTION_ENABLED`, `DAPA_DAILY_ORIGINAL_ACCESS_APPROVED`
+and `DAPA_METADATA_BRIDGE_ENABLED`; public `DAPA_METADATA_BRIDGE_ENABLED` is
+also true. No variable or secret was changed, and no secret value was read.
+Recent publisher logs prove authenticated private MND read access works.
+
+### Confirmed defects and review candidate
+
+1. DAPA's exporter required `target_date_source=explicit`, rejecting a genuine
+   `schedule-slot` after successful collection. It now also accepts a first
+   scheduled attempt whose preserved timezone-aware start independently
+   resolves to the declared date at the existing 22:17 UTC slot. Unknown/manual
+   inferred dates, ambiguous reruns, missing timezone and mismatched dates
+   remain held. Exact attempt commit, receipt, complete batch, originals,
+   issuer, HWPX replay, signature and public metadata-only checks stay intact.
+2. Both MND publisher render gates expected a bare link for every nonhistorical
+   DB identity. The renderer already represents finished Korea corpus records
+   at `record/<id>.html` and removes their duplicate bare links. The checks now
+   use the existing corpus publication gate, require each record route, and
+   still reject missing/duplicate link entries. The two currently screened-out
+   corpus records are finished records under that existing gate; this repair
+   changes no relevance, analysis or rendering policy.
+3. The original-text CLI now reports fixed gate reason codes on a global hold,
+   allowing policy/access/source faults to be distinguished. Arbitrary parser,
+   filesystem or source-bearing exception text is never logged. No retry or
+   rights check was relaxed to explain the historical generic failure.
+4. The original-text PR's historical public-source replay still expected every
+   subsequently published original in the retired public archive. It now
+   verifies all fourteen baseline identities and every overlapping published
+   text hash, explicitly reporting later private originals as unverified by
+   this historical replay. Production still authenticates the private archive.
+
+The private workflow reads the exporter from public main, so no private
+companion change is necessary. No new scheduler, model engine or renderer.
+No production DB/output, public source index, reviewed English or retry state
+was changed by this phase.
+
+### Acceptance evidence and remaining action
+
+- Focused offline checks: 37 collector/export/publisher contracts and 135
+  watchdog/shared-Daily/corpus/QA/render/retry contracts passed. The tests
+  execute both actual publisher post-render Python blocks and reject missing
+  and duplicate rail entries, not just YAML string shape. Mandatory final-head
+  full CI is recorded in the review PR; focused success alone is insufficient.
+- Replayed the exact new private DAPA evidence through the repaired exporter,
+  signed with a disposable test key and admitted to a disposable SQLite schema:
+  1 new record, then 0 new / 1 unchanged on retry. No source title, text, media,
+  translation or analysis was exported. This proves engineering recovery,
+  not a production signature, public dispatch or deployment.
+- Independently verified registered text SHA → renderer → main output → Pages
+  → actual HTTPS: 8 originals + desk (9 paths), and 3 reviewed English/analysis
+  pairs + desk (7 paths). Existing scheduled production readback
+  [40681116462](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40681116462)
+  also passed. The live [Korea desk](https://indopacificrecord.org/korea.html)
+  shows the existing 21 metadata records, 8 originals and 3 reviewed pairs.
+- Immutable production QA holds remain: `156785691`, attempt 3,
+  `qa_agreement_unsupported,qa_number_added,qa_number_missing`; `156785888`,
+  attempt 3, `qa_agreement_unsupported`; `156786043`, attempt 1,
+  `qa_glossary_term_missing`. All use `kr-qa-v2` and the v3 translation prompt.
+  `156785986` and `156785987` were screened out on their first attempts.
+  None of those outcomes was reset. The chronology hold `156785161` persists.
+- Public Daily [40565258649](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40565258649)
+  failed its full suite on two Japan navigation assumptions before processing;
+  this phase does not alter Japan PR #892 or presentation PR #895. Current
+  base failures are distinguished from the Korea repair's CI in the PR.
+
+Next: review the final-head PR and authorize its merge/release separately.
+After release, the existing private `retry_verified_metadata` operation can
+recover DAPA attempt `40614736442-1` without fetching originals again; it still
+requires the applicable dispatch authorization. Observe existing MND publisher
+schedules and the shared Daily, then verify newly admitted identities on actual
+HTTPS. New paid model attempts, production dispatches and deployment were not
+authorized or performed here. Existing per-record QA holds and DAPA text/model
+restrictions remain individual dependencies. A new licensed-original replay
+or a configured trigger is not verified unattended machine-analysis publication.
+
+## October 18–19 checkpoint (historical)
 
 ## Normal operation
 

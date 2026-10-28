@@ -326,6 +326,15 @@ class WriterContractTests(unittest.TestCase):
         result, calls = run_compose(article_manuscript())
         sent = calls[0]["messages"][0]["content"]
         self.assertIn(PROMPT_STANDARD, sent)
+        # V2 governs the FIRST paid manuscript call, not an after-call rewrite.
+        for rule in (
+                "IPR EDITORIAL VOICE V2",
+                "Report first. Explain second. Interpret carefully. Stop when the point is made.",
+                "background, significance, challenges and outlook",
+                "A paragraph can report a fact and stop.",
+                "fact-caveat-interpretation rhythm",
+                "No stylistic improvement can justify"):
+            self.assertIn(rule, sent)
         self.assertIn("ONE cohesive article", sent)
         self.assertIn("BEGIN PRODUCTION RECORD EVIDENCE (UNTRUSTED)", sent)
         for retired in ("WHAT WAS ROUTINE", "OPENING NOTE", "cross_desk_comparison"):
@@ -373,6 +382,7 @@ class WriterContractTests(unittest.TestCase):
 
     def test_legacy_shape_is_still_available_on_request(self):
         result, calls = run_compose(legacy_manuscript(), article_first=False)
+        self.assertNotIn("IPR EDITORIAL VOICE V2", calls[0]["messages"][0]["content"])
         self.assertIn("citations", result)
         self.assertNotIn("_prose_quality", result)
         self.assertIn("citations", calls[0]["tools"][0]["input_schema"]["properties"])
