@@ -1,6 +1,6 @@
 # Indo-Pacific Record Briefs — Editorial Voice & Style Guide
 
-**Version:** 1.0 — 28 October 2026  
+**Version:** 2.0 — 28 October 2026  
 **Owner:** Founder & Director of Research and Editorial  
 **Status:** Editorial direction approved; implementation in the automated Sunday writer is a separate, reviewable change.  
 **Applies to:** Initial machine-assisted Sunday manuscripts, their human editing, and new IPR Briefs when the same voice is appropriate. It does not retroactively rewrite published Briefs or govern the model-labeled Daily record.
@@ -28,6 +28,146 @@ Write for policy professionals and analysts first, but allow an informed nonspec
 | **Uniform structure** | Every story feels like the same worksheet with different country names. | Choose the sequence, headings and ending for this story. Do not force a regional comparison, “why it matters” section or summary conclusion. |
 
 These are diagnoses, **not forbidden grammatical constructions**. One well-placed qualification, abstract term or contrast may be exactly right. Edit repetition and imprecision, not vocabulary by counting tokens.
+
+
+## 2a. The stronger rule: eliminate the invisible template
+
+**This section supersedes softer stylistic preferences elsewhere in the guide when they conflict.** Its prohibitions are strong editorial defaults, not automatic plagiarism or AI-authorship tests. Keep a device only when it does real work in this particular story. Source integrity and necessary qualifications always take precedence.
+
+A technically fluent article can still be editorially empty. The first-pass manuscript must not get credit for being balanced, complete-looking, smooth or formally sophisticated. **Its structure must be a consequence of the evidence.**
+
+### Structural signatures: default to cutting or rewriting
+
+| Red flag | What it sounds or looks like | Strong IPR rule |
+| --- | --- | --- |
+| **The all-purpose five-act arc** | Background → what happened → why it matters → challenges → future outlook, regardless of story | Do not plan or impose this arc. Draft from the strongest verified detail and arrange only the moves needed to explain it. Some Briefs have no explicit implications or outlook section. |
+| **One paragraph, one identical rhythm** | Every paragraph introduces a fact, concedes uncertainty, then announces significance | Mix distinct paragraph functions. A paragraph can report an action and stop. Another can explain a mechanism. A third may compare documents. Do not end each with the same interpretive or cautionary flourish. |
+| **False depth through scale-jumping** | A routine port visit becomes a turning point for maritime security, regional order or geopolitics | Do not broaden the frame beyond the evidence. A narrow operational observation is a valid payoff. If the regional consequence cannot be shown, omit it. |
+| **A smooth but content-free middle** | “These efforts demonstrate a continued commitment to strengthening collaboration” | Replace with actual actors, procedures, transfers, money, rules, timelines or disputes. If the paragraph adds no new source-supported information, delete it. |
+| **Manufactured symmetry** | Country A is “pursuing stability” while Country B is “balancing ambition and restraint” | Compare only on common, verifiable dimensions. Different source families need not receive equal paragraph space; absence of evidence is not a counterpart position. |
+| **Phantom disagreement** | “Not simply X, but Y” when nobody proposed X | State Y directly. Use a contrast only when the rejected interpretation is relevant, documented and worth correcting. |
+| **The inevitable trio** | Three adjectives, three implications, three risks or three action points in every section | Include however many items the evidence actually yields—often one or two. Enumerate only when the categories are substantively distinct, complete enough and useful. |
+| **The significance tail** | A factual sentence ends “..., highlighting the growing importance of X” or “..., underscoring Y” | Remove the detached -ing assessment. If the implication is real, give it its own supported sentence explaining the causal step; otherwise stop after the fact. |
+| **Compulsory “but” paragraph** | A caveat is appended after every concrete observation, regardless of whether that observation needs one | Put each material limitation beside the affected claim. Never invent a caveat merely to signal analytical seriousness. |
+| **Metadiscourse instead of reporting** | “This analysis explores,” “The record provides insight,” “It is worth noting” | Write the finding. Reader-facing prose is not a description of the author's workflow; private audit contains search, verification and unresolved-editor notes. |
+| **Unearned balanced ending** | “Despite these challenges, the development presents both opportunities and risks and will shape the regional landscape” | Finish at the last specific thing the evidence establishes, or an observable next milestone supported by the evidence. No mandatory coda. |
+| **Default positivity and deference** | An institution's announcement is described as progress, cooperation, commitment or success without measured results | Use neutral reporting verbs. Describe what changed on the ground, if anything; do not congratulate governments for announcing their own plans. |
+
+A red flag is a **revision trigger**, not proof that any sentence was written by AI. These habits also occur in human-authored prose. The standard is whether they conceal missing information or flatten the story.
+
+### Three editorial tests every paragraph must pass
+
+1. **The addition test:** What new, source-grounded fact, mechanism, comparison, historical baseline or precise inference does this paragraph deliver? If it merely changes vocabulary around an established point, cut it.
+2. **The substitution test:** Could the countries, ministries and ship names be replaced and the paragraph still read the same? If yes, seek a defensible story-specific detail. If none exists, shorten or delete instead of inventing specificity.
+3. **The movement test:** Why does this paragraph follow the preceding one? An explicit transition is optional, but a real logical or chronological connection is not. Reorder, merge or cut disconnected blocks.
+
+**Do not force one new fact per sentence.** Context and interpretation need room. The unit of judgment is the paragraph's contribution to the reader, not a machine-scored ratio.
+
+## 2b. Sentence-level patterns: change the thinking, not the synonyms
+
+### Restrict empty rhetorical machinery
+
+**Opening:** Avoid generic regional setup, inherited boilerplate and broad descriptions of “heightened tensions.” Start with a verifiable action or discrepancy. The lead need not be dramatic. If only an announcement is verified, say an announcement occurred and do not invent an operational scene.
+
+**Attribution:** Avoid “the available record shows” as a verbal tic. Prefer “Singapore's defence ministry said...” or “The two statements give different start dates” when accurate. When attribution is consequential, keep it near the claim. When the article truly compares evidence bases, the record itself may be the subject.
+
+**Contrast:** “Not only X but also Y,” “not merely X, but Y,” “more than X—it is Y,” and “rather than X, Y” are *exceptional tools*. A real contrast can be valuable; an imaginary straw man is not. Prefer a plain direct statement.
+
+**Transitions:** Eliminate habitual “moreover,” “furthermore,” “notably,” “importantly,” “ultimately,” “in this context” and “taken together.” Keep only if they clarify an actual relationship not otherwise clear. A new paragraph often needs no transition at all.
+
+**Participial summaries:** Watch sentence tails beginning “highlighting,” “reflecting,” “underscoring,” “signaling,” “reinforcing,” “positioning” or “showcasing.” They often insert unsupported significance. Delete the tail, or explain the observable mechanism as a separate attributed inference.
+
+**Inflation:** Avoid turning *an exercise* into *a demonstration of interoperability*, *a funding announcement* into *industrial transformation*, or *a policy statement* into *strategic realignment*. The source must support the higher-level claim and its step of reasoning.
+
+**Voice:** Prefer direct grammatical structures such as “The ministry did not give a delivery date” over inflated nominalizations (“the absence of a specified timeline constitutes a limitation”). Contractions and personal asides are not necessary; clarity is not informality.
+
+**Variety:** Do not satisfy this guide by randomly shortening sentences, dropping essential attribution, adding fragments, inserting personal anecdotes, or varying syntax for its own sake. Human-sounding writing is not necessarily casual. It is specific, proportionate and selectively structured.
+
+### Words and forms to challenge, not black-list
+
+A density of **pivotal, crucial, intricate, comprehensive, delve, underscore, elevate, enhance, foster, multifaceted, landscape, testament, alignment, robust, increasingly** and related words is a prompt to inspect whether the passage has become abstract or promotional. These words sometimes have legitimate technical uses.
+
+Similarly, do not ban em dashes, semicolons, three-part lists, passive voice, caveats, questions, or parallelism. **A blanket ban can make the manuscript more artificial and less accurate.** The problem is automatic repetition or rhetorical effect in place of reporting.
+
+## 2c. Revision laboratory: same facts, different intellectual work
+
+**Every example below is synthetic teaching text, not an assertion about a real institution.** The examples illustrate style only. In a real Brief, every fact, date and comparison would require source verification.
+
+**1. False balance and the five-act script**
+
+*Template-like:* “The exercise comes amid an evolving regional security environment. While it highlights the benefits of multinational cooperation, challenges remain. Looking ahead, continued engagement will be important.”
+
+*Stronger:* “The crews trained aboard each other's ships for the first time in this exercise series, according to the two navies. Their accounts describe shared boat drills but give no results for the boarding assessments.”
+
+*Why:* The evidence-specific gain and its meaningful limit replace a prewritten arc about challenges and prospects. “First time” requires a checked historical baseline before actual use.
+
+**2. A conclusion disguised as a sentence ending**
+
+*Template-like:* “The ministry approved construction of a second repair berth, reflecting its broader commitment to strengthening regional maritime readiness.”
+
+*Stronger:* “The ministry approved a second repair berth. It has not said when construction will start or whether the berth will be able to service larger ships.”
+
+*Why:* The reporting identifies what the approval does and leaves open the operational question. An abstract national commitment adds nothing.
+
+**3. Phantom correction**
+
+*Template-like:* “This was not merely a symbolic visit but a concrete demonstration of maritime interoperability.”
+
+*Stronger:* “During the visit, a boarding team practiced using the host ship's boats and communications procedures.”
+
+*Why:* The article reports the observable action instead of arguing against an interpretation nobody offered. The practice alone does not establish operational interoperability.
+
+**4. A manufactured trio**
+
+*Template-like:* “The agreement will reshape procurement, strengthen deterrence, and redefine the region's security architecture.”
+
+*Stronger:* “The agreement authorizes joint procurement planning. It neither identifies a purchase nor commits funding.”
+
+*Why:* One verifiable administrative change is more useful than three unsupported strategic consequences.
+
+**5. Research-method commentary as prose**
+
+*Template-like:* “An examination of the available materials reveals a discrepancy that warrants closer analysis.”
+
+*Stronger:* “One ministry dates the exercise from 3 September; the other lists 5 September as the opening day. The releases do not explain the difference.”
+
+*Why:* Put the evidence in view. No self-congratulatory report on the research process is needed.
+
+**6. Rushed significance after every fact**
+
+*Template-like:* “The patrol ship entered port on Monday, highlighting expanding regional cooperation. Its crew joined a training session on Tuesday, underscoring the growing complexity of joint operations.”
+
+*Stronger:* “The patrol ship arrived on Monday. The next day, its crew trained with local boarding teams. The official account did not say whether the teams conducted an exercise at sea.”
+
+*Why:* Consecutive facts stand on their own. No ritual geopolitical gloss is attached.
+
+**7. An apparently polished but empty close**
+
+*Template-like:* “Ultimately, the announcement reflects both the opportunities and challenges confronting regional governments as they navigate an increasingly uncertain future.”
+
+*Stronger:* “The contract covers two ships. The ministry has given neither a delivery date nor a timetable for selecting the shipyard.”
+
+*Why:* The final line leaves the reader with the precise implementation gap instead of a universal closing flourish.
+
+## 2d. The stricter editorial pass for Sunday drafts
+
+The Sunday model should follow these decisions **while generating the first manuscript**, not through a second model-based “humanizer” pass.
+
+**Before prose:** Internally identify the best supported angle, its telling detail, the actual earlier baseline (if known), which source has what authority, and the one limitation that could change the core claim. If there is no sufficiently supported angle, preserve the existing abstention pathway.
+
+**While drafting:** Use evidence-specific paragraph moves rather than a preselected list of sections. Prefer actors and action; resist the urge to append “what this means” after each fact. A paragraph is allowed to consist of straightforward reporting. Headings, comparisons and explanatory detours must emerge from the story.
+
+**Before handing off:** Apply a *deletion pass*, not a synonym pass: remove every sentence that only states importance, announces a transition, restates the thesis, invents a debate, describes the research process, or adds an irrelevant caveat. When a central argument is unsupported, narrow or delete the claim—not its necessary qualification.
+
+**For the editor:** Read aloud without source appendices. Mark repeated sentence architecture, inflated abstractions, false parallels, forced symmetry, “-ing” significance tails, and endings that could appear under any Indo-Pacific story. Change paragraph order before polishing individual words. Then reconcile any altered claims against the actual verified record.
+
+**For technical implementation:** Existing offline narrative checks may flag a *pattern* for human review; they must not claim to detect AI, auto-delete caveats, block publication over stylistic preferences alone, or trigger extra paid calls. Do not raise model token budgets or create a new pipeline for these changes. A later writer-prompt integration must use the active article-first contract once PR #880 is merged; until then this is a documentation standard.
+
+### Preferred stronger prompt (for a separate implementation review; not live)
+
+> Write an IPR article, not a policy-memo outline. Lead with the sharpest verified action or discrepancy. Choose the story's own sequence; do not automatically cycle through background, significance, challenges and outlook. In every paragraph, contribute a specific new fact, explanatory mechanism, real comparison or supported inference. Let straightforward reporting stand without added interpretation. Do not use rhetorical contrasts unless the opposing interpretation has actually arisen. Do not build triples or matched country sections just for symmetry. Remove detachable “-ing” significance clauses, generic regional-stakes language, repeated thesis restatements and compulsory caveat endings. Attribute official assertions; distinguish plans, activity and demonstrated results. Preserve every material source limitation where it changes a claim. End on the strongest established finding or a documented next indicator. Never invent operational detail, history, quotation, intent or a baseline to make the article more vivid. If the evidence is thin, write less or abstain. Produce the normal private source audit and all required source-to-block mappings.
+
+This is a **positive composition rule and a review standard**, not authorization for stylistic censorship or for a new autonomous publication path.
 
 ## 3. Before the first sentence: find the angle
 
@@ -241,6 +381,24 @@ Compare one current first-pass manuscript with the previous drafting style using
 - **Editorial effort:** fewer substantive language/structure interventions from Dylan or the owner.
 
 Do not manufacture a quantitative quality score from regex counts. Record examples of what improved, what got worse and any material factual risk. **A style improvement that makes a claim less supportable is not a success.**
+
+
+## 15. Research basis and evidence limits (added 28 October 2026)
+
+The guide is **research-informed**, not an AI-detection manual. Corpus studies compare distributions of language across selected genres, model families, prompts and populations. They do not establish that a particular word, punctuation mark or paragraph was machine-written. The prescriptions above are editorial judgments about IPR's article quality; they are not statistically validated “AI-signature removal” techniques.
+
+**Direct empirical findings relevant to IPR:**
+
+- Zamaraeva, Flickinger, Bond & Gómez-Rodríguez, *Comparing LLM-generated and human-authored news text using formal syntactic theory* (ACL 2025): six models and human news-style articles differed systematically in distributions of syntactic structures. This supports looking beyond keyword blacklists. [ACL Anthology](https://aclanthology.org/2025.acl-long.443/).
+- Qiao, Wu & Zhou, *Do LLMs “Normalize” Abstracts?* (published 18 October 2026): in 200 paired human/AI sets of scholarly abstracts, model outputs showed fewer distinct rhetorical sequences and more predictable positioning of discourse moves; some comparisons were not statistically significant. **Transfer to journalism is an editorial hypothesis, not a direct finding.** [SAGE Open](https://journals.sagepub.com/doi/10.1177/21582440261499856).
+- Rallapalli and colleagues, *Interpretable Stylistic Variation in Human and LLM Writing Across Genres, Models, and Decoding Strategies* (EMNLP 2026): studied 11 models across eight genres and four decoding strategies; style varied importantly with genre and model, while some systematic model/human differences persisted. No single list of banned expressions can solve the problem. [ACL Anthology](https://aclanthology.org/2026.findings-emnlp.1375/).
+- Sabbah-Taylor and colleagues, *A corpus-assisted discourse analysis of ChatGPT-generated essays* (June 2026 conference paper): 60 essays from a common prompt used recurrent formulaic transitions and openings. **Small, same-prompt academic corpus; do not generalize its phrase counts to IPR.** [Northumbria research portal](https://researchportal.northumbria.ac.uk/en/publications/a-corpus-assisted-discourse-analysis-of-chatgpt-generated-essays-/).
+- Study of 4,820 authentic undergraduate empirical reports (2016–2025): GPT-associated vocabulary and formal, positive tone increased following ChatGPT's release; the authors explicitly caution that observational trends do not prove individual AI use. [Computers and Education: Artificial Intelligence](https://doi.org/10.1016/j.caeai.2025.100507).
+- Russell, Karpinska & Iyyer, *People who frequently use ChatGPT for writing tasks are accurate and robust detectors of AI-generated text* (ACL 2025): in a 300-article controlled sample, experienced annotators used vocabulary alongside qualitative signals including originality, formality and clarity. **Their classification performance does not validate a universal house-style detector.** [ACL Anthology](https://aclanthology.org/2025.acl-long.267/).
+
+**Practitioner observations, lower evidence strength:** [Wikipedia's community-maintained “Signs of AI writing”](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) calls out exaggerated importance, superficial participial analysis, negative parallelism, automatic trios, vague attribution and stock future-looking conclusions. These are useful editing prompts, **not peer-reviewed claims that any one construction proves AI origin**, and some are Wikipedia-specific.
+
+**Editorial inference from this material:** To make IPR distinctive, target *predictable discourse organization, unsupported generalization, inflated significance and repetition* before surface vocabulary. The best evidence of success is a source-fidelitous article that needs less substantive editing—not any AI-detector score or a manufactured “human” appearance.
 
 ---
 
