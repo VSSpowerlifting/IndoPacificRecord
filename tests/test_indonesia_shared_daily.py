@@ -357,6 +357,26 @@ class IndonesiaSharedDaily(unittest.TestCase):
         reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
         self.assertEqual(len(d.quality_check(r,reply)),64)
 
+    def test_sentence_prefixes_do_not_hide_institutions(self):
+        for form in ('Kementerian Contoh','Ministry of Contoh','MHC'):
+            r,reply=self.institution_reading(form)
+            old=reply['facts'][0]['evidence']
+            evidence='Menurut '+old
+            r['body']=r['body'].replace(old,evidence)
+            reply['facts'][0]['evidence']=evidence
+            reply['facts'][0]['evidence_translation']='Meanwhile '+form+' discusses exercise plans.'
+            with self.subTest(form=form):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+        for alias in ('Kemencontoh','Ministry of Contoh','MHC'):
+            r,reply=self.institution_reading()
+            reply['facts'][0]['evidence_translation']='Meanwhile '+alias+' discusses exercise plans.'
+            with self.subTest(alias=alias),self.assertRaisesRegex(d.IntakeHold,'daily_institution_form_not_local'):
+                d.quality_check(r,reply)
+        r,reply=self.institution_reading('National Ministry of Contoh')
+        reply['facts'][0]['evidence_translation']='Municipal Ministry of Contoh discusses exercise plans.'
+        with self.assertRaisesRegex(d.IntakeHold,'daily_institution_form_not_local'):
+            d.quality_check(r,reply)
+
     def test_head_translation_binds_institution_and_full_named_holder(self):
         r,reply=self.office_reading()
         for head in ('Head','head'):

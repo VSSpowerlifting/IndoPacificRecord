@@ -319,7 +319,7 @@ All five retained readings were hash-checked and privately replayed through ever
 applicable predicate; all stay held. A separately labeled edited diagnostic
 using literal local institution forms passes offline QA, without changing or
 recovering any rejected reading. Focused Indonesia/Philippines/date checks:
-100 passed. Mandatory exact-head CI belongs to the review PR. This phase has
+101 passed. Mandatory exact-head CI belongs to the review PR. This phase has
 no paid calls, queue writes, merge, activation or publication. Medical retains
 one attempt, industry four, with unchanged source-version identities.
 Private replay receipts: `~/.codex/private-evidence/kemhan-institution-repair-20261028/`.

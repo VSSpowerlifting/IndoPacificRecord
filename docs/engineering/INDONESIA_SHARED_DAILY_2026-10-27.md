@@ -341,5 +341,11 @@ the literal-form rule. A clearly labeled edited diagnostic uses the exact local
 forms in both fields and passes offline QA. This is not new model output, a
 recovered rejected reading or publication authority. Artifacts remain unchanged
 and private; the remote queue still matches its preserved checkpoint. Focused
-Indonesia/Philippines/date checks: 100 passed. Mandatory final-head CI belongs
+Indonesia/Philippines/date checks: 101 passed. Mandatory final-head CI belongs
 to the repair PR; no generated output or production database changes occur.
+
+The recognizer strips only explicit grammatical introductions such as “Menurut”
+and “Meanwhile”; an institution embedded after an introductory word cannot
+hide an alias. Substantive institutional modifiers remain part of the literal
+comparison. Regressions cover exact local names after introductions, unsupported
+prefixed aliases and a changed institutional modifier.

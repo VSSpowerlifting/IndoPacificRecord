@@ -19,13 +19,16 @@ def institutional_forms(text):
     runs = re.findall(r"\b" + word + r"(?:[ \t]+(?:(?:of|the|for)[ \t]+)*" + word + r")*\b", text)
     forms = set()
     for form in runs:
-        form = re.sub(r"^(?:The |A |An )", "", form)
+        form = re.sub(r"^(?:The |A |An |Meanwhile |Menurut )", "", form)
         form = re.sub(r"^(?:Head of |Kepala )", "", form, flags=re.I)
-        first = form.split()[0]
-        if (re.match(r"(?:Kemen\w*|Kemhan|Puskeshan|Kapuskeshan|Pusat|Rumah Sakit|Badan|Lembaga|Direktorat|Universitas|Institut|Dewan)\b", form)
+        # Recognize a name anywhere in the run: a preceding word cannot hide
+        # an alias. Only the explicit grammatical prefixes above are removed;
+        # retain substantive modifiers such as National/Republic in full.
+        if (re.search(r"\b(?:Kemen\w*|Kemhan|Puskeshan|Kapuskeshan|Pusat|Rumah Sakit|Badan|Lembaga|Direktorat|Universitas|Institut|Dewan)\b", form)
                 or (len(form.split()) > 1 and re.search(
                     r"\b(?:Ministry|Department|Agency|Center|Centre|Hospital|Forces?|Council|University|Institute|Authority|Office)\b", form))
-                or (first.isalpha() and sum(c.isupper() for c in first) >= 2)):
+                or any(part.isalpha() and sum(c.isupper() for c in part) >= 2
+                       for part in form.split())):
             forms.add(form)
     # Lowercasing a formal English institution must not evade this check.
     for match in re.finditer(
