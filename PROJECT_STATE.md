@@ -1,5 +1,23 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Homepage "As published." register redesign — draft PR (28 October 2026)
+
+Branch `claude/ipr-homepage-editorial-design-1e4180` replaces the homepage's
+source-record cards with a ruled index. Each row has a rail with the date and the
+desk emblem, then a Source Serif 4 headline, the original title with its existing
+disclosure, the provenance line, and a quiet text state marker. "Analyzed" is now
+a dotted slate-blue rule, not a pill. The thumbnail plates and the stagger are gone.
+
+The featured panel is now a sticky navy column with an 80 px corner instead of the
+58 % curve. It shows its facts as a list, keeps the data-driven lead link, and
+keeps the chart-shelf wave. Its "Processing" row renders only when the feed
+supplies a state.
+
+Only `home.html` and `home.css` changed; the shared `record_row`, the pipeline
+and the data are untouched. Validation passed with the 10 governed warnings, and
+the homepage suites ran 537 tests with 2 skips. Screenshots are in
+`docs/evidence/frontend-home-register-2026-10-28/`. Not merged or deployed.
+
 ## Japan MOD news official links — source use approved, release held (27 October 2026)
 
 Prepared an off-by-default integration from the existing `shadow/jp-mod`
