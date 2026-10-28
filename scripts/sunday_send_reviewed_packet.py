@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from scripts.sunday_editorial_handoff import send_packet, single_address
+from scripts.sunday_editorial_handoff import quality_hold, send_packet, single_address
 
 NY = ZoneInfo("America/New_York")
 SCHEMA = "ipr-reviewed-sunday-manual-handoff/1"
@@ -28,12 +28,17 @@ HEADER = "INDO-PACIFIC RECORD | BRIEFS EDITORIAL WORKSHEET"
 STRUCTURE = (
     "=== EDITABLE MANUSCRIPT ===",
     "## WORKING TITLE",
-    "## CONCRETE DEVELOPMENT",
     "=== SOURCE APPENDIX — DO NOT EDIT ===",
     "=== MANUSCRIPT SOURCE USE — EDITORIAL TRIAGE ONLY ===",
     "END OF MANUSCRIPT SOURCE USE",
     "END OF SOURCE APPENDIX",
     "END OF UNAPPROVED WORKSHEET",
+)
+# One of two worksheet layouts: the article-first draft (single ARTICLE section;
+# citations mapped in the hash-validated appendix) or the retired fixed outline.
+LAYOUTS = (
+    ("## ARTICLE", "ARTICLE SOURCE ACCOUNTING (private;"),
+    ("## CONCRETE DEVELOPMENT", "SOURCE RECORD IDS:"),
 )
 
 
@@ -79,7 +84,11 @@ def validate_file(path, week_ending, *, now=None):
     for marker in STRUCTURE:
         if text.count(marker) != 1:
             raise ReviewedHandoffRefused("reviewed worksheet lacks unique protected structure: " + marker)
-    if "SOURCE RECORD IDS:" not in text:
+    layouts = [(h, c) for h, c in LAYOUTS if text.count("\n" + h + "\n") == 1]
+    if len(layouts) != 1:
+        raise ReviewedHandoffRefused(
+            "reviewed worksheet must have exactly one recognised layout (ARTICLE or CONCRETE DEVELOPMENT)")
+    if layouts[0][1] not in text:
         raise ReviewedHandoffRefused("thematic manuscript lacks production citation bookkeeping")
     if not text.endswith("END OF UNAPPROVED WORKSHEET\n"):
         raise ReviewedHandoffRefused("reviewed file has trailing or missing worksheet boundary")
@@ -101,6 +110,7 @@ def inspect_reviewed_attachment(path, week_ending, *, approval_week="", approval
         "attachment_sha256": actual,
         "attachment_bytes": len(packet),
         "exact_owner_approval_matches": approved,
+        "quality_hold_present": quality_hold(packet.decode("utf-8")),
         "automated_model_called": False,
         "publisher_rights_or_facts_reviewed_by_program": False,
         "email_sent": False,
@@ -160,7 +170,10 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
     with tempfile.TemporaryDirectory(prefix="ipr-reviewed-sunday-") as folder:
         reviewed_copy = Path(folder) / Path(path).name
         reviewed_copy.write_bytes(packet)
-        send_packet(reviewed_copy, week_ending, provisional=True, full_week=True)
+        # Reaching here required --confirm-owner-reviewed AND an exact digest match,
+        # which is the owner's informed release of any narrative-quality hold.
+        send_packet(reviewed_copy, week_ending, provisional=True, full_week=True,
+                    owner_released=True)
     receipt["email_sent"] = True
     return receipt
 

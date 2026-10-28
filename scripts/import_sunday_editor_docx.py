@@ -17,7 +17,8 @@ from docx import Document
 
 from scripts.sunday_editor_docx import render_editor_docx
 from scripts.sunday_editor_readable import (
-    BEGIN, APPENDIX, HEADINGS, PROSE_TITLES, editable_sections,
+    BEGIN, APPENDIX, ARTICLE_HEADINGS, ARTICLE_KEY, HEADINGS, PROSE_TITLES,
+    editable_sections, is_article_layout,
 )
 from scripts.validate_editorial_return import (
     ReturnValidationError, _sections, _split, validate_return,
@@ -31,7 +32,7 @@ NO_COPY_MARKERS = (
 )
 
 
-def _word_sections(word_bytes):
+def _word_sections(word_bytes, article=False):
     if not isinstance(word_bytes, bytes) or not word_bytes or len(word_bytes) > MAX_DOCX_BYTES:
         raise ReturnValidationError("Word return must be nonempty and at most 3 MB")
     try:
@@ -49,7 +50,8 @@ def _word_sections(word_bytes):
     except (BadZipFile, KeyError) as exc:
         raise ReturnValidationError("Word return is not a valid DOCX") from exc
 
-    expected = ["WORKING TITLE", "DEK", *list(HEADINGS[2:])]
+    expected = (list(ARTICLE_HEADINGS) if article
+                else ["WORKING TITLE", "DEK", *list(HEADINGS[2:])])
     inverse = {label: key for key, label in PROSE_TITLES.items()}
     result = {}
     current = None
@@ -66,6 +68,17 @@ def _word_sections(word_bytes):
                 ended = True
                 current = None
                 continue
+            if article:
+                # Subheads are free text inside the one ARTICLE section; the
+                # title and dek must come first.
+                if "DEK" not in result:
+                    raise ReturnValidationError("unknown or altered Word section heading")
+                if current != ARTICLE_KEY:
+                    current = ARTICLE_KEY
+                    result.setdefault(ARTICLE_KEY, [])
+                if value:
+                    result[ARTICLE_KEY].append("**" + value.replace("*", "") + "**")
+                continue
             key = inverse.get(value)
             if key is None:
                 raise ReturnValidationError("unknown or altered Word section heading")
@@ -80,6 +93,10 @@ def _word_sections(word_bytes):
                 if key in ("WORKING TITLE", "DEK"):
                     result[key].append(value)
             continue
+        if article and not ended and current == "DEK" and key is None and value:
+            # The first body paragraph after the dek opens the single ARTICLE.
+            current = ARTICLE_KEY
+            result[ARTICLE_KEY] = []
         if not ended and current and value:
             result[current].append(value)
 
@@ -96,12 +113,12 @@ def _word_sections(word_bytes):
 
 def reconstruct_return(original, edited_word):
     """Return candidate TXT and mechanical receipt; NEVER call publish/send."""
-    editable_sections(original)
-    new_text = _word_sections(edited_word)
+    article = is_article_layout(editable_sections(original))
+    new_text = _word_sections(edited_word, article)
     # The DOCX projection normalizes line wrapping and Markdown emphasis.
     # Such presentation changes are NOT Dylan's edits. Compare against the
     # generated Word baseline, rather than the differently formatted TXT.
-    if new_text == _word_sections(render_editor_docx(original)):
+    if new_text == _word_sections(render_editor_docx(original), article):
         raise ReturnValidationError("no edits or editorial notes detected in Word return")
     header, manuscript, appendix = _split(original)
     source_sections = _sections(manuscript)
@@ -153,6 +170,8 @@ def main(argv=None):
     print("Changed sections:", receipt["changed_sections"])
     print("Source appendix SHA-256:", receipt["appendix_sha256"])
     print("No Brief imported, approved, numbered, sent or published.")
+    print("STRUCTURE ONLY: factual and citation review of the edited text has NOT been done.")
+    print("Run scripts.analyze_editor_return and reconcile every changed claim against the original records.")
     return 0
 
 

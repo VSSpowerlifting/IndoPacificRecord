@@ -16,7 +16,19 @@ from email.message import EmailMessage
 from email.utils import getaddresses
 from pathlib import Path
 
-from scripts.sunday_pilot_owner_review import require_owner_review, require_exact_reviewed_manuscript
+from core.brief_prose_standard import (
+    HOLD_PHRASE, check_article, fingerprint, format_report_lines, summary_line,
+)
+from scripts.sunday_pilot_owner_review import (
+    OwnerReviewRequired, require_owner_review, require_exact_reviewed_manuscript,
+)
+
+# Article-first layout: one continuous editable ARTICLE section. The citation
+# map lives in the hash-validated appendix (keyed by paragraph fingerprint), so
+# Dylan can reorder, merge or rewrite paragraphs without touching source lines.
+ARTICLE_LAYOUT = "ipr-article-first/1"
+ARTICLE_KEY = "ARTICLE"
+ACCOUNTING_END = "END OF ARTICLE SOURCE ACCOUNTING"
 
 
 EDIT_SECTIONS = (
@@ -37,6 +49,44 @@ EDIT_SECTIONS = (
 def one_line(value):
     """Prevent source-supplied line breaks from masquerading as packet headings."""
     return " ".join(str(value or "").split())
+
+
+def article_text(blocks):
+    """Editable ARTICLE body: optional ``**subhead**`` lines then paragraphs."""
+    parts = []
+    for block in blocks:
+        heading = block["heading"].strip()
+        if heading:
+            parts.append("**" + heading + "**")
+        parts.append(block["text"].strip())
+    return "\n\n".join(parts)
+
+
+def _id_list(values, empty="none"):
+    return ", ".join(str(v) for v in values) if values else empty
+
+
+def article_accounting_lines(manuscript):
+    """Private, appendix-resident source accounting for an article-first draft."""
+    audit = manuscript["audit"]
+    lines = [
+        "ARTICLE SOURCE ACCOUNTING (private; Dylan's edits never change these records):",
+        "Layout: " + ARTICLE_LAYOUT,
+    ]
+    for index, block in enumerate(manuscript["article"], 1):
+        lines.append("Block {} | fp {} | records {} | external {}".format(
+            index, fingerprint(block["text"]), _id_list(block["citations"]),
+            _id_list(block.get("supplemental_citations", []))))
+    lines.append("Audit notes | records {} | external {}".format(
+        _id_list(audit["citations"]), _id_list(audit.get("supplemental_citations", []))))
+    for label, key in (("Development anchor", "development"),
+                       ("Baseline and routine", "baseline_and_routine"),
+                       ("Cross-desk assessment", "cross_desk_assessment"),
+                       ("Limitations ledger", "limitations"),
+                       ("Terms to verify", "terms_to_verify")):
+        lines.append(label + ": " + one_line(audit[key]))
+    lines.append(ACCOUNTING_END)
+    return lines
 
 
 def render_packet(sidecar, *, manuscript=None, as_of=None,
@@ -81,10 +131,17 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         coverage_warning,
         "Desks: " + ", ".join(desks),
         "",
-        "DYLAN: Edit the writing sections below and REPLY with this .txt attached.",
-        "Keep the source appendix intact. Give record IDs for factual claims.",
-        "Do not guess at translations, infer coordination, or assign an issue number.",
-        "Source listings are candidates, not endorsed editorial selections.",
+        *(("DYLAN: Edit the title, dek and ARTICLE below for language, flow and structure,",
+           "and REPLY with this .txt attached. You may reorder, merge, split or rewrite",
+           "paragraphs and subheads. Keep the source appendix intact.",
+           "You do not supply record IDs or settle permissions; Ben checks sources and rights.",
+           "Flag anything that looks wrong. Do not guess at translations or assign an issue number.",
+           "Source listings are candidates, not endorsed editorial selections.")
+          if isinstance(manuscript, dict) and "article" in manuscript else
+          ("DYLAN: Edit the writing sections below and REPLY with this .txt attached.",
+           "Keep the source appendix intact. Give record IDs for factual claims.",
+           "Do not guess at translations, infer coordination, or assign an issue number.",
+           "Source listings are candidates, not endorsed editorial selections.")),
         ("Private model research: {} source-linked official-source candidate(s) "
          "available for drafting; all require independent human verification. "
          "They are NOT production records, desk promotion, or publication approval."
@@ -108,32 +165,45 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
             raise ValueError("research-assisted manuscript has no single editorial focus")
         if research_evidence:
             lines.extend(("\n## EDITORIAL FOCUS", one_line(manuscript["editorial_focus"]), ""))
-        # The caller validated against the full-text evidence selection;
-        # do not silently convert the article into a release-ready sidecar.
-        headings = (
-            ("title", "WORKING TITLE"),
-            ("dek", "DEK"),
-            ("development", "CONCRETE DEVELOPMENT"),
-            ("opening_note", "OPENING NOTE"),
-            ("what_stood_out", "WHAT STOOD OUT"),
-            ("why_it_matters", "WHY IT MATTERS"),
-            ("what_was_routine", "WHAT WAS ROUTINE"),
-            ("what_im_watching_next", "WHAT I'M WATCHING NEXT"),
-            ("cross_desk_comparison", "CROSS-DESK COMPARISON"),
-            ("editorial_questions", "EDITORIAL QUESTIONS / SATURDAY FOLLOW-UP"),
-        )
-        for key, heading in headings:
-            lines.extend(("\n## " + heading, manuscript[key], ""))
-            if key in CITED_FIELDS:
-                production_ids = manuscript["citations"][key]
-                external_ids = (manuscript["supplemental_citations"][key]
-                                if research_evidence else [])
-                if production_ids:
-                    lines.append("SOURCE RECORD IDS: " + ", ".join(
-                        str(i) for i in production_ids))
-                if external_ids:
-                    lines.append("EXTERNAL SOURCE IDS: " + ", ".join(external_ids))
-                lines.append("")
+        if "article" in manuscript:
+            if not manuscript["article"] or any(
+                    line.startswith("**") and line.endswith("**") and "\n" not in line
+                    for block in manuscript["article"] for line in block["text"].split("\n\n")):
+                raise ValueError("malformed article blocks")
+            lines.extend((
+                "\n## WORKING TITLE", one_line(manuscript["title"]), "",
+                "\n## DEK", manuscript["dek"], "",
+                "\n## " + ARTICLE_KEY, article_text(manuscript["article"]), "",
+                "\n## EDITORIAL QUESTIONS / SATURDAY FOLLOW-UP",
+                manuscript["editorial_questions"], "",
+            ))
+        else:
+            # The caller validated against the full-text evidence selection;
+            # do not silently convert the article into a release-ready sidecar.
+            headings = (
+                ("title", "WORKING TITLE"),
+                ("dek", "DEK"),
+                ("development", "CONCRETE DEVELOPMENT"),
+                ("opening_note", "OPENING NOTE"),
+                ("what_stood_out", "WHAT STOOD OUT"),
+                ("why_it_matters", "WHY IT MATTERS"),
+                ("what_was_routine", "WHAT WAS ROUTINE"),
+                ("what_im_watching_next", "WHAT I'M WATCHING NEXT"),
+                ("cross_desk_comparison", "CROSS-DESK COMPARISON"),
+                ("editorial_questions", "EDITORIAL QUESTIONS / SATURDAY FOLLOW-UP"),
+            )
+            for key, heading in headings:
+                lines.extend(("\n## " + heading, manuscript[key], ""))
+                if key in CITED_FIELDS:
+                    production_ids = manuscript["citations"][key]
+                    external_ids = (manuscript["supplemental_citations"][key]
+                                    if research_evidence else [])
+                    if production_ids:
+                        lines.append("SOURCE RECORD IDS: " + ", ".join(
+                            str(i) for i in production_ids))
+                    if external_ids:
+                        lines.append("EXTERNAL SOURCE IDS: " + ", ".join(external_ids))
+                    lines.append("")
     lines.extend((
         "=== SOURCE APPENDIX — DO NOT EDIT ===",
         "The appendix comes from the tracked production corpus; URLs and titles",
@@ -150,6 +220,13 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         lines.extend(format_private_source_use(
             manuscript, trail, research_evidence))
         lines.append("")
+        if "article" in manuscript:
+            lines.extend(article_accounting_lines(manuscript))
+            lines.append("")
+            report = manuscript.get("_prose_quality") or check_article(
+                manuscript, desk_by_id={e["record_id"]: e["desk"] for e in trail})
+            lines.extend(format_report_lines(report))
+            lines.append("")
         selection = manuscript.get("story_selection")
         if selection:
             # Private decision trace for Ben/Dylan, not published editorial
@@ -269,8 +346,35 @@ def single_address(value, name):
     return parsed[0][1]
 
 
+def quality_summary(packet_text):
+    """The one-line narrative QA verdict (counts only) from a rendered packet, or ''."""
+    for line in packet_text.splitlines():
+        if line.startswith("Narrative QA: "):
+            return line
+    return ""
+
+
+def quality_hold(packet_text):
+    """True when the packet carries a major mechanical hold, or an article-first
+    packet has lost its quality line (fail closed; nothing is inferred as clean)."""
+    line = quality_summary(packet_text)
+    if line:
+        return HOLD_PHRASE in line
+    return "\n## ARTICLE\n" in packet_text
+
+
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
-                preview_to_owner=False):
+                preview_to_owner=False, owner_released=False):
+    """Mail the exact bytes at ``path``.
+
+    A packet that carries a narrative-quality hold is never mailed to the editor
+    unless ``owner_released`` is true, which only scripts/sunday_send_reviewed_packet
+    sets, after the owner confirmed the exact reviewed digest. Otherwise the same
+    bytes go to the owner-only address as a HELD notice (so they can be reviewed and
+    released without a new model generation), and OwnerReviewRequired is raised.
+    ``require_owner_review`` covers only the October 10 pilot week, so this is the
+    only barrier on later scheduled Sundays.
+    """
     require_owner_review(
         week_ending=week_ending, sending=not preview_to_owner,
         approved_week=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_WEEK", ""),
@@ -283,6 +387,10 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         manuscript_bytes=original_attachment,
         approved_sha256=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_SHA256", ""),
     )
+    held = (not preview_to_owner and not owner_released
+            and quality_hold(original_attachment.decode("utf-8")))
+    if held:
+        preview_to_owner = True
     editor = single_address(os.environ.get("IPR_EDITOR_TO", ""), "IPR_EDITOR_TO")
     if preview_to_owner:
         recipient = single_address(os.environ.get("IPR_PREVIEW_TO", ""), "IPR_PREVIEW_TO")
@@ -294,6 +402,23 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     password = "".join(os.environ.get("IPR_SMTP_APP_PASSWORD", "").split())
     if len(password) != 16 or not password.isascii() or not password.isalnum():
         raise ValueError("IPR_SMTP_APP_PASSWORD must be a Google-generated 16-character app password")
+    # Dylan edits the friendly DOCX, while the exact reviewed original TXT stays
+    # attached as the immutable citation/audit record. Both derive from the same
+    # already-validated bytes. The owner-only preview and HELD notice carry the
+    # identical pair, so the owner inspects exactly what Dylan would receive.
+    edited_copy, docx_note = None, ""
+    if full_week:
+        from scripts.sunday_editor_docx import render_editor_docx
+        from scripts.sunday_editor_readable import ReadableEditorError
+        try:
+            edited_copy = render_editor_docx(original_attachment.decode("utf-8"))
+        except ReadableEditorError as exc:
+            if not preview_to_owner:
+                raise
+            # A preview must still arrive and say plainly that the Word copy
+            # Dylan would receive cannot be produced from these bytes.
+            docx_note = ("WORD COPY NOT GENERATED ({}). Dylan delivery would fail "
+                         "for this file.\n\n".format(exc))
     message = EmailMessage()
     message["From"] = sender
     message["To"] = recipient
@@ -301,17 +426,29 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     if preview_to_owner:
         if not full_week:
             raise ValueError("owner previews require the complete Saturday-ending week")
-        message["Subject"] = "IPR Briefs | OWNER-ONLY UNSENT EDITORIAL PREVIEW | {}".format(week_ending)
+        message["Subject"] = "IPR Briefs | {} | {}".format(
+            "HELD BY QUALITY GATE — OWNER-ONLY, NOT SENT TO DYLAN" if held
+            else "OWNER-ONLY UNSENT EDITORIAL PREVIEW", week_ending)
         message.set_content(
-            "Private owner-only preview of the unapproved Sunday IPR Brief.\n\n"
+            ("HELD: the narrative quality gate found a mechanical defect, so this draft was "
+             "NOT sent to Dylan. To release these exact bytes without a new model run, review "
+             "them, then use scripts.sunday_send_reviewed_packet with this digest "
+             "(see docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md).\n\n" if held else "")
+            + docx_note
+            + "Private owner-only preview of the unapproved Sunday IPR Brief.\n\n"
             "This attachment was NOT delivered to Dylan. Inspect the generated "
             "single-theme manuscript, all numeric production record citations, "
             "typed official-source research references, their source-language "
             "meaning and any unsupported claims. You must separately authorize "
             "editor delivery after independent source verification.\n\n"
             "Do not publish, number or forward as an approved Brief.\n\n"
-            "Exact attached manuscript SHA-256: "
+            + ((quality_summary(original_attachment.decode("utf-8")) + "\n"
+                "The full narrative report is in the attachment's private appendix.\n\n")
+               if quality_summary(original_attachment.decode("utf-8")) else "")
+            + "Exact attached manuscript SHA-256: "
             + hashlib.sha256(original_attachment).hexdigest() + "\n"
+            + (("Exact attached Word copy SHA-256: "
+                + hashlib.sha256(edited_copy).hexdigest() + "\n") if edited_copy is not None else "")
         )
     elif full_week:
         # The exact immutable TXT was already checked against the owner's
@@ -338,12 +475,7 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     message.add_attachment(
         original_attachment, maintype="text", subtype="plain", filename=path.name
     )
-    if full_week and not preview_to_owner:
-        # Dylan edits the friendly DOCX, while the exact reviewed original
-        # TXT remains attached as an immutable citation/audit reference.
-        # Both are derived from precisely the same already-validated bytes.
-        from scripts.sunday_editor_docx import render_editor_docx
-        edited_copy = render_editor_docx(original_attachment.decode("utf-8"))
+    if edited_copy is not None:
         message.add_attachment(
             edited_copy, maintype="application",
             subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -352,6 +484,10 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=30) as smtp:
         smtp.login(sender, password)
         smtp.send_message(message)
+    if held:
+        raise OwnerReviewRequired(
+            "Held by the narrative quality gate: NOT sent to Dylan. The identical "
+            "bytes (TXT + DOCX) were sent to the owner-only preview address.")
 
 
 def main(argv=None):
@@ -440,6 +576,8 @@ def main(argv=None):
                          vietnam_candidates=vietnam_candidates,
                          research_evidence=research)
     args.out.write_text(text, encoding="utf-8")
+    if quality_summary(text):
+        print(quality_summary(text))
     print("Prepared unapproved {}: {} ({} production records; {} Vietnam shadow links requiring human review)".format(
         "machine-drafted editorial manuscript" if manuscript is not None else "editorial worksheet",
         args.out.name, len(sidecar["source_trail"]), len(vietnam_candidates)))

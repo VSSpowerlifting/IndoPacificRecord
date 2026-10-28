@@ -401,6 +401,12 @@ ordered by the coverage endpoint, with number and slug breaking ties.
 **Titles.** A brief's title does not begin with *The PLA Watch*. The title
 format for briefs is decided with their renderer.
 
+**Machine-drafted weekly manuscripts are articles (2026-10-25).** A draft for editorial
+review opens on the concrete development, uses story-specific headings only where they
+help, explains terms plainly, states a necessary qualification once where it applies and
+keeps research-process notes in a private audit. Evidence-vs-inference rules are
+unchanged. See `docs/IPR_BRIEFS_WRITING_STANDARD.md`.
+
 ## 5c. Regional Assessments — the boundary
 
 A Regional Assessment is a separate, longer editorial format under Indo-Pacific

@@ -26,6 +26,42 @@ contract jobs are pinned to Ubuntu 24.04 for Python 3.9 compatibility, retaining
 their triggers, permissions and release boundaries. Final-head CI and private
 admission/readback evidence are recorded in PR #888; no release is authorized.
 
+## Briefs narrative reform — PR #880 compatibility candidate (27 October 2026)
+
+PR #880 integrates main `8b69d1f2c6`, including #805's complete-week selection,
+source qualifications, no-send abstention and 5,400-token/one-call budget.
+Article-first drafts retain block-level citations, a private audit and narrative
+quality report. Held drafts reach only the owner with exact TXT and deterministic
+DOCX attachments; release requires explicit owner confirmation and matching TXT
+SHA-256. The offline return analyzer requires source reconciliation for changed
+text, including small actor edits. Human factual/editorial approval stays separate.
+
+Engineering head `68466a4b94` passed 8,125 mandatory CI tests (15 skips), all seven
+Sunday workflows, actual Chromium launch, isolated render, validation (10 governed
+warnings) and preservation checks. Its separately authorized first live trial
+then failed before generation: the provider rejected `maxItems` in the strict
+selection schema. No manuscript or usage receipt was returned; private trial
+inputs and diagnostics remain outside the repository. Live prose quality is
+therefore still unestablished.
+
+The compatibility repair removes all 15 occurrences of the unsupported
+`maxItems`, `uniqueItems`, `minimum` and `maximum` keywords from the nested
+API-facing selection schema, retaining their rules as descriptions and unchanged
+Python validation. Recursive tests capture the actual assembled request in all
+eight combinations of automatic/ordinary selection, article/legacy format and
+supplemental/no-research input. Negative tests preserve count, uniqueness, score,
+source-identity, abstention and citation enforcement. All 145 focused tests pass;
+mandatory CI must pass at the new exact head, with receipts in PR #880.
+
+This repair changes no model/request budget, strict-tool setting, source grant,
+schedule, DB or generated output, and makes no paid call, retry, email or workflow
+dispatch. No merge/deployment or second live trial is authorized. Another live
+trial requires separate owner approval. Standards: `docs/IPR_BRIEFS_WRITING_STANDARD.md`
+and `docs/BRIEFS_WEEKLY_SELECTION.md`. The private October 24 assessment, delivered
+TXT and frozen source-selection receipt remain unchanged.
+Do not rerun scheduled delivery for a held week; manual release still cannot
+detect an earlier Dylan send.
+
 ## PR offline timeout maintenance — review candidate (26 October 2026)
 
 The PR offline job budget increases from 35 to 45 minutes. Run
@@ -65,28 +101,6 @@ needs Ben's editorial approval of that exact digest and a source-use decision
 (see the 26 October DECISION_LOG entries). Five records have a Maritime-only
 grant; eight records and x1–x9 need new coverage. No model spend, collection or
 outside contact.
-
-## Sunday selection reform — private review candidate (26 October 2026)
-
-PR #805 is being extended from its old ten-source comparison to complete
-eligible-week discovery in the existing Sunday writer. The October 24 editorial comparison and proposed article brief are held
-outside the public repository for Ben's private review. The delivered TXT
-remains unchanged and Dylan has not been sent a replacement.
-The [selection contract](docs/BRIEFS_WEEKLY_SELECTION.md) describes source
-content digests, duplicate grouping, quality floors, optional connection
-weighting and explicit no-send abstention. A committed production-only audit
-contains metadata/hashes, not publisher bodies or a paid manuscript. This is
-an unmerged engineering candidate, not evidence of live model/editor operation.
-Existing collection, source-use, owner, DOCX/TXT and publishing gates remain.
-Current main `71beedb3ba` is integrated. Review found and repaired lost closing
-qualifications in long digest sentences, contradictory abstention/focus
-instructions, and the automatic prompt's missing private-paraphrase caution;
-comparison/manuscript word budgets now share the existing 5,400-token ceiling.
-The frozen receipt is preserved. Historical and today's database replays both
-offer 127 sources/124 clusters; today's adds four AFP metadata-only links.
-See the contract's dated review for scope and limitations. Final merge
-readiness depends on the exact-head PR offline checks and human review;
-no paid call, email, new manuscript or publication was performed here.
 
 **Owner architecture target (19 October 2026; not yet deployed):** All desks
 should ultimately converge on one logical shared Daily article-processing,

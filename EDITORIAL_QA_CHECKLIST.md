@@ -7,6 +7,31 @@ scripts/validate_output.py` and, for a brief, `scripts/author_brief.py check`;
 everything else is human judgment. Final analytical judgment and published
 prose remain human-controlled.
 
+
+## Machine-drafted Sunday manuscript (before it goes to Dylan)
+
+- [ ] Read the owner-preview *Narrative QA* line and, in the private appendix, the
+      NARRATIVE QUALITY REPORT. A mechanical hold must be resolved or consciously
+      overridden by Ben; style flags are prompts, not defects.
+- [ ] The lead states the development, not the source or the method.
+- [ ] Each necessary limitation appears once, where it qualifies a claim; research-process
+      commentary is in the audit, not the article.
+- [ ] A comparison section exists only if two or more desks bear on the same question.
+- [ ] Figures, quotations, titles and terms were checked against the original wording.
+      See `docs/IPR_BRIEFS_WRITING_STANDARD.md`.
+
+## After Dylan returns an edited manuscript (required before any Brief)
+
+- [ ] Ran `scripts/analyze_editor_return.py`; worked through every item under
+      "Reconciliation required before any Brief".
+- [ ] Every changed or added claim, figure, name, title, quotation and citation was
+      reconciled against the original records. Anything without a verified record is cut
+      or sourced first.
+- [ ] Understood that `validate_return`, the Word importer and the unchanged source
+      appendix are **structural only**. The ARTICLE SOURCE ACCOUNTING maps the original
+      blocks, so it is not approval of any rewritten paragraph.
+- [ ] The appendix itself was not edited to match the new text.
+
 ## Automated (deploy gate — must pass)
 
 - [ ] `validate_output.py` exits 0: sidecar/HTML pairing, filename = date =
