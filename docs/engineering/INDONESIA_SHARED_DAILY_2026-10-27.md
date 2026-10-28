@@ -1,8 +1,10 @@
-# Kemhan Berita shared Daily — review candidate, 27 October 2026
+# Kemhan Berita shared Daily — authorized release, 27 October 2026
 
-Engineering and a **proposed** standing source-use decision. No new owner
-permission, paid model result, production write, schedule activation or public
-release is recorded here. The existing 49-link metadata service stays active.
+The owner approved the narrow standing source-use, spending and controlled
+release decision on 27 October 2026; see the matching `DECISION_LOG.md` entry.
+The three Kemhan policy switches are enabled in this release candidate.
+Final-head CI, merges, first live model quality and deployed publication remain
+release checks; this document does not claim their completion.
 
 ## Scope and implementation
 
@@ -37,7 +39,7 @@ links, with all explanations searchable in Archive. Records disclose private
 Indonesian translation, source version and model/prompt. Existing English
 Philippines records retain their language disclosure and desk assignment.
 
-## Observed source-use basis and proposed decision
+## Observed source-use basis and approved decision
 
 Read-only checks on 27 October:
 
@@ -61,7 +63,7 @@ Read-only checks on 27 October:
   not assert that IPR has zero-retention terms. No feedback/training opt-in,
   Files API retention, consumer service or new credentials are proposed.
 
-**Proposed owner wording — NOT APPROVED:** Approve standing private commercial
+**Owner-approved source-use scope (27 October 2026):** Approve standing private commercial
 API processing of verified first-party Kemhan Berita Indonesian text, including
 translation of cited evidence when needed, solely to produce short factual
 English explanations. Approve unattended release of QA-passing, independently
@@ -75,7 +77,7 @@ approval as a separate grant. Recheck/hold affected uses if access or publisher
 restrictions change. Correspondence is required only if an actual restriction
 or rights uncertainty cannot be resolved within this narrow decision.
 
-**Proposed spend limit:** $0.35 estimated per invocation, at most one record and
+**Owner-approved spend limit:** $0.35 estimated per invocation, at most one record and
 two calls (Haiku relevance: 500 output tokens; Sonnet reading: 2,200). The
 shared guard reserves conservative UTF-8-byte input plus 2,048 framing tokens
 at repository-pinned prices before each call; SDK retries are disabled.
@@ -90,10 +92,8 @@ billing limit. No historical archive-wide backfill is requested.
 
 ## Activation after one explicit owner release decision
 
-The proposed decision must authorize the source uses, spending and controlled
-first production release together. It must also explicitly authorize merging
-the public integration and essential private companion and changing the gate;
-this task does none of those actions.
+The owner has explicitly authorized these steps after final-head checks, as
+recorded in the decision log. Preserve all exclusions and limits below.
 
 1. Record the actual owner decision; set only Kemhan's three existing policy
    booleans (`private_model_processing`, `public_machine_explanation`,
@@ -115,7 +115,10 @@ this task does none of those actions.
    Both repositories' `IPR_PRIVATE_DAILY_ENABLED` and the metadata bridge
    variables were already true when checked. Do not toggle or replace them.
 4. Inspect that private run's ledger, source binding, quality result and actual
-   English output. Then allow the ordinary public Daily or, if explicitly
+   English output. A private `--private-daily-no-release` inspection with the
+   existing local API credential may precede signing; preserve its queue without
+   resetting attempts or reprocessing the inspected record. Then allow the
+   ordinary public Daily or, if explicitly
    authorized, dispatch the existing public `daily_update.yml`. It fetches the
    signed public-safe output, admits it, renders, validates, reconciles and
    publishes through its existing writer. Confirm exact DB/desk/record/Archive/

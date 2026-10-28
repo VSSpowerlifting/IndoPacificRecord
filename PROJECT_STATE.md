@@ -267,7 +267,7 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
-**Indonesia Kemhan shared Daily (27 October 2026, disabled review candidate):**
+**Indonesia Kemhan shared Daily (27 October 2026, owner-authorized release candidate):**
 Public #877 merged as `ebed6190c09992939e0a4639c7f1cf18bac985c3`; private
 #17 merged as `036ca8fb5b4f80784d71773382c6114d64c10726`. The metadata bridge
 variables are true in both repositories, production has 49 admitted links,
@@ -283,7 +283,8 @@ Archive/search and Indonesia page. It uses an explicit Indonesian profile,
 privately translates cited passages, and publishes only independently worded,
 attributed English machine explanations after source/version/rights/QA gates.
 Originals and translations remain private. All three Kemhan model/output
-policy switches remain false; the essential private companion adds a separate
+policy switches are enabled by the owner's 27 October release authorization;
+the essential private companion adds a separate
 absent/disabled `KEMHAN_DAILY_ENABLED` gate and reuses the existing bridge key.
 No credentials, variables, production DB/output or schedules were changed.
 
@@ -300,14 +301,13 @@ small test-only correction separates its historical directory from its already
 admitted metadata. Japan content/policy/rendering is unchanged, all seven
 navigation tests pass, and required full CI is rerun at the final head.
 
-**Remaining release decision:** adopt or reject the narrow standing first-party
+**Remaining release checks:** the owner approved the narrow first-party
 Kemhan private-API/factual-English-output grant and $0.35 estimated per run
-(one record, two calls, existing five-failure pause), including explicit merge,
-activation and controlled first-release authority. Proposal, source-use basis,
-API handling, limits and existing workflow activation/readback commands:
-`docs/engineering/INDONESIA_SHARED_DAILY_2026-10-27.md`. No owner approval is
-recorded by this candidate. The already operating metadata lane is preserved;
-the complete Daily desk is not yet operational.
+(one record, two calls, five-failure pause), including merge, activation and
+controlled first-release authority. See `DECISION_LOG.md` and
+`docs/engineering/INDONESIA_SHARED_DAILY_2026-10-27.md`. Final-head CI, merges,
+first real model quality inspection and source-to-live verification remain;
+the complete Daily desk is not yet claimed operational.
 
 **Korea unified Daily (20 October 2026; activation PR open, processing off):**
 Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of

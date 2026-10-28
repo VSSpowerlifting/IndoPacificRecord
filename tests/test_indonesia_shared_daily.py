@@ -25,6 +25,14 @@ def policy():
     return p
 
 
+def denied_policy():
+    p = policy()
+    p['sources'][FAMILY].update(private_model_processing=False,
+        public_machine_explanation=False, unattended_release=False,
+        owner_decision='SYNTHETIC DENIED TEST POLICY')
+    return p
+
+
 def record():
     # Explicitly synthetic Indonesian text, never represented as publisher text.
     body = 'Latihan direncanakan akan berlangsung pada 23 Oktober. Pertemuan membahas rencana latihan bersama.'
@@ -90,11 +98,11 @@ class IndonesiaSharedDaily(unittest.TestCase):
 
     def test_unapproved_rights_never_construct_model(self):
         factory = Mock(side_effect=AssertionError('unauthorized model'))
-        state,_=d.process([record()],{},family=FAMILY,policy=d.load_policy(),analyzer_factory=factory)
+        state,_=d.process([record()],{},family=FAMILY,policy=denied_policy(),analyzer_factory=factory)
         self.assertEqual(next(iter(state.values()))['reason'],'model_rights_held')
         factory.assert_not_called()
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_rights_held'):
-            d.sign_outputs(state,family=FAMILY,policy=d.load_policy(),key=KEY)
+            d.sign_outputs(state,family=FAMILY,policy=denied_policy(),key=KEY)
 
     def test_existing_semantic_hold_cannot_be_removed_by_policy(self):
         r=record(); r['source_identity']=HELD_IDENTITY
@@ -195,7 +203,7 @@ class IndonesiaSharedDaily(unittest.TestCase):
                 with self.assertRaises(d.IntakeHold):
                     d.admit(conn,env,family=FAMILY,policy=p,key='wrong-key-'*4)
                 with self.assertRaisesRegex(d.IntakeHold,'daily_output_rights_held'):
-                    d.admit(conn,env,family=FAMILY,policy=d.load_policy(),key=KEY)
+                    d.admit(conn,env,family=FAMILY,policy=denied_policy(),key=KEY)
                 self.assertEqual(d.admit(conn,env,family=FAMILY,policy=p,key=KEY)['admitted'],1)
                 self.assertEqual(d.admit(conn,env,family=FAMILY,policy=p,key=KEY)['admitted'],0)
                 changed=copy.deepcopy(state)
