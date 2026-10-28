@@ -206,7 +206,13 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
             try:
                 title, published, url = self.metadata(capture.body, reference.url)
                 hint = self.references[reference.url]
-                if title != hint["title"] or published != hint["date"]:
+                # The official detail heading sometimes adds duplicate ASCII
+                # spaces absent from the same release's listing heading.
+                # Normalize only for comparison; preserve the publisher title
+                # and continue to reject changed text, dates and identities.
+                if (re.sub(r" {2,}", " ", title) !=
+                        re.sub(r" {2,}", " ", hint["title"]) or
+                        published != hint["date"]):
                     raise ValueError("release metadata disagrees with listing")
                 payload = self._request(url, binary=True)
                 self.documents[reference.url] = (payload, dict(self.evidence[-1]))
