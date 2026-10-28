@@ -104,7 +104,8 @@ def office_checked_text(evidence, sentence):
     """Resolve only the observed Head-of appositive, with a local holder.
 
     Conservative grammar: institution and named holder are comma-delimited.
-    Unknown forms remain held. This is neither a name nor a word whitelist.
+    A locally supported head-injury compound is medical vocabulary. Other
+    unknown forms remain held. This is neither a name nor a word whitelist.
     """
     from processing.daily_intake import need
     source_roles = list(re.finditer(
@@ -113,6 +114,12 @@ def office_checked_text(evidence, sentence):
         r"\bHead of (?P<institution>[^,;\n]+), (?P<holder>[^,;\n]+),", re.I)
     replacements = []
     for head in re.finditer(r"\bhead\b", sentence, re.I):
+        if re.match(r"head injur(?:y|ies)\b", sentence[head.start():], re.I):
+            need(re.search(r"\b(?:cedera kepala|head injur(?:y|ies))\b", evidence, re.I)
+                 is not None, "daily_name_or_office_unsupported")
+            # Lexical projection only: copying still uses the unmodified fact.
+            replacements.append((head.start(), head.end(), "head"))
+            continue
         role = translated.match(sentence, head.start())
         supported = False
         if role and not re.search(r"\b(?:acting|deputy|former|assistant|vice)\s+$",
@@ -131,9 +138,9 @@ def office_checked_text(evidence, sentence):
                     supported = True
                     break
         need(supported, "daily_name_or_office_unsupported")
-        replacements.append((head.start(), head.end()))
-    for start, end in reversed(replacements):
-        sentence = sentence[:start] + "Kepala" + sentence[end:]
+        replacements.append((head.start(), head.end(), "Kepala"))
+    for start, end, replacement in reversed(replacements):
+        sentence = sentence[:start] + replacement + sentence[end:]
     return sentence
 
 

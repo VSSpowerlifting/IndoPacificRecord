@@ -282,8 +282,11 @@ class IndonesiaSharedDaily(unittest.TestCase):
 
     def test_head_translation_binds_institution_and_full_named_holder(self):
         r,reply=self.office_reading()
-        self.assertEqual(len(d.quality_check(r,reply)),64)
         for head in ('Head','head'):
+            supported=copy.deepcopy(reply)
+            supported['facts'][0]['sentence']=supported['facts'][0]['sentence'].replace('Head',head)
+            supported['summary_english']=' '.join(f['sentence'] for f in supported['facts'])
+            self.assertEqual(len(d.quality_check(r,supported)),64)
             for old,new in (('RS Contoh','RS Lain'),('Nama Uji','Tokoh Lain'),
                             ('Nama Uji','Uji'),('Head','Director'),('Head','deputy Head')):
                 bad=copy.deepcopy(reply)
@@ -305,8 +308,48 @@ class IndonesiaSharedDaily(unittest.TestCase):
             bad=copy.deepcopy(reply);rr=dict(r,body=evidence+'\n\n'+r['body'])
             bad['facts'][0]['evidence']=evidence
             bad['facts'][0]['evidence_translation']='A hospital activity involves Nama Uji and RS Contoh.'
-            with self.subTest(evidence=evidence),self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
-                d.quality_check(rr,bad)
+            for head in ('Head','head'):
+                bad['facts'][0]['sentence']=reply['facts'][0]['sentence'].replace('Head',head)
+                bad['summary_english']=' '.join(f['sentence'] for f in bad['facts'])
+                with self.subTest(evidence=evidence,head=head),self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+                    d.quality_check(rr,bad)
+
+    def test_head_injury_is_a_passage_supported_medical_term_not_an_office(self):
+        r,reply=record(),reading()
+        evidence='Simulasi evakuasi menangani pasien dengan cedera kepala.'
+        r['body']=evidence+'\n\n'+reply['facts'][1]['evidence']
+        reply['facts'][0]=dict(evidence=evidence,
+            sentence='Kemhan reports that an evacuation scenario involved a head injury.',
+            evidence_translation='The evacuation simulation treated a patient with a head injury.')
+        for term in ('head injury','head injuries','Head injury','Head injuries'):
+            reply['facts'][0]['sentence']='Kemhan reports that an evacuation scenario involved '+term+'.'
+            reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+            with self.subTest(term=term):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+        # Clinical support elsewhere in the article cannot support this fact.
+        unsupported='Simulasi evakuasi menangani pasien dengan luka tangan.'
+        r['body']=unsupported+'\n\n'+r['body']
+        reply['facts'][0]['evidence']=unsupported
+        with self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+            d.quality_check(r,reply)
+
+    def test_medical_head_use_does_not_bypass_an_office_in_the_same_fact(self):
+        r,reply=self.office_reading()
+        clinical=' Simulasi evakuasi menangani pasien dengan cedera kepala.'
+        r['body']=r['body'].replace(reply['facts'][0]['evidence'],reply['facts'][0]['evidence']+clinical)
+        reply['facts'][0]['evidence']+=clinical
+        reply['facts'][0]['evidence_translation']+=' The scenario treated a head injury.'
+        for head in ('Head','head'):
+            for holder in ('Nama Uji','Tokoh Lain'):
+                reply['facts'][0]['sentence']=(
+                    'Kemhan reports that '+head+' of RS Contoh, '+holder+', described a head injury scenario.')
+                reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+                with self.subTest(head=head,holder=holder):
+                    if holder=='Nama Uji':
+                        self.assertEqual(len(d.quality_check(r,reply)),64)
+                    else:
+                        with self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+                            d.quality_check(r,reply)
 
     def test_copied_credentials_still_fail_after_office_translation_passes(self):
         r,reply=self.office_reading()

@@ -310,7 +310,9 @@ workflow was dispatched. The authorized offline repair introduces prompt/QA
 v3: Head/Kepala requires the same cited institution and complete named holder;
 unknown role forms and changed acting/deputy status remain held. Generation
 uses minimal actor identity and omits unnecessary public credentials; the
-12-word copying rule is unchanged, including for names. Private replay also
+12-word copying rule is unchanged, including for names. The ordinary clinical
+phrases “head injury/injuries” require support in the same cited passage and
+do not bypass office checks, including lowercase office forms. Private replay also
 exposed a previously hidden cross-passage office-abbreviation expansion; its
 existing gate stays intact and generation now keeps local abbreviations literal.
 
@@ -318,7 +320,7 @@ All applicable checks were evaluated on the unchanged retained reading. Under
 v3 it still fails copying, private-name locality and old-prompt provenance.
 A separately labeled edited diagnostic (concise public actor plus literal local
 private office abbreviation) passes offline QA; it is not a model result or a
-recovered publication. Focused Indonesia/Philippines/date checks: 93 passed.
+recovered publication. Focused Indonesia/Philippines/date checks: 95 passed.
 Required exact-head CI belongs to the repair PR. No paid calls, queue changes,
 merge, activation or publication in this phase. Private receipts:
 `~/.codex/private-evidence/kemhan-controlled-v2-20261028/office-replay-{before,after}.json`.

@@ -276,8 +276,18 @@ Public regressions contain synthetic actors/evidence only. They cover local
 Head/Kepala with holder/institution parity, wrong office/actor, cross-passage
 support, role qualifications, copied credential sequences and a concise
 alternative. Existing date, negation, action-status, rights, copying and retry
-checks remain. Focused Indonesia/Philippines/date checks: 93 passed. Source
+checks remain. Focused Indonesia/Philippines/date checks: 95 passed. Source
 versions exclude prompt revisions; medical/industry counts and all
 held/paused/terminal entries retain their existing treatment. Public admission
 accepts v3 only; no Kemhan machine result has been released. Private originals,
 translations and replay receipts remain outside public commits/logs/artifacts.
+
+
+The #899 amendment fixes ordinary clinical “head injury/injuries” falsely
+entering office validation. It requires the medical term in the same cited
+passage (Indonesian `cedera kepala` or the literal English term). Office
+mentions in the same fact still require the unchanged institution/holder
+binding, including lowercase forms. Copying uses the unmodified public fact;
+no general Head whitelist or capitalization bypass is introduced. Synthetic
+regressions cover medical usage, absent/cross-passage medical support, mixed
+medical/office usage and lowercase supported/rejected office titles.
