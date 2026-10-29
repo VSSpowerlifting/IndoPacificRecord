@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import sys
 from pathlib import Path
@@ -21,16 +22,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from core.mindef_permissions import MINDEF_SOURCE_SLUG
+from core.mindef_public_boundary import (RESTRICTED_COLUMNS, table_digests,
+    expression_probes, assert_no_expression_bytes, project, assert_projected)
 from scripts.audit_mindef_public_surfaces import _sha256
 from scripts.reconcile_db import read_only
 
 # Expression-bearing official captures and derivative machine text. Source ID,
 # canonical URL, collection dates, original immutable content hash and record
 # ID remain for provenance. This is NOT a license for publication of URLs.
-RESTRICTED_COLUMNS = (
-    "title_original", "text_original", "title_english", "text_english",
-    "summary_english", "relevance_reasoning", "significance_reasoning",
-)
 PRESERVED_COLUMNS = (
     "id", "url", "content_hash", "source_id", "scrape_run_id",
     "published_date", "scraped_at",
@@ -94,6 +93,8 @@ def stage(source, private, public, manifest):
             raise ValueError("destination directory does not exist")
         if path.exists() or path.is_symlink():
             raise ValueError("refusing to overwrite existing staging file")
+    if any(Path(str(source) + suffix).exists() for suffix in ("-wal", "-shm", "-journal")):
+        raise ValueError("source must be a quiescent checkpointed snapshot, not a live writer")
     before = _sha256(source)
     created = []
     try:
@@ -110,6 +111,8 @@ def stage(source, private, public, manifest):
             original_hash = _article_digest(original, "s.slug=?")
             others_hash = _article_digest(original, "s.slug!=?")
             original_counts = _source_counts(original)
+            all_tables_before = table_digests(original, exclude_mindef=True)
+            probes = expression_probes(original)
             created.append(private)
             _copy_db(original, private)
         with read_only(private) as vault:
@@ -122,11 +125,14 @@ def stage(source, private, public, manifest):
             _copy_db(vault, public)
 
         with sqlite3.connect(str(public)) as projected:
-            columns = ", ".join(col + "=NULL" for col in RESTRICTED_COLUMNS)
-            projected.execute(
-                "UPDATE articles SET " + columns + " WHERE source_id IN "
-                "(SELECT id FROM sources WHERE slug=?)", (MINDEF_SOURCE_SLUG,))
-            projected.commit()
+            project(projected)
+            # Rebuild allocated pages. NULL updates alone leave recoverable
+            # expression in freelists, journals and overflow pages.
+            projected.execute("PRAGMA journal_mode=DELETE")
+            projected.execute("VACUUM")
+            assert_projected(projected)
+            if table_digests(projected, exclude_mindef=True) != all_tables_before:
+                raise ValueError("projection changed unrelated table rows")
             _assert_integrity(projected)
             if _article_digest(projected, "s.slug!=?") != others_hash:
                 raise ValueError("projection changed unrelated source records")
@@ -141,7 +147,11 @@ def stage(source, private, public, manifest):
             if projected.execute(query, (MINDEF_SOURCE_SLUG,)).fetchone()[0]:
                 raise ValueError("restricted text remains in public projection")
 
-        if _sha256(source) != before:
+        assert_no_expression_bytes(public, probes)
+        if any(Path(str(public) + suffix).exists() for suffix in ("-wal", "-shm", "-journal")):
+            raise ValueError("public candidate has SQLite sidecars")
+        if (_sha256(source) != before or any(Path(str(source) + suffix).exists()
+                for suffix in ("-wal", "-shm", "-journal"))):
             raise ValueError("source DB mutated during staging")
         receipt = {
             "schema": "ipr-mindef-staged-db-separation/1",
@@ -149,6 +159,10 @@ def stage(source, private, public, manifest):
             "private_db_sha256": _sha256(private),
             "public_candidate_db_sha256": _sha256(public),
             "private_mindef_article_digest": original_hash,
+            "all_non_mindef_table_digests": all_tables_before,
+            "public_expression_byte_probe_count": len(probes),
+            "public_freelist_count": 0,
+            "physical_rebuild_verified": True,
             "non_mindef_article_digest_preserved": others_hash,
             "source_slug": MINDEF_SOURCE_SLUG,
             "source_record_count": source_count,
@@ -170,15 +184,84 @@ def stage(source, private, public, manifest):
         raise
 
 
+def install_candidate(source, candidate, staged_receipt, restored, restore_receipt):
+    """Install on a quiescent review/release checkout after private readback.
+
+    Caller must serialize the actual release with Daily; this command never
+    merges, pushes or deploys. A changed baseline requires renewed custody.
+    """
+    source, candidate, restored = map(Path, (source, candidate, restored))
+    _outside_checkout(candidate)
+    _outside_checkout(restored)
+    staged, recovery = (json.loads(Path(p).read_text())
+                        for p in (staged_receipt, restore_receipt))
+    if (not recovery.get("durable_private_custody_confirmed")
+            or recovery.get("source_db_sha256") != staged["source_db_sha256"]
+            or _sha256(restored) != recovery["restored_db_sha256"]
+            or _sha256(source) not in (staged["source_db_sha256"], staged["public_candidate_db_sha256"])
+            or _sha256(candidate) != staged["public_candidate_db_sha256"]):
+        raise ValueError("custody/candidate/baseline mismatch; restage before cutover")
+    for path in (source, candidate):
+        if any(Path(str(path) + suffix).exists() for suffix in ("-wal", "-shm", "-journal")):
+            raise ValueError("cutover requires quiescent files without SQLite sidecars")
+    with read_only(restored) as vault, read_only(candidate) as public:
+        _assert_integrity(vault)
+        _assert_integrity(public)
+        assert_projected(public)
+        if _article_digest(vault, "s.slug=?") != staged["private_mindef_article_digest"]:
+            raise ValueError("custody source digest mismatch")
+        if table_digests(public, exclude_mindef=True) != table_digests(vault, exclude_mindef=True):
+            raise ValueError("unrelated data changed before cutover")
+        assert_no_expression_bytes(candidate, expression_probes(vault))
+    if _sha256(source) == staged["public_candidate_db_sha256"]:
+        return {"public_db_sha256": _sha256(source), "source_records": staged["source_record_count"],
+                "private_git_commit": recovery["private_git_commit"], "idempotent_retry": True,
+                "release_approved": False}
+    # Build beside the target for an atomic rename. Never copy a raw original
+    # into the public checkout. Crash before rename leaves the baseline intact.
+    import tempfile
+    fd, temporary = tempfile.mkstemp(prefix=".mindef-safe-", dir=source.parent)
+    try:
+        with os.fdopen(fd, "wb") as out, candidate.open("rb") as src:
+            shutil.copyfileobj(src, out)
+            out.flush()
+            os.fsync(out.fileno())
+        if (_sha256(source) != staged["source_db_sha256"] or
+                any(Path(str(source) + suffix).exists()
+                    for suffix in ("-wal", "-shm", "-journal"))):
+            raise ValueError("baseline changed during cutover; no overwrite")
+        os.replace(temporary, source)
+        directory = os.open(str(source.parent), os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    return {"public_db_sha256": _sha256(source), "source_records": staged["source_record_count"],
+            "private_git_commit": recovery["private_git_commit"], "release_approved": False}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-db", type=Path, required=True)
-    parser.add_argument("--private-copy", type=Path, required=True)
+    parser.add_argument("--private-copy", type=Path)
     parser.add_argument("--public-candidate", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
+    parser.add_argument("--install", action="store_true", help="Install on a serialized review/release checkout after verified private recovery")
+    parser.add_argument("--custody-restored-db", type=Path)
+    parser.add_argument("--custody-restore-receipt", type=Path)
     args = parser.parse_args(argv)
-    receipt = stage(args.source_db, args.private_copy,
-                    args.public_candidate, args.receipt)
+    if args.install:
+        if not args.custody_restored_db or not args.custody_restore_receipt:
+            parser.error("--install requires the restored private DB and its recovery receipt")
+        receipt = install_candidate(args.source_db, args.public_candidate, args.receipt,
+                                    args.custody_restored_db, args.custody_restore_receipt)
+    else:
+        if not args.private_copy:
+            parser.error("staging requires --private-copy")
+        receipt = stage(args.source_db, args.private_copy,
+                        args.public_candidate, args.receipt)
     print(json.dumps(receipt, indent=2, sort_keys=True))
     return 0
 

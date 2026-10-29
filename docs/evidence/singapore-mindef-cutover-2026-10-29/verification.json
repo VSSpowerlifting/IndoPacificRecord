@@ -1,0 +1,105 @@
+{
+  "actions_recovery": {
+    "bytes": 1759748,
+    "count": 70,
+    "independent_private_readback": true,
+    "manifest_sha256": "b4a39c8bd7f2505d94213bb3e5283093f5936e284b8b49ccb52ff47be120614e",
+    "private_git_commit": "86faf2f44ed8c4c37c6a68f344450b2f84a85aee",
+    "provider_digests_verified": 70,
+    "zip_crc_verified": true
+  },
+  "candidate": {
+    "all_unrelated_tables_preserved": true,
+    "delivered_text_bytes_scanned": 35731377,
+    "delivered_text_files_scanned": 2484,
+    "expression_probe_count": 9441,
+    "integrity_and_foreign_keys_verified": true,
+    "mindef_metadata_preserved": 98,
+    "physical_bytes_rechecked_after_identity_guards": true,
+    "public_db_sha256": "cff79929859c212cfa563416da37407be6e66bc60de7372a9fa12556dd44daa5",
+    "restricted_expression_matches": 0
+  },
+  "chromium_preview_widths": [
+    1280,
+    375
+  ],
+  "deployed_baseline_exposure": {
+    "gh_pages_commit": "7dba36012008d20f07b826d0e1c91ad9357ce0e4",
+    "mindef_record_pages_present": 98,
+    "mindef_records_expected": 98,
+    "source_body_pages": 97,
+    "tree_complete": true
+  },
+  "exact_head_ci": "See PR #913 required status checks; not asserted by this receipt",
+  "final_boundary_tests": 24,
+  "focused_regression_tests": 199,
+  "historical_git_cleanup_performed": false,
+  "non_mindef_generated_preservation": {
+    "changed_evidence_containers": 0,
+    "non_mindef_record_pages_compared": 1277
+  },
+  "preview_checks": [
+    "metadata label",
+    "no original body",
+    "no false title-translation claim",
+    "no horizontal overflow"
+  ],
+  "private_recovery": {
+    "all_other_tables_verified": true,
+    "durable_private_custody_confirmed": true,
+    "independent_provider_backup": false,
+    "integrity_and_foreign_keys_verified": true,
+    "manifest_sha256": "b9511ca2b221041b659ce7daf822272f2143ff08b92c6f5f3dea6d95a4115564",
+    "private_git_commit": "636596266f760e9f5309c4a24eb8c609e82a9e66",
+    "public_release_approved": false,
+    "record_bindings_and_expression_hashes_verified": true,
+    "restored_db_sha256": "403734e312efd26f8df55f18164c8f43a38bc7b74f846e20add0e6028b9eda73",
+    "schema": "ipr-mindef-private-restore/1",
+    "source_db_sha256": "2ea891ff77ea17f60d58926cdc8091d6a8d84039d6d38df8196d804c38470638",
+    "source_git_commit": "94146acd8751d6333dff18a7482a1d95e65a9834",
+    "source_record_count": 98
+  },
+  "release_authorized": false,
+  "schema": "ipr-mindef-cutover-verification/1",
+  "shadow_recovery": {
+    "fsck_passed": true,
+    "independent_private_readback": true,
+    "reachable_object_list_sha256": "b7de2e433e4be52926b104de2d1be0d7a0a2eeb562a2afcb6e39a42b99bd7e0e",
+    "reachable_objects": 386,
+    "source_tip": "2187b81051a804f1afdca1a2de99cad84ab43eff"
+  },
+  "surfaces": {
+    "approved_outbound_link_count": 4,
+    "blocked_family_machine_rows": 0,
+    "db_sha256_before_after": "cff79929859c212cfa563416da37407be6e66bc60de7372a9fa12556dd44daa5",
+    "historical_repository_and_cdn_exposure_not_audited": true,
+    "json_routes_with_potential_unapproved_urls": [],
+    "missing_record_pages": 0,
+    "nonempty_additional_db_fields": {
+      "processing_reason": 0,
+      "title_translation_attempt_source": 0,
+      "title_translation_claim": 0
+    },
+    "nonempty_db_fields": {
+      "relevance_reasoning": 0,
+      "significance_reasoning": 0,
+      "summary_english": 0,
+      "text_english": 0,
+      "text_original": 0,
+      "title_english": 0,
+      "title_original": 0
+    },
+    "potential_unapproved_json_url_occurrences": 0,
+    "release_eligible_from_this_scan": true,
+    "rendered_source_body_pages": 0,
+    "schema": "ipr-singapore-mindef-public-exposure/1",
+    "source_records": 98,
+    "source_slug": "sg_mindef_releases",
+    "surface": "tracked-working-tree-not-git-history-or-live-pages",
+    "unapproved_link_routes": [],
+    "unapproved_outbound_link_count": 0,
+    "unapproved_route_list_truncated": false
+  },
+  "unexpected_model_calls": 0,
+  "validator_warning_count": 10
+}

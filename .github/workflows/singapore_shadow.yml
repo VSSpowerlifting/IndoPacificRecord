@@ -39,6 +39,9 @@ permissions:
 
 jobs:
   shadow:
+    # Two-link permission does not authorize new collection/public custody.
+    # A rights-aware private continuation requires a separate release decision.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 

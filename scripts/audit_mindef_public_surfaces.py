@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.mindef_permissions import APPROVED_MINDEF_LINKS, MINDEF_SOURCE_SLUG
+from core.mindef_public_boundary import EXTRA_RESTRICTED
 from scripts.audit_generated_record_text import CapturedTextParser
 from scripts.reconcile_db import read_only
 
@@ -79,6 +80,18 @@ def audit(db_path, output_dir):
             "a.relevance_reasoning, a.significance_reasoning FROM articles a "
             "JOIN sources s ON a.source_id=s.id WHERE s.slug=? ORDER BY a.id",
             (MINDEF_SOURCE_SLUG,))]
+        additional = {}
+        for name in EXTRA_RESTRICTED:
+            if name in cols:
+                additional[name] = con.execute(
+                    "SELECT count(*) FROM articles WHERE source_id IN "
+                    "(SELECT id FROM sources WHERE slug=?) AND " + name + " IS NOT NULL",
+                    (MINDEF_SOURCE_SLUG,)).fetchone()[0]
+        machine_rows = 0
+        if con.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                       "AND name='daily_machine_records'").fetchone():
+            machine_rows = con.execute("SELECT count(*) FROM daily_machine_records "
+                "WHERE source_family=?", (MINDEF_SOURCE_SLUG,)).fetchone()[0]
     if before != _sha256(db_path):
         raise ValueError("database changed during read-only audit")
 
@@ -143,7 +156,8 @@ def audit(db_path, output_dir):
 
     public_original_fields = sum(nonempty.values())
     eligible = (public_original_fields == 0 and body_pages == 0
-                and unapproved_links == 0 and json_url_occurrences == 0)
+                and unapproved_links == 0 and json_url_occurrences == 0
+                and sum(additional.values()) == 0 and machine_rows == 0)
     return {
         "schema": "ipr-singapore-mindef-public-exposure/1",
         "surface": "tracked-working-tree-not-git-history-or-live-pages",
@@ -151,6 +165,8 @@ def audit(db_path, output_dir):
         "db_sha256_before_after": before,
         "source_records": len(rows),
         "nonempty_db_fields": nonempty,
+        "nonempty_additional_db_fields": additional,
+        "blocked_family_machine_rows": machine_rows,
         "rendered_source_body_pages": body_pages,
         "missing_record_pages": pages_absent,
         "approved_outbound_link_count": approved_links,

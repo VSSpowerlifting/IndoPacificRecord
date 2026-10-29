@@ -1,5 +1,24 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Singapore MINDEF rights-aware production cutover — review candidate (29 October 2026)
+
+PR #913 now includes a rebuilt public-safe SQLite candidate and regenerated
+shared site. All 98 source identities remain; original titles/bodies,
+translations, summaries and reasoning are withheld. Private GitHub custody of
+the full production snapshot, complete current source-shadow history and all
+70 retained Singapore Actions ZIPs has independent recovery/hash/integrity
+proof. The public Daily source/model queue and public shadow writer are held;
+no replacement collection, model spend, merge or deployment was activated.
+Three Briefs and two Dossiers are withheld as whole works without changing
+canonical manuscripts or approvals. Brief No. 20/Dylan and issue #914 remain
+separate. The actual output audit passes, unrelated tables and 1,277 record
+text containers match, and validation retains 10 warnings. Full exact-head CI
+and final release approval are required. Historical main/Pages/source refs,
+artifacts, canonical editorial sources and replay fixtures remain exposed;
+no erasure is claimed. See
+`docs/engineering/SINGAPORE_MINDEF_PRODUCTION_CUTOVER_2026-10-29.md` for proof,
+affected references, the recommended separate history cleanup and release steps.
+
 ## Haiku 5.5 opt-in compatibility and request-level cost accounting — review candidate (28 October 2026)
 
 `ANALYSIS_MODEL=claude-haiku-5-5` is now a valid opt-in for the shared Analyzer.

@@ -634,7 +634,14 @@ def load_corpus(db_path: Path) -> dict:
         for rec in corpus + recent:
             rec["desk_id"] = desk_by_source.get(rec["source_slug"])
             rec.update(title_receipts.get(rec["id"], {}))
-            rec["title_english"] = english_title(rec)
+            if rec["source_slug"] == "sg_mindef_releases":
+                # This is a metadata label, never a substitute publisher title.
+                rec["title_original"] = "Source metadata — Singapore MINDEF record %s" % rec["id"]
+                rec["title_english"] = None
+                rec["text_original"] = None
+                rec["summary_english"] = None
+            else:
+                rec["title_english"] = english_title(rec)
             value_hash = rec.get("title_translation_value_sha256")
             if value_hash and rec["title_english"] and value_hash != hashlib.sha256(rec["title_english"].encode("utf-8")).hexdigest():
                 # The stored title was edited after this receipt. Preserve it

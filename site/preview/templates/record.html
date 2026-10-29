@@ -179,7 +179,12 @@
     <section class="record-section" aria-labelledby="record-status">
       <h2 id="record-status">Processing status</h2>
       <p class="record-state">{{ record.state_label }}</p>
-      <p>{{ state_definition }}</p>
+      {% if record.source_slug == 'sg_mindef_releases' %}
+      <p>This is the historical processing status. Source text, original titles,
+      translations, summaries and reasoning are withheld under the current
+      source-use policy. The heading is an IPR metadata label, not a publisher headline.
+      New collection and model processing are held.</p>
+      {% else %}<p>{{ state_definition }}</p>{% endif %}
       {# "Model-flagged" appears only when the flag is actually true. Both
          outcomes are machine output, so both carry the machine label. #}
       {% if record.model_flagged is not none %}

@@ -389,6 +389,16 @@ def run(
             )
             continue
 
+        if slug == "sg_mindef_releases":
+            # No new source acquisition or external processing is authorized
+            # by the two-link grant. Preserve all historical collection rows.
+            from core.collection.contract import SourceRunResult
+            source_results.append(SourceRunResult(
+                source_slug=slug, desk_id="singapore",
+                status=collection_status.SKIPPED_DISABLED,
+                error_detail="MINDEF source-use hold; no collection or model processing"))
+            continue
+
         if registry.get_source(slug).access_method == "manual":
             # A manual source has no adapter and is never fetched here. It
             # enters the corpus only through its governed admission path,
@@ -642,6 +652,9 @@ def run(
     queue_desk: dict[int, Optional[str]] = {}
 
     def _in_daily_queue(desk_id: Optional[str]) -> bool:
+        if desk_id == "singapore":
+            held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
+            return False
         if profile_for_desk(desk_id).daily_queue:
             return True
         held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
