@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -67,8 +68,14 @@ class MetadataOnlySourceParser(HTMLParser):
                  "unidentified_regional_source_row")
             self.active = {"source_identity": a[
                 "data-regional-official-source-id"], "url": None,
-                           "day": None, "label": "", "links": 0, "times": 0}
+                           "day": None, "label": "", "links": 0, "times": 0,
+                           "explanation": None}
         elif self.active is not None and tag == "a":
+            if re.fullmatch(r"record/[1-9][0-9]*\.html", a.get("href") or ""):
+                need(self.active["explanation"] is None,
+                     "more_than_one_published_explanation")
+                self.active["explanation"] = a["href"]
+                return
             self.active["links"] += 1
             need(self.active["links"] == 1, "more_than_one_official_source_url")
             need({"noopener", "noreferrer"}.issubset(
@@ -106,7 +113,7 @@ class MetadataOnlySourceParser(HTMLParser):
              "unclosed_regional_source_html")
 
 
-def validate_page(actual_html, expected):
+def validate_page(actual_html, expected, *, explanations=None):
     parser = MetadataOnlySourceParser()
     parser.feed(actual_html)
     parser.close()
@@ -116,6 +123,8 @@ def validate_page(actual_html, expected):
          "rendered_official_source_count_disagrees_with_db")
     expected_by_id = {r["source_identity"]: r for r in expected}
     need(len(expected_by_id) == len(expected), "duplicate_source_id_in_db")
+    need(len({r["canonical_official_url"] for r in expected}) == len(expected),
+         "official_url_shared_by_source_identities")
     seen = set()
     for row in parser.rows:
         sid = row["source_identity"]
@@ -123,6 +132,9 @@ def validate_page(actual_html, expected):
              "html_contains_unadmitted_or_duplicate_source_id")
         seen.add(sid)
         registered = expected_by_id[sid]
+        if row["explanation"] is not None:
+            need(row["explanation"] == (explanations or {}).get(sid),
+                 "explanation_does_not_match_admitted_source_version")
         need(row["url"] == registered["canonical_official_url"] and
              row["day"] == registered["publisher_posted_date"] and
              row["label"].strip() == registered["label"],
@@ -130,6 +142,49 @@ def validate_page(actual_html, expected):
     need(seen == set(expected_by_id),
          "admitted_source_missing_from_site")
     return len(seen)
+
+
+def vietnam_explanations(db_path, expected):
+    """Read existing admission bindings; never infer identity from prose.
+
+    This is readback of the committed corpus, not a new rights decision or a
+    public-record count. VPCP's bibliography must still pin the metadata version
+    reviewed with the explanation, as at the transactional admission boundary.
+    """
+    from scripts.reconcile_db import read_only
+    from core.collection.vietnam_government_documents import digest
+    from core.vietnam_official_link_admission import exact_url
+    with read_only(str(db_path)) as conn:
+        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                            "AND name='vietnam_article_provenance'").fetchone():
+            return {}
+        rows = conn.execute(
+            "SELECT p.article_id,p.source_family,p.source_identity,"
+            "p.canonical_official_url,p.content_sha256,p.qa_json,"
+            "a.url,a.content_hash,a.passed_relevance,a.summary_english,s.slug "
+            "FROM vietnam_article_provenance p JOIN articles a ON a.id=p.article_id "
+            "JOIN sources s ON s.id=a.source_id").fetchall()
+    by_id = {r["source_identity"]: r for r in expected}
+    result = {}
+    for aid, family, sid, url, content, raw_qa, article_url, article_hash, relevant, summary, slug in rows:
+        if sid not in by_id:
+            continue
+        row = by_id[sid]
+        proof = json.loads(raw_qa)
+        need(sid not in result and family == slug and family in (
+                "vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi")
+             and url == article_url == row["canonical_official_url"]
+             and content == article_hash and relevant == 1 and bool(summary)
+             and isinstance(proof, dict) and proof.get("outcome") == "published",
+             "explanation_does_not_match_admitted_source_version")
+        exact_url(family, sid, url)
+        if family == "vn_vpcp_official_documents_vi":
+            document = proof.get("details", {}).get("VPCP_DOCUMENT", {})
+            need("document" in row and document.get("metadata_sha256") == digest(row["document"])
+                 and proof.get("second_pass", {}).get("ok") is True,
+                 "explanation_does_not_match_admitted_source_version")
+        result[sid] = "record/%s.html" % aid
+    return result
 
 
 def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
@@ -168,7 +223,8 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
             html = data.decode("utf-8")
         except (OSError, UnicodeError):
             raise ReadbackHold("committed_page_unavailable_or_non_utf8") from None
-        count = validate_page(html, expected)
+        explanations = vietnam_explanations(db_path, expected) if desk == "vietnam" else {}
+        count = validate_page(html, expected, explanations=explanations)
         if desk in required:
             need(count > 0, "claimed_live_desk_has_no_admitted_source_links")
         if pages_dir is not None:
@@ -206,7 +262,8 @@ def verify_vietnam_https(db_path, site_dir, *, fetch=None):
     need(actual == expected, "vietnam_https_bytes_differ_from_committed_output")
     rows = load_admitted_links(db_path, "vietnam")
     need(bool(rows), "vietnam_https_has_no_admitted_records")
-    validate_page(actual.decode("utf-8"), rows)
+    validate_page(actual.decode("utf-8"), rows,
+                  explanations=vietnam_explanations(db_path, rows))
     return {"https_url": "https://indopacificrecord.org/vietnam.html",
             "page_sha256": hashlib.sha256(actual).hexdigest(),
             "admitted_official_link_count": len(rows)}

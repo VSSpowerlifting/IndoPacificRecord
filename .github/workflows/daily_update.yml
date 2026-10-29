@@ -553,6 +553,24 @@ jobs:
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
           commit_message: 'Deploy: ${{ github.run_id }}'
 
+      # The legacy public Vietnam collector is retired. Keep its readback on
+      # the ordinary Daily that now admits and renders private handoffs.
+      - name: Reconcile Vietnam SQLite, HTML and Pages
+        if: steps.timecheck.outputs.should_run == 'true' && vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin gh-pages
+          vietnam_pages="$(mktemp -d "$RUNNER_TEMP/vietnam-pages.XXXXXX")"
+          git archive origin/gh-pages philippines.html indonesia.html vietnam.html | tar -x -C "$vietnam_pages"
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --site-dir output --deployed-dir "$vietnam_pages" --require-desk vietnam
+          for attempt in 1 2 3; do
+            if python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+              --site-dir output --require-desk vietnam --vietnam-https; then exit 0; fi
+            sleep 10
+          done
+          exit 1
+
       - name: Reconcile Japan SQLite, HTML and Pages
         if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
         run: |

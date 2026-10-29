@@ -1,5 +1,23 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Homepage "As published." register redesign — draft PR (28 October 2026)
+
+Branch `claude/ipr-homepage-editorial-design-1e4180` replaces the homepage's
+source-record cards with a ruled index. Each row has a rail with the date and the
+desk emblem, then a Source Serif 4 headline, the original title with its existing
+disclosure, the provenance line, and a quiet text state marker. "Analyzed" is now
+a dotted slate-blue rule, not a pill. The thumbnail plates and the stagger are gone.
+
+The featured panel is now a sticky navy column with an 80 px corner instead of the
+58 % curve. It shows its facts as a list, keeps the data-driven lead link, and
+keeps the chart-shelf wave. Its "Processing" row renders only when the feed
+supplies a state.
+
+Only `home.html` and `home.css` changed; the shared `record_row`, the pipeline
+and the data are untouched. Validation passed with the 10 governed warnings, and
+the homepage suites ran 537 tests with 2 skips. Screenshots are in
+`docs/evidence/frontend-home-register-2026-10-28/`. Not merged or deployed.
+
 ## Japan MOD news official links — source use approved, release held (27 October 2026)
 
 Prepared an off-by-default integration from the existing `shadow/jp-mod`
@@ -147,6 +165,23 @@ checks remain enforced. No database, generated output, source-use grant or
 dossier content changes are introduced relative to the incorporated main.
 Exact-head CI and all eight affected Actions checks are recorded in PR #879
 before handoff; merge and deployment require separate authorization.
+
+**Vietnam unattended verification candidate (28 October 2026).**
+Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
+5487/5488/5646 match byte for byte. Scheduled private collector `40594206247`
+and bridge `40604368261` are authenticated: MPS has two individual QA holds;
+the new VPCP document is screened out; no new handoff articles. The false
+`more_than_one_official_source_url` HOLD comes from counting 5646's internal
+explanation link as an official URL. The candidate validates that link against
+exact admitted identity/URL/version and adds existing readback to normal Daily.
+No count/template, policy, paid retry, database or output change is included;
+PR #895 and #893 remain independent. Dependable unattended readiness is not
+certified: the private source-cycle health signal remains incomplete (frozen
+MPS public watchdog; suppressed VPCP failures and quiet-cycle receipt gap).
+Latest public Daily failures are separate Japan gates, owned by PR #892.
+Evidence and pass/fail matrix:
+`docs/engineering/VIETNAM_UNATTENDED_ACCEPTANCE_2026-10-28.md`.
+Exact-head verification belongs in the review PR; no merge or release occurred.
 
 **Vietnam Government Office full-document integration (25 October 2026): 10744 published through the shared Daily.**
 The single authorized correction passed generation and independent factual review
@@ -319,7 +354,10 @@ All five retained readings were hash-checked and privately replayed through ever
 applicable predicate; all stay held. A separately labeled edited diagnostic
 using literal local institution forms passes offline QA, without changing or
 recovering any rejected reading. Focused Indonesia/Philippines/date checks:
-101 passed. Mandatory exact-head CI belongs to the review PR. This phase has
+101 passed. Repair PR #905 passed full CI at `dfaa72b648`: 8,193 tests
+(15 skips), Chromium, rendering, ten governed validator warnings and DB/output
+preservation. Main advanced during that run; the state-file conflict is resolved
+with this current checkpoint retained, and final merged-head CI is required. This phase has
 no paid calls, queue writes, merge, activation or publication. Medical retains
 one attempt, industry four, with unchanged source-version identities.
 Private replay receipts: `~/.codex/private-evidence/kemhan-institution-repair-20261028/`.

@@ -1,26 +1,22 @@
 {% extends "base.html" %}
 {% from "_records.html" import original_line, title_attrs, trail_tag %}
 {% import "_relief.html" as relief with context %}
-{# The register's card: the record_row fields and order, plus the source-stated
-   date and the desk's Natural Earth emblem (decorative, aria-hidden). Home
-   only; record_row stays the shared list contract. #}
+{# The register's index row: a narrow rail (source-stated date, the desk's
+   Natural Earth emblem, decorative and aria-hidden) beside the record_row
+   fields in their shared order: heading, original-language title and its
+   translation disclosure, provenance, then one processing state, any source
+   trail and the desk link. Home only; record_row stays the shared contract. #}
 {% macro home_card(r, desk_by_source) -%}
 {% set desk = desk_by_source.get(r.source_slug) if desk_by_source else none %}
-<li class="record-row rl-card home-card">{% if desk %}{{ relief.emblem(desk.slug) }}{% endif %}
-  <div>
-    {% if r.published_date %}
-    <p class="home-card-date"><time datetime="{{ r.published_date }}">{{ r.published_date | reader_date }}</time></p>
-    {% endif %}
+<li class="record-row rl-card home-card">
+  <div class="home-card-rail">{% if r.published_date %}<time datetime="{{ r.published_date }}">{{ r.published_date | reader_date }}</time>{% endif %}{% if desk %}{{ relief.emblem(desk.slug) }}{% endif %}</div>
+  <div class="home-card-body">
     <h3{{ title_attrs(r) }}><a href="record/{{ r.id }}.html">{{ r.title_english or r.title_original }}</a></h3>
     {{- original_line(r) }}
-    {% if r.state == 'analyzed' or r.in_trails %}
-    <p class="row-tags">{% if r.state == 'analyzed' %}<span class="state state--analyzed">{{ r.state_label }}</span>{% endif %}{{ trail_tag(r) }}</p>
-    {% endif %}
+    <p class="row-side"><span class="row-who">{{ r.institution or r.source_name }}</span>
+      <span class="row-via">{{ [r.source_name if r.institution else none, r.language_label] | select | join(' · ') }}</span></p>
+    <p class="row-tags"><span class="state state--{{ r.state }}">{{ r.state_label }}</span>{{ trail_tag(r) }}{% if desk %}<a class="home-card-desk" href="{{ desk.route }}">{{ desk.name }}</a>{% endif %}</p>
   </div>
-  <p class="row-side"><span class="row-who">{{ r.institution or r.source_name }}</span>
-    <span class="row-via">{{ [r.source_name if r.institution else none, r.language_label] | select | join(' · ') }}</span>
-    {% if desk %}<a href="{{ desk.route }}">{{ desk.name }}</a>{% endif %}
-    {% if r.state != 'analyzed' %}<span class="state state--{{ r.state }}">{{ r.state_label }}</span>{% endif %}</p>
 </li>
 {%- endmacro %}
 {% block title %}{{ title }} — Explore official records{% endblock %}
@@ -52,7 +48,20 @@
   <p class="home-section-dek">Original-language titles, source-stated dates, and the institutions behind them.</p>
   <div class="home-register-grid"><div class="home-recent"><ul class="record-list">{% for rec in archive_first[:4] %}{{ home_card(rec, desk_by_source) }}{% endfor %}</ul></div>
     {% if home_records.lead %}{% set selected = home_records.lead %}
-    <aside class="home-selected" aria-labelledby="selected-title"><p class="home-small-label">A record to explore</p><p class="meta">{{ selected.published_date | reader_date }} · {{ selected.source_name }}</p><h3 id="selected-title"><a href="record/{{ selected.id }}.html"{% if not selected.title_english and selected.language_tag %} lang="{{ selected.language_tag }}"{% endif %}>{{ selected.title_english or selected.title_original }}</a></h3>{% if selected.title_english and selected.title_original %}<p class="home-selected-original" lang="{{ selected.language_tag }}">{{ selected.title_original }}</p><p class="meta"><span class="evidence evidence--model">Machine translation</span> English title; the original is preserved above.</p>{% endif %}<div class="selected-links"><a href="record/{{ selected.id }}.html">Inspect this record</a></div></aside>
+    {% set selected_desk = desk_by_source.get(selected.source_slug) if desk_by_source else none %}
+    <aside class="home-selected" aria-labelledby="selected-title">
+      <p class="home-small-label">A record to explore</p>
+      <p class="meta">{% if selected.published_date %}<time datetime="{{ selected.published_date }}">{{ selected.published_date | reader_date }}</time> · {% endif %}{{ selected.source_name }}</p>
+      <h3 id="selected-title"><a href="record/{{ selected.id }}.html"{% if not selected.title_english and selected.language_tag %} lang="{{ selected.language_tag }}"{% endif %}>{{ selected.title_english or selected.title_original }}</a></h3>
+      {% if selected.title_english and selected.title_original %}<p class="home-selected-original" lang="{{ selected.language_tag }}">{{ selected.title_original }}</p>
+      <p class="meta home-selected-disclosure"><span class="evidence evidence--model">Machine translation</span> English title; the original is preserved above{% if selected.desk_id == 'china' and selected.language_tag != 'en' %} · human review not recorded{% endif %}.</p>{% endif %}
+      <dl class="home-selected-facts">
+        {% if selected.institution %}<div><dt>Institution</dt><dd>{{ selected.institution }}</dd></div>{% endif %}
+        {% if selected.language_label %}<div><dt>Language</dt><dd>{{ selected.language_label }}</dd></div>{% endif %}
+        {% if selected.state and selected.state_label %}<div><dt>Processing</dt><dd><span class="state state--{{ selected.state }}">{{ selected.state_label }}</span></dd></div>{% endif %}
+      </dl>
+      <p class="selected-links"><a href="record/{{ selected.id }}.html">Inspect this record</a>{% if selected_desk %}<a href="{{ selected_desk.route }}">{{ selected_desk.name }}</a>{% endif %}</p>
+    </aside>
     {% endif %}
   </div>
 </section>
