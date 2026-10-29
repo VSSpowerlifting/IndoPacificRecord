@@ -178,7 +178,7 @@ BUILD_MODE = "indo-pacific-record"
 #: published edition said at the time.
 MAINTAINER = {
     "name": "Benjamin Yang",
-    "role": "Founder & Director of Research and Editorial",
+    "role": "Founder & Executive Director",
     "bio": ("Benjamin Yang studies International Affairs at George Washington "
             "University’s Elliott School, with interests in U.S.–China "
             "relations, public diplomacy, and security affairs. He founded "
