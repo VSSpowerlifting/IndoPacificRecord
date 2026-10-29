@@ -9,7 +9,7 @@ link grant. Private storage is not a reproduction or model-input licence.
 
 | Existing path | Candidate behavior |
 | --- | --- |
-| `pipeline.py` → registry/adapter → public SQLite | MINDEF returns `skipped_disabled` before adapter construction. Singapore backlog is held before model dispatch. China and other desks retain their paths. |
+| `pipeline.py` → registry/adapter → public SQLite | MINDEF returns `skipped_disabled` before adapter construction. MINDEF backlog IDs are held before model dispatch; other Singapore publishers do not inherit this hold. China and other desks retain their paths. |
 | Public `singapore_shadow.yml` → public shadow ref/artifact | Job explicitly held. No replacement collector or new schedule is activated. Existing evidence is retained privately. |
 | `stage_mindef_public_projection.py` → SQLite | Stages a full-fidelity private copy, strips expression from the candidate, installs write guards, vacuums, verifies all unrelated tables and checks physical bytes. |
 | Private authenticated Git readback → `verify_mindef_custody.py` | Independent gzip restore, byte SHA-256, every source identity/provenance/expression hash, all unrelated table digests, integrity and foreign keys. No original text is logged. |

@@ -117,6 +117,12 @@ class MINDEFPublicBoundary(unittest.TestCase):
         self.assertTrue(editorial_hold({'sources': [{'source_id': 'sg_mindef_releases'}]}))
         self.assertFalse(editorial_hold({'url': 'https://www.mod.go.jp/example'}))
 
+    def test_processing_hold_selects_exact_source_ids(self):
+        from storage import db
+        with mock.patch.object(db, 'DB_PATH', self.source):
+            self.assertEqual(db.get_article_ids_for_source('sg_mindef_releases'), {101})
+            self.assertEqual(db.get_article_ids_for_source('unrelated'), {202})
+
     def test_normal_daily_new_china_record_and_singapore_hold_retry(self):
         from tests.integration.test_pipeline_run import PipelineRunCase, scraper_factory, article
         from adapters.legacy import LegacyScraperAdapter

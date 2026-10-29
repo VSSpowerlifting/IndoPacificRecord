@@ -651,8 +651,10 @@ def run(
     held_desks: dict[str, int] = {}
     queue_desk: dict[int, Optional[str]] = {}
 
-    def _in_daily_queue(desk_id: Optional[str]) -> bool:
-        if desk_id == "singapore":
+    mindef_article_ids = db.get_article_ids_for_source("sg_mindef_releases")
+
+    def _in_daily_queue(desk_id: Optional[str], *, article_id=None, source_slug=None) -> bool:
+        if source_slug == "sg_mindef_releases" or article_id in mindef_article_ids:
             held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
             return False
         if profile_for_desk(desk_id).daily_queue:
@@ -667,7 +669,8 @@ def run(
          a.get("text_original",  ""),
          a.get("url", "?"))
         for aid, a in inserted
-        if _in_daily_queue(desk_for_source(a.get("source_slug")))
+        if _in_daily_queue(desk_for_source(a.get("source_slug")),
+                           source_slug=a.get("source_slug"))
     ]
     queue_desk.update((aid, desk_for_source(a.get("source_slug")))
                       for aid, a in inserted)
@@ -681,7 +684,7 @@ def run(
     for aid, desk_id in backlog_desks.items():
         queue_desk.setdefault(aid, desk_id)
     pending_rows = [r for r in pending_all
-                    if _in_daily_queue(backlog_desks.get(r["id"]))]
+                    if _in_daily_queue(backlog_desks.get(r["id"]), article_id=r["id"])]
     pending: list[tuple[int, str, str, str]] = [
         (r["id"],
          r["title_original"] or "",
@@ -704,7 +707,7 @@ def run(
     unscored_rows = [
         r for r in unscored_all
         if r["id"] not in queued_ids
-        and _in_daily_queue(backlog_desks.get(r["id"]))
+        and _in_daily_queue(backlog_desks.get(r["id"]), article_id=r["id"])
     ]
     # Both backlog lanes can fail and retry. Keep each recorded count so the
     # existing reversible budget can eventually pause recurring failures.

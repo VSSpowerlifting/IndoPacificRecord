@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Offline, non-destructive staging of a private original and public-safe candidate.
+"""Offline staging and governed installation of a MINDEF public projection.
 
-This is a migration *staging* tool, not a deployment or a source-use license.
-It never edits the source DB or existing files, and it refuses to stage any
-copies inside the public checkout. Durable private custody, new collection
-routing, regenerated pages, external references and history require separate
-gates before public publication.
+Default staging preserves its input and refuses outputs inside the public
+checkout. --install replaces a quiescent review/release database only after
+matching staging, private-recovery and baseline checks. Neither mode collects,
+spends, merges, deploys, deletes canonical evidence or rewrites Git history.
 """
 from __future__ import annotations
 
