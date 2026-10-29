@@ -19,6 +19,12 @@ The original request explicitly stated that the Brief uses independent commentar
 - On previously generated/deployed pages this mitigation does **not** take effect until the governed render/deploy cycle runs.
 - Other reader surfaces (source pages, searchable cards, archive citations, historical HTML, feeds, link exports) must be audited for MINDEF URLs and reproduction before declaring site-wide compliance. The record-page fix by itself is not a complete audit.
 
+## Critical repository-distribution blocker
+
+The repository is public and tracks `pla_watch.db` and generated `output/`. The live renderer reads MINDEF captured bodies from the tracked SQLite file. **Withholding text in the HTML template does not remove public access to those archived originals through repository contents, earlier generated files, GitHub Pages deployments, or repository history.** These distinct distribution paths require a rights-aware storage and publishing migration. Do not rewrite provenance, corrupt source hashes, casually delete the DB, force-push history, or silently exclude records without an explicit validated migration and recovery plan. Verify the actual bytes and exposure before choosing a remediation.
+
+This PR is a contained reader-page safeguard, **not** a claim of public-data rights compliance. It must remain draft/unmerged pending a broader source-use review and release plan.
+
 ## Brief source attribution boundary
 
 The 25 October 2026 Bersama Lima Brief is bound to an exact reviewed editorial fingerprint, references and source-support matrix. This email removes the MINDEF hyperlink restriction **only for the two approved URLs**; it does not independently verify their factual content, alter the already-reviewed manuscript or substitute for editorial approval of revised references. Update the Brief through its existing editorial version/review mechanism, not by silently adding two unreviewed publisher references or bypassing its release checks.
