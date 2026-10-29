@@ -54,10 +54,7 @@
       <h3><a href="{{ rec.record_path }}">{{ rec.source_label }} · {{ rec.published_date }} · {{ rec.source_identity }}</a></h3>
       <p>{{ rec.summary }}</p>
       <p class="meta"><span class="evidence evidence--model">Machine explanation</span>
-        Publisher: {{ rec.publisher }} · Official date <time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time>
-        · {% if rec.model_flagged %}Model-flagged for closer reading: {{ rec.flag_reason }}{% else %}Not model-flagged{% endif %}
-        · Topics (machine-assigned): {{ rec.categories | map('replace', '_', ' ') | map('title') | join(', ') }}
-        · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
+        Publisher: {{ rec.publisher }} · Official date <time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · {% if rec.model_flagged %}Model-flagged for closer reading: {{ rec.flag_reason }}{% else %}Not model-flagged{% endif %} · Topics (machine-assigned): {{ rec.categories | map('replace', '_', ' ') | map('title') | join(', ') }} · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
     </li>
     {% endfor %}
   </ol>
@@ -123,8 +120,7 @@
     {% for ref in group %}
     <li data-regional-official-source-id="{{ ref.source_identity }}">
       <p><a href="{{ ref.canonical_official_url }}" target="_blank"
-            rel="noopener noreferrer">{{ ref.label }}</a>
-        · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time></p>
+            rel="noopener noreferrer">{{ ref.label }}</a> · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time></p>
       <p class="meta">Official-link metadata only{% if ref.source_identity in ph_explained %} · <span class="evidence evidence--model">Machine explanation published above</span>{% endif %}</p>
     </li>
     {% endfor %}
@@ -141,16 +137,13 @@
              rel="noopener noreferrer">{{ ref.label }}</a></h3>
       {% if ref.document | default(none) %}
       <p lang="vi">{{ ref.document.subject }}</p>
-      <p>Issuer: {{ ref.issuer_label }} ({{ ref.document.issuer }}) · {{ ref.document_type_label }} ({{ ref.document.document_type }})
-        · Signatory: {{ ref.document.signatory }}</p>
+      <p>Issuer: {{ ref.issuer_label }} ({{ ref.document.issuer }}) · {{ ref.document_type_label }} ({{ ref.document.document_type }}) · Signatory: {{ ref.document.signatory }}</p>
       <p class="meta">Subject index: {{ ref.topics | join(' · ') }}. Based on the portal's bibliographic subject only.</p>
       {% if ref.source_identity in vietnam_explained | default({}) %}
       <p><a href="{{ vietnam_explained[ref.source_identity] }}">Read the published English machine explanation</a></p>
       {% endif %}
       {% endif %}
-      <p class="meta">Publisher: {{ ref.publisher_label }}
-        · {{ ref.date_kind | default('Issue date' if ref.document | default(none) else 'Official date') }} <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time>
-        · Official-link metadata only</p>
+      <p class="meta">Publisher: {{ ref.publisher_label }} · {{ ref.date_kind | default('Issue date' if ref.document | default(none) else 'Official date') }} <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time> · Official-link metadata only</p>
       {% if ref.document | default(none) %}
       <p class="meta">First observed: {{ ref.first_observed_utc }}. Posting date is not established.
         {% if ref.document.effective_date %}Source-stated effective date: {{ ref.document.effective_date }}.{% else %}Effective date is not established.{% endif %}
@@ -208,9 +201,7 @@
     <li data-us-pacom-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
       <p class="meta">Publisher: U.S. Pacific Command · Website category:
-        {{ 'Press releases and readouts' if ref.section == 'press_release' else 'News articles' }}
-        · Published <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-        · Outbound official link only</p>
+        {{ 'Press releases and readouts' if ref.section == 'press_release' else 'News articles' }} · Published <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Outbound official link only</p>
     </li>
     {% endfor %}
   </ol>
@@ -239,9 +230,7 @@
     {% for ref in uscc_official_links %}
     <li data-uscc-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
-      <p class="meta">Issuer: U.S.-China Economic and Security Review Commission
-        · Official publication date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-        · Official link metadata only</p>
+      <p class="meta">Issuer: U.S.-China Economic and Security Review Commission · Official publication date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Official link metadata only</p>
     </li>
     {% endfor %}
   </ol>
@@ -270,9 +259,7 @@
     {% for ref in us_treasury_official_links %}
     <li data-us-treasury-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
-      <p class="meta">Issuer: U.S. Department of the Treasury
-        · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-        · First-party link metadata only</p>
+      <p class="meta">Issuer: U.S. Department of the Treasury · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · First-party link metadata only</p>
     </li>
     {% endfor %}
   </ol>
@@ -300,9 +287,7 @@
     {% for ref in us_bis_authenticated_links %}
     <li data-us-bis-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
-      <p class="meta">Issuer: U.S. Department of Commerce · Bureau of Industry and Security
-        · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-        · Outbound official link metadata only</p>
+      <p class="meta">Issuer: U.S. Department of Commerce · Bureau of Industry and Security · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Outbound official link metadata only</p>
     </li>
     {% endfor %}
   </ol>
@@ -331,8 +316,7 @@
       <p class="meta">IPR · Published <time datetime="{{ paper.published_on }}">{{ paper.published_on }}</time> · Editorial approval {{ paper.approved_on }}</p>
       <ul>
         {% for source in paper.source_links %}
-        <li><a href="{{ source.publisher_url }}" rel="noopener noreferrer"
-               target="_blank">{{ source.title_original }}</a>
+        <li><a href="{{ source.publisher_url }}" rel="noopener noreferrer" target="_blank">{{ source.title_original }}</a>
           <span class="meta"> · {{ source.issuer }} · {{ source.publisher_date }}</span></li>
         {% endfor %}
       </ul>
@@ -387,13 +371,9 @@
   <ol class="korea-public-source-list" aria-label="Five official Korean source references">
     {% for ref in korea_public_links -%}
     <li data-korea-public-link="{{ ref.source_identity }}">
-      <h3><a href="{{ ref.source_url }}" lang="ko" rel="noopener noreferrer"
-        target="_blank">{{ ref.title_original }}</a></h3>
-      <p class="meta">Issuer: Republic of Korea Ministry of National Defense (국방부)
-        · Republication: Republic of Korea Policy Briefing (대한민국 정책브리핑)</p>
-      <p class="meta">Portal posted: <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-        · Ministry document distributed: <time datetime="{{ ref.document_distribution_date }}">{{ ref.document_distribution_date }}</time>
-        · {{ ref.source_identity }}</p>
+      <h3><a href="{{ ref.source_url }}" lang="ko" rel="noopener noreferrer" target="_blank">{{ ref.title_original }}</a></h3>
+      <p class="meta">Issuer: Republic of Korea Ministry of National Defense (국방부) · Republication: Republic of Korea Policy Briefing (대한민국 정책브리핑)</p>
+      <p class="meta">Portal posted: <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Ministry document distributed: <time datetime="{{ ref.document_distribution_date }}">{{ ref.document_distribution_date }}</time> · {{ ref.source_identity }}</p>
     </li>
     {% endfor %}
   </ol>
@@ -408,8 +388,7 @@
     <ol class="korea-public-source-list" aria-label="Nine additional official Korean source links">
       {% for ref in korea_additional_links -%}
       <li data-korea-additional-link="{{ ref.source_identity }}">
-        <h4><a href="{{ ref.source_url }}" rel="noopener noreferrer"
-               target="_blank">{{ ref.neutral_label }}</a></h4>
+        <h4><a href="{{ ref.source_url }}" rel="noopener noreferrer" target="_blank">{{ ref.neutral_label }}</a></h4>
         <p class="meta">Issuer: Republic of Korea Ministry of National Defense
           (국방부) · Republication: Republic of Korea Policy Briefing
           (대한민국 정책브리핑) · External government link only</p>
@@ -426,8 +405,7 @@
      data-korea-production-admitted-count="{{ korea_production_link_count }}">
     <strong>{{ korea_production_link_count }}</strong> {% if korea_dapa_production_link_count | default(0) > 0 %}MND and DAPA{% else %}MND{% endif %} official-link metadata records
     have entered IPR's production database.
-    <span data-korea-mnd-count="{{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}">MND: {{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}</span>
-    · <span data-korea-dapa-count="{{ korea_dapa_production_link_count | default(0) }}">DAPA: {{ korea_dapa_production_link_count | default(0) }}</span>. The frozen historical bibliography
+    <span data-korea-mnd-count="{{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}">MND: {{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}</span> · <span data-korea-dapa-count="{{ korea_dapa_production_link_count | default(0) }}">DAPA: {{ korea_dapa_production_link_count | default(0) }}</span>. The frozen historical bibliography
     may already link to some of these same official records; duplicates are
     intentionally not repeated in the new-link list. These are URL, date and
     issuer records—not automatically reproduced documents or analysis.
@@ -449,12 +427,8 @@
     <ol class="korea-public-source-list" aria-label="Automatically admitted official Korean source links">
     {% for ref in korea_auto_official_links -%}
       <li data-korea-auto-official-link="{{ ref.source_identity }}">
-        <h4><a href="{{ ref.source_url }}" rel="noopener noreferrer"
-              target="_blank">{{ ref.neutral_label }}</a></h4>
-        <p class="meta">Issuer: {{ ref.issuer_label }} ({{ ref.issuer_original_label }})
-          · Republication: {{ ref.republisher_label }} (대한민국 정책브리핑)
-          · Portal posted: <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-          · Official link only</p>
+        <h4><a href="{{ ref.source_url }}" rel="noopener noreferrer" target="_blank">{{ ref.neutral_label }}</a></h4>
+        <p class="meta">Issuer: {{ ref.issuer_label }} ({{ ref.issuer_original_label }}) · Republication: {{ ref.republisher_label }} (대한민국 정책브리핑) · Portal posted: <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Official link only</p>
       </li>
     {% endfor %}
     </ol>
@@ -471,9 +445,7 @@
     {% for item, editorial, source in korea_english_publications %}
       {% set release_number = source.source_identity.split(':')[1] %}
       <li data-korea-english-reviewed="{{ source.source_identity }}">
-        <a href="korea-translations/{{ release_number }}.html">Reviewed English translation — release {{ release_number }}</a>
-        · <a href="korea-analysis/{{ release_number }}.html">IPR source-grounded analysis</a>
-        · <a href="korea-originals/{{ release_number }}.html">Verbatim Korean original</a>
+        <a href="korea-translations/{{ release_number }}.html">Reviewed English translation — release {{ release_number }}</a> · <a href="korea-analysis/{{ release_number }}.html">IPR source-grounded analysis</a> · <a href="korea-originals/{{ release_number }}.html">Verbatim Korean original</a>
       </li>
     {% endfor %}
     </ol>
@@ -492,11 +464,7 @@
     {% for item in korea_published_originals -%}
       <li data-korea-original-text="{{ item.source_identity }}">
         <h4><a href="{{ item.route }}">Read Korean original — release {{ item.news_id }}</a></h4>
-        <p class="meta">Source: <a href="{{ item.official_url }}" rel="noopener noreferrer"
-        target="_blank">Official government article</a>
-        · Portal posted: <time datetime="{{ item.publisher_posted_date }}">{{ item.publisher_posted_date }}</time>
-        · KOGL Type 1 text with attribution{% if korea_record_routes and korea_record_routes.get(item.source_identity) %}
-        · <a href="{{ korea_record_routes[item.source_identity] }}" data-korea-record-link="{{ item.source_identity }}">IPR record with machine translation (not human-reviewed)</a>{% endif %}</p>
+        <p class="meta">Source: <a href="{{ item.official_url }}" rel="noopener noreferrer" target="_blank">Official government article</a> · Portal posted: <time datetime="{{ item.publisher_posted_date }}">{{ item.publisher_posted_date }}</time> · KOGL Type 1 text with attribution{% if korea_record_routes and korea_record_routes.get(item.source_identity) %} · <a href="{{ korea_record_routes[item.source_identity] }}" data-korea-record-link="{{ item.source_identity }}">IPR record with machine translation (not human-reviewed)</a>{% endif %}</p>
       </li>
     {% endfor %}
     </ol>
@@ -541,19 +509,16 @@
         <strong>Structurally eligible for PRIVATE QA only — signoffs unauthenticated</strong>
         {% else %}
         <strong>Held for independent review</strong>
-        {% endif %}
-        · Republic of Korea MND
+        {% endif %} · Republic of Korea MND
       </p>
-      <h3><a lang="ko" href="{{ item.source_url }}" rel="noopener noreferrer"
-             target="_blank">{{ item.title_original }}</a></h3>
+      <h3><a lang="ko" href="{{ item.source_url }}" rel="noopener noreferrer" target="_blank">{{ item.title_original }}</a></h3>
       {% if preview %}
       <p lang="en" class="korea-private-synopsis">{{ preview.english_description }}</p>
       <p class="meta">English analytical descriptor for private checking only;
       not an official government translation, confirmed public permission,
       or released citation.</p>
       {% endif %}
-      <p class="meta">Policy Briefing posting: <time datetime="{{ item.published_date }}">{{ item.published_date }}</time>
-        · MND document distribution: <time datetime="{{ item.document_distribution_date }}">{{ item.document_distribution_date }}</time></p>
+      <p class="meta">Policy Briefing posting: <time datetime="{{ item.published_date }}">{{ item.published_date }}</time> · MND document distribution: <time datetime="{{ item.document_distribution_date }}">{{ item.document_distribution_date }}</time></p>
       <p class="meta">Official source ID: {{ item.source_identity }} · archived original text SHA-256:
         <code>{{ item.content_sha256 }}</code></p>
     </li>
@@ -707,8 +672,7 @@
       <p><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer"
             lang="id">{{ ref.title_original }}</a></p>
       <p class="meta">Kementerian Pertahanan Republik Indonesia · Published
-      <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-      · Original Indonesian · External official publication</p>
+      <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Original Indonesian · External official publication</p>
     </li>
     {% endfor %}
   </ol>
@@ -789,8 +753,7 @@
       <p><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer"
          lang="id">{{ ref.title_original }}</a></p>
       <p class="meta">Kementerian Pertahanan Republik Indonesia ·
-        <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-        · Press statement {{ ref.press_number }} · Original Indonesian</p>
+        <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Press statement {{ ref.press_number }} · Original Indonesian</p>
     </li>
     {% endfor %}
   </ol>
