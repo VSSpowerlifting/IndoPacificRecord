@@ -6934,9 +6934,9 @@ class TestPreviewEditionIdentity(unittest.TestCase):
                     "predecessor masthead %s and preserved with its" % self.HISTORICAL,
                     html)
 
-    # Since 2026-09-30 the newest item of one unified collection leads, so an
-    # issue cannot be forced to lead: ordering is deterministic. Identity now
-    # shows as each row's provenance line, taken from the collection.
+    # Since 2026-09-30 the newest item of one unified collection leads.
+    # The current reader-facing pages use neutral edition labels; canonical
+    # original-publication identity remains in the sidecar and citation record.
 
     def _provenance(self):
         from core import brief_collection as bc
@@ -6944,11 +6944,12 @@ class TestPreviewEditionIdentity(unittest.TestCase):
         return {r["entry"].get("issue"): r["provenance"]
                 for r in c.rows if r["kind"] == "issue"}
 
-    def test_the_lead_issue_states_its_provenance_on_both_pages(self):
+    def test_the_lead_issue_uses_neutral_labels_on_both_pages(self):
         pages = self.leads(14)
         for page, html in pages.items():
             with self.subTest(page=page):
-                self.assertIn("From the former series", html)
+                self.assertIn("Earlier Brief", html)
+                self.assertNotIn("From the former series", html)
                 self.assertNotIn("legacy China Desk series", html)
 
     def test_a_current_retrospective_lead_shows_the_canonical_label(self):
@@ -7039,51 +7040,50 @@ class TestPlaWatchPageSpansTheRename(unittest.TestCase):
         self.assertNotIn("published from 2026 under the\npredecessor masthead",
                          self.html)
 
-    def test_the_page_says_the_series_spanned_the_rename_and_holds_citations(self):
-        """Since DECISION_LOG 2026-09-30 the issues are earlier Briefs in one
-        collection; this page is their citation and provenance record, not a
-        second archive."""
+    def test_the_page_is_a_quiet_compatibility_bridge_with_original_citations(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertNotIn("continues across", text)
-        self.assertIn("spanned the project's publication rename", text)
-        self.assertIn("These issues are preserved as published", text)
-        self.assertIn("is now part of Indo-Pacific Record Briefs", text)
-        self.assertNotIn("This page is an archive of those issues", text)
-        self.assertIn(self.HISTORICAL, text)
-        self.assertIn(self.CURRENT, text)
+        intro = text.split('Citation text for the ')[0]
+        self.assertIn("Earlier Briefs", intro)
+        self.assertIn("Original editions and citations", intro)
+        self.assertIn("Indo-Pacific Record Briefs", intro)
+        self.assertNotIn("spanned the project's publication rename", intro)
+        self.assertNotIn(self.HISTORICAL, intro)
+        self.assertIn("The PLA Watch, No.", text)
+        self.assertIn("the-pla-watch/archive.html", text)
 
-    def test_the_counts_are_derived_not_hard_coded(self):
+    def test_the_citation_count_is_derived_not_hard_coded(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertIn("%d earlier editions" % len(self.hist), text)
-        self.assertIn("%d later" % len(self.cur), text)
-        # The literals must not be baked into the template.
+        self.assertIn("Citation text for the %d earlier Briefs" % len(self.editions), text)
         src = (REPO_ROOT / "site" / "preview" / "templates"
                / "pla_watch.html").read_text(encoding="utf-8")
+        self.assertIn("edition_citations | length", src)
         for literal in ("13 editions", "13 issues", "the same 13 titles"):
             with self.subTest(literal=literal):
                 self.assertNotIn(literal, src)
 
-    def test_only_historical_editions_are_attributed_to_the_predecessor(self):
-        text = re.sub(r"\s+", " ", self.html)
-        self.assertNotIn("Those issues were published by %s" % self.HISTORICAL,
-                         text)
-        self.assertIn("%d earlier editions were published under %s"
-                      % (len(self.hist), self.HISTORICAL), text)
+    def test_historical_editions_retain_original_citation_anchors(self):
+        for edition in self.hist:
+            with self.subTest(edition=edition["slug"]):
+                self.assertIn('id="cite-edition-%s"' % edition["slug"], self.html)
+        intro = self.html.split('<details class="ed-cite')[0]
+        self.assertNotIn(self.HISTORICAL, intro)
 
-    def test_current_editions_are_attributed_to_the_current_publication(self):
-        text = re.sub(r"\s+", " ", self.html)
-        self.assertIn("published by %s" % self.CURRENT, text)
+    def test_current_editions_also_retain_their_original_citation_anchors(self):
+        for edition in self.cur:
+            with self.subTest(edition=edition["slug"]):
+                self.assertIn('id="cite-edition-%s"' % edition["slug"], self.html)
+        self.assertIn(self.CURRENT, self.html)
 
-    def test_each_issue_is_said_to_keep_its_own_publication_identity(self):
+    def test_each_issue_keeps_its_original_publication_credit(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertIn("publication identity", text)
+        self.assertIn("original title, byline, date, publication credit and address", text)
         self.assertNotIn("because it did not", text)
 
-    def test_the_redirect_note_is_scoped_to_the_historical_editions(self):
+    def test_the_compatibility_page_links_to_existing_edition_archive(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertRegex(
-            text,
-            r"redirects to the \d+ editions published under that masthead")
+        self.assertIn("the-pla-watch/archive.html", text)
+        self.assertNotIn("redirects to the", text)
+        self.assertNotIn("Those issues were published by", text)
 
     def test_the_citation_block_covers_every_issue_and_adds_no_label(self):
         for e in self.editions:
@@ -7092,12 +7092,12 @@ class TestPlaWatchPageSpansTheRename(unittest.TestCase):
         # Timing is provenance on the catalog, not restated on the bridge.
         self.assertNotIn(self.RETRO, self.html)
 
-    def test_an_all_historical_fixture_still_explains_the_predecessor(self):
+    def test_an_all_historical_fixture_preserves_citations_without_rebrand_prose(self):
         html = self._render(self.hist)
         text = re.sub(r"\s+", " ", html)
-        self.assertIn(self.HISTORICAL, text)
-        self.assertIn("%d earlier editions were published under %s"
-                      % (len(self.hist), self.HISTORICAL), text)
+        self.assertIn("Citation text for the %d earlier Briefs" % len(self.hist), text)
+        self.assertIn("The PLA Watch, No.", text)
+        self.assertNotIn(self.HISTORICAL, text.split('<details class="ed-cite')[0])
         self.assertNotIn(self.RETRO, text)
 
     def test_the_template_infers_no_boundary_and_names_no_publication(self):
