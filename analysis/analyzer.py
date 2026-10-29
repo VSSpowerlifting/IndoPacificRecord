@@ -103,6 +103,61 @@ def _classify_status_error(exc: "anthropic.APIStatusError") -> AnalysisError:
     return AnalysisError(detail)
 
 
+#: The one model whose request shape differs, matched exactly: it has no dated
+#: snapshot or alias (platform.claude.com/docs/en/models/haiku-5-5/migration-guide).
+#: Opt-in only, through the ANALYSIS_MODEL / RELEVANCE_MODEL overrides.
+HAIKU_5_5 = "claude-haiku-5-5"
+
+# Compared as a plain string: the installed SDK's stop_reason Literal does not
+# list it, but the API documents it.
+_CONTEXT_EXCEEDED_STOP = "model_context_window_exceeded"
+
+
+def _request_settings(model: str, temperature: float) -> dict:
+    """
+    Sampling/reasoning fields for one request.
+
+    Every other model keeps the historical `temperature`, so its request is
+    byte-for-byte what it was. Haiku 5.5 rejects temperature/top_p/top_k with a
+    400; it gets no sampling field and instead thinking off at high effort
+    (disabled thinking is accepted at low/medium/high). Both travel in
+    `extra_body` so every SDK that requirements.txt permits can send them.
+    """
+    if model == HAIKU_5_5:
+        return {"extra_body": {"thinking": {"type": "disabled"},
+                               "output_config": {"effort": "high"}}}
+    return {"temperature": temperature}
+
+
+def _stop_rejection(stop_reason, model: str) -> Optional[str]:
+    """
+    The error for a stop that voids the response whatever it contains, or
+    None. Truncation is checked separately by each wrapper, which keeps its
+    existing message.
+    """
+    if stop_reason == "refusal":
+        return f"Model declined the request (stop_reason=refusal, model={model})"
+    if stop_reason == _CONTEXT_EXCEEDED_STOP:
+        return (f"Prompt exceeded the context window "
+                f"(stop_reason={_CONTEXT_EXCEEDED_STOP}, model={model})")
+    return None
+
+
+def _response_text(content) -> str:
+    """
+    Every text block of a response, joined in order. Thinking and tool_use
+    blocks never count as the answer. A block with no `type` but a str `text`
+    is accepted for the synthetic doubles the tests have always used.
+    """
+    parts = []
+    for block in content or ():
+        kind = getattr(block, "type", None)
+        text = getattr(block, "text", None)
+        if isinstance(text, str) and kind in ("text", None):
+            parts.append(text)
+    return "".join(parts)
+
+
 class Analyzer:
     """
     Runs all four LLM analysis tasks.
@@ -179,7 +234,7 @@ class Analyzer:
             system=system if system is not None else self._SYSTEM_WITH_CACHE,
             messages=messages,
             max_tokens=max_tokens,
-            temperature=temperature,
+            **_request_settings(used_model, temperature),
         )
         try:
             if stream:
@@ -208,13 +263,17 @@ class Analyzer:
                 getattr(usage, "cache_creation_input_tokens", 0),
             )
 
+        stopped = _stop_rejection(response.stop_reason, used_model)
         truncated = response.stop_reason == "max_tokens"
-        empty = not response.content
+        text = _response_text(response.content)
+        empty = not text.strip()
         # The response exists, so its reported tokens are real spend even when
-        # the output is then rejected below.
+        # the output is then rejected below. Recorded once, before any raise.
         self.usage.record_response(task, used_model, usage,
-                                   failed=truncated or empty)
+                                   failed=bool(stopped) or truncated or empty)
 
+        if stopped:
+            raise AnalysisError(stopped)
         if truncated:
             raise AnalysisError(
                 f"Response truncated at the {max_tokens}-token ceiling "
@@ -226,7 +285,7 @@ class Analyzer:
             raise AnalysisError(
                 f"Empty response content (stop_reason={response.stop_reason})"
             )
-        return response.content[0].text
+        return text
 
     # The translation is the one task whose output contains long free prose, and
     # prose is exactly where hand-rolled JSON breaks: the prompt asks the model
@@ -302,7 +361,8 @@ class Analyzer:
         Forced-tool call. Returns the tool input already parsed by the SDK.
 
         Streams, because the callers that need a tool are the ones producing
-        long output. Raises AnalysisError on truncation or a missing tool block.
+        long output. Raises AnalysisError on a refusal, context-window or
+        truncation stop, or a missing tool block.
         `task` is the usage-telemetry label; see `_call`. Model/system default
         to the historical translation settings, unchanged for existing callers.
         """
@@ -313,7 +373,7 @@ class Analyzer:
                 system=system if system is not None else self._SYSTEM_WITH_CACHE,
                 messages=messages,
                 max_tokens=max_tokens,
-                temperature=temperature,
+                **_request_settings(used_model, temperature),
                 tools=[tool],
                 tool_choice={"type": "tool", "name": tool["name"]},
             ) as s:
@@ -333,12 +393,15 @@ class Analyzer:
              if b.type == "tool_use" and b.name == tool["name"]),
             None,
         )
+        stopped = _stop_rejection(response.stop_reason, used_model)
         truncated = response.stop_reason == "max_tokens"
         # Reported tokens are real spend even if the output is rejected below.
         self.usage.record_response(
             task, used_model, getattr(response, "usage", None),
-            failed=truncated or tool_block is None)
+            failed=bool(stopped) or truncated or tool_block is None)
 
+        if stopped:
+            raise AnalysisError(stopped)
         if truncated:
             raise AnalysisError(
                 f"Response truncated at the {max_tokens}-token ceiling "
