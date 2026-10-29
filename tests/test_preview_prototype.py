@@ -1464,7 +1464,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         self.assertIn('href="team.html"', html)
         self.assertIn(gp.MAINTAINER["email"], html)
         profile = self.page("authors/benjamin-yang.html")
-        self.assertIn("Founder &amp; Director of Research and Editorial", profile)
+        self.assertIn("Founder &amp; Executive Director", profile)
         self.assertIn(gp.MAINTAINER["linkedin"], profile)
 
     def test_the_lead_edition_carries_a_byline(self):
@@ -5358,7 +5358,7 @@ class TestSnapshotScopedCitations(PreviewCase):
         self.assertEqual(
             gp.corpus_citation("Test Title", gp.DECLARED_SNAPSHOT),
             "Test Title. Research Atlas corpus. Snapshot — "
-            "%s. %s records. Benjamin Yang, Founder & Director of Research and Editorial."
+            "%s. %s records. Benjamin Yang, Founder & Executive Director."
             % (gp.DECLARED_SNAPSHOT["date"],
                "{:,}".format(gp.DECLARED_SNAPSHOT["expected_records"])))
 
