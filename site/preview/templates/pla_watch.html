@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_atlas.html" import breadcrumb %}
-{% block title %}{{ predecessor_series }} is now part of {{ collection_name }} — {{ title }}{% endblock %}
+{% block title %}Earlier Briefs — {{ title }}{% endblock %}
 {% block content %}
 {# A compatibility page, and only that. The PLA Watch's issues are earlier
    Briefs in the one catalog on Analysis (DECISION_LOG 2026-09-30), which is
@@ -10,25 +10,19 @@
    page body, and it lists no issue titles of its own. #}
 {% set historical_editions = editions | selectattr('era', 'equalto', 'historical') | list %}
 {% set current_editions = editions | selectattr('era', 'equalto', 'current') | list %}
-{{ breadcrumb([(collection_name, 'analysis.html'), (predecessor_series, none)]) }}
+{{ breadcrumb([(collection_name, 'analysis.html'), ('Earlier Briefs', none)]) }}
 <header class="page-head">
-<p class="eyebrow">{{ predecessor_series }}</p>
-<h1>{{ predecessor_series }} is now part of {{ collection_name }}</h1>
-<p class="lede">The China Desk's weekly series {{ predecessor_series }} spanned the project's
-publication rename{% if historical_editions %}: {{ historical_editions | length }} earlier editions were published under {{ predecessor_name }}{% endif %}{% if historical_editions and current_editions %}, and {{ current_editions | length }} later {{ 'edition was' if current_editions | length == 1 else 'editions were' }} published by {{ title }}{% endif %}{% if current_editions and not historical_editions %}{{ current_editions | length }} editions were published by {{ title }}{% endif %}.
-Its issues are now earlier Briefs in {{ collection_name }}, listed with every other Brief in one place.</p>
+<p class="eyebrow">Archive</p>
+<h1>Earlier Briefs</h1>
+<p class="lede">Earlier China Desk issues are included in <a href="analysis.html">{{ collection_name }}</a>.</p>
 <p><a class="btn btn--primary" href="analysis.html">Read the Briefs</a></p>
 </header>
 
 <div class="notice">
-  <h2 class="plain">These issues are preserved as published</h2>
-  <p>Every issue keeps the issue number, title, dek, byline, date and publication identity it
-  carried when it was published, and keeps the path it was published at:
-  <a href="{{ live_base }}/the-pla-watch/archive.html" rel="noopener">the series archive</a>.
-  {% if historical_editions %}{{ predecessor_name }}'s own domain redirects to the
-  {{ historical_editions | length }} editions published under that masthead rather than dropping
-  them.{% endif %} No issue is rewritten to look as though it appeared under a masthead
-  it did not carry, in either direction.</p>
+  <h2 class="plain">Original editions and citations</h2>
+  <p>Each edition retains its original title, byline, date, publication credit and address.
+  The <a href="{{ live_base }}/the-pla-watch/archive.html" rel="noopener">edition archive</a>
+  remains available.</p>
 </div>
 
 {% if edition_citations %}
@@ -44,7 +38,7 @@ Its issues are now earlier Briefs in {{ collection_name }}, listed with every ot
     <li>
       <p class="cite-text" id="{{ item.anchor }}">{{ item.citation }}</p>
       <button type="button" class="cite-copy" data-copy="{{ item.anchor }}"
-              aria-label="Copy citation for The PLA Watch number {{ item.edition.issue }}" hidden>Copy</button>
+              aria-label="Copy citation for earlier Brief number {{ item.edition.issue }}" hidden>Copy</button>
       <p class="cite-status" role="status" aria-live="polite"></p>
     </li>
   {% endfor %}
@@ -52,9 +46,8 @@ Its issues are now earlier Briefs in {{ collection_name }}, listed with every ot
 </details>
 {% endif %}
 
-<h2>A gap in the series, recorded rather than hidden</h2>
-<p>There is no edition for the week ending 25 July 2026. An eight-day collection outage left that
-window with one observed day of seven, and retro-scraping was tested and rejected as unsound. The
-outage itself is listed on <a href="coverage.html">Coverage</a>.</p>
+<h2>Coverage note</h2>
+<p>No edition was published for the week ending 25 July 2026 following a collection outage.
+See <a href="coverage.html">Coverage</a> for the recorded gap.</p>
 {% endblock %}
 {% block scripts %}<script src="citation.js" defer></script>{% endblock %}

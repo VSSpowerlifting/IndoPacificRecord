@@ -679,22 +679,17 @@ class TestLegacyChinaRoutesSurvive(DeskCase):
         self.assertIn("China", html)
         self.assertNotIn("Japan Desk", html)
 
-    def test_the_pla_watch_page_is_labelled_as_a_legacy_series(self):
-        """
-        The issues were published under the predecessor masthead. Saying so is
-        the difference between preserving a record and backdating a rebrand.
-        """
+    def test_the_pla_watch_page_preserves_original_citations_without_active_brand(self):
+        """The compatibility route keeps citation provenance without competing branding."""
         html = self.page("pla-watch.html")
-        self.assertIn("The PLA Watch", html)
-        self.assertIn("China Mil Watch", html)
-        self.assertIn("preserved as published", html.lower())
-        self.assertIn("did not", html)
-        # The series spans the rename, so the predecessor attribution is scoped
-        # to the editions that actually carried that masthead rather than
-        # applied to all of them.
-        self.assertRegex(
-            html, r"\d+ earlier editions were published under China Mil Watch")
-        self.assertNotIn("Those issues were published by China Mil Watch", html)
+        head = html.split('<details class="ed-cite')[0]
+        self.assertIn("Earlier Briefs", head)
+        self.assertIn("Original editions and citations", head)
+        self.assertIn("the-pla-watch/archive.html", html)
+        self.assertNotIn("China Mil Watch", head)
+        self.assertNotIn("The PLA Watch is now part of", head)
+        self.assertIn('id="cite-edition-', html)
+        self.assertIn("The PLA Watch", html)  # authentic citation text
 
     def test_the_prototype_never_writes_into_the_production_namespace(self):
         for reserved in ("article", "the-pla-watch"):
