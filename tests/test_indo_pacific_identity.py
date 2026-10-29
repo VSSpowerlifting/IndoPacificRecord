@@ -230,17 +230,14 @@ class TestRetiredNamesStayRetired(IdentityCase):
                     name, ARCHIVAL_PAGES,
                     "%s names the predecessor outside archival context" % name)
 
-    def test_the_predecessor_is_named_where_the_change_is_explained(self):
-        """
-        The other half of the rule. A rebrand that never mentions what it
-        replaced leaves a reader unable to connect a citation to its source.
-        """
+    def test_active_pages_use_a_single_current_publication_identity(self):
         about = self.page("about.html")
-        self.assertIn(PREDECESSOR, about)
-        self.assertIn("The umbrella name changed because the scope did", about)
         series = self.page("pla-watch.html")
-        self.assertIn(PREDECESSOR, series)
-        self.assertIn(PREDECESSOR_SERIES, series)
+        self.assertNotIn(PREDECESSOR, about)
+        self.assertNotIn("The umbrella name changed", about)
+        self.assertIn("Earlier Briefs", series)
+        self.assertIn("Indo-Pacific Record Briefs", series)
+        self.assertNotIn(PREDECESSOR, series.split('<details class="ed-cite')[0])
 
     def test_the_predecessor_is_never_described_as_the_current_product(self):
         for name, html in self.pages().items():
@@ -252,21 +249,15 @@ class TestRetiredNamesStayRetired(IdentityCase):
                               "Welcome to %s" % PREDECESSOR):
                     self.assertNotIn(claim, flat)
 
-    def test_the_pla_watch_series_page_is_an_archive(self):
-        """
-        Until 2026-09-23 this asserted the opposite: that the series continued
-        and was "not a discontinued one". DECISION_LOG 2026-09-23 ruled that no
-        new issue is published as The PLA Watch, so the page now presents its
-        existing issues, with their attribution, as an archive.
-        """
+    def test_the_pla_watch_series_page_is_a_quiet_compatibility_archive(self):
         html = re.sub(r"\s+", " ", self.page("pla-watch.html"))
         self.assertNotIn("not a discontinued one", html)
         self.assertNotIn("The series continues", html)
-        # 2026-09-30: no longer a second archive; the issues are earlier Briefs.
         self.assertNotIn("This page is an archive of those issues", html)
-        self.assertIn("is now part of Indo-Pacific Record Briefs", html)
-        self.assertIn("preserved as published", html)
-
+        self.assertIn("Earlier Briefs", html)
+        self.assertIn("Original editions and citations", html)
+        self.assertIn("the-pla-watch/archive.html", html)
+        self.assertIn("The PLA Watch, No.", html)  # original issue citations
 
 class TestTheGuardIsNotARepositoryWideStringBan(unittest.TestCase):
     """
