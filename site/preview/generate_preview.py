@@ -82,6 +82,7 @@ from core.china_discovery import build_focus                        # noqa: E402
 from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
 from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
+from core.mindef_permissions import source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
 from scripts.desk_map import layout as desk_map_layout              # noqa: E402
 
@@ -658,6 +659,9 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
+        # Exact written permission for two MINDEF hyperlinks, not source-text reuse.
+        # Derived presentation field; never changes raw corpus custody or fingerprint.
+        rec["mindef_link_allowed"] = source_link_approved(rec["source_slug"], rec["url"])
         if rec["id"] in vietnam:
             # Vietnam Desk rows only; every other record dict is unchanged.
             rec["vietnam"] = vietnam[rec["id"]]
