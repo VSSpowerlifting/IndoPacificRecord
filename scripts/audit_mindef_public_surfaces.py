@@ -24,7 +24,8 @@ from core.mindef_permissions import APPROVED_MINDEF_LINKS, MINDEF_SOURCE_SLUG
 from scripts.audit_generated_record_text import CapturedTextParser
 from scripts.reconcile_db import read_only
 
-TEXT_FIELDS = ("title_original", "title_english", "text_original", "summary_english")
+TEXT_FIELDS = ("title_original", "title_english", "text_original", "text_english",
+               "summary_english", "relevance_reasoning", "significance_reasoning")
 
 
 def _sha256(path):
@@ -74,7 +75,8 @@ def audit(db_path, output_dir):
             raise ValueError("articles schema missing required public exposure fields")
         rows = [dict(r) for r in con.execute(
             "SELECT a.id, a.url, a.title_original, a.title_english, "
-            "a.text_original, a.summary_english FROM articles a "
+            "a.text_original, a.text_english, a.summary_english, "
+            "a.relevance_reasoning, a.significance_reasoning FROM articles a "
             "JOIN sources s ON a.source_id=s.id WHERE s.slug=? ORDER BY a.id",
             (MINDEF_SOURCE_SLUG,))]
     if before != _sha256(db_path):
@@ -107,9 +109,41 @@ def audit(db_path, output_dir):
         if scanner.bad:
             bad_routes.append(path.relative_to(output_dir).as_posix())
 
+    # Generated JSON can contain URLs later rendered as links by client-side
+    # search/archive code. Count occurrences as potential exposure, not as
+    # already-observed clickable HTML anchors.
+    json_url_occurrences = 0
+    json_routes = []
+    for path in sorted(output_dir.rglob("*.json")):
+        if path.is_symlink():
+            raise ValueError("symlink encountered in rendered JSON")
+        raw = path.read_text(encoding="utf-8")
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            raise ValueError("invalid generated JSON: " +
+                             path.relative_to(output_dir).as_posix())
+        stack = [parsed]
+        count = 0
+        while stack:
+            value = stack.pop()
+            if isinstance(value, dict):
+                stack.extend(value.values())
+            elif isinstance(value, list):
+                stack.extend(value)
+            elif isinstance(value, str) and "mindef.gov.sg" in value:
+                # A source URL embedded in a citation string is not an exact
+                # authorized hyperlink. Treat it conservatively, without
+                # printing the text. Exact URL fields retain the two grants.
+                if value not in APPROVED_MINDEF_LINKS:
+                    count += 1
+        if count:
+            json_url_occurrences += count
+            json_routes.append(path.relative_to(output_dir).as_posix())
+
     public_original_fields = sum(nonempty.values())
     eligible = (public_original_fields == 0 and body_pages == 0
-                and unapproved_links == 0)
+                and unapproved_links == 0 and json_url_occurrences == 0)
     return {
         "schema": "ipr-singapore-mindef-public-exposure/1",
         "surface": "tracked-working-tree-not-git-history-or-live-pages",
@@ -121,6 +155,8 @@ def audit(db_path, output_dir):
         "missing_record_pages": pages_absent,
         "approved_outbound_link_count": approved_links,
         "unapproved_outbound_link_count": unapproved_links,
+        "potential_unapproved_json_url_occurrences": json_url_occurrences,
+        "json_routes_with_potential_unapproved_urls": json_routes[:25],
         "unapproved_link_routes": bad_routes[:25],
         "unapproved_route_list_truncated": len(bad_routes) > 25,
         "release_eligible_from_this_scan": eligible,
