@@ -27,17 +27,18 @@ class PublicMINDEFExposureTests(unittest.TestCase):
                 CREATE TABLE articles (
                     id INTEGER PRIMARY KEY, source_id INTEGER, url TEXT,
                     title_original TEXT, title_english TEXT, text_original TEXT,
-                    summary_english TEXT
+                    summary_english TEXT, text_english TEXT,
+                    relevance_reasoning TEXT, significance_reasoning TEXT
                 );
                 INSERT INTO sources VALUES (1, 'sg_mindef_releases');
                 INSERT INTO sources VALUES (2, 'unrelated');
-                INSERT INTO articles VALUES
+                INSERT INTO articles (id,source_id,url,title_original,title_english,text_original,summary_english) VALUES
                     (101, 1, 'https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/',
                      'SYNTHETIC TITLE', NULL, 'SYNTHETIC SOURCE BODY', 'SYNTHETIC SUMMARY');
-                INSERT INTO articles VALUES
+                INSERT INTO articles (id,source_id,url,title_original,title_english,text_original,summary_english) VALUES
                     (102, 1, 'https://www.mindef.gov.sg/other/',
                      NULL, NULL, NULL, NULL);
-                INSERT INTO articles VALUES
+                INSERT INTO articles (id,source_id,url,title_original,title_english,text_original,summary_english) VALUES
                     (200, 2, 'https://example.org/',
                      'UNRELATED TITLE', NULL, 'UNRELATED BODY', NULL);
             """)
@@ -55,6 +56,8 @@ class PublicMINDEFExposureTests(unittest.TestCase):
         self.assertEqual(r["nonempty_db_fields"], {
             "title_original": 1, "title_english": 0,
             "text_original": 1, "summary_english": 1,
+            "text_english": 0, "relevance_reasoning": 0,
+            "significance_reasoning": 0,
         })
         self.assertEqual(r["rendered_source_body_pages"], 1)
         self.assertEqual(r["approved_outbound_link_count"], 1)
@@ -65,7 +68,9 @@ class PublicMINDEFExposureTests(unittest.TestCase):
     def test_clean_projection_enforce_succeeds(self):
         with sqlite3.connect(self.db) as db:
             db.execute("UPDATE articles SET title_original=NULL, title_english=NULL, "
-                       "text_original=NULL, summary_english=NULL WHERE source_id=1")
+                       "text_original=NULL, summary_english=NULL, "
+                       "text_english=NULL, relevance_reasoning=NULL, "
+                       "significance_reasoning=NULL WHERE source_id=1")
         (self.output / "record/101.html").write_text(
             '<a href="https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/">'
             'Approved</a>', encoding="utf-8")
@@ -85,6 +90,19 @@ class PublicMINDEFExposureTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(main(["--db", str(self.db), "--output", str(self.output),
                                    "--enforce"]), 2)
+
+    def test_json_urls_are_counted_as_potential_client_links(self):
+        (self.output / "archive-research-index.json").write_text(
+            json.dumps({"links": [
+                "https://www.mindef.gov.sg/other/",
+                "https://www.mindef.gov.sg/news-and-events/latest-releases/31may25_nr3/",
+                "a citation containing https://www.mindef.gov.sg/other/",
+            ]}), encoding="utf-8")
+        result = audit(self.db, self.output)
+        self.assertEqual(result["potential_unapproved_json_url_occurrences"], 2)
+        self.assertEqual(result["json_routes_with_potential_unapproved_urls"],
+                         ["archive-research-index.json"])
+        self.assertFalse(result["release_eligible_from_this_scan"])
 
     def test_no_original_text_or_titles_logged_and_no_mutation(self):
         h1 = hashlib.sha256(self.db.read_bytes()).hexdigest()
