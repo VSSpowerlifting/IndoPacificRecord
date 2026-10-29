@@ -1,0 +1,46 @@
+# Read-only Singapore MINDEF rights/exposure audit.
+# This is NOT a release approval. A nonzero exposure count is expected until
+# private custody and a public-safe database projection are implemented.
+name: Singapore MINDEF rights inventory
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - core/mindef_permissions.py
+      - site/preview/templates/record.html
+      - site/preview/templates/source.html
+      - site/preview/generate_preview.py
+      - scripts/audit_mindef_public_surfaces.py
+      - tests/test_mindef_permissions.py
+      - tests/test_mindef_public_surfaces.py
+      - .github/workflows/singapore_mindef_rights_inventory.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mindef-rights-inventory-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Synthetic permission and audit tests
+        run: python -m unittest -v tests.test_mindef_permissions tests.test_mindef_public_surfaces tests.test_audit_generated_record_text
+      - name: Read-only current public exposure census (not clearance)
+        run: python scripts/audit_mindef_public_surfaces.py
+      - name: Verify no tracked source mutation
+        run: |
+          git diff --exit-code -- pla_watch.db output/
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
