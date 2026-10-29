@@ -72,6 +72,7 @@ class KoreaMNDTitleSpacingParityTests(Case):
         self.assertIn("metadata disagrees", capture.error_detail)
         self.assertFalse(
             any("/common/download.do" in req[1] for req in session.calls)
+        )
 
 
 if __name__ == "__main__":
