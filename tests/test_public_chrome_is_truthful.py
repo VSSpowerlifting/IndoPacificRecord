@@ -180,15 +180,13 @@ class TestThePredecessorIsHistoryNotIdentity(BuildCase):
                     offenders.append(str(page.relative_to(self.out)))
         self.assertEqual(offenders, [])
 
-    def test_the_predecessor_may_still_be_named_as_history(self):
-        """
-        The inverse guard. Scrubbing the predecessor everywhere would be its
-        own falsehood: the weekly series really was published under that name,
-        and the legacy-series page has to say so.
-        """
+    def test_historical_citations_remain_without_active_predecessor_branding(self):
         series = (self.out / "pla-watch.html").read_text("utf-8")
-        self.assertIn("China Mil Watch", series)
-
+        visible_intro = series.split('<details class="ed-cite')[0]
+        self.assertIn("Earlier Briefs", visible_intro)
+        self.assertNotIn("China Mil Watch", visible_intro)
+        self.assertIn("The PLA Watch, No.", series)
+        self.assertIn('id="cite-edition-', series)
 
 class TestQuotedSourceTextIsNotPoliced(BuildCase):
     """
