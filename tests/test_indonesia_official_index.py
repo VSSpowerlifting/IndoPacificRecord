@@ -149,11 +149,18 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
         # The shared stylesheet and other desks keep their existing behavior.
         self.assertEqual((output / "support.css").read_bytes(),
                          (root / "site/preview/support.css").read_bytes())
-        for slug in ("philippines", "vietnam", "japan", "korea", "us-indopacific"):
+        for slug in ("philippines", "vietnam", "japan", "us-indopacific"):
             other = BeautifulSoup((output / (slug + ".html")).read_text(), "html.parser")
             css = {link["href"] for link in other.select('link[rel="stylesheet"]')}
             self.assertIn("support.css", css)
             self.assertNotIn("indonesia-shell.css", css)
+        korea = measure_page(output / "korea.html", output)
+        self.assertIn("korea-shell.css", korea["css"])
+        self.assertNotIn("support.css", korea["css"])
+        self.assertEqual(html_css_cap("korea.html"), 120000)
+        self.assertLessEqual(korea["html_css_bytes"], 120000)
+        self.assertEqual((output / "korea-shell.css").read_bytes(),
+                         (root / "site/preview/korea-shell.css").read_bytes())
         targets = soup.select("#indonesia-links-heading ~ ol a")
         if not targets:
             targets = soup.select('ol[aria-label="Fifteen external ministry news links"] a')

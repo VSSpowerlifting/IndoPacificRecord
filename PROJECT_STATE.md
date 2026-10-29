@@ -3,7 +3,7 @@
 ## Singapore MINDEF rights-aware production cutover — review candidate (29 October 2026)
 
 PR #913 now includes a rebuilt public-safe SQLite candidate and regenerated
-shared site. All 98 source identities remain; original titles/bodies,
+shared site. All 102 source identities at main `58b35065d9` remain; original titles/bodies,
 translations, summaries and reasoning are withheld. Private GitHub custody of
 the full production snapshot, complete current source-shadow history and all
 70 retained Singapore Actions ZIPs has independent recovery/hash/integrity
@@ -11,8 +11,9 @@ proof. The public Daily source/model queue and public shadow writer are held;
 no replacement collection, model spend, merge or deployment was activated.
 Three Briefs and two Dossiers are withheld as whole works without changing
 canonical manuscripts or approvals. Brief No. 20/Dylan and issue #914 remain
-separate. The actual output audit passes, unrelated tables and 1,277 record
-text containers match, and validation retains 10 warnings. Full exact-head CI
+separate. The actual output audit passes, unrelated tables and 1,322 record
+text containers match the refreshed baseline. The rebuilt DB and 2,568 delivered
+text files pass 10,063 private byte probes; validation retains 10 warnings. Full exact-head CI
 and final release approval are required. Historical main/Pages/source refs,
 artifacts, canonical editorial sources and replay fixtures remain exposed;
 no erasure is claimed. See
@@ -25,6 +26,31 @@ stale fixture, baseline) and repaired as set out in the cutover document.
 Held works are tested twice: under an explicit synthetic rights authority for
 component behavior and, unpatched, as absent and fail-closed. The remaining
 local-only errors (`gpg`, `docx`, macOS paths) match `origin/main`.
+
+## Korea delivery budget repair — review candidate (29 October 2026)
+
+Korea now selects a page-specific `korea-shell.css`, using the unchanged
+supporting declarations and cascade order established by Indonesia #889,
+plus Korea’s existing mobile numeric-cell and weekly-chart rules.
+All Korea content is preserved; its generated HTML changes only the stylesheet
+URL. Current-main delivery falls from 118,514 to 93,874 bytes, saving 24,640
+and leaving 26,126 under the unchanged 120,000-byte cap. The failed Daily
+40809385401 revision (`e827fb0ab7`) measures 120,219 bytes; its page differs
+from the current-main input, so these are separate baselines.
+
+Production render and validator pass (10 governed warnings); all 2,439 committed
+routes pass complete delivery budgets. Focused tests and desktop/mobile/print
+parity evidence, exact final-head CI and SHA are recorded in the repair PR.
+Only Korea HTML and its new stylesheet are retained from regeneration;
+unrelated generated pages, canonical sidecars and the production DB are unchanged.
+No merge, deployment, admission, private dispatch, queue change or activation.
+
+The pending Indonesia release remains at private merge `be72657a6b9e68e6a982f3caa74044350cbe2269`,
+sign-only run `40809051463` (zero model calls), accepted output SHA-256
+`5865a649587c24dafdb8ff3a0c901401c77398f8aab72ef638dce7f770f54e8a`.
+Medical retains one attempt and industry four. Preserve the existing private
+`kemhan-v4-publication-20261028/release-checkpoint.json` for the separately
+authorized release; do not regenerate or sign again to resolve this CSS repair.
 
 ## Haiku 5.5 opt-in compatibility and request-level cost accounting — review candidate (28 October 2026)
 

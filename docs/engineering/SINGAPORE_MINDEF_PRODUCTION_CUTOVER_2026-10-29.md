@@ -32,7 +32,7 @@ Baseline: public main `94146acd8751d6333dff18a7482a1d95e65a9834`, 98 records,
 97 nonempty original bodies, 76 nonempty summaries. IDs, URLs, original content
 hashes, source/run IDs, publication dates and collection timestamps match.
 
-Three separate private payload refs were pushed without force to the existing
+The initial three private payload refs were pushed without force to the existing
 owner-selected `VSSpowerlifting/ipr-source-evidence-private` repository:
 
 - `archive/singapore-production-20261029`: commit
@@ -54,21 +54,37 @@ that limitation. Private payload branches must never be merged into public
 main or uploaded in public CI/artifacts. Hash-only receipts are in
 `docs/evidence/singapore-mindef-cutover-2026-10-29/verification.json`.
 
+## Concurrent Daily reconciliation
+
+Main advanced to `58b35065d93f5651110221c5adba1177fde63725` during review:
+102 MINDEF rows, 101 captured bodies and 80 summaries. The additional four
+identities and all unrelated Daily/USCC additions are preserved. An additional
+immutable private ref, `archive/singapore-production-20261029-58b35065`, commit
+`dadcafa0901fce5dfca904521f2cf6a78bc52d8a`, holds the refreshed snapshot.
+A fresh authenticated clone independently restored SQLite SHA-256
+`94f057b9c4d5da680f52f81a98b0b9fe67d25caa762c579477aa21f646267317`;
+all 102 provenance/expression bindings, unrelated tables, integrity and foreign
+keys passed. The original 98-record custody ref remains immutable.
+The governed installer replaced the merged raw DB only after this recovery,
+using the current-main byte hash as its concurrency precondition. Tests derive
+the MINDEF identity set from the database rather than freezing the old count.
+
 ## Public and editorial verification
 
-The candidate retains all 98 records. The seven original/translated/machine
+The candidate retains all 102 records from refreshed main `58b35065d93f5651110221c5adba1177fde63725`. The seven original/translated/machine
 expression fields and additional free-text processing/claim fields are NULL.
-All unrelated table rows match the restored baseline; 1,277 unrelated rendered
+All unrelated table rows match the refreshed restored baseline; 1,322 unrelated rendered
 record evidence containers also match. The physical DB has no freelist pages or
-WAL/SHM/journal sidecars. A private scan checks 9,441 original-expression probes
-against the rebuilt DB and 2,484 delivered textual files (35,731,377 bytes),
+WAL/SHM/journal sidecars. A private scan checks 10,063 original-expression probes
+against the rebuilt DB and 2,568 delivered textual files (37,012,601 bytes),
 without logging probes. Shared generic model-disposition fragments on unrelated
 records are excluded from the probes and those records are preserved.
 
 The actual output audit finds zero source-body containers, zero unapproved
 outbound MINDEF links and zero potential unapproved JSON URL occurrences.
 Four HTML link occurrences use the exact approved URLs. Validation passes with
-the existing 10 governed warnings. The focused regression ran 199 tests; the
+the existing 10 governed warnings. The initial focused regression ran 199 tests; refreshed boundary/source tests
+passed 94 tests and citation/editorial/Atlas tests passed 67. The
 normal Daily simulation collects a new unrelated record once across retries,
 holds Singapore before acquisition, makes no model call, and preserves history.
 A final 24-test boundary run and Chromium previews at 1280/375 px also pass.
@@ -141,7 +157,7 @@ established. No procedure recalls copies already downloaded by others.
    explicitly accepted historical exposure. Decide B separately.
 2. Serialize with all DB/Pages writers; cancel old Singapore/Daily jobs before
    any fresh source access. Re-fetch main and compare its DB SHA-256 with the
-   custody baseline `2ea891ff77ea17f60d58926cdc8091d6a8d84039d6d38df8196d804c38470638`.
+   custody baseline `e10b2a68db72b38bbf9b17f736108e0aa8577c249323e3a8a2d4718649f5c97b`.
    If it changed, preserve/read back the new snapshot and restage against current
    main, including new records. Never overwrite a newer Daily database.
 3. For restaging, run the existing staging CLI outside the public checkout;
@@ -154,7 +170,7 @@ established. No procedure recalls copies already downloaded by others.
    `audit_mindef_public_surfaces.py --enforce`, review the full generated diff,
    and pass required CI at the final revision. Merge/deploy only as approved.
 5. After authorized deployment, bind the main/Pages revisions and compare
-   record/4466, all 98 record pages, Singapore/source/archive/search/home/feed
+   record/4466, all current record pages, Singapore/source/archive/search/home/feed
    bytes and held-route absence against the candidate. Check HTTPS content,
    both approved outbound URLs, no unapproved MINDEF links, no source-body
    containers, no stale held pages and no public evidence artifact upload.

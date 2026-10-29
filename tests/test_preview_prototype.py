@@ -1465,7 +1465,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         self.assertIn('href="team.html"', html)
         self.assertIn(gp.MAINTAINER["email"], html)
         profile = self.page("authors/benjamin-yang.html")
-        self.assertIn("Founder &amp; Director of Research and Editorial", profile)
+        self.assertIn("Founder &amp; Executive Director", profile)
         self.assertIn(gp.MAINTAINER["linkedin"], profile)
 
     def test_the_lead_edition_carries_a_byline(self):
@@ -2403,7 +2403,7 @@ class TestRecordPages(PreviewCase):
 # ── Tranche 2, commit 4: week-sharded no-JavaScript browsing ─────────────────
 
 class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
-    """Singapore MINDEF: 98 identities stay, no expression is published.
+    """Singapore MINDEF: all stored identities stay, no expression is published.
 
     The written permission covers two exact hyperlinks and nothing else, so a
     MINDEF record page carries identity, dates and historical provenance, an
@@ -2432,9 +2432,9 @@ class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
         return (self.out / "record" / ("%d.html" % rec_id)).read_text(
             encoding="utf-8")
 
-    def test_all_98_identities_are_kept_and_every_expression_is_null(self):
-        self.assertEqual(len(self.mindef), 98)
-        self.assertEqual(len(self.stored), 98)
+    def test_all_stored_identities_are_kept_and_every_expression_is_null(self):
+        self.assertTrue(self.stored)
+        self.assertEqual({r["id"] for r in self.mindef}, set(self.stored))
         for rec_id, row in self.stored.items():
             self.assertEqual(row[1:], (None,) * 7, rec_id)
 
@@ -2474,10 +2474,9 @@ class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
                     self.assertEqual(anchors, set())
                     self.assertIn("link not permitted", html)
                     self.assertIn(url, html)  # recorded as provenance text
-        # Only the 23 Oct 2026 release is among the 98 captured identities; the
-        # other grant (31may25_nr3) is not a stored record and must stay unlinked.
-        self.assertEqual(
-            seen, {"https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/"})
+        # A grant does not create a record; new stored identities must still
+        # match the exact source-specific grant.
+        self.assertEqual(seen, {row[0] for row in self.stored.values()} & approved)
 
     def test_other_records_keep_their_ordinary_evidence_layout(self):
         # Unrelated-record integrity: the MINDEF boundary must not leak.
@@ -5465,7 +5464,7 @@ class TestSnapshotScopedCitations(PreviewCase):
         self.assertEqual(
             gp.corpus_citation("Test Title", gp.DECLARED_SNAPSHOT),
             "Test Title. Research Atlas corpus. Snapshot — "
-            "%s. %s records. Benjamin Yang, Founder & Director of Research and Editorial."
+            "%s. %s records. Benjamin Yang, Founder & Executive Director."
             % (gp.DECLARED_SNAPSHOT["date"],
                "{:,}".format(gp.DECLARED_SNAPSHOT["expected_records"])))
 
@@ -5585,7 +5584,7 @@ class TestSnapshotScopedCitations(PreviewCase):
 
     def test_mindef_citations_disclose_the_withheld_title_and_state_history_only(self):
         mindef = [r for r in self.corpus if r["source_slug"] == MINDEF_SOURCE_SLUG]
-        self.assertEqual(len(mindef), 98)
+        self.assertTrue(mindef)
         for rec in mindef:
             html = self.record(rec["id"])
             with self.subTest(record=rec["id"]):

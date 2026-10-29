@@ -14,8 +14,8 @@ The original request explicitly stated that the Brief uses independent commentar
 ## Implemented cutover candidate
 
 PR #913 has been extended beyond its original local staging safeguard. The
-reviewed permission scope above is unchanged. The real baseline remains 98
-records, 97 captured bodies and 76 populated summaries; the production snapshot,
+reviewed permission scope above is unchanged. The refreshed main baseline has 102
+records, 101 captured bodies and 80 populated summaries; the production snapshot,
 current source-shadow history and all 70 retained Singapore Actions ZIPs now
 have private GitHub custody and independent readback/restore proof.
 

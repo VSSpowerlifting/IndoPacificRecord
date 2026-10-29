@@ -10,13 +10,12 @@
   },
   "candidate": {
     "all_unrelated_tables_preserved": true,
-    "delivered_text_bytes_scanned": 35731377,
-    "delivered_text_files_scanned": 2484,
-    "expression_probe_count": 9441,
+    "delivered_text_bytes_scanned": 37012601,
+    "delivered_text_files_scanned": 2568,
+    "expression_probe_count": 10063,
     "integrity_and_foreign_keys_verified": true,
-    "mindef_metadata_preserved": 98,
-    "physical_bytes_rechecked_after_identity_guards": true,
-    "public_db_sha256": "cff79929859c212cfa563416da37407be6e66bc60de7372a9fa12556dd44daa5",
+    "mindef_metadata_preserved": 102,
+    "public_db_sha256": "9a0ec305bb03985dd13914a0995611aae242e8ae2eafb2222fbbe3e0853cb6fb",
     "restricted_expression_matches": 0
   },
   "chromium_preview_widths": [
@@ -30,13 +29,27 @@
     "source_body_pages": 97,
     "tree_complete": true
   },
-  "exact_head_ci": "See PR #913 required status checks; not asserted by this receipt",
+  "editorial_recovery": {
+    "brief_20_modified": false,
+    "bytes_verified": 2794938,
+    "canonical_manuscripts_modified": false,
+    "files_verified": 48,
+    "independent_private_readback": true,
+    "manifest_sha256": "35bde84507b8600b5eb4daf3414c40c633659e751b527b47d0dcd7a87aceb159",
+    "new_editorial_approval_asserted": false,
+    "private_git_commit": "fcf82b32d044b87f13b48ba779f345d60e0df8f9",
+    "schema": "ipr-singapore-editorial-private-restore/1",
+    "sha256_and_native_git_blob_parity": true,
+    "source_git_commit": "94146acd8751d6333dff18a7482a1d95e65a9834"
+  },
+  "exact_head_ci": "Mandatory PR #913 full offline checks required after final commit; previous head failed and was repaired",
   "final_boundary_tests": 24,
   "focused_regression_tests": 199,
   "historical_git_cleanup_performed": false,
   "non_mindef_generated_preservation": {
+    "baseline": "58b35065d93f5651110221c5adba1177fde63725",
     "changed_evidence_containers": 0,
-    "non_mindef_record_pages_compared": 1277
+    "non_mindef_record_pages_compared": 1322
   },
   "preview_checks": [
     "metadata label",
@@ -44,7 +57,7 @@
     "no false title-translation claim",
     "no horizontal overflow"
   ],
-  "private_recovery": {
+  "previous_private_recovery": {
     "all_other_tables_verified": true,
     "durable_private_custody_confirmed": true,
     "independent_provider_backup": false,
@@ -59,6 +72,24 @@
     "source_git_commit": "94146acd8751d6333dff18a7482a1d95e65a9834",
     "source_record_count": 98
   },
+  "private_recovery": {
+    "all_other_tables_verified": true,
+    "durable_private_custody_confirmed": true,
+    "independent_provider_backup": false,
+    "integrity_and_foreign_keys_verified": true,
+    "manifest_sha256": "cbf89bef11be26fc9a4e9f39c7bb68692efdac5de1609df1d4d4c95fe68a06e6",
+    "private_git_commit": "dadcafa0901fce5dfca904521f2cf6a78bc52d8a",
+    "public_candidate_db_sha256": "9a0ec305bb03985dd13914a0995611aae242e8ae2eafb2222fbbe3e0853cb6fb",
+    "public_release_approved": false,
+    "record_bindings_and_expression_hashes_verified": true,
+    "restored_db_sha256": "94f057b9c4d5da680f52f81a98b0b9fe67d25caa762c579477aa21f646267317",
+    "schema": "ipr-mindef-private-restore/1",
+    "source_db_sha256": "e10b2a68db72b38bbf9b17f736108e0aa8577c249323e3a8a2d4718649f5c97b",
+    "source_git_commit": "58b35065d93f5651110221c5adba1177fde63725",
+    "source_record_count": 102
+  },
+  "refreshed_citation_editorial_atlas_tests": 67,
+  "refreshed_focused_tests": 94,
   "release_authorized": false,
   "schema": "ipr-mindef-cutover-verification/1",
   "shadow_recovery": {
@@ -71,7 +102,7 @@
   "surfaces": {
     "approved_outbound_link_count": 4,
     "blocked_family_machine_rows": 0,
-    "db_sha256_before_after": "cff79929859c212cfa563416da37407be6e66bc60de7372a9fa12556dd44daa5",
+    "db_sha256_before_after": "9a0ec305bb03985dd13914a0995611aae242e8ae2eafb2222fbbe3e0853cb6fb",
     "historical_repository_and_cdn_exposure_not_audited": true,
     "json_routes_with_potential_unapproved_urls": [],
     "missing_record_pages": 0,
@@ -93,7 +124,7 @@
     "release_eligible_from_this_scan": true,
     "rendered_source_body_pages": 0,
     "schema": "ipr-singapore-mindef-public-exposure/1",
-    "source_records": 98,
+    "source_records": 102,
     "source_slug": "sg_mindef_releases",
     "surface": "tracked-working-tree-not-git-history-or-live-pages",
     "unapproved_link_routes": [],
