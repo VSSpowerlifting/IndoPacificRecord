@@ -1,11 +1,9 @@
 # China Desk — Methodology
 
-This document describes the sourcing rationale, analytical framework, and known
-limitations of the **China Desk** of Indo-Pacific Record — the desk whose
-weekly analytical series was *The PLA Watch*. That series is closed to new
-issues; the desk's analysis is meant for *Indo-Pacific Record Briefs*, which
-is in development and has published no brief (DECISION_LOG 2026-09-23). ("China Mil Watch" was this project's name until
-2026-08-27 and is a legacy name only.)
+This document describes the sourcing rationale, analytical framework, and
+known limitations of the **China Desk** of Indo-Pacific Record. The desk
+preserves official Chinese military and security records; associated editorial
+analysis appears within **Indo-Pacific Record Briefs**.
 
 It is intended to be read alongside the output and before drawing any
 conclusions from it.  Anyone using this record for research or analysis should
@@ -202,6 +200,6 @@ is an assistive tool, not a substitute for analyst review.
 
 ---
 
-*PLA Watch is an independent academic project.  It is not affiliated with any
+*Indo-Pacific Record is an independent academic project.  It is not affiliated with any
 government agency, think tank, or research institution.  All conclusions drawn
 from this tool are the responsibility of the analyst using it.*

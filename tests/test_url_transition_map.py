@@ -313,22 +313,14 @@ class TestTheCandidateHonoursTheMap(unittest.TestCase):
         self.assertFalse((self.out / "the-pla-watch").exists())
 
     def test_the_legacy_series_page_does_not_backdate_the_rebrand(self):
-        """
-        The editions were published under China Mil Watch. The page says so.
-        A page that presented them as Indo-Pacific Record issues would be
-        falsifying a publication record to tidy up a rename.
-        """
-        html = self.map and (self.out / "pla-watch.html").read_text(
-            encoding="utf-8")
-        self.assertIn("China Mil Watch", html)
-        self.assertIn("preserved as published", html.lower())
-        # Was `"because it did not"`, a phrase from prose that attributed every
-        # issue to the predecessor. The series now spans the rename, so the
-        # claim is scoped: earlier editions are named as the predecessor's, and
-        # no issue is presented under a masthead it did not carry.
-        self.assertIn("did not carry", html)
-        self.assertRegex(
-            html, r"\d+ earlier editions were published under China Mil Watch")
+        """Original edition citations still name the actual issuing publication."""
+        html = (self.out / "pla-watch.html").read_text(encoding="utf-8")
+        intro = html.split('<details class="ed-cite')[0]
+        self.assertIn("Earlier Briefs", intro)
+        self.assertNotIn("China Mil Watch", intro)
+        self.assertIn("The PLA Watch, No.", html)
+        self.assertIn('id="cite-edition-', html)
+        self.assertIn("publication credit and address", html)
         self.assertNotIn("Those issues were published by China Mil Watch", html)
 
     def test_every_new_route_the_map_advertises_is_actually_built(self):
