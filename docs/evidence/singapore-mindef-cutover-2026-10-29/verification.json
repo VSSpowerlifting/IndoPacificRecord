@@ -8,25 +8,27 @@
     "provider_digests_verified": 70,
     "zip_crc_verified": true
   },
+  "authored_prose_exclusion_contracts": 19,
   "candidate": {
     "all_unrelated_tables_preserved": true,
-    "delivered_text_bytes_scanned": 37012601,
+    "delivered_text_bytes_scanned": 37013827,
     "delivered_text_files_scanned": 2568,
     "expression_probe_count": 10063,
     "integrity_and_foreign_keys_verified": true,
     "mindef_metadata_preserved": 102,
-    "public_db_sha256": "9a0ec305bb03985dd13914a0995611aae242e8ae2eafb2222fbbe3e0853cb6fb",
+    "public_db_sha256": "b00acc5e9981f5846faa28f95fa66a426f1af3783ddcadedcc8fe56c498cd91a",
     "restricted_expression_matches": 0
   },
   "chromium_preview_widths": [
     1280,
     375
   ],
+  "concurrent_admission_regression_tests": 61,
   "deployed_baseline_exposure": {
-    "gh_pages_commit": "7dba36012008d20f07b826d0e1c91ad9357ce0e4",
-    "mindef_record_pages_present": 98,
-    "mindef_records_expected": 98,
-    "source_body_pages": 97,
+    "gh_pages_commit": "8049797045aa1c8d4488fb3252c0391f67943c0d",
+    "mindef_record_pages_present": 102,
+    "mindef_records_expected": 102,
+    "source_body_pages": 101,
     "tree_complete": true
   },
   "editorial_recovery": {
@@ -47,16 +49,43 @@
   "focused_regression_tests": 199,
   "historical_git_cleanup_performed": false,
   "non_mindef_generated_preservation": {
+    "additional_verified_baseline": "fb06b34e70c338cfb8a043dd822bef2c08e1f199",
     "baseline": "58b35065d93f5651110221c5adba1177fde63725",
     "changed_evidence_containers": 0,
+    "main_record_tree_identical_to_preceding_baseline": true,
     "non_mindef_record_pages_compared": 1322
   },
+  "preceding_private_recoveries": [
+    {
+      "all_other_tables_verified": true,
+      "durable_private_custody_confirmed": true,
+      "independent_provider_backup": false,
+      "integrity_and_foreign_keys_verified": true,
+      "manifest_sha256": "cbf89bef11be26fc9a4e9f39c7bb68692efdac5de1609df1d4d4c95fe68a06e6",
+      "private_git_commit": "dadcafa0901fce5dfca904521f2cf6a78bc52d8a",
+      "public_candidate_db_sha256": "9a0ec305bb03985dd13914a0995611aae242e8ae2eafb2222fbbe3e0853cb6fb",
+      "public_release_approved": false,
+      "record_bindings_and_expression_hashes_verified": true,
+      "restored_db_sha256": "94f057b9c4d5da680f52f81a98b0b9fe67d25caa762c579477aa21f646267317",
+      "schema": "ipr-mindef-private-restore/1",
+      "source_db_sha256": "e10b2a68db72b38bbf9b17f736108e0aa8577c249323e3a8a2d4718649f5c97b",
+      "source_git_commit": "58b35065d93f5651110221c5adba1177fde63725",
+      "source_record_count": 102
+    }
+  ],
   "preview_checks": [
     "metadata label",
     "no original body",
     "no false title-translation claim",
     "no horizontal overflow"
   ],
+  "previous_deployed_baseline_exposure": {
+    "gh_pages_commit": "7dba36012008d20f07b826d0e1c91ad9357ce0e4",
+    "mindef_record_pages_present": 98,
+    "mindef_records_expected": 98,
+    "source_body_pages": 97,
+    "tree_complete": true
+  },
   "previous_private_recovery": {
     "all_other_tables_verified": true,
     "durable_private_custody_confirmed": true,
@@ -77,20 +106,21 @@
     "durable_private_custody_confirmed": true,
     "independent_provider_backup": false,
     "integrity_and_foreign_keys_verified": true,
-    "manifest_sha256": "cbf89bef11be26fc9a4e9f39c7bb68692efdac5de1609df1d4d4c95fe68a06e6",
-    "private_git_commit": "dadcafa0901fce5dfca904521f2cf6a78bc52d8a",
-    "public_candidate_db_sha256": "9a0ec305bb03985dd13914a0995611aae242e8ae2eafb2222fbbe3e0853cb6fb",
+    "manifest_sha256": "0e69728f2e44805ea360a5cdc65a65b526b3e87e4b8a071a77838e6a0bc30cab",
+    "private_git_commit": "00f1894379c5bc27e1225fc855981cf65ec85846",
+    "public_candidate_db_sha256": "b00acc5e9981f5846faa28f95fa66a426f1af3783ddcadedcc8fe56c498cd91a",
     "public_release_approved": false,
     "record_bindings_and_expression_hashes_verified": true,
-    "restored_db_sha256": "94f057b9c4d5da680f52f81a98b0b9fe67d25caa762c579477aa21f646267317",
+    "restored_db_sha256": "d7ced9293570572ed6d681814150eb01f263017ca0a9acd8c2f97a9611104282",
     "schema": "ipr-mindef-private-restore/1",
-    "source_db_sha256": "e10b2a68db72b38bbf9b17f736108e0aa8577c249323e3a8a2d4718649f5c97b",
-    "source_git_commit": "58b35065d93f5651110221c5adba1177fde63725",
+    "source_db_sha256": "639a2e26ce91782c03dbb55f089348bb62993a2c3217058b5edb70f9241c3a8b",
+    "source_git_commit": "fb06b34e70c338cfb8a043dd822bef2c08e1f199",
     "source_record_count": 102
   },
   "refreshed_citation_editorial_atlas_tests": 67,
   "refreshed_focused_tests": 94,
   "release_authorized": false,
+  "remaining_ci_assertion_fixes_focused_tests": 129,
   "schema": "ipr-mindef-cutover-verification/1",
   "shadow_recovery": {
     "fsck_passed": true,
@@ -102,7 +132,7 @@
   "surfaces": {
     "approved_outbound_link_count": 4,
     "blocked_family_machine_rows": 0,
-    "db_sha256_before_after": "9a0ec305bb03985dd13914a0995611aae242e8ae2eafb2222fbbe3e0853cb6fb",
+    "db_sha256_before_after": "b00acc5e9981f5846faa28f95fa66a426f1af3783ddcadedcc8fe56c498cd91a",
     "historical_repository_and_cdn_exposure_not_audited": true,
     "json_routes_with_potential_unapproved_urls": [],
     "missing_record_pages": 0,

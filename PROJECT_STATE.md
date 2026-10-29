@@ -3,7 +3,7 @@
 ## Singapore MINDEF rights-aware production cutover — review candidate (29 October 2026)
 
 PR #913 now includes a rebuilt public-safe SQLite candidate and regenerated
-shared site. All 102 source identities at main `58b35065d9` remain; original titles/bodies,
+shared site. All 102 source identities at main `fb06b34e70` remain; original titles/bodies,
 translations, summaries and reasoning are withheld. Private GitHub custody of
 the full production snapshot, complete current source-shadow history and all
 70 retained Singapore Actions ZIPs has independent recovery/hash/integrity

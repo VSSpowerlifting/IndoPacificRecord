@@ -69,14 +69,23 @@ The governed installer replaced the merged raw DB only after this recovery,
 using the current-main byte hash as its concurrency precondition. Tests derive
 the MINDEF identity set from the database rather than freezing the old count.
 
+Main then advanced to `fb06b34e70c338cfb8a043dd822bef2c08e1f199` with
+Indonesia link metadata only. All 102 MINDEF rows still match the preceding
+private snapshot. The updated full database is independently recovered from
+`archive/singapore-production-20261029-fb06b34e`, private commit
+`00f1894379c5bc27e1225fc855981cf65ec85846`, restored SQLite SHA-256
+`d7ced9293570572ed6d681814150eb01f263017ca0a9acd8c2f97a9611104282`.
+The governed installer and shared renderer retain the concurrent admission;
+no unrelated records are replaced with an older snapshot.
+
 ## Public and editorial verification
 
-The candidate retains all 102 records from refreshed main `58b35065d93f5651110221c5adba1177fde63725`. The seven original/translated/machine
+The candidate retains all 102 records from refreshed main `fb06b34e70c338cfb8a043dd822bef2c08e1f199`. The seven original/translated/machine
 expression fields and additional free-text processing/claim fields are NULL.
 All unrelated table rows match the refreshed restored baseline; 1,322 unrelated rendered
 record evidence containers also match. The physical DB has no freelist pages or
 WAL/SHM/journal sidecars. A private scan checks 10,063 original-expression probes
-against the rebuilt DB and 2,568 delivered textual files (37,012,601 bytes),
+against the rebuilt DB and 2,568 delivered textual files (37,013,827 bytes),
 without logging probes. Shared generic model-disposition fragments on unrelated
 records are excluded from the probes and those records are preserved.
 
@@ -137,8 +146,8 @@ pass the final head.
 ## Historical exposure decision
 
 Confirmed: the public main baseline carries the original DB/source expression;
-the current `gh-pages` tip `7dba36012008d20f07b826d0e1c91ad9357ce0e4` contains
-98 MINDEF record pages with 97 nonempty source-body containers. The public source
+the later audited `gh-pages` snapshot `8049797045aa1c8d4488fb3252c0391f67943c0d`
+contains 102 MINDEF record pages with 101 nonempty source-body containers. The public source
 shadow ref remains available. The inventory found 880 public branches, no tags,
 no releases and zero GitHub-reported forks. The 70 retained ZIPs remain public
 repository artifacts subject to GitHub access controls. Earlier expired/deleted
@@ -169,7 +178,7 @@ established. No procedure recalls copies already downloaded by others.
    explicitly accepted historical exposure. Decide B separately.
 2. Serialize with all DB/Pages writers; cancel old Singapore/Daily jobs before
    any fresh source access. Re-fetch main and compare its DB SHA-256 with the
-   custody baseline `e10b2a68db72b38bbf9b17f736108e0aa8577c249323e3a8a2d4718649f5c97b`.
+   custody baseline `639a2e26ce91782c03dbb55f089348bb62993a2c3217058b5edb70f9241c3a8b`.
    If it changed, preserve/read back the new snapshot and restage against current
    main, including new records. Never overwrite a newer Daily database.
 3. For restaging, run the existing staging CLI outside the public checkout;
