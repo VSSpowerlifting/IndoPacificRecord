@@ -1,5 +1,39 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Haiku 5.5 opt-in compatibility and request-level cost accounting — review candidate (28 October 2026)
+
+`ANALYSIS_MODEL=claude-haiku-5-5` is now a valid opt-in for the shared Analyzer.
+- For that model, requests drop sampling fields and send disabled thinking with
+  high effort.
+- Responses are read by block type. Refusal, context-limit and truncation stops
+  fail closed, and each paid response is recorded exactly once.
+- Each response is priced in its own 100k-prompt band.
+- `scripts/spend_guard.py` refuses bulk estimates for the model.
+
+Defaults (`claude-haiku-4-5-20251001` / `claude-sonnet-4-6`, cap 55), prompts,
+ceilings, DB, output, sidecars and usage history are unchanged. No paid call was
+made, and model quality is not evaluated. A separate decision is needed for a
+$3-capped comparison on authorized source versions. See
+`docs/engineering/HAIKU_5_5_COMPATIBILITY_2026-10-28.md`. Not merged.
+
+## Homepage "As published." register redesign — draft PR (28 October 2026)
+
+Branch `claude/ipr-homepage-editorial-design-1e4180` replaces the homepage's
+source-record cards with a ruled index. Each row has a rail with the date and the
+desk emblem, then a Source Serif 4 headline, the original title with its existing
+disclosure, the provenance line, and a quiet text state marker. "Analyzed" is now
+a dotted slate-blue rule, not a pill. The thumbnail plates and the stagger are gone.
+
+The featured panel is now a sticky navy column with an 80 px corner instead of the
+58 % curve. It shows its facts as a list, keeps the data-driven lead link, and
+keeps the chart-shelf wave. Its "Processing" row renders only when the feed
+supplies a state.
+
+Only `home.html` and `home.css` changed; the shared `record_row`, the pipeline
+and the data are untouched. Validation passed with the 10 governed warnings, and
+the homepage suites ran 537 tests with 2 skips. Screenshots are in
+`docs/evidence/frontend-home-register-2026-10-28/`. Not merged or deployed.
+
 ## Japan MOD news official links — source use approved, release held (27 October 2026)
 
 Prepared an off-by-default integration from the existing `shadow/jp-mod`
@@ -148,6 +182,23 @@ dossier content changes are introduced relative to the incorporated main.
 Exact-head CI and all eight affected Actions checks are recorded in PR #879
 before handoff; merge and deployment require separate authorization.
 
+**Vietnam unattended verification candidate (28 October 2026).**
+Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
+5487/5488/5646 match byte for byte. Scheduled private collector `40594206247`
+and bridge `40604368261` are authenticated: MPS has two individual QA holds;
+the new VPCP document is screened out; no new handoff articles. The false
+`more_than_one_official_source_url` HOLD comes from counting 5646's internal
+explanation link as an official URL. The candidate validates that link against
+exact admitted identity/URL/version and adds existing readback to normal Daily.
+No count/template, policy, paid retry, database or output change is included;
+PR #895 and #893 remain independent. Dependable unattended readiness is not
+certified: the private source-cycle health signal remains incomplete (frozen
+MPS public watchdog; suppressed VPCP failures and quiet-cycle receipt gap).
+Latest public Daily failures are separate Japan gates, owned by PR #892.
+Evidence and pass/fail matrix:
+`docs/engineering/VIETNAM_UNATTENDED_ACCEPTANCE_2026-10-28.md`.
+Exact-head verification belongs in the review PR; no merge or release occurred.
+
 **Vietnam Government Office full-document integration (25 October 2026): 10744 published through the shared Daily.**
 The single authorized correction passed generation and independent factual review
 in private run `40217218707`; its prior rejection, costs and routes remain intact.
@@ -281,51 +332,52 @@ historical category warning for bounded release only. The 48 KiB signed-envelope
 limit is reached near ~350 records and fails closed. Sanlakas holds F02 (the
 Galvan/Gavan name) and F06 (the venue) stay open (`research/philippines/sanlakas_2026/`).
 
-**Indonesia Kemhan shared Daily (28 October 2026, office/credentials repair):**
-Public repair #893 merged at `e31977934fcf62ce32790aa37c352a920a990d8a`,
-reviewed head `6b93d6026ec4c63ec69ef0380c13f022a4ded588`. All five final-head
-workflows passed; required CI `40711167763` passed 8,112 tests (15 skips),
-Chromium, DB/output preservation and validation with ten governed warnings.
-Public #891 and private #26 remain merged; the existing metadata service and
-three public source-use policy switches remain active.
+**Indonesia Kemhan shared Daily (28 October 2026, institution-name repair):**
+Repair #899 merged as `30bd2ba8a5b88ab0ed64e6c91f1f26bf16feeed4`, from reviewed
+head `e659e26a928c547e54811e97d14d2bc194fd4f37`. Required final-head CI
+`40743389758` passed 8,186 tests (15 skips), Chromium, isolated rendering,
+validation with ten governed warnings and DB/output preservation. #891, #893
+and private #26 remain merged. The source-use policy and metadata service
+configuration are unchanged.
 
-One genuine v2 medical-evacuation inspection used the existing private runner
-with signing disabled: two successful API calls, 2,735 input / 608 output tokens,
-estimated $0.014187 under the $0.35 reservation ceiling (not an invoice).
-QA rejected capitalized English “Head” against Indonesian “Kepala” in fact 2
-(`daily_name_or_office_unsupported`). First-result inspection also found a
-15-word normalized source overlap in its name/rank/credential sequence, exceeding
-the existing 12-word prohibition. Both cited translations, dates, aircraft
-identifier, attribution, negation and action status were inspected; no semantic
-discrepancy was observed. This does not override either release gate.
+The owner-authorized single genuine v3 medical inspection made two successful
+API calls: 2,912 input / 1,104 output tokens, estimated $0.022056 under the
+$0.35 reservation ceiling (not an invoice). It failed
+`daily_name_or_office_unsupported`: fact 1 uses the title abbreviation
+“Kemenkes”, absent from its cited passage, which uses “Kementerian Kesehatan”.
+Full predicate replay found only this rejection. Both facts and full private
+translations were inspected against their exact cited passages: office/holder
+identity, abbreviation locality, copying, dates, quantities, negation and action
+status. No other QA defect was found; this does not override the name hold.
 
-Private queue commit `26d903c2d5c8da5a6196f7301536cb82f3b1108f` preserves medical's
-third failure (two attempts left), industry's one failure (four left), the
-relevance rejection and all source-version bindings. Only the medical entry
-changed. Source pin remains `97668de31f0c01e8d000ad71518c16caac18f670`.
-No old reading was promoted; no explanation was signed or published.
-`KEMHAN_DAILY_ENABLED` remains absent/disabled: neither follow-on configuration
-nor an automatic Kemhan machine-output run is claimed. No publication/deploy
-workflow was dispatched. The authorized offline repair introduces prompt/QA
-v3: Head/Kepala requires the same cited institution and complete named holder;
-unknown role forms and changed acting/deputy status remain held. Generation
-uses minimal actor identity and omits unnecessary public credentials; the
-12-word copying rule is unchanged, including for names. The ordinary clinical
-phrases “head injury/injuries” require support in the same cited passage and
-do not bypass office checks, including lowercase office forms. Private replay also
-exposed a previously hidden cross-passage office-abbreviation expansion; its
-existing gate stays intact and generation now keeps local abbreviations literal.
+Private queue commit `89d23af8974dd360c9369a0add446c18104a6a08` preserves medical's
+fourth failure (one attempt left), industry's one failure (four left), the
+relevance rejection and every source-version binding. All unselected entries
+are unchanged; prior queue commit `26d903c2d5c8da5a6196f7301536cb82f3b1108f`
+remains in history. Source pin is `97668de31f0c01e8d000ad71518c16caac18f670`.
+No second invocation, edited-reading promotion, signing, publication or
+publication workflow dispatch occurred. `KEMHAN_DAILY_ENABLED` remains
+absent/disabled, with no automatic follow-on observed. The authorized offline
+repair aligns both public facts and private translations: named institutional
+forms must be literal to their cited passage; no alias glossary is enabled.
+Prompt/QA v4 uses the existing passage IDs with locally computed literal-name
+hints, excludes the title from reading input and retains the existing fact
+response shape. The same conservative formal-name/initialism recognizer checks
+both fields; it does not resolve arbitrary entities or certify bilingual meaning.
+Existing office/holder, copying, date, negation and action checks remain intact.
 
-All applicable checks were evaluated on the unchanged retained reading. Under
-v3 it still fails copying, private-name locality and old-prompt provenance.
-A separately labeled edited diagnostic (concise public actor plus literal local
-private office abbreviation) passes offline QA; it is not a model result or a
-recovered publication. Focused Indonesia/Philippines/date checks: 95 passed.
-Required exact-head CI belongs to the repair PR. No paid calls, queue changes,
-merge, activation or publication in this phase. Private receipts:
-`~/.codex/private-evidence/kemhan-controlled-v2-20261028/office-replay-{before,after}.json`.
-Next: review the repair PR, then a separately authorized genuine bounded reading
-within the unchanged remaining attempts before any release.
+All five retained readings were hash-checked and privately replayed through every
+applicable predicate; all stay held. A separately labeled edited diagnostic
+using literal local institution forms passes offline QA, without changing or
+recovering any rejected reading. Focused Indonesia/Philippines/date checks:
+101 passed. Repair PR #905 passed full CI at `dfaa72b648`: 8,193 tests
+(15 skips), Chromium, rendering, ten governed validator warnings and DB/output
+preservation. Main advanced during that run; the state-file conflict is resolved
+with this current checkpoint retained, and final merged-head CI is required. This phase has
+no paid calls, queue writes, merge, activation or publication. Medical retains
+one attempt, industry four, with unchanged source-version identities.
+Private replay receipts: `~/.codex/private-evidence/kemhan-institution-repair-20261028/`.
+Next: review the repair PR before any separately authorized live attempt.
 
 **Korea unified Daily (20 October 2026; activation PR open, processing off):**
 Branch `feat/korea-unified-daily-automation-20261020` makes Korea a live desk of
@@ -1261,10 +1313,10 @@ review date, not a qualification threshold. Neither desk is promoted.
   warning, three missing LinkedIn files (eds. 1–3), and one cadence gap
   (2026-07-18 → 2026-08-01). Any **new** warning must be explained here before
   it is accepted; none is ever fixed by invention.
-* **LLM usage is now recorded per run (2026-10-01), but no record exists
-  yet.** `.github/state/llm_usage.jsonl` is appended by the workflow's own
-  telemetry step on the first CI run after the telemetry lands (the pipeline
-  writes only a runtime file, so local runs never touch it). It is operational
+* **LLM usage is recorded per run (2026-10-01); 31 records cover 2–28
+  October.** `.github/state/llm_usage.jsonl` is appended only by the workflow's
+  own telemetry step (the pipeline writes only a runtime file, so local runs
+  never touch it). It is operational
   accounting with estimated cost from a pinned price table
   (`analysis/pricing.py`), not an invoice. Two decisions wait on it: whether to
   merge summary and categorization into one call, and whether categorization

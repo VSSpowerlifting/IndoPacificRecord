@@ -64,7 +64,11 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-from analysis.pricing import PRICING_CHECKED, estimate_usage_cost_usd
+from analysis.pricing import (
+    PRICING_CHECKED,
+    TIERED_PRICING_USD_PER_MTOK,
+    estimate_usage_cost_usd,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +125,11 @@ class UsageLedger:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._rows: dict[tuple[str, str], dict[str, int]] = {}
+        # Cost of a request-tiered model, summed response by response, because
+        # its price band depends on each request's prompt and so cannot be
+        # recovered from the aggregated counters. Kept apart from `_rows` so
+        # the counters and the persisted record keep their shape.
+        self._tiered_cost: dict[tuple[str, str], float] = {}
 
     def _row(self, task: str, model: str) -> dict[str, int]:
         return self._rows.setdefault((task, model), dict.fromkeys(_COUNTERS, 0))
@@ -142,6 +151,15 @@ class UsageLedger:
                     usage, "cache_creation_input_tokens")
                 row["cache_read_input_tokens"] += _tokens(
                     usage, "cache_read_input_tokens")
+                if model in TIERED_PRICING_USD_PER_MTOK:
+                    self._tiered_cost[(task, model)] = (
+                        self._tiered_cost.get((task, model), 0.0)
+                        + estimate_usage_cost_usd(
+                            model,
+                            _tokens(usage, "input_tokens"),
+                            _tokens(usage, "output_tokens"),
+                            _tokens(usage, "cache_creation_input_tokens"),
+                            _tokens(usage, "cache_read_input_tokens")))
         except Exception as exc:  # noqa: BLE001 — telemetry must not break analysis
             logger.warning("LLM usage telemetry: could not record a response: %s", exc)
 
@@ -180,6 +198,11 @@ class UsageLedger:
         items.sort(key=lambda x: (order.get(x[0], len(TASKS)), x[0], x[1]))
         return [{"task": t, "model": m, **c} for t, m, c in items]
 
+    def tiered_costs(self) -> dict[tuple[str, str], float]:
+        """Snapshot of the per-response cost sums for request-tiered models."""
+        with self._lock:
+            return dict(self._tiered_cost)
+
 
 def build_run_record(
     ledger: UsageLedger,
@@ -197,10 +220,16 @@ def build_run_record(
     totals = dict.fromkeys(_COUNTERS, 0)
     total_cost = 0.0
     unpriced: set[str] = set()
+    tiered = ledger.tiered_costs()
     for row in ledger.rows():
-        cost = estimate_usage_cost_usd(
-            row["model"], row["input_tokens"], row["output_tokens"],
-            row["cache_creation_input_tokens"], row["cache_read_input_tokens"])
+        if row["model"] in TIERED_PRICING_USD_PER_MTOK:
+            # Never priced from the summed counters: two short requests are
+            # not one long one (analysis/pricing.py).
+            cost = tiered.get((row["task"], row["model"]), 0.0)
+        else:
+            cost = estimate_usage_cost_usd(
+                row["model"], row["input_tokens"], row["output_tokens"],
+                row["cache_creation_input_tokens"], row["cache_read_input_tokens"])
         if cost is None:
             unpriced.add(row["model"])
         else:

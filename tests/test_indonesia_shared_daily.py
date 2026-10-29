@@ -152,7 +152,7 @@ class IndonesiaSharedDaily(unittest.TestCase):
 
     def test_equivalent_date_formats_are_not_changed_events(self):
         r,reply=self.dated_reading()
-        for date_text in ('21 Oktober 2026','21 October 2026','21/10/2026','2026-10-21','21-10-2026'):
+        for date_text in ('21 Oktober 2026','21 October 2026','21 OCTOBER 2026','21 OKTOBER 2026','21/10/2026','2026-10-21','21-10-2026'):
             with self.subTest(date=date_text):
                 reply['facts'][0]['sentence']='Kemhan reports an exercise on '+date_text+'.'
                 reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
@@ -255,7 +255,7 @@ class IndonesiaSharedDaily(unittest.TestCase):
         with self.assertRaisesRegex(d.IntakeHold,'daily_summary_invalid'):d.quality_check(r,reply)
 
     def test_prompt_revision_keeps_source_version_attempts_and_exhaustion(self):
-        for previous_failures in (1,2,3):
+        for previous_failures in (1,2,3,4):
             state=self.process(a=analyzer({}));key=next(iter(state))
             state[key]['attempts']=previous_failures
             a=analyzer({})
@@ -279,6 +279,105 @@ class IndonesiaSharedDaily(unittest.TestCase):
                 'Sp. SYN., Subsp.A.B.(C), described hospital readiness.'))
         reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
         return r,reply
+
+    def institution_reading(self, form='Kementerian Contoh'):
+        # Synthetic institutions and text; no publisher article or real response.
+        r,reply=record(),reading()
+        first=form+' membahas rencana latihan bersama.'
+        r['body']=first+'\n\n'+reply['facts'][1]['evidence']
+        reply['facts'][0]=dict(evidence=first,
+            sentence='Kemhan reports that '+form+' discusses joint exercise plans.',
+            evidence_translation=form+' discusses plans for a joint exercise.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_exact_local_institution_forms_pass_in_both_fields(self):
+        for form in ('Kementerian Contoh','Kemencontoh','Ministry of Contoh'):
+            r,reply=self.institution_reading(form)
+            with self.subTest(form=form):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+        # Either literal form is usable when the cited passage supplies both;
+        # this does not create an alias mapping for any other passage.
+        for form in ('Kementerian Contoh','Kemencontoh'):
+            r,reply=self.institution_reading('Kementerian Contoh (Kemencontoh)')
+            reply['facts'][0]['sentence']='Kemhan reports that '+form+' discusses exercise plans.'
+            reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+            with self.subTest(parenthesized=form):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def test_institution_acronyms_expansions_and_translations_are_not_inferred(self):
+        for source,alias in (('Kementerian Contoh','Kemencontoh'),
+                             ('Kementerian Contoh','kemencontoh'),
+                             ('Kemencontoh','Kementerian Contoh'),
+                             ('Kemencontoh','kementerian contoh'),
+                             ('Kementerian Contoh','Ministry of Contoh'),
+                             ('Kementerian Contoh','ministry of contoh')):
+            for field in ('sentence','evidence_translation'):
+                r,reply=self.institution_reading(source)
+                reply['facts'][0][field]=reply['facts'][0][field].replace(source,alias)
+                reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+                with self.subTest(source=source,alias=alias,field=field),self.assertRaises(d.IntakeHold):
+                    d.quality_check(r,reply)
+
+    def test_wrong_institutions_and_cross_passage_borrowing_fail_both_fields(self):
+        for field in ('sentence','evidence_translation'):
+            for other_passage in (False,True):
+                r,reply=self.institution_reading()
+                if other_passage:r['body']+='\n\nKementerian Lain membahas rencana latihan.'
+                reply['facts'][0][field]=reply['facts'][0][field].replace('Kementerian Contoh','Kementerian Lain')
+                reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+                with self.subTest(field=field,other_passage=other_passage),self.assertRaises(d.IntakeHold):
+                    d.quality_check(r,reply)
+            # Merely finding all component words in the same passage cannot
+            # authorize a newly assembled institution name.
+            r,reply=self.institution_reading()
+            old=reply['facts'][0]['evidence'];new=old.replace(' membahas',' dan Lembaga Lain membahas')
+            r['body']=r['body'].replace(old,new);reply['facts'][0]['evidence']=new
+            reply['facts'][0]['evidence_translation']='Kementerian Contoh and Lembaga Lain discuss exercise plans.'
+            reply['facts'][0][field]=reply['facts'][0][field].replace('Kementerian Contoh','Kementerian Lain')
+            reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+            with self.subTest(field=field,assembled=True),self.assertRaisesRegex(d.IntakeHold,'daily_institution_form_not_local'):
+                d.quality_check(r,reply)
+
+    def test_passage_ids_supply_literal_local_institutions_without_title_aliases(self):
+        from analysis.indonesia_prompts import analysis_messages
+        body='Kementerian Contoh membahas rencana latihan.\n\nKemencontoh menghadiri kegiatan.'
+        message=analysis_messages('SYNTHETIC title alias',body)[0]['content']
+        payload=json.loads(message.split('\n',1)[1])
+        self.assertNotIn('title',payload)
+        self.assertEqual([(p['id'],p['institutional_forms']) for p in payload['passages']],
+                         [('P1',['Kementerian Contoh']),('P2',['Kemencontoh'])])
+
+    def test_generic_translated_nouns_are_not_institution_names(self):
+        r,reply=self.institution_reading()
+        old=reply['facts'][0]['evidence']
+        evidence='Layanan rumah sakit membahas rencana latihan bersama.'
+        r['body']=r['body'].replace(old,evidence)
+        reply['facts'][0]=dict(evidence=evidence,
+            sentence='Kemhan reports discussions about hospital care plans.',
+            evidence_translation='Hospital care discussions concern joint exercise plans.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def test_sentence_prefixes_do_not_hide_institutions(self):
+        for form in ('Kementerian Contoh','Ministry of Contoh','MHC'):
+            r,reply=self.institution_reading(form)
+            old=reply['facts'][0]['evidence']
+            evidence='Menurut '+old
+            r['body']=r['body'].replace(old,evidence)
+            reply['facts'][0]['evidence']=evidence
+            reply['facts'][0]['evidence_translation']='Meanwhile '+form+' discusses exercise plans.'
+            with self.subTest(form=form):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+        for alias in ('Kemencontoh','Ministry of Contoh','MHC'):
+            r,reply=self.institution_reading()
+            reply['facts'][0]['evidence_translation']='Meanwhile '+alias+' discusses exercise plans.'
+            with self.subTest(alias=alias),self.assertRaisesRegex(d.IntakeHold,'daily_institution_form_not_local'):
+                d.quality_check(r,reply)
+        r,reply=self.institution_reading('National Ministry of Contoh')
+        reply['facts'][0]['evidence_translation']='Municipal Ministry of Contoh discusses exercise plans.'
+        with self.assertRaisesRegex(d.IntakeHold,'daily_institution_form_not_local'):
+            d.quality_check(r,reply)
 
     def test_head_translation_binds_institution_and_full_named_holder(self):
         r,reply=self.office_reading()
@@ -548,6 +647,8 @@ class IndonesiaSharedDaily(unittest.TestCase):
             d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v1'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v2'),FAMILY,policy()['sources'][FAMILY])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+            d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v3'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='ph-relevance-v1+ph-analysis-v13'),FAMILY,policy()['sources'][FAMILY])
 

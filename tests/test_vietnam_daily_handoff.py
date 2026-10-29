@@ -67,6 +67,17 @@ class Handoff(unittest.TestCase):
         with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_withheld_field"):
             self.verify(tampered, permissions=WITHHOLD)
 
+    def test_mps_original_title_is_withheld_even_with_english_analysis(self):
+        permissions = dict(WITHHOLD, public_title_display=False)
+        envelope = self.signed(permissions=permissions)
+        for _, _, row, _ in self.verify(envelope, permissions=permissions):
+            self.assertIsNone(row["title_original"])
+            self.assertTrue(row["title_english"])
+        forged = self.resign(envelope, lambda body: body["families"][0]["records"][0][
+            "row"].update(title_original="Synthetic withheld headline"))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_withheld_field"):
+            self.verify(forged, permissions=permissions)
+
     def public(self):
         conn = clone_schema(self.tmp / "public.db")
         self.addCleanup(conn.close)

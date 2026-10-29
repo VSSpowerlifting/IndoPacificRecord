@@ -1320,6 +1320,25 @@ class DailyCommand(unittest.TestCase):
         self.assertEqual(code, 0, report)
         self.assertEqual(list((self.tmp / "ledgers").iterdir()), [])
 
+    def test_vpcp_source_hold_preserves_unaffected_mps_admission(self):
+        from core.vietnam_source_use import standing, VPCP
+        analyzer = FakeAnalyzer(event_type="contract")
+        analyzer._call = lambda *args, **kwargs: '{"ok":true,"reason":"Synthetic check"}'
+        analyzer._parse_task_json = lambda raw, *args: json.loads(raw)
+        with patch.object(bridge, "desk_promoted", return_value=True):
+            reports = self.daily.run(
+                self.db_path, self.fixture.repos / MPS,
+                [(VPCP, "b" * 40), (MPS, self.shas[MPS])],
+                {VPCP: standing(VPCP), MPS: grant()},
+                ledger_dir=self.tmp / "ledgers", run_id="synthetic-isolated-hold",
+                expected_db_sha256=hashlib.sha256(self.db_path.read_bytes()).hexdigest(),
+                api=object(), analyzer=analyzer, as_of_utc=NOW)
+        self.assertEqual(reports[0]["counts"], {"held_source": 1})
+        self.assertEqual(set(reports[1]["counts"]), {qa.PUBLISHED})
+        with contextlib.closing(sqlite3.connect(str(self.db_path))) as conn:
+            self.assertGreater(conn.execute("SELECT count(*) FROM articles").fetchone()[0], 0)
+            self.assertEqual(conn.execute("SELECT DISTINCT source_family FROM vietnam_article_provenance").fetchall(), [(MPS,)])
+
 
 if __name__ == "__main__":
     unittest.main()
