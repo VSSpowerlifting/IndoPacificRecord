@@ -15,6 +15,7 @@ on:
       - scripts/audit_mindef_public_surfaces.py
       - scripts/stage_mindef_public_projection.py
       - tests/test_mindef_stage_projection.py
+      - docs/SINGAPORE_MINDEF_LIMITED_LINK_PERMISSION_2026-10-29.md
       - tests/test_mindef_permissions.py
       - tests/test_mindef_public_surfaces.py
       - .github/workflows/singapore_mindef_rights_inventory.yml
