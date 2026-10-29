@@ -12,6 +12,7 @@ SOURCE = {
     "original_text_sha256":"a"*64,
     "official_url":"https://www.korea.kr/briefing/pressReleaseView.do?newsId=156784297",
     "publisher_posted_date":"2026-10-06",
+    "text_original":"국방부 공식 발표 내용 " * 10,
 }
 
 
@@ -134,6 +135,49 @@ class OwnerDraftTests(unittest.TestCase):
         self.assertEqual(
             sut.safe_hold_reason(ValueError("PRIVATE SOURCE")),
             "korea_owner_draft_processing_failed")
+
+    def test_over_budget_source_is_visible_and_does_not_block_two_eligible_sources(self):
+        over = {**SOURCE, "text_original": "\\n".join(["국방부 발표"] * 51)}
+        first = {**SOURCE, "source_identity": "korea-policy:156784298",
+                 "original_text_sha256": "c" * 64,
+                 "publisher_posted_date": "2026-10-07"}
+        second = {**SOURCE, "source_identity": "korea-policy:156784299",
+                  "original_text_sha256": "d" * 64,
+                  "publisher_posted_date": "2026-10-08"}
+        with patch.object(sut, "read_release_index", return_value=[over, first, second]), \\
+             patch.object(sut, "public_registry", return_value=[]), \\
+             patch.object(sut, "draft", side_effect=self.fake_draft), \\
+             patch.object(sut, "send_owner", side_effect=lambda *a, **k: self.sent.append(a)):
+            selected, _, held = sut.pending_with_budget_holds(self.path)
+            self.assertEqual([r["source_identity"] for r in selected],
+                             [first["source_identity"], second["source_identity"]])
+            self.assertEqual(held, [{"source_identity": over["source_identity"],
+                                    "reason_code": "korea_model_input_over_bounded_budget"}])
+            result = sut.run(ledger=self.path, client=object(),
+                             sender="ipr@gmail.com", recipient="owner@gmail.com",
+                             password="notused")
+        self.assertEqual(result["count"], 2)
+        self.assertEqual(result["held_source_budget"], held)
+        self.assertEqual(self.generated, 2)
+        delivered = json.loads(self.path.read_text())["delivered"]
+        self.assertEqual([x["source_identity"] for x in delivered],
+                         [first["source_identity"], second["source_identity"]])
+        self.assertNotIn(over["source_identity"],
+                         [x["source_identity"] for x in delivered])
+
+    def test_all_over_budget_sources_never_invoke_draft_or_send(self):
+        over = {**SOURCE, "text_original": "\\n".join(["국방부 발표"] * 51)}
+        with patch.object(sut, "read_release_index", return_value=[over]), \\
+             patch.object(sut, "public_registry", return_value=[]), \\
+             patch.object(sut, "draft", side_effect=AssertionError("paid call prohibited")), \\
+             patch.object(sut, "send_owner", side_effect=AssertionError("send prohibited")):
+            result = sut.run(ledger=self.path, client=object(),
+                             sender="ipr@gmail.com", recipient="owner@gmail.com",
+                             password="notused")
+        self.assertEqual(result["status"], "NO_NEW_ENGLISH_DRAFTS")
+        self.assertEqual(result["count"], 0)
+        self.assertEqual(len(result["held_source_budget"]), 1)
+        self.assertEqual(json.loads(self.path.read_text())["delivered"], [])
 
     def test_daily_budget_is_two_source_records(self):
         many=[{**SOURCE,"source_identity":"korea-policy:"+str(156990000+n),
