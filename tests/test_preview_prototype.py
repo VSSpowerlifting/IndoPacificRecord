@@ -27,6 +27,7 @@ import unittest
 import urllib.parse
 from collections import Counter, defaultdict
 from pathlib import Path
+from unittest import mock
 
 import markupsafe
 
@@ -102,6 +103,9 @@ def _corpus_index() -> dict:
         _CORPUS_CACHE.update(
             by_id={r["id"]: r for r in data["corpus"]},
             names=sorted(names, key=len, reverse=True))
+        from core.daily_machine_records import load as load_machine_records
+        _CORPUS_CACHE["machine_by_path"] = {
+            r["record_path"]: r for r in load_machine_records(TRACKED_DB)}
     return _CORPUS_CACHE
 
 
@@ -140,6 +144,16 @@ def _authored_text(html: str, path: str = "", literals=None) -> str:
             record = index["by_id"].get(rec_id)
             if record:
                 literals += _record_literals(record, include_body=False)
+        # Shared Daily explanations have source-hash routes rather than numeric
+        # corpus IDs. Exclude only the exact released summary on its own page
+        # or where that page is linked; labels and caveats stay guarded.
+        machine_paths = set(re.findall(
+            r'record/source-[a-f0-9]{24}\.html', html))
+        machine_paths.add(path.replace("\\", "/"))
+        for record_path in machine_paths:
+            record = index["machine_by_path"].get(record_path)
+            if record:
+                literals.append(record["summary"])
 
     # Longest first, so a value that contains another is removed as a whole.
     for value in sorted(set(literals), key=len, reverse=True):
@@ -4690,6 +4704,38 @@ class TestExclusionContract(unittest.TestCase):
         authored = _authored_text(html, "record/1.html", literals=[stored])
         self.assertNotIn("&#34;defence&#34;", authored)
         self.assertIn("authored defence copy", authored)
+
+
+class TestReleasedMachineProseExclusion(unittest.TestCase):
+    def setUp(self):
+        self.path = "record/source-" + "a" * 24 + ".html"
+        self.summary = 'Stored machine output: "organised" & "defence".'
+        index = {"by_id": {}, "names": [], "machine_by_path": {
+            self.path: {"summary": self.summary}}}
+        patcher = mock.patch(__name__ + "._corpus_index", return_value=index)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_exact_released_summary_is_excluded_on_record_and_linked_desk(self):
+        html = ('<p>Machine explanation</p><p>%s</p>'
+                '<p>Not reviewed by a human. Authored defence copy.</p>' %
+                markupsafe.escape(self.summary))
+        for path, page in ((self.path, html),
+                           ("indonesia.html", '<a href="%s">Record</a>%s' %
+                            (self.path, html))):
+            with self.subTest(path=path):
+                own = _authored_text(page, path)
+                self.assertNotIn("organised", own)
+                self.assertIn("Machine explanation", own)
+                self.assertIn("Not reviewed by a human.", own)
+                self.assertIn("Authored defence copy.", own)
+
+    def test_unrelated_page_receives_no_summary_exemption(self):
+        self.assertIn(self.summary, _authored_text(self.summary, "about.html"))
+
+    def test_unregistered_summary_stays_guarded_even_on_registered_route(self):
+        self.assertIn("Unregistered organised output",
+                      _authored_text("Unregistered organised output", self.path))
 
 
 def _fake_record(**overrides):

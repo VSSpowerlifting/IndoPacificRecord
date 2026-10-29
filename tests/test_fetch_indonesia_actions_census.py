@@ -22,7 +22,8 @@ def run(number, when, *, event="schedule", desk="indonesia"):
 
 class PinnedCensusContracts(unittest.TestCase):
     def setUp(self):
-        self.runs = [
+        # Synthetic GitHub API runs, not moving corpus scrape-run totals.
+        self.api_runs = [
             run(101, "2026-10-06T21:21:12Z", event="workflow_dispatch"),
             run(102, "2026-10-07T21:58:19Z"),
             run(103, "2026-10-07T22:00:00Z", desk="korea"),
@@ -32,10 +33,10 @@ class PinnedCensusContracts(unittest.TestCase):
     def fake_pages(self, repo, route, query, kind, token, maximum):
         self.requests.append((repo, route, query, kind, maximum))
         if kind == "workflow_runs":
-            return {"total_count": len(self.runs),
-                    "workflow_runs": copy.deepcopy(self.runs)}
+            return {"total_count": len(self.api_runs),
+                    "workflow_runs": copy.deepcopy(self.api_runs)}
         ident = int(route.split("/")[3])
-        desk = next(x["desk"] for x in self.runs if x["id"] == ident)
+        desk = next(x["desk"] for x in self.api_runs if x["id"] == ident)
         return {"total_count": 1, "artifacts": [{
             "id": ident * 100, "name":
             "candidate-shadow-%s-%s-1" % (desk, ident)}]}
@@ -80,15 +81,15 @@ class PinnedCensusContracts(unittest.TestCase):
             lambda row: row.update(created_at="2026-10-04T21:58:00Z"),
         ]
         for alter in mutations:
-            bad = copy.deepcopy(self.runs)
+            bad = copy.deepcopy(self.api_runs)
             alter(bad[1])
-            original = self.runs
-            self.runs = bad
+            original = self.api_runs
+            self.api_runs = bad
             with self.subTest(alter=alter), self.assertRaises(
                     (census.CensusError, prov.ProvenanceError)):
                 census.export(census.OWNER_REPO, "token",
                               "2026-10-07", self.fake_pages)
-            self.runs = original
+            self.api_runs = original
 
     def test_requires_unique_pagination_and_exact_api_totals(self):
         def page_factory(rows, count, kind="workflow_runs"):
