@@ -87,6 +87,25 @@ Brief No. 20 and Dylan Tanzi's authorship are unchanged. Issue #914 remains the
 separate human decision for its proposed two-reference update. Component/browser
 tests use explicit synthetic rights authority; they do not clear these real works.
 
+## Test-suite reconciliation (PR #913)
+
+The pre-existing suite asserted behavior the rights boundary intentionally
+removes. Every failing group was classified; no negative assertion was
+weakened to make a run green and no restricted material was restored.
+
+| Class | Groups | Resolution |
+| --- | --- | --- |
+| Genuine regression, fixed in code and regenerated output | Research Atlas excluded all 98 MINDEF rows (the projection compared them to stored text); the issue-14 historic link pointed to a withheld Brief; citations named an absent machine note and quoted a title that is no longer public | `mindef_metadata_label` and a historical-status processing string in `core/archive_research.py`; `record_citation` MINDEF branch; `core/timelines.py` withholds an approved timeline whose evidence is held |
+| Intended change, test now asserts the new boundary | Record pages and citations for 98 MINDEF identities, `TestRecordSemantics`; Singapore pipeline tests; the shadow-isolation token check | New `TestMindefRecordPagesAreMetadataOnly` (98 identities with NULL expressions, exact two-URL link scope, source identity, no `original-text`, unrelated records unchanged); pipeline tests assert `skipped_disabled` with no request, no adapter, no storage; the renderer may name MINDEF only to withhold |
+| Intended change from whole-work holds | Briefs 15–17, the two Dossiers and the draft Timeline (media, navigation, catalogue, photography, publication, rendering, relief) | Component tests run under an explicit synthetic rights authority (`editorial_hold` patched false) on fixtures derived without MINDEF citations. Each is paired with a real-hold test that runs unpatched and asserts the real works are held, absent from the real build, and fail closed in `reconcile_sources` |
+| Stale fixture or hard-coded expectation | Record selectors, issue numbering and counts, "nineteen pages", the newest-issue link, spine and ledger counts | Derived from the published collection or the fixture instead of constants |
+| Baseline or environment, identical on `origin/main` | Missing `gpg` and `docx`, macOS `/private/var` paths and SQLite `-shm` sidecars, plus tests that need network or the weekly workflow | Not changed; they do not occur on Linux CI |
+
+Tests read the tracked database only through `scripts.reconcile_db.read_only`
+(a scratch copy), as `test_workflow_failure_paths` requires. Brief No. 20,
+issue #914, the 98 identities, private custody, the link grant and approval
+fingerprints are untouched.
+
 ## Historical exposure decision
 
 Confirmed: the public main baseline carries the original DB/source expression;

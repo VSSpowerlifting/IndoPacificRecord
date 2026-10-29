@@ -23,3 +23,8 @@ def source_link_approved(source_slug, url):
     if not is_mindef_source(source_slug):
         return True
     return isinstance(url, str) and url in APPROVED_MINDEF_LINKS
+
+
+def mindef_metadata_label(record_id):
+    """IPR's neutral stand-in for a withheld MINDEF headline. Never a publisher title."""
+    return "Source metadata — Singapore MINDEF record %s" % record_id

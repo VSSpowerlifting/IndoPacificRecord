@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest import mock
 
 from core.desk_registry import load_registry
 from core import timelines as t
@@ -56,8 +57,39 @@ def write_db(path):
         """)
 
 
+def pilot_without_mindef_evidence():
+    """The draft pilot chronology minus every citation of a Singapore MINDEF record.
+
+    MINDEF originals are no longer public, so a chronology cannot reconcile its
+    excerpts against them (reconcile_sources fails closed). Template, publication
+    and accessibility contracts need a *renderable* chronology, so they derive
+    one from the real pilot by dropping only the MINDEF citations, entries left
+    with no evidence, and the reconciliation references to those entries. Every
+    remaining entry, citation and excerpt is the pilot's own, unmodified.
+    """
+    sc = copy.deepcopy(json.loads(PILOT.read_text(encoding="utf-8")))
+    entries = []
+    for entry in sc["entries"]:
+        entry["evidence"] = [ev for ev in entry["evidence"]
+                             if ev["source_id"] != "sg_mindef_releases"]
+        if entry["evidence"]:
+            entries.append(entry)
+    kept = {e["id"] for e in entries}
+    sc["entries"] = entries
+    sc["reconciliation"] = [dict(r, entry_ids=[i for i in r["entry_ids"] if i in kept])
+                            for r in sc.get("reconciliation", [])]
+    return sc
+
+
 class TimelineContract(unittest.TestCase):
     def setUp(self):
+        # The invented fixture cites a synthetic `sg_mindef_releases` source, so
+        # the MINDEF whole-work hold would withhold it before these contracts run.
+        # They test chronology mechanics under an explicit *synthetic* rights
+        # authority; the real pilot stays held (see PilotIsHeldByRightsBoundary).
+        rights = mock.patch("core.mindef_public_boundary.editorial_hold", return_value=False)
+        rights.start()
+        self.addCleanup(rights.stop)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
@@ -219,12 +251,27 @@ class TimelineContract(unittest.TestCase):
         with self.assertRaisesRegex(t.TimelineError, "publication interval"):
             t.validate_timeline(self.sc)
 
-    def test_pilot_source_parity_and_read_only_preservation(self):
+
+class PilotIsHeldByRightsBoundary(unittest.TestCase):
+    """No synthetic authority: the real draft pilot cites MINDEF record 4466."""
+
+    def test_pilot_is_unchanged_held_and_never_a_public_view(self):
+        from core.mindef_public_boundary import editorial_hold
         before = hashlib.sha256((ROOT / "pla_watch.db").read_bytes()).digest()
         sc = t.read_timeline(PILOT)
-        records = t.reconcile_sources(sc, ROOT / "pla_watch.db")
-        self.assertEqual(set(records), {4164, 3924, 4466, 4472, 4102})
         self.assertEqual(sc["editorial_status"], "draft")
+        self.assertTrue(editorial_hold(sc))
         self.assertEqual(before, hashlib.sha256((ROOT / "pla_watch.db").read_bytes()).digest())
         self.assertFalse((ROOT / "pla_watch.db-wal").exists())
         self.assertFalse((ROOT / "pla_watch.db-shm").exists())
+
+    def test_the_real_loader_withholds_it_even_when_review_is_not_requested(self):
+        public, withheld = t.load_timelines(ROOT / "pla_watch.db", {}, ROOT / "timelines")
+        self.assertEqual(public, [])
+        self.assertIn("maritime-cooperation-2026", withheld)
+
+    def test_source_reconciliation_fails_closed_on_the_withheld_mindef_record(self):
+        # A stored MINDEF identity has no preserved title/text any longer, so a
+        # chronology cannot be reconciled against it; the refusal names the record.
+        with self.assertRaisesRegex(t.TimelineError, "record 4466 has incomplete preserved metadata"):
+            t.reconcile_sources(t.read_timeline(PILOT), ROOT / "pla_watch.db")

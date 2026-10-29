@@ -19,6 +19,13 @@ no erasure is claimed. See
 `docs/engineering/SINGAPORE_MINDEF_PRODUCTION_CUTOVER_2026-10-29.md` for proof,
 affected references, the recommended separate history cleanup and release steps.
 
+Test-suite reconciliation: the 226 failures and 21 errors recorded for the
+candidate were classified (regression, intended boundary, held whole work,
+stale fixture, baseline) and repaired as set out in the cutover document.
+Held works are tested twice: under an explicit synthetic rights authority for
+component behavior and, unpatched, as absent and fail-closed. The remaining
+local-only errors (`gpg`, `docx`, macOS paths) match `origin/main`.
+
 ## Haiku 5.5 opt-in compatibility and request-level cost accounting — review candidate (28 October 2026)
 
 `ANALYSIS_MODEL=claude-haiku-5-5` is now a valid opt-in for the shared Analyzer.

@@ -208,7 +208,7 @@
           <tr><th scope="row">Source-stated publication date</th><td class="prov-value">{{ record.published_date }}</td></tr>
           <tr><th scope="row">Original URL</th><td class="prov-value">{% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>{% else %}{{ record.url }} <span class="meta">— link not permitted</span>{% endif %}</td></tr>
           <tr><th scope="row">Collected at</th><td class="prov-value">{{ record.scraped_at }} <span class="meta">— collection metadata, not a publication time</span></td></tr>
-          <tr><th scope="row">Content fingerprint</th><td class="prov-value"><span class="token">{{ record.content_hash }}</span> <span class="meta">— taken when the record was captured, over the stored original title and text</span></td></tr>
+          <tr><th scope="row">Content fingerprint</th><td class="prov-value"><span class="token">{{ record.content_hash }}</span> <span class="meta">— taken when the record was captured, over the stored original title and text{% if record.source_slug == 'sg_mindef_releases' %}, which are held privately and not published{% endif %}</span></td></tr>
           {% if record.scrape_run_id is not none %}
           <tr><th scope="row">Collection run</th><td class="prov-value">{{ record.scrape_run_id }}</td></tr>
           {% endif %}

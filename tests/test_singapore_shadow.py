@@ -206,8 +206,14 @@ class TestIsolationFromProduction(unittest.TestCase):
         # unpublished working tree, not the country's name on a public page.
         gp = (REPO_ROOT / "site" / "preview"
               / "generate_preview.py").read_text(encoding="utf-8").lower()
-        for token in ("mindef", "sg_mindef", "shadow_collect",
-                      "shadow/singapore", "singapore_shadow"):
+        for token in ("shadow_collect", "shadow/singapore", "singapore_shadow"):
+            with self.subTest(token=token):
+                self.assertNotIn(token, gp)
+        # MINDEF itself is now named in the renderer, but only to *withhold*
+        # (PR #913): the metadata label and the exact link grant, never the
+        # collector, its shadow tree or any acquisition path.
+        self.assertIn("mindef_metadata_label", gp)
+        for token in ("sgmindefadapter", "scraper.sources.sg_mindef", "requests."):
             with self.subTest(token=token):
                 self.assertNotIn(token, gp)
 

@@ -82,7 +82,7 @@ from core.china_discovery import build_focus                        # noqa: E402
 from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
 from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
-from core.mindef_permissions import source_link_approved  # noqa: E402
+from core.mindef_permissions import mindef_metadata_label, source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
 from scripts.desk_map import layout as desk_map_layout              # noqa: E402
 
@@ -636,7 +636,7 @@ def load_corpus(db_path: Path) -> dict:
             rec.update(title_receipts.get(rec["id"], {}))
             if rec["source_slug"] == "sg_mindef_releases":
                 # This is a metadata label, never a substitute publisher title.
-                rec["title_original"] = "Source metadata — Singapore MINDEF record %s" % rec["id"]
+                rec["title_original"] = mindef_metadata_label(rec["id"])
                 rec["title_english"] = None
                 rec["text_original"] = None
                 rec["summary_english"] = None
@@ -2245,7 +2245,13 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
         and isinstance(vietnam.get("permissions"), dict)
         and vietnam["permissions"].get("public_title_display") is False
     )
-    if withheld_vietnam_title:
+    withheld_mindef_title = record.get("source_slug") == "sg_mindef_releases"
+    if withheld_mindef_title:
+        # The public row carries IPR's neutral label, which is not MINDEF's
+        # headline and must never be quoted as the publisher's title.
+        source_prefix = "Official source."
+        source_title = "Original title withheld under the source-use decision."
+    elif withheld_vietnam_title:
         # Explicitly disclose the omission; still require real issuer, outlet,
         # source-stated date and official URL below. Never insert a fake title.
         document = (vietnam.get("qa") or {}).get("details",{}).get("VPCP_DOCUMENT",{}).get("bibliographic",{})
@@ -2274,7 +2280,10 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
                 id=_require(record.get("id"), "record id", subject),
                 date=snapshot["date"],
                 records=snapshot["expected_records"]),
-        "note": processing_note(record, CITATION_PROCESSING_NOTES),
+        "note": ("Historical processing status only. MINDEF titles, source text, translations, "
+                 "summaries and reasoning are withheld under the current source-use policy."
+                 if withheld_mindef_title else
+                 processing_note(record, CITATION_PROCESSING_NOTES)),
     }
 
 

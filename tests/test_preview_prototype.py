@@ -39,6 +39,7 @@ import generate_preview as gp                                    # noqa: E402
 from core.desk_registry import load_registry                     # noqa: E402
 from migrations.runner import apply_all, connect                 # noqa: E402
 from tests.test_migrations import build_legacy_db                # noqa: E402
+from core.mindef_permissions import APPROVED_MINDEF_LINKS, MINDEF_SOURCE_SLUG  # noqa: E402
 
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
 PRODUCTION_OUT = REPO_ROOT / "output"
@@ -2292,7 +2293,10 @@ class TestRecordPages(PreviewCase):
         the record path is "not a permanent identifier", which is a different
         ruling and must not be caught here.
         """
-        rec = next(r for r in self.data["corpus"] if not r["has_text"])
+        rec = next(r for r in self.data["corpus"] if not r["has_text"]
+                   and r["source_slug"] != MINDEF_SOURCE_SLUG
+                   and not r.get("korea_identity")
+                   and not r.get("vietnam", {}).get("original_withheld"))
         html = self.record(rec["id"])
         self.assertIn("Original text is unavailable in this stored record.",
                       html)
@@ -2350,7 +2354,10 @@ class TestRecordPages(PreviewCase):
         self.assertNotIn("<td><b>", table)
 
     def test_the_original_source_link_is_keyboard_reachable(self):
-        rec = self.by_id[self.ids[-1]]
+        # MINDEF links are deliberately limited to two exact URLs; their
+        # presence/absence is asserted in TestMindefRecordPages.
+        rec = self.by_id[max(i for i in self.ids
+                             if self.by_id[i]["source_slug"] != MINDEF_SOURCE_SLUG)]
         html = self.record(rec["id"])
         self.assertIn('<a href="%s"' % markupsafe.escape(rec["url"]), html)
         self.assertNotIn("tabindex=\"-1\"", html)
@@ -2394,6 +2401,96 @@ class TestRecordPages(PreviewCase):
 
 
 # ── Tranche 2, commit 4: week-sharded no-JavaScript browsing ─────────────────
+
+class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
+    """Singapore MINDEF: 98 identities stay, no expression is published.
+
+    The written permission covers two exact hyperlinks and nothing else, so a
+    MINDEF record page carries identity, dates and historical provenance, an
+    IPR-authored label in place of the headline, and a link only for the two
+    approved URLs. Every other record keeps its ordinary evidence layout.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.data = gp.load_corpus(TRACKED_DB)
+        cls.mindef = [r for r in cls.data["corpus"]
+                      if r["source_slug"] == MINDEF_SOURCE_SLUG]
+        cls.other = [r for r in cls.data["corpus"]
+                     if r["source_slug"] != MINDEF_SOURCE_SLUG]
+        from scripts.reconcile_db import read_only
+        with read_only(str(TRACKED_DB)) as con:
+            cls.stored = {row[0]: row[1:] for row in con.execute(
+                "SELECT a.id, a.url, a.title_original, a.text_original, "
+                "a.title_english, a.text_english, a.summary_english, "
+                "a.relevance_reasoning, a.significance_reasoning "
+                "FROM articles a JOIN sources s ON s.id=a.source_id "
+                "WHERE s.slug=?", (MINDEF_SOURCE_SLUG,))}
+
+    def page(self, rec_id):
+        return (self.out / "record" / ("%d.html" % rec_id)).read_text(
+            encoding="utf-8")
+
+    def test_all_98_identities_are_kept_and_every_expression_is_null(self):
+        self.assertEqual(len(self.mindef), 98)
+        self.assertEqual(len(self.stored), 98)
+        for rec_id, row in self.stored.items():
+            self.assertEqual(row[1:], (None,) * 7, rec_id)
+
+    def test_the_only_linkable_urls_are_the_two_exact_grants(self):
+        self.assertEqual(len(APPROVED_MINDEF_LINKS), 2)
+        allowed = {r["id"] for r in self.mindef if r["mindef_link_allowed"]}
+        by_url = {rid: self.stored[rid][0] for rid in self.stored}
+        self.assertTrue(allowed)
+        for rec_id in self.stored:
+            self.assertEqual(rec_id in allowed,
+                             by_url[rec_id] in APPROVED_MINDEF_LINKS, rec_id)
+
+    def test_pages_show_a_label_and_no_source_text(self):
+        for rec in self.mindef:
+            html = self.page(rec["id"])
+            with self.subTest(record=rec["id"]):
+                self.assertIn(gp.mindef_metadata_label(rec["id"]), html)
+                self.assertIn('<h2 id="record-text">Source-use limits</h2>', html)
+                self.assertNotIn('class="original-text"', html)
+                self.assertNotIn("Stored source text", html)
+                self.assertNotIn("The English title and summary held for this record",
+                                 html)
+
+    def test_outbound_anchors_exist_only_for_the_approved_urls(self):
+        approved = set(APPROVED_MINDEF_LINKS)
+        seen = set()
+        for rec in self.mindef:
+            html = self.page(rec["id"])
+            url = self.stored[rec["id"]][0]
+            anchors = set(re.findall(r'href="(https?://[^"]*mindef\.gov\.sg[^"]*)"',
+                                     html))
+            with self.subTest(record=rec["id"]):
+                if url in approved:
+                    self.assertEqual(anchors, {url})
+                    seen.add(url)
+                else:
+                    self.assertEqual(anchors, set())
+                    self.assertIn("link not permitted", html)
+                    self.assertIn(url, html)  # recorded as provenance text
+        # Only the 23 Oct 2026 release is among the 98 captured identities; the
+        # other grant (31may25_nr3) is not a stored record and must stay unlinked.
+        self.assertEqual(
+            seen, {"https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/"})
+
+    def test_other_records_keep_their_ordinary_evidence_layout(self):
+        # Unrelated-record integrity: the MINDEF boundary must not leak.
+        with_text = [r for r in self.other if r["has_text"]
+                     and r["source_slug"] != MINDEF_SOURCE_SLUG
+                     and not r.get("korea_identity")
+                     and not r.get("vietnam", {}).get("original_withheld")]
+        self.assertTrue(with_text)
+        for rec in with_text[:25]:
+            html = self.page(rec["id"])
+            self.assertNotIn("Source-use limits", html)
+            self.assertNotIn("Source metadata — Singapore MINDEF", html)
+
 
 class TestWeekShards(PreviewCase):
     """Every record reachable through ordinary links, JavaScript disabled."""
@@ -2945,6 +3042,11 @@ class TestRecordSemantics(PreviewCase):
                     self.assertIn('<h2 id="record-text">Korean original</h2>', html)
                     self.assertIn('href="../korea-originals/%s.html"' % rec["korea_news_id"], html)
                     self.assertIn("KOGL Type 1 text-use notice", html)
+                elif rec["source_slug"] == MINDEF_SOURCE_SLUG:
+                    # Intended rights boundary: no stored text is shown at all.
+                    # The exhaustive MINDEF contract is TestMindefRecordPages.
+                    self.assertIn('<h2 id="record-text">Source-use limits</h2>', html)
+                    self.assertNotIn("Stored source text", html)
                 elif rec.get("vietnam", {}).get("original_withheld"):
                     self.assertIn('<h2 id="record-text">Source text</h2>', html)
                     self.assertIn("is not reproduced here", re.sub(r"\s+", " ", html))
@@ -2958,6 +3060,7 @@ class TestRecordSemantics(PreviewCase):
     def captured_records(self):
         return [r for r in self.data["corpus"]
                 if not r.get("korea_identity")
+                and r["source_slug"] != MINDEF_SOURCE_SLUG
                 and not r.get("vietnam", {}).get("original_withheld")]
 
     def test_the_extraction_caveat_renders_on_every_record(self):
@@ -3030,7 +3133,7 @@ class TestRecordSemantics(PreviewCase):
                 self.assertIn(markupsafe.escape(para), markupsafe.Markup(html))
 
     def test_the_caveat_is_not_a_boxed_callout(self):
-        rec = next(r for r in self.data["corpus"] if r["state"] == "analyzed")
+        rec = next(r for r in self.captured_records() if r["state"] == "analyzed")
         section = self.record(rec["id"]).split(
             '<h2 id="record-text">Stored source text</h2>', 1)[1].split("<h2", 1)[0]
         self.assertNotIn("callout", section)
@@ -4521,7 +4624,10 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
                 self.assertIn(label, authored)
 
     def test_empty_text_disclosure_and_route_language_stay_guarded(self):
-        empty = next(r for r in self.corpus["corpus"] if not r["has_text"])
+        empty = next(r for r in self.corpus["corpus"] if not r["has_text"]
+                     and r["source_slug"] != MINDEF_SOURCE_SLUG
+                     and not r.get("korea_identity")
+                     and not r.get("vietnam", {}).get("original_withheld"))
         authored = self.authored("record/%d.html" % empty["id"])
         self.assertIn("Original text is unavailable in this stored record.",
                       authored)
@@ -5343,8 +5449,9 @@ class TestSnapshotScopedCitations(PreviewCase):
             encoding="utf-8")
 
     def first_in_state(self, state):
+        # MINDEF pages are metadata-only and are asserted separately below.
         for rec in self.corpus:
-            if rec["state"] == state:
+            if rec["state"] == state and rec["source_slug"] != MINDEF_SOURCE_SLUG:
                 return rec["id"]
         raise AssertionError("no record in state %s" % state)
 
@@ -5393,7 +5500,13 @@ class TestSnapshotScopedCitations(PreviewCase):
                           rec["published_date"], rec["url"]):
                 if str(value) not in cite["source_text"]:
                     wrong.append((rec["id"], value))
-            if rec["title_original"]:
+            if rec["source_slug"] == MINDEF_SOURCE_SLUG:
+                # IPR's label is not a publisher title and is never quoted as one.
+                if (rec["title_original"] in cite["source_text"]
+                        or "Original title withheld under the source-use decision."
+                        not in cite["source_text"]):
+                    wrong.append((rec["id"], "mindef withheld title"))
+            elif rec["title_original"]:
                 if rec["title_original"] not in cite["source_text"]:
                     wrong.append((rec["id"], "original title"))
             elif "Original title withheld under the source-use decision." not in cite["source_text"]:
@@ -5419,6 +5532,13 @@ class TestSnapshotScopedCitations(PreviewCase):
             english = (rec.get("title_english") or "").strip()
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
+                if rec["source_slug"] == MINDEF_SOURCE_SLUG:
+                    self.assertIn("Original title withheld under the source-use decision.",
+                                  cite["source_text"])
+                    self.assertNotIn(original, cite["source_text"])
+                    if english:
+                        self.assertNotIn(english, cite["source_text"])
+                    continue
                 if not original:
                     self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
                     self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
@@ -5444,7 +5564,9 @@ class TestSnapshotScopedCitations(PreviewCase):
         # Once 4,400 retired sources were removed, a fixed 1,000-example
         # threshold exceeded the entire active 873-record corpus. Require
         # coverage of a MAJORITY of reviewed (analyzed) source titles.
-        analyzed_count = sum(r["state"] == "analyzed" for r in self.corpus)
+        analyzed_count = sum(r["state"] == "analyzed"
+                             and r["source_slug"] != MINDEF_SOURCE_SLUG
+                             for r in self.corpus)
         self.assertGreater(compared, analyzed_count // 2)
 
     def test_the_rendered_source_text_block_quotes_the_original_title(self):
@@ -5460,6 +5582,17 @@ class TestSnapshotScopedCitations(PreviewCase):
                 else:
                     self.assertIn(str(markupsafe.escape(
                         '"%s."' % rec["title_original"])), html)
+
+    def test_mindef_citations_disclose_the_withheld_title_and_state_history_only(self):
+        mindef = [r for r in self.corpus if r["source_slug"] == MINDEF_SOURCE_SLUG]
+        self.assertEqual(len(mindef), 98)
+        for rec in mindef:
+            html = self.record(rec["id"])
+            with self.subTest(record=rec["id"]):
+                self.assertIn("Original title withheld under the source-use decision.", html)
+                self.assertNotIn(str(markupsafe.escape('"%s."' % rec["title_original"])), html)
+                self.assertIn("Historical processing status only.", html)
+                self.assertNotIn("machine-generated and have not been reviewed", html)
 
     def test_all_record_pages_carry_the_snapshot_date_and_count(self):
         expected = ("Snapshot — %s (%s records)"
@@ -6332,7 +6465,8 @@ class TestCitationCopyBehaviour(PreviewCase):
             permissions=["clipboard-read", "clipboard-write"])
         try:
             corpus = gp.load_corpus(TRACKED_DB)["corpus"]
-            rec = next(r for r in corpus if r["state"] == "analyzed")
+            rec = next(r for r in corpus if r["state"] == "analyzed"
+                       and r["source_slug"] != MINDEF_SOURCE_SLUG)
             page = context.new_page()
             page.goto(self.url("record/%d.html" % rec["id"]),
                       wait_until="load")
