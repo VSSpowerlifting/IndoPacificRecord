@@ -215,7 +215,9 @@ class StaffBuildTests(unittest.TestCase):
         self.assertEqual(schema['jobTitle'], title)
         about = BeautifulSoup((self.out / 'about.html').read_text(), 'html.parser')
         self.assertIn("Benjamin Yang, " + title, about.select_one('.cite-line').get_text())
-        for page in (team, profile, about):
+        guide = BeautifulSoup((self.out / 'corpus-guide.html').read_text(), 'html.parser')
+        self.assertIn("Benjamin Yang, " + title, guide.select_one('#cite-corpus').get_text())
+        for page in (team, profile, about, guide):
             self.assertNotIn(old_title, str(page))
 
     def test_real_publication_credits_and_reverse_links(self):
