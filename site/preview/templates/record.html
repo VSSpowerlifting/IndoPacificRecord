@@ -312,7 +312,11 @@
         <div><dt>Translation</dt><dd>{% if record.korea_identity and record.text_english %}Full machine translation, not reviewed by a human{% elif record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}Independent machine headline; not a translation{% elif record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% elif (record.language_tag or '').startswith('en') %}Not needed: the source publishes in English{% else %}No English title held{% endif %}</dd></div>
         <div><dt>Desk</dt><dd>{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</dd></div>
       </dl>
+      {% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}
       <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>
+      {% else %}
+      <p class="meta">This MINDEF page is not within IPR's approved hyperlink scope.</p>
+      {% endif %}
     </div>
     {% if dossier_records is defined and dossier_records[record.id] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}
     {% if timeline_records is defined and timeline_records[record.id] %}<section class="record-section" aria-labelledby="record-timelines"><h2 id="record-timelines">In Evidence Timelines</h2>{% for item in timeline_records[record.id] %}<p><a href="../{{ item.route }}">{{ item.title }}</a>{% if item.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
