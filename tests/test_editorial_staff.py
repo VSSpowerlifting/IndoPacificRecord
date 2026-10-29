@@ -47,7 +47,7 @@ class EditorialStaffTests(unittest.TestCase):
     def test_public_roster_is_exact_and_domain_focused(self):
         people = load_staff(ROSTER)
         self.assertEqual([(p["name"], p["role"]) for p in people], [
-            ("Benjamin Yang", "Founder & Director of Research and Editorial"),
+            ("Benjamin Yang", "Founder & Executive Director"),
             ("Dylan Tanzi", "Lead Research Analyst"),
             ("Jophy Lin", "Communications Editor"),
         ])
@@ -63,7 +63,8 @@ class EditorialStaffTests(unittest.TestCase):
         self.assertEqual(founder["links"]["LinkedIn"], "https://www.linkedin.com/in/benjamin-w-yang/")
         self.assertIn("Indo-Pacific Record", founder["bio"])
         self.assertIn("primary-source evidence", founder["bio"])
-        self.assertIn("Director of Research and Editorial", founder["bio"])
+        self.assertIn("As Executive Director", founder["bio"])
+        self.assertNotIn("Director of Research and Editorial", founder["bio"])
         self.assertNotIn("Editor-in-Chief", founder["bio"])
         self.assertNotIn("Strategic Materials Policy Tracker", founder["bio"])
         self.assertNotIn("The Diplomat", founder["bio"])
@@ -195,6 +196,29 @@ class StaffBuildTests(unittest.TestCase):
         self.assertIn('https://indopacificrecord.org/team.html', locations)
         self.assertEqual(team.select_one('link[rel=canonical]')['href'],
                          'https://indopacificrecord.org/team.html')
+
+    def test_founder_title_propagates_to_current_public_surfaces(self):
+        from bs4 import BeautifulSoup
+        title = "Founder & Executive Director"
+        old_title = "Director of Research and Editorial"
+        self.assertEqual(self.gp.MAINTAINER["role"], title)
+        team = BeautifulSoup((self.out / 'team.html').read_text(), 'html.parser')
+        founder = team.select_one('.staff-entry')
+        self.assertEqual(founder.select_one('.staff-role').get_text(), title)
+        self.assertIn("As Executive Director", founder.select_one('.staff-bio').get_text())
+        profile = BeautifulSoup((self.out / 'authors/benjamin-yang.html').read_text(), 'html.parser')
+        self.assertEqual(profile.select_one('.staff-person-role').get_text(), title)
+        self.assertIn(title, profile.select_one('meta[name="description"]')['content'])
+        self.assertIn(title, profile.select_one('meta[property="og:description"]')['content'])
+        self.assertIn(title, profile.select_one('meta[name="twitter:description"]')['content'])
+        schema = json.loads(profile.select_one('script[type="application/ld+json"]').string)
+        self.assertEqual(schema['jobTitle'], title)
+        about = BeautifulSoup((self.out / 'about.html').read_text(), 'html.parser')
+        self.assertIn("Benjamin Yang, " + title, about.select_one('.cite-line').get_text())
+        guide = BeautifulSoup((self.out / 'corpus-guide.html').read_text(), 'html.parser')
+        self.assertIn("Benjamin Yang, " + title, guide.select_one('#cite-corpus').get_text())
+        for page in (team, profile, about, guide):
+            self.assertNotIn(old_title, str(page))
 
     def test_real_publication_credits_and_reverse_links(self):
         from bs4 import BeautifulSoup
