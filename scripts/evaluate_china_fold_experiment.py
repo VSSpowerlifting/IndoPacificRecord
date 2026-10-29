@@ -10,6 +10,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Support the documented `python scripts/...py` invocation from any cwd.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from analysis.analyzer import Analyzer
 from analysis.china_fold_experiment import (
     COMBINED_MAX_TOKENS, build_combined_messages, run_combined,
@@ -19,7 +24,6 @@ from analysis.pricing import PRICING_USD_PER_MTOK
 from analysis.usage import build_run_record
 from config import ANALYSIS_MODEL, RELEVANCE_MODEL
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 MAX_INPUT_CHARS = 16000
 
 
