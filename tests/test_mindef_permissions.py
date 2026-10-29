@@ -25,7 +25,7 @@ class MINDEFPermissionTests(unittest.TestCase):
         template = (Path(__file__).resolve().parents[1] /
                     "site/preview/templates/record.html").read_text(encoding="utf-8")
         start = template.index("{% elif record.source_slug == 'sg_mindef_releases' %}")
-        stop = template.index('{% else %}\\n    <section class="record-section" aria-labelledby="record-text">', start)
+        stop = template.index('{% else %}\n    <section class="record-section" aria-labelledby="record-text">', start)
         singapore_branch = template[start:stop]
         self.assertNotIn("text_original", singapore_branch)
         self.assertIn("MINDEF's original article text and media are not reproduced", singapore_branch)
