@@ -3,10 +3,11 @@
 ## Korea delivery budget repair — review candidate (29 October 2026)
 
 Korea now selects a page-specific `korea-shell.css`, using the unchanged
-supporting declarations and cascade order established by Indonesia #889.
+supporting declarations and cascade order established by Indonesia #889,
+plus Korea’s existing mobile numeric-cell and weekly-chart rules.
 All Korea content is preserved; its generated HTML changes only the stylesheet
-URL. Current-main delivery falls from 118,514 to 93,774 bytes, saving 24,740
-and leaving 26,226 under the unchanged 120,000-byte cap. The failed Daily
+URL. Current-main delivery falls from 118,514 to 93,874 bytes, saving 24,640
+and leaving 26,126 under the unchanged 120,000-byte cap. The failed Daily
 40809385401 revision (`e827fb0ab7`) measures 120,219 bytes; its page differs
 from the current-main input, so these are separate baselines.
 

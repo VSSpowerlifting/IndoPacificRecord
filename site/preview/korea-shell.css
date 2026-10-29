@@ -26,6 +26,7 @@ table.stacking, table.stacking tbody, table.stacking tr, table.stacking td { dis
 table.stacking tr { padding: .6rem 0; border-bottom: 1px solid var(--rule); }
 table.stacking td { border: 0; padding: .15rem 0; }
 table.stacking td[data-label]::before { content: attr(data-label); display: block; font-size: .75rem; color: var(--muted); }
+table.stacking td.num { text-align: left; padding-left: 0; }
 }
 @media (max-width: 900px) {
 :root { --gutter: 22px; }
@@ -39,6 +40,7 @@ body { font-size: 1rem; }
 @media (max-width: 600px) {
 :root { --gutter: 22px; }
 h1 { font-size: clamp(1.9rem, 8vw, 2.3rem); }
+.week-bars { gap: 2px; height: 64px; }
 .desk-figures dd { font-size: 1.35rem; }
 }
 @media print {
