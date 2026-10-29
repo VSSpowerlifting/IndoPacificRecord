@@ -47,7 +47,7 @@ def main() -> int:
                     page.goto((destination / "desks.html").as_uri(), wait_until="load")
                     result = page.evaluate(PROBE)
                     result["page_errors"] = errors
-                    result["flag_images"] = page.locator(".deskmap-flag-tab img").evaluate_all(
+                    result["flag_images"] = page.locator(".deskmap-plate .deskmap-flag-tab img").evaluate_all(
                         "(nodes) => nodes.map(n => ({src:n.getAttribute('src'), "
                         "complete:n.complete, naturalWidth:n.naturalWidth}))"
                     )
@@ -57,20 +57,24 @@ def main() -> int:
                     ):
                         failures.append(f"{width}: missing or broken public flag SVG")
                     receipts.append(result)
-                    if result["cards"] != 7 or result["unplaced"] != 1:
-                        failures.append(f"{width}: incomplete 7+1 desk roster")
+                    if result["cards"] != 8 or result["unplaced"] != 1:
+                        failures.append(f"{width}: incomplete eight-desk register")
+                    if result["panelOverMap"]:
+                        failures.append(f"{width}: panel overlaps the map")
+                    if result["unevenRows"]:
+                        failures.append(f"{width}: desk summaries differ in height within a row")
                     for key in ("overlaps", "labelHits", "outside", "page_errors"):
                         if result[key]:
                             failures.append(f"{width}: {key}: {result[key]}")
                     if result["docWidth"] > width + 1:
                         failures.append(f"{width}: horizontal overflow {result['docWidth']}")
                     if width in (375, 900, 1280, 1600):
-                        page.locator("figure.deskmap").screenshot(
+                        page.locator(".deskmap").screenshot(
                             path=str(OUT / f"desks-{width}.png")
                         )
                     if width == 1600:
-                        page.locator('[data-select-desk="singapore"]').click()
-                        page.locator("figure.deskmap").screenshot(
+                        page.locator('a[data-pick][data-desk="singapore"]').click()
+                        page.locator(".deskmap").screenshot(
                             path=str(OUT / "desks-singapore-selected-1600.png")
                         )
                     page.close()
@@ -84,7 +88,7 @@ def main() -> int:
                 nojs.goto((destination / "desks.html").as_uri(), wait_until="load")
                 count = nojs.locator(".deskmap-plate").count()
                 receipts.append({"mode": "no-js", "plate_count": count})
-                nojs.locator("figure.deskmap").screenshot(
+                nojs.locator(".deskmap").screenshot(
                     path=str(OUT / "desks-nojs-375.png")
                 )
                 if count != 8:
@@ -99,7 +103,7 @@ def main() -> int:
                 forced.goto((destination / "desks.html").as_uri(), wait_until="load")
                 sample = forced.evaluate("""() => {
                     const fill = sel => getComputedStyle(document.querySelector(sel)).fill;
-                    const reset = getComputedStyle(document.querySelector('.deskmap-reset'));
+                    const reset = getComputedStyle(document.querySelector('.deskmap-picks a'));
                     return {
                         canvas:fill('.dm-sea'),
                         live:fill('.dm-country.is-live use'),
@@ -114,14 +118,14 @@ def main() -> int:
                 if sample["canvas"] != sample["live"] or sample["canvas"] != sample["quiet"]:
                     failures.append("forced colours: country fills obscure the map")
                 if sample["buttonText"] == sample["buttonBackground"]:
-                    failures.append("forced colours: selected desk button text invisible")
+                    failures.append("forced colours: desk index link text invisible")
                 if (sample["hitAdjust"] != "none" or not (
                     sample["hitFill"] in ("transparent", "none")
                     or sample["hitFill"].startswith("rgba(")
                     and sample["hitFill"].endswith(", 0)")
                 )):
                     failures.append("forced colours: invisible map hit targets become visible")
-                forced.locator("figure.deskmap").screenshot(
+                forced.locator(".deskmap").screenshot(
                     path=str(OUT / "desks-forced-colors-375.png")
                 )
                 forced.close()
