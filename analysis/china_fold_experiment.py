@@ -11,7 +11,6 @@ from analysis.prompts import (
     build_category_messages,
     build_summary_messages,
 )
-from analysis.usage import TASK_SUMMARY
 from config import ANALYSIS_MODEL
 
 # A distinct telemetry label keeps the combined candidate separate from
