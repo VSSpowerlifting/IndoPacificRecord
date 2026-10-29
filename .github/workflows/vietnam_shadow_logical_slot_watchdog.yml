@@ -1,12 +1,11 @@
-name: Vietnam Shadow Logical Collection Slot Watchdog
+name: Vietnam Shadow Logical Collection Slot Watchdog (retired)
 
 # Read-only health check for the isolated MPS state. Separate from the
 # nightly collector and Sunday model-readiness audit. Never re-run historical
 # jobs, backdate stored state, infer government silence, or send editorial mail.
 on:
-  schedule:
-    # 12:07 UTC daily; previous 18:17 UTC slot is >12h old by this check.
-    - cron: '7 12 * * *'
+  # Retired: 7 12 * * * now runs in ipr-source-evidence-private, where
+  # authenticated private receipts replace this frozen public shadow history.
   workflow_dispatch:
 
 permissions:
@@ -18,7 +17,7 @@ concurrency:
 
 jobs:
   inspect-mps-slot:
-    if: github.ref == 'refs/heads/main'
+    if: ${{ false }} # Historical inspector only; private cycle-health is authoritative.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

@@ -512,6 +512,26 @@ class ImmutableCustody(unittest.TestCase):
                         with self.assertRaisesRegex(ValueError,'mac_invalid'):custody.prepare(repo,commit,api=api)
 
 
+class IndependentCollectionCustody(unittest.TestCase):
+    def test_failed_sibling_requires_healthy_pinned_vpcp_receipt_and_readback(self):
+        from core import vietnam_document_custody as custody
+        receipt={'conclusion':'failure','head_sha':'b'*40,'event':'schedule'}
+        cycle={'schema':'ipr-vietnam-vpcp-private-cycle/1','source_family':VPCP,
+               'run_attempt':'123-1','workflow_commit':'b'*40,'event':'schedule',
+               'status':'quiet','collector_exit_status':0,'public_release_authorized':False}
+        jobs={'total_count':1,'jobs':[{'steps':[{'name':'Collect permitted Government Office originals',
+                                              'conclusion':'success'}]}]}
+        api=SimpleNamespace(get=lambda path:jobs)
+        with patch('scripts.attest_vietnam_run_state.encoded_content',return_value=cycle):
+            self.assertTrue(custody.completed_collection(receipt,api=api,run='123',attempt='1',commit='a'*40))
+            for bad in ({'status':'failed'},{'status':'held_source'},{'collector_exit_status':2},
+                        {'workflow_commit':'c'*40},{'source_family':'vn_mps_foreign_affairs_vi'}):
+                with patch('scripts.attest_vietnam_run_state.encoded_content',return_value=dict(cycle,**bad)):
+                    self.assertFalse(custody.completed_collection(receipt,api=api,run='123',attempt='1',commit='a'*40))
+            jobs['jobs'][0]['steps'][0]['conclusion']='failure'
+            self.assertFalse(custody.completed_collection(receipt,api=api,run='123',attempt='1',commit='a'*40))
+
+
 class DecisionIsolation(unittest.TestCase):
     def test_malformed_vpcp_decision_holds_only_this_family(self):
         from scripts.run_vietnam_daily_bridge import _policies
