@@ -3311,7 +3311,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         languages = sorted({r["language"] for r in references})
         desk_page = desk_tmpl.render(page=desk.route, desk=desk,
                              support_stylesheet=("indonesia-shell.css"
-                                 if desk.slug == "indonesia" else "support.css"),
+                                 if desk.slug == "indonesia" else
+                                 "korea-shell.css" if desk.slug == "korea" else "support.css"),
                              public_source_links=references,
                              published_research=published_research,
                              public_source_options=source_options,
@@ -3540,7 +3541,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
-    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
+    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
     # Explicit named assets only: homepage relief sprites and Phase 4A Desks

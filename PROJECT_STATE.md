@@ -1,5 +1,29 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Korea delivery budget repair — review candidate (29 October 2026)
+
+Korea now selects a page-specific `korea-shell.css`, using the unchanged
+supporting declarations and cascade order established by Indonesia #889.
+All Korea content is preserved; its generated HTML changes only the stylesheet
+URL. Current-main delivery falls from 118,514 to 93,774 bytes, saving 24,740
+and leaving 26,226 under the unchanged 120,000-byte cap. The failed Daily
+40809385401 revision (`e827fb0ab7`) measures 120,219 bytes; its page differs
+from the current-main input, so these are separate baselines.
+
+Production render and validator pass (10 governed warnings); all 2,439 committed
+routes pass complete delivery budgets. Focused tests and desktop/mobile/print
+parity evidence, exact final-head CI and SHA are recorded in the repair PR.
+Only Korea HTML and its new stylesheet are retained from regeneration;
+unrelated generated pages, canonical sidecars and the production DB are unchanged.
+No merge, deployment, admission, private dispatch, queue change or activation.
+
+The pending Indonesia release remains at private merge `be72657a6b9e68e6a982f3caa74044350cbe2269`,
+sign-only run `40809051463` (zero model calls), accepted output SHA-256
+`5865a649587c24dafdb8ff3a0c901401c77398f8aab72ef638dce7f770f54e8a`.
+Medical retains one attempt and industry four. Preserve the existing private
+`kemhan-v4-publication-20261028/release-checkpoint.json` for the separately
+authorized release; do not regenerate or sign again to resolve this CSS repair.
+
 ## Haiku 5.5 opt-in compatibility and request-level cost accounting — review candidate (28 October 2026)
 
 `ANALYSIS_MODEL=claude-haiku-5-5` is now a valid opt-in for the shared Analyzer.

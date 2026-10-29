@@ -1,0 +1,55 @@
+/* Korea desk subset of support.css, in the same cascade order.
+   Keep status variants, responsive tables, mobile shell and print rules. */
+.stat-rows { margin: .6rem 0 1rem; padding: 0; max-width: 34rem; }
+.stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: .45rem 0; border-bottom: 1px solid var(--rule-soft); list-style: none; max-width: none; }
+.stat-row dt { margin: 0; color: var(--ink-2); font-size: .9375rem; }
+.stat-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; }
+.blockers dt { margin-top: .9rem; }
+.blockers dd { margin: .25rem 0 0; color: var(--ink-2); }
+.status-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .2rem 1rem; align-items: start; margin: 1.2rem 0 1.6rem; padding: 1rem 1.15rem; border: 1px solid var(--rule); border-left: 4px solid var(--ink); background: var(--surface); }
+.status-panel .status-glyph { font-size: 1.6rem; line-height: 1; padding-top: .15rem; }
+.status-panel h2 { margin: 0 0 .2rem; padding: 0; border: 0; font-size: 1.2rem; }
+.status-panel p { margin: 0; color: var(--ink-2); }
+.status-panel--live { border-left-color: var(--positive); }
+.status-panel--live .status-glyph { color: var(--positive); }
+.status-panel--shadow { border-left-color: var(--rule-strong); background: var(--bg); }
+.status-panel--access_blocked { border-left-color: var(--warning); background: var(--bg); }
+.status-panel--access_blocked .status-glyph { color: var(--warning); }
+.desk-figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.4rem 0; padding: 1rem 0; border-top: 2px solid var(--rule-hard); border-bottom: 1px solid var(--rule); }
+.desk-figures div { min-width: 0; }
+.desk-figures dt { font-size: .8125rem; color: var(--muted); }
+.desk-figures dd { margin: .15rem 0 0; font-family: var(--serif); font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; line-height: 1.1; }
+.desk-figures dd small { display: block; font-family: var(--sans); font-size: .75rem; font-weight: 400; color: var(--muted); margin-top: .2rem; }
+@media (max-width: 720px) {
+table.stacking thead { position: absolute; left: -9999px; }
+table.stacking, table.stacking tbody, table.stacking tr, table.stacking td { display: block; width: 100%; }
+table.stacking tr { padding: .6rem 0; border-bottom: 1px solid var(--rule); }
+table.stacking td { border: 0; padding: .15rem 0; }
+table.stacking td[data-label]::before { content: attr(data-label); display: block; font-size: .75rem; color: var(--muted); }
+}
+@media (max-width: 900px) {
+:root { --gutter: 22px; }
+body { font-size: 1rem; }
+.footer-grid > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+:root { --gutter-date: 100%; }
+.desk-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+:root { --gutter: 22px; }
+h1 { font-size: clamp(1.9rem, 8vw, 2.3rem); }
+.desk-figures dd { font-size: 1.35rem; }
+}
+@media print {
+@page { margin: 18mm 16mm; }
+body { background: #fff; color: #000; font-size: 11pt; }
+.skip, .veil, .pager, .cite-copy, .link-copy, .chips, .back-link { display: none !important; }
+.freshness-bar, .site { background: #fff; border-color: #999; }
+main a[href^="http"]::after { content: " <" attr(href) ">"; font-family: var(--mono); font-size: 8pt; color: #333; overflow-wrap: anywhere; }
+a[href^="#"]::after, a[href^="mailto:"]::after { content: ""; }
+.record-row, .register-item, tr, .stat-row, dd, .cite-block { break-inside: avoid; }
+thead { break-after: avoid; break-inside: avoid; }
+.table-scroll { overflow: visible; }
+h1, h2, h3 { break-after: avoid; }
+}
