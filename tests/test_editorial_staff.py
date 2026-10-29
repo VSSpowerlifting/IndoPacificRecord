@@ -47,7 +47,7 @@ class EditorialStaffTests(unittest.TestCase):
     def test_public_roster_is_exact_and_domain_focused(self):
         people = load_staff(ROSTER)
         self.assertEqual([(p["name"], p["role"]) for p in people], [
-            ("Benjamin Yang", "Founder & Director of Research and Editorial"),
+            ("Benjamin Yang", "Founder & Executive Director"),
             ("Dylan Tanzi", "Lead Research Analyst"),
             ("Jophy Lin", "Communications Editor"),
         ])
