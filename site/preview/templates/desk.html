@@ -385,7 +385,7 @@
     </ul>
   </nav>
   <ol class="korea-public-source-list" aria-label="Five official Korean source references">
-    {% for ref in korea_public_links %}
+    {% for ref in korea_public_links -%}
     <li data-korea-public-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" lang="ko" rel="noopener noreferrer"
         target="_blank">{{ ref.title_original }}</a></h3>
@@ -406,7 +406,7 @@
     This list does not establish continuous coverage, military-event
     verification, or eligibility for IPR's analysis and archive.</p>
     <ol class="korea-public-source-list" aria-label="Nine additional official Korean source links">
-      {% for ref in korea_additional_links %}
+      {% for ref in korea_additional_links -%}
       <li data-korea-additional-link="{{ ref.source_identity }}">
         <h4><a href="{{ ref.source_url }}" rel="noopener noreferrer"
                target="_blank">{{ ref.neutral_label }}</a></h4>
@@ -447,14 +447,14 @@
     headlines, translated text, document bodies, photographs or analysis.
     Collection can be incomplete or interrupted.</p>
     <ol class="korea-public-source-list" aria-label="Automatically admitted official Korean source links">
-    {% for ref in korea_auto_official_links %}
+    {% for ref in korea_auto_official_links -%}
       <li data-korea-auto-official-link="{{ ref.source_identity }}">
         <h4><a href="{{ ref.source_url }}" rel="noopener noreferrer"
               target="_blank">{{ ref.neutral_label }}</a></h4>
         <p class="meta">Issuer: {{ ref.issuer_label }} ({{ ref.issuer_original_label }})
           · Republication: {{ ref.republisher_label }} (대한민국 정책브리핑)
           · Portal posted: <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time>
-          · Official government outbound link only</p>
+          · Official link only</p>
       </li>
     {% endfor %}
     </ol>
@@ -489,7 +489,7 @@
     HWPX files, photographs and embedded media are not mirrored here.
     English translations are linked separately only after bilingual and editorial review.</p>
     <ol class="korea-public-source-list" aria-label="Published licensed Korean original text">
-    {% for item in korea_published_originals %}
+    {% for item in korea_published_originals -%}
       <li data-korea-original-text="{{ item.source_identity }}">
         <h4><a href="{{ item.route }}">Read Korean original — release {{ item.news_id }}</a></h4>
         <p class="meta">Source: <a href="{{ item.official_url }}" rel="noopener noreferrer"
