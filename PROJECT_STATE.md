@@ -16,7 +16,9 @@ and unregistered text remain guarded. All seven failures reproduced locally;
 89 focused tests pass after repair. Mandatory full CI, isolated production
 render/validation and preservation results belong to the exact-head PR receipt.
 Tracked DB, generated output, canonical records, source policies, paid work and
-workflows are unchanged. Japan #892 and active Singapore #913 remain separate;
+production workflows are unchanged. The triggered Indonesia census PR check
+failed during setup because Ubuntu 26.04 has no Python 3.9; only its offline
+job is pinned to Ubuntu 24.04. Japan #892 and active Singapore #913 remain separate;
 the latter also touches other sections of the preview test file. No release,
 activation, model call or desk-completion claim follows from this test repair.
 
