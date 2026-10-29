@@ -9,6 +9,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 
 # Support the documented `python scripts/...py` invocation from any cwd.
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -155,6 +156,7 @@ def main():
                 report["status"] = "budget_preflight_stop"
                 break
             item = {"id": case["id"]}
+            started = perf_counter()
             try:
                 summary = baseline.summarize(case["title_en"], case["body_en"])
                 categories, flag, reason = baseline.categorize(
@@ -163,11 +165,17 @@ def main():
                     "summary": summary, "categories": categories,
                     "significance": flag, "significance_reason": reason,
                 }
+            except Exception as exc:
+                # Never include raw model output or source text in reports.
+                item["baseline_error_type"] = type(exc).__name__
+            item["baseline_elapsed_sec"] = round(perf_counter() - started, 4)
+            started = perf_counter()
+            try:
                 item["combined"] = run_combined(
                     folded, case["title_en"], case["body_en"])
             except Exception as exc:
-                # Do not log raw output or source text in error reports.
-                item["error_type"] = type(exc).__name__
+                item["combined_error_type"] = type(exc).__name__
+            item["combined_elapsed_sec"] = round(perf_counter() - started, 4)
             report["cases"].append(item)
             base_cost = current_spend([baseline])
             fold_cost = current_spend([folded])
