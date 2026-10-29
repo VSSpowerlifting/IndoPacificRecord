@@ -32,6 +32,13 @@ class MINDEFPermissionTests(unittest.TestCase):
         self.assertIn("record.mindef_link_allowed", singapore_branch)
         self.assertIn("record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed", template)
 
+    def test_source_directory_does_not_link_unapproved_mindef_homepage(self):
+        from pathlib import Path
+        template = (Path(__file__).resolve().parents[1] /
+                    "site/preview/templates/source.html").read_text(encoding="utf-8")
+        self.assertIn("source.slug == 'sg_mindef_releases'", template)
+        self.assertIn("publisher homepage, not within approved linking scope", template)
+
     def test_other_sources_unaffected(self):
         self.assertFalse(is_mindef_source("sg-other"))
         self.assertTrue(source_link_approved("uscc", "https://www.uscc.gov/"))
