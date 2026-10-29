@@ -339,6 +339,14 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PLA_WATCH_DAILY_RUN_DATE: ${{ steps.timecheck.outputs.today_ny }}
           LLM_USAGE_RECORD_PATH: ${{ runner.temp }}/llm_usage_record.json
+          # Empty variables inherit incumbents. Set only after model/source-use
+          # qualification; clear these overrides for an immediate rollback.
+          ANALYSIS_MODEL: ${{ vars.ANALYSIS_MODEL || 'claude-sonnet-4-6' }}
+          RELEVANCE_MODEL: ${{ vars.RELEVANCE_MODEL || 'claude-haiku-4-5-20251001' }}
+          TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL }}
+          SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL }}
+          CATEGORIZATION_MODEL: ${{ vars.CATEGORIZATION_MODEL }}
+          FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}

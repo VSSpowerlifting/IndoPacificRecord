@@ -12,7 +12,7 @@ losing provenance.
 
 from typing import Any
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2-source-fidelity"
 
 # ── Shared system prompt ──────────────────────────────────────────────────────
 
@@ -286,6 +286,15 @@ Do not smooth over rhetorical flourishes, ideological language, or ambiguity in 
 original. If the original is vague, the translation should also be vague. If the original \
 uses heightened language ("决不", "坚决", "绝不容忍"), preserve that register.
 
+Preserve every name, date, number, byline, affiliation and quotation boundary.
+Do not merge reporter commentary into a speaker's quotation. Keep embedded official
+English passages and all sections, including captions and endings. Do not silently
+collapse repeated bilingual material. Never narrow a general NCO designation to a
+specific rank. For graded NCO ranks (一级上士, 二级上士, 一级军士长, 二级军士长,
+三级军士长, 四级军士长), retain each exact Chinese rank in parentheses next to its
+English rendering. Retain a Chinese reporter byline verbatim in parentheses next
+to its translation, preserving which named person belongs to which outlet.
+
 Do not add explanatory content that is not in the original. Translation only.
 
 Return the result by calling the `emit_translation` tool. Put the translated \
@@ -368,6 +377,14 @@ Length: two to three sentences, at most about 90 words. Do not exceed three sent
 Return only the raw JSON object with one field: "summary" (string). Do not wrap the \
 response in markdown code fences or any other formatting.
 
+Source fidelity: attach a qualifier only to the action or entity it qualifies in
+the source. A simulated attack does not establish a simulated submarine. Live-force
+activity with simulated strikes does not establish live-fire activity. Preserve
+which event each date describes: a transfer date and later construction date are
+not interchangeable. Do not invent reporting rarity, firsts, affiliations, names,
+ranks, numbers or Chinese terminology. Attribute official claims, distinguish
+interpretation explicitly, and omit interpretations without source support.
+
 Title: {title_en}
 
 Body:
@@ -440,6 +457,14 @@ If you set the flag to true, you must provide a one-sentence reason in \
 Return only the raw JSON object with three fields: "categories" (array of strings from \
 the fixed list), "significance" (boolean), "significance_reason" (string or null). Do \
 not wrap the response in markdown code fences or any other formatting.
+
+Source fidelity: attach a qualifier only to the action or entity it qualifies in
+the source. A simulated attack does not establish a simulated submarine. Live-force
+activity with simulated strikes does not establish live-fire activity. Preserve
+which event each date describes: a transfer date and later construction date are
+not interchangeable. Do not invent reporting rarity, firsts, affiliations, names,
+ranks, numbers or Chinese terminology. Attribute official claims, distinguish
+interpretation explicitly, and omit interpretations without source support.
 
 Title: {title_en}
 

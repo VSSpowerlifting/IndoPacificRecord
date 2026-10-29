@@ -70,6 +70,16 @@ RELEVANCE_TOOL_OUTPUT_ENABLED: bool = (
 # https://docs.anthropic.com/en/docs/about-claude/models
 ANALYSIS_MODEL: str = os.environ.get("ANALYSIS_MODEL", "claude-sonnet-4-6")
 
+# Independent task overrides; empty inherits the incumbent ANALYSIS_MODEL.
+# No candidate has passed factual qualification yet. These are release knobs,
+# not permission to spend or to change a source-specific model authorization.
+TRANSLATION_MODEL: str = os.environ.get("TRANSLATION_MODEL", "").strip()
+SUMMARY_MODEL: str = os.environ.get("SUMMARY_MODEL", "").strip()
+CATEGORIZATION_MODEL: str = os.environ.get("CATEGORIZATION_MODEL", "").strip()
+# Empty disables cross-model recovery. An approved canary can explicitly set
+# claude-sonnet-4-6; never redispatch a task to the same model as its fallback.
+FALLBACK_MODEL: str = os.environ.get("FALLBACK_MODEL", "").strip()
+
 # Owner activation after title-only engineering review; independent of relevance.
 # Zero makes no additional calls. One run has the same hard batch bound as the CLI.
 CHINA_TITLE_TRANSLATION_LIMIT: int = max(0, min(200, int(
