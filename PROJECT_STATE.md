@@ -26,6 +26,9 @@ stale fixture, baseline) and repaired as set out in the cutover document.
 Held works are tested twice: under an explicit synthetic rights authority for
 component behavior and, unpatched, as absent and fail-closed. The remaining
 local-only errors (`gpg`, `docx`, macOS paths) match `origin/main`.
+The refreshed full run exercised 8,283 tests with eight remaining assertions;
+count/fixture, desk-scoping and exact released-summary style assumptions are
+now repaired and focused-verified. Mandatory CI must pass the final head.
 
 ## Korea delivery budget repair — review candidate (29 October 2026)
 

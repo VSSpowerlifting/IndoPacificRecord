@@ -95,6 +95,7 @@ def _corpus_index() -> dict:
     """Stored values, loaded once per process, read-only."""
     if not _CORPUS_CACHE:
         data = gp.load_corpus(TRACKED_DB)
+        from core.daily_machine_records import load as load_machine_records
         names = set()
         for source in data["sources"]:
             for field in _SOURCE_NAME_FIELDS:
@@ -102,6 +103,8 @@ def _corpus_index() -> dict:
                     names.add(str(source[field]))
         _CORPUS_CACHE.update(
             by_id={r["id"]: r for r in data["corpus"]},
+            machine_by_path={r["record_path"]: r
+                             for r in load_machine_records(TRACKED_DB)},
             names=sorted(names, key=len, reverse=True))
     return _CORPUS_CACHE
 
@@ -141,6 +144,16 @@ def _authored_text(html: str, path: str = "", literals=None) -> str:
             record = index["by_id"].get(rec_id)
             if record:
                 literals += _record_literals(record, include_body=False)
+        # Released regional machine explanations share the publication but
+        # live outside the original-document corpus. Exclude only an exact
+        # stored summary on its record page or a page linking that record.
+        machine_paths = set(re.findall(
+            r'href="(record/source-[0-9a-f]{24}\.html)"', html))
+        machine_paths.add(path.replace("\\", "/"))
+        for machine_path in machine_paths:
+            record = index.get("machine_by_path", {}).get(machine_path)
+            if record:
+                literals.append(record["summary"])
 
     # Longest first, so a value that contains another is removed as a whole.
     for value in sorted(set(literals), key=len, reverse=True):
@@ -4742,6 +4755,25 @@ class TestStoredContentIsExcluded(PreviewCase):
 
 class TestExclusionContract(unittest.TestCase):
     """The contract itself, independent of what the live corpus contains."""
+
+    def test_released_machine_summary_exclusion_keeps_authored_copy_guarded(self):
+        from unittest.mock import patch
+        path = "record/source-" + "a" * 24 + ".html"
+        stored = "A synthetic centre exercise was organised."
+        index = {"names": [], "by_id": {},
+                 "machine_by_path": {path: {"summary": stored}}}
+        html = '<p>%s</p><p>Machine explanation labelled by the editor.</p>' % stored
+        with patch(__name__ + "._corpus_index", return_value=index):
+            for page, markup in ((path, html),
+                                 ("indonesia.html", '<a href="%s">Record</a>%s' % (path, html))):
+                with self.subTest(page=page):
+                    own = _authored_text(markup, page)
+                    self.assertNotIn(stored, own)
+                    self.assertIn("labelled by the editor", own)
+            self.assertIn(stored, _authored_text(html, "unrelated.html"))
+            draft = stored + " Unreleased programme."
+            self.assertIn("Unreleased programme", _authored_text(
+                "<p>%s</p>" % draft, path))
 
     def test_a_british_source_name_survives_without_exempting_its_label(self):
         """The case the whole design exists for.

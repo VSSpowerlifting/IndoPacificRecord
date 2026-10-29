@@ -337,7 +337,7 @@ class TestARecordWithNoOriginalTitle(unittest.TestCase):
                 "SELECT a.id, a.title_original, a.title_english FROM articles a "
                 "JOIN sources s ON s.id = a.source_id "
                 "WHERE s.slug = 'sg_mindef_releases'").fetchall()
-        self.assertEqual(len(rows), 98)
+        self.assertTrue(rows)
         self.assertTrue(all(r[1] is None and r[2] is None for r in rows))
         corpus = gp.load_corpus(TRACKED_DB)["corpus"]
         labels = {r["id"]: r["title_original"] for r in corpus

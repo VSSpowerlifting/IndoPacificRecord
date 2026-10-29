@@ -122,6 +122,18 @@ Tests read the tracked database only through `scripts.reconcile_db.read_only`
 issue #914, the 98 identities, private custody, the link grant and approval
 fingerprints are untouched.
 
+The refreshed exact-head run `40957122184` executed 8,283 tests and found
+eight remaining assertions: one 98-record expectation, a synthetic workflow-ID
+collision with the live count guard, Philippines tests counting Indonesia's
+newly released machine row, and the style guard treating a released machine
+summary as site-authored copy. The fixes retain identity-set equality, distinguish
+workflow attempts from corpus runs, filter desk expectations by `desk_id`, and
+exclude only exact released summary values on their own or linked pages.
+A synthetic exclusion test keeps labels, unrelated pages and unreleased prose
+guarded. No approved machine output, source evidence or generated page was edited.
+These fixes passed 129 focused tests covering every failing group; full CI must
+pass the final head.
+
 ## Historical exposure decision
 
 Confirmed: the public main baseline carries the original DB/source expression;
