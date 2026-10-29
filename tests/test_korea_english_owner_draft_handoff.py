@@ -137,16 +137,16 @@ class OwnerDraftTests(unittest.TestCase):
             "korea_owner_draft_processing_failed")
 
     def test_over_budget_source_is_visible_and_does_not_block_two_eligible_sources(self):
-        over = {**SOURCE, "text_original": "\\n".join(["국방부 발표"] * 51)}
+        over = {**SOURCE, "text_original": "\n".join(["국방부 발표"] * 51)}
         first = {**SOURCE, "source_identity": "korea-policy:156784298",
                  "original_text_sha256": "c" * 64,
                  "publisher_posted_date": "2026-10-07"}
         second = {**SOURCE, "source_identity": "korea-policy:156784299",
                   "original_text_sha256": "d" * 64,
                   "publisher_posted_date": "2026-10-08"}
-        with patch.object(sut, "read_release_index", return_value=[over, first, second]), \\
-             patch.object(sut, "public_registry", return_value=[]), \\
-             patch.object(sut, "draft", side_effect=self.fake_draft), \\
+        with patch.object(sut, "read_release_index", return_value=[over, first, second]), \
+             patch.object(sut, "public_registry", return_value=[]), \
+             patch.object(sut, "draft", side_effect=self.fake_draft), \
              patch.object(sut, "send_owner", side_effect=lambda *a, **k: self.sent.append(a)):
             selected, _, held = sut.pending_with_budget_holds(self.path)
             self.assertEqual([r["source_identity"] for r in selected],
@@ -166,10 +166,10 @@ class OwnerDraftTests(unittest.TestCase):
                          [x["source_identity"] for x in delivered])
 
     def test_all_over_budget_sources_never_invoke_draft_or_send(self):
-        over = {**SOURCE, "text_original": "\\n".join(["국방부 발표"] * 51)}
-        with patch.object(sut, "read_release_index", return_value=[over]), \\
-             patch.object(sut, "public_registry", return_value=[]), \\
-             patch.object(sut, "draft", side_effect=AssertionError("paid call prohibited")), \\
+        over = {**SOURCE, "text_original": "\n".join(["국방부 발표"] * 51)}
+        with patch.object(sut, "read_release_index", return_value=[over]), \
+             patch.object(sut, "public_registry", return_value=[]), \
+             patch.object(sut, "draft", side_effect=AssertionError("paid call prohibited")), \
              patch.object(sut, "send_owner", side_effect=AssertionError("send prohibited")):
             result = sut.run(ledger=self.path, client=object(),
                              sender="ipr@gmail.com", recipient="owner@gmail.com",
