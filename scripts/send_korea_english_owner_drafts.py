@@ -19,7 +19,7 @@ from pathlib import Path
 
 from core.korea_english_publication import public_registry, KoreaEnglishHold
 from core.korea_published_originals import read_release_index
-from scripts.draft_korea_english_analysis import draft
+from scripts.draft_korea_english_analysis import draft, source_paragraphs
 
 ROOT = Path(__file__).resolve().parents[1]
 RECEIPT_PATH = ROOT / "research/korea_english_draft_handoff_receipts.json"
@@ -68,17 +68,39 @@ def read_receipts(path=RECEIPT_PATH):
     return d, known
 
 
-def pending(ledger=RECEIPT_PATH):
+def pending_with_budget_holds(ledger=RECEIPT_PATH):
+    """Select up to two eligible sources; never spend on an oversize source.
+
+    The existing draft() source gate remains authoritative. A source that
+    cannot fit its input budget is explicitly held, not silently admitted,
+    removed from the published index, reflowed, split, or marked delivered.
+    Return only already-public identities and a fixed reason code for holds.
+    """
     receipts, known=read_receipts(ledger)
     originals=read_release_index()
     reviewed={r["source_identity"] for r,_,_ in public_registry()}
-    selected=[]
+    selected, held=[],[]
     for row in sorted(originals,key=lambda r:(r["publisher_posted_date"],
                                                r["source_identity"])):
         key=(row["source_identity"],row["original_text_sha256"])
-        if key not in known and row["source_identity"] not in reviewed:
+        if key in known or row["source_identity"] in reviewed:
+            continue
+        try:
+            source_paragraphs(row)
+        except KoreaEnglishHold as exc:
+            if str(exc) != "korea_model_input_over_bounded_budget":
+                raise
+            held.append({"source_identity": row["source_identity"],
+                         "reason_code": "korea_model_input_over_bounded_budget"})
+            continue
+        if len(selected) < MAX_DRAFTS:
             selected.append(row)
-    return selected[:MAX_DRAFTS], receipts
+    return selected, receipts, held
+
+
+def pending(ledger=RECEIPT_PATH):
+    selected, receipts, _ = pending_with_budget_holds(ledger)
+    return selected, receipts
 
 
 def send_owner(row, review, receipt, *, sender, recipient, password,
@@ -121,7 +143,7 @@ def run(*, ledger=RECEIPT_PATH, client, sender, recipient, password, send=None):
     need(type(sender) is str and type(recipient) is str
          and sender and recipient,
          "korea_owner_delivery_addresses_invalid")
-    rows,data=pending(ledger)
+    rows,data,holds=pending_with_budget_holds(ledger)
     sent=[]
     for row in rows:
         draft_packet,receipt=draft(row,client=client)
@@ -153,7 +175,8 @@ def run(*, ledger=RECEIPT_PATH, client, sender, recipient, password, send=None):
         os.replace(temp,p)
         sent.append(entry["source_identity"])
     return {"status":"OWNER_PRIVATE_DRAFTS_DELIVERED" if sent else "NO_NEW_ENGLISH_DRAFTS",
-            "count":len(sent),"ids":sent,"public_writes":0}
+            "count":len(sent),"ids":sent,"public_writes":0,
+            "held_source_budget":holds}
 
 
 def safe_hold_reason(error):
