@@ -1,5 +1,34 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Low-cost task routing — review candidate, cutover held (29 October 2026)
+
+The shared Analyzer now has independent translation/summary/category overrides,
+optional task-local fallback, actual mixed-model provenance, no hidden SDK
+retries, and narrow source-fidelity rejection checks. Source-specific spend
+wrappers validate the resolved model; categorization failure keeps the record
+pending. Daily exposes configuration variables for a future approved canary and
+immediate model rollback. Defaults remain Haiku 4.5 relevance / Sonnet 4.6 for
+translation, summary and categories. No variable, source permission, production
+DB, generated output, canonical sidecar or usage-history change was made.
+
+Neither `claude-haiku-5-5` nor evaluated `gpt-6-luna` is factually qualified by the
+preserved experiments. Offline replay consumes all 111 stored Anthropic responses
+with zero provider dispatches, reproduces usage costs, and holds eight Haiku
+outcomes plus three old Sonnet translations missing the new source anchors.
+The revised guard also holds native Luna's unsupported submarine qualifier.
+These are targeted rejection results, not factual certification or live testing
+of revised prompts. Production savings remain zero until qualification.
+
+359 focused tests plus 254 subtests pass; a separate scripted production-pipeline
+contract passes rejection/restart → SQLite → disposable production render →
+no duplicate completed-row dispatch. Output validator passes with the 10 governed
+warnings. Mandatory exact-head CI belongs to the review PR. No merge, paid call,
+canary, live record or public-site readback is claimed. The external next gate is
+new bounded spending authorization for revised-prompt factual qualification on
+currently authorized source versions; prior unused experiment budgets do not
+carry permission. Details, replay command and rollback:
+`docs/engineering/LOW_COST_MODEL_ROUTING_2026-10-29.md`.
+
 ## Korea delivery budget repair — review candidate (29 October 2026)
 
 Korea now selects a page-specific `korea-shell.css`, using the unchanged
