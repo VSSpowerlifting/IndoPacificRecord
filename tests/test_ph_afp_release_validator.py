@@ -591,6 +591,129 @@ class AfpReleaseValidatorTests(unittest.TestCase):
         self.assertEqual(receipts[0]["held_pending_individual_approval"], 1)
         self.assertNotIn("afp:1412", self.rows())
 
+    def _released_private_cohort(self):
+        self._afp_standing()
+        body, mac, public_tip, main = self._signed()
+        frozen = self.validate(public_tip)
+        frozen_count = len(frozen["approved"])
+        cli.admit_validated(self.db, [frozen], frozen_first=True,
+                            as_of_utc="2026-10-18T21:13:00Z")
+        frozen_rows = self.rows()
+        receipts, total = cli.admit_validated(
+            self.db, [frozen, self._open(body, mac, public_tip, main)],
+            frozen_first=True, as_of_utc="2026-10-19T21:13:00Z")
+        self.assertEqual(([r["new_official_links"] for r in receipts], total),
+                         ([0, 1], frozen_count + 1))
+        self.assertEqual({k: self.rows()[k] for k in frozen_rows}, frozen_rows)
+        return body, mac, public_tip, main
+
+    def test_daily_cycles_after_private_release_preserve_database(self):
+        body, mac, public_tip, main = self._released_private_cohort()
+        released = sha(self.db)
+        count = len(self.rows())
+        # Reproduce the scheduled failure without the explicit frozen marker.
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip)],
+                        as_of_utc="2026-10-20T21:13:00Z")
+        receipts, total = cli.admit_validated(
+            self.db, [self.validate(public_tip)], frozen_first=True,
+            as_of_utc="2026-10-20T21:13:00Z")
+        self.assertEqual((receipts, total), ([], count))
+        receipts, total = cli.admit_validated(
+            self.db, [self.validate(public_tip), self._open(body, mac, public_tip, main)],
+            frozen_first=True, as_of_utc="2026-10-20T21:13:00Z")
+        self.assertEqual(([(r["new_official_links"], r["unchanged_official_links"])
+                           for r in receipts], total), ([(0, count)], count))
+        self.assertEqual(sha(self.db), released)
+        # Exercise the real CLI's frozen-first wiring on the scheduled path.
+        git(self.h.folder, "checkout", "--detach", public_tip)
+        buf = io.StringIO()
+        with redirect_stdout(buf), patch.object(cli, "github_fetcher", lambda *a, **k: self.fetch):
+            rc = cli.main(["admit", "--rehearsal", "--validator-ref", self.ref,
+                           "--source-checkout", str(self.h.folder), "--source-commit", public_tip,
+                           "--production-db", str(self.db)])
+        self.assertEqual(rc, 0, buf.getvalue())
+        self.assertEqual(json.loads(buf.getvalue())["admission_receipts"], [])
+        self.assertEqual(sha(self.db), released)
+
+    def test_frozen_retry_rejects_changed_metadata_and_provenance(self):
+        _, _, public_tip, _ = self._released_private_cohort()
+        frozen_id = self.validate(public_tip)["approved"][0]["source_identity"]
+        # Exact metadata and original version bindings are all required.
+        mutations = (("canonical_official_url", "https://www.afp.mil.ph/news/changed"),
+                     ("publisher_posted_date", "2026-10-01"),
+                     ("official_issuer", "changed"), ("official_publisher", "changed"),
+                     ("official_republisher", "changed"), ("first_seen_run", "1-1"),
+                     ("source_git_commit", "f" * 40),
+                     ("metadata_version_sha256", "0" * 64),
+                     ("release_proof_sha256", "0" * 64))
+        for column, bad in mutations:
+            with self.subTest(column=column):
+                with sqlite3.connect(self.db) as cx:
+                    original = cx.execute("SELECT %s FROM regional_official_source_links "
+                                          "WHERE source_identity=?" % column, (frozen_id,)).fetchone()[0]
+                    cx.execute("UPDATE regional_official_source_links SET %s=? "
+                               "WHERE source_identity=?" % column, (bad, frozen_id))
+                before = sha(self.db)
+                self.assertHold("previously_released_source_missing_or_changed",
+                                cli.admit_validated, self.db, [self.validate(public_tip)],
+                                frozen_first=True, as_of_utc="2026-10-20T21:13:00Z")
+                self.assertEqual(sha(self.db), before)
+                with sqlite3.connect(self.db) as cx:
+                    cx.execute("UPDATE regional_official_source_links SET %s=? "
+                               "WHERE source_identity=?" % column, (original, frozen_id))
+
+    def test_frozen_retry_rejects_missing_frozen_record(self):
+        _, _, public_tip, _ = self._released_private_cohort()
+        with sqlite3.connect(self.db) as cx:
+            cx.execute("DELETE FROM regional_official_source_links WHERE source_identity='afp:1380'")
+        before = sha(self.db)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, [self.validate(public_tip)],
+                        frozen_first=True, as_of_utc="2026-10-20T21:13:00Z")
+        self.assertEqual(sha(self.db), before)
+
+    def _later_signed_packet(self, mutation):
+        _, _, public_tip, main = self._released_private_cohort()
+        if mutation == "omit":
+            self.h.records.pop()
+        elif mutation == "change":
+            self.h.records[-1]["published_date"] = "2026-10-18"
+        tip = self.h.attempt("39200000001-1", "2026-10-20", kind="private",
+                             new=[(1413, "afp-later-private-item", "2026-10-20")]
+                             if mutation == "add" else [])
+        later = v.validate_source_checkout(
+            self.h.folder, tip, fetch_run=scheduled_runs(
+                *self.runs, 39124069601, private=[39200000000, 39200000001]),
+            validator_ref=git(main, "rev-parse", "HEAD"))
+        body, mac = v.sign_envelope(later, key=KEY, source_run_attempt="39200000001-1",
+                                    public_frozen_tip=public_tip)
+        return [self.validate(public_tip), self._open(body, mac, public_tip, main)]
+
+    def test_later_signed_packet_can_add_another_private_record(self):
+        packets = self._later_signed_packet("add")
+        count = len(self.rows())
+        receipts, total = cli.admit_validated(
+            self.db, packets, frozen_first=True, as_of_utc="2026-10-20T21:13:00Z")
+        self.assertEqual(([r["new_official_links"] for r in receipts], total),
+                         ([1], count + 1))
+
+    def test_later_signed_packets_reject_missing_released_record(self):
+        packets = self._later_signed_packet("omit")
+        before = sha(self.db)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, packets, frozen_first=True,
+                        as_of_utc="2026-10-20T21:13:00Z")
+        self.assertEqual(sha(self.db), before)
+
+    def test_later_signed_packets_reject_changed_released_record(self):
+        packets = self._later_signed_packet("change")
+        before = sha(self.db)
+        self.assertHold("previously_released_source_missing_or_changed",
+                        cli.admit_validated, self.db, packets, frozen_first=True,
+                        as_of_utc="2026-10-20T21:13:00Z")
+        self.assertEqual(sha(self.db), before)
+
     def test_signed_envelope_forgery_and_binding_failures_hold(self):
         body, mac, public_tip, main = self._signed()
         self.assertHold("signed_envelope_mac_invalid", self._open, body, "0" * 64, public_tip, main)

@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -60,8 +61,45 @@ def _unrelated_digest(conn):
     return h.hexdigest()
 
 
-def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None):
-    """Atomically admit one or more validated AFP packets; returns receipts."""
+_STABLE_COLUMNS = ("canonical_official_url,publisher_posted_date,official_issuer,"
+                   "official_publisher,official_republisher,first_seen_run")
+
+
+def _superseded_by_later_release(conn, validation):
+    """Recognize an unchanged frozen cohort followed by private admissions.
+
+    The public archive stops at the custody cutover. Its validated packet
+    cannot describe later private rows, so it may step aside only when all
+    its approved rows retain their exact original metadata and provenance.
+    Later signed packets still undergo the normal cumulative release check.
+    """
+    stored = {r[0]: tuple(r[1:]) for r in conn.execute(
+        "SELECT source_identity,%s,source_git_commit,metadata_version_sha256,"
+        "release_proof_sha256 FROM %s WHERE desk=? AND source_family=?"
+        % (_STABLE_COLUMNS, TABLE), (DESK, validator.FAMILY))}
+    eligible = {r["source_identity"] for r in validation["eligible"]}
+    if not set(stored) - eligible:
+        return False
+    proofs = set()
+    for r in validation["approved"]:
+        row = stored.get(r["source_identity"])
+        if row is None or row[:8] != (
+                r["canonical_official_url"], r["publisher_posted_date"], r["official_issuer"],
+                r["official_publisher"], r["official_republisher"], r["first_seen_run"],
+                r["source_git_commit"], r["metadata_version_sha256"]):
+            return False
+        proofs.add(row[8])
+    # The frozen admission wrote one proof; release_scope is schema-pinned.
+    return len(proofs) == 1 and re.fullmatch(r"[0-9a-f]{64}", next(iter(proofs))) is not None
+
+
+def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None,
+                    frozen_first=False):
+    """Atomically admit validated AFP packets, optionally marking the frozen first.
+
+    Only that first packet may step aside for later private admissions; every
+    subsequent packet must include all previously released family records.
+    """
     db_path = Path(db_path)
     before = _sha256(db_path)
     fd, tmp_name = tempfile.mkstemp(prefix=".%s.philippines-admission-" % db_path.name,
@@ -73,7 +111,9 @@ def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None):
         with sqlite3.connect(str(tmp)) as conn:
             unrelated_before = _unrelated_digest(conn)
             receipts = []
-            for v in validations:
+            for position, v in enumerate(validations):
+                if frozen_first and position == 0 and _superseded_by_later_release(conn, v):
+                    continue
                 receipts.append(admit(
                     conn, v["packet"], v["policy"], v["receipt"],
                     as_of_utc=as_of_utc, trusted_validator=v["trusted_validator"],
@@ -137,7 +177,7 @@ def cmd_admit(args):
         validations.append(validator.validate_signed_envelope(
             body, mac, key=key, public_checkout=checkout, public_frozen_tip=tip,
             validator_ref=ref, public_main=ROOT, fetch_run=fetch))
-    receipts, total = admit_validated(db, validations, as_of_utc=_now())
+    receipts, total = admit_validated(db, validations, as_of_utc=_now(), frozen_first=True)
     print(json.dumps({
         "status": "ADMITTED", "desk": DESK,
         "validations": [{"source_git_commit": v["packet"]["source_git_commit"],
