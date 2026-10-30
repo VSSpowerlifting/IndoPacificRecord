@@ -200,13 +200,18 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
             raise ValueError("unexpected document link")
         return title, published, document_url
 
+    def titles_match(self, listed, collected):
+        # The portal detail heading can repeat ASCII spaces from the listing.
+        # Compare only; keep original titles and every other character intact.
+        return re.sub(r" {2,}", " ", listed) == re.sub(r" {2,}", " ", collected)
+
     def fetch(self, reference):
         capture = super().fetch(reference)
         if capture.status == st.OK:
             try:
                 title, published, url = self.metadata(capture.body, reference.url)
                 hint = self.references[reference.url]
-                if title != hint["title"] or published != hint["date"]:
+                if not self.titles_match(hint["title"], title) or published != hint["date"]:
                     raise ValueError("release metadata disagrees with listing")
                 payload = self._request(url, binary=True)
                 self.documents[reference.url] = (payload, dict(self.evidence[-1]))
