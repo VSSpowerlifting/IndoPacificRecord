@@ -1,5 +1,13 @@
 # Permanent source activation — exceptional seven-day evidence path
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 **Owner direction: October 15, 2026.** The intended public product is a set of permanent IPR country desks, **not** a provisional “beta” with draft records. The standard 30-day collecting duration is an internal maturity preference, not an external legal prerequisite. The owner has authorized designing a shorter route where the real collection, original-language evidence and permissions genuinely support it.
 
 **This policy record is not source-specific publication approval and is not a completed release receipt.** It does not itself change the public registry, admit records, transfer copyrighted originals, approve publisher reuse, authenticate a reviewer or deploy anything.

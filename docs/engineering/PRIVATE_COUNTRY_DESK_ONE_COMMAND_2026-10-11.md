@@ -1,5 +1,13 @@
 # One-command private Philippines and Vietnam desks
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 **October 11, 2026 — functional private analyst interface, not production activation.**
 
 PR #384 provides a working private source reader based on pinned original shadow SQLite stores. The following wrapper eliminates the manual work of fetching/pinning five independent Git shadow branches and creates a usable local browser view **with one explicitly approved command**. This is not an automated collector, public site rollout, source-rights decision or new source capture.

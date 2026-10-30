@@ -1,5 +1,13 @@
 # Two usable private country desks: Philippines and Vietnam
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 **October 11, 2026.** Status: implemented offline analyst-facing research reader. **Neither country is production-admitted or publicly collecting through this feature.** The reader processes already-preserved immutable shadow records and exports only metadata and official source links. No publisher network access, model, tokens, SMTP, writing to source state, DB migration or public release.
 
 ## What the operator can do now
