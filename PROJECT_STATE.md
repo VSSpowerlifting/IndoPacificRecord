@@ -107,8 +107,13 @@ independent real replay authenticates all 13 historical
 runs, keeps 37 links/zero receipts and preserves the current DB byte for byte
 (`b9a1682c4db11fbf34ea979c05abe67128be9dd397763f88ad6ef1b6519951a4`).
 All unrelated rows and 102 MINDEF private bindings remain unchanged, with
-zero restricted text cells restored. Required full
-CI must pass this newly combined revision; the green prior-base run is not
+zero restricted text cells restored. Full CI `41115157184` at `34deeff3e4`
+exercised 8,311 tests, with two failures in Korea's unchanged cross-desk render
+assertion: the growing corpus crosses 999 to 1,001, but its numeric mask left
+the thousands comma behind. The test now recognizes properly grouped integers
+and compares their full values; content/line equality and the allowed +2 total
+remain strict. All 19 render-gate tests and threshold/refusal checks pass.
+Required full CI must pass this corrected revision; the green prior-base run is not
 substituted for it. No source-use grant, paid model call, hold reset,
 activation, production merge or deployment was performed by this task.
 Japan's intake hold remains. Actual desk completion requires authorized
