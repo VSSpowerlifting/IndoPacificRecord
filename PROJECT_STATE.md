@@ -1,6 +1,6 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## AFP/Vietnam/Korea unattended-path repairs — review candidate (30 October 2026)
+## AFP/Vietnam/Korea/U.S. unattended-path repairs — review candidate (30 October 2026)
 
 AFP scheduled publisher `40956271138` and private-envelope dispatch
 `40884635528` reject the frozen public snapshot after five later private
@@ -25,6 +25,12 @@ Essential private companion #32 supplies the public dependency checkout to
 both Vietnam full-discovery contract jobs. Both exact-head Actions jobs pass
 at `d564790367210b6eabfe48200e40b47fa2dbf611`; local Python 3.9.6 passes all
 139 tests. No collection or scheduled recovery was dispatched or observed.
+
+USCC collector `40921449471` and Treasury collector `40930817646` fail during
+setup because Ubuntu 26.04 has no Python 3.9. Both existing jobs in each source's
+workflow are pinned to Ubuntu 24.04; permissions, source-use gates, schedules,
+collection commands and publication paths are unchanged. Their existing PR
+checks include a bounded read-only listing collection; no new collector is added.
 
 This candidate incorporates #918's existing shared Daily test repairs at
 `89a3ff8a0f`, preserving current main `301bb766` admissions. Full final-revision
