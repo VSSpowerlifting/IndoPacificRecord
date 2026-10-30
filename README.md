@@ -14,11 +14,13 @@ reports, and Briefs catalog for current publication status.
 This is an academic portfolio project.  It does not use or claim access to any
 classified information.  All source material is publicly available.
 
-**Cross-desk engineering direction (19 October 2026):** Future desk
-integration targets one logical shared Daily processing/publishing engine,
-with independently scheduled/private source collection where necessary. This
-is a **target**, not a claim that all desks are integrated or permitted to
-publish full text. See [shared Daily architecture](docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md).
+**Mandatory all-desk architecture (30 October 2026):** sources own evidence,
+permissions and processing profiles; desks present a common record with optional
+permitted components. Lifecycle/admission/public projection are shared, and code
+qualification is separated from routine ingestion and delivery as the runtime
+migrates. Read the [desk system standard](docs/desks/README.md) and
+[current migration map](docs/desks/MIGRATION.md). The standard binds every desk;
+it does not claim all existing paths are consolidated or grant publication rights.
 
 ---
 

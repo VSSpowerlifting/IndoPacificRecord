@@ -1,5 +1,13 @@
 # Singapore MINDEF rights-aware cutover candidate — 29 October 2026
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 Review candidate for PR #913. No merge, deployment, new collection, model
 processing, publisher contact, history rewriting or evidence deletion is authorized.
 The two exact hyperlinks in `core/mindef_permissions.py` are the entire written

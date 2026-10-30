@@ -1,5 +1,13 @@
 # Desk strength criteria
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 What it takes for a desk to be called operationally strong, and what each
 weaker word is allowed to mean. Written because "the Japan desk works" and "the
 Japan desk discovers documents it cannot read" had been said about the same

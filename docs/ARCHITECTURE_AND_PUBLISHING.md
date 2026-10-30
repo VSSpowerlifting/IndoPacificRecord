@@ -1,7 +1,8 @@
 # Architecture & Publishing — Indo-Pacific Record
 
-Authoritative map of what produces what, what is source vs generated, and how
-changes reach production. Session state lives in PROJECT_STATE.md; durable
+Map of the existing producers, source versus generated artifacts, and release
+commands. The mandatory all-desk architecture is
+[`desks/README.md`](desks/README.md); this layer map does not override it. Session state lives in PROJECT_STATE.md; durable
 identity and editorial principles live in PRODUCT_AND_EDITORIAL_DOCTRINE.md.
 
 The published site is **Indo-Pacific Record** at `https://indopacificrecord.org`.
@@ -10,9 +11,10 @@ where it describes the rollback path or historical behaviour.
 
 ## 1. Repository boundary
 
-Everything happens inside `~/pla-watch`. Never touch sibling repositories
-(`strategic-materials-policy-tracker`, `managed-contact-risk-dashboard`,
-`second-brain`, …) or unrelated home-directory files.
+Work in an isolated worktree of the assigned public repository. The explicitly
+assigned private source-evidence companion may be changed when the task requires
+that custody/orchestration boundary. Never touch unrelated sibling repositories
+or another agent's worktree. Local checkout names do not define architecture.
 
 ## 2. Layer map
 
@@ -45,31 +47,24 @@ historical Night Desk base link that stylesheet. `core/topography.py` supplies
 deterministic address-specific profiles to both Jinja environments. Historical
 HTML still requires its normal sidecar re-render to pick up base-template edits.
 
-## 2a. Cross-desk convergence target (owner, 2026-10-19)
+## 2a. Mandatory all-desk structure — 30 October 2026
 
-The layer table above describes currently deployed paths; it is **not** a
-prescription to build each desk a separate publishing system. The long-term
-architecture is one **logical** `pipeline.py`/`daily_update.yml` processing
-coordinator with explicit desk-specific profiles, a common permitted-content
-and source-link intake, shared public renderer/archive/search and controlled
-site publication. Independently scheduled official-source collectors and
-private evidence storage remain separate when publisher cadence, access,
-security or source rights require it; they converge through authenticated,
-source-pinned contracts, without recrawling originals. One logical Daily does
-not mean one enormous synchronized scraper job or the removal of safe
-source-specific error isolation.
+[`desks/README.md`](desks/README.md) governs source definitions, permitted record
+components, common lifecycle/admission, qualification versus routine delivery,
+repository ownership and acceptance. It supersedes the earlier aspirational
+convergence target. [`desks/MIGRATION.md`](desks/MIGRATION.md) records which
+existing paths still need migration; they must not be presented as consolidated.
 
-Public `pla_watch.db` currently stores original article text, so a metadata-
-only source cannot be inserted there as though unrestricted original-text
-republication had been licensed. Separate approved full-text corpus records
-from neutral source-link records and any separately authorized machine-written
-explanation. Machine processing happens only under source-appropriate rights;
-source use, published fields, spending and release remain independently gated.
-The target is unattended publication of authorized, quality-passing,
-**machine-labeled record output**, with exceptional holds; human Briefs and
-bylined analytical manuscripts keep their editorial approval gates.
-This architectural direction does not switch on any desk or workflow by
-itself. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+The layer table and workflow descriptions here describe existing code, including
+legacy exceptions. Preserve live permitted behavior while replacing those paths.
+A public original is optional in the common record interface; restricted source
+evidence must not enter the public DB to satisfy the legacy article shape.
+Source rights and runtime activation remain independently governed. Human Briefs
+and other human-controlled editorial products retain their existing approvals.
+
+Daily's full offline-suite gate remains until trusted exact-revision qualification
+and runtime checks actually replace it. A documentation change cannot attest code
+qualification or authorize a source, model spend, merge or deployment.
 
 ## 3. Commands
 
