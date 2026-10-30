@@ -317,8 +317,13 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
     def test_public_directory_distinguishes_reference_from_production(self):
         html = self.page("desks.html")
         self.assertIn("Indonesia Desk", html)
-        self.assertIn("8 declared", html)
-        self.assertIn("4 collecting into the record", html)
+        from bs4 import BeautifulSoup
+        tally = {dt.get_text(" ", strip=True): dd.get_text(strip=True)
+                 for dt, dd in zip(*[iter(BeautifulSoup(html, "html.parser")
+                                          .select(".desks-tally dt, .desks-tally dd"))] * 2)}
+        self.assertEqual(tally, {"Declared": "8",
+                                 "Collecting into the record": "4",
+                                 "Not collecting": "4"})
         self.assertEqual(
             sorted(x.slug for x in load_registry() if x.is_collecting),
             ["china", "korea", "singapore", "vietnam"])
@@ -526,8 +531,10 @@ class TestVietnamMpsLiveCoverage(DeskCase):
             if "is-mid-side" in cls.split()}
         self.assertFalse(narrowed)
         css = (REPO_ROOT / "site/preview/desk-map.css").read_text(encoding="utf-8")
+        # Every plate sits in one auto-fill register: no plate is hung at a
+        # fractional width, and the print layout falls back to two columns.
+        self.assertIn(".deskmap-register{display:grid;grid-template-columns:repeat(auto-fill,minmax(", css)
         self.assertIn(".deskmap-register{grid-template-columns:repeat(2", css)
-        self.assertIn(".deskmap-plate{position:relative", css)
 
 
 class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):

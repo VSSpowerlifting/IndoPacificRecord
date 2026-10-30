@@ -43,7 +43,7 @@
 
     {# The custody line: four real stages, in the order they happened. Each is
        drawn from a stored field; a stage that did not happen says so. #}
-    <div class="record-actions"><a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Open original source</a><a href="#record-citation">Cite this record</a></div>
+    <div class="record-actions">{% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}<a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Open original source</a>{% endif %}<a href="#record-citation">Cite this record</a></div>
     <details class="record-history" data-wide-open><summary>Record history</summary>
     <ol class="custody" aria-label="How this record reached this page">
       <li><b>{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }}</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
@@ -57,7 +57,7 @@
       <span>In this record</span>
       <ul>{% if record.vietnam and record.vietnam.translation_published %}<li><a href="#record-translation">Translation</a></li>{% endif %}{% if record.summary_english %}<li><a href="#record-summary">Summary</a></li>{% endif %}
           {% if record.korea_identity and record.text_english %}<li><a href="#record-translation">Machine translation</a></li>{% endif %}
-          <li><a href="#record-text">{{ 'Korean original' if record.korea_identity else 'Stored text' }}</a></li><li><a href="#record-status">Processing</a></li>
+          <li><a href="#record-text">{{ 'Korean original' if record.korea_identity else 'Source-use limits' if record.source_slug == 'sg_mindef_releases' else 'Stored text' }}</a></li><li><a href="#record-status">Processing</a></li>
           <li><a href="#record-provenance">Provenance</a></li><li><a href="#record-citation">Citation</a></li></ul>
     </nav>
 
@@ -132,6 +132,22 @@
       <a href="{{ record.url }}" rel="noopener nofollow">official page</a>.</p>
       <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
     </section>
+    {% elif record.source_slug == 'sg_mindef_releases' %}
+    <section class="record-section" aria-labelledby="record-text">
+      <div class="layer-head"><h2 id="record-text">Source-use limits</h2>
+        <span class="evidence evidence--record">Source record</span></div>
+      {# The MINDEF email of 2026-10-29 grants hyperlink permission only for two
+         specified URLs. A capture in the database does not grant public text
+         reproduction; retain private custody and metadata, not the public body. #}
+      <p>MINDEF's original article text and media are not reproduced here.
+      Written permission covers hyperlinks to two specified releases only;
+      it does not grant permission to reproduce or distribute article text.</p>
+      {% if record.mindef_link_allowed %}
+      <p><a href="{{ record.url }}" rel="noopener nofollow">Read the authorized official source page</a>.</p>
+      {% else %}
+      <p>The original URL is recorded in provenance but is not an authorized hyperlink.</p>
+      {% endif %}
+    </section>
     {% else %}
     <section class="record-section" aria-labelledby="record-text">
       <div class="layer-head"><h2 id="record-text">Stored source text</h2>
@@ -163,7 +179,12 @@
     <section class="record-section" aria-labelledby="record-status">
       <h2 id="record-status">Processing status</h2>
       <p class="record-state">{{ record.state_label }}</p>
-      <p>{{ state_definition }}</p>
+      {% if record.source_slug == 'sg_mindef_releases' %}
+      <p>This is the historical processing status. Source text, original titles,
+      translations, summaries and reasoning are withheld under the current
+      source-use policy. The heading is an IPR metadata label, not a publisher headline.
+      New collection and model processing are held.</p>
+      {% else %}<p>{{ state_definition }}</p>{% endif %}
       {# "Model-flagged" appears only when the flag is actually true. Both
          outcomes are machine output, so both carry the machine label. #}
       {% if record.model_flagged is not none %}
@@ -185,9 +206,9 @@
           <tr><th scope="row">Source outlet</th><td class="prov-value"><a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a> <span class="meta">({{ record.source_slug }})</span></td></tr>
           <tr><th scope="row">Source language</th><td class="prov-value">{{ record.language_tag or '—' }} <span class="meta">— an attribute of the source, not of this record</span></td></tr>
           <tr><th scope="row">Source-stated publication date</th><td class="prov-value">{{ record.published_date }}</td></tr>
-          <tr><th scope="row">Original URL</th><td class="prov-value"><a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a></td></tr>
+          <tr><th scope="row">Original URL</th><td class="prov-value">{% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>{% else %}{{ record.url }} <span class="meta">— link not permitted</span>{% endif %}</td></tr>
           <tr><th scope="row">Collected at</th><td class="prov-value">{{ record.scraped_at }} <span class="meta">— collection metadata, not a publication time</span></td></tr>
-          <tr><th scope="row">Content fingerprint</th><td class="prov-value"><span class="token">{{ record.content_hash }}</span> <span class="meta">— taken when the record was captured, over the stored original title and text</span></td></tr>
+          <tr><th scope="row">Content fingerprint</th><td class="prov-value"><span class="token">{{ record.content_hash }}</span> <span class="meta">— taken when the record was captured, over the stored original title and text{% if record.source_slug == 'sg_mindef_releases' %}, which are held privately and not published{% endif %}</span></td></tr>
           {% if record.scrape_run_id is not none %}
           <tr><th scope="row">Collection run</th><td class="prov-value">{{ record.scrape_run_id }}</td></tr>
           {% endif %}
@@ -296,7 +317,11 @@
         <div><dt>Translation</dt><dd>{% if record.korea_identity and record.text_english %}Full machine translation, not reviewed by a human{% elif record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}Independent machine headline; not a translation{% elif record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% elif (record.language_tag or '').startswith('en') %}Not needed: the source publishes in English{% else %}No English title held{% endif %}</dd></div>
         <div><dt>Desk</dt><dd>{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</dd></div>
       </dl>
+      {% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}
       <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>
+      {% else %}
+      <p class="meta">This MINDEF page is not within IPR's approved hyperlink scope.</p>
+      {% endif %}
     </div>
     {% if dossier_records is defined and dossier_records[record.id] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}
     {% if timeline_records is defined and timeline_records[record.id] %}<section class="record-section" aria-labelledby="record-timelines"><h2 id="record-timelines">In Evidence Timelines</h2>{% for item in timeline_records[record.id] %}<p><a href="../{{ item.route }}">{{ item.title }}</a>{% if item.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}

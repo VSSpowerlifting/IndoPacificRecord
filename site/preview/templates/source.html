@@ -24,7 +24,7 @@
     <tr><th scope="row">Source type</th><td class="prov-value">{{ source.source_type|source_type_label }}</td></tr>
     <tr><th scope="row">Authority tier</th><td class="prov-value">{{ source.authority_tier or '—' }}</td></tr>
     <tr><th scope="row">Original language</th><td class="prov-value">{{ source.language_tag or '—' }}</td></tr>
-    <tr><th scope="row">Official base URL</th><td class="prov-value">{% if source.base_url %}<a href="{{ source.base_url }}" rel="noopener nofollow">{{ source.base_url }}</a>{% else %}Not declared{% endif %}</td></tr>
+    <tr><th scope="row">Official base URL</th><td class="prov-value">{% if source.base_url %}{% if source.slug == 'sg_mindef_releases' %}{{ source.base_url }} <span class="meta">— publisher homepage, not within approved linking scope</span>{% else %}<a href="{{ source.base_url }}" rel="noopener nofollow">{{ source.base_url }}</a>{% endif %}{% else %}Not declared{% endif %}</td></tr>
     <tr><th scope="row">{{ 'Enabled for collection' if source.contract_validated else 'Enabled for shadow collection' }}</th><td class="prov-value">{{ 'Yes' if source.enabled else 'No' }}</td></tr>
     <tr><th scope="row">Records held</th><td class="prov-value">{% if source.record_count is not none %}{{ source.record_count|count }}{% else %}None — this source has never been part of a production run{% endif %}</td></tr>
     {% if source.share_of_record is not none %}

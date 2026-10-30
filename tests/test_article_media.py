@@ -16,6 +16,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
@@ -114,13 +115,53 @@ class ArticleMediaPagesTests(unittest.TestCase):
             page = (cls.tmp / "briefs" / ("%s.html" % entry["slug"])).read_text()
             cls.native[entry["issue"]] = (entry, page, BeautifulSoup(page, "html.parser"))
 
+        # Briefs 15-17 cite Singapore MINDEF records and are withheld whole by
+        # the production rights boundary. Their presentation (covers, plates,
+        # navigation) is still exercised here, under an explicit *synthetic*
+        # rights authority that is applied to this second build only. It does
+        # not clear the real works; the real build above is what is published.
+        rights = mock.patch("core.mindef_public_boundary.editorial_hold",
+                            return_value=False)
+        rights.start()
+        try:
+            cls.auth_collection = bc.load_collection(
+                gp.load_editions(ROOT), load_registry(), briefs_dir=gp.BRIEFS_SOURCE)
+            cls.auth_tmp = Path(tempfile.mkdtemp(prefix="article-media-auth-"))
+            gp.build(cls.auth_tmp, gp.PUBLIC_TITLE, gp.TRACKED_DB,
+                     snapshot=gp.snapshot_from_corpus(gp.TRACKED_DB))
+        finally:
+            rights.stop()
+        cls.native_auth = {}
+        for entry in cls.auth_collection.briefs:
+            page = (cls.auth_tmp / "briefs" / ("%s.html" % entry["slug"])).read_text()
+            cls.native_auth[entry["issue"]] = (entry, page, BeautifulSoup(page, "html.parser"))
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
+        shutil.rmtree(cls.auth_tmp, ignore_errors=True)
+
+    HELD_ISSUES = (15, 16, 17)
 
     def test_all_published_items_are_covered(self):
+        # The published set is the full set minus the three whole-work holds.
         self.assertEqual(sorted(self.historical) + sorted(self.native),
+                         sorted(n for n in EXPECTED if n not in self.HELD_ISSUES))
+        # Under synthetic authority every item exists, so the held works stay
+        # accounted for rather than silently disappearing from coverage.
+        self.assertEqual(sorted(self.historical) + sorted(self.native_auth),
                          sorted(EXPECTED))
+
+    def test_held_briefs_are_absent_from_the_real_build(self):
+        slugs = [self.native_auth[n][0]["slug"] for n in self.HELD_ISSUES]
+        self.assertEqual(len(slugs), 3)
+        for slug in slugs:
+            with self.subTest(slug=slug):
+                self.assertFalse((self.tmp / "briefs" / ("%s.html" % slug)).exists())
+                self.assertTrue((self.auth_tmp / "briefs" / ("%s.html" % slug)).exists())
+        catalogue = (self.tmp / "analysis.html").read_text()
+        for slug in slugs:
+            self.assertNotIn(slug, catalogue)
 
     def test_every_earlier_issue_takes_its_recorded_treatment(self):
         for number, (side, ctx, page, soup) in self.historical.items():
@@ -149,9 +190,9 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 self.assertIn("brief-hero--photo", hero(soup)["class"])
 
     def test_native_briefs_keep_their_recorded_media_treatment(self):
-        for number, (entry, page, soup) in self.native.items():
+        for number, (entry, page, soup) in self.native_auth.items():
             with self.subTest(brief=number):
-                desks = self.collection.sidecars[entry["slug"]]["desks"]
+                desks = self.auth_collection.sidecars[entry["slug"]]["desks"]
                 cover = None if entry.get("photo") else article_cover(entry, ROOT)
                 media = am.native_article_media(entry.get("photo"), desks,
                                                 root="../" if cover or not entry["source_linked"] else None,
@@ -197,7 +238,7 @@ class ArticleMediaPagesTests(unittest.TestCase):
 
     def test_every_plate_is_labelled_decorative_original_artwork(self):
         pages = ([(n, soup) for n, (_, _, _, soup) in self.historical.items()]
-                 + [(n, soup) for n, (_, _, soup) in self.native.items()])
+                 + [(n, soup) for n, (_, _, soup) in self.native_auth.items()])
         plated = []
         for number, soup in pages:
             plate = soup.select_one("figure[data-article-media=plate]")
@@ -213,6 +254,12 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 for text in (am.PLATE_NOTE, am.PLATE_CONTEXT):
                     self.assertIn(text, plate.figcaption.get_text())
         self.assertEqual(sorted(plated), [4, 14, 16])
+        # Only the held No. 16 plate is absent from what is actually published.
+        public = [n for n, (_, _, soup) in
+                  {**{k: (None, None, v[3]) for k, v in self.historical.items()},
+                   **self.native}.items()
+                  if soup.select_one("figure[data-article-media=plate]") is not None]
+        self.assertEqual(sorted(public), [4, 14])
         # A historical plate is the China Desk's, the desk that published them.
         for number in (4, 14):
             uses = [u["href"] for u in self.historical[number][3].select("figure[data-article-media=plate] use")]
@@ -295,7 +342,7 @@ class ArticleMediaPagesTests(unittest.TestCase):
     def test_a_brief_cover_carries_credit_licence_notice_and_treatment(self):
         entry = {e["id"]: e for e in json.loads(MANIFEST.read_text())}[
             "trident-resolve-basarnas-drone"]
-        figure = hero(self.native[17][2]).select_one("figure.brief-cover")
+        figure = hero(self.native_auth[17][2]).select_one("figure.brief-cover")
         self.assertEqual(figure["data-editorial-id"], entry["id"])
         self.assertIn("brief-cover--gradient", figure["class"])
         img = figure.select_one("img")
@@ -311,15 +358,19 @@ class ArticleMediaPagesTests(unittest.TestCase):
                                  "DVIDS": entry["source_page"]})
         # The served derivatives are the recorded ones, byte for byte.
         for d in entry["derivatives"]:
-            built = self.tmp / "assets/editorial" / d["file"]
+            built = self.auth_tmp / "assets/editorial" / d["file"]
             self.assertEqual(am_sha(built), d["sha256"])
 
     def test_the_cover_reaches_only_its_brief_and_the_catalogue(self):
-        reached = sorted(str(p.relative_to(self.tmp)) for p in self.tmp.rglob("*.html")
-                         if "trident-resolve-basarnas-drone" in p.read_text(errors="ignore"))
-        slug = self.native[17][0]["slug"]
-        self.assertEqual(reached, sorted(["briefs/%s.html" % slug, "analysis.html"]))
-        cat = BeautifulSoup((self.tmp / "analysis.html").read_text(), "html.parser")
+        def reached_in(root):
+            return sorted(str(p.relative_to(root)) for p in root.rglob("*.html")
+                          if "trident-resolve-basarnas-drone" in p.read_text(errors="ignore"))
+        # The cover belongs to a held Brief: the real build reaches nothing.
+        self.assertEqual(reached_in(self.tmp), [])
+        slug = self.native_auth[17][0]["slug"]
+        self.assertEqual(reached_in(self.auth_tmp),
+                         sorted(["briefs/%s.html" % slug, "analysis.html"]))
+        cat = BeautifulSoup((self.auth_tmp / "analysis.html").read_text(), "html.parser")
         notice = "does not imply or constitute DoW endorsement"
         treated = cat.select("[data-treatment=gradient]")
         self.assertTrue(treated)
@@ -378,9 +429,12 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 self.assertEqual(prev is None, number == numbers[0])
                 self.assertIsNotNone(nxt)
                 if number == numbers[-1]:
-                    # The newest issue's next item is the first native Brief.
-                    self.assertEqual(nxt["href"], "../../briefs/maritime-cooperation-2026.html")
-                    self.assertIn("No. %d" % (number + 1), nxt.get_text())
+                    # The newest issue's next item is the first *published*
+                    # native Brief; Nos. 15-17 are withheld whole.
+                    first = min(self.native)
+                    self.assertEqual(nxt["href"], "../../briefs/%s.html" % self.native[first][0]["slug"])
+                    self.assertIn("No. %d" % first, nxt.get_text())
+                    self.assertNotIn("maritime-cooperation-2026", nxt["href"])
                     nxt = None
                 for link, other in ((prev, number - 1), (nxt, number + 1)):
                     if link is None:
@@ -397,28 +451,43 @@ class ArticleMediaPagesTests(unittest.TestCase):
                     target = (ROOT / "output/briefs" / link["href"]).resolve()
                     built = (self.tmp / "briefs" / link["href"]).resolve()
                     self.assertTrue(target.is_file() or built.is_file(), link["href"])
-        prev15 = self.native[15][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        # Published sequence: No. 18 now follows historical issue No. 14.
+        prev18 = self.native[18][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        self.assertEqual(prev18["href"], "../the-pla-watch/posts/2026-08-15.html")
+        self.assertIn("No. 14", prev18.get_text())
+        for held in self.HELD_ISSUES:
+            for _, page, _ in self.native.values():
+                self.assertNotIn(self.native_auth[held][0]["slug"], page)
+        # Full intended sequence, under the synthetic authority build.
+        for number, (entry, page, soup) in self.native_auth.items():
+            nav = soup.select_one("nav.brief-issue-nav")
+            for link in nav.select("a[rel=prev], a[rel=next]"):
+                self.assertTrue(((ROOT / "output/briefs" / link["href"]).resolve().is_file()
+                                 or (self.auth_tmp / "briefs" / link["href"]).resolve().is_file()),
+                                link["href"])
+        prev15 = self.native_auth[15][2].select_one("nav.brief-issue-nav a[rel=prev]")
         self.assertEqual(prev15["href"], "../the-pla-watch/posts/2026-08-15.html")
         self.assertIn("No. 14", prev15.get_text())
-        next17 = self.native[17][2].select_one("nav.brief-issue-nav a[rel=next]")
+        next17 = self.native_auth[17][2].select_one("nav.brief-issue-nav a[rel=next]")
         self.assertEqual(next17["href"], "what-is-being-built-in-laos.html")
         self.assertIn("No. 18", next17.get_text())
-        prev18 = self.native[18][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        prev18 = self.native_auth[18][2].select_one("nav.brief-issue-nav a[rel=prev]")
         self.assertEqual(prev18["href"], "trident-resolve-regional-scale-specific-chinese-tasks.html")
         self.assertIn("No. 17", prev18.get_text())
-        next18 = self.native[18][2].select_one("nav.brief-issue-nav a[rel=next]")
-        self.assertEqual(next18["href"], self.native[19][0]["slug"] + ".html")
+        next18 = self.native_auth[18][2].select_one("nav.brief-issue-nav a[rel=next]")
+        self.assertEqual(next18["href"], self.native_auth[19][0]["slug"] + ".html")
         self.assertIn("No. 19", next18.get_text())
-        prev19 = self.native[19][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        prev19 = self.native_auth[19][2].select_one("nav.brief-issue-nav a[rel=prev]")
         self.assertEqual(prev19["href"], "what-is-being-built-in-laos.html")
         self.assertIn("No. 18", prev19.get_text())
-        next19 = self.native[19][2].select_one("nav.brief-issue-nav a[rel=next]")
-        self.assertEqual(next19["href"], self.native[20][0]["slug"] + ".html")
+        next19 = self.native_auth[19][2].select_one("nav.brief-issue-nav a[rel=next]")
+        self.assertEqual(next19["href"], self.native_auth[20][0]["slug"] + ".html")
         self.assertIn("No. 20", next19.get_text())
-        prev20 = self.native[20][2].select_one("nav.brief-issue-nav a[rel=prev]")
-        self.assertEqual(prev20["href"], self.native[19][0]["slug"] + ".html")
+        prev20 = self.native_auth[20][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        self.assertEqual(prev20["href"], self.native_auth[19][0]["slug"] + ".html")
         self.assertIn("No. 19", prev20.get_text())
-        self.assertIsNone(self.native[20][2].select_one("nav.brief-issue-nav a[rel=next]"))
+        self.assertIsNone(self.native_auth[20][2].select_one("nav.brief-issue-nav a[rel=next]"))
+
 
     def test_historical_pages_load_the_shared_nav_and_media_rules(self):
         # The coordinated journal release ships every historical page together

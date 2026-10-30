@@ -850,6 +850,19 @@ def _is_real_date(s: str) -> bool:
 def main() -> int:
     output_dir = _resolve_output_dir(sys.argv)
     errors, warnings = validate(output_dir)
+    # A projected database carries its write guards. Every existing publishing
+    # workflow already calls this deploy gate, including after a rebase.
+    db_path = output_dir.parent / "pla_watch.db"
+    if db_path.is_file():
+        from scripts.reconcile_db import read_only
+        with read_only(db_path) as con:
+            projected = con.execute("SELECT 1 FROM sqlite_master WHERE type='trigger' "
+                "AND name='mindef_public_no_expression_insert'").fetchone()
+        if projected:
+            from scripts.audit_mindef_public_surfaces import audit
+            if not audit(db_path, output_dir)["release_eligible_from_this_scan"]:
+                errors.append("MINDEF public-distribution rights boundary failed")
+
 
     for w in warnings:
         print(f"WARN:  {w}")

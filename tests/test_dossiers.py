@@ -249,7 +249,8 @@ class DossierSources(unittest.TestCase):
         with fixture_decisions(approved):
             public,_=d.load_dossiers(self.db,related,folder)
             private,_=d.load_dossiers(self.db,related,folder,candidate)
-        self.assertEqual(public[0]['overview'],approved['overview'])
+        # Editorial approval does not widen MINDEF's hyperlink permission.
+        self.assertEqual(public, [])
         self.assertEqual(private[0]['overview'],revision['overview'])
         self.assertTrue(private[0]['is_review'])
         self.assertEqual(len(private),1)

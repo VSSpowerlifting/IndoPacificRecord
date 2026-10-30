@@ -107,7 +107,12 @@ Only currently permitted China versions were sent. Coordination with the
 Singapore permission owner confirmed that October 29's two-link grant does not
 authorize commercial Anthropic processing. **No new Singapore generation** was
 performed. Historical Singapore artifacts remain offline evidence only. No
-Singapore rights migration was pulled into this PR.
+Singapore processing was added by this task. During final review, main merged
+#913 at `034c94ec4f`. Base reconciliation inherits that repair and its generated
+artifacts; this task authors no DB/output changes relative to the new base.
+Existing assertions and the additional machine-prose/desk-scope tests are retained;
+mandatory CI must pass the reconciled final head. The frozen paid trial remains
+pinned to `5b0eef1ab2` and was not rerun or repriced after this base update.
 
 Both models received revised prompts and identical frozen originals. Whole-path
 order alternated by record. Separate translation ran even for screened-out
