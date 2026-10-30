@@ -63,7 +63,7 @@ class KoreaDailyProcessingTests(unittest.TestCase):
         self.assertIn('{"index": 2, "ko": ""}', content)
         self.assertIn("Routine diplomatic meetings", analysis_messages("Meeting", "Minister met envoy")[0]["content"])
         self.assertTrue(KOREA_PROFILE.analysis_prompt_version.startswith("kr-analysis"))
-        self.assertEqual(TRANSLATION_PROMPT_ID, "kr-translation-v3/kr-glossary-v1")
+        self.assertEqual(TRANSLATION_PROMPT_ID, "kr-translation-v3/kr-glossary-v2")
         self.assertEqual(TRANSLATION_TOOL["name"], "emit_korea_translation")
 
     def test_analyzer_does_not_fall_through_to_china(self):
@@ -75,7 +75,7 @@ class KoreaDailyProcessingTests(unittest.TestCase):
         self.assertEqual(result["title_english"], entries[6]["text_en"].strip())
         self.assertEqual(result["text_english"],
                          "\n".join(e["text_en"] for e in entries))
-        self.assertIn("kr-translation-v3/kr-glossary-v1", result["prompt_version"])
+        self.assertIn("kr-translation-v3/kr-glossary-v2", result["prompt_version"])
         call = a._call_tool.call_args
         self.assertIs(call.args[1], TRANSLATION_TOOL)
         self.assertIn("국방부", call.args[0][0]["content"])

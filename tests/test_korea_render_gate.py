@@ -40,7 +40,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "site" / "preview"))
 import generate_preview as gp  # noqa: E402
 
-NUMBER = re.compile(r"\d+")
+NUMBER = re.compile(r"\d{1,3}(?:,\d{3})+|\d+")
 # The production manifest: staged until the owner activation moves it.
 STAGED_MANIFEST = next(p for p in (ROOT / "config" / "korea_daily_activation" / "manifest.json",
                                    ROOT / "desks" / "korea" / "manifest.json")
@@ -238,7 +238,8 @@ class TestRenderedKoreaRecords(unittest.TestCase):
                 continue
             self.assertEqual(NUMBER.sub("N", old), NUMBER.sub("N", new), rel)
             for a, b in zip(NUMBER.findall(old), NUMBER.findall(new)):
-                self.assertIn(int(b) - int(a), (0, published), "%s: %s" % (rel, new.strip()))
+                self.assertIn(int(b.replace(",", "")) - int(a.replace(",", "")),
+                              (0, published), "%s: %s" % (rel, new.strip()))
 
     def news_id(self, identity):
         return identity.split(":", 1)[1]

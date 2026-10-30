@@ -40,6 +40,84 @@ pilot (PR #928), then migrate the remaining desk paths in separate phases.
 Preserve original source authority, model budgets, custody and historical
 approvals; release and deployment remain separate decisions.
 
+## Remaining unattended desk-path repairs — review candidate (30 October 2026)
+
+AFP scheduled publisher `40956271138` and private-envelope dispatch
+`40884635528` reject the frozen public snapshot after five later private
+records were legitimately admitted. The AFP CLI now applies Indonesia's
+existing frozen-first reconciliation: all approved frozen metadata and original
+Git/version/proof bindings must still match; later signed snapshots remain
+cumulative and reject missing or changed released records. Independent replay
+authenticated all 13 historical scheduled runs for frozen source `063c4b0`,
+then retained all 37 AFP links with zero admissions and a byte-identical scratch
+DB. The 95 focused admission contracts pass; production data is unchanged.
+
+Korea's title comparison now folds repeated ASCII spaces at both fetch and
+extract, addressing the incomplete fetch-only repair in #907. Other adapters
+retain exact comparison; collected titles, dates, attachments and all non-ASCII
+differences remain protected. The glossary separately distinguishes
+`국방부차관` (Vice Minister of National Defense) from the ministry and minister,
+with versioned prompt bindings. The 144 collector/source/manifest and 62
+translation/queue contracts pass. Existing QA holds and retry budgets are intact;
+this does not establish recovery of previously rejected model output.
+
+Essential private companion #32 supplies the public dependency checkout to
+both Vietnam full-discovery contract jobs. Both exact-head Actions jobs pass
+at `d564790367210b6eabfe48200e40b47fa2dbf611`; attempt 3 verifies all 139 tests
+against public main `95c53909cf`. No collection or scheduled recovery was
+dispatched or observed.
+
+USCC collector `40921449471` and Treasury collector `40930817646` fail during
+setup because Ubuntu 26.04 has no Python 3.9. Both existing jobs in each source's
+workflow are pinned to Ubuntu 24.04; permissions, source-use gates, schedules,
+collection commands and publication paths are unchanged. Their existing PR
+checks include a bounded read-only listing collection; no new collector is added.
+
+Japan's seven released metadata links remain preserved. Current main already
+contains the historical-navigation correction equivalent to #892; this candidate
+adds only its remaining shared Daily HTTPS propagation repair: twelve strict
+byte-matching reads with ten-second intervals and no final sleep. The existing
+executed-workflow regressions accept fourth-read propagation and reject all
+twelve mismatches. `JAPAN_MOD_OFFICIAL_LINKS_ENABLED` remains false; the corrective
+release and intake restoration still require the owner's separate decision.
+
+Earlier combined CI `41017133618` exercised 8,303 tests: one DAPA capture test
+errored because repeated generation of its ZIP fixture embedded different
+wall-clock timestamps. A controlled clock change reproduces that exact missing-
+capture error; deterministic ZIP metadata now makes the original end-to-end test
+pass across the same boundary. No production collector or captured source is
+changed. Full CI `41069989225` at `de296f2086` subsequently passes all 8,304
+tests (15 conditional skips), isolated rendering/validation with 10 governed
+warnings, and tracked DB/output preservation.
+
+Integrated current main `95c53909cf`, preserving the mandatory shared desk
+contract #925, real source-definition consolidation #928, Vietnam propagation
+repair #927, Desks redesign #920, and the latest Daily database/output with
+Singapore #913's rights boundary. The additional cross-desk/style refusal tests
+from #918 remain; overlapping fixture names and runner declarations follow
+current main. No database or generated-output difference from that main is
+introduced. All 93 Singapore integration checks and 597 combined Desks
+integration tests pass (two conditional skips); all 176 integration checks
+against #928 and Vietnam's new readback pass (two local frozen-replay skips).
+The latest Daily DB uses WAL mode: a frozen-only AFP retry previously rewrote
+six header bytes despite zero admissions. After all existing checks, that
+no-op now leaves the original file untouched. All 70 focused AFP/regional/shared-
+definition tests pass. Its regression reproduces the old failure, and the
+independent real replay authenticates all 13 historical
+runs, keeps 37 links/zero receipts and preserves the current DB byte for byte
+(`b9a1682c4db11fbf34ea979c05abe67128be9dd397763f88ad6ef1b6519951a4`).
+All unrelated rows and 102 MINDEF private bindings remain unchanged, with
+zero restricted text cells restored. Full CI `41115157184` at `34deeff3e4`
+exercised 8,311 tests, with two failures in Korea's unchanged cross-desk render
+assertion: the growing corpus crosses 999 to 1,001, but its numeric mask left
+the thousands comma behind. The test now recognizes properly grouped integers
+and compares their full values; content/line equality and the allowed +2 total
+remain strict. All 19 render-gate tests and threshold/refusal checks pass.
+Required full CI must pass this corrected revision; the green prior-base run is not
+substituted for it. No source-use grant, paid model call, hold reset,
+activation, production merge or deployment was performed by this task.
+Japan's intake hold remains. Actual desk completion requires authorized
+release and genuine source-to-live operation, beyond these repair checks.
 
 ## Desks page frontend redesign — review candidate, PR open, not merged or deployed (29 October 2026)
 

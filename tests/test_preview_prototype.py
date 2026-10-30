@@ -24,6 +24,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 import urllib.parse
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -4827,6 +4828,38 @@ class TestExclusionContract(unittest.TestCase):
         authored = _authored_text(html, "record/1.html", literals=[stored])
         self.assertNotIn("&#34;defence&#34;", authored)
         self.assertIn("authored defence copy", authored)
+
+
+class TestReleasedMachineProseExclusion(unittest.TestCase):
+    def setUp(self):
+        self.path = "record/source-" + "a" * 24 + ".html"
+        self.summary = 'Stored machine output: "organised" & "defence".'
+        index = {"by_id": {}, "names": [], "machine_by_path": {
+            self.path: {"summary": self.summary}}}
+        patcher = mock.patch(__name__ + "._corpus_index", return_value=index)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_exact_released_summary_is_excluded_on_record_and_linked_desk(self):
+        html = ('<p>Machine explanation</p><p>%s</p>'
+                '<p>Not reviewed by a human. Authored defence copy.</p>' %
+                markupsafe.escape(self.summary))
+        for path, page in ((self.path, html),
+                           ("indonesia.html", '<a href="%s">Record</a>%s' %
+                            (self.path, html))):
+            with self.subTest(path=path):
+                own = _authored_text(page, path)
+                self.assertNotIn("organised", own)
+                self.assertIn("Machine explanation", own)
+                self.assertIn("Not reviewed by a human.", own)
+                self.assertIn("Authored defence copy.", own)
+
+    def test_unrelated_page_receives_no_summary_exemption(self):
+        self.assertIn(self.summary, _authored_text(self.summary, "about.html"))
+
+    def test_unregistered_summary_stays_guarded_even_on_registered_route(self):
+        self.assertIn("Unregistered organised output",
+                      _authored_text("Unregistered organised output", self.path))
 
 
 def _fake_record(**overrides):

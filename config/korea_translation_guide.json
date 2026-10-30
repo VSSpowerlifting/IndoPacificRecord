@@ -1,13 +1,15 @@
 {
   "schema": "ipr-korea-translation-guide-v1",
-  "glossary_version": "kr-glossary-v1",
+  "glossary_version": "kr-glossary-v2",
   "scope": "Korean-to-English machine translation of official Republic of Korea Ministry of National Defense releases admitted through core/korea_corpus_bridge.py. Prompt instructions and checks only.",
   "examples_policy": "Nothing in this guide or in the three reviewed English releases trains, fine-tunes or otherwise changes a model. The reviewed releases are a QA benchmark only; they are never sent to the model as examples.",
   "glossary": [
-    {"ko": "국방부(?!장관)", "ko_display": "국방부", "en": "Ministry of National Defense (MND)",
+    {"ko": "국방부(?!장관|차관)", "ko_display": "국방부", "en": "Ministry of National Defense (MND)",
      "accepted": ["Ministry of National Defense", "MND"]},
     {"ko": "국방부장관", "ko_display": "국방부장관", "en": "Minister of National Defense",
      "accepted": ["Minister of National Defense", "Defense Minister", "National Defense Minister"]},
+    {"ko": "국방부차관", "ko_display": "국방부차관", "en": "Vice Minister of National Defense",
+     "accepted": ["Vice Minister of National Defense"]},
     {"ko": "방위사업청", "ko_display": "방위사업청", "en": "Defense Acquisition Program Administration (DAPA)",
      "accepted": ["Defense Acquisition Program Administration", "DAPA"]},
     {"ko": "대한민국", "ko_display": "대한민국", "en": "Republic of Korea (ROK)",

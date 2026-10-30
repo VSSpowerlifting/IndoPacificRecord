@@ -144,8 +144,8 @@ class TestKoreaLane(LaneCase):
             row = led[ident]
             self.assertEqual(row["processing_state"], "processed")
             self.assertEqual(row["qa_version"], "kr-qa-v2")
-            self.assertEqual(row["glossary_version"], "kr-glossary-v1")
-            self.assertIn("kr-translation-v3/kr-glossary-v1", row["prompt_version"])
+            self.assertEqual(row["glossary_version"], "kr-glossary-v2")
+            self.assertIn("kr-translation-v3/kr-glossary-v2", row["prompt_version"])
             art = self.article(ident)
             self.assertTrue(art["analyzed_at"])
             self.assertEqual(art["passed_relevance"], 1)

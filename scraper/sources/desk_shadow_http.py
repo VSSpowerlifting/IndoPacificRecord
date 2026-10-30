@@ -261,6 +261,10 @@ class ListingShadowAdapter(SourceAdapter):
             result.status, result.error_detail = exc.status, str(exc)
         return result
 
+    def titles_match(self, listed, collected):
+        """Compare listing and detail titles without changing source text."""
+        return listed == collected
+
     def extract(self, capture):
         try:
             if capture.status != st.OK or not capture.body:
@@ -271,7 +275,7 @@ class ListingShadowAdapter(SourceAdapter):
             if capture.reference.hint_published_date != doc.published_date:
                 raise ValueError("listing and article dates disagree")
             hint = self.references.get(doc.url)
-            if hint is None or hint["title"] != doc.title_original:
+            if hint is None or not self.titles_match(hint["title"], doc.title_original):
                 raise ValueError("listing and article titles/identities disagree")
             doc.extra.update(capture_sha256=capture.payload_sha256,
                              content_sha256=hashlib.sha256(doc.text_original.encode("utf-8")).hexdigest(),

@@ -584,11 +584,12 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin gh-pages
           python -m scripts.verify_japan_mod_official_links --pages-repo .
-          # Pages/CDN propagation is bounded. A mismatch fails the run and
-          # prevents the success marker; it never rewrites released records.
-          for attempt in 1 2 3; do
+          # The initial Pages deployment completed after the old three reads.
+          # Allow up to two minutes for the native build/CDN; every read still
+          # requires exact bytes. Exhaustion fails before the success marker.
+          for attempt in {1..12}; do
             if python -m scripts.verify_japan_mod_official_links --live; then exit 0; fi
-            sleep 10
+            if [ "$attempt" -lt 12 ]; then sleep 10; fi
           done
           exit 1
 
