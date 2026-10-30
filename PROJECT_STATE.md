@@ -1,5 +1,28 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
+
+The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
+definition in `core/daily_sources.py`: desk, custody ref, original language,
+public attribution, accepted prompt versions, first-party binding (reusing the
+regional link family table) and references to its evidence/quality/hold adapters.
+`processing/daily_intake.py`, `processing/daily_runner.py`,
+`core/daily_machine_records.py`, `processing/screening.py` and
+`scripts/fetch_daily_machine_outputs.py` no longer branch on a family name; the
+repeated prompt-version tuples, the three copies of the NSC category gate and the
+Kemhan-validator import inside common admission are gone. Unknown families fail
+closed instead of falling back to Philippines prompts. `REFS` remains as a view
+derived from the definitions because the private signer imports it.
+
+No policy JSON byte, digest, hold reason, signature domain, schema, env-key name,
+model setting, workflow, migration, DB row or output changed; before/after
+projection of the six released machine records is identical. The only observable
+difference: `desk_for_source()` now returns `philippines` for the two PH
+families (was `None`); no article row uses them. Live flags are untouched.
+Remaining desks (Vietnam, Korea, Japan, US, China, Singapore) and Daily
+qualification/delivery separation are later phases; `docs/desks/MIGRATION.md`
+(PR #925) should record this phase after #925 merges.
+
 ## Desks page frontend redesign — review candidate, PR open, not merged or deployed (29 October 2026)
 
 **Implemented on the branch only:** `desks.html`, `desk-map.css`, `desk-map.js`
