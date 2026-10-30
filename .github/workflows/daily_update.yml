@@ -564,7 +564,14 @@ jobs:
           git archive origin/gh-pages philippines.html indonesia.html vietnam.html | tar -x -C "$vietnam_pages"
           python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
             --site-dir output --deployed-dir "$vietnam_pages" --require-desk vietnam
-          for attempt in 1 2 3; do
+          # Every Daily rewrites vietnam.html (the "Last full update" date), so
+          # the live bytes differ until the Pages build for THIS deploy has
+          # published. Recorded builds take 22-71 s (Actions pages/builds,
+          # 2026-10-24..30); the former three tries spanned ~22 s and failed
+          # run 40909324386 after a correct deploy. The exact-byte comparison
+          # is unchanged; only the bounded wait for propagation is longer
+          # (24 x 10 s, about 4 minutes), and exhausting it still fails the run.
+          for attempt in $(seq 1 24); do
             if python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
               --site-dir output --require-desk vietnam --vietnam-https; then exit 0; fi
             sleep 10

@@ -146,6 +146,10 @@ def admit_validated(db_path, validations, *, as_of_utc, fail_after_insert=None,
                                or row["source_identity"] not in stored,
                                "unreviewed_record_admitted")
         validator.need(_sha256(db_path) == before, "production_database_changed_concurrently")
+        if not receipts:
+            # A frozen-only retry checked existing rows; preserve even the
+            # original SQLite header when its journal mode is WAL.
+            return receipts, len(stored)
         os.chmod(tmp, db_path.stat().st_mode & 0o777)
         os.replace(tmp, db_path)
         return receipts, len(stored)

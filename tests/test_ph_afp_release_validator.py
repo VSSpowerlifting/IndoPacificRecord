@@ -636,6 +636,23 @@ class AfpReleaseValidatorTests(unittest.TestCase):
         self.assertEqual(json.loads(buf.getvalue())["admission_receipts"], [])
         self.assertEqual(sha(self.db), released)
 
+    def test_frozen_only_retry_preserves_wal_database_bytes(self):
+        _, _, public_tip, _ = self._released_private_cohort()
+        count = len(self.rows())
+        # Daily can leave the tracked DB in WAL mode without sidecars.
+        with sqlite3.connect(self.db) as cx:
+            self.assertEqual(cx.execute("PRAGMA journal_mode=WAL").fetchone(), ("wal",))
+        cx.close()
+        before = self.db.read_bytes()
+        self.assertEqual(before[18:20], b"\x02\x02")
+        receipts, total = cli.admit_validated(
+            self.db, [self.validate(public_tip)], frozen_first=True,
+            as_of_utc="2026-10-20T21:13:00Z")
+        self.assertEqual((receipts, total), ([], count))
+        self.assertEqual(self.db.read_bytes(), before)
+        self.assertFalse(Path(str(self.db) + "-wal").exists())
+        self.assertFalse(Path(str(self.db) + "-shm").exists())
+
     def test_frozen_retry_rejects_changed_metadata_and_provenance(self):
         _, _, public_tip, _ = self._released_private_cohort()
         frozen_id = self.validate(public_tip)["approved"][0]["source_identity"]

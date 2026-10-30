@@ -1,5 +1,12 @@
 # Permanent IPR editorial desk publication — source links and preservation
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and
+> future desk. Older common architecture, onboarding order and launch clocks
+> below do not override it. Actual evidence, source restrictions and editorial
+> approvals retain their scope. This notice does not migrate or activate runtime.
+
+
 **Owner decision: October 15, 2026.** A public IPR desk may consist of independently authored, reviewed and published IPR research with exact first-party links, original-source metadata and citations. It need not rehost the government publisher's full text or photographs, and it must not pretend a shadow collector or a private custody repository is operational when it is not.
 
 ## What is genuinely preserved

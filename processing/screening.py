@@ -52,6 +52,7 @@ from analysis.korea_prompts import (
     system_prompt as build_korea_system_prompt,
 )
 from core.collection.vietnam_sources import SOURCES as VIETNAM_SOURCES
+from core.daily_sources import SOURCES as DAILY_SOURCES
 
 from analysis.prompts import (
     PROMPT_VERSION,
@@ -230,7 +231,10 @@ _PROFILES: Dict[str, ScreeningProfile] = {
 
 # Source-level profiles for sources without a desk manifest.
 _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
-_SOURCE_PROFILES["id_kemhan_news"] = INDONESIA_PROFILE
+# Shared private-source Daily families take their desk's own profile, by their
+# source definition. A family without a definition never inherits one.
+for _s in DAILY_SOURCES.values():
+    _SOURCE_PROFILES[_s.family] = _PROFILES[_s.desk_id]
 # Government Office is explicitly bibliographic-only. Neither the common
 # public queue nor the ministry bridge may turn a subject line into analysis.
 _SOURCE_PROFILES["vn_vpcp_official_documents_vi"] = ScreeningProfile(
@@ -275,8 +279,6 @@ def desk_for_source(source_slug: Optional[str]) -> Optional[str]:
 def profile_for_source(source_slug: Optional[str]) -> ScreeningProfile:
     if source_slug in _SOURCE_PROFILES:
         return _SOURCE_PROFILES[source_slug]
-    if source_slug in ("ph_afp_articles", "ph_nsc_official_statements"):
-        return PHILIPPINES_PROFILE
     return profile_for_desk(desk_for_source(source_slug))
 
 

@@ -1,5 +1,13 @@
 # Desk manifest reference
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 One JSON file per desk: `desks/<desk_id>/manifest.json`, validated by
 `core/manifests.py`. JSON rather than YAML because the CI runner is Python 3.9
 and JSON needs no third-party parser — a new dependency on the daily collection

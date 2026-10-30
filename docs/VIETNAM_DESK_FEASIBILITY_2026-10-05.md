@@ -1,5 +1,13 @@
 # Vietnam Desk — source feasibility and shadow pilot
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 **Brief:** the owner's Vietnam Desk engineering brief of 2026-10-05.
 **Measured:** 2026-10-06 UTC, the evening of 2026-10-05 in the owner's time zone.
 **Status:** collector built and rehearsed outside production; **not launched**.

@@ -1,5 +1,45 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
+
+The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
+definition in `core/daily_sources.py`: desk, custody ref, original language,
+public attribution, accepted prompt versions, first-party binding (reusing the
+regional link family table) and references to its evidence/quality/hold adapters.
+`processing/daily_intake.py`, `processing/daily_runner.py`,
+`core/daily_machine_records.py`, `processing/screening.py` and
+`scripts/fetch_daily_machine_outputs.py` no longer branch on a family name; the
+repeated prompt-version tuples, the three copies of the NSC category gate and the
+Kemhan-validator import inside common admission are gone. Unknown families fail
+closed instead of falling back to Philippines prompts. `REFS` remains as a view
+derived from the definitions because the private signer imports it.
+
+No policy JSON byte, digest, hold reason, signature domain, schema, env-key name,
+model setting, workflow, migration, DB row or output changed; before/after
+projection of the six released machine records is identical. The only observable
+difference: `desk_for_source()` now returns `philippines` for the two PH
+families (was `None`); no article row uses them. Live flags are untouched.
+Remaining desks (Vietnam, Korea, Japan, US, China, Singapore) and Daily
+qualification/delivery separation remain separate engineering phases. The
+migration map documents this pilot's bounded scope. This candidate is not a
+production release or live-readback certification.
+
+## Shared desk system — policy merged; runtime pilot tracked separately (30 October 2026)
+
+Owner approved the three all-desk architecture recommendations. Canonical contract:
+`docs/desks/README.md`; current code boundaries and next phase:
+`docs/desks/MIGRATION.md`; bounded task template: `docs/desks/CHANGE_TEMPLATE.md`.
+Root Codex/Claude instructions, architecture/CI guidance and older desk procedures
+now point to that contract on main. All eight desks are covered.
+This policy-only change alters no executable, workflow, source policy, registry,
+DB, model setting, generated output or live activation. This was a policy-only merge. Runtime source-registration consolidation is
+tracked independently in PR #928; Daily retains its existing offline gate.
+
+Next action: verify and merge the bounded AFP/NSC/Kemhan source-definition
+pilot (PR #928), then migrate the remaining desk paths in separate phases.
+Preserve original source authority, model budgets, custody and historical
+approvals; release and deployment remain separate decisions.
+
 ## Remaining unattended desk-path repairs — review candidate (30 October 2026)
 
 AFP scheduled publisher `40956271138` and private-envelope dispatch
@@ -23,8 +63,9 @@ this does not establish recovery of previously rejected model output.
 
 Essential private companion #32 supplies the public dependency checkout to
 both Vietnam full-discovery contract jobs. Both exact-head Actions jobs pass
-at `d564790367210b6eabfe48200e40b47fa2dbf611`; local Python 3.9.6 passes all
-139 tests. No collection or scheduled recovery was dispatched or observed.
+at `d564790367210b6eabfe48200e40b47fa2dbf611`; attempt 3 verifies all 139 tests
+against public main `95c53909cf`. No collection or scheduled recovery was
+dispatched or observed.
 
 USCC collector `40921449471` and Treasury collector `40930817646` fail during
 setup because Ubuntu 26.04 has no Python 3.9. Both existing jobs in each source's
@@ -40,25 +81,35 @@ executed-workflow regressions accept fourth-read propagation and reject all
 twelve mismatches. `JAPAN_MOD_OFFICIAL_LINKS_ENABLED` remains false; the corrective
 release and intake restoration still require the owner's separate decision.
 
-Full combined CI `41017133618` exercised 8,303 tests: one DAPA capture test
+Earlier combined CI `41017133618` exercised 8,303 tests: one DAPA capture test
 errored because repeated generation of its ZIP fixture embedded different
 wall-clock timestamps. A controlled clock change reproduces that exact missing-
 capture error; deterministic ZIP metadata now makes the original end-to-end test
 pass across the same boundary. No production collector or captured source is
-changed. Mandatory CI must pass the resulting exact revision.
+changed. Full CI `41069989225` at `de296f2086` subsequently passes all 8,304
+tests (15 conditional skips), isolated rendering/validation with 10 governed
+warnings, and tracked DB/output preservation.
 
-Integrated current main `e0c0920cc4`, including Desks redesign #920 and
-Singapore #913's rights-aware public/private cutover, its sanitized
-database/output and its equivalent
-shared Daily baseline repairs. The additional cross-desk/style refusal tests
+Integrated current main `95c53909cf`, preserving the mandatory shared desk
+contract #925, real source-definition consolidation #928, Vietnam propagation
+repair #927, Desks redesign #920, and the latest Daily database/output with
+Singapore #913's rights boundary. The additional cross-desk/style refusal tests
 from #918 remain; overlapping fixture names and runner declarations follow
 current main. No database or generated-output difference from that main is
 introduced. All 93 Singapore integration checks and 597 combined Desks
-integration tests pass (two conditional skips); repeating the real AFP
-scratch replay against the sanitized DB preserves every unrelated row and all
-102 MINDEF private bindings, with no restricted text restored. Required full
-CI must pass this combined revision; older-base
-results are superseded. No source-use grant, paid model call, hold reset,
+integration tests pass (two conditional skips); all 176 integration checks
+against #928 and Vietnam's new readback pass (two local frozen-replay skips).
+The latest Daily DB uses WAL mode: a frozen-only AFP retry previously rewrote
+six header bytes despite zero admissions. After all existing checks, that
+no-op now leaves the original file untouched. All 70 focused AFP/regional/shared-
+definition tests pass. Its regression reproduces the old failure, and the
+independent real replay authenticates all 13 historical
+runs, keeps 37 links/zero receipts and preserves the current DB byte for byte
+(`b9a1682c4db11fbf34ea979c05abe67128be9dd397763f88ad6ef1b6519951a4`).
+All unrelated rows and 102 MINDEF private bindings remain unchanged, with
+zero restricted text cells restored. Required full
+CI must pass this newly combined revision; the green prior-base run is not
+substituted for it. No source-use grant, paid model call, hold reset,
 activation, production merge or deployment was performed by this task.
 Japan's intake hold remains. Actual desk completion requires authorized
 release and genuine source-to-live operation, beyond these repair checks.

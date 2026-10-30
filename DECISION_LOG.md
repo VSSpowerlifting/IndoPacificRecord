@@ -4,6 +4,43 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-30 — Owner: mandatory shared desk structure across every desk
+
+Benjamin Yang approved all three architecture-review recommendations and directed
+that they apply clearly across every desk, the GitHub repository structure,
+coding memory and Markdown guidance. Scope: China, Singapore, Korea, Philippines,
+Indonesia, Vietnam, Japan, US reference and future desks; include the assigned
+private custody companion where needed.
+
+1. Sources own evidence, source-use decisions, language/profile, limits and
+   activation. A desk is a view over exact-identity records with optional
+   permitted components; public original text is not a prerequisite for an
+   independently permitted machine explanation.
+2. Reuse one shared lifecycle/admission/public interface: versioned identity,
+   deduplication, checkpoints, bounded spend/retry, authenticated handoff,
+   allowed-field projection and atomic admission. Keep real source-specific
+   access/extraction/terminology/factual checks as adapters/profiles. Retire
+   replaced active paths; do not add another country engine, corpus, signing
+   framework, queue or renderer under a shared label.
+3. Separate exact-revision code qualification from routine ingestion and public
+   delivery. Preserve current gates until a tested trusted replacement exists.
+   Tests use isolated frozen inputs; production invariant checks survive normal
+   corpus growth. Preserve captures on downstream failure and the last verified
+   public site; actual deployment/readback is distinct from successful collection.
+
+`docs/desks/README.md` is the authoritative implementation contract;
+`docs/desks/MIGRATION.md` records remaining legacy paths and bounded migration
+order; tracked root `AGENTS.md`/`CLAUDE.md` carry durable coding instructions.
+Older architectural preferences, launch clocks and competing generic desk
+procedures are superseded. Source-specific permissions, holds, immutable evidence,
+accepted paid results, model limits and human editorial approvals are unchanged.
+
+The instruction authorizes establishing repository guidance and structure in
+reviewable changes. This policy phase is not a completed runtime migration and
+creates no new source rights, spend, retry reset, schedule activation, merge or
+production publication authority. Future implementation must use the actual task
+and standing decisions, not infer release permission from this architecture.
+
 ## 2026-10-27 — Owner: Kemhan Berita shared Daily release authorization
 
 Benjamin Yang approved the narrow standing source-use proposal in

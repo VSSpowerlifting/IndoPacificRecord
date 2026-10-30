@@ -1,5 +1,13 @@
 # Korea Desk — shared Daily processing convergence
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 The target is **one** IPR article-processing pipeline, not two Korean collectors.
 Korea has working private MND capture, standing verified metadata and licensed
 Korean-text publication. China's historical model route is Chinese/PLA-specific;

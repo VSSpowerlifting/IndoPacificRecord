@@ -1,5 +1,13 @@
 # South Korea Desk: activation framework and executable source-fidelity gate
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 **Operational scope:** South Korea (`korea`), not the DPRK. This is a governed multi-institution desk-development program, not an authorization to bypass a publisher's restrictions or change its official release terms.
 
 ## Starting evidence (checked October 8, 2026)

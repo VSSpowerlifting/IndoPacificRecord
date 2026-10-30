@@ -1,5 +1,13 @@
 # BIS U.S. Desk official metadata-only display bridge — held source work
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 The existing public U.S. Desk carries live USCC congressional and Treasury
 executive official URL/date/issuer link lists plus nine static PACOM outbound
 references. BIS is a Commerce bureau and remains a separate source. This
