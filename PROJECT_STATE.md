@@ -13,11 +13,10 @@ Use a verified private frozen DB with the existing `--db`; see the current
 boundary section in `docs/EVIDENCE_TIMELINES.md`. Canonical content, approvals,
 database, generated output and the public MINDEF hold are unchanged.
 
-Desktop staggered rows now reserve enough height to keep a later same-side
-card from covering an earlier source disclosure when an intervening card is
-short. Mobile and print clear that minimum; the alternating design, water
-texture and row-owned connectors remain. Browser regression coverage opens
-every disclosure and checks same-side card separation.
+The existing layout, CSS, water texture and row-owned connectors are unchanged.
+All 58 local timeline/rendering/palette checks pass with actual Chromium 153, including
+keyboard, no-JS, mobile, print, forced colors and source/publication negatives.
+Required exact-head PR CI is separate evidence, not replaced by local checks.
 
 Release blocker: the actual September 5/9 MINDEF URLs are outside the two-link
 written grant. Exact editorial acceptance and authorized release also remain

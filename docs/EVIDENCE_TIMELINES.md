@@ -34,12 +34,6 @@ Briefs remain errors. Ordinary publication never uses this fallback.
 The normal source, editorial, noindex and external-destination gates remain.
 Review trees contain private original evidence: do not upload or deploy them.
 
-The Maritime stagger also reserves clearance for both negative row offsets.
-Without this, a short intervening card can pull a later same-side card over
-the preceding card's disclosure. Browser tests check same-side separation
-and actual clicks on every disclosure at desktop widths. Mobile and print
-reset the minimum height; no chronology data or layout direction changes.
-
 Publication still requires the actual source-use resolution, exact-version
 editorial acceptance and separately authorized release. This review-path
 repair grants none of those and changes no canonical timeline or approval.
