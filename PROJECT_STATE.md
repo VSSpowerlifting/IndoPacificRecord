@@ -1,22 +1,44 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Shared desk system — policy candidate, runtime migration not implemented (30 October 2026)
+## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
+
+The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
+definition in `core/daily_sources.py`: desk, custody ref, original language,
+public attribution, accepted prompt versions, first-party binding (reusing the
+regional link family table) and references to its evidence/quality/hold adapters.
+`processing/daily_intake.py`, `processing/daily_runner.py`,
+`core/daily_machine_records.py`, `processing/screening.py` and
+`scripts/fetch_daily_machine_outputs.py` no longer branch on a family name; the
+repeated prompt-version tuples, the three copies of the NSC category gate and the
+Kemhan-validator import inside common admission are gone. Unknown families fail
+closed instead of falling back to Philippines prompts. `REFS` remains as a view
+derived from the definitions because the private signer imports it.
+
+No policy JSON byte, digest, hold reason, signature domain, schema, env-key name,
+model setting, workflow, migration, DB row or output changed; before/after
+projection of the six released machine records is identical. The only observable
+difference: `desk_for_source()` now returns `philippines` for the two PH
+families (was `None`); no article row uses them. Live flags are untouched.
+Remaining desks (Vietnam, Korea, Japan, US, China, Singapore) and Daily
+qualification/delivery separation remain separate engineering phases. The
+migration map documents this pilot's bounded scope. This candidate is not a
+production release or live-readback certification.
+
+## Shared desk system — policy merged; runtime pilot tracked separately (30 October 2026)
 
 Owner approved the three all-desk architecture recommendations. Canonical contract:
 `docs/desks/README.md`; current code boundaries and next phase:
 `docs/desks/MIGRATION.md`; bounded task template: `docs/desks/CHANGE_TEMPLATE.md`.
 Root Codex/Claude instructions, architecture/CI guidance and older desk procedures
-now point to that contract in this review branch. All eight desks are covered.
+now point to that contract on main. All eight desks are covered.
 This policy-only change alters no executable, workflow, source policy, registry,
-DB, model setting, generated output or live activation. Existing runtime paths
-are not yet consolidated, and Daily still runs its current offline gate.
+DB, model setting, generated output or live activation. This was a policy-only merge. Runtime source-registration consolidation is
+tracked independently in PR #928; Daily retains its existing offline gate.
 
-Next action: implement the common source/component/lifecycle contract through
-the existing Philippines/Indonesia lane in a fresh bounded coding session,
-rechecking current main and open #895/#919 before editing. Preserve accepted paid
-output, custody, source-specific rights/holds and spending/retry history. Stop at
-one verified reviewable migration and an essential private companion if needed;
-release/deployment is a separate phase governed by actual authority.
+Next action: verify and merge the bounded AFP/NSC/Kemhan source-definition
+pilot (PR #928), then migrate the remaining desk paths in separate phases.
+Preserve original source authority, model budgets, custody and historical
+approvals; release and deployment remain separate decisions.
 
 
 ## Desks page frontend redesign — review candidate, PR open, not merged or deployed (29 October 2026)
