@@ -72,7 +72,10 @@ class ResearchAtlasHierarchy(unittest.TestCase):
         for route in ("archive.html", "coverage.html", "desks.html"):
             page = self.html(route)
             with self.subTest(route=route):
-                self.assertIn('aria-label="Desk collection status"', page)
+                # The Desks page is the directory itself: its tally, snapshot
+                # line and one summary per desk replace the repeated spine.
+                if route != "desks.html":
+                    self.assertIn('aria-label="Desk collection status"', page)
                 self.assertIn(snapshot["date"], page)
                 for desk in load_registry().public_entries:
                     self.assertIn(desk.status_label, page)

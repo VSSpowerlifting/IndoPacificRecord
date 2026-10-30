@@ -58,20 +58,23 @@ class DesksPhase4MapContract(unittest.TestCase):
         self.assertEqual(self.html.count('<div class="deskmap-register">'), 1)
         self.assertLess(self.html.index('<div class="deskmap-chart">'),
                         self.html.index('<div class="deskmap-register">'))
+        # One synchronized detail panel replaces the floating cards and the
+        # per-desk context excerpts; the full scope stays on the page below.
+        self.assertIn('class="deskmap-detail"', self.html)
         self.assertLess(self.html.index('<div class="deskmap-register">'),
-                        self.html.index('<div class="deskmap-context"'))
+                        self.html.index('id="desk-scopes"'))
+        self.assertNotIn('deskmap-context', self.html)
         self.assertIn('href="#desk-{{ d.slug }}"', self.html)
         self.assertIn('id="desk-{{ d.slug }}"', self.html)
         self.assertIn('src="desk-map.js"', self.html)
         self.assertIn('rel="stylesheet" href="relief.css"', self.html)
 
     def test_light_chart_fallback_and_accessibility(self):
-        self.assertIn("--dm-sea:#e2ebe9", self.css)
-        self.assertIn("dm-country.is-shadow use", self.css)
-        self.assertIn("dm-leader.is-quiet", self.css)
-        self.assertIn("min-width:1480px", self.css)
-        self.assertIn("max-width:899px", self.css)
-        self.assertIn("prefers-reduced-motion:no-preference", self.css)
+        self.assertIn("--dm-sea:#e3ecea", self.css)
+        self.assertIn("dm-country.is-quiet use", self.css)
+        self.assertIn("min-width:1100px", self.css)
+        self.assertIn("max-width:599px", self.css)
+        self.assertIn("prefers-reduced-motion:reduce", self.css)
         self.assertIn("forced-colors:active", self.css)
         self.assertIn("@media print", self.css)
 

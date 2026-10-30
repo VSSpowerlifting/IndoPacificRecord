@@ -12,6 +12,7 @@ on:
       - 'tests/test_desks_phase4_browser.py'
       - 'site/preview/templates/desks.html'
       - 'site/preview/desk-map.css'
+      - 'site/preview/desk-map.js'
       - 'site/preview/templates/_relief.html'
       - 'desks/geography.json'
       - 'site/assets/flags/**'

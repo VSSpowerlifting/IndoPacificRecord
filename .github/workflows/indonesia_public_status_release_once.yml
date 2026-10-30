@@ -48,7 +48,12 @@ jobs:
           indonesia = Path("output/indonesia.html").read_text(encoding="utf-8")
           directory = Path("output/desks.html").read_text(encoding="utf-8")
           assert 'href="indonesia.html"' in directory
-          assert "8 declared" in directory and "4 collecting" in directory
+          from bs4 import BeautifulSoup as _Soup
+          tally = {dt.get_text(strip=True): dd.get_text(strip=True) for dt, dd in zip(
+              _Soup(directory, "html.parser").select(".desks-tally dt"),
+              _Soup(directory, "html.parser").select(".desks-tally dd"))}
+          assert tally.get("Declared") == "8", tally
+          assert tally.get("Collecting into the record") == "4", tally
           assert "No individual source references have completed" in indonesia
           assert "https://www.kemhan.go.id/category/berita" in indonesia
           assert "data-reference-list" not in indonesia
