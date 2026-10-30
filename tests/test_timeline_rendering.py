@@ -17,6 +17,33 @@ sys.path.insert(0, str(ROOT / 'site/preview'))
 import generate_preview as gp
 
 
+class HeldRelatedBriefRendering(unittest.TestCase):
+    def test_real_boundary_private_preview_has_no_link_or_page_for_held_brief(self):
+        # No rights mock. Only the existing China-only source fixture is used;
+        # the actual related Brief remains held by its MINDEF references.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sources = root / 'timelines'
+            sources.mkdir()
+            path = sources / 'maritime-cooperation-2026.json'
+            path.write_text(json.dumps(pilot_without_mindef_evidence()))
+            out = root / 'private'
+            gp.build(out, 'Indo-Pacific Record', ROOT / 'pla_watch.db',
+                     snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
+                     timelines_dir=sources, review_timeline=path,
+                     dossiers_dir=root / 'no-dossiers')
+            from bs4 import BeautifulSoup
+            doc = BeautifulSoup((out / 'timeline/maritime-cooperation-2026.html').read_text(), 'html.parser')
+            related = doc.select_one('[aria-labelledby="tl-related"]')
+            self.assertIn('Currently withheld; unavailable in this preview.', related.get_text())
+            self.assertFalse(related.select('a[href*="briefs/"]'))
+            self.assertFalse((out / 'briefs/maritime-cooperation-2026.html').exists())
+            self.assertEqual(doc.select_one('meta[name="robots"]')['content'], 'noindex, nofollow')
+            self.assertIn('unapproved and unpublished', doc.get_text())
+            self.assertFalse((out / 'sitemap.xml').exists())
+            self.assertFalse((out / 'briefs/feed.xml').exists())
+
+
 class TimelineRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -276,6 +303,35 @@ class TimelineRendering(unittest.TestCase):
             rendered = doc.select_one('#' + entry['id'])
             self.assertEqual({a['href'] for a in rendered.select('.tl-citations a')},
                              {'#source-%s' % ev['record_id'] for ev in entry['evidence']})
+
+    def test_staggered_cards_leave_every_source_disclosure_clickable(self):
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            try:
+                for width in (1280, 1440):
+                    context = browser.new_context(viewport={'width': width, 'height': 900},
+                                                  java_script_enabled=False)
+                    context.route('https://fonts.**/*', lambda route: route.abort())
+                    page = context.new_page()
+                    page.goto(self.detail().as_uri())
+                    page.add_style_tag(content='.tl-entry-body{font-family:Arial,sans-serif}')
+                    def no_same_side_overlap():
+                        cards = page.locator('.tl-entry-body').evaluate_all(
+                            '(els)=>els.map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom}})')
+                        for i in range(len(cards) - 2):
+                            self.assertGreaterEqual(cards[i+2]['top'], cards[i]['bottom'])
+                    no_same_side_overlap()
+                    for summary in page.locator('.tl-evidence > summary').all():
+                        summary.click(timeout=3000)
+                        self.assertTrue(summary.evaluate('(e)=>e.parentElement.open'))
+                        no_same_side_overlap()
+                    page.emulate_media(media='print')
+                    self.assertEqual(page.locator('.tl-entry').first.evaluate(
+                        '(e)=>getComputedStyle(e).minHeight'), '0px')
+                    context.close()
+            finally:
+                browser.close()
 
     def test_offline_browser_mobile_keyboard_motion_print_and_primary_links(self):
         from playwright.sync_api import sync_playwright
