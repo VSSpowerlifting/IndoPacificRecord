@@ -5,11 +5,16 @@ constraints every agent works under. Durable.
 
 ## 0. Documentation hierarchy
 
-An agent reads down this list and stops at the document that governs the change
-it is making. Do not restate one document's content inside another.
+Start with root `AGENTS.md`: the canonical instruction entrypoint and growth
+admission rule. Follow only the domain authority relevant to the assignment.
+`CLAUDE.md` adds Claude-specific operation, not a competing policy. Dated
+status and past roadmaps do not override real source restrictions or current
+owner decisions. Do not duplicate one document's rules inside another.
 
 | Document | Governs |
 |---|---|
+| `AGENTS.md` | canonical agent instructions, growth admission, stop/completion rules |
+| `CLAUDE.md` | Claude-specific implementation notes only |
 | `README.md` | public and contributor overview |
 | `PROJECT_STATE.md` | current operational snapshot and immediate handoff |
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
@@ -17,7 +22,7 @@ it is making. Do not restate one document's content inside another.
 | `docs/desks/MIGRATION.md` | existing integration boundaries and next bounded phase; verify current code |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | existing technical layer map, commands, publishing and deployment |
 | `docs/AGENT_WORKFLOWS.md` (this file) | agent operating constraints and model routing |
-| `docs/ROADMAP.md` | dated plan; verify latest owner instructions |
+| `docs/ROADMAP.md` | active strategic sequence, not a dated status ledger |
 | `DECISION_LOG.md` | durable decisions that constrain future work |
 | Git history | superseded state and incident history |
 

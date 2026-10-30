@@ -36,6 +36,61 @@ These requirements replace older architectural *preferences* and artificial
 system. The standard documents the narrow owner-decided architecture exception;
 normal implementation within the shared design needs no extra approval.
 
+## Authority, work admission and completion — owner decision, 30 October 2026
+
+**Default to improving research, not enlarging software.** IPR is a
+source-grounded research publication supported by software. Do not add
+a major desk, reader surface, model workflow, data store, publishing
+mechanism or collector merely because it can be built.
+
+For a *material expansion*, demonstrate in the existing issue or PR
+body (not a new approval document):
+
+1. **Research or reader need:** specific evidence, reliability, accessibility,
+   editorial or reader problem; how success will be checked.
+2. **Reuse:** why the existing source/component architecture, editorial
+   product or current system cannot already meet that need.
+3. **Cost and maintainer:** ongoing operations, QA, source-use rights,
+   model expense, support burden and the person accountable.
+4. **Opportunity cost and retirement:** work displaced, and the old active
+   path or rule that will be removed instead of indefinitely duplicated.
+
+Defer unclear expansions; the owner can explicitly authorize an exception.
+Routine bugs, incident recovery, source-specific protections, security fixes
+and low-risk accessibility work are exempt from the expansion justification.
+**Do not create a new form, PR gate, CI job, readiness score or launch clock.**
+
+### Documentation authority by subject
+
+| Subject | Governing reference |
+|---|---|
+| Mission, audience, editorial/evidence trust, growth decisions | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md`, explicit current owner decisions |
+| Source-owned all-desk architecture | `docs/desks/README.md`; verified next code phase in `docs/desks/MIGRATION.md` |
+| Source-specific rights, custody, holds, spending, approval | Actual applicable policies and grants; `DECISION_LOG.md` |
+| Production and build verification | `docs/ARCHITECTURE_AND_PUBLISHING.md`, actual CI/workflows and code |
+| Current strategic priorities | `docs/ROADMAP.md`, checked against real repo/source/site status |
+| Agent instructions | This file; `CLAUDE.md` supplies only Claude-specific operating notes |
+| Historic evidence and dated plans | Git history, `PROJECT_STATE.md`, older records; not current authority by default |
+
+If references appear to conflict, preserve the stricter real evidence,
+source-rights and activation control pending an explicit owner decision.
+A general architecture or roadmap instruction never creates a source grant.
+
+### Different definitions of done
+
+- **Engineering verified:** actual caller and old-path migration complete,
+  relevant checks pass at the final revision, and any retained compatibility
+  route is justified and bounded.
+- **Operational verified:** *when release is authorized*, a genuine source
+  through delivery and appropriate live readback succeed, with failure
+  recovery and legitimate holds protected.
+- **Research delivered:** *when the assignment is a research capability*,
+  a usable, source-grounded output passes the appropriate independent check.
+
+These are different states. Do not substitute merged PRs, documents, test
+counts, successful collectors, or readiness percentages for later states.
+Stop at the assigned phase; no implicit production authorization.
+
 ## Execution and stop rules
 
 - Use an isolated worktree. Read current owner decisions and relevant code/PRs
