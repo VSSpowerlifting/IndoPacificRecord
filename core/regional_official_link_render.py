@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from core.crossdesk_official_metadata_candidates import FAMILIES, exact_source_url
 from core.regional_official_link_release import (
-    EXPECTED_TABLE_COLUMNS, TABLE,
+    EXPECTED_TABLE_COLUMNS, TABLE, read_admitted_link_rows,
 )
 
 DESK_TO_FAMILY = {
@@ -58,19 +58,11 @@ def read_live_links(conn: sqlite3.Connection, desk: str):
     schema = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % TABLE)}
     need(schema == EXPECTED_TABLE_COLUMNS,
          "regional_source_index_unavailable_or_schema_drift")
-    records = conn.execute(
-        "SELECT source_identity,canonical_official_url,publisher_posted_date,"
-        "official_issuer,official_publisher,official_republisher,"
-        "source_git_commit,metadata_version_sha256,release_proof_sha256,"
-        "release_scope FROM regional_official_source_links "
-        "WHERE desk=? AND source_family=? "
-        "ORDER BY publisher_posted_date DESC,source_identity ASC",
-        (desk, family),
-    ).fetchall()
+    records = read_admitted_link_rows(conn, desk, family)
     need(len(records) <= 5000, "unexpectedly_large_source_index")
     unique_ids, unique_urls, result = set(), set(), []
     for r in records:
-        (ident, url, day, issuer, publisher, republisher, git_sha,
+        (_, ident, url, day, issuer, publisher, republisher, git_sha,
          meta_sha, proof_sha, scope) = tuple(r)
         need(type(ident) is str and type(url) is str and
              type(day) is str and type(git_sha) is str and
@@ -113,21 +105,13 @@ def _read_nsc_links(conn, unique_ids, unique_urls):
     from core.ph_nsc_official_link_admission import (
         FAMILY, PUBLISHER, canonical_permalink, load_policy,
     )
-    records = conn.execute(
-        "SELECT source_identity,canonical_official_url,publisher_posted_date,"
-        "official_issuer,official_publisher,official_republisher,"
-        "source_git_commit,metadata_version_sha256,release_proof_sha256,"
-        "release_scope FROM regional_official_source_links "
-        "WHERE desk='philippines' AND source_family=? "
-        "ORDER BY publisher_posted_date DESC,source_identity ASC",
-        (FAMILY,),
-    ).fetchall()
+    records = read_admitted_link_rows(conn, "philippines", FAMILY)
     if not records:
         return []
     # A row admitted while a source-use hold stood is not a reason to show it.
     need(load_policy()["category_anomaly_resolved"] is True, "nsc_source_use_hold")
     result = []
-    for (ident, url, day, issuer, publisher, republisher, git_sha,
+    for (_, ident, url, day, issuer, publisher, republisher, git_sha,
          meta_sha, proof_sha, scope) in records:
         need(issuer is None and publisher == PUBLISHER and republisher is None
              and type(git_sha) is str and SHA40.fullmatch(git_sha) is not None
@@ -151,12 +135,7 @@ def _read_vietnam_links(conn):
     from core.vietnam_official_link_admission import ISSUERS, LABELS, exact_url, HOLDS
     schema = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % TABLE)}
     need(schema == EXPECTED_TABLE_COLUMNS, "regional_source_index_unavailable_or_schema_drift")
-    records = conn.execute(
-        "SELECT source_family,source_identity,canonical_official_url,publisher_posted_date,"
-        "official_issuer,official_publisher,official_republisher,source_git_commit,"
-        "metadata_version_sha256,release_proof_sha256,release_scope "
-        "FROM regional_official_source_links WHERE desk='vietnam' "
-        "ORDER BY publisher_posted_date DESC,source_identity ASC").fetchall()
+    records = read_admitted_link_rows(conn, "vietnam")
     need(len(records) <= 5000, "unexpectedly_large_source_index")
     result = []
     for family, ident, url, day, issuer, publisher, republisher, commit, meta, proof, scope in records:
