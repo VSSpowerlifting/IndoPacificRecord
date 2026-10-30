@@ -1,5 +1,39 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## AFP/Vietnam/Korea unattended-path repairs — review candidate (30 October 2026)
+
+AFP scheduled publisher `40956271138` and private-envelope dispatch
+`40884635528` reject the frozen public snapshot after five later private
+records were legitimately admitted. The AFP CLI now applies Indonesia's
+existing frozen-first reconciliation: all approved frozen metadata and original
+Git/version/proof bindings must still match; later signed snapshots remain
+cumulative and reject missing or changed released records. Independent replay
+authenticated all 13 historical scheduled runs for frozen source `063c4b0`,
+then retained all 37 AFP links with zero admissions and a byte-identical scratch
+DB. The 95 focused admission contracts pass; production data is unchanged.
+
+Korea's title comparison now folds repeated ASCII spaces at both fetch and
+extract, addressing the incomplete fetch-only repair in #907. Other adapters
+retain exact comparison; collected titles, dates, attachments and all non-ASCII
+differences remain protected. The glossary separately distinguishes
+`국방부차관` (Vice Minister of National Defense) from the ministry and minister,
+with versioned prompt bindings. The 144 collector/source/manifest and 62
+translation/queue contracts pass. Existing QA holds and retry budgets are intact;
+this does not establish recovery of previously rejected model output.
+
+Essential private companion #32 supplies the public dependency checkout to
+both Vietnam full-discovery contract jobs. Both exact-head Actions jobs pass
+at `d564790367210b6eabfe48200e40b47fa2dbf611`; local Python 3.9.6 passes all
+139 tests. No collection or scheduled recovery was dispatched or observed.
+
+This candidate incorporates #918's existing shared Daily test repairs at
+`89a3ff8a0f`, preserving current main `301bb766` admissions. Full final-revision
+CI belongs in the repair PR. No DB, generated output, source-use policy,
+model spending, hold reset, activation, merge or deployment is included.
+Singapore's active #913/private #31 custody work and Japan's release hold remain
+separate. Operational completion still requires authorized integration and real
+source-to-live acceptance; passing tests alone do not establish it.
+
 ## Shared Daily offline repair — review candidate (29 October 2026)
 
 Scheduled Daily `40942694714` at main `58b35065d9` stopped before collection,
