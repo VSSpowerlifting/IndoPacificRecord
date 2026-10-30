@@ -171,14 +171,21 @@ integration, not genuine collector/model execution or HTTPS publication.
 
 ## Release gate and immediate rollback
 
-The next external action is a **new explicitly bounded paid qualification grant**
-for revised prompts on source versions currently authorized for model use.
+Ben has granted a **new $3 TOTAL qualification allowance**, covering both
+models, failed requests, repairs and fallback under a durable cumulative ledger.
+He requires resolution of #919 CI before paid dispatch, fair revised-prompt
+comparison on frozen challenges plus a preregistered previously unevaluated
+holdout, source inspection of accepted outputs, false-hold accounting for Sonnet,
+and measured complete-pipeline cost/fallback/repeated work. Production must remain
+unchanged, and this task stops after qualification and the verified PR.
+No paid dispatch has occurred yet.
 The prior $3 Anthropic and $1 Luna experiment allowances are not reusable spending
 permission. Resolve factual acceptance independently for each task; retain the
 incumbent for any task that fails. Exact-head mandatory PR CI is an engineering
 gate, not a model-quality approval or merge/publication authorization.
 
-After quality and release authority exist, select only qualified task overrides
+The following remains an operator reference, not part of this task's now-limited
+release authority. After quality and separate release authority exist, select only qualified task overrides
 and Sonnet fallback using the already scheduled Daily's repository variables;
 use its existing cap for the authorized canary. Verify actual task/model usage,
 accepted SQLite versions, generated public records where eligible, and HTTPS
@@ -189,3 +196,20 @@ Rollback requires no new deployment: clear `TRANSLATION_MODEL`, `SUMMARY_MODEL`,
 `CATEGORIZATION_MODEL` and `FALLBACK_MODEL`; restore/clear `ANALYSIS_MODEL` to
 Sonnet 4.6 and `RELEVANCE_MODEL` to Haiku 4.5. This affects the next process/run;
 it does not cancel in-flight requests or rewrite previously stored records.
+
+## Exact-head CI failure separation and existing repair integration
+
+Initial #919 CI `40961085191` ran 8,263 tests and failed eight assertions at
+`22f54b0f0b` / base `58b35065`. The new workflow environment keys caused one
+introduced failure. Its exact-key and exact-value/default contract is now updated;
+no environment guard was removed. Seven other failures reproduce on a disposable
+archive of the original base: 59 selected tests, seven failures, with the old
+environment contract passing. They concern the moving corpus-count census
+fixture, Philippines-only explanation expectations, and exact released machine
+prose exclusions from authored spelling checks.
+
+The existing repair owner explicitly confirmed reuse of #918 source/test commit
+`213eb1a508` and PR-only runner-pin commit `a90cb8d9c5`. Those changes are integrated
+with their original authorship; no competing fix, production content edit, or
+check weakening is substituted here. Main `301bb766e2`'s later metadata admissions
+are retained. The combined revision must receive new full CI before dispatch.

@@ -12,7 +12,7 @@ _RANKS = re.compile(r"[一二三四]级军士长|[一二]级上士")
 _BYLINE = re.compile(r"(?:解放军报|新华社)记者\s+[\u4e00-\u9fff]{2,4}(?=\s|[，。])")
 _SIMULATED_SUB = re.compile(r"\b(?:simulated|mock|notional)\s+(?:blue[- ]force\s+)?submarine\b", re.I)
 _LIVE_FIRE = re.compile(r"\blive[- ]fire\b", re.I)
-_YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
+_YEAR = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 
 
 def check(source: str, output: str, *, translation=False):

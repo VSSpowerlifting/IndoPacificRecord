@@ -156,6 +156,8 @@ class FidelityChecks(unittest.TestCase):
         self.assertEqual(check(source,'He transferred in 2008.'),'transfer_chronology_changed')
         self.assertEqual(check(source,'He transferred in 2005.',translation=True),'source_chronology_missing')
         self.assertIsNone(check(source,'The article profiles his maintenance work.'))
+        self.assertEqual(check('2005年。2008年。', 'In 2005.', translation=True),
+                         'source_chronology_missing')
 
     def test_rank_byline_anchors_and_other_desk_language(self):
         self.assertEqual(check('一级上士与二级上士','Senior sergeants',translation=True),'source_rank_anchor_missing')

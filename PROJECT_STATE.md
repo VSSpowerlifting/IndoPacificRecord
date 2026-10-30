@@ -22,11 +22,20 @@ of revised prompts. Production savings remain zero until qualification.
 359 focused tests plus 254 subtests pass; a separate scripted production-pipeline
 contract passes rejection/restart → SQLite → disposable production render →
 no duplicate completed-row dispatch. Output validator passes with the 10 governed
-warnings. Mandatory exact-head CI belongs to the review PR. No merge, paid call,
-canary, live record or public-site readback is claimed. The external next gate is
-new bounded spending authorization for revised-prompt factual qualification on
-currently authorized source versions; prior unused experiment budgets do not
-carry permission. Details, replay command and rollback:
+warnings. Initial PR #919 head `22f54b0f0b` full CI failed eight assertions: seven
+were reproduced on its original base `58b35065` (59-test selection), and one was
+this PR's new workflow variables missing from the exact environment test.
+That test now checks both the approved key set and exact variable/default values.
+With the repair owner's confirmation, #918's existing test repair `213eb1a508`
+and runner pin `a90cb8d9c5` are reused rather than independently rewritten.
+The branch also preserves main `301bb766e2`'s newer metadata admissions.
+Mandatory CI must pass at the final combined head. No merge, paid call,
+canary, live record or public-site readback is claimed. Ben subsequently granted one NEW $3 total qualification allowance for both
+models, failures, repairs and fallback, with a durable cumulative ledger. Paid
+dispatch is explicitly prohibited until PR #919 CI is resolved. The sample must
+include preregistered, previously unevaluated holdout records with current model-use
+permission. Production stays unchanged; stop after qualification and the verified
+PR. No earlier budget is reused. Details, replay command and rollback:
 `docs/engineering/LOW_COST_MODEL_ROUTING_2026-10-29.md`.
 
 ## Korea delivery budget repair — review candidate (29 October 2026)
