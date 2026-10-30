@@ -10,7 +10,7 @@ from unittest import mock
 
 from core import timelines as t
 from scripts import validate_output
-from tests.test_timelines import approve_fixture
+from tests.test_timelines import approve_fixture, pilot_without_mindef_evidence
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'site/preview'))
@@ -20,16 +20,34 @@ import generate_preview as gp
 class TimelineRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # The pilot chronology cites Singapore MINDEF records and a Brief that
+        # the production boundary withholds whole. Rendering/accessibility
+        # contracts run under an explicit *synthetic* rights authority; the real
+        # works remain held (tests.test_timelines.PilotIsHeldByRightsBoundary).
+        rights = mock.patch('core.mindef_public_boundary.editorial_hold', return_value=False)
+        rights.start(); cls.addClassCleanup(rights.stop)
         cls.tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls.tmp.name)
-        cls.pilot = ROOT / 'timelines/maritime-cooperation-2026.json'
+        # Derived from the real pilot minus its MINDEF citations (see helper).
+        draft_dir = cls.root / 'draft-timelines'
+        draft_dir.mkdir()
+        cls.pilot = draft_dir / 'maritime-cooperation-2026.json'
+        fixture = pilot_without_mindef_evidence()
+        # The only 'planned' evidence in the pilot was MINDEF's announcement, now
+        # withheld. Keep the planned-basis rendering path covered with a
+        # synthetic claim that reuses an already-verified PLA Daily excerpt.
+        by_id = {e['id']: e for e in fixture['entries']}
+        borrowed = dict(by_id['preparatory-meetings']['evidence'][0])
+        borrowed.update(basis='planned', claim='Synthetic planned-basis rendering claim.')
+        by_id['sea-phase']['evidence'].insert(0, borrowed)
+        cls.pilot.write_text(json.dumps(fixture))
         cls.preview = cls.root / 'private'
         cls.public = cls.root / 'public'
         cls.approved = cls.root / 'approved'
         cls.sources = cls.root / 'timelines'
         cls.sources.mkdir()
         cls.snapshot = gp.snapshot_from_corpus(ROOT / 'pla_watch.db')
-        cls.build(cls.preview, review_timeline=cls.pilot)
+        cls.build(cls.preview, timelines_dir=cls.pilot.parent, review_timeline=cls.pilot)
         cls.build(cls.public, site_origin='https://fixture.test', allow_test_origin=True)
         sc = json.loads(cls.pilot.read_text())
         sc['title'] = '<script>Synthetic approval rendering fixture</script>'
@@ -70,7 +88,7 @@ class TimelineRendering(unittest.TestCase):
     def test_public_draft_exclusion_in_routes_links_feed_and_sitemap(self):
         self.assertFalse((self.public / 'timelines.html').exists())
         self.assertFalse((self.public / 'timeline').exists())
-        for route in ('analysis.html', 'briefs/feed.xml', 'sitemap.xml', 'briefs/maritime-cooperation-2026.html', 'record/4466.html'):
+        for route in ('analysis.html', 'briefs/feed.xml', 'sitemap.xml', 'briefs/maritime-cooperation-2026.html', 'record/3924.html'):
             self.assertNotIn('timeline/', (self.public / route).read_text())
         errors = []
         validate_output._validate_timelines(self.public, errors)
@@ -97,7 +115,7 @@ class TimelineRendering(unittest.TestCase):
         self.assertNotIn('noindex', text)
         self.assertIn('/timeline/maritime-cooperation-2026.html</loc>', (self.approved / 'sitemap.xml').read_text())
         self.assertIn('href="timelines.html"', (self.approved / 'analysis.html').read_text())
-        self.assertIn('In Evidence Timelines', (self.approved / 'record/4466.html').read_text())
+        self.assertIn('In Evidence Timelines', (self.approved / 'record/3924.html').read_text())
         self.assertIn('timeline/maritime-cooperation-2026.html', (self.approved / 'briefs/maritime-cooperation-2026.html').read_text())
         self.assertNotIn('timeline/', (self.approved / 'briefs/feed.xml').read_text())
 
@@ -140,7 +158,7 @@ class TimelineRendering(unittest.TestCase):
         views, _ = t.load_timelines(ROOT / 'pla_watch.db',
                                    {slug:brief_entry(slug, sc) for slug, sc in published}, self.sources)
         try:
-            path.write_text(text.replace('</article>', '<a href="../record/4466.html">Body</a></article>', 1))
+            path.write_text(text.replace('</article>', '<a href="../record/3924.html">Body</a></article>', 1))
             with mock.patch('core.timelines.load_timelines', return_value=(views, [])):
                 errors = []
                 validate_output._validate_timelines(self.approved, errors)
@@ -183,7 +201,7 @@ class TimelineRendering(unittest.TestCase):
         self.assertFalse((self.root / 'rejected').exists())
 
     def test_deterministic_pages_styles_and_ledger(self):
-        cases = [(self.preview, dict(review_timeline=self.pilot)),
+        cases = [(self.preview, dict(timelines_dir=self.pilot.parent, review_timeline=self.pilot)),
                  (self.approved, dict(timelines_dir=self.sources, site_origin='https://fixture.test', allow_test_origin=True))]
         for original, options in cases:
             with self.subTest(surface=original.name):
@@ -261,6 +279,7 @@ class TimelineRendering(unittest.TestCase):
 
     def test_offline_browser_mobile_keyboard_motion_print_and_primary_links(self):
         from playwright.sync_api import sync_playwright
+        fixture = json.loads(self.pilot.read_text())
         with sync_playwright() as pw:
             try:
                 browser = pw.chromium.launch()
@@ -275,7 +294,7 @@ class TimelineRendering(unittest.TestCase):
                             page = context.new_page()
                             page.goto(self.detail().as_uri())
                             self.assertEqual(page.locator('h1').count(), 1)
-                            self.assertEqual(page.locator('.tl-spine>li').count(), 6)
+                            self.assertEqual(page.locator('.tl-spine>li').count(), len(fixture['entries']))
                             self.assertFalse(page.evaluate('document.documentElement.scrollWidth>innerWidth'))
                             page.locator('.tl-evidence').first.locator('summary').click()
                             self.assertTrue(page.locator('.tl-evidence').first.evaluate('(e)=>e.open'))
@@ -286,7 +305,7 @@ class TimelineRendering(unittest.TestCase):
                             for anchor in page.locator('a[href*="record/"]').all():
                                 target = (self.detail().parent / anchor.get_attribute('href')).resolve()
                                 self.assertTrue(target.is_file(), target)
-                            self.assertEqual(page.locator('.tl-ledger>ol>li').count(), 5)
+                            self.assertEqual(page.locator('.tl-ledger>ol>li').count(), len({ev['record_id'] for e in fixture['entries'] for ev in e['evidence']}))
                             for control in page.locator('.analysis-nav a,.tl-track a,.tl-evidence summary,.tl-citations a').all():
                                 # Transform interpolation can round 40 CSS px down by 0.00002.
                                 if control.is_visible():

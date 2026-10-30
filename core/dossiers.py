@@ -103,9 +103,18 @@ def reconcile_dossier_sources(sc, db_path, registry=None):
                 if source[key] != rec[stored]:
                     _fail('identity_mismatch', rid, findings, key)
             body = rec['text_original']
-            if not body or not rec['institution_name'] or not rec['source_name']:
+            body_hash = hashlib.sha256(body.encode('utf-8')).hexdigest() if body else None
+            if not body and rec['source_id'] == 'sg_mindef_releases' and con.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='mindef_private_record_bindings'").fetchone():
+                binding = con.execute(
+                    "SELECT b.original_body_sha256 FROM mindef_private_record_bindings b "
+                    "JOIN articles a ON a.id=b.article_id "
+                    "WHERE b.article_id=? AND b.original_content_hash=a.content_hash", (rid,)).fetchone()
+                body_hash = binding[0] if binding else None
+            if not body_hash or not rec['institution_name'] or not rec['source_name']:
                 _fail('unavailable_evidence', rid, findings)
-            if hashlib.sha256(body.encode('utf-8')).hexdigest() != source['stored_original_sha256']:
+            if body_hash != source['stored_original_sha256']:
                 _fail('version_mismatch', rid, findings)
             # The reference describes the observable screening disposition;
             # it is never accepted as a stand-alone admission credential.
@@ -350,6 +359,13 @@ def load_dossiers(db_path, related, source_dir=DOSSIERS_DIR, review_path=None,
             # A new draft revision must never silently remove an approved page.
             if sc['slug'] in dossier_decisions.PUBLICATIONS:
                 _fail('unapproved_revision_would_replace_publication')
+            withheld.append(sc['slug'])
+            continue
+        from core.mindef_public_boundary import editorial_hold
+        if not selected and editorial_hold(sc):
+            holds = publication_holds(sc)
+            if holds:
+                _fail('publication_validation_failed: ' + '; '.join(h['code'] for h in holds))
             withheld.append(sc['slug'])
             continue
         for slug in sc['related_briefs']:

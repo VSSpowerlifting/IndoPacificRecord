@@ -32,41 +32,49 @@ workflow are pinned to Ubuntu 24.04; permissions, source-use gates, schedules,
 collection commands and publication paths are unchanged. Their existing PR
 checks include a bounded read-only listing collection; no new collector is added.
 
-This candidate incorporates #918's existing shared Daily test repairs at
-`89a3ff8a0f`, preserving current main `301bb766` admissions. Full final-revision
-CI belongs in the repair PR. No DB, generated output, source-use policy,
-model spending, hold reset, activation, merge or deployment is included.
-Singapore's active #913/private #31 custody work and Japan's release hold remain
-separate. Operational completion still requires authorized integration and real
-source-to-live acceptance; passing tests alone do not establish it.
+Integrated current main `034c94ec4f`, including Singapore #913's rights-aware
+public/private cutover, its sanitized database/output and its equivalent
+shared Daily baseline repairs. The additional cross-desk/style refusal tests
+from #918 remain; overlapping fixture names and runner declarations follow
+current main. No database or generated-output difference from that main is
+introduced. All 93 focused integration checks pass; repeating the real AFP
+scratch replay against the sanitized DB preserves every unrelated row and all
+102 MINDEF private bindings, with no restricted text restored. Required full
+CI must pass this combined revision; older-base
+results are superseded. No source-use grant, paid model call, hold reset,
+activation, production merge or deployment was performed by this task.
+Japan's intake hold remains. Actual desk completion requires authorized
+release and genuine source-to-live operation, beyond these repair checks.
 
-## Shared Daily offline repair — review candidate (29 October 2026)
+## Singapore MINDEF rights-aware production cutover — review candidate (29 October 2026)
 
-Scheduled Daily `40942694714` at main `58b35065d9` stopped before collection,
-admission and deployment: 8,246 tests, seven failed assertions, 17 skips.
-The failures were test assumptions: Philippines expectations included a
-released Indonesia explanation; the moving-corpus guard mistook synthetic
-GitHub run IDs for scrape-run totals; the authored-prose helper did not
-recognize released shared Daily machine-summary routes.
+PR #913 now includes a rebuilt public-safe SQLite candidate and regenerated
+shared site. All 102 source identities at main `fb06b34e70` remain; original titles/bodies,
+translations, summaries and reasoning are withheld. Private GitHub custody of
+the full production snapshot, complete current source-shadow history and all
+70 retained Singapore Actions ZIPs has independent recovery/hash/integrity
+proof. The public Daily source/model queue and public shadow writer are held;
+no replacement collection, model spend, merge or deployment was activated.
+Three Briefs and two Dossiers are withheld as whole works without changing
+canonical manuscripts or approvals. Brief No. 20/Dylan and issue #914 remain
+separate. The actual output audit passes, unrelated tables and 1,322 record
+text containers match the refreshed baseline. The rebuilt DB and 2,568 delivered
+text files pass 10,063 private byte probes; validation retains 10 warnings. Full exact-head CI
+and final release approval are required. Historical main/Pages/source refs,
+artifacts, canonical editorial sources and replay fixtures remain exposed;
+no erasure is claimed. See
+`docs/engineering/SINGAPORE_MINDEF_PRODUCTION_CUTOVER_2026-10-29.md` for proof,
+affected references, the recommended separate history cleanup and release steps.
 
-The repair scopes Philippines expectations by desk, names API fixtures
-explicitly, and excludes only exact released machine summaries on their own
-or linked pages from authored-prose checks. Labels, caveats, unrelated pages
-and unregistered text remain guarded. All seven failures reproduced locally;
-89 focused tests pass after repair. Mandatory full CI, isolated production
-render/validation and preservation results belong to the exact-head PR receipt.
-Tracked DB, generated output, canonical records, source policies, paid work and
-production workflows are unchanged. The triggered Indonesia census PR check
-failed during setup because Ubuntu 26.04 has no Python 3.9; only its offline
-job is pinned to Ubuntu 24.04. Japan #892 and active Singapore #913 remain separate;
-the latter also touches other sections of the preview test file. No release,
-activation, model call or desk-completion claim follows from this test repair.
-
-Next: after required CI and separately authorized integration, reuse existing
-qualified outputs through the ordinary shared release path; reconcile admitted
-source/version identities to desk, Archive/search and deployed HTTPS. Resolve
-Singapore's rights cutover through its existing owner before treating a Daily
-restart as safe. Preserve accepted Kemhan output and all paid-attempt history.
+Test-suite reconciliation: the 226 failures and 21 errors recorded for the
+candidate were classified (regression, intended boundary, held whole work,
+stale fixture, baseline) and repaired as set out in the cutover document.
+Held works are tested twice: under an explicit synthetic rights authority for
+component behavior and, unpatched, as absent and fail-closed. The remaining
+local-only errors (`gpg`, `docx`, macOS paths) match `origin/main`.
+The refreshed full run exercised 8,283 tests with eight remaining assertions;
+count/fixture, desk-scoping and exact released-summary style assumptions are
+now repaired and focused-verified. Mandatory CI must pass the final head.
 
 ## Korea delivery budget repair — review candidate (29 October 2026)
 
