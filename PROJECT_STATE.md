@@ -1,6 +1,6 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## AFP/Vietnam/Korea/U.S. unattended-path repairs — review candidate (30 October 2026)
+## Remaining unattended desk-path repairs — review candidate (30 October 2026)
 
 AFP scheduled publisher `40956271138` and private-envelope dispatch
 `40884635528` reject the frozen public snapshot after five later private
@@ -31,6 +31,14 @@ setup because Ubuntu 26.04 has no Python 3.9. Both existing jobs in each source'
 workflow are pinned to Ubuntu 24.04; permissions, source-use gates, schedules,
 collection commands and publication paths are unchanged. Their existing PR
 checks include a bounded read-only listing collection; no new collector is added.
+
+Japan's seven released metadata links remain preserved. Current main already
+contains the historical-navigation correction equivalent to #892; this candidate
+adds only its remaining shared Daily HTTPS propagation repair: twelve strict
+byte-matching reads with ten-second intervals and no final sleep. The existing
+executed-workflow regressions accept fourth-read propagation and reject all
+twelve mismatches. `JAPAN_MOD_OFFICIAL_LINKS_ENABLED` remains false; the corrective
+release and intake restoration still require the owner's separate decision.
 
 Integrated current main `034c94ec4f`, including Singapore #913's rights-aware
 public/private cutover, its sanitized database/output and its equivalent
