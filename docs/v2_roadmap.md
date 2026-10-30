@@ -1,5 +1,13 @@
 # Pipeline backlog (originally "v2 Roadmap")
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 Pipeline-layer backlog — analyzer, scrapers, relevance filter. Product and
 publishing priorities are in `docs/ROADMAP.md`, which is the authoritative
 ordering; nothing here outranks it.

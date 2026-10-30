@@ -1,5 +1,13 @@
 # Indonesia Desk — private evidence to governed production (18 October 2026)
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 This connects the existing private Kemhan collection to the existing regional
 official-link admission, desk renderer and Pages path. It adds no collector,
 database, permission framework or publication system.

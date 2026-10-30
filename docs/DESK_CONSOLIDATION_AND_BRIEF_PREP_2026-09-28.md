@@ -1,5 +1,12 @@
 # Desk consolidation and first-brief preparation — 2026-09-28
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and
+> future desk. Older common architecture, onboarding order and launch clocks
+> below do not override it. Actual evidence, source restrictions and editorial
+> approvals retain their scope. This notice does not migrate or activate runtime.
+
+
 A measured check of the existing desks before Indo-Pacific Record Briefs are
 written, one bounded repair, and a research packet for the first brief. This is
 evidence, not a ruling. No desk status, approval, review sign-off or

@@ -12,72 +12,32 @@ never intelligence cosplay.
 "China Mil Watch" is a **legacy name**: the predecessor identity, retired
 2026-08-27. Use it only when describing history.
 
-## Standing owner priority — working desks, minimal engineering overhead (20 October 2026)
+## Mandatory desk system — owner decision, 30 October 2026
 
-This instruction applies to **every desk and every future Codex/Claude
-session**. The owner values **a public desk that runs automatically** over
-internal architecture milestones, test counts, review dockets, shadow streaks,
-or a nominal \"100%\" score. Build privately, launch completely, then maintain
-only real failures. On a desk assignment: identify the single missing link to
-real Daily intake → shared corpus or truthful source-link record → appropriate
-translation → model-labeled analysis → source-specific rights/QA gate → shared
-site/desk/archive/search → routine automatic publication. Reuse working
-collectors, custody, model engine and renderer. Do not start parallel article
-pipelines, new phase frameworks, redundant monitoring or speculative source
-expansions. Keep doing the actual implementation instead of serial preparatory
-PRs. A desk is done when a real eligible record completes the authorized
-production path and future eligible records can follow without routine human
-intervention; a link-only source remains clearly labeled and does not imply
-full-text rights. Test risky paths with focused checks during development and
-run required CI once on the final head; verify the actual deployed result.
-Do not avoid necessary tests, distort the evidence, bypass access/rights,
-automate Briefs, or infer authority to spend, merge or activate publication.
-If blocked, report **one concrete blocker and owner action**; otherwise ship.
-The source of truth is the 20 October entry in `DECISION_LOG.md` and
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`. This owner
-priority supersedes older preparatory waiting schedules and aspirational
-roadmaps, not mandatory CI, publisher rights or historical approvals.
+Read [`docs/desks/README.md`](docs/desks/README.md) before any desk assignment.
+It is the authoritative all-desk engineering contract, not an optional future
+aspiration. Applies to China, Singapore, Korea, Philippines, Indonesia, Vietnam,
+Japan, the US reference desk and all future sources, including assigned private
+custody work. The tracked root `AGENTS.md` and this file are durable coding memory.
 
+The three requirements are: **source definitions and optional permitted record
+components; one shared lifecycle/admission/public interface; separate code
+qualification, ingestion and delivery.** Source access, extraction, language,
+terminology and necessary QA remain explicit adapters/profiles. Do not create
+country-specific lifecycle machinery or leave a replaced active path alongside
+an unused abstraction. Rights, display labels and runtime activation are distinct.
 
-## China-equivalent desk product standard — owner decision (21 October 2026)
-
-**Make every desk behave like China for the *reader*, not by cloning its old
-code or inheriting its publisher permissions.** The default, once a source/use
-family is actually authorized, is: official publication → authenticated
-collection and provenance → shared Daily relevance screening → translation
-only if the original requires it → short, independently worded,
-source-attributed factual explanation, categories and machine flags →
-automatic publication to the same record/archive/search/desk/site system.
-A normal eligible record should not wait for the owner's per-article approval;
-run unattended with a bounded spend/retry policy. Hold genuine uncertainty
-for *that source/version*, not the whole desk.
-
-Use a **documented, proportionate standing source-use decision** for the basic
-research product: official links and dates, independently written factual
-summaries with source citation, and appropriately labeled machine analysis.
-Do **not** assume contacting each government ministry or awaiting an email
-reply is always needed merely to report facts. Equally, do **not** treat the
-China legacy corpus or an official URL as a blanket licence: check actual
-publisher terms, crawler access, use of originals with external AI services,
-and separately the public reproduction of titles, full texts, translations,
-long excerpts, files or media. Where legitimate restrictions apply, respect
-them; a metadata-only source stays honestly link-only until broader permitted
-uses are established. Preserve original custody, precise institutional
-attribution and factual/quality gates. Human-authored Briefs and bylined
-editorials retain their existing sign-off.
-
-**Finish, then stop:** do not invent new rights forms, individual-article
-approval rituals, duplicate national pipelines, shadow waiting periods, or
-test programs after an authentic qualifying source-to-site publication and
-unattended follow-on path work. Reuse proven mechanisms, isolate true
-exceptions and resolve only specific observed failures. This standard is
-product and delivery guidance, **not itself authorization** to spend, merge,
-contact institutions, republish copyrighted originals or activate a source.
-See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+Use [`docs/desks/MIGRATION.md`](docs/desks/MIGRATION.md) for the actual existing
+paths and the next bounded phase. Policy adoption is not runtime migration or
+live verification. Current CI gates remain until a verified replacement exists.
+Older common-architecture and launch-process instructions are superseded by the
+standard; genuine source decisions, holds, spending limits and editorial approvals
+are not. A desk's source scope does not expand merely to satisfy a checklist.
 
 ## Session start
-1. Check latest owner rulings in `DECISION_LOG.md` and
-   `docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md`; read relevant
+1. For desk work, read `docs/desks/README.md` and the relevant migration row;
+   check actual source-use/activation rulings in `DECISION_LOG.md` and the
+   existing acceptance policy, then read relevant
    `PROJECT_STATE.md` sections and verify dated status against real code,
    open PRs, source captures and Actions.
 2. For architecture questions, use an existing graph report when present,
@@ -87,7 +47,9 @@ See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 | Doc | Governs |
 |---|---|
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, audiences, page anatomy, evidence-vs-inference rules |
-| `docs/ARCHITECTURE_AND_PUBLISHING.md` | layer map, source vs generated, commands, CI, commit strategy |
+| `docs/desks/README.md` | mandatory architecture, lifecycle, CI/delivery separation and completion for every desk |
+| `docs/desks/MIGRATION.md` | current code boundaries, coordination and next bounded phase; not live certification |
+| `docs/ARCHITECTURE_AND_PUBLISHING.md` | existing layer map, source vs generated, commands, CI, commit strategy |
 | `docs/AGENT_WORKFLOWS.md` | model routing, skills, agents, parallelism limits |
 | `docs/ROADMAP.md` | dated priorities; verify current owner direction |
 | `docs/DESIGN_SYSTEM.md` | dual-surface tokens, typography, color, a11y + performance budgets |
@@ -124,33 +86,23 @@ See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
   files — no concurrent agent edits.
 
 ## Complete-desk working method
-Follow the owner-approved contract for each desk: official sources → private
-source evidence → permitted translation/processing → screening and analysis →
-governed SQLite/admission → reader/editor publication → genuine scheduled
-maintenance and recovery. Derive expected records from original publisher
-material; distinguish manual rehearsal from real unattended operation. Verify
-source rights, actual human decisions, idempotent retries and deployed HTTPS
-when authorized. Prefer one coherent PR (and only an essential private
-companion) to new qualification frameworks or extra approval layers. Finish
-at an operating desk or a specific external blocker. See
-`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` and issue #673.
 
-## Shared Daily target (owner direction, 2026-10-19)
+Follow `docs/desks/README.md` and scope one coherent phase with
+`docs/desks/CHANGE_TEMPLATE.md`. Source collection and private evidence may run
+independently; authenticated permitted components converge through the common
+lifecycle, record interface and coordinated public writer. Preserve accepted
+output and source-specific negative tests. Code qualification is separate from
+routine data checks only after its trusted replacement is implemented; do not
+remove today's gates based on a design statement.
 
-The default end state for every desk is **one logical Daily**: permitted
-independently scheduled/private collector → authenticated source-pinned common
-intake → explicit desk-language profile on the shared screening/model queue →
-source-specific rights and automatic QA gates → existing IPR record/source-link
-presentation, search, desk and deployment. **Do not build a second corpus,
-country-specific AI engine, parallel article renderer or routine per-record
-human publishing workflow.** Source collectors need not run inside the same
-Actions job: preserve official access cadence, isolation and private originals.
-English originals need no translation. Unknown desks must not use China's
-prompts by fallback. A metadata-only licence never approves original text or
-public machine explanation. Once separately authorized and verified, routine
-machine-labeled records may publish without human approval; Briefs and bylined
-analysis remain human controlled. Policy targets are **not** activation,
-spending or publication authority. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+Routine permitted machine output publishes unattended within actual source-use,
+quality, spending and activation authority; hold only genuine exceptions.
+Translate only when needed, never default unknown sources to China, and keep
+human-controlled editorial products separate. Verify one authentic source-to-site
+result and representative failure/recovery when a release is authorized. Stop
+at the assigned phase's finish line or one concrete external blocker. Retain
+historical evidence; no arbitrary launch clock, extra qualification program,
+per-record owner ritual, source expansion or unrequested cleanup.
 
 ## Commands
 ```bash

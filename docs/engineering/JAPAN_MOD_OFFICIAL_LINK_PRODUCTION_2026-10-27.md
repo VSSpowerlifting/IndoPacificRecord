@@ -1,5 +1,13 @@
 # Japan MOD news official links — source use approved, release held
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 The initial review found no standing Japan MOD grant. Benjamin Yang then
 explicitly approved the narrow `jp_mod_news_ja` standing source-use scope on
 27 October 2026. `config/japan_mod_official_link_policy.json` records that grant
