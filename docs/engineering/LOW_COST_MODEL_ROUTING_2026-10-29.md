@@ -224,3 +224,18 @@ It affects the next process and cannot cancel in-flight calls or rewrite records
 The remaining blocker to cheaper unattended processing is demonstrated factual
 quality, including guard-missed holdout errors. This task grants no further
 spend, framework work, merge, activation or publication.
+
+## Newly exposed corpus-growth assertion on the final base
+
+CI 41114640637 at `0388e7bde7` ran 8,312 tests and failed only two Korea
+unchanged-page assertions after the inherited Daily snapshot crossed the
+1,000-record display boundary. Both failures reproduce on exact base
+`95c53909cf`: seven focused tests, two failures. This is separate from the
+initial introduced environment failure and the earlier seven base failures.
+The shared-Daily repair owner confirmed no competing correction or existing
+commit for this boundary. Normalize one complete, correctly comma-formatted
+numeral, retaining exact nonnumeric page comparison and the original permitted
+numeric deltas (zero or two). Regression cases reject wrong deltas, changed
+labels, extra quantities and malformed groups. No renderer, DB, generated
+output, model configuration or source permission is changed by this correction.
+The final combined revision still requires mandatory CI.

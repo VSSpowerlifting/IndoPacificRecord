@@ -1869,3 +1869,12 @@ Restart made zero new dispatches with unchanged ledger/results. No more paid cal
 or routing work are planned; stop after the verified PR. Private report/evidence,
 implementation limits, CI failure separation and rollback are documented in
 `docs/engineering/LOW_COST_MODEL_ROUTING_2026-10-29.md`.
+
+Final-base CI 41114640637 (`0388e7bde7`) ran 8,312 tests with two Korea
+unchanged-page assertion failures. Both reproduce on base `95c53909cf` (seven
+focused tests, two failures): the numeric parser splits comma-formatted totals
+when corpus growth crosses 1,000. The existing repair owner confirmed no
+competing fix. A narrow test-only correction parses whole formatted numerals,
+retaining exact page comparisons and zero-or-two count deltas; negative cases
+still reject text, malformed groups, extra quantities and invalid deltas.
+No model, source-use, DB, output or production change; final-head CI required.
