@@ -17,6 +17,9 @@ The existing layout, CSS, water texture and row-owned connectors are unchanged.
 All 58 local timeline/rendering/palette checks pass with actual Chromium 153, including
 keyboard, no-JS, mobile, print, forced colors and source/publication negatives.
 Required exact-head PR CI is separate evidence, not replaced by local checks.
+The actual six-entry private review completes through `site/render.py` using
+verified frozen evidence. A separate reference-only review omits publisher
+expression and preserved-record links; no private review tree is published.
 
 Release blocker: the actual September 5/9 MINDEF URLs are outside the two-link
 written grant. Exact editorial acceptance and authorized release also remain
