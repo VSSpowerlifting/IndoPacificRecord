@@ -102,7 +102,8 @@ class PhilippinesPublicPages(DeskCase):
     def test_summary_counts_come_from_their_own_tables_and_never_enter_corpus(self):
         page = self.page("philippines.html")
         links = self.admitted()
-        machine = load_machine_records(TRACKED_DB)
+        machine = [r for r in load_machine_records(TRACKED_DB)
+                   if r["desk_id"] == "philippines"]
         self.assertIn("<dt>Verified official links</dt><dd>%d " % len(links), page)
         self.assertIn("<dt>Machine explanations</dt><dd>%d " % len(machine), page)
         self.assertIn("<dt>Original documents in the IPR corpus</dt><dd>None ", page)
@@ -110,7 +111,8 @@ class PhilippinesPublicPages(DeskCase):
 
     def test_every_released_machine_explanation_is_listed_with_its_labels(self):
         page = self.page("philippines.html")
-        machine = load_machine_records(TRACKED_DB)
+        machine = [r for r in load_machine_records(TRACKED_DB)
+                   if r["desk_id"] == "philippines"]
         self.assertTrue(machine)
         for rec in machine:
             with self.subTest(record=rec["source_identity"]):
@@ -142,7 +144,8 @@ class PhilippinesPublicPages(DeskCase):
     def test_desks_overview_reflects_lanes_without_inflating_corpus(self):
         desks = self.page("desks.html")
         links = self.admitted()
-        machine = load_machine_records(TRACKED_DB)
+        machine = [r for r in load_machine_records(TRACKED_DB)
+                   if r["desk_id"] == "philippines"]
         plate = re.search(r'<section class="desk[^"]*" id="desk-philippines".*?</section>',
                           desks, re.S).group(0)
         self.assertIn("Official links and machine explanations — not in corpus", plate)

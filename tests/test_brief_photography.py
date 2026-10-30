@@ -252,6 +252,13 @@ class CommittedPairTests(unittest.TestCase):
         import generate_preview as gp
         cls.collection = load_collection(gp.load_editions(ROOT), load_registry(),
                                          briefs_dir=ROOT / "briefs")
+        # Approved Briefs that cite Singapore MINDEF records are withheld whole
+        # by the production boundary. Their cover grants are still checked, under
+        # an explicit synthetic rights authority that does not clear the real works.
+        from unittest import mock
+        with mock.patch("core.mindef_public_boundary.editorial_hold", return_value=False):
+            cls.authorised = load_collection(gp.load_editions(ROOT), load_registry(),
+                                             briefs_dir=ROOT / "briefs")
 
     def test_every_granted_cover_is_shown_on_both_of_its_surfaces(self):
         covers = [e for e in self.manifest if bcv.is_cover(e)]
@@ -264,6 +271,12 @@ class CommittedPairTests(unittest.TestCase):
                     brief = briefs.get(slug)
                     if brief is None:
                         draft = json.loads((ROOT / 'briefs' / (slug + '.json')).read_text())
+                    if brief is None and draft['editorial_status'] == 'approved':
+                        # Withheld whole for MINDEF source use; never published.
+                        from core.mindef_public_boundary import editorial_hold
+                        self.assertTrue(editorial_hold(draft), slug)
+                        brief = {b["slug"]: b for b in self.authorised.briefs}[slug]
+                    elif brief is None:
                         self.assertEqual(draft['editorial_status'], 'draft')
                         self.assertIsNone(draft.get('issue_number'))
                         self.assertNotIn('approval', draft)

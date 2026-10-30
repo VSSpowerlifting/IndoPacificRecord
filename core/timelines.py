@@ -303,6 +303,11 @@ def load_timelines(db_path, related, source_dir=TIMELINES_DIR, review_path=None,
         if sc["editorial_status"] == "draft" and not selected:
             withheld.append(sc["slug"])
             continue
+        from core.mindef_public_boundary import editorial_hold
+        if not selected and editorial_hold(sc):
+            # Same whole-work hold as Briefs and Dossiers; the sidecar is unchanged.
+            withheld.append(sc["slug"])
+            continue
         for slug in sc["related_briefs"]:
             if slug not in related or related[slug].get("is_review"):
                 _fail("related_briefs", "must resolve to an approved native Brief: " + slug)

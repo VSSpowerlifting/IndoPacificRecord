@@ -357,14 +357,19 @@ class HistoricalBriefShellTests(unittest.TestCase):
         from scripts.historical_brief_render import _site_definition
         newest_ctx, _, newest = self.posts[-1]
         nav = [a["href"] for a in newest.select(".historical-issue-nav a")]
-        self.assertEqual(nav, [self.posts[-2][0]["date"] + ".html",
-                               "../../briefs/maritime-cooperation-2026.html"])
+        # Maritime Cooperation (No. 15) is withheld whole; the first published
+        # Brief that follows the newest issue is the next in sequence.
+        first_published = "../../briefs/what-is-being-built-in-laos.html"
+        self.assertEqual(nav, [self.posts[-2][0]["date"] + ".html", first_published])
+        self.assertNotIn("maritime-cooperation-2026", " ".join(nav))
         self.assertEqual(newest.select_one('.historical-issue-nav a[rel="next"]')["href"],
                          self.bridge_href(newest_ctx))
         # The brief's own previous link, from the collection the site builds.
         collection = load_collection(_site_definition().load_editions(ROOT),
                                      load_registry(), briefs_dir=ROOT / "briefs")
-        previous = adjacent_items(collection, "maritime-cooperation-2026")["previous"]
+        self.assertNotIn("maritime-cooperation-2026",
+                         [b["slug"] for b in collection.briefs])
+        previous = adjacent_items(collection, "what-is-being-built-in-laos")["previous"]
         self.assertEqual(previous["href"], "../the-pla-watch/posts/%s.html" % newest_ctx["date"])
         self.assertEqual(previous["number"], newest_ctx["issue_number"])
         # Every earlier issue keeps its own sidecar neighbours; none gains a brief.
