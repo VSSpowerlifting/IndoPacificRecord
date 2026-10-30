@@ -85,6 +85,10 @@ class PhilippinesPublicPages(DeskCase):
     def admitted(self):
         return load_admitted_links(TRACKED_DB, "philippines")
 
+    def machine(self):
+        return [r for r in load_machine_records(TRACKED_DB)
+                if r["desk_id"] == "philippines"]
+
     def test_page_lists_exactly_the_admitted_links_grouped_by_publisher(self):
         page = self.page("philippines.html")
         links = self.admitted()
@@ -102,7 +106,7 @@ class PhilippinesPublicPages(DeskCase):
     def test_summary_counts_come_from_their_own_tables_and_never_enter_corpus(self):
         page = self.page("philippines.html")
         links = self.admitted()
-        machine = load_machine_records(TRACKED_DB)
+        machine = self.machine()
         self.assertIn("<dt>Verified official links</dt><dd>%d " % len(links), page)
         self.assertIn("<dt>Machine explanations</dt><dd>%d " % len(machine), page)
         self.assertIn("<dt>Original documents in the IPR corpus</dt><dd>None ", page)
@@ -110,7 +114,7 @@ class PhilippinesPublicPages(DeskCase):
 
     def test_every_released_machine_explanation_is_listed_with_its_labels(self):
         page = self.page("philippines.html")
-        machine = load_machine_records(TRACKED_DB)
+        machine = self.machine()
         self.assertTrue(machine)
         for rec in machine:
             with self.subTest(record=rec["source_identity"]):
@@ -123,6 +127,15 @@ class PhilippinesPublicPages(DeskCase):
         # A link whose machine explanation exists says so; the row keeps exactly
         # one outbound anchor so the readback gate still parses it.
         self.assertEqual(page.count("Machine explanation published above"), len(machine))
+
+    def test_other_desks_machine_explanations_are_not_listed(self):
+        page = self.page("philippines.html")
+        for rec in load_machine_records(TRACKED_DB):
+            if rec["desk_id"] != "philippines":
+                with self.subTest(record=rec["source_identity"]):
+                    self.assertNotIn('data-machine-explanation-id="%s"' %
+                                     rec["source_identity"], page)
+                    self.assertNotIn('href="%s"' % rec["record_path"], page)
 
     def test_no_obsolete_or_contradictory_language(self):
         page = self.page("philippines.html")
@@ -142,7 +155,7 @@ class PhilippinesPublicPages(DeskCase):
     def test_desks_overview_reflects_lanes_without_inflating_corpus(self):
         desks = self.page("desks.html")
         links = self.admitted()
-        machine = load_machine_records(TRACKED_DB)
+        machine = self.machine()
         plate = re.search(r'<section class="desk[^"]*" id="desk-philippines".*?</section>',
                           desks, re.S).group(0)
         self.assertIn("Official links and machine explanations — not in corpus", plate)

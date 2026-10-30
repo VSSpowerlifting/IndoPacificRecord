@@ -1,5 +1,33 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared Daily offline repair — review candidate (29 October 2026)
+
+Scheduled Daily `40942694714` at main `58b35065d9` stopped before collection,
+admission and deployment: 8,246 tests, seven failed assertions, 17 skips.
+The failures were test assumptions: Philippines expectations included a
+released Indonesia explanation; the moving-corpus guard mistook synthetic
+GitHub run IDs for scrape-run totals; the authored-prose helper did not
+recognize released shared Daily machine-summary routes.
+
+The repair scopes Philippines expectations by desk, names API fixtures
+explicitly, and excludes only exact released machine summaries on their own
+or linked pages from authored-prose checks. Labels, caveats, unrelated pages
+and unregistered text remain guarded. All seven failures reproduced locally;
+89 focused tests pass after repair. Mandatory full CI, isolated production
+render/validation and preservation results belong to the exact-head PR receipt.
+Tracked DB, generated output, canonical records, source policies, paid work and
+production workflows are unchanged. The triggered Indonesia census PR check
+failed during setup because Ubuntu 26.04 has no Python 3.9; only its offline
+job is pinned to Ubuntu 24.04. Japan #892 and active Singapore #913 remain separate;
+the latter also touches other sections of the preview test file. No release,
+activation, model call or desk-completion claim follows from this test repair.
+
+Next: after required CI and separately authorized integration, reuse existing
+qualified outputs through the ordinary shared release path; reconcile admitted
+source/version identities to desk, Archive/search and deployed HTTPS. Resolve
+Singapore's rights cutover through its existing owner before treating a Daily
+restart as safe. Preserve accepted Kemhan output and all paid-attempt history.
+
 ## Korea delivery budget repair — review candidate (29 October 2026)
 
 Korea now selects a page-specific `korea-shell.css`, using the unchanged
