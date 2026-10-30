@@ -275,3 +275,64 @@ class PilotIsHeldByRightsBoundary(unittest.TestCase):
         # chronology cannot be reconciled against it; the refusal names the record.
         with self.assertRaisesRegex(t.TimelineError, "record 4466 has incomplete preserved metadata"):
             t.reconcile_sources(t.read_timeline(PILOT), ROOT / "pla_watch.db")
+
+
+class HeldRelatedBriefReview(unittest.TestCase):
+    """A private chronology may name, but never republish, its held Brief."""
+
+    def test_only_valid_approved_held_brief_metadata_is_returned(self):
+        registry = load_registry()
+        slug = 'maritime-cooperation-2026'
+        actual = json.loads((ROOT / 'briefs' / (slug + '.json')).read_text())
+        metadata = t._held_related_brief(slug, registry)
+        self.assertEqual(set(metadata), {'title', 'issue', 'is_withheld'})
+        self.assertTrue(metadata['is_withheld'])
+        self.assertEqual(metadata['issue'], 15)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'briefs').mkdir()
+            path = root / 'briefs' / (slug + '.json')
+            for change in ({'editorial_status': 'draft'}, {'synthetic': True},
+                           {'title': ''}, {'editorial_status': 'unknown'}):
+                path.write_text(json.dumps(dict(actual, **change)))
+                with mock.patch.object(t, 'ROOT', root), self.subTest(change=change):
+                    self.assertIsNone(t._held_related_brief(slug, registry))
+            path.write_text(json.dumps(actual))
+            with mock.patch.object(t, 'ROOT', root), mock.patch(
+                    'core.mindef_public_boundary.editorial_hold', return_value=False):
+                self.assertIsNone(t._held_related_brief(slug, registry))
+            path.unlink()
+            path.symlink_to(ROOT / 'briefs' / (slug + '.json'))
+            with mock.patch.object(t, 'ROOT', root):
+                self.assertIsNone(t._held_related_brief(slug, registry))
+
+    def test_private_fallback_keeps_source_and_publication_gates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / 'maritime-cooperation-2026.json'
+            sc = pilot_without_mindef_evidence()
+            path.write_text(json.dumps(sc))
+            views, _ = t.load_timelines(ROOT / 'pla_watch.db', {}, root, path)
+            self.assertTrue(views[0]['is_review'])
+            self.assertTrue(views[0]['related'][0]['is_withheld'])
+            self.assertNotIn('url', views[0]['related'][0])
+            # Missing source evidence still fails in private review.
+            sc['entries'][0]['evidence'][0]['excerpt'] = 'Absent synthetic excerpt for a rejection test.'
+            path.write_text(json.dumps(sc))
+            with self.assertRaisesRegex(t.TimelineError, 'excerpt is absent'):
+                t.load_timelines(ROOT / 'pla_watch.db', {}, root, path)
+            # Ordinary publication never uses the held-Brief fallback.
+            sc = pilot_without_mindef_evidence()
+            sc['editor_name'] = 'Fixture editor'
+            approve_fixture(sc)
+            path.write_text(json.dumps(sc))
+            with self.assertRaisesRegex(t.TimelineError, 'approved native Brief'):
+                t.load_timelines(ROOT / 'pla_watch.db', {}, root)
+            with self.assertRaisesRegex(t.TimelineError, 'approved native Brief'):
+                t.load_timelines(ROOT / 'pla_watch.db',
+                                 {'maritime-cooperation-2026': {'is_withheld': True}}, root)
+            sc = pilot_without_mindef_evidence()
+            sc['related_briefs'] = ['nonexistent-related-brief']
+            path.write_text(json.dumps(sc))
+            with self.assertRaisesRegex(t.TimelineError, 'approved native Brief'):
+                t.load_timelines(ROOT / 'pla_watch.db', {}, root, path)

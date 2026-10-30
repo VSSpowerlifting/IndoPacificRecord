@@ -17,6 +17,33 @@ sys.path.insert(0, str(ROOT / 'site/preview'))
 import generate_preview as gp
 
 
+class HeldRelatedBriefRendering(unittest.TestCase):
+    def test_real_boundary_private_preview_has_no_link_or_page_for_held_brief(self):
+        # No rights mock. Only the existing China-only source fixture is used;
+        # the actual related Brief remains held by its MINDEF references.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sources = root / 'timelines'
+            sources.mkdir()
+            path = sources / 'maritime-cooperation-2026.json'
+            path.write_text(json.dumps(pilot_without_mindef_evidence()))
+            out = root / 'private'
+            gp.build(out, 'Indo-Pacific Record', ROOT / 'pla_watch.db',
+                     snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
+                     timelines_dir=sources, review_timeline=path,
+                     dossiers_dir=root / 'no-dossiers')
+            from bs4 import BeautifulSoup
+            doc = BeautifulSoup((out / 'timeline/maritime-cooperation-2026.html').read_text(), 'html.parser')
+            related = doc.select_one('[aria-labelledby="tl-related"]')
+            self.assertIn('Currently withheld; unavailable in this preview.', related.get_text())
+            self.assertFalse(related.select('a[href*="briefs/"]'))
+            self.assertFalse((out / 'briefs/maritime-cooperation-2026.html').exists())
+            self.assertEqual(doc.select_one('meta[name="robots"]')['content'], 'noindex, nofollow')
+            self.assertIn('unapproved and unpublished', doc.get_text())
+            self.assertFalse((out / 'sitemap.xml').exists())
+            self.assertFalse((out / 'briefs/feed.xml').exists())
+
+
 class TimelineRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

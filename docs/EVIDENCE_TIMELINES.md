@@ -1,5 +1,45 @@
 # Evidence Timelines — contract and review
 
+## Current pilot boundary — 30 October 2026
+
+The six-entry Maritime Cooperation pilot remains draft at content digest
+`8afed5a93cdb8a2516953e362d39efc3790a95c121cc73db4af815f7a4433abd`.
+The MINDEF cutover removed the original text/title for records 4466 and 4472
+from the public database and holds the related Brief No. 15. Ordinary public
+builds withhold the timeline, even if its editorial status were approved.
+The two written hyperlink approvals in `core/mindef_permissions.py` do not
+include this pilot's September 5 and 9 URLs. The older receipts below are
+historical, not present-day source-use or publication authority.
+
+Private review uses an independently verified, privately held evidence DB:
+
+```sh
+.venv/bin/python site/render.py \
+  --review-timeline timelines/maritime-cooperation-2026.json \
+  --db /private/path/verified-evidence.sqlite \
+  --out /private/path/NEW-timeline-review
+```
+
+Before using an older DB, match these exact source versions to the private
+custody manifest and current public `mindef_private_record_bindings`. Do not
+install the evidence DB in the public checkout or use it for production.
+The review describes that frozen corpus, not today's live corpus. Original
+source parity still runs; a public metadata-only DB cannot satisfy it.
+
+An explicit private timeline review can now name an approved but MINDEF-held
+related Brief as unavailable, without its hyperlink, page, prose, media or
+reinstatement in the published collection. The canonical Brief must pass its
+contract; missing, draft, synthetic, invalid, symlinked and unrelated missing
+Briefs remain errors. Ordinary publication never uses this fallback.
+The normal source, editorial, noindex and external-destination gates remain.
+Review trees contain private original evidence: do not upload or deploy them.
+
+Publication still requires the actual source-use resolution, exact-version
+editorial acceptance and separately authorized release. This review-path
+repair grants none of those and changes no canonical timeline or approval.
+
+## Historical implementation and receipts
+
 Implementation for [Issue #158](https://github.com/VSSpowerlifting/China-Mil-Watch/issues/158),
 including its T2 design comment. Base: main
 `24924c59d2e878bcf97f4d647ec611f59256a84e`, refreshed without feature overlap

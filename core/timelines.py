@@ -286,6 +286,24 @@ def timeline_view(sc, records, related, is_review=False):
     return result
 
 
+def _held_related_brief(slug, registry):
+    """Private review metadata only; never restore a held Brief to publication."""
+    from core.brief_contract import validate_brief, assigned_number
+    from core.mindef_public_boundary import editorial_hold
+    root = ROOT / "briefs"
+    path = root / (slug + ".json")
+    if path.is_symlink() or not path.is_file() or path.resolve().parent != root.resolve():
+        return None
+    brief = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_pairs)
+    if (not isinstance(brief, dict) or brief.get("synthetic")
+            or brief.get("editorial_status") != "approved"
+            or not editorial_hold(brief) or validate_brief(brief, registry)):
+        return None
+    # No body, source expression, approval receipt, media or live route is
+    # passed to the view. The actual Brief remains absent from the collection.
+    return dict(title=brief["title"], issue=assigned_number(brief), is_withheld=True)
+
+
 def load_timelines(db_path, related, source_dir=TIMELINES_DIR, review_path=None, registry=None):
     """Public selection is approved-only; an explicit private review adds one draft."""
     root = Path(source_dir).resolve()
@@ -308,11 +326,17 @@ def load_timelines(db_path, related, source_dir=TIMELINES_DIR, review_path=None,
             # Same whole-work hold as Briefs and Dossiers; the sidecar is unchanged.
             withheld.append(sc["slug"])
             continue
+        timeline_related = dict(related)
         for slug in sc["related_briefs"]:
-            if slug not in related or related[slug].get("is_review"):
+            if selected and slug not in timeline_related:
+                held = _held_related_brief(slug, registry or load_registry())
+                if held is not None:
+                    timeline_related[slug] = held
+            if (slug not in timeline_related or timeline_related[slug].get("is_review")
+                    or (not selected and timeline_related[slug].get("is_withheld"))):
                 _fail("related_briefs", "must resolve to an approved native Brief: " + slug)
         records = reconcile_sources(sc, db_path, registry)
-        views.append(timeline_view(sc, records, related, selected))
+        views.append(timeline_view(sc, records, timeline_related, selected))
     if review and not found:
         _fail("review", "canonical source not found")
     return sorted(views, key=lambda t: (t["updated_on"], t["slug"]), reverse=True), withheld

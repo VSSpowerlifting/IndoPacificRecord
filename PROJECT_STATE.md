@@ -1,5 +1,31 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Evidence Timeline private review after MINDEF cutover — 30 October 2026
+
+The existing six-entry Maritime Cooperation pilot remains draft and held.
+Its source versions reconcile against preserved evidence; MINDEF records
+4466/4472 match the private custody manifest and current public hash bindings.
+The current public DB correctly refuses source parity after sanitization.
+Private rendering also failed because related Brief No. 15 is held. Explicit
+private review now permits only that kind of valid approved-but-held Brief as
+unlinked unavailable metadata; it neither renders nor republishes the Brief.
+Use a verified private frozen DB with the existing `--db`; see the current
+boundary section in `docs/EVIDENCE_TIMELINES.md`. Canonical content, approvals,
+database, generated output and the public MINDEF hold are unchanged.
+
+The existing layout, CSS, water texture and row-owned connectors are unchanged.
+All 58 local timeline/rendering/palette checks pass with actual Chromium 153, including
+keyboard, no-JS, mobile, print, forced colors and source/publication negatives.
+Required exact-head PR CI is separate evidence, not replaced by local checks.
+The actual six-entry private review completes through `site/render.py` using
+verified frozen evidence. A separate reference-only review omits publisher
+expression and preserved-record links; no private review tree is published.
+
+Release blocker: the actual September 5/9 MINDEF URLs are outside the two-link
+written grant. Exact editorial acceptance and authorized release also remain
+pending. Local tests and PR CI receipts must be distinguished from a live
+publication; the repair is a review candidate, not source-use clearance.
+
 ## Desks page frontend redesign — review candidate, PR open, not merged or deployed (29 October 2026)
 
 **Implemented on the branch only:** `desks.html`, `desk-map.css`, `desk-map.js`
