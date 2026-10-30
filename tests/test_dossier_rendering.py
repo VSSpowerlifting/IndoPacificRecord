@@ -28,6 +28,10 @@ class QuietHandler(SimpleHTTPRequestHandler):
 class DossierRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Component/browser fixtures exercise presentation under synthetic
+        # rights authority. Production MINDEF withholding is tested separately.
+        rights = mock.patch('core.mindef_public_boundary.editorial_hold', return_value=False)
+        rights.start(); cls.addClassCleanup(rights.stop)
         cls.tmp=tempfile.TemporaryDirectory()
         cls.root=Path(cls.tmp.name)
         authority = mock.patch.multiple(d.dossier_decisions, SOURCE_USES={}, PUBLICATIONS={})
@@ -365,6 +369,10 @@ class ThematicDossierRendering(unittest.TestCase):
     """Private thematic review beside an approved case study; production unchanged."""
     @classmethod
     def setUpClass(cls):
+        # Component/browser fixtures exercise presentation under synthetic
+        # rights authority. Production MINDEF withholding is tested separately.
+        rights = mock.patch('core.mindef_public_boundary.editorial_hold', return_value=False)
+        rights.start(); cls.addClassCleanup(rights.stop)
         from tests.test_dossiers import THEMATIC
         from core.dossier_contract import dossier_content_digest
         cls.tmp=tempfile.TemporaryDirectory(); cls.root=Path(cls.tmp.name)

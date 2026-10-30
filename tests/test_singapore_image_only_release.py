@@ -425,11 +425,14 @@ class TestRecoveryBatch(unittest.TestCase):
         self.assertEqual(len(docs), 3)
 
 
-# ── Through the real pipeline and storage ────────────────────────────────────
+# ── Through the real pipeline: collection is held ────────────────────────────
 
-class TestPipelineStoresTheRecovery(PipelineRunCase):
-    """`pipeline.run(--date 2026-09-28 --source sg_mindef_releases
-    --no-analysis)` on a temporary, migrated database."""
+class TestPipelineHoldsMindefCollection(PipelineRunCase):
+    """The adapter-level recovery above remains verified, but MINDEF
+    collection is held by the rights-aware cutover (PR #913): the pipeline
+    returns ``skipped_disabled`` before an adapter exists, so no request is
+    made, nothing is stored and a failed or repeated run changes nothing.
+    Reactivation needs a distinct source-use decision."""
 
     def run_sg(self, session=None):
         import core.registry as reg
@@ -438,9 +441,7 @@ class TestPipelineStoresTheRecovery(PipelineRunCase):
         class Registry(SourceRegistry):
             def get_adapter(inner, slug):
                 if slug == SG_SLUG:
-                    return sg.SGMindefAdapter(inner.get_source(slug),
-                                              session=session,
-                                              sleeper=lambda _s: None)
+                    raise AssertionError("a held MINDEF adapter must not be constructed")
                 return super().get_adapter(slug)
 
         registry = Registry()
@@ -451,8 +452,6 @@ class TestPipelineStoresTheRecovery(PipelineRunCase):
         return session
 
     def results(self):
-        """The latest run's row per source. The base helper keys rows by slug
-        with no ordering among runs, which these multi-run tests cannot rely on."""
         con = sqlite3.connect(str(self.db_path))
         con.row_factory = sqlite3.Row
         try:
@@ -461,58 +460,41 @@ class TestPipelineStoresTheRecovery(PipelineRunCase):
         finally:
             con.close()
 
-    def rows(self):
+    def stored(self):
         con = sqlite3.connect(str(self.db_path))
-        con.row_factory = sqlite3.Row
         try:
-            return {sg.release_slug(r["url"]): dict(r) for r in con.execute(
-                "SELECT a.* FROM articles a JOIN sources s ON s.id = a.source_id "
-                "WHERE s.slug = ?", (SG_SLUG,))}
+            return con.execute(
+                "SELECT a.url FROM articles a JOIN sources s ON s.id = a.source_id "
+                "WHERE s.slug = ? ORDER BY a.url", (SG_SLUG,)).fetchall()
         finally:
             con.close()
 
-    def test_the_recovery_stores_all_eleven_and_marks_one_text_unavailable(self):
-        self.run_sg()
-        rows = self.rows()
-        self.assertEqual(set(rows), set(WINDOW_SLUGS))
-
-        info = rows[INFOGRAPHIC]
-        self.assertEqual(info["url"], url(INFOGRAPHIC))
-        self.assertEqual(info["title_original"], "Infographic: Ex Trident Resolve 2026")
-        self.assertEqual(info["published_date"], "2026-09-22")
-        self.assertEqual(info["text_original"], "")
-        self.assertIsNone(info["passed_relevance"])     # never screened or analysed
-
-        for slug, want in SHADOW_SHA.items():
-            self.assertEqual(sha12(rows[slug]["text_original"]), want, slug)
-            self.assertIsNone(rows[slug]["passed_relevance"])
-
+    def test_the_run_is_held_before_any_request_or_storage(self):
+        session = self.run_sg()
+        self.assertEqual(session.calls, [])
+        self.assertEqual(self.stored(), [])
         res = self.results()[SG_SLUG]
-        self.assertEqual(res["status"], st.OK)
+        self.assertEqual(res["status"], st.SKIPPED_DISABLED)
         self.assertFalse(res["is_failure"])
         self.assertEqual((res["references_discovered"], res["fetched"],
-                          res["extracted"], res["new_documents"],
-                          res["duplicates"]), (11, 11, 11, 11, 0))
-        self.assertEqual(res["text_unavailable"], 1)
-        self.assertIn("carried no usable text", res["error_detail"])
+                          res["new_documents"], res["duplicates"]), (0, 0, 0, 0))
+        self.assertEqual(res["text_unavailable"] or 0, 0)
 
-    def test_neither_held_record_is_stored(self):
-        self.run_sg()
-        stored = self.rows()
-        for slug in HELD:
-            self.assertNotIn(slug, stored)
+    def test_a_would_be_failure_is_not_attempted_or_recorded_as_one(self):
+        session = self.run_sg(FakeSession(statuses={"22sep26-speech": 500}))
+        self.assertEqual(session.calls, [])
+        self.assertEqual(self.stored(), [])
+        self.assertEqual(self.results()[SG_SLUG]["status"], st.SKIPPED_DISABLED)
 
-    def test_a_release_already_stored_is_a_duplicate_and_the_batch_still_commits(self):
-        # 23sep26-mq is what the scheduled 2026-09-29 run stores first.
-        self.run_sg(FakeSession(statuses={INFOGRAPHIC: 500}))     # withheld
-        self.assertEqual(self.rows(), {})
+    def test_an_identity_already_stored_is_left_untouched_and_not_duplicated(self):
         self.seed_one("23sep26-mq")
+        before = self.stored()
+        self.assertEqual(len(before), 1)
         self.run_sg()
-        rows = self.rows()
-        self.assertEqual(len(rows), 11)
-        self.assertEqual(rows[INFOGRAPHIC]["text_original"], "")
+        self.run_sg()
+        self.assertEqual(self.stored(), before)
         res = self.results()[SG_SLUG]
-        self.assertEqual((res["new_documents"], res["duplicates"]), (10, 1))
+        self.assertEqual((res["new_documents"], res["duplicates"]), (0, 0))
 
     def seed_one(self, slug):
         con = sqlite3.connect(str(self.db_path))
@@ -525,21 +507,6 @@ class TestPipelineStoresTheRecovery(PipelineRunCase):
              "seeded-" + slug))
         con.commit()
         con.close()
-
-    def test_an_unresolved_failure_still_commits_nothing(self):
-        self.run_sg(FakeSession(statuses={"22sep26-speech": 500}))
-        self.assertEqual(self.rows(), {})
-        res = self.results()[SG_SLUG]
-        self.assertEqual(res["status"], st.EXTRACTION_FAILURE)
-        self.assertTrue(res["is_failure"])
-
-    def test_running_it_again_adds_nothing(self):
-        self.run_sg()
-        first = self.rows()
-        self.run_sg()
-        self.assertEqual(self.rows(), first)
-        res = self.results()[SG_SLUG]
-        self.assertEqual((res["new_documents"], res["duplicates"]), (0, 11))
 
 
 if __name__ == "__main__":
