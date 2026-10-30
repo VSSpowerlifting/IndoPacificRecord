@@ -40,6 +40,13 @@ executed-workflow regressions accept fourth-read propagation and reject all
 twelve mismatches. `JAPAN_MOD_OFFICIAL_LINKS_ENABLED` remains false; the corrective
 release and intake restoration still require the owner's separate decision.
 
+Full combined CI `41017133618` exercised 8,303 tests: one DAPA capture test
+errored because repeated generation of its ZIP fixture embedded different
+wall-clock timestamps. A controlled clock change reproduces that exact missing-
+capture error; deterministic ZIP metadata now makes the original end-to-end test
+pass across the same boundary. No production collector or captured source is
+changed. Mandatory CI must pass the resulting exact revision.
+
 Integrated current main `034c94ec4f`, including Singapore #913's rights-aware
 public/private cutover, its sanitized database/output and its equivalent
 shared Daily baseline repairs. The additional cross-desk/style refusal tests
