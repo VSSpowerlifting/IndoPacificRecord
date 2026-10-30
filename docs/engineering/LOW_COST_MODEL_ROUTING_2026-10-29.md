@@ -1,215 +1,215 @@
-# Shared task-model routing — implementation candidate, not a cutover
+# Shared task-model routing — qualification complete; replacement not qualified
 
-29 October 2026. No paid calls, production writes, activation or publication in
-this implementation. Neither tested cheaper candidate is factually qualified.
-The incumbent models therefore remain the production defaults.
+30 October 2026. PR #919 preserves the implementation for review. Revised-prompt
+Haiku 5.5 still introduces source errors, including in the preregistered holdout.
+**No task is qualified for replacement. Production configuration stays unchanged.**
+Sonnet also produces errors; retaining it does not certify its factual accuracy.
+No merge, schedule change, production write, canary or publication is authorized
+or performed by this task. Stop after qualification and the verified PR.
 
-| Task | Default | Independent override |
+## Concrete task configuration
+
+| Task | Retained production model | Configuration |
 |---|---|---|
-| Relevance | `claude-haiku-4-5-20251001` | `RELEVANCE_MODEL` |
-| Full translation | `claude-sonnet-4-6` | `TRANSLATION_MODEL` |
-| Summary and desk summary/flag/event type | `claude-sonnet-4-6` | `SUMMARY_MODEL` |
-| Separate China categories/flag | `claude-sonnet-4-6` | `CATEGORIZATION_MODEL` |
+| Relevance | `claude-haiku-4-5-20251001` | `RELEVANCE_MODEL` default |
+| Full translation | `claude-sonnet-4-6` | `ANALYSIS_MODEL` default; `TRANSLATION_MODEL` empty |
+| Summary / desk summary, flag and event type | `claude-sonnet-4-6` | `SUMMARY_MODEL` empty |
+| Separate China categories and flag | `claude-sonnet-4-6` | `CATEGORIZATION_MODEL` empty |
+| Optional task fallback | Disabled | `FALLBACK_MODEL` empty |
 
-Empty task overrides inherit `ANALYSIS_MODEL`, whose default remains Sonnet 4.6.
-Title-only translation keeps its existing model and independent activation.
-`FALLBACK_MODEL` is empty by default; an authorized canary can explicitly select
-`claude-sonnet-4-6`. No repository variable was changed by this work.
+Empty task overrides inherit `ANALYSIS_MODEL`. Title-only translation keeps its
+existing model and independent activation. No repository variable was changed.
+No task set passes factual qualification, so **qualified/realized production
+savings are 0%** and cost per factually accepted record is not established.
 
-## Existing path and changed behavior
+## Existing path and implementation
 
-Collectors, source custody and intake policies remain upstream of the existing
-queue. `pipeline.py` screens through `Analyzer.analyze_record`, stores partial
-relevance for retries, and writes completed analysis with `storage.db` before
-calling `site/render.py`. China translates then summarizes and categorizes in
-parallel. English desks skip translation and combine summary/flag; Vietnam and
-Korea keep their language profiles, event vocabularies and existing QA holds.
-Unknown/held desks keep their existing dispatch and publication gates.
+Collectors, custody and source-use policies remain upstream of the existing
+queue. `pipeline.py` calls the shared `Analyzer.analyze_record`, stores partial
+relevance for retries, and persists completed analysis through `storage.db` before
+`site/render.py`. China translates then summarizes and categorizes in parallel.
+English desks skip translation; other desks keep their language profiles,
+combined summary/flag schemas, terminology, QA and independent activation gates.
 
-The shared Analyzer now resolves a model for each task, through the existing
-Anthropic Messages requests. Haiku 5.5 retains its already implemented disabled
-thinking/high effort request, without sampling fields. No provider adapter or
-second processing pipeline was added. `gpt-6-luna` is the exact evaluated Luna
-Responses model ID; it is not an Anthropic alias and is not added here.
-Provider settings/prices were checked against the official
-[migration guide](https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide)
+The existing Anthropic Messages interface now supports independent task models
+and optional task-local fallback. Context is copied to concurrent workers, and
+actual attempted analysis models are retained in the existing `model_id` TEXT
+field. Relevance retains its task/model usage rows. Rejected categories keep a
+record incomplete instead of storing its summary with a silent empty taxonomy.
+Source-specific spend wrappers validate the resolved model before dispatch.
+No new provider, corpus, renderer, DB schema or routing framework was added.
+
+Invalid values, truncation/refusal, connection/status errors and detectable
+fidelity failures can attempt that task once on a different configured fallback.
+Fatal account errors propagate. Existing China JSON-summary repair remains inside
+each attempt. SDK transport retries are zero: application dispatches are visible
+to usage accounting. Exhaustion reaches the existing partial-result/retry/hold
+path. Production retains whole-record retries, not durable per-task checkpoints;
+exactly-once billing across an uncertain process crash is not guaranteed.
+
+China prompts advance to `v2-source-fidelity`, requesting complete sections,
+embedded English, exact names/ranks/dates/numbers, attribution and qualifiers.
+Translation additionally requests original graded NCO ranks and identifiable
+reporter bylines alongside English. Narrow deterministic checks reject missing
+anchors/years, unsupported simulated-submarine/live-fire language, and an
+unambiguous transfer-year change. These checks are incomplete: anchors do not
+prove the adjacent English is correct, and omission from a summary does not
+qualify a chronology challenge. The evaluation below demonstrates guard misses
+and excessive holds; no general source-fidelity certification is claimed.
+
+Haiku uses the existing disabled-thinking/high-effort request configuration.
+Exact evaluated Luna ID was `gpt-6-luna` through Responses/native JSON, not an
+Anthropic alias. Its prior factual failures remain; no new provider research or
+Luna generation was performed. Existing provider request/pricing references are
+[Haiku migration](https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide)
 and [pricing](https://platform.claude.com/docs/en/about-claude/pricing).
 
-Rejected values, truncation/refusal, connection/status failures and detectable
-fidelity failures can retry that task once on a different configured fallback.
-Fatal account errors propagate immediately. Existing China JSON-summary repair
-remains inside each attempt. SDK transport retries are now zero, so every
-application dispatch has a ledger entry; requests are not silently retransmitted.
-A failed fallback reaches the existing partial-result/retry/hold path. Rejected
-categorization now also prevents completion, rather than persisting its summary
-with a silently empty taxonomy/false flag. No DB schema change is needed.
+## CI failures resolved before paid dispatch
 
-Task-local context keeps concurrent workers' primary/fallback choices separate.
-Actual attempted analysis models are retained in the existing `model_id` TEXT
-field: one model ID for single-model work, sorted `task=model` entries for mixed
-work. Relevance retains separate task/model usage rows. Accepted records leave
-the existing queue; incomplete records retain the existing whole-record retry
-policy and reversible attempt limit. This does not create durable per-stage
-checkpoints or guarantee exactly-once billing across an uncertain process crash.
+Initial CI [40961085191](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40961085191)
+at `22f54b0f0b` failed eight assertions after 8,263 tests. One was introduced here:
+the exact workflow-environment test lacked the new model variables. It now checks
+both the approved key set and exact mappings/defaults. Seven failures reproduced
+on archived original base `58b35065`: 59 selected tests, seven failures, while the
+old environment contract passed. They concern moving census fixtures,
+Philippines explanation expectations and authored-versus-released machine prose.
 
-Source-specific private spend wrappers check the resolved model **before**
-reservation/dispatch. They retain their authorized routes, prices, token/call
-ceilings and rejection behavior. An override or fallback cannot acquire a new
-source-use/model permission. Korea's downstream translation QA can still hold
-content without an extra model call. Article caps and independent desk switches
-are unchanged; no new model schedule is introduced.
+With the existing repair owner's confirmation, #918 commits `213eb1a508` and
+`a90cb8d9c5` were reused with authorship, including its PR-only Ubuntu runner pin.
+No competing repair or weakened check was substituted. Main `301bb766e2`'s newer
+metadata admissions were retained. Combined implementation `5b0eef1ab27582117522442c43a01dcc6feb9fa6`
+passed mandatory CI [41011436993](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41011436993)
+**before any new paid dispatch**: 8,267 tests, 15 skips, Chromium, isolated
+production render and validator with 10 governed warnings, unchanged tracked
+DB/output and no SQLite sidecars. Final documentation changes require the PR's
+checks at their own exact head; earlier-head success is not final-head evidence.
 
-## Narrow factual protections
+## Frozen revised-prompt comparison
 
-China prompts now request exact names, numbers, dates, quotation boundaries,
-byline affiliations, distinct rank grades, all sections and embedded English.
-China's prompt provenance advances to `v2-source-fidelity`. The translation
-contract additionally retains original graded NCO ranks and identifiable reporter
-bylines alongside English. Missing anchors or explicit source years reject a
-full translation. Old responses lacking anchors can therefore be held even when
-their English might otherwise be acceptable.
+Ben authorized one **new $3 TOTAL** allowance for both models, all failures,
+repairs and fallback, with a durable cumulative ledger. Earlier allowances were
+not reused. Evidence stays private at
+`/Users/benjaminyang/.codex/private/ipr-task-model-qualification-20261030-2c9e/`:
+`manifest.json`, `source-review.json`, `results.json`, `review.json`,
+`budget.sqlite`, `usage-audit.json`, `restart-receipt.json`, and `REPORT.md`.
 
-Small deterministic checks reject unsupported simulated/mock/notional submarine
-qualifiers, unsupported live-fire, and an unambiguous transfer-year change.
-They apply to summaries, flag reasoning and relevance as appropriate; source
-rank/byline requirements apply only to full translations of matching Chinese
-source text. Other desks retain their source-specific terminology and QA.
+Manifest SHA-256:
+`da5e924f2570a0571195823c814170f53c20fc6f80e98de4bc6b005762b036f6`.
+It pins code, exact inputs and harness before generation. Ten frozen China
+challenges: 5655, 5754, 5748, 5652, 5755, 5742, 5667, 5704, 5664, 5753.
+Three holdouts, selected from metadata before generation and absent from prior
+evaluation: 5811 (anniversary notice), 5820 (Ghana hospital-ship report), 5816
+(long scientist profile). They were previously processed in Daily; their prior
+model outputs were not used in selection or review. This is a holdout from the
+prior evaluation, not a claim that these are new production records.
 
-These checks do **not** verify arbitrary names, affiliation alignment, every
-number, quotation semantics, completeness, or all chronology. Preserving source
-anchors does not prove the adjacent English is correct. Omitting chronology in
-a summary does not qualify that chronology challenge. The revised prompts have
-not been generated against a real model. No factual acceptance is inferred from
-schema success, source anchors, baseline agreement or offline replay.
+Only currently permitted China versions were sent. Coordination with the
+Singapore permission owner confirmed that October 29's two-link grant does not
+authorize commercial Anthropic processing. **No new Singapore generation** was
+performed. Historical Singapore artifacts remain offline evidence only. No
+Singapore rights migration was pulled into this PR.
 
-## Preserved evidence and offline results
+Both models received revised prompts and identical frozen originals. Whole-path
+order alternated by record. Separate translation ran even for screened-out
+records. Summary/category isolation used the same revised Sonnet English for
+both models, and every judgment was checked against the Chinese original, not
+model agreement. A held Sonnet translation used as an isolation control remained
+held; it was not cleared for admission. Actual Haiku-own-English path outputs
+were also inspected. Review is unblinded agent source inspection, not independent
+human bilingual acceptance or a population error-rate estimate.
 
-Frozen evaluation manifest SHA-256:
-`bda59247ed4f264181ea482d1a1556599c620e7dffa2e26761391c8797daca35`.
-The original private Sonnet/Haiku and Luna evaluations were read, never changed.
+## Task findings and guard failures
 
-Replay all 111 stored Anthropic responses through the revised Analyzer:
+| Task | Revised Haiku 5.5 evidence | Revised Sonnet 4.6 evidence / limit |
+|---|---|---|
+| Relevance | Scores the military Information Support Force unit feature 5742 at 0.50, filtering it; no demonstrated replacement advantage | Scores it 0.72; this is a comparison concern, not a human-adjudicated false-negative rate. Experimental reference uses Sonnet relevance, whereas production uses Haiku 4.5 |
+| Translation | 9/13 accepted by code, 4 held. Accepted 5754 adds rappelling and strengthens should to will; 5742 invents home medical visits. Holdout 5820 changes Tema to Takoradi, propagated into its own-input summary | 10/13 accepted, 3 byline holds. 5748/5755 have correct English reporter affiliations and no material defect found in their full inspected bodies: excessive holds under the new anchor contract. 5655's byline alarm is excessive on that span, but its output independently misspells Songmaoling. Accepted 5754 misspells Niu Yusen; 5667 misidentifies ancient Song as a dynasty |
+| Summary on common English | 13/13 accepted by code, yet 5755 invents the base's Central Plains location; 5704 excludes a senior/uniformed representative without source support; holdout 5816 turns the report meeting into the conferral of the honor | 13/13 accepted, yet 5748 supplies an undisclosed space-tracking equipment function; 5704 adds a deliberate downgrade and South China Sea motive. Sonnet is not factual gold |
+| Categories / flags on common English | 13/13 structurally accepted, but unsupported `cyber_info` for holdout 5811 and logistics story 5755 conflicts with the enum's cyber operations/information warfare/SSF definition | 13/13 structurally accepted, but flag reasons invent first detailed reporting (5652) and representation-downgrade motives (5704) |
+
+Detected Haiku failures include 5652's unsupported live-fire and 5655/5748's
+rank/name/affiliation errors. Its 5755 translation also reverses a three-or-four
+people minimum versus a full-squad maximum. Missing source anchors caused three
+holds on each model; this is a contract check, not proof of factual failure.
+Sonnet's excessive holds were reviewed rather than counted as successful QA.
+Both models frequently exceed the requested summary length. The long translations
+were inspected at factual anchors and sections; no exhaustive completeness/pass
+rate is inferred. The private review records coverage and uncertainties.
+
+No unsupported tag or claim was excused because the stronger model agreed, and
+no absence of a first-ever flag was treated as proof of accuracy. Prompts were
+not retuned or regenerated after viewing the registered holdout. Translation,
+summary and categories each have their own negative qualification decision.
+Relevance retains its inexpensive incumbent; this sample does not qualify a
+replacement. Narrow code checks improve detection but still admit known types
+of error. Fallback cannot fix a factual error that the guards do not detect.
+
+## Actual cost, fallback and repeated work
+
+All **119 unique paid responses** settled; no unknown dispatch remains. Returned
+model IDs match requests: 67 Haiku / 52 Sonnet. Returned-usage pricing through the
+repository's existing table totals **$1.054463875**; conservative ledger charge
+including its buffer is **$1.159910286**, below $3. These are usage-priced amounts,
+not a provider invoice. One forced summary repair, failed/held outputs and all
+fallback responses are included. The trial made no further dispatch after
+completion. Restart produced **zero new dispatches** and unchanged ledger/results.
+
+| Measured whole model path, 13 records | Sonnet-only reference | Haiku primary + Sonnet fallback |
+|---|---:|---:|
+| Code-complete / relevance-filtered / post-screen held | 9 / 1 / 3 | 8 / 2 / 3 |
+| Tasks attempted | 43 | 40 |
+| Tasks using fallback | 0 | 4 (10.0%) |
+| Records using fallback | 0 | 4 (30.8%) |
+| Response events including repair/fallback | 43 | 45 |
+| Usage-priced whole-path cost | $0.734271000 | $0.223862975 |
+| Cost / code-complete record, **not factual acceptance** | $0.081586 | $0.027983 |
+
+The observed candidate path costs **69.51% less** in total, or 65.70% less per
+code-complete record, than this experimental Sonnet-only reference. It processed
+a different number of records because relevance decisions differed, and includes
+Sonnet relevance rather than the incumbent Haiku 4.5. It is **not** a measured
+saving against the current production mix or a quality-adjusted saving. These
+are actual returned path responses, not the earlier hypothetical 25% fallback.
+No daily rollout projection is warranted from this failed, small China sample.
+
+Exact-request response reuse avoids rebilling overlapping isolation/comparison
+conditions: 47 logical response reuses overall. In execution order, reference
+paths made 40 fresh dispatches and reused 3; candidate paths made 44 and reused 1.
+Each path cost counts every response it needed at its returned usage, including
+shared responses; do not sum paths as the unique paid-trial total. The remainder
+of the paid trial covers isolated/control tasks outside those screened paths.
+The private ledger records reservations, settlement and request hashes across
+restart; this does not add production stage persistence. No record was admitted
+or published by the paid harness. There is no qualified accepted-record cost
+denominator and no realized replacement saving.
+
+## Verification, evidence preservation and rollback
+
+Offline coverage includes mixed models/provenance, fallback success/exhaustion,
+charging rejected output, fatal errors, private resolved-model budget holds,
+rollback and existing desk regressions. A scripted production-pipeline fixture
+runs rejection → pending SQLite → restart → accepted mixed-model SQLite →
+disposable production render → repeat with no new dispatch/duplicate completed
+record. It is offline integration, not live collector/model/publication evidence.
+The paid harness uses the same Analyzer but does not write production storage.
+
+The old 111-response Anthropic artifacts and native-Luna artifacts are preserved
+unchanged. Old replay remains available without key/network/client construction:
 
 ```sh
 .venv/bin/python -m tests.replay_model_evaluation \
   --evidence-dir /Users/benjaminyang/.codex/private/ipr-sonnet-haiku-eval-20261028-c73e
 ```
 
-This verifies input hashes, uses no key/network/client construction, emits no
-source prose, and prices returned usage through the existing ledger/table.
-Responses were generated under the **old** prompts; this is rejection-code
-regression evidence, not live qualification of revised prompts.
+Those responses predate revised prompts; their replay is regression evidence,
+not this qualification. Production DB, output, sidecars, usage history,
+permissions and repository variables were not changed. Final PR verification
+must use its exact-head checks. No merge or public-site readback is claimed.
 
-| Model / task | Accepted by revised code | Held by revised code |
-|---|---:|---:|
-| Sonnet relevance | 12 | 0 |
-| Sonnet translation | 7 | 3 |
-| Sonnet summary | 12 | 0 |
-| Sonnet categories | 10 | 0 |
-| Haiku relevance | 10 | 2 |
-| Haiku translation | 7 | 3 |
-| Haiku own-input summary | 11 | 1 |
-| Haiku controlled-English summary | 8 | 2 |
-| Haiku own-input categories | 10 | 0 |
-| Haiku controlled-English categories | 10 | 0 |
-
-Haiku's eight held outcomes include live-fire in 5754 relevance/summary,
-malformed relevance and the submarine qualifier in 5652, missing anchors in
-5755/5748/5655 translations, and the 5748 transfer-year swap. The three Sonnet
-translation holds are missing anchors under the new contract, not proof of three
-English factual errors. The new qualifier check also rejects native-schema
-Luna's preserved 5652 summary. Other documented factual defects remain beyond
-these narrow checks. Neither model's acceptance counts are factual pass rates.
-Categories have structural acceptance here; their factual qualification remains
-unresolved. The prior category agreement of 5/10 and flag agreement of 8/10 are
-not accuracy against source truth. No human-accepted-record denominator exists.
-
-Replay prices reproduce Sonnet $0.712149 across 45 responses and Haiku $0.040844
-across 66, including original repairs and controlled tasks. In the original
-matched workload, Haiku cost $0.030723370 versus Sonnet $0.712149000, or 95.69%
-less before any new cross-model fallback. Translation alone cost $0.016414400
-versus $0.389031000. Matched controlled-English summary/category cost was
-$0.010786375 versus $0.223965000. These are returned-usage estimates, not invoices.
-
-For a **hypothetical** workload with this sample's task/token mix, retaining
-all cheap attempts and adding baseline-cost fallback for a cost-weighted share
-`f` yields cost `0.030723370 + f * 0.712149000` per 12-record sample. At 25%
-fallback the projected saving is 70.69%; the 50% target requires `f <= 45.69%`.
-This assumes comparable fallback usage/caching and excludes new-prompt token
-changes and correction labor. No observed fallback frequency or quality-adjusted
-cost per accepted record exists for the revised configuration. Production cost
-reduction from this implementation is **0% until a qualified cutover**.
-
-The existing usage history also supplies actual Daily workload sizes. A separate
-illustrative scenario uses the four completed 26–29 October runs, retains
-incumbent title-only costs, assumes 30% more tokens for the candidate and all
-candidate requests in the <=100k band, then adds Sonnet fallback at 25% of each
-switched task's token volume. Relevance fallback is priced as Sonnet, not as the
-cheaper incumbent relevance model. All prices use `estimate_usage_cost_usd`.
-
-| Daily date | Actually analyzed | Recorded baseline | Projected with fallback | Projected saving |
-|---|---:|---:|---:|---:|
-| 26 October | 23 | $1.075084 | $0.420057 | 60.93% |
-| 27 October | 23 | $1.404893 | $0.519922 | 62.99% |
-| 28 October | 19 | $1.034471 | $0.409932 | 60.37% |
-| 29 October | 33 | $1.415910 | $0.516817 | 63.50% |
-
-This is a sensitivity estimate, not a forecast or observed saving. Aggregated
-usage cannot establish each request's candidate price band, actual token uplift,
-new-prompt cost or fallback frequency. Source/model authorizations and all four
-tasks would have to qualify for this scenario. It does not change a held desk's
-eligibility or provide a cost-per-factually-accepted-record denominator.
-
-Focused checks cover mixed models and attribution, fallback success/exhaustion,
-usage of rejected responses, fatal errors, resolved-model private budget holds,
-configuration rollback and existing desk regressions. A scripted production
-pipeline test exercises rejection → pending SQLite row → restart → accepted
-mixed-model SQLite row → production renderer in a disposable directory →
-second run with no new model dispatch or duplicate record. It omits unrelated
-dossiers whose cited records are absent from its tiny fixture. This is offline
-integration, not genuine collector/model execution or HTTPS publication.
-
-## Release gate and immediate rollback
-
-Ben has granted a **new $3 TOTAL qualification allowance**, covering both
-models, failed requests, repairs and fallback under a durable cumulative ledger.
-He requires resolution of #919 CI before paid dispatch, fair revised-prompt
-comparison on frozen challenges plus a preregistered previously unevaluated
-holdout, source inspection of accepted outputs, false-hold accounting for Sonnet,
-and measured complete-pipeline cost/fallback/repeated work. Production must remain
-unchanged, and this task stops after qualification and the verified PR.
-No paid dispatch has occurred yet.
-The prior $3 Anthropic and $1 Luna experiment allowances are not reusable spending
-permission. Resolve factual acceptance independently for each task; retain the
-incumbent for any task that fails. Exact-head mandatory PR CI is an engineering
-gate, not a model-quality approval or merge/publication authorization.
-
-The following remains an operator reference, not part of this task's now-limited
-release authority. After quality and separate release authority exist, select only qualified task overrides
-and Sonnet fallback using the already scheduled Daily's repository variables;
-use its existing cap for the authorized canary. Verify actual task/model usage,
-accepted SQLite versions, generated public records where eligible, and HTTPS
-readback before expansion. A skipped/green workflow is insufficient evidence.
-No held desk or source permission changes with this model configuration.
-
-Rollback requires no new deployment: clear `TRANSLATION_MODEL`, `SUMMARY_MODEL`,
-`CATEGORIZATION_MODEL` and `FALLBACK_MODEL`; restore/clear `ANALYSIS_MODEL` to
-Sonnet 4.6 and `RELEVANCE_MODEL` to Haiku 4.5. This affects the next process/run;
-it does not cancel in-flight requests or rewrite previously stored records.
-
-## Exact-head CI failure separation and existing repair integration
-
-Initial #919 CI `40961085191` ran 8,263 tests and failed eight assertions at
-`22f54b0f0b` / base `58b35065`. The new workflow environment keys caused one
-introduced failure. Its exact-key and exact-value/default contract is now updated;
-no environment guard was removed. Seven other failures reproduce on a disposable
-archive of the original base: 59 selected tests, seven failures, with the old
-environment contract passing. They concern the moving corpus-count census
-fixture, Philippines-only explanation expectations, and exact released machine
-prose exclusions from authored spelling checks.
-
-The existing repair owner explicitly confirmed reuse of #918 source/test commit
-`213eb1a508` and PR-only runner-pin commit `a90cb8d9c5`. Those changes are integrated
-with their original authorship; no competing fix, production content edit, or
-check weakening is substituted here. Main `301bb766e2`'s later metadata admissions
-are retained. The combined revision must receive new full CI before dispatch.
+Rollback for any separately authorized future activation: clear
+`TRANSLATION_MODEL`, `SUMMARY_MODEL`, `CATEGORIZATION_MODEL`, `FALLBACK_MODEL`;
+restore/clear `ANALYSIS_MODEL` to Sonnet 4.6 and `RELEVANCE_MODEL` to Haiku 4.5.
+It affects the next process and cannot cancel in-flight calls or rewrite records.
+The remaining blocker to cheaper unattended processing is demonstrated factual
+quality, including guard-missed holdout errors. This task grants no further
+spend, framework work, merge, activation or publication.

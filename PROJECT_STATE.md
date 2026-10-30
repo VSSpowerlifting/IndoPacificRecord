@@ -1,41 +1,46 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Low-cost task routing — review candidate, cutover held (29 October 2026)
+## Low-cost task routing — qualification complete; no replacement qualified (30 October 2026)
 
-The shared Analyzer now has independent translation/summary/category overrides,
-optional task-local fallback, actual mixed-model provenance, no hidden SDK
-retries, and narrow source-fidelity rejection checks. Source-specific spend
-wrappers validate the resolved model; categorization failure keeps the record
-pending. Daily exposes configuration variables for a future approved canary and
-immediate model rollback. Defaults remain Haiku 4.5 relevance / Sonnet 4.6 for
-translation, summary and categories. No variable, source permission, production
-DB, generated output, canonical sidecar or usage-history change was made.
+PR #919 adds independent task overrides, optional task-local fallback, mixed-model
+provenance, explicit dispatch accounting, narrow source-fidelity checks and
+resolved-model private-budget checks through the existing shared Analyzer.
+Defaults stay Haiku 4.5 relevance and Sonnet 4.6 translation/summary/categories;
+task overrides/fallback remain empty. Production variables, DB, output, canonical
+sidecars, usage history, permissions and schedules are unchanged. No merge,
+canary, production admission or publication occurred.
 
-Neither `claude-haiku-5-5` nor evaluated `gpt-6-luna` is factually qualified by the
-preserved experiments. Offline replay consumes all 111 stored Anthropic responses
-with zero provider dispatches, reproduces usage costs, and holds eight Haiku
-outcomes plus three old Sonnet translations missing the new source anchors.
-The revised guard also holds native Luna's unsupported submarine qualifier.
-These are targeted rejection results, not factual certification or live testing
-of revised prompts. Production savings remain zero until qualification.
+Before paid dispatch, exact implementation `5b0eef1ab27582117522442c43a01dcc6feb9fa6`
+passed full CI 41011436993: 8,267 tests, 15 skips, isolated production render,
+validator's 10 governed warnings and unchanged tracked DB/output. One introduced
+workflow-environment assertion was fixed without dropping its exact contract;
+seven failures reproduced on original base `58b35065`. With its owner's
+confirmation, #918 repairs `213eb1a508` / `a90cb8d9c5` were reused with authorship.
+No competing repair was created. Final documentation must pass its own head CI.
 
-359 focused tests plus 254 subtests pass; a separate scripted production-pipeline
-contract passes rejection/restart → SQLite → disposable production render →
-no duplicate completed-row dispatch. Output validator passes with the 10 governed
-warnings. Initial PR #919 head `22f54b0f0b` full CI failed eight assertions: seven
-were reproduced on its original base `58b35065` (59-test selection), and one was
-this PR's new workflow variables missing from the exact environment test.
-That test now checks both the approved key set and exact variable/default values.
-With the repair owner's confirmation, #918's existing test repair `213eb1a508`
-and runner pin `a90cb8d9c5` are reused rather than independently rewritten.
-The branch also preserves main `301bb766e2`'s newer metadata admissions.
-Mandatory CI must pass at the final combined head. No merge, paid call,
-canary, live record or public-site readback is claimed. Ben subsequently granted one NEW $3 total qualification allowance for both
-models, failures, repairs and fallback, with a durable cumulative ledger. Paid
-dispatch is explicitly prohibited until PR #919 CI is resolved. The sample must
-include preregistered, previously unevaluated holdout records with current model-use
-permission. Production stays unchanged; stop after qualification and the verified
-PR. No earlier budget is reused. Details, replay command and rollback:
+Ben's NEW $3 TOTAL allowance produced 119 settled responses across revised-prompt
+Haiku 5.5 / Sonnet 4.6, failures, one summary repair and fallback: $1.054463875
+usage-priced, $1.159910286 conservative ledger charge. Frozen 10 China challenges
+plus three preregistered prior-evaluation holdouts; manifest SHA-256
+`da5e924f2570a0571195823c814170f53c20fc6f80e98de4bc6b005762b036f6`.
+Singapore's current link permission does not authorize new commercial-model
+processing, so no Singapore text was dispatched. Old artifacts remain unchanged.
+
+Source inspection separately rejects translation, summary and category replacement:
+Haiku's code-accepted holdout translation changes Tema to Takoradi; its common-English
+summary changes an honorific report meeting to an award conferral; a holdout gets
+unsupported cyber taxonomy. Sonnet also invents facts/flag reasons and incurs
+excessive byline holds. Structural validity and stronger-model agreement do not
+establish correctness. Relevance retains its inexpensive incumbent as well.
+
+Actual complete-path model costs: Sonnet-only experimental reference $0.734271
+versus Haiku + Sonnet fallback $0.223862975; fallback 4/40 attempted tasks (10%),
+4/13 records. The 69.51% experimental cost difference is not a saving against
+production's Haiku-4.5/Sonnet mix or factual acceptance. Code-complete counts 9/8
+are not factual pass counts. No task qualifies; realized/qualified savings 0%.
+Restart made zero new dispatches with unchanged ledger/results. No more paid calls
+or routing work are planned; stop after the verified PR. Private report/evidence,
+implementation limits, CI failure separation and rollback are documented in
 `docs/engineering/LOW_COST_MODEL_ROUTING_2026-10-29.md`.
 
 ## Korea delivery budget repair — review candidate (29 October 2026)
