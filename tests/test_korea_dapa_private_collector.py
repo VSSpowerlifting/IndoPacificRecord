@@ -31,7 +31,8 @@ ORIGINAL_TITLE = "제8회 국방사업관리사 국가자격검정, 역대 최�
 def document():
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as z:
-        z.writestr("Contents/section0.xml",
+        # A content-addressed fixture must not change at a ZIP clock boundary.
+        z.writestr(zipfile.ZipInfo("Contents/section0.xml"),
                    "<root><p><run><t>방위사업청 원문 첫 문단.</t></run></p></root>")
     return stream.getvalue()
 
