@@ -1,5 +1,13 @@
 # Roadmap — Indo-Pacific Record
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 Authoritative forward plan. **Replaces the 2026-07-11 frontend release
 sequence (R1–R5, tickets T1–T5)**, which was written before the rebrand, before
 the record architecture launched, and before either shadow desk existed. That

@@ -1,5 +1,13 @@
 # Philippines integration with shared Daily
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 Engineering candidate. Standing AFP processing/output policy is owner-approved
 (20 October); production merge/activation/deployment remain separately held.
 Started from public main `5ba03d04ec`; rebased onto `4509361d13` after Korea
