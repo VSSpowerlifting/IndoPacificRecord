@@ -143,6 +143,13 @@ guarded. No approved machine output, source evidence or generated page was edite
 These fixes passed 129 focused tests covering every failing group; full CI must
 pass the final head.
 
+The full offline run `40962294665` passed on `da309f68e3`. A separate
+Indonesia census contract failed in `setup-python`, before tests: the moving
+`ubuntu-latest` label selected Ubuntu 26.04, where Python 3.9 was unavailable.
+Only that pull-request job is pinned to `ubuntu-24.04`, matching the full CI
+runtime. The production enumeration job, schedules and credentials are unchanged.
+Required CI must also pass the final runner-pin revision.
+
 ## Historical exposure decision
 
 Confirmed: the public main baseline carries the original DB/source expression;
