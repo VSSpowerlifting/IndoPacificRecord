@@ -325,7 +325,17 @@ class VietnamExplanationReadbackTests(unittest.TestCase):
         self.assertIn("VIETNAM_DAILY_HANDOFF_ENABLED == 'true'", step)
         self.assertIn("--deployed-dir", step)
         self.assertIn("--vietnam-https", step)
-        self.assertIn("for attempt in 1 2 3", step)
+        # The wait must outlast a normal Pages build (22-71 s recorded) yet
+        # stay bounded, and exhausting it must still fail the run.
+        import re
+        loop = re.search(r"for attempt in \$\(seq 1 (\d+)\); do(.*?)\n\s*done", step, re.S)
+        self.assertIsNotNone(loop, "bounded retry loop is required")
+        attempts = int(loop.group(1))
+        pause = int(re.search(r"sleep (\d+)", loop.group(2)).group(1))
+        self.assertGreaterEqual(attempts * pause, 180)
+        self.assertLessEqual(attempts * pause, 600)
+        self.assertNotIn("|| true", step)
+        self.assertTrue(step.rstrip().endswith("exit 1"))
         self.assertIn("exit 1", step)
 
 

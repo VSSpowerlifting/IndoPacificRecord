@@ -1,5 +1,13 @@
 # Shadow collection
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 A shadow desk is a source under evaluation. It collects into isolated state so
 its reliability can be measured before anything it produces is treated as
 coverage. Nothing a shadow desk collects appears in the public site, in

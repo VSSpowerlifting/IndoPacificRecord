@@ -1,51 +1,45 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Low-cost task routing — qualification complete; no replacement qualified (30 October 2026)
+## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
-PR #919 adds independent task overrides, optional task-local fallback, mixed-model
-provenance, explicit dispatch accounting, narrow source-fidelity checks and
-resolved-model private-budget checks through the existing shared Analyzer.
-Defaults stay Haiku 4.5 relevance and Sonnet 4.6 translation/summary/categories;
-task overrides/fallback remain empty. Production variables, DB, output, canonical
-sidecars, usage history, permissions and schedules are unchanged. No merge,
-canary, production admission or publication occurred.
+The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
+definition in `core/daily_sources.py`: desk, custody ref, original language,
+public attribution, accepted prompt versions, first-party binding (reusing the
+regional link family table) and references to its evidence/quality/hold adapters.
+`processing/daily_intake.py`, `processing/daily_runner.py`,
+`core/daily_machine_records.py`, `processing/screening.py` and
+`scripts/fetch_daily_machine_outputs.py` no longer branch on a family name; the
+repeated prompt-version tuples, the three copies of the NSC category gate and the
+Kemhan-validator import inside common admission are gone. Unknown families fail
+closed instead of falling back to Philippines prompts. `REFS` remains as a view
+derived from the definitions because the private signer imports it.
 
-Before paid dispatch, exact implementation `5b0eef1ab27582117522442c43a01dcc6feb9fa6`
-passed full CI 41011436993: 8,267 tests, 15 skips, isolated production render,
-validator's 10 governed warnings and unchanged tracked DB/output. One introduced
-workflow-environment assertion was fixed without dropping its exact contract;
-seven failures reproduced on original base `58b35065`. With its owner's
-confirmation, #918 repairs `213eb1a508` / `a90cb8d9c5` were reused with authorship.
-No competing repair was created. During final review, main merged #913 at
-`034c94ec4f`; this branch inherits that source boundary and regenerated artifacts
-through base reconciliation, without task-authored DB/output changes. Existing
-checks and additional machine-prose/desk-scope regression assertions are retained.
-Final combined head must pass its own mandatory CI.
+No policy JSON byte, digest, hold reason, signature domain, schema, env-key name,
+model setting, workflow, migration, DB row or output changed; before/after
+projection of the six released machine records is identical. The only observable
+difference: `desk_for_source()` now returns `philippines` for the two PH
+families (was `None`); no article row uses them. Live flags are untouched.
+Remaining desks (Vietnam, Korea, Japan, US, China, Singapore) and Daily
+qualification/delivery separation remain separate engineering phases. The
+migration map documents this pilot's bounded scope. This candidate is not a
+production release or live-readback certification.
 
-Ben's NEW $3 TOTAL allowance produced 119 settled responses across revised-prompt
-Haiku 5.5 / Sonnet 4.6, failures, one summary repair and fallback: $1.054463875
-usage-priced, $1.159910286 conservative ledger charge. Frozen 10 China challenges
-plus three preregistered prior-evaluation holdouts; manifest SHA-256
-`da5e924f2570a0571195823c814170f53c20fc6f80e98de4bc6b005762b036f6`.
-Singapore's current link permission does not authorize new commercial-model
-processing, so no Singapore text was dispatched. Old artifacts remain unchanged.
+## Shared desk system — policy merged; runtime pilot tracked separately (30 October 2026)
 
-Source inspection separately rejects translation, summary and category replacement:
-Haiku's code-accepted holdout translation changes Tema to Takoradi; its common-English
-summary changes an honorific report meeting to an award conferral; a holdout gets
-unsupported cyber taxonomy. Sonnet also invents facts/flag reasons and incurs
-excessive byline holds. Structural validity and stronger-model agreement do not
-establish correctness. Relevance retains its inexpensive incumbent as well.
+Owner approved the three all-desk architecture recommendations. Canonical contract:
+`docs/desks/README.md`; current code boundaries and next phase:
+`docs/desks/MIGRATION.md`; bounded task template: `docs/desks/CHANGE_TEMPLATE.md`.
+Root Codex/Claude instructions, architecture/CI guidance and older desk procedures
+now point to that contract on main. All eight desks are covered.
+This policy-only change alters no executable, workflow, source policy, registry,
+DB, model setting, generated output or live activation. This was a policy-only merge. Runtime source-registration consolidation is
+tracked independently in PR #928; Daily retains its existing offline gate.
 
-Actual complete-path model costs: Sonnet-only experimental reference $0.734271
-versus Haiku + Sonnet fallback $0.223862975; fallback 4/40 attempted tasks (10%),
-4/13 records. The 69.51% experimental cost difference is not a saving against
-production's Haiku-4.5/Sonnet mix or factual acceptance. Code-complete counts 9/8
-are not factual pass counts. No task qualifies; realized/qualified savings 0%.
-Restart made zero new dispatches with unchanged ledger/results. No more paid calls
-or routing work are planned; stop after the verified PR. Private report/evidence,
-implementation limits, CI failure separation and rollback are documented in
-`docs/engineering/LOW_COST_MODEL_ROUTING_2026-10-29.md`.
+Next action: verify and merge the bounded AFP/NSC/Kemhan source-definition
+pilot (PR #928), then migrate the remaining desk paths in separate phases.
+Preserve original source authority, model budgets, custody and historical
+approvals; release and deployment remain separate decisions.
+
 
 ## Desks page frontend redesign — review candidate, PR open, not merged or deployed (29 October 2026)
 
@@ -1822,3 +1816,56 @@ All 17 opened Briefs use the shared article-media adapter and previous/next navi
   unless explicitly asked.
 * An edition is published only after the `EDITORIAL_QA_CHECKLIST.md` gate and a
   rendered-page review; where that was skipped, it is recorded, not implied.
+
+## Low-cost task routing — qualification complete; no replacement qualified (30 October 2026)
+
+PR #919 adds independent task overrides, optional task-local fallback, mixed-model
+provenance, explicit dispatch accounting, narrow source-fidelity checks and
+resolved-model private-budget checks through the existing shared Analyzer.
+Defaults stay Haiku 4.5 relevance and Sonnet 4.6 translation/summary/categories;
+task overrides/fallback remain empty. Production variables, DB, output, canonical
+sidecars, usage history, permissions and schedules are unchanged. No merge,
+canary, production admission or publication occurred.
+
+Before paid dispatch, exact implementation `5b0eef1ab27582117522442c43a01dcc6feb9fa6`
+passed full CI 41011436993: 8,267 tests, 15 skips, isolated production render,
+validator's 10 governed warnings and unchanged tracked DB/output. One introduced
+workflow-environment assertion was fixed without dropping its exact contract;
+seven failures reproduced on original base `58b35065`. With its owner's
+confirmation, #918 repairs `213eb1a508` / `a90cb8d9c5` were reused with authorship.
+No competing repair was created. During final review, main merged #913 at
+`034c94ec4f`; this branch inherits that source boundary and regenerated artifacts
+through base reconciliation, without task-authored DB/output changes. Existing
+checks and additional machine-prose/desk-scope regression assertions are retained.
+Head `93e86215bb` then passed CI 41069406872: 8,306 tests, 15 skips, isolated
+render/validation (10 warnings), unchanged tracked DB/output and no sidecars.
+While it ran, main advanced to `95c53909cf`, including the owner's shared-desk
+standard, source-definition pilot and valid Daily data. Those changes are
+inherited without changing frozen model code or regenerating paid output;
+final combined-head verification remains required. This snapshot is kept below
+existing entries to avoid conflicting with other tasks' new top-of-file updates.
+
+Ben's NEW $3 TOTAL allowance produced 119 settled responses across revised-prompt
+Haiku 5.5 / Sonnet 4.6, failures, one summary repair and fallback: $1.054463875
+usage-priced, $1.159910286 conservative ledger charge. Frozen 10 China challenges
+plus three preregistered prior-evaluation holdouts; manifest SHA-256
+`da5e924f2570a0571195823c814170f53c20fc6f80e98de4bc6b005762b036f6`.
+Singapore's current link permission does not authorize new commercial-model
+processing, so no Singapore text was dispatched. Old artifacts remain unchanged.
+
+Source inspection separately rejects translation, summary and category replacement:
+Haiku's code-accepted holdout translation changes Tema to Takoradi; its common-English
+summary changes an honorific report meeting to an award conferral; a holdout gets
+unsupported cyber taxonomy. Sonnet also invents facts/flag reasons and incurs
+excessive byline holds. Structural validity and stronger-model agreement do not
+establish correctness. Relevance retains its inexpensive incumbent as well.
+
+Actual complete-path model costs: Sonnet-only experimental reference $0.734271
+versus Haiku + Sonnet fallback $0.223862975; fallback 4/40 attempted tasks (10%),
+4/13 records. The 69.51% experimental cost difference is not a saving against
+production's Haiku-4.5/Sonnet mix or factual acceptance. Code-complete counts 9/8
+are not factual pass counts. No task qualifies; realized/qualified savings 0%.
+Restart made zero new dispatches with unchanged ledger/results. No more paid calls
+or routing work are planned; stop after the verified PR. Private report/evidence,
+implementation limits, CI failure separation and rollback are documented in
+`docs/engineering/LOW_COST_MODEL_ROUTING_2026-10-29.md`.

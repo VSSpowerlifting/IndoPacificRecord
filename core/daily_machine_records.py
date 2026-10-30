@@ -3,7 +3,8 @@ import hashlib
 import json
 
 from scripts.reconcile_db import read_only
-from processing.daily_intake import REFS, digest, load_policy, validate_output
+from core.daily_sources import source_for
+from processing.daily_intake import load_policy, validate_output
 
 
 def load(db_path):
@@ -17,7 +18,8 @@ def load(db_path):
         for values in conn.execute("SELECT " + ",".join(columns) + " FROM daily_machine_records WHERE publication_state='released'"):
             r = dict(zip(PUBLIC_FIELDS, values))
             family = r["source_family"]
-            if family not in REFS:
+            source = source_for(family)
+            if source is None:
                 continue
             p = policy["sources"][family]
             if r["source_identity"] in p["excluded_source_identities"]:
@@ -32,20 +34,13 @@ def load(db_path):
                 "WHERE source_family=? AND source_identity=?", (family, r["source_identity"])).fetchone()
             if not link or link[2] != r["metadata_version_sha256"]:
                 continue
-            if family == "ph_nsc_official_statements":
-                from core.ph_nsc_official_link_admission import load_policy as nsc_policy
-                if not nsc_policy()["category_anomaly_resolved"]:
-                    continue
-            label, publisher, desk = {
-                "ph_afp_articles": ("AFP", "Armed Forces of the Philippines", "philippines"),
-                "ph_nsc_official_statements": ("NSC", "National Security Council", "philippines"),
-                "id_kemhan_news": ("Kemhan", "Kementerian Pertahanan Republik Indonesia", "indonesia"),
-            }[family]
+            if source.release_hold():
+                continue
             path = "record/source-" + hashlib.sha256((family + ":" + r["source_identity"]).encode()).hexdigest()[:24] + ".html"
-            result.append({**r, "record_path": path, "source_label": label,
+            result.append({**r, "record_path": path, "source_label": source.label,
                            "url": link[0], "published_date": link[1],
-                           "publisher": publisher,
-                           "issuer": ("Armed Forces of the Philippines" if label == "AFP" else None), "desk_id": desk,
+                           "publisher": source.publisher,
+                           "issuer": source.public_issuer, "desk_id": source.desk_id,
                            "machine_only": True})
     return sorted(result, key=lambda r: (r["published_date"], r["source_identity"]), reverse=True)
 

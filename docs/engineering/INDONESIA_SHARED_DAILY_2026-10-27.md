@@ -1,5 +1,13 @@
 # Kemhan Berita shared Daily — authorized release, 27 October 2026
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 The owner approved the narrow standing source-use, spending and controlled
 release decision on 27 October 2026; see `DECISION_LOG.md`. Public #891 merged
 as `455a1c73f58cf4d8bd0f41474b94a0dd14ee5114`; private #26 merged as

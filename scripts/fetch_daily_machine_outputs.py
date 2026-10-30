@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 import subprocess
 
-from processing.daily_intake import REFS, load_policy
+from core.daily_sources import SOURCES
+from processing.daily_intake import load_policy
 
 
 def main():
@@ -18,7 +19,7 @@ def main():
     policy = load_policy()
     target = Path(os.environ["IPR_DAILY_INTAKE_DIR"])
     target.mkdir(parents=True, exist_ok=True)
-    for family in REFS:
+    for family in SOURCES:
         p = policy["sources"][family]
         if not all(p[k] for k in ("private_model_processing", "public_machine_explanation", "unattended_release")):
             continue

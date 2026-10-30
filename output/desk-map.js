@@ -1,36 +1,60 @@
-/* One selection shared by HTML controls, real countries, seats and entries.
-   Country/point anchors and the complete register work without this script. */
+/* One selection shared by the map markers, the countries, the panel's index and
+   the desk summaries. Every control is an anchor to its summary, so the page
+   works without this script; here they become a selector that fills the panel
+   from the summary and scope entry already on the page (nothing is rewritten
+   or invented), and Escape clears it. */
 (()=>{'use strict';
 const map=document.querySelector('.deskmap');if(!map)return;
-const controls=map.querySelector('.deskmap-controls'),buttons=[...map.querySelectorAll('[data-select-desk]')],reset=map.querySelector('.deskmap-reset'),status=map.querySelector('[role=status]');
-const entries=[...map.querySelectorAll('.deskmap-plate')];
-function select(slug,fromMap=false,updateURL=false){
-  const entry=entries.find(e=>e.dataset.desk===slug);if(slug&&!entry)return;
-  for(const e of map.querySelectorAll('[data-desk]'))e.classList.toggle('is-selected',e.dataset.desk===slug);
-  for(const b of buttons)b.setAttribute('aria-pressed',String(b.dataset.selectDesk===slug));
-  reset.setAttribute('aria-pressed',String(!slug));
-  for(const e of entries)e.querySelector('.deskmap-selected-label').hidden=e!==entry;
-  map.classList.toggle('has-selection',!!entry);
-  map.querySelector('.deskmap-context-default').hidden=!!entry;
-  for(const c of map.querySelectorAll('[data-context-desk]'))c.hidden=c.dataset.contextDesk!==slug;
-  status.textContent=entry?entry.querySelector('h2').textContent.trim()+' · '+entry.querySelector('.desk-state').textContent.trim()+' · Records: '+entry.querySelector('.deskmap-stats dd').textContent.trim(): 'All declared desks. Select a country, point or desk name.';
-  if(updateURL)history.replaceState(null,'',location.pathname+location.search+(slug?'#desk-'+slug:''));
-  if(fromMap&&matchMedia('(max-width:900px)').matches){
-    const b=buttons.find(b=>b.dataset.selectDesk===slug);b.focus({preventScroll:true});
-  }
+const detail=map.querySelector('.deskmap-detail'),hint=detail.innerHTML;
+const plates=new Map([...map.querySelectorAll('.deskmap-plate')].map(p=>[p.dataset.desk,p]));
+const pickers=[...map.querySelectorAll('.dm-anchor,[data-pick]')];
+const stacked=matchMedia('(max-width:599px)');
+let current='';
+function build(slug){
+  const plate=plates.get(slug),scope=document.getElementById('scope-'+slug);
+  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
+  const root=el('div','deskmap-sel');
+  const head=el('p','deskmap-sel-name');
+  head.append(plate.querySelector('.deskmap-flag-tab').cloneNode(true),plate.querySelector('h3').textContent.trim());
+  root.append(head,plate.querySelector('.deskmap-marks').cloneNode(true),plate.querySelector('.deskmap-seat').cloneNode(true),plate.querySelector('.deskmap-stats').cloneNode(true));
+  const paras=scope?scope.querySelectorAll('dd>p:not(.card-foot)'):[];
+  if(paras[0])root.append(el('p','deskmap-sel-scope',paras[0].textContent));
+  if(paras[1])root.append(el('p','deskmap-sel-limit',paras[1].textContent));
+  const actions=el('p','deskmap-sel-actions'),enter=plate.querySelector('.deskmap-enter a').cloneNode(true);
+  enter.className='btn btn--primary';enter.textContent='Enter desk →';
+  const full=el('a','',scope?'Full scope and limits':'');full.href='#scope-'+slug;
+  actions.append(enter);if(scope)actions.append(full);
+  root.append(actions);return root;
 }
-controls.hidden=false;
-buttons.forEach(b=>b.addEventListener('click',()=>select(b.dataset.selectDesk,false,true)));
-reset.addEventListener('click',()=>select('',false,true));
-map.querySelectorAll('.dm-country,.dm-anchor').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();select(a.dataset.desk,true,true)}));
-controls.addEventListener('keydown',e=>{
-  const all=[...buttons,reset],i=all.indexOf(e.target);if(i<0)return;
-  let next;if(e.key==='ArrowRight'||e.key==='ArrowDown')next=(i+1)%all.length;
-  if(e.key==='ArrowLeft'||e.key==='ArrowUp')next=(i+all.length-1)%all.length;
-  if(e.key==='Home')next=0;if(e.key==='End')next=all.length-1;
-  if(next!==undefined){e.preventDefault();all[next].focus()}
+function select(slug,{url=true,scroll=false}={}){
+  if(slug&&!plates.has(slug))slug='';
+  current=slug;
+  for(const n of map.querySelectorAll('[data-desk]')){
+    const on=n.dataset.desk===slug;n.classList.toggle('is-selected',on);
+    if(n.hasAttribute('aria-pressed'))n.setAttribute('aria-pressed',String(on));
+  }
+  map.classList.toggle('has-selection',!!slug);
+  if(slug){detail.replaceChildren(build(slug));if(scroll&&detail.getBoundingClientRect().top>innerHeight*.8)detail.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'})}
+  else detail.innerHTML=hint;
+  if(url)history.replaceState(null,'',location.pathname+location.search+(slug?'#desk-'+slug:''));
+}
+for(const a of pickers){a.setAttribute('role','button');a.setAttribute('aria-pressed','false');a.setAttribute('aria-controls','deskmap-detail')}
+detail.id='deskmap-detail';
+map.addEventListener('click',e=>{
+  const t=e.target.closest('.dm-anchor,.dm-country,[data-pick]');if(!t||!map.contains(t))return;
+  /* On a phone there is no panel: markers and names are links to the summaries below. */
+  if(stacked.matches)return;
+  e.preventDefault();
+  select(t.dataset.desk===current&&!t.matches('.dm-country')?'':t.dataset.desk,{scroll:true});
 });
-map.addEventListener('keydown',e=>{if(e.key==='Escape'){select('',false,true);reset.focus({preventScroll:true})}});
-function fromHash(){if(location.hash.startsWith('#desk-'))select(location.hash.slice(6))}
+map.addEventListener('keydown',e=>{
+  if(e.key===' '&&e.target.matches('.dm-anchor,[data-pick]')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}))}
+  if(e.key==='Escape'&&current){const was=map.querySelector('.is-selected[data-pick]')||map.querySelector('.is-selected.dm-anchor');select('');if(was)was.focus({preventScroll:true})}
+});
+/* Pointer or keyboard attention on any one of a desk's marks lights the rest. */
+const light=(e,on)=>{const t=e.target.closest&&e.target.closest('[data-desk]');if(!t)return;for(const n of map.querySelectorAll('[data-desk="'+t.dataset.desk+'"]'))n.classList.toggle('is-hover',on)};
+map.addEventListener('pointerover',e=>light(e,true));map.addEventListener('pointerout',e=>light(e,false));
+map.addEventListener('focusin',e=>light(e,true));map.addEventListener('focusout',e=>light(e,false));
+function fromHash(){const m=/^#desk-([\w-]+)$/.exec(location.hash);if(m&&plates.has(m[1])&&!stacked.matches)select(m[1],{url:false})}
 addEventListener('hashchange',fromHash);fromHash();
 })();

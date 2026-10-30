@@ -112,7 +112,13 @@ Singapore processing was added by this task. During final review, main merged
 artifacts; this task authors no DB/output changes relative to the new base.
 Existing assertions and the additional machine-prose/desk-scope tests are retained;
 mandatory CI must pass the reconciled final head. The frozen paid trial remains
-pinned to `5b0eef1ab2` and was not rerun or repriced after this base update.
+pinned to `5b0eef1ab2` and was not rerun or repriced after base updates.
+Head `93e86215bb` subsequently passed full CI 41069406872 (8,306 tests, 15
+skips, isolated render/validation with 10 warnings and no tracked DB/output
+mutation). Main advanced during that run to `95c53909cf`, including the
+mandatory shared-desk standard, source-definition pilot and Daily data. The
+final branch inherits those shared changes; the paid model code stays frozen.
+No new migration, paid output or production release is authored here.
 
 Both models received revised prompts and identical frozen originals. Whole-path
 order alternated by record. Separate translation ran even for screened-out

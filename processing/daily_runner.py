@@ -9,8 +9,9 @@ import json
 import os
 from pathlib import Path
 
+from core.daily_sources import SOURCES, source_for
 from processing.daily_intake import (
-    REFS, IntakeHold, admit, bind_admitted_metadata, load_policy, need, process,
+    IntakeHold, admit, bind_admitted_metadata, load_policy, need, process,
     sign_outputs, verified_source,
 )
 
@@ -21,7 +22,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
     from scripts.reconcile_db import read_only
     from processing.daily_intake import ROOT
     family, repo, commit = spec.split(",", 2)
-    need(family in REFS, "daily_source_family_invalid")
+    need(source_for(family) is not None, "daily_source_family_invalid")
     policy = load_policy()
     records = verified_source(repo, commit, family)
     with read_only(str(public_db)) as conn:
@@ -74,7 +75,7 @@ def public_intake(db_path, input_dir):
     import sqlite3
     policy = load_policy()
     result = {}
-    for family in REFS:
+    for family, source in SOURCES.items():
         path = Path(input_dir) / (family + ".json")
         if not path.exists():
             continue  # quiet/unactivated source is not an error
@@ -84,7 +85,7 @@ def public_intake(db_path, input_dir):
             with sqlite3.connect(str(db_path), timeout=30) as conn:
                 conn.execute("PRAGMA foreign_keys=ON")
                 result[family] = admit(conn, envelope, family=family, policy=policy,
-                    key=os.environ.get("DAILY_" + family.upper() + "_KEY", ""))
+                    key=os.environ.get(source.key_env, ""))
         except (IntakeHold, ValueError, TypeError, KeyError, OSError, sqlite3.Error):
             result[family] = {"holds": ["daily_source_intake_failed"]}
     return result

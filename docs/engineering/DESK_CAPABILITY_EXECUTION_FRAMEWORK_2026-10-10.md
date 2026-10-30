@@ -1,4 +1,12 @@
 # Indo-Pacific Record | Desk Capability Engineering Framework
+
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
 **Technical charter | October 10, 2026**
 
 **Status: offline planning only.** Neither this charter nor the machine-checkable plan authorizes new collection, publisher contact, license determinations, archival retention, AI model use, SMTP delivery, promotion, deployment or public publication.
