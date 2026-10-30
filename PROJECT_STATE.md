@@ -119,6 +119,23 @@ activation, production merge or deployment was performed by this task.
 Japan's intake hold remains. Actual desk completion requires authorized
 release and genuine source-to-live operation, beyond these repair checks.
 
+### Release and bounded recovery — executed 30 October 2026
+
+Public #921 and private #32 merged at 22:25Z; `JAPAN_MOD_OFFICIAL_LINKS_ENABLED`
+was set true at 22:25:32Z (Japan intake now active; no Japan Daily run has yet
+been observed post-activation). AFP, USCC and Treasury push workflows passed.
+The 22:26Z scheduled Vietnam MPS run failed its public-main-unchanged check
+because the merge landed mid-run (race, not a defect). Under Ben's explicit
+approval, each recovery ran once: Vietnam MPS collect (target 2026-10-30) and
+Korea MND collect both **succeeded**; shared private Daily (`process`) **succeeded**
+(AFP, NSC, Kemhan; two Kemhan model calls). **Not complete:** the Vietnam
+`daily-bridge` run failed with `bridge_failed` (no records, no model usage) — it
+authenticates only a healthy scheduled-slot collection and today's slot was the
+raced one; the next scheduled 18:17/20:17 cycle is the real test, no rerun was
+made. The Korea owner-draft handoff held with `korea_model_input_over_bounded_budget`
+(2 pending originals; no model call, no email, no public write); draft PR #909 is
+the open repair for oversize holds and the cap was not raised.
+
 ## Desks page frontend redesign — review candidate, PR open, not merged or deployed (29 October 2026)
 
 **Implemented on the branch only:** `desks.html`, `desk-map.css`, `desk-map.js`
