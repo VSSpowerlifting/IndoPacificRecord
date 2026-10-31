@@ -1,174 +1,154 @@
 {
-  "title": "Japan and the United States Move From Missile-Production Plans to an Assembly Agreement",
-  "dek": "The allies agreed to establish an AMRAAM assembly and inspection facility in Japan and share technical information for SM-3 production. The documents establish a new commitment—not a factory already producing missiles.",
-  "manuscript_sha256": "71d3f7b2aec0630b93347d4fd598d8a4ae267679b067a16e69c839baa1d07635",
+  "title": "Japan and the United States Agree to Establish AMRAAM Final Assembly in Japan",
+  "dek": "Defense ministers turned an April possibility into a commitment and agreed to share technical information for SM-3 interceptor production. Their summaries name no site, operator, contract or production rate.",
+  "manuscript_sha256": "807cf4ad4e7e72a57864dd52b1ffbeb5003cf35e201eda8538a9ad72a7ac9cf3",
   "body_paragraphs": [
     [
       {
-        "text": "At a meeting in Cebu on October 28, Japanese Defense Minister Shinjiro Koizumi and U.S. Secretary of War Pete Hegseth agreed to establish a final assembly and checkout facility in Japan for the Advanced Medium-Range Air-to-Air Missile (AMRAAM). They also agreed to share technical information needed to expand production of the SM-3 Block IIA missile interceptor. The commitments move two defense-industrial discussions forward, but neither announcement establishes that additional missiles are already being produced."
+        "text": "Japan’s defense minister, Koizumi Shinjiro, and U.S. Secretary of War Hegseth agreed on 28 October to establish a facility in Japan for the final assembly and check-out of the AIM-120 Advanced Medium-Range Air-to-Air Missile (AMRAAM). They met for about 30 minutes in the Philippines, where both were attending the ASEAN Defence Ministers’ Meeting-Plus (ADMM-Plus). According to "
       },
       {
-        "text": "  [1]",
+        "text": "the Japanese Defense Ministry’s summary of the talks",
         "source": "s1"
       },
       {
-        "text": " [4]",
+        "text": ", the two also agreed to share the technical information needed to increase production of the SM-3 Block IIA interceptor. "
+      },
+      {
+        "text": "The ministry’s Japanese-language summary",
         "source": "s4"
+      },
+      {
+        "text": " records the first decision as agreement on establishing (設置) a final assembly and inspection (最終組立・検査) facility inside Japan."
       }
     ],
     [
       {
-        "text": "The most important change is procedural and industrial rather than operational. In April, the allies had identified AMRAAM circuit-card assembly for possible co-production and were still discussing whether final assembly and checkout could occur in Japan. By October, the Japanese defense ministry described the facility itself as agreed. That difference separates a proposed scope of work from a government-level decision to proceed."
+        "text": "Both decisions came as Koizumi followed up on “Operation Supercharge,” which "
       },
       {
-        "text": "  [1]",
+        "text": "the ministry describes",
         "source": "s1"
       },
       {
-        "text": " [2]",
-        "source": "s2"
+        "text": " as an initiative to accelerate bilateral cooperation on defense equipment and technology. The rest of the meeting covered air and missile defense, larger joint training, the dispersal of aircraft, wider access to facilities, a stronger allied presence in southwestern Japan and base issues on Okinawa. The two missile items are the only passages that commit the governments to a specific production step."
       }
     ],
     [
       {
-        "text": "The April Defense Industrial Cooperation, Acquisition, and Sustainment consultation, known as DICAS 2.0, drew on a feasibility study involving Mitsubishi Electric and Raytheon. Its statement identified circuit-card assembly as part of the envisaged co-production scope and explicitly left Japanese final assembly and checkout for further discussion. A separate April statement from Mitsubishi Electric described negotiations with industrial partners, not an awarded plant contract."
+        "text": "October’s decision closes a question the allies left open in April. At the fourth plenary of their Defense Industrial Cooperation, Acquisition, and Sustainment forum (DICAS), held in Washington on 14 April, "
       },
       {
-        "text": "  [2]",
+        "text": "the two sides agreed",
         "source": "s2"
       },
       {
-        "text": " [3]",
+        "text": " that circuit-card assembly would form part of AMRAAM co-production and that they would keep discussing “the possibility” of final assembly and check-out in Japan. That scope came out of a feasibility study conducted with Mitsubishi Electric and Raytheon. The same meeting upgraded the forum to “DICAS 2.0.”"
+      }
+    ],
+    [
+      {
+        "text": "Two weeks later, "
+      },
+      {
+        "text": "Mitsubishi Electric said",
         "source": "s3"
+      },
+      {
+        "text": " it would move forward discussions with Raytheon and other industry partners on the scope of Japan’s participation, including circuit-card work and “the possibility of a future” final assembly and check-out in Japan. The company said it had been studying whether it could contribute to AMRAAM production under defense ministry contracts awarded in 2024 and 2025. It did not present itself as the future assembler."
       }
     ],
     [
       {
-        "text": "October's agreement is therefore a measurable advance, although key implementation details remain publicly unspecified. Japan's meeting summary does not name the facility's location or operator, provide a construction or start-up date, disclose its planned capacity, or identify a production contract. Mitsubishi Electric's earlier participation in feasibility work should not be mistaken for an October selection to operate the new facility."
+        "text": "The SM-3 item continues an existing effort rather than starting a new one. In April the allies confirmed "
       },
       {
-        "text": "  [1]",
-        "source": "s1"
-      },
-      {
-        "text": " [3]",
-        "source": "s3"
-      }
-    ],
-    [
-      {
-        "text": "For the SM-3 Block IIA, the development is different. April's DICAS statement had already described concrete measures intended to increase output by approximately four times. The October ministers agreed to share technical information necessary for further production expansion. That supports an assessment of continuing industrial coordination; it does not independently verify that the earlier output target has been achieved."
-      },
-      {
-        "text": "  [1]",
-        "source": "s1"
-      },
-      {
-        "text": " [2]",
-        "source": "s2"
-      }
-    ],
-    [
-      {
-        "text": "Final assembly and checkout is not interchangeable with full domestic manufacture. The April record distinguishes circuit-card assembly from the final assembly stage, while the October document addresses the latter. Japan could acquire a larger role in completing and inspecting the weapon without necessarily manufacturing every major component locally. The source documents do not establish a Japanese end-to-end AMRAAM supply chain."
-      },
-      {
-        "text": "  [1]",
-        "source": "s1"
-      },
-      {
-        "text": " [2]",
+        "text": "concrete measures to raise SM-3 Block IIA production roughly fourfold",
         "source": "s2"
       },
       {
-        "text": " [3]",
-        "source": "s3"
+        "text": " and agreed to assess whether it could be accelerated and expanded further. October’s commitment to share technical information belongs to that track. Neither document reports how far output has actually risen."
       }
     ],
     [
       {
-        "text": "The arrangement has potential military significance because the two allies depend on sophisticated missile inventories for air and missile defense. Japan's official summary places the industrial discussions alongside plans for improved integrated air and missile defense, more flexible aircraft dispersal, broader access to facilities, and an increased presence in southwestern Japan. Those are distinct lines of cooperation, however, not demonstrated consequences of the new assembly decision."
+        "text": "The AMRAAM decision is more consequential. "
       },
       {
-        "text": "  [1]",
-        "source": "s1"
-      }
-    ],
-    [
-      {
-        "text": "For planners, the immediate question is not simply whether another assembly location exists on paper. It is whether the two governments can translate their decision into qualified production, dependable component supply, sufficient staffing, and deliveries at useful scale. Without facility milestones or production data, a claim of greater wartime endurance would be premature."
-      },
-      {
-        "text": "  [1]",
-        "source": "s1"
-      },
-      {
-        "text": " [2]",
+        "text": "April’s answer",
         "source": "s2"
       },
       {
-        "text": " [3]",
-        "source": "s3"
+        "text": " to what Japanese industry would contribute was a component: circuit cards. October’s answer reaches the end of the production line. Final assembly and check-out is where components become a complete missile that is tested before delivery. If a facility is built, Japan would host that step rather than only supplying parts to an American plant."
       }
     ],
     [
       {
-        "text": "The same October 28 meeting cycle yielded a separate Japanese-Philippine commitment: officials said they would aim to transfer the first Abukuma-class vessel as soon as possible following its expected decommissioning in coming years, while preparing Philippine Navy training and coordinating maintenance and sustainment. The statement described future government coordination, not a vessel transfer already completed."
+        "text": "What the ministers recorded is an agreement to establish a facility, not a facility. "
       },
       {
-        "text": "  [5]",
-        "source": "s5"
+        "text": "Neither language version",
+        "source": "s4"
+      },
+      {
+        "text": " names a site, an operator, a contract, a schedule or an output target. Those details will show whether the arrangement adds production capacity or chiefly moves the final stage of an existing American line to Japan. Until they appear, the decision is best read as a political commitment whose industrial form is still undefined."
       }
     ],
     [
       {
-        "text": "That Philippine announcement also has a longer history. A May 31 joint statement had already recorded broad consensus to pursue post-decommissioning transfers and to discuss training, sustainment, and equipment management. October adds operational detail and renewed ministerial direction; presenting it as the first transfer agreement would overstate the new evidence. The Philippine initiative and U.S.-Japan missile cooperation are separate arrangements, not a single integrated program."
+        "text": "On the same day, Koizumi and the Philippine Secretary of National Defense, Gilberto C. Teodoro Jr., issued "
       },
       {
-        "text": "  [5]",
+        "text": "a joint press statement",
         "source": "s5"
       },
       {
-        "text": " [6]",
+        "text": " on Japan’s Abukuma-class destroyers. Their defense authorities concurred in aiming to transfer the first ship “at the earliest possible date” after its expected decommissioning “in the coming years,” to train Philippine Navy personnel before the transfer and to cooperate on maintenance. Each government is now to carry out the necessary internal coordination. The statement also kept a goal of transferring one TC-90 aircraft by the end of Japan’s fiscal year 2027. "
+      },
+      {
+        "text": "The Japanese-language text",
+        "source": "s7"
+      },
+      {
+        "text": " is more guarded than the English: it presents the destroyer aim as a matter on which the two sides will continue consultations (協議を継続)."
+      }
+    ],
+    [
+      {
+        "text": "Much of this predates the week. When the two ministers met in Singapore on 31 May, they "
+      },
+      {
+        "text": "reached a broad consensus",
         "source": "s6"
+      },
+      {
+        "text": " to proceed with discussions toward transferring the destroyers promptly after decommissioning and one TC-90 within fiscal 2027, with training and maintenance to be worked out in a working group formed on 5 May. October’s increment is a stated aim for the first ship, training that begins before the handover and a move to coordination inside each government. No destroyer has been decommissioned or transferred. The Philippine arrangement and the missile decisions came on the same trip, but the published summaries do not link them."
       }
     ],
     [
       {
-        "text": "For the AMRAAM facility, the next meaningful evidence would include a named operator and location, contract or financing details, construction or qualification milestones, and a reported first assembled and inspected missile. For the SM-3 effort, the decisive question is whether technical exchange leads to demonstrated production increases. For the prospective Philippine transfer, the relevant markers are pre-transfer training, decommissioning and a confirmed handover."
+        "text": "The next signs will be practical ones: a named site or operator for the AMRAAM facility, a contract or budget line, the outcome of the next "
       },
       {
-        "text": "  [1]",
-        "source": "s1"
-      },
-      {
-        "text": " [2]",
+        "text": "DICAS plenary",
         "source": "s2"
       },
       {
-        "text": " [5]",
-        "source": "s5"
-      }
-    ],
-    [
-      {
-        "text": "The October statements make Japan's evolving role in regional defense equipment cooperation visible in primary sources. They show governments committing to specific next steps, not a completed redistribution of industrial capacity or naval capability. Keeping that distinction intact is what makes the agreements analytically useful."
+        "text": ", and evidence that SM-3 technical data is moving under the "
       },
       {
-        "text": "  [1]",
+        "text": "October agreement",
         "source": "s1"
       },
       {
-        "text": " [2]",
-        "source": "s2"
+        "text": ". On the Philippine side, the markers are a decommissioning date for the first Abukuma-class destroyer and the start of "
       },
       {
-        "text": " [5]",
+        "text": "pre-transfer training",
         "source": "s5"
       },
       {
-        "text": " [6]",
-        "source": "s6"
+        "text": "."
       }
     ]
   ],
@@ -185,7 +165,7 @@
       "temporal_role": "in-window",
       "verification": {
         "method": "publisher",
-        "locator": "October 28 Japan MOD English-language official meeting summary, section 2. Checked directly on publisher site October 31; corresponds to Japanese source s4. No original-byte archive claim."
+        "locator": "28 October English summary: 30-minute meeting in the Philippines during ADMM-Plus; Operation Supercharge follow-up; agreement to share SM-3 Block IIA technical information and establish an AMRAAM FACO in Japan; southwestern presence. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
     },
     {
@@ -200,7 +180,7 @@
       "temporal_role": "background",
       "verification": {
         "method": "publisher",
-        "locator": "April 14 Japan MOD DICAS 2.0 summary: circuit-card assembly identified; FACO possibility still under discussion; SM-3 production increase measures. Checked on publisher site October 31; no independent archive parity."
+        "locator": "14 April DICAS 2.0 plenary summary, Washington: circuit-card assembly in AMRAAM co-production scope, further discussion of possible FACO in Japan, feasibility study with Mitsubishi Electric and Raytheon, SM-3 Block IIA production measures of approximately four times. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
     },
     {
@@ -215,7 +195,7 @@
       "temporal_role": "background",
       "verification": {
         "method": "publisher",
-        "locator": "April 28 corporate primary-source announcement; explicitly still discussing industry participation, circuit-card assembly and possible future FACO. Checked publisher site October 31; no evidence the firm was named final FACO operator."
+        "locator": "28 April corporate release (No. 3891): discussions with Raytheon and others on AMRAAM participation scope, circuit-card assembly, possible future FACO, feasibility study under 2024 and 2025 MOD contracts. Party statement by an interested company. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
     },
     {
@@ -230,7 +210,7 @@
       "temporal_role": "in-window",
       "verification": {
         "method": "publisher",
-        "locator": "Original Japanese October 28 statement, section 2; directly checked for SM-3 technical information sharing and agreement to establish AMRAAM final assembly/inspection in Japan. Same institutional account as s1; not independent corroboration."
+        "locator": "令和8年10月28日 Japanese-language summary: SM-3ブロックⅡA技術情報共有に合意; 日本国内におけるAMRAAM最終組立・検査（FACO）施設の設置に合意. Parallel institutional account to s1, not independent corroboration. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
     },
     {
@@ -245,7 +225,7 @@
       "temporal_role": "in-window",
       "verification": {
         "method": "publisher",
-        "locator": "Bilateral joint press statement: target first Abukuma-class transfer after future decommissioning, pre-transfer training and sustainment coordination; not evidence of delivered vessel. Checked publisher site October 31."
+        "locator": "28 October English joint statement: concurrence in aiming to transfer first Abukuma-class destroyer at earliest possible date after expected decommissioning, pre-transfer training, maintenance cooperation, internal coordination; one TC-90 by end of Japan FY2027. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
     },
     {
@@ -260,7 +240,22 @@
       "temporal_role": "background",
       "verification": {
         "method": "publisher",
-        "locator": "May 31 bilateral statement shows existing broad consensus on post-decommissioning ship transfer and integrated training/maintenance discussions. Checked publisher site October 31; prevents false October first-deal claim."
+        "locator": "31 May joint statement, Singapore: broad consensus to proceed with discussions toward destroyer transfers after decommissioning and one TC-90 within FY2027; working group established 5 May. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
+      }
+    },
+    {
+      "id": "s7",
+      "url": "https://www.mod.go.jp/j/approach/exchange/area/2026/20261028_phl-j.html",
+      "publisher": "Japan Ministry of Defense",
+      "issuer": "Ministries of Defense of Japan and the Philippines",
+      "date": "2026-10-28",
+      "lang": "ja",
+      "original_title": "日比防衛相会談共同プレスステートメント",
+      "independence": "official",
+      "temporal_role": "in-window",
+      "verification": {
+        "method": "publisher",
+        "locator": "28 October Japanese-language joint statement: destroyer transfer aim framed as 協議を継続; ACSA entry into force given as 本年8月 (English s5 says July; not used in article). Parallel institutional account to s5. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
     }
   ],
@@ -288,44 +283,34 @@
       ]
     },
     {
-      "kind": "analysis",
+      "kind": "reporting",
       "sources": [
-        "s1",
+        "s1"
+      ]
+    },
+    {
+      "kind": "reporting",
+      "sources": [
         "s2"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
+        "s3"
+      ]
+    },
+    {
+      "kind": "analysis",
+      "sources": [
         "s2",
-        "s3"
+        "s1"
       ]
     },
     {
       "kind": "analysis",
       "sources": [
-        "s1",
-        "s3"
-      ]
-    },
-    {
-      "kind": "reporting",
-      "sources": [
-        "s1",
-        "s2"
-      ]
-    },
-    {
-      "kind": "analysis",
-      "sources": [
-        "s1",
         "s2",
-        "s3"
-      ]
-    },
-    {
-      "kind": "analysis",
-      "sources": [
         "s1"
       ]
     },
@@ -333,21 +318,21 @@
       "kind": "analysis",
       "sources": [
         "s1",
-        "s2",
-        "s3"
+        "s4"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
-        "s5"
+        "s5",
+        "s7"
       ]
     },
     {
       "kind": "analysis",
       "sources": [
-        "s5",
-        "s6"
+        "s6",
+        "s5"
       ]
     },
     {
@@ -357,18 +342,8 @@
         "s2",
         "s5"
       ]
-    },
-    {
-      "kind": "analysis",
-      "sources": [
-        "s1",
-        "s2",
-        "s5",
-        "s6"
-      ]
     }
   ],
   "editorial_review": null,
-  "policy_ruling": null,
-  "approval": null
+  "policy_ruling": null
 }
