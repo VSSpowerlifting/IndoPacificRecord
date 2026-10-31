@@ -119,9 +119,9 @@ they are actually present and otherwise takes the fallback. A tool's presence
 never authorizes its external actions, and no tool output is evidence for a
 quotation, original-language text, date, rank or figure.
 
-- **Repo-tracked** — `.claude/skills/ipr-design`, `.claude/skills/ipr-source-integrity`,
-  the agents in §3, the commands in §4, and the domain scripts. Every session
-  gets these.
+- **Repo-tracked** — the shared skills `ipr-source-integrity`, `ipr-design` and
+  `ipr-proposal-review`, the agents in §3, the commands in §4, and the domain
+  scripts. Every session gets these.
 - **Plugin skills** — generic design, writing and research skills installed
   in the session. Optional; they refine within IPR doctrine, never override it.
 - **User-level** — Ben's own `ben-*` skills (e.g. `ben-ipr-brief`,
@@ -138,6 +138,7 @@ quotation, original-language text, date, rank or figure.
 | Research discovery for a Brief or dossier | `ipr-source-integrity` (authority rule) | web search, Firecrawl, deep-research | preserved IPR record plus the original source; discovery never substitutes for either |
 | Desk source acquisition | `docs/desks/README.md`, `docs/desks/MIGRATION.md`, the source's decisions | Firecrawl/browser for reading permitted pages | the shared desk path; never defeat access controls |
 | Dossiers and evidence timelines | `ipr-source-integrity`; `docs/LIVING_DOSSIERS.md`, `docs/EVIDENCE_TIMELINES.md` | — | `scripts/dossier.py`, `scripts/validate_timelines.py` |
+| Challenge a material expansion, source-permission or AI-model change | `ipr-proposal-review`; **proposal-reviewer** | — | the four-part growth rule in `AGENTS.md` |
 | Brainstorming and product direction | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` §1b, `docs/ROADMAP.md` | brainstorming skills | strongest-model lead session; the growth rule in `AGENTS.md` decides admission |
 | UI, templates, motion, reader experience | `ipr-design`; **frontend-implementer** | ui-ux-pro-max (IA/flow), impeccable (rendered refinement), design-taste-frontend (drift check) | `docs/DESIGN_SYSTEM.md` + 1280/375 browser check |
 | Code navigation and impact | targeted `rg` and file reads | TokenSave, Serena, graphify (only if a current `graphify-out/` exists) | targeted `rg`; graphs guide, source code decides |
@@ -152,6 +153,10 @@ installed; ordinary subagents cover the rare parallel case) and
 were inaccurate; `DESIGN_SYSTEM.md` is authoritative). The untracked local
 `pla-watch-live-design` skill is superseded by `ipr-design`.
 
+Shared repository skills have one canonical copy in `.agents/skills/<name>/`,
+which Codex reads directly; Claude sees it through the tracked symlink
+`.claude/skills/<name>`. Edit only the `.agents` copy.
+
 Parallel agents: only for genuinely independent work, at most four at once;
 one writer per file, and `base.html`, `pla-watch-base.html` and `pw_env.py`
 are single-owner, never concurrent. The lead session integrates and is the
@@ -159,7 +164,7 @@ only writer of PROJECT_STATE.md.
 
 ## 3. Project agents (`.claude/agents/`)
 
-Minimum useful set — three agents plus one human-in-the-loop role:
+Minimum useful set — four agents plus one human-in-the-loop role:
 
 - **Design Director** — *not an agent file.* This is the Fable-led main
   session role: reviews rendered output against DESIGN_SYSTEM.md +
@@ -175,6 +180,9 @@ Minimum useful set — three agents plus one human-in-the-loop role:
 - **release-qa** (Sonnet) — pre-deploy sweep: validator, preview, responsive
   (1280/375), keyboard + focus, reduced motion, console errors, link spot
   checks. Output: go/no-go report with evidence.
+- **proposal-reviewer** (inherits the lead model, read-only) — runs
+  `ipr-proposal-review` in fresh context so the producer's reasoning does not
+  anchor the verdict. Holds no rules of its own.
 
 ## 4. Project commands (`.claude/commands/`)
 

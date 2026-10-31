@@ -60,6 +60,11 @@ Routine bugs, incident recovery, source-specific protections, security fixes
 and low-risk accessibility work are exempt from the expansion justification.
 **Do not create a new form, PR gate, CI job, readiness score or launch clock.**
 
+Before starting a material expansion, or when asked to challenge a plan, use
+the shared `ipr-proposal-review` skill for a read-only PROCEED, SIMPLIFY, DEFER
+or REJECT verdict recorded in that same issue or PR body. It is advice for
+the owner, not a gate, and exempt work does not need it.
+
 ### Documentation authority by subject
 
 | Subject | Governing reference |
@@ -69,8 +74,8 @@ and low-risk accessibility work are exempt from the expansion justification.
 | Source-specific rights, custody, holds, spending, approval | Actual applicable policies and grants; `DECISION_LOG.md` |
 | Production and build verification | `docs/ARCHITECTURE_AND_PUBLISHING.md`, actual CI/workflows and code |
 | Current strategic priorities | `docs/ROADMAP.md`, checked against real repo/source/site status |
-| Agent instructions | This file; `CLAUDE.md` supplies only Claude-specific operating notes |
-| Which skill, agent, command or tool fits a task | `docs/AGENT_WORKFLOWS.md` §2; tracked skills in `.claude/skills/` |
+| Agent instructions | This file; `CLAUDE.md` supplies only Claude-specific operating notes; shared skills live in `.agents/skills/` |
+| Which skill, agent, command or tool fits a task | `docs/AGENT_WORKFLOWS.md` §2 |
 | Historic evidence and dated plans | Git history, `PROJECT_STATE.md`, older records; not current authority by default |
 
 If references appear to conflict, preserve the stricter real evidence,
@@ -97,6 +102,9 @@ Stop at the assigned phase; no implicit production authorization.
 - Use an isolated worktree. Read current owner decisions and relevant code/PRs
   once; verify changing state when necessary. Coordinate any essential private
   companion explicitly; do not touch unrelated repositories or another worktree.
+- Before building a workaround, use the skills, tools, MCP servers and agents
+  actually available in the session. A configured integration is unverified
+  until it works; report a missing one instead of reimplementing it.
 - Scope one coherent phase with `docs/desks/CHANGE_TEMPLATE.md`. Use focused
   development checks and required CI on the final exact revision. Stop when
   that phase is verified; do not expand into unrelated fixes or deployment.

@@ -5,8 +5,7 @@ model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 
-You review, you never modify. Scope: the IPR checkout or worktree the lead
-session assigns.
+You review, you never modify. Scope: the current IPR checkout or worktree.
 
 Standards: EDITORIAL_QA_CHECKLIST.md (the gate),
 docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md §4 (trust ladder + integrity rules),

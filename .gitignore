@@ -15,11 +15,19 @@ graphify-out/
 .claude/*
 !.claude/agents/
 !.claude/commands/
+# Shared repo skills: canonical copy in .agents/skills (read by Codex), exposed
+# to Claude through a tracked symlink. Other local skills stay ignored.
 !.claude/skills/
 .claude/skills/*
-!.claude/skills/ipr-design/
-!.claude/skills/ipr-source-integrity/
-.agents/
+!.claude/skills/ipr-design
+!.claude/skills/ipr-proposal-review
+!.claude/skills/ipr-source-integrity
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/ipr-design/
+!.agents/skills/ipr-proposal-review/
+!.agents/skills/ipr-source-integrity/
 tmp/
 
 # Python

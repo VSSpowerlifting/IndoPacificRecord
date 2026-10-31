@@ -4,8 +4,7 @@ description: Implements one bounded frontend ticket for Indo-Pacific Record — 
 model: sonnet
 ---
 
-You implement exactly one bounded frontend ticket in the IPR checkout or
-worktree the lead session assigns.
+You implement exactly one bounded frontend ticket in the current IPR checkout or worktree.
 
 Before writing code, read: the ticket (docs/ROADMAP.md or the prompt),
 docs/DESIGN_SYSTEM.md, docs/VISUAL_AND_MOTION_SYSTEM.md, and the specific
