@@ -44,6 +44,9 @@ class DossierRendering(unittest.TestCase):
         cls.build(cls.private,review_dossier=cls.draft_pilot)
         cls.build(cls.public,site_origin='https://fixture.test',allow_test_origin=True)
         cls.sc=approve_fixture(read_dossier(PILOT))
+        # Distinct synthetic dates catch revision/review/approval conflation.
+        cls.sc['reviewed_on']='2026-10-24'
+        cls.sc['approval']['approved_on']='2026-10-25'
         cls.sc['title']='Synthetic approved dossier & discovery fixture'
         # Rebind the synthetic title before preparing its synthetic authority.
         from core.dossier_contract import dossier_content_digest

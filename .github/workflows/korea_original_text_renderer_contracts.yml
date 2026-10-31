@@ -47,7 +47,9 @@ jobs:
               expected = render_original_page(row)
               assert row["original_text_sha256"] in expected
               assert 'class="masthead' in expected and 'href="#main"' in expected
-              assert "<script" not in expected and ".hwpx" not in expected
+              shared_script='<script src="../shell.js" defer></script>'
+              assert expected.count(shared_script)==1
+              assert "<script" not in expected.replace(shared_script, "") and ".hwpx" not in expected
               page = Path("output/korea-originals") / (ident + ".html")
               if not page.is_file():
                   continue

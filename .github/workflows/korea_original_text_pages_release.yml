@@ -134,7 +134,9 @@ jobs:
               assert row["official_url"] in page
               assert row["original_text_sha256"] in page
               assert row["route"] in desk
-              assert "<script" not in page and ".hwpx" not in page
+              shared_script='<script src="../shell.js" defer></script>'
+              assert page.count(shared_script)==1
+              assert "<script" not in page.replace(shared_script, "") and ".hwpx" not in page
           routes={"korea.html"}|expected
           Path(os.environ["RUNNER_TEMP"],"korea-route-allowlist.json").write_text(
               json.dumps(sorted(routes)))
