@@ -5,8 +5,8 @@
 **State:** DRAFT. Unapproved, unnumbered (`issue_number: null`), no editorial review, policy ruling or presentation approval recorded. Not for publication.
 **Format:** `source-linked-editorial-v1` (`briefs/japan-us-missile-assembly-2026.json`)
 **Manuscript (Word):** `research/briefs/manual_2026-10-31_japan_us_missile_agreement_manuscript.docx`
-**Manuscript SHA-256:** `3095c21e909dbc3900a5b4ba9aebba46e23ed67d276e0651d81aea0487952eda`
-**Content fingerprint:** `ac8afe50b5f14c6f28a5be8131f71667c6d35df21b268b5ed5e31ad852496f2f` (bound by `briefs/presentation/japan-us-missile-assembly-2026.json`)
+**Manuscript SHA-256:** `50d2701ca0882fac462c0c25d67e7e4d03121a7a149e5d7216a39e850874d541`
+**Content fingerprint:** `f6f2600c84bb5d0762d8eaf8d6513ca962e40df81ffca69888add976acb80e22` (bound by `briefs/presentation/japan-us-missile-assembly-2026.json`)
 **Prepared:** 31 October 2026
 
 ## 1. Editorial decision
@@ -40,7 +40,7 @@ All eight references were re-fetched from the publisher's own URL on 31 October 
 | s5 | [Japan–Philippines Defense Ministerial Joint Press Statement](https://www.mod.go.jp/en/article/2026/10/be6559883d95cd90fa6b2446b99b206cf7a33dd8.html), MOD Japan / DND Philippines | en | 2026-10-28, in-window | P8–P10: "concurred in aiming"; "at the earliest possible date"; expected decommissioning "in the coming years"; pre-transfer training; maintenance; internal coordination; TC-90 by end FY2027; full name Gilberto C. Teodoro Jr. | Supported. |
 | s6 | [Japan- Philippines Defense Ministerial Meeting (Joint Press Statement)](https://www.mod.go.jp/en/article/2026/05/45c008f13e32cdb63ef16520e4337fe3fd601788.html), MOD Japan / DND Philippines | en | 2026-05-31, background | P9: Singapore meeting; "broad consensus" to proceed with discussions; TC-90 within FY2027; working group of 5 May | Supported. |
 | s7 | [日比防衛相会談共同プレスステートメント](https://www.mod.go.jp/j/approach/exchange/area/2026/20261028_phl-j.html), MOD Japan / DND Philippines | ja | 2026-10-28, in-window | P8: destroyer aim framed as 協議を継続 | Supported. **Added this round** so the article can state the Japanese text's more guarded framing with its own citation. Parallel institutional account of s5. |
-| s8 | [Readout of Secretary of War Pete Hegseth's Meeting With Japanese Minister of Defense Shinjirō Koizumi](https://www.war.gov/News/Releases/Release/Article/4635148/readout-of-secretary-of-war-pete-hegseths-meeting-with-japanese-minister-of-def/), U.S. Department of War | en | 2026-10-27 (U.S. date), in-window | P1: full name Pete Hegseth; both leaders committed to continue close coordination on critical munitions production | Supported. **Added in the review round.** The readout does not mention AMRAAM, final assembly and check-out, or SM-3 Block IIA. P1 now says so. The U.S. counterpart record to s1/s4. |
+| s8 | [Readout of Secretary of War Pete Hegseth's Meeting With Japanese Minister of Defense Shinjirō Koizumi](https://www.war.gov/News/Releases/Release/Article/4635148/readout-of-secretary-of-war-pete-hegseths-meeting-with-japanese-minister-of-def/), U.S. Department of War | en | 2026-10-27 (U.S. date), in-window | P1: full name Pete Hegseth; on defense production, Hegseth welcomed Japan's efforts to strengthen its defense industrial capacity and both leaders committed to continue close coordination on critical munitions production. The readout also covers the alliance, deterrence, bilateral access, presence, training and exercises; it confirms the same Hegseth–Koizumi meeting in the Philippines | Supported. **Added in the review round.** The readout does not mention AMRAAM, final assembly and check-out, or SM-3 Block IIA. P1 now says so. The U.S. counterpart record to s1/s4. |
 
 **Independence.** s1/s4 and s5/s7 are each one institutional account in two languages. s8 is the other government's account of the same meeting; it is official, not independent, and it is silent on both missile decisions. s3 is a company statement. None is independent confirmation of implementation, and the article does not present any as such.
 
@@ -54,7 +54,7 @@ All eight references were re-fetched from the publisher's own URL on 31 October 
 6. **DICAS naming.** "Renamed" was imprecise; s2 calls the meeting DICAS 2.0 as an upgrade of the forum. P3 now says the meeting "upgraded the forum to 'DICAS 2.0.'"
 7. **P6 citation.** P6 previously cited s3 for April's component answer. That claim is in s2; s3 was removed from P6's support.
 8. **Over-reach in the old docket.** The previous version said every page was "checked directly on publisher site" with repeated boilerplate. This docket replaces those lines with the actual method above.
-9. **Single-government attribution (review round).** Both missile decisions appear only in the Japanese ministry's records (s1, s4). The U.S. Department of War readout (s8) records only a commitment to continue close coordination on critical munitions production. The headline and P1 rested on Japan's account without saying the U.S. account is silent. P1 now ends with an attributed sentence citing s8.
+9. **Single-government attribution (review round).** Both missile decisions appear only in the Japanese ministry's records (s1, s4). The U.S. Department of War readout (s8) mentions neither. On defense production it records only Hegseth's welcome of Japan's efforts to strengthen its defense industrial capacity and a commitment to continue close coordination on critical munitions production. The headline and P1 rested on Japan's account without saying the U.S. account is silent. P1 now ends with an attributed sentence citing s8.
 10. **Hegseth's first name (review round).** s1 omits it; s8 gives "Pete Hegseth." P1 now reads "U.S. Secretary of War Pete Hegseth."
 11. **Japanese originals of s2 and s6 (review round).** The Japanese DICAS page (`https://www.mod.go.jp/j/approach/anpo/2026/0414a_usa-j.html`, page dated 令和８年４月１７日) and the Japanese 31 May statement (`https://www.mod.go.jp/j/approach/exchange/area/2026/20260531_phl-j.html`: 大筋で合意 to 議論を進める; working group of 5月5日) were read against P3–P6 and P9. Both match the article's wording. No change was needed and neither page is added as a reference.
 
@@ -85,7 +85,7 @@ Every reference appears as a linked phrase in the prose. Paragraph support match
 - **Byline** is the provisional "Indo-Pacific Record Editorial Desk." No approved byline exists.
 - **P7 "political commitment"** is IPR analysis. It is supported by the absence of site, operator, contract and schedule in s1 and s4, not by any statement in them.
 - **P6 "rather than only supplying parts to an American plant"** is conditional ("If a facility is built"). Keep the condition in any edit.
-- **Length:** 839 body words, inside the 650–850 target.
+- **Length:** 853 body words, three over the 650–850 target after the review-round attribution sentence; left for Dylan's tightening pass rather than cut here.
 - **Rights:** the article quotes short phrases from official statements and links the originals. No article bodies, PDFs or photographs are reproduced. No photograph is attached; the source-linked format carries no photo field.
 
 ## 8. Alternatives considered (not used)

@@ -8,7 +8,7 @@
 
 Hi Dylan,
 
-Attached is this week's Brief, "Japan and the United States Agree to Establish AMRAAM Final Assembly in Japan." It runs about 840 words under five headings. Could you give it a language and structure edit?
+Attached is this week's Brief, "Japan and the United States Agree to Establish AMRAAM Final Assembly in Japan." It runs about 850 words under five headings. Could you give it a language and structure edit?
 
 The argument: on 28 October the two defense ministers turned an April "possibility" of final assembly and check-out in Japan into an agreement to establish the facility. That step matters more than the SM-3 item because it moves Japan from supplying parts to hosting the end of the line. Nothing about the facility exists yet, though: no site, operator, contract or schedule. A short section covers the same-day Japan–Philippines destroyer statement as a separate track.
 

@@ -1,7 +1,7 @@
 {
   "title": "Japan and the United States Agree to Establish AMRAAM Final Assembly in Japan",
   "dek": "Defense ministers turned an April possibility into a commitment and agreed to share technical information for SM-3 interceptor production. Their summaries name no site, operator, contract or production rate.",
-  "manuscript_sha256": "3095c21e909dbc3900a5b4ba9aebba46e23ed67d276e0651d81aea0487952eda",
+  "manuscript_sha256": "50d2701ca0882fac462c0c25d67e7e4d03121a7a149e5d7216a39e850874d541",
   "body_paragraphs": [
     [
       {
@@ -26,7 +26,7 @@
         "source": "s8"
       },
       {
-        "text": " of the meeting mentions neither decision. It says only that the two ministers committed to continue close coordination on critical munitions production."
+        "text": " of the meeting mentions neither decision. On defense production, it says only that Hegseth welcomed Japan’s efforts to strengthen its defense industrial capacity and that the two committed to continue close coordination on critical munitions production."
       }
     ],
     [
@@ -277,7 +277,7 @@
       "temporal_role": "in-window",
       "verification": {
         "method": "publisher",
-        "locator": "Readout dated Oct. 27, 2026 (U.S. time; meeting held 28 October in the Philippines): names Secretary of War Pete Hegseth; says both leaders committed to continue close coordination on critical munitions production; no mention of AMRAAM, final assembly and check-out, or SM-3 Block IIA. Counterpart record to s1/s4. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
+        "locator": "Readout dated Oct. 27, 2026 (U.S. time; meeting held 28 October in the Philippines): names Secretary of War Pete Hegseth and Minister Koizumi meeting in the Philippines; covers alliance role, deterrence, bilateral access, presence, training and exercises; on defense production, welcomes Japan’s efforts to strengthen defense industrial capacity and says both leaders committed to continue close coordination on critical munitions production; no mention of AMRAAM, final assembly and check-out, or SM-3 Block IIA. Counterpart record to s1/s4. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
     }
   ],
