@@ -342,7 +342,7 @@ class TestCandidateBuild(unittest.TestCase):
     def test_japan_renders_with_no_admitted_corpus_records(self):
         html = (self.out / "japan.html").read_text(encoding="utf-8")
         self.assertIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("No source is enabled in production.", html)
+        self.assertIn("No source has its original text admitted to production.", html)
 
     def test_us_official_metadata_is_live_while_pacom_remains_blocked(self):
         """Congressionally sourced links are distinct from PACOM originals."""

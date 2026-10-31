@@ -69,7 +69,7 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
             (DEFAULT.parents[1] / "desks" / "registry.json").read_text(encoding="utf-8")
         )
         entry = next(row for row in registry["desks"] if row["slug"] == "indonesia")
-        self.assertIn("Fifteen dated Berita links and two", entry["status_explanation"])
+        self.assertIn("Verified Kemhan Berita official links are admitted", entry["status_explanation"])
         self.assertIn(
             "seventeen first-party pages (fifteen Berita and two Siaran Pers)",
             entry["research"]["blockers"][1][1],
