@@ -23,12 +23,6 @@ ROOT = Path(__file__).resolve().parent.parent
 ENVIRONMENT = "a" * 64
 
 
-class LocalGit(q.Git):
-    def obtain(self, revision):
-        # All immutable candidate objects already exist in this disposable repo.
-        self.run("cat-file", "-e", revision + "^{commit}")
-
-
 class API:
     def __init__(self, run, job):
         self.run, self.job = run, job
@@ -50,7 +44,7 @@ class QualificationSnapshots(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        self.git = LocalGit(self.root)
+        self.git = q.Git(self.root)
         self.git.run("init", "-q")
         self.git.run("config", "user.name", "Qualification test")
         self.git.run("config", "user.email", "qualification@example.invalid")

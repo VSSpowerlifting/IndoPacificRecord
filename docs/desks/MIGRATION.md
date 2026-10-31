@@ -94,7 +94,7 @@ reuse. One focused synthetic family-isolation test supplements the
 existing real migration/renderer/negative fixtures. This work is a
 **review candidate**, not a merged, deployed or live-verified release.
 
-**Qualification/Daily split (engineering review candidate):** Daily calls
+**Qualification/Daily split ([PR #935](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/935), engineering review candidate):** Daily calls
 `scripts/code_qualification.py` to compare its actual checkout and environment
 with authenticated full main-push run/attempt/job evidence. PR synthetic-merge
 assertions cannot certify themselves; reviewed code is qualified on main and

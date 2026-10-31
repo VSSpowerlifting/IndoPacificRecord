@@ -92,9 +92,10 @@ class Git:
 
     def obtain(self, revision):
         require(re.fullmatch(SHA, revision), "invalid tested revision")
-        # SHA only, hardcoded public origin, no candidate checkout or execution.
-        self.run("fetch", "--no-tags",
-                 "https://github.com/" + REPOSITORY + ".git", revision)
+        # Daily checks out full main history; every eligible ancestor is
+        # already present. Missing objects fall back, with no extra fetch,
+        # candidate checkout or execution.
+        self.run("cat-file", "-e", revision + "^{commit}")
 
     def parents(self, revision):
         return self.run("rev-list", "--parents", "-n", "1", revision).decode().split()[1:]
