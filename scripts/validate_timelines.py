@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.timelines import TIMELINES_DIR, read_timeline, reconcile_sources
+from core.timelines import TIMELINES_DIR, read_timeline, reconcile_sources, _held_related_brief
 
 
 def main(argv=None):
@@ -28,9 +28,11 @@ def main(argv=None):
                        for p in (ROOT / "output/the-pla-watch/posts").glob("*.json")]
             published, _ = load_briefs(ROOT / "briefs", load_registry(), historical_numbers=numbers)
             approved = {slug for slug, _ in published}
-            if not set(sc["related_briefs"]) <= approved:
+            missing = set(sc["related_briefs"]) - approved
+            if missing and (sc.get("public_presentation") != "references_only" or any(
+                    _held_related_brief(slug, load_registry()) is None for slug in missing)):
                 raise ValueError("related Brief must be approved")
-            print("%s: %s; %s entries; %s preserved records; source parity passed (not editorial approval)" %
+            print("%s: %s; %s entries; %s source identities/versions reconciled (not editorial approval)" %
                   (sc["slug"], sc["editorial_status"], len(sc["entries"]), len(records)))
     except (ValueError, OSError) as exc:
         print("REFUSED: %s" % exc, file=sys.stderr)

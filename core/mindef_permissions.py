@@ -13,6 +13,16 @@ APPROVED_MINDEF_LINKS = frozenset({
     "https://www.mindef.gov.sg/news-and-events/latest-releases/31may25_nr3/",
 })
 
+# Owner confirmation recorded in PR #926 on 30 October 2026. This is a
+# timeline-specific link grant, separate from the 29 October correspondence.
+# It grants no source-text, translation, model-input or collection rights.
+TIMELINE_MINDEF_LINKS = {
+    "maritime-cooperation-2026": frozenset({
+        "https://www.mindef.gov.sg/news-and-events/latest-releases/5sep26-nr2/",
+        "https://www.mindef.gov.sg/news-and-events/latest-releases/9sep26-nr/",
+    }),
+}
+
 
 def is_mindef_source(source_slug):
     return source_slug == MINDEF_SOURCE_SLUG

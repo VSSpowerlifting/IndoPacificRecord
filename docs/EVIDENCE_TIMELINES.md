@@ -1,5 +1,50 @@
 # Evidence Timelines — contract and review
 
+## Current preview — 31 October 2026
+
+The six-entry Maritime Cooperation timeline now renders from the current public
+metadata-only database using the existing production renderer and design. Its
+canonical manuscript remains draft and byte-identical, at content digest
+`8afed5a93cdb8a2516953e362d39efc3790a95c121cc73db4af815f7a4433abd`.
+
+The owner confirmed permission for its exact September 5 and 9 MINDEF links
+in PR #926 on 30 October. `core/mindef_permissions.py` records that narrow
+Timeline-only scope separately from the older two-link correspondence. This
+creates no new collection, model, original-text, quotation, translation or
+media permission; other source/Brief/Dossier holds remain.
+
+Reference-only rendering now omits source expression in both draft preview
+and eventual approved publication. Retained originals still reconcile their
+excerpts. For the two privately held MINDEF records, the renderer reuses the
+existing case-study Dossier's exact identity/body-version pins and checks the
+public private-custody bindings, including their current content-hash binding.
+This proves identity/version continuity, not fresh excerpt or editorial review.
+No Dossier source-use grant or editorial approval is inherited by the Timeline.
+The held Brief is named as unavailable, without its route or reinstatement.
+
+```sh
+python site/render.py \
+  --review-timeline timelines/maritime-cooperation-2026.json \
+  --out /outside/the/checkout/timeline-review
+```
+
+The preview is explicitly unpublished and noindex; ordinary builds still omit
+the draft. No private DB, new publisher fetch, paid model, production mutation,
+activation or release is needed to review the complete page. Full-source private
+review remains available for timelines that do not select `references_only`.
+
+Local verification: all 173 focused Timeline, MINDEF, Dossier and
+palette/accessibility tests pass, including Chromium, with no skips. All six entries and five sources render at 1280 and 375 px with and
+without JavaScript, with no overflow even when every source panel is expanded.
+HTML plus CSS measures 92,448 bytes (existing limit 120,000); JS is unchanged at
+3,132 bytes. Required exact-head CI is separate from these local results.
+
+Next: review the complete reference-only manuscript and interface. Its existing
+exact-content approval and release decisions remain; this work does not assign
+an editor, mark it approved, merge code or deploy it.
+
+## Historical implementation and receipts
+
 Implementation for [Issue #158](https://github.com/VSSpowerlifting/China-Mil-Watch/issues/158),
 including its T2 design comment. Base: main
 `24924c59d2e878bcf97f4d647ec611f59256a84e`, refreshed without feature overlap

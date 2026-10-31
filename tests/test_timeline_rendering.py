@@ -17,6 +17,33 @@ sys.path.insert(0, str(ROOT / 'site/preview'))
 import generate_preview as gp
 
 
+class HeldRelatedBriefRendering(unittest.TestCase):
+    def test_real_boundary_private_preview_has_no_link_or_page_for_held_brief(self):
+        # No rights mock. Only the existing China-only source fixture is used;
+        # the actual related Brief remains held by its MINDEF references.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sources = root / 'timelines'
+            sources.mkdir()
+            path = sources / 'maritime-cooperation-2026.json'
+            path.write_text(json.dumps(pilot_without_mindef_evidence()))
+            out = root / 'private'
+            gp.build(out, 'Indo-Pacific Record', ROOT / 'pla_watch.db',
+                     snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
+                     timelines_dir=sources, review_timeline=path,
+                     dossiers_dir=root / 'no-dossiers')
+            from bs4 import BeautifulSoup
+            doc = BeautifulSoup((out / 'timeline/maritime-cooperation-2026.html').read_text(), 'html.parser')
+            related = doc.select_one('[aria-labelledby="tl-related"]')
+            self.assertIn('Currently withheld; unavailable here.', related.get_text())
+            self.assertFalse(related.select('a[href*="briefs/"]'))
+            self.assertFalse((out / 'briefs/maritime-cooperation-2026.html').exists())
+            self.assertEqual(doc.select_one('meta[name="robots"]')['content'], 'noindex, nofollow')
+            self.assertIn('unapproved and unpublished', doc.get_text())
+            self.assertFalse((out / 'sitemap.xml').exists())
+            self.assertFalse((out / 'briefs/feed.xml').exists())
+
+
 class TimelineRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -144,7 +171,7 @@ class TimelineRendering(unittest.TestCase):
         doc = BeautifulSoup(self.detail(self.approved).read_text(), 'html.parser')
         private = BeautifulSoup(self.detail().read_text(), 'html.parser')
         self.assertFalse(doc.select('blockquote,.tl-original,.tl-translation,a[href*="record/"]'))
-        self.assertTrue(private.select('blockquote,.tl-original,a[href*="record/"]'))
+        self.assertFalse(private.select('blockquote,.tl-original,a[href*="record/"]'))
         for entry in sc['entries']:
             for ev in entry['evidence']:
                 self.assertIsNotNone(doc.select_one('#source-%s' % ev['record_id']))
@@ -163,6 +190,20 @@ class TimelineRendering(unittest.TestCase):
                 errors = []
                 validate_output._validate_timelines(self.approved, errors)
                 self.assertIn('exposes source text or full-body', ' '.join(errors))
+        finally:
+            path.write_text(text)
+        # Dropping titles from the public view must not disable the deploy
+        # gate's existing source-title rejection.
+        from scripts.reconcile_db import read_only
+        from html import escape
+        with read_only(ROOT / 'pla_watch.db') as con:
+            source_title = con.execute('SELECT title_original FROM articles WHERE id=3924').fetchone()[0]
+        try:
+            path.write_text(text.replace('</article>', '<p>' + escape(source_title) + '</p></article>', 1))
+            with mock.patch('core.timelines.load_timelines', return_value=(views, [])):
+                errors = []
+                validate_output._validate_timelines(self.approved, errors)
+                self.assertIn('reproduces a source title', ' '.join(errors))
         finally:
             path.write_text(text)
 
