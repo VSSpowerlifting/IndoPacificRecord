@@ -16,7 +16,9 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from core.regional_official_link_release import digest, need, store_verified_links
+from core.regional_official_link_release import (
+    digest, need, read_admitted_link_rows, store_verified_links,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "config/japan_mod_official_link_policy.json"
@@ -203,15 +205,11 @@ def admit(conn, rows, evidence):
 
 
 def read_public_links(conn):
-    records = conn.execute("SELECT source_identity,canonical_official_url,publisher_posted_date,"
-        "official_issuer,official_publisher,official_republisher,source_git_commit,"
-        "metadata_version_sha256,release_proof_sha256,release_scope "
-        "FROM regional_official_source_links WHERE source_family=? AND desk='japan' "
-        "ORDER BY publisher_posted_date DESC,source_identity", (FAMILY,)).fetchall()
+    records = read_admitted_link_rows(conn, "japan", FAMILY)
     if records:
         require_authorization()
     result = []
-    for ident, url, day, issuer, publisher, republisher, commit, version, proof, scope in records:
+    for _, ident, url, day, issuer, publisher, republisher, commit, version, proof, scope in records:
         need(ident == source_identity(url) and issuer == publisher == "jp_mod"
              and republisher is None and scope == "official_link_only"
              and SHA.fullmatch(commit) and HASH.fullmatch(version) and HASH.fullmatch(proof)

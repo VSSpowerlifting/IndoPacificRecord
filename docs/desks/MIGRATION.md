@@ -81,6 +81,19 @@ activation remain mandatory. The pilot's independent pre-integration CI passed
 8,291 tests, isolated rendering/validation and tracked DB/output preservation;
 pre-integration CI alone is not evidence of a production release or live delivery.
 
+**Runtime migration 2 (official-link read-path candidate):** the actual
+readers for Japan MOD, Vietnam ministry official links, Philippines AFP/NSC and
+Indonesia Kemhan all request admitted SQLite rows through
+`core.regional_official_link_release.read_admitted_link_rows`, one
+parameterized read from the existing regional official-link table. The
+replaced per-country/per-family SQL queries have been removed.
+All source-specific URL, attribution, policy, hold, issuer, proof and
+date verification stays with the original readers; this shared transport
+does not infer new public components, perform admission or authorize source
+reuse. One focused synthetic family-isolation test supplements the
+existing real migration/renderer/negative fixtures. This work is a
+**review candidate**, not a merged, deployed or live-verified release.
+
 **Not complete:** the other six desk migrations, source definitions becoming desk manifests,
 `core/source_publication_contract.py` convergence, source-component grouping in
 #895, model controls in #919, and trusted exact-revision qualification/Daily

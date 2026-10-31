@@ -458,3 +458,27 @@ def store_verified_links(conn, approved, proof_digest, as_of_utc, *, stable_vers
         conn.execute("RELEASE SAVEPOINT regional_link_admission")
         raise
     return {"new_official_links": added, "unchanged_official_links": unchanged}
+
+
+def read_admitted_link_rows(conn, desk, family=None):
+    """Read admitted link components from the single regional publication store.
+
+    This is a read-only, source-agnostic transport. It neither grants source
+    use nor validates publisher identity, dates or the public projection;
+    each existing source-specific reader MUST still do those checks. The
+    optional family limits one publisher without excluding other families
+    from a desk's broader read.
+    """
+    columns = (
+        "source_family,source_identity,canonical_official_url,"
+        "publisher_posted_date,official_issuer,official_publisher,"
+        "official_republisher,source_git_commit,metadata_version_sha256,"
+        "release_proof_sha256,release_scope"
+    )
+    sql = "SELECT " + columns + " FROM " + TABLE + " WHERE desk=?"
+    params = (desk,)
+    if family is not None:
+        sql += " AND source_family=?"
+        params += (family,)
+    sql += " ORDER BY publisher_posted_date DESC,source_identity ASC"
+    return conn.execute(sql, params).fetchall()

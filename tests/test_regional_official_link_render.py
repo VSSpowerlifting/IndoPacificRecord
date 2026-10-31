@@ -2,7 +2,7 @@
 import sqlite3
 import unittest
 
-from core.regional_official_link_release import SCHEMA_SQL
+from core.regional_official_link_release import SCHEMA_SQL, read_admitted_link_rows
 from core.regional_official_link_render import (
     RegionalRenderHold, read_live_links, render_live_links,
 )
@@ -64,6 +64,28 @@ class RegionalRenderTests(unittest.TestCase):
         self.assertIn("Kemhan Berita official source",h)
         self.assertIn(ident,h)
         self.assertNotIn("AFP official source",h)
+
+    def test_shared_reader_is_family_scoped_and_preserves_record_shape(self):
+        cx = db()
+        insert(cx)
+        kemhan = "kemhan:/2026/10/15/fictional-notice.html"
+        insert(cx, family="id_kemhan_news", desk="indonesia", ident=kemhan,
+               url="https://www.kemhan.go.id/2026/10/15/fictional-notice.html",
+               issuer=None, publisher="id_kemhan")
+        ph = read_admitted_link_rows(cx, "philippines", "ph_afp_articles")
+        self.assertEqual(len(ph), 1)
+        self.assertEqual(ph[0][0:3], (
+            "ph_afp_articles", "afp:1499",
+            "https://www.afp.mil.ph/news/fictional-exercise"))
+        self.assertEqual(ph[0][-1], "official_link_only")
+        self.assertEqual(len(read_admitted_link_rows(cx, "indonesia")), 1)
+        self.assertEqual(
+            read_admitted_link_rows(cx, "philippines", "id_kemhan_news"), [])
+        self.assertEqual(
+            read_admitted_link_rows(cx, "indonesia", "ph_afp_articles"), [])
+        self.assertEqual(
+            cx.execute("SELECT COUNT(*) FROM regional_official_source_links")
+              .fetchone()[0], 2)
 
     def test_no_cross_desk_leak(self):
         cx=db()
