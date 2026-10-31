@@ -20,6 +20,7 @@
 [data-surface] :is(.btn,button):not(:disabled):active{transform:translateY(2px)}
 [data-surface] summary{min-height:44px}
 [data-surface] details[open]>summary{color:var(--accent-ink)}
+[data-surface] .masthead--dark .shell-menu[open]>summary{color:var(--band-ink)}
 [data-surface] .band details[open]>summary{color:var(--focus-band)}
 [data-surface] :is(.shell-menu[open]>div,.shell-menu[open]>nav){animation:disclose-arrive 180ms var(--ease-rule)}
 @keyframes disclose-arrive{from{opacity:.6;transform:translateY(-6px)}to{opacity:1;transform:none}}

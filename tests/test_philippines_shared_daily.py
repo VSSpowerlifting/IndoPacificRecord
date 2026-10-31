@@ -387,6 +387,8 @@ class SharedDaily(unittest.TestCase):
         # The full shared template has registered filters; reuse the real env
         # created by build in the production compatibility suite. Here the
         # included machine projection alone proves the non-disclosure surface.
+        from scripts.pw_env import format_date
+        env.filters['reader_date'] = format_date
         html = env.get_template('_machine_explanation.html').render(record=dict(
             source_label='AFP', source_identity='afp:1', summary=reading()['summary_english'],
             model_flagged=False, publisher='ph_afp', published_date='2026-10-19',

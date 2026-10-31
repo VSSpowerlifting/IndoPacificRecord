@@ -6381,6 +6381,17 @@ class TestCitationCopyBehaviour(PreviewCase):
         finally:
             context.close()
 
+    def test_open_dark_menu_keeps_readable_text_after_focus_moves(self):
+        page = self.browser.new_page(viewport={'width':375,'height':700})
+        try:
+            page.goto(self.url('index.html'))
+            summary = page.locator('.nav-mobile>summary')
+            summary.click(); page.mouse.move(0, 0); page.locator('#main').focus()
+            self.assertEqual(summary.evaluate('(e)=>getComputedStyle(e).color'),
+                             page.locator('.masthead').evaluate('(e)=>getComputedStyle(e).color'))
+        finally:
+            page.close()
+
     def test_back_to_top_restores_focus_and_yields_to_menus(self):
         context = self.browser.new_context(viewport={'width':375,'height':700}, reduced_motion='reduce')
         try:

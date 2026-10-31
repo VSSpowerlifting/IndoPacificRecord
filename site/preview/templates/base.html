@@ -40,7 +40,7 @@
 <header class="masthead{% if shell_dark %} masthead--dark{% endif %}">
   <div class="wrap header-inner">
     {% set logo_color = 'ivory' if shell_dark else 'navy' %}
-    <a id="page-top" class="brand" href="{{ root }}index.html" aria-label="{{ title }} home">
+    <a class="brand" id="page-top" href="{{ root }}index.html" aria-label="{{ title }} home">
       <img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png"
            srcset="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png 160w, {{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-320.png 320w"
            sizes="(max-width:500px) 56px, 72px" width="160" height="{{ 133 if shell_dark else 130 }}" alt="" aria-hidden="true" decoding="async" fetchpriority="high">

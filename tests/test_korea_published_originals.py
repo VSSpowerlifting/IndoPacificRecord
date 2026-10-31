@@ -19,6 +19,11 @@ def sha(data):
 
 
 class KoreaPublishedOriginals(unittest.TestCase):
+    def assert_only_shared_shell(self, markup):
+        script = '<script src="../shell.js" defer></script>'
+        self.assertEqual(markup.count(script), 1)
+        self.assertNotIn('<script', markup.replace(script, ''))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -82,7 +87,7 @@ class KoreaPublishedOriginals(unittest.TestCase):
         self.assertNotIn('rel="canonical"', markup)
         self.assertNotIn('property="og:url"', markup)
         self.assertIn('&lt;script&gt;', markup)
-        self.assertNotIn('<script', markup)
+        self.assert_only_shared_shell(markup)
 
     def test_production_page_has_branded_exact_origin_and_source_escape(self):
         self.write([self.row])
@@ -105,7 +110,7 @@ class KoreaPublishedOriginals(unittest.TestCase):
         self.assertIn('href="../assets/identity/selected-ipr/ipr-accent-32.png"', markup)
         self.assertIn('href="#main"', markup)
         self.assertEqual(markup.count('&lt;script&gt;'), CONTENT.count('<script>'))
-        self.assertNotIn('<script', markup)
+        self.assert_only_shared_shell(markup)
         self.assertNotIn('.hwpx', markup)
 
     def test_public_renderer_rejects_noncanonical_website_origin(self):
@@ -142,7 +147,7 @@ class KoreaPublishedOriginals(unittest.TestCase):
     def test_untrusted_source_script_cannot_be_exec_in_markup(self):
         self.write([self.row])
         html = render_original_page(self.read()[0])
-        self.assertNotIn("<script", html)
+        self.assert_only_shared_shell(html)
         self.assertEqual(html.count("&lt;script&gt;"), 12)
 
     def test_text_cannot_be_a_symlink(self):

@@ -626,6 +626,8 @@ class IndonesiaSharedDaily(unittest.TestCase):
     def test_machine_record_discloses_indonesian_processing(self):
         from jinja2 import Environment,FileSystemLoader,select_autoescape
         env=Environment(loader=FileSystemLoader(d.ROOT/'site/preview/templates'),autoescape=select_autoescape(['html']))
+        from scripts.pw_env import format_date
+        env.filters['reader_date'] = format_date
         html=env.get_template('_machine_explanation.html').render(record=dict(
             source_label='Kemhan',desk_id='indonesia',summary=reading()['summary_english'],
             model_flagged=False,publisher='id_kemhan',published_date='2026-10-19',

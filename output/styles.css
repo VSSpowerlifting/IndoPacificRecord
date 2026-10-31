@@ -139,7 +139,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,su
 }
 .wrap{width:min(100% - var(--gutter)*2,var(--shell));max-width:var(--shell);margin-inline:auto;padding-inline:0}
 .analysis-nav{display:flex;gap:1.6rem;border-bottom:1px solid var(--rule);margin:0 0 2rem}
-.analysis-nav a{position:relative;min-height:44px;display:flex;align-items:center;text-decoration:none;color:var(--ink-2)}
+.analysis-nav a{position:relative;min-height: 44px;display:flex;align-items:center;text-decoration:none;color:var(--ink-2)}
 .analysis-nav a::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform 150ms var(--ease-rule)}
 .analysis-nav a[aria-current]::after,.analysis-nav a:hover::after{transform:scaleX(1)}
 .analysis-nav a[aria-current]{color:var(--ink);font-weight:600}
@@ -218,7 +218,7 @@ a.trail-tag:visited{color:var(--editorial-ink)}
 .desk-state--research::before{content:"◻"}
 .desk-state--planned::before{content:"▫"}
 .desk-state--paused::before{content:"□"}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:44px;padding:.62rem 1.15rem;border-radius:var(--radius);font-family:var(--sans);font-size:.875rem;font-weight:600;line-height:1.2;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:background-color var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out),transform var(--dur-instant) var(--ease-out)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height: 44px;padding:.62rem 1.15rem;border-radius:var(--radius);font-family:var(--sans);font-size:.875rem;font-weight:600;line-height:1.2;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:background-color var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out),transform var(--dur-instant) var(--ease-out)}
 .btn:active{transform:translateY(1px)}
 .btn--primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .btn--primary:visited{color:var(--surface)}
@@ -229,7 +229,7 @@ a.trail-tag:visited{color:var(--editorial-ink)}
 .btn--quiet{background:var(--surface);color:var(--ink);border-color:var(--rule);min-height:40px;padding:.45rem .8rem;font-size:.8125rem}
 .btn--quiet:hover{border-color:var(--ink)}
 .btn[aria-disabled="true"],.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-select,input[type="search"],input[type="date"],input[type="text"]{font:inherit;font-size:.9375rem;color:var(--ink);min-height:44px;padding:.5rem .7rem;background:var(--white);border:1px solid var(--rule-strong);border-radius:var(--radius);max-width:100%}
+select,input[type="search"],input[type="date"],input[type="text"]{font:inherit;font-size:.9375rem;color:var(--ink);min-height: 44px;padding:.5rem .7rem;background:var(--white);border:1px solid var(--rule-strong);border-radius:var(--radius);max-width:100%}
 select{padding-right:2rem}
 label{font-size:.8125rem;font-weight:600;color:var(--ink-2)}
 .cite-line{font-size:var(--step-meta);color:var(--graphite);max-width:var(--measure);margin:1rem 0}
@@ -243,7 +243,7 @@ label{font-size:.8125rem;font-weight:600;color:var(--ink-2)}
 .cite-copy.is-failed,.link-copy.is-failed{border-color:var(--warning);color:var(--warning)}
 .cite-status{margin:.45rem 0 0;min-height:1.3em;font-size:.8125rem;color:var(--ink-2);max-width:none}
 .cite-status:empty{display:none}
-.table-scroll{max-width:100%;min-width:0;overflow-x:auto;margin:1rem 0}
+.table-scroll { max-width: 100%;min-width:0;overflow-x: auto;margin:1rem 0}
 table{border-collapse:collapse;width:100%;font-size:.9375rem;font-variant-numeric:tabular-nums lining-nums}
 caption{caption-side:top;text-align:left;font-size:var(--step-meta);color:var(--muted);padding-bottom:.6rem}
 th,td{text-align:left;vertical-align:top;padding:.6rem .9rem .6rem 0;border-bottom:1px solid var(--rule-soft)}
@@ -323,19 +323,19 @@ html.js-reveal [data-reveal]{opacity:1;transform:none}
 .nav-desktop>a{color:var(--ink);text-decoration:none;position:relative;padding:17px 0}
 .nav-desktop>a[aria-current]::after{content:'';position:absolute;inset:auto 0 9px;height:2px;background:var(--accent)}
 .shell-menu{font:600 14px/1.5 var(--sans)}
-.shell-menu summary{padding:17px 0;cursor:pointer;min-height:44px}
+.shell-menu summary{padding:17px 0;cursor:pointer;min-height: 44px}
 .nav-more{position:relative}
 .nav-more>div{position:absolute;right:0;top:100%;width:210px;background:var(--surface);border:1px solid var(--rule);padding:12px 20px}
-.nav-more a{display:block;padding:10px 0;color:var(--ink);text-decoration:none;min-height:44px}
+.nav-more a{display:block;padding:10px 0;color:var(--ink);text-decoration:none;min-height: 44px}
 .nav-mobile{display:none}
 .nav-mobile>nav{position:absolute;inset:100% 0 auto;background:var(--bg);padding:18px var(--gutter);border-block:1px solid var(--rule)}
-.nav-mobile>nav a{display:block;padding:12px 0;min-height:44px;color:var(--ink);text-decoration:none}
+.nav-mobile>nav a{display:block;padding:12px 0;min-height: 44px;color:var(--ink);text-decoration:none}
 .masthead--dark{background:var(--band);color:var(--band-ink);border-color:var(--band-rule)}
 .masthead--dark .brand,.masthead--dark .nav-desktop>a,.masthead--dark .shell-menu>summary{color:var(--band-ink)}
 .masthead--dark a:focus-visible,.masthead--dark summary:focus-visible{outline-color:var(--focus-band)}
 .masthead--dark .nav-mobile>nav a:focus-visible,.masthead--dark .nav-more a:focus-visible{outline-color:var(--focus)}
 .publication-freshness{border-top:1px solid var(--rule);padding-block:16px;font:13px/1.7 var(--sans);margin-bottom:24px}
-.publication-freshness>summary{cursor:pointer;min-height:44px;display:list-item;padding-block:10px}
+.publication-freshness>summary{cursor:pointer;min-height: 44px;display:list-item;padding-block:10px}
 .freshness-bar .wrap{width:100%;font-size:13px}
 .freshness-bar dl{display:flex;flex-wrap: wrap;gap:16px 32px}
 .freshness-bar dl > div{display:flex;gap:8px}
@@ -411,7 +411,7 @@ a,button,summary,input,select{forced-color-adjust:auto}
 button:not(:disabled):hover,select:not(:disabled):hover{border-color:currentColor}
 :is(.record-row,.source-card,.home-desk-card,.analysis-card) a:is(:hover,:focus-visible){text-decoration:underline;text-underline-offset:.2em}
 .nav-mobile>nav,.nav-more>div{max-height:calc(100dvh - var(--header-height) - 48px);overflow-y:auto;overscroll-behavior:contain}
-.back-to-top{position:fixed;z-index:9;right:max(var(--gutter),env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));min-height:44px;padding:10px 14px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);font:600 13px/1.5 var(--sans);cursor:pointer}
+.back-to-top{position:fixed;z-index:9;right:max(var(--gutter),env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));min-height: 44px;padding:10px 14px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);font:600 13px/1.5 var(--sans);cursor:pointer}
 .back-to-top:hover{text-decoration:underline}
 .research-dates{font:13px/1.7 var(--sans)}
 /* Print: preserve reading, citations, tables and the three independent dates. */
@@ -429,7 +429,6 @@ button:not(:disabled):hover,select:not(:disabled):hover{border-color:currentColo
 [data-surface] main a{color:#000!important}
 [data-surface] main table{width:100%;table-layout:auto}
 [data-surface] main thead{display:table-header-group}
-[data-surface] main tr{break-inside:avoid}
 .publication-freshness{display:block}
 .publication-freshness::details-content{content-visibility:visible}
 .publication-freshness > summary{display:none}
@@ -453,10 +452,10 @@ footer.site .footer-standing{margin-top:6pt}
 .btn{background:none !important;color:#000 !important;border:0;padding:0;min-height:0;transition:none}
 main a[href^="http"]::after{content:" <" attr(href) ">";font:8pt var(--mono);color:#333;overflow-wrap:anywhere}
 a[href^="#"]::after,a[href^="mailto:"]::after{content:""}
-.record-row,.stat-row,.cite-text,.brief-citation{break-inside:avoid}
+.record-row,[data-surface] main tr,.stat-row,.cite-text,.brief-citation{break-inside: avoid}
 thead{break-after:avoid;break-inside:avoid}
 .table-scroll{overflow:visible}
-main :is(.cite-text,.brief-citation,.ds-url,.provenance) a::after{content:none}
+main :is(.cite-text,.brief-citation,.ds-url,.provenance) a[href]::after{content:none}
 h1,h2,h3,h4{break-after:avoid;color:#000 !important}
 [data-reveal]{opacity:1 !important;transform:none !important;transition:none !important}
 .week-bars a::before{transform:none !important;transition:none !important}
