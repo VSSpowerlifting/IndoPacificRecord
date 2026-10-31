@@ -122,7 +122,12 @@ next action in repository state; use a fresh session for a substantial next phas
 | **Journalism skills** (fact-check-workflow, source-verification, newsroom-style, ai-writing-detox/humanizer) | editorial passes on edition prose, headline/dek treatment, corrections handling, evidence presentation | rewriting published editions without the analyst |
 | **graphify** | architecture/where-should-I-edit questions (`graphify-out/GRAPH_REPORT.md` first, then targeted rg); refresh with `graphify update .` after structural changes | decorative relationship visuals for the site |
 | **Ruflo (swarm)** | genuinely parallel work only — e.g., one agent per route family in a multi-route implementation, or research/verification/QA role separation on a publish | single-file fixes, nav changes, README edits, routine build errors |
+| **ipr-proposal-review** (shared, `.agents/skills/`) | read-only PROCEED/SIMPLIFY/DEFER/REJECT challenge of a material expansion, source-permission or AI-model change | routine fixes; line-by-line diff review (use `/code-review` or `codex review`) |
 | **Headroom / TokenSave** | compressing long validator logs, screenshot batches, repeated repo inspection | authoritative reading of Chinese text, translations, dates, ranks, claims |
+
+Shared repository skills have one canonical copy in `.agents/skills/<name>/`,
+which Codex reads directly; Claude sees it through the tracked symlink
+`.claude/skills/<name>`. Edit only the `.agents` copy.
 
 Ruflo limits: max 4 agents; one owner per template file (`base.html`,
 `pla-watch-base.html`, and `pw_env.py` are single-owner, never concurrent);
@@ -130,7 +135,7 @@ the lead session integrates and is the only writer of PROJECT_STATE.md.
 
 ## 3. Project agents (`.claude/agents/`)
 
-Minimum useful set — three agents plus one human-in-the-loop role:
+Minimum useful set — four agents plus one human-in-the-loop role:
 
 - **Design Director** — *not an agent file.* This is the Fable-led main
   session role: reviews rendered output against DESIGN_SYSTEM.md +
@@ -145,6 +150,9 @@ Minimum useful set — three agents plus one human-in-the-loop role:
 - **release-qa** (Sonnet) — pre-deploy sweep: validator, preview, responsive
   (1280/375), keyboard + focus, reduced motion, console errors, link spot
   checks. Output: go/no-go report with evidence.
+- **proposal-reviewer** (inherits the lead model, read-only) — runs
+  `ipr-proposal-review` in fresh context so the producer's reasoning does not
+  anchor the verdict. Holds no rules of its own.
 
 ## 4. Project commands (`.claude/commands/`)
 
