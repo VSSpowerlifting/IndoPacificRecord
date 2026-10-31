@@ -303,6 +303,32 @@ class TestRenderedKoreaRecords(unittest.TestCase):
                 self.assertOnlyTotalsMoved(rel)
 
 
+class TestFormattedCountComparison(unittest.TestCase):
+    """Corpus growth across 1,000 cannot relax the unchanged-page contract."""
+
+    def compare(self, before, after):
+        case = TestRenderedKoreaRecords("test_other_desks_pages_unchanged")
+        case.before, case.after = "before", "after"
+        with mock.patch.object(case, "page", side_effect=lambda out, rel:
+                               before if out == "before" else after):
+            case.assertOnlyTotalsMoved("synthetic.html")
+
+    def test_complete_formatted_numerals_normalize_equally(self):
+        self.assertEqual(NUMBER.sub("N", "999"), NUMBER.sub("N", "1,003"))
+        for before, after in (("998", "1,000"), ("999", "1,001"),
+                              ("1,000", "1,002"), ("1,000", "1,000")):
+            with self.subTest(before=before, after=after):
+                self.compare("<dd>%s</dd>" % before, "<dd>%s</dd>" % after)
+
+    def test_wrong_delta_text_extra_quantity_and_malformed_groups_still_fail(self):
+        for before, after in (("<dd>999</dd>", "<dd>1,003</dd>"),
+                              ("Records: 999", "Documents: 1,001"),
+                              ("Records: 999", "Records: 1,001 plus 2"),
+                              ("<dd>999</dd>", "<dd>1,01</dd>")):
+            with self.subTest(before=before, after=after), self.assertRaises(AssertionError):
+                self.compare(before, after)
+
+
 class TestBuildRefusals(unittest.TestCase):
     """Half-applied activation and excluded identities fail closed."""
 

@@ -1894,3 +1894,35 @@ All 17 opened Briefs use the shared article-media adapter and previous/next navi
   unless explicitly asked.
 * An edition is published only after the `EDITORIAL_QA_CHECKLIST.md` gate and a
   rendered-page review; where that was skipped, it is recorded, not implied.
+
+## Low-cost task models — merge preparation, production defaults retained (31 October 2026)
+
+PR #919 retains task-model overrides, optional fallback, task/model accounting,
+resolved-model private-budget checks and provenance through the shared Analyzer.
+Empty overrides/fallback retain Haiku 4.5 relevance and Sonnet 4.6 analysis with
+incumbent requests, `v1` China prompts and acceptance behavior. The general SDK
+client retains incumbent retries; existing private bounds remain. Evaluated
+prompts, fidelity checks, strict China categories and category-failure completion
+holds require `MODEL_FIDELITY_CANDIDATE_ENABLED=1`; default off, not forwarded by
+Daily. Model selection does not enable them. Existing source-specific safeguards
+remain active. Frozen base-request and acceptance/fallback regressions cover this
+separation; final-head CI is required for merge preparation.
+
+No task passed factual qualification. The frozen $3 TOTAL trial remains closed:
+119 settled responses, $1.054463875 returned-usage price / $1.159910286 conservative
+ledger charge, zero unknown calls. Ten China challenges plus three preregistered
+holdouts exposed guard-missed translation, summary and category errors. Sonnet
+also introduced facts and incurred excessive byline holds. Singapore processing
+was excluded by current source-use policy. Full trial/review, factual failures,
+false holds, measured fallback and limitations remain preserved in the private
+qualification evidence and `docs/engineering/LOW_COST_MODEL_ROUTING_2026-10-29.md`.
+The measured 69.51% cost difference compares experimental paths; it is not a
+production saving or factual acceptance. Qualified/realized savings remain 0%.
+
+Historical head `d731c620a0` passed full CI 41119256793: 8,314 tests, 15 skips,
+render/validation with 10 governed warnings, unchanged tracked DB/output. Earlier
+introduced versus base-reproduced failures and coordinated #918 repairs remain
+documented in the engineering record. Green CI establishes code verification,
+not model-quality approval. This phase changes no production variables, DB,
+output, sidecars, usage history, source permission, schedule or activation; makes
+no paid calls; and stops at the verified PR for review. No merge or deployment.

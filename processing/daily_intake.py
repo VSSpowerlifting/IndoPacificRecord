@@ -133,7 +133,7 @@ def bound_private_calls(analyzer, policy):
 
     def guarded(messages, *, model=None, max_tokens=1000, task=None, **kwargs):
         nonlocal remaining, calls
-        used_model = model or ANALYSIS_MODEL
+        used_model = model or (analyzer.task_model(task) if callable(getattr(type(analyzer), "task_model", None)) else ANALYSIS_MODEL)
         need(calls < 2 and (task, used_model, max_tokens) == expected[calls],
              "daily_private_call_bound")
         # UTF-8 bytes bound text tokens; reserve request framing and the more
