@@ -10,10 +10,15 @@ graphify-out/
 
 # Claude Code / agent tooling
 # Ignore all local/runtime .claude state, but version the project-owned
-# agent and command definitions.
+# agent and command definitions and the named project skills. Other local
+# skill directories (including retired extractions) stay untracked.
 .claude/*
 !.claude/agents/
 !.claude/commands/
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/ipr-design/
+!.claude/skills/ipr-source-integrity/
 .agents/
 tmp/
 

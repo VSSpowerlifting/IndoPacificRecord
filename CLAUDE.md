@@ -55,7 +55,9 @@ typography, accessibility and performance. Keep the established
 photography-led journal feel—not a dashboard, terminal or simulated
 intelligence operation. Superseded mockups are not permanent authority.
 
-Model/agent routing lives in `docs/AGENT_WORKFLOWS.md`. Use parallel
+Model/agent routing and the task → capability map (which tracked skill,
+agent, command or optional tool fits each kind of work, with a fallback)
+live in `docs/AGENT_WORKFLOWS.md` §1–§2. Use parallel
 agents only for genuine parallel work and avoid unnecessary deep scans
 or expensive model calls. Schema success, model agreement or fluent
 machine prose is not independent factual review.
