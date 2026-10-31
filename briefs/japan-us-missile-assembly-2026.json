@@ -1,11 +1,11 @@
 {
   "title": "Japan and the United States Agree to Establish AMRAAM Final Assembly in Japan",
   "dek": "Defense ministers turned an April possibility into a commitment and agreed to share technical information for SM-3 interceptor production. Their summaries name no site, operator, contract or production rate.",
-  "manuscript_sha256": "807cf4ad4e7e72a57864dd52b1ffbeb5003cf35e201eda8538a9ad72a7ac9cf3",
+  "manuscript_sha256": "3095c21e909dbc3900a5b4ba9aebba46e23ed67d276e0651d81aea0487952eda",
   "body_paragraphs": [
     [
       {
-        "text": "Japan’s defense minister, Koizumi Shinjiro, and U.S. Secretary of War Hegseth agreed on 28 October to establish a facility in Japan for the final assembly and check-out of the AIM-120 Advanced Medium-Range Air-to-Air Missile (AMRAAM). They met for about 30 minutes in the Philippines, where both were attending the ASEAN Defence Ministers’ Meeting-Plus (ADMM-Plus). According to "
+        "text": "Japan’s defense minister, Koizumi Shinjiro, and U.S. Secretary of War Pete Hegseth agreed on 28 October to establish a facility in Japan for the final assembly and check-out of the AIM-120 Advanced Medium-Range Air-to-Air Missile (AMRAAM). They met for about 30 minutes in the Philippines, where both were attending the ASEAN Defence Ministers’ Meeting-Plus (ADMM-Plus). According to "
       },
       {
         "text": "the Japanese Defense Ministry’s summary of the talks",
@@ -19,7 +19,14 @@
         "source": "s4"
       },
       {
-        "text": " records the first decision as agreement on establishing (設置) a final assembly and inspection (最終組立・検査) facility inside Japan."
+        "text": " records the first decision as agreement on establishing (設置) a final assembly and inspection (最終組立・検査) facility inside Japan. "
+      },
+      {
+        "text": "The U.S. Department of War’s readout",
+        "source": "s8"
+      },
+      {
+        "text": " of the meeting mentions neither decision. It says only that the two ministers committed to continue close coordination on critical munitions production."
       }
     ],
     [
@@ -257,6 +264,21 @@
         "method": "publisher",
         "locator": "28 October Japanese-language joint statement: destroyer transfer aim framed as 協議を継続; ACSA entry into force given as 本年8月 (English s5 says July; not used in article). Parallel institutional account to s5. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
       }
+    },
+    {
+      "id": "s8",
+      "url": "https://www.war.gov/News/Releases/Release/Article/4635148/readout-of-secretary-of-war-pete-hegseths-meeting-with-japanese-minister-of-def/",
+      "publisher": "U.S. Department of War",
+      "issuer": "U.S. Department of War",
+      "date": "2026-10-27",
+      "lang": "en",
+      "original_title": "Readout of Secretary of War Pete Hegseth's Meeting With Japanese Minister of Defense Shinjirō Koizumi",
+      "independence": "official",
+      "temporal_role": "in-window",
+      "verification": {
+        "method": "publisher",
+        "locator": "Readout dated Oct. 27, 2026 (U.S. time; meeting held 28 October in the Philippines): names Secretary of War Pete Hegseth; says both leaders committed to continue close coordination on critical munitions production; no mention of AMRAAM, final assembly and check-out, or SM-3 Block IIA. Counterpart record to s1/s4. Fetched live via retrieval service 31 October 2026; title and date match. No archive-byte parity claimed."
+      }
     }
   ],
   "publication": "Indo-Pacific Record",
@@ -279,7 +301,8 @@
       "kind": "reporting",
       "sources": [
         "s1",
-        "s4"
+        "s4",
+        "s8"
       ]
     },
     {

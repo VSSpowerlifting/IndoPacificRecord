@@ -5,8 +5,8 @@
 **State:** DRAFT. Unapproved, unnumbered (`issue_number: null`), no editorial review, policy ruling or presentation approval recorded. Not for publication.
 **Format:** `source-linked-editorial-v1` (`briefs/japan-us-missile-assembly-2026.json`)
 **Manuscript (Word):** `research/briefs/manual_2026-10-31_japan_us_missile_agreement_manuscript.docx`
-**Manuscript SHA-256:** `807cf4ad4e7e72a57864dd52b1ffbeb5003cf35e201eda8538a9ad72a7ac9cf3`
-**Content fingerprint:** `c65e2aac0a09f880bbd1e2745ef5b92547906a578bd2825603f40b198526b40d` (bound by `briefs/presentation/japan-us-missile-assembly-2026.json`)
+**Manuscript SHA-256:** `3095c21e909dbc3900a5b4ba9aebba46e23ed67d276e0651d81aea0487952eda`
+**Content fingerprint:** `ac8afe50b5f14c6f28a5be8131f71667c6d35df21b268b5ed5e31ad852496f2f` (bound by `briefs/presentation/japan-us-missile-assembly-2026.json`)
 **Prepared:** 31 October 2026
 
 ## 1. Editorial decision
@@ -29,19 +29,20 @@ The lead is the 28 October agreement by Japan's defense minister and the U.S. Se
 
 ## 3. Publisher references: verification record
 
-All seven references were re-fetched from the publisher's own URL on 31 October 2026 through the session's web-retrieval service (Firecrawl). For each, the page title and publisher date matched the sidecar and the article's specific claims were read against the page text. **No publisher HTML/PDF bytes were archived and no byte-parity, hash or historical-version claim is made.** The sidecar locators say exactly this.
+All eight references were re-fetched from the publisher's own URL on 31 October 2026 through the session's web-retrieval service (Firecrawl). For each, the page title and publisher date matched the sidecar and the article's specific claims were read against the page text. **No publisher HTML/PDF bytes were archived and no byte-parity, hash or historical-version claim is made.** The sidecar locators say exactly this.
 
 | ID | Publisher document | Lang | Date / role | Checked against | Result |
 |---|---|---|---|---|---|
-| s1 | [Japan-U.S. Defense Ministerial Meeting (Summary)](https://www.mod.go.jp/en/article/2026/10/8dbc5c2ef47ef3843a13f3bb48dc6b00fff7ba03.html), Japan MOD | en | 2026-10-28, in-window | P1, P2, P5–P7, P10: ~30-minute meeting in the Philippines during ADMM-Plus; "Operation Supercharge" follow-up; SM-3 Block IIA information sharing; AMRAAM FACO agreement; other agenda items | Supported. Gives "Secretary of War Hegseth" with no first name. |
+| s1 | [Japan-U.S. Defense Ministerial Meeting (Summary)](https://www.mod.go.jp/en/article/2026/10/8dbc5c2ef47ef3843a13f3bb48dc6b00fff7ba03.html), Japan MOD | en | 2026-10-28, in-window | P1, P2, P5–P7, P10: ~30-minute meeting in the Philippines during ADMM-Plus; "Operation Supercharge" follow-up; SM-3 Block IIA information sharing; AMRAAM FACO agreement; other agenda items | Supported. Gives "Secretary of War Hegseth" with no first name; the full name is taken from s8. |
 | s2 | [The 4th Japan-U.S. DICAS (DICAS 2.0)](https://www.mod.go.jp/en/article/2026/04/119520c9725a022e137f982c87f919e8b7d95cb4.html), Japan MOD | en | 2026-04-14, background | P3, P5, P6, P10: Washington plenary; circuit-card assembly in scope; continued discussion of "the possibility" of FACO; feasibility study with Mitsubishi Electric and Raytheon; SM-3 measures of roughly four times; DICAS 2.0 | Supported. |
 | s3 | [Mitsubishi Electric Working to Participate in Japan–U.S. Co-production of AIM-120 AMRAAM](https://www.mitsubishielectric.com/en/pr/2026/0428_ds/), Mitsubishi Electric | en | 2026-04-28, background | P4: discussions with Raytheon and others on participation scope; circuit cards; "possibility of a future" FACO; feasibility studies under MOD contracts awarded 2024 and 2025 | Supported. Party statement by an interested company, attributed as such in the text. |
 | s4 | [日米防衛相会談について](https://www.mod.go.jp/j/approach/anpo/2026/1028a_usa-j.html), Japan MOD | ja | 2026-10-28, in-window | P1, P7: 最終組立・検査（FACO）施設の設置に合意; SM-3ブロックⅡA技術情報共有に合意; no site/operator/contract/schedule | Supported. Parallel institutional account of s1, not independent corroboration. |
 | s5 | [Japan–Philippines Defense Ministerial Joint Press Statement](https://www.mod.go.jp/en/article/2026/10/be6559883d95cd90fa6b2446b99b206cf7a33dd8.html), MOD Japan / DND Philippines | en | 2026-10-28, in-window | P8–P10: "concurred in aiming"; "at the earliest possible date"; expected decommissioning "in the coming years"; pre-transfer training; maintenance; internal coordination; TC-90 by end FY2027; full name Gilberto C. Teodoro Jr. | Supported. |
 | s6 | [Japan- Philippines Defense Ministerial Meeting (Joint Press Statement)](https://www.mod.go.jp/en/article/2026/05/45c008f13e32cdb63ef16520e4337fe3fd601788.html), MOD Japan / DND Philippines | en | 2026-05-31, background | P9: Singapore meeting; "broad consensus" to proceed with discussions; TC-90 within FY2027; working group of 5 May | Supported. |
 | s7 | [日比防衛相会談共同プレスステートメント](https://www.mod.go.jp/j/approach/exchange/area/2026/20261028_phl-j.html), MOD Japan / DND Philippines | ja | 2026-10-28, in-window | P8: destroyer aim framed as 協議を継続 | Supported. **Added this round** so the article can state the Japanese text's more guarded framing with its own citation. Parallel institutional account of s5. |
+| s8 | [Readout of Secretary of War Pete Hegseth's Meeting With Japanese Minister of Defense Shinjirō Koizumi](https://www.war.gov/News/Releases/Release/Article/4635148/readout-of-secretary-of-war-pete-hegseths-meeting-with-japanese-minister-of-def/), U.S. Department of War | en | 2026-10-27 (U.S. date), in-window | P1: full name Pete Hegseth; both leaders committed to continue close coordination on critical munitions production | Supported. **Added in the review round.** The readout does not mention AMRAAM, final assembly and check-out, or SM-3 Block IIA. P1 now says so. The U.S. counterpart record to s1/s4. |
 
-**Independence.** s1/s4 and s5/s7 are each one institutional account in two languages. s3 is a company statement. None is independent confirmation of implementation, and the article does not present any as such.
+**Independence.** s1/s4 and s5/s7 are each one institutional account in two languages. s8 is the other government's account of the same meeting; it is official, not independent, and it is silent on both missile decisions. s3 is a company statement. None is independent confirmation of implementation, and the article does not present any as such.
 
 ## 4. Discrepancies found and how they were resolved
 
@@ -53,20 +54,20 @@ All seven references were re-fetched from the publisher's own URL on 31 October 
 6. **DICAS naming.** "Renamed" was imprecise; s2 calls the meeting DICAS 2.0 as an upgrade of the forum. P3 now says the meeting "upgraded the forum to 'DICAS 2.0.'"
 7. **P6 citation.** P6 previously cited s3 for April's component answer. That claim is in s2; s3 was removed from P6's support.
 8. **Over-reach in the old docket.** The previous version said every page was "checked directly on publisher site" with repeated boilerplate. This docket replaces those lines with the actual method above.
+9. **Single-government attribution (review round).** Both missile decisions appear only in the Japanese ministry's records (s1, s4). The U.S. Department of War readout (s8) records only a commitment to continue close coordination on critical munitions production. The headline and P1 rested on Japan's account without saying the U.S. account is silent. P1 now ends with an attributed sentence citing s8.
+10. **Hegseth's first name (review round).** s1 omits it; s8 gives "Pete Hegseth." P1 now reads "U.S. Secretary of War Pete Hegseth."
+11. **Japanese originals of s2 and s6 (review round).** The Japanese DICAS page (`https://www.mod.go.jp/j/approach/anpo/2026/0414a_usa-j.html`, page dated 令和８年４月１７日) and the Japanese 31 May statement (`https://www.mod.go.jp/j/approach/exchange/area/2026/20260531_phl-j.html`: 大筋で合意 to 議論を進める; working group of 5月5日) were read against P3–P6 and P9. Both match the article's wording. No change was needed and neither page is added as a reference.
 
 ## 5. Not checked (open source questions)
 
-- **Japanese-language versions of s2 (DICAS, 14 April) and s6 (31 May).** A likely Japanese counterpart for s2 is `https://www.mod.go.jp/j/approach/anpo/2026/0414a_usa-j.html`; it was not fetched or compared. The article relies on the English texts for both.
 - **Any PDF attachments** to the MOD pages were not opened.
-- **Secretary Hegseth's first name.** s1 omits it. The manuscript uses "Secretary of War Hegseth." If Dylan or the owner wants the full name, cite a U.S. Department of War source.
-- **U.S.-side account of 28 October.** No Department of War readout was checked. The article attributes the agreement to the Japanese ministry's summary and says so in P1.
 - **ACSA month** (July vs. August); see item 5. Not used.
 
 ## 6. Paragraph-to-source map
 
 | ¶ | Section | Kind | Sources |
 |---|---|---|---|
-| 1 | What the ministers agreed | reporting | s1, s4 |
+| 1 | What the ministers agreed | reporting | s1, s4, s8 |
 | 2 | What the ministers agreed | reporting | s1 |
 | 3 | An April possibility becomes a commitment | reporting | s2 |
 | 4 | An April possibility becomes a commitment | reporting | s3 |
@@ -84,7 +85,7 @@ Every reference appears as a linked phrase in the prose. Paragraph support match
 - **Byline** is the provisional "Indo-Pacific Record Editorial Desk." No approved byline exists.
 - **P7 "political commitment"** is IPR analysis. It is supported by the absence of site, operator, contract and schedule in s1 and s4, not by any statement in them.
 - **P6 "rather than only supplying parts to an American plant"** is conditional ("If a facility is built"). Keep the condition in any edit.
-- **Length:** 810 body words, inside the 650–850 target.
+- **Length:** 839 body words, inside the 650–850 target.
 - **Rights:** the article quotes short phrases from official statements and links the originals. No article bodies, PDFs or photographs are reproduced. No photograph is attached; the source-linked format carries no photo field.
 
 ## 8. Alternatives considered (not used)

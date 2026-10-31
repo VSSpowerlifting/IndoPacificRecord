@@ -8,7 +8,7 @@
 
 Hi Dylan,
 
-Attached is this week's Brief, "Japan and the United States Agree to Establish AMRAAM Final Assembly in Japan." It runs about 810 words under five headings. Could you give it a language and structure edit?
+Attached is this week's Brief, "Japan and the United States Agree to Establish AMRAAM Final Assembly in Japan." It runs about 840 words under five headings. Could you give it a language and structure edit?
 
 The argument: on 28 October the two defense ministers turned an April "possibility" of final assembly and check-out in Japan into an agreement to establish the facility. That step matters more than the SM-3 item because it moves Japan from supplying parts to hosting the end of the line. Nothing about the facility exists yet, though: no site, operator, contract or schedule. A short section covers the same-day Japan–Philippines destroyer statement as a separate track.
 
@@ -26,7 +26,7 @@ Please keep these distinctions intact, since they are what the sources support:
 
 Each linked phrase is a citation to an official source. If you reword around a link, please keep the link on the phrase that carries the claim. Use tracked changes or comments, whichever is easier.
 
-One small open point: the Japanese ministry summary gives only "Secretary of War Hegseth," without a first name. Feel free to flag whether you think we should add it.
+One point on sourcing: both missile decisions appear only in the Japanese ministry's records. The U.S. Department of War readout mentions neither, and the first paragraph says so. Please keep that sentence or its substance.
 
 Thanks very much,
 Ben
