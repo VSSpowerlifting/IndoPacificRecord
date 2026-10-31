@@ -221,7 +221,7 @@ def _insert(conn: sqlite3.Connection, family: str, record: dict, row: dict,
         if is_retired(conn, url):
             conn.rollback()
             return qa.HELD_SOURCE, None, "E_RETIRED_URL"
-        if family == "vn_vpcp_official_documents_vi":
+        if SOURCES[family].private_document:
             proof = json.loads(provenance["qa_json"]).get("details",{}).get("VPCP_DOCUMENT",{})
             from processing.government_document_intake import processing_metadata
             live = processing_metadata(conn,record["source_identity"])
@@ -252,6 +252,15 @@ def _insert(conn: sqlite3.Connection, family: str, record: dict, row: dict,
 
 # ── Second pass ──────────────────────────────────────────────────────────────
 
+def _profile(family: str):
+    """The family's screening profile; a private-document family uses the
+    private document profile, never the ministry or China default."""
+    if SOURCES[family].private_document:
+        from processing.screening import private_document_profile
+        return private_document_profile()
+    return profile_for_source(family)
+
+
 def model_second_pass(analyzer, family: str) -> Callable[[dict, str, str, dict], dict]:
     """The bounded QA second pass on the shared client, budget and telemetry.
 
@@ -260,13 +269,13 @@ def model_second_pass(analyzer, family: str) -> Callable[[dict, str, str, dict],
     """
     from analysis.analyzer import ANALYSIS_MODEL
     from analysis.usage import TASK_SUMMARY
-    from processing.screening import private_document_profile
-    profile = private_document_profile() if family == "vn_vpcp_official_documents_vi" else profile_for_source(family)
+    document = SOURCES[family].private_document
+    profile = _profile(family)
     system = [{"type": "text", "text": profile.analysis_system_prompt}]
 
     def run(record, title, body, result):
         messages=qa.second_pass_messages(title, body, result)
-        if family == "vn_vpcp_official_documents_vi":
+        if document:
             messages[0]["content"] += (
                 "\nPrivate page-pinned evidence notes follow. They need not repeat the "
                 "shorter public summary verbatim. Every PUBLIC headline/summary claim "
@@ -318,13 +327,14 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         raise BridgeError("vietnam_desk_not_promoted")
     ledger = load_ledger(ledger_path, family)
     private = custody is not None
-    if family == "vn_vpcp_official_documents_vi":
+    document = SOURCES[family].private_document
+    if document:
         from core.vietnam_document_custody import prepare
         from processing.vpcp_policy import policy
         if custody is None:
             raise BridgeError("vpcp_private_custody_required")
         packet, versions = prepare(state_repo, commit, api=custody.private_api)
-        custody_report = {"mode":"private", "source_ref":"archive/vietnam-vpcp"}
+        custody_report = {"mode":"private", "source_ref":vn.private_ref(family)}
         document_policy = policy()
     else:
         packet = vn.prepare(state_repo, commit, family, private=private)
@@ -340,11 +350,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             custody_report = {"mode": "public", "source_ref": SOURCES[family].state_branch}
         versions = preserved_versions(state_repo, commit, family, private=private)
     budget = qa.SecondPassBudget(max_second_pass)
-    if family == "vn_vpcp_official_documents_vi":
-        from processing.screening import private_document_profile
-        base_profile = private_document_profile()
-    else:
-        base_profile = profile_for_source(family)
+    base_profile = _profile(family)
     outcomes: List[dict] = []
 
     documents_used = 0
@@ -358,7 +364,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
 
         def done(outcome, failures=(), article_id=None, details=None, qa_json=None,
                  article=None):
-            if family == "vn_vpcp_official_documents_vi" and document_attempted and outcome == qa.HELD_RETRYABLE:
+            if document and document_attempted and outcome == qa.HELD_RETRYABLE:
                 outcome = qa.HELD_REVIEW
             item.update(outcome=outcome, failures=list(failures), article_id=article_id)
             if details:
@@ -393,7 +399,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                 done(qa.HELD_SOURCE, ["E_MATERIAL_CHANGE"], prior[0])
             continue
         format_draft = None
-        if family == "vn_vpcp_official_documents_vi" and prior_item.get("content_sha256") == sha:
+        if document and prior_item.get("content_sha256") == sha:
             from processing.vpcp_document import retained_format_draft
             from processing.vpcp_correction import eligible
             candidate_version=versions.get((identity,sha))
@@ -419,7 +425,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                       or source_use.reason("public_ipr_analysis", identity))
             done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"], details={"E_RIGHTS_WITHHELD": reason})
             continue
-        if family == "vn_vpcp_official_documents_vi" and not (
+        if document and not (
                 document_policy["external_model_transmission"] and document_policy["public_ipr_analysis"]):
             done(qa.HELD_RIGHTS, ["E_RIGHTS_WITHHELD"])
             continue
@@ -437,7 +443,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                  article=stored)
             continue
 
-        if family == "vn_vpcp_official_documents_vi":
+        if document:
             from processing.vpcp_policy import require_permission
             from processing.vpcp_document import output_failures as document_output_failures
             if not document_policy["external_model_transmission"] or not document_policy["public_ipr_analysis"]:
@@ -465,7 +471,7 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         profile = (base_profile if translate else
                    dataclasses.replace(base_profile, build_translation_messages=None))
         title, body = version["title_original"], version["text_original"]
-        if family == "vn_vpcp_official_documents_vi":
+        if document:
             from analysis.analyzer import AnalysisError
             from processing.vpcp_policy import guard
             from processing.vpcp_document import retain_review
@@ -506,9 +512,10 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         projection = {
             "title_original": title if show_title else None,
             "text_original": body if permissions["public_original_storage"] else None,
-            # MPS analysis supplies an independent headline without a translation.
+            # An analysis-headline family (MPS, VPCP) supplies an independent
+            # English headline without a translation.
             "title_english": ((result or {}).get("title_english")
-                              if translate or family in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi") else None),
+                              if translate or SOURCES[family].analysis_headline else None),
             "text_english": (result or {}).get("text_english") if translate else None,
             "summary_english": (result or {}).get("summary_english"),
         }
@@ -518,17 +525,17 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                             translation_required=translate, permissions=permissions,
                             projection=projection, attempts=attempts,
                             second_pass=second_pass, budget=budget,
-                            force_second_pass=family == "vn_vpcp_official_documents_vi")
+                            force_second_pass=document)
         if verdict.outcome != qa.PUBLISHED:
             done(verdict.outcome, verdict.failures, details=verdict.details,
                  qa_json=verdict.as_json())
-            if (family == "vn_vpcp_official_documents_vi" and (verdict.second_pass is None or manual_correction)
+            if (document and (verdict.second_pass is None or manual_correction)
                     and result and result.get("passed_relevance")):
                 ledger["items"][identity]["private_document_review"] = retain_review(
                     result, verdict.failures, generation_run_id)
             continue
 
-        if family == "vn_vpcp_official_documents_vi":
+        if document:
             from core.collection.vietnam_government_documents import digest
             verdict.details["VPCP_DOCUMENT"] = {
                 "pdf_sha256": version["pdf_sha256"], "metadata_sha256":version["metadata_sha256"],
@@ -605,7 +612,7 @@ def run_family(*args, **kwargs):
     before={(r['task'],r['model']):r for r in usage.rows()} if usage else {}
     try:
         report=_run_family(*args,**kwargs)
-        if report['source_family']=='vn_vpcp_official_documents_vi' and usage:
+        if SOURCES[report['source_family']].private_document and usage:
             from analysis.pricing import estimate_usage_cost_usd
             rows=[]
             for r in usage.rows():

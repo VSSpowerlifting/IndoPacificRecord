@@ -119,9 +119,9 @@ class SourceUse:
     policy_version: str = POLICY_VERSION
 
     def _dependencies(self, permission: str):
-        # MPS publishes a separately authored factual English headline, not
-        # the Vietnamese original. Analysis need not inherit title reuse.
-        if self.source_family in (MPS, VPCP) and permission == "public_ipr_analysis":
+        # MPS and VPCP publish a separately authored factual English headline,
+        # not the Vietnamese original. Analysis need not inherit title reuse.
+        if SOURCES[self.source_family].analysis_headline and permission == "public_ipr_analysis":
             return ("external_model_transmission",)
         return REQUIRES.get(permission, ())
 

@@ -1,6 +1,16 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
+## Shared desk architecture, runtime migrations 1–2 — merged, not deployed (31 October 2026)
+
+Migration 1 (below) merged as PR #928 (merge commit `d2feb72`). Migration 2,
+one shared admitted-link read for Japan MOD, Vietnam ministry, AFP/NSC and
+Kemhan official-link readers, merged as PR #930 (`542e088`) with all three
+final-head checks green; source-specific validation stays with each reader.
+Neither merge is a deployment or live-readback certification. Next bounded
+phase: one remaining desk path (Vietnam, Korea, Japan, US, China or Singapore)
+per `docs/desks/MIGRATION.md`.
+
+### Migration 1 — Philippines/Indonesia source definitions
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
 definition in `core/daily_sources.py`: desk, custody ref, original language,
@@ -21,8 +31,7 @@ difference: `desk_for_source()` now returns `philippines` for the two PH
 families (was `None`); no article row uses them. Live flags are untouched.
 Remaining desks (Vietnam, Korea, Japan, US, China, Singapore) and Daily
 qualification/delivery separation remain separate engineering phases. The
-migration map documents this pilot's bounded scope. This candidate is not a
-production release or live-readback certification.
+migration map documents this pilot's bounded scope.
 
 ## Shared desk system — policy merged; runtime pilot tracked separately (30 October 2026)
 
@@ -32,11 +41,8 @@ Owner approved the three all-desk architecture recommendations. Canonical contra
 Root Codex/Claude instructions, architecture/CI guidance and older desk procedures
 now point to that contract on main. All eight desks are covered.
 This policy-only change alters no executable, workflow, source policy, registry,
-DB, model setting, generated output or live activation. This was a policy-only merge. Runtime source-registration consolidation is
-tracked independently in PR #928; Daily retains its existing offline gate.
-
-Next action: verify and merge the bounded AFP/NSC/Kemhan source-definition
-pilot (PR #928), then migrate the remaining desk paths in separate phases.
+DB, model setting, generated output or live activation. This was a policy-only merge. Runtime source-registration consolidation
+followed in PR #928; Daily retains its existing offline gate.
 Preserve original source authority, model budgets, custody and historical
 approvals; release and deployment remain separate decisions.
 

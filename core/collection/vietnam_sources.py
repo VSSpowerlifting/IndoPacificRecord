@@ -24,6 +24,15 @@ class MinistrySource:
     category_id: str = ""
     language: str = "vi"
     publication_kind: str = "ministry portal report"
+    # Processing behaviour the Daily bridge, handoff and runner read from the
+    # definition instead of comparing family names. Grants stay in the sealed
+    # source-use decision; these only say which checks a granted record needs.
+    #   analysis_headline: public analysis carries an independently written
+    #     English headline, so it needs model transmission but not title reuse.
+    #   private_document: page-pinned document custody, profile, policy, forced
+    #     second pass and document proof; a failure holds this family only.
+    analysis_headline: bool = False
+    private_document: bool = False
 
     def article_id(self, url):
         try:
@@ -49,7 +58,8 @@ SOURCES = {
         "vn_mps_foreign_affairs_vi", "bocongan.gov.vn",
         "https://bocongan.gov.vn/api/rss/34.xml", "mps-vi:",
         "Cổng thông tin điện tử Bộ Công an", "Thông tin Đối ngoại",
-        "mps-vi-content-v1", "shadow/vietnam-mps-foreign-affairs"),
+        "mps-vi-content-v1", "shadow/vietnam-mps-foreign-affairs",
+        analysis_headline=True),
     "vn_moit_energy_vi": MinistrySource(
         "vn_moit_energy_vi", "moit.gov.vn",
         "https://moit.gov.vn/tin-tuc/phat-trien-nang-luong", "moit-energy-vi:",
@@ -95,4 +105,5 @@ PROCESSING_SOURCES = dict(SOURCES, **{VPCP: GovernmentDocumentSource(
     VPCP, 'vanban.chinhphu.vn', 'https://vanban.chinhphu.vn/', 'vpcp-vi:',
     'Văn phòng Chính phủ', 'Government Office administrative documents',
     'vpcp-pdf-pages-v1', 'shadow/vietnam-vpcp',
-    publication_kind='Government Office administrative document')})
+    publication_kind='Government Office administrative document',
+    analysis_headline=True, private_document=True)})
