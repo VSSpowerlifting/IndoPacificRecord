@@ -94,9 +94,25 @@ reuse. One focused synthetic family-isolation test supplements the
 existing real migration/renderer/negative fixtures. This work is a
 **review candidate**, not a merged, deployed or live-verified release.
 
+**Qualification/Daily split (engineering review candidate):** Daily calls
+`scripts/code_qualification.py` to compare its actual checkout and environment
+with authenticated full main-push run/attempt/job evidence. PR synthetic-merge
+assertions cannot certify themselves; reviewed code is qualified on main and
+that qualification survives explicitly classified data growth.
+Unknown changes, environment drift or unavailable evidence retain the original
+full-suite fallback. Runtime migration/schema, DB preservation, reconciliation,
+admission, rendering, output validation and publication/readback controls remain.
+Offline tests use disposable snapshots and mocked GitHub evidence; final PR CI
+must pass before integration. No production workflow or source activation is
+authorized by this phase. Initial reuse requires a full successful main-push
+offline run with the new workflow version after integration; old runs cannot
+certify themselves. The existing offline workflow gains the main-push trigger
+and a bounded data-only lane, with no new job or required status.
+
 **Not complete:** the other six desk migrations, source definitions becoming desk manifests,
 `core/source_publication_contract.py` convergence, source-component grouping in
-#895, model controls in #919, and trusted exact-revision qualification/Daily
-split. Existing Daily checks remain. The #928 merge did not authorize deployment or prove a live HTTPS publication.
+#895 and model controls in #919. The qualification/Daily split above is a review
+candidate, not a merged or operationally verified release. The #928 merge did
+not authorize deployment or prove a live HTTPS publication.
 Verify final-head checks and any operational readback from actual CI and release
 evidence; do not mark the remaining work done.
