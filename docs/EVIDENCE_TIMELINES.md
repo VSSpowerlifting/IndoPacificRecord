@@ -33,11 +33,14 @@ the draft. No private DB, new publisher fetch, paid model, production mutation,
 activation or release is needed to review the complete page. Full-source private
 review remains available for timelines that do not select `references_only`.
 
-Local verification: all 173 focused Timeline, MINDEF, Dossier and
-palette/accessibility tests pass, including Chromium, with no skips. All six entries and five sources render at 1280 and 375 px with and
-without JavaScript, with no overflow even when every source panel is expanded.
-HTML plus CSS measures 92,448 bytes (existing limit 120,000); JS is unchanged at
-3,132 bytes. Required exact-head CI is separate from these local results.
+Local verification (finishing pass, current main `663e3fa93c`): 930 tests across
+the affected Timeline, MINDEF boundary, Dossier, palette/accessibility,
+delivery-budget and render-gate modules pass, including Chromium, with two
+data-dependent skips (no stored record quotes the vocabulary; stale historical
+release snapshot). All six entries and five sources render at 1280 and 375 px
+with no overflow when every source panel is expanded. An isolated production
+render passes the output validator with its ten governed warnings; the draft
+Timeline stays out of ordinary output. Required exact-head CI is separate.
 
 Next: review the complete reference-only manuscript and interface. Its existing
 exact-content approval and release decisions remain; this work does not assign
