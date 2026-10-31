@@ -43,6 +43,72 @@ Next: review the complete reference-only manuscript and interface. Its existing
 exact-content approval and release decisions remain; this work does not assign
 an editor, mark it approved, merge code or deploy it.
 
+### Finishing pass — related Dossiers and source-access limits
+
+- **Related Dossiers.** The related-analysis footer now selects only loaded,
+  non-review public Dossier views whose `chronology.timeline_slug` or
+  `related_timelines` names the Timeline, plus their thematic parent through
+  `case_studies` (`core.dossiers.timeline_dossier_links`). Only
+  `{title, route, kind_label}` is attached to the Timeline view, so no view
+  cycle exists. With today's MINDEF hold no Dossier route is emitted: the
+  approved case study and its thematic parent show only
+  “Currently withheld; unavailable here.”, like the held Brief. Their metadata
+  comes from the sidecar `load_dossiers` already reads, never a route, prose or
+  source text. Held works become links only when `load_dossiers` publishes
+  them.
+- **Source access.** Reference-only pages say that publisher links are external
+  references, that no source text, translation or quotation is carried, and
+  that IPR has not confirmed current publisher availability. Records matched
+  only by the private-custody version binding (today 4466 and 4472) are named in
+  the footer and marked in the ledger: that check confirms record identity and
+  version, not a fresh comparison of the publisher's text with the paraphrase.
+  This is the derived `version_bound_only` view flag; there is no schema change.
+  The three Chinese originals keep their verbatim excerpt reconciliation.
+- **MINDEF fidelity.** The two private originals are not in this checkout's
+  database (it holds identity and hash bindings only). Comparing the MINDEF
+  paraphrases and dates with those originals needs the separately held private
+  custody payload (`scripts/verify_mindef_custody.py`), which this pass did not
+  fetch. That fidelity check remains an editorial limitation.
+
+## Approval dependency (companion Dossier binding)
+
+`core.timelines.content_digest()` excludes only `approval`. Approving the
+Timeline changes `editorial_status`, the actual editor and the review/update
+metadata, so its digest changes. The case-study Dossier pins the current draft
+digest in `chronology.content_sha256`, and `core.dossiers.chronology_view()`
+rejects a mismatch. While the MINDEF hold skips public Dossier loading, a stale
+pin stays latent.
+
+After actual editorial authorization, make the companion Dossier binding
+revision through the existing `core/dossier_decisions.py` and Dossier contract
+path under explicit authority: keep findings and source versions, update the
+chronology pin and genuine revision history, and update the associated
+approval/decision digest. Never update only the pin while keeping the old
+approval, copy a Dossier approval into the Timeline, recompute an approval
+without authority, weaken a binding check or unhold the Dossier.
+
+### Release path after explicit authorization
+
+1. Recheck the final PR head, base, CI and holds. The owner supplies the exact
+   Timeline approval (actual editor, date, durable authorization reference),
+   covering the companion Dossier revision if recorded together. Publication
+   authorization is separate.
+2. Record the approved metadata and `approval`; compute `content_digest()` only
+   after every editorial field is final; apply the authorized Dossier revision;
+   run `python scripts/validate_timelines.py` and the focused tests.
+3. Merge only the authorized, verified SHA. Close PR #926 as superseded when
+   separately authorized.
+4. In a fresh checkout of the reviewed main SHA run
+   `python scripts/validate_timelines.py`,
+   `python site/render.py --site-origin https://indopacificrecord.org` and
+   `python scripts/validate_output.py`. Review the generated diff and digest;
+   confirm the DB is unchanged and held pages are absent. Do not run Daily.
+5. Commit the reviewed `output/` under existing ownership rules; re-render
+   against a moved main rather than publish stale output.
+6. Dispatch `.github/workflows/deploy_output_only.yml` against that exact main
+   commit, then verify the live Timeline, library, Analysis, sitemap and
+   backlinks, the served digest, held-work absence and no new feed.
+
 ## Historical implementation and receipts
 
 Implementation for [Issue #158](https://github.com/VSSpowerlifting/China-Mil-Watch/issues/158),

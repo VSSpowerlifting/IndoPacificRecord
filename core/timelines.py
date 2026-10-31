@@ -307,6 +307,9 @@ def reconcile_sources(sc, db_path, registry=None):
                     or not (expected := _bound_original_version(sc, ev))
                     or bindings.get(rec["id"]) != expected):
                 _fail("citation", "record %s lacks a permitted exact private source version" % rec["id"])
+            # Derived view flag only: this record was matched by identity and
+            # version pin, never by comparing its text with the excerpt.
+            rec["version_bound_only"] = True
     if sc.get("public_presentation") == "references_only":
         # Drop source expression at the view boundary, even in an unpublished
         # preview. Templates cannot accidentally reveal it on this path.

@@ -10,7 +10,11 @@ pins authenticate the retained private bindings. The canonical timeline, Briefs,
 Dossiers, approvals, production DB/output and design are unchanged. No paid
 calls, collection, merge or deployment. See `docs/EVIDENCE_TIMELINES.md` for the
 preview command and manuscript digest; next action is review of the complete
-reference-only timeline, not another infrastructure phase.
+reference-only timeline, not another infrastructure phase. The related-analysis
+footer now links eligible public Dossiers (none today; held works show only
+“unavailable”), and source-access limits are stated per record. Approval needs a
+companion Dossier digest-binding revision under explicit authority; see
+`docs/EVIDENCE_TIMELINES.md`.
 
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 

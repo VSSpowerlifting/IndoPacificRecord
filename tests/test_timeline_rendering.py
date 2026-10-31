@@ -44,6 +44,65 @@ class HeldRelatedBriefRendering(unittest.TestCase):
             self.assertFalse((out / 'briefs/feed.xml').exists())
 
 
+class EligibleDossierLinkTemplate(unittest.TestCase):
+    def test_selected_public_dossier_is_an_escaped_relative_link(self):
+        link = dict(title='<b>Case</b> & study', route='dossier/example.html', kind_label='Exercise case study')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sources = root / 'timelines'
+            sources.mkdir()
+            path = sources / 'maritime-cooperation-2026.json'
+            path.write_text(json.dumps(pilot_without_mindef_evidence()))
+            with mock.patch.object(gp, 'timeline_dossier_links', return_value=([link], [])):
+                gp.build(root / 'out', 'Indo-Pacific Record', ROOT / 'pla_watch.db',
+                         snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
+                         timelines_dir=sources, review_timeline=path, dossiers_dir=root / 'no-dossiers')
+            from bs4 import BeautifulSoup
+            doc = BeautifulSoup((root / 'out/timeline/maritime-cooperation-2026.html').read_text(), 'html.parser')
+        anchor = doc.select_one('[aria-labelledby="tl-related"] a[href="../dossier/example.html"]')
+        self.assertEqual(anchor.get_text(), '<b>Case</b> & study')
+        self.assertIn('Exercise case study', anchor.parent.get_text())
+
+
+class RealPilotReviewPreview(unittest.TestCase):
+    """The canonical draft under the real source-use boundary; no rights mock."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(cls.tmp.cleanup)
+        cls.out = Path(cls.tmp.name) / 'review'
+        gp.build(cls.out, 'Indo-Pacific Record', ROOT / 'pla_watch.db',
+                 snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
+                 review_timeline=ROOT / 'timelines/maritime-cooperation-2026.json')
+        from bs4 import BeautifulSoup
+        cls.doc = BeautifulSoup((cls.out / 'timeline/maritime-cooperation-2026.html').read_text(), 'html.parser')
+
+    def test_held_dossiers_are_unavailable_with_no_link_or_route(self):
+        related = self.doc.select_one('[aria-labelledby="tl-related"]')
+        text = related.get_text(' ', strip=True)
+        self.assertIn('Maritime Cooperation 2026 · Exercise case study · Currently withheld; unavailable here.', text)
+        self.assertIn('China–Singapore Naval Cooperation · Thematic dossier · Currently withheld; unavailable here.', text)
+        self.assertIn('Brief No. 15 · Currently withheld; unavailable here.', text)
+        self.assertFalse(related.select('a[href*="dossier/"], a[href*="briefs/"]'))
+        self.assertFalse(self.doc.select('a[href*="dossier/"]'))
+        self.assertFalse((self.out / 'dossier').exists())
+        self.assertFalse((self.out / 'dossiers.html').exists())
+
+    def test_source_limits_name_only_privately_held_records(self):
+        self.assertEqual(sorted(li['id'] for li in self.doc.select('.tl-ledger li') if li.select('.tl-source-note')),
+                         ['source-4466', 'source-4472'])
+        text = self.doc.select_one('.tl-method').get_text(' ', strip=True)
+        self.assertIn('record 4466 and record 4472 in private custody', text)
+        self.assertIn('not a fresh comparison of the publisher’s text', text)
+        self.assertIn('Publisher links are external references', text)
+        self.assertIn('has not confirmed that each publisher page is currently available', text)
+        self.assertIn('Original titles, quotations, translations and preserved-body links are omitted', text)
+        for record in ('3924', '4102', '4164'):
+            self.assertNotIn('record %s in private custody' % record, text)
+        self.assertFalse(self.doc.select('blockquote,.tl-original,.tl-translation,a[href*="record/"]'))
+
+
 class TimelineRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -172,6 +231,10 @@ class TimelineRendering(unittest.TestCase):
         private = BeautifulSoup(self.detail().read_text(), 'html.parser')
         self.assertFalse(doc.select('blockquote,.tl-original,.tl-translation,a[href*="record/"]'))
         self.assertFalse(private.select('blockquote,.tl-original,a[href*="record/"]'))
+        # Fixtures with retained originals have no version-bound-only record.
+        self.assertFalse(doc.select('.tl-source-note'))
+        self.assertNotIn('private custody', doc.get_text())
+        self.assertIn('Publisher links are external references', doc.get_text())
         for entry in sc['entries']:
             for ev in entry['evidence']:
                 self.assertIsNotNone(doc.select_one('#source-%s' % ev['record_id']))
