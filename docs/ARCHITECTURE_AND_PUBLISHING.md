@@ -62,9 +62,61 @@ evidence must not enter the public DB to satisfy the legacy article shape.
 Source rights and runtime activation remain independently governed. Human Briefs
 and other human-controlled editorial products retain their existing approvals.
 
-Daily's full offline-suite gate remains until trusted exact-revision qualification
-and runtime checks actually replace it. A documentation change cannot attest code
-qualification or authorize a source, model spend, merge or deployment.
+Daily resolves reusable full qualification through `scripts/code_qualification.py`.
+The trust anchor is its reviewed main checkout, resolved with `git rev-parse HEAD`,
+not the queued trigger SHA. It also checks that the executing Daily workflow's
+blob at `github.workflow_sha` matches that checkout. The existing PR workflow
+remains read-only, secret-free, and checks out the synthetic merge. Qualification
+does not authorize a source, model spend, merge or deployment.
+
+Reuse requires authenticated GitHub run and attempt-specific job evidence from
+this repository's `pr_offline_checks.yml` on a **push to main**: successful full suite, Chromium launch,
+isolated render, validator, tracked DB/output preservation, and applicable source
+replay. GitHub's push run/job `head_sha` directly identifies the executed code
+and workflow. The verifier reads that immutable Git tree without checking it
+out or executing it, requires it to be an ancestor of Daily's actual checkout,
+recalculates full scope, and requires exact non-mutable input equivalence.
+PR runs still test their synthetic merges but **cannot certify reuse**: their
+API head SHA identifies the PR head rather than independently authenticating
+the historical executed merge/workflow. A PR-controlled step name claiming a
+trusted merge SHA cannot repair that gap. A green badge, uploaded artifact or
+PR assertion alone is never accepted. Main qualification happens after the
+reviewed merge, including a squash merge; no production secrets are involved.
+
+The input map includes Git paths, modes, types and blob IDs for code, tests,
+workflows, dependencies, schemas/migrations, templates/assets, prompts, policies,
+source config, documentation and unknown paths. Only ordinary non-executable
+blobs at the explicit routine-data paths in `code_qualification.py` are omitted:
+the public DB, the two Daily date markers and usage ledger, four generated
+indexes/sitemap, and named generated HTML routes. Canonical edition JSON,
+generated styles/scripts/assets and all other files under `output/` remain
+inputs. No directory is excluded wholesale. Additions, deletions and mode
+changes participate in the comparison.
+
+Python, installed package versions and wheel RECORD metadata, Chromium, runner
+image/architecture and resolved OS packages must match. Checkout/setup actions
+are pinned to immutable commits. Unpinned dependency or runner drift therefore
+requires the full fallback even when requirements and code are unchanged.
+The search is bounded to the latest 30 main-push runs; missing/failed/skipped/cancelled,
+focused/docs-only, foreign-head, mismatched, expired or unavailable evidence
+selects the existing full offline suite before collection. A failed fallback
+blocks collection/spending. No manual qualification marker or bypass exists.
+The run summary records actual checkout, evidence run/attempt/job, tested commit,
+input/environment digests and invalidation reason, plus the fallback outcome.
+
+Every run still migrates and verifies the actual DB, checks preservation and
+reconciliation, and enforces existing source/custody/QA/holds/budget/admission
+controls. Rendering, output validation, final-snapshot checks, Pages publication,
+live readback and success-marker controls remain in place. Data-only growth can
+reuse code qualification but cannot make invalid current data or output pass.
+Failure recovery still preserves captures/accepted output and excludes invalid
+HTML from the DB-only recovery commit. This engineering change does not dispatch
+Daily or certify live delivery. Initial reuse requires a successful full
+main-push offline run with this workflow version after review/integration;
+older runs fall back safely. The existing workflow now also handles main
+pushes with the same single read-only job. Explicit data-only main diffs skip
+dependencies, tests and rendering; modes/types/unknown paths still invalidate
+that data lane. PR full/focused/docs behavior and required status are unchanged.
 
 ## 3. Commands
 
@@ -98,7 +150,8 @@ screenshots at 1280 and 375 widths.
 ## 4. CI / deployment (`.github/workflows/`)
 
 - `daily_update.yml` — scheduled (five retry windows, one success per NY
-  day): runs the offline suite, then the pipeline (which renders through
+  day): verifies reusable full qualification or runs the offline fallback, then
+  the pipeline (which renders through
   `site/render.py`), commits `pla_watch.db` + `output/` to main, deploys
   `output/` → `gh-pages` (peaceiris/actions-gh-pages@v3,
   `cname: indopacificrecord.org`). Python 3.9 on the runner — keep the

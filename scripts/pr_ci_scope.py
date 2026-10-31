@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import subprocess
+import sys
 
 
 # Only source-neutral Markdown is docs-only. A new data file, schema, policy
@@ -69,6 +71,17 @@ def classify(paths: list[str]) -> Scope:
     return Scope("full", True, any(needs_replay(p) for p in paths))
 
 
+def main_push_scope(root: Path, base: str, head: str, paths: list[str]) -> Scope:
+    # Only the workflow's authenticated main-push event uses the data lane.
+    # Compare modes/types/blob maps too: a .db symlink or executable HTML is
+    # an input change, never mutable data. Unknown paths stay fail-closed.
+    from scripts.code_qualification import Git
+    git = Git(root)
+    if git.inputs(base) == git.inputs(head):
+        return Scope("data", False, False)
+    return classify(paths)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="HEAD^1")
@@ -84,6 +97,9 @@ def main() -> None:
     ])
     paths = [s.decode("utf-8", "surrogateescape") for s in data.split(b"\0") if s]
     scope = classify(paths)
+    if os.environ.get("GITHUB_EVENT_NAME") == "push" and os.environ.get("GITHUB_REF") == "refs/heads/main":
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        scope = main_push_scope(Path.cwd(), args.base, args.head, paths)
     print("PR files:", paths, flush=True)
     print("CI mode:", scope.mode, "browser:", scope.browser,
           "source_replay:", scope.source_replay, flush=True)

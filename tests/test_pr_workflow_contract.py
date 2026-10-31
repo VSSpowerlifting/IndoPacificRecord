@@ -382,16 +382,17 @@ class TestTrigger(unittest.TestCase):
             sorted(types),
             sorted(["opened", "synchronize", "reopened", "ready_for_review"]))
 
-    def test_it_has_no_other_trigger(self):
+    def test_only_pr_review_and_trusted_main_push_can_trigger(self):
         """
         `pull_request_target` would run the base branch's workflow definition
         in the base repository's context, where a token and secrets can be
-        available; the rest would make this workflow run outside review.
+        available. The sole additional trigger qualifies reviewed main with
+        the same read-only, secret-free job and no production operations.
         """
         triggers = load_workflow()["on"]
-        self.assertEqual(set(triggers), {"pull_request"},
-                         "only a pull_request trigger is permitted here")
-        for forbidden in ("push", "schedule", "workflow_dispatch",
+        self.assertEqual(set(triggers), {"pull_request", "push"})
+        self.assertEqual(triggers["push"], {"branches": ["main"]})
+        for forbidden in ("schedule", "workflow_dispatch",
                           "pull_request_target", "workflow_run",
                           "repository_dispatch", "release"):
             self.assertNotIn(forbidden, triggers)
@@ -403,15 +404,17 @@ class TestDraftScheduling(unittest.TestCase):
     def test_draft_guard_is_at_job_level(self):
         self.assertEqual(
             load_workflow()["jobs"]["offline-checks"]["if"],
-            "${{ github.event.pull_request.draft == false }}")
+            "${{ github.event_name == 'push' || github.event.pull_request.draft == false }}")
 
     def scheduled(self, action, draft):
         doc = load_workflow()
         # Evaluate the pinned, single boolean comparison, not a second copy
         # of the scheduling policy. GitHub supplies draft as a JSON boolean.
         expression = doc["jobs"]["offline-checks"]["if"]
-        self.assertEqual(expression, "${{ github.event.pull_request.draft == false }}")
-        comparison = expression.removeprefix("${{ ").removesuffix(" }}")
+        self.assertEqual(expression, "${{ github.event_name == 'push' || github.event.pull_request.draft == false }}")
+        # These are PR events; only the PR clause applies. The separate main
+        # push clause is exercised by the trigger and qualification contracts.
+        comparison = expression.split(" || ")[1].removesuffix(" }}")
         expected = comparison.split(" == ")[1]
         return (action in doc["on"]["pull_request"]["types"]
                 and str(draft).lower() == expected)
@@ -444,7 +447,7 @@ class TestDraftScheduling(unittest.TestCase):
         self.assertEqual(steps["Run focused timeline presentation contracts"]["if"],
                          "${{ steps.scope.outputs.mode == 'focused' }}")
         self.assertEqual(steps["Validate rendered output"]["if"],
-                         "${{ steps.scope.outputs.mode != 'docs' }}")
+                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}")
         self.assertEqual(steps["Install Chromium for the browser-backed tests"]["if"],
                          "${{ steps.scope.outputs.browser == 'true' }}")
         self.assertEqual(steps["Verify Chromium launches"]["if"],
@@ -469,7 +472,7 @@ class TestChangeRiskScope(unittest.TestCase):
         self.assertEqual(steps["Assert the tracked database and output are unchanged"]["if"],
                          "${{ !cancelled() && steps.baseline.outcome == 'success' }}")
         self.assertEqual(steps["Install dependencies"]["if"],
-                         "${{ steps.scope.outputs.mode != 'docs' }}")
+                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}")
 
 
 class TestPermissions(unittest.TestCase):
@@ -619,7 +622,7 @@ class TestItIsInert(unittest.TestCase):
         self.assertIsInstance(job["timeout-minutes"], int)
         self.assertLessEqual(job["timeout-minutes"], 45)
 
-    CONCURRENCY_GROUP = "pr-offline-checks-${{ github.event.pull_request.number }}"
+    CONCURRENCY_GROUP = "pr-offline-checks-${{ github.event.pull_request.number || github.sha }}"
 
     def test_superseded_runs_are_cancelled_per_pull_request(self):
         """
