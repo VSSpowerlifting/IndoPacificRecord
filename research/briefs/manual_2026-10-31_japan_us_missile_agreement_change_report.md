@@ -54,11 +54,14 @@ The draft passes all of the following:
 - `brief_presentation.py check`
 - a private preview, with rendered paragraphs and links matching the frozen runs
 - 151 focused unit tests
+- an isolated full-mode render and `validate_output.py` run, with 10 warnings (the governed baseline); the draft does not appear in the output
+
+The local full suite reported 8,259 tests, 4 failures and 31 errors. All of them come from this Mac's environment: python-docx is not installed in the venv, `gpg` is absent, and macOS resolves `/var` to `/private/var`. One test from each of the other failing groups fails the same way on clean `main`. The 88 docx-dependent tests pass once python-docx is present.
 
 Release-mode checks refuse, as expected, until a human review, a policy ruling and presentation approval exist.
 
 ## Open
 
 - **Japanese originals of the April DICAS summary and the 31 May statement:** not compared.
-- **Hegseth's first name:** absent from the source.
+- **Hegseth's first name:** absent from s1, the Japanese ministry's English summary. No U.S. Department of War readout was checked.
 - **ACSA month:** July and August conflict between the language versions. The month is not used in the article.
