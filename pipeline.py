@@ -39,6 +39,7 @@ from typing import Optional
 from config import (
     ANTHROPIC_API_KEY, BACKLOG_RESERVE_FRACTION, CACHE_DIR, DAILY_ANALYSIS_CAP,
     DB_PATH, LIVE_BACKLOG_DAYS, OUTPUT_DIR, ANALYSIS_MODEL, RELEVANCE_MODEL,
+    TRANSLATION_MODEL, SUMMARY_MODEL, CATEGORIZATION_MODEL, FALLBACK_MODEL,
 )
 from processing.dedup import dedup_articles
 from processing.deduplicator import deduplicate
@@ -352,6 +353,9 @@ def run(
         "Models: relevance=%s  analysis=%s  | cap=%d",
         RELEVANCE_MODEL, ANALYSIS_MODEL, DAILY_ANALYSIS_CAP,
     )
+    logger.info("Task models: translation=%s summary=%s categorization=%s fallback=%s",
+                TRANSLATION_MODEL or ANALYSIS_MODEL, SUMMARY_MODEL or ANALYSIS_MODEL,
+                CATEGORIZATION_MODEL or ANALYSIS_MODEL, FALLBACK_MODEL or "disabled")
     if dry_run:
         logger.info("DRY RUN — no DB writes, no API calls")
 
