@@ -44,6 +44,9 @@ class DossierRendering(unittest.TestCase):
         cls.build(cls.private,review_dossier=cls.draft_pilot)
         cls.build(cls.public,site_origin='https://fixture.test',allow_test_origin=True)
         cls.sc=approve_fixture(read_dossier(PILOT))
+        # Distinct synthetic dates catch revision/review/approval conflation.
+        cls.sc['reviewed_on']='2026-10-24'
+        cls.sc['approval']['approved_on']='2026-10-25'
         cls.sc['title']='Synthetic approved dossier & discovery fixture'
         # Rebind the synthetic title before preparing its synthetic authority.
         from core.dossier_contract import dossier_content_digest
@@ -77,6 +80,17 @@ class DossierRendering(unittest.TestCase):
             errors = []
             validate_output._validate_dossiers(output, errors)
             return errors
+
+    def test_revision_review_and_approval_dates_remain_distinct(self):
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.detail(self.approved).read_text(), 'html.parser')
+        dates = soup.select_one('.ds-reviewmeta')
+        self.assertIn('Content revision:', dates.get_text())
+        self.assertIn('Editorial approval:', dates.get_text())
+        self.assertIn('Publication date not recorded.', dates.get_text())
+        self.assertEqual([t['datetime'] for t in dates.select('time')],
+                         [self.sc['reviewed_on'], self.sc['updated_on'], self.sc['approval']['approved_on']])
+        self.assertEqual(len(soup.select('script[src="../shell.js"]')), 1)
 
     def test_complete_real_private_draft_no_original_text_and_noindex(self):
         html=self.detail(self.private).read_text()

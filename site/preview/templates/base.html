@@ -28,9 +28,7 @@
 <link rel="stylesheet" href="{{ root }}fonts.css">
 <link rel="stylesheet" href="{{ root }}styles.css">
 {% endblock %}
-{# Head scripts, declared per page rather than inherited by all of them. The
-   week shards carry a contract that they ship no <script> at all, and the
-   record pages carry no bytes for behaviour they do not have. #}
+{# Page-specific scripts stay local; shell.js enhances native navigation on every page. #}
 {% if dossier is defined %}<link rel="stylesheet" href="{{ root }}dossier-shell.css">{% elif record is not defined and brief is not defined and not timeline_surface | default(false) and page != 'index.html' %}<link rel="stylesheet" href="{{ root }}{{ support_stylesheet | default('support.css') }}">{% endif %}
 <link rel="stylesheet" href="{{ root }}surfaces.css">
 {% block head_scripts %}{% endblock %}
@@ -42,7 +40,7 @@
 <header class="masthead{% if shell_dark %} masthead--dark{% endif %}">
   <div class="wrap header-inner">
     {% set logo_color = 'ivory' if shell_dark else 'navy' %}
-    <a class="brand" href="{{ root }}index.html" aria-label="{{ title }} home">
+    <a class="brand" id="page-top" href="{{ root }}index.html" aria-label="{{ title }} home">
       <img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png"
            srcset="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png 160w, {{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-320.png 320w"
            sizes="(max-width:500px) 56px, 72px" width="160" height="{{ 133 if shell_dark else 130 }}" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
@@ -75,7 +73,7 @@
 {% elif record is defined %}{% set terrain_key = 'record/' ~ record.id %}
 {% elif week is defined %}{% set terrain_key = week.path ~ '-' ~ (page_no | default(1)) %}
 {% else %}{% set terrain_key = page %}{% endif %}
-<main id="main"{% if topography_style is defined %} style="{{ topography_style(terrain_key) }}"{% endif %}{% block main_class %}{% endblock %}>
+<main id="main" tabindex="-1"{% if topography_style is defined %} style="{{ topography_style(terrain_key) }}"{% endif %}{% block main_class %}{% endblock %}>
 
 {% if review_mode %}<p class="wrap review-banner" role="note">Private editorial preview · draft content is unapproved and unpublished.</p>{% endif %}
 {% block hero %}{% endblock %}
@@ -173,6 +171,7 @@
   </div>
 </footer>
 {% block scripts %}{% endblock %}
-{% if record is defined or brief is defined or timeline_surface | default(false) or page in ['index.html','archive.html'] %}<script src="{{ root }}shell.js" defer></script>{% endif %}
+<button type="button" class="back-to-top" aria-label="Back to top" hidden>Back to top <span aria-hidden="true">↑</span></button>
+<script src="{{ root }}shell.js" defer></script>
 </body>
 </html>

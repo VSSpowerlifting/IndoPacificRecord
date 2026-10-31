@@ -1,6 +1,8 @@
 """Static contract tests for the manual-only Briefs render/release workflow."""
 from pathlib import Path
+import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/briefs_render_only_release.yml"
@@ -8,6 +10,82 @@ RUNNER = ROOT / "scripts/run_briefs_render_release.py"
 
 
 class BriefsRenderReleaseContract(unittest.TestCase):
+    def test_render_contract_uses_production_collection_admission(self):
+        from scripts import run_briefs_render_release as runner
+        from core.brief_collection import load_briefs
+        from core.desk_registry import load_registry
+        published, _ = load_briefs(ROOT / 'briefs', load_registry())
+        slug = 'trident-resolve-regional-scale-specific-chinese-tasks'
+        with mock.patch.object(runner, '_assert_no17_contract') as check:
+            runner._assert_rendered_contract()
+        self.assertEqual(check.call_args.args[2], any(s == slug for s, _ in published))
+        with mock.patch('core.brief_collection.load_briefs',
+                        return_value=([(slug, {})], [])):
+            with mock.patch.object(runner, '_assert_no17_contract') as check:
+                runner._assert_rendered_contract()
+        self.assertTrue(check.call_args.args[2])
+
+    def test_held_no17_requires_absence_and_rejects_public_references(self):
+        from scripts.run_briefs_render_release import _assert_no17_contract
+        route = 'briefs/trident-resolve-regional-scale-specific-chinese-tasks.html'
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            surfaces = ('index.html', 'analysis.html', 'briefs/feed.xml', 'sitemap.xml')
+            for name in surfaces:
+                p = out / name
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text('unrelated admitted content')
+            _assert_no17_contract(out, '', False)
+            (out / route).write_text('synthetic forbidden page')
+            with self.assertRaisesRegex(AssertionError, 'must remain absent'):
+                _assert_no17_contract(out, '', False)
+            (out / route).unlink()
+            for name in surfaces:
+                with self.subTest(surface=name):
+                    (out / name).write_text(route)
+                    with self.assertRaisesRegex(AssertionError, 'public reference'):
+                        _assert_no17_contract(out, '', False)
+                    (out / name).write_text('unrelated admitted content')
+            with self.assertRaisesRegex(AssertionError, 'catalogue card'):
+                _assert_no17_contract(out, 'no-17-trident-resolve-basarnas-drone.jpg', False)
+
+    def test_admitted_no17_retains_content_asset_and_hash_checks(self):
+        from scripts import run_briefs_render_release as runner
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            out = root / 'output'
+            article = out / 'briefs/trident-resolve-regional-scale-specific-chinese-tasks.html'
+            article.parent.mkdir(parents=True)
+            article.write_text('trident-resolve-basarnas-drone-800.webp 9957254 '
+                               'Sgt. 1st Class Timothy Hughes '
+                               'does not imply or constitute DoW endorsement')
+            source = root / 'site/assets/editorial/trident-resolve-basarnas-drone.jpg'
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b'synthetic fixture')
+            assets = ('editorial/derivatives/trident-resolve-basarnas-drone-1600.jpg',
+                      'editorial/derivatives/trident-resolve-basarnas-drone-800.webp',
+                      'editorial/derivatives/trident-resolve-basarnas-drone-1600.webp',
+                      'catalogue/media/no-17-trident-resolve-basarnas-drone.jpg')
+            for name in assets:
+                for base in (root / 'site/assets', out / 'assets'):
+                    target = base / name
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(b'synthetic fixture')
+            with mock.patch.object(runner, 'ROOT', root):
+                check = lambda: runner._assert_no17_contract(
+                    out, 'no-17-trident-resolve-basarnas-drone.jpg', True)
+                check()
+                target = out / 'assets' / assets[0]
+                target.write_bytes(b'drift')
+                with self.assertRaisesRegex(AssertionError, 'hash mismatch'):
+                    check()
+                target.unlink()
+                with self.assertRaisesRegex(AssertionError, 'asset is missing'):
+                    check()
+                article.write_text('incomplete synthetic article')
+                with self.assertRaisesRegex(AssertionError, 'article is missing'):
+                    check()
+
     def test_shared_article_styles_trigger_exact_output_replay(self):
         review_paths = self.workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
         for path in ("site/preview/briefs.css", "output/briefs.css"):

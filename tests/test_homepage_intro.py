@@ -361,7 +361,9 @@ class TestFailureNeverTraps(IntroCase):
         page = self.page(extra="if (document.fonts) document.fonts.load = () => new Promise(() => {});")
         self.start(page)
         page.wait_for_selector("div.ipr-intro.is-text", state="attached", timeout=1500)
-        page.wait_for_function(GONE, timeout=6000)
+        # Observe DOM cleanup independently of WebGL/rAF teardown. The
+        # existing six-second deadline still applies on software renderers.
+        page.wait_for_function(GONE, timeout=6000, polling=50)
         self.assertTrue(page.evaluate(FADED))
         self.assert_clean(page)
 

@@ -787,10 +787,14 @@ class TestPrintAndStateLegibility(unittest.TestCase):
     def test_print_expands_only_absolute_urls(self):
         css = self.css()
         print_block = css.split("@media print", 1)[1]
-        self.assertNotRegex(
-            print_block, r'(?<![\]\w"])\ba::after',
-            "an unscoped a::after prints a URL beside every internal link")
-        self.assertIn('a[href^="http"]::after', print_block)
+        expansions = [(selectors, declarations) for selectors, declarations
+                      in re.findall(r'([^{}]+)\{([^{}]*)\}', print_block)
+                      if 'attr(href)' in declarations]
+        self.assertTrue(expansions)
+        for selectors, _ in expansions:
+            for selector in selectors.split(','):
+                self.assertRegex(selector, r'a\[href\^="http"\]::after',
+                                 "only HTTP links may append their URL")
 
     def test_print_suppresses_fragment_and_mailto_urls(self):
         block = self.css().split("@media print", 1)[1]
@@ -803,10 +807,11 @@ class TestPrintAndStateLegibility(unittest.TestCase):
         # list — Records, week pages, the client-rendered results — renders
         # the one `_records.html` row); `article.record` no longer exists.
         block = self.css().split("@media print", 1)[1]
-        self.assertIn("break-inside: avoid", block)
-        rule = re.search(r"([^{}]*)\{[^}]*break-inside:\s*avoid", block)
-        self.assertIsNotNone(rule)
-        self.assertIn(".record-row", rule.group(1))
+        rules = [declarations for selectors, declarations
+                 in re.findall(r'([^{}]+)\{([^{}]*)\}', block)
+                 if '.record-row' in [s.strip() for s in selectors.split(',')]]
+        self.assertTrue(rules)
+        self.assertRegex(rules[-1], r'break-inside\s*:\s*avoid\b')
 
     def test_print_keeps_a_column_header_with_its_rows(self):
         """A `thead` stranded at the foot of a page labels nothing."""

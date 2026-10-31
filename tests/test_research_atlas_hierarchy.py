@@ -168,11 +168,15 @@ class ResearchAtlasHierarchy(unittest.TestCase):
 
     def test_accessibility_and_local_table_scrolling(self):
         css = (self.out / "styles.css").read_text(encoding="utf-8")
-        self.assertIn(".table-scroll { max-width: 100%;", css)
-        self.assertIn("overflow-x: auto", css)
+        table_rules = [declarations for selectors, declarations
+                       in re.findall(r'([^{}]+)\{([^{}]*)\}', css)
+                       if '.table-scroll' in [s.strip() for s in selectors.split(',')]]
+        self.assertTrue(table_rules)
+        self.assertRegex(table_rules[0], r'max-width\s*:\s*100%')
+        self.assertRegex(table_rules[0], r'overflow-x\s*:\s*auto\b')
         self.assertIn("focus-visible", css)
-        self.assertIn("prefers-reduced-motion: reduce", css)
-        self.assertIn("min-height: 44px", css)
+        self.assertRegex(css, r'prefers-reduced-motion\s*:\s*reduce')
+        self.assertRegex(css, r'min-height\s*:\s*44px')
         for route in ("index.html", "archive.html", "analysis.html",
                       "coverage.html", "desks.html", "sources.html"):
             page = self.html(route)

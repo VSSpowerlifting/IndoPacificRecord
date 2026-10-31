@@ -1,12 +1,15 @@
 """Synthetic exact-source Korea original page projection; zero authorizations."""
 import hashlib
 import json
+import re
 import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
 from core.korea_published_originals import (
     PublishedKoreaHold, SCHEMA, read_release_index, render_original_page,
+    require_shared_shell_only,
 )
 
 RID = "156784297"
@@ -19,6 +22,51 @@ def sha(data):
 
 
 class KoreaPublishedOriginals(unittest.TestCase):
+    def assert_only_shared_shell(self, markup):
+        require_shared_shell_only(markup)
+
+    def test_shell_gate_rejects_missing_inline_additional_and_untrusted_scripts(self):
+        trusted = '<script src="../shell.js" defer></script>'
+        require_shared_shell_only('<p>&lt;script&gt;safe source text</p>' + trusted)
+        for markup in (
+            '', '<script>alert(1)</script>', trusted * 2,
+            trusted + '<script>alert(1)</script>',
+            trusted + '<SCRIPT SRC="https://untrusted.invalid/x.js"></SCRIPT>',
+            trusted.replace('../shell.js', 'https://untrusted.invalid/shell.js'),
+            trusted.replace('</script>', 'alert(1)</script>'),
+            trusted.replace(' defer', ' defer onload="alert(1)"'),
+        ):
+            with self.subTest(markup=markup):
+                with self.assertRaisesRegex(PublishedKoreaHold, 'untrusted_script'):
+                    require_shared_shell_only(markup)
+
+    def test_all_three_workflow_gates_reject_added_scripts_and_attachments(self):
+        workflows = Path(__file__).resolve().parents[1] / '.github/workflows'
+        trusted = '<script src="../shell.js" defer></script>'
+        for name in ('korea_original_text_pages_release.yml',
+                     'korea_original_text_renderer_contracts.yml',
+                     'korea_standing_original_text_production.yml'):
+            source = (workflows / name).read_text()
+            gate = re.search(r'^ +require_shared_shell_only\((page|expected)\)\n'
+                             r' +assert "\.hwpx" not in \1$', source, re.M)
+            self.assertIsNotNone(gate, name)
+            code = compile(textwrap.dedent(gate.group()), name, 'exec')
+            for markup, valid in ((trusted, True),
+                                  (trusted * 2, False),
+                                  (trusted + '<script>alert(1)</script>', False),
+                                  (trusted + '<SCRIPT src="//untrusted.invalid/a"></SCRIPT>', False),
+                                  (trusted.replace('../shell.js', '//untrusted.invalid/a'), False),
+                                  (trusted.replace('</script>', 'alert(1)</script>'), False),
+                                  (trusted + 'original.hwpx', False)):
+                with self.subTest(workflow=name, markup=markup):
+                    namespace = {gate.group(1): markup,
+                                 'require_shared_shell_only': require_shared_shell_only}
+                    if valid:
+                        exec(code, namespace)
+                    else:
+                        with self.assertRaises((PublishedKoreaHold, AssertionError)):
+                            exec(code, namespace)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -82,7 +130,7 @@ class KoreaPublishedOriginals(unittest.TestCase):
         self.assertNotIn('rel="canonical"', markup)
         self.assertNotIn('property="og:url"', markup)
         self.assertIn('&lt;script&gt;', markup)
-        self.assertNotIn('<script', markup)
+        self.assert_only_shared_shell(markup)
 
     def test_production_page_has_branded_exact_origin_and_source_escape(self):
         self.write([self.row])
@@ -105,7 +153,7 @@ class KoreaPublishedOriginals(unittest.TestCase):
         self.assertIn('href="../assets/identity/selected-ipr/ipr-accent-32.png"', markup)
         self.assertIn('href="#main"', markup)
         self.assertEqual(markup.count('&lt;script&gt;'), CONTENT.count('<script>'))
-        self.assertNotIn('<script', markup)
+        self.assert_only_shared_shell(markup)
         self.assertNotIn('.hwpx', markup)
 
     def test_public_renderer_rejects_noncanonical_website_origin(self):
@@ -142,7 +190,7 @@ class KoreaPublishedOriginals(unittest.TestCase):
     def test_untrusted_source_script_cannot_be_exec_in_markup(self):
         self.write([self.row])
         html = render_original_page(self.read()[0])
-        self.assertNotIn("<script", html)
+        self.assert_only_shared_shell(html)
         self.assertEqual(html.count("&lt;script&gt;"), 12)
 
     def test_text_cannot_be_a_symlink(self):

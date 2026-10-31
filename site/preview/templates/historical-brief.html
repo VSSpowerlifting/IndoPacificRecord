@@ -95,11 +95,16 @@
 {% endif %}
       <p>This is the historical author information for this issue. <a href="{{ root }}about.html">About Indo-Pacific Record today</a>.</p>
     </div></details>
-    <section class="brief-section brief-citation-section" id="s-cite" aria-labelledby="h-cite"><h2 id="h-cite">Cite this edition</h2>
+    <section class="brief-section brief-citation-section cite-block" id="s-cite" aria-labelledby="h-cite"><h2 id="h-cite">Cite this edition</h2>
       <p class="brief-citation" id="pw-cite">{% if edition.author_name %}{{ edition.author_name }}, {% endif %}“{{ edition.title }},” <em>{{ edition.series_name }}</em>{% if edition.issue_number %} No. {{ edition.issue_number }}{% endif %}, {{ edition.publication }}, {{ edition.week_ending|reader_date }}. {{ edition.page_url }}</p>
+      <button type="button" class="cite-copy" data-copy="pw-cite" hidden>Copy citation</button>
+      <button type="button" class="link-copy" data-copy-link hidden>Copy link</button>
+      <p class="cite-status" role="status" aria-live="polite"></p>
     </section>
 {% if adjacent is defined %}{{ issue_nav(adjacent.previous, adjacent.next, 'Adjacent historical issues', 'historical-issue-nav') }}{% endif %}
     <p><a href="{{ root }}analysis.html">All Indo-Pacific Record Briefs</a></p>
   </article>
 </div>
 {% endblock %}
+
+{% block scripts %}<script src="{{ root }}citation.js" defer></script>{% endblock %}

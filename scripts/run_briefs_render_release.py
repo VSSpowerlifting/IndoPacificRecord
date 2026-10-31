@@ -37,21 +37,49 @@ def _sha256(path: Path) -> str:
 
 
 def _assert_rendered_contract() -> None:
+    from core.brief_collection import load_briefs
+    from core.desk_registry import load_registry
+
     out = ROOT / "output"
     analysis = (out / "analysis.html").read_text(encoding="utf-8")
-    article_path = out / "briefs" / "trident-resolve-regional-scale-specific-chinese-tasks.html"
-    article = article_path.read_text(encoding="utf-8")
+    published, _ = load_briefs(ROOT / "briefs", load_registry())
+    _assert_no17_contract(out, analysis, any(
+        slug == "trident-resolve-regional-scale-specific-chinese-tasks"
+        for slug, _ in published))
     historical = (out / "the-pla-watch" / "posts" / "2026-08-15.html").read_text(
         encoding="utf-8")
     no12 = (out / "the-pla-watch" / "posts" / "2026-08-01.html").read_text(
         encoding="utf-8")
 
-    assert "no-17-trident-resolve-basarnas-drone.jpg" in analysis, (
-        "No. 17 catalogue card is missing its admitted photograph")
     assert "no-08-liaoning-j15-recovery.jpg" in analysis, (
         "No. 8's existing catalogue photograph disappeared")
     assert "no-09-scarborough-shoal-iss.jpg" in analysis, (
         "No. 9's existing catalogue photograph disappeared")
+    assert "Adjacent historical issues" in historical, (
+        "historical Brief navigation is absent from the rerendered article")
+    assert "Downloaded from PLA Daily / 81.cn" not in no12, (
+        "the prohibited No. 12 collector note has appeared")
+    for date in HISTORICAL_DATES:
+        assert (out / "the-pla-watch" / "posts" / f"{date}.html").is_file(), (
+            f"historical Brief page missing after render: {date}")
+
+
+def _assert_no17_contract(out: Path, analysis: str, admitted: bool) -> None:
+    """Check presence or absence using the production collection's admission."""
+    route = "briefs/trident-resolve-regional-scale-specific-chinese-tasks.html"
+    article_path = out / route
+    cover = "no-17-trident-resolve-basarnas-drone.jpg"
+    if not admitted:
+        assert not article_path.exists(), "unadmitted No. 17 must remain absent"
+        assert cover not in analysis, "unadmitted No. 17 catalogue card appeared"
+        for public in (out / "index.html", out / "analysis.html",
+                       out / "briefs" / "feed.xml", out / "sitemap.xml"):
+            assert route not in public.read_text(encoding="utf-8"), (
+                "unadmitted No. 17 public reference appeared: " + str(public))
+        return
+
+    article = article_path.read_text(encoding="utf-8")
+    assert cover in analysis, "No. 17 catalogue card is missing its admitted photograph"
     for required in (
         "trident-resolve-basarnas-drone-800.webp",
         "9957254",
@@ -59,10 +87,6 @@ def _assert_rendered_contract() -> None:
         "does not imply or constitute DoW endorsement",
     ):
         assert required in article, f"No. 17 article is missing {required!r}"
-    assert "Adjacent historical issues" in historical, (
-        "historical Brief navigation is absent from the rerendered article")
-    assert "Downloaded from PLA Daily / 81.cn" not in no12, (
-        "the prohibited No. 12 collector note has appeared")
     assert (ROOT / "site" / "assets" / "editorial" / "trident-resolve-basarnas-drone.jpg").is_file(), (
         "verified source photograph is missing from the editorial source tree")
     for rel in (
@@ -84,9 +108,6 @@ def _assert_rendered_contract() -> None:
     ):
         assert _sha256(ROOT / source_rel) == _sha256(ROOT / output_rel), (
             "public output asset hash mismatch: " + output_rel)
-    for date in HISTORICAL_DATES:
-        assert (out / "the-pla-watch" / "posts" / f"{date}.html").is_file(), (
-            f"historical Brief page missing after render: {date}")
 
 
 def _check_db_and_worktree(db_hash: str) -> None:

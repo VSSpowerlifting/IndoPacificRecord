@@ -49,7 +49,7 @@ main#main.brief-page>.wrap{background:var(--brief-paper);border:0}
 .brief-signal{border:0;padding:var(--brief-inset);background:var(--brief-object);margin:0 0 var(--brief-section-space);border-block:1px solid var(--brief-object-rule)}
 .brief-signal-label{font:600 13px/1.6 var(--sans);color:var(--accent-ink);margin:0 0 12px}
 .brief-signal>p:last-child{font:400 23px/1.5 var(--serif);margin:0}
-.brief-section{margin-top:var(--brief-section-space);scroll-margin-top:112px}
+.brief-section{margin-top:var(--brief-section-space);scroll-margin-top:var(--anchor-offset)}
 .brief-section>h2{border:0;padding:0;margin:0 0 28px;font:400 clamp(34px,3vw,42px)/1.13 var(--display);max-width:28ch;text-wrap:balance;overflow-wrap:anywhere}
 .brief-section>p,.brief-term>p,.brief-claim>p{font:400 1.1875rem/1.75 var(--serif);margin:0 0 24px;max-width:74ch}
 /* The short rule marks a new argument, not a new evidence assertion. */
@@ -177,18 +177,18 @@ main#main.brief-page>.wrap{background:var(--brief-paper);border:0}
 @media(max-width:600px){.brief-cover figcaption{font-size:12px;line-height:1.65}}
 @media(forced-colors:active){.brief-cover--gradient .brief-cover-frame::after{display:none}
 .brief-cover figcaption{color:CanvasText}}
-@media print{.brief-cover-frame{aspect-ratio:auto}
+@media print{.brief-cover-frame{aspect-ratio:auto;background:none}
 .brief-cover-frame img{max-height:50mm;width:auto}
 .brief-cover-frame::after{display:none}}
 
 /* Reviewed manuscript structure. Styling never supplies headings or excerpts. */
-.brief-reading-section{margin-top:var(--brief-section-space);scroll-margin-top:112px}
+.brief-reading-section{margin-top:var(--brief-section-space);scroll-margin-top:var(--anchor-offset)}
 .brief-reading-section:first-child{margin-top:0}
-.brief-layout--structured #s-publishers,.brief-layout--structured #s-cite{scroll-margin-top:112px}
+.brief-layout--structured #s-publishers,.brief-layout--structured #s-cite{scroll-margin-top:var(--anchor-offset)}
 .brief-layout--structured [tabindex="-1"]:focus-visible{outline:2px solid var(--accent);outline-offset:8px}
 .brief-reading-section>h2{margin-bottom:28px}
 .brief-reading-section>p{margin-bottom:24px}
-.brief-reading-finding{border-top:2px solid var(--accent);border-bottom:1px solid var(--brief-object-rule);background:transparent;padding:24px 0 28px;margin:0 0 var(--brief-section-space);scroll-margin-top:112px}
+.brief-reading-finding{border-top:2px solid var(--accent);border-bottom:1px solid var(--brief-object-rule);background:transparent;padding:24px 0 28px;margin:0 0 var(--brief-section-space);scroll-margin-top:var(--anchor-offset)}
 .brief-reading-finding>h2{border:0;font:600 14px/1.6 var(--sans);color:var(--accent-ink);margin:0 0 20px;border-bottom:1px solid var(--brief-object-rule);padding-bottom:14px}
 .brief-reading-finding blockquote,.brief-reading-evidence blockquote{padding:0;border:0;margin:0}
 .brief-reading-finding blockquote p{font:400 clamp(26px,2.4vw,32px)/1.35 var(--display);margin:0 0 20px;max-width:42ch}
@@ -196,7 +196,7 @@ main#main.brief-page>.wrap{background:var(--brief-paper);border:0}
 .brief-excerpt-trace{border-top:1px solid var(--brief-object-rule);padding-top:8px}
 
 .brief-excerpt-trace a{display:inline-block;padding-block:8px}
-.brief-reading-evidence{margin-top:var(--brief-section-space);padding:var(--brief-inset);margin-inline:0;border-block:1px solid var(--brief-object-rule);background:var(--brief-source-paper);scroll-margin-top:112px}
+.brief-reading-evidence{margin-top:var(--brief-section-space);padding:var(--brief-inset);margin-inline:0;border-block:1px solid var(--brief-object-rule);background:var(--brief-source-paper);scroll-margin-top:var(--anchor-offset)}
 .brief-reading-evidence>h2{font:400 32px/1.2 var(--display);margin:0 0 16px}
 .brief-reading-evidence>div{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:24px}
 .brief-reading-evidence h3{font:600 15px/1.6 var(--sans);margin:0 0 16px}
@@ -205,7 +205,7 @@ main#main.brief-page>.wrap{background:var(--brief-paper);border:0}
 .brief-reading-figure{margin-block:32px}
 .brief-reading-figure .brief-cover{margin:0;max-width:100%}
 .brief-structured a{overflow-wrap:anywhere}
-@media(min-width:901px){.brief-layout>.brief-reading-navigation{position:sticky;top:112px;max-height:calc(100vh - 128px);overflow:auto}
+@media(min-width:901px){.brief-layout>.brief-reading-navigation{position:sticky;top:var(--anchor-offset);max-height:calc(100dvh - var(--anchor-offset) - 16px);overflow:auto}
 .brief-layout .brief-toc a{padding-block:8px}}
 @media(max-width:900px){.brief-reading-section{margin-top:48px}
 .brief-reading-section>h2{font-size:30px}
@@ -228,7 +228,7 @@ main#main.brief-page>.wrap{background:var(--brief-paper);border:0}
 /* Earlier Briefs (Nos. 1–14) and native issues 15–17 already have
    editor-approved section titles and anchors. Share No. 18's navigation
    rhythm without changing manuscripts, labels, URLs, or review receipts. */
-.brief-layout:not(.brief-layout--structured) .brief-main>.brief-section[id]{scroll-margin-top:112px}
+.brief-layout:not(.brief-layout--structured) .brief-main>.brief-section[id]{scroll-margin-top:var(--anchor-offset)}
 .brief-layout:not(.brief-layout--structured) .brief-main>.brief-section[id]>h2{text-wrap:balance}
 .brief-layout:not(.brief-layout--structured) .brief-main>.brief-section[id]:target{outline:2px solid var(--accent);outline-offset:8px}
 @media(forced-colors:active){.brief-layout:not(.brief-layout--structured) .brief-main>.brief-section[id]:target{outline-color:CanvasText}}
@@ -295,3 +295,5 @@ main#main.brief-page>.wrap{background:var(--brief-paper);border:0}
 .brief-trail::after{width:240px;height:28px;top:-48px}
 @media(max-width:600px){.brief-page{--brief-profile-span:112px;--brief-profile-height:18px;--brief-profile-top:-38px}.brief-trail::after{width:160px;height:20px;top:-40px}}
 @media print,(forced-colors:active){.brief-section::after{display:none}}
+
+@media print{.brief-main :is(.brief-reading-section,.brief-reading-finding,.brief-reading-evidence,#s-article) a[href^="http"]::after{content:none}}

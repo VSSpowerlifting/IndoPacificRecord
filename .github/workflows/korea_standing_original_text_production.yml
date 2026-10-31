@@ -167,7 +167,7 @@ jobs:
           python scripts/validate_output.py
           python - <<'PY'
           from pathlib import Path
-          from core.korea_published_originals import read_release_index
+          from core.korea_published_originals import require_shared_shell_only, read_release_index
           from core.korea_public_bibliography import load_public_korea_links
           from core.korea_additional_public_links import load_additional_korea_official_links
           from core.korea_official_live_links import load_live_korea_official_links
@@ -195,7 +195,8 @@ jobs:
               page=Path("output",row["route"]).read_text(encoding="utf-8")
               assert row["route"] in desk and row["official_url"] in desk
               assert row["original_text_sha256"] in page
-              assert "<script" not in page and ".hwpx" not in page
+              require_shared_shell_only(page)
+              assert ".hwpx" not in page
           print("Eligible published Korea texts:",len(rows))
           PY
           sha256sum -c "$RUNNER_TEMP/korea-text-auto-db-sha"

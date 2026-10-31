@@ -1,7 +1,7 @@
 /* Pacific material grammar. Abstract curves never encode geography or data.
    One shared small sheet; composed family treatments live in route sheets. */
 [data-surface] body{background:var(--bg) url('assets/material/chart-paper.png') repeat}
-[data-surface] .masthead:not(.masthead--dark){background:transparent}
+[data-surface] .masthead:not(.masthead--dark){background:var(--bg)}
 [data-surface] main#main>.wrap{background:transparent;border-inline:0}
 [data-surface] .page-head{position:relative;isolation:isolate;margin-bottom:2rem;padding-block:2rem 4.5rem;border-bottom:1px solid var(--rule)}
 [data-surface] .page-head::after{content:'';position:absolute;z-index:-1;inset:0 calc(-1 * var(--gutter)) 0 auto;width:36%;background:url('assets/material/coast-profile.svg') no-repeat right 35%/auto 620px;pointer-events:none}
@@ -20,6 +20,7 @@
 [data-surface] :is(.btn,button):not(:disabled):active{transform:translateY(2px)}
 [data-surface] summary{min-height:44px}
 [data-surface] details[open]>summary{color:var(--accent-ink)}
+[data-surface] .masthead--dark .shell-menu[open]>summary{color:var(--band-ink)}
 [data-surface] .band details[open]>summary{color:var(--focus-band)}
 [data-surface] :is(.shell-menu[open]>div,.shell-menu[open]>nav){animation:disclose-arrive 180ms var(--ease-rule)}
 @keyframes disclose-arrive{from{opacity:.6;transform:translateY(-6px)}to{opacity:1;transform:none}}
