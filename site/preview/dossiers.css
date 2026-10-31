@@ -175,6 +175,7 @@
  .ds-contents, .ds-mobile-contents, .ds-breadcrumb, .dossier-page button, .ds-permalink { display: none !important; }
  .dossier-page, .ds-comparison { color: #000; background: #fff; }
  .ds-comparison { margin: 1.5rem 0; padding: 1rem; border: 1px solid #999; }
+ .dossier-page .ds-comparison { break-inside: avoid; }
  .ds-comparison::before { display: none; }
  .ds-comparison h2, .ds-window h3, .ds-comparison a, .ds-comparison a:visited, .ds-window-figure figcaption, .ds-axis { color: #000; }
  .ds-window-bar .ds-day-filled { background: #444; print-color-adjust: exact; }
