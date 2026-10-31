@@ -117,7 +117,8 @@ def _record_literals(record: dict, include_body: bool) -> list:
         # record.html renders the body one paragraph per line, so each stripped
         # line — not the whole column — is what appears in the markup.
         values += [line.strip()
-                   for line in (record.get("text_original") or "").split("\n")
+                   for field in ("text_original", "text_english")
+                   for line in (record.get(field) or "").split("\n")
                    if line.strip()]
     return values
 
@@ -4788,6 +4789,32 @@ class TestReleasedMachineProseExclusion(unittest.TestCase):
 
 class TestExclusionContract(unittest.TestCase):
     """The contract itself, independent of what the live corpus contains."""
+
+    def test_exact_translation_lines_excluded_only_on_their_record_page(self):
+        lines = ['Synthetic stored "defence" & translation.',
+                 'Another stored programme paragraph.']
+        record = {"id": 1, "text_english": "\n\n".join(lines)}
+        index = {"names": [], "by_id": {1: record}, "machine_by_path": {}}
+        html = ('<h2>Machine translation</h2>' +
+                ''.join('<p>%s</p>' % markupsafe.escape(line) for line in lines) +
+                '<p>Not reviewed by a human. Authored defence copy.</p>')
+        with mock.patch(__name__ + "._corpus_index", return_value=index):
+            own = _authored_text(html, "record/1.html")
+            for line in lines:
+                self.assertNotIn(str(markupsafe.escape(line)), own)
+            self.assertIn("Machine translation", own)
+            self.assertIn("Not reviewed by a human. Authored defence copy.", own)
+            linked = _authored_text('<a href="record/1.html">Record</a>' + html,
+                                    "corpus.html")
+            for line in lines:
+                self.assertIn(str(markupsafe.escape(line)), linked)
+
+    def test_unregistered_translation_text_remains_guarded(self):
+        index = {"names": [], "by_id": {1: {
+            "text_english": "Synthetic accepted translation."}}, "machine_by_path": {}}
+        with mock.patch(__name__ + "._corpus_index", return_value=index):
+            self.assertIn("Unregistered defence translation.", _authored_text(
+                '<p>Unregistered defence translation.</p>', "record/1.html"))
 
     def test_released_machine_summary_exclusion_keeps_authored_copy_guarded(self):
         from unittest.mock import patch
