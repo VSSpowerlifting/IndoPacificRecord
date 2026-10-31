@@ -27,7 +27,11 @@ class PagesReadbackTest(unittest.TestCase):
         (self.pages / ".nojekyll").write_text("")
         with sqlite3.connect(self.db) as conn:
             conn.executescript("""
-              CREATE TABLE articles(id INTEGER PRIMARY KEY, url TEXT NOT NULL);
+              CREATE TABLE sources(id INTEGER PRIMARY KEY, slug TEXT, desk_id TEXT);
+              INSERT INTO sources VALUES (1, 'fixture', 'china'), (2, 'korea_mnd', 'korea');
+              CREATE TABLE articles(id INTEGER PRIMARY KEY, url TEXT NOT NULL, source_id INTEGER DEFAULT 1);
+              CREATE TABLE korea_corpus_admissions(
+                article_id INTEGER, source_identity TEXT, state TEXT, processing_state TEXT);
               CREATE TABLE retired_article_urls(
                 url_sha256 TEXT PRIMARY KEY,
                 original_article_id INTEGER NOT NULL UNIQUE
@@ -38,7 +42,7 @@ class PagesReadbackTest(unittest.TestCase):
                  WHERE original_article_id=NEW.id)
               BEGIN SELECT RAISE(ABORT, 'retired'); END;
             """)
-            conn.execute("INSERT INTO articles VALUES (1,'https://official.example/1')")
+            conn.execute("INSERT INTO articles(id,url) VALUES (1,'https://official.example/1')")
             conn.executemany("INSERT INTO retired_article_urls VALUES (?,?)",
                              [(url_sha256("https://official.example/%d" % n), n)
                               for n in (2, 3)])
@@ -83,7 +87,34 @@ class PagesReadbackTest(unittest.TestCase):
 
     def test_database_record_identity_drift_rejected(self):
         with sqlite3.connect(self.db) as con:
-            con.execute("INSERT INTO articles VALUES (4,'https://official.example/4')")
+            con.execute("INSERT INTO articles(id,url) VALUES (4,'https://official.example/4')")
+        with self.assertRaisesRegex(ValueError, "production SQLite"):
+            self.check()
+
+    def add_held_korea_record(self):
+        with sqlite3.connect(self.db) as con:
+            con.execute("INSERT INTO articles VALUES (4,'https://official.example/4',2)")
+            con.execute("INSERT INTO korea_corpus_admissions VALUES "
+                        "(4,'synthetic-korea:4','admitted','qa_held')")
+
+    def test_qa_held_korea_record_is_correctly_absent(self):
+        self.add_held_korea_record()
+        self.assertEqual(self.check()["active_record_count"], 1)
+
+    def test_finished_korea_record_must_be_published(self):
+        self.add_held_korea_record()
+        for state in ("processed", "not_relevant"):
+            with self.subTest(state=state), sqlite3.connect(self.db) as con:
+                con.execute("UPDATE korea_corpus_admissions SET processing_state=?", (state,))
+                con.commit()
+                with self.assertRaisesRegex(ValueError, "production SQLite"):
+                    self.check()
+
+    def test_published_qa_held_korea_record_is_rejected(self):
+        self.add_held_korea_record()
+        index = json.loads((self.expected / "corpus-index.json").read_text())
+        index["records"].append([4, "2026-10-15", 0, 0, "Synthetic", "Original"])
+        self.write("corpus-index.json", json.dumps(index))
         with self.assertRaisesRegex(ValueError, "production SQLite"):
             self.check()
 
