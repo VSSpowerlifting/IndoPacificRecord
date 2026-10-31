@@ -192,6 +192,20 @@ class TimelineRendering(unittest.TestCase):
                 self.assertIn('exposes source text or full-body', ' '.join(errors))
         finally:
             path.write_text(text)
+        # Dropping titles from the public view must not disable the deploy
+        # gate's existing source-title rejection.
+        from scripts.reconcile_db import read_only
+        from html import escape
+        with read_only(ROOT / 'pla_watch.db') as con:
+            source_title = con.execute('SELECT title_original FROM articles WHERE id=3924').fetchone()[0]
+        try:
+            path.write_text(text.replace('</article>', '<p>' + escape(source_title) + '</p></article>', 1))
+            with mock.patch('core.timelines.load_timelines', return_value=(views, [])):
+                errors = []
+                validate_output._validate_timelines(self.approved, errors)
+                self.assertIn('reproduces a source title', ' '.join(errors))
+        finally:
+            path.write_text(text)
 
     def test_original_language_headline_is_escaped_in_native_evidence(self):
         from jinja2 import Environment, FileSystemLoader
