@@ -66,6 +66,12 @@ def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _isolated(family):
+    """A private-document family's failure holds that family, not the run."""
+    source = SOURCES.get(family)
+    return source is not None and source.private_document
+
+
 def _pair(text):
     slug, sep, value = text.partition("=")
     if not sep or slug not in SOURCES or not value:
@@ -103,7 +109,7 @@ def _policies(decisions, families, as_of):
             sealed = strict_loads(path.read_text(), "Vietnam source-use decision")
             out[family] = source_use.verify_decision(sealed, secret, family, as_of=as_of)
         except (ValueError, OSError, PublishError, bridge.BridgeError):
-            if family != source_use.VPCP:
+            if not _isolated(family):
                 raise
             out[family] = source_use.standing(family)
     return out
@@ -156,12 +162,12 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
                                      and policies[family].allows("public_ipr_analysis") else None),
                         custody=custody[family] if private else None))
                 except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError, bridge.BridgeError):
-                    if family != "vn_vpcp_official_documents_vi":
+                    if not _isolated(family):
                         raise
                     reports.append({"schema":"ipr-vietnam-daily-run/1", "run_id":run_id,
                         "source_family":family,"source_git_commit":commit,
                         "rights_decision_sha256":policies[family].decision_sha256,
-                        "custody":{"mode":"private","source_ref":"archive/vietnam-vpcp"},
+                        "custody":{"mode":"private","source_ref":vn.private_ref(family)},
                         "counts":{"held_source":1},"outcomes":[],"source_hold":"vpcp_source_held"})
 
             if (conn.execute("PRAGMA integrity_check").fetchone() != ("ok",)

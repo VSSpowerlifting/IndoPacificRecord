@@ -148,7 +148,8 @@ def _check_record(family: str, entry: dict, policy, article) -> dict:
           and row["passed_relevance"] == 1
           and isinstance(row["summary_english"], str) and row["summary_english"].strip(),
           "vietnam_handoff_row_mismatch")
-    if family == source_use.VPCP:
+    source = SOURCES[family]
+    if source.private_document:
         proof = json.loads(prov["qa_json"])
         _need(proof.get("outcome") == qa.PUBLISHED and proof.get("second_pass",{}).get("ok") is True,
               "vpcp_handoff_quality_missing")
@@ -163,7 +164,7 @@ def _check_record(family: str, entry: dict, policy, article) -> dict:
     _need(prov["permissions_json"] == json.dumps(perms, sort_keys=True)
           and perms["external_model_transmission"] and perms["public_ipr_analysis"],
           "vietnam_handoff_permissions_mismatch")
-    analysis_headline = (family in (source_use.MPS, source_use.VPCP) and not prov["translation_published"]
+    analysis_headline = (source.analysis_headline and not prov["translation_published"]
                          and prov["translation_prompt_version"] is None)
     if analysis_headline:
         from core.title_translation import valid_english
@@ -208,10 +209,11 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
         family = entry["source_family"]
         if not entry["records"]:
             continue
-        if family != source_use.VPCP:
+        document = SOURCES[family].private_document
+        if not document:
             _need(family not in vn.HOLDS, "vietnam_handoff_source_hold")
         _need(bridge.desk_promoted(desk), "vietnam_desk_not_promoted")
-        if family == source_use.VPCP:
+        if document:
             # The legacy original/link-admission map holds every non-MPS
             # source. This separately authorized private-text projection uses
             # its own fail-closed policy, sealed decision and document QA below.
