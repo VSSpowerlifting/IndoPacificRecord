@@ -25,14 +25,19 @@ to this skill. `AGENTS.md` remains the authority; this skill applies it.
 
 ## 0. Is a review warranted?
 
-AGENTS.md exempts routine bugs, incident recovery, source-specific protections,
-security fixes and low-risk accessibility work; copy fixes and work inside an
-already-bounded task need no review either. Reply in one line,
+An explicit request to review a proposal, including a bounded task, is always
+answered with a review scaled to its size, not the exemption line.
+
+Otherwise, AGENTS.md exempts routine bugs, incident recovery, source-specific
+protections, security fixes and low-risk accessibility work. Ordinary editorial
+corrections, copy and presentation fixes, and work inside an already-bounded
+task need no review either. Reply in one line,
 `No proposal review needed: <reason>`, and stop.
 
 Not exempt, even when framed as a fix: changes to source rights, permissions or
-activation; AI model, prompt, evaluation, fallback or budget changes; anything
-altering accepted records or what is published. Review those rigorously.
+activation; AI model, prompt, evaluation, fallback or budget changes; and
+changes to publication eligibility, permitted public content, accepted evidence
+or substantive processing behavior. Review those rigorously.
 
 ## 1. Objective
 
