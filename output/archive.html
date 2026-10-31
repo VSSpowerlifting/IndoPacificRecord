@@ -32,7 +32,7 @@
 <div class="publication-status"><span>Independent publication</span><span>Corpus snapshot: 31 October 2026 · 1,497 records</span></div>
 <header class="masthead">
   <div class="wrap header-inner">
-    <a class="brand" href="index.html" aria-label="Indo-Pacific Record home">
+    <a id="page-top" class="brand" href="index.html" aria-label="Indo-Pacific Record home">
       <img class="brand-mark" src="assets/identity/selected-ipr/ipr-navy-160.png"
            srcset="assets/identity/selected-ipr/ipr-navy-160.png 160w, assets/identity/selected-ipr/ipr-navy-320.png 320w"
            sizes="(max-width:500px) 56px, 72px" width="160" height="130" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
@@ -50,7 +50,7 @@
     </details>
   </div>
 </header>
-<main id="main" style="--topo-size: 1578px; --topo-offset: -249px; --topo-x: 72%; --topo-flip: -1; --topo-wash-x: 72%; --topo-wash-y: 49%; --topo-duration: 54s" class="archive-page">
+<main id="main" tabindex="-1" style="--topo-size: 1578px; --topo-offset: -249px; --topo-x: 72%; --topo-flip: -1; --topo-wash-x: 72%; --topo-wash-y: 49%; --topo-duration: 54s" class="archive-page">
 
   <div class="wrap">
 <header class="page-head"><h1>The record.</h1><p class="lede">1,497 preserved records. Search English and original titles.</p><p class="finder-note">Start with a smaller <strong>automatically assembled research focus</strong> (600 China records, plus 108 records from other desks). It is not individually fact-checked or editor-approved. All 1,497 preserved records, their permanent links and publication citations remain available below and through Full preserved record.</p></header>
@@ -1175,7 +1175,7 @@ coverage denominator.</p>
       <div><dt>Analysis last produced</dt>
         <dd>2026-10-31</dd></div>
       <div><dt>Last full update</dt>
-        <dd>2026-10-30</dd></div>
+        <dd>2026-10-31</dd></div>
 <div><dt>Records held</dt>
         <dd>1,497</dd></div><div><dt>Of those, analyzed</dt>
         <dd>1,008</dd></div>    </dl>
@@ -1229,5 +1229,7 @@ coverage denominator.</p>
 </footer>
 <template id="archive-row"><li class="record-row"><div><h3><a data-text="title"></a></h3><p class="original" data-text="original"></p><p class="meta" data-text="title_note"></p><p class="row-tags"><span data-text="analyzed"></span><span class="trail-tag" data-text="trail_label"></span></p><p class="archive-snippet" data-text="summary"></p><p class="archive-hold" data-text="hold"></p><div class="archive-actions"><label class="keep-record"><input type="checkbox">Keep in research list</label><details><summary>Citation and provenance</summary><p data-text="processing"></p><p data-text="date_info"></p><p class="archive-citation" tabindex="0" data-text="citation"></p><button type="button" aria-live="polite" aria-atomic="true">Copy citation</button></details></div></div><p class="row-side"><span class="row-who" data-text="who"></span><span class="row-via" data-text="via"></span><a data-text="desk_name"></a><span data-text="state"></span></p></li></template>
 <template id="archive-day"><section class="records-day"><p class="day-date"><time><span class="day-num"></span><span class="day-month"></span><span class="day-week"></span></time></p><ul class="record-list"></ul></section></template>
-<script src="browse.js" defer></script><script src="shell.js" defer></script></body>
+<script src="browse.js" defer></script><button type="button" class="back-to-top" aria-label="Back to top" hidden>Back to top <span aria-hidden="true">↑</span></button>
+<script src="shell.js" defer></script>
+</body>
 </html>

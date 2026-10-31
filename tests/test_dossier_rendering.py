@@ -78,6 +78,17 @@ class DossierRendering(unittest.TestCase):
             validate_output._validate_dossiers(output, errors)
             return errors
 
+    def test_revision_review_and_approval_dates_remain_distinct(self):
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.detail(self.approved).read_text(), 'html.parser')
+        dates = soup.select_one('.ds-reviewmeta')
+        self.assertIn('Content revision:', dates.get_text())
+        self.assertIn('Editorial approval:', dates.get_text())
+        self.assertIn('Publication date not recorded.', dates.get_text())
+        self.assertEqual([t['datetime'] for t in dates.select('time')],
+                         [self.sc['reviewed_on'], self.sc['updated_on'], self.sc['approval']['approved_on']])
+        self.assertEqual(len(soup.select('script[src="../shell.js"]')), 1)
+
     def test_complete_real_private_draft_no_original_text_and_noindex(self):
         html=self.detail(self.private).read_text()
         for text in ['preparation-and-opening','sea-phase-plan-and-report','replenishment-limit',

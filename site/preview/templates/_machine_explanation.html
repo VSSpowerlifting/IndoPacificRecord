@@ -2,7 +2,7 @@
   <div class="record-body">
     <p><span class="evidence evidence--model">Machine explanation</span> · <a href="../{{ record.desk_id | default('philippines') }}.html">{{ 'Indonesia' if record.desk_id | default('philippines') == 'indonesia' else 'Philippines' }} Desk</a></p>
     <h1>{{ record.source_label }} official source — machine explanation</h1>
-    <p class="record-source-line">Publisher: {{ record.source_label }} · Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date }}</time></p>
+    <p class="record-source-line">Publisher: {{ record.source_label }} · Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date|reader_date }}</time></p>
     <p><a href="{{ record.url }}" rel="noopener nofollow">Read the official publication</a></p>
     <section class="record-section" aria-labelledby="machine-summary"><h2 id="machine-summary">Machine summary</h2>
       <div class="interpretation"><p>{{ record.summary }}</p></div>
@@ -23,6 +23,10 @@
       </dl>
       <p class="meta">Publication dates describe when the source published, not necessarily when an event happened. Exercises do not independently establish readiness; announcements do not establish delivery or completed implementation.</p>
     </section>
-    <section class="record-section"><h2>Citation</h2><p>Indo-Pacific Record. Machine explanation of {{ record.source_identity }} (source published {{ record.published_date }}). <a href="{{ record.url }}">Official source</a>.</p></section>
+    <section class="record-section cite-block" aria-labelledby="machine-citation-heading"><h2 id="machine-citation-heading">Citation</h2><p class="cite-text" id="machine-citation">Indo-Pacific Record. Machine explanation of {{ record.source_identity }} (source published {{ record.published_date }}). <a href="{{ record.url }}">Official source</a>.</p>
+      <button type="button" class="cite-copy" data-copy="machine-citation" hidden>Copy citation</button>
+      <button type="button" class="link-copy" data-copy-link hidden>Copy link</button>
+      <p class="cite-status" role="status" aria-live="polite"></p>
+    </section>
   </div>
 </article>

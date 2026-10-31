@@ -72,7 +72,10 @@
      location without query or fragment. Never a parameterised URL. */
   function pageLink() {
     var canon = document.querySelector('link[rel="canonical"]');
-    return canon ? canon.href : location.origin + location.pathname;
+    var url = new URL(canon ? canon.href : location.origin + location.pathname);
+    url.search = "";
+    url.hash = "";
+    return url.href;
   }
 
   function finish(button, ok, source, text) {

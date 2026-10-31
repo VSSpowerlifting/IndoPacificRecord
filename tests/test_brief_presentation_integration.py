@@ -42,6 +42,14 @@ class PresentationIntegrationTests(unittest.TestCase):
         view["presentation"] = presentation_view(manifest, self.article)
         return self.fixture.render(view)
 
+    def test_research_dates_label_approval_without_inventing_publication(self):
+        soup = BeautifulSoup(self.render(None), "html.parser")
+        dates = soup.select_one('.research-dates')
+        self.assertIn('Editorial approval:', dates.get_text())
+        self.assertEqual(dates.time['datetime'], self.article['approval']['approved_on'])
+        self.assertIn('Publication date not recorded.', dates.get_text())
+        self.assertNotIn('Published', dates.get_text())
+
     def test_exact_manuscript_citations_and_publication_identity_survive_structure(self):
         before = self.render(None)
         after = self.render(self.manifest)

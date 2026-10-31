@@ -2216,11 +2216,10 @@ class TestRecordPages(PreviewCase):
         self.assertIn("/record/", sitemap)
         self.assertNotIn("/article/", sitemap)
 
-    def test_the_route_is_described_as_a_prototype_path(self):
+    def test_the_route_and_identifier_have_distinct_semantics(self):
         flat = re.sub(r"\s+", " ", self.record(self.ids[-1]))
-        self.assertIn("this record path are locators inside", flat)
-        for denial in ("DOI", "accession number", "permanent identifier",
-                       "public permalink", "published route"):
+        self.assertIn("This IPR page has a canonical public route", flat)
+        for denial in ("DOI", "accession number", "immutable identifier"):
             with self.subTest(denial=denial):
                 self.assertIn(denial, flat)
 
@@ -2375,7 +2374,7 @@ class TestRecordPages(PreviewCase):
                              if self.by_id[i]["source_slug"] != MINDEF_SOURCE_SLUG)]
         html = self.record(rec["id"])
         self.assertIn('<a href="%s"' % markupsafe.escape(rec["url"]), html)
-        self.assertNotIn("tabindex=\"-1\"", html)
+        self.assertNotIn('tabindex="-1"', re.search(r'<a href="%s"[^>]*>' % re.escape(str(markupsafe.escape(rec["url"]))), html).group(0))
 
     def test_urls_and_hashes_can_wrap_at_320px(self):
         css = self.css_for("record/%d.html" % self.ids[0])
@@ -2565,7 +2564,7 @@ class TestWeekShards(PreviewCase):
     def test_no_javascript_is_required_by_the_shards(self):
         for name, html in self.shard_html.items():
             with self.subTest(shard=name):
-                self.assertNotIn("<script", html)
+                self.assertEqual(re.findall(r'<script[^>]+src="([^"]+)"', html), ["shell.js"])
 
     def test_no_facet_or_result_count_controls_yet(self):
         """Facets, live counts and the compact index are commit 5."""
@@ -2577,7 +2576,8 @@ class TestWeekShards(PreviewCase):
 
     def test_no_inert_controls_are_rendered(self):
         index = self.page("corpus.html")
-        for token in ("<button", "<select", "<input"):
+        self.assertEqual(re.findall(r'<button[^>]*class="([^"]+)"', index), ["back-to-top"])
+        for token in ("<select", "<input"):
             with self.subTest(token=token):
                 self.assertNotIn(token, index)
 
@@ -3292,7 +3292,7 @@ class TestShardRecordLimit(PreviewCase):
                                     self.shards[name]))
         self.assertEqual(found, {r["id"] for r in self.data["corpus"]})
         for html in self.shards.values():
-            self.assertNotIn("<script", html)
+            self.assertEqual(re.findall(r'<script[^>]+src="([^"]+)"', html), ["shell.js"])
 
 
 class TestCorpusIndexMobileTables(PreviewCase):
@@ -4649,11 +4649,8 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
         # carrying both distinctions. Matched on normalized whitespace so a
         # line wrap inside the paragraph cannot break the guard.
         flat = re.sub(r"\s+", " ", authored)
-        self.assertIn("The record number and this record path are locators "
-                      "inside the %s snapshot." % self.corpus_edge, flat)
-        self.assertIn("Neither is a DOI, accession number, permanent "
-                      "identifier, public permalink, or published route.",
-                      flat)
+        self.assertIn("This IPR page has a canonical public route.", flat)
+        self.assertIn("locator, not a DOI, accession number or immutable identifier.", flat)
 
     def test_shard_and_index_headings_and_captions_stay_guarded(self):
         week = self.corpus["weeks"][0]
@@ -5215,7 +5212,7 @@ class TestCorpusGuide(PreviewCase):
         identical markup is identical footprint.
         """
         def masthead(html):
-            return html.split('<header class="masthead">', 1)[1].split(
+            return re.split(r'<header[^>]*class="masthead">', html, maxsplit=1)[1].split(
                 "</header>", 1)[0]
         # corpus.html, not archive.html: the compared page must also be absent
         # from the nav, or its `aria-current` marker is the only difference.
@@ -5766,8 +5763,7 @@ class TestSnapshotScopedCitations(PreviewCase):
         # Normalized: the denials sit in one wrapped paragraph, so a literal
         # match would depend on where the source line happens to break.
         block = re.sub(r"\s+", " ", html.split("Cite this record", 1)[1])
-        for claim in ("permanent identifier", "DOI", "accession number",
-                      "public permalink", "published route"):
+        for claim in ("immutable identifier", "DOI", "accession number"):
             with self.subTest(claim=claim):
                 self.assertIn(claim, block)   # each is explicitly denied
         self.assertNotRegex(block, r"permanently (?:available|resolvable)")
@@ -6368,6 +6364,40 @@ class TestCitationCopyBehaviour(PreviewCase):
 
     def url(self, path):
         return "http://127.0.0.1:%d/%s" % (self.port, path)
+
+    def test_copy_link_strips_canonical_query_and_fragment(self):
+        context = self.browser.new_context(permissions=['clipboard-read', 'clipboard-write'])
+        try:
+            page = context.new_page()
+            page.goto(self.url('record/' + next((self.out / 'record').glob('[0-9]*.html')).name))
+            page.evaluate("""() => {
+                const link = document.createElement('link');
+                link.rel = 'canonical'; link.href = 'https://indopacificrecord.org/record/1.html?q=x#cite';
+                document.head.append(link);
+            }""")
+            page.locator('button[data-copy-link]').click()
+            self.assertEqual(page.evaluate('navigator.clipboard.readText()'),
+                             'https://indopacificrecord.org/record/1.html')
+        finally:
+            context.close()
+
+    def test_back_to_top_restores_focus_and_yields_to_menus(self):
+        context = self.browser.new_context(viewport={'width':375,'height':700}, reduced_motion='reduce')
+        try:
+            page = context.new_page(); page.goto(self.url('corpus.html'))
+            button = page.locator('.back-to-top')
+            self.assertTrue(button.is_hidden())
+            page.evaluate('scrollTo(0,800)'); page.wait_for_timeout(100)
+            self.assertTrue(button.is_visible())
+            page.locator('.nav-mobile>summary').click()
+            page.wait_for_timeout(100); self.assertTrue(button.is_hidden())
+            page.locator('.nav-mobile>summary').press('Escape')
+            page.wait_for_timeout(100); button.focus(); button.press('Enter')
+            page.wait_for_timeout(100)
+            self.assertEqual(page.evaluate('scrollY'), 0)
+            self.assertEqual(page.evaluate('document.activeElement.id'), 'page-top')
+        finally:
+            context.close()
 
     def test_a_successful_copy_puts_the_exact_citation_on_the_clipboard(self):
         context = self.browser.new_context(

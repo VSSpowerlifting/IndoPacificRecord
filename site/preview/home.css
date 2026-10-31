@@ -1,5 +1,5 @@
 /* Homepage: reviewed photograph-led entrance, governed live corpus. */
-.home-page .pacific-opening{position:relative;isolation:isolate;min-height:700px;background:var(--band);color:var(--band-ink);display:flex;flex-direction:column;justify-content:center;padding-top:140px;padding-bottom:94px}
+.home-page .pacific-opening{position:relative;isolation:isolate;min-height:700px;background:var(--band);color:var(--band-ink);display:flex;flex-direction:column;justify-content:center;padding-top:68px;padding-bottom:94px}
 .pacific-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;z-index:-2}
 .pacific-opening::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(10,35,43,.66),rgba(10,35,43,.56) 44%,rgba(10,35,43,.08) 76%),linear-gradient(0deg,rgba(10,35,43,.82),rgba(10,35,43,.72) 80px,transparent 220px),linear-gradient(180deg,rgba(10,35,43,.65),transparent 30%)}
 .pacific-copy{position:relative}
@@ -121,7 +121,7 @@
 .home-finder{background:var(--bg) url('assets/material/chart-paper.png');border-radius:0 0 80px 0;border-bottom:1px solid var(--rule);padding-bottom:44px}
 .home-register{position:relative;isolation:isolate;padding-bottom:130px}
 .home-register::after{content:'';position:absolute;left:0;right:0;bottom:4px;height:90px;background:url('assets/material/chart-shelf.svg') no-repeat center 50%/max(1100px,100%) auto;pointer-events:none}
-.home-selected{position:sticky;top:24px;isolation:isolate;align-self:start;border:0;background:var(--band) url('assets/material/navy-paper.png');color:var(--band-ink);padding:30px 30px 112px;border-radius:0 0 80px 0;overflow:hidden}
+.home-selected{position:sticky;top:var(--anchor-offset);isolation:isolate;align-self:start;border:0;background:var(--band) url('assets/material/navy-paper.png');color:var(--band-ink);padding:30px 30px 112px;border-radius:0 0 80px 0;overflow:hidden}
 .home-selected::after{content:'';position:absolute;inset:auto -60px -70px -20px;height:160px;opacity:.9;background:url('assets/material/chart-shelf.svg') no-repeat center/650px auto;pointer-events:none}
 .home-selected h3,.home-selected h3 a,.home-selected-original{color:var(--band-ink)}
 .home-selected>.meta{color:var(--band-muted)}

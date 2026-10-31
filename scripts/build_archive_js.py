@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Rebuild the committed vanilla Archive bundle (development only).
+"""Rebuild the committed vanilla Archive and shared shell/intro scripts (development only).
 
 Uses pinned Terser 5.44.0; no Node toolchain or package is needed by the site
-renderer. Readable query/export and controller sources remain authoritative.
+renderer. Readable query/export, controller, shell and intro sources remain authoritative.
 `--check` verifies exact output and the raw per-page JS budget including shell.
 """
 import argparse
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -27,11 +28,26 @@ def bundle():
         controller = controller.replace('E.' + name, name)
     controller = controller.replace('E.selected', 'exportRecords')
     script = '(function(){"use strict";' + body + controller + '})();'
-    with tempfile.TemporaryDirectory(prefix='ipr-archive-js-') as directory:
+    packed = minify(script)
+    # Lossless aliases for repeated DOM/property names keep the shared shell
+    # inside the existing archive budget. No public schema keys are renamed.
+    text = packed.decode()
+    names = ['textContent', 'querySelector', 'replaceChildren', 'setAttribute',
+             'original_title', 'includes', 'toLocaleString']
+    for i, name in enumerate(names):
+        text = re.sub(r'\.' + name + r'\b', '[property%d]' % i, text)
+    aliases = 'const ' + ','.join('property%d="%s"' % (i, name)
+                                  for i, name in enumerate(names)) + ';'
+    text = text.replace('"use strict";', '"use strict";' + aliases, 1)
+    return minify(text, 'passes=3,properties=false,reduce_vars=false')
+
+
+def minify(script, compression='passes=3'):
+    with tempfile.TemporaryDirectory(prefix='ipr-frontend-js-') as directory:
         path = Path(directory) / 'source.js'
         path.write_text(script)
         return subprocess.check_output(['npx', '--yes', 'terser@5.44.0', str(path),
-            '--compress', 'passes=3', '--mangle'])
+            '--compress', compression, '--mangle'])
 
 
 def main():
@@ -45,6 +61,14 @@ def main():
             raise SystemExit('browse.js differs; run scripts/build_archive_js.py')
     else:
         target.write_bytes(result)
+    for name in ('shell', 'intro'):
+        compiled = minify((SOURCE / (name + '.source.js')).read_text())
+        destination = SOURCE / (name + '.js')
+        if args.check:
+            if compiled != destination.read_bytes():
+                raise SystemExit(name + '.js differs; run scripts/build_archive_js.py')
+        else:
+            destination.write_bytes(compiled)
     total = len(result) + (SOURCE / 'shell.js').stat().st_size
     print('Archive JS: %d raw bytes, including shell.js (10,000-byte ceiling)' % total)
     if total > 10000 or len(result) > 9500:

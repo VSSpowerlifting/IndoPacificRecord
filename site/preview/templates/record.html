@@ -25,6 +25,7 @@
     {# The institution and the date are the date block's, beside this. #}
     <h1{% if not record.title_english %} lang="{{ record.language_tag or 'zh' }}"{% endif %}>{{ display_title }}</h1>
     <p class="record-source-line">Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time> · <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a></p>
+    <p class="meta research-dates">{% if record.scraped_at %}Collected: <time datetime="{{ record.scraped_at }}">{{ record.scraped_at[:10]|reader_date }} {{ record.scraped_at[11:] }}{% if record.scraped_at|length == 19 %} UTC{% endif %}</time> · {% endif %}Processing: {{ record.state_label }}{% if record.title_translated_at %} · Title translated: <time datetime="{{ record.title_translated_at }}">{{ record.title_translated_at[:10]|reader_date }} {{ record.title_translated_at[11:] }}</time>{% endif %}</p>
     {% if record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}
     <p class="meta"><span class="evidence evidence--model">Machine-generated headline</span>
     Independently worded IPR factual headline. Not a translation of the source title.
@@ -287,9 +288,8 @@
         <p class="cite-status" role="status" aria-live="polite"></p>
       </div>
       <p class="meta"><b>Processing note.</b> {{ cite.note }}</p>
-      <p class="meta">The record number and this record path are locators inside
-      the {{ snapshot.date }} snapshot. Neither is a DOI, accession number, permanent
-      identifier, public permalink, or published route. See
+      <p class="meta">This IPR page has a canonical public route. The record number is a corpus
+      locator, not a DOI, accession number or immutable identifier. See
       <a href="../corpus-guide.html#citation">identifiers and citation guidance</a>.</p>
     </section>
   </div>

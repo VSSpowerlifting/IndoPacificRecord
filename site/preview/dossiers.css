@@ -1,5 +1,5 @@
 /* Living Dossiers: an editorial opening and one quiet, inspectable reading column. */
-.dossier-page { padding-top: 0; padding-bottom: 5rem; --ds-sticky-top: 1.5rem; --ds-edge: max(32px, calc((100vw - 1320px) / 2)); }
+.dossier-page { padding-top: 0; padding-bottom: 5rem; --ds-sticky-top: var(--anchor-offset); --ds-edge: max(32px, calc((100vw - 1320px) / 2)); }
 .dossier-page > .wrap { max-width: none; padding-inline: 0; width: 100%; }
 .dossier-page .review-banner { margin: 0 0 1rem; padding: 0; color: var(--machine-ink); font: .75rem/1.5 var(--sans); }
 .ds-opening { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); margin-bottom: 0; border-bottom: 1px solid var(--rule); }
@@ -97,6 +97,7 @@
 .ds-returns a { display: inline-block; padding-block: .3rem; }
 .ds-url, .cite-text { overflow-wrap: anywhere; }
 .ds-reading [id], .ds-reading section, .ds-reading li { scroll-margin-top: calc(var(--ds-sticky-top) + 1rem); }
+.dossier-page .ds-comparison :is(a,summary):focus-visible { outline-color: var(--focus-band); }
 .dossier-page a:focus-visible, .dossier-page summary:focus-visible, .dossier-page button:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .ds-reading :target > h2, .ds-reading :target > .ds-finding-heading h3 { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
 .ds-ledger > li:target > .ds-ledger-heading { background-color: var(--accent-tint); }
@@ -169,6 +170,8 @@
 @media print {
  .dossier-page > .wrap { width: 100%; max-width: none; }
  .ds-layout, .ds-opening { display: block; }
+ .ds-layout { width: 100%; margin: 0; padding-top: 12pt; }
+ .ds-chronology > li { display: block; break-inside: auto; padding-bottom: 12pt; }
  .ds-contents, .ds-mobile-contents, .ds-breadcrumb, .dossier-page button, .ds-permalink { display: none !important; }
  .dossier-page, .ds-comparison { color: #000; background: #fff; }
  .ds-comparison { margin: 1.5rem 0; padding: 1rem; border: 1px solid #999; }
@@ -196,3 +199,5 @@
  .ds-reading .ds-cites a, .ds-reading .ds-returns a { min-height: 0; padding: 0; }
  .ds-url-detail p { display: block; }
 }
+
+@media print{.ds-evidence a[href^="http"]::after{content:none}}
