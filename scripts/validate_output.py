@@ -282,7 +282,11 @@ def _validate_timelines(output_dir, errors):
                 for key in ("title_original", "title_english"):
                     if rec.get(key) and escape(rec[key]) in text:
                         errors.append("%s reproduces a source title in references-only presentation" % route)
-            for entry in item["entries"]:
+            # The reference-only view deliberately has no source excerpts.
+            # Check emitted bytes against the canonical editorial source.
+            from core.timelines import read_timeline
+            source = read_timeline(REPO_ROOT / "timelines" / (item["slug"] + ".json"))
+            for entry in source["entries"]:
                 for ev in entry["evidence"]:
                     if escape(ev["excerpt"]) in text:
                         errors.append("%s reproduces a source excerpt in references-only presentation" % route)
