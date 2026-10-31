@@ -96,7 +96,10 @@ class KoreaAdditionalPublicLinkReleaseTests(unittest.TestCase):
             from core.korea_official_live_links import load_live_korea_official_links
             fixed = {r["source_identity"] for r in (
                 load_public_korea_links() + public.load_additional_korea_official_links())}
-            auto = load_live_korea_official_links(ROOT / "pla_watch.db", exclude=fixed)
+            # An admitted article replaces its bare metadata card, while the
+            # fixed bibliography and released original exhibits stay intact.
+            corpus = set(gp.load_corpus(ROOT / "pla_watch.db")["korea_publishable"].values())
+            auto = load_live_korea_official_links(ROOT / "pla_watch.db", exclude=fixed | corpus)
             self.assertEqual(page.count('data-korea-auto-official-link='), len(auto))
             from core.korea_published_originals import read_release_index
             # The 14 static official outbound links remain exactly fixed.

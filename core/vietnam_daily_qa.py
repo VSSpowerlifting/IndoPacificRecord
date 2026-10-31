@@ -20,7 +20,7 @@ from datetime import date
 from typing import Callable, Dict, List, Optional, Sequence
 
 from analysis.vietnam_prompts import EVENT_TYPES
-from core.collection.vietnam_sources import SOURCES, content_sha256
+from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES, content_sha256
 
 RUBRIC_VERSION = "vn-qa-2026-10-21.1"
 SECOND_PASS_RUBRIC = "vn-qa-second-pass-2026-10-21.1"
@@ -222,7 +222,7 @@ def source_failures(record: dict, version: dict, logical_date: str) -> List[str]
 
 def output_failures(record: dict, title: str, body: str, result: Optional[dict], *,
                     translation_required: bool, permissions: Dict[str, bool],
-                    projection: Dict[str, Optional[str]]) -> Dict[str, str]:
+                    projection: Dict[str, Optional[str]], version: Optional[dict] = None) -> Dict[str, str]:
     """Deterministic checks on the model output and on what would publish."""
     f: Dict[str, str] = {}
     original = "%s\n%s" % (title, body)
@@ -271,6 +271,9 @@ def output_failures(record: dict, title: str, body: str, result: Optional[dict],
     # Numbers in the summary must exist in the original (years excepted only
     # when the year itself appears in the source).
     src_nums = _numbers(original, _vi_number)
+    if record.get("source_family") == "vn_vpcp_official_documents_vi" and version is not None:
+        from processing.vpcp_document import verified_bibliographic_numbers
+        src_nums |= verified_bibliographic_numbers(version)
     extra = {n for n in _numbers(summary + " " + headline, _en_number)
              if n not in src_nums and len(n.replace(".", "")) >= 2}
     if extra:
@@ -281,6 +284,12 @@ def output_failures(record: dict, title: str, body: str, result: Optional[dict],
         if y not in src_years and y != posted_year:
             f["E_DATE_MISMATCH"] = "year %s absent from source" % y
     for acr in set(_ACRONYM.findall(joined)):
+        if (acr == "PM" and record.get("source_family") == "vn_vpcp_official_documents_vi"
+                and re.search(r"\bPrime Minister\b", joined, re.I)
+                and re.search(r"\bThủ\s+tướng\b", original, re.I)):
+            # An English expansion plus the Vietnamese source role supports
+            # this abbreviation. The factual reviewer still checks who acted.
+            continue
         if acr not in _ACRONYM_ALLOWED and acr not in original:
             f["E_ACRONYM"] = "acronym %s absent from source and allow-list" % acr
     # Per field: a correct name in the title must not mask a stripped one in
@@ -299,7 +308,10 @@ def output_failures(record: dict, title: str, body: str, result: Optional[dict],
         f["E_OUTCOME_CLAIM"] = "summary states a completed outcome the source does not"
     if event in ("completion",) and not any(k in original.lower() for k in _OUTCOME_VI):
         f["E_OUTCOME_CLAIM"] = "completion event without a completion term in the source"
-    if not _ATTRIBUTION.search(summary):
+    document_attribution = (record.get("source_family") == "vn_vpcp_official_documents_vi"
+        and re.search(r"\bGovernment Office\s+(?:issued|conveys?|conveyed|transmits?|transmitted|communicates?|communicated|instructs?|requests?|directs?|requires?)\b",
+                      summary, re.I))
+    if not _ATTRIBUTION.search(summary) and not document_attribution:
         f["E_UNATTRIBUTED"] = "summary attributes nothing to the source"
     # Rights projection: what the public row would carry.
     if projection.get("text_original") and not permissions.get("public_original_storage"):
@@ -355,7 +367,7 @@ def review(record: dict, version: dict, result: Optional[dict], *, logical_date:
            translation_required: bool, permissions: Dict[str, bool],
            projection: Dict[str, Optional[str]], attempts: int,
            second_pass: Optional[Callable[[dict, str, str, dict], dict]] = None,
-           budget: Optional[SecondPassBudget] = None) -> QAResult:
+           budget: Optional[SecondPassBudget] = None, force_second_pass: bool = False) -> QAResult:
     """Run every check and decide one outcome for one record."""
     title = version.get("title_original") or ""
     body = version.get("text_original") or ""
@@ -367,11 +379,11 @@ def review(record: dict, version: dict, result: Optional[dict], *, logical_date:
         return QAResult(SCREENED_OUT, [])
     out = output_failures(record, title, body, result,
                           translation_required=translation_required,
-                          permissions=permissions, projection=projection)
+                          permissions=permissions, projection=projection, version=version)
     details.update(out)
     fails = sorted(out)
     verdict = None
-    if not fails and needs_second_pass(result):
+    if not fails and (force_second_pass or needs_second_pass(result)):
         if second_pass is None or budget is None or not budget.take():
             fails = ["E_SECOND_PASS_UNAVAILABLE"]
         else:

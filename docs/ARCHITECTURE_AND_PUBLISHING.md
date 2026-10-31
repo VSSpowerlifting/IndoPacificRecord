@@ -1,7 +1,8 @@
 # Architecture & Publishing — Indo-Pacific Record
 
-Authoritative map of what produces what, what is source vs generated, and how
-changes reach production. Session state lives in PROJECT_STATE.md; durable
+Map of the existing producers, source versus generated artifacts, and release
+commands. The mandatory all-desk architecture is
+[`desks/README.md`](desks/README.md); this layer map does not override it. Session state lives in PROJECT_STATE.md; durable
 identity and editorial principles live in PRODUCT_AND_EDITORIAL_DOCTRINE.md.
 
 The published site is **Indo-Pacific Record** at `https://indopacificrecord.org`.
@@ -10,9 +11,10 @@ where it describes the rollback path or historical behaviour.
 
 ## 1. Repository boundary
 
-Everything happens inside `~/pla-watch`. Never touch sibling repositories
-(`strategic-materials-policy-tracker`, `managed-contact-risk-dashboard`,
-`second-brain`, …) or unrelated home-directory files.
+Work in an isolated worktree of the assigned public repository. The explicitly
+assigned private source-evidence companion may be changed when the task requires
+that custody/orchestration boundary. Never touch unrelated sibling repositories
+or another agent's worktree. Local checkout names do not define architecture.
 
 ## 2. Layer map
 
@@ -45,31 +47,76 @@ historical Night Desk base link that stylesheet. `core/topography.py` supplies
 deterministic address-specific profiles to both Jinja environments. Historical
 HTML still requires its normal sidecar re-render to pick up base-template edits.
 
-## 2a. Cross-desk convergence target (owner, 2026-10-19)
+## 2a. Mandatory all-desk structure — 30 October 2026
 
-The layer table above describes currently deployed paths; it is **not** a
-prescription to build each desk a separate publishing system. The long-term
-architecture is one **logical** `pipeline.py`/`daily_update.yml` processing
-coordinator with explicit desk-specific profiles, a common permitted-content
-and source-link intake, shared public renderer/archive/search and controlled
-site publication. Independently scheduled official-source collectors and
-private evidence storage remain separate when publisher cadence, access,
-security or source rights require it; they converge through authenticated,
-source-pinned contracts, without recrawling originals. One logical Daily does
-not mean one enormous synchronized scraper job or the removal of safe
-source-specific error isolation.
+[`desks/README.md`](desks/README.md) governs source definitions, permitted record
+components, common lifecycle/admission, qualification versus routine delivery,
+repository ownership and acceptance. It supersedes the earlier aspirational
+convergence target. [`desks/MIGRATION.md`](desks/MIGRATION.md) records which
+existing paths still need migration; they must not be presented as consolidated.
 
-Public `pla_watch.db` currently stores original article text, so a metadata-
-only source cannot be inserted there as though unrestricted original-text
-republication had been licensed. Separate approved full-text corpus records
-from neutral source-link records and any separately authorized machine-written
-explanation. Machine processing happens only under source-appropriate rights;
-source use, published fields, spending and release remain independently gated.
-The target is unattended publication of authorized, quality-passing,
-**machine-labeled record output**, with exceptional holds; human Briefs and
-bylined analytical manuscripts keep their editorial approval gates.
-This architectural direction does not switch on any desk or workflow by
-itself. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+The layer table and workflow descriptions here describe existing code, including
+legacy exceptions. Preserve live permitted behavior while replacing those paths.
+A public original is optional in the common record interface; restricted source
+evidence must not enter the public DB to satisfy the legacy article shape.
+Source rights and runtime activation remain independently governed. Human Briefs
+and other human-controlled editorial products retain their existing approvals.
+
+Daily resolves reusable full qualification through `scripts/code_qualification.py`.
+The trust anchor is its reviewed main checkout, resolved with `git rev-parse HEAD`,
+not the queued trigger SHA. It also checks that the executing Daily workflow's
+blob at `github.workflow_sha` matches that checkout. The existing PR workflow
+remains read-only, secret-free, and checks out the synthetic merge. Qualification
+does not authorize a source, model spend, merge or deployment.
+
+Reuse requires authenticated GitHub run and attempt-specific job evidence from
+this repository's `pr_offline_checks.yml` on a **push to main**: successful full suite, Chromium launch,
+isolated render, validator, tracked DB/output preservation, and applicable source
+replay. GitHub's push run/job `head_sha` directly identifies the executed code
+and workflow. The verifier reads that immutable Git tree without checking it
+out or executing it, requires it to be an ancestor of Daily's actual checkout,
+recalculates full scope, and requires exact non-mutable input equivalence.
+PR runs still test their synthetic merges but **cannot certify reuse**: their
+API head SHA identifies the PR head rather than independently authenticating
+the historical executed merge/workflow. A PR-controlled step name claiming a
+trusted merge SHA cannot repair that gap. A green badge, uploaded artifact or
+PR assertion alone is never accepted. Main qualification happens after the
+reviewed merge, including a squash merge; no production secrets are involved.
+
+The input map includes Git paths, modes, types and blob IDs for code, tests,
+workflows, dependencies, schemas/migrations, templates/assets, prompts, policies,
+source config, documentation and unknown paths. Only ordinary non-executable
+blobs at the explicit routine-data paths in `code_qualification.py` are omitted:
+the public DB, the two Daily date markers and usage ledger, four generated
+indexes/sitemap, and named generated HTML routes. Canonical edition JSON,
+generated styles/scripts/assets and all other files under `output/` remain
+inputs. No directory is excluded wholesale. Additions, deletions and mode
+changes participate in the comparison.
+
+Python, installed package versions and wheel RECORD metadata, Chromium, runner
+image/architecture and resolved OS packages must match. Checkout/setup actions
+are pinned to immutable commits. Unpinned dependency or runner drift therefore
+requires the full fallback even when requirements and code are unchanged.
+The search is bounded to the latest 30 main-push runs; missing/failed/skipped/cancelled,
+focused/docs-only, foreign-head, mismatched, expired or unavailable evidence
+selects the existing full offline suite before collection. A failed fallback
+blocks collection/spending. No manual qualification marker or bypass exists.
+The run summary records actual checkout, evidence run/attempt/job, tested commit,
+input/environment digests and invalidation reason, plus the fallback outcome.
+
+Every run still migrates and verifies the actual DB, checks preservation and
+reconciliation, and enforces existing source/custody/QA/holds/budget/admission
+controls. Rendering, output validation, final-snapshot checks, Pages publication,
+live readback and success-marker controls remain in place. Data-only growth can
+reuse code qualification but cannot make invalid current data or output pass.
+Failure recovery still preserves captures/accepted output and excludes invalid
+HTML from the DB-only recovery commit. This engineering change does not dispatch
+Daily or certify live delivery. Initial reuse requires a successful full
+main-push offline run with this workflow version after review/integration;
+older runs fall back safely. The existing workflow now also handles main
+pushes with the same single read-only job. Explicit data-only main diffs skip
+dependencies, tests and rendering; modes/types/unknown paths still invalidate
+that data lane. PR full/focused/docs behavior and required status are unchanged.
 
 ## 3. Commands
 
@@ -103,7 +150,8 @@ screenshots at 1280 and 375 widths.
 ## 4. CI / deployment (`.github/workflows/`)
 
 - `daily_update.yml` — scheduled (five retry windows, one success per NY
-  day): runs the offline suite, then the pipeline (which renders through
+  day): verifies reusable full qualification or runs the offline fallback, then
+  the pipeline (which renders through
   `site/render.py`), commits `pla_watch.db` + `output/` to main, deploys
   `output/` → `gh-pages` (peaceiris/actions-gh-pages@v3,
   `cname: indopacificrecord.org`). Python 3.9 on the runner — keep the
@@ -258,3 +306,16 @@ sidecars with `scripts/rerender_pla_watch.py`. `scripts/generate_pla_watch.py`
 authors nothing new, and `generate_pla_watch_draft.yml`, which only dispatched
 it, is retired (DECISION_LOG 2026-09-23). After any publication, update
 PROJECT_STATE.md and record constraining rulings in DECISION_LOG.md.
+
+## Living Dossiers
+
+`core/dossier_contract.py` owns shape/digest; `core/dossiers.py` reconciles the
+exact read-only archive inputs and loads only independently authorized approved
+versions. `core/dossier_decisions.py` records actual owner decisions separately
+from manuscript assertions. The existing production renderer, Analysis context,
+record/Brief backlinks and `core/archive_research.py` metadata projection serve
+approved dossiers; drafts use an explicit external, local-only review mode.
+The chronology is bound to the existing Timeline manuscript without copying or
+approving that product. Private `dossiers/drafts/` revisions preserve the last
+approved canonical source. See [LIVING_DOSSIERS.md](LIVING_DOSSIERS.md) for the
+maintainer workflow and the real Maritime draft's outstanding decisions.

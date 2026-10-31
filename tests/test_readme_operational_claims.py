@@ -145,7 +145,7 @@ class TestReadmeCarriesNoUnresolvedPlaceholder(unittest.TestCase):
                       % match.group(0))
 
     def test_readme_names_the_real_repository(self):
-        self.assertIn("VSSpowerlifting/China-Mil-Watch", readme_text(),
+        self.assertIn("VSSpowerlifting/IndoPacificRecord", readme_text(),
                       "README does not name the repository it lives in")
 
 

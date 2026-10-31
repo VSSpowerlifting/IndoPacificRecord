@@ -13,7 +13,7 @@ import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from core.collection.vietnam_sources import SOURCES
+from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 from core.regional_reviewed_evidence import _canonical, verify_review_seal
 from core.regional_official_link_release import store_verified_links
 from scripts import review_vietnam_ministry_state as ministry
@@ -26,7 +26,7 @@ DOMAIN = b"IPR-VIETNAM-OFFICIAL-LINK-RELEASE-v1\n"
 MPS = "vn_mps_foreign_affairs_vi"
 HOLDS = {slug: "moit_written_consent_and_robots_review_required"
          for slug in SOURCES if slug != MPS}
-ISSUERS = {slug: "vn_mps" if slug == MPS else "vn_moit" for slug in SOURCES}
+ISSUERS = {slug: "vn_mps" if slug == MPS else "vn_vpcp" if slug == "vn_vpcp_official_documents_vi" else "vn_moit" for slug in SOURCES}
 LABELS = {slug: "Vietnam Ministry of Public Security official source" if slug == MPS
           else "Vietnam Ministry of Industry and Trade official source" for slug in SOURCES}
 

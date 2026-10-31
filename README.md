@@ -5,26 +5,22 @@ official defense and security publication from the Indo-Pacific, translates and
 summarizes it, and publishes a structured record to a static website updated on
 a 24-hour cycle. It is live at <https://indopacificrecord.org>.
 
-The project publishes through **desks**. The **China Desk** is the only mature
-collection: Mandarin-language military and security reporting from official and
-authoritative PRC sources. The human-written analysis is **Indo-Pacific Record
-Briefs**, whose existing issues were published as *The PLA Watch*. The
-Singapore Desk went live on 2026-09-21; Japan is under private shadow
-evaluation and appears in no public count; a US Indo-Pacific reference desk is
-declared but
-access-blocked.
-
-*China Mil Watch* was this project's name until 2026-08-27. It is a legacy name
-only; see [Deployment](#deployment-github-pages--github-actions).
+The project publishes through regional **desks**, with the China Desk preserving
+official Chinese military and security reporting and additional regional desks
+operating according to their verified collection status. Human-reviewed analysis
+appears as **Indo-Pacific Record Briefs**. See the published desks, coverage
+reports, and Briefs catalog for current publication status.
 
 This is an academic portfolio project.  It does not use or claim access to any
 classified information.  All source material is publicly available.
 
-**Cross-desk engineering direction (19 October 2026):** Future desk
-integration targets one logical shared Daily processing/publishing engine,
-with independently scheduled/private source collection where necessary. This
-is a **target**, not a claim that all desks are integrated or permitted to
-publish full text. See [shared Daily architecture](docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md).
+**Mandatory all-desk architecture (30 October 2026):** sources own evidence,
+permissions and processing profiles; desks present a common record with optional
+permitted components. Lifecycle/admission/public projection are shared, and code
+qualification is separated from routine ingestion and delivery as the runtime
+migrates. Read the [desk system standard](docs/desks/README.md) and
+[current migration map](docs/desks/MIGRATION.md). The standard binds every desk;
+it does not claim all existing paths are consolidated or grant publication rights.
 
 ---
 
@@ -102,7 +98,7 @@ used for one.
 ## Project Structure
 
 ```
-pla-watch/
+IndoPacificRecord/
 ├── scraper/            # Source-specific scrapers (one class per source)
 │   └── sources/
 ├── processing/         # Dedup, keyword filter, metadata normalization
@@ -136,8 +132,8 @@ pla-watch/
 ### Local installation
 
 ```bash
-git clone https://github.com/VSSpowerlifting/China-Mil-Watch.git
-cd China-Mil-Watch
+git clone https://github.com/VSSpowerlifting/IndoPacificRecord.git
+cd IndoPacificRecord
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
@@ -184,10 +180,8 @@ python scripts/validate_output.py
 
 ### 1. Create the repository
 
-Create a new **public** repository on GitHub and push your local code to the
-`main` branch. This project's own repository is
-`VSSpowerlifting/China-Mil-Watch` — a hosting path that kept the predecessor's
-name; it is not the publication's identity.
+The current public repository is
+`VSSpowerlifting/IndoPacificRecord`, with `main` as its production branch.
 
 ### 2. Add the API key as a secret
 
@@ -230,12 +224,10 @@ This deployment serves:
 https://indopacificrecord.org
 ```
 
-China Mil Watch was renamed Indo-Pacific Record on 2026-08-27. Every address
-the old domain served still resolves: `https://chinamilwatch.org` is answered
-by a redirect-only site that sends each one to its exact counterpart here, and
-`/article/<id>.html` continues to resolve to the record holding the same
-article. The thirteen published editions of *The PLA Watch* keep their
-addresses and their original masthead.
+Historical inbound links are preserved: `https://chinamilwatch.org` redirects
+to the corresponding page on this origin, and `/article/<id>.html` retains its
+record association. Original edition addresses and publication credits are
+preserved for citation integrity.
 
 ---
 

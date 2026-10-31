@@ -17,6 +17,35 @@ from migrations.versions import (
 KEY = "fictional-test-key-only-" + "x" * 40
 
 
+class DAPACollectionDateTests(unittest.TestCase):
+    def test_delayed_first_schedule_uses_preserved_nominal_day(self):
+        ledger = {"target_date_source": "schedule-slot",
+                  "started_utc": "2026-10-28T01:25:10.200288+00:00",
+                  "target_date": "2026-10-27"}
+        self.assertTrue(b.collection_date_proven(ledger, "40614736442-1"))
+        for changes, run in (
+            ({"target_date": "2026-10-28"}, "40614736442-1"),
+            ({}, "40614736442-2"),
+            ({"started_utc": "2026-10-28T01:25:10"}, "40614736442-1"),
+            ({"started_utc": None}, "40614736442-1"),
+            ({"target_date_source": "manual-utc-date"}, "40614736442-1"),
+            ({"target_date_source": "unknown"}, "40614736442-1"),
+        ):
+            with self.subTest(changes=changes, run=run):
+                self.assertFalse(b.collection_date_proven(dict(ledger, **changes), run))
+
+    def test_explicit_recovery_and_inclusive_slot_boundary(self):
+        self.assertTrue(b.collection_date_proven(
+            {"target_date_source": "explicit", "target_date": "2026-10-27"},
+            "40614736442-2"))
+        self.assertTrue(b.collection_date_proven(
+            {"target_date_source": "schedule-slot", "target_date": "2026-10-27",
+             "started_utc": "2026-10-27T22:17:00Z"}, "40614736442-1"))
+        self.assertFalse(b.collection_date_proven(
+            {"target_date_source": "explicit", "target_date": "2026-02-30"},
+            "40614736442-1"))
+
+
 def sample():
     row = {
         "source_identity": "korea-dapa-policy:156785999",
@@ -472,6 +501,16 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                     b.admit(prod, packet, signed, KEY,
                             as_of_utc="2026-10-18T12:00:00Z")[
                                 "new_official_links_admitted"], 2)
+            # The same complete custody chain must export on a real delayed
+            # schedule, without pretending that it was an explicit manual run.
+            ledger.update(target_date_source="schedule-slot",
+                          started_utc="2026-10-19T00:12:00+00:00")
+            (state / "ledger" / ("20261018T000000.000000+0000-" + run +
+                                 ".json")).write_text(json.dumps(ledger))
+            git("add", "state")
+            git("commit", "--amend", "--no-edit", "-q")
+            scheduled = b.export_from_private_checkout(root, run)
+            self.assertEqual(scheduled["records"], packet["records"])
             (state / "captures" / (second_doc_sha + ".bin")).write_bytes(b"CORRUPTED")
             with self.assertRaises(b.DAPABridgeHold):
                 b.export_from_private_checkout(root, run)

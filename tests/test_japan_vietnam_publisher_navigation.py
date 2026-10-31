@@ -7,7 +7,8 @@ import unittest
 from urllib.parse import urlsplit
 
 from core.desk_registry import load_registry
-from tests.test_desk_rollout_contract import DeskCase
+from tests.test_desk_rollout_contract import DeskCase, TRACKED_DB
+from core.regional_official_link_render import load_admitted_links
 
 
 LINKS = {
@@ -28,11 +29,13 @@ LINKS = {
             "https://moit.gov.vn/tin-tuc/phat-trien-nang-luong",
         "Ministry of Industry and Trade — foundational industry (Vietnamese)":
             "https://moit.gov.vn/tin-tuc/phat-trien-cong-nghiep/cong-nghiep-nen-tang",
+        "Government Office of Vietnam — official documents (Vietnamese)":
+            "https://vanban.chinhphu.vn/",
     },
 }
 ALLOWED_HOSTS = {
     "www.mod.go.jp", "www.kaiho.mlit.go.jp", "en.baochinhphu.vn",
-    "bocongan.gov.vn", "moit.gov.vn",
+    "bocongan.gov.vn", "moit.gov.vn", "vanban.chinhphu.vn",
 }
 
 
@@ -40,8 +43,8 @@ class CountryPublisherNavigationTests(DeskCase):
     def test_exact_verified_indices_and_separate_moit_clocks(self):
         for slug, expected in LINKS.items():
             desk = load_registry().get(slug)
-            self.assertEqual(desk.status, "shadow")
-            self.assertFalse(desk.has_production_records)
+            self.assertEqual(desk.status, "live" if slug == "vietnam" else "shadow")
+            self.assertEqual(desk.has_production_records, slug == "vietnam")
             actual = {s["name"]: s["publisher_url"]
                       for s in desk.research["source_families"]
                       if s.get("publisher_url")}
@@ -69,7 +72,9 @@ class CountryPublisherNavigationTests(DeskCase):
             other = "vietnam" if slug == "japan" else "japan"
             for url in LINKS[other].values():
                 self.assertNotIn(url, html)
-            self.assertNotIn('href="archive.html?desk=' + slug + '"', html)
+            if slug == "japan":
+                self.assertNotIn('href="archive.html?desk=' + slug + '"', html)
+            # Vietnam may acquire genuine MPS article links after the Daily cycle.
             self.assertNotIn("data-reference-list", html)
             self.assertNotIn("state/shadow.db", html)
             self.assertNotIn("text_original", html)
@@ -135,7 +140,8 @@ class CountryPublisherNavigationTests(DeskCase):
             "external official-source links only",
             "not archived IPR records",
             "rights-approved by IPR",
-            "All Japan production records remain held",
+            ("Japan original-text production records remain held" if load_admitted_links(TRACKED_DB, "japan")
+             else "All Japan production records remain held"),
             "repository gate was observed unset or unavailable",
             "October 8 shadow capture is HTML text only",
             "Post-Day-0 source candidate; not a qualifying collecting day",
@@ -169,7 +175,10 @@ class CountryPublisherNavigationTests(DeskCase):
 
         html = self.page("japan.html")
         parser = OfficialPDFLinks()
-        parser.feed(html)
+        # The seven reviewed historical notices are a separate directory from
+        # live, admitted news-feed metadata, which may contain newer PDFs.
+        historical = html.split('aria-labelledby="japan-mod-original-pdfs-title">', 1)[1].split('</section>', 1)[0]
+        parser.feed(historical)
         expected = (
             "08/27b.pdf",
             "08/28a.pdf",
@@ -193,7 +202,8 @@ class CountryPublisherNavigationTests(DeskCase):
             "conflicting with the later October 5 original",
             "not proof the activity occurred",
             "archived-text extraction parity",
-            "no production or model use is authorized",
+            ("original-text and model use remain held" if load_admitted_links(TRACKED_DB, "japan")
+             else "no production or model use is authorized"),
             "repository gate was observed unset or unavailable",
         ):
             self.assertIn(phrase, html)
@@ -218,7 +228,7 @@ class CountryPublisherNavigationTests(DeskCase):
     def test_live_desk_and_philippines_counts_are_unaffected(self):
         self.assertEqual(
             sorted(d.slug for d in load_registry() if d.is_collecting),
-            ["china", "korea", "singapore"])
+            ["china", "korea", "singapore", "vietnam"])
         philippines = self.page("philippines.html")
         self.assertEqual(philippines.count("Open official publisher index"), 2)
         for slug in LINKS:

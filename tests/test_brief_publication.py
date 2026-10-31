@@ -6,6 +6,7 @@ import io
 import hashlib
 import json
 import sqlite3
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -24,6 +25,14 @@ SOURCE = ROOT / 'briefs/maritime-cooperation-2026.json'
 
 class PublicationChecks(unittest.TestCase):
     def setUp(self):
+        # The fixture is derived from a canonical Brief that cites Singapore
+        # MINDEF records, which the production boundary withholds whole. These
+        # workflow tests exercise approval/numbering/publication mechanics on a
+        # disposable copy, so they run under an explicit *synthetic* rights
+        # authority. The real works stay held: see MindefHoldAgainstRealWorks.
+        rights = mock.patch('core.mindef_public_boundary.editorial_hold', return_value=False)
+        rights.start()
+        self.addCleanup(rights.stop)
         self.pending = json.loads(SOURCE.read_text())
         self.pending['editorial_status'] = 'draft'
         self.pending['issue_number'] = None
@@ -253,7 +262,8 @@ class PublicationChecks(unittest.TestCase):
         before = self.path.read_bytes()
         gp.build(out, gp.PUBLIC_TITLE, ROOT / 'pla_watch.db',
                  snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
-                 briefs_dir=self.briefs, review_brief=self.path)
+                 briefs_dir=self.briefs, dossiers_dir=self.root / 'no-dossiers',
+                 review_brief=self.path)
         article = (out / 'briefs/fixture.html').read_text()
         self.assertIn('unapproved, unnumbered and unpublished', article)
         self.assertIn('noindex', article)
@@ -277,7 +287,8 @@ class PublicationChecks(unittest.TestCase):
         for out in outputs:
             gp.build(out, gp.PUBLIC_TITLE, ROOT / 'pla_watch.db',
                      snapshot=gp.snapshot_from_corpus(ROOT / 'pla_watch.db'),
-                     briefs_dir=self.briefs, site_origin='https://fixture.test',
+                     briefs_dir=self.briefs, dossiers_dir=self.root / 'no-dossiers',
+                     site_origin='https://fixture.test',
                      allow_test_origin=True)
             article = (out / routes[0]).read_text()
             self.assertIn(self.pending['title'], article)
@@ -320,6 +331,43 @@ class PublicationChecks(unittest.TestCase):
             errors = []
             self.assertIsNone(validate_output._brief_veil_entry('brief-fixture', out, errors, 'fixture.html'))
             self.assertIn('absent from the cited source trail', ' '.join(errors))
+
+
+class MindefHoldAgainstRealWorks(unittest.TestCase):
+    """No synthetic authority here: the real canonical works are withheld."""
+
+    HELD = {
+        'maritime-cooperation-2026': 15,
+        'xiangshan-security-frames-defense-ties': 16,
+        'trident-resolve-regional-scale-specific-chinese-tasks': 17,
+    }
+
+    def test_the_three_approved_briefs_are_held_whole_and_unmodified(self):
+        for slug, number in self.HELD.items():
+            with self.subTest(slug=slug):
+                sidecar = json.loads((ROOT / 'briefs' / (slug + '.json')).read_text())
+                self.assertEqual(sidecar['editorial_status'], 'approved')
+                self.assertEqual(sidecar['issue_number'], number)
+                self.assertIn('approval', sidecar)
+                from core.mindef_public_boundary import editorial_hold
+                self.assertTrue(editorial_hold(sidecar))
+
+    def test_the_real_collection_publishes_none_of_them_and_keeps_other_briefs(self):
+        sys.path.insert(0, str(ROOT / 'site/preview'))
+        import generate_preview as gp
+        coll = collection.load_collection(
+            gp.load_editions(ROOT), load_registry(), briefs_dir=ROOT / 'briefs')
+        slugs = {b['slug'] for b in coll.briefs}
+        self.assertTrue(slugs.isdisjoint(self.HELD))
+        self.assertEqual({b['issue'] for b in coll.briefs}, {18, 19, 20})
+        for slug in self.HELD:
+            self.assertIn(slug, coll.withheld)
+
+    def test_a_new_number_never_reuses_a_withheld_briefs_number(self):
+        issues = author_brief.existing_issues()
+        number = contract.next_issue_number(issues)
+        self.assertNotIn(number, set(self.HELD.values()))
+        self.assertGreater(number, max(self.HELD.values()))
 
 
 if __name__ == '__main__':

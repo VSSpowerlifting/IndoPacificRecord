@@ -21,6 +21,8 @@ import logging
 import math
 import re
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import ContextVar, copy_context
+from functools import wraps
 from typing import Optional
 
 import anthropic
@@ -44,6 +46,11 @@ from analysis.usage import (
 )
 from config import (
     ANALYSIS_MODEL,
+    TRANSLATION_MODEL,
+    SUMMARY_MODEL,
+    CATEGORIZATION_MODEL,
+    FALLBACK_MODEL,
+    MODEL_FIDELITY_CANDIDATE_ENABLED,
     ANTHROPIC_API_KEY,
     RELEVANCE_MODEL,
     RELEVANCE_THRESHOLD,
@@ -103,6 +110,124 @@ def _classify_status_error(exc: "anthropic.APIStatusError") -> AnalysisError:
     return AnalysisError(detail)
 
 
+#: The one model whose request shape differs, matched exactly: it has no dated
+#: snapshot or alias (platform.claude.com/docs/en/models/haiku-5-5/migration-guide).
+#: Opt-in only, through the ANALYSIS_MODEL / RELEVANCE_MODEL overrides.
+HAIKU_5_5 = "claude-haiku-5-5"
+
+# Compared as a plain string: the installed SDK's stop_reason Literal does not
+# list it, but the API documents it.
+_CONTEXT_EXCEEDED_STOP = "model_context_window_exceeded"
+
+
+def _request_settings(model: str, temperature: float) -> dict:
+    """
+    Sampling/reasoning fields for one request.
+
+    Every other model keeps the historical `temperature`, so its request is
+    byte-for-byte what it was. Haiku 5.5 rejects temperature/top_p/top_k with a
+    400; it gets no sampling field and instead thinking off at high effort
+    (disabled thinking is accepted at low/medium/high). Both travel in
+    `extra_body` so every SDK that requirements.txt permits can send them.
+    """
+    if model == HAIKU_5_5:
+        return {"extra_body": {"thinking": {"type": "disabled"},
+                               "output_config": {"effort": "high"}}}
+    return {"temperature": temperature}
+
+
+def _stop_rejection(stop_reason, model: str) -> Optional[str]:
+    """
+    The error for a stop that voids the response whatever it contains, or
+    None. Truncation is checked separately by each wrapper, which keeps its
+    existing message.
+    """
+    if stop_reason == "refusal":
+        return f"Model declined the request (stop_reason=refusal, model={model})"
+    if stop_reason == _CONTEXT_EXCEEDED_STOP:
+        return (f"Prompt exceeded the context window "
+                f"(stop_reason={_CONTEXT_EXCEEDED_STOP}, model={model})")
+    return None
+
+
+def _response_text(content) -> str:
+    """
+    Every text block of a response, joined in order. Thinking and tool_use
+    blocks never count as the answer. A block with no `type` but a str `text`
+    is accepted for the synthetic doubles the tests have always used.
+    """
+    parts = []
+    for block in content or ():
+        kind = getattr(block, "type", None)
+        text = getattr(block, "text", None)
+        if isinstance(text, str) and kind in ("text", None):
+            parts.append(text)
+    return "".join(parts)
+
+
+# Per invocation, including concurrent summary/category workers. Never keep the
+# current model on the shared Analyzer instance: a fallback in one worker must
+# not change the other worker's model or usage attribution.
+_ACTIVE_TASK_MODEL = ContextVar("ipr_task_model", default=None)
+_RECORD_MODELS = ContextVar("ipr_record_models", default=None)
+
+
+def task_route(task):
+    """Retry one rejected task on the configured fallback, never the account.
+
+    Existing JSON repair stays inside the task. A failed fallback propagates to
+    the existing partial-result/queue hold; no second article pipeline exists.
+    """
+    def decorate(operation):
+        @wraps(operation)
+        def routed(self, *args, **kwargs):
+            primary = self.task_model(task)
+            models = [primary]
+            if FALLBACK_MODEL and FALLBACK_MODEL != primary:
+                models.append(FALLBACK_MODEL)
+            for index, model in enumerate(models):
+                token = _ACTIVE_TASK_MODEL.set((task, model))
+                try:
+                    return operation(self, *args, **kwargs)
+                except FatalAPIError:
+                    raise
+                except AnalysisError:
+                    if index == len(models) - 1:
+                        raise
+                    logger.warning("Rejected %s output/request on %s; trying %s",
+                                   task, model, models[index + 1])
+                finally:
+                    _ACTIVE_TASK_MODEL.reset(token)
+        return routed
+    return decorate
+
+
+def record_models(operation):
+    """Keep legacy single-model provenance, identify mixed dispatched models.
+
+    The ledger remains the task-level accounting source. The existing model_id
+    TEXT field needs no schema migration; it must not claim Sonnet-only output
+    when an override or fallback actually ran. Relevance has its own telemetry.
+    """
+    @wraps(operation)
+    def recorded(self, *args, **kwargs):
+        if _RECORD_MODELS.get() is not None:
+            return operation(self, *args, **kwargs)
+        used = set()
+        token = _RECORD_MODELS.set(used)
+        try:
+            result = operation(self, *args, **kwargs)
+            analysis_models = {(t, m) for t, m in used if t != TASK_RELEVANCE}
+            if result is not None and analysis_models:
+                models = {m for _, m in analysis_models}
+                result["model_id"] = (next(iter(models)) if len(models) == 1 else
+                                      ";".join(t + "=" + m for t, m in sorted(analysis_models)))
+            return result
+        finally:
+            _RECORD_MODELS.reset(token)
+    return recorded
+
+
 class Analyzer:
     """
     Runs all four LLM analysis tasks.
@@ -118,6 +243,37 @@ class Analyzer:
             )
         self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         self._usage = UsageLedger()
+
+    def task_model(self, task: str) -> str:
+        active = _ACTIVE_TASK_MODEL.get()
+        if active is not None and active[0] == task:
+            return active[1]
+        return {TASK_RELEVANCE: RELEVANCE_MODEL,
+                TASK_TRANSLATION: TRANSLATION_MODEL or ANALYSIS_MODEL,
+                TASK_SUMMARY: SUMMARY_MODEL or ANALYSIS_MODEL,
+                TASK_CATEGORIZATION: CATEGORIZATION_MODEL or ANALYSIS_MODEL,
+                }.get(task, ANALYSIS_MODEL)
+
+    def _note_model(self, task, model):
+        used = _RECORD_MODELS.get()
+        if used is not None:
+            used.add((task, model))
+
+    @property
+    def _china_prompt_version(self):
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import PROMPT_VERSION as candidate_version
+            return candidate_version
+        return PROMPT_VERSION
+
+    def _check_fidelity(self, task, source, output, *, translation=False):
+        if not MODEL_FIDELITY_CANDIDATE_ENABLED:
+            return
+        from analysis.fidelity import check
+        reason = check(source, output, translation=translation)
+        if reason:
+            self.usage.mark_failed(task, self.task_model(task))
+            raise AnalysisError("Source fidelity rejected: " + reason)
 
     @property
     def usage(self) -> UsageLedger:
@@ -173,13 +329,14 @@ class Analyzer:
         `task` is the usage-telemetry label (analysis/usage.py). It only names
         the ledger row; it changes nothing about the request.
         """
-        used_model = model or ANALYSIS_MODEL
+        used_model = model or self.task_model(task)
+        self._note_model(task, used_model)
         kwargs = dict(
             model=used_model,
             system=system if system is not None else self._SYSTEM_WITH_CACHE,
             messages=messages,
             max_tokens=max_tokens,
-            temperature=temperature,
+            **_request_settings(used_model, temperature),
         )
         try:
             if stream:
@@ -208,13 +365,17 @@ class Analyzer:
                 getattr(usage, "cache_creation_input_tokens", 0),
             )
 
+        stopped = _stop_rejection(response.stop_reason, used_model)
         truncated = response.stop_reason == "max_tokens"
-        empty = not response.content
+        text = _response_text(response.content)
+        empty = not text.strip()
         # The response exists, so its reported tokens are real spend even when
-        # the output is then rejected below.
+        # the output is then rejected below. Recorded once, before any raise.
         self.usage.record_response(task, used_model, usage,
-                                   failed=truncated or empty)
+                                   failed=bool(stopped) or truncated or empty)
 
+        if stopped:
+            raise AnalysisError(stopped)
         if truncated:
             raise AnalysisError(
                 f"Response truncated at the {max_tokens}-token ceiling "
@@ -226,7 +387,7 @@ class Analyzer:
             raise AnalysisError(
                 f"Empty response content (stop_reason={response.stop_reason})"
             )
-        return response.content[0].text
+        return text
 
     # The translation is the one task whose output contains long free prose, and
     # prose is exactly where hand-rolled JSON breaks: the prompt asks the model
@@ -302,18 +463,20 @@ class Analyzer:
         Forced-tool call. Returns the tool input already parsed by the SDK.
 
         Streams, because the callers that need a tool are the ones producing
-        long output. Raises AnalysisError on truncation or a missing tool block.
+        long output. Raises AnalysisError on a refusal, context-window or
+        truncation stop, or a missing tool block.
         `task` is the usage-telemetry label; see `_call`. Model/system default
         to the historical translation settings, unchanged for existing callers.
         """
-        used_model = model or ANALYSIS_MODEL
+        used_model = model or self.task_model(task)
+        self._note_model(task, used_model)
         try:
             with self._client.messages.stream(
                 model=used_model,
                 system=system if system is not None else self._SYSTEM_WITH_CACHE,
                 messages=messages,
                 max_tokens=max_tokens,
-                temperature=temperature,
+                **_request_settings(used_model, temperature),
                 tools=[tool],
                 tool_choice={"type": "tool", "name": tool["name"]},
             ) as s:
@@ -333,12 +496,15 @@ class Analyzer:
              if b.type == "tool_use" and b.name == tool["name"]),
             None,
         )
+        stopped = _stop_rejection(response.stop_reason, used_model)
         truncated = response.stop_reason == "max_tokens"
         # Reported tokens are real spend even if the output is rejected below.
         self.usage.record_response(
             task, used_model, getattr(response, "usage", None),
-            failed=truncated or tool_block is None)
+            failed=bool(stopped) or truncated or tool_block is None)
 
+        if stopped:
+            raise AnalysisError(stopped)
         if truncated:
             raise AnalysisError(
                 f"Response truncated at the {max_tokens}-token ceiling "
@@ -427,6 +593,7 @@ class Analyzer:
 
     # ── Individual task methods ───────────────────────────────────────────────
 
+    @task_route(TASK_RELEVANCE)
     def score_relevance(
         self, title: str, body: str, profile=None,
     ) -> tuple[float, str]:
@@ -456,7 +623,7 @@ class Analyzer:
             data = self._call_tool(
                 messages, tool, max_tokens=500,
                 temperature=0.0, task=TASK_RELEVANCE,
-                model=RELEVANCE_MODEL, system=system,
+                model=self.task_model(TASK_RELEVANCE), system=system,
             )
             score = data.get("score")
             reason = data.get("reasoning")
@@ -466,13 +633,14 @@ class Analyzer:
                     or not isinstance(reason, str) or not reason.strip()):
                 # A response can consume tokens yet fail local validation.
                 # Do not log the payload or write an invented score.
-                self.usage.mark_failed(TASK_RELEVANCE, RELEVANCE_MODEL)
+                self.usage.mark_failed(TASK_RELEVANCE, self.task_model(TASK_RELEVANCE))
                 raise AnalysisError("Invalid relevance tool values (score/reasoning)")
+            self._check_fidelity(TASK_RELEVANCE, title + "\n" + body, reason)
             return float(score), reason
         raw = self._call(messages, max_tokens=500, temperature=0.0,
-                         model=RELEVANCE_MODEL, system=system,
+                         model=self.task_model(TASK_RELEVANCE), system=system,
                          task=TASK_RELEVANCE)
-        data = self._parse_task_json(raw, TASK_RELEVANCE, RELEVANCE_MODEL)
+        data = self._parse_task_json(raw, TASK_RELEVANCE, self.task_model(TASK_RELEVANCE))
         # Valid JSON is not necessarily a valid relevance judgment. Under the
         # historical path, a missing/string score raised an uncaught Python
         # error AFTER the usage ledger marked this paid response successful;
@@ -484,11 +652,12 @@ class Analyzer:
                 or not isinstance(score, (int, float))
                 or (isinstance(score, float) and not math.isfinite(score))
                 or not isinstance(reason, str) or not reason.strip()):
-            self.usage.mark_failed(TASK_RELEVANCE, RELEVANCE_MODEL)
+            self.usage.mark_failed(TASK_RELEVANCE, self.task_model(TASK_RELEVANCE))
             raise AnalysisError("Invalid relevance JSON values (score/reasoning)")
         # Keep legacy clamping for valid numerical out-of-range scores. Unlike
         # the optional forced-tool path, this is not a new strict-range rule.
         score = float(max(0.0, min(1.0, score)))
+        self._check_fidelity(TASK_RELEVANCE, title + "\n" + body, reason)
         return score, reason
 
     def translate(self, title: str, body: str) -> tuple[str, str]:
@@ -498,10 +667,15 @@ class Analyzer:
         Streams: TRANSLATION_MAX_TOKENS is far above the ~16K non-streaming
         threshold, and this is the only call that renders a full article body.
         """
-        return self._translate_with(build_translation_messages(title, body))
+        builder = build_translation_messages
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import build_translation_messages as builder
+        return self._translate_with(builder(title, body), source=title + "\n" + body)
 
+    @task_route(TASK_TRANSLATION)
     def _translate_with(
         self, messages: list[dict], system: Optional[list] = None,
+        *, source: str,
     ) -> tuple[str, str]:
         """The shared translation call; `system` None is the China default."""
         data = self._call_tool(
@@ -510,6 +684,7 @@ class Analyzer:
             max_tokens=TRANSLATION_MAX_TOKENS,
             temperature=0.3,
             task=TASK_TRANSLATION,
+            model=self.task_model(TASK_TRANSLATION),
             system=system,
         )
         # A forced tool call guarantees a structured *container*, not that each
@@ -526,10 +701,12 @@ class Analyzer:
             # The API responded and charged tokens. Reclassify this one
             # translation response as failed; pipeline retry/pause policy stays
             # entirely unchanged.
-            self.usage.mark_failed(TASK_TRANSLATION, ANALYSIS_MODEL)
+            self.usage.mark_failed(TASK_TRANSLATION, self.task_model(TASK_TRANSLATION))
             raise AnalysisError(
                 "Translation tool returned an empty title_en or body_en"
             )
+        self._check_fidelity(TASK_TRANSLATION, source, title_en + "\n" + body_en,
+                             translation=True)
         return title_en, body_en
 
     def translate_title(self, title: str) -> str:
@@ -546,12 +723,16 @@ class Analyzer:
             raise AnalysisError("Invalid title-only translation response")
         return value
 
+    @task_route(TASK_SUMMARY)
     def summarize(self, title_en: str, body_en: str) -> str:
-        messages = build_summary_messages(title_en, body_en)
+        builder = build_summary_messages
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import build_summary_messages as builder
+        messages = builder(title_en, body_en)
         raw = self._call(messages, max_tokens=1000, temperature=0.3,
-                         task=TASK_SUMMARY)
+                         task=TASK_SUMMARY, model=self.task_model(TASK_SUMMARY))
         try:
-            data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+            data = self._parse_task_json(raw, TASK_SUMMARY, self.task_model(TASK_SUMMARY))
         except AnalysisError as exc:
             if ("JSON parse failed" not in str(exc)
                     or (hasattr(self, "_client") and not callable(
@@ -564,34 +745,58 @@ class Analyzer:
             # ask for the same schema using an SDK-parsed forced tool instead.
             data = self._call_tool(
                 messages, self._SUMMARY_TOOL, max_tokens=1000,
-                temperature=0.0, task=TASK_SUMMARY)
-        summary = data.get("summary")
+                temperature=0.0, task=TASK_SUMMARY, model=self.task_model(TASK_SUMMARY))
+        summary = (None if MODEL_FIDELITY_CANDIDATE_ENABLED and not isinstance(data, dict)
+                   else data.get("summary"))
         if not isinstance(summary, str) or not summary.strip():
-            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
             raise AnalysisError("Summary response contains no usable text")
+        self._check_fidelity(TASK_SUMMARY, title_en + "\n" + body_en, summary)
         return summary
 
+    @task_route(TASK_CATEGORIZATION)
     def categorize(
         self, title_en: str, body_en: str
     ) -> tuple[list[str], bool, Optional[str]]:
         """
         Returns (categories, is_significant, significance_reason).
-        Category slugs are validated against VALID_CATEGORIES; any hallucinated
-        values returned by the model are silently dropped to prevent bad DB writes.
+        Incumbent filtering/coercion is preserved by default. The unqualified
+        fidelity candidate opts into strict rejection and source checks.
         """
-        messages = build_category_messages(title_en, body_en)
+        builder = build_category_messages
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import build_category_messages as builder
+        messages = builder(title_en, body_en)
         raw  = self._call(messages, max_tokens=500, temperature=0.0,
-                          task=TASK_CATEGORIZATION)
-        data = self._parse_task_json(raw, TASK_CATEGORIZATION, ANALYSIS_MODEL)
+                          task=TASK_CATEGORIZATION, model=self.task_model(TASK_CATEGORIZATION))
+        data = self._parse_task_json(raw, TASK_CATEGORIZATION, self.task_model(TASK_CATEGORIZATION))
 
-        categories = [c for c in data.get("categories", []) if c in VALID_CATEGORIES]
-        is_significant = bool(data.get("significance", False))
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            if (not isinstance(data, dict)
+                    or not isinstance(data.get("categories"), list)
+                    or any(not isinstance(c, str) or c not in VALID_CATEGORIES
+                           for c in data["categories"])
+                    or len(set(data["categories"])) != len(data["categories"])
+                    or not isinstance(data.get("significance"), bool)
+                    or (data["significance"] and
+                        (not isinstance(data.get("significance_reason"), str)
+                         or not data["significance_reason"].strip()))):
+                self.usage.mark_failed(TASK_CATEGORIZATION, self.task_model(TASK_CATEGORIZATION))
+                raise AnalysisError("Invalid categorization values")
+            categories = data["categories"]
+            is_significant = data["significance"]
+        else:
+            categories = [c for c in data.get("categories", []) if c in VALID_CATEGORIES]
+            is_significant = bool(data.get("significance", False))
         reason: Optional[str] = data.get("significance_reason") if is_significant else None
 
+        self._check_fidelity(TASK_CATEGORIZATION, title_en + "\n" + body_en,
+                             reason or "")
         return categories, is_significant, reason
 
     # ── Full pipeline ─────────────────────────────────────────────────────────
 
+    @record_models
     def analyze(self, title_zh: str, body_zh: str) -> Optional[dict]:
         """
         Run the full four-task pipeline for one article.
@@ -627,7 +832,7 @@ class Analyzer:
                 "relevance_reasoning": reasoning,
                 "passed_relevance":    False,
                 "model_id":            ANALYSIS_MODEL,
-                "prompt_version":      PROMPT_VERSION,
+                "prompt_version":      self._china_prompt_version,
             }
 
         # ── Step 2: Translation ───────────────────────────────────────────────
@@ -643,7 +848,7 @@ class Analyzer:
                 "relevance_reasoning": reasoning,
                 "passed_relevance":    True,
                 "model_id":            ANALYSIS_MODEL,
-                "prompt_version":      PROMPT_VERSION,
+                "prompt_version":      self._china_prompt_version,
             }
 
         # ── Steps 3 + 4: Summary and categories (parallel) ───────────────────
@@ -653,8 +858,8 @@ class Analyzer:
         significance_reason: Optional[str] = None
 
         with ThreadPoolExecutor(max_workers=2) as pool:
-            f_summary    = pool.submit(self.summarize,  title_en, body_en)
-            f_categories = pool.submit(self.categorize, title_en, body_en)
+            f_summary    = pool.submit(copy_context().run, self.summarize, title_en, body_en)
+            f_categories = pool.submit(copy_context().run, self.categorize, title_en, body_en)
 
             fatal: Optional[FatalAPIError] = None
 
@@ -671,6 +876,10 @@ class Analyzer:
                 fatal = fatal or exc
             except AnalysisError as exc:
                 logger.error("Categorization failed: %s", exc)
+                # Keep the incumbent partial-category behavior unless the
+                # evaluated candidate's stricter completion rule is explicit.
+                if MODEL_FIDELITY_CANDIDATE_ENABLED:
+                    summary = ""
 
         # Both futures are resolved before raising, so neither thread is
         # abandoned mid-flight. The paid translation is discarded rather than
@@ -692,11 +901,12 @@ class Analyzer:
             "is_significant":         is_significant,
             "significance_reasoning": significance_reason,
             "model_id":               ANALYSIS_MODEL,
-            "prompt_version":         PROMPT_VERSION,
+            "prompt_version":         self._china_prompt_version,
         }
 
     # ── Desk analysis (a desk with its own post-pass path) ────────────────────
 
+    @record_models
     def analyze_record(self, title: str, body: str, profile=None) -> Optional[dict]:
         """
         Route one record by its desk's processing.screening profile.
@@ -713,6 +923,7 @@ class Analyzer:
             return self.analyze(title, body)
         return self.analyze_desk(title, body, profile)
 
+    @record_models
     def analyze_desk(self, title: str, body: str, profile) -> Optional[dict]:
         """
         Screen and analyse a record of a desk whose sources publish in the
@@ -779,14 +990,14 @@ class Analyzer:
 
         title_en = text_en = None
         if (profile.desk_id == "vietnam" and translator is None
-                and profile.source_family == "vn_mps_foreign_affairs_vi"):
+                and profile.source_family in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi")):
             title_en = fields.get("headline")
         if translator is not None:
             system = [{"type": "text", "text": profile.translation_system_prompt,
                        "cache_control": {"type": "ephemeral"}}]
             try:
                 title_en, text_en = self._translate_with(
-                    translator(title, body), system=system)
+                    translator(title, body), system=system, source=title + "\n" + body)
             except FatalAPIError:
                 raise
             except AnalysisError as exc:
@@ -795,8 +1006,9 @@ class Analyzer:
 
         return {
             **partial,
+            **({"document_facts":fields.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {}),
             **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
-               if profile.desk_id == "philippines" else {}),
+               if profile.desk_id in ("philippines", "indonesia") else {}),
             "title_english":          title_en,
             "text_english":           text_en,
             "summary_english":        fields["summary"],
@@ -805,6 +1017,7 @@ class Analyzer:
             "significance_reasoning": fields["flag_reason"],
         }
 
+    @task_route(TASK_SUMMARY)
     def _desk_summary_and_flag(
         self, title: str, body: str, profile,
     ) -> tuple[str, bool, Optional[str]]:
@@ -813,13 +1026,20 @@ class Analyzer:
         raw = self._call(profile.build_analysis_messages(title, body),
                          max_tokens=2200 if profile.categories else 1000,
                          temperature=0.3, system=system,
-                         task=TASK_SUMMARY)
-        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
-        # Philippines evidence references are resolved exclusively against the
+                         task=TASK_SUMMARY, model=self.task_model(TASK_SUMMARY))
+        data = self._parse_task_json(raw, TASK_SUMMARY, self.task_model(TASK_SUMMARY))
+        # Private-source evidence references are resolved exclusively against the
         # unchanged original. A model supplies IDs, never authoritative quoted
         # text; the existing private quality gate still checks every claim.
-        if profile.desk_id == "philippines" and isinstance(data, dict):
+        if profile.desk_id in ("philippines", "indonesia") and isinstance(data, dict):
             from analysis.philippines_prompts import evidence_passages
+            if profile.desk_id == "indonesia":
+                from analysis.indonesia_prompts import evidence_passages
+                if (set(data) != {"flag", "flag_reason", "flag_evidence_id", "categories", "facts"}
+                        or data.get("flag") is not False or data.get("flag_reason") is not None
+                        or data.get("flag_evidence_id") is not None):
+                    self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
+                    raise AnalysisError("Invalid Indonesian fact-only contract")
             source_passages = dict(evidence_passages(body))
             facts = data.get("facts")
             if isinstance(facts, list):
@@ -827,24 +1047,41 @@ class Analyzer:
                 for fact in facts:
                     if isinstance(fact, dict) and "evidence_id" in fact:
                         ref = fact["evidence_id"]
-                        if (set(fact) != {"sentence", "evidence_id"}
+                        if (set(fact) != ({"sentence", "evidence_id", "evidence_translation"}
+                                          if profile.desk_id == "indonesia" else {"sentence", "evidence_id"})
                                 or type(ref) is not str or ref not in source_passages):
-                            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
-                            raise AnalysisError("Invalid Philippines evidence reference")
+                            self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
+                            raise AnalysisError("Invalid private-source evidence reference")
                         resolved.append({"sentence": fact["sentence"],
-                                         "evidence": source_passages[ref]})
+                                         "evidence": source_passages[ref],
+                                         **({"evidence_translation": fact["evidence_translation"]}
+                                            if profile.desk_id == "indonesia" else {})})
                     else:
-                        resolved.append(fact)  # legacy direct-span test fixtures
+                        if profile.desk_id == "indonesia":
+                            self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
+                            raise AnalysisError("Invalid private-source evidence reference")
+                        resolved.append(fact)  # legacy Philippines test fixtures
                 data["facts"] = resolved
             if "flag_evidence_id" in data:
                 ref = data["flag_evidence_id"]
                 if ref is not None:
                     if type(ref) is not str or ref not in source_passages:
-                        self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
-                        raise AnalysisError("Invalid Philippines flag evidence reference")
+                        self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
+                        raise AnalysisError("Invalid private-source flag evidence reference")
                     data["flag_evidence"] = source_passages[ref]
                 del data["flag_evidence_id"]
-        summary = data.get("summary") if isinstance(data, dict) else None
+        if profile.desk_id == "indonesia":
+            facts = data.get("facts") if isinstance(data, dict) else None
+            if (not isinstance(facts, list) or len(facts) != 2
+                    or any(not isinstance(f, dict) or not isinstance(f.get("sentence"), str)
+                           or not f["sentence"].strip() for f in facts)):
+                self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
+                raise AnalysisError("Invalid Indonesian facts")
+            # QA validates every retained fact and the combined word budget
+            # before persistence. Never truncate or silently drop a claim.
+            summary = " ".join(f["sentence"] for f in facts)
+        else:
+            summary = data.get("summary") if isinstance(data, dict) else None
         flagged = data.get("flag") if isinstance(data, dict) else None
         reason = data.get("flag_reason") if isinstance(data, dict) else None
         if profile.categories:
@@ -852,49 +1089,54 @@ class Analyzer:
             if (not isinstance(categories, list) or not categories
                     or any(not isinstance(c, str) or c not in profile.categories for c in categories)
                     or len(set(categories)) != len(categories)):
-                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
                 raise AnalysisError("Invalid desk analysis categories")
         # A paid response that does not carry a usable summary and an explicit
         # flag is a failed call: nothing is written, and the record retries.
         if (not isinstance(summary, str) or not summary.strip()
                 or not isinstance(flagged, bool)
                 or (flagged and (not isinstance(reason, str) or not reason.strip()))):
-            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
             raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
+        self._check_fidelity(TASK_SUMMARY, title + "\n" + body,
+                             summary + "\n" + (reason if flagged else ""))
         result = (summary, flagged, (reason if flagged else None))
         return result + (categories, data.get("facts"), data.get("flag_evidence")) if profile.categories else result
 
+    @task_route(TASK_SUMMARY)
     def _desk_analysis_fields(self, title: str, body: str, profile) -> dict:
         system = [{"type": "text", "text": profile.analysis_system_prompt,
                    "cache_control": {"type": "ephemeral"}}]
         raw = self._call(profile.build_analysis_messages(title, body),
                          max_tokens=1000, temperature=0.3, system=system,
-                         task=TASK_SUMMARY)
-        data = self._parse_task_json(raw, TASK_SUMMARY, ANALYSIS_MODEL)
+                         task=TASK_SUMMARY, model=self.task_model(TASK_SUMMARY))
+        data = self._parse_task_json(raw, TASK_SUMMARY, self.task_model(TASK_SUMMARY))
         summary = data.get("summary") if isinstance(data, dict) else None
         flagged = data.get("flag") if isinstance(data, dict) else None
         reason = data.get("flag_reason") if isinstance(data, dict) else None
         headline = data.get("headline") if isinstance(data, dict) else None
-        if profile.source_family == "vn_mps_foreign_affairs_vi":
+        if profile.source_family in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"):
             from core.title_translation import valid_english
             if not valid_english(headline) or len(headline) > 200:
-                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
                 raise AnalysisError("Invalid MPS factual headline")
         # A paid response that does not carry a usable summary and an explicit
         # flag is a failed call: nothing is written, and the record retries.
         if (not isinstance(summary, str) or not summary.strip()
                 or not isinstance(flagged, bool)
                 or (flagged and (not isinstance(reason, str) or not reason.strip()))):
-            self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+            self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
             raise AnalysisError("Invalid desk analysis JSON (summary/flag/flag_reason)")
         categories = []
         vocabulary = getattr(profile, "categories", ())
         if vocabulary:
             event_type = data.get("event_type")
             if not isinstance(event_type, str) or event_type not in vocabulary:
-                self.usage.mark_failed(TASK_SUMMARY, ANALYSIS_MODEL)
+                self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
                 raise AnalysisError("Desk analysis event_type outside the desk vocabulary")
             categories = [event_type]
+        self._check_fidelity(TASK_SUMMARY, title + "\n" + body,
+                             summary + "\n" + (reason if flagged else ""))
         return {"summary": summary, "flag": flagged, "headline": headline,
                 "flag_reason": reason if flagged else None,
-                "categories": categories}
+                "categories": categories, **({"facts": data.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {})}

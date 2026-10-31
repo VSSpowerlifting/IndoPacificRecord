@@ -38,6 +38,7 @@ import os
 import re
 import shutil
 import sqlite3
+import subprocess
 import tempfile
 from contextlib import closing
 from datetime import datetime, timezone
@@ -46,10 +47,10 @@ from pathlib import Path
 from core import vietnam_corpus_bridge as bridge
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as source_use
-from core.collection.vietnam_sources import SOURCES
+from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 from migrations.runner import applied_versions, apply_all, discover
 from scripts.attest_vietnam_run_state import GithubRead
-from scripts.publish_shadow_review import strict_loads
+from scripts.publish_shadow_review import strict_loads, PublishError
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,11 +96,16 @@ def _policies(decisions, families, as_of):
         if path is None:
             out[family] = source_use.standing(family)
             continue
-        path = Path(path)
-        if not path.is_file() or path.is_symlink() or path.stat().st_size > 131072:
-            raise bridge.BridgeError("vietnam_source_use_decision_unavailable")
-        sealed = strict_loads(path.read_text(), "Vietnam source-use decision")
-        out[family] = source_use.verify_decision(sealed, secret, family, as_of=as_of)
+        try:
+            path = Path(path)
+            if not path.is_file() or path.is_symlink() or path.stat().st_size > 131072:
+                raise bridge.BridgeError("vietnam_source_use_decision_unavailable")
+            sealed = strict_loads(path.read_text(), "Vietnam source-use decision")
+            out[family] = source_use.verify_decision(sealed, secret, family, as_of=as_of)
+        except (ValueError, OSError, PublishError, bridge.BridgeError):
+            if family != source_use.VPCP:
+                raise
+            out[family] = source_use.standing(family)
     return out
 
 
@@ -134,20 +140,30 @@ def run(db, state_repo, commits, policies, *, ledger_dir, run_id, expected_db_sh
                 raise bridge.BridgeError("vietnam_daily_requires_single_file_journal")
             conn.execute("PRAGMA foreign_keys=ON")
             pending = {m.version for m in discover()} - set(applied_versions(conn))
-            if not pending <= {"0017"}:
+            if not pending <= {"0017", "0018", "0019"}:
                 raise bridge.BridgeError("unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             for family, commit in commits:
                 private = custody is not None
-                reports.append(bridge.run_family(
-                    conn, private_state_repo if private else state_repo, commit, family,
-                    api=api, as_of_utc=as_of_utc,
-                    source_use=policies[family], analyzer=analyzer,
-                    ledger_path=staging / ("%s.json" % family), run_id=run_id,
-                    second_pass=(bridge.model_second_pass(analyzer, family)
-                                 if policies[family].allows("external_model_transmission")
-                                 and policies[family].allows("public_ipr_analysis") else None),
-                    custody=custody[family] if private else None))
+                try:
+                    reports.append(bridge.run_family(
+                        conn, private_state_repo if private else state_repo, commit, family,
+                        api=api, as_of_utc=as_of_utc,
+                        source_use=policies[family], analyzer=analyzer,
+                        ledger_path=staging / ("%s.json" % family), run_id=run_id,
+                        second_pass=(bridge.model_second_pass(analyzer, family)
+                                     if policies[family].allows("external_model_transmission")
+                                     and policies[family].allows("public_ipr_analysis") else None),
+                        custody=custody[family] if private else None))
+                except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError, bridge.BridgeError):
+                    if family != "vn_vpcp_official_documents_vi":
+                        raise
+                    reports.append({"schema":"ipr-vietnam-daily-run/1", "run_id":run_id,
+                        "source_family":family,"source_git_commit":commit,
+                        "rights_decision_sha256":policies[family].decision_sha256,
+                        "custody":{"mode":"private","source_ref":"archive/vietnam-vpcp"},
+                        "counts":{"held_source":1},"outcomes":[],"source_hold":"vpcp_source_held"})
+
             if (conn.execute("PRAGMA integrity_check").fetchone() != ("ok",)
                     or conn.execute("PRAGMA foreign_key_check").fetchall()):
                 raise bridge.BridgeError("vietnam_daily_integrity_failed")

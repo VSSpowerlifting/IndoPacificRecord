@@ -4,6 +4,438 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-10-30 — Owner: mandatory shared desk structure across every desk
+
+Benjamin Yang approved all three architecture-review recommendations and directed
+that they apply clearly across every desk, the GitHub repository structure,
+coding memory and Markdown guidance. Scope: China, Singapore, Korea, Philippines,
+Indonesia, Vietnam, Japan, US reference and future desks; include the assigned
+private custody companion where needed.
+
+1. Sources own evidence, source-use decisions, language/profile, limits and
+   activation. A desk is a view over exact-identity records with optional
+   permitted components; public original text is not a prerequisite for an
+   independently permitted machine explanation.
+2. Reuse one shared lifecycle/admission/public interface: versioned identity,
+   deduplication, checkpoints, bounded spend/retry, authenticated handoff,
+   allowed-field projection and atomic admission. Keep real source-specific
+   access/extraction/terminology/factual checks as adapters/profiles. Retire
+   replaced active paths; do not add another country engine, corpus, signing
+   framework, queue or renderer under a shared label.
+3. Separate exact-revision code qualification from routine ingestion and public
+   delivery. Preserve current gates until a tested trusted replacement exists.
+   Tests use isolated frozen inputs; production invariant checks survive normal
+   corpus growth. Preserve captures on downstream failure and the last verified
+   public site; actual deployment/readback is distinct from successful collection.
+
+`docs/desks/README.md` is the authoritative implementation contract;
+`docs/desks/MIGRATION.md` records remaining legacy paths and bounded migration
+order; tracked root `AGENTS.md`/`CLAUDE.md` carry durable coding instructions.
+Older architectural preferences, launch clocks and competing generic desk
+procedures are superseded. Source-specific permissions, holds, immutable evidence,
+accepted paid results, model limits and human editorial approvals are unchanged.
+
+The instruction authorizes establishing repository guidance and structure in
+reviewable changes. This policy phase is not a completed runtime migration and
+creates no new source rights, spend, retry reset, schedule activation, merge or
+production publication authority. Future implementation must use the actual task
+and standing decisions, not infer release permission from this architecture.
+
+## 2026-10-27 — Owner: Kemhan Berita shared Daily release authorization
+
+Benjamin Yang approved the narrow standing source-use proposal in
+`docs/engineering/INDONESIA_SHARED_DAILY_2026-10-27.md` for `id_kemhan_news`:
+verified first-party text may undergo private commercial API processing and
+private evidence translation to produce independently worded, Kemhan-attributed
+English machine explanations of at most 90 words. He accepted the documented
+API handling and authorized unattended publication of eligible QA-passing
+explanations with source links, dates, version bindings and machine disclosures.
+
+Public originals, full translations, quotations, media, third-party
+republications, disputed versions, Yonif TP 880 and human Briefs remain excluded.
+The existing $0.35 estimated reservation ceiling is authorized per invocation,
+with one record and at most two calls, five failed attempts then pause, no
+archive-wide backfill and no retry-budget reset.
+
+The owner explicitly authorized recording this decision, changing only Kemhan's
+policy switches, merging public #891 and essential private companion #26 after
+required final-head checks, and controlled activation with existing credentials
+and workflows. The first live run is limited to one record; inspect Indonesian
+evidence, private translations, English explanation, attribution, dates,
+quantities, negation and action status before publication. Failed gates and
+defective output must not be overridden. Verify the actual deployed shared
+Daily surfaces and source/version bindings. Report configured follow-on
+automation separately from an observed automatic run; no arbitrary waiting
+period is required. This decision records authority, not a claimed live result.
+
+## 2026-10-27 — Owner: Japan MOD news PDF-linked metadata authorization
+
+Benjamin Yang approved standing, unattended publication of verified Japan
+Ministry of Defense news PDF-linked metadata for `jp_mod_news_ja` through IPR's
+existing shared Daily system. The grant covers canonical official URLs, source
+identities, Japan MOD attribution, and RSS publication dates explicitly labeled
+as RSS dates rather than independently verified document issue dates.
+
+Successfully retrieved and verified news-feed PDFs may be admitted automatically
+without per-record approval. Challenged, failed, undated, unassigned or otherwise
+unverified records remain excluded. Publisher headlines, original document text,
+PDF copies, media, translations, AI-generated explanations and external model
+processing are outside the grant. Human Briefs retain their existing approvals.
+
+The owner explicitly stated: “This is standing source-use authorization, not yet
+permission to merge, enable production intake, manually dispatch workflows, or
+deploy.” A separate release decision after verification is required for those
+actions. PR #888 must integrate current main, resolve outstanding CI failures and
+verify existing publishing safeguards before release review. This decision
+creates no new Japan publishing pipeline, schedule, spending or activation.
+`config/japan_mod_official_link_policy.json` references this source-use grant;
+the existing Daily activation variable remains unset.
+
+## 2026-10-26 — Owner: 200 KB delivery budget for individual dossier pages
+
+Benjamin Yang wrote in this task: “I authorize a maximum 200,000-byte combined
+HTML+CSS delivery budget specifically for individual dossier pages. Preserve
+all existing budgets for records, Briefs, weeks and hubs. Do not introduce a
+broad exemption.” He added that the dossier stays on one page and that its
+content, approved digest and evidence layout must not change to fit.
+
+The cap applies only to `dossier/<slug>.html`
+(`scripts/verify_frontend_delivery.py`, `html_css_cap`). The `dossiers.html`
+collection, `dossier/index.html` and any nested path under `dossier/` keep
+120 KB. Records, Briefs and week pages keep 120 KB, and hubs keep 300 KB. JS
+caps are unchanged. `tests/test_briefs_enrichment.py` proves the allowance
+covers only those routes and still rejects a dossier at 200,001 bytes.
+
+Measured at approval (approval digest `9e947155…`): 193,118 bytes for
+`dossier/china-singapore-naval-cooperation.html`, made up of:
+- 133,810 bytes of HTML
+- `styles.css`, 31,620
+- `dossiers.css`, 18,904
+- `surfaces.css`, 5,630
+- `fonts.css`, 1,855
+- `dossier-shell.css`, 1,299
+
+Dossiers already load the 1.3 KB `dossier-shell.css` in place of the 28.4 KB
+`support.css`. The remaining clean reductions, the collection-only rules in
+`dossiers.css` and markup whitespace, total about 4 KB. They were not taken.
+About 60% of `styles.css` goes unused on this page, but it is the sitewide
+base sheet, linked from the single-owner `base.html`, so subsetting it would
+be a redesign. Headroom is about 6.9 KB. A future dossier that needs more must
+come back to the owner rather than raise this cap.
+
+## 2026-10-26 — Owner: China-Singapore naval dossier editorial approval
+
+Benjamin Yang wrote in this task: “I approve the complete China–Singapore Naval
+Cooperation manuscript at content digest:
+5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e”. That is the
+revision 0 draft recorded as pending in the entry below, including its
+findings, qualifications, chronology and closing synthesis. This resolves
+point 1 of that entry. Claude remains credited for machine-assisted
+preparation; Benjamin Yang is the responsible human editor.
+
+Recording the approval sets `editorial_status` to approved, `revision` 1,
+`reviewed_on` 26 October and one first-release change note. It adds the
+approval object. No finding, source binding, date or sentence of the reviewed
+text changes. The resulting approval digest is
+`9e9471553354ecfb441c387dc12dc958658d10c8b5db04fb060b39d281462a1a`, pinned in
+`core/dossier_decisions.py` `PUBLICATIONS`. In the same message he authorized
+generating the production output and, after all required checks pass on the
+final release candidate, merging and publishing through the existing release
+process.
+
+## 2026-10-26 — Owner: China-Singapore naval dossier source use
+
+Benjamin Yang approved the following in this task, resolving point 2 of the
+pending entry below:
+
+1. “Extending the existing Maritime grant to this dossier for R3924, R4102,
+   R4164, R4466 and R4472.”
+2. “Dossier-specific use of R3513, R3663, R4211, R4452, R4454, R4849, R4911
+   and R5528.”
+3. “Linked-source use of x1–x9.”
+
+He stated: “All three cover attribution, dates, independent IPR paraphrases and
+links only. Originals, translations, excerpts and media remain excluded.”
+`core/dossier_decisions.py` records each grant under this entry's anchor. The
+13 corpus records are bound to their exact source identity and stored-original
+SHA, with the five Maritime public fields. The nine linked official pages x1–x9
+are bound to their exact identity without the IPR record-link field, because
+IPR holds no record page for them. The grant applies only to China–Singapore
+Naval Cooperation. The 25 October Maritime grant remains separate and
+unchanged.
+
+## 2026-10-26 — Owner: Maritime Cooperation 2026 becomes an exercise case study
+
+Benjamin Yang wrote in this task: “I approve the structural decision: Maritime
+Cooperation 2026 should be labelled "Exercise case study" under China–Singapore
+Naval Cooperation, preserving its URL and approved substance.” This approves
+structure only. `/dossier/maritime-cooperation-2026.html`, its revision 2
+content, its editorial approval and its five-source grant are unchanged. The
+label and breadcrumb appear only when the thematic dossier itself is rendered,
+so production shows no change until the thematic dossier is approved. He
+stated in the same message that editorial approval and additional source-use
+approval remain pending; this entry records neither.
+
+## 2026-10-26 — Pending owner decision: China–Singapore thematic dossier
+
+**No approval is recorded here.** This entry records decisions that remain
+open. The draft `dossiers/china-singapore-naval-cooperation.json` (revision 0,
+content digest `5ec6b7feddfc75bd971cb150265e432e803afc487e391a811d09223cbe1d9b5e`) was prepared with machine assistance (Claude).
+It replaces the earlier draft digest `f68063c585e3428f97b3f8f18d60aa72a8817e2ab1b9c1b3522aee32a6559001` after the owner's 26 October
+review requested an editorial completion pass, and then `f5afba59…` after the
+owner asked for a final correction to the synthesis's wording on the planned
+2026 joint surface strike. Neither earlier digest was approved and no approval
+carries over from them.
+Benjamin Yang is named as the responsible editor but has not approved it. It
+stays withheld from production until he decides on two points:
+
+1. editorial approval of that exact digest, including its findings,
+   qualifications, chronology and closing synthesis;
+2. a source-use decision for the 13 bound corpus records (3513, 3663, 3924,
+   4102, 4164, 4211, 4452, 4454, 4466, 4472, 4849, 4911, 5528) and the nine
+   linked official pages x1–x9, limited to institutional attribution,
+   publication dates, independent IPR paraphrase and official/IPR-record
+   links, and excluding original text, translations, excerpts and media.
+
+The third point, the case-study label, was approved on 26 October (entry
+above). The Maritime grant of 25 October covers five of these records for that
+dossier only; it is not extended to the thematic dossier by this entry.
+
+## 2026-10-25 — Owner: Maritime dossier narrow five-source public projection
+
+Benjamin Yang explicitly answered “Also approve that narrow five-source public
+projection” in this task. The scope is institutional attribution, publication
+dates, independent IPR paraphrases, official links and links to existing IPR
+record pages for the five exact versions bound by Maritime Cooperation 2026
+revision 2: records 3924, 4102, 4164, 4466 and 4472 (PLA Daily, China MND and
+Singapore MINDEF). `core/dossier_decisions.py` records each complete source
+identity and body SHA with only those five public fields. This is an actual
+owner source-use decision, separate from the reaffirmed editorial approval.
+Original text, translations, excerpts and media are excluded. No source version,
+finding, qualification, chronology or reviewed presentation is changed by the
+grant. Its references and the resulting exact approval digest are administrative
+bindings, not an authored revision. Merge, deployment and publication remain
+outside this release-preparation authority.
+
+## 2026-10-25 — Owner: Maritime dossier revision 2 editorial approval reaffirmed
+
+Benjamin Yang reaffirmed in this task that his approval of revision 2 and its
+reviewed presentation remains valid, and instructed the maintainer to record
+that actual approval and prepare a release candidate. The reviewed repository
+head is `38f9f2bf8f45e258ad9592272b865d41cd29d72f`; the reviewed draft content
+SHA-256 is `65444d8057e6facdeeb0fc9594cb83ad2f3be2fa4e35ecb9b01a82caff869c45`.
+This entry records the 25 October reaffirmation, not an invented earlier review
+date. Benjamin Yang is the responsible human editor; Codex remains credited
+for machine-assisted preparation. Findings, qualifications, source versions,
+chronology and reviewed CSS/template presentation are not reopened.
+
+Approval/status metadata and the resulting exact approval digest may be
+recorded through `core/dossier_decisions.py`. The separate source-use registry
+must still bind an actual decision for attribution, publication dates,
+independent IPR paraphrases and official/canonical-record links for the five
+bound versions; editorial approval alone does not invent that decision.
+Original text, translations, substantial excerpts and media remain outside this
+projection. This instruction does not authorize merge, deployment or publication.
+## 2026-10-25 — Briefs narrative reform: article-first drafts, offline editor-feedback loop
+
+Ben ordered a durable fix for the mechanical, over-caveated Sunday manuscript (not a rewrite
+of the October 24 draft). Decisions: (1) the machine draft is one article with optional
+story-specific headings, a lead on the development, and a private audit block; the fixed
+outline is retired for new drafts and retained only so already-sent worksheets still
+validate; (2) necessary qualifications stay in the article once, research-process
+commentary moves to the audit, and nothing is deleted; (3) a deterministic-plus-heuristic
+quality gate reports before handoff, mechanical majors are enforced as a send-time hold
+(the pilot-week owner gate did not cover later weeks): a held draft is emailed, as the
+identical TXT + DOCX bytes, to the owner-only preview address and never to Dylan, and the
+job fails visibly; the owner releases those exact bytes with the existing
+`scripts.sunday_send_reviewed_packet` (digest-pinned, `--confirm-owner-reviewed`), which
+makes no model call. Style flags are advisory, and there is no second paid call or
+unbounded retry; (4) citations
+are mapped per block in the hash-validated appendix, so Dylan's reordering cannot corrupt
+them; (5) editor returns can be analysed offline, but an analysis never changes a prompt
+and promoting a rule needs explicit owner approval. Ben owns accuracy, argument and
+publication; Dylan is the language and structure editor. (6) After Dylan substantially
+edits an article, final publication requires reconciling every changed claim, figure,
+name, quotation and citation against the original records: the unchanged appendix and a
+passing `validate_return` are structural only, and the appendix describes the ORIGINAL
+text, never the edited paragraphs; the offline analyzer lists the items to reconcile.
+This authorizes no model call, send, numbering, merge or publication. See
+`docs/IPR_BRIEFS_WRITING_STANDARD.md`.
+
+## 2026-10-25 — Owner task: compare the whole eligible week before Brief composition
+
+The owner requested an October 18–24 reassessment and durable selection repair
+within the existing Sunday handoff/PR #805. Compare substantive alternatives
+using source content, preserve coverage gaps and separate held/metadata/private
+research lanes. Do not force a country quota or multinational thesis; permit
+explicit abstention. The implementation keeps the existing score weights as
+a baseline and normalizes the other dimensions when connection is inapplicable,
+with minimum evidence/novelty floors before commitment. Scores are provisional
+judgments, never factual/source-rights approval. The signed thematic-preview
+contract and final single-desk publication-exception rule remain unchanged.
+The private October 24 recommendation awaits owner review; no second
+manuscript, editor message, paid model call, merge or publication is authorized.
+See `docs/BRIEFS_WEEKLY_SELECTION.md`; the editorial assessment is retained
+outside this public repository. This entry records the task's constraint,
+not a claim that the owner approved the replacement article.
+
+## 2026-10-25 — Bersama Lima Brief: sole authorship, source review, headings and cover
+
+Benjamin Yang corrected the Brief's authorship in chat: **Dylan Tanzi, Lead
+Research Analyst, is the sole author**; Benjamin remains Founder & Director of
+Research and Editorial with final oversight and publication approval and is not a
+credited co-author of this issue. Dylan's official title is Lead Research
+Analyst, never "Managing Editor". Briefs may alternate lead authorship issue by
+issue; co-authorship is not automatic. Historical authorship is unchanged.
+
+Benjamin then attested in chat, against editorial fingerprint
+`0d017fb6dec46ab4fe90c615419330a2acfdae7113afb5aedb1b4b27f81d3343`: that he personally reviewed the six original
+sources and attests all seven `editorial_review` checks and the source-linked
+policy ruling, and that he approves the four headings and the rendered page.
+This is his own attestation, not an AI-assisted or inferred review; the
+agent's earlier source comparison is preparation only. The presentation receipt
+binds digest `4556c3d415283b520996c719e08c1dd8edf5aacdc8ae5d172974641631b2bb01`.
+
+He also described the **HMS Tamar context cover** as approved after seeing the
+article preview and the 720 × 480 crop (focal 68% 70%). Image: DVIDS 7379876 /
+VIRIN 220811-N-AU520-1096, MC2 Jacob Woitzel, U.S. Navy, public domain, taken
+11 August 2022, Puerto Princesa. Scope: this Brief's article and catalogue card,
+standard CSS gradient, retained creator/public-domain credit and exact DVIDS
+notice. It is context from Pacific Partnership 2022, **not** an image of Bersama
+Lima 2026, and the caption says so. The retained file is the public 2000-pixel
+preview because DVIDS's master requires a login. No mindef.gov.sg source or
+image is used. Evidence: `docs/BERSAMA_LIMA_BRIEF_RELEASE_2026-10-25.md`.
+
+## 2026-10-25 — Owner: one manual 10744 attribution correction
+
+Benjamin Yang explicitly approves one exceptional correction in chat, confirmed
+again on 25 October 2026. These confirmations are **one allowance**, not two.
+Only `10744/VPCP-CN`, identity `vpcp-vi:220065`, is eligible:
+
+- PDF SHA-256 `121670635f065b0ecb1ef38641c5236d634fc5777dc3aa1cc0330caf7580f575`.
+- Immutable content SHA-256 `842585a4cc35857bf6301e55228c7662d03adc3eeb1bed3a3872cfd3916db56e`.
+- Metadata SHA-256 `4bf6537753bfdbed85f39359a596b4de6ce17eb6a3c7d3aad9ee76d4f2a7d695`.
+- Existing generation `40189202615-1` and factual rejection `40197695872-1`
+  remain immutable history; their route reservations are not reset.
+
+Before spending, repair the institutional attribution rule and add regressions
+for Prime Ministerial instructions, the Government Office's transmission, and
+implementing-ministry versus provincial responsibilities, including the previous
+10790 failure without retrying that held document. Source attribution must remain
+explicit, but every fact sentence need not repeat "Government Office". Each
+substantive actor and action requires page-specific original evidence. Preserve
+strict independent factual review and all publication standards.
+
+Authorize **at most one corrected-generation call and one independent factual
+review, $0.15 additional reserved spending total**, only in a manually dispatched
+private shared Daily bridge run. No new relevance call. All standing per-run,
+day/month, document, complete-input, provider and source-use limits remain in
+force, including the dated administrative-document and access assessment in
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md`. No other held
+document is reopened. A failed stage retains the final hold with no further
+attempt, including no unattended continuation of this correction. Preserve prior
+generation, review, rejection and spending evidence. Required exact-head CI and
+repository protections apply; a quality-passing result may proceed through the
+authorized ordinary production Daily to actual article, Vietnam Desk and Archive
+verification. This exception changes no rights seal or other desk policy.
+
+## 2026-10-24 — Owner: Government Office bounded full-document processing and publication
+
+Benjamin Yang explicitly approves `vn_vpcp_official_documents_vi` in chat on
+24 October 2026. This standing decision covers verified first-party Government
+Office-issued Công văn and Thông báo primary PDFs; administrative Quyết định
+requires individual confirmation and is held by the initial implementation.
+Unrelated documents hosted on the same portal are excluded.
+
+Authorize compliant collection and private preservation in the existing evidence
+repository; complete identity/completeness-verified Vietnamese text to the existing
+Anthropic API; and independent, attributed English factual headlines and
+explanations of at most 90 words through shared Daily, existing QA, Archive and
+Vietnam Desk, without routine per-document approval. Preserve the bibliographic
+fallback and hold real authenticity, extraction, rights and factual exceptions.
+
+Binding ceilings: **2 documents/run, $0.50/run, $1/day, $10/calendar month,
+32,000 input bytes/document**. UTC defines checkpoint days/months. Hold oversized
+inputs; do not truncate. No automatic retries, cap increases, new providers or
+alternate paid processing. Exclude public originals/PDF copies, full translations,
+substantial excerpts, photographs, embedded materials, additional attachments,
+third-party annexes and Firecrawl PDF uploads. No broader classes without review.
+
+Record the decision using the existing source-use seal mechanism, referencing
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md` and its dated
+publisher/access evidence. Owner authorizes release of PR #865 after required
+exact-head CI/protections, pinned private-workflow application only after exact
+preimage verification, bounded activation and one genuine source-to-live
+acceptance. Preserve MPS, other desks and the dossiers worktree. Verify provider
+pricing, durable reservations and actual usage; fail closed if these cannot be
+verified. Approval is not evidence that publication has occurred.
+
+## 2026-10-23 — Owner: Government Office bibliographic source activated (limited scope)
+
+The owner, in chat on 23 October 2026, **authorizes** the standing
+bibliographic-only source-use and publication scope for
+`vn_vpcp_official_documents_vi` as defined in PR #863: normal automated
+discovery, issuer verification, metadata versioning and publication of
+document number, type, issue date, signatory, original subject line, official
+issuer attribution and canonical link. It does **not** authorize publishing
+PDFs, transmitting document contents to an external model, full-document
+translation or AI-generated substantive explanation; those need a separate,
+exact owner decision for this family. The owner explicitly does not accept
+metadata-only publication as the long-term source: full-document access and
+source-use are evaluated as a follow-on (see the entry below once recorded).
+This entry records the owner's words, not an engineering determination; it
+authorizes activation of `VIETNAM_VPCP_METADATA_ENABLED`.
+
+## 2026-10-23 — Engineering: Government Office documents, bibliographic-only (engineering determination; owner activation recorded above)
+
+`vn_vpcp_official_documents_vi` (documents whose detail page names Văn phòng
+Chính phủ as issuer, hosted on vanban.chinhphu.vn) joins the Vietnam Desk
+through the shared Daily as **metadata and official links only**: number,
+type, issuer, signatory, issue date, official subject line, link. The MPS
+decision and the MOIT hold are not inherited. No attachment retrieval (the PDF
+host returned 403 for robots.txt), no model transmission, no public body,
+translation or machine explanation; a subject line is never presented as
+analysis of the document. Basis, limits and operation:
+`docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md`; enforced by
+`config/vietnam_vpcp_metadata_policy.json`. Model processing of document text
+needs its own owner source-use decision. Reverting the public Vietnamese
+subject line is a template/projection change, not a data change.
+
+## 2026-10-22 — Owner: bounded MPS factual AI processing and automatic Daily release
+
+The owner explicitly **approves** the conditional-go policy and residual-risk
+acceptance in `docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md`
+(PR #851, merged). This is a **standing source-family decision** applying
+only to authenticated `vn_mps_foreign_affairs_vi` original releases, not
+MOIT, other Vietnam surfaces, or any third-party/embedded publication.
+
+Authorize private preservation under established access/custody rules; bounded
+submission of MPS original title/body to the commercial Anthropic API solely
+for relevance screening, independently worded English factual explanation,
+event classification, model flags and source-grounded QA; and unattended public
+release of qualifying, accurately attributed, clearly machine-labeled
+English headlines/explanations with official links, dates and publisher credit.
+
+**Not authorized:** public original Vietnamese titles or bodies, substantial
+quotes, full English translations, photos/media/attachments, training models,
+redistributing source archives, or misrepresenting MPS official claims as
+independently corroborated fact. Records with questionable authorship, source
+terms/access, provenance, attribution, accuracy, copying or spend stay held
+as **individual exceptions**. Weekly Briefs remain human-reviewed.
+
+Use the existing `core.vietnam_source_use` decision format and an independent
+`VIETNAM_SOURCE_USE_REVIEW_KEY` in the public/private repos, the existing
+shared Analyzer/QA/signed handoff and public Daily renderer. Authorize
+necessary narrow MPS-only registry promotion, signing/secret setup, scheduled
+workflow flags, limited initial model spending, publication and HTTPS readback
+following mandatory CI. No new pipeline or extra review framework. The
+source-use determination records accepted **residual uncertainty**, not a
+claim of permission from MPS or a legal guarantee.
+
+**State at decision:** 3 authentic MPS metadata links live; no model-analyzed
+Vietnam articles yet. Activation and real source-to-site readback must be
+independently verified; this decision alone is not evidence of launch.
+
 ## 2026-10-20 — Owner: standing Philippine NSC neutral links and attributed factual machine explanations
 
 The owner authorizes authentic first-party NSC Official Statements to enter

@@ -131,7 +131,7 @@ class TestIsolationFromProduction(unittest.TestCase):
         """
         from core.manifests import load_all_desks
         configs = load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(configs), ["china", "korea", "singapore", "vietnam"])
         sg_sources = {s.slug: s for s in configs["singapore"].sources}
         self.assertIn("sg_mindef_releases", sg_sources)
         self.assertTrue(sg_sources["sg_mindef_releases"].enabled)
@@ -176,7 +176,7 @@ class TestIsolationFromProduction(unittest.TestCase):
                 "WHERE s.slug = 'sg_mindef_releases' "
                 "  AND a.scrape_run_id IS NOT NULL AND r.id IS NULL"
             ).fetchone()[0]
-        self.assertEqual(sorted(desks), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(desks), ["china", "korea", "singapore", "vietnam"])
         self.assertEqual(promoted, 57)
         self.assertEqual(orphaned, 0,
                          "a Singapore record names a scrape run that does not exist")
@@ -206,8 +206,14 @@ class TestIsolationFromProduction(unittest.TestCase):
         # unpublished working tree, not the country's name on a public page.
         gp = (REPO_ROOT / "site" / "preview"
               / "generate_preview.py").read_text(encoding="utf-8").lower()
-        for token in ("mindef", "sg_mindef", "shadow_collect",
-                      "shadow/singapore", "singapore_shadow"):
+        for token in ("shadow_collect", "shadow/singapore", "singapore_shadow"):
+            with self.subTest(token=token):
+                self.assertNotIn(token, gp)
+        # MINDEF itself is now named in the renderer, but only to *withhold*
+        # (PR #913): the metadata label and the exact link grant, never the
+        # collector, its shadow tree or any acquisition path.
+        self.assertIn("mindef_metadata_label", gp)
+        for token in ("sgmindefadapter", "scraper.sources.sg_mindef", "requests."):
             with self.subTest(token=token):
                 self.assertNotIn(token, gp)
 

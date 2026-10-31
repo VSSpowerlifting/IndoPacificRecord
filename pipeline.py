@@ -39,6 +39,7 @@ from typing import Optional
 from config import (
     ANTHROPIC_API_KEY, BACKLOG_RESERVE_FRACTION, CACHE_DIR, DAILY_ANALYSIS_CAP,
     DB_PATH, LIVE_BACKLOG_DAYS, OUTPUT_DIR, ANALYSIS_MODEL, RELEVANCE_MODEL,
+    TRANSLATION_MODEL, SUMMARY_MODEL, CATEGORIZATION_MODEL, FALLBACK_MODEL,
 )
 from processing.dedup import dedup_articles
 from processing.deduplicator import deduplicate
@@ -352,6 +353,9 @@ def run(
         "Models: relevance=%s  analysis=%s  | cap=%d",
         RELEVANCE_MODEL, ANALYSIS_MODEL, DAILY_ANALYSIS_CAP,
     )
+    logger.info("Task models: translation=%s summary=%s categorization=%s fallback=%s",
+                TRANSLATION_MODEL or ANALYSIS_MODEL, SUMMARY_MODEL or ANALYSIS_MODEL,
+                CATEGORIZATION_MODEL or ANALYSIS_MODEL, FALLBACK_MODEL or "disabled")
     if dry_run:
         logger.info("DRY RUN — no DB writes, no API calls")
 
@@ -387,6 +391,16 @@ def run(
                                 status=collection_status.UNKNOWN_SOURCE,
                                 error_detail="not declared in any desk manifest")
             )
+            continue
+
+        if slug == "sg_mindef_releases":
+            # No new source acquisition or external processing is authorized
+            # by the two-link grant. Preserve all historical collection rows.
+            from core.collection.contract import SourceRunResult
+            source_results.append(SourceRunResult(
+                source_slug=slug, desk_id="singapore",
+                status=collection_status.SKIPPED_DISABLED,
+                error_detail="MINDEF source-use hold; no collection or model processing"))
             continue
 
         if registry.get_source(slug).access_method == "manual":
@@ -641,7 +655,12 @@ def run(
     held_desks: dict[str, int] = {}
     queue_desk: dict[int, Optional[str]] = {}
 
-    def _in_daily_queue(desk_id: Optional[str]) -> bool:
+    mindef_article_ids = db.get_article_ids_for_source("sg_mindef_releases")
+
+    def _in_daily_queue(desk_id: Optional[str], *, article_id=None, source_slug=None) -> bool:
+        if source_slug == "sg_mindef_releases" or article_id in mindef_article_ids:
+            held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
+            return False
         if profile_for_desk(desk_id).daily_queue:
             return True
         held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
@@ -654,7 +673,8 @@ def run(
          a.get("text_original",  ""),
          a.get("url", "?"))
         for aid, a in inserted
-        if _in_daily_queue(desk_for_source(a.get("source_slug")))
+        if _in_daily_queue(desk_for_source(a.get("source_slug")),
+                           source_slug=a.get("source_slug"))
     ]
     queue_desk.update((aid, desk_for_source(a.get("source_slug")))
                       for aid, a in inserted)
@@ -668,7 +688,7 @@ def run(
     for aid, desk_id in backlog_desks.items():
         queue_desk.setdefault(aid, desk_id)
     pending_rows = [r for r in pending_all
-                    if _in_daily_queue(backlog_desks.get(r["id"]))]
+                    if _in_daily_queue(backlog_desks.get(r["id"]), article_id=r["id"])]
     pending: list[tuple[int, str, str, str]] = [
         (r["id"],
          r["title_original"] or "",
@@ -691,7 +711,7 @@ def run(
     unscored_rows = [
         r for r in unscored_all
         if r["id"] not in queued_ids
-        and _in_daily_queue(backlog_desks.get(r["id"]))
+        and _in_daily_queue(backlog_desks.get(r["id"]), article_id=r["id"])
     ]
     # Both backlog lanes can fail and retry. Keep each recorded count so the
     # existing reversible budget can eventually pause recurring failures.

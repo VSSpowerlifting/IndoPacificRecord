@@ -69,6 +69,38 @@ machine processing, derivative text or publication today. Human-authored
 IPR Briefs, bylined analysis and approval remain the distinct editorial layer.
 Implementation contract: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
 
+## 1b. Research-led growth and development (owner, 2026-10-30)
+
+**Research determines the software agenda.** IPR is a publication and
+primary-source observatory, not a platform measured by the number of
+countries, models, workflows, repository files, or merged PRs. Software
+earns its place by materially improving source integrity, rigorous
+research, continuity, reader access or operational sustainability.
+
+Major new desks, sources, interfaces, automated model tasks, collection
+systems and infrastructure must solve a clear reader or researcher
+problem; identify a measurable result; explain why existing shared
+architecture or editorial products cannot suffice; name long-term
+maintenance and quality ownership; respect rights and costs; and identify
+what other work they displace and what old machinery they retire.
+
+**Expansion is not automatic.** Technical feasibility, a successful
+model experiment, collector access or attractive design does not itself
+authorize paid processing, content reuse, source activation, broader
+coverage claims or publication. The source-specific rights and hold
+records remain binding. Automated records are not analyst judgment;
+human-authored Briefs and other bylined interpretation retain editorial
+approval, source-to-claim review and the published evidence hierarchy.
+
+Evaluate outcomes at distinct levels: engineering correctness and
+removal of replaced duplication; genuinely verified operation when
+a release is authorized; and independently source-checked research value.
+The current work sequence lives in `docs/ROADMAP.md`. Agent scope and
+the minimal growth-decision test are in `AGENTS.md`; the mandatory source
+architecture remains `docs/desks/README.md`. No new forms, launch clocks,
+review rituals or CI jobs arise from this doctrine. Routine maintenance
+does not require a growth proposal.
+
 ## 2. Audiences
 
 1. **Primary — policy professionals and analysts** who cannot monitor official
@@ -400,6 +432,12 @@ ordered by the coverage endpoint, with number and slug breaking ties.
 
 **Titles.** A brief's title does not begin with *The PLA Watch*. The title
 format for briefs is decided with their renderer.
+
+**Machine-drafted weekly manuscripts are articles (2026-10-25).** A draft for editorial
+review opens on the concrete development, uses story-specific headings only where they
+help, explains terms plainly, states a necessary qualification once where it applies and
+keeps research-process notes in a private audit. Evidence-vs-inference rules are
+unchanged. See `docs/IPR_BRIEFS_WRITING_STANDARD.md`.
 
 ## 5c. Regional Assessments — the boundary
 

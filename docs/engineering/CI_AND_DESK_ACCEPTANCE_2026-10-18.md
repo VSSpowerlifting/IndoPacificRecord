@@ -1,5 +1,11 @@
 # Risk-based verification and complete-desk acceptance
 
+**30 October 2026 controlling standard:**
+[`../desks/README.md`](../desks/README.md) governs every desk and replaces older
+generic architecture/launch procedures. This file specifies current verification
+and the qualification/delivery transition. Policy adoption does not mean that
+transition is implemented; current gates remain until their tested replacement.
+
 **Owner direction, 2026-10-18.** Verification should prove a working IPR
 research service, not become an independent backlog of gates. This policy
 supersedes earlier automatic seven-/30-consecutive-day **prelaunch** holds.
@@ -30,21 +36,14 @@ model operation from mock replies, or actual HTTPS publication from a passing
 build. Only the source families agreed for the desk count toward completeness;
 do not inflate desk scope after completion.
 
-## Shared Daily instead of desk-specific publication silos (19 October owner direction)
+## Mandatory shared system
 
-The complete-desk principle now includes a durable architectural default:
-keep source collection separate where warranted, but converge eligible,
-source-version-verified data on the shared Daily screening/analysis system,
-source-appropriate rights gates and common site publication. Source-language
-profiles must be explicit; translate non-English material only; never run
-unknown desks through China-specific prompts. Reuse the existing corpus for
-rights-cleared full-text records and distinguish restricted neutral source
-links from articles. Once independently authorized, quality-passing, labeled
-machine record output should publish without routine per-record owner review;
-source anomalies and genuine rights/quality failures hold individually.
-Human Briefs and bylined editorials still require their normal approvals.
-No new permission, spending cap, rollout or claimed real end-to-end proof
-is created by this architecture preference. See `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+Use the source-definition, optional permitted-component and shared lifecycle
+contract in `docs/desks/README.md`. Every desk follows the same implementation
+standard; source-specific extraction, permissions and factual QA remain explicit.
+An explanation need not have a public original. A metadata-only source does not
+gain explanation/text rights. Routine eligible machine records run unattended
+under actual authority; human Briefs keep their editorial approval.
 
 ## Verification budget
 
@@ -64,9 +63,49 @@ Its conservative path classifier (`scripts/pr_ci_scope.py`) chooses:
   validator remain mandatory in this mode.
 
 The PR classifier fails closed on an absent/invalid diff. An edit to the
-classifier, workflow, or its tests **itself** gets the full suite. Daily
-production retains its independent full offline run and live-deployment gate;
-a focused PR success does not authorize production publication.
+classifier, workflow, or its tests **itself** gets the full suite. Daily retains
+its full offline run as the fail-closed fallback; only authenticated full
+qualification for equivalent inputs/environment can replace that development
+run. All runtime and live-deployment gates remain mandatory. A focused PR success
+cannot supply reusable qualification or authorize production publication.
+
+## Required qualification/ingestion/delivery separation
+
+The 30 October owner decision requires the following boundary. Daily now uses
+`scripts/code_qualification.py` and attempt-specific GitHub main-push run/job evidence to
+implement the full-qualification/fallback decision. The detailed trust boundary,
+invalidation rules and first-use prerequisite are in
+[`../ARCHITECTURE_AND_PUBLISHING.md`](../ARCHITECTURE_AND_PUBLISHING.md#2a-mandatory-all-desk-structure--30-october-2026).
+PR synthetic merges remain tested with read-only credentials but do not certify
+reuse. The same offline workflow qualifies reviewed main pushes; explicit
+data-only main changes skip dependencies, tests and rendering. This adds no job,
+required status or production operation.
+
+1. **Qualify code:** bind successful applicable checks to the exact executable
+   and configuration inputs, dependency/runtime identity and trusted CI evidence.
+   A PR success for an unrelated revision is not qualification. Source replay and
+   full CI remain required for applicable code/schema/policy/workflow changes.
+2. **Ingest routine data:** verify current policy/activation, source identity,
+   authentic custody, immutable version binding, budget/retry continuity, schema
+   integrity and atomic admission. Reuse qualification only for provably unchanged
+   executable inputs; normal data growth need not rerun all development tests.
+3. **Deliver:** render from the final reconciled admitted snapshot; validate
+   allowed public fields, record/Archive/search parity and output invariants;
+   serialize the public writer, verify deployed output and then record success.
+
+Unknown/missing/failed qualification or changed executable/configuration,
+dependencies, schema, policies or workflows must invalidate reuse and require
+the applicable qualification. Never execute untrusted PR code with production
+credentials. A reviewed implementation must test invalidation and failure paths
+before replacing the development gate. Existing CI statuses and branch protection remain
+in force until explicitly migrated; do not infer settings access from this doc.
+
+Keep tests on fixed evidence and isolated DBs. Runtime checks enforce invariants
+rather than freeze the expanding production corpus. Collection/custody success
+and public-delivery success are separately recorded; downstream failure preserves
+captured evidence and the last verified public site. Isolate a source/version
+failure where safe, but fail the affected release on shared integrity or public
+projection failure. A quiet source is distinguishable from a missed/failed run.
 
 Do not add another independent workflow for a test that can run inside the
 existing suite. Do not remove source-specific negative tests or boundary

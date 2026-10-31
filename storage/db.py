@@ -500,6 +500,14 @@ def get_articles_unscored() -> list[sqlite3.Row]:
         ).fetchall()
 
 
+def get_article_ids_for_source(source_slug) -> set:
+    """Source-specific processing holds must not inherit a whole desk."""
+    with get_conn() as conn:
+        return {r[0] for r in conn.execute(
+            "SELECT a.id FROM articles a JOIN sources s ON s.id=a.source_id WHERE s.slug=?",
+            (source_slug,))}
+
+
 def get_article_desks(article_ids) -> dict:
     """
     `{article_id: desk_id}` for the given records, from each record's source.

@@ -46,7 +46,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (github.event_name != 'workflow_run' ||
        github.event.workflow_run.conclusion == 'success')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
       contents: write
@@ -149,9 +149,14 @@ jobs:
           from core.korea_official_live_links import load_live_korea_official_links
           from core.korea_public_bibliography import load_public_korea_links
           from core.korea_additional_public_links import load_additional_korea_official_links
+          from core.korea_corpus_bridge import publication_gate
+          from scripts.reconcile_db import read_only
           existing = load_public_korea_links() + load_additional_korea_official_links()
           old = {row["source_identity"] for row in existing}
-          rows = load_live_korea_official_links("pla_watch.db", exclude=old)
+          with read_only("pla_watch.db") as db:
+              records, _ = publication_gate(db)
+          # The renderer suppresses bare links already represented by records.
+          rows = load_live_korea_official_links("pla_watch.db", exclude=old | set(records.values()))
           page = Path("output/korea.html").read_text(encoding="utf-8")
           assert page.count('data-korea-public-link=') == 5
           assert page.count('data-korea-additional-link=') == 9
@@ -159,6 +164,9 @@ jobs:
           for row in rows:
               assert row["source_identity"] in page
               assert row["source_url"] in page
+          for article_id, identity in records.items():
+              assert 'data-korea-auto-official-link="' + identity + '"' not in page
+              assert 'record/%d.html' % article_id in page
           for forbidden in ('<iframe', 'download.do?fileId=', 'data-review-status=',
                             'text_original', 'summary_english'):
               assert forbidden not in page, forbidden

@@ -242,7 +242,8 @@ class UnifiedWriterTests(unittest.TestCase):
         })
         with patch("scripts.sunday_briefs_auto_writer.choose_evidence",
                    return_value=evidence()):
-            result = compose(x, SAT, client=fake, supplemental=self.research)
+            result = compose(x, SAT, client=fake, supplemental=self.research,
+                             article_first=False)
         self.assertEqual(result["editorial_focus"], manuscript()["editorial_focus"])
         self.assertEqual(result["_model_offered_production_ids"], [1, 2])
         owner_packet = render_packet(
@@ -516,10 +517,11 @@ class SundayStrictToolContractTests(unittest.TestCase):
             return nullcontext(SimpleNamespace(get_final_message=lambda: response))
         fake = SimpleNamespace(messages=SimpleNamespace(stream=stream))
         with patch("scripts.sunday_briefs_auto_writer.choose_evidence",
-                   return_value=evidence()):
+                   return_value=evidence()), patch(
+                       "core.daily_machine_records.editorial_candidates", return_value=[]):
             compose({"week_start": "2026-10-04", "week_ending": SAT,
                      "desks": ["china", "singapore"], "source_trail": []},
-                    SAT, client=fake)
+                    SAT, client=fake, article_first=False)
         self.assertEqual(len(calls), 1)
         self.assertIs(calls[0]["tools"][0]["strict"], True)
         self.assertEqual(calls[0]["tools"][0]["input_schema"]["properties"]

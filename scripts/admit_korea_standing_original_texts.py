@@ -279,8 +279,16 @@ def main(argv=None):
         return 0
     except (AutoTextHold, MarkHold, PolicyHold, PublishedKoreaHold,
             ExceptionHold, StandingLicenseHold, stage.IntakeHold,
-            UnicodeError, ValueError, OSError, subprocess.TimeoutExpired):
+            UnicodeError, ValueError, OSError, subprocess.TimeoutExpired) as exc:
+        # Gate exceptions contain fixed codes. Never log arbitrary exception
+        # text from filesystem/network/parsing errors or private source bytes.
+        reason = str(exc) if isinstance(exc, (
+            AutoTextHold, MarkHold, PolicyHold, PublishedKoreaHold,
+            ExceptionHold, StandingLicenseHold, stage.IntakeHold)) else ""
+        if re.fullmatch(r"[a-z][a-z0-9_]{0,127}", reason) is None:
+            reason = "korea_original_publication_check_failed"
         print(json.dumps({"schema": RECEIPT, "status": "HOLD",
+                          "reason": reason,
                           "production_db_changed": False,
                           "source_bodies_logged": False}, sort_keys=True))
         return 2

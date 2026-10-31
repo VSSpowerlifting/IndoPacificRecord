@@ -79,9 +79,9 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertIn("PublicView", source)
         self.assertTrue((REPO_ROOT / "desks" / "registry.json").is_file())
 
-    def test_china_singapore_and_korea_are_the_collecting_desks(self):
+    def test_china_singapore_korea_vietnam_are_the_collecting_desks(self):
         live = [e for e in load_registry() if e.is_collecting]
-        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore", "vietnam"])
 
     def test_a_collecting_desk_must_have_an_enabled_source(self):
         """Derived, not declared: the count comes from the desk's manifest."""
@@ -129,7 +129,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         cannot find it. If it ever lands in desks/, collection starts by
         accident."""
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "korea", "singapore"})
+        self.assertEqual(discovered, {"china", "korea", "singapore", "vietnam"})
 
     def test_the_us_is_not_a_live_desk(self):
         """
@@ -184,7 +184,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertEqual(sg.manifest_path, "desks/singapore/manifest.json")
         self.assertTrue((MANIFESTS / "singapore" / "manifest.json").exists())
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "korea", "singapore"})
+        self.assertEqual(discovered, {"china", "korea", "singapore", "vietnam"})
 
     def test_singapore_shows_no_stale_shadow_language(self):
         """
@@ -317,11 +317,16 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
     def test_public_directory_distinguishes_reference_from_production(self):
         html = self.page("desks.html")
         self.assertIn("Indonesia Desk", html)
-        self.assertIn("8 declared", html)
-        self.assertIn("3 collecting into the record", html)
+        from bs4 import BeautifulSoup
+        tally = {dt.get_text(" ", strip=True): dd.get_text(strip=True)
+                 for dt, dd in zip(*[iter(BeautifulSoup(html, "html.parser")
+                                          .select(".desks-tally dt, .desks-tally dd"))] * 2)}
+        self.assertEqual(tally, {"Declared": "8",
+                                 "Collecting into the record": "4",
+                                 "Not collecting": "4"})
         self.assertEqual(
             sorted(x.slug for x in load_registry() if x.is_collecting),
-            ["china", "korea", "singapore"])
+            ["china", "korea", "singapore", "vietnam"])
 
 
 class TestJapanDeskIsPlannedNotCoverage(DeskCase):
@@ -399,51 +404,67 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
                               % (label, figure), html)
 
 
-class TestVietnamShadowIsNotPublicCoverage(DeskCase):
+class TestVietnamMpsLiveCoverage(DeskCase):
     """
-    Three ministry families now operate isolated scheduled shadow collection,
-    but no Vietnam original is in the public production corpus. Government
-    News and the National Defence Journal are separate disabled candidates.
+    MPS Foreign Affairs is the sole live, manual/private-backed source.
+    Both MOIT families remain held; official-link metadata counts separately
+    from any actually admitted MPS article, which may legitimately be zero.
     """
 
     def test_the_vietnam_desk_page_exists_and_is_linked(self):
         self.assertTrue((self.out / "vietnam.html").is_file())
         self.assertIn('href="vietnam.html"', self.page("desks.html"))
 
-    def test_the_registry_declares_shadow_without_a_production_manifest(self):
+    def test_the_registry_declares_only_one_private_backed_mps_source(self):
         entry = load_registry().get("vietnam")
-        self.assertEqual(entry.status, "shadow")
+        self.assertEqual(entry.status, "live")
         self.assertTrue(entry.public)
-        self.assertIsNone(entry.manifest_path)
-        self.assertFalse(entry.has_production_records)
-        self.assertFalse(entry.is_collecting)
-        self.assertFalse(entry.may_show_record_count)
+        self.assertEqual(entry.manifest_path, "desks/vietnam/manifest.json")
+        self.assertTrue(entry.has_production_records)
+        self.assertTrue(entry.is_collecting)
+        self.assertTrue(entry.may_show_record_count)
         self.assertEqual((entry.configured_source_count,
-                          entry.enabled_source_count), (0, 0))
+                          entry.enabled_source_count), (2, 2))
+        self.assertEqual([s.slug for s in entry.sources],
+                         ["vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"])
+        self.assertEqual(entry.sources[0].access_method, "manual")
 
-    def test_no_vietnam_source_or_manifest_reaches_production(self):
-        """The shadow manifest exists, outside `desks/`; the production loader
-        and the database know nothing of Vietnam."""
+    def test_only_mps_manual_source_enters_the_production_manifest(self):
+        """The private collector is not duplicated inside public Daily.
+        MOIT and other Vietnam families cannot inherit its authorization."""
         from core.manifests import load_all_desks
         self.assertTrue((REPO_ROOT / "shadow" / "vietnam" / "manifest.json").is_file())
-        self.assertFalse((MANIFESTS / "vietnam").exists())
-        self.assertNotIn("vietnam", load_all_desks())
+        self.assertTrue((MANIFESTS / "vietnam" / "manifest.json").is_file())
+        cfg = load_all_desks()["vietnam"]
+        self.assertEqual([s.slug for s in cfg.sources],
+                         ["vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"])
+        self.assertTrue(all(s.access_method == "manual" for s in cfg.sources))
         with self.db() as con:
             rows = con.execute(
-                "SELECT slug FROM sources WHERE desk_id = 'vietnam' "
-                "OR slug LIKE 'vn%'").fetchall()
-        self.assertEqual(rows, [])
+                "SELECT slug, desk_id, enabled, access_method FROM sources "
+                "WHERE desk_id = 'vietnam' ORDER BY slug").fetchall()
+        # The synchronised table may or may not yet carry the bibliographic
+        # Government Office row; MOIT and every other family must be absent.
+        self.assertEqual(rows[0], ("vn_mps_foreign_affairs_vi", "vietnam", 1, "manual"))
+        self.assertLessEqual({r[0] for r in rows},
+                             {"vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"})
 
-    def test_the_vietnam_page_states_no_records_and_no_enabled_source(self):
+    def test_the_vietnam_page_discloses_mps_only_without_invented_article_counts(self):
         html = self.page("vietnam.html")
         self.assertIn("Verified official-source links admitted", html)
-        self.assertIn("Original headlines, article bodies, photos, documents, "
-                      "translations and automatic analysis are excluded.", " ".join(html.split()))
-        self.assertIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("Sources enabled in production</dt><dd>0", html)
-        self.assertNotIn("Sources enabled in shadow", html)
+        self.assertIn("Sources enabled</dt><dd>2", html)
         self.assertIn("Ministry of Public Security — foreign affairs (Vietnamese)", html)
-        self.assertIn("No source is enabled in production", html)
+        self.assertNotIn("Sources enabled in shadow", html)
+        self.assertIn("MOIT", html)
+        # Public article count is drawn from the real DB, never the 25 private
+        # originals or three metadata-only links. Either zero or a later real
+        # production count is valid for an unattended desk.
+        with self.db() as con:
+            actual = con.execute(
+                "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
+                "WHERE s.desk_id='vietnam'").fetchone()[0]
+        self.assertNotIn("Records</dt><dd>Not admitted", html)
+        self.assertIn("Source records</dt><dd>%s</dd>" % format(actual, ","), html)
 
     def test_the_vietnam_page_shows_no_collection_statistic(self):
         """Newsroom-tag listings are not production records or shadow counts."""
@@ -481,17 +502,13 @@ class TestVietnamShadowIsNotPublicCoverage(DeskCase):
             with self.subTest(term=evasion):
                 self.assertNotIn(evasion, html.lower())
 
-    def test_the_directory_plate_carries_the_same_state(self):
+    def test_the_directory_plate_carries_live_mps_status_without_fabricated_records(self):
         directory = self.page("desks.html")
         block = [b.split("</section>", 1)[0]
                  for b in directory.split('<section class="desk')[1:]
                  if 'data-desk="vietnam"' in b][0]
-        self.assertIn("Research published", block)
-        self.assertIn("Corpus records</dt><dd>Not admitted", block)
-        self.assertIn("Corpus records</dt><dd>Not admitted", block)
-        self.assertIn("Last corpus collection</dt><dd>Not admitted", block)
-        self.assertNotIn("Records</dt><dd>None collected", block)
-        self.assertNotIn("desk--live", block)
+        self.assertIn("Records</dt>", block)
+        self.assertNotIn("Records</dt><dd>Not admitted", block)
         self.assertIn("Hanoi", block)
 
     def test_tablet_directory_uses_all_desk_plates_at_full_width(self):
@@ -514,8 +531,10 @@ class TestVietnamShadowIsNotPublicCoverage(DeskCase):
             if "is-mid-side" in cls.split()}
         self.assertFalse(narrowed)
         css = (REPO_ROOT / "site/preview/desk-map.css").read_text(encoding="utf-8")
+        # Every plate sits in one auto-fill register: no plate is hung at a
+        # fractional width, and the print layout falls back to two columns.
+        self.assertIn(".deskmap-register{display:grid;grid-template-columns:repeat(auto-fill,minmax(", css)
         self.assertIn(".deskmap-register{grid-template-columns:repeat(2", css)
-        self.assertIn(".deskmap-plate{position:relative", css)
 
 
 class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
@@ -571,15 +590,25 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                     self.assertEqual(set(re.findall(
                         r'data-regional-official-source-id="([^"]+)"', page)), vietnam_links)
                 elif philippines_links:
-                    self.assertIn("Verified official-source links admitted", page)
+                    self.assertIn("Official links and machine explanations, published automatically", page)
                     self.assertEqual(set(re.findall(
                         r'data-regional-official-source-id="([^"]+)"', page)),
                         philippines_links)
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
-                self.assertIn("Corpus records</dt><dd>Not admitted", page)
-                self.assertIn("Sources enabled in production</dt><dd>0", page)
-                self.assertNotIn('href="archive.html?desk=' + name + '"', page)
+                if name == "philippines":
+                    # Link metadata and machine explanations are not corpus
+                    # records; the page says so rather than showing zero-source rows.
+                    self.assertIn("Original documents in the IPR corpus</dt><dd>None", page)
+                    self.assertNotIn("Sources enabled in production", page)
+                    self.assertNotIn('href="archive.html?desk=' + name + '"', page)
+                else:
+                    with self.db() as con:
+                        actual = con.execute(
+                            "SELECT COUNT(*) FROM articles a JOIN sources s ON a.source_id=s.id "
+                            "WHERE s.desk_id='vietnam'").fetchone()[0]
+                    self.assertIn("Source records</dt><dd>%s</dd>" % format(actual, ","), page)
+                    self.assertIn("Sources enabled</dt><dd>2", page)
                 self.assertNotIn("text_original", page)
                 self.assertNotIn("state/shadow.db", page)
         page = self.page("philippines.html")
@@ -590,21 +619,24 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
         self.assertEqual({d.slug for d in load_registry().public_entries},
             {"china", "singapore", "japan", "korea", "philippines", "vietnam", "indonesia", "us-indopacific"})
         self.assertEqual(sorted(d.slug for d in load_registry() if d.is_collecting),
-                         ["china", "korea", "singapore"])
+                         ["china", "korea", "singapore", "vietnam"])
 
 
 class TestPendingDeskReferenceBrowser(DeskCase):
     """No publication approvals means a transparent empty public bibliography."""
 
     def test_metadata_only_reference_lane_is_available_but_empty(self):
-        for slug in ("philippines", "vietnam"):
-            with self.subTest(desk=slug):
-                html = self.page(slug + ".html")
-                self.assertIn("Individually reviewed official-source references", html)
-                self.assertIn("No individual source references have completed", html)
-                self.assertNotIn('data-reference-list', html)
-                self.assertIn("Corpus records</dt><dd>Not admitted", html)
-                self.assertNotIn("archive.html?desk=" + slug, html)
+        # No Philippines article reference has the separate title-review path;
+        # its admitted AFP/NSC links are a different, metadata-only lane, so the
+        # page must not also claim that no references exist.
+        slug = "philippines"
+        html = self.page(slug + ".html")
+        self.assertNotIn("Individually reviewed official-source references", html)
+        self.assertNotIn("No individual source references have completed", html)
+        self.assertNotIn('data-reference-list', html)
+        self.assertIn("Original documents in the IPR corpus</dt><dd>None", html)
+        self.assertNotIn("archive.html?desk=" + slug, html)
+        self.assertIn("Individually reviewed official-source references", self.page("indonesia.html"))
 
     def test_progressive_enhancement_files_are_produced(self):
         for filename in ("desk-references.css", "desk-references.js"):
@@ -654,22 +686,17 @@ class TestLegacyChinaRoutesSurvive(DeskCase):
         self.assertIn("China", html)
         self.assertNotIn("Japan Desk", html)
 
-    def test_the_pla_watch_page_is_labelled_as_a_legacy_series(self):
-        """
-        The issues were published under the predecessor masthead. Saying so is
-        the difference between preserving a record and backdating a rebrand.
-        """
+    def test_the_pla_watch_page_preserves_original_citations_without_active_brand(self):
+        """The compatibility route keeps citation provenance without competing branding."""
         html = self.page("pla-watch.html")
-        self.assertIn("The PLA Watch", html)
-        self.assertIn("China Mil Watch", html)
-        self.assertIn("preserved as published", html.lower())
-        self.assertIn("did not", html)
-        # The series spans the rename, so the predecessor attribution is scoped
-        # to the editions that actually carried that masthead rather than
-        # applied to all of them.
-        self.assertRegex(
-            html, r"\d+ earlier editions were published under China Mil Watch")
-        self.assertNotIn("Those issues were published by China Mil Watch", html)
+        head = html.split('<details class="ed-cite')[0]
+        self.assertIn("Earlier Briefs", head)
+        self.assertIn("Original editions and citations", head)
+        self.assertIn("the-pla-watch/archive.html", html)
+        self.assertNotIn("China Mil Watch", head)
+        self.assertNotIn("The PLA Watch is now part of", head)
+        self.assertIn('id="cite-edition-', html)
+        self.assertIn("The PLA Watch", html)  # authentic citation text
 
     def test_the_prototype_never_writes_into_the_production_namespace(self):
         for reserved in ("article", "the-pla-watch"):

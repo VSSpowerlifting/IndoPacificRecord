@@ -223,7 +223,7 @@ class HomeCase(unittest.TestCase):
         cls.briefs.mkdir()
         gp.build(cls.out, gp.PUBLIC_TITLE, TRACKED_DB,
                  snapshot=gp.snapshot_from_corpus(TRACKED_DB),
-                 briefs_dir=cls.briefs)
+                 briefs_dir=cls.briefs, dossiers_dir=cls.tmp / "no-dossiers")
         cls.home = (cls.out / "index.html").read_text(encoding="utf-8")
         cls.data = gp.load_corpus(TRACKED_DB)
         cls.view = PublicView(TRACKED_DB)
@@ -313,8 +313,13 @@ class TestARecordWithNoOriginalTitle(unittest.TestCase):
     def test_the_builder_refuses_a_record_with_no_original_title(self):
         db = self.tmp / "no-original.db"
         shutil.copy2(TRACKED_DB, db)
-        target = _newest_analyzed_ids(db, 1)[0]
+        # MINDEF's original title is withheld on purpose and replaced by a
+        # neutral label, so the specimen must be a source that still owes one.
         con = sqlite3.connect(str(db))
+        target = con.execute(
+            "SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id "
+            " WHERE a.analyzed_at IS NOT NULL AND s.slug != 'sg_mindef_releases' "
+            " ORDER BY a.published_date DESC, a.id DESC LIMIT 1").fetchone()[0]
         con.execute("UPDATE articles SET title_original = NULL WHERE id = ?",
                     (target,))
         con.commit()
@@ -323,6 +328,23 @@ class TestARecordWithNoOriginalTitle(unittest.TestCase):
             gp.build(self.tmp / "no-original-build", gp.PUBLIC_TITLE, db,
                      snapshot=gp.snapshot_from_corpus(db))
         self.assertIn("original title is absent", str(caught.exception))
+
+    def test_the_withheld_mindef_title_is_a_label_never_a_stored_title(self):
+        # The exemption is exact: MINDEF rows carry no stored title at all, the
+        # build succeeds, and the page shows IPR's label rather than a headline.
+        with read_only(str(TRACKED_DB)) as con:
+            rows = con.execute(
+                "SELECT a.id, a.title_original, a.title_english FROM articles a "
+                "JOIN sources s ON s.id = a.source_id "
+                "WHERE s.slug = 'sg_mindef_releases'").fetchall()
+        self.assertTrue(rows)
+        self.assertTrue(all(r[1] is None and r[2] is None for r in rows))
+        corpus = gp.load_corpus(TRACKED_DB)["corpus"]
+        labels = {r["id"]: r["title_original"] for r in corpus
+                  if r["source_slug"] == "sg_mindef_releases"}
+        self.assertEqual(set(labels), {r[0] for r in rows})
+        for rid, label in labels.items():
+            self.assertEqual(label, "Source metadata — Singapore MINDEF record %d" % rid)
 
     def test_an_absent_original_renders_no_line_at_all(self):
         rendered = self.render_records([

@@ -40,6 +40,7 @@ logger = logging.getLogger("spend_guard")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from analysis.pricing import PRICING_USD_PER_MTOK  # noqa: E402,F401
+from analysis.pricing import TIERED_PRICING_USD_PER_MTOK  # noqa: E402
 
 # Chinese text tokenizes at roughly one token per character — far denser than
 # English (~4 chars/token). Estimating Chinese input at 4 chars/token is the
@@ -56,6 +57,16 @@ DEFAULT_CONFIRM_THRESHOLD_USD = 5.00
 
 
 def _price(model: str) -> dict:
+    if model in TIERED_PRICING_USD_PER_MTOK:
+        # Checked first so the generic advice below ("add it to the table")
+        # cannot be followed for this model: that would silently price a
+        # request-tiered model at one flat rate with an uncalibrated heuristic.
+        raise KeyError(
+            f"{model!r} is priced per request in prompt-length bands "
+            "(analysis/pricing.py), and this character-based heuristic has not "
+            "been calibrated for it — refusing a bulk estimate. Measure real "
+            "per-request usage in a bounded, separately approved evaluation first."
+        )
     if model not in PRICING_USD_PER_MTOK:
         raise KeyError(
             f"No price on file for {model!r}. Add it to PRICING_USD_PER_MTOK "

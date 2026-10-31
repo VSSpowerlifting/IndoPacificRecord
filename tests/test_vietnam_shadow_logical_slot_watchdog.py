@@ -107,6 +107,19 @@ class VietnamWatchdogTests(unittest.TestCase):
         d = summarize(e, state_commit=SHA, as_of=AS_OF_OVERDUE)
         self.assertEqual(d["overdue_logical_dates"], ["2026-10-08"])
 
+    def test_healthy_zero_new_is_present_but_missing_or_failed_cycle_is_overdue(self):
+        # Counts never establish execution: the verified run ledger does.
+        for health, present in (("ok", True), ("fail", False)):
+            e = evidence()
+            quiet = record("2026-10-08", run_id="synthetic-quiet", health=health)
+            quiet.update(new_records=0, unchanged=4)
+            e["runs"].append(quiet)
+            with self.subTest(health=health):
+                d = summarize(e, state_commit=SHA, as_of=AS_OF_OVERDUE)
+                self.assertEqual(d["overdue_logical_dates"], [] if present else ["2026-10-08"])
+        self.assertEqual(summarize(evidence(), state_commit=SHA, as_of=AS_OF_OVERDUE)[
+            "overdue_logical_dates"], ["2026-10-08"])
+
     def test_lookup_overdue_dates_is_bounded(self):
         x = summarize(evidence(), state_commit=SHA,
                       as_of="2026-11-20T18:20:00Z")
@@ -157,6 +170,9 @@ class VietnamWatchdogTests(unittest.TestCase):
                     "workflows/vietnam_shadow_logical_slot_watchdog.yml"
                     ).read_text(encoding="utf-8")
         self.assertIn("7 12 * * *", workflow)
+        self.assertNotIn("  schedule:", workflow)
+        self.assertIn("if: ${{ false }}", workflow)
+        self.assertIn("ipr-source-evidence-private", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("shadow/vietnam-mps-foreign-affairs", workflow)
         self.assertIn("scripts.watch_vietnam_shadow_slots", workflow)

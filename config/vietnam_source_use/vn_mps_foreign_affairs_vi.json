@@ -1,0 +1,27 @@
+{
+  "hmac_sha256": "67ea85d78b70c1fa64176fdd569d9620ee09e2b79ec9a3c5b24961477150d0a5",
+  "review": {
+    "attribution_text": "Cổng Thông tin điện tử Bộ Công an",
+    "decided_by": "Indo-Pacific Record owner",
+    "decided_on": "2026-10-22",
+    "excerpt_max_chars": null,
+    "expires_on": null,
+    "item_exceptions": [],
+    "license_terms": null,
+    "permissions": {
+      "collect_preserve": true,
+      "external_model_transmission": true,
+      "public_excerpt": false,
+      "public_full_translation": false,
+      "public_ipr_analysis": true,
+      "public_original_storage": false,
+      "public_title_display": false
+    },
+    "policy_version": "vn-source-use-2026-10-19.1",
+    "rights_basis_reference": "docs/engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md",
+    "rights_basis_type": "documented_independent_source_use_assessment",
+    "robots_review_reference": null,
+    "schema": "ipr-vietnam-source-use-decision/1",
+    "source_family": "vn_mps_foreign_affairs_vi"
+  }
+}

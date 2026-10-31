@@ -268,7 +268,8 @@ class TestTheReaderItself(unittest.TestCase):
         self.assertIsInstance(doc, dict)
         self.assertEqual(doc["name"], "PR offline checks")
         job = doc["jobs"]["offline-checks"]
-        self.assertEqual(job["runs-on"], "ubuntu-latest")
+        # Python 3.9 is unavailable on ubuntu-latest (26.04); pin the runner.
+        self.assertEqual(job["runs-on"], "ubuntu-24.04")
         self.assertIsInstance(job["steps"], list)
         self.assertGreaterEqual(len(job["steps"]), 5)
         for step in job["steps"]:
@@ -347,7 +348,9 @@ class TestNothingUnexpectedIsDeclared(unittest.TestCase):
         """
         for step in steps_of(load_workflow()):
             with self.subTest(step=step["name"]):
-                unexpected = set(step) - self.STEP
+                allowed = self.STEP | ({"working-directory"}
+                                      if step["name"] == "Validate rendered output" else set())
+                unexpected = set(step) - allowed
                 self.assertEqual(unexpected, set(),
                                  "unexpected step key(s): %s" % sorted(unexpected))
 
@@ -379,16 +382,17 @@ class TestTrigger(unittest.TestCase):
             sorted(types),
             sorted(["opened", "synchronize", "reopened", "ready_for_review"]))
 
-    def test_it_has_no_other_trigger(self):
+    def test_only_pr_review_and_trusted_main_push_can_trigger(self):
         """
         `pull_request_target` would run the base branch's workflow definition
         in the base repository's context, where a token and secrets can be
-        available; the rest would make this workflow run outside review.
+        available. The sole additional trigger qualifies reviewed main with
+        the same read-only, secret-free job and no production operations.
         """
         triggers = load_workflow()["on"]
-        self.assertEqual(set(triggers), {"pull_request"},
-                         "only a pull_request trigger is permitted here")
-        for forbidden in ("push", "schedule", "workflow_dispatch",
+        self.assertEqual(set(triggers), {"pull_request", "push"})
+        self.assertEqual(triggers["push"], {"branches": ["main"]})
+        for forbidden in ("schedule", "workflow_dispatch",
                           "pull_request_target", "workflow_run",
                           "repository_dispatch", "release"):
             self.assertNotIn(forbidden, triggers)
@@ -400,15 +404,17 @@ class TestDraftScheduling(unittest.TestCase):
     def test_draft_guard_is_at_job_level(self):
         self.assertEqual(
             load_workflow()["jobs"]["offline-checks"]["if"],
-            "${{ github.event.pull_request.draft == false }}")
+            "${{ github.event_name == 'push' || github.event.pull_request.draft == false }}")
 
     def scheduled(self, action, draft):
         doc = load_workflow()
         # Evaluate the pinned, single boolean comparison, not a second copy
         # of the scheduling policy. GitHub supplies draft as a JSON boolean.
         expression = doc["jobs"]["offline-checks"]["if"]
-        self.assertEqual(expression, "${{ github.event.pull_request.draft == false }}")
-        comparison = expression.removeprefix("${{ ").removesuffix(" }}")
+        self.assertEqual(expression, "${{ github.event_name == 'push' || github.event.pull_request.draft == false }}")
+        # These are PR events; only the PR clause applies. The separate main
+        # push clause is exercised by the trigger and qualification contracts.
+        comparison = expression.split(" || ")[1].removesuffix(" }}")
         expected = comparison.split(" == ")[1]
         return (action in doc["on"]["pull_request"]["types"]
                 and str(draft).lower() == expected)
@@ -441,7 +447,7 @@ class TestDraftScheduling(unittest.TestCase):
         self.assertEqual(steps["Run focused timeline presentation contracts"]["if"],
                          "${{ steps.scope.outputs.mode == 'focused' }}")
         self.assertEqual(steps["Validate rendered output"]["if"],
-                         "${{ steps.scope.outputs.mode != 'docs' }}")
+                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}")
         self.assertEqual(steps["Install Chromium for the browser-backed tests"]["if"],
                          "${{ steps.scope.outputs.browser == 'true' }}")
         self.assertEqual(steps["Verify Chromium launches"]["if"],
@@ -466,7 +472,7 @@ class TestChangeRiskScope(unittest.TestCase):
         self.assertEqual(steps["Assert the tracked database and output are unchanged"]["if"],
                          "${{ !cancelled() && steps.baseline.outcome == 'success' }}")
         self.assertEqual(steps["Install dependencies"]["if"],
-                         "${{ steps.scope.outputs.mode != 'docs' }}")
+                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}")
 
 
 class TestPermissions(unittest.TestCase):
@@ -523,6 +529,20 @@ class TestItRunsTheRealChecks(unittest.TestCase):
 
     def test_it_runs_the_production_validator(self):
         self.assertIn(self.VALIDATOR, run_bodies(load_workflow()))
+
+    def test_validation_renders_the_exact_merge_in_an_isolated_repo_layout(self):
+        steps = {s.get("name"): s for s in steps_of(load_workflow())}
+        render = steps["Render isolated output for validation"]
+        validator = steps["Validate rendered output"]
+        self.assertEqual(render["if"], validator["if"])
+        self.assertIn('${RUNNER_TEMP}/ipr-pr-validation.', render["run"])
+        self.assertIn('git archive HEAD | tar -x -C "$candidate"', render["run"])
+        self.assertIn('python "$candidate/site/render.py" --site-origin https://indopacificrecord.org',
+                      render["run"])
+        self.assertNotIn("--out", render["run"])
+        self.assertEqual(validator["working-directory"],
+                         "${{ steps.validation_tree.outputs.root }}")
+        self.assertEqual(validator["run"], self.VALIDATOR)
 
     def test_those_are_the_commands_the_daily_run_uses(self):
         """
@@ -600,9 +620,9 @@ class TestItIsInert(unittest.TestCase):
     def test_it_declares_a_timeout(self):
         job = load_workflow()["jobs"]["offline-checks"]
         self.assertIsInstance(job["timeout-minutes"], int)
-        self.assertLessEqual(job["timeout-minutes"], 35)
+        self.assertLessEqual(job["timeout-minutes"], 45)
 
-    CONCURRENCY_GROUP = "pr-offline-checks-${{ github.event.pull_request.number }}"
+    CONCURRENCY_GROUP = "pr-offline-checks-${{ github.event.pull_request.number || github.sha }}"
 
     def test_superseded_runs_are_cancelled_per_pull_request(self):
         """
@@ -790,10 +810,12 @@ class TestBrowserBackedTestsActuallyRun(unittest.TestCase):
         it would trade a silent skip for a timeout. Still bounded — a runaway
         browser must not hold a runner indefinitely. Raised to 35 on
         2026-10-05: the suite alone reached 24 minutes on a hosted runner.
+        Raised to 45 on 2026-10-26: run 40346079812 attempt 1 hit 35 minutes
+        after a 12m19s Chromium install and a successful 21m52s suite.
         """
         timeout = self.doc["jobs"]["offline-checks"]["timeout-minutes"]
         self.assertGreaterEqual(timeout, 30)
-        self.assertLessEqual(timeout, 35)
+        self.assertLessEqual(timeout, 45)
 
     # ── and none of it widens the job ─────────────────────────────────────
     def test_the_browser_steps_introduce_no_action_and_no_secret(self):

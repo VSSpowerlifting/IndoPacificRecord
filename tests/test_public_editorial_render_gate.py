@@ -79,6 +79,33 @@ class RenderedPermanentResearchContracts(unittest.TestCase):
         with self.assertRaises(RenderHold):
             verify_render(self.root, [self.row])
 
+    def test_archive_link_is_allowed_only_for_a_desk_with_admitted_archive_records(self):
+        import json
+        self.build()
+        with (self.root / "indonesia.html").open("a") as f:
+            f.write('<a href="archive.html?desk=indonesia">Archive</a>')
+
+        def index(records):
+            (self.root / "archive-research-index.json").write_text(
+                json.dumps({"records": records}), encoding="utf-8")
+
+        # Official-link references and human analysis never justify the link.
+        index([{"record_type": "official_link", "desks": ["indonesia"]},
+               {"record_type": "human_analysis", "desks": ["indonesia"]}])
+        with self.assertRaises(RenderHold):
+            verify_render(self.root, [self.row])
+        # Another desk's corpus does not either.
+        index([{"record_type": "archive_record", "desks": ["vietnam"]}])
+        with self.assertRaises(RenderHold):
+            verify_render(self.root, [self.row])
+        # A malformed index admits nothing.
+        (self.root / "archive-research-index.json").write_text("{", encoding="utf-8")
+        with self.assertRaises(RenderHold):
+            verify_render(self.root, [self.row])
+        # A genuine admitted corpus for this very desk does.
+        index([{"record_type": "archive_record", "desks": ["indonesia"]}])
+        self.assertEqual(verify_render(self.root, [self.row])["desk_count"], 1)
+
     def test_real_vietnam_no18_editorial_approval_and_all_originals_are_pinned(self):
         genuine = load_catalog(today=date(2026, 10, 15))
         self.assertEqual(validate_editorial_manuscripts(genuine), 1)
@@ -120,8 +147,12 @@ class RenderedPermanentResearchContracts(unittest.TestCase):
         self.assertIn("published_research=[]", renderer)
         directory = (ROOT/"site/preview/templates/desks.html").read_text()
         self.assertIn("Research published", directory)
-        self.assertIn("source archive:", directory)
-        self.assertIn('title="{{ d.status_label }}"', directory)
+        # Collection state and editorial publication are separate marks: the
+        # registry label is printed in its own span and the publication chip
+        # says outright that it is not collection into the source archive.
+        self.assertIn("collection into the source archive", directory)
+        self.assertIn('desk-state--{{ d.status }}">{{ d.status_label }}</span>', directory)
+        self.assertIn('class="desk-pub"', directory)
         self.assertIn("Corpus records", directory)
         self.assertIn("editorial_published_desks", directory)
         self.assertIn("editorial_published_desks", renderer)

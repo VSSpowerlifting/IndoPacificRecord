@@ -31,6 +31,7 @@ from core import vietnam_source_use as su
 from core.regional_reviewed_evidence import _canonical
 from migrations.versions import m0017_vietnam_article_provenance as m0017
 from processing import screening
+from scripts.reconcile_db import read_only
 from tests import test_vietnam_ministry_remote_review as fixtures
 
 MPS, ENERGY, INDUSTRY = fixtures.MPS, fixtures.ENERGY, fixtures.INDUSTRY
@@ -124,13 +125,12 @@ class FakeAnalyzer:
 
 
 def clone_schema(path):
-    """The tracked corpus schema (no rows but desks) plus migration 0017."""
-    src = sqlite3.connect("file:%s?mode=ro" % TRACKED_DB, uri=True)
-    rows = src.execute("SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL"
-                       " AND name NOT LIKE 'sqlite_%'").fetchall()
-    desks = src.execute("SELECT * FROM desks").fetchall()
-    applied = src.execute("SELECT * FROM schema_migrations").fetchall()
-    src.close()
+    """Current shared schema, without corpus rows or source activation."""
+    with read_only(TRACKED_DB) as src:
+        rows = src.execute("SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL"
+                           " AND name NOT LIKE 'sqlite_%'").fetchall()
+        desks = src.execute("SELECT * FROM desks").fetchall()
+        applied = src.execute("SELECT * FROM schema_migrations").fetchall()
     conn = sqlite3.connect(str(path))
     order = {"table": 0, "index": 1, "view": 2, "trigger": 3}
     for _, _, sql in sorted(rows, key=lambda r: order.get(r[0], 9)):
@@ -138,7 +138,11 @@ def clone_schema(path):
     conn.executemany("INSERT INTO desks VALUES (%s)" % ",".join("?" * len(desks[0])), desks)
     conn.executemany("INSERT INTO schema_migrations VALUES (%s)"
                      % ",".join("?" * len(applied[0])), applied)
-    m0017.up(conn)
+    # Source-specific commands intentionally refuse unrelated pending upgrades.
+    # Their fixtures must start after shared Daily's schema migration step.
+    from migrations.runner import apply_all
+    conn.commit()
+    apply_all(conn, sync_config=False)
     conn.commit()
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -564,15 +568,14 @@ class BridgeRuns(unittest.TestCase):
                                  {qa.HELD_RIGHTS})
 
     def test_grant_refused_while_registry_keeps_desk_shadow(self):
-        # The real registry: a sealed rights grant alone never publishes.
+        # Explicitly emulate an unpromoted desk: even a sealed review cannot
+        # permit article publication in this state.
         shadow = SimpleNamespace(is_collecting=False, has_production_records=False)
-        for desk in (None, shadow):
-            with self.subTest(desk=desk):
-                analyzer = FakeAnalyzer()
-                with self.assertRaisesRegex(bridge.BridgeError, "vietnam_desk_not_promoted"):
-                    self.run_bridge(source_use=grant(), analyzer=analyzer, desk=desk)
-                self.assertEqual(analyzer.calls, [])
-                self.assertEqual(self.count(), 0)
+        analyzer = FakeAnalyzer()
+        with self.assertRaisesRegex(bridge.BridgeError, "vietnam_desk_not_promoted"):
+            self.run_bridge(source_use=grant(), analyzer=analyzer, desk=shadow)
+        self.assertEqual(analyzer.calls, [])
+        self.assertEqual(self.count(), 0)
         # Holding every permission needs no promotion: nothing can be written.
         report, _ = self.run_bridge(desk=shadow)
         self.assertEqual(set(self.outcomes(report)), {qa.HELD_RIGHTS})
@@ -597,9 +600,10 @@ class BridgeRuns(unittest.TestCase):
             self.assertEqual((row[5], row[6]), (0, 1))
             self.assertTrue(row[7] and row[8])
             self.assertEqual(row[9], qa.RUBRIC_VERSION)
-            self.assertEqual(row[10], "shadow")
+            self.assertEqual(row[10], "public")
         source = self.conn.execute("SELECT is_active, enabled, access_method FROM sources"
                                    " WHERE slug=?", (MPS,)).fetchone()
+        # The synthetic private bridge must not enable a production collector.
         self.assertEqual(source, (0, 0, "private_collector"))
         # A second identical run: zero new rows, zero model calls.
         again, analyzer2 = self.run_bridge(source_use=grant())
@@ -1081,11 +1085,12 @@ class VietnamRecordRender(unittest.TestCase):
                    if e.slug == "vietnam" else e for e in real.entries]
         return dataclasses.replace(real, entries=entries)
 
-    def test_record_page_discloses_withheld_original_and_machine_translation(self):
+    def test_record_page_discloses_withheld_original_and_permitted_translation(self):
         import sys
         sys.path.insert(0, str(TRACKED_DB.parent / "site" / "preview"))
         import generate_preview as gp
-        use = grant(permissions={"public_original_storage": False},
+        use = grant(permissions={"public_original_storage": False,
+                                 "public_full_translation": False},
                     attribution_text="Fictional attribution line",
                     license_terms="Fictional licence condition")
         report, _ = self.run_bridge(source_use=use)
@@ -1093,21 +1098,22 @@ class VietnamRecordRender(unittest.TestCase):
         self.conn.commit()
         row = self.conn.execute(
             "SELECT a.id, a.text_original, a.url FROM articles a JOIN "
-            "vietnam_article_provenance p ON p.article_id = a.id ORDER BY a.id"
-            ).fetchone()
+            "vietnam_article_provenance p ON p.article_id = a.id "
+            "WHERE p.published_by_run = ? ORDER BY a.id",
+            ("simulated-test-run",)).fetchone()
         self.assertIsNone(row[1])
-        # The real registry keeps Vietnam shadow: reading the corpus refuses.
-        with self.assertRaisesRegex(ValueError, "Vietnam records require"):
-            gp.load_corpus(self.db_path)
+        # The governed MPS record is accessible through the current desk.
+        self.assertIsNotNone(gp.load_corpus(self.db_path))
         with patch.object(gp, "load_registry", self.promoted_registry):
             snap = gp.snapshot_from_corpus(self.db_path)
             gp.build(self.tmp / "out", "Test Title", self.db_path, snapshot=snap)
         page = (self.tmp / "out" / "record" / ("%d.html" % row[0])).read_text()
         self.assertIn("not reproduced here", page)
         self.assertNotIn("Original text is unavailable", page)
-        self.assertIn("English translation", page)
-        self.assertIn("Machine translation", page)
-        self.assertIn("synthetic test rendering", page)
+        self.assertFalse(use.allows("public_full_translation"))
+        self.assertNotIn('id="record-translation"', page)
+        self.assertNotIn("synthetic test rendering", page)
+        self.assertNotIn("Full machine translation", page)
         self.assertIn("Fictional attribution line", page)
         self.assertIn("Fictional licence condition", page)
         self.assertIn(su.POLICY_VERSION, page)
@@ -1121,19 +1127,42 @@ class VietnamRecordRender(unittest.TestCase):
         sys.path.insert(0, str(TRACKED_DB.parent / "site" / "preview"))
         import generate_preview as gp
         report, _ = self.run_bridge(source_use=grant(permissions={
-            "public_original_storage": False, "public_full_translation": False,
-            "public_excerpt": False}))
+            "public_title_display": False, "public_original_storage": False,
+            "public_full_translation": False, "public_excerpt": False}))
         self.assertIn(qa.PUBLISHED, self.outcomes(report))
         self.conn.commit()
         row = self.conn.execute("SELECT a.id, a.url FROM articles a JOIN "
-                                "vietnam_article_provenance p ON p.article_id=a.id").fetchone()
+                                "vietnam_article_provenance p ON p.article_id=a.id "
+                                "WHERE p.published_by_run = ?",
+                                ("simulated-test-run",)).fetchone()
+        record = next(r for r in gp.load_corpus(self.db_path)["corpus"]
+                      if r["id"] == row[0])
+        self.assertIsNone(record["title_original"])
+        cited = gp.record_citation(record, "Test Title", gp.DECLARED_SNAPSHOT)
+        self.assertIn("Original title withheld under the source-use decision.",
+                      cited["source_text"])
+        self.assertIn(row[1], cited["source_text"])
+        self.assertNotIn(record["title_english"], cited["source_text"])
+        # Omission is justified by an exact source-use decision, never a blank
+        # title on an arbitrary article or an unsigned change of permission.
+        wrong_source = copy.deepcopy(record)
+        wrong_source["source_slug"] = "xinhua_mil"
+        with self.assertRaises(gp.CitationDataMissing):
+            gp.record_citation(wrong_source, "Test Title", gp.DECLARED_SNAPSHOT)
+        wrong_permission = copy.deepcopy(record)
+        wrong_permission["vietnam"]["permissions"]["public_title_display"] = True
+        with self.assertRaises(gp.CitationDataMissing):
+            gp.record_citation(wrong_permission, "Test Title", gp.DECLARED_SNAPSHOT)
         with patch.object(gp, "load_registry", self.promoted_registry):
             gp.build(self.tmp / "out", "Test Title", self.db_path,
                      snapshot=gp.snapshot_from_corpus(self.db_path))
         page = (self.tmp / "out" / "record" / ("%d.html" % row[0])).read_text()
         self.assertIn("Synthetic IPR factual headline", page)
+        self.assertIn("Original title withheld under the source-use decision.", page)
         self.assertIn("According to the report", page)
         self.assertIn("Machine-generated headline", page)
+        self.assertIn("Independent machine headline; not a translation", page)
+        self.assertNotIn("Machine-translated title", page)
         self.assertNotIn('id="record-translation"', page)
         self.assertNotIn("The heading is a machine translation", page)
         self.assertIn('href="%s"' % row[1], page)
@@ -1290,6 +1319,25 @@ class DailyCommand(unittest.TestCase):
             code, report = self.main()
         self.assertEqual(code, 0, report)
         self.assertEqual(list((self.tmp / "ledgers").iterdir()), [])
+
+    def test_vpcp_source_hold_preserves_unaffected_mps_admission(self):
+        from core.vietnam_source_use import standing, VPCP
+        analyzer = FakeAnalyzer(event_type="contract")
+        analyzer._call = lambda *args, **kwargs: '{"ok":true,"reason":"Synthetic check"}'
+        analyzer._parse_task_json = lambda raw, *args: json.loads(raw)
+        with patch.object(bridge, "desk_promoted", return_value=True):
+            reports = self.daily.run(
+                self.db_path, self.fixture.repos / MPS,
+                [(VPCP, "b" * 40), (MPS, self.shas[MPS])],
+                {VPCP: standing(VPCP), MPS: grant()},
+                ledger_dir=self.tmp / "ledgers", run_id="synthetic-isolated-hold",
+                expected_db_sha256=hashlib.sha256(self.db_path.read_bytes()).hexdigest(),
+                api=object(), analyzer=analyzer, as_of_utc=NOW)
+        self.assertEqual(reports[0]["counts"], {"held_source": 1})
+        self.assertEqual(set(reports[1]["counts"]), {qa.PUBLISHED})
+        with contextlib.closing(sqlite3.connect(str(self.db_path))) as conn:
+            self.assertGreater(conn.execute("SELECT count(*) FROM articles").fetchone()[0], 0)
+            self.assertEqual(conn.execute("SELECT DISTINCT source_family FROM vietnam_article_provenance").fetchall(), [(MPS,)])
 
 
 if __name__ == "__main__":

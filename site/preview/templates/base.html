@@ -31,7 +31,7 @@
 {# Head scripts, declared per page rather than inherited by all of them. The
    week shards carry a contract that they ship no <script> at all, and the
    record pages carry no bytes for behaviour they do not have. #}
-{% if record is not defined and brief is not defined and not timeline_surface | default(false) and page != 'index.html' %}<link rel="stylesheet" href="{{ root }}support.css">{% endif %}
+{% if dossier is defined %}<link rel="stylesheet" href="{{ root }}dossier-shell.css">{% elif record is not defined and brief is not defined and not timeline_surface | default(false) and page != 'index.html' %}<link rel="stylesheet" href="{{ root }}{{ support_stylesheet | default('support.css') }}">{% endif %}
 <link rel="stylesheet" href="{{ root }}surfaces.css">
 {% block head_scripts %}{% endblock %}
 </head>
@@ -48,7 +48,7 @@
            sizes="(max-width:500px) 56px, 72px" width="160" height="{{ 133 if shell_dark else 130 }}" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
       <span class="brand-name">Indo-Pacific<span>Record</span></span>
     </a>
-    {% set nav = [('archive.html','Records'),('analysis.html','Briefs')] %}
+    {% set nav = [('archive.html','Records'),('analysis.html','Analysis')] %}
     {% if timelines %}{% set nav = nav + [('timelines.html','Timelines')] %}{% endif %}
     {% set nav = nav + [('desks.html','Desks')] %}
     {% set desk_routes = desks | map(attribute='route') | list if desks else [] %}

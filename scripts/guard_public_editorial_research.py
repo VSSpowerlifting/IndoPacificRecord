@@ -80,6 +80,28 @@ def validate_editorial_manuscripts(entries, *, source_root=None):
     return len(entries)
 
 
+def _admitted_corpus_desks(root):
+    """Desks whose rendered Archive holds admitted collector records.
+
+    A desk page may link its Archive view only when the rendered archive index
+    actually lists admitted ``archive_record`` entries for that desk (for
+    example the Vietnam MPS corpus). Official-link references and human
+    analysis do not count. A missing or unreadable index admits nothing.
+    """
+    try:
+        index = json.loads((root / "archive-research-index.json")
+                           .read_text(encoding="utf-8"))
+        records = index["records"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return set()
+    desks = set()
+    for record in records if type(records) is list else ():
+        if type(record) is dict and record.get("record_type") == "archive_record":
+            desks.update(d for d in record.get("desks") or ()
+                         if type(d) is str)
+    return desks
+
+
 def verify_render(root, catalog=None):
     root = Path(root).resolve()
     if not root.is_dir():
@@ -102,6 +124,7 @@ def verify_render(root, catalog=None):
             if source["publisher_url"] not in brief.hrefs:
                 raise RenderHold("published Brief lacks approved source citation: " + rel)
 
+    admitted_corpus_desks = _admitted_corpus_desks(root)
     for desk, papers in by_desk.items():
         desk_page = (root / (desk + ".html")).resolve()
         if root not in desk_page.parents or not desk_page.is_file():
@@ -120,7 +143,8 @@ def verify_render(root, catalog=None):
                     raise RenderHold("official original link not rendered on desk page")
         if "not a production source-text archive" not in text:
             raise RenderHold("editorial vs collector distinction missing")
-        if 'href="archive.html?desk=' + desk + '"' in text:
+        if ('href="archive.html?desk=' + desk + '"' in text
+                and desk not in admitted_corpus_desks):
             raise RenderHold("unadmitted source corpus accidentally exposed")
         if "publisher's article bodies" in text or "privately_preserved = true" in text:
             raise RenderHold("publisher rehost or private custody misrepresented")

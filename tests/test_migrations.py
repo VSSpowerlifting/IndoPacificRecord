@@ -242,7 +242,7 @@ class TestApply(MigrationTestCase):
         for slug, legacy, tag in rows:
             self.assertIsNotNone(legacy, "%s lost its legacy language" % slug)
             self.assertIsNotNone(tag, "%s has no BCP 47 tag" % slug)
-            self.assertIn(tag, ("zh-Hans", "en", "ko"))
+            self.assertIn(tag, ("zh-Hans", "en", "ko", "vi"))
             self.assertTrue(tag.startswith(legacy))
 
     def test_no_orphans_and_integrity_ok(self):
@@ -273,7 +273,7 @@ class TestApply(MigrationTestCase):
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
         self.assertEqual(sorted(desks), [("china", "legacy"), ("korea", "public"),
-                                         ("singapore", "public")])
+                                         ("singapore", "public"), ("vietnam", "public")])
         self.assertGreaterEqual(insts, 5)
 
 
@@ -356,11 +356,9 @@ class TestReconcileReversion(MigrationTestCase):
         self.assertEqual(restored["article_ids"], migrated["article_ids"])
         self.assertEqual(restored["article_urls"], migrated["article_urls"])
         self.assertTrue(v["ok"])
-        # Three desks now sync from the real desks/ manifests: china (this
-        # fixture's 5 legacy sources), singapore (sg_mindef_releases) and
-        # korea (the manual kr_policy_mnd_releases source).
-        self.assertEqual(desks, 3)
-        self.assertEqual(sources_with_desk, 7)
+        # Four desks: China, Korea, Singapore and the manual Vietnam MPS source.
+        self.assertEqual(desks, 4)
+        self.assertEqual(sources_with_desk, 9)  # Includes the manual VPCP metadata source.
 
 
 class TestRollback(MigrationTestCase):
@@ -548,7 +546,7 @@ class TestLanguageConstraint(MigrationTestCase):
         conn.close()
         legacy_slugs = {slug for slug, _ in before}
         self.assertEqual(before, [row for row in after if row[0] in legacy_slugs])
-        self.assertEqual({lang for _, lang in after}, {"zh", "en", "ko"})
+        self.assertEqual({lang for _, lang in after}, {"zh", "en", "ko", "vi"})
 
     def test_source_ids_preserved_across_the_rebuild(self):
         """

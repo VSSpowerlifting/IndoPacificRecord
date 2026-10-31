@@ -29,7 +29,7 @@ concurrency:
 jobs:
   future-text-contracts:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
 
   real-frozen-source-frontier:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -80,14 +80,20 @@ jobs:
           from scripts.admit_korea_standing_original_texts import baseline
           proof=build(os.path.join(os.environ["RUNNER_TEMP"],"korea-future-baseline"))
           historical=baseline()
-          published={x["source_identity"] for x in read_release_index()}
+          released={x["source_identity"]:x for x in read_release_index()}
+          published=set(released)
           source_ids={x["source_identity"] for x in proof["records"]}
           assert len(historical)==14 and historical<=source_ids
           assert len(source_ids)==proof["source_original_count"]
-          assert published<=source_ids
+          # The legacy public archive stopped at private cutover. It proves
+          # the historical frontier, not custody of later private originals.
+          for item in proof["records"]:
+              if item["source_identity"] in released:
+                  assert item["original_text_sha256"] == released[item["source_identity"]]["original_text_sha256"]
           future=source_ids-historical-published
           print("Archived excluded:",len(historical))
-          print("Previously published, retained:",len(published))
+          print("Published source hashes replayed in legacy archive:",len(published & source_ids))
+          print("Published originals outside legacy snapshot (not replayed here):",len(published-source_ids))
           print("Future-only candidates as of source snapshot:",len(future))
           print("Real source branch version:",proof["source_git_commit"])
           PY
@@ -99,7 +105,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (github.event_name != 'workflow_run' ||
        github.event.workflow_run.conclusion == 'success')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: write
@@ -165,6 +171,8 @@ jobs:
           from core.korea_public_bibliography import load_public_korea_links
           from core.korea_additional_public_links import load_additional_korea_official_links
           from core.korea_official_live_links import load_live_korea_official_links
+          from core.korea_corpus_bridge import publication_gate
+          from scripts.reconcile_db import read_only
           rows=read_release_index()
           desk=Path("output/korea.html").read_text(encoding="utf-8")
           wanted={row["route"] for row in rows}
@@ -173,11 +181,16 @@ jobs:
           assert observed==wanted
           assert desk.count('data-korea-original-text=')==len(rows)
           fixed=load_public_korea_links()+load_additional_korea_official_links()
+          with read_only("pla_watch.db") as db:
+              records, _ = publication_gate(db)
           auto=load_live_korea_official_links("pla_watch.db",exclude={
-              x["source_identity"] for x in fixed})
+              x["source_identity"] for x in fixed} | set(records.values()))
           assert desk.count('data-korea-public-link=')==5
           assert desk.count('data-korea-additional-link=')==9
           assert desk.count('data-korea-auto-official-link=')==len(auto)
+          for article_id, identity in records.items():
+              assert 'data-korea-auto-official-link="' + identity + '"' not in desk
+              assert 'record/%d.html' % article_id in desk
           for row in rows:
               page=Path("output",row["route"]).read_text(encoding="utf-8")
               assert row["route"] in desk and row["official_url"] in desk

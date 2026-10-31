@@ -20,6 +20,41 @@ class SourceUseError(ValueError):
     """Source identity, section citation or type mismatch."""
 
 
+def citation_sections(manuscript, has_external):
+    """``[(label, numeric_ids, external_ids)]`` for either manuscript shape.
+
+    Fixed-outline manuscripts cite per named section; article-first manuscripts
+    cite per article block plus one audit-notes entry. Labels are neutral
+    ("article block 2", "audit notes") so receipts never quote prose.
+    """
+    if isinstance(manuscript.get("article"), list):
+        entries = [("article block {}".format(i), b) for i, b in enumerate(manuscript["article"], 1)]
+        entries.append(("audit notes", manuscript.get("audit")))
+        out = []
+        for label, entry in entries:
+            if not isinstance(entry, dict) or not isinstance(entry.get("citations"), list):
+                raise SourceUseError("manuscript lacks complete numeric citations")
+            if has_external:
+                if not isinstance(entry.get("supplemental_citations"), list):
+                    raise SourceUseError("missing exact external source citation sections")
+            elif "supplemental_citations" in entry:
+                raise SourceUseError("unexpected research citations with no source packet")
+            out.append((label, entry["citations"], entry.get("supplemental_citations", [])))
+        return out
+    citations = manuscript.get("citations")
+    extra_citations = manuscript.get("supplemental_citations")
+    if (not isinstance(citations, dict) or set(citations) != set(SOURCE_FIELDS)):
+        raise SourceUseError("manuscript lacks complete numeric citations")
+    if has_external:
+        if (not isinstance(extra_citations, dict) or
+                set(extra_citations) != set(SOURCE_FIELDS)):
+            raise SourceUseError("missing exact external source citation sections")
+    elif extra_citations is not None:
+        raise SourceUseError("unexpected research citations with no source packet")
+    return [(field, citations[field], extra_citations[field] if has_external else [])
+            for field in SOURCE_FIELDS]
+
+
 def summarize_source_use(manuscript, production_trail, research=()):
     """Return source-ID counts only, including explicit unused research items.
 
@@ -78,21 +113,10 @@ def summarize_source_use(manuscript, production_trail, research=()):
             raise SourceUseError("invalid exact model-offered production roster")
         model_offered = set(roster)
 
-    citations = manuscript.get("citations")
-    extra_citations = manuscript.get("supplemental_citations")
-    if (not isinstance(citations, dict) or set(citations) != set(SOURCE_FIELDS)):
-        raise SourceUseError("manuscript lacks complete numeric citations")
-    if external:
-        if (not isinstance(extra_citations, dict) or
-                set(extra_citations) != set(SOURCE_FIELDS)):
-            raise SourceUseError("missing exact external source citation sections")
-    elif extra_citations is not None:
-        raise SourceUseError("unexpected research citations with no source packet")
+    sections = citation_sections(manuscript, bool(external))
 
     by_prod, by_external = {}, {}
-    for field in SOURCE_FIELDS:
-        ids = citations[field]
-        eids = extra_citations[field] if external else []
+    for field, ids, eids in sections:
         if (not isinstance(ids, list) or
                 not all(type(ident) is int and ident in prod for ident in ids) or
                 len(ids) != len(set(ids))):

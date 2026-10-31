@@ -17,13 +17,15 @@ from pathlib import Path
 
 from core import processing_state
 from core.crossdesk_official_metadata_candidates import canonical
-from processing.screening import PHILIPPINES_PROFILE
+from core.daily_sources import SOURCES, source_for
+from processing.screening import profile_for_source
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "config/philippines_daily_policy.json"
 PRIVATE_REPO = "VSSpowerlifting/ipr-source-evidence-private"
-REFS = {"ph_afp_articles": "archive/ph-afp",
-        "ph_nsc_official_statements": "archive/ph-nsc"}
+# Derived view of the source definitions. The private signer and its tests read
+# REFS from this module; it is not an independent registry.
+REFS = {family: s.custody_ref for family, s in SOURCES.items()}
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 COMMIT = re.compile(r"[a-f0-9]{40}\Z")
 DOMAIN = b"ipr-shared-daily-machine-output/1\n"
@@ -52,8 +54,8 @@ def load_policy(path=POLICY_PATH):
     value = json.loads(Path(path).read_text())
     need(set(value) == {"schema", "sources"}
          and value["schema"] == "ipr-daily-source-policy/1"
-         and set(value["sources"]) == set(REFS), "daily_policy_invalid")
-    for p in value["sources"].values():
+         and set(value["sources"]) == set(SOURCES), "daily_policy_invalid")
+    for family, p in value["sources"].items():
         need(set(p) == {"private_model_processing", "public_machine_explanation",
                        "unattended_release", "owner_decision",
                        "max_records_per_run", "max_input_characters",
@@ -69,7 +71,7 @@ def load_policy(path=POLICY_PATH):
              "daily_spend_bound_invalid")
         excluded = p["excluded_source_identities"]
         need(type(excluded) is list and len(excluded) <= 100
-             and all(type(v) is str and 0 < len(v) < 120 for v in excluded)
+             and all(type(v) is str and 0 < len(v) < SOURCES[family].identity_max_length for v in excluded)
              and len(set(excluded)) == len(excluded), "daily_policy_invalid")
         need(not any(p[k] for k in ("private_model_processing", "public_machine_explanation",
                                    "unattended_release"))
@@ -85,7 +87,8 @@ def git(repo, *args):
 
 def verified_source(repo, commit, family):
     """Reuses capture/history validators; returns private in-memory originals."""
-    need(family in REFS and type(commit) is str and bool(COMMIT.fullmatch(commit)),
+    source = source_for(family)
+    need(source is not None and type(commit) is str and bool(COMMIT.fullmatch(commit)),
          "daily_source_pin_invalid")
     remote = git(repo, "remote", "get-url", "origin").decode().strip()
     remote = remote[:-4] if remote.endswith(".git") else remote
@@ -94,17 +97,8 @@ def verified_source(repo, commit, family):
     need(git(repo, "cat-file", "-t", commit).strip() == b"commit", "daily_source_pin_invalid")
     # The pin must be on the source's actual custody branch, not another family.
     subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", commit,
-                    REFS[family]], check=True, capture_output=True)
-    if family == "ph_afp_articles":
-        from core.ph_afp_release_validator import verify_history, candidate_packet
-        verify_history(repo, commit)
-        packet = candidate_packet(repo, commit)
-        # Metadata candidate builder uses `records` for the public-safe links.
-        links = packet["records"]
-    else:
-        from core.ph_nsc_official_link_admission import prepare
-        packet = prepare(repo, commit, REFS[family])
-        links = packet["links"]
+                    source.custody_ref], check=True, capture_output=True)
+    links = source.verified_links(repo, commit)
     with tempfile.TemporaryDirectory(prefix="ipr-private-daily-") as tmp:
         path = Path(tmp) / "shadow.db"
         path.write_bytes(git(repo, "show", commit + ":state/shadow.db"))
@@ -117,7 +111,7 @@ def verified_source(repo, commit, family):
         r = rows[link["source_identity"]]
         need(r["url"] == link["canonical_official_url"]
              and r["published_date"] == link["publisher_posted_date"]
-             and r["language_tag"] == "en"
+             and r["language_tag"] == source.language
              and hashlib.sha256(r["text_original"].encode()).hexdigest() == r["content_sha256"],
              "daily_source_version_mismatch")
         result.append({**link, "source_family": family, "source_git_commit": commit,
@@ -129,7 +123,7 @@ def verified_source(repo, commit, family):
 
 
 def bound_private_calls(analyzer, policy):
-    """Guard the shared Analyzer's two English calls before dispatch."""
+    """Reserve cost before the shared relevance and private reading calls."""
     from config import ANALYSIS_MODEL, RELEVANCE_MODEL, RELEVANCE_TOOL_OUTPUT_ENABLED
     from analysis.pricing import estimate_usage_cost_usd
     need(not RELEVANCE_TOOL_OUTPUT_ENABLED, "daily_private_tool_route_not_authorized")
@@ -139,7 +133,7 @@ def bound_private_calls(analyzer, policy):
 
     def guarded(messages, *, model=None, max_tokens=1000, task=None, **kwargs):
         nonlocal remaining, calls
-        used_model = model or ANALYSIS_MODEL
+        used_model = model or (analyzer.task_model(task) if callable(getattr(type(analyzer), "task_model", None)) else ANALYSIS_MODEL)
         need(calls < 2 and (task, used_model, max_tokens) == expected[calls],
              "daily_private_call_bound")
         # UTF-8 bytes bound text tokens; reserve request framing and the more
@@ -156,12 +150,21 @@ def bound_private_calls(analyzer, policy):
 
 
 def quality_check(record, reading):
+    """Run the source definition's quality check; unknown sources hold."""
+    source = source_for(record["source_family"])
+    need(source is not None, "daily_processing_source_family_mismatch")
+    return source.quality_check(record, reading)
+
+
+def english_official_quality(record, reading):
     """Conservative exact-fact checks; no model confidence is accepted as proof.
 
     These checks cannot certify arbitrary paraphrase semantics. Each sentence
     must carry a verbatim evidence span; novel numerical/name/rank tokens and
     unsupported completion language hold. Evidence spans stay private.
     """
+    daily = source_for(record["source_family"])
+    profile = profile_for_source(daily.family)
     need(type(reading) is dict and reading.get("passed_relevance") is True
          and reading.get("requires_translation") is False, "daily_analysis_incomplete")
     summary = reading.get("summary_english")
@@ -174,7 +177,7 @@ def quality_check(record, reading):
     need(" ".join(f["sentence"] for f in facts) == summary,
          "daily_summary_coverage_incomplete")
     source = record["title"] + "\n" + record["body"]
-    attribution = "AFP" if record["source_family"] == "ph_afp_articles" else "NSC"
+    attribution = daily.label
     flagged = reading.get("is_significant")
     flag_reason = reading.get("significance_reasoning") if flagged else ""
     need(type(flag_reason) is str and len((summary + " " + flag_reason).split()) <= 90,
@@ -190,16 +193,14 @@ def quality_check(record, reading):
         need(type(sentence) is str and type(evidence) is str
              and 20 <= len(evidence) <= 500 and evidence in source,
              "daily_evidence_not_in_original")
-        need(attribution in sentence or
-             ("Armed Forces of the Philippines" if attribution == "AFP" else
-              "National Security Council") in sentence, "daily_attribution_missing")
+        need(attribution in sentence or daily.publisher in sentence,
+             "daily_attribution_missing")
         numeric = r"(?<!\w)[+-]?\d+(?:[.,:/-]\d+)*(?:%)?"
         source_numbers = set(re.findall(numeric, evidence))
         for number in re.findall(numeric, sentence):
             need(number in source_numbers, "daily_quantity_or_date_unsupported")
         # Exact proper-name/office/rank components must occur in source evidence.
-        institutional_words = ({"Armed", "Forces", "Philippines"} if attribution == "AFP"
-                               else {"National", "Security", "Council"})
+        institutional_words = set(daily.publisher.split())
         for token in re.findall(r"\b[A-Z][A-Za-z'-]+\b", sentence):
             if token not in {"The", "According", "It", "This", attribution} | institutional_words:
                 need(token in evidence, "daily_name_or_office_unsupported")
@@ -222,7 +223,7 @@ def quality_check(record, reading):
                 need(" " + " ".join(original_words) + " " not in normalized,
                      "daily_original_sentence_prohibited")
     cats, flagged = reading.get("categories"), reading.get("is_significant")
-    need(type(cats) is list and cats and all(c in PHILIPPINES_PROFILE.categories for c in cats)
+    need(type(cats) is list and cats and all(c in profile.categories for c in cats)
          and type(flagged) is bool and (not flagged or
              (type(reading.get("significance_reasoning")) is str
               and reading["significance_reasoning"].strip())), "daily_analysis_incomplete")
@@ -230,8 +231,7 @@ def quality_check(record, reading):
         need(re.search(r"\b(?:South China Sea|West Philippine Sea)\b", source, re.I) is not None,
              "daily_topic_unsupported")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
-         and reading.get("prompt_version") in ("ph-relevance-v1+ph-analysis-v10",
-                                              "ph-relevance-v1+ph-analysis-v11"),
+         and reading.get("prompt_version") in daily.prompt_versions,
          "daily_model_provenance_incomplete")
     return digest({"source": record["content_sha256"], "facts": facts, "version": "ph-quality-v1"})
 
@@ -272,7 +272,8 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
     No originals are serialized. A new immutable version holds for review.
     """
     from analysis.analyzer import Analyzer, AnalysisError, FatalAPIError
-    need(family in REFS and all(type(r) is dict and r.get("source_family") == family for r in records),
+    source = source_for(family)
+    need(source is not None and all(type(r) is dict and r.get("source_family") == family for r in records),
          "daily_processing_source_family_mismatch")
     p = policy["sources"][family]
     result = json.loads(json.dumps(state))
@@ -286,6 +287,9 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
         version = digest({k: r[k] for k in ("metadata_version_sha256", "content_sha256",
                                            "capture_sha256")})
         prior = result.get(key, {})
+        if source.is_held_source(r):
+            result[key] = {**prior, "status": "held", "reason": "source_semantic_anomaly"}
+            continue
         if r["source_identity"] in p["excluded_source_identities"]:
             result[key] = {**prior, "status": "held", "reason": "owner_excluded_source_identity"}
             continue
@@ -294,7 +298,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
             continue
         if prior.get("status") == "complete" and p["private_model_processing"]:
             prior["output"]["policy_sha256"] = digest(p)
-        if prior.get("status") in ("complete", "not_selected", "paused", "held"):
+        if prior.get("status") in ("complete", "not_selected", "paused", "held", "terminal"):
             # Rights holds can resume automatically after an actual policy change.
             if not (prior.get("reason") == "model_rights_held" and p["private_model_processing"]):
                 continue
@@ -303,16 +307,10 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
         if not p["private_model_processing"]:
             entry.update(status="held", reason="model_rights_held")
             continue
-        if family == "ph_afp_articles" and not (
-                r.get("official_issuer") == r.get("official_publisher") == "ph_afp"
-                and r.get("official_republisher") is None):
-            entry.update(status="held", reason="source_rights_not_first_party")
+        hold = source.rights_hold(r) or source.release_hold()
+        if hold:
+            entry.update(status="held", reason=hold)
             continue
-        if family == "ph_nsc_official_statements":
-            from core.ph_nsc_official_link_admission import load_policy as nsc_policy
-            if not nsc_policy()["category_anomaly_resolved"]:
-                entry.update(status="held", reason="nsc_category_anomaly")
-                continue
         if not r["body"].strip() or len((r["title"] + r["body"]).encode("utf-8")) > p["max_input_characters"]:
             entry.update(status="held", reason="original_input_bound")
             continue
@@ -326,7 +324,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 bound_private_calls(analyzer, p)
         used += 1
         try:
-            reading = analyzer.analyze_record(r["title"], r["body"], PHILIPPINES_PROFILE)
+            reading = analyzer.analyze_record(r["title"], r["body"], profile_for_source(family))
             if reading_observer is not None:
                 reading_observer(r["source_identity"], reading)
             if reading and reading.get("passed_relevance") is False:
@@ -390,7 +388,8 @@ def sign_outputs(state, *, family, policy, key):
 
 def admit(conn, envelope, *, family, policy, key):
     """Atomic public admission; pinned policy and existing source metadata win."""
-    need(family in REFS and type(key) is str and len(key) >= 32 and type(envelope) is dict
+    source = source_for(family)
+    need(source is not None and type(key) is str and len(key) >= 32 and type(envelope) is dict
          and set(envelope) == {"packet", "mac"}, "daily_envelope_invalid")
     packet = envelope["packet"]
     need(type(packet) is dict, "daily_envelope_invalid")
@@ -409,11 +408,9 @@ def admit(conn, envelope, *, family, policy, key):
          "daily_envelope_source_mismatch")
     need(type(packet["processor_commit"]) is str and COMMIT.fullmatch(packet["processor_commit"]),
          "daily_processor_pin_invalid")
-    from core.indonesia_kemhan_release_validator import _is_ancestor
     need(_is_ancestor(ROOT, packet["processor_commit"], "HEAD"), "daily_processor_not_in_public_history")
-    if family == "ph_nsc_official_statements":
-        from core.ph_nsc_official_link_admission import load_policy as nsc_policy
-        need(nsc_policy()["category_anomaly_resolved"], "nsc_category_anomaly")
+    gate = source.release_hold()
+    need(gate is None, gate)
     from migrations.versions.m0015_daily_machine_records import is_already_applied
     need(is_already_applied(conn), "daily_migration_required")
     accepted, held = 0, []
@@ -448,6 +445,16 @@ def admit(conn, envelope, *, family, policy, key):
     return {"admitted": accepted, "holds": held}
 
 
+def _is_ancestor(repo, older, newer):
+    try:
+        return subprocess.run(
+            ["git", "-C", str(repo), "merge-base", "--is-ancestor", older, newer],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120,
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def resume(state, key):
     """Explicit reversible exception recovery; changed versions require review."""
     need(key in state and state[key].get("status") != "complete", "daily_resume_invalid")
@@ -458,9 +465,11 @@ def resume(state, key):
 
 
 def validate_output(r, family, p):
-    need(type(r) is dict and set(r) == set(PUBLIC_FIELDS)
+    source = source_for(family)
+    need(source is not None and type(r) is dict and set(r) == set(PUBLIC_FIELDS)
          and r["source_family"] == family and r["policy_sha256"] == digest(p),
          "daily_output_schema_or_policy_invalid")
+    need(not source.is_held_source(r), "daily_source_semantic_anomaly")
     need(r["source_identity"] not in p["excluded_source_identities"],
          "daily_owner_excluded_source_identity")
     need(all(type(r[k]) is str and SHA.fullmatch(r[k]) for k in (
@@ -472,9 +481,16 @@ def validate_output(r, family, p):
          and ((not r["model_flagged"] and r["flag_reason"] is None) or
               (r["model_flagged"] and type(r["flag_reason"]) is str and bool(r["flag_reason"].strip())))
          and type(r["categories"]) is list and r["categories"]
-         and all(type(c) is str and c in PHILIPPINES_PROFILE.categories for c in r["categories"])
+         and all(type(c) is str and c in profile_for_source(family).categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
-         and r["prompt_version"] in ("ph-relevance-v1+ph-analysis-v10",
-                                     "ph-relevance-v1+ph-analysis-v11"), "daily_output_incomplete")
+         and r["prompt_version"] in allowed_prompt_versions(family), "daily_output_incomplete")
+    hold = source.output_hold(r)
+    need(hold is None, hold)
     need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
          "daily_explanation_word_limit")
+
+
+def allowed_prompt_versions(family):
+    source = source_for(family)
+    need(source is not None, "daily_processing_source_family_mismatch")
+    return source.prompt_versions

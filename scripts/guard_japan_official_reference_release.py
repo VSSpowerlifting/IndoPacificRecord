@@ -38,15 +38,27 @@ class _JapanLinks(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.official_links = []
+        self.live_section_depth = 0
+        self.has_live_feed = False
 
     def handle_starttag(self, tag, attrs):
+        d = dict(attrs)
+        if tag == "section":
+            if self.live_section_depth or "regional-official-live-links" in d.get("class", "").split():
+                self.live_section_depth += 1
+                self.has_live_feed = True
+        if self.live_section_depth:
+            return  # Separately reconciled against admitted SQLite, below.
         if tag != "a":
             return
-        d = dict(attrs)
         href = d.get("href", "")
         if ((href.startswith(JCG_PREFIX) and href.endswith(".html"))
                 or (href.startswith(MOD_PREFIX) and href.endswith(".pdf"))):
             self.official_links.append((href, set((d.get("rel") or "").split())))
+
+    def handle_endtag(self, tag):
+        if tag == "section" and self.live_section_depth:
+            self.live_section_depth -= 1
 
 
 def validate_japan_release_html(html: str) -> list[str]:
@@ -64,6 +76,12 @@ def validate_japan_release_html(html: str) -> list[str]:
         if not {"noopener", "noreferrer"} <= rel:
             errors.append("Missing external-link protection: " + url)
     for phrase in REQUIRED_TEXT:
+        if p.has_live_feed:
+            phrase = {
+                "All Japan production records remain held": "Japan original-text production records remain held",
+                "Japan remains shadow-only; no production or model use is authorized":
+                    "The news-feed official-link metadata service is separate; original-text and model use remain held",
+            }.get(phrase, phrase)
         if phrase not in html:
             errors.append("Missing Japan release qualification: " + phrase)
     for forbidden in ("state/shadow.db", "text_original", "body_original",
@@ -80,6 +98,9 @@ def main(argv=None) -> int:
     try:
         html = args.page.read_text(encoding="utf-8")
         errors = validate_japan_release_html(html)
+        if not errors and 'regional-official-live-links' in html:
+            from scripts.verify_japan_mod_official_links import verify
+            verify(Path(__file__).resolve().parents[1] / "pla_watch.db", args.page)
     except (OSError, UnicodeDecodeError, ValueError) as exc:
         errors = [str(exc)]
     for error in errors:

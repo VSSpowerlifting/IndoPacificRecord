@@ -5,17 +5,24 @@ constraints every agent works under. Durable.
 
 ## 0. Documentation hierarchy
 
-An agent reads down this list and stops at the document that governs the change
-it is making. Do not restate one document's content inside another.
+Start with root `AGENTS.md`: the canonical instruction entrypoint and growth
+admission rule. Follow only the domain authority relevant to the assignment.
+`CLAUDE.md` adds Claude-specific operation, not a competing policy. Dated
+status and past roadmaps do not override real source restrictions or current
+owner decisions. Do not duplicate one document's rules inside another.
 
 | Document | Governs |
 |---|---|
+| `AGENTS.md` | canonical agent instructions, growth admission, stop/completion rules |
+| `CLAUDE.md` | Claude-specific implementation notes only |
 | `README.md` | public and contributor overview |
 | `PROJECT_STATE.md` | current operational snapshot and immediate handoff |
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
-| `docs/ARCHITECTURE_AND_PUBLISHING.md` | technical layer map, commands, publishing and deployment |
+| `docs/desks/README.md` | mandatory all-desk architecture and completion; overrides older generic desk procedures |
+| `docs/desks/MIGRATION.md` | existing integration boundaries and next bounded phase; verify current code |
+| `docs/ARCHITECTURE_AND_PUBLISHING.md` | existing technical layer map, commands, publishing and deployment |
 | `docs/AGENT_WORKFLOWS.md` (this file) | agent operating constraints and model routing |
-| `docs/ROADMAP.md` | dated plan; verify latest owner instructions |
+| `docs/ROADMAP.md` | active strategic sequence, not a dated status ledger |
 | `DECISION_LOG.md` | durable decisions that constrain future work |
 | Git history | superseded state and incident history |
 
@@ -74,25 +81,35 @@ architecture.
   and name the authoritative source — the database, the ledger, the registry,
   the workflow file, or Git history.
 
-## 1a. Efficient complete-desk implementation
+## 1a. Mandatory shared desk implementation
 
-Use the October 18 integrated acceptance and risk-based CI rules in
-`docs/engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md` rather than creating
-another checklist. Start with direct official publisher records and preserved
-originals, actual review/rights decisions, GitHub run attempts and real
-SQLite/site output. Reconcile one eligible record end to end; verify relevant
-failure, duplicate/revision, unsafe-write and recovery behavior with existing
-tests, and distinguish configured, rehearsed and live-scheduled operation.
+Every Codex/Claude session, project agent and assigned private companion follows
+`docs/desks/README.md` for China, Singapore, Korea, Philippines, Indonesia,
+Vietnam, Japan, the US reference desk and future sources. It replaces divergent
+country lifecycle plans. Root `AGENTS.md` and `CLAUDE.md` are durable tracked
+coding memory; stale local memories, chat recaps and historical plans cannot
+reinstate superseded launch waits or competing pipelines.
 
-Use relevant tools selectively: targeted Git/rg/Python/SQLite, connected
-GitHub, primary-source retrieval and authorized browser readback. Avoid
-scanning unrelated files, spawning needless agents, repeated full suites,
-duplicated authentication frameworks or serial preparation PRs. Separate
-worktrees and shared-file owners. Complete one assigned desk without widening
-its agreed source contract. Hand back one coherent review PR (and only if
-necessary a private companion), exact real evidence and one precise external
-blocker. Never invent human approval, full-text reuse permission or live
-publication from a successful test.
+Start with the relevant current-code row in `docs/desks/MIGRATION.md` and one
+bounded task using `docs/desks/CHANGE_TEMPLATE.md`. Reuse shared mechanisms,
+keep genuine source checks as extensions, route real callers, and retire the
+replaced active path when parity is proved. One logical record has optional
+permitted components; private originals do not become public by normalization.
+Do not add unused registries, duplicate signing/queue engines, country renderers,
+per-record owner rituals, new qualification programs or another monitor when an
+existing signal suffices.
+
+Separate qualification, ingestion and delivery in the implemented design; preserve
+current CI until the trusted replacement exists. Use fixed evidence/isolated DBs,
+focused development checks and required final-revision CI. A growing valid corpus
+must not break the next run. Rights, unsafe writes, version/dedup and spend remain
+negative-test boundaries. No repeated paid generation of accepted outputs.
+
+Distinguish policy, implementation, CI, merge, deploy and verified live operation.
+Stop at the assigned phase: one reviewable implementation and an essential private
+companion only where needed, or an authorized verified release. No unrelated
+features, fixes or release follow-on. Record SHA/PR, checks, removed path and exact
+next action in repository state; use a fresh session for a substantial next phase.
 
 ## 2. Skills
 

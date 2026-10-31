@@ -259,17 +259,31 @@ class TestSingaporeRunsThroughTheDailyPipeline(unittest.TestCase):
         from unittest import mock
         from tests.integration.test_pipeline_run import scraper_factory
         analyzer = fake_analyzer(client)
-        with mock.patch.object(self.case.pipeline, "ANTHROPIC_API_KEY", "test-key"), \
-                mock.patch("analysis.analyzer.Analyzer", return_value=analyzer), \
-                self.assertLogs("pipeline", level="INFO") as logs:
-            try:
-                self.case.run_pipeline(
-                    {"china_mil_online": scraper_factory(urls=[])},
-                    no_analysis=False)
-            except SystemExit as exc:
-                self.assertEqual(exc.code, exit_code)
-            else:
-                self.assertIsNone(exit_code)
+        import sys
+        from functools import partial
+        from core import dossiers
+        # The renderer imports a fresh module each run. Give its real dossier
+        # loader an empty fixture collection: this tiny DB has no live sources.
+        actual_loader = dossiers.load_dossiers
+        dossier_loader = partial(actual_loader, source_dir=self.case.tmp / "dossiers")
+        try:
+            with mock.patch.object(dossiers, "load_dossiers", side_effect=dossier_loader), \
+                    mock.patch.object(self.case.pipeline, "ANTHROPIC_API_KEY", "test-key"), \
+                    mock.patch("analysis.analyzer.Analyzer", return_value=analyzer), \
+                    self.assertLogs("pipeline", level="INFO") as logs:
+                try:
+                    self.case.run_pipeline(
+                        {"china_mil_online": scraper_factory(urls=[])},
+                        no_analysis=False)
+                except SystemExit as exc:
+                    self.assertEqual(exc.code, exit_code)
+                else:
+                    self.assertIsNone(exit_code)
+        finally:
+            # Do not leave the fixture binding in the newly imported renderer.
+            preview = sys.modules.get("generate_preview")
+            if preview is not None:
+                preview.load_dossiers = actual_loader
         return "\n".join(logs.output)
 
     def rows(self):
@@ -283,73 +297,25 @@ class TestSingaporeRunsThroughTheDailyPipeline(unittest.TestCase):
         finally:
             con.close()
 
-    def test_a_pass_is_summarised_in_english_and_a_reject_is_recorded(self):
+    def test_two_link_grant_does_not_authorize_backlog_processing(self):
         self.seed([SG[4466], SG[4631]])
+        before = self.rows()
         client = DeskClient(self.profile, {SG[4466]["title_original"]: 0.92,
-                                           SG[4631]["title_original"]: 0.10},
-                            SUMMARY)
+                                           SG[4631]["title_original"]: 0.10}, SUMMARY)
         log = self.run_with(client)
-        self.assertNotIn("Held out of the daily analysis queue", log)
-        self.assertIn("0/0 new + 2/2 backlog", log)
+        self.assertIn("Held out of the daily analysis queue", log)
+        self.assertEqual(client.calls, [])
+        self.assertEqual(before, self.rows())
 
-        # Two relevance calls on the desk rubric and one analysis call: no
-        # China prompt, no translation, no category call.
-        systems = [c["system"][0]["text"] for c in client.calls]
-        self.assertEqual(sorted(systems), sorted([
-            self.profile.system_prompt, self.profile.system_prompt,
-            self.profile.analysis_system_prompt]))
-        analysis = [c for c in client.calls
-                    if c["system"][0]["text"] == self.profile.analysis_system_prompt]
-        self.assertEqual(analysis[0]["messages"], self.profile.build_analysis_messages(
-            SG[4466]["title_original"], SG[4466]["text_original"]))
-
-        rows = self.rows()
-        passed, rejected = rows[SG[4466]["url"]], rows[SG[4631]["url"]]
-        self.assertEqual(passed["passed_relevance"], 1)
-        self.assertIsNotNone(passed["analyzed_at"])
-        self.assertIsNone(passed["title_english"])
-        self.assertIsNone(passed["text_english"])
-        self.assertEqual(passed["summary_english"],
-                         json.loads(SUMMARY)["summary"])
-        self.assertEqual(passed["is_significant"], 0)
-        self.assertIsNone(passed["significance_reasoning"])
-        self.assertEqual(passed["prompt_version"], "sg-relevance-v1+sg-analysis-v1")
-        self.assertEqual(passed["n_categories"], 0)
-        self.assertEqual(rejected["passed_relevance"], 0)
-        self.assertIsNone(rejected["analyzed_at"])
-        self.assertIsNone(rejected["summary_english"])
-
-    def test_a_failed_analysis_writes_nothing_and_is_retried_once(self):
+    def test_rights_hold_retries_never_spend_or_reset_source_history(self):
         self.seed([SG[4466]])
-        bad = DeskClient(self.profile, {SG[4466]["title_original"]: 0.92},
-                         json.dumps({"summary": "", "flag": False}))
-        # A run whose whole queue fails analysis exits non-zero and writes no
-        # success marker, so a later cron window retries it.
-        log = self.run_with(bad, exit_code=2)
-        self.assertIn("passed relevance but produced no summary", log)
-        self.assertIn("FATAL: 1 article(s) passed relevance but none produced", log)
-        row = self.rows()[SG[4466]["url"]]
-        self.assertEqual(row["passed_relevance"], 1)
-        self.assertIsNone(row["analyzed_at"])
-        self.assertIsNone(row["summary_english"])
-
-        # The next run takes it as pending analysis and completes it.
-        good = DeskClient(self.profile, {SG[4466]["title_original"]: 0.92},
-                          SUMMARY)
-        log = self.run_with(good)
-        self.assertIn("0/0 new + 1/1 backlog", log)
-        rows = self.rows()
-        self.assertEqual(len(rows), 1)
-        row = rows[SG[4466]["url"]]
-        self.assertIsNotNone(row["analyzed_at"])
-        self.assertEqual(row["summary_english"], json.loads(SUMMARY)["summary"])
-
-        # A third run has nothing left to do for it.
-        idle = DeskClient(self.profile, {}, SUMMARY)
-        self.run_with(idle)
-        self.assertEqual(idle.calls, [])
-        self.assertEqual(self.rows()[SG[4466]["url"]]["analyzed_at"],
-                         row["analyzed_at"])
+        before = self.rows()
+        for reply in (json.dumps({"summary": "", "flag": False}), SUMMARY, SUMMARY):
+            client = DeskClient(self.profile, {SG[4466]["title_original"]: 0.92}, reply)
+            log = self.run_with(client)
+            self.assertIn("Held out of the daily analysis queue", log)
+            self.assertEqual(client.calls, [])
+            self.assertEqual(self.rows(), before)
 
     def test_a_desk_without_its_own_analysis_is_still_held(self):
         # Singapore as it stood before its analysis path: the run re-syncs

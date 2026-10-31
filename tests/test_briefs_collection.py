@@ -63,6 +63,8 @@ def real_brief(sidecar: dict) -> dict:
 
 
 def build(out: Path, **kw) -> dict:
+    # Synthetic Brief collections do not include the live dossier's related Brief.
+    kw.setdefault("dossiers_dir", out.parent / "no-dossiers")
     return gp.build(out, gp.PUBLIC_TITLE, TRACKED_DB,
                     snapshot=gp.snapshot_from_corpus(TRACKED_DB), **kw)
 
@@ -690,8 +692,10 @@ class TestSiteBuild(unittest.TestCase):
         self.assertIn("Latest Brief · No. %d" % lead["issue"], head)
         self.assertIn('href="%s"' % lead["url"], head)
         self.assertIn("Read this Brief", head)
-        # Where it was first published is a secondary line, not the heading.
-        self.assertIn("From the former series The PLA Watch", head)
+        # The lead uses a neutral reader-facing label; original attribution is
+        # preserved separately in the immutable edition and citation records.
+        self.assertIn("Earlier Brief", head)
+        self.assertNotIn("From the former series", head)
         h1 = re.search(r"<h1[^>]*>(.*?)</h1>", head, re.S).group(1)
         self.assertEqual(h1.strip(), "Indo-Pacific Record Briefs")
 
@@ -727,19 +731,20 @@ class TestSiteBuild(unittest.TestCase):
         self.assertIn("Newest reporting window first.",
                       self.flat(catalog))
 
-    def test_the_catalog_is_newest_first_and_carries_each_issues_provenance(self):
+    def test_the_catalog_is_newest_first_and_keeps_original_editions(self):
         html = self.page("plain", "analysis.html")
         catalog = html[html.index('id="briefs-published"'):
                        html.index('id="briefs-method"')]
         numbers = [int(n) for n in re.findall(r'class="issue-no">No\. (\d+)<',
                                               catalog)]
+        editions = gp.load_editions(REPO_ROOT)
         self.assertEqual(numbers, sorted(numbers, reverse=True))
-        self.assertEqual(numbers, [e["issue"]
-                                   for e in gp.load_editions(REPO_ROOT)])
-        for e in gp.load_editions(REPO_ROOT):
-            expected = bc.provenance(e)
-            self.assertTrue(expected.startswith("From the former series "))
-            self.assertIn(expected, catalog)
+        self.assertEqual(numbers, [e["issue"] for e in editions])
+        self.assertEqual(catalog.count('<p class="meta">Earlier Brief</p>'), len(editions))
+        for e in editions:
+            self.assertIn('href="%s"' % e["url"], catalog)
+            self.assertIn(e["title"], catalog.replace("&#39;", "'"))
+        self.assertNotIn("From the former series", catalog)
 
     def test_the_operational_tables_stay_below_the_catalog_and_the_key(self):
         html = self.page("plain", "analysis.html")
@@ -762,7 +767,8 @@ class TestSiteBuild(unittest.TestCase):
         self.assertIn("No. %d" % lead["issue"], band)
         self.assertIn('href="%s"' % lead["url"], band)
         self.assertIn("Read this Brief", band)
-        self.assertIn("From the former series The PLA Watch", band)
+        self.assertIn("Earlier Brief", band)
+        self.assertNotIn("From the former series", band)
         for claim in ('class="band-archive"', "Legacy archive",
                       "Browse the archive", "<svg", 'class="plate',
                       "Read this edition", 'href="pla-watch.html"'):
@@ -821,22 +827,20 @@ class TestSiteBuild(unittest.TestCase):
             self.assertNotIn(claim, text)
 
     def test_the_old_series_route_is_a_compatibility_bridge_only(self):
-        # `pla-watch.html` stays because inbound links to it are established
-        # and its citation anchors are cited. It is not a second collection: it
-        # says the issues are now Briefs, sends readers to Analysis, and lists
-        # no issue of its own.
+        # Retain inbound link targets and original citations without presenting
+        # another active brand or a second publication catalog.
         html = self.page("plain", "pla-watch.html")
         text = self.flat(html)
-        self.assertIn("The PLA Watch is now part of Indo-Pacific Record Briefs",
-                      text)
+        self.assertIn("Earlier Briefs", text)
         self.assertIn('href="analysis.html"', html)
         self.assertIn("Read the Briefs", html)
         self.assertNotIn('<table', html)
+        self.assertNotIn("China Mil Watch", html.split('<details class="ed-cite')[0])
         for e in gp.load_editions(REPO_ROOT):
             self.assertNotIn('href="%s"' % e["url"], html)
+            self.assertIn('id="cite-edition-%s"' % e["slug"], html)
         for claim in ("Analysis archive", "This page is an archive of those issues",
-                      "The series continues", "Continuing", "in development",
-                      "Earlier Briefs"):
+                      "The series continues", "Continuing", "in development"):
             with self.subTest(claim=claim):
                 self.assertNotIn(claim, text)
 

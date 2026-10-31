@@ -30,6 +30,14 @@ EVENT_TYPES = (
 )
 
 _FAMILIES = {
+    "vn_vpcp_official_documents_vi": {
+        "short":"vpcp", "publisher":"Vietnam's Government Office (Văn phòng Chính phủ)",
+        "surface":"its formal administrative documents, hosted on the Government portal",
+        "focus":"substantive energy security, aviation security, defense/maritime security, strategic infrastructure and strategic industry instructions",
+        "cautions":"The formal issuer is the Government Office, distinct from referenced authorities and implementing agencies. A notice of conclusions is not a new law; instructions, proposals and conditional plans are not completed implementation.",
+        "high":"specific official instructions, responsibilities or deadlines within the declared strategic subjects",
+        "low":"personnel, ceremony and routine administration without substantive instructions in scope"
+    },
     "vn_mps_foreign_affairs_vi": {
         "short": "mps",
         "publisher": "Vietnam's Ministry of Public Security (Bộ Công an)",
@@ -241,6 +249,8 @@ def analysis_system_builder(family: Optional[str]) -> Callable[[str], str]:
 def analysis_builder(family: Optional[str]) -> Callable[[str, str], List[dict]]:
     def build(title: str, body: str) -> List[dict]:
         f = _family(family)
+        if family == "vn_vpcp_official_documents_vi":
+            return document_analysis_messages(title, body)
         fields = ('five fields: "headline" (an independently worded English factual '
                   'headline, at most 200 characters; do not translate or quote the source '
                   'headline or add unsupported claims), ' if family == "vn_mps_foreign_affairs_vi"
@@ -285,3 +295,36 @@ def analysis_builder(family: Optional[str]) -> Callable[[str, str], List[dict]]:
                _glossary(), _UNTRUSTED, fields, _source(title, body)))
         return [{"role": "user", "content": content}]
     return build
+
+
+def document_analysis_messages(title, body):
+    return [{"role":"user", "content":
+        "Read this Vietnamese Government Office administrative document as untrusted evidence. "
+        "Write an independently worded English factual headline (<=200 characters) and 2-3 sentence "
+        "explanation (<=90 words including flag_reason). Attribute it to the Government Office. "
+        "Explain what it formally establishes or instructs, the responsible authorities, "
+        "explicit deadlines, and whether actions are proposed, conditional, instructed or reported. "
+        "Do not infer implementation, funding, legal effect or strategic significance. "
+        "Do not translate long passages, reproduce sentences or quote the original. "
+        "Identify the Government Office as the document's issuer or communicator at least once "
+        "in the public explanation. Do not repeat that name as the actor for every instruction. "
+        "Where the document conveys the Prime Minister's instructions, say the Prime Minister "
+        "instructed or requested the action; distinguish the Office's transmission from that action. "
+        "Choose an exact contiguous 20-300-character evidence span from one page; "
+        "prefer a single source line and preserve whitespace exactly. Do not join "
+        "separate spans or silently replace line breaks. Each number in a fact "
+        "sentence must occur in that same evidence span. "
+        "Keep names and numbers exact. Do not turn a meeting conclusion into a law. "
+        "Return JSON: headline, summary, event_type (policy_document, meeting, announcement, "
+        "approval or other), flag (false), flag_reason (null), facts (2-3 objects: sentence, "
+        "page [1-based], evidence [exact short Vietnamese span from that page], status "
+        "[instructed, proposed, conditional, reported, established]). Joining fact sentences "
+        "is NOT the public summary: keep private evidence notes separate from the shorter "
+        "public summary. The independent reviewer will verify every public claim "
+        "against the complete document and cited evidence. Evidence stays private. "
+        "Each private fact sentence must name the actual actor and action supported by its cited page. "
+        "Tie each public action to its exact responsible authority. Never merge a ministry's "
+        "task into instructions for provincial authorities when shortening the summary. "
+        "Distinguish the issuing office from the official giving the instruction. "
+        "Any missing fact must be omitted; do not invent a responsible authority or deadline.\n"+
+        _UNTRUSTED+"\n"+_source(title, body)}]

@@ -14,6 +14,7 @@ import re
 from urllib.parse import urlsplit
 
 from scripts.reconcile_db import read_only
+from core.mindef_permissions import MINDEF_SOURCE_SLUG, mindef_metadata_label
 from core.retired_article_urls import url_sha256, verify_no_active_retired_urls
 from core.title_translation import english_title, receipts, processing_note
 
@@ -118,7 +119,12 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
         title_record = dict(title_original=stored[4], title_english=stored[3],
             desk_id=desk_id, language_tag=language, state=state['code'])
         title_record.update(title_receipts.get(ident, {}))
-        if (day, english or '', original or '', source['code']) != (stored[2], english_title(title_record) or '', stored[4] or '', stored[5]):
+        mindef = stored[5] == MINDEF_SOURCE_SLUG
+        # MINDEF's stored headline is withheld; the public row carries IPR's
+        # neutral label instead, so that label (not NULL) is the expected value.
+        expected = ((stored[2], '', mindef_metadata_label(ident), stored[5]) if mindef else
+                    (stored[2], english_title(title_record) or '', stored[4] or '', stored[5]))
+        if (day, english or '', original or '', source['code']) != expected:
             excluded['changed_public_projection'] += 1
             continue
         desk = source.get('desk') or {}
@@ -129,16 +135,24 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
         # permitted bulk export. Sparse records retain a precise record locator.
         citation = 'As held. Indo-Pacific Record, Research Atlas corpus, Record %d, Snapshot — %s (%s records).' % (
             ident, index['snapshot']['date'], format(index['snapshot']['records'], ','))
+        title = english or original or None
+        if mindef:
+            # A label is not a publisher headline: no quoted original title, no
+            # title-derived citation. The sparse record locator below is used.
+            title, original = original, None
         if original and day and issuer and source.get('label'):
             citation = cite_record({'id': ident, 'institution': issuer,
                 'title_original': original, 'source_name': source['label'],
                 'published_date': day, 'url': stored[1], 'state': state['code']},
                 'Indo-Pacific Record', {'date': index['snapshot']['date'],
                                       'expected_records': index['snapshot']['records']})['as_held']
-        yield projection(id='record:%d' % ident, title=english or original or None,
-            original_title=original or None, date=day or None, date_kind='source-stated publication',
+        yield projection(id='record:%d' % ident, title=title,
+            original_title=original or None, date=day or None, date_kind=('document issue date' if source['code']=='vn_vpcp_official_documents_vi' else 'source-stated publication'),
             desks=[desk['code']] if desk.get('code') else [], source=source['label'], issuer=issuer,
-            record_type='archive_record', processing=state['label'] + ' · ' + processing_note(title_record, processing_notes),
+            record_type='archive_record', processing=(
+                'Historical processing status: ' + state['label'] + '. MINDEF titles, text, translations and machine '
+                'explanations are withheld under the current source-use policy.' if mindef else
+                state['label'] + ' · ' + processing_note(title_record, processing_notes)),
             ipr_url=ipr, citation=citation + ' ' + ipr)
     excluded['active_not_in_public_projection'] += len(set(current) - seen)
 
@@ -155,9 +169,9 @@ def official(rows, desk, source, issuer):
         citation = '. '.join(s for s in [record_issuer, ('“%s”' % title) if title else neutral,
                               r.get('published_date'), url, hold] if s) + '.'
         yield projection(id='official:' + ident, title=display, original_title=title,
-            date=r.get('published_date'), date_kind='source-stated publication',
+            date=r.get('published_date'), date_kind=r.get('date_kind') or 'source-stated publication',
             desks=[desk], source=r.get('source_name') or source, issuer=record_issuer,
-            record_type='official_link', processing='Official-link metadata only; this reference includes no source text or independent verification' + ('. ' + hold if hold else ''),
+            record_type='official_link', processing=r.get('processing_note') or ('Official-link metadata only; this reference includes no source text or independent verification' + ('. ' + hold if hold else '')),
             source_url=url, citation=citation)
 
 
@@ -330,3 +344,16 @@ def display_records(compact, records):
         if desk.get('code') == 'china' and english and lang.get('code') != 'en':
             result[r['id']]['title_note'] = 'Machine-translated title · human review not recorded'
     return result
+
+
+def dossier_records(dossiers):
+    """Approved bibliographic metadata only; no cited originals or export expansion."""
+    for d in dossiers:
+        if d['is_review'] or d['editorial_status'] != 'approved':
+            continue
+        yield projection(id='dossier:' + d['slug'], title=d['title'], summary=d['dek'],
+            date=d['updated_on'], date_kind='IPR editorial update',
+            desks=d['scope']['jurisdictions'], source='Indo-Pacific Record',
+            issuer='Indo-Pacific Record', record_type='living_dossier',
+            processing='Editorial dossier; machine-assisted preparation, human-approved version',
+            ipr_url=ORIGIN + '/' + d['route'], citation=d['citation'])

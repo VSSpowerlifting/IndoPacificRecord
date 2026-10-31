@@ -333,6 +333,8 @@ class ProductionIsolationTests(unittest.TestCase):
 
 
 def _production_build(out, **options):
+    # This helper exercises synthetic Brief/Timeline collections.
+    options.setdefault("dossiers_dir", out.parent / "no-dossiers")
     sys.path.insert(0, str(PREVIEW))
     import generate_preview as gp
     gp.build(out, gp.PUBLIC_TITLE, TRACKED_DB,
@@ -352,13 +354,20 @@ class ProductionAssetTests(unittest.TestCase):
     def setUpClass(cls):
         if not TRACKED_DB.exists():
             raise unittest.SkipTest("production database not present")
-        from tests.test_timelines import approve_fixture
+        from tests.test_timelines import approve_fixture, pilot_without_mindef_evidence
         from tests.brief_fixtures import FIXTURE_SLUG, stage
+        # The real pilot cites withheld MINDEF records and is held by the rights
+        # boundary (tests.test_timelines.PilotIsHeldByRightsBoundary). This
+        # layout test runs under an explicit synthetic rights authority on a
+        # fixture derived from the pilot minus those citations.
+        rights = mock.patch("core.mindef_public_boundary.editorial_hold", return_value=False)
+        rights.start()
+        cls.addClassCleanup(rights.stop)
         cls.tmp = Path(tempfile.mkdtemp(prefix="relief-production-"))
         briefs = stage(cls.tmp)
         sources = cls.tmp / "timelines"
         sources.mkdir()
-        sc = json.loads((REPO_ROOT / "timelines/maritime-cooperation-2026.json").read_text(encoding="utf-8"))
+        sc = pilot_without_mindef_evidence()
         sc["editor_name"] = "Fixture editor"
         sc["related_briefs"] = [FIXTURE_SLUG]
         approve_fixture(sc)

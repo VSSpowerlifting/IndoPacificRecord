@@ -1,5 +1,13 @@
 # Shadow checkpoint reviews
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 **Current policy (18 October 2026):** This is the procedure for preserving
 historical Day-7/14/30 qualification packets and separately requested human
 source reviews. Its former fixed-calendar prelaunch requirement is superseded

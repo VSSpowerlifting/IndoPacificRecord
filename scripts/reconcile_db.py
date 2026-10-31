@@ -384,6 +384,75 @@ def _has_table(con, schema, table):
     return row is not None
 
 
+def merge_government_document_metadata(con):
+    """Preserve this source's immutable evidence and three-way link changes.
+
+    Daily may rebase over an unrelated DB writer. Never silently discard its
+    collection, resurrect a withdrawn link, or overwrite a concurrent revision.
+    Other source families retain their existing reconciliation behavior.
+    """
+    family = "vn_vpcp_official_documents_vi"
+    for table, keys in (("official_document_versions", ("source_family", "source_identity", "metadata_sha256")),
+                        ("official_document_collection_runs", ("source_family", "source_run"))):
+        if not _has_table(con, "loc", table):
+            continue
+        cols = [r[1] for r in con.execute("PRAGMA main.table_info(" + table + ")")]
+        local_cols = [r[1] for r in con.execute("PRAGMA loc.table_info(" + table + ")")]
+        if cols != local_cols:
+            raise ValueError("government_document_schema_conflict")
+        where = " AND ".join(k + "=?" for k in keys)
+        for row in con.execute("SELECT * FROM loc." + table + " WHERE source_family=?", (family,)).fetchall():
+            key = [row[k] for k in keys]
+            old = con.execute("SELECT * FROM main." + table + " WHERE " + where, key).fetchone()
+            if old is not None and tuple(old) != tuple(row):
+                raise ValueError("government_document_evidence_conflict")
+            if old is None:
+                con.execute("INSERT INTO " + table + " VALUES (" + ",".join("?" for _ in cols) + ")", tuple(row))
+    table = "regional_official_source_links"
+    def rows(schema):
+        if not _has_table(con, schema, table):
+            return {}
+        return {r["source_identity"]: tuple(r) for r in con.execute(
+            "SELECT * FROM " + schema + "." + table + " WHERE source_family=?", (family,))}
+    base, local, origin = rows("bse"), rows("loc"), rows("main")
+    for ident in set(base) | set(local):
+        before, after, remote = base.get(ident), local.get(ident), origin.get(ident)
+        if after == before or after == remote:
+            continue
+        if remote != before:
+            raise ValueError("government_document_projection_conflict")
+        con.execute("DELETE FROM " + table + " WHERE source_family=? AND source_identity=?", (family, ident))
+        if after is not None:
+            con.execute("INSERT INTO " + table + " VALUES (" + ",".join("?" for _ in after) + ")", after)
+
+
+def merge_japan_official_links(con):
+    """Retain immutable Japan metadata when Daily rebases over another desk.
+
+    This family has one writer and no update/delete operation. Concurrent
+    changes to an existing released identity require review, never overwrite.
+    """
+    table, family = "regional_official_source_links", "jp_mod_news_ja"
+    def rows(schema):
+        if not _has_table(con, schema, table):
+            return {}
+        return {r["source_identity"]: tuple(r) for r in con.execute(
+            "SELECT * FROM " + schema + "." + table + " WHERE source_family=?", (family,))}
+    base, local, origin = rows("bse"), rows("loc"), rows("main")
+    for ident, row in local.items():
+        if ident in base and row != base[ident]:
+            raise ValueError("japan_released_metadata_changed")
+        if ident in origin:
+            if row != origin[ident]:
+                raise ValueError("japan_released_metadata_conflict")
+        elif ident in base:
+            raise ValueError("japan_released_metadata_removed")
+        else:
+            con.execute("INSERT INTO " + table + " VALUES (" + ",".join("?" for _ in row) + ")", row)
+    if set(base) - set(local):
+        raise ValueError("japan_released_metadata_removed")
+
+
 def normalize_schema(out_path):
     """
     Bring the output copy to the current schema BEFORE any row is merged.
@@ -788,6 +857,9 @@ def reconcile(base_path, origin_path, local_path, out_path):
             )
         report["source_results_expected"] = len(expected)
         report["source_results_from_origin"] = len(origin_keys)
+
+    merge_government_document_metadata(con)
+    merge_japan_official_links(con)
 
     # Shared machine explanations use stable source identities, never numeric
     # article IDs. Preserve local admissions across Daily's normal main rebase.

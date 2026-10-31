@@ -1,5 +1,13 @@
 # Indonesia Desk — private evidence to governed production (18 October 2026)
 
+> **Desk architecture/process supersession — 30 October 2026:** the
+> [mandatory shared desk standard](../desks/README.md) governs every current and future
+> desk. This document's older common architecture, onboarding order and launch
+> clocks do not override it. Source-specific decisions, restrictions, real
+> evidence and still-used commands remain valid in their actual scope. This
+> notice does not claim runtime migration, change permissions or activate a source.
+
+
 This connects the existing private Kemhan collection to the existing regional
 official-link admission, desk renderer and Pages path. It adds no collector,
 database, permission framework or publication system.
@@ -202,6 +210,65 @@ partial batches, robots timeout, over-cap windows) are already covered in
    * variable `KEMHAN_METADATA_BRIDGE_ENABLED=true` in both repositories.
 
    Then merge the private PR.
+
+## Steady state after the first private release (25 October 2026)
+
+A rehearsal of the real private tip `d8859b5` (49 eligible, production 34)
+found that the lane could publish once and then stop. `admit()` requires every
+stored Kemhan row to be in the packet it is admitting, and the workflow always
+admits the frozen public packet (34 rows) first. After the envelope released
+the 15 newer rows, the 19:43 UTC retry (frozen only) and every later envelope
+dispatch would HOLD `previously_released_source_missing_or_changed`.
+
+`admit_validated(..., frozen_first=True)` now lets the **frozen baseline
+packet only** step aside when every row it approves is already stored exactly
+as approved and later released rows exist. "Exactly as approved" includes the
+stored original Git commit and metadata version digest (equal to the pinned frozen
+packet's, never to a later snapshot) and a single well-formed shared proof digest;
+`release_scope` is pinned by a schema CHECK. An altered provenance column HOLDs. It never inserts, so original
+frozen provenance is kept. A missing or altered frozen row, or any later packet
+(envelope) that omits or changes a released row, still HOLDs, and the shared
+`admit()` is unchanged (Philippines and Vietnam unaffected). Rows beyond the
+frozen cohort are re-verified at each envelope, not by the frozen-only retry.
+
+Real-data rehearsal on a copy of production `pla_watch.db` (private
+`d8859b5`, scratch key): frozen + envelope admits 15 new / 34 unchanged
+(49 rows, 34 keep the frozen commit, 15 the private commit); frozen-only
+retry and a repeated envelope leave the file byte-identical; a forged MAC and a
+wrong key HOLD with the file untouched; Yonif TP 880 absent; other desks'
+rows unchanged; the rendered page equals the 49 SQLite rows.
+
+Known limit: the validator rejects envelopes over 48 KiB (about 150 bytes per
+record, so roughly 320 records) and fails closed, ahead of the shared reader's
+300-record cap (about February 2027).
+
+**Activation order.** (1) Merge the public PR carrying this change (its
+push-triggered run replays the frozen history; no data change). (2) Set the
+same random `KEMHAN_BRIDGE_KEY` secret (at least 32 random bytes; a shorter key HOLDs)
+in both repositories. (3) Set
+`KEMHAN_METADATA_BRIDGE_ENABLED=true` in both. (4) Merge private PR #17.
+Activating before step 1 reproduces the single-publication failure above.
+
+**26 October review refresh (PR #877).** Integrated main `1c204352da` without
+changing shared admission or the separately owned PR CI timeout workflow.
+Main already carries the Vietnam source-use/HTML-escaping assertion repairs
+that failed in the prior #877 run `40241230490`; those changes are reused.
+The regression cycle now admits the baseline separately, admits and retries a
+signed private envelope, then adds another record through a later signed
+envelope while retaining frozen provenance. Missing frozen rows, omitted or
+changed released private rows in valid signed envelopes, and forged
+authentication after release all leave the test database unchanged. Existing
+Yonif, atomic rollback, concurrent-writer and unrelated-desk checks remain.
+These are offline Git/SQLite tests, not new live-operation evidence; the
+49-row real-data rehearsal above is the earlier 25 October result.
+
+Read-only activation check: private PR #17 is still open at `5b45d521c3`;
+the bridge key and enabling variable are absent in both repositories. The
+private dispatch-token secret name exists, but its validity/scope was not
+tested. Private scheduled collector run `40406030668` succeeded. No production
+database, generated output, credential, variable or workflow activation was
+changed. Final-head required-check and isolated-render results are recorded in
+the PR description; this review does not authorize merge or activation.
 
 ## Scope: this is the official-link lane, not the whole desk
 

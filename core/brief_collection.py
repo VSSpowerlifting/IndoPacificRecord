@@ -235,6 +235,10 @@ def load_briefs(briefs_dir: Optional[Path], registry, *,
             problems.append("%s: editorial_status must be %r or %r"
                             % (path.name, STATUS_DRAFT, STATUS_APPROVED))
             continue
+        from core.mindef_public_boundary import editorial_hold
+        if editorial_hold(sidecar):
+            withheld.append(slug)
+            continue
         # A real brief is held to the whole contract, including the refusal of
         # any number while an existing issue is unreconciled and of a number an
         # existing issue holds. Only a fixture, and only here, where the caller

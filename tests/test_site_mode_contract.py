@@ -329,14 +329,15 @@ class TestCandidateBuild(unittest.TestCase):
             self.assertIn('href="../record/%s.html"' % rec_id,
                           stub.read_text(encoding="utf-8"))
 
-    def test_china_and_singapore_are_the_collecting_desks_in_the_build(self):
+    def test_the_registry_collecting_desks_are_linked_from_home(self):
         html = (self.out / "desks.html").read_text(encoding="utf-8")
         self.assertIn("Live — collecting", html)
         self.assertIn("Access blocked — not collecting", html)
         from bs4 import BeautifulSoup
         home = BeautifulSoup((self.out / "index.html").read_text(encoding="utf-8"), "html.parser")
+        from core.desk_registry import load_registry
         self.assertEqual({a.get("href") for a in home.select(".home-desk-list a")},
-                         {"china.html", "singapore.html"})
+                         {d.route for d in load_registry().entries if d.is_collecting})
 
     def test_japan_renders_with_no_admitted_corpus_records(self):
         html = (self.out / "japan.html").read_text(encoding="utf-8")

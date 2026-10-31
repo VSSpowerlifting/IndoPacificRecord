@@ -53,6 +53,8 @@ def build(db_path: Path, site_path: Path) -> dict:
                       a.relevance_score DESC, a.id
         """).fetchall()
         for row in rows:
+            if row["source_slug"] == "sg_mindef_releases":
+                continue  # No MINDEF machine/source expression in public exports.
             aid=row["id"]
             if aid not in allowed:
                 raise ValueError("analyzed article absent from reduced corpus index")

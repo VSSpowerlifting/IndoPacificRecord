@@ -39,7 +39,9 @@ class PhilippinesPublisherEntrypointTests(DeskCase):
             self.assertIn('href="' + url + '" rel="noopener noreferrer"', html)
         self.assertEqual(html.count("Open official publisher index"), 2)
         self.assertIn("external institution pages, not IPR-reviewed individual publications", html)
-        self.assertIn("No individual source references have completed", html)
+        # Admitted link metadata is a separate lane from title-reviewed
+        # references, so the page no longer says no references exist.
+        self.assertNotIn("No individual source references have completed", html)
         self.assertNotIn("data-reference-list", html)
         self.assertNotIn("api.afp.mil.ph/articles/", html)
         self.assertNotIn('href="archive.html?desk=philippines"', html)

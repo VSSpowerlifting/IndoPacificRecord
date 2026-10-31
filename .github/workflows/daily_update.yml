@@ -18,7 +18,12 @@ on:
     - cron: '23 13 * * *'
     - cron: '53 13 * * *'
     - cron: '23 14 * * *'
-  workflow_dispatch:         # Manual trigger from Actions tab
+  workflow_dispatch:
+    inputs:
+      vpcp_metadata_only:
+        description: "Collect permitted Government Office metadata and render; no other collection or models"
+        type: boolean
+        default: false
 
 concurrency:
   group: daily-update
@@ -26,10 +31,12 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read # Authenticated, read-only qualification run/job evidence.
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    # Python 3.9 is unavailable on ubuntu-latest (currently Ubuntu 26.04).
+    runs-on: ubuntu-24.04
 
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
@@ -37,7 +44,7 @@ jobs:
       # checks out the tip of main at job-start time, not the trigger SHA.
       # This way a second queued run sees the state file written by the first.
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: main
           fetch-depth: 0        # Full history needed for the push-back step
@@ -105,7 +112,7 @@ jobs:
       # ── 3. Python setup ────────────────────────────────────────────────────
       - name: Set up Python 3.9
         if: steps.timecheck.outputs.should_run == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.9'
           cache: 'pip'
@@ -135,6 +142,22 @@ jobs:
         if: steps.timecheck.outputs.should_run == 'true'
         timeout-minutes: 15
         run: playwright install chromium --with-deps
+
+      - name: Measure qualification environment
+        id: qualification_environment
+        if: steps.timecheck.outputs.should_run == 'true'
+        run: python -m scripts.code_qualification environment --github-output "$GITHUB_OUTPUT"
+
+      # Uses HEAD from the actual checkout, not the queued trigger SHA. Missing
+      # API evidence or any mismatch selects the original full-suite fallback.
+      - name: Resolve trusted full qualification
+        id: qualification
+        if: steps.timecheck.outputs.should_run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUALIFICATION_ENVIRONMENT: ${{ steps.qualification_environment.outputs.digest }}
+          DAILY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: python -m scripts.code_qualification decide --github-output "$GITHUB_OUTPUT"
 
       # ── 4b. Apply and verify migrations BEFORE any collection ─────────────
       # pipeline.py's init_db() also applies migrations, but doing it here means
@@ -186,15 +209,16 @@ jobs:
           sed 's/^/  /' "${baseline}"
 
       # ── 4c. Offline test suite ────────────────────────────────────────────
-      # No network, no model calls, temporary databases only — the suite never
-      # touches the tracked pla_watch.db. Runs before collection so a broken
-      # build cannot scrape, spend, commit or deploy.
+      # Retained fail-closed fallback. Only authenticated full qualification of
+      # equivalent inputs/environment can omit this development suite. Runtime
+      # schema, preservation, reconciliation and publication gates still run.
       #
       # The Pages-writer ratchet (#346) is publication eligibility, not build
       # health: it is deferred here and enforced at the deploy gate (step 6c),
       # so an unregistered publisher cannot stop collection or evidence custody.
       - name: Run offline test suite
-        if: steps.timecheck.outputs.should_run == 'true'
+        id: offline
+        if: steps.timecheck.outputs.should_run == 'true' && steps.qualification.outputs.reused != 'true'
         env:
           IPR_DEFER_PAGES_WRITER_AUDIT: "1"
         run: python -m unittest discover -s tests -t . -v
@@ -236,6 +260,17 @@ jobs:
           echo "Offline suite left the tracked database unchanged:"
           sed 's/^/  /' "${baseline}"
 
+      - name: Summarize qualification outcome
+        if: ${{ !cancelled() && steps.timecheck.outputs.should_run == 'true' }}
+        env:
+          REUSED: ${{ steps.qualification.outputs.reused }}
+          FALLBACK_OUTCOME: ${{ steps.offline.outcome }}
+        run: |
+          {
+            echo "Qualification reused: ${REUSED:-false}"
+            echo "Full offline suite outcome: ${FALLBACK_OUTCOME:-not reached}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # Re-run just the reconciliation contract separately. Redundant with the
       # suite above by design: when this fails, the failure line names the
       # merge-driver contract rather than being one entry in a long list.
@@ -256,6 +291,7 @@ jobs:
       - name: Admit Vietnam Daily handoff
         if: >
           steps.timecheck.outputs.should_run == 'true' &&
+          !inputs.vpcp_metadata_only &&
           vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'
         continue-on-error: true
         env:
@@ -298,12 +334,36 @@ jobs:
       # pipeline writes ONLY there, so no tracked file is dirty while the rebase
       # steps below run; step 8b appends that one record to the tracked history.
       - name: Fetch permitted shared Daily machine outputs
-        if: steps.timecheck.outputs.should_run == 'true' && vars.IPR_PRIVATE_DAILY_ENABLED == 'true'
+        if: steps.timecheck.outputs.should_run == 'true' && !inputs.vpcp_metadata_only && vars.IPR_PRIVATE_DAILY_ENABLED == 'true'
         env:
           IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
           GH_TOKEN: ${{ secrets.IPR_DAILY_OUTPUT_READ_TOKEN || secrets.IPR_PRIVATE_VAULT_READ_TOKEN }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
         run: python -m scripts.fetch_daily_machine_outputs
+
+      # Same scheduled Daily, DB and publication writer. Bibliographic fields
+      # only; no PDFs, original body, model call, per-record approval or secret.
+      # A held source is visible and isolated from the other operating desks.
+      - name: Collect Vietnam Government Office bibliographic records
+        if: steps.timecheck.outputs.should_run == 'true' && vars.VIETNAM_VPCP_METADATA_ENABLED == 'true'
+        continue-on-error: true
+        run: |
+          python -m scripts.collect_vietnam_government_documents --database pla_watch.db --gate-dir "$RUNNER_TEMP/vpcp-host-gate"
+
+      # Reuse the existing Japan collector and this Daily's SQLite/render/Pages
+      # writer. Both a recorded source policy and explicit owner activation are
+      # required. No model call, source fetch, new schedule or parallel publisher.
+      - name: Admit authorized Japan MOD news official links
+        if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
+        run: |
+          set -euo pipefail
+          python -c 'from core.japan_mod_official_links import require_authorization; require_authorization()'
+          git fetch --no-tags origin refs/heads/shadow/jp-mod:refs/remotes/origin/shadow/jp-mod
+          python -m scripts.admit_japan_mod_official_links
 
       # Korean MND texts come only from the already verified, released source index.
       # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
@@ -314,13 +374,29 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PLA_WATCH_DAILY_RUN_DATE: ${{ steps.timecheck.outputs.today_ny }}
           LLM_USAGE_RECORD_PATH: ${{ runner.temp }}/llm_usage_record.json
+          # Empty variables inherit incumbents. Set only after model/source-use
+          # qualification; clear these overrides for an immediate rollback.
+          ANALYSIS_MODEL: ${{ vars.ANALYSIS_MODEL || 'claude-sonnet-4-6' }}
+          RELEVANCE_MODEL: ${{ vars.RELEVANCE_MODEL || 'claude-haiku-4-5-20251001' }}
+          TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL }}
+          SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL }}
+          CATEGORIZATION_MODEL: ${{ vars.CATEGORIZATION_MODEL }}
+          FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
-        run: python pipeline.py
+          DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
+          VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
+        run: |
+          if [ "$VPCP_METADATA_ONLY" = "true" ]; then
+            unset PLA_WATCH_DAILY_RUN_DATE
+            python site/render.py
+          else
+            python pipeline.py
+          fi
 
       # ── 5b. Validate rendered output (blocks deploy on failure) ───────────
       # Runs after the pipeline generates the site. A non-zero exit skips the
@@ -469,6 +545,8 @@ jobs:
       # ── 6. Commit DB + site output back to main ───────────────────────────
       - name: Commit updated database and site output
         if: steps.timecheck.outputs.should_run == 'true'
+        env:
+          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -491,6 +569,16 @@ jobs:
             fi
             git diff --quiet HEAD -- pla_watch.db
             python scripts/verify_db_current.py
+
+            # The reconciler preserves immutable Japan metadata. Render from
+            # the final DB; never deploy pre-rebase HTML against a different DB.
+            if [ "${JAPAN_MOD_OFFICIAL_LINKS_ENABLED:-}" = 'true' ]; then
+              python site/render.py
+              python scripts/validate_output.py
+              python -m scripts.verify_japan_mod_official_links
+              git add pla_watch.db output/
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+            fi
 
             git push
           fi
@@ -516,13 +604,53 @@ jobs:
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
           commit_message: 'Deploy: ${{ github.run_id }}'
 
+      # The legacy public Vietnam collector is retired. Keep its readback on
+      # the ordinary Daily that now admits and renders private handoffs.
+      - name: Reconcile Vietnam SQLite, HTML and Pages
+        if: steps.timecheck.outputs.should_run == 'true' && vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin gh-pages
+          vietnam_pages="$(mktemp -d "$RUNNER_TEMP/vietnam-pages.XXXXXX")"
+          git archive origin/gh-pages philippines.html indonesia.html vietnam.html | tar -x -C "$vietnam_pages"
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --site-dir output --deployed-dir "$vietnam_pages" --require-desk vietnam
+          # Every Daily rewrites vietnam.html (the "Last full update" date), so
+          # the live bytes differ until the Pages build for THIS deploy has
+          # published. Recorded builds take 22-71 s (Actions pages/builds,
+          # 2026-10-24..30); the former three tries spanned ~22 s and failed
+          # run 40909324386 after a correct deploy. The exact-byte comparison
+          # is unchanged; only the bounded wait for propagation is longer
+          # (24 x 10 s, about 4 minutes), and exhausting it still fails the run.
+          for attempt in $(seq 1 24); do
+            if python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+              --site-dir output --require-desk vietnam --vietnam-https; then exit 0; fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Reconcile Japan SQLite, HTML and Pages
+        if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin gh-pages
+          python -m scripts.verify_japan_mod_official_links --pages-repo .
+          # The initial Pages deployment completed after the old three reads.
+          # Allow up to two minutes for the native build/CDN; every read still
+          # requires exact bytes. Exhaustion fails before the success marker.
+          for attempt in {1..12}; do
+            if python -m scripts.verify_japan_mod_official_links --live; then exit 0; fi
+            if [ "$attempt" -lt 12 ]; then sleep 10; fi
+          done
+          exit 1
+
       # ── 8. Record successful run ───────────────────────────────────────────
       # Written here — after deploy — so a deploy failure does not mark today
       # as done. Steps run with implicit success() so this is skipped if any
       # earlier step failed. Both scheduled and manual runs write the state
       # file so a successful manual run prevents a duplicate scheduled run.
       - name: Record successful run
-        if: steps.timecheck.outputs.should_run == 'true'
+        if: steps.timecheck.outputs.should_run == 'true' && !inputs.vpcp_metadata_only
         env:
           TODAY_NY: ${{ steps.timecheck.outputs.today_ny }}
         run: |

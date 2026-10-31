@@ -52,6 +52,7 @@ from analysis.korea_prompts import (
     system_prompt as build_korea_system_prompt,
 )
 from core.collection.vietnam_sources import SOURCES as VIETNAM_SOURCES
+from core.daily_sources import SOURCES as DAILY_SOURCES
 
 from analysis.prompts import (
     PROMPT_VERSION,
@@ -203,7 +204,19 @@ PHILIPPINES_PROFILE = ScreeningProfile(
     prompt_version="ph-relevance-v1", build_system_prompt=system_prompt,
     build_analysis_messages=analysis_messages,
     build_analysis_system_prompt=system_prompt,
-    analysis_prompt_version="ph-analysis-v11", categories=CATEGORIES,
+    analysis_prompt_version="ph-analysis-v13", categories=CATEGORIES,
+)
+
+from analysis import indonesia_prompts as id_prompts
+
+INDONESIA_PROFILE = ScreeningProfile(
+    desk_id="indonesia", keyword_prefilter=False, daily_queue=False,
+    build_messages=id_prompts.relevance_messages,
+    prompt_version="id-relevance-v1", build_system_prompt=id_prompts.system_prompt,
+    build_analysis_messages=id_prompts.analysis_messages,
+    build_analysis_system_prompt=id_prompts.system_prompt,
+    analysis_prompt_version="id-analysis-v4", source_language="id",
+    source_family="id_kemhan_news", categories=id_prompts.CATEGORIES,
 )
 
 _PROFILES: Dict[str, ScreeningProfile] = {
@@ -213,10 +226,22 @@ _PROFILES: Dict[str, ScreeningProfile] = {
     # reach the Vietnam bridge by source family, never the shared daily queue.
     "korea": KOREA_PROFILE,
     "philippines": PHILIPPINES_PROFILE,
+    "indonesia": INDONESIA_PROFILE,
 }
 
 # Source-level profiles for sources without a desk manifest.
 _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
+# Shared private-source Daily families take their desk's own profile, by their
+# source definition. A family without a definition never inherits one.
+for _s in DAILY_SOURCES.values():
+    _SOURCE_PROFILES[_s.family] = _PROFILES[_s.desk_id]
+# Government Office is explicitly bibliographic-only. Neither the common
+# public queue nor the ministry bridge may turn a subject line into analysis.
+_SOURCE_PROFILES["vn_vpcp_official_documents_vi"] = ScreeningProfile(
+    desk_id="vietnam", keyword_prefilter=False, daily_queue=False,
+    build_messages=_unsupported, build_analysis_messages=_unsupported,
+    prompt_version="vpcp-metadata-only-v1", source_language="vi",
+    source_family="vn_vpcp_official_documents_vi")
 
 # A non-China desk in the daily queue without its own analysis would have its
 # passes translated "from Chinese" and tagged with the PLA taxonomy.
@@ -254,6 +279,18 @@ def desk_for_source(source_slug: Optional[str]) -> Optional[str]:
 def profile_for_source(source_slug: Optional[str]) -> ScreeningProfile:
     if source_slug in _SOURCE_PROFILES:
         return _SOURCE_PROFILES[source_slug]
-    if source_slug in ("ph_afp_articles", "ph_nsc_official_statements"):
-        return PHILIPPINES_PROFILE
     return profile_for_desk(desk_for_source(source_slug))
+
+
+def private_document_profile():
+    """Only the private, source-use-gated bridge selects this profile."""
+    from analysis import vietnam_prompts as vn_prompts
+    return ScreeningProfile(
+        desk_id="vietnam", keyword_prefilter=False, daily_queue=False,
+        build_messages=vn_prompts.relevance_builder("vn_vpcp_official_documents_vi"),
+        build_system_prompt=vn_prompts.relevance_system_builder("vn_vpcp_official_documents_vi"),
+        build_analysis_messages=vn_prompts.analysis_builder("vn_vpcp_official_documents_vi"),
+        build_analysis_system_prompt=vn_prompts.analysis_system_builder("vn_vpcp_official_documents_vi"),
+        categories=vn_prompts.EVENT_TYPES, prompt_version="vn-vpcp-relevance-v1",
+        analysis_prompt_version="vn-vpcp-document-analysis-v5",source_language="vi",
+        source_family="vn_vpcp_official_documents_vi")

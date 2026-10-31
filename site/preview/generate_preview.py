@@ -82,6 +82,7 @@ from core.china_discovery import build_focus                        # noqa: E402
 from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
 from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
+from core.mindef_permissions import mindef_metadata_label, source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
 from scripts.desk_map import layout as desk_map_layout              # noqa: E402
 
@@ -149,6 +150,7 @@ from core.catalogue_media import (                                   # noqa: E40
     load_admissions as load_catalogue_admissions,
     resolve_catalogue_media)
 from core.timelines import load_timelines
+from core.dossiers import load_dossiers, validate_review_destination
 from core.desk_registry import load_registry                         # noqa: E402
 from core.reviewed_source_links import load_public_desk_references    # noqa: E402
 from core.public_editorial_research import load_catalog as load_editorial_catalog, published_for_desk
@@ -177,7 +179,7 @@ BUILD_MODE = "indo-pacific-record"
 #: published edition said at the time.
 MAINTAINER = {
     "name": "Benjamin Yang",
-    "role": "Founder & Director of Research and Editorial",
+    "role": "Founder & Executive Director",
     "bio": ("Benjamin Yang studies International Affairs at George Washington "
             "University’s Elliott School, with interests in U.S.–China "
             "relations, public diplomacy, and security affairs. He founded "
@@ -632,7 +634,14 @@ def load_corpus(db_path: Path) -> dict:
         for rec in corpus + recent:
             rec["desk_id"] = desk_by_source.get(rec["source_slug"])
             rec.update(title_receipts.get(rec["id"], {}))
-            rec["title_english"] = english_title(rec)
+            if rec["source_slug"] == "sg_mindef_releases":
+                # This is a metadata label, never a substitute publisher title.
+                rec["title_original"] = mindef_metadata_label(rec["id"])
+                rec["title_english"] = None
+                rec["text_original"] = None
+                rec["summary_english"] = None
+            else:
+                rec["title_english"] = english_title(rec)
             value_hash = rec.get("title_translation_value_sha256")
             if value_hash and rec["title_english"] and value_hash != hashlib.sha256(rec["title_english"].encode("utf-8")).hexdigest():
                 # The stored title was edited after this receipt. Preserve it
@@ -657,6 +666,9 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
+        # Exact written permission for two MINDEF hyperlinks, not source-text reuse.
+        # Derived presentation field; never changes raw corpus custody or fingerprint.
+        rec["mindef_link_allowed"] = source_link_approved(rec["source_slug"], rec["url"])
         if rec["id"] in vietnam:
             # Vietnam Desk rows only; every other record dict is unchanged.
             rec["vietnam"] = vietnam[rec["id"]]
@@ -752,6 +764,8 @@ def corpus_facets(corpus: list) -> dict:
 LANGUAGE_LABELS = {
     "zh-Hans": "Simplified Chinese",
     "en": "English",
+    "ko": "Korean",
+    "vi": "Vietnamese",
 }
 
 
@@ -1730,7 +1744,9 @@ DICTIONARY_FIELDS = [
         "label": "Original title", "stored": "title_original",
         "origin": "Stored", "check": "title_original",
         "meaning": "The item's title as published, stored as captured.",
-        "absent": "Never absent.",
+        "absent": "Withheld for {withheld_original_titles} records under their "
+                  "source-use decisions. Other absent titles are missing "
+                  "capture data, not permission to substitute an English headline.",
         "limitation": "Held as captured and never edited, translated in place, "
                       "or normalized. It is the authoritative title for this "
                       "record.",
@@ -1817,16 +1833,19 @@ DICTIONARY_FIELDS = [
         "origin": "Stored", "check": "scrape_run_id",
         "meaning": "The pipeline run that stored the record, for records "
                    "the daily pipeline collected.",
-        "absent": "Absent for {promoted_without_run} records: those arrived "
-                  "through a governed shadow promotion rather than a "
-                  "pipeline run, and carry no scrape_run_id by design.",
+        "absent": "Absent for {without_run} records: {promoted_without_run} "
+                  "Singapore records arrived through a governed shadow promotion; "
+                  "{private_handoff_without_run} Vietnam records arrived through "
+                  "an authenticated private handoff; {other_without_run} other "
+                  "records have no run association.",
         "limitation": "Run history preserves no target publication date and no "
                       "historical source-level outcome, so a run identifier "
                       "does not establish which sources were reached or which "
                       "dates were sought. A record with no run association was "
                       "not necessarily uncollected — its provenance may "
                       "instead be a promotion ledger entry, documented at the "
-                      "record's own source.",
+                      "record's own source, or authenticated private-handoff "
+                      "provenance shown on the record page.",
     },
     {
         "label": "Collection timestamp", "stored": "scraped_at",
@@ -1931,12 +1950,18 @@ def corpus_guide_stats(corpus: list, run_days: list) -> dict:
         "non_analyzed": len(english["non_analyzed"]),
         "english_sets_identical": english["identical"],
         "outage_records_china": outage_records_china,
-        # Records with no pipeline-run association at all. Ordinary collected
-        # records always carry one; a governed shadow promotion legitimately
-        # does not, and its provenance instead lives in the promotion ledger
-        # (scripts/promote_shadow_records.py), not scrape_run_id.
+        "without_run": sum(1 for r in corpus if r.get("scrape_run_id") is None),
         "promoted_without_run": sum(
-            1 for r in corpus if r.get("scrape_run_id") is None),
+            1 for r in corpus if r.get("scrape_run_id") is None
+            and r.get("desk_id") == "singapore"),
+        "private_handoff_without_run": sum(
+            1 for r in corpus if r.get("scrape_run_id") is None and r.get("vietnam")),
+        "other_without_run": sum(
+            1 for r in corpus if r.get("scrape_run_id") is None
+            and r.get("desk_id") != "singapore" and not r.get("vietnam")),
+        "withheld_original_titles": sum(
+            1 for r in corpus if _blank(r.get("title_original"))
+            and r.get("vietnam", {}).get("permissions", {}).get("public_title_display") is False),
         "empty_text": sum(1 for r in corpus if _blank(r.get("text_original"))),
         "prompt_version_missing": sum(1 for r in analyzed
                                       if _blank(r.get("prompt_version"))),
@@ -2204,14 +2229,45 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
     function exists to make impossible.
     """
     subject = "record %s" % record.get("id")
+    original = record.get("title_original")
+    vietnam = record.get("vietnam") or {}
+    # The approved MPS lane deliberately cannot reproduce its original title.
+    # This is NOT a missing capture and NOT permission to substitute the
+    # independent machine-written headline in a citation to the source.
+    withheld_vietnam_title = (
+        not (original or "").strip()
+        and record.get("source_slug") in ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi")
+        and isinstance(vietnam, dict)
+        and vietnam.get("source_family") == record.get("source_slug")
+        and vietnam.get("canonical_official_url") == record.get("url")
+        and bool(vietnam.get("source_identity"))
+        and bool(vietnam.get("rights_decision_sha256"))
+        and isinstance(vietnam.get("permissions"), dict)
+        and vietnam["permissions"].get("public_title_display") is False
+    )
+    withheld_mindef_title = record.get("source_slug") == "sg_mindef_releases"
+    if withheld_mindef_title:
+        # The public row carries IPR's neutral label, which is not MINDEF's
+        # headline and must never be quoted as the publisher's title.
+        source_prefix = "Official source."
+        source_title = "Original title withheld under the source-use decision."
+    elif withheld_vietnam_title:
+        # Explicitly disclose the omission; still require real issuer, outlet,
+        # source-stated date and official URL below. Never insert a fake title.
+        document = (vietnam.get("qa") or {}).get("details",{}).get("VPCP_DOCUMENT",{}).get("bibliographic",{})
+        source_prefix = ("Official document %s (issue date)." % document["document_number"]
+                         if record.get("source_slug") == "vn_vpcp_official_documents_vi" and document.get("document_number") else "Official source.")
+        source_title = "Original title withheld under the source-use decision."
+    else:
+        source_prefix = "Source text."
+        source_title = '"{original}."'.format(
+            original=_require(original, "original title", subject))
     return {
         "source_text":
-            'Source text. {institution}. "{original}." {outlet}, {date}. '
-            '{url}.'.format(
+            '{prefix} {institution}. {source_title} {outlet}, {date}. {url}.'.format(
+                prefix=source_prefix, source_title=source_title,
                 institution=_require(record.get("institution"),
                                      "publishing institution", subject),
-                original=_require(record.get("title_original"),
-                                  "original title", subject),
                 outlet=_require(record.get("source_name"), "source outlet",
                                 subject),
                 date=_require(record.get("published_date"),
@@ -2224,7 +2280,10 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
                 id=_require(record.get("id"), "record id", subject),
                 date=snapshot["date"],
                 records=snapshot["expected_records"]),
-        "note": processing_note(record, CITATION_PROCESSING_NOTES),
+        "note": ("Historical processing status only. MINDEF titles, source text, translations, "
+                 "summaries and reasoning are withheld under the current source-use policy."
+                 if withheld_mindef_title else
+                 processing_note(record, CITATION_PROCESSING_NOTES)),
     }
 
 
@@ -2447,6 +2506,7 @@ def build(out_dir: Path, title: str, db_path: Path,
           allow_synthetic_briefs: bool = False, gallery: bool = False,
           review_brief: Path = None, timelines_dir: Path = None,
           review_timeline: Path = None, review_presentation: Path = None,
+          review_dossier: Path = None, dossiers_dir: Path = None,
           review_korea: bool = False,
           korea_review_packet: Path = None) -> dict:
     """
@@ -2548,6 +2608,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                 or resolved in REPO_ROOT.parents
                 or bool((site_origin or "").strip()) or allow_test_origin
                 or review_brief is not None or review_timeline is not None or review_presentation is not None
+                or review_dossier is not None
                 or allow_synthetic_briefs or gallery):
             raise ValueError("private Korea preview requires a new external directory, "
                              "no origin, no public/synthetic/other review mode")
@@ -2563,15 +2624,17 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.korea_reference_gate import approve, load_candidates
         korea_candidates = load_candidates()
         korea_prechecked_rows = approve(korea_candidates, korea_review_packet)
+    if review_dossier:
+        validate_review_destination(requested_out)
     out_dir = requested_out.resolve()
-    if (review_brief or review_timeline or review_presentation) and site_origin:
+    if (review_brief or review_timeline or review_presentation or review_dossier) and site_origin:
         raise ValueError("a draft review is private: no site origin, feed or sitemap")
     if review_timeline and (out_dir == REPO_ROOT or REPO_ROOT in out_dir.parents or out_dir in REPO_ROOT.parents):
         raise ValueError("timeline review requires a disposable destination outside the repository")
     if review_presentation and (out_dir.exists() or out_dir == REPO_ROOT or REPO_ROOT in out_dir.parents
                                 or out_dir in REPO_ROOT.parents):
         raise ValueError("presentation review requires a new destination outside the repository")
-    if sum(bool(v) for v in (review_brief, review_timeline, review_presentation)) > 1:
+    if sum(bool(v) for v in (review_brief, review_timeline, review_presentation, review_dossier)) > 1:
         raise ValueError("review one editorial artifact at a time")
     if out_dir == PRODUCTION_OUT or PRODUCTION_OUT in out_dir.parents:
         raise SystemExit(
@@ -2586,6 +2649,8 @@ def build(out_dir: Path, title: str, db_path: Path,
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
+    if review_dossier:
+        out_dir.chmod(0o700)
 
     data = load_corpus(db_path)
 
@@ -2725,6 +2790,17 @@ def build(out_dir: Path, title: str, db_path: Path,
     timelines, timelines_withheld = load_timelines(
         db_path, {e["slug"]: e for e in collection.briefs},
         review_path=review_timeline, **timeline_options)
+    dossier_options = {"source_dir": Path(dossiers_dir)} if dossiers_dir is not None else {}
+    dossiers, dossiers_withheld = load_dossiers(
+        db_path, {e["slug"]: e for e in collection.briefs},
+        review_path=review_dossier, related_timelines={t["slug"]: t for t in timelines},
+        **dossier_options)
+    dossier_records, dossier_briefs = defaultdict(list), defaultdict(list)
+    for item in dossiers:
+        for rec in item["ledger"]:
+            dossier_records[rec["id"]].append(item)
+        for brief in item["related_briefs"]:
+            dossier_briefs[brief].append(item)
     timeline_records = defaultdict(list)
     timeline_briefs = defaultdict(list)
     for item in timelines:
@@ -2771,6 +2847,7 @@ def build(out_dir: Path, title: str, db_path: Path,
     focus = build_focus(data["corpus"])
 
     from core.archive_research import (analysis_records, build_index as build_archive_index,
+                                       dossier_records as dossier_archive_records,
                                        digest as archive_digest, encoded as archive_encoded)
     index = corpus_index(data["corpus"], data["sources"], snapshot, desks, focus=focus)
     public_analyses = list(analysis_records(
@@ -2780,6 +2857,7 @@ def build(out_dir: Path, title: str, db_path: Path,
          for row in public_archive_collection.rows if row["kind"] == "issue"},
         edition_citation=edition_citation, state_labels=STATE_LABELS,
         state_order=STATE_ORDER, language_label=language_label))
+    public_analyses.extend(dossier_archive_records(dossiers))
     archive_official_groups = []
     from core.staff_directory import load_staff, credited_works
     team_members = load_staff(REPO_ROOT / "site/preview/staff.json")
@@ -2789,8 +2867,12 @@ def build(out_dir: Path, title: str, db_path: Path,
         "archive_digest": archive_digest(archive_encoded(index)),
         "title": title,
         "focus": focus,
-        "review_mode": bool(review_brief or review_timeline or review_presentation),
+        "review_mode": bool(review_brief or review_timeline or review_presentation or review_dossier),
         "catalogue_media": catalogue_media,
+        "has_dossiers": any(not d["is_review"] for d in dossiers),
+        "dossiers": dossiers,
+        "dossier_records": dossier_records,
+        "dossier_briefs": dossier_briefs,
         "timelines": timelines,
         "timeline_records": timeline_records,
         "timeline_briefs": timeline_briefs,
@@ -2941,6 +3023,14 @@ def build(out_dir: Path, title: str, db_path: Path,
         # only on the Desks directory, without reclassifying Korea as 'live'.
         desk_index_lanes = ({"korea_mnd_live_link_count": (korea_production_link_count - korea_dapa_production_link_count)}
                             if target == "desks.html" else {})
+        if target == "desks.html":
+            # Philippines link metadata and machine explanations are real
+            # production lanes but not corpus originals; count each from its own
+            # governed table and never add them to a corpus figure.
+            from core.regional_official_link_render import load_admitted_links as ph_links
+            from core.daily_machine_records import load as ph_machine
+            desk_index_lanes["ph_official_link_count"] = len(ph_links(db_path, "philippines"))
+            desk_index_lanes["ph_machine_explanation_count"] = sum(r["desk_id"] == "philippines" for r in ph_machine(db_path))
         page_html = env.get_template(template).render(
             page=target, **ctx, **desk_index_lanes)
         if target == "desks.html":
@@ -2976,6 +3066,23 @@ def build(out_dir: Path, title: str, db_path: Path,
             staff_schema=schema, **ctx), encoding="utf-8")
         written.append(route)
 
+    if dossiers:
+        (out_dir / "dossier").mkdir()
+        for dossier in dossiers:
+            (out_dir / dossier["route"]).write_text(
+                env.get_template("dossier.html").render(page="analysis.html", nested=True,
+                    dossier=dossier, **ctx), encoding="utf-8")
+            written.append(dossier["route"])
+        for asset in ("dossier-shell.css", "dossiers.css", "dossiers-library.css"):
+            (out_dir / asset).write_text(
+                (Path(__file__).parent / asset).read_text(encoding="utf-8"), encoding="utf-8")
+            written.append(asset)
+        (out_dir / "dossier.js").write_text(
+            (Path(__file__).parent / "dossier.js").read_text(encoding="utf-8"), encoding="utf-8")
+        written.append("dossier.js")
+        (out_dir / "dossiers.html").write_text(
+            env.get_template("dossiers.html").render(page="analysis.html", **ctx), encoding="utf-8")
+        written.append("dossiers.html")
     if timelines:
         (out_dir / "timeline").mkdir()
         (out_dir / "timelines.html").write_text(
@@ -2989,15 +3096,14 @@ def build(out_dir: Path, title: str, db_path: Path,
         (out_dir / "timelines.css").write_text(
             (Path(__file__).parent / "timelines.css").read_text(encoding="utf-8"), encoding="utf-8")
         written.append("timelines.css")
-        # The illustrative maritime texture ships only when its exact timeline
-        # is rendered. Draft public builds therefore receive neither page nor asset.
-        if any(t["slug"] == "maritime-cooperation-2026" for t in timelines):
-            route = "assets/timelines/maritime-ocean-texture.webp"
-            source = REPO_ROOT / "site" / route
-            target = out_dir / route
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(source.read_bytes())
-            written.append(route)
+    # Existing illustrative texture; no extra public asset for withheld drafts.
+    if any(t["slug"] == "maritime-cooperation-2026" for t in timelines + dossiers):
+        route = "assets/timelines/maritime-ocean-texture.webp"
+        source = REPO_ROOT / "site" / route
+        target = out_dir / route
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+        written.append(route)
 
     # ── The component and state gallery (maintenance only) ────────────────
     # Off by default and never requested by `site/render.py`, so no published
@@ -3177,12 +3283,42 @@ def build(out_dir: Path, title: str, db_path: Path,
         # Only already-admitted database metadata, never archived bodies.
         from core.regional_official_link_render import load_admitted_links
         from core.daily_machine_records import load as load_daily_machine_records
-        daily_machine_records = load_daily_machine_records(db_path) if desk.slug == "philippines" else []
+        daily_machine_records = ([r for r in load_daily_machine_records(db_path)
+                                  if r["desk_id"] == desk.slug]
+                                 if desk.slug in ("philippines", "indonesia") else [])
+        # Reuse the admitted corpus and its ordinary record rows. Private
+        # captures and bibliographic references cannot enter this list.
+        vietnam_records = sorted((r for r in data["corpus"]
+            if desk.slug == "vietnam" and r.get("vietnam")
+            and r["state"] == "analyzed"
+            and r["vietnam"]["qa"]["outcome"] == "published"),
+            key=lambda r: (r["published_date"], r["id"]), reverse=True)
+        vietnam_explained = {r["vietnam"]["source_identity"]: r["record_path"]
+                             for r in vietnam_records}
         regional_official_links = (
             load_admitted_links(db_path, desk.slug)
-            if desk.slug in ("philippines", "indonesia", "vietnam") else [])
+            if desk.slug in ("philippines", "indonesia", "vietnam", "japan") else [])
+        japan_references = [{"source_url": r["canonical_official_url"],
+            "source_identity": r["source_identity"],
+            "neutral_label": r["label"], "source_name": r["publisher_label"],
+            "published_date": r["publisher_posted_date"], "date_kind": r["date_kind"]}
+            for r in regional_official_links if desk.slug == "japan"]
+        # Formal documents use the same public archive/search projection as
+        # other official links. The subject is metadata, never a document body.
+        document_references = [{"source_url": r["canonical_official_url"],
+            "source_identity": r["source_identity"],
+            "neutral_label": r["label"] + " · " + r["document"]["subject"]
+                + " · " + r["issuer_label"] + " · " + r["document"]["signatory"]
+                + " · " + " · ".join(r["topics"]),
+            "published_date": r["publisher_posted_date"], "source_name": r["publisher_label"],
+            "issuer_label": r["issuer_label"],
+            "date_kind": "document issue date",
+            "processing_note": "Bibliographic subject only; permitted machine explanations are separate published records."
+            } for r in regional_official_links if r.get("document")]
         # Reuse the exact public results that render this build's desk pages.
         archive_official_groups.extend([
+            (japan_references, desk.slug, "Japan MOD news RSS", "Japan Ministry of Defense"),
+            (document_references, desk.slug, None, None),
             (references, desk.slug, None, None),
             (indonesia_official_links, desk.slug, "Kemhan Berita", "Kementerian Pertahanan Republik Indonesia"),
             (indonesia_press_links, desk.slug, "Kemhan Siaran Pers", "Kementerian Pertahanan Republik Indonesia"),
@@ -3194,6 +3330,9 @@ def build(out_dir: Path, title: str, db_path: Path,
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
         desk_page = desk_tmpl.render(page=desk.route, desk=desk,
+                             support_stylesheet=("indonesia-shell.css"
+                                 if desk.slug == "indonesia" else
+                                 "korea-shell.css" if desk.slug == "korea" else "support.css"),
                              public_source_links=references,
                              published_research=published_research,
                              public_source_options=source_options,
@@ -3202,6 +3341,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                              indonesia_press_links=indonesia_press_links,
                              regional_official_links=regional_official_links,
                              daily_machine_records=daily_machine_records,
+                             vietnam_records=vietnam_records[:20],
+                             vietnam_explained=vietnam_explained,
                              us_pacom_official_links=us_pacom_links,
                              uscc_official_links=uscc_links,
                              us_treasury_official_links=treasury_links,
@@ -3420,7 +3561,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
-    for name in ("staff.css", "fonts.css", "support.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
+    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
     # Explicit named assets only: homepage relief sprites and Phase 4A Desks
@@ -3779,6 +3920,8 @@ def build(out_dir: Path, title: str, db_path: Path,
             "briefs": len(collection.briefs),
             "briefs_withheld": len(collection.withheld),
             "briefs_feed": bool(briefs_feed and origin),
+            "dossiers": len(dossiers),
+            "dossiers_withheld": len(dossiers_withheld),
             "timelines": len(timelines),
             "timelines_withheld": len(timelines_withheld),
             "records": len(data["corpus"]), "weeks": len(data["weeks"]),

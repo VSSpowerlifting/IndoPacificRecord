@@ -35,6 +35,12 @@ class Handoff(unittest.TestCase):
     run_private = pipeline.PrivateCustodyDaily.run_private
     originals = pipeline.PrivateCustodyDaily.originals
 
+    def test_mps_source_hold_is_still_enforced_for_signed_projection(self):
+        envelope=self.signed()
+        with patch.dict(vn.HOLDS,{MPS:'synthetic explicit MPS hold'}):
+            with self.assertRaisesRegex(handoff.HandoffError,'vietnam_handoff_source_hold'):
+                self.verify(envelope)
+
     def decisions(self, **overrides):
         folder = self.tmp / "decisions"
         folder.mkdir(exist_ok=True)
@@ -61,6 +67,17 @@ class Handoff(unittest.TestCase):
         with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_withheld_field"):
             self.verify(tampered, permissions=WITHHOLD)
 
+    def test_mps_original_title_is_withheld_even_with_english_analysis(self):
+        permissions = dict(WITHHOLD, public_title_display=False)
+        envelope = self.signed(permissions=permissions)
+        for _, _, row, _ in self.verify(envelope, permissions=permissions):
+            self.assertIsNone(row["title_original"])
+            self.assertTrue(row["title_english"])
+        forged = self.resign(envelope, lambda body: body["families"][0]["records"][0][
+            "row"].update(title_original="Synthetic withheld headline"))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_withheld_field"):
+            self.verify(forged, permissions=permissions)
+
     def public(self):
         conn = clone_schema(self.tmp / "public.db")
         self.addCleanup(conn.close)
@@ -76,14 +93,17 @@ class Handoff(unittest.TestCase):
         return dict(body, mac=handoff._mac(BRIDGE_KEY, body))
 
     @staticmethod
-    def corpus(conn):
+    def corpus(conn, *, shared_projection=False):
         arts = conn.execute("SELECT * FROM articles ORDER BY url").fetchall()
         cols = [d[0] for d in conn.execute("SELECT * FROM articles").description]
         prov = conn.execute("SELECT * FROM vietnam_article_provenance"
                             " ORDER BY source_identity").fetchall()
         pcols = [d[0] for d in conn.execute(
             "SELECT * FROM vietnam_article_provenance").description]
-        return ([{c: v for c, v in zip(cols, r) if c != "id"} for r in arts],
+        # scraped_at is SQLite's local insertion clock, not signed source
+        # evidence. Compare it within one DB for idempotency, not across DBs.
+        omitted = {"id", "scraped_at"} if shared_projection else {"id"}
+        return ([{c: v for c, v in zip(cols, r) if c not in omitted} for r in arts],
                 [{c: v for c, v in zip(pcols, r) if c != "article_id"} for r in prov])
 
     def test_round_trip_reproduces_the_private_projection_and_is_idempotent(self):
@@ -96,7 +116,14 @@ class Handoff(unittest.TestCase):
         public = self.public()
         records = self.verify(envelope)
         self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
-        self.assertEqual(self.corpus(public), self.corpus(self.conn))
+        # Force different insertion clocks so a second boundary cannot make
+        # this contract pass or fail by chance. Published source dates and all
+        # signed provenance remain part of the exact comparison.
+        self.conn.execute("UPDATE articles SET scraped_at=datetime(scraped_at, '-1 day')")
+        self.assertNotEqual(public.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone(),
+                            self.conn.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone())
+        self.assertEqual(self.corpus(public, shared_projection=True),
+                         self.corpus(self.conn, shared_projection=True))
         before = self.corpus(public)
         self.assertEqual(handoff.admit(public, self.verify(envelope)), {bridge.DUPLICATE: 2})
         self.assertEqual(self.corpus(public), before)
@@ -133,7 +160,13 @@ class Handoff(unittest.TestCase):
 
         public = self.public()
         self.assertEqual(handoff.admit(public, self.verify(envelope)), {qa.PUBLISHED: 2})
-        self.assertEqual(self.corpus(public), self.corpus(self.conn))
+        # Delay necessarily permits distinct local insertion clocks; signed
+        # dates/provenance must still match exactly, as in the round-trip case.
+        self.conn.execute("UPDATE articles SET scraped_at=datetime(scraped_at, '-1 day')")
+        self.assertNotEqual(public.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone(),
+                            self.conn.execute("SELECT scraped_at FROM articles LIMIT 1").fetchone())
+        self.assertEqual(self.corpus(public, shared_projection=True),
+                         self.corpus(self.conn, shared_projection=True))
 
         # Even a valid MAC must not turn a malformed historical commit into
         # acceptable provenance.
@@ -234,9 +267,9 @@ class Handoff(unittest.TestCase):
             return code, json.loads(out.getvalue())
 
         before = hashlib.sha256(db.read_bytes()).hexdigest()
-        code, out = run()  # the real registry keeps Vietnam shadow
+        code, out = run()  # live MPS still requires a sealed owner decision
         self.assertEqual((code, out["status"], out["reason"]),
-                         (2, "HOLD", "vietnam_desk_not_promoted"))
+                         (2, "HOLD", "source_use_decision_unsealed"))
         self.assertEqual(hashlib.sha256(db.read_bytes()).hexdigest(), before)
         with patch.object(handoff, "DECISIONS", self.decisions()), \
                 patch.object(bridge, "desk_promoted", return_value=True):

@@ -27,6 +27,9 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+NEW_EMPTY_LEDGERS = ("official_document_versions", "official_document_collection_runs")
+
+
 def unrelated(conn):
     h = hashlib.sha256()
     for (name,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"):
@@ -39,6 +42,8 @@ def unrelated(conn):
         rows = conn.execute(sql).fetchall()
         if name == "korea_corpus_admissions" and not rows:
             continue  # m0016 may create the empty ledger during this admission
+        if name in NEW_EMPTY_LEDGERS and not rows:
+            continue  # m0018 creates the empty Government Office ledgers
         h.update(name.encode() + b"\0")
         for row in sorted(rows, key=repr):
             h.update(repr(row).encode())
@@ -66,8 +71,9 @@ def admit_atomic(db, state_repo, commit, sealed, *, api, secret, as_of_utc,
             before = unrelated(conn)
             done = applied_versions(conn)
             pending = {m.version for m in discover()} - set(done)
-            # 0016 creates Korea's empty admission ledger; 0015 is the PH machine ledger.
-            vn.need(pending <= {"0013", "0015", "0016"}, "unrelated_pending_migrations")
+            # 0016 creates Korea's empty admission ledger; 0015 is the PH machine ledger;
+            # 0018 adds the Government Office metadata tables (unrelated to MPS links).
+            vn.need(pending <= {"0013", "0015", "0016", "0018", "0019"}, "unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
             conn.execute("BEGIN IMMEDIATE")
             if private_projection is None:

@@ -125,10 +125,14 @@ class DeskEntry:
     #: interpreted here — this module refuses to compute anything from prose.
     research: Optional[dict] = None
     qualification: Optional[dict] = None
+    #: Optional reader-facing wording for a non-collecting desk whose
+    #: production lanes are link metadata or machine explanations, not corpus
+    #: originals. It never changes `status`, `is_collecting` or record counts.
+    public_status_label: Optional[str] = None
 
     @property
     def status_label(self) -> str:
-        return DESK_STATUS_LABELS[self.status]
+        return self.public_status_label or DESK_STATUS_LABELS[self.status]
 
     @property
     def is_collecting(self) -> bool:
@@ -341,6 +345,14 @@ def load_registry(path: Optional[Path] = None) -> DeskRegistry:
                 "only a collecting desk holds production records"
                 % (where, status))
 
+        label = item.get("public_status_label")
+        if label is not None and (
+                not isinstance(label, str) or not label.strip() or len(label) > 90
+                or status in COLLECTING_DESK_STATUSES):
+            raise RegistryError(
+                "%s: 'public_status_label' must be a short string on a "
+                "non-collecting desk" % where)
+
         entries.append(DeskEntry(
             slug=slug,
             name=item["name"],
@@ -355,6 +367,7 @@ def load_registry(path: Optional[Path] = None) -> DeskRegistry:
             sources=sources,
             research=item.get("research"),
             qualification=item.get("qualification"),
+            public_status_label=label,
         ))
 
     return DeskRegistry(entries=entries)

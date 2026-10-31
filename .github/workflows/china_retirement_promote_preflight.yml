@@ -1,12 +1,10 @@
 name: China retirement — nonpublishing production promotion gate rehearsal
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/china_retirement_promote_preflight.yml'
-      - '.github/workflows/china_retirement_release.yml'
-      - 'scripts/verify_china_retirement_render.py'
-      - 'scripts/prepare_china_retirement_release.py'
+  # The 4,400-record cutover already merged in ee6ca4aaade4. Reapplying its
+  # pre-cutover planner to today's reduced corpus must refuse, not gate PRs.
+  # Current preservation is checked by china_retirement_postdaily_audit.yml
+  # and the existing release contracts. Retain manual historical recovery.
   workflow_dispatch:
 
 # The test never has write permission, secrets, remote writes or Pages actions.
@@ -15,7 +13,7 @@ permissions:
 
 jobs:
   local-promotion-rehearsal:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4

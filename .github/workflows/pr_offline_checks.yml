@@ -41,6 +41,11 @@
 name: PR offline checks
 
 on:
+  # Trusted qualification uses the actual push SHA/workflow, not a PR's
+  # unauthenticated assertion about its historical synthetic merge.
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -57,7 +62,7 @@ permissions:
 
 # One in-flight run per PR; a new push supersedes the previous check.
 concurrency:
-  group: pr-offline-checks-${{ github.event.pull_request.number }}
+  group: pr-offline-checks-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -65,9 +70,11 @@ jobs:
     # Draft iterations allocate no runner. ready_for_review runs this same full
     # gate even without a new commit; every later synchronize runs it again.
     # A skipped draft check is never full-suite evidence for an exact-head merge.
-    if: ${{ github.event.pull_request.draft == false }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+    if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    # Run 40346079812 attempt 1 exhausted 35m after a 12m19s Chromium
+    # install and 21m52s suite; allow setup variance without weakening gates.
+    timeout-minutes: 45
 
     steps:
       # No `ref:` — for a pull_request event this checks out the merge of the
@@ -78,13 +85,13 @@ jobs:
       # any later step — including this PR's own test code — could read it.
       # Frozen historical replay objects are fetched below without credentials.
       - name: Check out the pull request
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
           fetch-depth: 2  # PR merge commit and base parent for scoped diff
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.9'
           cache: 'pip'
@@ -123,10 +130,11 @@ jobs:
           import subprocess
 
           event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
-          pr = event['pull_request']
-          print('Tested PR head:', pr['head']['sha'], flush=True)
-          print('Tested base:', pr['base']['sha'], flush=True)
-          print('Synthetic merge:', subprocess.check_output(
+          pr = event.get('pull_request')
+          if pr:
+              print('Tested PR head:', pr['head']['sha'], flush=True)
+              print('Tested base:', pr['base']['sha'], flush=True)
+          print('Actual checkout:', subprocess.check_output(
               ['git', 'rev-parse', 'HEAD'], text=True).strip(), flush=True)
           origins = json.loads(Path('research/topic_pilot_v1/ledger.json').read_text())['origins']
           for name, origin in sorted(origins.items()):
@@ -139,11 +147,20 @@ jobs:
                   raise SystemExit('Frozen source blob mismatch: ' + name)
               subprocess.run(['git', 'cat-file', '-e', actual], check=True)
               print('Frozen object verified:', name, spec, actual, flush=True)
+          japan = json.loads(Path('tests/fixtures/japan_mod_official_links.json').read_text())
+          subprocess.run(['git', 'fetch', '--no-tags', '--depth=1',
+              'https://github.com/VSSpowerlifting/IndoPacificRecord.git', japan['source_commit']], check=True)
+          actual = subprocess.check_output(['git', 'rev-parse',
+              japan['source_commit'] + ':state/shadow.db'], text=True).strip()
+          if actual != japan['source_db_git_blob']:
+              raise SystemExit('Japan frozen collection blob mismatch')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write('JAPAN_MOD_FROZEN_REPLAY=1\n')
           PYTHON
 
       # First execution of PR-controlled content.
       - name: Install dependencies
-        if: ${{ steps.scope.outputs.mode != 'docs' }}
+        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}
         run: pip install -r requirements.txt
 
       # Omit the redundant fast preflight: full CI reran every selected test.
@@ -196,6 +213,14 @@ jobs:
           print('Verified %d pinned review excerpts; no database writes.' % count)
           PYTHON
 
+      # Measured in the same environment as the suite. The job evidence below
+      # is accepted only when this exact reviewed workflow/tree is equivalent
+      # to Daily's main checkout, and every required step actually succeeded.
+      - name: Measure qualification environment
+        id: qualification_environment
+        if: ${{ steps.scope.outputs.mode == 'full' }}
+        run: python -m scripts.code_qualification environment --github-output "$GITHUB_OUTPUT"
+
       # The suite uses temporary databases and never touches the tracked file.
       # The assertion below is what makes that a fact rather than a claim.
       - name: Run offline test suite
@@ -221,12 +246,33 @@ jobs:
           sys.exit(0 if result.wasSuccessful() else 1)
           PY
 
-      # The same gate the daily run uses before deploying. Check 8 compares
-      # analyzed articles in the database against rendered pages, so it reads
-      # the database — through the scratch-copy helper, never the tracked file.
+      # Failed Daily recovery can preserve admissions without completing the
+      # render. Exercise the repaired renderer on the exact synthetic merge in
+      # an isolated tree; the checkout's DB/output remain evidence, untouched.
+      # Keeping the normal repo layout also keeps validator check 8 enabled.
+      - name: Render isolated output for validation
+        id: validation_tree
+        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}
+        run: |
+          set -euo pipefail
+          candidate="$(mktemp -d "${RUNNER_TEMP}/ipr-pr-validation.XXXXXX")"
+          git archive HEAD | tar -x -C "$candidate"
+          python "$candidate/site/render.py" --site-origin https://indopacificrecord.org
+          echo "root=$candidate" >> "$GITHUB_OUTPUT"
+
+      # The unchanged deploy gate, including analyzed-record coverage, now
+      # checks the freshly rendered candidate rather than an older deployment.
       - name: Validate rendered output
-        if: ${{ steps.scope.outputs.mode != 'docs' }}
+        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}
+        working-directory: ${{ steps.validation_tree.outputs.root }}
         run: python scripts/validate_output.py
+
+      # Main-push head_sha is authenticated by GitHub's run/job API. PR runs
+      # cannot certify reuse, even if they fabricate this step's name.
+      - name: Qualification environment ${{ steps.qualification_environment.outputs.digest }}
+        if: ${{ github.event_name == 'push' && steps.scope.outputs.mode == 'full' }}
+        # github.sha is a GitHub-generated hexadecimal object ID, never PR text.
+        run: test "$(git rev-parse HEAD)" = "${{ github.sha }}"
 
       # Must run even when a step above failed: a failing suite that also
       # dirtied the tracked database is exactly the case worth seeing, and the

@@ -24,6 +24,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 import urllib.parse
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -39,6 +40,7 @@ import generate_preview as gp                                    # noqa: E402
 from core.desk_registry import load_registry                     # noqa: E402
 from migrations.runner import apply_all, connect                 # noqa: E402
 from tests.test_migrations import build_legacy_db                # noqa: E402
+from core.mindef_permissions import APPROVED_MINDEF_LINKS, MINDEF_SOURCE_SLUG  # noqa: E402
 
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
 PRODUCTION_OUT = REPO_ROOT / "output"
@@ -94,6 +96,7 @@ def _corpus_index() -> dict:
     """Stored values, loaded once per process, read-only."""
     if not _CORPUS_CACHE:
         data = gp.load_corpus(TRACKED_DB)
+        from core.daily_machine_records import load as load_machine_records
         names = set()
         for source in data["sources"]:
             for field in _SOURCE_NAME_FIELDS:
@@ -101,6 +104,8 @@ def _corpus_index() -> dict:
                     names.add(str(source[field]))
         _CORPUS_CACHE.update(
             by_id={r["id"]: r for r in data["corpus"]},
+            machine_by_path={r["record_path"]: r
+                             for r in load_machine_records(TRACKED_DB)},
             names=sorted(names, key=len, reverse=True))
     return _CORPUS_CACHE
 
@@ -112,7 +117,8 @@ def _record_literals(record: dict, include_body: bool) -> list:
         # record.html renders the body one paragraph per line, so each stripped
         # line — not the whole column — is what appears in the markup.
         values += [line.strip()
-                   for line in (record.get("text_original") or "").split("\n")
+                   for field in ("text_original", "text_english")
+                   for line in (record.get(field) or "").split("\n")
                    if line.strip()]
     return values
 
@@ -140,6 +146,16 @@ def _authored_text(html: str, path: str = "", literals=None) -> str:
             record = index["by_id"].get(rec_id)
             if record:
                 literals += _record_literals(record, include_body=False)
+        # Released regional machine explanations share the publication but
+        # live outside the original-document corpus. Exclude only an exact
+        # stored summary on its record page or a page linking that record.
+        machine_paths = set(re.findall(
+            r'href="(record/source-[0-9a-f]{24}\.html)"', html))
+        machine_paths.add(path.replace("\\", "/"))
+        for machine_path in machine_paths:
+            record = index.get("machine_by_path", {}).get(machine_path)
+            if record:
+                literals.append(record["summary"])
 
     # Longest first, so a value that contains another is removed as a whole.
     for value in sorted(set(literals), key=len, reverse=True):
@@ -314,6 +330,7 @@ class PreviewCase(unittest.TestCase):
         # This prototype snapshot exercises the predecessor issue collection.
         # Native publication has separate fixtures; a real approved Brief must
         # not silently change this snapshot's lead, routes or issue set.
+        # Dossiers depending on those native Briefs are likewise absent here.
         cls.briefs = cls.tmp / "briefs"
         cls.briefs.mkdir()
         cls.snapshot = snapshot_of(TRACKED_DB)
@@ -334,7 +351,8 @@ class PreviewCase(unittest.TestCase):
             1 for r in _data["corpus"] if r.get("analyzed_at"))
         cls.week_count = len(_data["weeks"])
         cls.result = gp.build(cls.out, "Test Title", TRACKED_DB,
-                              snapshot=cls.snapshot, briefs_dir=cls.briefs)
+                              snapshot=cls.snapshot, briefs_dir=cls.briefs,
+                              dossiers_dir=cls.tmp / "no-dossiers")
         # Measured from the built tree, so necessarily after the build.
         cls.shard_count = len(list(cls.out.glob("week-*.html")))
         cls.source_count = len(list(cls.out.glob("source/*.html")))
@@ -440,7 +458,7 @@ class TestNoFabricatedCoverage(PreviewCase):
         Historical test name is retained for compatibility.
         """
         live = [e for e in load_registry() if e.is_collecting]
-        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore"])
+        self.assertEqual(sorted(e.slug for e in live), ["china", "korea", "singapore", "vietnam"])
 
     def test_non_collecting_desks_are_labelled_and_carry_no_record_count(self):
         """
@@ -1462,7 +1480,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         self.assertIn('href="team.html"', html)
         self.assertIn(gp.MAINTAINER["email"], html)
         profile = self.page("authors/benjamin-yang.html")
-        self.assertIn("Founder &amp; Director of Research and Editorial", profile)
+        self.assertIn("Founder &amp; Executive Director", profile)
         self.assertIn(gp.MAINTAINER["linkedin"], profile)
 
     def test_the_lead_edition_carries_a_byline(self):
@@ -2163,7 +2181,19 @@ class TestRecordPages(PreviewCase):
         """
         live = PRODUCTION_OUT / "article"
         self.assertTrue(live.is_dir())
-        self.assertEqual(len(list(live.glob("*.html"))), self.analyzed_count)
+        expected = {r["id"] for r in self.data["corpus"] if r["state"] == "analyzed"}
+        compat = self.tmp / "compat"
+        gp.build(compat, "Test Title", TRACKED_DB, snapshot=self.snapshot,
+                 legacy_routes=True, briefs_dir=self.briefs,
+                 dossiers_dir=self.tmp / "no-dossiers")
+        generated = {int(p.stem) for p in (compat / "article").glob("*.html")}
+        self.assertEqual(generated, expected)
+        # Tracked output is the last deployed artifact; a failed Daily can
+        # admit records without completing its render. Preserve every old URL.
+        self.assertLessEqual({int(p.stem) for p in live.glob("*.html")}, generated)
+        for rec_id in generated:
+            self.assertIn('../record/%d.html' % rec_id,
+                          (compat / "article" / ("%d.html" % rec_id)).read_text())
 
     def test_no_public_canonical_and_no_production_sitemap_entry(self):
         for rec_id in (self.ids[0], self.ids[-1]):
@@ -2278,7 +2308,10 @@ class TestRecordPages(PreviewCase):
         the record path is "not a permanent identifier", which is a different
         ruling and must not be caught here.
         """
-        rec = next(r for r in self.data["corpus"] if not r["has_text"])
+        rec = next(r for r in self.data["corpus"] if not r["has_text"]
+                   and r["source_slug"] != MINDEF_SOURCE_SLUG
+                   and not r.get("korea_identity")
+                   and not r.get("vietnam", {}).get("original_withheld"))
         html = self.record(rec["id"])
         self.assertIn("Original text is unavailable in this stored record.",
                       html)
@@ -2336,9 +2369,12 @@ class TestRecordPages(PreviewCase):
         self.assertNotIn("<td><b>", table)
 
     def test_the_original_source_link_is_keyboard_reachable(self):
-        rec = self.by_id[self.ids[-1]]
+        # MINDEF links are deliberately limited to two exact URLs; their
+        # presence/absence is asserted in TestMindefRecordPages.
+        rec = self.by_id[max(i for i in self.ids
+                             if self.by_id[i]["source_slug"] != MINDEF_SOURCE_SLUG)]
         html = self.record(rec["id"])
-        self.assertIn('<a href="%s"' % rec["url"], html)
+        self.assertIn('<a href="%s"' % markupsafe.escape(rec["url"]), html)
         self.assertNotIn("tabindex=\"-1\"", html)
 
     def test_urls_and_hashes_can_wrap_at_320px(self):
@@ -2380,6 +2416,95 @@ class TestRecordPages(PreviewCase):
 
 
 # ── Tranche 2, commit 4: week-sharded no-JavaScript browsing ─────────────────
+
+class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
+    """Singapore MINDEF: all stored identities stay, no expression is published.
+
+    The written permission covers two exact hyperlinks and nothing else, so a
+    MINDEF record page carries identity, dates and historical provenance, an
+    IPR-authored label in place of the headline, and a link only for the two
+    approved URLs. Every other record keeps its ordinary evidence layout.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.data = gp.load_corpus(TRACKED_DB)
+        cls.mindef = [r for r in cls.data["corpus"]
+                      if r["source_slug"] == MINDEF_SOURCE_SLUG]
+        cls.other = [r for r in cls.data["corpus"]
+                     if r["source_slug"] != MINDEF_SOURCE_SLUG]
+        from scripts.reconcile_db import read_only
+        with read_only(str(TRACKED_DB)) as con:
+            cls.stored = {row[0]: row[1:] for row in con.execute(
+                "SELECT a.id, a.url, a.title_original, a.text_original, "
+                "a.title_english, a.text_english, a.summary_english, "
+                "a.relevance_reasoning, a.significance_reasoning "
+                "FROM articles a JOIN sources s ON s.id=a.source_id "
+                "WHERE s.slug=?", (MINDEF_SOURCE_SLUG,))}
+
+    def page(self, rec_id):
+        return (self.out / "record" / ("%d.html" % rec_id)).read_text(
+            encoding="utf-8")
+
+    def test_all_stored_identities_are_kept_and_every_expression_is_null(self):
+        self.assertTrue(self.stored)
+        self.assertEqual({r["id"] for r in self.mindef}, set(self.stored))
+        for rec_id, row in self.stored.items():
+            self.assertEqual(row[1:], (None,) * 7, rec_id)
+
+    def test_the_only_linkable_urls_are_the_two_exact_grants(self):
+        self.assertEqual(len(APPROVED_MINDEF_LINKS), 2)
+        allowed = {r["id"] for r in self.mindef if r["mindef_link_allowed"]}
+        by_url = {rid: self.stored[rid][0] for rid in self.stored}
+        self.assertTrue(allowed)
+        for rec_id in self.stored:
+            self.assertEqual(rec_id in allowed,
+                             by_url[rec_id] in APPROVED_MINDEF_LINKS, rec_id)
+
+    def test_pages_show_a_label_and_no_source_text(self):
+        for rec in self.mindef:
+            html = self.page(rec["id"])
+            with self.subTest(record=rec["id"]):
+                self.assertIn(gp.mindef_metadata_label(rec["id"]), html)
+                self.assertIn('<h2 id="record-text">Source-use limits</h2>', html)
+                self.assertNotIn('class="original-text"', html)
+                self.assertNotIn("Stored source text", html)
+                self.assertNotIn("The English title and summary held for this record",
+                                 html)
+
+    def test_outbound_anchors_exist_only_for_the_approved_urls(self):
+        approved = set(APPROVED_MINDEF_LINKS)
+        seen = set()
+        for rec in self.mindef:
+            html = self.page(rec["id"])
+            url = self.stored[rec["id"]][0]
+            anchors = set(re.findall(r'href="(https?://[^"]*mindef\.gov\.sg[^"]*)"',
+                                     html))
+            with self.subTest(record=rec["id"]):
+                if url in approved:
+                    self.assertEqual(anchors, {url})
+                    seen.add(url)
+                else:
+                    self.assertEqual(anchors, set())
+                    self.assertIn("link not permitted", html)
+                    self.assertIn(url, html)  # recorded as provenance text
+        # A grant does not create a record; new stored identities must still
+        # match the exact source-specific grant.
+        self.assertEqual(seen, {row[0] for row in self.stored.values()} & approved)
+
+    def test_other_records_keep_their_ordinary_evidence_layout(self):
+        # Unrelated-record integrity: the MINDEF boundary must not leak.
+        with_text = [r for r in self.other if r["has_text"]
+                     and r["source_slug"] != MINDEF_SOURCE_SLUG
+                     and not r.get("korea_identity")
+                     and not r.get("vietnam", {}).get("original_withheld")]
+        self.assertTrue(with_text)
+        for rec in with_text[:25]:
+            html = self.page(rec["id"])
+            self.assertNotIn("Source-use limits", html)
+            self.assertNotIn("Source metadata — Singapore MINDEF", html)
+
 
 class TestWeekShards(PreviewCase):
     """Every record reachable through ordinary links, JavaScript disabled."""
@@ -2924,24 +3049,46 @@ class TestRecordSemantics(PreviewCase):
                                  path.read_text(encoding="utf-8"))
 
     def test_stored_source_text_heading_is_qualified(self):
-        for rec in self.data["corpus"][:200]:
+        for rec in self.data["corpus"]:
             html = self.record(rec["id"])
             with self.subTest(id=rec["id"]):
-                self.assertIn('<h2 id="record-text">Stored source text</h2>', html)
+                if rec.get("korea_identity"):
+                    self.assertIn('<h2 id="record-text">Korean original</h2>', html)
+                    self.assertIn('href="../korea-originals/%s.html"' % rec["korea_news_id"], html)
+                    self.assertIn("KOGL Type 1 text-use notice", html)
+                elif rec["source_slug"] == MINDEF_SOURCE_SLUG:
+                    # Intended rights boundary: no stored text is shown at all.
+                    # The exhaustive MINDEF contract is TestMindefRecordPages.
+                    self.assertIn('<h2 id="record-text">Source-use limits</h2>', html)
+                    self.assertNotIn("Stored source text", html)
+                elif rec.get("vietnam", {}).get("original_withheld"):
+                    self.assertIn('<h2 id="record-text">Source text</h2>', html)
+                    self.assertIn("is not reproduced here", re.sub(r"\s+", " ", html))
+                    self.assertNotIn('class="original-text"', html)
+                    self.assertNotIn("Original text is unavailable", html)
+                    self.assertIsNone(rec["text_original"])
+                else:
+                    self.assertIn('<h2 id="record-text">Stored source text</h2>', html)
                 self.assertNotIn("<h2>Original text</h2>", html)
+
+    def captured_records(self):
+        return [r for r in self.data["corpus"]
+                if not r.get("korea_identity")
+                and r["source_slug"] != MINDEF_SOURCE_SLUG
+                and not r.get("vietnam", {}).get("original_withheld")]
 
     def test_the_extraction_caveat_renders_on_every_record(self):
         caveat = ("Text captured from the source page. Extraction may omit "
                   "material\nor include unrelated page elements; consult the "
                   "original URL when exact wording\nor completeness matters.")
         flat = re.sub(r"\s+", " ", caveat)
-        for rec in self.data["corpus"][:200]:
+        for rec in self.captured_records():
             page = re.sub(r"\s+", " ", self.record(rec["id"]))
             with self.subTest(id=rec["id"]):
                 self.assertIn(flat, page)
 
     def test_the_caveat_renders_for_empty_and_noisy_captures_alike(self):
-        empty = next(r for r in self.data["corpus"] if not r["has_text"])
+        empty = next(r for r in self.captured_records() if not r["has_text"])
         html = self.record(empty["id"])
         self.assertIn("Extraction may omit material", re.sub(r"\s+", " ", html))
         self.assertIn("Original text is unavailable in this stored record.",
@@ -2957,7 +3104,7 @@ class TestRecordSemantics(PreviewCase):
         claim = re.compile(
             r"\b(verbatim|complete|completely|archival|corrected|permanent|"
             r"permanently)\b", re.I)
-        for rec in self.data["corpus"][:200]:
+        for rec in self.captured_records():
             section = self.record(rec["id"]).split(
                 '<h2 id="record-text">Stored source text</h2>', 1)[1].split("<h2", 1)[0]
             with self.subTest(id=rec["id"]):
@@ -3000,7 +3147,7 @@ class TestRecordSemantics(PreviewCase):
                 self.assertIn(markupsafe.escape(para), markupsafe.Markup(html))
 
     def test_the_caveat_is_not_a_boxed_callout(self):
-        rec = next(r for r in self.data["corpus"] if r["state"] == "analyzed")
+        rec = next(r for r in self.captured_records() if r["state"] == "analyzed")
         section = self.record(rec["id"]).split(
             '<h2 id="record-text">Stored source text</h2>', 1)[1].split("<h2", 1)[0]
         self.assertNotIn("callout", section)
@@ -3550,13 +3697,14 @@ class TestCorpusBrowserMarkup(PreviewCase):
         self.assertNotIn("could not be loaded", empty)
 
     def test_language_codes_render_as_editorial_labels(self):
-        self.assertEqual(gp.LANGUAGE_LABELS,
-                         {"zh-Hans": "Simplified Chinese", "en": "English"})
+        expected = {"zh-Hans": "Simplified Chinese", "en": "English",
+                    "ko": "Korean", "vi": "Vietnamese"}
+        self.assertEqual(gp.LANGUAGE_LABELS, expected)
         index = json.loads((self.out / "corpus-index.json").read_text(
             encoding="utf-8"))
         offered = {e["code"]: e["label"] for e in index["languages"]}
-        self.assertEqual(offered,
-                         {"zh-Hans": "Simplified Chinese", "en": "English"})
+        held = {r["language_tag"] for r in gp.load_corpus(TRACKED_DB)["corpus"]}
+        self.assertEqual(offered, {tag: expected[tag] for tag in held})
 
     def test_every_stored_language_tag_is_mapped(self):
         corpus = gp.load_corpus(TRACKED_DB)["corpus"]
@@ -3724,7 +3872,7 @@ class TestCorpusBrowserMarkup(PreviewCase):
         nav = self.page("archive.html").split('aria-label="Primary"', 1)[1]
         nav = nav.split("</nav>", 1)[0]
         labels = re.findall(r">([A-Za-z ]+)</a>", nav)
-        self.assertEqual(labels, ["Records", "Briefs", "Desks", "Sources",
+        self.assertEqual(labels, ["Records", "Analysis", "Desks", "Sources",
                                   "Coverage", "Methodology", "Team", "About"])
         self.assertNotIn("Corpus", labels)
         self.assertNotIn("Archive", labels)
@@ -4490,7 +4638,10 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
                 self.assertIn(label, authored)
 
     def test_empty_text_disclosure_and_route_language_stay_guarded(self):
-        empty = next(r for r in self.corpus["corpus"] if not r["has_text"])
+        empty = next(r for r in self.corpus["corpus"] if not r["has_text"]
+                     and r["source_slug"] != MINDEF_SOURCE_SLUG
+                     and not r.get("korea_identity")
+                     and not r.get("vietnam", {}).get("original_withheld"))
         authored = self.authored("record/%d.html" % empty["id"])
         self.assertIn("Original text is unavailable in this stored record.",
                       authored)
@@ -4604,8 +4755,85 @@ class TestStoredContentIsExcluded(PreviewCase):
             self.assertIn(self.analyzed["model_id"], authored)
 
 
+class TestReleasedMachineProseExclusion(unittest.TestCase):
+    def setUp(self):
+        self.path = "record/source-" + "a" * 24 + ".html"
+        self.summary = 'Stored machine output: "organised" & "defence".'
+        index = {"by_id": {}, "names": [], "machine_by_path": {
+            self.path: {"summary": self.summary}}}
+        patcher = mock.patch(__name__ + "._corpus_index", return_value=index)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_exact_released_summary_is_excluded_on_record_and_linked_desk(self):
+        html = ('<p>Machine explanation</p><p>%s</p>'
+                '<p>Not reviewed by a human. Authored defence copy.</p>' %
+                markupsafe.escape(self.summary))
+        for path, page in ((self.path, html),
+                           ("indonesia.html", '<a href="%s">Record</a>%s' %
+                            (self.path, html))):
+            with self.subTest(path=path):
+                own = _authored_text(page, path)
+                self.assertNotIn("organised", own)
+                self.assertIn("Machine explanation", own)
+                self.assertIn("Not reviewed by a human.", own)
+                self.assertIn("Authored defence copy.", own)
+
+    def test_unrelated_page_receives_no_summary_exemption(self):
+        self.assertIn(self.summary, _authored_text(self.summary, "about.html"))
+
+    def test_unregistered_summary_stays_guarded_even_on_registered_route(self):
+        self.assertIn("Unregistered organised output",
+                      _authored_text("Unregistered organised output", self.path))
+
+
 class TestExclusionContract(unittest.TestCase):
     """The contract itself, independent of what the live corpus contains."""
+
+    def test_exact_translation_lines_excluded_only_on_their_record_page(self):
+        lines = ['Synthetic stored "defence" & translation.',
+                 'Another stored programme paragraph.']
+        record = {"id": 1, "text_english": "\n\n".join(lines)}
+        index = {"names": [], "by_id": {1: record}, "machine_by_path": {}}
+        html = ('<h2>Machine translation</h2>' +
+                ''.join('<p>%s</p>' % markupsafe.escape(line) for line in lines) +
+                '<p>Not reviewed by a human. Authored defence copy.</p>')
+        with mock.patch(__name__ + "._corpus_index", return_value=index):
+            own = _authored_text(html, "record/1.html")
+            for line in lines:
+                self.assertNotIn(str(markupsafe.escape(line)), own)
+            self.assertIn("Machine translation", own)
+            self.assertIn("Not reviewed by a human. Authored defence copy.", own)
+            linked = _authored_text('<a href="record/1.html">Record</a>' + html,
+                                    "corpus.html")
+            for line in lines:
+                self.assertIn(str(markupsafe.escape(line)), linked)
+
+    def test_unregistered_translation_text_remains_guarded(self):
+        index = {"names": [], "by_id": {1: {
+            "text_english": "Synthetic accepted translation."}}, "machine_by_path": {}}
+        with mock.patch(__name__ + "._corpus_index", return_value=index):
+            self.assertIn("Unregistered defence translation.", _authored_text(
+                '<p>Unregistered defence translation.</p>', "record/1.html"))
+
+    def test_released_machine_summary_exclusion_keeps_authored_copy_guarded(self):
+        from unittest.mock import patch
+        path = "record/source-" + "a" * 24 + ".html"
+        stored = "A synthetic centre exercise was organised."
+        index = {"names": [], "by_id": {},
+                 "machine_by_path": {path: {"summary": stored}}}
+        html = '<p>%s</p><p>Machine explanation labelled by the editor.</p>' % stored
+        with patch(__name__ + "._corpus_index", return_value=index):
+            for page, markup in ((path, html),
+                                 ("indonesia.html", '<a href="%s">Record</a>%s' % (path, html))):
+                with self.subTest(page=page):
+                    own = _authored_text(markup, page)
+                    self.assertNotIn(stored, own)
+                    self.assertIn("labelled by the editor", own)
+            self.assertIn(stored, _authored_text(html, "unrelated.html"))
+            draft = stored + " Unreleased programme."
+            self.assertIn("Unreleased programme", _authored_text(
+                "<p>%s</p>" % draft, path))
 
     def test_a_british_source_name_survives_without_exempting_its_label(self):
         """The case the whole design exists for.
@@ -4659,6 +4887,38 @@ class TestExclusionContract(unittest.TestCase):
         authored = _authored_text(html, "record/1.html", literals=[stored])
         self.assertNotIn("&#34;defence&#34;", authored)
         self.assertIn("authored defence copy", authored)
+
+
+class TestReleasedMachineProseExclusion(unittest.TestCase):
+    def setUp(self):
+        self.path = "record/source-" + "a" * 24 + ".html"
+        self.summary = 'Stored machine output: "organised" & "defence".'
+        index = {"by_id": {}, "names": [], "machine_by_path": {
+            self.path: {"summary": self.summary}}}
+        patcher = mock.patch(__name__ + "._corpus_index", return_value=index)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_exact_released_summary_is_excluded_on_record_and_linked_desk(self):
+        html = ('<p>Machine explanation</p><p>%s</p>'
+                '<p>Not reviewed by a human. Authored defence copy.</p>' %
+                markupsafe.escape(self.summary))
+        for path, page in ((self.path, html),
+                           ("indonesia.html", '<a href="%s">Record</a>%s' %
+                            (self.path, html))):
+            with self.subTest(path=path):
+                own = _authored_text(page, path)
+                self.assertNotIn("organised", own)
+                self.assertIn("Machine explanation", own)
+                self.assertIn("Not reviewed by a human.", own)
+                self.assertIn("Authored defence copy.", own)
+
+    def test_unrelated_page_receives_no_summary_exemption(self):
+        self.assertIn(self.summary, _authored_text(self.summary, "about.html"))
+
+    def test_unregistered_summary_stays_guarded_even_on_registered_route(self):
+        self.assertIn("Unregistered organised output",
+                      _authored_text("Unregistered organised output", self.path))
 
 
 def _fake_record(**overrides):
@@ -5025,15 +5285,36 @@ class TestCorpusGuide(PreviewCase):
         promoted = [r for r in sg if r["scrape_run_id"] is None]
         self.assertEqual(len(promoted), 57)
         no_run = [r for r in self.corpus["corpus"] if r["scrape_run_id"] is None]
-        self.assertEqual({r["source_slug"] for r in no_run},
-                         {"sg_mindef_releases"})
-        self.assertEqual(self.stats["promoted_without_run"], len(no_run))
+        private = [r for r in no_run if r.get("vietnam")]
+        self.assertEqual(len(no_run), len(promoted) + len(private))
+        self.assertEqual(self.stats["promoted_without_run"], len(promoted))
+        self.assertEqual(self.stats["private_handoff_without_run"], len(private))
+        self.assertEqual(self.stats["other_without_run"], 0)
+        self.assertEqual(self.stats["without_run"], len(no_run))
 
         row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Collection run"]
         self.assertNotIn("Never absent", row["absent"])
         self.assertIn("{:,}".format(len(no_run)), row["absent"])
         self.assertIn("governed shadow promotion", row["absent"])
+        self.assertIn("%s Singapore records" % format(len(promoted), ","), row["absent"])
+        self.assertIn("%s Vietnam records" % format(len(private), ","), row["absent"])
+        self.assertIn("authenticated private handoff", row["absent"])
         self.assertIn("promotion ledger", row["limitation"])
+
+    def test_original_title_absence_is_measured_and_disclosed(self):
+        withheld = [r for r in self.corpus["corpus"] if not r.get("title_original")]
+        self.assertTrue(withheld)
+        for rec in withheld:
+            self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+            self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+            self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+            self.assertTrue(rec["vietnam"]["source_identity"])
+            self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
+            self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
+        self.assertEqual(self.stats["withheld_original_titles"], len(withheld))
+        row = {r["label"]: r for r in gp.dictionary_rows(self.stats)}["Original title"]
+        self.assertIn("Withheld for %s records" % format(len(withheld), ","), row["absent"])
+        self.assertIn("source-use decisions", row["absent"])
 
     def test_the_machine_assessment_row_never_prints_the_stored_column_name(self):
         """`is_significant` carries the one word the public label may never
@@ -5291,8 +5572,9 @@ class TestSnapshotScopedCitations(PreviewCase):
             encoding="utf-8")
 
     def first_in_state(self, state):
+        # MINDEF pages are metadata-only and are asserted separately below.
         for rec in self.corpus:
-            if rec["state"] == state:
+            if rec["state"] == state and rec["source_slug"] != MINDEF_SOURCE_SLUG:
                 return rec["id"]
         raise AssertionError("no record in state %s" % state)
 
@@ -5306,7 +5588,7 @@ class TestSnapshotScopedCitations(PreviewCase):
         self.assertEqual(
             gp.corpus_citation("Test Title", gp.DECLARED_SNAPSHOT),
             "Test Title. Research Atlas corpus. Snapshot — "
-            "%s. %s records. Benjamin Yang, Founder & Director of Research and Editorial."
+            "%s. %s records. Benjamin Yang, Founder & Executive Director."
             % (gp.DECLARED_SNAPSHOT["date"],
                "{:,}".format(gp.DECLARED_SNAPSHOT["expected_records"])))
 
@@ -5337,11 +5619,21 @@ class TestSnapshotScopedCitations(PreviewCase):
         wrong = []
         for rec in self.corpus:
             cite = gp.record_citation(rec, "Test Title", self.snapshot)
-            for value in (rec["institution"], rec["title_original"],
-                          rec["source_name"], rec["published_date"],
-                          rec["url"]):
+            for value in (rec["institution"], rec["source_name"],
+                          rec["published_date"], rec["url"]):
                 if str(value) not in cite["source_text"]:
                     wrong.append((rec["id"], value))
+            if rec["source_slug"] == MINDEF_SOURCE_SLUG:
+                # IPR's label is not a publisher title and is never quoted as one.
+                if (rec["title_original"] in cite["source_text"]
+                        or "Original title withheld under the source-use decision."
+                        not in cite["source_text"]):
+                    wrong.append((rec["id"], "mindef withheld title"))
+            elif rec["title_original"]:
+                if rec["title_original"] not in cite["source_text"]:
+                    wrong.append((rec["id"], "original title"))
+            elif "Original title withheld under the source-use decision." not in cite["source_text"]:
+                wrong.append((rec["id"], "withheld title disclosure"))
             if "Record %d," % rec["id"] not in cite["as_held"]:
                 wrong.append((rec["id"], "id"))
         self.assertEqual(wrong[:10], [])
@@ -5363,6 +5655,29 @@ class TestSnapshotScopedCitations(PreviewCase):
             english = (rec.get("title_english") or "").strip()
             cite = gp.record_citation(rec, "Test Title", gp.DECLARED_SNAPSHOT)
             with self.subTest(record=rec["id"]):
+                if rec["source_slug"] == MINDEF_SOURCE_SLUG:
+                    self.assertIn("Original title withheld under the source-use decision.",
+                                  cite["source_text"])
+                    self.assertNotIn(original, cite["source_text"])
+                    if english:
+                        self.assertNotIn(english, cite["source_text"])
+                    continue
+                if not original:
+                    self.assertIn(rec["source_slug"], ("vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi"))
+                    self.assertEqual(rec["vietnam"]["source_family"], rec["source_slug"])
+                    self.assertEqual(rec["vietnam"]["canonical_official_url"], rec["url"])
+                    self.assertTrue(rec["vietnam"]["source_identity"])
+                    self.assertRegex(rec["vietnam"]["rights_decision_sha256"], r"^[0-9a-f]{64}$")
+                    self.assertIs(rec["vietnam"]["permissions"]["public_title_display"], False)
+                    if rec["source_slug"] == "vn_vpcp_official_documents_vi":
+                        proof = rec["vietnam"]["qa"]
+                        self.assertIs(proof["second_pass"]["ok"], True)
+                        number = proof["details"]["VPCP_DOCUMENT"]["bibliographic"]["document_number"]
+                        self.assertIn("Official document " + number, cite["source_text"])
+                    self.assertIn("Original title withheld under the source-use decision.",
+                                  cite["source_text"])
+                    self.assertNotIn(english, cite["source_text"])
+                    continue
                 self.assertIn('"%s."' % original, cite["source_text"])
                 if english and english not in original:
                     compared += 1
@@ -5372,7 +5687,9 @@ class TestSnapshotScopedCitations(PreviewCase):
         # Once 4,400 retired sources were removed, a fixed 1,000-example
         # threshold exceeded the entire active 873-record corpus. Require
         # coverage of a MAJORITY of reviewed (analyzed) source titles.
-        analyzed_count = sum(r["state"] == "analyzed" for r in self.corpus)
+        analyzed_count = sum(r["state"] == "analyzed"
+                             and r["source_slug"] != MINDEF_SOURCE_SLUG
+                             for r in self.corpus)
         self.assertGreater(compared, analyzed_count // 2)
 
     def test_the_rendered_source_text_block_quotes_the_original_title(self):
@@ -5383,8 +5700,22 @@ class TestSnapshotScopedCitations(PreviewCase):
             rec = self.by_id[rec_id]
             html = self.record(rec_id)
             with self.subTest(state=state):
-                self.assertIn(str(markupsafe.escape(
-                    '"%s."' % rec["title_original"])), html)
+                if not rec["title_original"]:
+                    self.assertIn("Original title withheld under the source-use decision.", html)
+                else:
+                    self.assertIn(str(markupsafe.escape(
+                        '"%s."' % rec["title_original"])), html)
+
+    def test_mindef_citations_disclose_the_withheld_title_and_state_history_only(self):
+        mindef = [r for r in self.corpus if r["source_slug"] == MINDEF_SOURCE_SLUG]
+        self.assertTrue(mindef)
+        for rec in mindef:
+            html = self.record(rec["id"])
+            with self.subTest(record=rec["id"]):
+                self.assertIn("Original title withheld under the source-use decision.", html)
+                self.assertNotIn(str(markupsafe.escape('"%s."' % rec["title_original"])), html)
+                self.assertIn("Historical processing status only.", html)
+                self.assertNotIn("machine-generated and have not been reviewed", html)
 
     def test_all_record_pages_carry_the_snapshot_date_and_count(self):
         expected = ("Snapshot — %s (%s records)"
@@ -6257,7 +6588,8 @@ class TestCitationCopyBehaviour(PreviewCase):
             permissions=["clipboard-read", "clipboard-write"])
         try:
             corpus = gp.load_corpus(TRACKED_DB)["corpus"]
-            rec = next(r for r in corpus if r["state"] == "analyzed")
+            rec = next(r for r in corpus if r["state"] == "analyzed"
+                       and r["source_slug"] != MINDEF_SOURCE_SLUG)
             page = context.new_page()
             page.goto(self.url("record/%d.html" % rec["id"]),
                       wait_until="load")
@@ -6832,7 +7164,7 @@ class TestPreviewEditionIdentity(unittest.TestCase):
             briefs.mkdir()
             gp.build(tmp / "out", "Test Title", TRACKED_DB,
                      snapshot=gp.snapshot_from_corpus(TRACKED_DB),
-                     briefs_dir=briefs)
+                     briefs_dir=briefs, dossiers_dir=tmp / "no-dossiers")
         finally:
             gp.load_editions = real
         pages = {name: (tmp / "out" / name).read_text(encoding="utf-8")
@@ -6859,9 +7191,9 @@ class TestPreviewEditionIdentity(unittest.TestCase):
                     "predecessor masthead %s and preserved with its" % self.HISTORICAL,
                     html)
 
-    # Since 2026-09-30 the newest item of one unified collection leads, so an
-    # issue cannot be forced to lead: ordering is deterministic. Identity now
-    # shows as each row's provenance line, taken from the collection.
+    # Since 2026-09-30 the newest item of one unified collection leads.
+    # The current reader-facing pages use neutral edition labels; canonical
+    # original-publication identity remains in the sidecar and citation record.
 
     def _provenance(self):
         from core import brief_collection as bc
@@ -6869,11 +7201,12 @@ class TestPreviewEditionIdentity(unittest.TestCase):
         return {r["entry"].get("issue"): r["provenance"]
                 for r in c.rows if r["kind"] == "issue"}
 
-    def test_the_lead_issue_states_its_provenance_on_both_pages(self):
+    def test_the_lead_issue_uses_neutral_labels_on_both_pages(self):
         pages = self.leads(14)
         for page, html in pages.items():
             with self.subTest(page=page):
-                self.assertIn("From the former series", html)
+                self.assertIn("Earlier Brief", html)
+                self.assertNotIn("From the former series", html)
                 self.assertNotIn("legacy China Desk series", html)
 
     def test_a_current_retrospective_lead_shows_the_canonical_label(self):
@@ -6964,51 +7297,50 @@ class TestPlaWatchPageSpansTheRename(unittest.TestCase):
         self.assertNotIn("published from 2026 under the\npredecessor masthead",
                          self.html)
 
-    def test_the_page_says_the_series_spanned_the_rename_and_holds_citations(self):
-        """Since DECISION_LOG 2026-09-30 the issues are earlier Briefs in one
-        collection; this page is their citation and provenance record, not a
-        second archive."""
+    def test_the_page_is_a_quiet_compatibility_bridge_with_original_citations(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertNotIn("continues across", text)
-        self.assertIn("spanned the project's publication rename", text)
-        self.assertIn("These issues are preserved as published", text)
-        self.assertIn("is now part of Indo-Pacific Record Briefs", text)
-        self.assertNotIn("This page is an archive of those issues", text)
-        self.assertIn(self.HISTORICAL, text)
-        self.assertIn(self.CURRENT, text)
+        intro = text.split('Citation text for the ')[0]
+        self.assertIn("Earlier Briefs", intro)
+        self.assertIn("Original editions and citations", intro)
+        self.assertIn("Indo-Pacific Record Briefs", intro)
+        self.assertNotIn("spanned the project's publication rename", intro)
+        self.assertNotIn(self.HISTORICAL, intro)
+        self.assertIn("The PLA Watch, No.", text)
+        self.assertIn("the-pla-watch/archive.html", text)
 
-    def test_the_counts_are_derived_not_hard_coded(self):
+    def test_the_citation_count_is_derived_not_hard_coded(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertIn("%d earlier editions" % len(self.hist), text)
-        self.assertIn("%d later" % len(self.cur), text)
-        # The literals must not be baked into the template.
+        self.assertIn("Citation text for the %d earlier Briefs" % len(self.editions), text)
         src = (REPO_ROOT / "site" / "preview" / "templates"
                / "pla_watch.html").read_text(encoding="utf-8")
+        self.assertIn("edition_citations | length", src)
         for literal in ("13 editions", "13 issues", "the same 13 titles"):
             with self.subTest(literal=literal):
                 self.assertNotIn(literal, src)
 
-    def test_only_historical_editions_are_attributed_to_the_predecessor(self):
-        text = re.sub(r"\s+", " ", self.html)
-        self.assertNotIn("Those issues were published by %s" % self.HISTORICAL,
-                         text)
-        self.assertIn("%d earlier editions were published under %s"
-                      % (len(self.hist), self.HISTORICAL), text)
+    def test_historical_editions_retain_original_citation_anchors(self):
+        for edition in self.hist:
+            with self.subTest(edition=edition["slug"]):
+                self.assertIn('id="cite-edition-%s"' % edition["slug"], self.html)
+        intro = self.html.split('<details class="ed-cite')[0]
+        self.assertNotIn(self.HISTORICAL, intro)
 
-    def test_current_editions_are_attributed_to_the_current_publication(self):
-        text = re.sub(r"\s+", " ", self.html)
-        self.assertIn("published by %s" % self.CURRENT, text)
+    def test_current_editions_also_retain_their_original_citation_anchors(self):
+        for edition in self.cur:
+            with self.subTest(edition=edition["slug"]):
+                self.assertIn('id="cite-edition-%s"' % edition["slug"], self.html)
+        self.assertIn(self.CURRENT, self.html)
 
-    def test_each_issue_is_said_to_keep_its_own_publication_identity(self):
+    def test_each_issue_keeps_its_original_publication_credit(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertIn("publication identity", text)
+        self.assertIn("original title, byline, date, publication credit and address", text)
         self.assertNotIn("because it did not", text)
 
-    def test_the_redirect_note_is_scoped_to_the_historical_editions(self):
+    def test_the_compatibility_page_links_to_existing_edition_archive(self):
         text = re.sub(r"\s+", " ", self.html)
-        self.assertRegex(
-            text,
-            r"redirects to the \d+ editions published under that masthead")
+        self.assertIn("the-pla-watch/archive.html", text)
+        self.assertNotIn("redirects to the", text)
+        self.assertNotIn("Those issues were published by", text)
 
     def test_the_citation_block_covers_every_issue_and_adds_no_label(self):
         for e in self.editions:
@@ -7017,12 +7349,12 @@ class TestPlaWatchPageSpansTheRename(unittest.TestCase):
         # Timing is provenance on the catalog, not restated on the bridge.
         self.assertNotIn(self.RETRO, self.html)
 
-    def test_an_all_historical_fixture_still_explains_the_predecessor(self):
+    def test_an_all_historical_fixture_preserves_citations_without_rebrand_prose(self):
         html = self._render(self.hist)
         text = re.sub(r"\s+", " ", html)
-        self.assertIn(self.HISTORICAL, text)
-        self.assertIn("%d earlier editions were published under %s"
-                      % (len(self.hist), self.HISTORICAL), text)
+        self.assertIn("Citation text for the %d earlier Briefs" % len(self.hist), text)
+        self.assertIn("The PLA Watch, No.", text)
+        self.assertNotIn(self.HISTORICAL, text.split('<details class="ed-cite')[0])
         self.assertNotIn(self.RETRO, text)
 
     def test_the_template_infers_no_boundary_and_names_no_publication(self):

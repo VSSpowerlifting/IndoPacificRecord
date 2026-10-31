@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   packet-boundaries:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - name: Checkout untrusted PR code without Git push credentials

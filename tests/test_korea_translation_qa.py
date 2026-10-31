@@ -13,6 +13,7 @@ inputs, not records.
 import copy
 import hashlib
 import json
+import re
 import unittest
 from collections import Counter
 from pathlib import Path
@@ -25,8 +26,8 @@ ROOT = Path(__file__).resolve().parent.parent
 REVIEWED = ("156784297", "156785286", "156785444")
 # Changing the guide or the rendered prompt without bumping glossary_version /
 # TRANSLATION_VERSION would silently change what a stored prompt_version means.
-GUIDE_SHA256 = "75789b59c774a8e590ad0024f89c5291320d442708e3970ee01ac365a4c1def9"
-SYSTEM_SHA256 = "4931290d13228eae644686332cbe908923055c390a9bb5ab25c130ff0f11fb1f"
+GUIDE_SHA256 = "ddfb1507022f54c5116998fa677dad9a29b90e3c4df7c9738040c5db7fe91f7c"
+SYSTEM_SHA256 = "eaf87188ced40bebbb2d12b25929255249e3eb2efd487b0dcf1fed0f18f5575c"
 
 
 def load(release):
@@ -63,7 +64,7 @@ class Benchmark(unittest.TestCase):
 
     def test_versions_and_pins(self):
         self.assertEqual(qa.QA_VERSION, "kr-qa-v2")
-        self.assertEqual(qa.glossary_version(), "kr-glossary-v1")
+        self.assertEqual(qa.glossary_version(), "kr-glossary-v2")
         self.assertEqual(hashlib.sha256(qa.GUIDE_PATH.read_bytes()).hexdigest(),
                          GUIDE_SHA256)
         self.assertEqual(hashlib.sha256(
@@ -157,6 +158,38 @@ class Mutations(unittest.TestCase):
 
 class SyntheticLines(unittest.TestCase):
     """Checks no released line exercises. Synthetic test inputs only."""
+
+    def test_ministry_and_officeholders_use_distinct_glossary_entries(self):
+        # Synthetic fixtures: the ministry must not also match its officeholders.
+        guide = qa.load_guide()
+        for source, expected in (
+                ("국방부", {"국방부"}),
+                ("국방부장관", {"국방부장관"}),
+                ("국방부차관", {"국방부차관"})):
+            with self.subTest(source=source):
+                self.assertEqual(
+                    {entry["ko_display"] for entry in guide["glossary"]
+                     if re.search(entry["ko"], source)}, expected)
+
+    def test_ministry_and_officeholder_glossary_qa(self):
+        for source, english in (
+                ("국방부", "Ministry of National Defense"),
+                ("국방부장관", "Minister of National Defense"),
+                ("국방부차관", "Vice Minister of National Defense"),
+                ("국방부와 국방부차관", "Ministry of National Defense and "
+                 "Vice Minister of National Defense")):
+            with self.subTest(source=source, english=english):
+                self.assertNotIn("qa_glossary_term_missing", codes(
+                    source, [{"index": 1, "text_en": english}]))
+        for source, english in (
+                ("국방부", "Vice Minister of National Defense"),
+                ("국방부장관", "Ministry of National Defense"),
+                ("국방부차관", "Ministry of National Defense"),
+                ("국방부차관", "Minister of National Defense"),
+                ("국방부와 국방부차관", "Vice Minister of National Defense")):
+            with self.subTest(source=source, english=english):
+                self.assertIn("qa_glossary_term_missing", codes(
+                    source, [{"index": 1, "text_en": english}]))
 
     def test_designator_must_survive(self):
         got = codes("KF-21 시험", [{"index": 1, "text_en": "fighter test"}])

@@ -3,7 +3,8 @@ import hashlib
 import json
 
 from scripts.reconcile_db import read_only
-from processing.daily_intake import REFS, digest, load_policy, validate_output
+from core.daily_sources import source_for
+from processing.daily_intake import load_policy, validate_output
 
 
 def load(db_path):
@@ -17,7 +18,8 @@ def load(db_path):
         for values in conn.execute("SELECT " + ",".join(columns) + " FROM daily_machine_records WHERE publication_state='released'"):
             r = dict(zip(PUBLIC_FIELDS, values))
             family = r["source_family"]
-            if family not in REFS:
+            source = source_for(family)
+            if source is None:
                 continue
             p = policy["sources"][family]
             if r["source_identity"] in p["excluded_source_identities"]:
@@ -32,16 +34,13 @@ def load(db_path):
                 "WHERE source_family=? AND source_identity=?", (family, r["source_identity"])).fetchone()
             if not link or link[2] != r["metadata_version_sha256"]:
                 continue
-            if family == "ph_nsc_official_statements":
-                from core.ph_nsc_official_link_admission import load_policy as nsc_policy
-                if not nsc_policy()["category_anomaly_resolved"]:
-                    continue
-            label = "AFP" if family == "ph_afp_articles" else "NSC"
+            if source.release_hold():
+                continue
             path = "record/source-" + hashlib.sha256((family + ":" + r["source_identity"]).encode()).hexdigest()[:24] + ".html"
-            result.append({**r, "record_path": path, "source_label": label,
+            result.append({**r, "record_path": path, "source_label": source.label,
                            "url": link[0], "published_date": link[1],
-                           "publisher": ("Armed Forces of the Philippines" if label == "AFP" else "National Security Council"),
-                           "issuer": ("Armed Forces of the Philippines" if label == "AFP" else None), "desk_id": "philippines",
+                           "publisher": source.publisher,
+                           "issuer": source.public_issuer, "desk_id": source.desk_id,
                            "machine_only": True})
     return sorted(result, key=lambda r: (r["published_date"], r["source_identity"]), reverse=True)
 
@@ -52,7 +51,7 @@ def archive_rows(records):
         yield projection(id="machine:" + r["source_identity"],
             title=r["source_label"] + " official source — machine explanation",
             summary=r["summary"], date=r["published_date"], date_kind="source-stated publication",
-            desks=["philippines"], source=r["source_label"], issuer=r["publisher"],
+            desks=[r["desk_id"]], source=r["source_label"], issuer=r["publisher"],
             record_type="machine_explanation", processing="Machine-generated; not human-reviewed. Official account, not independent verification.",
             ipr_url=ORIGIN + "/" + r["record_path"], source_url=r["url"],
             citation="Indo-Pacific Record machine explanation of " + r["source_identity"] + ". " + r["url"])
@@ -69,7 +68,7 @@ def editorial_candidates(db_path, start, cutoff, *, limit=2):
     limit = min(2, limit)
     result = []
     for r in load(db_path):
-        if not start <= r["published_date"] <= cutoff:
+        if r["desk_id"] != "philippines" or not start <= r["published_date"] <= cutoff:
             continue
         ident = "PH-DAILY-" + r["source_label"] + "-" + r["content_sha256"][:24]
         result.append(dict(id=ident, desk="philippines", source_name=r["source_label"],

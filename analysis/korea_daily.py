@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 def translate(analyzer, body):
+    from analysis.analyzer import task_route
+    return task_route(TASK_TRANSLATION)(_translate)(analyzer, body)
+
+
+def _translate(analyzer, body):
     """Line-aligned translation: [{index, text_en}] for every source line.
 
     Structural failure (no list, malformed entries) is a failed paid call and
@@ -33,11 +38,12 @@ def translate(analyzer, body):
     data = analyzer._call_tool(
         translation_messages(lines), TRANSLATION_TOOL,
         max_tokens=TRANSLATION_MAX_TOKENS, temperature=0.0,
-        system=system, task=TASK_TRANSLATION)
+        system=system, task=TASK_TRANSLATION,
+        model=analyzer.task_model(TASK_TRANSLATION))
     entries = data.get("translations") if isinstance(data, dict) else None
     if (not isinstance(entries, list) or not entries
             or not all(isinstance(e, dict) for e in entries)):
-        analyzer.usage.mark_failed(TASK_TRANSLATION, ANALYSIS_MODEL)
+        analyzer.usage.mark_failed(TASK_TRANSLATION, analyzer.task_model(TASK_TRANSLATION))
         raise AnalysisError("Korea translation incomplete")
     return entries
 

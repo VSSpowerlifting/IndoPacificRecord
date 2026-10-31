@@ -28,7 +28,7 @@ from core.desk_registry import load_registry                  # noqa: E402
 ADMISSIONS = REPO_ROOT / "site/assets/catalogue/admissions.json"
 MANIFEST = REPO_ROOT / "site/assets/editorial/manifest.json"
 MEDIA = REPO_ROOT / "site/assets/catalogue/media"
-PHOTO_ISSUES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 17, 18, 19}
+PHOTO_ISSUES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 17, 18, 19, 20}
 #: Where each admitted card's source page may be. No. 17 is the paired DVIDS
 #: cover (treatment B, owner-selected 2026-10-12); the others are Commons files.
 SOURCE_HOSTS = {1: "https://commons.wikimedia.org/", 2: "https://commons.wikimedia.org/", 3: "https://www.dvidshub.net/", 4: "https://www.dvidshub.net/", 5: "https://commons.wikimedia.org/", 6: "https://commons.wikimedia.org/", 7: "https://www.dvidshub.net/", 8: "https://commons.wikimedia.org/", 9: "https://commons.wikimedia.org/", 11: "https://commons.wikimedia.org/",
@@ -36,7 +36,8 @@ SOURCE_HOSTS = {1: "https://commons.wikimedia.org/", 2: "https://commons.wikimed
                 14: "https://commons.wikimedia.org/", 15: "https://www.dvidshub.net/", 16: "https://www.dvidshub.net/",
                 17: "https://www.dvidshub.net/image/",
                 18: "https://commons.wikimedia.org/",
-                19: "https://www.dvidshub.net/"}
+                19: "https://www.dvidshub.net/",
+                20: "https://www.dvidshub.net/"}
 HELD_ISSUES = {10}
 
 
@@ -241,6 +242,15 @@ class CommittedRecordTests(unittest.TestCase):
         cls.rows = load_collection(gp.load_editions(REPO_ROOT), load_registry(),
                                    briefs_dir=REPO_ROOT / "briefs").rows
         cls.audit = cm.audit_rows(cls.rows, cls.admissions, repo_root=REPO_ROOT)
+        # Briefs 15-17 cite Singapore MINDEF records and are withheld whole by
+        # the production boundary, so the real collection omits their rows. The
+        # admitted photograph records are unchanged; audit them under an explicit
+        # synthetic rights authority so their admission stays verified.
+        from unittest import mock
+        with mock.patch("core.mindef_public_boundary.editorial_hold", return_value=False):
+            cls.rows_all = load_collection(gp.load_editions(REPO_ROOT), load_registry(),
+                                           briefs_dir=REPO_ROOT / "briefs").rows
+        cls.audit_all = cm.audit_rows(cls.rows_all, cls.admissions, repo_root=REPO_ROOT)
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
         cls.manifest = {m["id"]: m for m in manifest}
 
@@ -248,10 +258,17 @@ class CommittedRecordTests(unittest.TestCase):
         # Row-count agnostic: publishing No. 18 must not turn this red.
         self.assertEqual(len(self.audit), len(self.rows))
         self.assertGreaterEqual(len(self.audit), 17)
+        withheld = {15, 16, 17}
+        published = {a["issue"] for a in self.audit}
+        self.assertTrue(withheld.isdisjoint(published))
         photos = {a["issue"] for a in self.audit if a["kind"] == cm.KIND_PHOTOGRAPH}
-        self.assertEqual(photos, PHOTO_ISSUES)
+        self.assertEqual(photos, PHOTO_ISSUES - withheld)
         plates = sum(a["kind"] == cm.KIND_PLATE for a in self.audit)
-        self.assertEqual(plates, len(self.rows) - len(PHOTO_ISSUES))
+        self.assertEqual(plates, len(self.rows) - len(PHOTO_ISSUES - withheld))
+        # With the synthetic authority, the full admitted set is still verified.
+        self.assertEqual(len(self.audit_all), len(self.rows_all))
+        all_photos = {a["issue"] for a in self.audit_all if a["kind"] == cm.KIND_PHOTOGRAPH}
+        self.assertEqual(all_photos, PHOTO_ISSUES)
 
     def test_remaining_number_ten_hold_and_number_twelve_denial(self):
         by_issue = {a["issue"]: a for a in self.audit}
@@ -338,7 +355,7 @@ class CommittedRecordTests(unittest.TestCase):
         self.assertIn("does not depict", fifteen["caption"])
         self.assertEqual(fifteen["source_label"], "DVIDS")
         self.assertIn("1000px", self.manifest[fifteen["source_manifest_id"]]["license_basis"])
-        by_audit = {a["issue"]: a for a in self.audit}
+        by_audit = {a["issue"]: a for a in self.audit_all}
         self.assertEqual(by_audit[15]["kind"], "photograph")
 
     def test_wave5_no16_is_not_claiming_xiangshan_scene(self):
@@ -353,7 +370,7 @@ class CommittedRecordTests(unittest.TestCase):
         self.assertEqual(entry["notice"], required_notice(entry))
         self.assertEqual(entry["source_label"], "DVIDS")
         self.assertIn("1000w", self.manifest[entry["source_manifest_id"]]["license_basis"])
-        by_audit = {item["issue"]: item for item in self.audit}
+        by_audit = {item["issue"]: item for item in self.audit_all}
         self.assertEqual(by_audit[16]["kind"], "photograph")
 
     def test_wave6_shipyard_photo_does_not_claim_airwing_qualification(self):
@@ -560,9 +577,11 @@ class HeroPhotographTests(unittest.TestCase):
         gp.load_collection = functools.partial(original_collection, unreconciled=frozenset())
         try:
             gp.build(cls.root / "default", gp.PUBLIC_TITLE, db, snapshot=snap, briefs_dir=briefs,
+                     dossiers_dir=cls.root / "no-dossiers",
                      site_origin="https://briefs-review.test", allow_test_origin=True)
             gp.resolve_catalogue_media = admit_the_lead
             gp.build(cls.root / "admitted", gp.PUBLIC_TITLE, db, snapshot=snap, briefs_dir=briefs,
+                     dossiers_dir=cls.root / "no-dossiers",
                      site_origin="https://briefs-review.test", allow_test_origin=True)
         finally:
             gp.resolve_catalogue_media = original_resolve

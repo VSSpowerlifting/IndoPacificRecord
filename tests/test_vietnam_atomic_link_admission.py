@@ -30,8 +30,9 @@ class AtomicAdmission(unittest.TestCase):
             conn.execute("DELETE FROM regional_official_source_links "
                          "WHERE desk='vietnam' AND source_family=?", (fixtures.MPS,))
             conn.commit()
+            self.other_vietnam_count = conn.execute("SELECT count(*) FROM regional_official_source_links WHERE desk='vietnam'").fetchone()[0]
             self.unrelated = conn.execute("SELECT * FROM regional_official_source_links "
-                                          "WHERE desk!='vietnam' ORDER BY source_family, source_identity").fetchall()
+                                          "WHERE source_family<>? ORDER BY source_family, source_identity", (fixtures.MPS,)).fetchall()
         self.before = self.db.read_bytes()
         self.sealed = fixtures.sealed(self.f.packet)
 
@@ -43,9 +44,9 @@ class AtomicAdmission(unittest.TestCase):
     def test_atomic_replay_preserves_unrelated_rows_and_idempotence(self):
         self.run_admit()
         with closing(sqlite3.connect(str(self.db))) as conn:
-            self.assertEqual(conn.execute("select count(*) from regional_official_source_links where desk='vietnam'").fetchone()[0], 2)
+            self.assertEqual(conn.execute("select count(*) from regional_official_source_links where source_family=?", (fixtures.MPS,)).fetchone()[0], 2)
             self.assertEqual(conn.execute("SELECT * FROM regional_official_source_links "
-                                          "WHERE desk!='vietnam' ORDER BY source_family, source_identity").fetchall(),
+                                          "WHERE source_family<>? ORDER BY source_family, source_identity", (fixtures.MPS,)).fetchall(),
                              self.unrelated)
         after = self.db.read_bytes()
         self.run_admit()
@@ -92,8 +93,15 @@ class AtomicAdmission(unittest.TestCase):
         (site/'vietnam.html').write_bytes(b'committed')
         with self.assertRaisesRegex(ReadbackHold, 'bytes_differ'):
             verify_vietnam_https(self.db, site, fetch=lambda url: b'old deployment')
+        # A separate empty-desk scratch copy proves the zero-admission hold.
+        # The ordinary admission fixture preserves the released VPCP references.
+        empty = self.f.fixture.root / 'empty-vietnam.db'
+        shutil.copyfile(self.db, empty)
+        with closing(sqlite3.connect(str(empty))) as conn:
+            conn.execute("DELETE FROM regional_official_source_links WHERE desk='vietnam'")
+            conn.commit()
         with self.assertRaisesRegex(ReadbackHold, 'no_admitted'):
-            verify_vietnam_https(self.db, site, fetch=lambda url: b'committed')
+            verify_vietnam_https(empty, site, fetch=lambda url: b'committed')
 
     def test_sqlite_generated_html_and_independent_https_bytes_agree(self):
         self.run_admit()
@@ -110,7 +118,7 @@ class AtomicAdmission(unittest.TestCase):
                                          regional_official_links=read_live_links(conn,'vietnam')).encode()
         (site/'vietnam.html').write_bytes(data)
         receipt = verify_vietnam_https(self.db, site, fetch=lambda url: data)
-        self.assertEqual(receipt['admitted_official_link_count'], 2)
+        self.assertEqual(receipt['admitted_official_link_count'], 2 + self.other_vietnam_count)
 
     def test_cli_cannot_write_production_without_explicit_release(self):
         before = publisher.sha(publisher.ROOT/'pla_watch.db')

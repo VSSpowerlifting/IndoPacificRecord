@@ -77,3 +77,22 @@ def visible_date(stamp):
     if not match:
         raise ValueError("article has no printed day/month/year date")
     return datetime.strptime(match.group(1), "%d/%m/%Y").date().isoformat()
+
+# Processing-only descriptor: never enrolls VPCP in the ministry HTML collector.
+@dataclass(frozen=True)
+class GovernmentDocumentSource(MinistrySource):
+    def identity(self, url):
+        from core.collection.vietnam_government_documents import canonical_url
+        from urllib.parse import parse_qs, urlsplit
+        try:
+            return self.prefix + parse_qs(urlsplit(canonical_url(url)).query)['docid'][0]
+        except (ValueError, KeyError, TypeError):
+            return None
+
+
+VPCP = 'vn_vpcp_official_documents_vi'
+PROCESSING_SOURCES = dict(SOURCES, **{VPCP: GovernmentDocumentSource(
+    VPCP, 'vanban.chinhphu.vn', 'https://vanban.chinhphu.vn/', 'vpcp-vi:',
+    'Văn phòng Chính phủ', 'Government Office administrative documents',
+    'vpcp-pdf-pages-v1', 'shadow/vietnam-vpcp',
+    publication_kind='Government Office administrative document')})
