@@ -96,7 +96,19 @@ existing real migration/renderer/negative fixtures. Final-head CI
 `regional-production-link-rail`) passed; the merge is not a deployment or
 live-verified release.
 
-**Not complete:** the other six desk migrations, source definitions becoming desk manifests,
+**Runtime migration 3 (Vietnam Daily source definitions, review candidate):**
+the existing Vietnam definitions in `core/collection/vietnam_sources.py`
+declare `analysis_headline` (MPS, VPCP) and `private_document` (VPCP). The
+Daily bridge, signed handoff, runner and source-use dependency rule read those
+fields; the replaced hardcoded family-name branches and two copies of the VPCP
+custody ref are removed (`vn.private_ref` supplies it). Envelope schema/MAC
+domain, ledger and provenance shapes, hold reasons, sealed decisions, VPCP
+document policy, budgets and activation are unchanged; real legal-basis rules in
+`core/vietnam_source_use.py` stay source-specific. Vietnam keeps its own signed
+handoff: converging it with the shared Daily envelope is a later phase that
+needs the private runner. Not merged, deployed or live-verified.
+
+**Not complete:** the other desk migrations (Korea, Japan, US, China, Singapore; Vietnam handoff convergence), source definitions becoming desk manifests,
 `core/source_publication_contract.py` convergence, source-component grouping in
 #895, model controls in #919, and trusted exact-revision qualification/Daily
 split. Existing Daily checks remain. The #928 and #930 merges did not authorize deployment or prove a live HTTPS publication.
