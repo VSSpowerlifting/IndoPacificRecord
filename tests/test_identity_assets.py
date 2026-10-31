@@ -313,11 +313,12 @@ class TestTheMastheadCarriesSelectedIpr(IdentityBuildCase):
         self.assertIn('aria-hidden="true"', img)
 
     def test_the_home_link_still_has_an_accessible_name(self):
+        from bs4 import BeautifulSoup
         for name, html in self.sample().items():
             with self.subTest(page=name):
-                brand = re.search(r'<a class="brand"[\s\S]*?</a>',
-                                  self.masthead(html)).group(0)
-                self.assertIn(TITLE, brand)
+                brand = BeautifulSoup(html, "html.parser").select_one("header a.brand")
+                self.assertIsNotNone(brand)
+                self.assertEqual(brand.get("aria-label"), TITLE + " home")
 
     def test_the_mark_is_delivered_with_explicit_dimensions(self):
         """No image on this site may cause layout shift."""

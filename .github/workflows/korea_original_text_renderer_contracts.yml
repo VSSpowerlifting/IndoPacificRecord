@@ -34,7 +34,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          from core.korea_published_originals import read_release_index, render_original_page
+          from core.korea_published_originals import require_shared_shell_only, read_release_index, render_original_page
           rows = read_release_index()
           observed = list(Path("research/korea_published_original_texts").glob("*.txt"))
           assert len(rows) == len(observed)
@@ -47,9 +47,8 @@ jobs:
               expected = render_original_page(row)
               assert row["original_text_sha256"] in expected
               assert 'class="masthead' in expected and 'href="#main"' in expected
-              shared_script='<script src="../shell.js" defer></script>'
-              assert expected.count(shared_script)==1
-              assert "<script" not in expected.replace(shared_script, "") and ".hwpx" not in expected
+              require_shared_shell_only(expected)
+              assert ".hwpx" not in expected
               page = Path("output/korea-originals") / (ident + ".html")
               if not page.is_file():
                   continue

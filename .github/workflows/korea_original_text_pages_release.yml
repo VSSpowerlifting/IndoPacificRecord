@@ -119,7 +119,7 @@ jobs:
           import json
           import os
           from pathlib import Path
-          from core.korea_published_originals import read_release_index
+          from core.korea_published_originals import require_shared_shell_only, read_release_index
           rows=read_release_index()
           expected={row["route"] for row in rows}
           root=Path("output/korea-originals")
@@ -134,9 +134,8 @@ jobs:
               assert row["official_url"] in page
               assert row["original_text_sha256"] in page
               assert row["route"] in desk
-              shared_script='<script src="../shell.js" defer></script>'
-              assert page.count(shared_script)==1
-              assert "<script" not in page.replace(shared_script, "") and ".hwpx" not in page
+              require_shared_shell_only(page)
+              assert ".hwpx" not in page
           routes={"korea.html"}|expected
           Path(os.environ["RUNNER_TEMP"],"korea-route-allowlist.json").write_text(
               json.dumps(sorted(routes)))

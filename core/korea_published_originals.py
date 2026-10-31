@@ -40,6 +40,14 @@ def require(ok, reason):
         raise PublishedKoreaHold(reason)
 
 
+def require_shared_shell_only(page):
+    """Allow one exact trusted shell tag; reject every other script tag."""
+    trusted = '<script src="../shell.js" defer></script>'
+    require(page.count(trusted) == 1
+            and re.search(r"<script", page.replace(trusted, ""), re.I) is None,
+            "korea_public_original_untrusted_script")
+
+
 def read_release_index(index=INDEX, original_dir=ORIGINAL_DIR):
     """Return pinned published texts, or no texts when the index is empty."""
     index = Path(index)
