@@ -560,12 +560,23 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # shared Daily MAC domain; this mapping does not enable the source.
         self.assertIn("DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}", pipeline)
         self.assertEqual(sorted(env_keys),
-                         ["ANTHROPIC_API_KEY", "CHINA_TITLE_TRANSLATION_LIMIT",
-                          "DAILY_ID_KEMHAN_NEWS_KEY",
+                         ["ANALYSIS_MODEL", "ANTHROPIC_API_KEY", "CATEGORIZATION_MODEL",
+                          "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
-                          "IPR_DAILY_INTAKE_DIR", "KOREA_DAILY_AUTOMATION_ENABLED",
+                          "FALLBACK_MODEL", "IPR_DAILY_INTAKE_DIR", "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
-                          "PLA_WATCH_DAILY_RUN_DATE", "VPCP_METADATA_ONLY"])
+                          "PLA_WATCH_DAILY_RUN_DATE", "RELEVANCE_MODEL", "SUMMARY_MODEL",
+                          "TRANSLATION_MODEL", "VPCP_METADATA_ONLY"])
+        # Every new model input is deliberately mapped, with incumbent defaults
+        # or an empty override. Keep the exact-key assertion above so future
+        # unreviewed environment additions continue to fail closed.
+        for key, value in {
+            "ANALYSIS_MODEL": "${{ vars.ANALYSIS_MODEL || 'claude-sonnet-4-6' }}",
+            "RELEVANCE_MODEL": "${{ vars.RELEVANCE_MODEL || 'claude-haiku-4-5-20251001' }}",
+            **{key: "${{ vars." + key + " }}" for key in
+               ("TRANSLATION_MODEL", "SUMMARY_MODEL", "CATEGORIZATION_MODEL", "FALLBACK_MODEL")},
+        }.items():
+            self.assertIn(key + ": " + value, pipeline)
         self.assertRegex(pipeline, r"CHINA_TITLE_TRANSLATION_LIMIT:\s*['\"]20['\"]")
         self.assertIn("KOREA_DAILY_AUTOMATION_ENABLED: "
                       "${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}", pipeline)

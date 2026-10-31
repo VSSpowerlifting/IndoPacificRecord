@@ -63,14 +63,23 @@ Its conservative path classifier (`scripts/pr_ci_scope.py`) chooses:
   validator remain mandatory in this mode.
 
 The PR classifier fails closed on an absent/invalid diff. An edit to the
-classifier, workflow, or its tests **itself** gets the full suite. Daily
-production currently retains its independent full offline run and live-deployment
-gate. A focused PR success does not authorize production publication.
+classifier, workflow, or its tests **itself** gets the full suite. Daily retains
+its full offline run as the fail-closed fallback; only authenticated full
+qualification for equivalent inputs/environment can replace that development
+run. All runtime and live-deployment gates remain mandatory. A focused PR success
+cannot supply reusable qualification or authorize production publication.
 
 ## Required qualification/ingestion/delivery separation
 
-The 30 October owner decision requires implementing the following replacement,
-not merely renaming Daily or deleting the suite step:
+The 30 October owner decision requires the following boundary. Daily now uses
+`scripts/code_qualification.py` and attempt-specific GitHub main-push run/job evidence to
+implement the full-qualification/fallback decision. The detailed trust boundary,
+invalidation rules and first-use prerequisite are in
+[`../ARCHITECTURE_AND_PUBLISHING.md`](../ARCHITECTURE_AND_PUBLISHING.md#2a-mandatory-all-desk-structure--30-october-2026).
+PR synthetic merges remain tested with read-only credentials but do not certify
+reuse. The same offline workflow qualifies reviewed main pushes; explicit
+data-only main changes skip dependencies, tests and rendering. This adds no job,
+required status or production operation.
 
 1. **Qualify code:** bind successful applicable checks to the exact executable
    and configuration inputs, dependency/runtime identity and trusted CI evidence.
@@ -88,7 +97,7 @@ Unknown/missing/failed qualification or changed executable/configuration,
 dependencies, schema, policies or workflows must invalidate reuse and require
 the applicable qualification. Never execute untrusted PR code with production
 credentials. A reviewed implementation must test invalidation and failure paths
-before replacing today's gate. Existing CI statuses and branch protection remain
+before replacing the development gate. Existing CI statuses and branch protection remain
 in force until explicitly migrated; do not infer settings access from this doc.
 
 Keep tests on fixed evidence and isolated DBs. Runtime checks enforce invariants

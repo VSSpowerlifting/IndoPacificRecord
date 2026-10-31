@@ -132,7 +132,7 @@ def guard(analyzer,run_id):
     call=analyzer._call;calls=0
     def bounded(messages,*,model=None,max_tokens=1000,task=None,**kwargs):
         nonlocal calls
-        actual=model or ANALYSIS_MODEL
+        actual=model or (analyzer.task_model(task) if callable(getattr(type(analyzer), "task_model", None)) else ANALYSIS_MODEL)
         if (task,actual,max_tokens) not in (('relevance',RELEVANCE_MODEL,500),('summary',ANALYSIS_MODEL,1000),('summary',ANALYSIS_MODEL,300)) or calls>=6:
             raise BridgeError('vpcp_model_route_bound')
         system=kwargs.get('system',getattr(analyzer,'_SYSTEM_WITH_CACHE',[]))

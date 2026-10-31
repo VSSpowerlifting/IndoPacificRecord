@@ -138,10 +138,12 @@ qualification, never to deployment. Code, schema, source-use, executable config,
 workflow and dependency changes invalidate affected qualification. Never run
 untrusted PR code with production secrets to manufacture a receipt.
 
-**Transition:** Daily currently runs its full offline suite. Until a reviewed,
-tested exact-revision qualification mechanism replaces that gate, continue to
-run it. This standard authorizes the structural change, not deleting a check
-without its replacement. The current CI contract is described in
+**Implementation:** Daily's `scripts/code_qualification.py` verifies trusted full
+main-push run/job evidence, equivalent immutable inputs and the resolved runtime before
+omitting the development suite. Any unavailable or mismatched evidence retains
+the full-suite fallback. All actual-snapshot runtime and delivery gates remain.
+See [the publishing guidance](../ARCHITECTURE_AND_PUBLISHING.md#2a-mandatory-all-desk-structure--30-october-2026)
+for the trust boundary and narrow mutable-data classification. The CI contract is described in
 [the acceptance policy](../engineering/CI_AND_DESK_ACCEPTANCE_2026-10-18.md).
 
 Tests use isolated databases and frozen source fixtures. Production checks

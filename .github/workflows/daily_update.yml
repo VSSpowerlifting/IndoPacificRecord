@@ -31,6 +31,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read # Authenticated, read-only qualification run/job evidence.
 
 jobs:
   update:
@@ -43,7 +44,7 @@ jobs:
       # checks out the tip of main at job-start time, not the trigger SHA.
       # This way a second queued run sees the state file written by the first.
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: main
           fetch-depth: 0        # Full history needed for the push-back step
@@ -111,7 +112,7 @@ jobs:
       # ── 3. Python setup ────────────────────────────────────────────────────
       - name: Set up Python 3.9
         if: steps.timecheck.outputs.should_run == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.9'
           cache: 'pip'
@@ -141,6 +142,22 @@ jobs:
         if: steps.timecheck.outputs.should_run == 'true'
         timeout-minutes: 15
         run: playwright install chromium --with-deps
+
+      - name: Measure qualification environment
+        id: qualification_environment
+        if: steps.timecheck.outputs.should_run == 'true'
+        run: python -m scripts.code_qualification environment --github-output "$GITHUB_OUTPUT"
+
+      # Uses HEAD from the actual checkout, not the queued trigger SHA. Missing
+      # API evidence or any mismatch selects the original full-suite fallback.
+      - name: Resolve trusted full qualification
+        id: qualification
+        if: steps.timecheck.outputs.should_run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUALIFICATION_ENVIRONMENT: ${{ steps.qualification_environment.outputs.digest }}
+          DAILY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: python -m scripts.code_qualification decide --github-output "$GITHUB_OUTPUT"
 
       # ── 4b. Apply and verify migrations BEFORE any collection ─────────────
       # pipeline.py's init_db() also applies migrations, but doing it here means
@@ -192,11 +209,12 @@ jobs:
           sed 's/^/  /' "${baseline}"
 
       # ── 4c. Offline test suite ────────────────────────────────────────────
-      # No network, no model calls, temporary databases only — the suite never
-      # touches the tracked pla_watch.db. Runs before collection so a broken
-      # build cannot scrape, spend, commit or deploy.
+      # Retained fail-closed fallback. Only authenticated full qualification of
+      # equivalent inputs/environment can omit this development suite. Runtime
+      # schema, preservation, reconciliation and publication gates still run.
       - name: Run offline test suite
-        if: steps.timecheck.outputs.should_run == 'true'
+        id: offline
+        if: steps.timecheck.outputs.should_run == 'true' && steps.qualification.outputs.reused != 'true'
         run: python -m unittest discover -s tests -t . -v
 
       # Measures exactly one phase: the offline suite. Placed immediately after
@@ -235,6 +253,17 @@ jobs:
           fi
           echo "Offline suite left the tracked database unchanged:"
           sed 's/^/  /' "${baseline}"
+
+      - name: Summarize qualification outcome
+        if: ${{ !cancelled() && steps.timecheck.outputs.should_run == 'true' }}
+        env:
+          REUSED: ${{ steps.qualification.outputs.reused }}
+          FALLBACK_OUTCOME: ${{ steps.offline.outcome }}
+        run: |
+          {
+            echo "Qualification reused: ${REUSED:-false}"
+            echo "Full offline suite outcome: ${FALLBACK_OUTCOME:-not reached}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Re-run just the reconciliation contract separately. Redundant with the
       # suite above by design: when this fails, the failure line names the
@@ -339,6 +368,14 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PLA_WATCH_DAILY_RUN_DATE: ${{ steps.timecheck.outputs.today_ny }}
           LLM_USAGE_RECORD_PATH: ${{ runner.temp }}/llm_usage_record.json
+          # Empty variables inherit incumbents. Set only after model/source-use
+          # qualification; clear these overrides for an immediate rollback.
+          ANALYSIS_MODEL: ${{ vars.ANALYSIS_MODEL || 'claude-sonnet-4-6' }}
+          RELEVANCE_MODEL: ${{ vars.RELEVANCE_MODEL || 'claude-haiku-4-5-20251001' }}
+          TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL }}
+          SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL }}
+          CATEGORIZATION_MODEL: ${{ vars.CATEGORIZATION_MODEL }}
+          FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}

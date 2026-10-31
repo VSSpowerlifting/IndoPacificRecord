@@ -1,0 +1,40 @@
+{
+  "base_sha": "95c53909cf514155bd131539eba7f66f3141e8b0",
+  "source_sha256": {
+    "analysis/prompts.py": "61229db08d06dc9f15caca204ec7b4f23b735c4ffbce272b603f79ec625e6ed4",
+    "analysis/analyzer.py": "1932d32994430b9aa20d201f210b48561eae59b3f5f19dd76373ed6425fcdb19"
+  },
+  "input": [
+    "Contract title",
+    "Contract body."
+  ],
+  "requests": {
+    "relevance": "01b22e138322230d0b3e7e478d4665c40e1a6fa247046c823a61a13ac373a803",
+    "translation": "c12fa17f644ce5b6c292927e472980236a160b564967eb8488d5abdcbbabca31",
+    "summary": "07656f5d19983bed2453d349815f6ea455e2f9978054a48de92b092b5ee8148b",
+    "categorization": "db67391769b82ce6bc1db976893a6e0d9b5f0ad7469c71a28993d60bc95658bc"
+  },
+  "results": {
+    "relevance": [
+      0.9,
+      "scripted"
+    ],
+    "translation": [
+      "Translated title",
+      "Translated body."
+    ],
+    "summary": "Scripted summary.",
+    "categorization": [
+      [
+        "taiwan"
+      ],
+      false,
+      null
+    ]
+  },
+  "evaluated_prompt_messages_sha256": {
+    "build_translation_messages": "e266669e2bdaa84fcff1a2071057198cd27b1f76ff9251d3cb6b900f1d7745ad",
+    "build_summary_messages": "87f39ad06911b9234c21de5f0e8359075041f042390ccbdc7d60efb4435928aa",
+    "build_category_messages": "1dcf038a52b3cb351f343d74c8258f29e812189871571987bdb553762810acfd"
+  }
+}

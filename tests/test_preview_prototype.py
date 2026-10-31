@@ -117,7 +117,8 @@ def _record_literals(record: dict, include_body: bool) -> list:
         # record.html renders the body one paragraph per line, so each stripped
         # line — not the whole column — is what appears in the markup.
         values += [line.strip()
-                   for line in (record.get("text_original") or "").split("\n")
+                   for field in ("text_original", "text_english")
+                   for line in (record.get(field) or "").split("\n")
                    if line.strip()]
     return values
 
@@ -4754,8 +4755,66 @@ class TestStoredContentIsExcluded(PreviewCase):
             self.assertIn(self.analyzed["model_id"], authored)
 
 
+class TestReleasedMachineProseExclusion(unittest.TestCase):
+    def setUp(self):
+        self.path = "record/source-" + "a" * 24 + ".html"
+        self.summary = 'Stored machine output: "organised" & "defence".'
+        index = {"by_id": {}, "names": [], "machine_by_path": {
+            self.path: {"summary": self.summary}}}
+        patcher = mock.patch(__name__ + "._corpus_index", return_value=index)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_exact_released_summary_is_excluded_on_record_and_linked_desk(self):
+        html = ('<p>Machine explanation</p><p>%s</p>'
+                '<p>Not reviewed by a human. Authored defence copy.</p>' %
+                markupsafe.escape(self.summary))
+        for path, page in ((self.path, html),
+                           ("indonesia.html", '<a href="%s">Record</a>%s' %
+                            (self.path, html))):
+            with self.subTest(path=path):
+                own = _authored_text(page, path)
+                self.assertNotIn("organised", own)
+                self.assertIn("Machine explanation", own)
+                self.assertIn("Not reviewed by a human.", own)
+                self.assertIn("Authored defence copy.", own)
+
+    def test_unrelated_page_receives_no_summary_exemption(self):
+        self.assertIn(self.summary, _authored_text(self.summary, "about.html"))
+
+    def test_unregistered_summary_stays_guarded_even_on_registered_route(self):
+        self.assertIn("Unregistered organised output",
+                      _authored_text("Unregistered organised output", self.path))
+
+
 class TestExclusionContract(unittest.TestCase):
     """The contract itself, independent of what the live corpus contains."""
+
+    def test_exact_translation_lines_excluded_only_on_their_record_page(self):
+        lines = ['Synthetic stored "defence" & translation.',
+                 'Another stored programme paragraph.']
+        record = {"id": 1, "text_english": "\n\n".join(lines)}
+        index = {"names": [], "by_id": {1: record}, "machine_by_path": {}}
+        html = ('<h2>Machine translation</h2>' +
+                ''.join('<p>%s</p>' % markupsafe.escape(line) for line in lines) +
+                '<p>Not reviewed by a human. Authored defence copy.</p>')
+        with mock.patch(__name__ + "._corpus_index", return_value=index):
+            own = _authored_text(html, "record/1.html")
+            for line in lines:
+                self.assertNotIn(str(markupsafe.escape(line)), own)
+            self.assertIn("Machine translation", own)
+            self.assertIn("Not reviewed by a human. Authored defence copy.", own)
+            linked = _authored_text('<a href="record/1.html">Record</a>' + html,
+                                    "corpus.html")
+            for line in lines:
+                self.assertIn(str(markupsafe.escape(line)), linked)
+
+    def test_unregistered_translation_text_remains_guarded(self):
+        index = {"names": [], "by_id": {1: {
+            "text_english": "Synthetic accepted translation."}}, "machine_by_path": {}}
+        with mock.patch(__name__ + "._corpus_index", return_value=index):
+            self.assertIn("Unregistered defence translation.", _authored_text(
+                '<p>Unregistered defence translation.</p>', "record/1.html"))
 
     def test_released_machine_summary_exclusion_keeps_authored_copy_guarded(self):
         from unittest.mock import patch

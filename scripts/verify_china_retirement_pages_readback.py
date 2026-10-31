@@ -13,6 +13,7 @@ from pathlib import Path
 import sqlite3
 
 from core.retired_article_urls import verify_no_active_retired_urls
+from core.korea_corpus_bridge import publication_gate
 
 
 # The Pages action may synthesize these two hosting controls, but they must
@@ -72,6 +73,9 @@ def verify(expected_output, pages_tree, db_path, *, expected_tombstones=4400):
         if verify_no_active_retired_urls(con) != expected_tombstones:
             raise ValueError("production retirement ledger count differs")
         active = {int(row[0]) for row in con.execute("SELECT id FROM articles")}
+        # Corpus custody includes unfinished/QA-held Korea rows. Match the
+        # renderer's governed public set, without exempting any other record.
+        active -= publication_gate(con)[1]
     if active != set(ids):
         raise ValueError("published records do not match production SQLite")
     if not set(published_idx["trail_ids"]) <= active:
