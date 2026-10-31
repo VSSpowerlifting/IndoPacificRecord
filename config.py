@@ -80,6 +80,12 @@ CATEGORIZATION_MODEL: str = os.environ.get("CATEGORIZATION_MODEL", "").strip()
 # claude-sonnet-4-6; never redispatch a task to the same model as its fallback.
 FALLBACK_MODEL: str = os.environ.get("FALLBACK_MODEL", "").strip()
 
+# Unqualified evaluated prompts/acceptance rules. Independent of model selection;
+# not forwarded by Daily. Explicit offline opt-in grants no model/source authority.
+MODEL_FIDELITY_CANDIDATE_ENABLED: bool = (
+    os.environ.get("MODEL_FIDELITY_CANDIDATE_ENABLED", "0") == "1"
+)
+
 # Owner activation after title-only engineering review; independent of relevance.
 # Zero makes no additional calls. One run has the same hard batch bound as the CLI.
 CHINA_TITLE_TRANSLATION_LIMIT: int = max(0, min(200, int(

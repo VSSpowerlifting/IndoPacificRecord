@@ -1,7 +1,8 @@
 """Shared production pipeline with scripted models and disposable DB/site.
 
-This proves persistence, renderer compatibility and queue recovery. It is not
-real model execution, collector acceptance, factual qualification or publication.
+With the fidelity candidate explicitly enabled, this proves persistence, renderer
+compatibility and queue recovery. It is not real model execution, collector
+acceptance, factual qualification or publication.
 """
 import hashlib
 import sqlite3
@@ -20,6 +21,8 @@ CHEAP='claude-haiku-5-5'
 class TaskModelPipeline(PipelineRunCase):
     def setUp(self):
         super().setUp()
+        candidate=mock.patch("analysis.analyzer.MODEL_FIDELITY_CANDIDATE_ENABLED",True)
+        candidate.start();self.addCleanup(candidate.stop)
         # The tiny corpus does not include records cited by the real approved
         # dossier. Omit that unrelated product in this fixture only.
         loader=mock.patch('core.dossiers.load_dossiers',return_value=([],[]))

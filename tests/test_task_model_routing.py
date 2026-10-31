@@ -40,7 +40,7 @@ class TaskModelRouting(unittest.TestCase):
         c = FakeClient(creates=[text_response(json.dumps({'summary':'A simulated submarine was tracked.'}), usage(120,20)),
                                 text_response(json.dumps({'summary':'A Blue Force submarine was tracked before a simulated attack.'}), usage(140,30))])
         a = analyzer_for(c)
-        with self.settings(SUMMARY_MODEL=CHEAP, FALLBACK_MODEL=SONNET):
+        with self.settings(SUMMARY_MODEL=CHEAP, FALLBACK_MODEL=SONNET, MODEL_FIDELITY_CANDIDATE_ENABLED=True):
             result = a.summarize('Training', 'The ship tracked a Blue Force submarine and simulated an attack.')
         self.assertNotIn('simulated submarine', result)
         self.assertEqual([k['model'] for k in c.create_kwargs], [CHEAP,SONNET])
@@ -57,7 +57,7 @@ class TaskModelRouting(unittest.TestCase):
         c=FakeClient(streams=[tool_response({'title_en':'T','body_en':'Senior sergeant; senior sergeant.'},usage(100,30)),
                               tool_response({'title_en':'T','body_en':'Grade A (一级上士); grade B (二级上士).'},usage(100,40))])
         a=analyzer_for(c)
-        with self.settings(TRANSLATION_MODEL=CHEAP,FALLBACK_MODEL=SONNET):
+        with self.settings(TRANSLATION_MODEL=CHEAP,FALLBACK_MODEL=SONNET,MODEL_FIDELITY_CANDIDATE_ENABLED=True):
             _,body=a.translate('标题','一级上士 / 二级上士')
         self.assertIn('二级上士',body)
         self.assertEqual([k['model'] for k in c.stream_kwargs],[CHEAP,SONNET])
@@ -69,7 +69,7 @@ class TaskModelRouting(unittest.TestCase):
                     {'categories':['taiwan'],'significance':True,'significance_reason':None}]:
             with self.subTest(bad=bad):
                 a=analyzer_for(FakeClient(creates=[text_response(json.dumps(bad),usage(10,2)), text_response(CATEGORY_JSON,usage(20,3))]))
-                with self.settings(CATEGORIZATION_MODEL=CHEAP,FALLBACK_MODEL=SONNET):
+                with self.settings(CATEGORIZATION_MODEL=CHEAP,FALLBACK_MODEL=SONNET,MODEL_FIDELITY_CANDIDATE_ENABLED=True):
                     self.assertEqual(a.categorize('T','B'),(['taiwan'],False,None))
                 self.assertEqual(sum(r['failed_calls'] for r in a.usage.rows()),1)
 
@@ -92,13 +92,13 @@ class TaskModelRouting(unittest.TestCase):
                     self.assertEqual(len(c.create_kwargs),1)
 
     def test_same_model_fallback_is_not_dispatched_twice(self):
-        c=FakeClient(creates=[text_response('[]',usage(1,1))])
+        c=FakeClient(creates=[text_response('{}',usage(1,1))])
         with self.settings(SUMMARY_MODEL=CHEAP,FALLBACK_MODEL=CHEAP):
             with self.assertRaises(AnalysisError):analyzer_for(c).summarize('T','B')
         self.assertEqual(len(c.create_kwargs),1)
 
     def test_double_rejection_holds_and_does_not_change_next_task_model(self):
-        c=FakeClient(creates=[text_response('[]',usage(1,1)),text_response('[]',usage(2,2)),text_response(SUMMARY_JSON,usage(3,3))])
+        c=FakeClient(creates=[text_response('{}',usage(1,1)),text_response('{}',usage(2,2)),text_response(SUMMARY_JSON,usage(3,3))])
         a=analyzer_for(c)
         with self.settings(SUMMARY_MODEL=CHEAP,FALLBACK_MODEL=SONNET):
             with self.assertRaises(AnalysisError):a.summarize('T','B')
@@ -107,7 +107,8 @@ class TaskModelRouting(unittest.TestCase):
 
     def test_failed_categories_cannot_be_persisted_as_complete(self):
         a=analyzer_for(FakeClient())
-        with mock.patch.object(a,'score_relevance',return_value=(.9,'source')), \
+        with self.settings(MODEL_FIDELITY_CANDIDATE_ENABLED=True), \
+             mock.patch.object(a,'score_relevance',return_value=(.9,'source')), \
              mock.patch.object(a,'translate',return_value=('T','B')), \
              mock.patch.object(a,'summarize',return_value='Summary.'), \
              mock.patch.object(a,'categorize',side_effect=AnalysisError('rejected')):
@@ -133,12 +134,12 @@ class TaskModelRouting(unittest.TestCase):
                 a._desk_summary_and_flag('T','B',mock.Mock(categories=(),analysis_system_prompt='source',build_analysis_messages=lambda *a:[]))
         self.assertEqual(len(a._client.create_kwargs),1)
 
-    def test_client_has_no_hidden_transport_retries(self):
+    def test_client_retains_incumbent_sdk_retry_configuration(self):
         from analysis.analyzer import Analyzer
         with mock.patch('analysis.analyzer.ANTHROPIC_API_KEY','synthetic'), \
              mock.patch('analysis.analyzer.anthropic.Anthropic') as client:
             Analyzer()
-        self.assertEqual(client.call_args.kwargs['max_retries'],0)
+        self.assertEqual(client.call_args.kwargs, {'api_key': 'synthetic'})
 
 
 class FidelityChecks(unittest.TestCase):

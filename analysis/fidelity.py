@@ -1,4 +1,4 @@
-"""Small source-grounded rejection rules for demonstrated model failures.
+"""Unqualified source-fidelity candidate; inactive unless explicitly enabled.
 
 These checks detect specific contradictions, not general semantic correctness.
 They never repair prose, infer missing facts, or certify a model's quality.
@@ -49,3 +49,54 @@ def check(source: str, output: str, *, translation=False):
                     and years != source_transfer_years):
                 return "transfer_chronology_changed"
     return None
+
+
+# Preserved evaluated instructions. Production builders remain in prompts.py.
+PROMPT_VERSION = "v2-source-fidelity"
+_TRANSLATION_NOTE = """\
+Preserve every name, date, number, byline, affiliation and quotation boundary.
+Do not merge reporter commentary into a speaker's quotation. Keep embedded official
+English passages and all sections, including captions and endings. Do not silently
+collapse repeated bilingual material. Never narrow a general NCO designation to a
+specific rank. For graded NCO ranks (一级上士, 二级上士, 一级军士长, 二级军士长,
+三级军士长, 四级军士长), retain each exact Chinese rank in parentheses next to its
+English rendering. Retain a Chinese reporter byline verbatim in parentheses next
+to its translation, preserving which named person belongs to which outlet.
+
+"""
+
+_ANALYSIS_NOTE = """\
+Source fidelity: attach a qualifier only to the action or entity it qualifies in
+the source. A simulated attack does not establish a simulated submarine. Live-force
+activity with simulated strikes does not establish live-fire activity. Preserve
+which event each date describes: a transfer date and later construction date are
+not interchangeable. Do not invent reporting rarity, firsts, affiliations, names,
+ranks, numbers or Chinese terminology. Attribute official claims, distinguish
+interpretation explicitly, and omit interpretations without source support.
+
+"""
+
+
+def build_translation_messages(title, body):
+    from analysis import prompts
+    messages = prompts.build_translation_messages(title, body)
+    marker = "Do not add explanatory content"
+    messages[0]["content"] = messages[0]["content"].replace(
+        marker, _TRANSLATION_NOTE + marker, 1)
+    return messages
+
+
+def build_summary_messages(title, body):
+    from analysis import prompts
+    messages = prompts.build_summary_messages(title, body)
+    messages[0]["content"] = messages[0]["content"].replace(
+        "Title: ", _ANALYSIS_NOTE + "Title: ", 1)
+    return messages
+
+
+def build_category_messages(title, body):
+    from analysis import prompts
+    messages = prompts.build_category_messages(title, body)
+    messages[0]["content"] = messages[0]["content"].replace(
+        "Title: ", _ANALYSIS_NOTE + "Title: ", 1)
+    return messages

@@ -98,6 +98,7 @@ def replay(directory):
         usage=build_run_record(a.usage,run_date='2026-10-29',recorded_at='frozen-replay',run_status='offline',analysis_model=model,relevance_model=model,articles_queued=len(records),articles_fully_analyzed=0)
         report[model]={'outcomes':dict(outcomes),'held':rejected,'usage':usage}
     return {'manifest_sha256':MANIFEST_SHA,'provider_dispatches':0,
+            'acceptance_rules':'explicit unqualified fidelity candidate; not production defaults',
             'generation_prompts':'preserved old prompts; revised prompts NOT live-qualified',
             'factual_acceptance':'No candidate qualified; code acceptance is not factual acceptance',
             'models':report}
@@ -108,7 +109,7 @@ def main():
     parser.add_argument('--evidence-dir',type=Path,required=True)
     args=parser.parse_args()
     # Explicitly isolate replay from operator overrides. No key/client/network.
-    with patch.multiple(engine,TRANSLATION_MODEL='',SUMMARY_MODEL='',CATEGORIZATION_MODEL='',FALLBACK_MODEL='',RELEVANCE_TOOL_OUTPUT_ENABLED=False):
+    with patch.multiple(engine,TRANSLATION_MODEL='',SUMMARY_MODEL='',CATEGORIZATION_MODEL='',FALLBACK_MODEL='',RELEVANCE_TOOL_OUTPUT_ENABLED=False,MODEL_FIDELITY_CANDIDATE_ENABLED=True):
         print(json.dumps(replay(args.evidence_dir),indent=2))
 
 

@@ -1,11 +1,14 @@
 # Shared task-model routing — qualification complete; replacement not qualified
 
-30 October 2026. PR #919 preserves the implementation for review. Revised-prompt
-Haiku 5.5 still introduces source errors, including in the preregistered holdout.
-**No task is qualified for replacement. Production configuration stays unchanged.**
+31 October 2026 merge preparation. PR #919 separates task-model selection,
+accounting and provenance from the evaluated prompts and acceptance rules.
+**Incumbent production behavior is retained by default. No task is qualified for
+replacement.** The revised-prompt trial below remains pinned to its historical
+code and inputs, including factual failures and excessive Sonnet holds. Passing
+engineering CI does not approve either model or the candidate fidelity rules.
 Sonnet also produces errors; retaining it does not certify its factual accuracy.
-No merge, schedule change, production write, canary or publication is authorized
-or performed by this task. Stop after qualification and the verified PR.
+No new paid calls, activation, framework, merge, deployment or publication is
+part of merge preparation. Stop at the verified review PR.
 
 ## Concrete task configuration
 
@@ -16,6 +19,7 @@ or performed by this task. Stop after qualification and the verified PR.
 | Summary / desk summary, flag and event type | `claude-sonnet-4-6` | `SUMMARY_MODEL` empty |
 | Separate China categories and flag | `claude-sonnet-4-6` | `CATEGORIZATION_MODEL` empty |
 | Optional task fallback | Disabled | `FALLBACK_MODEL` empty |
+| Evaluated prompts / fidelity acceptance rules | Inactive | `MODEL_FIDELITY_CANDIDATE_ENABLED` unset (`false`) |
 
 Empty task overrides inherit `ANALYSIS_MODEL`. Title-only translation keeps its
 existing model and independent activation. No repository variable was changed.
@@ -31,31 +35,43 @@ relevance for retries, and persists completed analysis through `storage.db` befo
 English desks skip translation; other desks keep their language profiles,
 combined summary/flag schemas, terminology, QA and independent activation gates.
 
-The existing Anthropic Messages interface now supports independent task models
-and optional task-local fallback. Context is copied to concurrent workers, and
-actual attempted analysis models are retained in the existing `model_id` TEXT
-field. Relevance retains its task/model usage rows. Rejected categories keep a
-record incomplete instead of storing its summary with a silent empty taxonomy.
-Source-specific spend wrappers validate the resolved model before dispatch.
-No new provider, corpus, renderer, DB schema or routing framework was added.
+The existing Anthropic Messages interface supports independent task models and
+optional task-local fallback. Context is copied to concurrent workers, and actual
+attempted analysis models are retained in the existing `model_id` TEXT field.
+Relevance retains its task/model usage rows. Source-specific spend wrappers
+validate the resolved model before dispatch. No new provider, corpus, renderer,
+DB schema or routing framework was added.
 
-Invalid values, truncation/refusal, connection/status errors and detectable
-fidelity failures can attempt that task once on a different configured fallback.
-Fatal account errors propagate. Existing China JSON-summary repair remains inside
-each attempt. SDK transport retries are zero: application dispatches are visible
-to usage accounting. Exhaustion reaches the existing partial-result/retry/hold
-path. Production retains whole-record retries, not durable per-task checkpoints;
+With empty overrides and fallback, request content, model, tools, sampling,
+caching and acceptance retain the pre-PR base `95c53909cf` contract. China uses
+unchanged `v1` prompt builders. Existing translation-value, relevance-value,
+truncation/refusal, fatal-account, private evidence, source-specific quality and
+budget checks remain. Incumbent China category filtering/coercion and retention
+of a successful summary after category failure are preserved. These compatibility
+claims do not certify the quality of incumbent accepted text.
+
+Model overrides and fallback do not enable new prompts or fidelity rules. Only
+`MODEL_FIDELITY_CANDIDATE_ENABLED=1` explicitly selects the unqualified candidate;
+it defaults off and is not forwarded by Daily. The existing `analysis/fidelity.py`
+preserves the evaluated `v2-source-fidelity` instructions and narrow deterministic
+checks, strict China category rejection and category-failure completion hold.
+Candidate message digests match evaluated revision `d731c620a0`. The trial found
+missed factual errors and excessive holds; no candidate rule is approved for
+production by this PR. An offline opt-in grants no source, spending or activation
+authority. Existing source-specific safeguards are independent of this flag.
+
+An enabled fallback can attempt a rejected task once on a different configured
+model, using the same prompt and acceptance mode. Fatal account errors propagate.
+Existing China JSON-summary repair remains inside each attempt. The incumbent
+SDK retry configuration is restored: the general client does not override SDK
+transport retries. Telemetry counts application calls and returned usage, not
+unobservable SDK attempts or charges without returned usage. Existing bounded
+private-source clients still disable SDK retries and retain their spend checks.
+The frozen paid trial used explicit zero transport retries at its pinned revision;
+its actual-cost evidence is historical and is not recharacterized as production
+measurement. Exhaustion reaches the incumbent partial-result/retry/hold behavior.
+Production retains whole-record retries, not durable per-task checkpoints;
 exactly-once billing across an uncertain process crash is not guaranteed.
-
-China prompts advance to `v2-source-fidelity`, requesting complete sections,
-embedded English, exact names/ranks/dates/numbers, attribution and qualifiers.
-Translation additionally requests original graded NCO ranks and identifiable
-reporter bylines alongside English. Narrow deterministic checks reject missing
-anchors/years, unsupported simulated-submarine/live-fire language, and an
-unambiguous transfer-year change. These checks are incomplete: anchors do not
-prove the adjacent English is correct, and omission from a summary does not
-qualify a chronology challenge. The evaluation below demonstrates guard misses
-and excessive holds; no general source-fidelity certification is claimed.
 
 Haiku uses the existing disabled-thinking/high-effort request configuration.
 Exact evaluated Luna ID was `gpt-6-luna` through Responses/native JSON, not an
@@ -117,8 +133,10 @@ Head `93e86215bb` subsequently passed full CI 41069406872 (8,306 tests, 15
 skips, isolated render/validation with 10 warnings and no tracked DB/output
 mutation). Main advanced during that run to `95c53909cf`, including the
 mandatory shared-desk standard, source-definition pilot and Daily data. The
-final branch inherits those shared changes; the paid model code stays frozen.
-No new migration, paid output or production release is authored here.
+branch inherited those shared changes with the paid model code unchanged at
+that reconciliation. Merge preparation now isolates the historical candidate
+from the default runtime; it does not regenerate paid output or authorize a
+production release.
 
 Both models received revised prompts and identical frozen originals. Whole-path
 order alternated by record. Separate translation ran even for screened-out
@@ -196,10 +214,15 @@ denominator and no realized replacement saving.
 
 ## Verification, evidence preservation and rollback
 
-Offline coverage includes mixed models/provenance, fallback success/exhaustion,
+Offline compatibility tests compare complete request digests against a frozen
+pre-PR base execution for all four tasks, with empty overrides and after fallback.
+They pin incumbent acceptance, partial category failure, JSON repair, SDK client
+configuration, fatal and response safeguards, and explicit candidate isolation.
+Candidate prompt digests preserve the evaluated messages. Additional coverage
+includes mixed models/provenance, fallback success/exhaustion,
 charging rejected output, fatal errors, private resolved-model budget holds,
 rollback and existing desk regressions. A scripted production-pipeline fixture
-runs rejection → pending SQLite → restart → accepted mixed-model SQLite →
+explicitly opts into the candidate and runs rejection → pending SQLite → restart → accepted mixed-model SQLite →
 disposable production render → repeat with no new dispatch/duplicate completed
 record. It is offline integration, not live collector/model/publication evidence.
 The paid harness uses the same Analyzer but does not write production storage.
@@ -218,7 +241,8 @@ permissions and repository variables were not changed. Final PR verification
 must use its exact-head checks. No merge or public-site readback is claimed.
 
 Rollback for any separately authorized future activation: clear
-`TRANSLATION_MODEL`, `SUMMARY_MODEL`, `CATEGORIZATION_MODEL`, `FALLBACK_MODEL`;
+`TRANSLATION_MODEL`, `SUMMARY_MODEL`, `CATEGORIZATION_MODEL`, `FALLBACK_MODEL`
+and unset `MODEL_FIDELITY_CANDIDATE_ENABLED`;
 restore/clear `ANALYSIS_MODEL` to Sonnet 4.6 and `RELEVANCE_MODEL` to Haiku 4.5.
 It affects the next process and cannot cancel in-flight calls or rewrite records.
 The remaining blocker to cheaper unattended processing is demonstrated factual
@@ -239,3 +263,12 @@ numeric deltas (zero or two). Regression cases reject wrong deltas, changed
 labels, extra quantities and malformed groups. No renderer, DB, generated
 output, model configuration or source permission is changed by this correction.
 The final combined revision still requires mandatory CI.
+
+## Merge-preparation verification
+
+The earlier combined head `d731c620a0` passed full CI 41119256793 (8,314 tests,
+15 skips, isolated render/validation with 10 governed warnings, unchanged tracked
+DB/output and no sidecars). That receipt predates the compatibility changes above.
+Focused checks and required CI must verify the final merge-preparation head.
+Historical trial ledgers, outputs, review and verification receipts remain
+unchanged; merge preparation adds its own receipt rather than overwriting them.

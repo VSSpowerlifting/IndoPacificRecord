@@ -50,6 +50,7 @@ from config import (
     SUMMARY_MODEL,
     CATEGORIZATION_MODEL,
     FALLBACK_MODEL,
+    MODEL_FIDELITY_CANDIDATE_ENABLED,
     ANTHROPIC_API_KEY,
     RELEVANCE_MODEL,
     RELEVANCE_THRESHOLD,
@@ -240,7 +241,7 @@ class Analyzer:
             raise ValueError(
                 "ANTHROPIC_API_KEY is not set. Add it to .env or export it."
             )
-        self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0)
+        self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         self._usage = UsageLedger()
 
     def task_model(self, task: str) -> str:
@@ -258,7 +259,16 @@ class Analyzer:
         if used is not None:
             used.add((task, model))
 
+    @property
+    def _china_prompt_version(self):
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import PROMPT_VERSION as candidate_version
+            return candidate_version
+        return PROMPT_VERSION
+
     def _check_fidelity(self, task, source, output, *, translation=False):
+        if not MODEL_FIDELITY_CANDIDATE_ENABLED:
+            return
         from analysis.fidelity import check
         reason = check(source, output, translation=translation)
         if reason:
@@ -657,8 +667,10 @@ class Analyzer:
         Streams: TRANSLATION_MAX_TOKENS is far above the ~16K non-streaming
         threshold, and this is the only call that renders a full article body.
         """
-        return self._translate_with(build_translation_messages(title, body),
-                                    source=title + "\n" + body)
+        builder = build_translation_messages
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import build_translation_messages as builder
+        return self._translate_with(builder(title, body), source=title + "\n" + body)
 
     @task_route(TASK_TRANSLATION)
     def _translate_with(
@@ -713,7 +725,10 @@ class Analyzer:
 
     @task_route(TASK_SUMMARY)
     def summarize(self, title_en: str, body_en: str) -> str:
-        messages = build_summary_messages(title_en, body_en)
+        builder = build_summary_messages
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import build_summary_messages as builder
+        messages = builder(title_en, body_en)
         raw = self._call(messages, max_tokens=1000, temperature=0.3,
                          task=TASK_SUMMARY, model=self.task_model(TASK_SUMMARY))
         try:
@@ -731,7 +746,8 @@ class Analyzer:
             data = self._call_tool(
                 messages, self._SUMMARY_TOOL, max_tokens=1000,
                 temperature=0.0, task=TASK_SUMMARY, model=self.task_model(TASK_SUMMARY))
-        summary = data.get("summary") if isinstance(data, dict) else None
+        summary = (None if MODEL_FIDELITY_CANDIDATE_ENABLED and not isinstance(data, dict)
+                   else data.get("summary"))
         if not isinstance(summary, str) or not summary.strip():
             self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
             raise AnalysisError("Summary response contains no usable text")
@@ -744,27 +760,34 @@ class Analyzer:
     ) -> tuple[list[str], bool, Optional[str]]:
         """
         Returns (categories, is_significant, significance_reason).
-        Category slugs and flag values must match the existing schema. Invalid
-        values reject the task for fallback/hold instead of being coerced.
+        Incumbent filtering/coercion is preserved by default. The unqualified
+        fidelity candidate opts into strict rejection and source checks.
         """
-        messages = build_category_messages(title_en, body_en)
+        builder = build_category_messages
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            from analysis.fidelity import build_category_messages as builder
+        messages = builder(title_en, body_en)
         raw  = self._call(messages, max_tokens=500, temperature=0.0,
                           task=TASK_CATEGORIZATION, model=self.task_model(TASK_CATEGORIZATION))
         data = self._parse_task_json(raw, TASK_CATEGORIZATION, self.task_model(TASK_CATEGORIZATION))
 
-        if (not isinstance(data, dict)
-                or not isinstance(data.get("categories"), list)
-                or any(not isinstance(c, str) or c not in VALID_CATEGORIES
-                       for c in data["categories"])
-                or len(set(data["categories"])) != len(data["categories"])
-                or not isinstance(data.get("significance"), bool)
-                or (data["significance"] and
-                    (not isinstance(data.get("significance_reason"), str)
-                     or not data["significance_reason"].strip()))):
-            self.usage.mark_failed(TASK_CATEGORIZATION, self.task_model(TASK_CATEGORIZATION))
-            raise AnalysisError("Invalid categorization values")
-        categories = data["categories"]
-        is_significant = data["significance"]
+        if MODEL_FIDELITY_CANDIDATE_ENABLED:
+            if (not isinstance(data, dict)
+                    or not isinstance(data.get("categories"), list)
+                    or any(not isinstance(c, str) or c not in VALID_CATEGORIES
+                           for c in data["categories"])
+                    or len(set(data["categories"])) != len(data["categories"])
+                    or not isinstance(data.get("significance"), bool)
+                    or (data["significance"] and
+                        (not isinstance(data.get("significance_reason"), str)
+                         or not data["significance_reason"].strip()))):
+                self.usage.mark_failed(TASK_CATEGORIZATION, self.task_model(TASK_CATEGORIZATION))
+                raise AnalysisError("Invalid categorization values")
+            categories = data["categories"]
+            is_significant = data["significance"]
+        else:
+            categories = [c for c in data.get("categories", []) if c in VALID_CATEGORIES]
+            is_significant = bool(data.get("significance", False))
         reason: Optional[str] = data.get("significance_reason") if is_significant else None
 
         self._check_fidelity(TASK_CATEGORIZATION, title_en + "\n" + body_en,
@@ -809,7 +832,7 @@ class Analyzer:
                 "relevance_reasoning": reasoning,
                 "passed_relevance":    False,
                 "model_id":            ANALYSIS_MODEL,
-                "prompt_version":      PROMPT_VERSION,
+                "prompt_version":      self._china_prompt_version,
             }
 
         # ── Step 2: Translation ───────────────────────────────────────────────
@@ -825,7 +848,7 @@ class Analyzer:
                 "relevance_reasoning": reasoning,
                 "passed_relevance":    True,
                 "model_id":            ANALYSIS_MODEL,
-                "prompt_version":      PROMPT_VERSION,
+                "prompt_version":      self._china_prompt_version,
             }
 
         # ── Steps 3 + 4: Summary and categories (parallel) ───────────────────
@@ -853,9 +876,10 @@ class Analyzer:
                 fatal = fatal or exc
             except AnalysisError as exc:
                 logger.error("Categorization failed: %s", exc)
-                # The normal persistence gate requires a summary. Do not admit
-                # an otherwise complete record after rejected factual/flag QA.
-                summary = ""
+                # Keep the incumbent partial-category behavior unless the
+                # evaluated candidate's stricter completion rule is explicit.
+                if MODEL_FIDELITY_CANDIDATE_ENABLED:
+                    summary = ""
 
         # Both futures are resolved before raising, so neither thread is
         # abandoned mid-flight. The paid translation is discarded rather than
@@ -877,7 +901,7 @@ class Analyzer:
             "is_significant":         is_significant,
             "significance_reasoning": significance_reason,
             "model_id":               ANALYSIS_MODEL,
-            "prompt_version":         PROMPT_VERSION,
+            "prompt_version":         self._china_prompt_version,
         }
 
     # ── Desk analysis (a desk with its own post-pass path) ────────────────────
