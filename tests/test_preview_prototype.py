@@ -2218,7 +2218,7 @@ class TestRecordPages(PreviewCase):
 
     def test_the_route_and_identifier_have_distinct_semantics(self):
         flat = re.sub(r"\s+", " ", self.record(self.ids[-1]))
-        self.assertIn("This IPR page has a canonical public route", flat)
+        self.assertIn("The record number is a corpus locator", flat)
         for denial in ("DOI", "accession number", "immutable identifier"):
             with self.subTest(denial=denial):
                 self.assertIn(denial, flat)
@@ -4649,8 +4649,8 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
         # carrying both distinctions. Matched on normalized whitespace so a
         # line wrap inside the paragraph cannot break the guard.
         flat = re.sub(r"\s+", " ", authored)
-        self.assertIn("This IPR page has a canonical public route.", flat)
-        self.assertIn("locator, not a DOI, accession number or immutable identifier.", flat)
+        self.assertIn("The record number is a corpus locator, not a DOI, accession "
+                      "number or immutable identifier.", flat)
 
     def test_shard_and_index_headings_and_captions_stay_guarded(self):
         week = self.corpus["weeks"][0]
