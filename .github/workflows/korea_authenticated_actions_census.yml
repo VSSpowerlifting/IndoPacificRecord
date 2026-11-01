@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Collect authenticated complete run and artifact pages, then audit
         working-directory: repo
         env:

@@ -86,6 +86,7 @@ from core.collection.contract import (
     CandidateReference, CaptureResult, CollectionWindow, DiscoveryResult,
     ExtractedDocument, ExtractionResult, SourceAdapter, SourceHealthResult,
 )
+from scraper.sources.iso39 import datetime_py39
 
 HOSTNAME = "nsc.gov.ph"
 HOST = "https://" + HOSTNAME
@@ -237,7 +238,7 @@ def parse_published(raw: str) -> Optional[Tuple[str, str, str]]:
     """
     raw = (raw or "").strip()
     try:
-        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        dt = datetime_py39(raw.replace("Z", "+00:00"))
         if dt.tzinfo is None:
             return None
         return (dt.date().isoformat(),

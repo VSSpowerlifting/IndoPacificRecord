@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Record production corpus and generated-site checksums
         run: |
           set -euo pipefail

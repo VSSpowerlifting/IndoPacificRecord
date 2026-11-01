@@ -1278,8 +1278,10 @@ class TestProductionIsolation(unittest.TestCase):
         # The narrow parser-rejection guard imports the exception from bs4.builder.
         # Keep all other imports forbidden: this is a known third-party parser
         # module, not permission to reach any state or production store.
+        # scraper.sources.iso39 is a stdlib-only date parser (re, datetime)
+        # that keeps Python 3.9's ISO 8601 acceptance on newer interpreters.
         allowed = {"__future__", "hashlib", "re", "time", "dataclasses", "datetime", "typing",
-                   "urllib.parse", "requests", "bs4", "bs4.builder"}
+                   "urllib.parse", "requests", "bs4", "bs4.builder", "scraper.sources.iso39"}
         extra = {m for m in imported if m not in allowed and not m.startswith("core.collection")}
         self.assertEqual(extra, set())
 

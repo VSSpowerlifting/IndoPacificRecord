@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.13"
       - name: Run nine-source read-only PACOM URL docket and adversarial tests
         run: |
           python -m unittest tests.test_us_pacom_official_link_docket -v

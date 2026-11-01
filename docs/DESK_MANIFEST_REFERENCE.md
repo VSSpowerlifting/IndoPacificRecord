@@ -9,8 +9,8 @@
 
 
 One JSON file per desk: `desks/<desk_id>/manifest.json`, validated by
-`core/manifests.py`. JSON rather than YAML because the CI runner is Python 3.9
-and JSON needs no third-party parser — a new dependency on the daily collection
+`core/manifests.py`. JSON rather than YAML because the CI runner has only the stdlib and
+`requirements.txt`, and JSON needs no third-party parser — a new dependency on the daily collection
 path is not worth comment syntax.
 
 Validation is strict. A manifest with an unknown enum, a missing identifier, a

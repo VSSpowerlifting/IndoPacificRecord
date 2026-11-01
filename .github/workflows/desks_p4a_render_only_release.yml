@@ -45,7 +45,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Test exact release paths and provenance (draft-safe)
         run: python -m unittest tests.test_desks_p4a_release_contract -v
 
@@ -62,7 +62,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - name: Install existing build dependencies
         run: pip install -r requirements.txt
@@ -120,7 +120,7 @@ jobs:
           sha256sum pla_watch.db > "$RUNNER_TEMP/desks-db.sha"
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - name: Install existing render dependencies
         run: pip install -r requirements.txt

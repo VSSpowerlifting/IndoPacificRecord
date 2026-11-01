@@ -268,7 +268,7 @@ class TestTheReaderItself(unittest.TestCase):
         self.assertIsInstance(doc, dict)
         self.assertEqual(doc["name"], "PR offline checks")
         job = doc["jobs"]["offline-checks"]
-        # Python 3.9 is unavailable on ubuntu-latest (26.04); pin the runner.
+        # Pinned runner image; ubuntu-latest moves without notice.
         self.assertEqual(job["runs-on"], "ubuntu-24.04")
         self.assertIsInstance(job["steps"], list)
         self.assertGreaterEqual(len(job["steps"]), 5)
@@ -581,7 +581,7 @@ class TestItRunsTheRealChecks(unittest.TestCase):
         setup = [s for s in steps_of(doc)
                  if s.get("uses", "").startswith("actions/setup-python")]
         self.assertEqual(len(setup), 1)
-        self.assertEqual(str(setup[0]["with"]["python-version"]), "3.9")
+        self.assertEqual(str(setup[0]["with"]["python-version"]), "3.13")
         self.assertIn("pip install -r requirements.txt", run_bodies(doc))
 
     def test_it_uses_only_first_party_actions_already_in_use(self):

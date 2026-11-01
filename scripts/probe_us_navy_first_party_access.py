@@ -11,7 +11,7 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
-import urllib.robotparser
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 SCHEMA = "ipr-us-first-party-navy-access-canary/1"
 AGENT = "IndoPacificRecordResearchBot/1.0 (+https://indopacificrecord.org/about.html)"
@@ -82,9 +82,7 @@ def probe_one(name, host, path, opener):
         "user-agent:" not in text.lower()):
         result["robots_policy"] = "not_a_usable_robots_policy"
         return result
-    robots = urllib.robotparser.RobotFileParser(robots_url)
-    robots.parse(text.splitlines())
-    if not robots.can_fetch(AGENT, listing_url):
+    if not legacy_can_fetch(text.splitlines(), AGENT, listing_url):
         result["robots_policy"] = "disallows_listings"
         return result
     result["robots_policy"] = "permits_bounded_listing_request"

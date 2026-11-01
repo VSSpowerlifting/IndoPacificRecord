@@ -64,7 +64,6 @@ from __future__ import annotations
 import hashlib
 import re
 import time
-import urllib.robotparser
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -79,6 +78,7 @@ from core.collection.contract import (
     CandidateReference, CaptureResult, CollectionWindow, DiscoveryResult,
     ExtractedDocument, ExtractionResult, SourceAdapter, SourceHealthResult,
 )
+from scraper.sources import robots_prefix
 
 HOST = "https://www.dvidshub.net"
 FEED = HOST + "/rss/unit/USINDOPACOM"
@@ -443,9 +443,8 @@ class USDvidsAdapter(SourceAdapter):
     # -- policy ---------------------------------------------------------------
 
     def assert_robots_allows(self, robots_text: str, url: str) -> None:
-        rp = urllib.robotparser.RobotFileParser()
-        rp.parse((robots_text or "").splitlines())
-        if not rp.can_fetch(USER_AGENT, url):
+        if not robots_prefix.legacy_can_fetch(
+                (robots_text or "").splitlines(), USER_AGENT, url):
             raise RobotsDisallowed(
                 "robots.txt disallows %s for this collector" % url)
 

@@ -11,8 +11,9 @@ deposit — presents the same four operations to the pipeline:
 
 Two constraints shaped the design:
 
-  * **Python 3.9.** An abstract base class rather than `typing.Protocol` with
-    `runtime_checkable` generics, and `Optional[...]` rather than `X | None`.
+  * **Python 3.9 at the time of writing** (CI now pins 3.13). An abstract base
+    class rather than `typing.Protocol` with `runtime_checkable` generics, and
+    `Optional[...]` rather than `X | None`.
 
   * **No network in unit tests.** Nothing here performs I/O. Adapters are
     constructed with their dependencies and every result type is a plain

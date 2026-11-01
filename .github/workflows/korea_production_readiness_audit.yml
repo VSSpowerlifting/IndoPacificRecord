@@ -43,7 +43,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Run synthetic source-version, receipt and editorial-state contracts
         run: python -m unittest -v tests.test_korea_production_readiness
       - name: Reconcile real registered originals, owner receipts and releases

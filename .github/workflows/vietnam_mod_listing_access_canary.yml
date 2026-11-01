@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Run synthetic denied-robots / allowed-listing / identity tests
         run: python -m unittest tests.test_vietnam_mod_defrel_access tests.test_vietnam_mod_portal_url_canary -v
       - name: No generated corpus or shadow state
@@ -52,7 +52,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: One no-redirect robots check then at most one permitted listing
         run: python -m scripts.probe_vietnam_mod_defrel_access --approve-live-probe
       - name: Verify no corpus or shadow outputs

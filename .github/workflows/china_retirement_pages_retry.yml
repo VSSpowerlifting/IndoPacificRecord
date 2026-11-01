@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Require exact signed-off current release tree, not an old branch
         env:
           EXPECTED_SHA: ${{ inputs.approved_release_sha }}

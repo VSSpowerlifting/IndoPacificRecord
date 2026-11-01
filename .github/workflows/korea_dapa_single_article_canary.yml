@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Strict single-source identity, robots and zero-publication contracts
         run: python -m unittest -v tests.test_korea_dapa_single_article
       - name: No archive, government article text, or published changes
@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Owner-scoped original page identity observation, zero content retention
         run: python -m scripts.probe_korea_dapa_single_article --authorize-one-item-official-article-get
       - name: Confirm no original, document or production write

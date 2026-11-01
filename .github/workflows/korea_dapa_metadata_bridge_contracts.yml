@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Install only source-parser test dependencies
         run: python -m pip install beautifulsoup4 requests python-dotenv 'jinja2>=3.1.4,<4'
       - name: Verify signed packet, source identity, DB admission and MND preservation

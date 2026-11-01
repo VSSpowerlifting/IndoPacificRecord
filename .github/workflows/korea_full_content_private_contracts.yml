@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Install existing Korean shadow parser dependencies
         run: python -m pip install beautifulsoup4 requests
       - name: Compile private-only content modules

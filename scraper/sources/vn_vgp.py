@@ -108,6 +108,7 @@ from scraper.sources.vn_shadow_http import (
     ShadowHttpAdapter, parse_robots, robots_allows, robots_crawl_delay,
     robots_rules, squash,
 )
+from scraper.sources.iso39 import datetime_py39
 
 HOSTNAME = "en.baochinhphu.vn"
 HOST = "https://" + HOSTNAME
@@ -266,7 +267,7 @@ def parse_iso_stamp(raw: str) -> Optional[Stamp]:
     """
     raw = (raw or "").strip()
     try:
-        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        dt = datetime_py39(raw.replace("Z", "+00:00"))
     except ValueError:
         return None
     local = dt.strftime("%Y-%m-%dT%H:%M")

@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Preserve tracked database identity before testing
         run: |
           sha256sum pla_watch.db > "$RUNNER_TEMP/metadata-receipts-db.sha256"

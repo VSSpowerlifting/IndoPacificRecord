@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Check seven-day Actions/ledger corroboration and historical failure
         run: python -m unittest tests.test_korea_authenticated_prospective_seven tests.test_korea_authenticated_actions_census -v
       - name: Assert no production changes
