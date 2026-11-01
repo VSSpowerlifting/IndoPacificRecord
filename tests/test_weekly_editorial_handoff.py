@@ -160,9 +160,31 @@ class EditorialWorksheetTests(unittest.TestCase):
                     mail = client.send_message.call_args.args[0]
                     self.assertEqual(mail["To"], "editor@example.com")
                     self.assertEqual(mail["Reply-To"], "author@gmail.com")
-                    attachment = list(mail.iter_attachments())[0]
+                    attachment, instructions = list(mail.iter_attachments())
                     self.assertEqual(attachment.get_filename(), "IPR-week.txt")
                     self.assertEqual(attachment.get_content(), "test content")
+                    self.assertEqual(instructions.get_filename(), "IPR-Editor-Instructions.docx")
+                    self.assertTrue(instructions.get_payload(decode=True).startswith(b"PK"))
+
+    def test_delivery_without_editor_instructions_sends_nothing(self):
+        from scripts.sunday_editor_instructions import EditorInstructionsError
+
+        def broken(*args, **kwargs):
+            raise EditorInstructionsError("editor instructions body missing")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "IPR-week.txt"
+            path.write_text("test content", encoding="utf-8")
+            env = {
+                "IPR_EDITOR_TO": "editor@example.com",
+                "IPR_SMTP_USER": "author@gmail.com",
+                "IPR_SMTP_APP_PASSWORD": "abcdefghijklmnop",
+            }
+            with patch.dict(os.environ, env, clear=True), \
+                    patch("scripts.sunday_editor_instructions.render_instructions_docx", broken), \
+                    patch("scripts.weekly_editorial_handoff.smtplib.SMTP_SSL") as smtp:
+                with self.assertRaises(EditorInstructionsError):
+                    send_packet(path, "2026-10-03")
+                smtp.assert_not_called()
 
 
 if __name__ == "__main__":

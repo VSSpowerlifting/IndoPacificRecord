@@ -26,7 +26,10 @@ stable bytes. The email body opens with an automatic assignment (title,
 development, sources, length, Monday 8 p.m. ET due time, attachments) built
 only from the reviewed manuscript; editorial questions and focus stay in the
 TXT. If the instructions are missing or reshaped, the Dylan send fails before
-SMTP; the owner preview still arrives and names the problem.
+SMTP; the owner preview still arrives and names the problem. The same fail-closed
+attachment applies to the manual partial-week Sunday send and to the legacy
+Friday sender (`scripts/weekly_editorial_handoff.py`), so no path reaches Dylan
+without the instructions.
 
 The owner-only preview attaches the same TXT, Word and instructions bytes
 (with their SHA-256 lines) and then reproduces the exact editor email body,

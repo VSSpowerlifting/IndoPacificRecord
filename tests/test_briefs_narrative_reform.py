@@ -814,7 +814,7 @@ class OperationalGateTests(unittest.TestCase):
         cls.clean = cls.clean.replace("Packet: IPR-" + SAT, "Packet: IPR-" + LATER_WEEK, 1)
         cls.held = cls.held.replace("Packet: IPR-" + SAT, "Packet: IPR-" + LATER_WEEK, 1)
 
-    def run_send(self, text, *, env=None, **kwargs):
+    def run_send(self, text, *, env=None, full_week=True, **kwargs):
         from scripts import sunday_editorial_handoff as handoff
         sent = []
         with tempfile.TemporaryDirectory() as tmp:
@@ -824,7 +824,7 @@ class OperationalGateTests(unittest.TestCase):
                     patch("smtplib.SMTP_SSL", FakeSmtp(sent)):
                 try:
                     outcome = handoff.send_packet(path, LATER_WEEK, provisional=True,
-                                                  full_week=True, **kwargs)
+                                                  full_week=full_week, **kwargs)
                 except Exception as exc:  # returned to the caller's assertions
                     outcome = exc
         return sent, outcome
@@ -923,6 +923,21 @@ class OperationalGateTests(unittest.TestCase):
         self.assertIsNone(outcome)
         self.assertNotIn(INSTRUCTIONS, attachments(sent[0]))
         self.assertIn("EDITOR INSTRUCTIONS NOT ATTACHED", sent[0].get_body(("plain",)).get_content())
+
+    def test_partial_week_editor_send_also_carries_instructions_or_fails_closed(self):
+        from scripts.sunday_editor_instructions import EditorInstructionsError
+        sent, outcome = self.run_send(self.clean, full_week=False)
+        self.assertIsNone(outcome)
+        self.assertEqual(self.recipients(sent[0]), {"dylan@example.com"})
+        self.assertIn(INSTRUCTIONS, attachments(sent[0]))
+        self.assertIn("Editor Instructions are attached", sent[0].get_body(("plain",)).get_content())
+
+        def broken(*args, **kwargs):
+            raise EditorInstructionsError("editor instructions body missing")
+        with patch("scripts.sunday_editor_instructions.render_instructions_docx", broken):
+            sent, outcome = self.run_send(self.clean, full_week=False)
+        self.assertEqual(sent, [])
+        self.assertIsInstance(outcome, EditorInstructionsError)
 
     def test_owner_preview_shows_the_exact_editor_body_after_the_hashes(self):
         preview, _ = self.run_send(self.clean, preview_to_owner=True)

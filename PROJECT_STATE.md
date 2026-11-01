@@ -10,7 +10,9 @@ length against 700–1,200, Monday 8 p.m. ET due date, attachments) built from t
 manuscript without a model. Subject is now "IPR Brief edit — week ending …".
 A missing or reshaped Instructions source fails the editor send closed; the owner
 preview names the failure, lists the Instructions SHA-256 and shows the exact
-editor body. Editorial practice is embedded in the existing deterministic path:
+editor body. The manual partial-week Sunday send and the legacy Friday sender
+attach the same file and fail closed the same way, so every Dylan-bound path
+carries it. Editorial practice is embedded in the existing deterministic path:
 no second model pass, no prompt change, no new workflow, secret or paid execution.
 Stacked on PR #945. No real email sent; delivery gates and owner authorization
 are unchanged.

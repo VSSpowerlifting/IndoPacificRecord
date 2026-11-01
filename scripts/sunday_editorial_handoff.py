@@ -431,17 +431,16 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
                          "for this file.\n\n".format(exc))
     # Every editorial email carries the standing Editor Instructions; an
     # editor send without them fails closed, a preview says so.
+    from scripts.sunday_editor_instructions import (
+        FILENAME as INSTRUCTIONS_FILENAME, EditorInstructionsError, render_instructions_docx)
     instructions, instructions_note = None, ""
-    if full_week:
-        from scripts.sunday_editor_instructions import (
-            FILENAME as INSTRUCTIONS_FILENAME, EditorInstructionsError, render_instructions_docx)
-        try:
-            instructions = render_instructions_docx()
-        except EditorInstructionsError as exc:
-            if not preview_to_owner:
-                raise
-            instructions_note = ("EDITOR INSTRUCTIONS NOT ATTACHED ({}). Dylan delivery "
-                                 "would fail for this file.\n\n".format(exc))
+    try:
+        instructions = render_instructions_docx()
+    except EditorInstructionsError as exc:
+        if not preview_to_owner:
+            raise
+        instructions_note = ("EDITOR INSTRUCTIONS NOT ATTACHED ({}). Dylan delivery "
+                             "would fail for this file.\n\n".format(exc))
     message = EmailMessage()
     message["From"] = sender
     message["To"] = recipient
@@ -496,7 +495,8 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             "Please edit the prose, flag questionable claims, preserve the source appendix, "
             "and reply with the edited .txt attached within 48 hours.\n\n"
             "This text is not approved or numbered for publication. Ben will "
-            "verify the full-week sources and authorize any final publication.\n"
+            "verify the full-week sources and authorize any final publication.\n\n"
+            "The standing IPR Editor Instructions are attached.\n"
         )
     message.add_attachment(
         original_attachment, maintype="text", subtype="plain", filename=path.name
