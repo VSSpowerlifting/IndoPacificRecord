@@ -16,12 +16,12 @@ before writing UI code:
    (dark) — the real CSS custom properties and shared motion primitives.
    Both are single-owner files: one writer at a time.
 
-Hard rules: crimson only for analytical signal; IBM Plex Mono only for one-line
-metadata; no box shadows; 2px radius; every animation renders finished under
-no-JS, `.no-anim` and `prefers-reduced-motion`; no horizontal scroll at 375px.
-Keep the photography-led journal feel — not a dashboard, terminal or simulated
-intelligence operation. Presentation must not imply source diversity,
-precision or liveness the data lacks.
+Use the active coastal palette and semantic tokens specified in the current
+doctrine and templates. Historical token tables are retained for reference,
+not instructions for active UI. Follow the governing documents for typography,
+surfaces, motion, accessibility and responsive behavior rather than duplicating
+their rules here. Keep the photography-led journal feel. Presentation must not
+imply source diversity, precision or liveness the data lacks.
 
 Rendered `output/` is current truth (never hand-edit it; regenerate with
 `site/render.py`). Verify material UI changes at 1280px and 375px.
