@@ -27,7 +27,7 @@ rows written locally between a reconcile and the next push. That limitation is
 real, is documented in docs/SCHEMA_AND_MIGRATIONS.md, and is a Phase 3 decision
 (CI ordering), deliberately not papered over here.
 
-Python 3.9 / stdlib only. This runs on the CI runner and inside the collection
+Stdlib only. This runs on the CI runner and inside the collection
 path, so it must not pull in a dependency.
 """
 

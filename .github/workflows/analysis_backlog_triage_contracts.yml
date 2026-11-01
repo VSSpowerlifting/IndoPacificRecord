@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Record immutable production archive baseline
         run: |
           sha256sum pla_watch.db > "$RUNNER_TEMP/original-db.sha256"

@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install -r requirements.txt
       - name: Validate historical no-backfill, holds, append-only exact source and clean retries
         run: python -m unittest -v tests.test_korea_standing_original_texts tests.test_korea_standing_noop_parity
@@ -60,7 +60,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install -r requirements.txt
       - name: Clone actual preserved Korean source Git evidence read-only
         shell: bash
@@ -118,7 +118,7 @@ jobs:
           persist-credentials: true
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Pin clean production state and SQLite checksum
         shell: bash
         run: |

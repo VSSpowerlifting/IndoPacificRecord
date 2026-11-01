@@ -49,7 +49,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.13"
       - name: Install actual site dependencies
         run: python -m pip install -r requirements.txt
       - name: Preserve production database checksum
@@ -155,7 +155,7 @@ jobs:
           persist-credentials: true
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.13"
           cache: pip
       - name: Pin exact release SHA and production data checksum
         shell: bash

@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Exercise hypothetical private GitHub API results — OFFLINE
         run: python -m unittest tests.test_private_github_vault_preflight tests.test_private_github_ref_parity tests.test_private_github_fixture_backup -v
       - name: Assert no corpus, output or config was changed

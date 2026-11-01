@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install beautifulsoup4 requests
       - name: Validate exact captured publisher mark and callback boundaries
         run: python -m unittest -v tests.test_korea_archived_kogl_replay
@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install beautifulsoup4 requests
       - name: Clone only preserved original state (no artifact uploads)
         shell: bash

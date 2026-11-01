@@ -29,7 +29,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Test exact source identity and nonapproval contracts
         run: python -m unittest tests.test_japan_sunday_source_attestation -v
       - name: Fetch Japan MOD isolated state branch read-only

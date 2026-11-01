@@ -170,7 +170,7 @@ class GitHub:
 
 
 REQUIRED_STEPS = (
-    "Check out the pull request", "Set up Python 3.9",
+    "Check out the pull request", "Set up Python 3.13",
     "Record tracked database baseline", "Classify changed paths against PR base",
     "Verify GPG and restore frozen historical replay objects", "Install dependencies",
     "Install Chromium for the browser-backed tests", "Verify Chromium launches",

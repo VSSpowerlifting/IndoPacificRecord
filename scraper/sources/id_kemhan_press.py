@@ -41,7 +41,7 @@ class PressCandidate:
 @dataclass(frozen=True)
 class PressPage:
     records: tuple
-    next_url: str | None  # Python 3.9 runtime accepts annotations due to future annotations
+    next_url: str | None
 
 
 @dataclass(frozen=True)

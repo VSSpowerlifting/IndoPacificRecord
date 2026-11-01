@@ -10,10 +10,10 @@ import json
 import re
 import urllib.parse
 import urllib.request
-import urllib.robotparser
 from datetime import date, datetime, timezone
 from pathlib import Path
 from bs4 import BeautifulSoup, Tag
+from scraper.sources.robots_prefix import legacy_can_fetch
 from scripts.probe_us_navy_first_party_access import AGENT, MAX_ROBOTS_BYTES, NoRedirect, _fetch
 
 SCHEMA = "ipr-us-bis-homepage-official-link-metadata/1"
@@ -114,9 +114,7 @@ def collect(*, opener=None, as_of=None):
         raise BISHold("bis_robots_not_utf8") from None
     need("user-agent:" in text.lower() and "<html" not in text.lower()
          and "<script" not in text.lower(), "bis_robots_not_usable")
-    parser = urllib.robotparser.RobotFileParser(ROBOTS)
-    parser.parse(text.splitlines())
-    need(parser.can_fetch(AGENT, INDEX), "bis_homepage_robots_disallow")
+    need(legacy_can_fetch(text.splitlines(), AGENT, INDEX), "bis_homepage_robots_disallow")
     payload, status = _fetch(opener, INDEX, MAX_BYTES)
     need(status == "ok" and payload is not None, "bis_homepage_" + status)
     rows = extract(payload, as_of=as_of)

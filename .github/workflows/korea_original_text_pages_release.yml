@@ -39,7 +39,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install beautifulsoup4 requests
       - name: Test exact owner, source, SHA, safe output and idempotent retry
         run: python -m unittest -v tests.test_korea_original_text_publication_preflight tests.test_korea_published_originals
@@ -73,7 +73,7 @@ jobs:
           persist-credentials: true
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Verify authenticated owner-only scope and baseline
         shell: bash
         run: |

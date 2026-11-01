@@ -277,8 +277,9 @@ class VNMinistryAdapter(ShadowHttpAdapter):
                         "rss_instant_utc": selected.get("rss_instant_utc")}
             raw_meta = metadata["article_published_time"]
             if raw_meta:
-                # Python 3.9's ISO parser needs +HH:MM. Preserve the source
-                # value above; normalize only this cross-check's input.
+                # Normalize to the +HH:MM form every supported interpreter
+                # parses. Preserve the source value above; normalize only
+                # this cross-check's input.
                 parse_meta = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2",
                                     raw_meta.replace("Z", "+00:00"))
                 meta_stamp = datetime.fromisoformat(parse_meta)

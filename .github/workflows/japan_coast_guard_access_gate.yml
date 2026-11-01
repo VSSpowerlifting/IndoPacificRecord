@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Run offline probe contracts before network
         run: python -m unittest tests.test_probe_japan_coast_guard_access -v
       - name: Measure exactly scoped, permission-checked JCG access

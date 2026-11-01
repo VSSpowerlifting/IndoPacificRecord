@@ -1,8 +1,8 @@
 """
 Desk manifest loading and validation.
 
-Manifests are JSON, not YAML, deliberately: the CI runner is Python 3.9 and
-JSON needs no third-party parser. Adding PyYAML to buy nicer comment syntax
+Manifests are JSON, not YAML, deliberately: the CI runner has only the stdlib
+and requirements.txt, and JSON needs no third-party parser. Adding PyYAML to buy nicer comment syntax
 would put a new dependency on the daily collection path for a cosmetic gain.
 
 Validation is strict and loud. A desk manifest that names an unknown authority

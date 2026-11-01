@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Verify pagination and retention evidence on fictional data ONLY
         run: python -m unittest tests.test_ipr_actions_artifact_retention_inventory -v
       - name: Ensure no archive/database/output mutation

@@ -35,7 +35,7 @@ permissions:
 
 jobs:
   update:
-    # Python 3.9 is unavailable on ubuntu-latest (currently Ubuntu 26.04).
+    # Pinned runner image; ubuntu-latest moves without notice.
     runs-on: ubuntu-24.04
 
     steps:
@@ -110,11 +110,11 @@ jobs:
           PY
 
       # ── 3. Python setup ────────────────────────────────────────────────────
-      - name: Set up Python 3.9
+      - name: Set up Python 3.13
         if: steps.timecheck.outputs.should_run == 'true'
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: 'pip'
 
       # ── 3b. Register the pla_watch.db merge driver ────────────────────────

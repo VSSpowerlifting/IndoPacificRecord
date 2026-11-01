@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: pip install -r requirements.txt
       - name: Simulate publisher capture to isolated temporary state only
         run: python -m unittest tests.test_japan_jcg_shadow_adapter tests.test_japan_jcg_manual_shadow_gate -v

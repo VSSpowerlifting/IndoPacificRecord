@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Pin production DB before read-only checks
         run: |
           sha256sum pla_watch.db > "$RUNNER_TEMP/ops-dispatch-db.sha256"

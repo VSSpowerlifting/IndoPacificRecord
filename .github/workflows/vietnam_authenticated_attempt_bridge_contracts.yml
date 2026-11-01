@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Bridge and existing historical reconciliation proof
         run: |
           python -m unittest tests.test_vietnam_authenticated_attempt_bridge -v
