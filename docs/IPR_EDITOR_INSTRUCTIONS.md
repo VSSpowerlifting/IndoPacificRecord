@@ -183,6 +183,13 @@ of returns, accepting or rejecting tracked changes, structural import and
 the mandatory reconciliation of changed claims follow
 `docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md`, `docs/SUNDAY_EDITOR_WORD_WORKFLOW.md`,
 `docs/IPR_BRIEFS_WRITING_STANDARD.md` §6a and `EDITORIAL_QA_CHECKLIST.md`.
+
+**Contributor model.** Roles are the Founder (final approval), the
+assigned editor for each manuscript, and Dylan Tanzi as Lead Research
+Analyst and default editor of the Sunday manuscript. To add a contributor,
+Ben sends them this document and an assignment; there is no roster file,
+form or onboarding gate. Credit is decided per issue (§11).
+
 The cadence, length and editor-model decisions are recorded in
 `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` §5b and `DECISION_LOG.md`
 (2026-11-01). This document grants no approval, numbering, publication or

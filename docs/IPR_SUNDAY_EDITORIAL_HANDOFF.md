@@ -83,7 +83,8 @@ The new, **separately gated** Sunday workflow is designed for this cycle:
   source-cited full prose with Claude Sonnet 4.6, validate the actual
   record IDs and per-section prose, and email Dylan one editable text file.
 - **Monday 8 p.m. Eastern:** Dylan replies to the original message with
-  his edited text file attached. He may reply early, or tell Ben promptly
+  the edited Word file attached, changes still tracked (or the edited TXT
+  worksheet; see `docs/IPR_EDITOR_INSTRUCTIONS.md` §10). He may reply early, or tell Ben promptly
   if he cannot meet the deadline. This is a turnaround target, not an
   automatically enforced rejection of late editorial work.
 - **Tuesday:** Ben asks ChatGPT to find Dylan's reply in the connected

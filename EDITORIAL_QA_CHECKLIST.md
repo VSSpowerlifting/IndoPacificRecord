@@ -22,9 +22,9 @@ prose remain human-controlled.
 
 ## After the editor returns an edited manuscript (required before any Brief)
 
-- [ ] Reviewed every tracked change and comment in the returned Word file and
-      accepted or rejected each one before intake (the importer refuses tracked
-      changes; see `docs/IPR_EDITOR_INSTRUCTIONS.md`).
+- [ ] If the editor returned a Word file: reviewed every tracked change and
+      comment and accepted or rejected each one before intake (the importer
+      refuses tracked changes; see `docs/IPR_EDITOR_INSTRUCTIONS.md`).
 - [ ] Ran `scripts/analyze_editor_return.py`; worked through every item under
       "Reconciliation required before any Brief".
 - [ ] Every changed or added claim, figure, name, title, quotation and citation was
