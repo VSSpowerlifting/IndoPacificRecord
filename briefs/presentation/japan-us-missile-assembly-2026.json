@@ -1,0 +1,39 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "japan-us-missile-assembly-2026",
+  "manuscript_fingerprint": "f6f2600c84bb5d0762d8eaf8d6513ca962e40df81ffca69888add976acb80e22",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-agreement",
+      "start": 1,
+      "end": 2,
+      "heading": "What the ministers agreed"
+    },
+    {
+      "id": "reading-april",
+      "start": 3,
+      "end": 5,
+      "heading": "An April possibility becomes a commitment"
+    },
+    {
+      "id": "reading-assembly",
+      "start": 6,
+      "end": 7,
+      "heading": "Why the assembly step matters"
+    },
+    {
+      "id": "reading-philippines",
+      "start": 8,
+      "end": 9,
+      "heading": "A separate track with the Philippines"
+    },
+    {
+      "id": "reading-watch",
+      "start": 10,
+      "end": 10,
+      "heading": "What to watch"
+    }
+  ],
+  "approval": null
+}
