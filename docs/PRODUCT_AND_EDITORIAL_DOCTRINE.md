@@ -152,7 +152,8 @@ layer the reader is looking at:
    to a trail record.
 
 Editorial-integrity rules (non-negotiable; enforced by
-EDITORIAL_QA_CHECKLIST.md and the editorial-integrity-reviewer agent):
+EDITORIAL_QA_CHECKLIST.md and the human editor; the editorial-integrity-reviewer
+agent checks them advisorily):
 
 - Never invent, retranslate, or fuzzily match Chinese text, translations,
   titles, outlets, dates, units, ranks, or claims. If original wording is

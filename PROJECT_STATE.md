@@ -1,5 +1,29 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Agent tooling consolidation — review candidate (1 November 2026)
+
+The editorial-integrity-reviewer now covers original-language text for every
+desk (not only Chinese), traces Brief claims through `publisher_references` and
+`paragraph_support`, diffs foreign strings in code, and can be run on a held
+Sunday draft or Dylan's return. It stays advisory: it cannot clear a hold,
+approve or send. `docs/AGENT_WORKFLOWS.md` §2 now lists only tools seen working
+here (Playwright, Serena/TokenSave, Firecrawl, `gh`, Headroom; graphify
+orientation-only). Retired: the tracked Ruflo/claude-flow runtime state (now
+gitignored) and the awesome-design-md/skillui lock entries.
+
+Operating finding: Claude sessions in `.claude/worktrees/*` load project agents,
+commands and skills from the main checkout, which on 1 November 2026 was on a
+stale non-main branch. `CLAUDE.md` gives the one-line check. Fixing the main
+checkout and reindexing TokenSave (last synced from that branch) are owner
+actions. No workflow, schedule, model setting or output changed.
+
+Trial run on Japan Brief No. 19 (advisory, unreviewed): the stored record holds
+no traceable origin for the s4 Japanese title or URL-bound titles for s3/s6, the
+release record contains no original-language text, and `desks` is empty. These
+are provenance gaps, not evidence the titles are wrong; checking them against
+the Joint Staff PDFs is an owner follow-up. The run also retyped one kanji wrongly
+in its own report (緊→金), so findings must be re-checked at the cited file:line.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one

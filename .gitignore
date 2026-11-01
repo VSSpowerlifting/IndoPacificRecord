@@ -49,3 +49,6 @@ build/
 
 # Disposable screenshot set for private prototype review.
 /preview-review-shots/
+
+# Retired Ruflo/claude-flow swarm runtime state (never tracked again).
+/.claude-flow/

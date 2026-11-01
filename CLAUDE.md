@@ -55,6 +55,14 @@ typography, accessibility and performance. Keep the established
 photography-led journal feel—not a dashboard, terminal or simulated
 intelligence operation. Superseded mockups are not permanent authority.
 
+**Worktree sessions load project agents from the main checkout.** Observed
+2026-11-01: a session in `.claude/worktrees/<name>` gets `.claude/agents`,
+commands and skills from `~/pla-watch`, not from its own branch, so a stale
+main checkout silently runs stale reviewer instructions. Check before relying
+on a project agent:
+`diff -rq "$(git rev-parse --path-format=absolute --git-common-dir)/../.claude/agents" .claude/agents`.
+Keep the main checkout on an up-to-date `main`; do other branches in worktrees.
+
 Model/agent routing lives in `docs/AGENT_WORKFLOWS.md`. Use parallel
 agents only for genuine parallel work and avoid unnecessary deep scans
 or expensive model calls. Schema success, model agreement or fluent

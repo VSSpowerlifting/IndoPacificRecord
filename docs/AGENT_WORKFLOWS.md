@@ -111,27 +111,40 @@ companion only where needed, or an authorized verified release. No unrelated
 features, fixes or release follow-on. Record SHA/PR, checks, removed path and exact
 next action in repository state; use a fresh session for a substantial next phase.
 
-## 2. Skills
+## 2. Skills and tools
 
-| Skill | Use for | Not for |
+List only what has been seen working here. Rows marked *user-level* live in
+the owner's Claude setup, not this repository; Codex does not have them and
+no workflow may depend on them.
+
+| Skill / tool | Use for | Not for |
 |---|---|---|
 | **ui-ux-pro-max** | IA and flow changes, navigation, responsive layout patterns, component behavior review | visual taste decisions (defer to doctrine) |
-| **impeccable** | final visual refinement passes on rendered pages: typography, spacing, alignment, hierarchy; live-browser iteration | inventing new direction; anything conflicting with DESIGN_SYSTEM.md |
+| **impeccable** | final visual refinement passes on rendered pages: typography, spacing, alignment, hierarchy; live-browser iteration | inventing new direction; anything conflicting with DESIGN_SYSTEM.md (authoritative; auto-extracted token dumps are not doctrine) |
 | **design-taste-frontend / taste review** | art-direction checks; catching generic/template drift before it lands | replacing the north star |
-| **awesome-design-md / skillui** | keeping design documentation synchronized after approved visual changes | generating auto-extracted token dumps as doctrine (the 2026-07 skillui extraction was inaccurate and was retired — DESIGN_SYSTEM.md is authoritative) |
-| **Journalism skills** (fact-check-workflow, source-verification, newsroom-style, ai-writing-detox/humanizer) | editorial passes on edition prose, headline/dek treatment, corrections handling, evidence presentation | rewriting published editions without the analyst |
-| **graphify** | architecture/where-should-I-edit questions (`graphify-out/GRAPH_REPORT.md` first, then targeted rg); refresh with `graphify update .` after structural changes | decorative relationship visuals for the site |
-| **Ruflo (swarm)** | genuinely parallel work only — e.g., one agent per route family in a multi-route implementation, or research/verification/QA role separation on a publish | single-file fixes, nav changes, README edits, routine build errors |
+| **Journalism skills** (*user-level, optional*: fact-check-workflow, source-verification, ben-source-verify, newsroom-style, ai-writing-detox/humanizer) | claim ledgers and style passes on Brief prose, headline/dek treatment, corrections | approval; rewriting published editions without the analyst |
 | **ipr-proposal-review** (shared, `.agents/skills/`) | read-only PROCEED/SIMPLIFY/DEFER/REJECT challenge of a material expansion, source-permission or AI-model change | routine fixes; line-by-line diff review (use `/code-review` or `codex review`) |
-| **Headroom / TokenSave** | compressing long validator logs, screenshot batches, repeated repo inspection | authoritative reading of Chinese text, translations, dates, ranks, claims |
+| **Playwright** (MCP) | rendered checks of `output/` at 1280/375, keyboard, console errors | publisher sites behind access challenges |
+| **Serena / TokenSave** (MCP) | symbol lookup, callers and impact before editing Python | trusting results before checking the index branch (below) |
+| **Firecrawl** (MCP) | discovering public background sources while researching a Brief | collection (the pipeline collects), or any site whose terms or challenges forbid it |
+| **`gh` CLI** | PR, CI and Actions-run inspection | merging, enabling workflows, or editing repository variables without authorization |
+| **Headroom** | compressing long validator logs and repeated inspection output | authoritative reading of original-language text, translations, dates, ranks, claims |
+| **graphify** | orientation only: `graphify-out/` exists only in the main checkout and was last built from an older branch | edit decisions; trust current code and `rg` instead |
 
 Shared repository skills have one canonical copy in `.agents/skills/<name>/`,
 which Codex reads directly; Claude sees it through the tracked symlink
 `.claude/skills/<name>`. Edit only the `.agents` copy.
 
-Ruflo limits: max 4 agents; one owner per template file (`base.html`,
-`pla-watch-base.html`, and `pw_env.py` are single-owner, never concurrent);
-the lead session integrates and is the only writer of PROJECT_STATE.md.
+**Code-index freshness.** TokenSave and graphify index one checkout at one
+time. Before relying on them, check TokenSave's `active_branch`/last-sync
+(`tokensave_status`) against the branch you are on; if they differ, use
+`rg` and the source files. Index results never settle a correctness question.
+
+**Parallel agents.** Use a few agents only for genuinely independent work.
+`base.html`, `pla-watch-base.html` and `pw_env.py` have one owner at a time,
+never concurrent writers; the lead session integrates and is the only writer
+of PROJECT_STATE.md. (The former Ruflo swarm runtime is retired; Claude Code
+subagents cover this.)
 
 ## 3. Project agents (`.claude/agents/`)
 
@@ -145,8 +158,14 @@ Minimum useful set — four agents plus one human-in-the-loop role:
   templates/CSS/SVG/JS + regenerate + validate + screenshot proof. Stays
   inside the ticket's file list.
 - **editorial-integrity-reviewer** (Sonnet, read-only) — source-to-claim
-  tracing, evidence-vs-inference presentation, verbatim Chinese text,
-  citation and metadata accuracy. Output: pass/fail findings list.
+  tracing, evidence-vs-inference presentation, verbatim original-language
+  text for every desk, citation and metadata accuracy. Output: findings,
+  unchecked claims and a PASS/FAIL on the checks it could run. Beyond
+  `/publish-edition`, Ben may run it on a held Sunday draft before
+  `scripts.sunday_send_reviewed_packet`, or on Dylan's return after
+  `scripts/validate_editorial_return.py`. It is **advisory**: a model reading
+  the stored record, not independent verification, and it cannot clear a
+  hold, approve or send.
 - **release-qa** (Sonnet) — pre-deploy sweep: validator, preview, responsive
   (1280/375), keyboard + focus, reduced motion, console errors, link spot
   checks. Output: go/no-go report with evidence.
