@@ -4,6 +4,31 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-01 — Owner: freeze on new proof and contract workflows until Daily is stable
+
+Benjamin Yang froze the addition of new proof, contract, rehearsal or desk
+release workflows. main held 241 workflow files at 077b1a8096, after the
+ubuntu-24.04 runner pin (#941). Each new lane adds another schedule, check and
+maintenance owner while the shared Daily path is still being repaired. The
+freeze stops that coordination load from growing until the path is stable.
+
+1. No PR may add a file under `.github/workflows/` without a later owner entry in
+   this log. Four open PRs add one: #710, #712, #740 and #746. They stay open but
+   do not merge until the freeze lifts or the owner exempts them.
+2. Changes to existing workflows remain allowed when they keep a current lane
+   working or apply a standing decision. Examples: runner and dependency pins,
+   fixes to a broken check, the W1 integrator's changes to `daily_update.yml`,
+   and retiring a workflow the owner approved from the W3 triage list. A change
+   must not weaken a check merely to make a run pass.
+3. The freeze lifts when the W1 stop condition is met: 7 consecutive scheduled
+   Daily runs succeed, with `source_run_results` rows from all eight desks on
+   each day. That evidence is recorded in `PROJECT_STATE.md`. The owner may lift
+   or amend the freeze earlier by a new entry.
+
+The freeze closes nothing and pauses no existing schedule. It creates no source
+rights, spend, retry reset, merge, deployment or publication authority. Closing
+workflows, PRs or worktrees still needs owner approval of the W3 list.
+
 ## 2026-10-30 — Owner: mandatory shared desk structure across every desk
 
 Benjamin Yang approved all three architecture-review recommendations and directed
