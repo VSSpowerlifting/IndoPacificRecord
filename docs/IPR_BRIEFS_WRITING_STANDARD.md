@@ -11,7 +11,11 @@ DOCX and importer scripts, and `scripts/analyze_editor_return.py`. Demonstration
 
 The model returns `title`, `dek`, `article`, `audit` and `editorial_questions`.
 
-- `article` is 3–7 blocks (about 450–1,500 words). Block 1 is the unheaded
+- `article` is 3–7 blocks (about 450–1,500 words; this is the machine's structural
+  bound, not the editorial target). The published-Brief target is 700–1,200 words,
+  900–1,050 preferred (doctrine §5b, DECISION_LOG 2026-11-01); aligning
+  `PROMPT_STANDARD` and the selection prompt's 650–850 figure with it is a separate
+  engineering change. Block 1 is the unheaded
   opening: it presents the development, actors, date and telling action before
   unnecessary discussion of the source-gathering process.
 - **The manuscript remains sectioned:** after the opening, there are **2–4
@@ -117,9 +121,11 @@ artifact requiring its own review and digest.
 
 ## 5. Roles
 
-Ben owns accuracy, the argument and publication. Dylan is the language and structure
-editor: clarity, order and headings are Dylan's to improve. Neither the model nor the checks
+Ben owns accuracy, the argument and publication. The assigned editor (Dylan, as Lead
+Research Analyst, for the Sunday manuscript) is the language and structure editor: clarity,
+order and headings are the editor's to improve. Neither the model nor the checks
 approve a Brief. The Word file is the editing surface; the TXT worksheet is the full record.
+What the editor receives and may change is set out in `docs/IPR_EDITOR_INSTRUCTIONS.md`.
 
 ## 6. Offline editor-feedback loop
 

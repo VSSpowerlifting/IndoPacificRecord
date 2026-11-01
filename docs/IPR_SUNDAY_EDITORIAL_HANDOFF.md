@@ -1,5 +1,11 @@
 # Sunday IPR Briefs — full-week draft to Dylan (staged migration)
 
+What the editor receives, may change and returns is set out in
+`docs/IPR_EDITOR_INSTRUCTIONS.md`; story-specific requests use
+`docs/IPR_EDITOR_ASSIGNMENT_TEMPLATE.md`. An additional Brief in the same week
+(doctrine §5b) follows the same return, intake and reconciliation path as its
+own manuscript.
+
 ## Narrative reform — article-first manuscript (25 October 2026)
 
 The writer now asks for one cohesive article (lead on the concrete development, optional

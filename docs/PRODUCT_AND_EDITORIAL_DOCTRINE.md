@@ -358,13 +358,25 @@ collection, is refused rather than read as The PLA Watch.
 
 **Keep the structure small (2026-10-09).** Records and IPR Briefs are the public
 research/editorial layers. The weekly regional review is internal: consider
-available admissible evidence, then select one coherent theme without desk
-quotas. This changes no evidence-admission or approval contract. Specialist
+available admissible evidence, then select each coherent development worth a
+Brief, without desk quotas. This changes no evidence-admission or approval contract. Specialist
 subjects and bilateral relationships may later be curated collections within
 IPR; PLA Watch is a possible future collection, not an activated publication.
 No additional journal, public review, schedule, feed or numbering sequence is
 created here. Timelines/dossiers support the research under their own approval
 rules. Regional Assessments remain future scope, not an implementation task.
+
+**Weekly cadence (2026-11-01).** One Brief a week is the normal expectation, not
+a ceiling. An additional Brief runs only when a second, independent development
+clears the same readiness floors on its own evidence; volume, a quota or a quiet
+desk never justifies one, and Ben alone decides that it runs. Each Brief covers
+one coherent development or a closely connected set; unrelated stories are never
+bundled. A Brief ordinarily runs 700–1,200 words, with 900–1,050 a useful
+preference rather than a requirement. Material that needs more is an Assessment
+candidate (§5c), not a longer Brief. Each Brief keeps its own number in the single
+sequence, its own editor pass and its own approval; several in one week share no
+review. Editors work from `docs/IPR_EDITOR_INSTRUCTIONS.md` plus a story-specific
+assignment (`docs/IPR_EDITOR_ASSIGNMENT_TEMPLATE.md`).
 
 **What a brief is.** It uses the existing article anatomy (§5, edition page) and
 begins with a concrete Indo-Pacific development, recorded as `development` with
