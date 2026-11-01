@@ -239,7 +239,12 @@ class StaffBuildTests(unittest.TestCase):
         jophy = (self.out / 'authors/jophy-lin.html').read_text()
         self.assertIn('what-is-being-built-in-laos.html', ben)
         self.assertIn('what-is-being-built-in-laos.html', dylan)
-        self.assertNotIn('class="staff-work-list"', jophy)
+        self.assertIn('japan-philippines-first-destroyer-2026.html', jophy)
+        self.assertNotIn('what-is-being-built-in-laos.html', jophy)
+        destroyer = BeautifulSoup((self.out / 'briefs/japan-philippines-first-destroyer-2026.html').read_text(), 'html.parser')
+        self.assertEqual(destroyer.select_one('.brief-byline').get_text(), 'By Benjamin Yang and Jophy Lin')
+        self.assertEqual([a['href'] for a in destroyer.select('.brief-byline a')],
+                         ['../authors/benjamin-yang.html', '../authors/jophy-lin.html'])
         laos = BeautifulSoup((self.out / 'briefs/what-is-being-built-in-laos.html').read_text(), 'html.parser')
         self.assertEqual(laos.select_one('.brief-byline a')['href'], '../authors/benjamin-yang.html')
         contributor = laos.select('[aria-label="Co-author"]')[1]
