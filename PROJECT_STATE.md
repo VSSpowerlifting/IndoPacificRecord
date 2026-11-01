@@ -921,7 +921,7 @@ Durable documents, and what each one governs:
 | `README.md` | public and contributor overview |
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | technical layer map, commands, publishing and deployment procedure |
-| `docs/AGENT_WORKFLOWS.md` | agent operating constraints and model routing |
+| `docs/AGENT_WORKFLOWS.md` | agent operating constraints, model routing and task → capability map |
 | `docs/ROADMAP.md` | current priority order |
 | `docs/SHADOW_COLLECTION.md`, `docs/SHADOW_REVIEW.md` | shadow desk isolation and human review procedure |
 | `DECISION_LOG.md` | durable decisions that constrain future work |
