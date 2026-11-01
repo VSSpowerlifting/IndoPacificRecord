@@ -258,25 +258,28 @@ class TestKoreaLane(LaneCase):
 
     def test_qa_v3_rerun_hold_is_terminal_after_one_call(self):
         # QA_FAIL is the fixture's real number-hold text; stand it in for an
-        # authorized identity to exercise the whole lane once.
-        self.admit(only={QA_FAIL})
-        conn = sqlite3.connect(str(self.db_path))
-        try:
-            self._hold_v2(conn, QA_FAIL, 1, reason="qa_number_added")
-        finally:
-            conn.close()
-        with mock.patch.dict(lane.QA_V3_RERUN, {QA_FAIL: 1}):
-            first = fake_analyzer()
-            report = self.run_lane(first)
-            self.assertEqual(first.score_relevance.call_count, 1)
-            self.assertEqual([i for i, _ in report.qa_held], [QA_FAIL])
-            row = self.ledger()[QA_FAIL]
-            self.assertEqual(row["processing_state"], "qa_held")
-            self.assertEqual(row["qa_version"], "kr-qa-v3")
-            self.assertEqual(row["processing_attempts"], 2)
-            again = fake_analyzer()
-            self.run_lane(again)
-            again.score_relevance.assert_not_called()
+        # authorized identity to exercise the whole lane once, at both
+        # production hold shapes (attempt 1, and attempt 3 near the budget).
+        for held_at in (1, 3):
+            with self.subTest(held_at=held_at):
+                self.admit(only={QA_FAIL})
+                conn = sqlite3.connect(str(self.db_path))
+                try:
+                    self._hold_v2(conn, QA_FAIL, held_at, reason="qa_number_added")
+                finally:
+                    conn.close()
+                with mock.patch.dict(lane.QA_V3_RERUN, {QA_FAIL: held_at}):
+                    first = fake_analyzer()
+                    report = self.run_lane(first)
+                    self.assertEqual(first.score_relevance.call_count, 1)
+                    self.assertEqual([i for i, _ in report.qa_held], [QA_FAIL])
+                    row = self.ledger()[QA_FAIL]
+                    self.assertEqual(row["processing_state"], "qa_held")
+                    self.assertEqual(row["qa_version"], "kr-qa-v3")
+                    self.assertEqual(row["processing_attempts"], held_at + 1)
+                    again = fake_analyzer()
+                    self.run_lane(again)
+                    again.score_relevance.assert_not_called()
 
     def test_retry_budget_pauses(self):
         self.admit(only={NO_REVIEW})
