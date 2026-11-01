@@ -1,0 +1,39 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "japan-philippines-first-destroyer-2026",
+  "manuscript_fingerprint": "ebd8e598ed99c85394823d5f148acb6cec2b353a1f6467bc43a2309e9e081492",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 2,
+      "heading": "The first ship"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 3,
+      "end": 5,
+      "heading": "From \"the destroyers\" to \"the first\""
+    },
+    {
+      "id": "reading-section-3",
+      "start": 6,
+      "end": 7,
+      "heading": "Training before the transfer"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 8,
+      "end": 10,
+      "heading": "The arrangements around the ships"
+    },
+    {
+      "id": "reading-section-5",
+      "start": 11,
+      "end": 13,
+      "heading": "Five ships in Manila's account"
+    }
+  ],
+  "approval": null
+}

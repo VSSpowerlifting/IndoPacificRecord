@@ -1,0 +1,33 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "japan-us-amraam-final-assembly-sm3-production",
+  "manuscript_fingerprint": "f2b69bb7c3e794b9493cbf293e3cb7e272a40fbc4bbbb4ddf93473812457253f",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 1,
+      "heading": "The agreement"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 2,
+      "end": 4,
+      "heading": "What the ministers agreed"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 5,
+      "end": 8,
+      "heading": "An April possibility becomes a commitment"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 9,
+      "end": 11,
+      "heading": "A final stage with no site yet"
+    }
+  ],
+  "approval": null
+}

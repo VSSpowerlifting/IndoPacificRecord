@@ -1,0 +1,22 @@
+[
+  {
+    "slug": "japan-us-amraam-final-assembly-sm3-production",
+    "manuscript_sha256": "9ffe6f46ab5007746864360dabd14b8d09449c0a01e69c479de6e5e7271fd29b",
+    "manuscript_fingerprint": "f2b69bb7c3e794b9493cbf293e3cb7e272a40fbc4bbbb4ddf93473812457253f",
+    "presentation_fingerprint": "a4dcdd0e85733e6420a65fa3fa3c5dbc3bc42b9d82274f42fa1d2266c3264bbd",
+    "paragraphs": 11,
+    "references": 5,
+    "rendered_paragraph_link_heading_parity": "passed",
+    "public_draft_exclusion": "passed"
+  },
+  {
+    "slug": "japan-philippines-first-destroyer-2026",
+    "manuscript_sha256": "a4bf9c45c88bac2c91e0f949ee76cfbbaea7c1822172249d6344ce615a1a316e",
+    "manuscript_fingerprint": "ebd8e598ed99c85394823d5f148acb6cec2b353a1f6467bc43a2309e9e081492",
+    "presentation_fingerprint": "ea81695c40f1b7dc938a9a8fd0070c4d402955d28a3faf8cb69d018490493f1d",
+    "paragraphs": 13,
+    "references": 9,
+    "rendered_paragraph_link_heading_parity": "passed",
+    "public_draft_exclusion": "passed"
+  }
+]
