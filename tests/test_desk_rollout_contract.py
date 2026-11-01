@@ -339,7 +339,7 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
         html = self.page("japan.html")
         self.assertIn("Corpus records</dt><dd>Not admitted", html)
         self.assertIn("Sources enabled in shadow</dt><dd>2", html)
-        self.assertIn("No source is enabled in production.", html)
+        self.assertIn("No source has its original text admitted to production.", html)
         self.assertIn("participate only in isolated shadow collection", html)
         source = self.page("source/jp_mod_news_ja.html")
         self.assertIn("Enabled for shadow collection</th>", source)

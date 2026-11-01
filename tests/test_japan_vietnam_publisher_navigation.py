@@ -92,8 +92,8 @@ class CountryPublisherNavigationTests(DeskCase):
         self.assertIn("8 of 142 news-feed items (6 percent) were PDF-format candidates",
                       desk.limits[1])
         self.assertNotIn("carried full text", desk.limits[1])
-        self.assertIn("some PDF-published originals yield extractable text",
-                      desk.status_explanation)
+        self.assertIn("link-only official metadata", desk.status_explanation)
+        self.assertIn("MOD body retrieval stays partial", desk.status_explanation)
 
         self.assertIn("five text-bearing originals and 158 unretrieved URLs",
                       desk.research["volume_caveat"])

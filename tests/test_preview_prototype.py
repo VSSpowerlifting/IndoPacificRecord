@@ -1445,7 +1445,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
     def test_japan_scope_claims_no_coverage(self):
         japan = self.page("japan.html")
         self.assertIn("Shadow preservation does not enter the public corpus", japan)
-        self.assertIn("No source is enabled in production.", japan)
+        self.assertIn("No source has its original text admitted to production.", japan)
         self.assertIn("Corpus records</dt><dd>Not admitted", japan)
         # The directory must carry the claim too, not defer all of it.
         desks = self.page("desks.html")
