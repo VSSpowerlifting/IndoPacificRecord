@@ -1,5 +1,24 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Sunday editor email carries the standing Editor Instructions — review candidate (1 November 2026)
+
+Every Sunday editor email now attaches `IPR-Editor-Instructions.docx`, rendered
+deterministically from `docs/IPR_EDITOR_INSTRUCTIONS.md` with the owner-only note
+stripped (`scripts/sunday_editor_instructions.py`). The email body gains an
+automatic assignment block (working title, development, Brief type, source count,
+length against 700–1,200, Monday 8 p.m. ET due date, attachments) built from the
+manuscript without a model. Subject is now "IPR Brief edit — week ending …".
+If the Instructions source is missing or reshaped, the email still goes (owner
+decision, 1 November) without that attachment: its body says the copy could not be
+attached and the run log prints a `::warning::`. The owner preview names the
+failure, lists the Instructions SHA-256 when present and shows the exact editor
+body. The manual partial-week Sunday send and the legacy Friday sender attach the
+same file and degrade the same way, so every Dylan-bound path carries it when it
+can be rendered. Editorial practice is embedded in the existing deterministic path:
+no second model pass, no prompt change, no new workflow, secret or paid execution.
+Stacked on PR #945. No real email sent; delivery gates and owner authorization
+are unchanged.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one

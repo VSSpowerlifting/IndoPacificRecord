@@ -38,6 +38,7 @@ from tests.briefs_narrative_fixtures import (
 
 DESKS = {1: "china", 2: "singapore"}
 LATER_WEEK = "2026-10-24"
+INSTRUCTIONS = "IPR-Editor-Instructions.docx"
 PRIVATE_MARKERS = (
     AUDIT["baseline_and_routine"][:40], AUDIT["limitations"][:40],
     AUDIT["terms_to_verify"][:40], AUDIT["cross_desk_assessment"][:40],
@@ -813,7 +814,7 @@ class OperationalGateTests(unittest.TestCase):
         cls.clean = cls.clean.replace("Packet: IPR-" + SAT, "Packet: IPR-" + LATER_WEEK, 1)
         cls.held = cls.held.replace("Packet: IPR-" + SAT, "Packet: IPR-" + LATER_WEEK, 1)
 
-    def run_send(self, text, *, env=None, **kwargs):
+    def run_send(self, text, *, env=None, full_week=True, **kwargs):
         from scripts import sunday_editorial_handoff as handoff
         sent = []
         with tempfile.TemporaryDirectory() as tmp:
@@ -823,7 +824,7 @@ class OperationalGateTests(unittest.TestCase):
                     patch("smtplib.SMTP_SSL", FakeSmtp(sent)):
                 try:
                     outcome = handoff.send_packet(path, LATER_WEEK, provisional=True,
-                                                  full_week=True, **kwargs)
+                                                  full_week=full_week, **kwargs)
                 except Exception as exc:  # returned to the caller's assertions
                     outcome = exc
         return sent, outcome
@@ -840,7 +841,8 @@ class OperationalGateTests(unittest.TestCase):
         self.assertEqual(self.recipients(message), {"owner@example.com"})
         files = attachments(message)
         txt = next(v for k, v in files.items() if k.endswith(".txt"))
-        docx = next(v for k, v in files.items() if k.endswith(".docx"))
+        docx = next(v for k, v in files.items() if k.endswith(".docx") and k != INSTRUCTIONS)
+        self.assertIn(INSTRUCTIONS, files)
         self.assertEqual(txt, self.clean.encode("utf-8"))
         digest = hashlib.sha256(txt).hexdigest()
         self.assertIn(digest, message.get_body(("plain",)).get_content())
@@ -857,7 +859,7 @@ class OperationalGateTests(unittest.TestCase):
         self.assertIsNone(outcome)
         self.assertEqual(len(sent), 1)
         self.assertIn("WORD COPY NOT GENERATED", sent[0].get_body(("plain",)).get_content())
-        self.assertFalse([k for k in attachments(sent[0]) if k.endswith(".docx")])
+        self.assertFalse([k for k in attachments(sent[0]) if k.endswith(".docx") and k != INSTRUCTIONS])
         sent, outcome = self.run_send(broken)  # a real Dylan send fails closed
         self.assertEqual(sent, [])
         self.assertIsInstance(outcome, Exception)
@@ -891,7 +893,81 @@ class OperationalGateTests(unittest.TestCase):
         sent, outcome = self.run_send(self.clean)
         self.assertIsNone(outcome)
         self.assertEqual(self.recipients(sent[0]), {"dylan@example.com"})
-        self.assertEqual(sorted(k.rsplit(".", 1)[1] for k in attachments(sent[0])), ["docx", "txt"])
+        self.assertEqual(sorted(k.rsplit(".", 1)[1] for k in attachments(sent[0])), ["docx", "docx", "txt"])
+
+    def test_editor_email_carries_instructions_and_the_automatic_assignment(self):
+        sent, outcome = self.run_send(self.clean)
+        self.assertIsNone(outcome)
+        message = sent[0]
+        self.assertEqual(message["Subject"], "IPR Brief edit — week ending " + LATER_WEEK)
+        self.assertEqual(list(attachments(message))[-1], INSTRUCTIONS)
+        instructions = docx_text(attachments(message)[INSTRUCTIONS])
+        self.assertIn("Factual boundaries", instructions)
+        self.assertNotIn("Note for the owner", instructions)
+        body = message.get_body(("plain",)).get_content()
+        for line in ("- Working title: ", "- The development: ", "- Length: about ",
+                     "- Due: Monday 26 October 2026, 8 p.m. ET", "- Attached: "):
+            self.assertIn(line, body)
+        self.assertNotIn("EXACT EDITOR EMAIL BODY", body)
+
+    def test_missing_instructions_still_reach_the_editor_with_a_truthful_body(self):
+        from scripts.sunday_editor_instructions import EditorInstructionsError
+
+        def broken(*args, **kwargs):
+            raise EditorInstructionsError("editor instructions body missing")
+        with patch("scripts.sunday_editor_instructions.render_instructions_docx", broken), \
+                patch("sys.stdout", new_callable=io.StringIO) as log:
+            sent, outcome = self.run_send(self.clean)
+            self.assertIsNone(outcome)
+            self.assertEqual(self.recipients(sent[0]), {"dylan@example.com"})
+            self.assertNotIn(INSTRUCTIONS, attachments(sent[0]))
+            self.assertIn("::warning::Editor Instructions not attached", log.getvalue())
+            body = sent[0].get_body(("plain",)).get_content()
+            html = sent[0].get_body(("html",)).get_content()
+            for text in (body, html):
+                self.assertNotIn("Editor Instructions are attached", text)
+                self.assertIn("could not be attached", text)
+            attached_row = next(l for l in body.splitlines() if l.startswith("- Attached: "))
+            self.assertNotIn("Editor Instructions", attached_row)
+            editor_body = body
+            sent, outcome = self.run_send(self.clean, preview_to_owner=True)
+        self.assertIsNone(outcome)
+        self.assertNotIn(INSTRUCTIONS, attachments(sent[0]))
+        preview = sent[0].get_body(("plain",)).get_content()
+        self.assertIn("EDITOR INSTRUCTIONS NOT ATTACHED", preview)
+        self.assertEqual(preview.partition("----- EXACT EDITOR EMAIL BODY BELOW -----")[2].strip(),
+                         editor_body.strip())
+
+    def test_partial_week_editor_send_carries_instructions_or_says_they_are_missing(self):
+        from scripts.sunday_editor_instructions import EditorInstructionsError
+        sent, outcome = self.run_send(self.clean, full_week=False)
+        self.assertIsNone(outcome)
+        self.assertEqual(self.recipients(sent[0]), {"dylan@example.com"})
+        self.assertIn(INSTRUCTIONS, attachments(sent[0]))
+        self.assertIn("Editor Instructions are attached", sent[0].get_body(("plain",)).get_content())
+
+        def broken(*args, **kwargs):
+            raise EditorInstructionsError("editor instructions body missing")
+        with patch("scripts.sunday_editor_instructions.render_instructions_docx", broken), \
+                patch("sys.stdout", new_callable=io.StringIO):
+            sent, outcome = self.run_send(self.clean, full_week=False)
+        self.assertIsNone(outcome)
+        self.assertEqual(self.recipients(sent[0]), {"dylan@example.com"})
+        self.assertNotIn(INSTRUCTIONS, attachments(sent[0]))
+        body = sent[0].get_body(("plain",)).get_content()
+        self.assertNotIn("Editor Instructions are attached", body)
+        self.assertIn("could not be attached", body)
+
+    def test_owner_preview_shows_the_exact_editor_body_after_the_hashes(self):
+        preview, _ = self.run_send(self.clean, preview_to_owner=True)
+        editor, _ = self.run_send(self.clean)
+        body = preview[0].get_body(("plain",)).get_content()
+        files = attachments(preview[0])
+        head, marker, tail = body.partition("----- EXACT EDITOR EMAIL BODY BELOW -----")
+        self.assertTrue(marker)
+        self.assertIn(hashlib.sha256(files[INSTRUCTIONS]).hexdigest(), head)
+        self.assertEqual(tail.strip(), editor[0].get_body(("plain",)).get_content().strip())
+        self.assertEqual(files[INSTRUCTIONS], attachments(editor[0])[INSTRUCTIONS])
 
     def test_article_packet_missing_its_quality_line_fails_closed(self):
         from scripts.sunday_editorial_handoff import quality_hold

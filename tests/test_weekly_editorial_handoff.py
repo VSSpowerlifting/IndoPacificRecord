@@ -1,6 +1,7 @@
 """No-network guardrail tests for weekly Briefs editorial handoff."""
 from __future__ import annotations
 
+import io
 import os
 import tempfile
 import unittest
@@ -160,10 +161,37 @@ class EditorialWorksheetTests(unittest.TestCase):
                     mail = client.send_message.call_args.args[0]
                     self.assertEqual(mail["To"], "editor@example.com")
                     self.assertEqual(mail["Reply-To"], "author@gmail.com")
-                    attachment = list(mail.iter_attachments())[0]
+                    attachment, instructions = list(mail.iter_attachments())
                     self.assertEqual(attachment.get_filename(), "IPR-week.txt")
                     self.assertEqual(attachment.get_content(), "test content")
+                    self.assertEqual(instructions.get_filename(), "IPR-Editor-Instructions.docx")
+                    self.assertTrue(instructions.get_payload(decode=True).startswith(b"PK"))
 
+    def test_delivery_without_editor_instructions_still_sends_and_says_so(self):
+        from scripts.sunday_editor_instructions import EditorInstructionsError
+
+        def broken(*args, **kwargs):
+            raise EditorInstructionsError("editor instructions body missing")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "IPR-week.txt"
+            path.write_text("test content", encoding="utf-8")
+            env = {
+                "IPR_EDITOR_TO": "editor@example.com",
+                "IPR_SMTP_USER": "author@gmail.com",
+                "IPR_SMTP_APP_PASSWORD": "abcdefghijklmnop",
+            }
+            with patch.dict(os.environ, env, clear=True), \
+                    patch("scripts.sunday_editor_instructions.render_instructions_docx", broken), \
+                    patch("sys.stdout", new_callable=io.StringIO) as log, \
+                    patch("scripts.weekly_editorial_handoff.smtplib.SMTP_SSL") as smtp:
+                send_packet(path, "2026-10-03")
+                mail = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
+        self.assertEqual(mail["To"], "editor@example.com")
+        self.assertEqual([a.get_filename() for a in mail.iter_attachments()], ["IPR-week.txt"])
+        body = mail.get_body(("plain",)).get_content()
+        self.assertNotIn("Editor Instructions are attached", body)
+        self.assertIn("could not be attached", body)
+        self.assertIn("::warning::Editor Instructions not attached", log.getvalue())
 
 if __name__ == "__main__":
     unittest.main()
