@@ -31,7 +31,7 @@ permissions:
 jobs:
   review-release-contract:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       github.actor == 'VSSpowerlifting' &&
       inputs.approve_public_verbatim_korean_text_only == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
       contents: write

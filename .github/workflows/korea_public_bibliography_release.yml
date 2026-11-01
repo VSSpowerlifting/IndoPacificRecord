@@ -139,7 +139,7 @@ jobs:
   # historical broad-tree peaceiris release after automatic admission starts.
   release:
     if: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
       contents: write

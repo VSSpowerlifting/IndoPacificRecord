@@ -18,7 +18,7 @@ permissions:
 jobs:
   current-gate-and-ledger-observation:
     if: github.ref == 'refs/heads/main' && inputs.acknowledge_read_only_review == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       # The same current vars context as the guarded collector.

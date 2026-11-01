@@ -18,7 +18,7 @@ concurrency:
 jobs:
   inspect-mps-slot:
     if: ${{ false }} # Historical inspector only; private cycle-health is authoritative.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout audited source-state reviewer with no push credentials
