@@ -61,6 +61,14 @@ ATTACHED = (
     "the Word manuscript (your editing file, Track Changes on); the .txt "
     "worksheet (source-audit reference, no edits needed); IPR Editor Instructions"
 )
+# When the standing instructions cannot be rendered the email still goes out
+# (owner decision), so the body must not claim they are attached.
+INTRO_WITHOUT_INSTRUCTIONS = INTRO.replace(
+    "The standing IPR Editor Instructions are attached; the specifics for this "
+    "one are below. ",
+    "The standing IPR Editor Instructions could not be attached this time, so "
+    "please use the copy you already have; the specifics for this one are below. ")
+ATTACHED_WITHOUT_INSTRUCTIONS = ATTACHED.rsplit("; ", 1)[0]
 # Instructions §4; the assignment states the draft's length against it.
 TARGET_WORDS = (700, 1200)
 CLOSING = "\n\nThanks,\nBen\n"
@@ -165,7 +173,7 @@ def _due(week_ending):
     return "Monday {} {}, 8 p.m. ET".format(monday.day, monday.strftime("%B %Y"))
 
 
-def assignment(original, week_ending=None):
+def assignment(original, week_ending=None, *, instructions_attached=True):
     """``[(label, value)]`` for the story-specific assignment (template fields).
 
     Deterministic and drawn only from the editable prose and the hash-pinned
@@ -196,15 +204,17 @@ def assignment(original, week_ending=None):
         if external:
             parts.append("{} official research source{}".format(external, "" if external == 1 else "s"))
         rows.append(("Sources", " and ".join(parts) + " (listed in the .txt worksheet)"))
-    rows.extend((("Length", length), ("Due", _due(week_ending)), ("Attached", ATTACHED)))
+    attached = ATTACHED if instructions_attached else ATTACHED_WITHOUT_INSTRUCTIONS
+    rows.extend((("Length", length), ("Due", _due(week_ending)), ("Attached", attached)))
     return rows
 
 
-def prose_only_text(original, week_ending=None):
+def prose_only_text(original, week_ending=None, *, instructions_attached=True):
     """Readable plain-text editorial copy for the multipart email fallback."""
     sections = editable_sections(original)
-    out = [INTRO, ""]
-    out.extend("- {}: {}".format(label, value) for label, value in assignment(original, week_ending))
+    out = [INTRO if instructions_attached else INTRO_WITHOUT_INSTRUCTIONS, ""]
+    out.extend("- {}: {}".format(label, value) for label, value in
+               assignment(original, week_ending, instructions_attached=instructions_attached))
     out.extend(("", REPLY, "", READING_NOTE, "", ""))
     for key, text in sections:
         # Plain-text mail clients also deserve prose without Markdown stars.
@@ -233,7 +243,7 @@ def _paragraph_html(text):
     )
 
 
-def prose_only_html(original, week_ending=None):
+def prose_only_html(original, week_ending=None, *, instructions_attached=True):
     """Professional article-first HTML; all technical source data stays out."""
     sections = editable_sections(original)
     para = "<p>{}</p>".format
@@ -246,11 +256,13 @@ def prose_only_html(original, week_ending=None):
         "Indo-Pacific Record / Working Brief</div>",
         '<div style="font:14px Arial,sans-serif;color:#435664;line-height:1.6;'
         'padding:0 0 18px;border-bottom:1px solid #d8e1e6;margin-bottom:20px;">'
-        + "".join(para(html.escape(p, quote=True)) for p in INTRO.split("\n\n"))
+        + "".join(para(html.escape(p, quote=True)) for p in
+                  (INTRO if instructions_attached else INTRO_WITHOUT_INSTRUCTIONS).split("\n\n"))
         + '<ul style="margin:0 0 14px;padding-left:20px;">'
         + "".join("<li><strong>{}:</strong> {}</li>".format(
             html.escape(label, quote=True), html.escape(value, quote=True))
-            for label, value in assignment(original, week_ending))
+            for label, value in assignment(
+                original, week_ending, instructions_attached=instructions_attached))
         + "</ul>" + para(html.escape(REPLY, quote=True))
         + para(html.escape(READING_NOTE, quote=True)) + "</div>",
     ]

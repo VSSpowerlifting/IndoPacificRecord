@@ -363,11 +363,12 @@ def quality_hold(packet_text):
     return "\n## ARTICLE\n" in packet_text
 
 
-def _editor_body_for_owner(original_attachment, week_ending):
+def _editor_body_for_owner(original_attachment, week_ending, *, instructions_attached=True):
     """The exact plain-text body Dylan would receive, so the owner reviews it too."""
     from scripts.sunday_editor_readable import ReadableEditorError, prose_only_text
     try:
-        body = prose_only_text(original_attachment.decode("utf-8"), week_ending)
+        body = prose_only_text(original_attachment.decode("utf-8"), week_ending,
+                               instructions_attached=instructions_attached)
     except ReadableEditorError as exc:
         return "\nEDITOR EMAIL BODY NOT GENERATED ({}).\n".format(exc)
     return "\n----- EXACT EDITOR EMAIL BODY BELOW -----\n\n" + body
@@ -429,18 +430,20 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             # Dylan would receive cannot be produced from these bytes.
             docx_note = ("WORD COPY NOT GENERATED ({}). Dylan delivery would fail "
                          "for this file.\n\n".format(exc))
-    # Every editorial email carries the standing Editor Instructions; an
-    # editor send without them fails closed, a preview says so.
+    # Every editorial email carries the standing Editor Instructions. If they
+    # cannot be rendered, the email still goes (owner decision) without that
+    # attachment: the body says so, the run log warns, a preview names it.
     from scripts.sunday_editor_instructions import (
-        FILENAME as INSTRUCTIONS_FILENAME, EditorInstructionsError, render_instructions_docx)
+        FILENAME as INSTRUCTIONS_FILENAME, INSTRUCTIONS_LINE, EditorInstructionsError,
+        render_instructions_docx)
     instructions, instructions_note = None, ""
     try:
         instructions = render_instructions_docx()
     except EditorInstructionsError as exc:
-        if not preview_to_owner:
-            raise
-        instructions_note = ("EDITOR INSTRUCTIONS NOT ATTACHED ({}). Dylan delivery "
-                             "would fail for this file.\n\n".format(exc))
+        print("::warning::Editor Instructions not attached ({}); the email is sent "
+              "without them.".format(exc))
+        instructions_note = ("EDITOR INSTRUCTIONS NOT ATTACHED ({}). Dylan's email "
+                             "would go without them and say so.\n\n".format(exc))
     message = EmailMessage()
     message["From"] = sender
     message["To"] = recipient
@@ -473,7 +476,8 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
                 + hashlib.sha256(edited_copy).hexdigest() + "\n") if edited_copy is not None else "")
             + (("Exact attached Editor Instructions SHA-256: "
                 + hashlib.sha256(instructions).hexdigest() + "\n") if instructions is not None else "")
-            + _editor_body_for_owner(original_attachment, week_ending)
+            + _editor_body_for_owner(original_attachment, week_ending,
+                                     instructions_attached=instructions is not None)
         )
     elif full_week:
         # The exact immutable TXT was already checked against the owner's
@@ -483,8 +487,11 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         from scripts.sunday_editor_readable import prose_only_html, prose_only_text
         original_text = original_attachment.decode("utf-8")
         message["Subject"] = "IPR Brief edit — week ending {}".format(week_ending)
-        message.set_content(prose_only_text(original_text, week_ending))
-        message.add_alternative(prose_only_html(original_text, week_ending), subtype="html")
+        attached = instructions is not None
+        message.set_content(prose_only_text(original_text, week_ending,
+                                            instructions_attached=attached))
+        message.add_alternative(prose_only_html(original_text, week_ending,
+                                                instructions_attached=attached), subtype="html")
     else:
         message["Subject"] = "IPR Briefs | week ending {} | provisional editor draft".format(week_ending)
         message.set_content(
@@ -496,7 +503,7 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             "and reply with the edited .txt attached within 48 hours.\n\n"
             "This text is not approved or numbered for publication. Ben will "
             "verify the full-week sources and authorize any final publication.\n\n"
-            "The standing IPR Editor Instructions are attached.\n"
+            + INSTRUCTIONS_LINE[instructions is not None]
         )
     message.add_attachment(
         original_attachment, maintype="text", subtype="plain", filename=path.name

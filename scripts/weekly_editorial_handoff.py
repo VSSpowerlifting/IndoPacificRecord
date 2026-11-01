@@ -260,10 +260,17 @@ def send_packet(path, week_ending, *, provisional=False):
     password = "".join(os.environ.get("IPR_SMTP_APP_PASSWORD", "").split())
     if len(password) != 16 or not password.isascii() or not password.isalnum():
         raise ValueError("IPR_SMTP_APP_PASSWORD must be a Google-generated 16-character app password")
-    # Every editorial email carries the standing Editor Instructions; a send
-    # without them fails closed before any SMTP connection.
-    from scripts.sunday_editor_instructions import FILENAME, render_instructions_docx
-    instructions = render_instructions_docx()
+    # Every editorial email carries the standing Editor Instructions. If they
+    # cannot be rendered, the email still goes (owner decision) without that
+    # attachment, and both the body and the run log say so.
+    from scripts.sunday_editor_instructions import (
+        FILENAME, INSTRUCTIONS_LINE, EditorInstructionsError, render_instructions_docx)
+    try:
+        instructions = render_instructions_docx()
+    except EditorInstructionsError as exc:
+        print("::warning::Editor Instructions not attached ({}); the email is sent "
+              "without them.".format(exc))
+        instructions = None
     message = EmailMessage()
     message["From"] = sender
     message["To"] = recipient
@@ -278,16 +285,17 @@ def send_packet(path, week_ending, *, provisional=False):
         "and reply with the edited .txt attached within 48 hours.\n\n"
         "This text is not approved or numbered for publication. Ben will "
         "verify the full-week sources and authorize any final publication.\n\n"
-        "The standing IPR Editor Instructions are attached.\n"
+        + INSTRUCTIONS_LINE[instructions is not None]
     )
     message.add_attachment(
         path.read_bytes(), maintype="text", subtype="plain", filename=path.name
     )
-    message.add_attachment(
-        instructions, maintype="application",
-        subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
-        filename=FILENAME,
-    )
+    if instructions is not None:
+        message.add_attachment(
+            instructions, maintype="application",
+            subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=FILENAME,
+        )
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=30) as smtp:
         smtp.login(sender, password)
         smtp.send_message(message)

@@ -19,6 +19,15 @@ from scripts.sunday_editor_readable import ReadableEditorError
 
 SOURCE = Path(__file__).resolve().parents[1] / "docs" / "IPR_EDITOR_INSTRUCTIONS.md"
 FILENAME = "IPR-Editor-Instructions.docx"
+
+# Closing line of the partial-week and Friday bodies, keyed on whether the
+# standing Editor Instructions attachment is present.
+INSTRUCTIONS_LINE = {
+    True: "The standing IPR Editor Instructions are attached.\n",
+    False: ("The standing IPR Editor Instructions could not be attached this "
+            "time; please use the copy you already have.\n"),
+}
+
 HEADING = "# IPR Editor Instructions"
 OWNER_SEPARATOR = "\n---\n\n### Note for the owner"
 INLINE = re.compile(r"(\*\*[^*\n]+\*\*|\*[^*\n]+\*)")

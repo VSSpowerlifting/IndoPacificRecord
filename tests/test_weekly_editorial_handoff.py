@@ -1,6 +1,7 @@
 """No-network guardrail tests for weekly Briefs editorial handoff."""
 from __future__ import annotations
 
+import io
 import os
 import tempfile
 import unittest
@@ -166,7 +167,7 @@ class EditorialWorksheetTests(unittest.TestCase):
                     self.assertEqual(instructions.get_filename(), "IPR-Editor-Instructions.docx")
                     self.assertTrue(instructions.get_payload(decode=True).startswith(b"PK"))
 
-    def test_delivery_without_editor_instructions_sends_nothing(self):
+    def test_delivery_without_editor_instructions_still_sends_and_says_so(self):
         from scripts.sunday_editor_instructions import EditorInstructionsError
 
         def broken(*args, **kwargs):
@@ -181,11 +182,16 @@ class EditorialWorksheetTests(unittest.TestCase):
             }
             with patch.dict(os.environ, env, clear=True), \
                     patch("scripts.sunday_editor_instructions.render_instructions_docx", broken), \
+                    patch("sys.stdout", new_callable=io.StringIO) as log, \
                     patch("scripts.weekly_editorial_handoff.smtplib.SMTP_SSL") as smtp:
-                with self.assertRaises(EditorInstructionsError):
-                    send_packet(path, "2026-10-03")
-                smtp.assert_not_called()
-
+                send_packet(path, "2026-10-03")
+                mail = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
+        self.assertEqual(mail["To"], "editor@example.com")
+        self.assertEqual([a.get_filename() for a in mail.iter_attachments()], ["IPR-week.txt"])
+        body = mail.get_body(("plain",)).get_content()
+        self.assertNotIn("Editor Instructions are attached", body)
+        self.assertIn("could not be attached", body)
+        self.assertIn("::warning::Editor Instructions not attached", log.getvalue())
 
 if __name__ == "__main__":
     unittest.main()

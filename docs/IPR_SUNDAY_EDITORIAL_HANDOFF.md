@@ -28,7 +28,9 @@ Limitations: **do not rerun the scheduled delivery for a held week**; a rerun
 regenerates a different draft (a new model call) and, if clean, could email Dylan
 separately. The manual sender cannot detect an earlier Dylan send, so check Gmail Sent
 before releasing. Owner previews attach the TXT, Word and Editor Instructions and end
-with the exact editor email body; they go only to the owner. The editor email's subject
+with the exact editor email body; they go only to the owner. If the Instructions cannot
+be rendered, the editor email still goes without them, says so in its body, and the
+run log prints a `::warning::`. The editor email's subject
 is `IPR Brief edit — week ending YYYY-MM-DD`, matching the return instructions. Style findings are advisory and never trigger a second model call. Nothing in this
 reform sends, numbers, publishes or spends; the first live use is a separate
 owner-authorized step.
