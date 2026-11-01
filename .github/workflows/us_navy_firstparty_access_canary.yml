@@ -58,7 +58,7 @@ jobs:
           python-version: '3.13'
       - name: Probe bounded official hosts, no crawl, no state changes
         run: |
-          python scripts/probe_us_navy_first_party_access.py \
+          python -m scripts.probe_us_navy_first_party_access \
             --owner-authorized-readonly-probe
       - name: Assert nothing committed or created
         run: |
