@@ -892,6 +892,21 @@ class OperationalGateTests(unittest.TestCase):
         self.assertIsNone(outcome)
         self.assertEqual(self.recipients(sent[0]), {"dylan@example.com"})
         self.assertEqual(sorted(k.rsplit(".", 1)[1] for k in attachments(sent[0])), ["docx", "txt"])
+        self.assertTrue(sent[0]["Subject"].endswith("Sunday draft for language edits"))
+        self.assertIn("IPR-Briefs-Editorial-2026-10-24.docx", attachments(sent[0]))
+
+    def test_additional_brief_goes_only_to_its_named_editor_under_its_own_identity(self):
+        companion = self.clean.replace("Packet: IPR-2026-10-24\n",
+                                       "Packet: IPR-2026-10-24-second-story\n", 1)
+        self.assertNotEqual(companion, self.clean)
+        sent, outcome = self.run_send(companion, companion_slug="second-story",
+                                      editor_to="ana@example.com")
+        self.assertIsNone(outcome)
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(self.recipients(sent[0]), {"ana@example.com"})
+        self.assertTrue(sent[0]["Subject"].endswith("| second-story"))
+        self.assertIn("IPR-Briefs-Editorial-2026-10-24-second-story.docx", attachments(sent[0]))
+        self.assertNotIn("dylan@example.com", sent[0].as_string())
 
     def test_article_packet_missing_its_quality_line_fails_closed(self):
         from scripts.sunday_editorial_handoff import quality_hold

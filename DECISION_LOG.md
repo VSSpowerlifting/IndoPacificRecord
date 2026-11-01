@@ -4,6 +4,28 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-01 — Several Briefs in one week: one collection, one identity per Brief
+
+The owner adopted the policy that IPR may publish more than one Brief in a week
+when independent developments each merit one; one Brief stays the norm and no
+weekly count is a target. This entry records how the existing workflow carries it.
+
+1. All Briefs stay in the single `briefs/` collection. Issue numbers remain
+   collection-wide and are assigned at approval, in approval order; two Briefs from
+   the same week are two slugs, not a sub-series.
+2. The week's first Brief keeps the identity `IPR-<Saturday>`. Each additional
+   Brief carries `IPR-<Saturday>-<slug>` in its worksheet header, email subject,
+   Word filename and handoff receipt, so returns and approvals cannot cross.
+3. An additional Brief is never composed automatically: composition picks the
+   week's top story and is a paid model call. Its manuscript comes from a human or
+   a separately authorized draft; the handoff only renders the worksheet.
+4. Each Brief is released by its own manual reviewed-send run with its own
+   `IPR_SUNDAY_OWNER_REVIEWED_WEEK` / `IPR_SUNDAY_OWNER_REVIEWED_SHA256`, and may
+   name one editor with `--editor-to`; without it the editor is `IPR_EDITOR_TO`.
+   Every editor must differ from the owner-preview address.
+5. No workflow, schedule, environment-variable meaning or spend changes. Owner
+   approval remains required before any Brief is numbered or published.
+
 ## 2026-11-01 — Owner: freeze on new proof and contract workflows until Daily is stable
 
 Benjamin Yang froze the addition of new proof, contract, rehearsal or desk

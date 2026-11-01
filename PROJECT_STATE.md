@@ -1,5 +1,22 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Several Briefs in one week (1 November 2026, review candidate)
+
+The Sunday Briefs handoff now carries more than one Brief per week without a
+second workflow. `scripts/sunday_editorial_handoff.py --companion-slug <slug>
+--manuscript <json>` renders a worksheet for an additional Brief under the
+identity `IPR-<Saturday>-<slug>`, addressed to "EDITOR" rather than Dylan; it
+never composes, calls a model or sends, and it refuses to overwrite a file.
+`scripts/sunday_send_reviewed_packet.py` accepts that identity, records it in the
+receipt, and takes `--editor-to` to assign one named editor per run. Returns are
+already identity-safe: `validate_editorial_return.py` refuses a return whose
+header, including the `Packet:` line, differs from its own original. The primary
+worksheet's bytes, the scheduled workflow and all env-variable meanings are
+unchanged. Limitations: no automatic second-story draft (a spending and editorial
+decision for the owner); the legacy replay, weekly handoff and Saturday audit
+scripts still accept only the primary identity; the Gmail Sent check before a
+manual send remains manual. Nothing was sent, numbered, published or activated.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
