@@ -96,6 +96,21 @@ class RobotsPrefixOracleTest(unittest.TestCase):
             self.assertNotIn("robotparser", source, name)
             self.assertIn("legacy_can_fetch", source, name)
 
+    def test_no_module_calls_stdlib_robotparser(self):
+        # 3.13's RFC 9309 parser gives different verdicts from 3.9; every
+        # robots check outside robots_prefix must go through it instead.
+        offenders = []
+        for top in ("scraper", "core", "scripts", "site", "migrations"):
+            for path in sorted((ROOT / top).rglob("*.py")):
+                if path.name == "robots_prefix.py":
+                    continue
+                source = path.read_text(encoding="utf-8")
+                if "import urllib.robotparser" in source or \
+                        "RobotFileParser(" in source or \
+                        "from urllib import robotparser" in source:
+                    offenders.append(str(path.relative_to(ROOT)))
+        self.assertEqual(offenders, [])
+
     def test_repeated_wildcard_groups_are_all_kept(self):
         groups = robots_prefix.parse(
             "User-agent: *\nDisallow: /j/\n\nUser-agent: *\nDisallow: /a/\n"
