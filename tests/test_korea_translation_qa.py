@@ -16,6 +16,7 @@ import json
 import re
 import unittest
 from collections import Counter
+from decimal import Decimal
 from pathlib import Path
 
 from analysis import korea_prompts
@@ -63,7 +64,7 @@ class Benchmark(unittest.TestCase):
                          [("qa_number_added", 3), ("qa_number_added", 5)])
 
     def test_versions_and_pins(self):
-        self.assertEqual(qa.QA_VERSION, "kr-qa-v2")
+        self.assertEqual(qa.QA_VERSION, "kr-qa-v3")
         self.assertEqual(qa.glossary_version(), "kr-glossary-v2")
         self.assertEqual(hashlib.sha256(qa.GUIDE_PATH.read_bytes()).hexdigest(),
                          GUIDE_SHA256)
@@ -208,6 +209,30 @@ class SyntheticLines(unittest.TestCase):
         self.assertNotIn("qa_number_missing", ok)
         bad = codes("3억 원", [{"index": 1, "text_en": "30 million won"}])
         self.assertIn("qa_number_missing", bad)
+
+    def test_month_day_short_dates(self):
+        # Synthetic: a parenthesised month.day list, as in an MND schedule line.
+        source = "훈련 일정(10.13.), (10.2.), 11.3.(월)"
+        for english in ("drills (13 October), (2 October), 3 November (Mon.)",
+                        "drills (October 13), (October 2), November 3 (Mon.)"):
+            with self.subTest(english=english):
+                got = codes(source, [{"index": 1, "text_en": english}])
+                self.assertNotIn("qa_number_missing", got)
+                self.assertNotIn("qa_number_added", got)
+        self.assertIn("qa_number_missing", codes(
+            source, [{"index": 1, "text_en": "drills (13 October), (2 October)"}]))
+        self.assertIn("qa_number_missing", codes(
+            source, [{"index": 1, "text_en":
+                      "drills (14 October), (2 October), 3 November (Mon.)"}]))
+
+    def test_decimals_and_section_numbers_are_not_dates(self):
+        self.assertEqual(qa.korean_numbers("2.5배"), Counter({Decimal("2.5"): 1}))
+        self.assertIn("qa_number_missing", codes(
+            "2.5배", [{"index": 1, "text_en": "2 to 5 times"}]))
+        # Month 13 / day 40 are impossible, so these stay decimals.
+        self.assertEqual(qa.korean_numbers("13.40. 항목"),
+                         Counter({Decimal("13.40"): 1}))
+        self.assertEqual(qa.korean_numbers("10.13. 행사"), Counter({10: 1, 13: 1}))
 
     def test_china_marker_permits_china_terms(self):
         got = codes("중국 인민해방군", [{"index": 1, "text_en": "China's PLA"}])

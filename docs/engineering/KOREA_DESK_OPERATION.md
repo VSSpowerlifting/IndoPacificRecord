@@ -86,10 +86,28 @@ was changed by this phase.
   [40681116462](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40681116462)
   also passed. The live [Korea desk](https://indopacificrecord.org/korea.html)
   shows the existing 21 metadata records, 8 originals and 3 reviewed pairs.
-- Immutable production QA holds remain: `156785691`, attempt 3,
-  `qa_agreement_unsupported,qa_number_added,qa_number_missing`; `156785888`,
-  attempt 3, `qa_agreement_unsupported`; `156786043`, attempt 1,
-  `qa_glossary_term_missing`. All use `kr-qa-v2` and the v3 translation prompt.
+- Production QA holds under `kr-qa-v2` and the v3 translation prompt, in
+  first-seen order: `156785691` (attempt 3,
+  `qa_agreement_unsupported,qa_number_added,qa_number_missing`), `156785888`
+  (attempt 3, `qa_agreement_unsupported`), `156786043` (1,
+  `qa_glossary_term_missing`), `156786154` (1,
+  `qa_glossary_term_missing,qa_number_added,qa_number_missing`), `156786296`
+  (1, `qa_glossary_term_missing`), `156786587` (1,
+  `qa_number_added,qa_number_missing`), `156786906` (1,
+  `qa_agreement_unsupported,qa_glossary_term_missing`), `156786935` (1,
+  `qa_agreement_unsupported`) and `156786942` (1,
+  `qa_number_added,qa_number_missing`).
+  `kr-qa-v3` corrects month.day dates such as `10.13.` (previously read as
+  decimals) and logs held findings as `code@line`; the ledger keeps codes alone.
+- Owner-authorized (November 1, 2026) one-time paid re-run under `kr-qa-v3`:
+  `QA_V3_RERUN` in `processing/korea_shared_queue.py` names exactly those nine
+  identities and their hold attempt counts. A row is selected only while it is
+  still `qa_held` with `qa_version = kr-qa-v2` at that count. Any dispatched
+  outcome writes `kr-qa-v3` and increments attempts, so a further hold is
+  terminal. For `156785691` and `156785888` this supersedes the earlier
+  no-fourth-attempt rule for this one call only. Nothing is reset in the DB;
+  the re-run happens only through the gated Daily lane after merge, at the
+  processing cap (default 4 per run, so about three Dailies in FIFO order).
   `156785986` and `156785987` were screened out on their first attempts.
   None of those outcomes was reset. The chronology hold `156785161` persists.
 - Public Daily [40565258649](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40565258649)

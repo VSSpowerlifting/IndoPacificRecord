@@ -143,7 +143,7 @@ class TestKoreaLane(LaneCase):
         for ident in PASS:
             row = led[ident]
             self.assertEqual(row["processing_state"], "processed")
-            self.assertEqual(row["qa_version"], "kr-qa-v2")
+            self.assertEqual(row["qa_version"], "kr-qa-v3")
             self.assertEqual(row["glossary_version"], "kr-glossary-v2")
             self.assertIn("kr-translation-v3/kr-glossary-v2", row["prompt_version"])
             art = self.article(ident)
@@ -212,7 +212,15 @@ class TestKoreaLane(LaneCase):
         self.run_lane(a)
         a.score_relevance.assert_not_called()
 
-    def test_only_two_exact_qa_v1_holds_receive_a_final_attempt(self):
+    def _hold_v2(self, conn, ident, attempts, reason="qa_agreement_unsupported"):
+        conn.execute(
+            "UPDATE korea_corpus_admissions SET processing_state='qa_held', "
+            "processing_reason=?, processing_attempts=?, qa_version='kr-qa-v2', "
+            "prompt_version='kr-relevance-v1+kr-translation-v3/kr-glossary-v2+kr-analysis-v1' "
+            "WHERE source_identity=?", (reason, attempts, ident))
+        conn.commit()
+
+    def test_only_exact_qa_v2_holds_receive_one_qa_v3_attempt(self):
         identities = ("korea-policy:156785691", "korea-policy:156785888")
         # The shared four-release fixture is deliberately frozen and doesn't
         # include 156785888. Add its real published metadata to this scratch
@@ -223,36 +231,55 @@ class TestKoreaLane(LaneCase):
             r for r in records if r["source_identity"] == identities[1])
         with sqlite3.connect(str(self.db_path)) as prepared:
             admit_metadata(prepared, chinese_meeting)
-        self.admit(only={identities[0]})
+        self.admit(only={identities[0], PASS[0]})
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         try:
             for ident in identities:
-                conn.execute(
-                    "UPDATE korea_corpus_admissions SET "
-                    "processing_state='qa_held', "
-                    "processing_reason='qa_agreement_unsupported', "
-                    "processing_attempts=2, qa_version='kr-qa-v1', "
-                    "prompt_version='kr-relevance-v1+kr-translation-v3/kr-glossary-v1+kr-analysis-v1' "
-                    "WHERE source_identity=?", (ident,))
-            conn.commit()
+                self._hold_v2(conn, ident, lane.QA_V3_RERUN[ident])
+            # Same state, but not named in the authorization.
+            self._hold_v2(conn, PASS[0], 1, reason="qa_number_added")
             self.assertEqual(
-                {r["source_identity"] for r in lane.candidates(conn)},
-                set(identities))
-            conn.execute(
-                "UPDATE korea_corpus_admissions SET processing_attempts=3 "
-                "WHERE source_identity=?", (identities[0],))
-            conn.commit()
+                [r["source_identity"] for r in lane.candidates(conn)],
+                list(identities))
+            # A different attempt count is not the authorized hold.
+            self._hold_v2(conn, identities[0], 4)
             self.assertEqual(
-                {r["source_identity"] for r in lane.candidates(conn)},
-                {identities[1]})
+                [r["source_identity"] for r in lane.candidates(conn)],
+                [identities[1]])
+            # A hold recorded under kr-qa-v3 is terminal.
             conn.execute(
-                "UPDATE korea_corpus_admissions SET qa_version='kr-qa-v2' "
+                "UPDATE korea_corpus_admissions SET qa_version='kr-qa-v3' "
                 "WHERE source_identity=?", (identities[1],))
             conn.commit()
             self.assertFalse(lane.candidates(conn))
         finally:
             conn.close()
+
+    def test_qa_v3_rerun_hold_is_terminal_after_one_call(self):
+        # QA_FAIL is the fixture's real number-hold text; stand it in for an
+        # authorized identity to exercise the whole lane once, at both
+        # production hold shapes (attempt 1, and attempt 3 near the budget).
+        for held_at in (1, 3):
+            with self.subTest(held_at=held_at):
+                self.admit(only={QA_FAIL})
+                conn = sqlite3.connect(str(self.db_path))
+                try:
+                    self._hold_v2(conn, QA_FAIL, held_at, reason="qa_number_added")
+                finally:
+                    conn.close()
+                with mock.patch.dict(lane.QA_V3_RERUN, {QA_FAIL: held_at}):
+                    first = fake_analyzer()
+                    report = self.run_lane(first)
+                    self.assertEqual(first.score_relevance.call_count, 1)
+                    self.assertEqual([i for i, _ in report.qa_held], [QA_FAIL])
+                    row = self.ledger()[QA_FAIL]
+                    self.assertEqual(row["processing_state"], "qa_held")
+                    self.assertEqual(row["qa_version"], "kr-qa-v3")
+                    self.assertEqual(row["processing_attempts"], held_at + 1)
+                    again = fake_analyzer()
+                    self.run_lane(again)
+                    again.score_relevance.assert_not_called()
 
     def test_retry_budget_pauses(self):
         self.admit(only={NO_REVIEW})
@@ -376,6 +403,10 @@ class TestKoreaLane(LaneCase):
         joined = "\n".join(logs.output)
         self.assertFalse(any("가" <= ch <= "힣" for ch in joined))
         self.assertIn("qa_number_added", joined)
+        # Located for review in the log; the ledger keeps codes only.
+        self.assertIn("%s qa_number_added@3,qa_number_added@5" % QA_FAIL, joined)
+        self.assertEqual(self.ledger()[QA_FAIL]["processing_reason"],
+                         "qa_number_added")
 
     def test_no_ledger_table_is_a_no_op(self):
         conn = sqlite3.connect(str(self.db_path))
