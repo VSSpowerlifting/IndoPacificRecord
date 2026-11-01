@@ -145,10 +145,16 @@ digests:
 | `japan-us-amraam-final-assembly-sm3-production` | `3030a230d219af8a83032c372f4a7ee8772d2319680a2c61579e0d68bfade0d6` |
 | `japan-philippines-first-destroyer-2026` | `a7e8fbaebf5edbca7b753748e18c2347e0aeee3f58f299ca5717edbf5b52f616` |
 
-## Remaining release steps
+## Release status
 
-`scripts/author_brief.py approve` assigns the numbers, AMRAAM first and then the
-destroyer brief. With No. 20 the highest assigned issue, these are expected to
-be Nos. 21 and 22. The paired catalogue admissions and test allow-list lines
-follow, then render, validator, full CI, merge, deploy and live verification.
-Approval of content does not assert deployment.
+`scripts/author_brief.py approve` assigned No. 21 to the AMRAAM brief and
+No. 22 to the destroyer brief. Both covers are admitted to the catalogue. The
+site was rendered with `site/render.py`; the deployment validator passes with
+the 10 governed baseline warnings. Only the brief surfaces were committed as
+generated output; footer-only date changes on unrelated pages were not.
+Both brief pages, the Briefs index and the home page were checked in Chrome at
+1280px and 375px: no console errors, no failed requests, no horizontal overflow.
+
+Still to follow on this PR: CI, merge, an output-only deploy (as for No. 20)
+and live verification of both URLs. Approval of content does not assert
+deployment.
