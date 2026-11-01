@@ -2,7 +2,7 @@
   "version": "brief-presentation-v1",
   "article": "japan-philippines-first-destroyer-2026",
   "manuscript_fingerprint": "2102a7fb69b3a1f26ead62c9a74c2fff119f3d4c219834a88bff96bcc11da612",
-  "status": "draft",
+  "status": "approved",
   "sections": [
     {
       "id": "reading-section-1",
@@ -35,5 +35,16 @@
       "heading": "Five ships in Manila's account"
     }
   ],
-  "approval": null
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-01",
+    "reference": "docs/TWO_BRIEFS_RELEASE_2026-11-01.md#presentation-approval",
+    "fingerprint": "a7e8fbaebf5edbca7b753748e18c2347e0aeee3f58f299ca5717edbf5b52f616",
+    "checks": {
+      "excerpts": true,
+      "headings": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
 }

@@ -225,8 +225,8 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
-  "issue_number": null,
+  "editorial_status": "approved",
+  "issue_number": 21,
   "week_start": "2026-10-25",
   "week_ending": "2026-10-31",
   "desks": [],
@@ -302,6 +302,30 @@
       ]
     }
   ],
-  "editorial_review": null,
-  "policy_ruling": null
+  "editorial_review": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-01",
+    "reference": "docs/TWO_BRIEFS_RELEASE_2026-11-01.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "c2f58de2fb0c6ddfe4581a20454d419ecf4ddad72c3f39e466d7445f5a670eee",
+    "checks": {
+      "authorship": true,
+      "chronology": true,
+      "claim_support": true,
+      "limited_source_use": true,
+      "manuscript_fidelity": true,
+      "original_language": true,
+      "rendered_review": true
+    }
+  },
+  "policy_ruling": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-01",
+    "reference": "docs/TWO_BRIEFS_RELEASE_2026-11-01.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "c2f58de2fb0c6ddfe4581a20454d419ecf4ddad72c3f39e466d7445f5a670eee"
+  },
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-11-01",
+    "reference": "DECISION_LOG.md#2026-11-01--two-briefs-owner-source-review-presentation-and-covers"
+  }
 }

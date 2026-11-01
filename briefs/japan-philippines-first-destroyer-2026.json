@@ -389,8 +389,8 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
-  "issue_number": null,
+  "editorial_status": "approved",
+  "issue_number": 22,
   "week_start": "2026-10-25",
   "week_ending": "2026-10-31",
   "desks": [],
@@ -488,8 +488,27 @@
       ]
     }
   ],
-  "editorial_review": null,
-  "policy_ruling": null,
+  "editorial_review": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-01",
+    "reference": "docs/TWO_BRIEFS_RELEASE_2026-11-01.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "2102a7fb69b3a1f26ead62c9a74c2fff119f3d4c219834a88bff96bcc11da612",
+    "checks": {
+      "authorship": true,
+      "chronology": true,
+      "claim_support": true,
+      "limited_source_use": true,
+      "manuscript_fidelity": true,
+      "original_language": true,
+      "rendered_review": true
+    }
+  },
+  "policy_ruling": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-01",
+    "reference": "docs/TWO_BRIEFS_RELEASE_2026-11-01.md#confirmed-source-review-and-release-preparation",
+    "fingerprint": "2102a7fb69b3a1f26ead62c9a74c2fff119f3d4c219834a88bff96bcc11da612"
+  },
   "research_contributor": {
     "name": "Jophy Lin",
     "title": "Communications Editor",
@@ -497,5 +516,10 @@
     "linkedin": "https://www.linkedin.com/in/jophyl/",
     "email": "jophy.lin@gwmail.gwu.edu",
     "credit_role": "co-author"
+  },
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-11-01",
+    "reference": "DECISION_LOG.md#2026-11-01--two-briefs-owner-source-review-presentation-and-covers"
   }
 }

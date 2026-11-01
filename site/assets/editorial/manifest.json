@@ -1045,7 +1045,8 @@
     "depicts": "context",
     "cover_treatment": "gradient",
     "surfaces": [
-      "article"
+      "article",
+      "catalogue"
     ],
     "derivative_builder": "scripts/build_brief_cover.py",
     "match": {
@@ -1058,7 +1059,7 @@
       "editions": [],
       "routes": []
     },
-    "review_note": "Proposed cover for private review; owner approval remains pending.",
+    "note": "Owner-accepted context image: AIM-120 AMRAAM missiles at MCAS Cherry Point on 5 August 2025, not the planned facility in Japan or the October 2026 meeting. Article and catalogue card (No. 21), same image; see DECISION_LOG 2026-11-01.",
     "sha256": "e2d0a34b6a89aead06e855e0e614d0c767f826615e32b953fa5e0f559a04b67a",
     "original_url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2508/9245688/1000w_q95.jpg",
     "retrieval": {
@@ -1109,7 +1110,8 @@
     "depicts": "context",
     "cover_treatment": "gradient",
     "surfaces": [
-      "article"
+      "article",
+      "catalogue"
     ],
     "derivative_builder": "scripts/build_brief_cover.py",
     "match": {
@@ -1122,7 +1124,7 @@
       "editions": [],
       "routes": []
     },
-    "review_note": "Proposed cover for private review; owner approval remains pending.",
+    "note": "Owner-accepted context image: JS Jintsu (DE-230), Abukuma-class context only, not an identified transfer hull. Article and catalogue card (No. 22), same image; see DECISION_LOG 2026-11-01.",
     "sha256": "76ae9401114ac30ba91f49e90590a02e97c914e92b338ca042fe20d1e1495542",
     "original_url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/JS_%E2%80%9DJints%C5%AB%E2%80%9D_%28DE-230%29.jpg",
     "retrieval": {

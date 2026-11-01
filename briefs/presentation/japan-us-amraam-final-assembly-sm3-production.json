@@ -2,7 +2,7 @@
   "version": "brief-presentation-v1",
   "article": "japan-us-amraam-final-assembly-sm3-production",
   "manuscript_fingerprint": "c2f58de2fb0c6ddfe4581a20454d419ecf4ddad72c3f39e466d7445f5a670eee",
-  "status": "draft",
+  "status": "approved",
   "sections": [
     {
       "id": "reading-section-1",
@@ -29,5 +29,16 @@
       "heading": "A final stage with no site yet"
     }
   ],
-  "approval": null
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-01",
+    "reference": "docs/TWO_BRIEFS_RELEASE_2026-11-01.md#presentation-approval",
+    "fingerprint": "3030a230d219af8a83032c372f4a7ee8772d2319680a2c61579e0d68bfade0d6",
+    "checks": {
+      "excerpts": true,
+      "headings": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
 }

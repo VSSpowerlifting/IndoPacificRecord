@@ -1,7 +1,8 @@
 # Two October 25–31 Briefs for owner review
 
-Status: two complete unapproved manuscripts and proposed covers. No issue numbers,
-human source-review attestations, presentation approvals or publication recorded.
+Status: attested by the owner on November 1, 2026 against the exact manuscripts
+at commit `a6771416`; numbering and publication follow below. Receipts record the
+owner's own chat statements only.
 
 | Manuscript | Public credit | Body | References |
 |---|---|---|---|
@@ -66,12 +67,11 @@ that is not a prerequisite for an explicitly approved source-linked Brief.
 
 ## Cover candidates
 
-Receipts are in `docs/evidence/two-briefs-covers-2026-11-01/`. Both photographs
-are proposed for article and catalogue use with the existing CSS gradient;
-the current manifest stages only the article review surface. Neither is an
-approved owner use decision. Proposed 720 by 480 catalogue crops were generated
-with the existing catalogue builder for owner review; admission follows actual
-number assignment after approval.
+Receipts are in `docs/evidence/two-briefs-covers-2026-11-01/`. The owner
+approved both cover images on November 1, 2026 (see Presentation approval) for
+article and catalogue use with the existing CSS gradient. The 720 by 480
+catalogue crops are produced by the existing catalogue builder and admitted
+after number assignment.
 
 - Missile: DVIDS image 9245688, VIRIN 250805-M-OV696-1094, Lance Cpl. Bryan
   Giraldo, U.S. Marine Corps, public domain. The public 1000-pixel preview was
@@ -83,13 +83,72 @@ number assignment after approval.
   identified transfer hull. The file's timestamp is not asserted as a verified
   event date. The publisher attribution and licence link are retained.
 
-## Remaining release action
+## Confirmed source review and release preparation
 
-The owner must review the exact manuscripts, source-use limitations, headings,
-rendered presentation and proposed cover/crop and provide the actual attestations
-required by `core/brief_source_linked.py` and `core/brief_presentation.py`.
-The preparing agent must not fill those receipts on the owner's behalf.
-Then use `scripts/author_brief.py approve` to allocate the next two available
-numbers, complete paired catalogue admissions and their exact allow-lists, run
-release verification, and perform the authorized merge/deploy and live readback.
-No additional writing-workflow engineering is required for this release.
+Benjamin Yang, Founder & Executive Director, made two statements in chat on
+November 1, 2026 about both manuscripts at commit `a6771416`. The
+`editorial_review` and `policy_ruling` receipts bind the exact-version
+fingerprints computed from the manuscripts at that commit, unchanged since:
+
+| Manuscript | Editorial fingerprint |
+|---|---|
+| `japan-us-amraam-final-assembly-sm3-production` | `c2f58de2fb0c6ddfe4581a20454d419ecf4ddad72c3f39e466d7445f5a670eee` |
+| `japan-philippines-first-destroyer-2026` | `2102a7fb69b3a1f26ead62c9a74c2fff119f3d4c219834a88bff96bcc11da612` |
+
+First statement:
+
+> I confirm my final editorial and presentation approval of both briefs at commit `a6771416`, including the rendered pages, headings, bylines, citations, and cover images.
+>
+> As IPR's Founder & Executive Director, I approve publication of both briefs under the source-linked evidence policy.
+>
+> For the AMRAAM brief, I explicitly accept the documented s3 limitation: the official war.gov page returns HTTP 403. The U.S. readout comparison is supported by the earlier publisher verification documented in PR #938 and the accessible republication. Do not claim a new successful retrieval of the official page.
+
+Second statement:
+
+> I have completed my original-source review of both briefs at commit a6771416.
+>
+> For both manuscripts, I confirm the four remaining editorial checks: original_language, claim_support, chronology, and limited_source_use.
+>
+> I accept the previously documented AMRAAM s3 source-access limitation and reaffirm my approval of both manuscripts, their presentations, covers and bylines.
+
+How each receipt rests on those statements:
+
+- `original_language`, `claim_support`, `chronology` and `limited_source_use`:
+  his own original-source review, confirmed in the second statement.
+- `authorship`: his approval of the bylines (Benjamin Yang; Benjamin Yang and
+  Jophy Lin, co-author). This is the owner's approval of the credit, not a
+  separate statement from Jophy Lin.
+- `manuscript_fidelity` and `rendered_review`: his final editorial approval of
+  both briefs at `a6771416`, including the rendered pages, in the first statement.
+- `policy_ruling`: his approval of publication under the source-linked evidence
+  policy, in the first statement.
+
+The AI-assisted source-to-claim comparison described under Source verification
+and limits was preparation for that review. It is recorded as preparation and is
+not attributed to the owner.
+
+AMRAAM source s3 (the U.S. war.gov readout) is covered by the owner's explicit
+acceptance of the documented limitation. The page returned HTTP 403 during this
+preparation. The readout comparison rests on the earlier publisher verification
+in PR 938 and the accessible republication. No new successful retrieval of the
+official page is claimed.
+
+## Presentation approval
+
+The first statement approves the rendered pages, headings, bylines, citations and
+cover images of both briefs; the second reaffirms the presentations and covers.
+The presentation receipts (excerpts, headings, media, rendered page) bind these
+digests:
+
+| Manuscript | Presentation digest |
+|---|---|
+| `japan-us-amraam-final-assembly-sm3-production` | `3030a230d219af8a83032c372f4a7ee8772d2319680a2c61579e0d68bfade0d6` |
+| `japan-philippines-first-destroyer-2026` | `a7e8fbaebf5edbca7b753748e18c2347e0aeee3f58f299ca5717edbf5b52f616` |
+
+## Remaining release steps
+
+`scripts/author_brief.py approve` assigns the numbers, AMRAAM first and then the
+destroyer brief. With No. 20 the highest assigned issue, these are expected to
+be Nos. 21 and 22. The paired catalogue admissions and test allow-list lines
+follow, then render, validator, full CI, merge, deploy and live verification.
+Approval of content does not assert deployment.
