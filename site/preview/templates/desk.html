@@ -840,13 +840,13 @@ individually approved publications.</p>{% endif %}
    publication. "Not analyzed" is the complement and is not a queue. #}
 <dl class="stat-rows">
   <div class="stat-row"><dt>Source records</dt><dd>{{ desk.record_count|count }}</dd></div>
-  <div class="stat-row"><dt>Analyzed records</dt><dd>{{ desk.analyzed_count|count }}</dd></div>
+  <div class="stat-row"><dt>{{ 'Historically analyzed records' if desk.collection_on_hold else 'Analyzed records' }}</dt><dd>{{ desk.analyzed_count|count }}</dd></div>
   <div class="stat-row"><dt>Not analyzed</dt><dd>{{ (desk.record_count - desk.analyzed_count)|count }}</dd></div>
   <div class="stat-row"><dt>Earliest item</dt><dd>{{ desk.first_published or '—' }}</dd></div>
   <div class="stat-row"><dt>Latest item</dt><dd>{{ desk.last_published or '—' }}</dd></div>
   <div class="stat-row"><dt>Last successful collection</dt><dd>{{ desk.last_successful_run or 'None' }}</dd></div>
   <div class="stat-row"><dt>Sources configured</dt><dd>{{ desk.configured_source_count }}</dd></div>
-  <div class="stat-row"><dt>Sources enabled</dt><dd>{{ desk.enabled_source_count }}</dd></div>
+  <div class="stat-row"><dt>{{ 'Sources configured enabled — collection on hold' if desk.collection_on_hold else 'Sources enabled' }}</dt><dd>{{ desk.enabled_source_count }}</dd></div>
 </dl>
 <p class="meta">Counts reflect the stored corpus at this snapshot. "Analyzed" means a model
 completed a reading of the record — it says nothing about publication. "Not analyzed"
@@ -899,14 +899,14 @@ PACOM military statement has been collected through it.</p>
 <table class="stacking">
   <caption>Every source declared for this desk, whether it is enabled, and how
   much of the record it accounts for.</caption>
-  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Records</th></tr></thead>
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">{{ 'Collection' if desk.collection_on_hold else 'Enabled' }}</th><th scope="col" class="num">Records</th></tr></thead>
   <tbody>
   {% for s in desk.sources %}
     <tr>
       <td data-label="Source"><a href="source/{{ s.slug }}.html">{{ s.display_name }}</a></td>
       <td data-label="Institution">{{ s.institution or '—' }}</td>
       <td data-label="Authority">{{ s.authority_tier or '—' }}</td>
-      <td data-label="Enabled">{{ 'Yes' if s.enabled else 'No' }}</td>
+      <td data-label="{{ 'Collection' if desk.collection_on_hold else 'Enabled' }}">{% if s.collection_hold %}{{ s.collection_label }}. {{ s.collection_hold }}.{% else %}{{ 'Yes' if s.enabled else 'No' }}{% endif %}</td>
       <td data-label="Records" class="num">{% if s.record_count is not none %}<a href="archive.html?source={{ s.slug }}">{{ s.record_count|count }}</a>{% else %}<span class="meta">none</span>{% endif %}</td>
     </tr>
   {% endfor %}
@@ -931,7 +931,7 @@ source's own outcome is recorded every run.</p>
   <div class="stat-row"><dt>Governed checkpoint reviews</dt><dd>{{ desk.qualification.checkpoints }}</dd></div>
 </dl>
 {% if desk.is_collecting %}
-<p class="meta">This desk is live. The record above is retained as historical
+<p class="meta">{{ 'This desk was qualified for production.' if desk.collection_on_hold else 'This desk is live.' }} The record above is retained as historical
 qualification evidence, not a current gate.</p>
 {% else %}
 <p class="meta">No review has been completed and no verdict has been reached.</p>
