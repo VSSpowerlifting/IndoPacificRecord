@@ -1,5 +1,21 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Maritime Cooperation Timeline — complete reference-only preview (31 October 2026)
+
+The existing six-entry draft renders on current main without a private evidence
+DB. The two Timeline-specific MINDEF link permissions confirmed by the owner in
+#926 are recorded separately; original text, quotations and translations stay
+out, and the related held Brief has no route. Existing case-study source-version
+pins authenticate the retained private bindings. The canonical timeline, Briefs,
+Dossiers, approvals, production DB/output and design are unchanged. No paid
+calls, collection, merge or deployment. See `docs/EVIDENCE_TIMELINES.md` for the
+preview command and manuscript digest; next action is review of the complete
+reference-only timeline, not another infrastructure phase. The related-analysis
+footer now links eligible public Dossiers (none today; held works show only
+“unavailable”), and source-access limits are stated per record. Approval needs a
+companion Dossier digest-binding revision under explicit authority; see
+`docs/EVIDENCE_TIMELINES.md`.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one

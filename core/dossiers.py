@@ -335,7 +335,8 @@ def dossier_view(sc, records, related, chronology, holds, is_review=False, exter
 
 
 def load_dossiers(db_path, related, source_dir=DOSSIERS_DIR, review_path=None,
-                  registry=None, timelines_dir=TIMELINES_DIR, related_timelines=None):
+                  registry=None, timelines_dir=TIMELINES_DIR, related_timelines=None,
+                  held_metadata=None):
     root = Path(source_dir)
     if root.is_symlink():
         _fail('dossier_directory_symlink')
@@ -367,6 +368,13 @@ def load_dossiers(db_path, related, source_dir=DOSSIERS_DIR, review_path=None,
             if holds:
                 _fail('publication_validation_failed: ' + '; '.join(h['code'] for h in holds))
             withheld.append(sc['slug'])
+            if held_metadata is not None:
+                # Relationship metadata of an approved but held work, from the
+                # sidecar already read here. No route, prose or source text.
+                held_metadata[sc['slug']] = dict(
+                    slug=sc['slug'], title=sc['title'], chronology=sc.get('chronology') or {},
+                    related_timelines=list(sc['related_timelines']),
+                    case_studies=list(sc.get('case_studies', [])))
             continue
         for slug in sc['related_briefs']:
             if slug not in related or related[slug].get('is_review'):
@@ -404,6 +412,46 @@ def link_case_studies(views):
             view['case_study_views'].append(case)
             case['parent_dossiers'].append(view)
             case['kind'], case['kind_label'] = 'case_study', CASE_STUDY_LABELS[slug]
+
+
+def timeline_dossier_links(timeline_slug, views, held=None):
+    """Public and unavailable Dossier destinations for one Timeline.
+
+    Pure selection over already-loaded public views and held-work metadata.
+    A Dossier relates through its chronology binding or `related_timelines`;
+    a thematic parent relates through its `case_studies`. Review views are
+    excluded. Only small dicts are returned, so no view cycle is created.
+    """
+    def bound(item):
+        return (item.get('chronology') or {}).get('timeline_slug') == timeline_slug or \
+            timeline_slug in (item.get('related_timelines') or ())
+
+    public = [v for v in views if not v.get('is_review')]
+    held = [m for slug, m in sorted((held or {}).items())
+            if slug not in {v['slug'] for v in public}]
+    cases = {i['slug'] for i in public + held if bound(i)}
+
+    referenced = {c for i in public + held for c in (i.get('case_studies') or ())}
+
+    def is_parent(item):
+        return item['slug'] not in cases and bool(cases & set(item.get('case_studies') or ()))
+
+    def label(item, parent):
+        if parent:
+            return 'Thematic dossier'
+        return CASE_STUDY_LABELS.get(item['slug'], 'Living Dossier') if item['slug'] in referenced \
+            else 'Living Dossier'
+
+    links, unavailable = [], []
+    for parent in (False, True):
+        for item in public:
+            if (is_parent(item) if parent else bound(item)):
+                links.append(dict(title=item['title'], route=item['route'],
+                                  kind_label=label(item, parent)))
+        for item in held:
+            if (is_parent(item) if parent else bound(item)):
+                unavailable.append(dict(title=item['title'], kind_label=label(item, parent)))
+    return links, unavailable
 
 
 def validate_review_destination(destination, repo_root=ROOT):
