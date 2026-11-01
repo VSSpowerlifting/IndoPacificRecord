@@ -1,7 +1,26 @@
+"""
+``tests/fixtures/iso39/oracle_py39.json`` was frozen by running
+``make_oracle.py`` under Python 3.9.6: for each string, what 3.9's
+``date.fromisoformat`` and ``datetime.fromisoformat`` returned, or null where
+they raised. The helpers must give the same answer on every interpreter.
+"""
+
+import json
 import unittest
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 from scraper.sources.iso39 import date_py39, datetime_py39
+
+ORACLE = json.loads((Path(__file__).parent / "fixtures" / "iso39" /
+                     "oracle_py39.json").read_text(encoding="utf-8"))
+
+
+def result(parse, text):
+    try:
+        return parse(text).isoformat()
+    except ValueError:
+        return None
 
 
 class Py39IsoFormatTests(unittest.TestCase):
@@ -26,6 +45,25 @@ class Py39IsoFormatTests(unittest.TestCase):
     def test_rejects_malformed_time_py39_misread(self):
         with self.assertRaises(ValueError):
             datetime_py39("2026-10-091030+08:00")
+
+    def test_matches_python_39_oracle(self):
+        self.assertTrue(ORACLE["generated_with"].startswith("Python 3.9"))
+        results = ORACLE["results"]
+        self.assertGreater(len(results), 10000)
+        # Guard against an oracle that could only ever say "rejected".
+        self.assertGreater(sum(v[1] is not None for v in results.values()), 200)
+        deviations = []
+        for text, expected in results.items():
+            got = [result(date_py39, text), result(datetime_py39, text)]
+            if got == expected:
+                continue
+            # The one allowed difference: 3.9 took a digit at index 10 as the
+            # separator and misread the malformed time after it.
+            self.assertEqual(got, [None, None], text)
+            self.assertIsNone(expected[0], text)
+            self.assertTrue(text[10].isdigit(), text)
+            deviations.append(text)
+        self.assertEqual(len(deviations), 8, deviations)
 
     def test_rejects_non_strings(self):
         with self.assertRaises(ValueError):
