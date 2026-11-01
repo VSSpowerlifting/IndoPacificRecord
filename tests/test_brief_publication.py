@@ -359,7 +359,7 @@ class MindefHoldAgainstRealWorks(unittest.TestCase):
             gp.load_editions(ROOT), load_registry(), briefs_dir=ROOT / 'briefs')
         slugs = {b['slug'] for b in coll.briefs}
         self.assertTrue(slugs.isdisjoint(self.HELD))
-        self.assertEqual({b['issue'] for b in coll.briefs}, {18, 19, 20})
+        self.assertEqual({b['issue'] for b in coll.briefs}, {18, 19, 20, 21, 22})
         for slug in self.HELD:
             self.assertIn(slug, coll.withheld)
 
