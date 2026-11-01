@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import smtplib
 import ssl
 from datetime import date
@@ -27,6 +28,11 @@ from scripts.sunday_pilot_owner_review import (
 # map lives in the hash-validated appendix (keyed by paragraph fingerprint), so
 # Dylan can reorder, merge or rewrite paragraphs without touching source lines.
 ARTICLE_LAYOUT = "ipr-article-first/1"
+# A second (or later) Brief in the same reporting week carries its own packet
+# identity, IPR-<Saturday>-<slug>, so worksheets, returns, digests and Word
+# copies never collide. The primary Sunday worksheet keeps plain IPR-<Saturday>.
+# Same grammar as a story-discovery slug and a briefs/<slug>.json record.
+COMPANION_SLUG = re.compile(r"[a-z][a-z0-9-]{0,79}\Z")
 ARTICLE_KEY = "ARTICLE"
 ACCOUNTING_END = "END OF ARTICLE SOURCE ACCOUNTING"
 
@@ -89,8 +95,17 @@ def article_accounting_lines(manuscript):
     return lines
 
 
+def packet_identity(week_ending, companion_slug=None):
+    """``IPR-<Saturday>`` for the week's primary Brief; ``IPR-<Saturday>-<slug>``
+    for an additional, independently justified Brief in the same week."""
+    if companion_slug is None:
+        return "IPR-" + week_ending
+    if not isinstance(companion_slug, str) or not COMPANION_SLUG.fullmatch(companion_slug):
+        raise ValueError("additional Brief slug must match [a-z][a-z0-9-]{0,79}")
+    return "IPR-" + week_ending + "-" + companion_slug
+
 def render_packet(sidecar, *, manuscript=None, as_of=None,
-                  vietnam_candidates=(), research_evidence=()):
+                  vietnam_candidates=(), research_evidence=(), companion_slug=None):
     if sidecar.get("editorial_status") != "draft" or sidecar.get("issue_number") is not None:
         raise ValueError("only unnumbered, unapproved draft scaffolds may be emailed")
     week_end = date.fromisoformat(sidecar["week_ending"])
@@ -117,9 +132,12 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         if len(represented.intersection(desks)) < 2 else
         "Coverage: candidate records are present from at least two desks; not editorial approval."
     )
+    # An additional Brief may go to any named editor, so its worksheet does
+    # not address Dylan by name; the primary worksheet stays byte-identical.
+    addressee = "DYLAN: " if companion_slug is None else "EDITOR: "
     lines = [
         "INDO-PACIFIC RECORD | BRIEFS EDITORIAL WORKSHEET",
-        "Packet: IPR-" + week_end.isoformat(),
+        "Packet: " + packet_identity(week_end.isoformat(), companion_slug),
         "Week: " + one_line(sidecar["week_start"]) + " through " + week_end.isoformat(),
         "Status: UNNUMBERED DRAFT — NOT APPROVED OR PUBLISHED",
         (("AS-OF CUT-OFF: " + as_of +
@@ -131,14 +149,14 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         coverage_warning,
         "Desks: " + ", ".join(desks),
         "",
-        *(("DYLAN: Edit the title, dek and ARTICLE below for language, flow and structure,",
+        *((addressee + "Edit the title, dek and ARTICLE below for language, flow and structure,",
            "and REPLY with this .txt attached. You may reorder, merge, split or rewrite",
            "paragraphs and subheads. Keep the source appendix intact.",
            "You do not supply record IDs or settle permissions; Ben checks sources and rights.",
            "Flag anything that looks wrong. Do not guess at translations or assign an issue number.",
            "Source listings are candidates, not endorsed editorial selections.")
           if isinstance(manuscript, dict) and "article" in manuscript else
-          ("DYLAN: Edit the writing sections below and REPLY with this .txt attached.",
+          (addressee + "Edit the writing sections below and REPLY with this .txt attached.",
            "Keep the source appendix intact. Give record IDs for factual claims.",
            "Do not guess at translations, infer coordination, or assign an issue number.",
            "Source listings are candidates, not endorsed editorial selections.")),
@@ -364,7 +382,8 @@ def quality_hold(packet_text):
 
 
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
-                preview_to_owner=False, owner_released=False):
+                preview_to_owner=False, owner_released=False,
+                companion_slug=None, editor_to=None):
     """Mail the exact bytes at ``path``.
 
     A packet that carries a narrative-quality hold is never mailed to the editor
@@ -374,7 +393,14 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     released without a new model generation), and OwnerReviewRequired is raised.
     ``require_owner_review`` covers only the October 10 pilot week, so this is the
     only barrier on later scheduled Sundays.
+
+    ``companion_slug`` names an additional Brief of the same week in the subject
+    and Word filename; ``editor_to`` assigns that worksheet to a named editor
+    instead of the configured default IPR_EDITOR_TO. Both default to the
+    single-Brief behaviour, byte for byte.
     """
+    suffix = (" | " + companion_slug) if companion_slug is not None else ""
+    identity = packet_identity(week_ending, companion_slug)
     require_owner_review(
         week_ending=week_ending, sending=not preview_to_owner,
         approved_week=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_WEEK", ""),
@@ -391,7 +417,8 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             and quality_hold(original_attachment.decode("utf-8")))
     if held:
         preview_to_owner = True
-    editor = single_address(os.environ.get("IPR_EDITOR_TO", ""), "IPR_EDITOR_TO")
+    editor = (single_address(editor_to, "assigned editor") if editor_to is not None
+              else single_address(os.environ.get("IPR_EDITOR_TO", ""), "IPR_EDITOR_TO"))
     if preview_to_owner:
         recipient = single_address(os.environ.get("IPR_PREVIEW_TO", ""), "IPR_PREVIEW_TO")
         if recipient.casefold() == editor.casefold():
@@ -428,7 +455,7 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             raise ValueError("owner previews require the complete Saturday-ending week")
         message["Subject"] = "IPR Briefs | {} | {}".format(
             "HELD BY QUALITY GATE — OWNER-ONLY, NOT SENT TO DYLAN" if held
-            else "OWNER-ONLY UNSENT EDITORIAL PREVIEW", week_ending)
+            else "OWNER-ONLY UNSENT EDITORIAL PREVIEW", week_ending) + suffix
         message.set_content(
             ("HELD: the narrative quality gate found a mechanical defect, so this draft was "
              "NOT sent to Dylan. To release these exact bytes without a new model run, review "
@@ -457,11 +484,11 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         # provenance hashes, source IDs, source appendices, or a .txt envelope.
         from scripts.sunday_editor_readable import prose_only_html, prose_only_text
         original_text = original_attachment.decode("utf-8")
-        message["Subject"] = "IPR Briefs | week ending {} | Sunday draft for language edits".format(week_ending)
+        message["Subject"] = "IPR Briefs | week ending {} | Sunday draft for language edits".format(week_ending) + suffix
         message.set_content(prose_only_text(original_text))
         message.add_alternative(prose_only_html(original_text), subtype="html")
     else:
-        message["Subject"] = "IPR Briefs | week ending {} | provisional editor draft".format(week_ending)
+        message["Subject"] = "IPR Briefs | week ending {} | provisional editor draft".format(week_ending) + suffix
         message.set_content(
             "Hi Dylan,\n\nAttached is the provisional AI-assisted Indo-Pacific Record Brief "
             "with a source-record appendix and section-level citation IDs. "
@@ -479,7 +506,7 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         message.add_attachment(
             edited_copy, maintype="application",
             subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
-            filename="IPR-Briefs-Editorial-{}.docx".format(week_ending),
+            filename="IPR-Briefs-Editorial-{}.docx".format(identity[len("IPR-"):]),
         )
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=30) as smtp:
         smtp.login(sender, password)
@@ -488,6 +515,40 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         raise OwnerReviewRequired(
             "Held by the narrative quality gate: NOT sent to Dylan. The identical "
             "bytes (TXT + DOCX) were sent to the owner-only preview address.")
+
+
+def _write_companion(parser, args):
+    """Write one additional-Brief worksheet from a supplied manuscript.
+
+    Automatic composition picks the week's single top story, so it would
+    duplicate the primary Brief and spend a model call; a second Brief's
+    manuscript therefore comes from outside. Delivery is the separate
+    owner-reviewed exact-file send, under its own SHA-256 approval."""
+    if args.companion_slug is None or args.manuscript is None:
+        parser.error("--companion-slug and --manuscript go together")
+    if (args.write_automatic or args.full_week or args.include_research
+            or args.research_packet or args.send or args.preview_to_owner):
+        parser.error("an additional Brief worksheet is written only: no automatic "
+                     "composition, research synthesis or email (send the reviewed "
+                     "file with scripts/sunday_send_reviewed_packet.py)")
+    sidecar = json.loads(args.sidecar.read_text(encoding="utf-8"))
+    try:
+        packet_identity(sidecar["week_ending"], args.companion_slug)
+    except ValueError as exc:
+        parser.error(str(exc))
+    manuscript = json.loads(args.manuscript.read_text(encoding="utf-8"))
+    if not isinstance(manuscript, dict):
+        parser.error("--manuscript must be a JSON object")
+    text = render_packet(sidecar, manuscript=manuscript, as_of=args.as_of,
+                         companion_slug=args.companion_slug)
+    with args.out.open("x", encoding="utf-8") as stream:
+        stream.write(text)
+    if quality_summary(text):
+        print(quality_summary(text))
+    print("Prepared unapproved additional Brief worksheet {}: {}. Email not "
+          "enabled: no delivery occurred.".format(
+              packet_identity(sidecar["week_ending"], args.companion_slug),
+              args.out.name))
 
 
 def main(argv=None):
@@ -507,7 +568,14 @@ def main(argv=None):
                         help="privately synthesize bounded source-linked official research notes")
     parser.add_argument("--research-packet", type=Path,
                         help="optional exact-week temporary private JSON from a separately validated shadow exporter")
+    parser.add_argument("--companion-slug",
+                        help="write an ADDITIONAL Brief worksheet for this week (IPR-<Saturday>-<slug>); "
+                             "requires --manuscript, never composes, never sends")
+    parser.add_argument("--manuscript", type=Path,
+                        help="JSON manuscript for --companion-slug, written outside this tool")
     args = parser.parse_args(argv)
+    if args.companion_slug is not None or args.manuscript is not None:
+        return _write_companion(parser, args)
     if args.send and args.preview_to_owner:
         parser.error("owner-only preview and Dylan delivery are mutually exclusive")
     if args.preview_to_owner and (not args.write_automatic or not args.full_week):

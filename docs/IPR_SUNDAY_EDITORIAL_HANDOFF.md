@@ -1,5 +1,51 @@
 # Sunday IPR Briefs — full-week draft to Dylan (staged migration)
 
+## Several Briefs in one week (1 November 2026)
+
+One Brief a week stays the norm. When a second, independent development merits
+its own Brief, it goes through the same owner-reviewed exact-file path as the
+primary one, under its own identity, approval and editor. The scheduled Sunday
+job is unchanged and still drafts only the primary Brief.
+
+1. **Draft.** Write the additional Brief's manuscript JSON (the same `title`,
+   `dek`, `article`, `audit` shape the writer produces). It comes from a human or
+   a separately authorized draft; there is no automatic second-story compose.
+2. **Render the worksheet** from the week's source sidecar:
+
+   ```bash
+   .venv/bin/python -m scripts.sunday_editorial_handoff --sidecar <week sidecar.json> \
+     --out IPR-Briefs-Editorial-<Saturday>-<slug>.txt \
+     --companion-slug <slug> --manuscript <manuscript.json>
+   ```
+
+   The slug is lowercase letters, digits and hyphens, starting with a letter. The
+   header reads `Packet: IPR-<Saturday>-<slug>` and the instructions address
+   "EDITOR". The command writes only; it refuses `--send`, `--preview-to-owner`,
+   `--write-automatic`, `--full-week` and research flags, and will not overwrite.
+3. **Review and release** exactly as for a held primary draft, once per file:
+   compute its SHA-256, set `IPR_SUNDAY_OWNER_REVIEWED_WEEK` /
+   `IPR_SUNDAY_OWNER_REVIEWED_SHA256` for that file, dry-run, then send:
+
+   ```bash
+   .venv/bin/python -m scripts.sunday_send_reviewed_packet --packet <file> \
+     --week-ending <Saturday> [--editor-to editor@example.org]
+   ```
+
+   Add `--send --confirm-owner-reviewed` to mail it. `--editor-to` assigns one
+   named editor for this file; without it the editor is `IPR_EDITOR_TO`. The
+   subject gains ` | <slug>` and the Word file is named for the identity.
+4. **Returns.** Validate each return against its own original with
+   `scripts/validate_editorial_return.py`; a return checked against another
+   Brief's worksheet is refused because the `Packet:` header differs.
+5. **Approval and numbering.** Each Brief is a separate slug in `briefs/`.
+   `author_brief.py approve` assigns the next collection-wide issue number in
+   approval order, so same-week Briefs are numbered by when the owner approves them.
+
+Limitations: the first-pilot replay, the weekly editorial handoff and the Saturday
+audit scripts still accept only the primary identity and refuse a companion file.
+The manual sender cannot see an earlier send, so check Gmail Sent first. Nothing
+here sends, numbers, publishes or spends on its own.
+
 ## Narrative reform — article-first manuscript (25 October 2026)
 
 The writer now asks for one cohesive article (lead on the concrete development, optional

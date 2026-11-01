@@ -1,8 +1,12 @@
-"""Manually hand the EXACT owner-reviewed Sunday Briefs worksheet to Dylan.
+"""Manually hand the EXACT owner-reviewed Sunday Briefs worksheet to its editor.
 
 Offline digest receipt by default. The explicit --send --confirm-owner-reviewed
 path sends a temporary byte-for-byte snapshot, never starts an AI model, and
 never regenerates a source appendix. Not publication or a rights approval.
+
+The worksheet may be the week's primary Brief (``Packet: IPR-<Saturday>``) or
+an additional Brief of the same week (``Packet: IPR-<Saturday>-<slug>``). The
+editor defaults to IPR_EDITOR_TO; ``--editor-to`` assigns one named editor.
 """
 from __future__ import annotations
 
@@ -17,7 +21,9 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from scripts.sunday_editorial_handoff import quality_hold, send_packet, single_address
+from scripts.sunday_editorial_handoff import (
+    packet_identity, quality_hold, send_packet, single_address,
+)
 
 NY = ZoneInfo("America/New_York")
 SCHEMA = "ipr-reviewed-sunday-manual-handoff/1"
@@ -44,6 +50,16 @@ LAYOUTS = (
 
 class ReviewedHandoffRefused(ValueError):
     """Unsafe or unapproved exact-file editorial handoff."""
+
+
+def worksheet_identity(text, week_ending):
+    """Return ``None`` for the week's primary worksheet or the additional-Brief
+    slug, refusing any other edition identity on the second line."""
+    match = re.match(re.escape(HEADER) + r"\nPacket: IPR-" + re.escape(week_ending)
+                     + r"(?:-([a-z][a-z0-9-]{0,79}))?\n", text)
+    if match is None:
+        raise ReviewedHandoffRefused("worksheet header or exact edition identity mismatch")
+    return match.group(1)
 
 
 def validate_file(path, week_ending, *, now=None):
@@ -77,8 +93,7 @@ def validate_file(path, week_ending, *, now=None):
         text = payload.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise ReviewedHandoffRefused("owner-review attachment must be UTF-8 text") from exc
-    if not text.startswith(HEADER + "\nPacket: IPR-" + week_ending + "\n"):
-        raise ReviewedHandoffRefused("worksheet header or exact edition identity mismatch")
+    worksheet_identity(text, week_ending)
     if text.count("Status: UNNUMBERED DRAFT — NOT APPROVED OR PUBLISHED") != 1:
         raise ReviewedHandoffRefused("worksheet must explicitly remain unnumbered and unapproved")
     for marker in STRUCTURE:
@@ -99,6 +114,7 @@ def inspect_reviewed_attachment(path, week_ending, *, approval_week="", approval
                                 now=None):
     packet = validate_file(path, week_ending, now=now)
     actual = hashlib.sha256(packet).hexdigest()
+    slug = worksheet_identity(packet.decode("utf-8"), week_ending)
     approved = bool(
         approval_week == week_ending and isinstance(approval_digest, str)
         and DIGEST.fullmatch(approval_digest)
@@ -107,6 +123,8 @@ def inspect_reviewed_attachment(path, week_ending, *, approval_week="", approval
     return packet, {
         "schema": SCHEMA,
         "week_ending": week_ending,
+        "packet_identity": packet_identity(week_ending, slug),
+        "companion_slug": slug,
         "attachment_sha256": actual,
         "attachment_bytes": len(packet),
         "exact_owner_approval_matches": approved,
@@ -119,8 +137,11 @@ def inspect_reviewed_attachment(path, week_ending, *, approval_week="", approval
 
 
 def handoff(path, week_ending, *, send=False, owner_confirmed=False,
-            historical_override=False, now=None):
-    """Return metadata only; never email unless BOTH explicit manual flags hold."""
+            historical_override=False, editor_to=None, now=None):
+    """Return metadata only; never email unless BOTH explicit manual flags hold.
+
+    ``editor_to`` assigns this exact worksheet to one named editor instead of
+    IPR_EDITOR_TO; it is subject to the same distinct-from-owner rule."""
     if now is None:
         now = datetime.now(NY)
     packet, receipt = inspect_reviewed_attachment(
@@ -132,6 +153,8 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
     if not send:
         if owner_confirmed or historical_override:
             raise ReviewedHandoffRefused("send confirmations are invalid on a dry run")
+        if editor_to is not None:
+            receipt["assigned_editor"] = single_address(editor_to, "assigned editor")
         return receipt
     if not owner_confirmed or not receipt["exact_owner_approval_matches"]:
         raise ReviewedHandoffRefused(
@@ -155,7 +178,8 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
                 "parallel editor service enabled: disable " + service
             )
     try:
-        editor = single_address(os.environ.get("IPR_EDITOR_TO", ""), "IPR_EDITOR_TO")
+        editor = (single_address(editor_to, "assigned editor") if editor_to is not None
+                  else single_address(os.environ.get("IPR_EDITOR_TO", ""), "IPR_EDITOR_TO"))
         owner = single_address(os.environ.get("IPR_PREVIEW_TO", ""), "IPR_PREVIEW_TO")
     except ValueError as exc:
         raise ReviewedHandoffRefused(
@@ -172,9 +196,17 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
         reviewed_copy.write_bytes(packet)
         # Reaching here required --confirm-owner-reviewed AND an exact digest match,
         # which is the owner's informed release of any narrative-quality hold.
+        # The primary single-Brief call stays exactly as before; an additional
+        # Brief or a named editor adds only the arguments it needs.
+        extra = {}
+        if receipt["companion_slug"] is not None:
+            extra["companion_slug"] = receipt["companion_slug"]
+        if editor_to is not None:
+            extra["editor_to"] = editor
         send_packet(reviewed_copy, week_ending, provisional=True, full_week=True,
-                    owner_released=True)
+                    owner_released=True, **extra)
     receipt["email_sent"] = True
+    receipt["assigned_editor"] = editor
     return receipt
 
 
@@ -189,12 +221,15 @@ def main(argv=None):
                    help="explicit owner acknowledgement for this exact attachment")
     p.add_argument("--allow-historical-send", action="store_true",
                    help="acknowledge deliberate older-edition delivery")
+    p.add_argument("--editor-to", default=None,
+                   help="one named editor for this worksheet (default IPR_EDITOR_TO)")
     args = p.parse_args(argv)
     try:
         receipt = handoff(
             args.packet, args.week_ending, send=args.send,
             owner_confirmed=args.confirm_owner_reviewed,
             historical_override=args.allow_historical_send,
+            editor_to=args.editor_to,
         )
     except (OSError, ValueError) as exc:
         p.error(str(exc))
