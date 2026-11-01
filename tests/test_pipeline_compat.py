@@ -89,7 +89,8 @@ class TestRegistryDrivesCollection(unittest.TestCase):
             ["china_mil_online", "global_times_mil", "id_kemhan_news",
              "jp_mod_news_ja", "kr_policy_mnd_releases", "mod_china",
              "ph_afp_articles", "ph_nsc_official_statements", "pla_daily",
-             "sg_mindef_releases", "vn_mps_foreign_affairs_vi",
+             "sg_mindef_releases", "us_treasury_press_official_metadata",
+             "uscc_press_official_metadata", "vn_mps_foreign_affairs_vi",
              "vn_vpcp_official_documents_vi", "xinhua_mil"],
         )
 
@@ -234,9 +235,11 @@ class TestNoSourceStarvesAnother(unittest.TestCase):
             result("ph_nsc_official_statements", st.SKIPPED_DISABLED),
             result("id_kemhan_news", st.SKIPPED_DISABLED),
             result("jp_mod_news_ja", st.SKIPPED_DISABLED),
+            result("uscc_press_official_metadata", st.SKIPPED_DISABLED),
+            result("us_treasury_press_official_metadata", st.SKIPPED_DISABLED),
         ]
         report = machine_report(results)
-        self.assertEqual(report["source_count"], 13)
+        self.assertEqual(report["source_count"], 15)
         self.assertEqual(
             sorted(s["source_slug"] for s in report["sources"]),
             SourceRegistry().slugs,
@@ -385,9 +388,9 @@ class TestConfigSyncIsIdempotent(unittest.TestCase):
         desks = conn.execute("SELECT COUNT(*) FROM desks").fetchone()[0]
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(n, 13)         # 9 fetched + 4 manual registrations (PH x2, ID, JP)
-        self.assertEqual(desks, 7)
-        self.assertEqual(insts, 13)     # Korea adds Policy Briefing and MND; Vietnam the Government Office; PH AFP+NSC, ID Kemhan, JP MOD
+        self.assertEqual(n, 15)         # 9 fetched + 6 manual registrations (PH x2, ID, JP, US x2)
+        self.assertEqual(desks, 8)
+        self.assertEqual(insts, 15)     # Korea adds Policy Briefing and MND; Vietnam the Government Office; PH AFP+NSC, ID Kemhan, JP MOD, US USCC+Treasury
 
     def test_sync_populates_authority_and_originality(self):
         conn = connect(self.db_path)
@@ -425,7 +428,7 @@ class TestScrapersSlugView(unittest.TestCase):
 
     def test_iteration_and_len(self):
         self.assertEqual(sorted(self.pipeline.SCRAPERS), SourceRegistry().slugs)
-        self.assertEqual(len(self.pipeline.SCRAPERS), 13)
+        self.assertEqual(len(self.pipeline.SCRAPERS), 15)
 
     def test_subscripting_raises_with_a_pointer_to_the_real_api(self):
         with self.assertRaises(TypeError) as ctx:
@@ -619,7 +622,7 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
     def test_production_manifest_declares_no_russia_desk(self):
         configs = __import__("core.manifests", fromlist=["load_all_desks"]) \
             .load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "indonesia", "japan", "korea", "philippines", "singapore", "vietnam"])
+        self.assertEqual(sorted(configs), ["china", "indonesia", "japan", "korea", "philippines", "singapore", "us-indopacific", "vietnam"])
         for cfg in configs.values():
             for src in cfg.sources:
                 self.assertNotEqual(src.language_tag.split("-")[0], "ru")
@@ -652,7 +655,7 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
         # above and the collecting desks bound it from below.
         self.assertLessEqual({"china", "korea", "singapore", "vietnam"}, desks)
         self.assertLessEqual(desks, {"china", "indonesia", "japan", "korea",
-                                     "philippines", "singapore", "vietnam"})
+                                     "philippines", "singapore", "us-indopacific", "vietnam"})
         fetched = {"pla_daily", "mod_china", "xinhua_mil",
                    "global_times_mil", "china_mil_online",
                    "sg_mindef_releases", "kr_policy_mnd_releases",

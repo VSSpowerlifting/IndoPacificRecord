@@ -1,5 +1,42 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared desk architecture, runtime migration 4 — US reference families through the governed dispatcher (1 November 2026, review candidate)
+
+The USCC and Treasury press-release metadata families are now registered as
+manual production sources in `desks/us-indopacific/manifest.json`, and
+`desks/registry.json` points at it while the US desk stays `access_blocked`,
+non-collecting and without production records. `pipeline._us_metadata_admission`
+gives each family a `GovernedAdmission` that reuses the existing importer and
+fixed-code holds, so the two sources write `source_run_results` rows with the
+shared disposition: skipped while Daily delivers no preserved history,
+`LISTING_FAILURE` when the delivered path is not a clone, receipt statuses or
+the hold code otherwise. No new activation variable: the standing owner
+approval of 15 October 2026 governs, as it governed the retired jobs. Daily
+clones `shadow/uscc-press` and `shadow/us-treasury-press` after its migration
+and verification steps and hands the paths to the pipeline step; the two
+release workflows lose their production writer jobs, schedules (22:17 and
+22:31 UTC), push/workflow_run/dispatch triggers and concurrency claim and keep
+only their pull-request render rehearsal. Admission therefore follows Daily's
+schedule, and the moving-branch refusal is replaced by the importer's commit
+pin. BIS is excluded because its release is bound to a `workflow_run`
+attestation the dispatcher does not reproduce. Nothing is fetched from either
+publisher and no original document enters the public record.
+
+Verified: `TestUSMetadataGovernedDispatch` in `tests/test_manual_source_definitions.py`,
+the rewritten `tests/test_us_metadata_migration_preflight.py`, updated
+roster/contract pins (8 desks, 15 registered sources), the affected modules,
+`scripts/validate_output.py` at the 10 governed warnings and a local render
+inspection (US desk 2 configured / 2 enabled, both source pages rendered;
+institution names appear after Daily's migration sync, as for migration 3).
+The full offline suite result is recorded in the commit message. Generated
+`output/` and the tracked DB are not part of the change. Not done: BIS, Vietnam
+through the dispatcher, a liveness check keyed on `source_run_results`, the W1
+seven-run observation, China and Singapore. No activation flag, merge,
+deployment or paid model run is implied.
+
+Next action: review and merge this candidate with migration 3, then confirm the
+first scheduled Daily run writes six manual-source rows and the two US receipts.
+
 ## Shared desk architecture, runtime migration 3 — manual production sources and one governed dispatch (1 November 2026, review candidate)
 
 The Philippines (AFP, NSC), Indonesia (Kemhan) and Japan (MOD news feed) source

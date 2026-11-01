@@ -359,6 +359,28 @@ jobs:
           python -c 'from core.japan_mod_official_links import require_authorization; require_authorization()'
           git fetch --no-tags origin refs/heads/shadow/jp-mod:refs/remotes/origin/shadow/jp-mod
 
+      # Make the preserved USCC and Treasury official press-release listing
+      # histories available to the pipeline. The admissions themselves run
+      # inside "Run pipeline" as the uscc_press_official_metadata and
+      # us_treasury_press_official_metadata governed admissions under the
+      # owner's standing metadata-only approval of 2026-10-15, so each
+      # disposition is that source's run-result row (a clone that is missing
+      # here is reported there as listing_failure). This step reads two
+      # branches of this repository; nothing is fetched from a publisher.
+      - name: Clone preserved U.S. official-listing histories for governed admission
+        if: steps.timecheck.outputs.should_run == 'true' && !inputs.vpcp_metadata_only
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          remote="https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git"
+          status=0
+          git clone --quiet --single-branch --branch shadow/uscc-press \
+            "$remote" "$RUNNER_TEMP/uscc-preserved-metadata" || status=$?
+          git clone --quiet --single-branch --branch shadow/us-treasury-press \
+            "$remote" "$RUNNER_TEMP/treasury-preserved-metadata" || status=$?
+          exit "$status"
+
       # Korean MND texts come only from the already verified, released source index.
       # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
       - name: Run pipeline
@@ -386,6 +408,11 @@ jobs:
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
           JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
           GH_TOKEN: ${{ github.token }}
+          # Standing owner approval (2026-10-15): the pipeline admits the
+          # preserved USCC/Treasury listing metadata from these clones; an
+          # absent clone leaves that source reported, never failing the run.
+          IPR_USCC_SOURCE_CHECKOUT: ${{ runner.temp }}/uscc-preserved-metadata
+          IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}

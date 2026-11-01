@@ -149,9 +149,9 @@ class TestRosterMatchesConfiguration(DeskCase):
         manual sources, which nothing fetches."""
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
         self.assertEqual(discovered, {"china", "indonesia", "japan", "korea",
-                                      "philippines", "singapore", "vietnam"})
+                                      "philippines", "singapore", "us-indopacific", "vietnam"})
         from core.manifests import load_all_desks
-        for desk in ("indonesia", "japan", "philippines"):
+        for desk in ("indonesia", "japan", "philippines", "us-indopacific"):
             cfg = load_all_desks()[desk]
             self.assertEqual(cfg.desk.public_status, "shadow")
             self.assertFalse(cfg.desk.active)
@@ -164,14 +164,18 @@ class TestRosterMatchesConfiguration(DeskCase):
         Moved from `planned` to `access_blocked` on 2026-08-26: probed once per
         endpoint, the site root, the Press Releases and Readouts listing and
         robots.txt itself all return 403 at the edge. What this test protects is
-        unchanged — the desk collects nothing and has no enabled source.
+        unchanged — the desk collects nothing. Since runtime migration 4 its
+        two registered sources are the manual USCC and Treasury listing-metadata
+        families admitted through the governed dispatch; nothing fetches them.
         """
         us = load_registry().get("us-indopacific")
         self.assertIsNotNone(us)
         self.assertEqual(us.status, "access_blocked")
         self.assertFalse(us.is_collecting)
-        self.assertEqual(us.configured_source_count, 0)
-        self.assertEqual(us.enabled_source_count, 0)
+        self.assertEqual(us.manifest_path, "desks/us-indopacific/manifest.json")
+        self.assertEqual(us.configured_source_count, 2)
+        self.assertEqual(us.enabled_source_count, 2)
+        self.assertEqual({s.access_method for s in us.sources}, {"manual"})
         self.assertIn("not collecting", us.status_label.lower())
 
     def test_us_desk_limit_uses_owner_approved_neutral_evidence_standard(self):
@@ -185,7 +189,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertTrue(us.limits[-1].endswith(expected), us.limits[-1])
         self.assertNotIn("our side", " ".join(us.limits).lower())
         self.assertEqual(us.status, "access_blocked")
-        self.assertEqual(us.enabled_source_count, 0)
+        self.assertEqual({s.access_method for s in us.sources}, {"manual"})
 
     def test_singapore_is_live_and_promoted(self):
         """
@@ -213,7 +217,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertTrue((MANIFESTS / "singapore" / "manifest.json").exists())
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
         self.assertEqual(discovered, {"china", "indonesia", "japan", "korea",
-                                      "philippines", "singapore", "vietnam"})
+                                      "philippines", "singapore", "us-indopacific", "vietnam"})
 
     def test_singapore_shows_no_stale_shadow_language(self):
         """

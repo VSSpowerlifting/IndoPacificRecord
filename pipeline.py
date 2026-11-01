@@ -408,6 +408,76 @@ def _japan_admission(*, admit_links=None, resolve_commit=None) -> GovernedAdmiss
                              holds=(RegionalLinkHold,))
 
 
+# United States: official press-release listing metadata preserved by the
+# isolated USCC and Treasury shadow collectors on their own branches, admitted
+# under the owner's standing metadata-only approval of 2026-10-15
+# (docs/engineering/USCC_METADATA_ONLY_PRODUCTION_RELEASE_2026-10-15.md,
+# docs/engineering/US_TREASURY_LIVE_METADATA_ADMISSION_2026-10-15.md). The
+# Daily workflow clones each preserved history into a run-local checkout and
+# names it through the environment; nothing here fetches a publisher.
+
+class _USMetadataFamily(NamedTuple):
+    label: str
+    checkout_env: str
+    unavailable_code: str
+    importer: str          # scripts module whose run(checkout, db) admits
+    hold: tuple            # (module, class name) of the fixed-code hold
+
+
+_US_METADATA_FAMILIES = {
+    "uscc_press_official_metadata": _USMetadataFamily(
+        "uscc_official_metadata", "IPR_USCC_SOURCE_CHECKOUT",
+        "uscc_source_checkout_unavailable",
+        "scripts.admit_uscc_official_metadata",
+        ("core.uscc_official_metadata", "USCCAdmissionHold")),
+    "us_treasury_press_official_metadata": _USMetadataFamily(
+        "treasury_official_metadata", "IPR_US_TREASURY_SOURCE_CHECKOUT",
+        "treasury_source_checkout_unavailable",
+        "scripts.admit_us_treasury_official_metadata",
+        ("core.us_treasury_official_metadata", "TreasuryAdmissionHold")),
+}
+
+_US_HISTORY_NOT_DELIVERED = "preserved source history not delivered to this run"
+
+
+def _us_metadata_admission(slug: str, *, admit_metadata=None) -> GovernedAdmission:
+    import importlib
+    family = _US_METADATA_FAMILIES[slug]
+    hold = getattr(importlib.import_module(family.hold[0]), family.hold[1])
+
+    def inactive_reason():
+        # The approval is standing, so there is no activation variable to
+        # await: a run that was not handed the preserved history simply has
+        # nothing to admit, and says so without failing.
+        if not os.environ.get(family.checkout_env):
+            return _US_HISTORY_NOT_DELIVERED
+        return None
+
+    def admit(run_id):
+        from pathlib import Path as _Path
+        checkout = _Path(os.environ[family.checkout_env])
+        if not (checkout / ".git").exists():
+            return GovernedOutcome(collection_status.LISTING_FAILURE,
+                                   error_detail=family.unavailable_code)
+        run_import = admit_metadata or importlib.import_module(family.importer).run
+        # The importer opens its own connection, pins the checkout's HEAD,
+        # validates every preserved observation and admits in one immediate
+        # transaction, exactly as the retired release job invoked it.
+        receipt = run_import(checkout, DB_PATH)
+        new = receipt["new_official_metadata_records"]
+        logger.info("%s: governed admission — %d new official metadata records "
+                    "from %d preserved observations at %s", slug, new,
+                    receipt["observations"], receipt["source_commit_sha"][:12])
+        if new:
+            return GovernedOutcome(collection_status.OK, new_documents=new)
+        # The whole preserved history was re-examined and is already admitted.
+        # The receipt counts observation files, not records, so no duplicate
+        # figure is claimed for the row.
+        return GovernedOutcome(collection_status.OK_ALL_DUPLICATES)
+
+    return GovernedAdmission(family.label, inactive_reason, admit, holds=(hold,))
+
+
 def _governed_admissions() -> dict:
     """slug → GovernedAdmission for every manual source with a production path."""
     from core import korea_corpus_bridge
@@ -417,6 +487,8 @@ def _governed_admissions() -> dict:
     for family in SOURCES:
         out[family] = _daily_admission(family)
     out[japan_mod_official_links.FAMILY] = _japan_admission()
+    for slug in _US_METADATA_FAMILIES:
+        out[slug] = _us_metadata_admission(slug)
     return out
 
 

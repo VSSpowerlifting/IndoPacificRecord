@@ -15,6 +15,11 @@ not do:
     with fixed-code error details and no source text;
   * the liveness gate treats a manual source with nothing admitted as INERT.
 
+Runtime migration 4 adds the two U.S. reference families (USCC and Treasury
+official press-release listing metadata, `desks/us-indopacific/manifest.json`)
+to the same table: standing owner approval, no activation variable, and the
+preserved history handed to the run by the Daily workflow's clone step.
+
 Everything runs on scratch databases or mocks; nothing touches pla_watch.db,
 reaches a network, or runs a model.
 """
@@ -51,7 +56,12 @@ MANUAL_FAMILIES = {
     "ph_nsc_official_statements": "philippines",
     "id_kemhan_news": "indonesia",
     "jp_mod_news_ja": "japan",
+    "uscc_press_official_metadata": "us-indopacific",
+    "us_treasury_press_official_metadata": "us-indopacific",
 }
+#: The U.S. reference desk keeps its `access_blocked` registry status (PACOM
+#: is still refused at the edge); every other manual registration is `shadow`.
+MANUAL_DESK_STATUS = {"us-indopacific": "access_blocked"}
 
 
 class FakeRegistry:
@@ -68,7 +78,8 @@ class FakeRegistry:
 class TestRegistration(unittest.TestCase):
 
     def test_every_governed_family_is_a_manual_production_source(self):
-        self.assertEqual(set(SOURCES) | {jp.FAMILY}, set(MANUAL_FAMILIES))
+        self.assertEqual(set(SOURCES) | {jp.FAMILY} | set(pipeline._US_METADATA_FAMILIES),
+                         set(MANUAL_FAMILIES))
         registry = load_registry()
         for slug, desk in MANUAL_FAMILIES.items():
             with self.subTest(source=slug):
@@ -78,14 +89,14 @@ class TestRegistration(unittest.TestCase):
                 self.assertTrue(src.enabled)
                 self.assertTrue(src.contract_validated)
                 self.assertEqual(src.authority_tier, "A")
-                self.assertEqual(entry.status, "shadow")
+                self.assertEqual(entry.status, MANUAL_DESK_STATUS.get(desk, "shadow"))
                 self.assertFalse(entry.is_collecting)
                 self.assertFalse(entry.has_production_records)
                 self.assertFalse(entry.may_show_record_count)
 
     def test_manual_manifests_declare_no_adapter_and_no_active_desk(self):
         desks = load_all_desks()
-        for desk in ("philippines", "indonesia", "japan"):
+        for desk in ("philippines", "indonesia", "japan", "us-indopacific"):
             with self.subTest(desk=desk):
                 cfg = desks[desk]
                 self.assertEqual(cfg.desk.public_status, "shadow")
@@ -132,8 +143,9 @@ class TestRegistration(unittest.TestCase):
             institutions = {r[0] for r in conn.execute(
                 "SELECT institution_id FROM institutions")}
             conn.close()
-        self.assertLessEqual({"philippines", "indonesia", "japan"}, desks)
-        self.assertLessEqual({"ph_afp", "ph_nsc", "id_kemhan", "jp_mod"}, institutions)
+        self.assertLessEqual({"philippines", "indonesia", "japan", "us-indopacific"}, desks)
+        self.assertLessEqual({"ph_afp", "ph_nsc", "id_kemhan", "jp_mod",
+                              "us_uscc", "us_treasury"}, institutions)
         for slug, desk in MANUAL_FAMILIES.items():
             with self.subTest(source=slug):
                 self.assertEqual(rows[slug][:2], (desk, "manual"))
@@ -356,6 +368,153 @@ class TestGovernedDispatch(unittest.TestCase):
         self.assertNotIn("public_intake", source)
         runner = (REPO_ROOT / "processing" / "daily_runner.py").read_text(encoding="utf-8")
         self.assertNotIn("def public_intake", runner)
+
+
+class TestUSMetadataGovernedDispatch(unittest.TestCase):
+    """USCC and Treasury listing metadata through the same dispatch (runtime
+    migration 4). The importer is mocked: nothing clones a branch, runs git
+    or opens pla_watch.db."""
+
+    USCC = "uscc_press_official_metadata"
+    TREASURY = "us_treasury_press_official_metadata"
+    CHECKOUT_ENV = {USCC: "IPR_USCC_SOURCE_CHECKOUT",
+                    TREASURY: "IPR_US_TREASURY_SOURCE_CHECKOUT"}
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.checkout = Path(tmp.name) / "preserved"
+        (self.checkout / ".git").mkdir(parents=True)
+
+    def us(self, slug, admit_metadata=None):
+        return pipeline._us_metadata_admission(slug, admit_metadata=admit_metadata)
+
+    def delivered(self, slug, path=None):
+        return mock.patch.dict(os.environ,
+                               {self.CHECKOUT_ENV[slug]: str(path or self.checkout)})
+
+    def dispatch(self, slug, entry, *, dry_run=False):
+        errors = []
+        with mock.patch.object(pipeline, "_governed_admissions",
+                               return_value={slug: entry}):
+            [result] = pipeline.run_governed_manual_sources(
+                [slug], 7, FakeRegistry("us-indopacific"), errors, dry_run=dry_run)
+        self.assertEqual((result.desk_id, result.source_slug), ("us-indopacific", slug))
+        return result, errors
+
+    @staticmethod
+    def receipt(new, observations=12):
+        return {"source_commit_sha": "a" * 40, "observations": observations,
+                "new_official_metadata_records": new,
+                "source_bodies_copied": False, "publisher_titles_copied": False}
+
+    def test_both_families_reuse_their_existing_importer_and_hold(self):
+        from core.uscc_official_metadata import USCCAdmissionHold
+        from core.us_treasury_official_metadata import TreasuryAdmissionHold
+        from scripts import admit_uscc_official_metadata, admit_us_treasury_official_metadata
+        self.assertEqual(set(pipeline._US_METADATA_FAMILIES), {self.USCC, self.TREASURY})
+        uscc, treasury = self.us(self.USCC), self.us(self.TREASURY)
+        self.assertEqual((uscc.label, uscc.holds), ("uscc_official_metadata", (USCCAdmissionHold,)))
+        self.assertEqual((treasury.label, treasury.holds),
+                         ("treasury_official_metadata", (TreasuryAdmissionHold,)))
+        self.assertEqual(pipeline._US_METADATA_FAMILIES[self.USCC].importer,
+                         admit_uscc_official_metadata.__name__)
+        self.assertEqual(pipeline._US_METADATA_FAMILIES[self.TREASURY].importer,
+                         admit_us_treasury_official_metadata.__name__)
+
+    def test_no_activation_variable_is_awaited(self):
+        """The 2026-10-15 approval is standing. The only gate is whether this
+        run was handed the preserved history, and a run that was not is
+        reported as disabled, not as awaiting an owner act."""
+        for slug in (self.USCC, self.TREASURY):
+            with self.subTest(source=slug), mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop(self.CHECKOUT_ENV[slug], None)
+                r, errors = self.dispatch(slug, self.us(
+                    slug, admit_metadata=lambda *a: self.fail("ran")))
+                self.assertEqual(r.status, st.SKIPPED_DISABLED)
+                self.assertEqual(r.error_detail,
+                                 "preserved source history not delivered to this run")
+                self.assertEqual(errors, [])
+
+    def test_missing_clone_is_a_visible_failure(self):
+        for slug, code in ((self.USCC, "uscc_source_checkout_unavailable"),
+                           (self.TREASURY, "treasury_source_checkout_unavailable")):
+            with self.subTest(source=slug), \
+                    self.delivered(slug, self.checkout / "absent"):
+                r, errors = self.dispatch(slug, self.us(
+                    slug, admit_metadata=lambda *a: self.fail("ran")))
+                self.assertEqual(r.status, st.LISTING_FAILURE)
+                self.assertTrue(r.is_failure)
+                self.assertEqual(r.error_detail, code)
+                self.assertEqual(len(errors), 1)
+
+    def test_dry_run_never_admits(self):
+        with self.delivered(self.USCC):
+            r, errors = self.dispatch(self.USCC, self.us(
+                self.USCC, admit_metadata=lambda *a: self.fail("ran")), dry_run=True)
+        self.assertEqual(r.status, st.SKIPPED_DISABLED)
+        self.assertIn("dry run", r.error_detail)
+
+    def test_receipt_statuses_and_pinned_arguments(self):
+        calls = []
+        def admit_metadata(checkout, db):
+            calls.append((Path(checkout), db))
+            return self.receipt(3)
+        with self.delivered(self.USCC):
+            r, errors = self.dispatch(self.USCC, self.us(self.USCC, admit_metadata=admit_metadata))
+        self.assertEqual(calls, [(self.checkout, pipeline.DB_PATH)])
+        self.assertEqual((r.status, r.new_documents, r.duplicates), (st.OK, 3, 0))
+        self.assertEqual(errors, [])
+        # A re-examined history with nothing new is "all duplicates"; the
+        # receipt counts observation files, so no duplicate figure is invented.
+        with self.delivered(self.TREASURY):
+            r, errors = self.dispatch(self.TREASURY, self.us(
+                self.TREASURY, admit_metadata=lambda *a: self.receipt(0)))
+        self.assertEqual((r.status, r.new_documents, r.duplicates),
+                         (st.OK_ALL_DUPLICATES, 0, 0))
+        self.assertEqual(errors, [])
+
+    def test_hold_is_a_fixed_code_and_isolated(self):
+        from core.uscc_official_metadata import USCCAdmissionHold
+        from core.us_treasury_official_metadata import TreasuryAdmissionHold
+        for slug, hold, detail in (
+                (self.USCC, USCCAdmissionHold("missing_or_excessive_source_history"),
+                 "uscc_official_metadata: missing_or_excessive_source_history"),
+                (self.TREASURY, TreasuryAdmissionHold("invalid_observation_file"),
+                 "treasury_official_metadata: invalid_observation_file")):
+            with self.subTest(source=slug), self.delivered(slug):
+                r, errors = self.dispatch(slug, self.us(
+                    slug, admit_metadata=mock.Mock(side_effect=hold)))
+                self.assertEqual(r.status, st.ADAPTER_ERROR)
+                self.assertEqual(r.error_detail, detail)
+                self.assertEqual(len(errors), 1)
+
+    def test_unexpected_exception_reports_only_its_type(self):
+        import subprocess
+        def admit_metadata(*a):
+            raise subprocess.CalledProcessError(
+                128, ["git"], output="fatal: Original title: restricted text")
+        with self.delivered(self.USCC), self.assertLogs("pipeline", level="ERROR") as logs:
+            r, errors = self.dispatch(self.USCC, self.us(self.USCC, admit_metadata=admit_metadata))
+        self.assertEqual(r.error_detail, "uscc_official_metadata: CalledProcessError")
+        self.assertNotIn("restricted", "".join(logs.output) + "".join(errors))
+
+    def test_the_two_families_are_dispatched_independently(self):
+        from core.uscc_official_metadata import USCCAdmissionHold
+        entries = {
+            self.USCC: self.us(self.USCC, admit_metadata=mock.Mock(
+                side_effect=USCCAdmissionHold("database_integrity_hold"))),
+            self.TREASURY: self.us(self.TREASURY, admit_metadata=lambda *a: self.receipt(1)),
+        }
+        errors = []
+        with self.delivered(self.USCC), self.delivered(self.TREASURY), \
+                mock.patch.object(pipeline, "_governed_admissions", return_value=entries):
+            results = pipeline.run_governed_manual_sources(
+                list(entries), 7, FakeRegistry("us-indopacific"), errors)
+        by_slug = {r.source_slug: r for r in results}
+        self.assertEqual(by_slug[self.USCC].status, st.ADAPTER_ERROR)
+        self.assertEqual(by_slug[self.TREASURY].status, st.OK)
+        self.assertEqual(len(errors), 1)
 
 
 class TestLivenessTreatsManualRegistrationsAsInert(unittest.TestCase):

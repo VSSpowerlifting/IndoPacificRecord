@@ -131,7 +131,7 @@ class TestIsolationFromProduction(unittest.TestCase):
         """
         from core.manifests import load_all_desks
         configs = load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "indonesia", "japan", "korea", "philippines", "singapore", "vietnam"])
+        self.assertEqual(sorted(configs), ["china", "indonesia", "japan", "korea", "philippines", "singapore", "us-indopacific", "vietnam"])
         sg_sources = {s.slug: s for s in configs["singapore"].sources}
         self.assertIn("sg_mindef_releases", sg_sources)
         self.assertTrue(sg_sources["sg_mindef_releases"].enabled)
@@ -180,7 +180,7 @@ class TestIsolationFromProduction(unittest.TestCase):
         # appear once Daily's migration step has synced them.
         self.assertLessEqual({"china", "korea", "singapore", "vietnam"}, set(desks))
         self.assertLessEqual(set(desks), {"china", "indonesia", "japan", "korea",
-                                          "philippines", "singapore", "vietnam"})
+                                          "philippines", "singapore", "us-indopacific", "vietnam"})
         self.assertEqual(promoted, 57)
         self.assertEqual(orphaned, 0,
                          "a Singapore record names a scrape run that does not exist")

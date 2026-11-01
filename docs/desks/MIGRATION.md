@@ -155,22 +155,90 @@ Japan source pages are no longer rendered). Generated `output/` and the
 tracked `pla_watch.db` are deliberately not committed in this change: Daily's
 migration step inserts the rows and its render republishes the pages.
 
-**Not complete:** US reference families (USCC, Treasury, BIS) still have no
-manifest/registry entry and keep their separate release workflows; folding them
-into the same dispatcher is the next bounded phase. Vietnam governed admission
-(PR #933 bridge) is not routed through the dispatcher. `scripts/check_source_liveness.py`
-is keyed on `articles`, so manual link/machine-record sources stay `INERT` even
-when their `source_run_results` rows are `OK`; the W1 stop condition needs a
-liveness check keyed on `source_run_results`. A missing Daily envelope with
-activation on is reported as `FETCH_FAILURE` because the public pipeline cannot
+**Runtime migration 4 (US reference families through the same dispatcher;
+review candidate on `claude/indo-pacific-record-desks-c2452e`):**
+`desks/us-indopacific/manifest.json` registers `uscc_press_official_metadata`
+and `us_treasury_press_official_metadata` as **manual** production sources
+(authority tier A, `official_statement`, institutions `us_uscc` and
+`us_treasury`, English) on a desk whose registry status stays `access_blocked`
+and non-collecting. `desks/registry.json` points at that manifest and its first
+limit sentence now says what the two registrations are; `has_production_records`
+stays false, the owner-approved Pacific Command wording is unchanged, and the
+shadow DVIDS manifest under `shadow/us_indopacom` stays unwired.
+`pipeline._us_metadata_admission` adds one `GovernedAdmission` per family that
+reuses the existing importers (`scripts.admit_uscc_official_metadata.run`,
+`scripts.admit_us_treasury_official_metadata.run`) and their fixed-code holds
+(`USCCAdmissionHold`, `TreasuryAdmissionHold`) unchanged. Dispositions:
+`SKIPPED_DISABLED` ("preserved source history not delivered to this run") when
+the workflow hands the pipeline no checkout path (`IPR_USCC_SOURCE_CHECKOUT`,
+`IPR_US_TREASURY_SOURCE_CHECKOUT`); `LISTING_FAILURE` with
+`uscc_source_checkout_unavailable` / `treasury_source_checkout_unavailable`
+when the path has no `.git`; `OK` with the receipt's new-record count or
+`OK_ALL_DUPLICATES` when it admitted nothing new; `ADAPTER_ERROR` carrying only
+the fixed hold code on a hold; any other exception reported by type name only.
+No new activation variable exists: the standing owner approval of 15 October
+2026 (`docs/engineering/USCC_METADATA_ONLY_PRODUCTION_RELEASE_2026-10-15.md`,
+`docs/engineering/US_TREASURY_LIVE_METADATA_ADMISSION_2026-10-15.md`) governs
+these admissions exactly as it governed the retired jobs, and the gate is
+whether Daily delivered the preserved history. Daily gains one
+`continue-on-error` step after the Japan collector fetch that clones
+`shadow/uscc-press` and `shadow/us-treasury-press` into `runner.temp` with the
+workflow token, and its pipeline step receives the two paths, so one job runs
+migrate → verify → clone → admit → render → commit `pla_watch.db output/` →
+deploy. Retired from `uscc_verified_official_links_release.yml` and
+`treasury_verified_official_links_release.yml`: the `production-metadata-page-only`
+writer jobs, their `push`/`workflow_run`/`schedule` (22:17 and 22:31 UTC)/
+`workflow_dispatch` triggers and the `daily-update` concurrency claim; each
+keeps only its `isolated-render-contract` pull-request rehearsal, which writes
+nothing to main, the database or Pages. `us_metadata_migration_preflight.yml`
+now also runs for Daily edits. Two operational consequences are deliberate:
+admission follows Daily's 12:23/12:53 UTC schedule instead of the evening
+crons, so an observation committed after Daily is admitted on the next run
+(the importers are append-only and idempotent); and the retired jobs'
+refusal of a moving source branch is replaced by the importer pinning each
+run to the clone's HEAD (`source_commit_sha` in its receipt). BIS is excluded
+on purpose: its release is bound by its owner document and
+`tests/test_us_bis_verified_official_links_release.py` to a `workflow_run`
+event with REST-authenticated run attestation, which this dispatcher does not
+reproduce. Both slugs carry tier A in `processing/dedup.py`.
+Verification: `tests/test_manual_source_definitions.py` gains
+`TestUSMetadataGovernedDispatch` (importer/hold reuse, no activation variable
+awaited, missing clone, dry run, receipt statuses with pinned importer
+arguments, hold codes without source text, exception type only, family
+independence) and the roster now includes `pipeline._US_METADATA_FAMILIES`;
+`tests/test_us_metadata_migration_preflight.py` pins Daily's
+migrate → verify → clone → pipeline → commit order and the retired writers'
+PR-only shape; roster/contract pins moved to 8 desks and 15 registered sources;
+the affected modules (832 tests) pass, `scripts/validate_output.py` reports
+the 10 governed warnings, and a local `site/render.py` inspection shows the
+desks table at 2 configured / 2 enabled for the US desk, the desk page listing
+both sources as enabled with no records, and the two new source pages. The
+full offline suite result is recorded in the commit message. Generated
+`output/` and the tracked `pla_watch.db` are deliberately not committed:
+Daily's migration step inserts the desk/institution/source rows and its render
+republishes.
+
+**Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
+manifest/registry entry; folding it in needs a dispatcher-side run attestation
+or an owner decision to drop that binding. The first scheduled Daily run on the
+merged branch must show one `source_run_results` row per manual source (now
+six) and, for the two US families, either `OK`/`OK_ALL_DUPLICATES` receipts or
+a `LISTING_FAILURE` row if the clone step failed; until then the migration is a
+review candidate, not an operationally verified release. Vietnam governed
+admission (PR #933 bridge) is not routed through the dispatcher.
+`scripts/check_source_liveness.py` is keyed on `articles`, so manual
+link/metadata/machine-record sources stay `INERT` even when their
+`source_run_results` rows are `OK`; the W1 stop condition needs a liveness
+check keyed on `source_run_results`. A missing Daily envelope with activation
+on is reported as `FETCH_FAILURE` because the public pipeline cannot
 distinguish a private-side outage from a run that produced nothing. Tracked DB
-rows for the three desks appear only after Daily's migration step; registry-only
-source views render without institution names until then (Daily renders after
-migration, so the public site is unaffected). Remaining from earlier phases:
-China and Singapore migrations, `core/source_publication_contract.py`
-convergence, source-component grouping in #895 and model controls in #919. The
-qualification/Daily split and runtime migration 3 are review candidates, not
-merged or operationally verified releases. The #928 merge did not authorize
-deployment or prove a live HTTPS publication. Verify final-head checks and any
-operational readback from actual CI and release evidence; do not mark the
-remaining work done.
+rows for the four manual-source desks appear only after Daily's migration
+step; registry-only source views render without institution names until then
+(Daily renders after migration, so the public site is unaffected). Remaining
+from earlier phases: China and Singapore migrations,
+`core/source_publication_contract.py` convergence, source-component grouping
+in #895 and model controls in #919. The qualification/Daily split and runtime
+migrations 3 and 4 are review candidates, not merged or operationally verified
+releases. The #928 merge did not authorize deployment or prove a live HTTPS
+publication. Verify final-head checks and any operational readback from actual
+CI and release evidence; do not mark the remaining work done.

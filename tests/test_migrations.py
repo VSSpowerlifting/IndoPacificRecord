@@ -275,7 +275,8 @@ class TestApply(MigrationTestCase):
         self.assertEqual(sorted(desks), [("china", "legacy"), ("indonesia", "shadow"),
                                          ("japan", "shadow"), ("korea", "public"),
                                          ("philippines", "shadow"),
-                                         ("singapore", "public"), ("vietnam", "public")])
+                                         ("singapore", "public"), ("us-indopacific", "shadow"),
+                                         ("vietnam", "public")])
         self.assertGreaterEqual(insts, 5)
 
 
@@ -358,10 +359,10 @@ class TestReconcileReversion(MigrationTestCase):
         self.assertEqual(restored["article_ids"], migrated["article_ids"])
         self.assertEqual(restored["article_urls"], migrated["article_urls"])
         self.assertTrue(v["ok"])
-        # China, Korea, Singapore, Vietnam and the three manual-only desks.
-        self.assertEqual(desks, 7)
-        # Nine fetched/bridged sources plus the four manual registrations.
-        self.assertEqual(sources_with_desk, 13)
+        # China, Korea, Singapore, Vietnam and the four manual-only desks.
+        self.assertEqual(desks, 8)
+        # Nine fetched/bridged sources plus the six manual registrations.
+        self.assertEqual(sources_with_desk, 15)
 
 
 class TestRollback(MigrationTestCase):
