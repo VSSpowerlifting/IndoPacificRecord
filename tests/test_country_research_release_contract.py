@@ -128,7 +128,7 @@ class CountryResearchReleaseContract(unittest.TestCase):
         text = self.body
         self.assertIn("test -f output/japan.html", text)
         self.assertIn('japan = country["japan"]', text)
-        self.assertIn('japan["manifest"] == "shadow/jp_mod/manifest.json"', text)
+        self.assertIn('japan["manifest"] == "desks/japan/manifest.json"', text)
         self.assertIn('japan["has_production_records"] is False', text)
         self.assertIn('"https://www.mod.go.jp/j/press/news/"', text)
         self.assertIn('"https://www.mod.go.jp/j/update/index.html"', text)

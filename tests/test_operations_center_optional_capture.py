@@ -27,7 +27,7 @@ class OptionalDailyActionsContracts(unittest.TestCase):
         self.production = {"sources": [], "per_source_history_available": True,
                            "generated_at": "2026-10-09 01:00:00"}
         for desk in self.registry:
-            if not desk.is_collecting:
+            if not desk.manifest_path:  # every production registration is observed
                 continue
             for source in desk.sources:
                 self.production["sources"].append({

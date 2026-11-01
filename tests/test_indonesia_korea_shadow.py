@@ -104,14 +104,18 @@ class Evidence(Case):
     def test_indonesia_manifest_is_absent_from_production_despite_public_directory(self):
         # Korea left this shadow pair through the owner activation
         # (scripts/korea_daily_activation.py); Indonesia remains shadow.
-        self.assertNotIn("indonesia", load_all_desks())
+        # Indonesia's Kemhan family is a manual production registration
+        # (runtime migration 3): the desk stays shadow and fetches nothing.
+        indonesia = load_all_desks()["indonesia"]
+        self.assertFalse(indonesia.desk.active)
+        self.assertEqual({s.access_method for s in indonesia.sources}, {"manual"})
         entries = {d["slug"]: d for d in json.loads(
             (ROOT / "desks/registry.json").read_text())["desks"]}
         for slug in ("indonesia",):
             entry = entries[slug]
             self.assertTrue(entry["public"])
             self.assertEqual(entry["status"], "shadow")
-            self.assertIsNone(entry["manifest"])
+            self.assertEqual(entry["manifest"], "desks/indonesia/manifest.json")
             self.assertFalse(entry["has_production_records"])
 
     def test_korean_ministry_policy_blocks_the_publication_paths(self):

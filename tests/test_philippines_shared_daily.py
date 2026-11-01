@@ -365,13 +365,17 @@ class SharedDaily(unittest.TestCase):
         self.assertEqual(conn.execute("SELECT publication_state FROM daily_machine_records").fetchone()[0], "held")
         conn.close()
 
-    def test_public_intake_isolates_bad_family_envelope(self):
-        from processing.daily_runner import public_intake
+    def test_intake_family_raises_on_bad_envelope_and_is_silent_when_absent(self):
+        # Family failures are isolated by the pipeline's governed dispatch, which
+        # records the raised hold as that source's row; nothing here swallows it.
+        from processing.daily_runner import intake_family
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "ph_nsc_official_statements.json").write_text('{"packet":null,"mac":"bad"}')
-            result = public_intake(Path(tmp) / "scratch.db", tmp)
-        self.assertIn("ph_nsc_official_statements", result)
-        self.assertNotIn("ph_afp_articles", result)
+            with self.assertRaises(d.IntakeHold):
+                intake_family(Path(tmp) / "scratch.db", tmp, "ph_nsc_official_statements")
+            self.assertIsNone(intake_family(Path(tmp) / "scratch.db", tmp, "ph_afp_articles"))
+            with self.assertRaisesRegex(d.IntakeHold, "daily_source_family_invalid"):
+                intake_family(Path(tmp) / "scratch.db", tmp, "not_a_family")
 
     def test_disabled_fetch_never_calls_private_api(self):
         from scripts.fetch_daily_machine_outputs import main

@@ -1,5 +1,38 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared desk architecture, runtime migration 3 — manual production sources and one governed dispatch (1 November 2026, review candidate)
+
+The Philippines (AFP, NSC), Indonesia (Kemhan) and Japan (MOD news feed) source
+families are now registered as manual production sources through
+`desks/philippines/manifest.json`, `desks/indonesia/manifest.json` and
+`desks/japan/manifest.json`; `desks/registry.json` points at them while the
+three desks stay `shadow` and non-collecting. `pipeline.run_governed_manual_sources`
+dispatches every manual source (Korea bridge, the three Daily families, Japan
+official links) through one `GovernedAdmission` table, so each writes a
+`source_run_results` row with one shared disposition (awaiting activation,
+receipt, hold code, missing envelope, missing collector ref). The replaced
+Stage 14 `public_intake` call and Daily's separate Japan admission step are
+removed; the workflow passes the existing activation variables to the pipeline
+step unchanged. Public Daily still fetches nothing from these publishers and no
+original document enters the public record through these rows.
+
+The operations center observes the manual rows without counting the desks as
+collecting, and the four slugs carry authority tier A in dedup.
+
+Verified: new `tests/test_manual_source_definitions.py`, updated roster/contract
+tests, full offline suite (remaining failures reproduce on the unchanged base
+commit and are environment-only), `scripts/validate_output.py` at the 10
+governed warnings, and a local render inspection. Generated `output/` and the tracked DB
+are not part of the change; Daily's migration sync inserts the rows and its
+render republishes. Not done: US reference family registration, Vietnam through
+the dispatcher, a liveness check keyed on `source_run_results` (manual sources
+remain `INERT` under the `articles`-keyed gate), and the W1 seven-run
+observation. No activation flag, merge, deployment or paid model run is implied.
+
+Next action: review and merge this candidate, confirm the first scheduled Daily
+run writes a row per manual source, then register the US reference families
+through the same manifest and dispatcher.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one

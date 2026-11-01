@@ -186,12 +186,13 @@ jobs:
               assert "data-reference-list" not in text
               assert "state/shadow.db" not in text
               assert "text_original" not in text and "body_original" not in text
-          # Japan is a public research route, but its manifest is deliberately
-          # SHADOW-only. It must not be treated as a production desk or as an
-          # extension of the Vietnam/Indonesia reviewed-record mechanism.
+          # Japan is a public research route whose production manifest registers
+          # one manual, never-fetched source for governed link admission. It is
+          # still a shadow desk: not a collecting desk, and not an extension of
+          # the Vietnam/Indonesia reviewed-record mechanism.
           japan = country["japan"]
           assert japan["public"] is True and japan["status"] == "shadow"
-          assert japan["manifest"] == "shadow/jp_mod/manifest.json"
+          assert japan["manifest"] == "desks/japan/manifest.json"
           assert japan["has_production_records"] is False
           japan_html = (base / "japan.html").read_text(encoding="utf-8")
           assert "Shadow evaluation" in japan_html

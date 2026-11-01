@@ -563,7 +563,9 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                          ["ANALYSIS_MODEL", "ANTHROPIC_API_KEY", "CATEGORIZATION_MODEL",
                           "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
-                          "FALLBACK_MODEL", "IPR_DAILY_INTAKE_DIR", "KOREA_DAILY_AUTOMATION_ENABLED",
+                          "FALLBACK_MODEL", "GH_TOKEN", "IPR_DAILY_INTAKE_DIR",
+                          "IPR_PRIVATE_DAILY_ENABLED", "JAPAN_MOD_OFFICIAL_LINKS_ENABLED",
+                          "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE", "RELEVANCE_MODEL", "SUMMARY_MODEL",
                           "TRANSLATION_MODEL", "VPCP_METADATA_ONLY"])

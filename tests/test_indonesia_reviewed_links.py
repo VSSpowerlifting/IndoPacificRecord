@@ -55,7 +55,8 @@ class IndonesiaPublicLinkGate(unittest.TestCase):
         d = load_registry().get("indonesia")
         self.assertEqual(d.status, "shadow")
         self.assertFalse(d.has_production_records)
-        self.assertIsNone(d.manifest_path)
+        self.assertEqual(d.manifest_path, "desks/indonesia/manifest.json")
+        self.assertFalse(d.is_collecting)
 
     def test_synthetic_approved_metadata_only(self):
         row = self.load([fixture()])[0]

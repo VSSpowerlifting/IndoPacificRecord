@@ -86,10 +86,11 @@ class TestRegistryDrivesCollection(unittest.TestCase):
     def test_registry_exposes_the_declared_sources(self):
         self.assertEqual(
             SourceRegistry().slugs,
-            ["china_mil_online", "global_times_mil", "kr_policy_mnd_releases",
-             "mod_china", "pla_daily", "sg_mindef_releases",
-             "vn_mps_foreign_affairs_vi", "vn_vpcp_official_documents_vi",
-             "xinhua_mil"],
+            ["china_mil_online", "global_times_mil", "id_kemhan_news",
+             "jp_mod_news_ja", "kr_policy_mnd_releases", "mod_china",
+             "ph_afp_articles", "ph_nsc_official_statements", "pla_daily",
+             "sg_mindef_releases", "vn_mps_foreign_affairs_vi",
+             "vn_vpcp_official_documents_vi", "xinhua_mil"],
         )
 
     def test_slug_view_answers_membership_and_keys(self):
@@ -228,9 +229,14 @@ class TestNoSourceStarvesAnother(unittest.TestCase):
             result("kr_policy_mnd_releases", st.OK_NO_PUBLICATIONS),
             result("vn_mps_foreign_affairs_vi", st.NOT_IMPLEMENTED),
             result("vn_vpcp_official_documents_vi", st.NOT_IMPLEMENTED),
+            # Manual registrations report their governed-admission disposition.
+            result("ph_afp_articles", st.SKIPPED_DISABLED),
+            result("ph_nsc_official_statements", st.SKIPPED_DISABLED),
+            result("id_kemhan_news", st.SKIPPED_DISABLED),
+            result("jp_mod_news_ja", st.SKIPPED_DISABLED),
         ]
         report = machine_report(results)
-        self.assertEqual(report["source_count"], 9)
+        self.assertEqual(report["source_count"], 13)
         self.assertEqual(
             sorted(s["source_slug"] for s in report["sources"]),
             SourceRegistry().slugs,
@@ -379,9 +385,9 @@ class TestConfigSyncIsIdempotent(unittest.TestCase):
         desks = conn.execute("SELECT COUNT(*) FROM desks").fetchone()[0]
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(n, 9)
-        self.assertEqual(desks, 4)
-        self.assertEqual(insts, 9)      # Korea adds Policy Briefing and MND; Vietnam the Government Office
+        self.assertEqual(n, 13)         # 9 fetched + 4 manual registrations (PH x2, ID, JP)
+        self.assertEqual(desks, 7)
+        self.assertEqual(insts, 13)     # Korea adds Policy Briefing and MND; Vietnam the Government Office; PH AFP+NSC, ID Kemhan, JP MOD
 
     def test_sync_populates_authority_and_originality(self):
         conn = connect(self.db_path)
@@ -419,7 +425,7 @@ class TestScrapersSlugView(unittest.TestCase):
 
     def test_iteration_and_len(self):
         self.assertEqual(sorted(self.pipeline.SCRAPERS), SourceRegistry().slugs)
-        self.assertEqual(len(self.pipeline.SCRAPERS), 9)
+        self.assertEqual(len(self.pipeline.SCRAPERS), 13)
 
     def test_subscripting_raises_with_a_pointer_to_the_real_api(self):
         with self.assertRaises(TypeError) as ctx:
@@ -613,7 +619,7 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
     def test_production_manifest_declares_no_russia_desk(self):
         configs = __import__("core.manifests", fromlist=["load_all_desks"]) \
             .load_all_desks()
-        self.assertEqual(sorted(configs), ["china", "korea", "singapore", "vietnam"])
+        self.assertEqual(sorted(configs), ["china", "indonesia", "japan", "korea", "philippines", "singapore", "vietnam"])
         for cfg in configs.values():
             for src in cfg.sources:
                 self.assertNotEqual(src.language_tag.split("-")[0], "ru")
@@ -641,12 +647,21 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
         with _read_only(str(prod)) as con:
             desks = {r[0] for r in con.execute("SELECT DISTINCT desk_id FROM desks")}
             slugs = {r[0] for r in con.execute("SELECT slug FROM sources")}
-        self.assertEqual(desks, {"china", "korea", "singapore", "vietnam"})
-        self.assertEqual(slugs, {"pla_daily", "mod_china", "xinhua_mil",
-                                 "global_times_mil", "china_mil_online",
-                                 "sg_mindef_releases", "kr_policy_mnd_releases",
-                                 "vn_mps_foreign_affairs_vi",
-                                 "vn_vpcp_official_documents_vi"})
+        # The tracked database lags a newly registered manifest until Daily's
+        # migration step syncs it, so configuration bounds the database from
+        # above and the collecting desks bound it from below.
+        self.assertLessEqual({"china", "korea", "singapore", "vietnam"}, desks)
+        self.assertLessEqual(desks, {"china", "indonesia", "japan", "korea",
+                                     "philippines", "singapore", "vietnam"})
+        fetched = {"pla_daily", "mod_china", "xinhua_mil",
+                   "global_times_mil", "china_mil_online",
+                   "sg_mindef_releases", "kr_policy_mnd_releases",
+                   "vn_mps_foreign_affairs_vi",
+                   "vn_vpcp_official_documents_vi"}
+        manual_registrations = {"ph_afp_articles", "ph_nsc_official_statements",
+                                "id_kemhan_news", "jp_mod_news_ja"}
+        self.assertLessEqual(fetched, slugs)
+        self.assertLessEqual(slugs, fetched | manual_registrations)
 
 
 class TestSyncAtomicityAtPersistence(unittest.TestCase):

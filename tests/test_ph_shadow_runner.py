@@ -172,10 +172,14 @@ class TestIsolation(StateCase):
         self.assertEqual(tree_fingerprint(REPO_ROOT / "output"), before_out)
         self.assertFalse((REPO_ROOT / "pla_watch.db-wal").exists())
 
-    def test_the_manifest_is_not_discoverable_as_a_production_desk(self):
-        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore", "vietnam"])
+    def test_the_shadow_manifest_is_not_the_production_registration(self):
+        """The shadow runner reads shadow/ph_afp. The production registration
+        under desks/philippines declares the same source as manual, with no
+        adapter, so nothing in production ever fetches it."""
         self.assertTrue((REPO_ROOT / "shadow" / "ph_afp" / "manifest.json").is_file())
-        self.assertFalse((REPO_ROOT / "desks" / "philippines").exists())
+        afp = {s.slug: s for s in load_all_desks()["philippines"].sources}["ph_afp_articles"]
+        self.assertEqual(afp.access_method, "manual")
+        self.assertIsNone(afp.adapter)
 
     def assert_read_only_afp_observer(self, workflow_text):
         """Exception is solely for metadata-only manual reviewer workflows.

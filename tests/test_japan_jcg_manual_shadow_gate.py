@@ -77,8 +77,11 @@ class JapanJCGManualShadow(unittest.TestCase):
         self.assertEqual(source.desk_id, "japan_jcg")
         self.assertEqual(source.language_tag, "en")
         self.assertNotIn("japan_jcg", load_all_desks())
-        self.assertNotIn("japan", load_all_desks())
-        self.assertFalse((ROOT / "desks/japan/manifest.json").exists())
+        self.assertNotIn("jp_jcg_press_en",
+                         {s.slug for s in load_all_desks()["japan"].sources})
+        production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
+        self.assertNotIn("jcg", json.dumps(production).lower())
 
     def test_workflow_manual_only_and_no_production_or_artifact_bodies(self):
         text = (ROOT / ".github/workflows/japan_jcg_shadow_manual.yml").read_text()

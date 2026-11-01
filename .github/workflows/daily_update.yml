@@ -344,20 +344,20 @@ jobs:
         run: |
           python -m scripts.collect_vietnam_government_documents --database pla_watch.db --gate-dir "$RUNNER_TEMP/vpcp-host-gate"
 
-      # Reuse the existing Japan collector and this Daily's SQLite/render/Pages
-      # writer. Both a recorded source policy and explicit owner activation are
-      # required. No model call, source fetch, new schedule or parallel publisher.
-      - name: Admit authorized Japan MOD news official links
+      # Make the existing Japan collector branch available to the pipeline. The
+      # admission itself runs inside "Run pipeline" as the jp_mod_news_ja
+      # governed admission, so its disposition is that source's run-result row
+      # (an unavailable branch is reported there as listing_failure), not this
+      # step's outcome. Both a recorded source policy and explicit owner
+      # activation are required there. No model call, source fetch, new
+      # schedule or parallel publisher.
+      - name: Fetch Japan MOD collector branch for governed admission
         if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
         run: |
           set -euo pipefail
           python -c 'from core.japan_mod_official_links import require_authorization; require_authorization()'
           git fetch --no-tags origin refs/heads/shadow/jp-mod:refs/remotes/origin/shadow/jp-mod
-          python -m scripts.admit_japan_mod_official_links
 
       # Korean MND texts come only from the already verified, released source index.
       # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
@@ -379,7 +379,13 @@ jobs:
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
+          # Governed manual admissions run inside the pipeline so every manual
+          # source gets a run-result row. Each activation is a separate owner
+          # act; unset leaves that source reported as awaiting activation.
+          IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
+          GH_TOKEN: ${{ github.token }}
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
