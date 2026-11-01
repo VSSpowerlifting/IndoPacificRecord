@@ -4,6 +4,49 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-01 — Owner: Brief cadence, length and editor operating model
+
+Benjamin Yang set how often IPR publishes Briefs, how long they run and how
+human editors work on them. The aim is more excellent Briefs when the week's
+evidence supports them, never more Briefs for their own sake, with human
+judgment and source integrity unchanged.
+
+1. One Brief a week is the normal cadence, not a ceiling. An additional Brief
+   runs only when an independent development is significant and well sourced
+   enough to stand on its own. There is no quota or target count.
+2. A Brief ordinarily runs 700–1,200 words; about 900–1,050 is a preference,
+   not a requirement. Thin evidence is not padded. Material that needs
+   substantially more is a candidate for an Assessment, not a longer Brief.
+3. Each Brief covers one coherent development or a closely connected set.
+   Unrelated stories are never bundled to fill a Brief.
+4. Ben alone decides whether a week carries an additional Brief. Each Brief
+   has its own manuscript, reconciliation, issue number and approval.
+5. Editors work from standing `docs/IPR_EDITOR_INSTRUCTIONS.md`, plus a short
+   story-specific assignment (`docs/IPR_EDITOR_ASSIGNMENT_TEMPLATE.md`) for
+   each manuscript. For the scheduled Sunday manuscript, the assignment is
+   optional when there is nothing story-specific to add.
+6. Each manuscript has one assigned editor. Dylan, as Lead Research Analyst,
+   edits the Sunday manuscript; other contributors take assignments as needed.
+   No roster file, intake form or gate is added.
+7. Bylines and credit are decided per issue by Ben. Being on the staff page or
+   editing a manuscript does not by itself carry credit.
+8. Editors return Word files with their changes still tracked; Ben accepts or
+   rejects them before intake. About 48 hours is the default turnaround and
+   Monday 8 p.m. ET the Sunday target. A late return is still reviewed; the
+   deadline is a planning target, not an automatic rejection.
+9. The automated Sunday writer still emits one manuscript per run. A second
+   Brief in the same week comes from an owner-selected manual run or a human
+   draft. Producing several manuscripts automatically, and aligning the writer
+   and selection prompts with the 700–1,200 target, are separate engineering
+   changes needing their own approval.
+
+Points 4–8 and the 900–1,050 preference in point 2 were first proposed as
+defaults in PR #945; Ben confirmed all of them on 2026-11-01.
+
+This entry changes documentation only. It adds no workflow, model call,
+schedule, email send, issue numbering, source-rights, merge, deployment or
+publication authority.
+
 ## 2026-11-01 — Owner: freeze on new proof and contract workflows until Daily is stable
 
 Benjamin Yang froze the addition of new proof, contract, rehearsal or desk

@@ -20,8 +20,11 @@ prose remain human-controlled.
 - [ ] Figures, quotations, titles and terms were checked against the original wording.
       See `docs/IPR_BRIEFS_WRITING_STANDARD.md`.
 
-## After Dylan returns an edited manuscript (required before any Brief)
+## After the editor returns an edited manuscript (required before any Brief)
 
+- [ ] If the editor returned a Word file: reviewed every tracked change and
+      comment and accepted or rejected each one before intake (the importer
+      refuses tracked changes; see `docs/IPR_EDITOR_INSTRUCTIONS.md`).
 - [ ] Ran `scripts/analyze_editor_return.py`; worked through every item under
       "Reconciliation required before any Brief".
 - [ ] Every changed or added claim, figure, name, title, quotation and citation was
@@ -31,6 +34,9 @@ prose remain human-controlled.
       appendix are **structural only**. The ARTICLE SOURCE ACCOUNTING maps the original
       blocks, so it is not approval of any rewritten paragraph.
 - [ ] The appendix itself was not edited to match the new text.
+- [ ] In a week with more than one Brief, each one was reconciled, numbered and
+      approved on its own; no Brief cross-references or bundles another's
+      development (doctrine §5b).
 
 ## Automated (deploy gate — must pass)
 

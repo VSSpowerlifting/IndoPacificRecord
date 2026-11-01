@@ -1,5 +1,11 @@
 # Friday automatic Indo-Pacific Record Briefs draft → Dylan
 
+> **Superseded.** Sunday is the editorial handoff
+> (`docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md`); the Friday workflow is a manual-only
+> legacy preview with no scheduled delivery. Editors work from
+> `docs/IPR_EDITOR_INSTRUCTIONS.md`. The rest of this page is kept for that
+> legacy path.
+
 This is an **editorial drafting and email handoff**, NOT a publishing workflow.
 The archived "The PLA Watch" generator remains retired. This workflow uses a
 separate source-bounded assisted writer for **Indo-Pacific Record Briefs**.

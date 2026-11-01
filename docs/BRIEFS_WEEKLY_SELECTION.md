@@ -51,7 +51,11 @@ and a source-grounded explanation. No source-count or model-flag bonus exists.
 
 `ready` candidates must score at least 3 on significance, evidence, novelty and
 timeliness. Aggregate scores cannot rescue weak evidence or routine activity.
-The highest qualifying score wins; a tie permits either tied lead. Both the
+The highest qualifying score wins; a tie permits either tied lead. The program
+emits one manuscript per run. Editorially, a second qualifying, independent
+candidate may become a second Brief that week (doctrine §5b, DECISION_LOG
+2026-11-01), but only through an owner-selected manual run or a human draft;
+the selector does not yet return several winners. Both the
 development and opening must cite the selected evidence and may add only its
 declared counterevidence. Exact excerpt matching prevents invented evidence
 anchors; ordinary section citation and reserved-boundary checks still run.
