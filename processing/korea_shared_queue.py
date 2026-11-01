@@ -59,6 +59,7 @@ class LaneReport:
     processed: list = field(default_factory=list)
     not_relevant: list = field(default_factory=list)
     qa_held: list = field(default_factory=list)       # (identity, reasons)
+    qa_located: dict = field(default_factory=dict)    # identity -> code@line, logs only
     retryable: list = field(default_factory=list)     # (identity, reason)
     paused: list = field(default_factory=list)
     repaired: list = field(default_factory=list)
@@ -248,6 +249,7 @@ def run(analyzer, *, cap: int, db, profile=None,
                             attempts=attempts_before + 1,
                             versions=_versions(result))
             report.qa_held.append((ident, reasons))
+            report.qa_located[ident] = checked.located_string()
             continue
 
         db.update_relevance(aid, score=result["relevance_score"],
@@ -285,6 +287,7 @@ def _log(report: LaneReport) -> None:
         len(report.paused), len(report.repaired),
         "; stopped: account-level block" if report.blocked else "")
     for ident, reasons in report.qa_held:
-        logger.warning("Korea lane QA hold: %s %s", ident, reasons)
+        logger.warning("Korea lane QA hold: %s %s", ident,
+                       report.qa_located.get(ident, reasons))
     for ident, reason in report.retryable + report.paused:
         logger.warning("Korea lane failure: %s %s", ident, reason)
