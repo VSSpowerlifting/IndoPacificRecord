@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 import re
+from datetime import date, timedelta
 
 BEGIN = "=== EDITABLE MANUSCRIPT ==="
 APPENDIX = "=== SOURCE APPENDIX — DO NOT EDIT ==="
@@ -40,27 +41,28 @@ PROSE_TITLES = {
 }
 INTRO = (
     "Hi Dylan,\n\n"
-    "Here's this week's working IPR Brief in a cleaner reading format. "
-    "Could you focus on the language, flow, clarity, and whether the argument "
-    "sounds natural? Feel free to rewrite paragraphs or suggest cuts. "
-    "If a claim strikes you as questionable, just flag it—I’ll handle the "
-    "source verification and final publication review.\n\n"
-    "Please edit and return the attached Word manuscript, or reply with "
-    "language suggestions. The separate .txt file is only a source-audit "
-    "reference and does not need your edits. This is still a provisional draft.\n\n"
+    "Here's this week's IPR Brief manuscript for your edit. The standing IPR "
+    "Editor Instructions are attached; the specifics for this one are below. "
+    "Please focus on the language, flow, clarity and structure: rewrite, "
+    "reorder, merge, split or cut paragraphs, and change or drop subheads. "
+    "If a claim strikes you as questionable, flag it in a comment—I’ll handle "
+    "the source verification, permissions and final publication review. "
+    "This is still a provisional, unapproved draft."
 )
-INTRO_ARTICLE = (
-    "Hi Dylan,\n\n"
-    "Here's this week's working IPR Brief as a single article. Could you focus "
-    "on the language, flow, clarity, and whether the argument sounds natural? "
-    "Please feel free to reorder, merge, split or rewrite paragraphs, change or "
-    "drop subheads, and suggest cuts. If a claim strikes you as questionable, "
-    "just flag it—I’ll handle the source verification, permissions and final "
-    "publication review.\n\n"
-    "Please edit and return the attached Word manuscript, or reply with "
-    "language suggestions. The separate .txt file is only a source-audit "
-    "reference and does not need your edits. This is still a provisional draft.\n\n"
+REPLY = (
+    "Please reply in this thread with the edited Word file, changes still "
+    "tracked, and a short note on what you changed and anything to check. "
+    "If the timing does not work, tell me as soon as you can."
 )
+READING_NOTE = (
+    "A reading copy follows; please make your edits in the attached Word file."
+)
+ATTACHED = (
+    "the Word manuscript (your editing file, Track Changes on); the .txt "
+    "worksheet (source-audit reference, no edits needed); IPR Editor Instructions"
+)
+# Instructions §4; the assignment states the draft's length against it.
+TARGET_WORDS = (700, 1200)
 CLOSING = "\n\nThanks,\nBen\n"
 
 
@@ -148,11 +150,62 @@ def accounting_citations(packet):
     return cited
 
 
-def prose_only_text(original):
+def _plain(text):
+    return re.sub(r"\*\*([^\n*]+)\*\*", r"\1", text)
+
+
+def _due(week_ending):
+    """Instructions §9: the Sunday manuscript is due Monday, 8 p.m. ET."""
+    try:
+        monday = date.fromisoformat(str(week_ending)) + timedelta(days=2)
+    except ValueError:
+        monday = None
+    if monday is None or monday.weekday() != 0:
+        return "Monday, 8 p.m. ET"
+    return "Monday {} {}, 8 p.m. ET".format(monday.day, monday.strftime("%B %Y"))
+
+
+def assignment(original, week_ending=None):
+    """``[(label, value)]`` for the story-specific assignment (template fields).
+
+    Deterministic and drawn only from the editable prose and the hash-pinned
+    accounting counts; the INTERNAL focus/questions sections never appear.
+    """
+    sections = dict(editable_sections(original))
+    body = [text for key, text in sections.items() if key not in ("WORKING TITLE", "DEK")]
+    words = sum(len(_plain(text).split()) for text in body)
+    low, high = TARGET_WORDS
+    length = "about {:,} words, against the usual {:,}–{:,}".format(words, low, high)
+    if words < low:
+        length += "; shorter than usual, so please do not pad it"
+    elif words > high:
+        length += "; longer than usual, so please cut what does not earn its place"
+    rows = [
+        ("Working title", _plain(sections["WORKING TITLE"])),
+        ("The development", _plain(sections["DEK"])),
+        ("This Brief is", "the week's regular Sunday Brief"),
+    ]
+    try:
+        cited = accounting_citations(original)
+    except ReadableEditorError:
+        cited = None
+    if cited:
+        records = sum(1 for kind, _ in cited if kind == "Record")
+        external = len(cited) - records
+        parts = ["{} preserved official record{}".format(records, "" if records == 1 else "s")]
+        if external:
+            parts.append("{} official research source{}".format(external, "" if external == 1 else "s"))
+        rows.append(("Sources", " and ".join(parts) + " (listed in the .txt worksheet)"))
+    rows.extend((("Length", length), ("Due", _due(week_ending)), ("Attached", ATTACHED)))
+    return rows
+
+
+def prose_only_text(original, week_ending=None):
     """Readable plain-text editorial copy for the multipart email fallback."""
     sections = editable_sections(original)
-    article = is_article_layout(sections)
-    out = [(INTRO_ARTICLE if article else INTRO).rstrip(), ""]
+    out = [INTRO, ""]
+    out.extend("- {}: {}".format(label, value) for label, value in assignment(original, week_ending))
+    out.extend(("", REPLY, "", READING_NOTE, "", ""))
     for key, text in sections:
         # Plain-text mail clients also deserve prose without Markdown stars.
         text = re.sub(r"\*\*([^\n*]+)\*\*", r"\1", text)
@@ -180,10 +233,10 @@ def _paragraph_html(text):
     )
 
 
-def prose_only_html(original):
+def prose_only_html(original, week_ending=None):
     """Professional article-first HTML; all technical source data stays out."""
     sections = editable_sections(original)
-    article = is_article_layout(sections)
+    para = "<p>{}</p>".format
     out = [
         '<!doctype html><html><body style="margin:0;padding:0;background:#ffffff;">',
         '<div style="max-width:680px;margin:20px auto;padding:24px 20px;'
@@ -193,9 +246,13 @@ def prose_only_html(original):
         "Indo-Pacific Record / Working Brief</div>",
         '<div style="font:14px Arial,sans-serif;color:#435664;line-height:1.6;'
         'padding:0 0 18px;border-bottom:1px solid #d8e1e6;margin-bottom:20px;">'
-        + "".join("<p>" + html.escape(p, quote=True).replace("\n", " ") +
-                  "</p>" for p in (INTRO_ARTICLE if article else INTRO).strip().split("\n\n")) +
-        "</div>",
+        + "".join(para(html.escape(p, quote=True)) for p in INTRO.split("\n\n"))
+        + '<ul style="margin:0 0 14px;padding-left:20px;">'
+        + "".join("<li><strong>{}:</strong> {}</li>".format(
+            html.escape(label, quote=True), html.escape(value, quote=True))
+            for label, value in assignment(original, week_ending))
+        + "</ul>" + para(html.escape(REPLY, quote=True))
+        + para(html.escape(READING_NOTE, quote=True)) + "</div>",
     ]
     for key, text in sections:
         if key == "WORKING TITLE":

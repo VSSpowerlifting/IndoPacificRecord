@@ -363,6 +363,16 @@ def quality_hold(packet_text):
     return "\n## ARTICLE\n" in packet_text
 
 
+def _editor_body_for_owner(original_attachment, week_ending):
+    """The exact plain-text body Dylan would receive, so the owner reviews it too."""
+    from scripts.sunday_editor_readable import ReadableEditorError, prose_only_text
+    try:
+        body = prose_only_text(original_attachment.decode("utf-8"), week_ending)
+    except ReadableEditorError as exc:
+        return "\nEDITOR EMAIL BODY NOT GENERATED ({}).\n".format(exc)
+    return "\n----- EXACT EDITOR EMAIL BODY BELOW -----\n\n" + body
+
+
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
                 preview_to_owner=False, owner_released=False):
     """Mail the exact bytes at ``path``.
@@ -419,6 +429,19 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             # Dylan would receive cannot be produced from these bytes.
             docx_note = ("WORD COPY NOT GENERATED ({}). Dylan delivery would fail "
                          "for this file.\n\n".format(exc))
+    # Every editorial email carries the standing Editor Instructions; an
+    # editor send without them fails closed, a preview says so.
+    instructions, instructions_note = None, ""
+    if full_week:
+        from scripts.sunday_editor_instructions import (
+            FILENAME as INSTRUCTIONS_FILENAME, EditorInstructionsError, render_instructions_docx)
+        try:
+            instructions = render_instructions_docx()
+        except EditorInstructionsError as exc:
+            if not preview_to_owner:
+                raise
+            instructions_note = ("EDITOR INSTRUCTIONS NOT ATTACHED ({}). Dylan delivery "
+                                 "would fail for this file.\n\n".format(exc))
     message = EmailMessage()
     message["From"] = sender
     message["To"] = recipient
@@ -434,7 +457,7 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
              "NOT sent to Dylan. To release these exact bytes without a new model run, review "
              "them, then use scripts.sunday_send_reviewed_packet with this digest "
              "(see docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md).\n\n" if held else "")
-            + docx_note
+            + docx_note + instructions_note
             + "Private owner-only preview of the unapproved Sunday IPR Brief.\n\n"
             "This attachment was NOT delivered to Dylan. Inspect the generated "
             "single-theme manuscript, all numeric production record citations, "
@@ -449,6 +472,9 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             + hashlib.sha256(original_attachment).hexdigest() + "\n"
             + (("Exact attached Word copy SHA-256: "
                 + hashlib.sha256(edited_copy).hexdigest() + "\n") if edited_copy is not None else "")
+            + (("Exact attached Editor Instructions SHA-256: "
+                + hashlib.sha256(instructions).hexdigest() + "\n") if instructions is not None else "")
+            + _editor_body_for_owner(original_attachment, week_ending)
         )
     elif full_week:
         # The exact immutable TXT was already checked against the owner's
@@ -457,9 +483,9 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         # provenance hashes, source IDs, source appendices, or a .txt envelope.
         from scripts.sunday_editor_readable import prose_only_html, prose_only_text
         original_text = original_attachment.decode("utf-8")
-        message["Subject"] = "IPR Briefs | week ending {} | Sunday draft for language edits".format(week_ending)
-        message.set_content(prose_only_text(original_text))
-        message.add_alternative(prose_only_html(original_text), subtype="html")
+        message["Subject"] = "IPR Brief edit — week ending {}".format(week_ending)
+        message.set_content(prose_only_text(original_text, week_ending))
+        message.add_alternative(prose_only_html(original_text, week_ending), subtype="html")
     else:
         message["Subject"] = "IPR Briefs | week ending {} | provisional editor draft".format(week_ending)
         message.set_content(
@@ -481,13 +507,19 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
             subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
             filename="IPR-Briefs-Editorial-{}.docx".format(week_ending),
         )
+    if instructions is not None:
+        message.add_attachment(
+            instructions, maintype="application",
+            subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=INSTRUCTIONS_FILENAME,
+        )
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=30) as smtp:
         smtp.login(sender, password)
         smtp.send_message(message)
     if held:
         raise OwnerReviewRequired(
             "Held by the narrative quality gate: NOT sent to Dylan. The identical "
-            "bytes (TXT + DOCX) were sent to the owner-only preview address.")
+            "bytes (TXT and Word files) were sent to the owner-only preview address.")
 
 
 def main(argv=None):

@@ -20,9 +20,18 @@ publication manuscript or source admission. Missing or unsafe cited URLs
 refuse the DOCX projection before SMTP. The exact reviewed original .txt
 continues to be approved and attached unchanged.
 
-The owner-only preview continues to carry just the exact original text; no
-separate Word editing copy is generated for previews. The first October 11
-manual delivery already happened and must not be replayed.
+A third attachment, `IPR-Editor-Instructions.docx`, renders the editor-facing
+part of `docs/IPR_EDITOR_INSTRUCTIONS.md` (the owner note is stripped) with
+stable bytes. The email body opens with an automatic assignment (title,
+development, sources, length, Monday 8 p.m. ET due time, attachments) built
+only from the reviewed manuscript; editorial questions and focus stay in the
+TXT. If the instructions are missing or reshaped, the Dylan send fails before
+SMTP; the owner preview still arrives and names the problem.
+
+The owner-only preview attaches the same TXT, Word and instructions bytes
+(with their SHA-256 lines) and then reproduces the exact editor email body,
+so the owner reviews what Dylan would receive. The first October 11 manual
+delivery already happened and must not be replayed.
 
 When Dylan returns the edited Word file, use the offline, source-safe converter.
 It reads only article section headings and paragraphs, ignores the contextual

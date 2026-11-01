@@ -8,8 +8,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts.sunday_editor_instructions import (
+    EditorInstructionsError, editor_instructions_markdown, render_instructions_docx,
+)
 from scripts.sunday_editor_readable import (
-    ReadableEditorError, editable_sections, prose_only_html, prose_only_text,
+    ReadableEditorError, assignment, editable_sections, prose_only_html, prose_only_text,
 )
 from scripts.sunday_editorial_handoff import render_packet, send_packet
 from tests.test_briefs_editorial_evidence import SAT, manuscript, scaffold
@@ -121,7 +124,7 @@ class ReadableSundayEditorTests(unittest.TestCase):
         verified.assert_called_once()
         self.assertEqual(verified.call_args.kwargs["manuscript_bytes"], packet_bytes)
         self.assertEqual(msg["To"], "dylan@example.org")
-        self.assertIn("Sunday draft for language edits", str(msg["Subject"]))
+        self.assertEqual("IPR Brief edit — week ending {}".format(SAT), str(msg["Subject"]))
         text_body = msg.get_body(preferencelist=("plain",)).get_content()
         html_body = msg.get_body(preferencelist=("html",)).get_content()
         self.assertIn("Hi Dylan", text_body)
@@ -130,8 +133,10 @@ class ReadableSundayEditorTests(unittest.TestCase):
         self.assertNotIn("=== SOURCE APPENDIX", text_body)
         self.assertNotIn("Pinned shadow commit", html_body)
         files = list(msg.iter_attachments())
-        self.assertEqual(len(files), 2)
+        self.assertEqual(len(files), 3)
         self.assertEqual(files[0].get_filename(), "one-provisional.txt")
+        self.assertEqual(files[2].get_filename(), "IPR-Editor-Instructions.docx")
+        self.assertIn("IPR Editor Instructions", text_body)
         self.assertEqual(files[0].get_payload(decode=True), packet_bytes)
         self.assertEqual(files[1].get_filename(),
                          "IPR-Briefs-Editorial-{}.docx".format(SAT))
@@ -145,6 +150,55 @@ class ReadableSundayEditorTests(unittest.TestCase):
         rendered = "\\n".join(p.text for p in document.paragraphs)
         self.assertIn("Provisional editorial manuscript", rendered)
         self.assertNotIn("Pinned shadow commit", rendered)
+
+
+class EditorAssignmentAndInstructionsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.packet = reviewed_packet()
+
+    def test_assignment_names_the_story_length_and_monday_deadline(self):
+        rows = dict(assignment(self.packet, "2026-10-31"))
+        self.assertEqual(rows["Due"], "Monday 2 November 2026, 8 p.m. ET")
+        self.assertTrue(rows["Working title"])
+        self.assertIn("700–1,200", rows["Length"])
+        self.assertIn("IPR Editor Instructions", rows["Attached"])
+        for odd in (None, "not-a-date", "2026-10-30"):  # unknown, malformed, not a Saturday
+            with self.subTest(week_ending=odd):
+                self.assertEqual(dict(assignment(self.packet, odd))["Due"], "Monday, 8 p.m. ET")
+
+    def test_assignment_never_carries_internal_drafting_notes(self):
+        plain = prose_only_text(self.packet, "2026-10-31")
+        html = prose_only_html(self.packet, "2026-10-31")
+        self.assertIn("- Due: Monday 2 November 2026", plain)
+        self.assertIn("Monday 2 November 2026", html)
+        for marker in ("EDITORIAL QUESTIONS", "EDITORIAL FOCUS"):
+            self.assertNotIn(marker, plain)
+            self.assertNotIn(marker, html)
+
+    def test_instructions_travel_without_the_owner_note_and_render_stably(self):
+        text = editor_instructions_markdown()
+        self.assertTrue(text.startswith("# IPR Editor Instructions\n"))
+        self.assertIn("## 6. Factual boundaries", text)
+        self.assertNotIn("Note for the owner", text)
+        self.assertNotIn("Contributor model", text)
+        self.assertEqual(render_instructions_docx(), render_instructions_docx())
+
+    def test_reshaped_or_missing_instructions_fail_closed(self):
+        source = editor_instructions_markdown.__defaults__[0].read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, body in (
+                ("no-owner-note.md", source.split("\n---\n", 1)[0]),
+                ("retitled.md", source.replace("# IPR Editor Instructions", "# Notes", 1)),
+                ("no-roles.md", source.replace("## 1. Who does what", "## 1. Roles", 1)),
+            ):
+                with self.subTest(name):
+                    path = Path(tmp) / name
+                    path.write_text(body, encoding="utf-8")
+                    with self.assertRaises(EditorInstructionsError):
+                        render_instructions_docx(path)
+            with self.assertRaises(EditorInstructionsError):
+                editor_instructions_markdown(Path(tmp) / "absent.md")
 
 
 if __name__ == "__main__":

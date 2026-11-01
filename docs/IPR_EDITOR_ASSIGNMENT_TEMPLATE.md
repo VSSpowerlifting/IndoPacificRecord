@@ -6,10 +6,15 @@ not repeated here. Keep the assignment short: an editor should be able to read
 it in two minutes. Fill each bracket, delete lines that do not apply, and send
 it from Ben's own account. One manuscript, one assignment, one assigned editor.
 
-For the scheduled Sunday manuscript, the automated email already delivers the
-Word and TXT files to Dylan; send this assignment only when there is something
-story-specific to add, and use it in full for every additional Brief,
-human-drafted manuscript or editor other than Dylan.
+For the scheduled Sunday manuscript, the automated email already carries the
+Word and TXT files, these standing instructions (`IPR-Editor-Instructions.docx`)
+and a short automatic assignment: working title, the development, source
+count, length against 700–1,200 words, the Monday 8 p.m. ET due time and the
+attachment list, all derived from the reviewed manuscript without a model call.
+It cannot know the asks, "leave unchanged" items, caveats or credit; reply in
+the same thread with those only when there is something story-specific to add.
+Use this template in full for every additional Brief, human-drafted manuscript
+or editor other than Dylan.
 
 ---
 
