@@ -143,7 +143,7 @@ class TestKoreaLane(LaneCase):
         for ident in PASS:
             row = led[ident]
             self.assertEqual(row["processing_state"], "processed")
-            self.assertEqual(row["qa_version"], "kr-qa-v2")
+            self.assertEqual(row["qa_version"], "kr-qa-v3")
             self.assertEqual(row["glossary_version"], "kr-glossary-v2")
             self.assertIn("kr-translation-v3/kr-glossary-v2", row["prompt_version"])
             art = self.article(ident)
@@ -376,6 +376,10 @@ class TestKoreaLane(LaneCase):
         joined = "\n".join(logs.output)
         self.assertFalse(any("가" <= ch <= "힣" for ch in joined))
         self.assertIn("qa_number_added", joined)
+        # Located for review in the log; the ledger keeps codes only.
+        self.assertIn("%s qa_number_added@3,qa_number_added@5" % QA_FAIL, joined)
+        self.assertEqual(self.ledger()[QA_FAIL]["processing_reason"],
+                         "qa_number_added")
 
     def test_no_ledger_table_is_a_no_op(self):
         conn = sqlite3.connect(str(self.db_path))

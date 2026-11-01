@@ -90,6 +90,9 @@ was changed by this phase.
   `qa_agreement_unsupported,qa_number_added,qa_number_missing`; `156785888`,
   attempt 3, `qa_agreement_unsupported`; `156786043`, attempt 1,
   `qa_glossary_term_missing`. All use `kr-qa-v2` and the v3 translation prompt.
+  `kr-qa-v3` only corrects month.day dates such as `10.13.` (previously
+  read as decimals) and logs held findings as `code@line`; the ledger keeps
+  codes alone. It resets no hold and re-dispatches nothing.
   `156785986` and `156785987` were screened out on their first attempts.
   None of those outcomes was reset. The chronology hold `156785161` persists.
 - Public Daily [40565258649](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40565258649)
