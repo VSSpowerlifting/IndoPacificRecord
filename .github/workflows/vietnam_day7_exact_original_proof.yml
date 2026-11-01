@@ -19,7 +19,7 @@ concurrency:
 jobs:
   prove-three-source-captures:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check out read-only reviewer, no persisted token

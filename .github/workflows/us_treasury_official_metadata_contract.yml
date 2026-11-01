@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   source-free-typed-admission:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 13
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +50,11 @@ jobs:
           from core.us_treasury_official_metadata import load_public_links
           db=Path(os.environ["RUNNER_TEMP"])/"treasury-admission-rehearsal.sqlite"
           links=load_public_links(db)
-          assert len(links)==10
+          committed=load_public_links(Path("pla_watch.db"))
+          # The committed corpus grows as links are admitted; a rerun must keep
+          # every committed link and never shrink below the original ten.
+          assert len(links)>=max(10,len(committed)), (len(links),len(committed))
+          assert {x["source_identity"] for x in committed} <= {x["source_identity"] for x in links}
           assert all(x["source_identity"].startswith("us-treasury-press:") for x in links)
           assert all(x["source_url"].startswith("https://home.treasury.gov/news/press-releases/sb") for x in links)
           with sqlite3.connect(db) as con:
