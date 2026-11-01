@@ -40,6 +40,9 @@ judgment and source integrity unchanged.
    and selection prompts with the 700–1,200 target, are separate engineering
    changes needing their own approval.
 
+Points 4–8 and the 900–1,050 preference in point 2 were first proposed as
+defaults in PR #945; Ben confirmed all of them on 2026-11-01.
+
 This entry changes documentation only. It adds no workflow, model call,
 schedule, email send, issue numbering, source-rights, merge, deployment or
 publication authority.
