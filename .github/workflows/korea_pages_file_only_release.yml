@@ -20,7 +20,7 @@ permissions:
 jobs:
   file-only-scope-contract:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
   # handles both fresh metadata admissions and single-file Pages repair.
   korea-pages-file-only-release:
     if: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
       contents: write

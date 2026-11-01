@@ -29,7 +29,7 @@ concurrency:
 jobs:
   offline-contract:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
         (github.event_name == 'workflow_dispatch' &&
          inputs.confirm_machine_only_no_publication == true)
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 24
     steps:
       - uses: actions/checkout@v4

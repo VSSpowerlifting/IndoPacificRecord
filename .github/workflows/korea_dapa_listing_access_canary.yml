@@ -22,7 +22,7 @@ permissions:
 jobs:
   no-network-contract:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
 
   one-time-robots-and-listing-observation:
     if: github.event_name == 'workflow_dispatch' && inputs.approve_one_time_official_listing_access == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

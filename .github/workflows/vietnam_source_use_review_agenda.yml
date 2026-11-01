@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   verified-unapproved-source-docket:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - name: Read-only PR/source-review code checkout

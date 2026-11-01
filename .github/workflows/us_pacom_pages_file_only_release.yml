@@ -67,7 +67,7 @@ jobs:
 
   us-pacom-pages-file-only-release:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
       contents: write
