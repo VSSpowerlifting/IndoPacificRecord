@@ -357,6 +357,10 @@ class AdditionalBriefAndNamedEditor(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     handoff(file, WEEK, editor_to="a@example.com, b@example.com",
                             now=SUNDAY)
+            # The dry run catches an owner-as-editor slip before any approval step.
+            with patch.dict(os.environ, self.APPROVED_ENV, clear=True):
+                with self.assertRaisesRegex(ReviewedHandoffRefused, "differ"):
+                    handoff(file, WEEK, editor_to="Owner@Example.com", now=SUNDAY)
             with patch.dict(os.environ, dict(
                 self.APPROVED_ENV,
                 IPR_SUNDAY_OWNER_REVIEWED_WEEK=WEEK,

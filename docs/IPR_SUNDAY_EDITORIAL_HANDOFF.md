@@ -34,6 +34,8 @@ job is unchanged and still drafts only the primary Brief.
    Add `--send --confirm-owner-reviewed` to mail it. `--editor-to` assigns one
    named editor for this file; without it the editor is `IPR_EDITOR_TO`. The
    subject gains ` | <slug>` and the Word file is named for the identity.
+   Two Briefs mean two separate sends: the approval digest names one exact
+   file, so reset `IPR_SUNDAY_OWNER_REVIEWED_SHA256` before the second send.
 4. **Returns.** Validate each return against its own original with
    `scripts/validate_editorial_return.py`; a return checked against another
    Brief's worksheet is refused because the `Packet:` header differs.

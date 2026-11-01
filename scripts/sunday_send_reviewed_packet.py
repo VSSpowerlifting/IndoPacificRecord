@@ -154,11 +154,16 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
         if owner_confirmed or historical_override:
             raise ReviewedHandoffRefused("send confirmations are invalid on a dry run")
         if editor_to is not None:
-            receipt["assigned_editor"] = single_address(editor_to, "assigned editor")
+            editor = single_address(editor_to, "assigned editor")
+            owner = os.environ.get("IPR_PREVIEW_TO", "").strip()
+            if owner and editor.casefold() == owner.casefold():
+                raise ReviewedHandoffRefused(
+                    "manual editor recipient must differ from the owner-preview address")
+            receipt["assigned_editor"] = editor
         return receipt
     if not owner_confirmed or not receipt["exact_owner_approval_matches"]:
         raise ReviewedHandoffRefused(
-            "Dylan send refused: --confirm-owner-reviewed and exact approved "
+            "editor send refused: --confirm-owner-reviewed and exact approved "
             "IPR_SUNDAY_OWNER_REVIEWED_WEEK/SHA256 are required"
         )
     local_day = now.astimezone(NY).date()

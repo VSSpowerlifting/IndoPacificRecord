@@ -245,6 +245,26 @@ class TestLoading(_Tmp):
                                allow_synthetic=True, unreconciled=frozenset({14}))
         self.assertIn("unreconciled", str(cm.exception))
 
+    def test_two_briefs_of_the_same_week_both_publish(self):
+        # Several Briefs may cover one week (DECISION_LOG 2026-11-01): the
+        # collection is keyed by number, route and slug, never by week, so a
+        # week's second Brief keeps its own number and page beside the first.
+        briefs = self.tmp() / "briefs"
+        first = real_brief(fixture_sidecar())
+        second = real_brief(fixture_sidecar())
+        second["issue_number"] = first["issue_number"] + 1
+        self.assertEqual(first["week_ending"], second["week_ending"])
+        self.write_brief(briefs, "week-primary", first)
+        self.write_brief(briefs, "week-additional", second)
+        c = bc.load_collection(self.editions, self.registry, briefs_dir=briefs,
+                               unreconciled=frozenset())
+        rows = [r["entry"] for r in c.rows if r["kind"] == "brief"]
+        self.assertEqual([(e["slug"], e["issue"]) for e in rows],
+                         [("week-additional", second["issue_number"]),
+                          ("week-primary", first["issue_number"])])
+        self.assertEqual(len({e["url"] for e in rows}), 2)
+        self.assertEqual(c.lead["slug"], "week-additional")
+
 
 class TestUnifiedCollection(unittest.TestCase):
     """
