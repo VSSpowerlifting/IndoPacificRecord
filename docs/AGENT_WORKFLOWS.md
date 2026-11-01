@@ -21,7 +21,7 @@ owner decisions. Do not duplicate one document's rules inside another.
 | `docs/desks/README.md` | mandatory all-desk architecture and completion; overrides older generic desk procedures |
 | `docs/desks/MIGRATION.md` | existing integration boundaries and next bounded phase; verify current code |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | existing technical layer map, commands, publishing and deployment |
-| `docs/AGENT_WORKFLOWS.md` (this file) | agent operating constraints and model routing |
+| `docs/AGENT_WORKFLOWS.md` (this file) | agent operating constraints, model routing and the task → capability map |
 | `docs/ROADMAP.md` | active strategic sequence, not a dated status ledger |
 | `DECISION_LOG.md` | durable decisions that constrain future work |
 | Git history | superseded state and incident history |
@@ -111,25 +111,49 @@ companion only where needed, or an authorized verified release. No unrelated
 features, fixes or release follow-on. Record SHA/PR, checks, removed path and exact
 next action in repository state; use a fresh session for a substantial next phase.
 
-## 2. Skills and tools
+## 2. Task → capability map
 
-List only what has been seen working here. Rows marked *user-level* live in
-the owner's Claude setup, not this repository; Codex does not have them and
-no workflow may depend on them.
+Capabilities come in four layers. Only the first travels with the repository;
+the others vary by machine, account and session, so a session uses them when
+they are actually present and otherwise takes the fallback. A tool's presence
+never authorizes its external actions. Summarized or compressed tool output
+is not authoritative evidence for a
+quotation, original-language text, date, rank or figure. Original-source output
+must retain its source identity and be checked against the actual source.
 
-| Skill / tool | Use for | Not for |
-|---|---|---|
-| **ui-ux-pro-max** | IA and flow changes, navigation, responsive layout patterns, component behavior review | visual taste decisions (defer to doctrine) |
-| **impeccable** | final visual refinement passes on rendered pages: typography, spacing, alignment, hierarchy; live-browser iteration | inventing new direction; anything conflicting with DESIGN_SYSTEM.md (authoritative; auto-extracted token dumps are not doctrine) |
-| **design-taste-frontend / taste review** | art-direction checks; catching generic/template drift before it lands | replacing the north star |
-| **Journalism skills** (*user-level, optional*: fact-check-workflow, source-verification, ben-source-verify, newsroom-style, ai-writing-detox/humanizer) | claim ledgers and style passes on Brief prose, headline/dek treatment, corrections | approval; rewriting published editions without the analyst |
-| **ipr-proposal-review** (shared, `.agents/skills/`) | read-only PROCEED/SIMPLIFY/DEFER/REJECT challenge of a material expansion, source-permission or AI-model change | routine fixes; line-by-line diff review (use `/code-review` or `codex review`) |
-| **Playwright** (MCP) | rendered checks of `output/` at 1280/375, keyboard, console errors | publisher sites behind access challenges |
-| **Serena / TokenSave** (MCP) | symbol lookup, callers and impact before editing Python | trusting results before checking the index branch (below) |
-| **Firecrawl** (MCP) | discovering public background sources while researching a Brief | collection (the pipeline collects), or any site whose terms or challenges forbid it |
-| **`gh` CLI** | PR, CI and Actions-run inspection | merging, enabling workflows, or editing repository variables without authorization |
-| **Headroom** | compressing long validator logs and repeated inspection output | authoritative reading of original-language text, translations, dates, ranks, claims |
-| **graphify** | orientation only: `graphify-out/` exists only in the main checkout and was last built from an older branch | edit decisions; trust current code and `rg` instead |
+- **Repo-tracked** — the shared skills `ipr-source-integrity`, `ipr-design` and
+  `ipr-proposal-review`, the agents in §3, the commands in §4, and the domain
+  scripts. They travel with the checkout; verify discovery in the actual runtime.
+- **Plugin skills** — generic design, writing and research skills installed
+  in the session. Optional; they refine within IPR doctrine, never override it.
+- **User-level** — Ben's own `ben-*` skills (e.g. `ben-ipr-brief`,
+  `ben-source-verify`, `ben-review-change`). Present only in Ben's sessions;
+  the repo never depends on them.
+- **MCP connectors** — web search/Firecrawl, browser/Playwright, code graphs,
+  Context7, Vercel, Notion. Read-only use is ordinary; writes need the
+  authorization `AGENTS.md` requires.
+
+| Task | Start with (tracked) | Optional helpers | Fallback |
+|---|---|---|---|
+| Brief drafting and Sunday selection | `ipr-source-integrity`; `docs/BRIEFS_WEEKLY_SELECTION.md`; `/publish-edition` | `ben-ipr-brief`; newsroom-style, humanizer | the doc's procedure and `scripts/author_brief.py` |
+| Fact-check, claim and translation review | `ipr-source-integrity`; **editorial-integrity-reviewer** | `ben-source-verify`; fact-check-workflow, source-verification | hand-built claim ledger from `EDITORIAL_QA_CHECKLIST.md` |
+| Research discovery for a Brief or dossier | `ipr-source-integrity` (authority rule) | web search, Firecrawl, deep-research | preserved IPR record plus the original source; discovery never substitutes for either |
+| Desk source acquisition | `docs/desks/README.md`, `docs/desks/MIGRATION.md`, the source's decisions | Firecrawl/browser for reading permitted pages | the shared desk path; never defeat access controls |
+| Dossiers and evidence timelines | `ipr-source-integrity`; `docs/LIVING_DOSSIERS.md`, `docs/EVIDENCE_TIMELINES.md` | — | `scripts/dossier.py`, `scripts/validate_timelines.py` |
+| Challenge a material expansion, source-permission or AI-model change | `ipr-proposal-review`; **proposal-reviewer** | — | the four-part growth rule in `AGENTS.md` |
+| Brainstorming and product direction | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` §1b, `docs/ROADMAP.md` | brainstorming skills | strongest-model lead session; the growth rule in `AGENTS.md` decides admission |
+| UI, templates, motion, reader experience | `ipr-design`; **frontend-implementer** | ui-ux-pro-max (IA/flow), impeccable (rendered refinement), design-taste-frontend (drift check) | `docs/DESIGN_SYSTEM.md` + 1280/375 browser check |
+| Code navigation and impact | targeted `rg` and file reads | TokenSave, Serena, graphify (only if a current `graphify-out/` exists) | targeted `rg`; graphs guide, source code decides |
+| Code review before a PR | full-diff self-review; `docs/desks/CHANGE_TEMPLATE.md` | `ben-review-change`; code-review skills | focused tests plus exact-revision CI |
+| Release and rendered QA | **release-qa**; `/release-check` | Playwright / browser pane | `scripts/validate_output.py` (10 governed warnings) |
+| Project state and memory | `PROJECT_STATE.md` (in place), `DECISION_LOG.md`, the PR body | Notion or local memory, as personal aids only | tracked files; untracked memory never overrides them |
+| Long logs and repeated output | — | Headroom, TokenSave | read the raw output for anything that decides correctness |
+
+Retired, so they do not route work: **Ruflo** swarm orchestration (not
+installed; ordinary subagents cover the rare parallel case) and
+**awesome-design-md / skillui** extraction (the 2026-07 auto-extracted tokens
+were inaccurate; `DESIGN_SYSTEM.md` is authoritative). The untracked local
+`pla-watch-live-design` skill is superseded by `ipr-design`.
 
 Shared repository skills have one canonical copy in `.agents/skills/<name>/`,
 which Codex reads directly; Claude sees it through the tracked symlink
@@ -140,11 +164,10 @@ time. Before relying on them, check TokenSave's `active_branch`/last-sync
 (`tokensave_status`) against the branch you are on; if they differ, use
 `rg` and the source files. Index results never settle a correctness question.
 
-**Parallel agents.** Use a few agents only for genuinely independent work.
-`base.html`, `pla-watch-base.html` and `pw_env.py` have one owner at a time,
-never concurrent writers; the lead session integrates and is the only writer
-of PROJECT_STATE.md. (The former Ruflo swarm runtime is retired; Claude Code
-subagents cover this.)
+Parallel agents: only for genuinely independent work, at most four at once;
+one writer per file, and `base.html`, `pla-watch-base.html` and `pw_env.py`
+are single-owner, never concurrent. The lead session integrates and is the
+only writer of PROJECT_STATE.md.
 
 ## 3. Project agents (`.claude/agents/`)
 
@@ -159,13 +182,13 @@ Minimum useful set — four agents plus one human-in-the-loop role:
   inside the ticket's file list.
 - **editorial-integrity-reviewer** (Sonnet, read-only) — source-to-claim
   tracing, evidence-vs-inference presentation, verbatim original-language
-  text for every desk, citation and metadata accuracy. Output: findings,
-  unchecked claims and a PASS/FAIL on the checks it could run. Beyond
-  `/publish-edition`, Ben may run it on a held Sunday draft before
-  `scripts.sunday_send_reviewed_packet`, or on Dylan's return after
-  `scripts/validate_editorial_return.py`. It is **advisory**: a model reading
-  the stored record, not independent verification, and it cannot clear a
-  hold, approve or send.
+  text, citation and metadata accuracy for editions, Briefs, dossiers and
+  timelines. Open the database read-only. Output: findings, unchecked claims
+  and PASS/FAIL limited to checks actually performed. Use on held Sunday
+  drafts and assigned editors' returns as well as before publication.
+  Retrieve permitted originals or hand off to an available research-capable
+  session; routine source checks do not default to the owner. This agent
+  advises; it cannot clear holds, approve, number, publish or send.
 - **release-qa** (Sonnet) — pre-deploy sweep: validator, preview, responsive
   (1280/375), keyboard + focus, reduced motion, console errors, link spot
   checks. Output: go/no-go report with evidence.
@@ -181,5 +204,5 @@ Minimum useful set — four agents plus one human-in-the-loop role:
 - **/release-check** — the release-qa sweep on demand.
 
 Commands encode the repeatable workflow; agents supply the reviewer roles.
-Do not add more agents/commands without a recurring need that a doc line
-cannot serve.
+Do not add more agents, commands or project skills without a recurring need
+that a doc line cannot serve.

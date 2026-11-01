@@ -10,7 +10,8 @@ graphify-out/
 
 # Claude Code / agent tooling
 # Ignore all local/runtime .claude state, but version the project-owned
-# agent and command definitions.
+# agent and command definitions and the named project skills. Other local
+# skill directories (including retired extractions) stay untracked.
 .claude/*
 !.claude/agents/
 !.claude/commands/
@@ -18,11 +19,15 @@ graphify-out/
 # to Claude through a tracked symlink. Other local skills stay ignored.
 !.claude/skills/
 .claude/skills/*
+!.claude/skills/ipr-design
 !.claude/skills/ipr-proposal-review
+!.claude/skills/ipr-source-integrity
 .agents/*
 !.agents/skills/
 .agents/skills/*
+!.agents/skills/ipr-design/
 !.agents/skills/ipr-proposal-review/
+!.agents/skills/ipr-source-integrity/
 tmp/
 
 # Python
@@ -50,5 +55,5 @@ build/
 # Disposable screenshot set for private prototype review.
 /preview-review-shots/
 
-# Retired Ruflo/claude-flow swarm runtime state (never tracked again).
+# Retired Ruflo/claude-flow runtime state.
 /.claude-flow/
