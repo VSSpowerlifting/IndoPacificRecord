@@ -39,6 +39,13 @@ guard-skipped green runs end with `mode=none`. Reruns of either workflow are ref
   finding is **HELD** (exit 3) unless the named reviewer adjudicates that exact diff
   with `--acknowledge-diff <diff_sha256>`. Receipts must be written outside the
   repository.
+- **Optional research analyst:** when the week also went to an analyst through
+  `scripts/brief_analyst_review.py` ([IPR_RESEARCH_ANALYST_HANDOFF.md](IPR_RESEARCH_ANALYST_HANDOFF.md)),
+  add `--analyst-manifest <assignment manifest> --analyst-feedback <reconciled report>`.
+  The recheck refuses a report that is altered, belongs to another assignment or names
+  another week. It binds the manifest and feedback hashes and the report state into the
+  receipt and holds while any finding is unresolved. Weeks without an analyst omit both
+  flags. Analyst credit stays an owner decision; nothing here assigns a byline.
 - **Readiness and approval:** a PASS writes the candidate sidecar with a
   `saturday_sunday_cycle` receipt binding the manuscript digest, the revised DOCX
   SHA-256, the packet and the week's inventory/policy fingerprint

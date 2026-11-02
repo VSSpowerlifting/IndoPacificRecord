@@ -21,6 +21,8 @@ from unittest.mock import patch
 from zipfile import ZipFile
 from zoneinfo import ZoneInfo
 
+from core.brief_analyst_feedback import reconcile_feedback
+from core.brief_analyst_packet import build_packet
 from core.brief_editorial_cycle import KEY, SCHEMA, digest, receipt_problems
 from core.brief_editorial_evidence import load_editorial_evidence
 from scripts.import_brief_manuscript import extract
@@ -344,6 +346,59 @@ class SundayRecheck(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(stat.S_IMODE(os.stat(sidecar).st_mode), 0o600)
         self.assertEqual(receipt_problems(json.loads(sidecar.read_text())), [])
+
+    def analyst_files(self, kind="accepted", week=SAT):
+        """A real #956 assignment and owner-reconciled report, nothing mocked."""
+        from tests import test_brief_analyst_review as analyst
+        text = analyst.worksheet().replace("IPR-2026-11-07", "IPR-" + week)
+        manifest = build_packet(text, **analyst.config(text))[0]
+        returned = analyst.memo(manifest)
+        revised = text.replace(analyst.BEFORE, analyst.AFTER) if kind == "accepted" else text
+        report = reconcile_feedback(manifest, returned, revised,
+                                    decisions=[analyst.decision(kind)],
+                                    owner_review=analyst.owner(returned, revised))
+        paths = (self.tmp / "manifest-{}-{}.json".format(kind, week),
+                 self.tmp / "feedback-{}-{}.json".format(kind, week))
+        for path, data in zip(paths, (manifest, report)):
+            path.write_text(json.dumps(data), encoding="utf-8")
+        return manifest, report, paths
+
+    def test_cli_binds_a_reconciled_analyst_report(self):
+        manifest, report, (m, f) = self.analyst_files()
+        code, printed, _, sidecar = self.cli("--reviewed-by", "Owner", "--review-reference",
+                                             "note", "--analyst-manifest", str(m),
+                                             "--analyst-feedback", str(f))
+        self.assertEqual(code, 0)
+        bound = json.loads(sidecar.read_text())
+        self.assertEqual(bound[KEY]["analyst"], {
+            "assignment_sha256": manifest["manifest_sha256"],
+            "feedback_sha256": report["feedback_sha256"], "state": "ANALYSIS_RECONCILED"})
+        self.assertEqual(receipt_problems(bound), [])
+        self.assertNotIn("Fixture owner", printed)
+
+    def test_cli_holds_on_an_unresolved_analyst_finding(self):
+        _, report, (m, f) = self.analyst_files("unresolved")
+        self.assertEqual(report["state"], "HELD")
+        code, printed, receipt, sidecar = self.cli("--reviewed-by", "Owner", "--review-reference",
+                                                   "note", "--analyst-manifest", str(m),
+                                                   "--analyst-feedback", str(f))
+        self.assertEqual(code, 3)
+        self.assertIn("analyst_return_held", printed)
+        self.assertFalse(sidecar.exists())
+
+    def test_cli_refuses_altered_foreign_or_unpaired_analyst_files(self):
+        manifest, report, (m, f) = self.analyst_files("unresolved")
+        forged = self.tmp / "forged.json"
+        forged.write_text(json.dumps(dict(report, state="ANALYSIS_RECONCILED")), encoding="utf-8")
+        _, _, (other_m, other_f) = self.analyst_files(week="2026-10-03")
+        for label, extra in (("forged state", ("--analyst-manifest", str(m), "--analyst-feedback", str(forged))),
+                             ("other week", ("--analyst-manifest", str(other_m), "--analyst-feedback", str(other_f))),
+                             ("mismatched pair", ("--analyst-manifest", str(m), "--analyst-feedback", str(other_f))),
+                             ("manifest only", ("--analyst-manifest", str(m)))):
+            with self.subTest(label=label):
+                with self.assertRaises(SystemExit) as stop:
+                    self.cli("--reviewed-by", "Owner", "--review-reference", "note", *extra)
+                self.assertEqual(stop.exception.code, 2)
 
     def test_cli_refuses_receipts_inside_the_repository(self):
         candidate = self.tmp / "candidate.json"

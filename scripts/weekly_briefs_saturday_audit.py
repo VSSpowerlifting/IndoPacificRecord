@@ -33,6 +33,12 @@ binds the exact manuscript, revised DOCX, week inventory and reviewers;
 ``core.brief_editorial_cycle.CUTOVER_WEEK`` on without it, whatever labels the
 DOCX carries. Exact source IDs stay in the private receipt; only aggregate
 counts are printed.
+
+When a research analyst reviewed the week (``scripts.brief_analyst_review``),
+add ``--analyst-manifest`` and ``--analyst-feedback`` with the owner's
+reconciled report. The receipt binds their hashes and state; a HELD report
+(any unresolved finding) holds the recheck. Without them the analyst path is
+simply absent, which is the ordinary no-analyst week.
 """
 from __future__ import annotations
 
@@ -418,6 +424,31 @@ def _review(reviewed_by, reference):
     return {"reviewed_by": reviewed_by.strip(), "reference": reference.strip()}
 
 
+def analyst_binding(manifest, report, *, week: str) -> dict:
+    """Bind an owner-reconciled #956 analyst feedback report to this week.
+
+    Only the trusted assignment manifest and the owner's feedback report are
+    read; the analyst's returned DOCX stays in ``scripts.brief_analyst_review``.
+    The receipt keeps hashes and the report state, never findings or names.
+    """
+    from core.brief_analyst_feedback import SCHEMA as FEEDBACK
+    from core.brief_analyst_packet import digest as analyst_digest, validate_manifest
+    validate_manifest(manifest)
+    packet = manifest.get("packet")
+    if (manifest.get("week_ending") != week or not isinstance(packet, str)
+            or not (packet == "IPR-" + week or packet.startswith("IPR-" + week + "-"))):
+        raise ValueError("analyst assignment is not for this reporting week")
+    if (not isinstance(report, dict) or report.get("schema") != FEEDBACK
+            or report.get("feedback_sha256") != analyst_digest(
+                {k: v for k, v in report.items() if k != "feedback_sha256"})):
+        raise ValueError("analyst feedback report is invalid or altered")
+    if (report.get("assignment_id") != manifest["assignment_id"]
+            or report.get("worksheet_sha256") != manifest["worksheet_sha256"]):
+        raise ValueError("analyst feedback does not belong to this assignment")
+    return {"assignment_sha256": manifest["manifest_sha256"],
+            "feedback_sha256": report["feedback_sha256"], "state": report.get("state")}
+
+
 def sunday_recheck(saturday: str, *, packet_path, candidate, revised_docx=None,
                    reviewed_by=None, review_reference=None, analyst=None,
                    marker_path=MARKER, db=DB_PATH, now=None, acknowledge=None) -> tuple:
@@ -558,13 +589,26 @@ def main(argv=None) -> int:
     parser.add_argument("--marker", type=Path, default=MARKER)
     parser.add_argument("--acknowledge-diff",
                         help="diff_sha256 the owner reviewed in a held receipt")
+    parser.add_argument("--analyst-manifest", type=Path,
+                        help="optional private analyst assignment manifest (brief_analyst_review)")
+    parser.add_argument("--analyst-feedback", type=Path,
+                        help="the owner's reconciled analyst feedback report for that assignment")
     args = parser.parse_args(argv)
     recheck = (args.saturday_packet, args.candidate, args.receipt_out, args.sidecar_out)
-    if any(recheck) or args.acknowledge_diff or args.revised_docx:
+    analyst_paths = (args.analyst_manifest, args.analyst_feedback)
+    if any(recheck) or args.acknowledge_diff or args.revised_docx or any(analyst_paths):
         if not all(recheck) or args.friday_packet:
             parser.error("recheck needs --saturday-packet, --candidate, --receipt-out "
                          "and --sidecar-out")
+        if any(analyst_paths) and not all(analyst_paths):
+            parser.error("--analyst-manifest and --analyst-feedback go together")
         try:
+            analyst = None
+            if args.analyst_manifest:
+                analyst = analyst_binding(
+                    json.loads(args.analyst_manifest.read_text(encoding="utf-8")),
+                    json.loads(args.analyst_feedback.read_text(encoding="utf-8")),
+                    week=args.saturday)
             candidate = json.loads(args.candidate.read_text(encoding="utf-8"))
             outside_repository(args.receipt_out)
             for path in (args.receipt_out, args.sidecar_out):
@@ -573,8 +617,8 @@ def main(argv=None) -> int:
             report, receipt, reconciled = sunday_recheck(
                 args.saturday, packet_path=args.saturday_packet, candidate=candidate,
                 revised_docx=args.revised_docx, reviewed_by=args.reviewed_by,
-                review_reference=args.review_reference, marker_path=args.marker,
-                acknowledge=args.acknowledge_diff)
+                review_reference=args.review_reference, analyst=analyst,
+                marker_path=args.marker, acknowledge=args.acknowledge_diff)
             write_private_receipt(args.receipt_out, receipt)
             if reconciled is not None:
                 write_private_receipt(args.sidecar_out, reconciled)
