@@ -391,6 +391,15 @@ dossier content changes are introduced relative to the incorporated main.
 Exact-head CI and all eight affected Actions checks are recorded in PR #879
 before handoff; merge and deployment require separate authorization.
 
+**Vietnam MPS number-only recovery (2 November 2026): mechanism candidate.**
+After #955 merged (`226cefbb46`), the owner authorized one attempt for each of
+ten exact MPS versions held only for `E_NUMBER_MISMATCH`
+(`DECISION_LOG.md`, 2 November). `processing/mps_recovery.py` pins them in
+batches of 2/4/4 for manual first-attempt private bridge runs. Outputs stay in
+the private ledger with per-record cost; accepted projections are withheld from
+the signed handoff until listed in `RELEASED`. Other MPS and VPCP holds are
+unchanged. No dispatch, release or deployment is recorded here.
+
 **Vietnam unattended verification candidate (28 October 2026).**
 Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
 5487/5488/5646 match byte for byte. Scheduled private collector `40594206247`
