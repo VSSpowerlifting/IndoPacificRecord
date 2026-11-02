@@ -246,7 +246,7 @@ six) and, for the two US families, either `OK`/`OK_ALL_DUPLICATES` receipts or
 a `LISTING_FAILURE` row if the clone step failed; until then the migration is a
 review candidate, not an operationally verified release. Vietnam's two
 registered families now report through the dispatcher (runtime migration 5,
-stacked on #950): each admission reads what Vietnam's own Daily steps recorded
+PR #953, stacked on #950): each admission reads what Vietnam's own Daily steps recorded
 this run (the signed handoff receipt and the VPCP collector's run record)
 rather than repeat them, so the false "no governed admission" skip becomes a
 quiet, held, duplicate or missed row. The MOIT families stay unregistered.

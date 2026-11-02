@@ -1,6 +1,6 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Shared desk architecture, runtime migration 5 — Vietnam run-result rows through the governed dispatcher (1 November 2026, review candidate, stacked on #950)
+## Shared desk architecture, runtime migration 5 — Vietnam run-result rows through the governed dispatcher (1 November 2026, review candidate, draft PR #953 stacked on #950)
 
 Daily runs 191 and 192 recorded both registered Vietnam families
 (`vn_mps_foreign_affairs_vi`, `vn_vpcp_official_documents_vi`) as
@@ -19,8 +19,11 @@ activation; metadata-only; quiet, admitted, duplicates or held by fixed code;
 `ADAPTER_ERROR` for a HOLD or unreadable receipt; `FETCH_FAILURE` for a missing
 receipt, a missing collector row or an envelope older than 36 hours (a
 re-served envelope after a missed private run). The last case is a deliberate
-behaviour change: a missed Vietnam run now counts as a pipeline error rather
-than a silent skip. MOIT families stay unregistered. No ledger, hold,
+behaviour change: a missed Vietnam run now counts as a source failure that
+marks the Daily run `degraded` (exit 0, no retry) rather than a silent skip.
+Until the 29–30 October slots are resolved, the first Daily after merge may
+record Vietnam `FETCH_FAILURE`; that is the known gap surfacing, not a
+regression. MOIT families stay unregistered. No ledger, hold,
 attempt, missed-slot recovery or liveness gate is touched.
 
 Verified: `tests/test_vietnam_governed_run_results.py` (19) and the extended
