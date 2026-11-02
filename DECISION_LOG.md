@@ -17,8 +17,9 @@ credit, DB, source-policy or collector change.
 - **Convergence before the held-family gate.** Before this change, a held-family
   URL that IPR already publishes as a corpus or machine Record was omitted rather
   than linked. That page now wins, and held families only get no *new* page.
-  MINDEF stays gated before lookup. Linking a Brief to an existing MINDEF Record
-  page is an open owner question, not inferred from the link permission.
+  MINDEF stays gated before lookup. Benjamin Yang ruled on 2026-11-02 that
+  MINDEF references stay external. A Brief links only to the publisher, even when
+  an IPR Record page for that URL exists.
 - **Subdomain gate.** Host rules ignored `www.` and other subdomains, so
   `www.<held host>` would have minted a Record. They now match subdomains, and
   lookalike hosts do not match.
