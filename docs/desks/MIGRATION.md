@@ -25,6 +25,16 @@ differences. A map entry does not permit deactivation of a working path.
 
 ## Implementation order and ownership
 
+**Indonesia recovery candidate, 2 November 2026:** shared intake preserves
+deferred retry/QA dispositions; the existing private runner retains parsed
+readings with immutable source/version and attempt context in its already
+uploaded private handoff directory. No QA, source policy, retry reset, queue
+selection, workflow or activation change. The medical v4 record is already
+live; newer ADMM-Plus output remains QA-blocked and historical rejected readings
+are unavailable. See the [current source checkpoint](../engineering/INDONESIA_SHARED_DAILY_2026-10-27.md#current-checkpoint--2-november-2026-recovery-review-candidate)
+for real run/state pins, no-cost replay, release boundary and exact next action.
+This candidate does not certify recurring new delivery or replace #950/#954.
+
 1. **Shared source/component and lifecycle integration:** use the already shared
    Philippines/Indonesia lane as the first bounded implementation. Replace real
    hardcoded registration/handoff behavior, preserve accepted output and budgets,
