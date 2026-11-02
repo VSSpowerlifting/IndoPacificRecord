@@ -1,4 +1,126 @@
-# Sunday IPR Briefs — full-week draft to Dylan (staged migration)
+# IPR Briefs — Saturday provisional draft and Sunday readiness
+
+## Staged implementation, 2 November 2026 — no production activation
+
+The callable cycle is `scripts/saturday_sunday_briefs.py`. It reuses the existing
+writer, discovery/eligibility, worksheet, Word rendering, editor return and Brief
+contracts. It introduces no database, publication category, new workflow file or
+paid feedback pass. The current public main is the base for this review candidate;
+this section describes code qualification, not a running service.
+
+The owner target in **America/New_York** is Saturday about 12:30 p.m. after actual
+successful Saturday collection, editor delivery by Saturday 9 p.m., an agreed
+Sunday-noon editor return and Sunday-evening owner review after successful Sunday
+collection. These are targets, not source completeness or cron guarantees. The
+optional analyst is not required by this track.
+
+### What works offline or through explicitly authorized local calls
+
+- `prepare` rejects early/off-day/stale-marker attempts, reads the admitted
+  Sunday–Saturday corpus through a scratch DB and requires eligible preserved
+  originals from two production desks. This initial cycle deliberately keeps the
+  stricter two-production-desk floor; it does not borrow Sunday private-research
+  exceptions. Existing full-discovery semantics and one bounded model request
+  remain. No source-specific right or new source admission is created.
+- The default **does not call a model or send mail**. It writes a mode-0600
+  scaffold in an outside-Git mode-0700 directory. Only `--execute-model` authorizes
+  the existing paid draft invocation. A model-attempt reservation prevents paid
+  retries after an ambiguous failure. Abstention preserves its private selection
+  receipt and writes no manuscript. Accepted output is reused by SHA on replay.
+- Successful composition preserves the existing `IPR-<Saturday>` identity and
+  writes TXT, DOCX, manuscript JSON and source/policy inventory hashes. The prompt
+  and worksheet explicitly say Saturday is incomplete and Sunday recheck is
+  required. The scaffold carries a provisional `saturday_sunday_cycle` marker;
+  retain it when preparing the canonical Brief candidate.
+- `deliver()` is a reusable interface, **no-send by default**. It checks current
+  evidence/permissions against the draft, the current Saturday marker, exact TXT,
+  distinct configured editor/owner, explicit exact-SHA owner confirmation and
+  disabled legacy services before a send. It reuses the established SMTP/DOCX
+  mechanics. A private per-week/editor/phase reservation prevents duplicate
+  attempts; uncertain SMTP outcomes hold for manual Sent review, never retry
+  automatically. Fake recipients and patched send mechanics are used in tests.
+- Sunday `recheck` requires the real same-Sunday marker, hashes every weekly
+  production row and metadata discovery row plus associated machine records, and
+  compares current source/rights configuration. Added backdated Saturday sources,
+  changed body/hold/representation or machine explanation and policy/desk drift
+  hold. This is a deterministic version comparison, **not factual verification**.
+- Owner source-to-claim review must be explicitly referenced. A changed inventory
+  requires a separate `resolved` decision for every added/removed/changed source
+  and policy/desk change, each with reason, reviewer and reference, bound to the
+  exact current inventory and final manuscript SHA. There is no general bypass
+  flag. Essential unresolved facts remain held. A later prose/credit/citation
+  change invalidates the receipt and requires another source review.
+- Shared `core.brief_contract` blocks approved tagged provisional/held records
+  and validates exact Sunday review binding for every publication caller.
+  `author_brief.py ready/approve` additionally re-reads current inventory to catch
+  later drift. Untagged historical/manual publications retain their contracts.
+  This receipt never supplies Ben's independent publication or presentation
+  approval and never assigns authorship or an issue number.
+
+### Owner-only rehearsal and controlled editorial return
+
+All paths below are private, outside any Git checkout. A real current Saturday
+marker is required even without a model. Do not run `--execute-model` without
+separate spending authority; a no-email model preview still costs money.
+
+```sh
+python -m scripts.saturday_sunday_briefs prepare \
+  --week-ending YYYY-MM-DD --private-dir /private/ipr-cycle
+```
+
+After separately authorized generation/delivery, retain the original TXT and Word
+files privately. Use existing `import_sunday_editor_docx`,
+`validate_editorial_return` and `analyze_editor_return` against that exact original.
+A structurally valid return remains untrusted editorial input: changed claims
+need source review and a final candidate prepared through the existing authoring
+path, retaining its provisional cycle marker. This track does not silently
+import an editor's Word return or infer factual approval from style edits.
+
+```sh
+python -m scripts.saturday_sunday_briefs recheck \
+  --state /private/ipr-cycle/IPR-YYYY-MM-DD.json \
+  --manuscript /private/ipr-cycle/final-candidate.json \
+  --out /private/ipr-cycle/sunday-reviewed-candidate.json \
+  --reviewed-by 'Actual reviewer' --review-reference 'Actual source-review reference'
+```
+
+The output is still a private, unapproved candidate. For a changed inventory,
+`--decisions` accepts the explicit exact-version review object described above;
+missing, stale or unresolved decisions hold. Source and presentation checks,
+actual author credit adjudication and Ben's exact final publication authority
+remain mandatory. Do not treat a passed dry run as publication authorization.
+
+### Precise remaining integration and activation boundary
+
+**Unattended scheduling is not implemented or activated by this candidate.**
+The existing Sunday workflow has only a replacement-exclusion guard:
+`IPR_SATURDAY_SUNDAY_CYCLE_ENABLED=true` would disable its legacy generator/send.
+Do not set it yet: there is no replacement unattended runner in this phase.
+The Friday lane stays retired. No repository variable/secret was changed.
+
+Before later activation, the integration owner must connect the verified callable
+cycle to the existing workflow, reuse/reconcile open PR #807's authenticated
+Daily-completion guard, verify actual pipeline/deploy/marker steps (green skipped
+Daily runs are insufficient), and arrange durable **private** storage/locking for
+accepted drafts, reservations and receipts across runner restarts. Runner temp
+storage or public Actions artifacts cannot meet that requirement. Preserve the
+workflow-file freeze: modify the existing lane, do not add a new one. The relevant
+open #945–#947 editorial instructions/identities need explicit integration without
+copying unrelated branches; #952 Record admission remains independent.
+
+Confirm editor availability and the Sunday-noon return target, verify separately
+permitted destinations/source distribution, decide the existing bounded model
+budget, run an authorized end-to-end private no-send rehearsal, and obtain Ben's
+explicit activation authority before any schedule, email or spend. Track B analyst
+packet/feedback work connects only after both heads are verified. The remaining
+integration is a fresh bounded session; these local interfaces do not claim an
+automated inbox, production private persistence, real delivery or Sunday release.
+
+## Historical Sunday-draft operating instructions
+
+The dated sections below preserve the earlier Sunday/Monday/Wednesday service.
+They describe the legacy lane until the replacement is explicitly integrated and
+activated; they do not override the target cycle and staging boundary above.
 
 ## Narrative reform — article-first manuscript (25 October 2026)
 

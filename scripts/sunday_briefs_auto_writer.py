@@ -662,7 +662,7 @@ def prepare_discovery(sidecar, chosen, extra, inventory):
 
 
 def article_instruction(week_start, as_of, week_ending, allowed_ids, extra_ids,
-                        evidence_text, supplemental_text):
+                        evidence_text, supplemental_text, *, saturday_provisional=False):
     """Prompt for the article-first manuscript (the shared evidence tail is unchanged)."""
     return (
         "WRITE A PROVISIONAL, HUMAN-EDITED INDO-PACIFIC RECORD BRIEF. "
@@ -696,7 +696,9 @@ def article_instruction(week_start, as_of, week_ending, allowed_ids, extra_ids,
         "END PRODUCTION RECORD EVIDENCE{}"
     ).format(
         week_start, as_of, week_ending,
-        ("Friday provisional: Saturday is excluded."
+        ("Saturday provisional: only admitted evidence available at generation is included; "
+         "Saturday has NOT ended and a fresh Sunday reconciliation is required."
+         if saturday_provisional else "Friday provisional: Saturday is excluded."
          if as_of != week_ending else
          "Saturday has elapsed; this is not proof of exhaustive collection."),
         ", ".join(str(i) for i in allowed_ids),
@@ -720,7 +722,10 @@ ARTICLE_RETRY = (
 
 def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
             selected_theme=None, reviewed_synopses=None,
-            automatic_story_selection=False, article_first=True):
+            automatic_story_selection=False, article_first=True,
+            saturday_provisional=False):
+    if saturday_provisional and (as_of != sidecar["week_ending"] or selected_theme is not None):
+        raise ValueError("Saturday provisional mode requires its Saturday cutoff and no signed Sunday theme")
     if automatic_story_selection and selected_theme is not None:
         raise ValueError("automatic selection cannot override signed owner trial")
     # Optional owner theme guidance is deliberately NOT supplied by Sunday's
@@ -898,7 +903,9 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
         "END PRODUCTION RECORD EVIDENCE{}"
     ).format(
         sidecar["week_start"], as_of, sidecar["week_ending"],
-        ("Friday provisional: Saturday is excluded."
+        ("Saturday provisional: only admitted evidence available at generation is included; "
+         "Saturday has NOT ended and a fresh Sunday reconciliation is required."
+         if saturday_provisional else "Friday provisional: Saturday is excluded."
          if as_of != sidecar["week_ending"] else
          "Saturday has elapsed; this is not proof of exhaustive collection."),
         ("numeric production citation arrays may be EMPTY only if the same "
@@ -915,7 +922,8 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
     if article_first:
         prompt = article_instruction(
             sidecar["week_start"], as_of, sidecar["week_ending"], allowed_ids,
-            extra_ids, evidence_text, supplemental_text)
+            extra_ids, evidence_text, supplemental_text,
+            saturday_provisional=saturday_provisional)
     if automatic_story_selection:
         prompt += (
             "\n\nAUTOMATIC STORY SELECTION: decide BEFORE composing, within this same call. "
