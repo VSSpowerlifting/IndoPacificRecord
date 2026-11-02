@@ -43,8 +43,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Reconfirm that the triggering Daily run was today's original scheduled
-  # main collection and wrote today's New York success marker. Weekdays and
+  # Reconfirm that the triggering Daily run was the original scheduled main
+  # collection and that its success marker is still the newest. The reporting
+  # day is that run's own New York guard date, not this job's clock, and the
+  # corpus commit read here is pinned for the draft job. Weekdays and
   # guard-skipped green runs end here with mode=none. Metadata only.
   weekend-collection:
     if: vars.IPR_WEEKEND_EDITORIAL_ENABLED == 'true' && github.event_name == 'workflow_run'
@@ -56,6 +58,8 @@ jobs:
     outputs:
       mode: ${{ steps.verify.outputs.mode }}
       week_ending: ${{ steps.verify.outputs.week_ending }}
+      collection_day: ${{ steps.verify.outputs.collection_day }}
+      corpus_sha: ${{ steps.verify.outputs.corpus_sha }}
     steps:
       - name: Checkout production corpus on main (read-only)
         uses: actions/checkout@v4
@@ -77,6 +81,8 @@ jobs:
             --event "$GITHUB_EVENT_PATH" \
             --marker .github/state/last_daily_run_date.txt \
             --github-output "$GITHUB_OUTPUT"
+          # The marker just verified belongs to this exact commit.
+          echo "corpus_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   # Sunday never writes a second automatic draft. It records only that the
   # Sunday collection exists; the owner runs the recheck locally against the
@@ -124,10 +130,12 @@ jobs:
       # Legacy scheduled preview settings cannot conflict with Sunday's editor send.
       SUNDAY_OWNER_PREVIEW: 'false'
     steps:
-      - name: Checkout production corpus on main (read-only)
+      # The Saturday draft reads the same commit whose marker was verified,
+      # never a later main; the legacy Sunday path keeps reading main.
+      - name: Checkout production corpus (read-only)
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.weekend-collection.outputs.corpus_sha || 'main' }}
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v5
@@ -174,6 +182,7 @@ jobs:
         env:
           IPR_EVENT: ${{ github.event_name }}
           IPR_WEEKEND_WEEK: ${{ needs.weekend-collection.outputs.week_ending }}
+          IPR_WEEKEND_COLLECTION_DAY: ${{ needs.weekend-collection.outputs.collection_day }}
           IPR_MANUAL_SATURDAY: ${{ inputs.reporting_saturday || '' }}
           IPR_HISTORICAL_SEND: ${{ inputs.allow_historical_send == true }}
           IPR_OLD_FRIDAY_ACTIVE: ${{ vars.IPR_EDITOR_DELIVERY_ENABLED == 'true' }}
@@ -200,6 +209,7 @@ jobs:
               if os.environ.get("GITHUB_RUN_ATTEMPT") != "1":
                   raise SystemExit("Refused: weekend editorial reruns are not automatic")
               window = resolve_saturday_provisional(
+                  collection_day=os.environ["IPR_WEEKEND_COLLECTION_DAY"],
                   saturday_daily_marker=last_successful_update,
                   friday_delivery_enabled=os.environ["IPR_OLD_FRIDAY_ACTIVE"] == "true",
               )
@@ -224,6 +234,8 @@ jobs:
               print(key + "=" + value)
           print("IPR_SUNDAY_DESKS=" + ",".join(desks))
           print("IPR_SATURDAY_PROVISIONAL=" + ("true" if provisional else "false"))
+          print("IPR_COLLECTION_DAY=" + (
+              os.environ["IPR_WEEKEND_COLLECTION_DAY"] if provisional else ""))
           PY
 
       # Promote the independent #240 corpus diagnostic to an enforceable
@@ -439,7 +451,8 @@ jobs:
                 --as-of "$IPR_SUNDAY_AS_OF"
                 --research-packet "$PRIVATE_WEEK_PACKET")
           if [[ "$IPR_SATURDAY_PROVISIONAL" == "true" ]]; then
-            args+=(--saturday-provisional)
+            # The verified collection day, not the runner clock after midnight.
+            args+=(--saturday-provisional --review-local-day "$IPR_COLLECTION_DAY")
           fi
           python -m scripts.sunday_before_model_gate "${args[@]}"
 

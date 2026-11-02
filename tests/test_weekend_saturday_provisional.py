@@ -212,37 +212,57 @@ class SaturdayProvisionalReadiness(unittest.TestCase):
 
 
 class SaturdayProvisionalWindow(unittest.TestCase):
-    def test_saturday_in_new_york_resolves_its_own_week(self):
+    def test_verified_saturday_collection_resolves_its_own_week(self):
         # 2026-10-10 is EDT (UTC-4); 23:30 local is 03:30 UTC Sunday.
         result = resolve_saturday_provisional(
-            now=datetime(2026, 10, 11, 3, 30, tzinfo=UTC), saturday_daily_marker="2026-10-10")
+            collection_day=SAT, now=datetime(2026, 10, 11, 3, 30, tzinfo=UTC),
+            saturday_daily_marker="2026-10-10")
         self.assertEqual(result, {"IPR_SUNDAY_WEEK_START": "2026-10-04",
                                   "IPR_SUNDAY_AS_OF": "2026-10-10",
                                   "IPR_SUNDAY_WEEK_END": "2026-10-10",
                                   "IPR_SUNDAY_SHOULD_SEND": "true"})
         # After the November change New York is UTC-5.
         winter = resolve_saturday_provisional(
-            now=datetime(2026, 11, 8, 4, 30, tzinfo=UTC), saturday_daily_marker="2026-11-07")
+            collection_day="2026-11-07", now=datetime(2026, 11, 8, 4, 30, tzinfo=UTC),
+            saturday_daily_marker="2026-11-07")
         self.assertEqual(winter["IPR_SUNDAY_WEEK_END"], "2026-11-07")
+
+    def test_late_saturday_collection_whose_job_starts_on_sunday_keeps_its_week(self):
+        # The clock is Sunday; the verified collection, not the clock, decides.
+        result = resolve_saturday_provisional(
+            collection_day=SAT, now=datetime(2026, 10, 11, 0, 40, tzinfo=NY),
+            saturday_daily_marker=SAT)
+        self.assertEqual(result["IPR_SUNDAY_WEEK_END"], SAT)
 
     def test_refusals(self):
         saturday = datetime(2026, 10, 10, 12, tzinfo=NY)
         cases = [
-            ({"now": datetime(2026, 10, 10, 12), "saturday_daily_marker": SAT}, "timezone"),
-            ({"now": datetime(2026, 10, 11, 12, tzinfo=NY),
-              "saturday_daily_marker": "2026-10-11"}, "only on New York-local Saturday"),
-            ({"now": datetime(2026, 10, 11, 5, 30, tzinfo=UTC),
-              "saturday_daily_marker": "2026-10-11"}, "only on New York-local Saturday"),
-            ({"now": saturday, "saturday_daily_marker": "2026-10-09"}, "success marker"),
-            ({"now": saturday, "saturday_daily_marker": ""}, "success marker"),
-            ({"now": saturday, "saturday_daily_marker": SAT,
+            ({"collection_day": SAT, "now": datetime(2026, 10, 10, 12),
+              "saturday_daily_marker": SAT}, "timezone"),
+            ({"collection_day": "2026-10-11", "now": datetime(2026, 10, 11, 12, tzinfo=NY),
+              "saturday_daily_marker": "2026-10-11"}, "Saturday collection"),
+            ({"collection_day": "", "now": saturday,
+              "saturday_daily_marker": SAT}, "missing or invalid"),
+            ({"collection_day": "2026-10-10T00:00", "now": saturday,
+              "saturday_daily_marker": SAT}, "missing or invalid"),
+            ({"collection_day": SAT, "now": datetime(2026, 10, 12, 0, 5, tzinfo=NY),
+              "saturday_daily_marker": SAT}, "stale or from the future"),
+            ({"collection_day": SAT, "now": datetime(2026, 10, 9, 23, tzinfo=NY),
+              "saturday_daily_marker": SAT}, "stale or from the future"),
+            ({"collection_day": SAT, "now": saturday,
+              "saturday_daily_marker": "2026-10-09"}, "success marker"),
+            # A Sunday collection already moved the marker on.
+            ({"collection_day": SAT, "now": datetime(2026, 10, 11, 9, tzinfo=NY),
+              "saturday_daily_marker": "2026-10-11"}, "success marker"),
+            ({"collection_day": SAT, "now": saturday,
+              "saturday_daily_marker": ""}, "success marker"),
+            ({"collection_day": SAT, "now": saturday, "saturday_daily_marker": SAT,
               "friday_delivery_enabled": True}, "parallel services"),
         ]
         for kwargs, match in cases:
             with self.subTest(match=match, kwargs=kwargs), \
                     self.assertRaisesRegex(SundayHandoffRefused, match):
                 resolve_saturday_provisional(**kwargs)
-
 
 
 WORKFLOW = Path(__file__).resolve().parents[1] / ".github/workflows/sunday_briefs_editorial_handoff.yml"
@@ -285,7 +305,22 @@ class WeekendWorkflowContracts(unittest.TestCase):
         self.assertIn('provisional = os.environ["IPR_EVENT"] == "workflow_run"', handoff)
         self.assertIn("resolve_saturday_provisional(", handoff)
         self.assertIn('IPR_SUNDAY_WEEK_END"] != os.environ["IPR_WEEKEND_WEEK"]', handoff)
-        self.assertEqual(handoff.count("args+=(--saturday-provisional)"), 2)
+        self.assertEqual(handoff.count("args+=(--saturday-provisional"), 2)
+        # The gate judges the verified collection day, not the runner clock.
+        self.assertIn('--review-local-day "$IPR_COLLECTION_DAY"', handoff)
+        self.assertIn('collection_day=os.environ["IPR_WEEKEND_COLLECTION_DAY"]', handoff)
+
+    def test_draft_reads_the_exact_verified_corpus_commit(self):
+        _, jobs = workflow_jobs()
+        trigger, handoff = jobs["weekend-collection"], jobs["sunday-editor-handoff"]
+        self.assertIn("corpus_sha: ${{ steps.verify.outputs.corpus_sha }}", trigger)
+        self.assertIn("collection_day: ${{ steps.verify.outputs.collection_day }}", trigger)
+        # rev-parse runs after the marker check, in the same step.
+        self.assertLess(trigger.index("--marker .github/state/last_daily_run_date.txt"),
+                        trigger.index('echo "corpus_sha=$(git rev-parse HEAD)"'))
+        self.assertIn("ref: ${{ needs.weekend-collection.outputs.corpus_sha || 'main' }}",
+                      handoff)
+        self.assertNotIn("ref: main", handoff)
         self.assertLess(handoff.index("python -m scripts.sunday_before_model_gate"),
                         handoff.index("python -m scripts.sunday_editorial_handoff"))
 

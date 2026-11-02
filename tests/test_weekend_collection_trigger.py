@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -15,9 +15,16 @@ REPO = "VSSpowerlifting/IndoPacificRecord"
 NY = ZoneInfo("America/New_York")
 SATURDAY = datetime(2026, 10, 24, 12, 30, tzinfo=NY)
 SUNDAY = datetime(2026, 10, 25, 12, 30, tzinfo=NY)
+SATURDAY_GUARD = datetime(2026, 10, 24, 10, 5, tzinfo=NY)
+SUNDAY_GUARD = datetime(2026, 10, 25, 10, 5, tzinfo=NY)
 
 
-def parent():
+def stamp(moment):
+    # The Actions API reports UTC instants with a trailing Z.
+    return moment.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parent(started=SATURDAY_GUARD):
     return {
         "repository": {"full_name": REPO},
         "workflow_run": {
@@ -27,14 +34,20 @@ def parent():
             "head_branch": "main",
             "status": "completed", "conclusion": "success",
             "run_attempt": 1, "head_repository": {"full_name": REPO},
-            "id": 98765,
+            "id": 98765, "run_started_at": stamp(started - timedelta(minutes=1)),
         },
     }
 
 
-def jobs():
+def guard(started):
+    return {"name": "Scheduling guard", "conclusion": "success",
+            "started_at": stamp(started),
+            "completed_at": stamp(started + timedelta(seconds=4))}
+
+
+def jobs(started=SATURDAY_GUARD):
     steps = [
-        {"name": "Scheduling guard", "conclusion": "success"},
+        guard(started),
         *({"name": key, "conclusion": "success"} for key in REQUIRED_STEPS),
         {"name": "Health gate", "conclusion": "success"},
     ]
@@ -49,24 +62,81 @@ class WeekendCollectionTrigger(unittest.TestCase):
                                   "collection_day": "2026-10-24", "upstream_id": 98765})
 
     def test_sunday_collection_unlocks_recheck_for_the_previous_saturday(self):
-        result = verify(parent(), jobs(), repo=REPO, marker="2026-10-25", now=SUNDAY)
+        result = verify(parent(SUNDAY_GUARD), jobs(SUNDAY_GUARD), repo=REPO,
+                        marker="2026-10-25", now=SUNDAY)
         self.assertEqual(result["mode"], "sunday")
         self.assertEqual(result["week_ending"], "2026-10-24")
+        self.assertEqual(result["collection_day"], "2026-10-25")
 
     def test_new_york_day_not_utc_day_decides_mode(self):
         # 01:30 UTC Sunday is still Saturday evening in New York (EDT).
         late = datetime(2026, 10, 25, 1, 30, tzinfo=ZoneInfo("UTC"))
-        self.assertEqual(verify(parent(), jobs(), repo=REPO, marker="2026-10-24",
-                                now=late)["mode"], "saturday")
+        self.assertEqual(verify(parent(late), jobs(late), repo=REPO,
+                                marker="2026-10-24", now=late)["mode"], "saturday")
         # After the November DST change the offset is five hours.
         winter = datetime(2026, 11, 8, 4, 30, tzinfo=ZoneInfo("UTC"))
-        self.assertEqual(verify(parent(), jobs(), repo=REPO, marker="2026-11-07",
-                                now=winter)["mode"], "saturday")
+        self.assertEqual(verify(parent(winter), jobs(winter), repo=REPO,
+                                marker="2026-11-07", now=winter)["mode"], "saturday")
+
+    def test_saturday_collection_delivered_after_midnight_stays_saturday(self):
+        # The upstream guard ran late Saturday; the event arrives on Sunday.
+        guard_at = datetime(2026, 10, 24, 23, 50, tzinfo=NY)
+        delivered = datetime(2026, 10, 25, 0, 30, tzinfo=NY)
+        result = verify(parent(guard_at), jobs(guard_at), repo=REPO,
+                        marker="2026-10-24", now=delivered)
+        self.assertEqual(result, {"mode": "saturday", "week_ending": "2026-10-24",
+                                  "collection_day": "2026-10-24", "upstream_id": 98765})
+
+    def test_sunday_collection_delivered_on_monday_stays_sunday(self):
+        guard_at = datetime(2026, 10, 25, 23, 50, tzinfo=NY)
+        delivered = datetime(2026, 10, 26, 0, 40, tzinfo=NY)
+        result = verify(parent(guard_at), jobs(guard_at), repo=REPO,
+                        marker="2026-10-25", now=delivered)
+        self.assertEqual((result["mode"], result["week_ending"]), ("sunday", "2026-10-24"))
+
+    def test_friday_collection_delivered_on_saturday_is_not_a_draft(self):
+        guard_at = datetime(2026, 10, 23, 23, 50, tzinfo=NY)
+        delivered = datetime(2026, 10, 24, 0, 30, tzinfo=NY)
+        with self.assertRaises(NoNewCollection):
+            verify(parent(guard_at), jobs(guard_at), repo=REPO,
+                   marker="2026-10-23", now=delivered)
+
+    def test_delayed_saturday_event_after_sunday_collection_is_refused(self):
+        # A late Saturday guard is still inside the lag bound, but Sunday's run
+        # already recorded its marker, so Saturday's corpus has moved on.
+        guard_at = datetime(2026, 10, 24, 14, 20, tzinfo=NY)
+        delivered = datetime(2026, 10, 25, 9, 0, tzinfo=NY)
+        with self.assertRaisesRegex(CollectionTriggerRefused, "marker not fresh"):
+            verify(parent(guard_at), jobs(guard_at), repo=REPO,
+                   marker="2026-10-25", now=delivered)
+
+    def test_event_older_than_the_lag_bound_or_from_the_future_is_refused(self):
+        for now in (SATURDAY_GUARD + timedelta(hours=20, minutes=1),
+                    SATURDAY_GUARD - timedelta(minutes=5)):
+            with self.subTest(now=now), self.assertRaisesRegex(
+                    CollectionTriggerRefused, "stale or from the future"):
+                verify(parent(), jobs(), repo=REPO, marker="2026-10-24", now=now)
+
+    def test_guard_timestamps_must_exist_and_not_straddle_midnight(self):
+        straddle = jobs()
+        straddle["jobs"][0]["steps"][0] = {
+            "name": "Scheduling guard", "conclusion": "success",
+            "started_at": stamp(datetime(2026, 10, 24, 23, 59, 59, tzinfo=NY)),
+            "completed_at": stamp(datetime(2026, 10, 25, 0, 0, 2, tzinfo=NY))}
+        missing = jobs()
+        del missing["jobs"][0]["steps"][0]["started_at"]
+        absent = jobs()
+        absent["jobs"][0]["steps"] = absent["jobs"][0]["steps"][1:]
+        for case in (straddle, missing, absent):
+            with self.assertRaises(CollectionTriggerRefused):
+                verify(parent(), case, repo=REPO, marker="2026-10-24", now=SATURDAY)
 
     def test_weekdays_are_silent_no_ops(self):
         friday = datetime(2026, 10, 23, 12, tzinfo=NY)
+        guard_at = datetime(2026, 10, 23, 10, 5, tzinfo=NY)
         with self.assertRaises(NoNewCollection):
-            verify(parent(), jobs(), repo=REPO, marker="2026-10-23", now=friday)
+            verify(parent(guard_at), jobs(guard_at), repo=REPO,
+                   marker="2026-10-23", now=friday)
 
     def test_stale_or_friday_marker_never_substitutes(self):
         for marker in ("", "2026-10-23", "2026-10-25"):
@@ -77,7 +147,7 @@ class WeekendCollectionTrigger(unittest.TestCase):
     def test_guard_skipped_green_run_is_a_no_op_not_a_draft(self):
         entry = jobs()
         entry["jobs"][0]["steps"] = [
-            {"name": "Scheduling guard", "conclusion": "success"},
+            guard(SATURDAY_GUARD),
             *({"name": key, "conclusion": "skipped"} for key in REQUIRED_STEPS),
         ]
         with self.assertRaises(NoNewCollection):
@@ -120,12 +190,26 @@ class WeekendCollectionTrigger(unittest.TestCase):
             argv = ["--event", str(event), "--marker", str(marker), "--github-output", str(out)]
             with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO}):
                 self.assertEqual(main(argv, now=SATURDAY, jobs_reader=lambda **_: jobs()), 0)
-            self.assertEqual(out.read_text(), "mode=saturday\nweek_ending=2026-10-24\n")
+            self.assertEqual(out.read_text(), "mode=saturday\nweek_ending=2026-10-24\n"
+                                              "collection_day=2026-10-24\n")
             out.write_text("")
-            weekday = datetime(2026, 10, 22, 12, tzinfo=NY)
+            # A Thursday collection skips on its own start, not on the clock,
+            # even when the event is read on a Saturday.
+            event.write_text(json.dumps(parent(datetime(2026, 10, 22, 10, tzinfo=NY))),
+                             encoding="utf-8")
             reader = lambda **_: self.fail("weekday must not read the Actions API")
-            self.assertEqual(main(argv, now=weekday, jobs_reader=reader), 0)
+            self.assertEqual(main(argv, now=SATURDAY, jobs_reader=reader), 0)
             self.assertEqual(out.read_text(), "mode=none\n")
+            # A Sunday collection delivered on Monday is still read, not skipped.
+            out.write_text("")
+            late = datetime(2026, 10, 25, 23, 50, tzinfo=NY)
+            event.write_text(json.dumps(parent(late)), encoding="utf-8")
+            marker.write_text("2026-10-25\n", encoding="utf-8")
+            with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO}):
+                self.assertEqual(main(argv, now=datetime(2026, 10, 26, 0, 30, tzinfo=NY),
+                                      jobs_reader=lambda **_: jobs(late)), 0)
+            self.assertIn("mode=sunday\nweek_ending=2026-10-24\n", out.read_text())
+            event.write_text(json.dumps(parent()), encoding="utf-8")
             marker.write_text("2026-10-23\n", encoding="utf-8")
             with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO}), \
                     self.assertRaises(SystemExit) as stop:

@@ -144,36 +144,48 @@ def resolve_sunday_handoff(*, event: str, now: datetime = None,
     }
 
 
-def resolve_saturday_provisional(*, now: datetime = None,
+def resolve_saturday_provisional(*, collection_day: str, now: datetime = None,
                                  saturday_daily_marker: str = "",
                                  friday_delivery_enabled: bool = False) -> dict:
     """Resolve the one Saturday provisional draft after Saturday's collection.
 
-    Only the New York-local reporting Saturday itself qualifies: no Friday
-    substitution and no later catch-up, because a late draft would no longer
-    be the provisional pre-Sunday manuscript. The retired Friday service must
-    stay off so that two drafts never reach Dylan for one week.
+    The reporting Saturday is the New York date of the verified upstream
+    collection (``weekend_collection_trigger``), never this job's clock: a
+    Saturday collection whose job starts after midnight is still Saturday's.
+    No Friday substitution and no later catch-up: the marker must still be
+    that Saturday's, and the job must start by the following New York day.
+    The retired Friday service must stay off so that two drafts never reach
+    Dylan for one week.
     """
     if now is None:
         now = datetime.now(timezone.utc)
     if now.tzinfo is None or now.utcoffset() is None:
         raise SundayHandoffRefused("runner clock must have a timezone")
-    today = now.astimezone(NY).date()
-    if today.weekday() != 5:
+    try:
+        saturday = date.fromisoformat(collection_day)
+        if saturday.isoformat() != collection_day:
+            raise ValueError("noncanonical date")
+    except (TypeError, ValueError) as exc:
+        raise SundayHandoffRefused("verified collection day is missing or invalid") from exc
+    if saturday.weekday() != 5:
         raise SundayHandoffRefused(
-            "Saturday provisional draft runs only on New York-local Saturday")
+            "Saturday provisional draft runs only for a New York-local Saturday collection")
+    today = now.astimezone(NY).date()
+    if not saturday <= today <= saturday + timedelta(days=1):
+        raise SundayHandoffRefused(
+            "Saturday provisional draft is stale or from the future; no draft or email attempted")
     if friday_delivery_enabled:
         raise SundayHandoffRefused(
             "refused parallel services: disable IPR_EDITOR_DELIVERY_ENABLED "
             "before the Saturday provisional draft")
-    if saturday_daily_marker.strip() != today.isoformat():
+    if saturday_daily_marker.strip() != saturday.isoformat():
         raise SundayHandoffRefused(
             "Saturday production update has not recorded a success marker "
-            "for New York-local " + today.isoformat() +
+            "for New York-local " + saturday.isoformat() +
             "; no draft or email attempted")
     return {
-        "IPR_SUNDAY_WEEK_START": (today - timedelta(days=6)).isoformat(),
-        "IPR_SUNDAY_AS_OF": today.isoformat(),
-        "IPR_SUNDAY_WEEK_END": today.isoformat(),
+        "IPR_SUNDAY_WEEK_START": (saturday - timedelta(days=6)).isoformat(),
+        "IPR_SUNDAY_AS_OF": saturday.isoformat(),
+        "IPR_SUNDAY_WEEK_END": saturday.isoformat(),
         "IPR_SUNDAY_SHOULD_SEND": "true",
     }
