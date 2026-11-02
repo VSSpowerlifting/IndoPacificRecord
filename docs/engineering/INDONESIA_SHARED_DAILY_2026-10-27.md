@@ -16,7 +16,9 @@ and both metadata bridge variables are true. No variable was changed in this
 phase. Private control main is `a3f6299bd783b9624d0754707572dbb89abdd860`;
 public implementation base is `cee4e74459f357a51137c177c29f28a8de3e2470`.
 Public #950 owns registration/dispatch, #954 owns fetch recovery, and #940 owns
-status copy; this repair changes none of their files or any workflow.
+status copy. This repair preserves their owned behavior and changes no workflow.
+Read-only merge previews with #950 and #954 are clean; shared-file import
+placement deliberately accommodates #950's dispatch migration.
 
 ### Observed source-to-reader state
 
