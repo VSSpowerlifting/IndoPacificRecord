@@ -1062,8 +1062,14 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                 validated["_prose_quality"] = check_article(
                     validated, desk_by_id={row["id"]: row["desk_id"] for row, _ in chosen})
             if automatic_story_selection:
+                from core.brief_editorial_cycle import digest
                 from core.brief_story_discovery import receipt
-                validated["_story_discovery"] = receipt(discovery, validated["story_selection"])
+                from scripts.weekly_briefs_saturday_audit import policy_snapshot
+                # The Sunday recheck compares this with the then-current
+                # source, rights and policy files before release.
+                validated["_story_discovery"] = dict(
+                    receipt(discovery, validated["story_selection"]),
+                    policy_sha256=digest(policy_snapshot()))
             if selected_theme is not None:
                 # Program-owned provenance, not an LLM authorization claim.
                 validated["_private_owner_selected_theme_slug"] = selected_theme["theme_slug"]

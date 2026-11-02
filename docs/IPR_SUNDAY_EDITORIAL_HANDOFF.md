@@ -23,16 +23,31 @@ guard-skipped green runs end with `mode=none`. Reruns of either workflow are ref
 
   ```sh
   .venv/bin/python -m scripts.weekly_briefs_saturday_audit --saturday <YYYY-MM-DD> \
-    --saturday-packet <private TXT> --revised-docx <Dylan's DOCX> --receipt-out <new private path>
+    --saturday-packet <private TXT> --candidate <imported sidecar JSON> \
+    --revised-docx <Dylan's DOCX> --reviewed-by <name> --review-reference <note> \
+    --receipt-out <new private path> --sidecar-out <new private path>
   ```
 
-  It compares the Saturday packet with the Sunday corpus (late Saturday arrivals,
-  backdated items, removals, metadata or eligibility changes, changed pinned originals,
-  appendix changes) and checks the revised DOCX for comments or tracked changes. Any
-  finding is **HELD** (exit 3) unless the owner names it with `--acknowledge-diff`.
-  A PASS receipt binds the SHA-256 of that exact DOCX.
-- **Readiness:** `scripts/import_brief_manuscript.py` refuses a provisional DOCX unless
-  `--provisional-recheck <receipt>` is a PASS receipt for the same SHA-256.
+  Any editorial packet (Saturday provisional, Friday provisional or complete week)
+  with a discovery receipt can be reconciled; the kind is read from the packet's
+  as-of line, not from the DOCX. The recheck needs a production collection recorded
+  after the week ended (Sunday or later) and compares the packet with that corpus:
+  late Saturday arrivals, backdated items, removals, metadata or eligibility changes,
+  changed or ineligible pinned originals, newly eligible originals, appendix changes
+  and changed rights/source policy files. It also checks the revised DOCX for
+  comments or tracked changes and requires a named source-to-claim review. Any
+  finding is **HELD** (exit 3) unless the named reviewer adjudicates that exact diff
+  with `--acknowledge-diff <diff_sha256>`. Receipts must be written outside the
+  repository.
+- **Readiness and approval:** a PASS writes the candidate sidecar with a
+  `saturday_sunday_cycle` receipt binding the manuscript digest, the revised DOCX
+  SHA-256, the packet and the week's inventory/policy fingerprint
+  (`core/brief_editorial_cycle.py`). From the week ending 2026-11-07,
+  `validate_readiness` and `validate_brief` refuse a Brief without a valid receipt,
+  and `author_brief.py ready` recomputes the inventory fingerprint so a later
+  corpus or policy change needs a fresh reconciliation. Already accepted Briefs
+  (week ending 2026-10-31 or earlier) are unchanged. The importer no longer decides
+  releasability; DOCX labels are for Dylan's display only.
 
 The receipt never claims a complete week, grants credit or authorizes publication.
 Research pins are listed for human checking, not recomputed. Disabling the variable

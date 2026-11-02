@@ -81,9 +81,10 @@ them. Already numbered publications are exempt from this new authoring gate.
 1. Import/freeze the exact manuscript using `scripts/import_brief_manuscript.py`
    and complete the canonical source-linked Brief fields and source support.
    Keep the existing manuscript/source review and §5b exception workflow.
-   A Saturday provisional DOCX also needs `--provisional-recheck <receipt>`: the
-   PASS Sunday recheck receipt for that exact SHA-256
-   (see `docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md`).
+   From the week ending 2026-11-07, `validate_readiness` and `validate_brief`
+   also require the sidecar's `saturday_sunday_cycle` receipt, written by the
+   Sunday reconciliation for this exact manuscript and revised DOCX (see
+   `docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md`). DOCX labels do not decide this.
 2. Prepare an explicit outline (repeat `--section` for every section):
 
    ```sh
