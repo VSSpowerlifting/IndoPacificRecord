@@ -165,22 +165,42 @@ jobs:
           # the same catalog is independently authenticated by the render gate.
           from core.public_editorial_research import load_catalog
           editorial_desks = {entry["desk"] for entry in load_catalog()}
+          # Philippines and Indonesia register manual, never-fetched sources
+          # for governed admission (runtime migration 3) and stay shadow desks
+          # without production records; Vietnam's authorized article lane has
+          # been live since 22 October 2026.
+          # Status-panel headings follow the lane branches of
+          # site/preview/templates/desk.html; each desk is pinned to the lane
+          # it renders today so a silent lane change holds the release.
+          status_heading = {
+              "philippines": "Official links and machine explanations, published automatically",
+              "vietnam": "Verified official-source links admitted · English machine explanations published",
+              "indonesia": "Verified official-source links admitted — original publisher references",
+          }
           for name in ("philippines", "vietnam", "indonesia"):
               d = country[name]
-              assert d["public"] is True and d["status"] == "shadow"
-              assert d["manifest"] is None and d["has_production_records"] is False
+              manifest = "desks/" + name + "/manifest.json"
+              assert d["public"] is True
+              assert d["manifest"] == manifest, (name, d["manifest"])
+              if name == "vietnam":
+                  assert d["status"] == "live" and d["has_production_records"] is True
+              else:
+                  assert d["status"] == "shadow"
+                  assert d["has_production_records"] is False
               text = (base / (name + ".html")).read_text(encoding="utf-8")
+              assert status_heading[name] in text, name
+              if name in editorial_desks:
+                  # Approved IPR research section, carrying the editorial-versus-
+                  # collector distinction the render gate also enforces.
+                  assert 'id="ipr-published-research-heading"' in text, name
+                  assert "not a production source-text archive" in text, name
+              else:
+                  assert "ipr-published-research-heading" not in text, name
               if name == "philippines":
                   # Operating link and machine-explanation lanes, not shadow.
-                  assert "Official links and machine explanations, published automatically" in text
                   assert "Original documents in the IPR corpus" in text
                   assert "No individual source references have completed" not in text
               else:
-                  if name in editorial_desks:
-                      assert "IPR research published — official originals linked" in text
-                      assert "not a production source-text archive" in text
-                  else:
-                      assert "Shadow evaluation" in text
                   assert "Individually reviewed official-source references" in text
                   assert "No individual source references have completed" in text
               assert "data-reference-list" not in text
@@ -195,8 +215,9 @@ jobs:
           assert japan["manifest"] == "desks/japan/manifest.json"
           assert japan["has_production_records"] is False
           japan_html = (base / "japan.html").read_text(encoding="utf-8")
-          assert "Shadow evaluation" in japan_html
-          assert "not in corpus" in japan_html
+          assert "Japan MOD news official links admitted automatically" in japan_html
+          assert "no admitted records in the public IPR corpus" in japan_html
+          assert "The original-text corpus remains in shadow" in japan_html
           official_japan_indices = (
               "https://www.mod.go.jp/j/press/news/",
               "https://www.mod.go.jp/j/update/index.html",
@@ -224,7 +245,10 @@ jobs:
           assert 'href="philippines.html"' in desk_html
           assert 'href="vietnam.html"' in desk_html
           assert 'href="indonesia.html"' in desk_html
-          assert "8 declared" in desk_html and "3 collecting" in desk_html
+          # Desks summary: eight declared desks, four collecting into the
+          # record (China, Singapore, South Korea, Vietnam), per desks/registry.json.
+          assert "<dt>Declared</dt><dd>8</dd>" in desk_html
+          assert "<dt>Collecting into the record</dt><dd>4</dd>" in desk_html
           assert (base / "desk-references.js").is_file()
           assert (base / "desk-references.css").is_file()
           assert (base / "sitemap.xml").is_file()

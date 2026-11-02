@@ -56,16 +56,16 @@ class CountryResearchReleaseContract(unittest.TestCase):
         text = self.body
         self.assertIn('assert row["entries"] == []', text)
         self.assertIn('d["has_production_records"] is False', text)
-        self.assertIn('d["manifest"] is None', text)
+        self.assertIn('d["manifest"] == manifest, (name, d["manifest"])', text)
         self.assertIn('from core.public_editorial_research import load_catalog', text)
         self.assertIn('if name in editorial_desks:', text)
-        self.assertIn('assert "IPR research published — official originals linked" in text', text)
+        self.assertIn('assert status_heading[name] in text, name', text)
         self.assertIn('assert "not a production source-text archive" in text', text)
-        self.assertIn('assert "Shadow evaluation" in text', text)
+        self.assertIn('assert "ipr-published-research-heading" not in text, name', text)
         self.assertIn('assert "data-reference-list" not in text', text)
-        self.assertIn('assert "8 declared" in desk_html', text)
+        self.assertIn('assert "<dt>Declared</dt><dd>8</dd>" in desk_html', text)
         self.assertIn('if name == "philippines":', text)
-        self.assertIn('assert "Official links and machine explanations, published automatically" in text', text)
+        self.assertIn('"philippines": "Official links and machine explanations, published automatically"', text)
 
     def test_pull_request_checks_rehearse_actual_renderer_without_deployment(self):
         text = self.body

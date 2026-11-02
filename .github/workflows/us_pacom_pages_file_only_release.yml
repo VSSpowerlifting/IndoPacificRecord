@@ -107,7 +107,14 @@ jobs:
           reg=json.loads(Path("desks/registry.json").read_text(encoding="utf-8"))
           desk=next(d for d in reg["desks"] if d["slug"]=="us-indopacific")
           assert desk["status"]=="access_blocked"
-          assert desk["manifest"] is None and desk["has_production_records"] is False
+          # Runtime migration 4 registered two manual, never-fetched metadata
+          # sources (USCC, Treasury); nothing from Pacific Command is
+          # configured and the desk holds no production records.
+          assert desk["manifest"]=="desks/us-indopacific/manifest.json"
+          assert desk["has_production_records"] is False
+          manifest=json.loads(Path("desks/us-indopacific/manifest.json").read_text(encoding="utf-8"))
+          assert {s["access_method"] for s in manifest["sources"]}=={"manual"}
+          assert not any("pacom" in s["slug"] for s in manifest["sources"])
           html=Path("output/us-indopacific.html").read_text(encoding="utf-8")
           soup=BeautifulSoup(html,"html.parser")
           links=soup.select("li[data-us-pacom-link] a")

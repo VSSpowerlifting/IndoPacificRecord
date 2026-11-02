@@ -1027,5 +1027,137 @@
     "built_with": {
       "pillow": "11.3.0"
     }
+  },
+  {
+    "id": "amraam-training-2025",
+    "file": "amraam-training-2025.jpg",
+    "alt": "Two AIM-120 AMRAAM missiles on a ground handling rack in front of an AV-8B Harrier II.",
+    "caption": "AIM-120 AMRAAM missiles prepared for loading at Marine Corps Air Station Cherry Point, North Carolina, 5 August 2025. Historical production and equipment context, not the planned facility in Japan or the October 2026 meeting.",
+    "creator": "Lance Cpl. Bryan Giraldo, U.S. Marine Corps",
+    "license": "Public domain",
+    "license_url": "https://www.dvidshub.net/about/copyright",
+    "source_page": "https://www.dvidshub.net/image/9245688/us-marines-with-marine-attack-squadron-223-prepare-av-8b-harriers-ordnance-training",
+    "source_label": "DVIDS",
+    "dod_id": "250805-M-OV696-1094",
+    "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+    "date_note": "Photographed 5 August 2025; historical context.",
+    "credit": "Lance Cpl. Bryan Giraldo, U.S. Marine Corps · Public domain · via DVIDS",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "japan-us-amraam-final-assembly-sm3-production"
+      ],
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": []
+    },
+    "note": "Owner-accepted context image: AIM-120 AMRAAM missiles at MCAS Cherry Point on 5 August 2025, not the planned facility in Japan or the October 2026 meeting. Article and catalogue card (No. 21), same image; see DECISION_LOG 2026-11-01.",
+    "sha256": "e2d0a34b6a89aead06e855e0e614d0c767f826615e32b953fa5e0f559a04b67a",
+    "original_url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2508/9245688/1000w_q95.jpg",
+    "retrieval": {
+      "url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2508/9245688/1000w_q95.jpg",
+      "retrieved_at": "2026-11-01T19:52:44.327822+00:00",
+      "status": 200,
+      "bytes": 191168,
+      "etag": "\"d6b117391e214ec137ef4eb6ffd8d82a\"",
+      "user_agent": "IPR-editorial-review/1.0"
+    },
+    "license_basis": "Publisher page and terms checked 1 November 2026; source-specific receipt records scope and limits.",
+    "derivatives": [
+      {
+        "file": "derivatives/amraam-training-2025-1600.jpg",
+        "width": 1000,
+        "height": 667,
+        "sha256": "8eeccf1b322d4c221ce51bd79b9c309d346668bdcca39fb77633eb721c9901ab"
+      },
+      {
+        "file": "derivatives/amraam-training-2025-800.webp",
+        "width": 800,
+        "height": 534,
+        "sha256": "8077017444c302ffe42b6265f53b513998a296768b97a3f01dda1bbf9041d569"
+      },
+      {
+        "file": "derivatives/amraam-training-2025-1600.webp",
+        "width": 1000,
+        "height": 667,
+        "sha256": "5001982c004fc96a3edbef8f948765e34bc4b983f43d73b7e9366e26dcb68523"
+      }
+    ],
+    "built_with": {
+      "pillow": "13.0.0"
+    }
+  },
+  {
+    "id": "jintsu-de230",
+    "file": "jintsu-de230.jpg",
+    "alt": "The Japan Maritime Self-Defense Force destroyer escort Jintsu, hull number 230, underway at sea.",
+    "caption": "JS Jintsu (DE-230), an Abukuma-class destroyer escort. Historical class context; the October statement does not identify which vessel would be transferred.",
+    "creator": "Japan Maritime Self-Defense Force",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "source_page": "https://commons.wikimedia.org/wiki/File:JS_%E2%80%9DJints%C5%AB%E2%80%9D_(DE-230).jpg",
+    "source_label": "Japan Maritime Self-Defense Force via Wikimedia Commons",
+    "date_note": "Historical photograph; the file timestamp is not asserted as a verified event date.",
+    "credit": "Japan Maritime Self-Defense Force · CC BY 4.0 · via Japan Maritime Self-Defense Force via Wikimedia Commons",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "japan-philippines-first-destroyer-2026"
+      ],
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": []
+    },
+    "note": "Owner-accepted context image: JS Jintsu (DE-230), Abukuma-class context only, not an identified transfer hull. Article and catalogue card (No. 22), same image; see DECISION_LOG 2026-11-01.",
+    "sha256": "76ae9401114ac30ba91f49e90590a02e97c914e92b338ca042fe20d1e1495542",
+    "original_url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/JS_%E2%80%9DJints%C5%AB%E2%80%9D_%28DE-230%29.jpg",
+    "retrieval": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/JS_%E2%80%9DJints%C5%AB%E2%80%9D_%28DE-230%29.jpg",
+      "retrieved_at": "2026-11-01T19:52:47.267733+00:00",
+      "status": 200,
+      "bytes": 334603,
+      "etag": "b3890561ed355794a5904c2677bb67b5",
+      "user_agent": "IPR-editorial-review/1.0"
+    },
+    "license_basis": "Publisher page and terms checked 1 November 2026; source-specific receipt records scope and limits.",
+    "derivatives": [
+      {
+        "file": "derivatives/jintsu-de230-1600.jpg",
+        "width": 1600,
+        "height": 1030,
+        "sha256": "2e5b1de4f4a7f136e73eb9d65bb47591e78fdc7d00e43c8dfee08d929ecd668a"
+      },
+      {
+        "file": "derivatives/jintsu-de230-800.webp",
+        "width": 800,
+        "height": 515,
+        "sha256": "989994fb4bd382173d7153e5f0628bf9e24e5f17319ec7d8f28be0be178ea79c"
+      },
+      {
+        "file": "derivatives/jintsu-de230-1600.webp",
+        "width": 1600,
+        "height": 1030,
+        "sha256": "bca19dcfcac9988373b8b50db2f79d35b62476e218e711bf3276e40331262af3"
+      }
+    ],
+    "built_with": {
+      "pillow": "13.0.0"
+    }
   }
 ]

@@ -34,4 +34,13 @@ jobs:
         run: |
           set -euo pipefail
           test -z "$(git status --porcelain)"
-          test ! -e desks/japan/manifest.json
+          python - <<'PY'
+          # Runtime migration 3 registered the Japan MOD news feed as the desk's
+          # one manual production source; the Coast Guard stays a shadow desk
+          # and never enters the production manifest.
+          import json
+          from pathlib import Path
+          production = json.loads(Path("desks/japan/manifest.json").read_text(encoding="utf-8"))
+          assert [s["slug"] for s in production["sources"]] == ["jp_mod_news_ja"], production["sources"]
+          assert "jcg" not in json.dumps(production).lower()
+          PY

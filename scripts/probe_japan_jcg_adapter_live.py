@@ -36,6 +36,9 @@ def run(*, adapter=None):
         "discovery_error_detail": discovered.error_detail,
         "robots_status": adapter.robots_status,
         "discover_count": len(discovered.references),
+        # Index rows counted but never fetched (pre-pilot dates; first-party
+        # pages outside the release family) are disclosed here as metadata.
+        "listing_report": adapter.listing_report,
         "records": [],
     }
     if not discovered.ok:

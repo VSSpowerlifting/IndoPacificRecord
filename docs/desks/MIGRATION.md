@@ -16,7 +16,7 @@ current main, PRs and actual source decisions before implementation.
 | Philippines | `processing/daily_intake.py`, `processing/daily_runner.py`, AFP/NSC validators, `daily_machine_records`; source-definition pilot merged in PR #928; manual production manifest `desks/philippines/manifest.json` and governed dispatch (runtime migration 3, review candidate) | AFP and NSC registry, lifecycle dispatch, screening and machine-record projection share `core/daily_sources.py` following merged PR #928; admission runs through `pipeline.run_governed_manual_sources` with every other manual source; broader cross-desk convergence remains | English originals remain private; AFP and NSC identities, attribution, policies and exceptional holds remain distinct |
 | Indonesia | Same private intake/runner as Philippines, Kemhan validator and Indonesian quality checks; source-definition pilot merged in PR #928; manual production manifest `desks/indonesia/manifest.json` (runtime migration 3, review candidate) | Kemhan uses the same shared registry, caller paths and governed dispatch as AFP/NSC; source-specific evidence/policy stays authoritative | Preserve accepted output, version bindings, Yonif TP 880 hold, source-use decisions and bounded spend; no new paid attempts are authorized |
 | Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA; MPS and VPCP report run-result rows through the governed dispatcher (runtime migration 5, review candidate) | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
-| Japan | Isolated shadow RSS/PDF collection under `shadow/jp_mod/`, `core/japan_mod_official_links.py` and public link admission; manual production manifest `desks/japan/manifest.json` registering only `jp_mod_news_ja` (runtime migration 3, review candidate) | Same metadata/component projection and delivery contracts; link admission runs through the governed dispatcher rather than a separate Daily step; no separate Japan publisher | Retrieved/verified news-PDF metadata only under current grant; challenged HTML and all excluded original/model/media uses remain excluded; JCG is separate |
+| Japan | Isolated shadow RSS/PDF collection under `shadow/jp_mod/`, `core/japan_mod_official_links.py` and public link admission; manual production manifest `desks/japan/manifest.json` registering only `jp_mod_news_ja` (runtime migration 3, review candidate) | Same metadata/component projection and delivery contracts; link admission runs through the governed dispatcher rather than a separate Daily step; no separate Japan publisher | Retrieved/verified news-PDF metadata only under current grant; challenged HTML and all excluded original/model/media uses remain excluded; JCG is separate (shadow only; its index cross-section rows are disclosed exclusions, not identities, per `shadow/jp_jcg/README.md`) |
 | US reference | Existing `core/us_*` metadata adapters and source-specific release paths | Common source-link identity, projection, admission and delivery | Keep publisher access restrictions and narrow source scopes; this does not authorize a broad US collection program |
 
 These are required destinations for all desks, not optional per-country plans.
@@ -213,7 +213,27 @@ the affected modules (832 tests) pass, `scripts/validate_output.py` reports
 the 10 governed warnings, and a local `site/render.py` inspection shows the
 desks table at 2 configured / 2 enabled for the US desk, the desk page listing
 both sources as enabled with no records, and the two new source pages. The
-full offline suite result is recorded in the commit message. Generated
+full offline suite result is recorded in the commit message. PR CI then
+showed eight workflow guards still pinning the pre-migration registry (no
+Japan production manifest; Indonesia and US `manifest` null); they now assert
+the registered state (Japan's manifest lists `jp_mod_news_ja` only and no
+Coast Guard source, Indonesia's lists `id_kemhan_news` only, the US desk's
+two sources are manual and none is Pacific Command, and the
+country-research loop records Vietnam as live with records), while Korea's
+deliberately refusing guard in `korea_pages_file_only_release.yml` is
+untouched. The push-only `release` job of
+`country_research_render_only_release.yml` last ran on `main` on 23 October
+2026 and failed at the editorial-research gate; commit `13e658653b`, merged
+later that day, repaired the Vietnam page for that gate, and the job has not
+been retriggered since. Its later page-scope step still pinned headings the
+desks no longer render (`Shadow evaluation` for Indonesia and Japan, the
+pre-live Vietnam research heading, and the old `8 declared / 3 collecting`
+summary wording); those pins now name each desk's current status-panel lane,
+the research section by its heading id, Japan's admitted-links lane, and the
+desks summary markup (8 declared, 4 collecting), all checked against a fresh
+`site/render.py` build of this branch. The Japan Coast Guard live adapter probe
+(`japan_jcg_adapter_proof.yml`) fails on every branch since 1 November 2026
+for a publisher-side reason unrelated to this branch. Generated
 `output/` and the tracked `pla_watch.db` are deliberately not committed:
 Daily's migration step inserts the desk/institution/source rows and its render
 republishes.

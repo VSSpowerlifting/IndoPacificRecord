@@ -28,7 +28,7 @@ from core.desk_registry import load_registry                  # noqa: E402
 ADMISSIONS = REPO_ROOT / "site/assets/catalogue/admissions.json"
 MANIFEST = REPO_ROOT / "site/assets/editorial/manifest.json"
 MEDIA = REPO_ROOT / "site/assets/catalogue/media"
-PHOTO_ISSUES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 17, 18, 19, 20}
+PHOTO_ISSUES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22}
 #: Where each admitted card's source page may be. No. 17 is the paired DVIDS
 #: cover (treatment B, owner-selected 2026-10-12); the others are Commons files.
 SOURCE_HOSTS = {1: "https://commons.wikimedia.org/", 2: "https://commons.wikimedia.org/", 3: "https://www.dvidshub.net/", 4: "https://www.dvidshub.net/", 5: "https://commons.wikimedia.org/", 6: "https://commons.wikimedia.org/", 7: "https://www.dvidshub.net/", 8: "https://commons.wikimedia.org/", 9: "https://commons.wikimedia.org/", 11: "https://commons.wikimedia.org/",
@@ -37,7 +37,9 @@ SOURCE_HOSTS = {1: "https://commons.wikimedia.org/", 2: "https://commons.wikimed
                 17: "https://www.dvidshub.net/image/",
                 18: "https://commons.wikimedia.org/",
                 19: "https://www.dvidshub.net/",
-                20: "https://www.dvidshub.net/"}
+                20: "https://www.dvidshub.net/",
+                21: "https://www.dvidshub.net/",
+                22: "https://commons.wikimedia.org/"}
 HELD_ISSUES = {10}
 
 

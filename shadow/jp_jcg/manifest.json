@@ -47,7 +47,7 @@
       "article_url_patterns": [
         "^https://www\\.kaiho\\.mlit\\.go\\.jp/e/topics_archive/article[0-9]+\\.html$"
       ],
-      "notes": "Narrow first-party English HTML release family; Sept 1, 2026 forward only. Historic archive entries older than this cutoff counted but not admitted. Only HTML body is included; linked PDFs, images and third-party materials are excluded. Initial Actions fidelity proof passed October 8; manual-only shadow capture is governed by separate workflow and review. No production eligibility follows. See README.md."
+      "notes": "Narrow first-party English HTML release family; Sept 1, 2026 forward only. Historic archive entries older than this cutoff counted but not admitted. Only HTML body is included; linked PDFs, images and third-party materials are excluded. Index rows that link first-party pages outside /e/topics_archive/ (first observed 2026-10-26: /info/topics/rescueforeignvessels.html) are disclosed in the listing report, never admitted or fetched. Initial Actions fidelity proof passed October 8; manual-only shadow capture is governed by separate workflow and review. No production eligibility follows. See README.md."
     }
   ]
 }
