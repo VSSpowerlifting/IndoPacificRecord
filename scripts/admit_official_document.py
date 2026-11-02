@@ -106,6 +106,8 @@ def main(argv=None):
             need(conn.execute("PRAGMA integrity_check").fetchone() == ("ok",), "integrity_failed")
         conn.close()
         disposition = result["selection"][args.identity]
+        # The same run reconciles every entry; side effects on others are reported too.
+        report["other_dispositions"] = {k: v for k, v in result["selection"].items() if k != args.identity}
         report.update({"disposition": disposition, "written": args.write, "model_calls": result["model_calls"],
                        "status": "ok" if disposition in ("selection_admitted", "selection_unchanged") else "held"})
         print(json.dumps(report, sort_keys=True))

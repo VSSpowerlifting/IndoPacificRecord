@@ -168,6 +168,14 @@ class EditorialSelection(unittest.TestCase):
         for override in bad:
             with self.subTest(override=override), self.assertRaisesRegex(ValueError, "vpcp_selection_invalid"):
                 intake.selection(self.selection(**override))
+        # Other shapes and a missing file raise the same code, never another error type.
+        for text in ("[]", '{"selections": null}', '{"selections": ["x"]}', "", None):
+            path = self.tmp / "shape.json"
+            path.unlink(missing_ok=True)
+            if text is not None:
+                path.write_text(text)
+            with self.subTest(text=text), self.assertRaisesRegex(ValueError, "vpcp_selection_invalid"):
+                intake.selection(path)
         # In a run, the invalid file holds the selections only: topical
         # captures still admit and the unselected version stays unpublished.
         (self.tmp / "broken.json").write_text("{")
@@ -246,6 +254,7 @@ class Invocation(unittest.TestCase):
         code, report = self.run_cli()
         self.assertEqual((code, report["disposition"], report["written"], report["model_calls"]),
                          (0, "selection_admitted", False, 0))
+        self.assertEqual(report["other_dispositions"], {})
         self.assertEqual(self.link_count(), 0)
         self.assertEqual(self.run_cli("--write")[1]["disposition"], "selection_admitted")
         self.assertEqual(self.run_cli("--write")[1]["disposition"], "selection_unchanged")
