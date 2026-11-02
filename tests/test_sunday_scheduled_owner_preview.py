@@ -71,11 +71,16 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
                     sunday_daily_marker=marker,
                 )
 
-    def test_scheduled_editor_send_is_default_but_manual_stays_opt_in(self):
+    def test_legacy_editor_delivery_is_excluded_when_replacement_is_enabled(self):
         src = WORKFLOW.read_text(encoding="utf-8")
+        # The replacement excludes the ENTIRE legacy job, including manual
+        # dispatch. When it is absent/disabled, the legacy scheduled default
+        # and explicit manual-send opt-in below remain unchanged. Parentheses
+        # are essential: an ungrouped OR could bypass exclusion on schedules.
         self.assertIn(
-            "if: github.event_name == 'workflow_dispatch' || "
-            "github.event_name == 'schedule'", src,
+            "if: vars.IPR_SATURDAY_SUNDAY_CYCLE_ENABLED != 'true' && "
+            "(github.event_name == 'workflow_dispatch' || "
+            "github.event_name == 'schedule')", src,
         )
         self.assertIn(
             "SUNDAY_SEND: ${{ github.event_name == 'schedule' || "
