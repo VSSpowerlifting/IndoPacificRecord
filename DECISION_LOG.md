@@ -4,6 +4,21 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-01 — Official sources cited by Briefs become link-metadata Records
+
+Benjamin Yang's brief "Complete Source Admission and Editorial–Records
+Integration" (2026-11-01) directs that every eligible original-source document
+used in an IPR publication be a discoverable Record. It also covers backfill
+of approved publications. It does not authorize prose or credit changes.
+Decision: official publisher references in approved, non-review Briefs become
+Records that republish only the Brief's own reference metadata (doctrine §5b).
+This is not corpus admission: no source bytes, DB rows, desk coverage, new
+collector or rights override. Independent references and held families (MINDEF
+outside approved links; Vietnam MPS/MOIT/VPCP) stay external-only. Edition,
+Dossier and Timeline trails already cite corpus Records and link back through
+`in_trails`; Dossier external references stay external. First result: 29
+Records from five Briefs; 4 independent and 1 Vietnam MPS reference omitted.
+
 ## 2026-11-01 — Two Briefs: owner source review, presentation and covers
 
 Bylines approved by Benjamin Yang, Founder & Executive Director: **Benjamin

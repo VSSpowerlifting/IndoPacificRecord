@@ -394,6 +394,20 @@ cross-desk provenance requirements above/below remain fully applicable to every
 ordinary Brief. See `core/brief_source_linked.py` and
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`.
 
+**Cited official sources are Records (owner direction, 2026-11-01).** Each
+*official* publisher reference in an approved Brief gets one IPR Record per
+exact URL (`record/cited-<sha256[:16]>.html`). The Record publishes only what
+the Brief already publishes: original title, issuer, publisher, language,
+source-stated date and the link. It holds no source bytes, excerpt, translation
+or verification notes and adds no desk coverage or database row. The Brief
+keeps its publisher link and adds an "IPR Record" link; the Record links back to
+every citing Brief. A URL already held as a corpus record or released machine
+Record resolves to that page instead, so manual citation and collection share one
+identity. Independent reporting stays an external citation. Held families are
+omitted: MINDEF outside its approved links, and Vietnam MPS, MOIT and VPCP
+without a sealed decision. Conflicting metadata for one URL stops the build.
+Derived on every render by `core/cited_source_records.py`; nothing is hand-admitted.
+
 **The approval of 2026-10-13 applies only to** “What Is Being Built in Laos?”
 with fingerprint
 `ec3da971c0c9ab0ec21e2688b971d419c4a5650a690e49bad380c56763a0e500`;

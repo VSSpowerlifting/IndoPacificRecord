@@ -1,5 +1,17 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Cited official sources as Records — review candidate (1 November 2026)
+
+`core/cited_source_records.py` derives one link-metadata Record per official URL
+cited by an approved Brief on every render (doctrine §5b; DECISION_LOG
+2026-11-01). Briefs add an "IPR Record" link beside each eligible publisher
+link. Records list every citing Brief, and the archive index carries them with
+no desks. Current output: 29 Records from five Briefs, archive index 1,688 →
+1,717. Omitted: 4 independent references, 1 Vietnam MPS reference and the nine
+Dossier external references. None of the 34 Brief URLs matched a corpus or
+machine Record. Editions, Dossiers and Timelines already link corpus Records
+both ways. No DB, source-policy or collector change. Not merged or deployed.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
