@@ -293,8 +293,12 @@ jobs:
           VIETNAM_SOURCE_USE_REVIEW_KEY: ${{ secrets.VIETNAM_SOURCE_USE_REVIEW_KEY }}
           VIETNAM_PRIVATE_PROVENANCE_TOKEN: ${{ secrets.VIETNAM_PRIVATE_PROVENANCE_TOKEN }}
         run: |
+          # The printed receipt is what the pipeline reports as this run's
+          # Vietnam run-result rows; the step itself still never fails Daily.
           status=0
-          python -m core.vietnam_daily_handoff --database pla_watch.db || status=$?
+          python -m core.vietnam_daily_handoff --database pla_watch.db \
+            > "$RUNNER_TEMP/vietnam-handoff.json" || status=$?
+          cat "$RUNNER_TEMP/vietnam-handoff.json"
           if [ "$status" -eq 2 ]; then
             echo "::notice title=Vietnam handoff held::No Vietnam records admitted this run; pla_watch.db unchanged."
           elif [ "$status" -ne 0 ]; then
@@ -417,6 +421,11 @@ jobs:
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
+          # Vietnam's two steps above write pla_watch.db before this one; the
+          # pipeline reports what they recorded under the same activations.
+          VIETNAM_DAILY_HANDOFF_ENABLED: ${{ vars.VIETNAM_DAILY_HANDOFF_ENABLED }}
+          VIETNAM_VPCP_METADATA_ENABLED: ${{ vars.VIETNAM_VPCP_METADATA_ENABLED }}
+          IPR_VIETNAM_HANDOFF_RECEIPT: ${{ runner.temp }}/vietnam-handoff.json
         run: |
           if [ "$VPCP_METADATA_ONLY" = "true" ]; then
             unset PLA_WATCH_DAILY_RUN_DATE

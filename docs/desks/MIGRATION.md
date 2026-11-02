@@ -15,7 +15,7 @@ current main, PRs and actual source decisions before implementation.
 | Korea | `core/korea_corpus_bridge.py`, `processing/korea_shared_queue.py`, original-text and reviewed-English registries | Common checkpoints/admission and a record assembled from permitted components | HWPX fidelity, verified licence scope, source/version exclusions and reviewed English; DAPA metadata permission is separate |
 | Philippines | `processing/daily_intake.py`, `processing/daily_runner.py`, AFP/NSC validators, `daily_machine_records`; source-definition pilot merged in PR #928; manual production manifest `desks/philippines/manifest.json` and governed dispatch (runtime migration 3, review candidate) | AFP and NSC registry, lifecycle dispatch, screening and machine-record projection share `core/daily_sources.py` following merged PR #928; admission runs through `pipeline.run_governed_manual_sources` with every other manual source; broader cross-desk convergence remains | English originals remain private; AFP and NSC identities, attribution, policies and exceptional holds remain distinct |
 | Indonesia | Same private intake/runner as Philippines, Kemhan validator and Indonesian quality checks; source-definition pilot merged in PR #928; manual production manifest `desks/indonesia/manifest.json` (runtime migration 3, review candidate) | Kemhan uses the same shared registry, caller paths and governed dispatch as AFP/NSC; source-specific evidence/policy stays authoritative | Preserve accepted output, version bindings, Yonif TP 880 hold, source-use decisions and bounded spend; no new paid attempts are authorized |
-| Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
+| Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA; MPS and VPCP report run-result rows through the governed dispatcher (runtime migration 5, review candidate) | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
 | Japan | Isolated shadow RSS/PDF collection under `shadow/jp_mod/`, `core/japan_mod_official_links.py` and public link admission; manual production manifest `desks/japan/manifest.json` registering only `jp_mod_news_ja` (runtime migration 3, review candidate) | Same metadata/component projection and delivery contracts; link admission runs through the governed dispatcher rather than a separate Daily step; no separate Japan publisher | Retrieved/verified news-PDF metadata only under current grant; challenged HTML and all excluded original/model/media uses remain excluded; JCG is separate |
 | US reference | Existing `core/us_*` metadata adapters and source-specific release paths | Common source-link identity, projection, admission and delivery | Keep publisher access restrictions and narrow source scopes; this does not authorize a broad US collection program |
 
@@ -224,8 +224,12 @@ or an owner decision to drop that binding. The first scheduled Daily run on the
 merged branch must show one `source_run_results` row per manual source (now
 six) and, for the two US families, either `OK`/`OK_ALL_DUPLICATES` receipts or
 a `LISTING_FAILURE` row if the clone step failed; until then the migration is a
-review candidate, not an operationally verified release. Vietnam governed
-admission (PR #933 bridge) is not routed through the dispatcher.
+review candidate, not an operationally verified release. Vietnam's two
+registered families now report through the dispatcher (runtime migration 5,
+stacked on #950): each admission reads what Vietnam's own Daily steps recorded
+this run (the signed handoff receipt and the VPCP collector's run record)
+rather than repeat them, so the false "no governed admission" skip becomes a
+quiet, held, duplicate or missed row. The MOIT families stay unregistered.
 `scripts/check_source_liveness.py` is keyed on `articles`, so manual
 link/metadata/machine-record sources stay `INERT` even when their
 `source_run_results` rows are `OK`; the W1 stop condition needs a liveness

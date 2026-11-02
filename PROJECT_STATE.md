@@ -1,5 +1,36 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared desk architecture, runtime migration 5 — Vietnam run-result rows through the governed dispatcher (1 November 2026, review candidate, stacked on #950)
+
+Daily runs 191 and 192 recorded both registered Vietnam families
+(`vn_mps_foreign_affairs_vi`, `vn_vpcp_official_documents_vi`) as
+`SKIPPED_DISABLED` "manual source with no governed admission", even when the
+signed handoff and the VPCP bibliographic collector had run. `pipeline.py` now
+gives each a `GovernedAdmission` that reports what Vietnam's own Daily steps
+recorded rather than repeating them (the handoff replaces `pla_watch.db`
+atomically and cannot run under the pipeline's connections). MPS reads its
+share of the handoff receipt; VPCP combines that with the collector's
+`official_document_collection_runs` row for this run and attempt, and a failed
+lane is never hidden by a quiet one. `core.vietnam_daily_handoff` adds
+`by_family` and `generated_utc` to its OK receipt; Daily writes the receipt to
+`$RUNNER_TEMP` and passes the two existing owner variables to the pipeline
+step (no new workflow file, variable or activation). Outcomes: awaiting
+activation; metadata-only; quiet, admitted, duplicates or held by fixed code;
+`ADAPTER_ERROR` for a HOLD or unreadable receipt; `FETCH_FAILURE` for a missing
+receipt, a missing collector row or an envelope older than 36 hours (a
+re-served envelope after a missed private run). The last case is a deliberate
+behaviour change: a missed Vietnam run now counts as a pipeline error rather
+than a silent skip. MOIT families stay unregistered. No ledger, hold,
+attempt, missed-slot recovery or liveness gate is touched.
+
+Verified: `tests/test_vietnam_governed_run_results.py` (19) and the extended
+`tests/test_vietnam_daily_handoff.py`, plus the Vietnam, workflow-contract and
+manual-source modules; results are in the commit message. Not verified live:
+the first scheduled Daily run after merge must show both Vietnam rows with
+receipt-derived statuses. Founder decisions outstanding: owner-reviewed
+`target_date` recovery of the 29–30 October MPS/VPCP slots, a
+`source_run_results`-keyed liveness gate, and MOIT registration.
+
 ## Shared desk architecture, runtime migration 4 — US reference families through the governed dispatcher (1 November 2026, review candidate)
 
 The USCC and Treasury press-release metadata families are now registered as
