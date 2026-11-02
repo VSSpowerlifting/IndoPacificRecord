@@ -1,5 +1,31 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Agent tooling consolidation — review candidate (1 November 2026)
+
+The editorial-integrity-reviewer now covers original-language text for every
+desk (not only Chinese), traces Brief claims through `publisher_references` and
+`paragraph_support`, diffs foreign strings in code, and can be run on a held
+Sunday draft or Dylan's return. It stays advisory: it cannot clear a hold,
+approve or send. `docs/AGENT_WORKFLOWS.md` §2 retains the task → capability map and optional-tool fallbacks, with
+code-index freshness guidance. Retired: the tracked Ruflo/claude-flow runtime state (now
+gitignored) and the awesome-design-md/skillui lock entries.
+
+Operating finding: Claude sessions in `.claude/worktrees/*` load project agents,
+commands and skills from the main checkout, which on 1 November 2026 was on a
+stale non-main branch. `CLAUDE.md` gives the one-line check. The owner subsequently supplied a local completion report: the main checkout
+was fast-forwarded to main at e9cd7657c5, local work was preserved, and
+TokenSave was re-synced. This is reported local evidence, not a remote
+verification; a fresh session is needed to reload agent definitions. No workflow, schedule, model setting or output changed.
+
+Trial run on Japan Brief No. 19 (advisory, unreviewed): the stored record holds
+no traceable origin for the s4 Japanese title or URL-bound titles for s3/s6, the
+release record contains no original-language text. These are evidence-availability
+findings, not proof the titles are wrong. Empty `desks`, `source_trail` and
+`coverage_by_desk` fields are required for publisher-linked Briefs and are not
+provenance defects. Check accessible Joint Staff PDFs using authorized tools
+or a research-session handoff; routine retrieval is not owner-only work. The run also retyped one kanji wrongly
+in its own report (緊→金), so findings must be re-checked at the cited file:line.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
@@ -921,7 +947,7 @@ Durable documents, and what each one governs:
 | `README.md` | public and contributor overview |
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
 | `docs/ARCHITECTURE_AND_PUBLISHING.md` | technical layer map, commands, publishing and deployment procedure |
-| `docs/AGENT_WORKFLOWS.md` | agent operating constraints and model routing |
+| `docs/AGENT_WORKFLOWS.md` | agent operating constraints, model routing and task → capability map |
 | `docs/ROADMAP.md` | current priority order |
 | `docs/SHADOW_COLLECTION.md`, `docs/SHADOW_REVIEW.md` | shadow desk isolation and human review procedure |
 | `DECISION_LOG.md` | durable decisions that constrain future work |

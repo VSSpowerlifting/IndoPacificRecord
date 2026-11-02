@@ -75,6 +75,7 @@ the owner, not a gate, and exempt work does not need it.
 | Production and build verification | `docs/ARCHITECTURE_AND_PUBLISHING.md`, actual CI/workflows and code |
 | Current strategic priorities | `docs/ROADMAP.md`, checked against real repo/source/site status |
 | Agent instructions | This file; `CLAUDE.md` supplies only Claude-specific operating notes; shared skills live in `.agents/skills/` |
+| Which skill, agent, command or tool fits a task | `docs/AGENT_WORKFLOWS.md` §2 |
 | Historic evidence and dated plans | Git history, `PROJECT_STATE.md`, older records; not current authority by default |
 
 If references appear to conflict, preserve the stricter real evidence,
