@@ -4,6 +4,44 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-01 — Two Briefs: owner source review, presentation and covers
+
+Bylines approved by Benjamin Yang, Founder & Executive Director: **Benjamin
+Yang** is the sole author of "Japan and the United States Agree to Establish
+AMRAAM Final Assembly in Japan" (`japan-us-amraam-final-assembly-sm3-production`); **Benjamin Yang and
+Jophy Lin** (Communications Editor, credited co-author) wrote "Japan and the
+Philippines Narrow Their Destroyer Talks to a First Ship"
+(`japan-philippines-first-destroyer-2026`). Historical authorship is unchanged.
+
+Benjamin stated in chat that he has "completed my original-source review of both
+briefs at commit a6771416" and confirmed `original_language`, `claim_support`,
+`chronology` and `limited_source_use` for both manuscripts. In an earlier
+statement the same day he gave final editorial and presentation approval of both
+briefs at that commit, including the rendered pages, headings, bylines,
+citations and cover images, and approved publication under the source-linked
+evidence policy. The receipts bind editorial fingerprints
+`c2f58de2fb0c6ddfe4581a20454d419ecf4ddad72c3f39e466d7445f5a670eee` (AMRAAM) and
+`2102a7fb69b3a1f26ead62c9a74c2fff119f3d4c219834a88bff96bcc11da612` (destroyer).
+This is his own attestation, not an AI-assisted or inferred review; the agent's
+earlier source comparison is preparation only. The presentation receipts bind
+digests `3030a230d219af8a83032c372f4a7ee8772d2319680a2c61579e0d68bfade0d6` and
+`a7e8fbaebf5edbca7b753748e18c2347e0aeee3f58f299ca5717edbf5b52f616`.
+
+He explicitly accepted the AMRAAM s3 limitation: the official war.gov readout
+returns HTTP 403, and the readout comparison rests on the earlier publisher
+verification in PR 938 and the accessible republication. No new successful
+retrieval of the official page is claimed.
+
+Covers, approved for each Brief's article and catalogue card with the standard
+CSS gradient and retained credit: AMRAAM, DVIDS 9245688 / VIRIN
+250805-M-OV696-1094, Lance Cpl. Bryan Giraldo, U.S. Marine Corps, public domain,
+with the exact DVIDS notice; 5 August 2025 equipment context, **not** the planned
+Japanese facility or the October meeting. The retained file is the public
+1000-pixel preview; no master-image access is claimed. Destroyer, JMSDF
+photograph of JS Jintsu (DE-230) via Wikimedia Commons, CC BY 4.0; class context
+only, not an identified transfer hull, and no event date is asserted. Evidence:
+`docs/TWO_BRIEFS_RELEASE_2026-11-01.md`.
+
 ## 2026-11-01 — Owner: freeze on new proof and contract workflows until Daily is stable
 
 Benjamin Yang froze the addition of new proof, contract, rehearsal or desk

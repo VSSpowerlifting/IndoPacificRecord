@@ -57,6 +57,8 @@ EXPECTED = {
     18: am.PHOTOGRAPH,   # source-linked editorial analysis, museum aircraft context (not Ban Keun)
     19: am.PHOTOGRAPH,   # owner-approved 2023 JASDF F-15DJ context photograph
     20: am.PHOTOGRAPH,   # owner-approved 2022 HMS Tamar context photograph
+    21: am.PHOTOGRAPH,   # owner-approved 2025 AMRAAM handling context photograph
+    22: am.PHOTOGRAPH,   # owner-approved JS Jintsu Abukuma-class context photograph
 }
 
 #: Han, kana and CJK punctuation: script that needs a declared language.
@@ -372,11 +374,6 @@ class ArticleMediaPagesTests(unittest.TestCase):
                          sorted(["briefs/%s.html" % slug, "analysis.html"]))
         cat = BeautifulSoup((self.auth_tmp / "analysis.html").read_text(), "html.parser")
         notice = "does not imply or constitute DoW endorsement"
-        treated = cat.select("[data-treatment=gradient]")
-        self.assertTrue(treated)
-        for node in treated:
-            scope = node.find_parent(["article", "figure", "li"]) or node
-            self.assertIn(notice, scope.get_text())
         # The treatment belongs only to the originally approved No.17 card,
         # but the source's DoW notice is now also required by No.14's newly
         # admitted U.S. Navy photograph. Audit notice-bearing cards against
@@ -385,6 +382,23 @@ class ArticleMediaPagesTests(unittest.TestCase):
         from core.catalogue_media import load_admissions
         from core.source_terms import required_notice
         records = load_admissions(repo_root=ROOT)
+        by_served = {record["served"]: record for record in records.values()
+                     if record.get("status") == "admitted" and record.get("served")}
+
+        def needs_notice(node):
+            record = by_served[node.select_one("img")["src"]]
+            return bool(record.get("notice") or required_notice(record))
+
+        # Every treated image carries the DoW notice exactly when its own
+        # recorded source requires it. No.22's Commons photograph does not.
+        treated = cat.select("[data-treatment=gradient]")
+        self.assertTrue(treated)
+        for node in treated:
+            scope = node.find_parent(["article", "figure", "li"]) or node
+            if needs_notice(node):
+                self.assertIn(notice, scope.get_text())
+            else:
+                self.assertNotIn(notice, scope.get_text())
         # The originating DVIDS image of No.14 is served from Commons, so
         # required_notice(record) cannot infer DVIDS from that hostname.
         # Its explicitly retained originating-publisher notice still counts.
@@ -401,8 +415,12 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 carrying.add(number)
                 self.assertEqual(card.get("data-media"), "photograph")
         self.assertEqual(carrying, expected)
-        # No.19 is also the featured lead; it must retain its notice there.
-        self.assertEqual(cat.get_text().count(notice), len(expected) + 1)
+        # The featured lead repeats its card's notice only when its own
+        # source requires one (No.22, the current lead, does not).
+        lead = cat.select_one("figure.briefs-lead-photo")
+        self.assertIsNotNone(lead)
+        self.assertEqual(cat.get_text().count(notice),
+                         len(expected) + (1 if needs_notice(lead) else 0))
 
     def test_native_script_in_a_photograph_credit_declares_its_language(self):
         # No. 8's credit names the Joint Staff in Japanese. Only that name is
@@ -486,7 +504,19 @@ class ArticleMediaPagesTests(unittest.TestCase):
         prev20 = self.native_auth[20][2].select_one("nav.brief-issue-nav a[rel=prev]")
         self.assertEqual(prev20["href"], self.native_auth[19][0]["slug"] + ".html")
         self.assertIn("No. 19", prev20.get_text())
-        self.assertIsNone(self.native_auth[20][2].select_one("nav.brief-issue-nav a[rel=next]"))
+        next20 = self.native_auth[20][2].select_one("nav.brief-issue-nav a[rel=next]")
+        self.assertEqual(next20["href"], self.native_auth[21][0]["slug"] + ".html")
+        self.assertIn("No. 21", next20.get_text())
+        prev21 = self.native_auth[21][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        self.assertEqual(prev21["href"], self.native_auth[20][0]["slug"] + ".html")
+        self.assertIn("No. 20", prev21.get_text())
+        next21 = self.native_auth[21][2].select_one("nav.brief-issue-nav a[rel=next]")
+        self.assertEqual(next21["href"], self.native_auth[22][0]["slug"] + ".html")
+        self.assertIn("No. 22", next21.get_text())
+        prev22 = self.native_auth[22][2].select_one("nav.brief-issue-nav a[rel=prev]")
+        self.assertEqual(prev22["href"], self.native_auth[21][0]["slug"] + ".html")
+        self.assertIn("No. 21", prev22.get_text())
+        self.assertIsNone(self.native_auth[22][2].select_one("nav.brief-issue-nav a[rel=next]"))
 
 
     def test_historical_pages_load_the_shared_nav_and_media_rules(self):
