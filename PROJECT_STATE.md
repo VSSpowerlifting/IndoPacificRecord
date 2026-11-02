@@ -20,6 +20,14 @@ that Dossier, with no IPR record page. No MINDEF URL becomes a cited Record (lin
 permission). Routes use a stable `url_key`, and a route superseded by later collection
 redirects to the corpus/machine Record. No DB, source-policy or collector change.
 
+**Reconciliation (2 November 2026, review candidate):** convergence now runs
+before the held-family gate, so an already-published held-family URL resolves to its page.
+Host gates match subdomains. Machine Records list citing Briefs. The cited Record's
+custody wording states what it publishes. Brief 18's MPS reference remains held, and a
+test pins it. No owner VPCP selection exists, so the selection file stays empty. The
+committed cited pages update only on the next authorized render (DECISION_LOG
+2026-11-02).
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one

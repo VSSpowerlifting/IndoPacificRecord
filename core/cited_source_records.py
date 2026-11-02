@@ -16,8 +16,11 @@ page, the old route becomes a redirect rather than a dead citation.
 The rights gate fails closed. Independent reporting stays an external
 citation. Singapore MINDEF is omitted entirely: its 2026-10-29 permission
 covers hyperlinks from a Brief, not a standalone page bearing its headline.
-The Vietnam MPS, MOIT and VPCP families are omitted without a sealed
-decision. The Brief's own publisher reference is left exactly as approved.
+The Vietnam MPS, MOIT and VPCP families get no new page without a sealed
+decision, but a URL of theirs that IPR already publishes under its own
+admission still resolves to that page: linking to it shows nothing of the
+source that the page and the Brief do not already show. The Brief's own
+publisher reference is left exactly as approved.
 """
 from __future__ import annotations
 
@@ -38,6 +41,18 @@ HELD_HOSTS = {
     "datafiles.chinhphu.vn": vietnam_source_use.VPCP,
 }
 MINDEF_HOSTS = {"mindef.gov.sg", "www.mindef.gov.sg"}
+
+
+def _under(host: str, domains):
+    """The listed domain `host` is, or is a subdomain of; None otherwise.
+
+    Gates match subdomains too, so `www.bocongan.gov.vn` is held exactly as
+    `bocongan.gov.vn` is: a hold that a host prefix could evade fails open.
+    """
+    for domain in domains:
+        if host == domain or host.endswith("." + domain):
+            return domain
+    return None
 
 
 def url_key(url: str) -> str:
@@ -63,6 +78,11 @@ def cited_path(url: str) -> str:
 
 def omission(ref: dict):
     """Why a publisher reference cannot become a Record; None when it can."""
+    return _link_gate(ref) or _new_page_gate(ref)
+
+
+def _link_gate(ref: dict):
+    """Why a reference may not link to any IPR page, even one already held."""
     if ref.get("independence") != "official":
         return "independent_reference"
     url = ref.get("url")
@@ -71,9 +91,14 @@ def omission(ref: dict):
             or parts.username or parts.password or url != url.strip()):
         return "unsafe_url"
     host = parts.hostname.lower()
-    if host in MINDEF_HOSTS:
+    if _under(host, MINDEF_HOSTS):
         return "mindef_link_only_permission"
-    family = HELD_HOSTS.get(host)
+    return None
+
+
+def _new_page_gate(ref: dict):
+    """Why a reference may not mint a cited Record of its own."""
+    family = HELD_HOSTS.get(_under(urlsplit(ref["url"]).hostname.lower(), HELD_HOSTS))
     if family and not vietnam_source_use.standing(family).allows("public_title_display"):
         return "held_source_family:" + family
     if not all(isinstance(ref.get(k), str) and ref[k].strip()
@@ -96,7 +121,9 @@ def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
       before the URL was collected keeps answering with a redirect.
 
     Corpus records that a Brief cites gain a `brief_reference` entry in their
-    own `in_trails`, so their page links back without a second Record.
+    own `in_trails`, and machine records one in their `cited_in`, so either
+    page links back without a second Record. That lookup runs before the
+    held-family gate, which only stops a new page being minted.
     """
     corpus_by_key = {url_key(u): r for u, r in (corpus_by_url or {}).items()}
     machine_by_key = {url_key(u): r for u, r in (machine_by_url or {}).items()}
@@ -109,7 +136,7 @@ def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
             continue
         links = {}
         for ref in sidecar.get("publisher_references") or []:
-            reason = omission(ref)
+            reason = _link_gate(ref)
             if reason:
                 omitted.append((brief["slug"], ref.get("id"), ref.get("url"), reason))
                 continue
@@ -128,7 +155,15 @@ def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
                 links[ref["id"]] = moved[cited_path(url)] = "%s/%d.html" % (ROUTE_DIR, rec["id"])
                 continue
             if key in machine_by_key:
-                links[ref["id"]] = moved[cited_path(url)] = machine_by_key[key]["record_path"]
+                rec = machine_by_key[key]
+                backlinks = rec.setdefault("cited_in", [])
+                if not any(c["slug"] == brief["slug"] for c in backlinks):
+                    backlinks.append(citing)
+                links[ref["id"]] = moved[cited_path(url)] = rec["record_path"]
+                continue
+            reason = _new_page_gate(ref)
+            if reason:
+                omitted.append((brief["slug"], ref["id"], url, reason))
                 continue
             record = by_key.get(key)
             if record is None:

@@ -404,11 +404,14 @@ or verification notes and adds no desk coverage or database row. The Brief
 keeps its publisher link and adds an "IPR Record" link; the Record links back to
 every citing Brief. A URL already held as a corpus record or released machine
 Record resolves to that page instead, so manual citation and collection share one
-identity; a cited route published before collection becomes a redirect. Independent
-reporting stays an external citation. MINDEF is omitted entirely: its 2026-10-29
+identity; a cited route published before collection becomes a redirect, and a
+machine Record lists its citing Briefs. Independent reporting stays an external
+citation. MINDEF is omitted entirely, before any lookup: its 2026-10-29
 permission covers hyperlinks from a Brief, not a standalone IPR page. Vietnam MPS,
-MOIT and VPCP are omitted without a sealed decision. Conflicting metadata for one
-URL stops the build.
+MOIT and VPCP URLs get no new Record; one that IPR already publishes under its own
+admission resolves to that page. Lifting that hold needs a sealed decision *and* a
+render-path change, which does not exist. Host rules match subdomains, never
+lookalike hosts. Conflicting metadata for one URL stops the build.
 Derived on every render by `core/cited_source_records.py`; nothing is hand-admitted.
 
 **The approval of 2026-10-13 applies only to** “What Is Being Built in Laos?”

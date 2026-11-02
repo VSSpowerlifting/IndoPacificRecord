@@ -4,6 +4,35 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-02 — Historical reconciliation: Brief 18 MPS reference, cited-Record convergence, VPCP selections
+
+Settles three items left open by #952 and #958. Engineering only; no prose,
+credit, DB, source-policy or collector change.
+- **Brief 18 → MPS 1791535381 stays held.** MPS has no `public_title_display`
+  standing. The research record has no capture digest, and no DB row exists.
+  Its limited-use approval covers that Brief only, the same precedent as MINDEF.
+  `standing()` takes no identity or seal, so no render-path route could lift it.
+  A test pins the exact omission with no route, link or redirect. Reopening needs
+  an owner source-use decision plus a render-path change.
+- **Convergence before the held-family gate.** Before this change, a held-family
+  URL that IPR already publishes as a corpus or machine Record was omitted rather
+  than linked. That page now wins, and held families only get no *new* page.
+  MINDEF stays gated before lookup. Linking a Brief to an existing MINDEF Record
+  page is an open owner question, not inferred from the link permission.
+- **Subdomain gate.** Host rules ignored `www.` and other subdomains, so
+  `www.<held host>` would have minted a Record. They now match subdomains, and
+  lookalike hosts do not match.
+- **Backlinks.** A machine Record now lists every citing Brief ("Cited in",
+  not the Brief's evidence). No live instance exists today. The cited Record
+  claimed no copy existed; it now says what it publishes: reference metadata
+  and a link, with no copy, text, excerpt, translation or verification.
+- **No VPCP selection added.** Repository docs, #958 and #952 contain no
+  owner-named selection. The #958 pilot selector was "not owner-named". 10744
+  (220065) was an approved correction, not a selection.
+  `config/vietnam_vpcp_editorial_selection.json` stays empty.
+- The 29 committed `cited-*.html` pages keep the old wording until the next
+  authorized render; `output/` was not touched.
+
 ## 2026-11-01 — Official sources cited by Briefs become link-metadata Records
 
 Benjamin Yang's brief "Complete Source Admission and Editorial–Records

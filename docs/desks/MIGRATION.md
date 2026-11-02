@@ -120,8 +120,9 @@ decision; removing an entry withdraws its link, and an invalid file holds
 the selections only (existing selection links stay, topical admission continues).
 Only VPCP is supported; other families hold. A version never captured
 holds, because the adapter's access contract refuses individual fetch of unlisted
-URLs. Remaining: editorial backlinks and identity/policy convergence noted on
-#952, and any second family.
+URLs. The #952 backlink and identity/policy convergence gaps are settled
+(DECISION_LOG 2026-11-02); no owner-named selection exists. Remaining: any
+second family.
 
 **Not complete:** the other six desk migrations, source definitions becoming desk manifests,
 `core/source_publication_contract.py` convergence, source-component grouping in

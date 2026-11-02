@@ -63,6 +63,18 @@ class RightsGateTests(unittest.TestCase):
             self.assertTrue(reason and reason.startswith("held_source_family:"), host)
         self.assertIsNone(cited.omission(ref("s1", "https://baochinhphu.vn/doc")))
 
+    def test_gates_hold_subdomains_but_not_lookalikes(self):
+        # A held family's www host, or any MINDEF subdomain, is held too.
+        for url in ("https://www.bocongan.gov.vn/doc", "https://www.moit.gov.vn/doc",
+                    "https://WWW.VANBAN.CHINHPHU.VN/doc"):
+            reason = cited.omission(ref("s1", url))
+            self.assertTrue(reason and reason.startswith("held_source_family:"), url)
+        self.assertEqual(cited.omission(ref("s1", "https://media.mindef.gov.sg/x")),
+                         "mindef_link_only_permission")
+        for url in ("https://notbocongan.gov.vn/doc", "https://bocongan.gov.vn.example.com/doc",
+                    "https://mindef.gov.sg.example.com/x"):
+            self.assertIsNone(cited.omission(ref("s1", url)), url)
+
     def test_incomplete_metadata_is_refused(self):
         self.assertEqual(cited.omission(ref("s1", "https://www.mod.go.jp/a", issuer=" ")),
                          "incomplete_metadata")
@@ -104,6 +116,60 @@ class ResolveTests(unittest.TestCase):
             collection(brief("a", 1, [ref("s1", url)])),
             machine_by_url={url: {"record_path": "record/m-1.html"}})
         self.assertEqual((records, links), ([], {"a": {"s1": "record/m-1.html"}}))
+
+    def test_machine_record_links_back_to_every_citing_brief(self):
+        url = "https://www.pna.gov.ph/a"
+        machine = {"record_path": "record/m-1.html"}
+        cited.resolve(collection(brief("a", 1, [ref("s1", url), ref("s2", url)]),
+                                 brief("b", 2, [ref("s3", url)])),
+                      machine_by_url={url: machine})
+        self.assertEqual([(c["slug"], c["kind"], c["anchor"]) for c in machine["cited_in"]],
+                         [("a", "brief_reference", "publisher-s1"),
+                          ("b", "brief_reference", "publisher-s3")])
+        env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
+                          autoescape=select_autoescape(["html"]))
+        env.filters["reader_date"] = lambda v: v
+        page = env.get_template("_machine_explanation.html").render(
+            record=dict(machine, url=url, summary="S", source_label="PNA"))
+        self.assertIn('href="../briefs/a.html#publisher-s1"', page)
+        self.assertIn('href="../briefs/b.html#publisher-s3"', page)
+        bare = env.get_template("_machine_explanation.html").render(
+            record={"record_path": "record/m-2.html", "url": url})
+        self.assertNotIn('id="cited-in"', bare)
+
+    def test_held_family_url_already_published_converges_on_that_page(self):
+        # The hold stops a new page, never a link to a page IPR already
+        # publishes under its own admission.
+        url = "https://vanban.chinhphu.vn/?pageid=27160&docid=1"
+        corpus = {"id": 5646, "url": url, "in_trails": []}
+        records, links, omitted, moved = cited.resolve(
+            collection(brief("a", 1, [ref("s1", url)])), corpus_by_url={url: corpus})
+        self.assertEqual((records, omitted), ([], []))
+        self.assertEqual(links, {"a": {"s1": "record/5646.html"}})
+        self.assertEqual(moved, {cited.cited_path(url): "record/5646.html"})
+        self.assertEqual(len(corpus["in_trails"]), 1)
+        held = "https://bocongan.gov.vn/bai-viet/x-1"
+        machine = {"record_path": "record/source-1.html"}
+        records, links, omitted, _ = cited.resolve(
+            collection(brief("a", 1, [ref("s1", held)])), machine_by_url={held: machine})
+        self.assertEqual((records, omitted, links), ([], [], {"a": {"s1": "record/source-1.html"}}))
+        self.assertEqual(len(machine["cited_in"]), 1)
+
+    def test_mindef_url_stays_external_even_when_held(self):
+        # The 2026-10-29 permission is hyperlinks from a Brief only; whether a
+        # Brief may link to an IPR page of a MINDEF release is the owner's call.
+        url = tuple(APPROVED_MINDEF_LINKS)[0]
+        corpus = {"id": 9, "url": url, "in_trails": []}
+        records, links, omitted, moved = cited.resolve(
+            collection(brief("a", 1, [ref("s1", url)])), corpus_by_url={url: corpus})
+        self.assertEqual((records, links, moved, corpus["in_trails"]), ([], {}, {}, []))
+        self.assertEqual(omitted, [("a", "s1", url, "mindef_link_only_permission")])
+
+    def test_held_family_without_a_held_page_gets_no_record(self):
+        url = "https://bocongan.gov.vn/bai-viet/x-1"
+        records, links, omitted, moved = cited.resolve(collection(brief("a", 1, [ref("s1", url)])))
+        self.assertEqual((records, links, moved), ([], {}, {}))
+        self.assertEqual(omitted, [("a", "s1", url, "held_source_family:vn_mps_foreign_affairs_vi")])
 
     def test_identity_ignores_host_case_and_fragment_only(self):
         url = "https://www.mod.go.jp/a/b.html"
@@ -177,6 +243,29 @@ class ApprovedBriefsTests(unittest.TestCase):
         reasons = sorted(o[3] for o in self.omitted)
         self.assertEqual(reasons, ["held_source_family:vn_mps_foreign_affairs_vi"]
                          + ["independent_reference"] * 4)
+
+    def test_brief_18_mps_reference_is_held(self):
+        # Settled 2026-11-02: Brief No. 18's s3 has no MPS public_title_display
+        # standing, no IPR capture and no DB row, so it stays the Brief's
+        # external publisher link with no IPR Record. See DECISION_LOG.
+        url = ("https://bocongan.gov.vn/bai-viet/hop-tac-an-ninh-tiep-tuc-la-tru-cot-"
+               "trong-quan-he-viet-nam-lao-1791535381")
+        self.assertIn(("what-is-being-built-in-laos", "s3", url,
+                       "held_source_family:vn_mps_foreign_affairs_vi"), self.omitted)
+        self.assertNotIn("s3", self.links.get("what-is-being-built-in-laos", {}))
+        self.assertNotIn(cited.cited_path(url), {r["record_path"] for r in self.records})
+        self.assertNotIn(cited.cited_path(url), self.moved)
+
+    def test_rendered_page_states_only_what_it_publishes(self):
+        # Whether IPR privately preserved a cited document is not this
+        # page's to assert; it states only what the page itself publishes.
+        env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
+                          autoescape=select_autoescape(["html"]))
+        env.filters["reader_date"] = lambda v: v
+        page = env.get_template("_cited_source.html").render(
+            record=self.records[0], cite="c")
+        self.assertNotIn("holds no copy", page)
+        self.assertIn("publishes no copy, text or excerpt", page)
 
     def test_rendered_page_links_back_and_withholds_locators(self):
         env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
