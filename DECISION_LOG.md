@@ -14,10 +14,13 @@ Decision: official publisher references in approved, non-review Briefs become
 Records that republish only the Brief's own reference metadata (doctrine §5b).
 This is not corpus admission: no source bytes, DB rows, desk coverage, new
 collector or rights override. Independent references and held families (MINDEF
-outside approved links; Vietnam MPS/MOIT/VPCP) stay external-only. Edition,
-Dossier and Timeline trails already cite corpus Records and link back through
-`in_trails`; Dossier external references stay external. First result: 29
-Records from five Briefs; 4 independent and 1 Vietnam MPS reference omitted.
+outside approved links; Vietnam MPS/MOIT/VPCP) stay external-only. Every source
+document in the edition, Dossier and Timeline trails is already a corpus Record.
+Edition pages link back now. Dossier and Timeline back-links render only when
+those withheld works do. The China–Singapore Dossier's external references
+x1–x9 stay external. Their 2026-10-26 grant is linked use inside that Dossier
+only, and a Record would extend it. First result: 29 Records from five Briefs.
+4 independent references and 1 Vietnam MPS reference were omitted.
 
 ## 2026-11-01 — Two Briefs: owner source review, presentation and covers
 
