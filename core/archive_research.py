@@ -273,9 +273,27 @@ def analysis_records(collection, catalog, historical, *, edition_citation,
             citation='“%s.” Indo-Pacific Record, %s. %s' % (r['ipr_title'], r['published_on'], ipr))
 
 
+def with_cited(records, cited):
+    """Brief-cited Records replace a desk register's unpaged link to the same URL.
+
+    The register's desks carry over; its title and wording do not. One
+    outbound document then has one Record, wherever it was found.
+    """
+    cited = [dict(r) for r in cited]
+    by_url = {r['source_url']: r for r in cited}
+    kept = []
+    for r in records:
+        match = by_url.get(r.get('source_url'))
+        if match is not None and r['record_type'] == 'official_link' and not r.get('ipr_url'):
+            match['desks'] = sorted(set(match['desks']) | set(r['desks']))
+            continue
+        kept.append(r)
+    return kept + cited
+
+
 def build_index(db_path, compact, *, cite_record, processing_notes,
                 official_groups=(), originals=(), english_publications=(), analyses=(),
-                machine_records=()):
+                machine_records=(), cited=()):
     """One build's selected DB + current public projection/loaders, fail closed.
 
     Source URLs are read solely for retirement checks on archive rows, never
@@ -297,6 +315,7 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
     records.extend(published_artifacts(originals, english_publications))
     records.extend(analyses)
     records.extend(machine_records)
+    records = with_cited(records, cited)
     records = deduplicate(records, {r[0] for r in tombstones}, {r[1] for r in tombstones}, excluded)
     # Per-type rules also bind any future caller of the public projection API.
     for r in records:
