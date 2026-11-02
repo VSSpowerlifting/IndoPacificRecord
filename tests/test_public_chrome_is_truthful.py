@@ -119,9 +119,14 @@ class TestNoPageDescribesItselfAsUnpublished(BuildCase):
         self.assertGreater(len(self.pages), len(index["records"]))
         from core.daily_machine_records import load as load_machine_records
         machine = {Path(r["record_path"]).stem for r in load_machine_records(TRACKED_DB)}
+        from core.brief_collection import load_collection
+        from core.cited_source_records import resolve
+        from core.desk_registry import load_registry
+        briefs = load_collection([], load_registry(), briefs_dir=REPO_ROOT / "briefs")
+        cited = {Path(r["record_path"]).stem for r in resolve(briefs)[0]}
         self.assertEqual(
             {p.stem for p in self.out.glob("record/*.html")},
-            {str(row[0]) for row in index["records"]} | machine,
+            {str(row[0]) for row in index["records"]} | machine | cited,
             "missing, extra or retired record page in public chrome scan",
         )
 
