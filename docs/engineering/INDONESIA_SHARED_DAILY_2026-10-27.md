@@ -35,8 +35,9 @@ status copy; this repair changes none of their files or any workflow.
   `archive-research-index.json` returned 200; all three contain the unchanged
   accepted explanation. The record's source commit, capture/content hashes,
   identity and v4 prompt match retained output. This verifies an existing
-  release, not deployment of this repair. Browser interaction was not verified:
-  local Playwright lacks its required Chromium executable.
+  release, not deployment of this repair. Local Playwright lacks its required
+  Chromium executable; the in-app browser subsequently loaded the live
+  Indonesia-filtered Archive and visibly displayed this explanation.
 
 ### Bounded implementation and evidence limit
 

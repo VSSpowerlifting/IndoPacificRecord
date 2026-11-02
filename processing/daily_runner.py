@@ -12,7 +12,7 @@ from pathlib import Path
 
 from core.daily_sources import SOURCES, source_for
 from processing.daily_intake import (
-    IntakeHold, admit, bind_admitted_metadata, digest, git, load_policy, need, process,
+    IntakeHold, admit, bind_admitted_metadata, load_policy, need, process,
     sign_outputs, verified_source,
 )
 
@@ -21,7 +21,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
                 source_identity=None, no_release=False):
     """spec is FAMILY,PRIVATE_GIT_CHECKOUT,IMMUTABLE_COMMIT."""
     from scripts.reconcile_db import read_only
-    from processing.daily_intake import ROOT
+    from processing.daily_intake import ROOT, digest, git
     family, repo, commit = spec.split(",", 2)
     need(source_for(family) is not None, "daily_source_family_invalid")
     policy = load_policy()
