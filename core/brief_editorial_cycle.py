@@ -4,10 +4,18 @@ Ported from #957 (ce6573a58d) and unified with the #960 Saturday recheck.
 The receipt lives in the sidecar under ``saturday_sunday_cycle`` and binds
 one exact final manuscript to one Sunday (or later) reconciliation of the
 complete reporting week. It is checked by ``validate_brief`` for approved
-Briefs and by ``validate_readiness``, so enforcement never depends on a
-label surviving in Dylan's DOCX: from ``CUTOVER_WEEK`` on, every Brief needs
-the receipt to be ready or approved. Earlier, already accepted Briefs are
-unchanged. Inventory and policy fingerprints are recomputed at readiness by
+Briefs and by ``validate_readiness``.
+
+The receipt is required by participation, not by date. A manuscript derived
+from a weekend editorial cycle carries ``editorial_cycle`` provenance (the
+cycle packet's own identity), stamped by the Sunday recheck and carried by
+the importer from hidden DOCX properties, never from a visible label or the
+stated author. Provenance is part of ``manuscript_digest``, so a companion
+Brief, human rewrite or analyst-reconciled version needs its own receipt,
+and stripping or altering the provenance breaks the receipt it had. A Brief
+with neither provenance nor a receipt was authored independently and keeps
+the existing publication safeguards; shared source URLs are not provenance.
+Inventory and policy fingerprints are recomputed at readiness by
 ``scripts.author_brief`` against the live corpus.
 """
 import hashlib
@@ -17,9 +25,15 @@ from datetime import date, timedelta
 
 SCHEMA = "ipr-saturday-sunday-cycle/1"
 KEY = "saturday_sunday_cycle"
-# The first reporting week whose release requires a Sunday reconciliation.
-# Every approved sidecar in briefs/ ends on or before 2026-10-31.
-CUTOVER_WEEK = "2026-11-07"
+PROVENANCE_SCHEMA = "ipr-weekend-editorial-cycle/1"
+PROVENANCE_KEY = "editorial_cycle"
+# Where the Saturday DOCX carries the cycle identity: a custom document
+# property and a document variable, neither shown in Word's title/author/
+# keywords fields. The visible label and keyword are display signals only.
+DOCX_CYCLE_PROPERTY = "IPR editorial cycle"
+DOCX_CYCLE_VARIABLE = "IPREditorialCycle"
+SATURDAY_PROVISIONAL_LABEL = "SATURDAY PROVISIONAL · SUNDAY RECHECK REQUIRED"
+SATURDAY_PROVISIONAL_KEYWORD = "ipr-saturday-provisional"
 PACKET_KINDS = ("saturday_provisional", "friday_provisional", "complete_week")
 # One count per drift category the Sunday recheck reports; see
 # scripts.weekly_briefs_saturday_audit.diff_snapshots.
@@ -54,6 +68,42 @@ def identity_matches(identity, week):
                                 and bool(COMPANION_SLUG.fullmatch(identity[len(base) + 1:])))
 
 
+def packet_identity(text):
+    """The single ``Packet:`` identity in a worksheet's own header, else None."""
+    if not isinstance(text, str):
+        return None
+    head = text.replace("\r\n", "\n").split("\n\n", 1)[0]
+    found = [line[len("Packet: "):] for line in head.splitlines() if line.startswith("Packet: ")]
+    return found[0] if len(found) == 1 else None
+
+
+def cycle_provenance(identity):
+    """The ``editorial_cycle`` value for one cycle Brief identity."""
+    week = identity[4:14] if isinstance(identity, str) else None
+    try:
+        saturday = date.fromisoformat(week).weekday() == 5
+    except (TypeError, ValueError):
+        saturday = False
+    if not saturday or not identity_matches(identity, week):
+        raise ValueError("not a weekend editorial cycle Brief identity")
+    return {"schema": PROVENANCE_SCHEMA, "identity": identity, "week_ending": week}
+
+
+def provenance_problems(sidecar):
+    if PROVENANCE_KEY not in sidecar:
+        return []
+    marker = sidecar[PROVENANCE_KEY]
+    try:
+        valid = marker == cycle_provenance(marker.get("identity"))
+    except (AttributeError, ValueError):
+        valid = False
+    if not valid:
+        return ["invalid weekend editorial cycle provenance"]
+    if marker["week_ending"] != sidecar.get("week_ending"):
+        return ["weekend editorial cycle provenance is for a different reporting week"]
+    return []
+
+
 def compare(before, after):
     old, new = before.get("sources", {}), after.get("sources", {})
     return {
@@ -76,13 +126,23 @@ def _named(review):
 
 def receipt_problems(sidecar):
     week = sidecar.get("week_ending")
+    problems = provenance_problems(sidecar)
+    if problems:
+        return problems
+    marker = sidecar.get(PROVENANCE_KEY)
     if KEY not in sidecar:
-        if isinstance(week, str) and week < CUTOVER_WEEK:
+        if marker is None:
+            # Independently authored: the existing publication safeguards apply.
             return []
-        return ["requires a Sunday reconciliation receipt for the complete reporting week"]
+        return ["cycle-derived Brief requires its own Sunday reconciliation receipt"]
     receipt = sidecar[KEY]
     if not isinstance(receipt, dict) or receipt.get("schema") != SCHEMA:
         return ["invalid Saturday–Sunday editorial cycle receipt"]
+    # The recheck always stamps provenance, so a receipt without it was stripped.
+    if marker is None:
+        return ["Sunday reconciliation receipt lacks its editorial cycle provenance"]
+    if receipt.get("identity") != marker["identity"]:
+        return ["Sunday reconciliation receipt is for a different cycle Brief"]
     if receipt.get("status") != "SUNDAY_RECHECKED":
         return ["Saturday provisional manuscript requires Sunday reconciliation"]
     try:

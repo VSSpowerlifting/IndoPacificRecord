@@ -30,8 +30,8 @@ ARTICLE_LAYOUT = "ipr-article-first/1"
 ARTICLE_KEY = "ARTICLE"
 ACCOUNTING_END = "END OF ARTICLE SOURCE ACCOUNTING"
 # The Saturday draft is written after Saturday's own Daily collection. It is
-# never the complete week: a Sunday recheck must reconcile the refreshed corpus
-# before the revised manuscript can be imported (scripts/import_brief_manuscript).
+# never the complete week: the Sunday recheck must reconcile the refreshed corpus
+# before the revised manuscript can be ready or approved (core.brief_editorial_cycle).
 SATURDAY_PROVISIONAL_MARK = (
     "SATURDAY PROVISIONAL; THROUGH SATURDAY DAILY COLLECTION; SUNDAY RECHECK REQUIRED")
 

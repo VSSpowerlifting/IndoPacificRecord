@@ -10,6 +10,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import stat
 import tempfile
@@ -23,9 +24,12 @@ from zoneinfo import ZoneInfo
 
 from core.brief_analyst_feedback import reconcile_feedback
 from core.brief_analyst_packet import build_packet
-from core.brief_editorial_cycle import KEY, SCHEMA, digest, receipt_problems
+from core.brief_editorial_cycle import (
+    KEY, PROVENANCE_KEY, SCHEMA, cycle_provenance, digest, receipt_problems,
+)
 from core.brief_editorial_evidence import load_editorial_evidence
-from scripts.import_brief_manuscript import extract
+from scripts.import_brief_manuscript import VISIBLE_SIGNALS, cycle_signals, extract
+from scripts.import_brief_manuscript import main as import_main
 from scripts.sunday_editor_docx import render_editor_docx
 from scripts.sunday_editorial_handoff import render_packet
 from scripts.weekly_briefs_saturday_audit import (
@@ -155,6 +159,31 @@ class SundayRecheck(unittest.TestCase):
         public, _, reconciled = self.run_recheck()
         self.assertEqual(public["packet_kind"], "complete_week")
         self.assertEqual(receipt_problems(reconciled), [])
+
+    def test_recheck_stamps_the_packet_provenance_into_the_bound_manuscript(self):
+        provenance = cycle_provenance("IPR-" + SAT)
+        for marked in (False, True):
+            candidate = dict(self.candidate)
+            if marked:
+                candidate[PROVENANCE_KEY] = provenance
+            with self.subTest(candidate_marked=marked):
+                _, _, reconciled = self.run_recheck(candidate=candidate)
+                self.assertEqual(reconciled[PROVENANCE_KEY], provenance)
+                self.assertEqual(receipt_problems(reconciled), [])
+                stripped = {k: v for k, v in reconciled.items() if k != PROVENANCE_KEY}
+                self.assertTrue(receipt_problems(stripped))
+
+    def test_recheck_refuses_another_briefs_provenance(self):
+        other = cycle_provenance("IPR-" + SAT + "-coast-guard")
+        with self.assertRaisesRegex(ValueError, "provenance is for another Brief"):
+            self.run_recheck(candidate=dict(self.candidate, **{PROVENANCE_KEY: other}))
+        # A revised DOCX drafted from the companion's packet cannot be
+        # reconciled under the primary packet.
+        companion = self.text.replace("Packet: IPR-" + SAT + "\n",
+                                      "Packet: IPR-" + SAT + "-coast-guard\n")
+        self.docx.write_bytes(render_editor_docx(companion))
+        with self.assertRaisesRegex(ValueError, "another Brief's editorial cycle provenance"):
+            self.run_recheck(candidate=dict(scaffold(), manuscript_sha256=self.docx_sha()))
 
     def test_additional_brief_keeps_its_own_identity_and_analyst_return(self):
         # #946: an additional Brief of the week is IPR-<Saturday>-<slug>.
@@ -461,25 +490,175 @@ class SundayRecheck(unittest.TestCase):
         self.assertFalse(inside.exists())
 
 
-class ImporterNoLongerDecidesRelease(unittest.TestCase):
-    """Labels in the DOCX are presentation; the sidecar receipt is the gate."""
+PRIMARY = "IPR-" + SAT
+COMPANION = PRIMARY + "-coast-guard"
+
+
+def edit_in_word(data, *, author="A different writer"):
+    """Load-modify-save as an editor would: drop every visible cycle label,
+    change the stated author and clear the keywords."""
+    from docx import Document
+    document = Document(io.BytesIO(data))
+    containers = [document] + [part for section in document.sections
+                               for part in (section.header, section.footer)]
+    for container in containers:
+        for paragraph in list(container.paragraphs):
+            if any(signal in paragraph.text for signal in VISIBLE_SIGNALS):
+                paragraph._element.getparent().remove(paragraph._element)
+    document.core_properties.author = author
+    document.core_properties.keywords = ""
+    out = io.BytesIO()
+    document.save(out)
+    return out.getvalue()
+
+
+def without_custom_property(data):
+    """Rewrite the package without the custom-properties part and its references."""
+    source, out = ZipFile(io.BytesIO(data)), io.BytesIO()
+    with ZipFile(out, "w") as target:
+        for info in source.infolist():
+            if info.filename == "docProps/custom.xml":
+                continue
+            body = source.read(info.filename)
+            if info.filename in ("_rels/.rels", "[Content_Types].xml"):
+                body = re.sub(rb'<(Relationship|Override)[^>]*docProps/custom\.xml"/>', b"", body)
+            target.writestr(info, body)
+    return out.getvalue()
+
+
+def drop_hidden_carriers(data, *, docvar=None):
+    """Rewrite the package without the custom property; drop or change the docVar."""
+    source, out = ZipFile(io.BytesIO(without_custom_property(data))), io.BytesIO()
+    with ZipFile(out, "w") as target:
+        for info in source.infolist():
+            body = source.read(info.filename)
+            if info.filename == "word/settings.xml":
+                text = body.decode()
+                start, end = text.find("<w:docVars>"), text.find("</w:docVars>")
+                if docvar is None:
+                    text = text[:start] + text[end + len("</w:docVars>"):]
+                else:
+                    text = text.replace(PRIMARY + '"', docvar + '"')
+                body = text.encode()
+            target.writestr(info, body)
+    return out.getvalue()
+
+
+class ImportCarriesCycleProvenance(unittest.TestCase):
+    """Labels in the DOCX are presentation; hidden provenance is carried forward
+    and the sidecar receipt is the gate. Import fails closed."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp)
+        self.provisional = saturday_packet(saturday_receipt(scaffold()["source_trail"]))
+        self.ordinary = render_packet(scaffold(), manuscript=manuscript(), as_of=SAT,
+                                      research_evidence=load_editorial_evidence(SAT, SAT))
 
-    def extract(self, text):
+    def write(self, data):
         path = self.tmp / "m.docx"
-        path.write_bytes(render_editor_docx(text))
-        return extract(path, expected_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
-                       title_index=0, subtitle_index=1, body_start=2, body_stop=3)
+        path.write_bytes(data)
+        return path
 
-    def test_provisional_and_ordinary_docx_import_identically(self):
-        provisional = saturday_packet(saturday_receipt(scaffold()["source_trail"]))
-        ordinary = render_packet(scaffold(), manuscript=manuscript(), as_of=SAT,
-                                 research_evidence=load_editorial_evidence(SAT, SAT))
-        for text in (provisional, ordinary):
-            self.assertIn("manuscript_sha256", self.extract(text))
+    def extract(self, data, **declared):
+        path = self.write(data)
+        return extract(path, expected_sha256=hashlib.sha256(data).hexdigest(),
+                       title_index=0, subtitle_index=1, body_start=2, body_stop=3, **declared)
+
+    def test_writer_hides_the_identity_only_in_saturday_provisional_drafts(self):
+        with ZipFile(io.BytesIO(render_editor_docx(self.provisional))) as archive:
+            self.assertEqual(cycle_signals(archive), ([PRIMARY, PRIMARY], True))
+            self.assertIn("docProps/custom.xml", archive.namelist())
+        with ZipFile(io.BytesIO(render_editor_docx(self.ordinary))) as archive:
+            self.assertEqual(cycle_signals(archive), ([], False))
+            self.assertNotIn("docProps/custom.xml", archive.namelist())
+
+    def test_provisional_draft_imports_with_its_provenance(self):
+        result = self.extract(render_editor_docx(self.provisional))
+        self.assertEqual(result[PROVENANCE_KEY], cycle_provenance(PRIMARY))
+        self.assertIn("manuscript_sha256", result)
+
+    def test_word_edits_that_remove_labels_or_change_the_author_keep_provenance(self):
+        edited = edit_in_word(render_editor_docx(self.provisional))
+        from docx import Document
+        properties = Document(io.BytesIO(edited)).core_properties
+        self.assertEqual(properties.author, "A different writer")
+        with ZipFile(io.BytesIO(edited)) as archive:
+            # Every visible signal is gone; only the hidden carriers remain.
+            self.assertEqual(cycle_signals(archive), ([PRIMARY, PRIMARY], False))
+        self.assertEqual(self.extract(edited)[PROVENANCE_KEY], cycle_provenance(PRIMARY))
+        with self.assertRaisesRegex(ValueError, "cannot be imported as an independent Brief"):
+            self.extract(edited, independent=True)
+
+    def test_one_surviving_carrier_is_enough(self):
+        edited = edit_in_word(without_custom_property(render_editor_docx(self.provisional)))
+        self.assertEqual(self.extract(edited)[PROVENANCE_KEY], cycle_provenance(PRIMARY))
+
+    def test_without_hidden_provenance_import_needs_an_honest_declaration(self):
+        labelled = drop_hidden_carriers(render_editor_docx(self.provisional))
+        with self.assertRaisesRegex(ValueError, "declare --saturday-packet or --independent"):
+            self.extract(labelled)
+        # A visible label still marks the draft as cycle-derived.
+        with self.assertRaisesRegex(ValueError, "cannot be imported as an independent Brief"):
+            self.extract(labelled, independent=True)
+        self.assertEqual(self.extract(labelled, saturday_packet=self.provisional)[PROVENANCE_KEY],
+                         cycle_provenance(PRIMARY))
+        bare = edit_in_word(labelled)
+        with self.assertRaisesRegex(ValueError, "declare --saturday-packet or --independent"):
+            self.extract(bare)
+
+    def test_legacy_complete_week_and_independent_manuscripts(self):
+        # Activation stays off: an ordinary packet's DOCX carries no provenance,
+        # and imports only once its origin is declared.
+        data = render_editor_docx(self.ordinary)
+        with self.assertRaisesRegex(ValueError, "declare --saturday-packet or --independent"):
+            self.extract(data)
+        independent = self.extract(data, independent=True)
+        self.assertNotIn(PROVENANCE_KEY, independent)
+        self.assertEqual(receipt_problems(dict(scaffold(), **independent)), [])
+        declared = self.extract(data, saturday_packet=self.ordinary)
+        self.assertEqual(declared[PROVENANCE_KEY], cycle_provenance(PRIMARY))
+        self.assertTrue(receipt_problems(dict(scaffold(), **declared)))
+
+    def test_conflicting_provenance_is_refused(self):
+        data = render_editor_docx(self.provisional)
+        companion = self.provisional.replace("Packet: " + PRIMARY + "\n",
+                                              "Packet: " + COMPANION + "\n")
+        with self.assertRaisesRegex(ValueError, "different Brief than the packet"):
+            self.extract(data, saturday_packet=companion)
+        with self.assertRaisesRegex(ValueError, "carriers disagree"):
+            # The docVar now says companion; the custom property still says primary.
+            source, out = ZipFile(io.BytesIO(data)), io.BytesIO()
+            with ZipFile(out, "w") as target:
+                for info in source.infolist():
+                    body = source.read(info.filename)
+                    if info.filename == "word/settings.xml":
+                        body = body.replace(PRIMARY.encode() + b'"', COMPANION.encode() + b'"')
+                    target.writestr(info, body)
+            self.extract(out.getvalue())
+        with self.assertRaisesRegex(ValueError, "not a weekend editorial cycle"):
+            self.extract(drop_hidden_carriers(data, docvar="IPR-not-a-week"))
+        with self.assertRaisesRegex(ValueError, "not both"):
+            self.extract(data, saturday_packet=self.provisional, independent=True)
+        with self.assertRaisesRegex(ValueError, "no single Packet"):
+            self.extract(data, saturday_packet="no header here")
+
+    def test_cli_requires_one_declaration_and_writes_nothing_on_refusal(self):
+        path = self.write(render_editor_docx(self.ordinary))
+        packet = self.tmp / "packet.txt"
+        packet.write_text(self.ordinary, encoding="utf-8")
+        out = self.tmp / "out.json"
+        args = [str(path), "--expected-sha256", hashlib.sha256(path.read_bytes()).hexdigest(),
+                "--title-index", "0", "--subtitle-index", "1", "--body-start", "2",
+                "--body-stop", "3", "--out", str(out)]
+        for extra in ([], ["--independent", "--saturday-packet", str(packet)]):
+            with self.subTest(extra=extra), redirect_stdout(io.StringIO()), \
+                    patch("sys.stderr", io.StringIO()), self.assertRaises(SystemExit) as stop:
+                import_main(args + extra)
+            self.assertEqual(stop.exception.code, 2)
+            self.assertFalse(out.exists())
+        import_main(args + ["--saturday-packet", str(packet)])
+        self.assertEqual(json.loads(out.read_text())[PROVENANCE_KEY], cycle_provenance(PRIMARY))
 
 
 if __name__ == "__main__":

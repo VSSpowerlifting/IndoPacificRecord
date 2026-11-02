@@ -28,11 +28,11 @@ with the packet's discovery receipt. Saturday provisional and complete-week
 packets are both reconciled the same way. Any drift HOLDS; after human review
 the owner may rerun with ``--acknowledge-diff <diff_sha256>``. A passing run
 writes the candidate sidecar with a ``saturday_sunday_cycle`` receipt that
-binds the exact manuscript, revised DOCX, week inventory and reviewers;
-``core.brief_contract`` refuses readiness or approval of any week from
-``core.brief_editorial_cycle.CUTOVER_WEEK`` on without it, whatever labels the
-DOCX carries. Exact source IDs stay in the private receipt; only aggregate
-counts are printed.
+binds the exact manuscript, revised DOCX, week inventory and reviewers, and
+stamps the packet's ``editorial_cycle`` provenance into the manuscript.
+``core.brief_contract`` refuses readiness or approval of any cycle-derived
+Brief without its own receipt, whatever labels the DOCX carries. Exact source
+IDs stay in the private receipt; only aggregate counts are printed.
 
 When a research analyst reviewed the week (``scripts.brief_analyst_review``),
 add ``--analyst-manifest`` and ``--analyst-feedback`` with the owner's
@@ -47,6 +47,7 @@ import hashlib
 import json
 import os
 import re
+import zipfile
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -464,8 +465,10 @@ def sunday_recheck(saturday: str, *, packet_path, candidate, revised_docx=None,
     exact source IDs for the owner's review. ``reconciled_sidecar`` is the
     candidate with the receipt attached, or None while HELD.
     """
-    from core.brief_editorial_cycle import COUNT_KEYS, KEY, SCHEMA, manuscript_digest
+    from core.brief_editorial_cycle import (
+        COUNT_KEYS, KEY, PROVENANCE_KEY, SCHEMA, cycle_provenance, manuscript_digest)
     from core.brief_source_linked import is_source_linked
+    from scripts.import_brief_manuscript import cycle_signals
     from scripts.sunday_briefs_auto_writer import choose_evidence
     now = now or datetime.now(timezone.utc)
     target = parse_saturday(saturday, now=now)
@@ -484,6 +487,12 @@ def sunday_recheck(saturday: str, *, packet_path, candidate, revised_docx=None,
         raise ValueError("candidate sidecar is not for this reporting week")
     base = {k: v for k, v in candidate.items() if k != KEY}
     packet = parse_saturday_packet(Path(packet_path), saturday=target)
+    # Every Brief reconciled here took part in the cycle; its provenance is
+    # this packet's identity and becomes part of the bound manuscript.
+    provenance = cycle_provenance(packet["identity"])
+    if base.get(PROVENANCE_KEY, provenance) != provenance:
+        raise ValueError("candidate sidecar's editorial cycle provenance is for another Brief")
+    base[PROVENANCE_KEY] = provenance
     if analyst is not None:
         # One Brief's analyst return never releases another Brief of the week.
         if not isinstance(analyst, dict) or analyst.get("packet") != packet["identity"]:
@@ -499,6 +508,10 @@ def sunday_recheck(saturday: str, *, packet_path, candidate, revised_docx=None,
         if expected is not None and revised_sha != expected:
             raise ValueError("candidate sidecar was not imported from this revised DOCX")
         open_questions = docx_open_questions(revised)
+        with zipfile.ZipFile(revised) as archive:
+            carried, _ = cycle_signals(archive)
+        if any(found != packet["identity"] for found in carried):
+            raise ValueError("revised DOCX carries another Brief's editorial cycle provenance")
     desks = live_editorial_desks()
     if len(desks) < 2:
         raise ValueError("fewer than two production-backed desks are live")

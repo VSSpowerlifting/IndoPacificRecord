@@ -59,16 +59,32 @@ closed, and there is no automatic retry or override while the variable is on.
 - **Readiness and approval:** a PASS writes the candidate sidecar with a
   `saturday_sunday_cycle` receipt binding the manuscript digest, the revised DOCX
   SHA-256, the packet and the week's inventory/policy fingerprint
-  (`core/brief_editorial_cycle.py`). From the week ending 2026-11-07,
-  `validate_readiness` and `validate_brief` refuse a Brief without a valid receipt,
-  and `author_brief.py ready` recomputes the inventory fingerprint so a later
-  corpus or policy change needs a fresh reconciliation. Already accepted Briefs
-  (week ending 2026-10-31 or earlier) are unchanged. The importer no longer decides
-  releasability; DOCX labels are for Dylan's display only.
+  (`core/brief_editorial_cycle.py`). `author_brief.py ready` recomputes the
+  inventory fingerprint, so a later corpus or policy change needs a fresh
+  reconciliation.
+- **Who needs a receipt (participation, not date):** a Brief derived from a weekend
+  editorial cycle carries `editorial_cycle` provenance naming its packet identity.
+  The recheck always stamps it, and `validate_readiness` and `validate_brief`
+  refuse a marked Brief without its own valid receipt. Provenance is inside the
+  manuscript digest, so a companion Brief, a human rewrite or an analyst-reconciled
+  version needs its own receipt, and removing the marker breaks the receipt it had.
+  A Brief with neither marker nor receipt was authored independently and keeps the
+  existing publication safeguards; shared source URLs are not provenance. All
+  accepted Briefs are unmarked and unchanged.
+- **Import carries provenance, fail closed:** the Saturday DOCX also holds its
+  identity in a custom document property and a document variable, which survive
+  deleting the visible labels or changing the author in Word. The importer copies
+  either one into `editorial_cycle`; carriers that disagree, or that name a
+  different Brief than a declared packet, are refused. A DOCX without them must be
+  declared: `--saturday-packet <packet>` for a cycle-derived manuscript (including
+  an ordinary complete-week packet), or `--independent`, which is refused while any
+  carrier or visible Saturday label remains. Copy `editorial_cycle` from the
+  import JSON into the sidecar; the recheck stamps it again and refuses a candidate
+  or revised DOCX that names another Brief.
 - **Several Briefs in one week (#946):** each Brief is reconciled on its own. The
   receipt takes its identity from the packet's `Packet:` line, `IPR-<Saturday>` for
   the primary or `IPR-<Saturday>-<slug>` (slug `[a-z][a-z0-9-]{0,79}`) for an
-  additional Brief, and every Brief from the cutover week on needs its own receipt.
+  additional Brief, and each needs its own receipt.
 
 The receipt never claims a complete week, grants credit or authorizes publication.
 Research pins are listed for human checking, not recomputed. Disabling the variable

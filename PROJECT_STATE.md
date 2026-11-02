@@ -8,9 +8,12 @@ one activation variable, `IPR_WEEKEND_EDITORIAL_ENABLED` (unset, so disabled), a
 one dispatcher, the `workflow_run` trigger in
 `sunday_briefs_editorial_handoff.yml`. #957's own dispatcher and variable are not
 carried. The Sunday reconciliation receipt (`core/brief_editorial_cycle.py`) is
-enforced by `validate_brief` and `validate_readiness` from the week ending
-2026-11-07, independent of DOCX labels. It is bound to the packet's per-Brief
-identity (#946), the exact final manuscript and revised DOCX, the week's inventory
+enforced by `validate_brief` and `validate_readiness` for every Brief carrying
+weekend editorial cycle provenance (`editorial_cycle`), whatever its date, author
+or Word labels; the importer carries that provenance from hidden DOCX properties
+and otherwise needs an explicit `--saturday-packet` or `--independent`.
+Independently authored Briefs keep the existing safeguards. It is bound to the
+packet's per-Brief identity (#946), the exact final manuscript and revised DOCX, the week's inventory
 and policy fingerprints and, where used, the reconciled analyst report. The
 Saturday draft is attempted at most once per week, reserved through the workflow's
 run history. #956 files are unchanged. This is not merged, activated or live.
