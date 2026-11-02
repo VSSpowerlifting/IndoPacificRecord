@@ -4,6 +4,15 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-01 — Vietnam: 29–30 October missed slots accepted, not recovered
+
+Benjamin Yang accepted in chat the missing 29–30 October 2026 Vietnam MPS/VPCP
+Daily slots as a permanent gap. No owner-reviewed `target_date` recovery run
+will be made for them, and no ledger, attempt, hold or retry history is
+changed. A Vietnam `FETCH_FAILURE` row caused by the stale
+handoff envelope (runtime migration 5, PR #953) is the expected report of the
+missed private run, not a defect to suppress.
+
 ## 2026-11-01 — Two Briefs: owner source review, presentation and covers
 
 Bylines approved by Benjamin Yang, Founder & Executive Director: **Benjamin
