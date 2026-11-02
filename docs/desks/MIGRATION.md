@@ -222,9 +222,16 @@ two sources are manual and none is Pacific Command, and the
 country-research loop records Vietnam as live with records), while Korea's
 deliberately refusing guard in `korea_pages_file_only_release.yml` is
 untouched. The push-only `release` job of
-`country_research_render_only_release.yml` has failed on `main` since
-23 October 2026 at its editorial-research gate, before that loop runs; this
-branch does not change that. The Japan Coast Guard live adapter probe
+`country_research_render_only_release.yml` last ran on `main` on 23 October
+2026 and failed at the editorial-research gate; commit `13e658653b`, merged
+later that day, repaired the Vietnam page for that gate, and the job has not
+been retriggered since. Its later page-scope step still pinned headings the
+desks no longer render (`Shadow evaluation` for Indonesia and Japan, the
+pre-live Vietnam research heading, and the old `8 declared / 3 collecting`
+summary wording); those pins now name each desk's current status-panel lane,
+the research section by its heading id, Japan's admitted-links lane, and the
+desks summary markup (8 declared, 4 collecting), all checked against a fresh
+`site/render.py` build of this branch. The Japan Coast Guard live adapter probe
 (`japan_jcg_adapter_proof.yml`) fails on every branch since 1 November 2026
 for a publisher-side reason unrelated to this branch. Generated
 `output/` and the tracked `pla_watch.db` are deliberately not committed:
