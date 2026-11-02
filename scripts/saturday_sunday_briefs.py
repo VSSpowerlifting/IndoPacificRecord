@@ -302,6 +302,8 @@ def deliver(state, directory, *, send=False, owner_confirmed=False,
             raise ValueError("editor delivery held by analyst routing: " + decision["route"])
         if decision["route"] == "DELIVER_REVISED":
             packet, expected = directory / decision["packet_file"], decision["packet_sha256"]
+    elif (directory / ("analyst-week-" + week + ".json")).exists():
+        raise ValueError("an analyst assignment exists for this week; deliver with analyst routing")
     payload = validate_file(packet, week, now=now, saturday_provisional=True)
     actual = hashlib.sha256(payload).hexdigest()
     if actual != expected:

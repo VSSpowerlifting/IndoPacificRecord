@@ -15,6 +15,7 @@ from scripts import brief_editorial_routing as routing
 from scripts import saturday_sunday_briefs as cycle
 from scripts.sunday_editorial_handoff import render_packet
 from scripts.sunday_editor_readable import editable_sections
+from scripts.sunday_pilot_owner_review import OwnerReviewRequired
 from tests.briefs_narrative_fixtures import article_manuscript, scaffold
 
 SAT = "2026-10-10"
@@ -123,6 +124,8 @@ class RoutingTests(unittest.TestCase):
                        patch.dict(os.environ, ENV)):
             target.start()
             self.addCleanup(target.stop)
+        for name in ("RUNNER_TEMP", "GITHUB_WORKSPACE", "RUNNER_TOOL_CACHE"):
+            os.environ.pop(name, None)  # restored by patch.dict; CI runners set these
 
     def dispatch(self, transport=None, **changes):
         kwargs = dict(manifest=self.manifest, docx=self.docx, brief=self.brief, roster=roster(),
@@ -221,6 +224,12 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(self.dispatch(transport)["status"], "ANALYST_SENT")
         kwargs = transport.call_args.kwargs
         self.assertEqual((kwargs["recipient"], kwargs["assignment_id"]), (ANALYST, self.manifest["assignment_id"]))
+        self.assertTrue(routing._paths(self.directory, SAT)["week"].exists())
+        with patch("scripts.sunday_editorial_handoff.send_packet") as unrouted:
+            with self.assertRaisesRegex(ValueError, "deliver with analyst routing"):
+                cycle.deliver(self.state, self.directory, now=AFTER_DEADLINE, marker_path=self.marker,
+                              send=True, owner_confirmed=True, approved_sha256=self.state["packet_sha256"])
+        unrouted.assert_not_called()
         result, smtp = self.deliver(now=AFTER_DEADLINE)
         self.assertEqual(result["analyst_route"], "DELIVER_PROVISIONAL")
         self.assertEqual(result["packet_sha256"], self.state["packet_sha256"])
@@ -310,15 +319,16 @@ class RoutingTests(unittest.TestCase):
         approved = feedback["revised_worksheet_sha256"]
         with patch.dict(os.environ, smtp_env), \
              patch("scripts.sunday_editorial_handoff.smtplib.SMTP_SSL") as server:
-            with self.assertRaises(Exception):
+            with self.assertRaisesRegex(OwnerReviewRequired, "differs from owner's reviewed attachment"):
                 cycle.deliver(self.state, self.directory, now=SATURDAY, marker_path=self.marker, send=True,
                               owner_confirmed=True, analyst_routing=True, approved_sha256=approved)
             server.assert_not_called()
-        # The refused attempt consumed the once-only editor reservation; a
-        # fresh store with the correct pilot SHA shows the real mail path.
-        for receipt in self.directory.glob("dispatch-*.json"):
-            if json.loads(receipt.read_text()).get("packet_sha256") == approved:
-                receipt.unlink()
+        # The refused attempt passed the editor reservation into send_packet and
+        # consumed it; a fresh store with the correct pilot SHA shows the mail path.
+        reserved = [r for r in self.directory.glob("dispatch-*.json")
+                    if json.loads(r.read_text()).get("packet_sha256") == approved]
+        self.assertEqual(len(reserved), 1)
+        reserved[0].unlink()
         smtp_env["IPR_SUNDAY_OWNER_REVIEWED_SHA256"] = approved
         with patch.dict(os.environ, smtp_env), \
              patch("scripts.sunday_editorial_handoff.smtplib.SMTP_SSL") as server:

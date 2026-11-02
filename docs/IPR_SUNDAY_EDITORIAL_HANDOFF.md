@@ -150,7 +150,8 @@ or CI job, and nothing in it is activated.
   the provisional packet. With reconciled feedback it sends only the
   re-hashed revised manuscript under the canonical file name, and only if the
   owner approved that exact SHA. The once-only editor reservation still
-  applies, so a late return cannot cause a second send.
+  applies, so a late return cannot cause a second send. Once an assignment
+  exists for the week, `deliver()` without `analyst_routing` refuses.
 
 Dispositions: #807's Daily-completion guard is absorbed as a callable; its
 workflow trigger is not. #945 and #947 are not absorbed. #946's slug
