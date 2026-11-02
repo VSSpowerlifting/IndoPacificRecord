@@ -50,11 +50,11 @@ class RightsGateTests(unittest.TestCase):
                     " https://www.mod.go.jp/a", None):
             self.assertEqual(cited.omission(ref("s1", url)), "unsafe_url", url)
 
-    def test_mindef_outside_approved_links_is_held(self):
-        self.assertEqual(cited.omission(ref("s1", "https://www.mindef.gov.sg/news/unapproved")),
-                         "mindef_link_not_approved")
-        for url in APPROVED_MINDEF_LINKS:
-            self.assertIsNone(cited.omission(ref("s1", url)))
+    def test_mindef_is_never_a_cited_record(self):
+        # The 2026-10-29 permission is for hyperlinks from a Brief, so even
+        # the two approved links stay external rather than gain a page.
+        for url in ("https://www.mindef.gov.sg/news/unapproved",) + tuple(APPROVED_MINDEF_LINKS):
+            self.assertEqual(cited.omission(ref("s1", url)), "mindef_link_only_permission")
 
     def test_held_vietnam_families_are_omitted(self):
         for host in ("bocongan.gov.vn", "moit.gov.vn", "vanban.chinhphu.vn",
@@ -71,7 +71,7 @@ class RightsGateTests(unittest.TestCase):
 class ResolveTests(unittest.TestCase):
     def test_one_record_per_url_with_every_citing_brief(self):
         url = "https://www.mod.go.jp/shared.html"
-        records, links, omitted = cited.resolve(collection(
+        records, links, omitted, _ = cited.resolve(collection(
             brief("a", 1, [ref("s1", url)]),
             brief("b", 2, [ref("s4", url, original_title="Title s1")])))
         self.assertEqual(len(records), 1)
@@ -82,38 +82,55 @@ class ResolveTests(unittest.TestCase):
         self.assertEqual(omitted, [])
 
     def test_record_never_carries_verification_notes(self):
-        records, _, _ = cited.resolve(collection(brief("a", 1, [ref("s1", "https://x.gov/a")])))
+        records, _, _, _ = cited.resolve(collection(brief("a", 1, [ref("s1", "https://x.gov/a")])))
         self.assertNotIn("verification", records[0])
         self.assertNotIn("PRIVATE LOCATOR", repr(records[0]))
 
     def test_corpus_record_is_linked_not_duplicated(self):
         url = "https://www.mod.gov.cn/held.html"
         corpus = {"id": 42, "url": url, "in_trails": []}
-        records, links, _ = cited.resolve(collection(brief("a", 1, [ref("s2", url)])),
-                                          corpus_by_url={url: corpus})
+        records, links, _, moved = cited.resolve(collection(brief("a", 1, [ref("s2", url)])),
+                                                 corpus_by_url={url: corpus})
         self.assertEqual(records, [])
         self.assertEqual(links, {"a": {"s2": "record/42.html"}})
+        # A route published before the URL was collected now redirects.
+        self.assertEqual(moved, {cited.cited_path(url): "record/42.html"})
         self.assertEqual([(t["slug"], t["kind"], t["anchor"]) for t in corpus["in_trails"]],
                          [("a", "brief_reference", "publisher-s2")])
 
     def test_machine_record_is_linked_not_duplicated(self):
         url = "https://www.pna.gov.ph/a"
-        records, links, _ = cited.resolve(
+        records, links, _, _ = cited.resolve(
             collection(brief("a", 1, [ref("s1", url)])),
             machine_by_url={url: {"record_path": "record/m-1.html"}})
         self.assertEqual((records, links), ([], {"a": {"s1": "record/m-1.html"}}))
+
+    def test_identity_ignores_host_case_and_fragment_only(self):
+        url = "https://www.mod.go.jp/a/b.html"
+        same = "HTTPS://WWW.MOD.GO.JP/a/b.html#section"
+        self.assertEqual(cited.cited_id(url), cited.cited_id(same))
+        self.assertNotEqual(cited.cited_id(url), cited.cited_id("https://www.mod.go.jp/A/b.html"))
+        self.assertNotEqual(cited.cited_id(url), cited.cited_id(url + "?p=2"))
+        records, links, _, moved = cited.resolve(
+            collection(brief("a", 1, [ref("s1", "https://www.mod.go.jp/a/b.html#section")])),
+            corpus_by_url={url: {"id": 7, "url": url, "in_trails": []}})
+        self.assertEqual((records, links), ([], {"a": {"s1": "record/7.html"}}))
 
     def test_conflicting_metadata_stops_the_build(self):
         url = "https://www.mod.go.jp/shared.html"
         with self.assertRaisesRegex(ValueError, "cited_source_metadata_conflict"):
             cited.resolve(collection(brief("a", 1, [ref("s1", url)]),
                                      brief("b", 2, [ref("s1", url, date="2026-10-02")])))
+        for field, value in (("publisher", "Other"), ("lang", "ja")):
+            with self.assertRaisesRegex(ValueError, "cited_source_metadata_conflict"):
+                cited.resolve(collection(brief("a", 1, [ref("s1", url)]),
+                                         brief("b", 2, [ref("s1", url, **{field: value})])))
 
     def test_review_and_synthetic_briefs_are_skipped(self):
         review = brief("r", 1, [ref("s1", "https://x.gov/r")], is_review=True)
         synthetic = (brief("f", 2, [])[0], {"synthetic": True,
                      "publisher_references": [ref("s1", "https://x.gov/f")]})
-        self.assertEqual(cited.resolve(collection(review, synthetic)), ([], {}, []))
+        self.assertEqual(cited.resolve(collection(review, synthetic)), ([], {}, [], {}))
 
 
 class ArchiveIndexTests(unittest.TestCase):
@@ -131,7 +148,7 @@ class ArchiveIndexTests(unittest.TestCase):
         self.assertEqual(new["desks"], [])
 
     def test_archive_rows_publish_no_desk_coverage(self):
-        records, _, _ = cited.resolve(collection(brief("a", 7, [ref("s1", "https://x.gov/a")])))
+        records, _, _, _ = cited.resolve(collection(brief("a", 7, [ref("s1", "https://x.gov/a")])))
         row = next(cited.archive_rows(records))
         self.assertEqual((row["id"], row["desks"], row["record_type"], row["source_url"]),
                          ("cited:" + cited.cited_id("https://x.gov/a"), [], "official_link",
@@ -145,7 +162,7 @@ class ApprovedBriefsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         c = load_collection([], load_registry(), briefs_dir=ROOT / "briefs")
-        cls.records, cls.links, cls.omitted = cited.resolve(c)
+        cls.records, cls.links, cls.omitted, cls.moved = cited.resolve(c)
         cls.locators = {r["url"]: r["verification"]["locator"]
                         for s in c.sidecars.values()
                         for r in s.get("publisher_references") or ()

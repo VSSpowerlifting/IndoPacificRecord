@@ -13,8 +13,15 @@ of approved publications. It does not authorize prose or credit changes.
 Decision: official publisher references in approved, non-review Briefs become
 Records that republish only the Brief's own reference metadata (doctrine §5b).
 This is not corpus admission: no source bytes, DB rows, desk coverage, new
-collector or rights override. Independent references and held families (MINDEF
-outside approved links; Vietnam MPS/MOIT/VPCP) stay external-only. Every source
+collector or rights override. Independent references, every MINDEF URL and the
+held Vietnam MPS/MOIT/VPCP families stay external-only. MINDEF's 2026-10-29
+permission covers hyperlinks from a Brief, not a standalone IPR page, so even
+its two approved links get no Record. A Record's route is keyed on the URL with
+scheme/host lowercased and the fragment dropped, so it is stable. When that URL
+is later collected as a corpus or machine Record, the cited route becomes a
+redirect to it. Any metadata conflict for one URL stops the build. A fresh-context
+proposal review returned PROCEED on the core and REJECT on MINDEF admission, and
+those fixes are applied. Every source
 document in the edition, Dossier and Timeline trails is already a corpus Record.
 Edition pages link back now. Dossier and Timeline back-links render only when
 those withheld works do. The China–Singapore Dossier's external references

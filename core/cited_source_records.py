@@ -6,23 +6,25 @@ ones into IPR Records that publish exactly that metadata and nothing more: no
 source text, no excerpt, no verification notes, no desk coverage. Every
 citing Brief links to the Record and the Record links back to every Brief.
 
-One Record per exact source URL. A URL already held as a corpus record or a
-released machine explanation resolves to that page instead of a new one, so
-manual citation and automated collection converge on one identity.
+One Record per source URL, keyed on `url_key` (scheme and host lowercased,
+fragment dropped) while the exact URL is what the page shows and links. A URL
+already held as a corpus record or a released machine explanation resolves to
+that page instead of a new one, so manual citation and automated collection
+converge on one identity. When that happens to a URL that already had a cited
+page, the old route becomes a redirect rather than a dead citation.
 
 The rights gate fails closed. Independent reporting stays an external
-citation. A source family whose title display or linking is held (MINDEF
-outside its two approved links; the Vietnam MPS, MOIT and VPCP families
-without a sealed decision) is omitted from Records, while the Brief's own
-publisher reference is left exactly as approved.
+citation. Singapore MINDEF is omitted entirely: its 2026-10-29 permission
+covers hyperlinks from a Brief, not a standalone page bearing its headline.
+The Vietnam MPS, MOIT and VPCP families are omitted without a sealed
+decision. The Brief's own publisher reference is left exactly as approved.
 """
 from __future__ import annotations
 
 import hashlib
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from core import vietnam_source_use
-from core.mindef_permissions import MINDEF_SOURCE_SLUG, source_link_approved
 
 ROUTE_DIR = "record"
 FIELDS = ("url", "publisher", "issuer", "date", "lang", "original_title")
@@ -38,8 +40,21 @@ HELD_HOSTS = {
 MINDEF_HOSTS = {"mindef.gov.sg", "www.mindef.gov.sg"}
 
 
+def url_key(url: str) -> str:
+    """The identity a cited URL is matched and routed by.
+
+    Only what can never name a different document is normalized: scheme and
+    host case, and the fragment, which never reaches the server. Path and
+    query are kept exactly, because publishers do serve different documents
+    under paths that differ only in case or a trailing slash.
+    """
+    parts = urlsplit(url)
+    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(),
+                       parts.path, parts.query, ""))
+
+
 def cited_id(url: str) -> str:
-    return hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+    return hashlib.sha256(url_key(url).encode("utf-8")).hexdigest()[:16]
 
 
 def cited_path(url: str) -> str:
@@ -56,8 +71,8 @@ def omission(ref: dict):
             or parts.username or parts.password or url != url.strip()):
         return "unsafe_url"
     host = parts.hostname.lower()
-    if host in MINDEF_HOSTS and not source_link_approved(MINDEF_SOURCE_SLUG, url):
-        return "mindef_link_not_approved"
+    if host in MINDEF_HOSTS:
+        return "mindef_link_only_permission"
     family = HELD_HOSTS.get(host)
     if family and not vietnam_source_use.standing(family).allows("public_title_display"):
         return "held_source_family:" + family
@@ -70,19 +85,22 @@ def omission(ref: dict):
 def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
     """Admit approved Briefs' official citations.
 
-    Returns `(records, brief_links, omitted)`:
+    Returns `(records, brief_links, omitted, moved)`:
 
     * records: one dict per new cited Record, newest source date first;
     * brief_links: {brief slug: {reference id: site-relative route}};
     * omitted: (slug, reference id, url, reason) for every reference left
-      as an external citation only.
+      as an external citation only;
+    * moved: {cited route: corpus or machine route} for every admitted URL
+      that resolves to a held page, so a cited route that was published
+      before the URL was collected keeps answering with a redirect.
 
     Corpus records that a Brief cites gain a `brief_reference` entry in their
     own `in_trails`, so their page links back without a second Record.
     """
-    corpus_by_url = corpus_by_url or {}
-    machine_by_url = machine_by_url or {}
-    by_url, brief_links, omitted = {}, {}, []
+    corpus_by_key = {url_key(u): r for u, r in (corpus_by_url or {}).items()}
+    machine_by_key = {url_key(u): r for u, r in (machine_by_url or {}).items()}
+    by_key, brief_links, omitted, moved = {}, {}, [], {}
     for brief in collection.briefs:
         if brief.get("is_review"):
             continue
@@ -95,39 +113,40 @@ def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
             if reason:
                 omitted.append((brief["slug"], ref.get("id"), ref.get("url"), reason))
                 continue
-            url = ref["url"]
+            url, key = ref["url"], url_key(ref["url"])
             citing = {"slug": brief["slug"], "issue": brief["issue"],
                       "date": brief["date"], "title": brief["title"],
                       "url": brief["url"], "series_name": brief["series_name"],
                       "publication": brief.get("publication"),
                       "kind": "brief_reference", "anchor": "publisher-" + ref["id"]}
-            if url in corpus_by_url:
-                rec = corpus_by_url[url]
+            if key in corpus_by_key:
+                rec = corpus_by_key[key]
                 trails = rec.setdefault("in_trails", [])
                 if not any(t["slug"] == brief["slug"] and t.get("kind") == "brief_reference"
                            for t in trails):
                     trails.append(citing)
-                links[ref["id"]] = "%s/%d.html" % (ROUTE_DIR, rec["id"])
+                links[ref["id"]] = moved[cited_path(url)] = "%s/%d.html" % (ROUTE_DIR, rec["id"])
                 continue
-            if url in machine_by_url:
-                links[ref["id"]] = machine_by_url[url]["record_path"]
+            if key in machine_by_key:
+                links[ref["id"]] = moved[cited_path(url)] = machine_by_key[key]["record_path"]
                 continue
-            record = by_url.get(url)
+            record = by_key.get(key)
             if record is None:
-                record = by_url[url] = dict({k: ref[k] for k in FIELDS},
+                record = by_key[key] = dict({k: ref[k] for k in FIELDS},
                     id=cited_id(url), record_path=cited_path(url),
                     cited_only=True, cited_in=[])
-            elif any(record[k] != ref[k] for k in ("date", "original_title", "issuer")):
+            elif any(record[k] != ref[k] for k in FIELDS[1:]):
                 # Two Briefs describing one URL differently is an editorial
                 # discrepancy to resolve, never one to paper over silently.
+                # The URL itself may differ only by what url_key ignores.
                 raise ValueError("cited_source_metadata_conflict: %s" % url)
             if not any(c["slug"] == brief["slug"] for c in record["cited_in"]):
                 record["cited_in"].append(citing)
             links[ref["id"]] = record["record_path"]
         if links:
             brief_links[brief["slug"]] = links
-    records = sorted(by_url.values(), key=lambda r: (r["date"] or "", r["url"]), reverse=True)
-    return records, brief_links, omitted
+    records = sorted(by_key.values(), key=lambda r: (r["date"] or "", r["url"]), reverse=True)
+    return records, brief_links, omitted, moved
 
 
 def citation(record: dict, origin: str) -> str:

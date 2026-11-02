@@ -2727,7 +2727,7 @@ def build(out_dir: Path, title: str, db_path: Path,
     from core.daily_machine_records import load as load_daily_machine_records
     from core.cited_source_records import resolve as resolve_cited
     machine_records = load_daily_machine_records(db_path)
-    cited_records, cited_links, _cited_omitted = resolve_cited(
+    cited_records, cited_links, _cited_omitted, cited_moved = resolve_cited(
         public_archive_collection,
         corpus_by_url={rec["url"]: rec for rec in data["corpus"]},
         machine_by_url={r["url"]: r for r in machine_records})
@@ -3496,6 +3496,12 @@ def build(out_dir: Path, title: str, db_path: Path,
                                cite=cited_citation(rec, LIVE_BASE), **ctx),
             encoding="utf-8")
         written.append(rec["record_path"])
+    # A cited URL that has since been collected keeps its published route,
+    # which now points at the record holding it.
+    for route, target in sorted(cited_moved.items()):
+        (out_dir / route).write_text(
+            LEGACY_REDIRECT % {"target": Path(target).name}, encoding="utf-8")
+        written.append(route)
 
     # ── Week shards ──────────────────────────────────────────────────────────
     # Ordinary static pages. Every record is reachable from corpus.html through
@@ -3912,7 +3918,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         locs, seen = [], set()
         for path in sorted(out_dir.rglob("*.html")):
             rel = path.relative_to(out_dir).as_posix()
-            if rel.startswith("article/"):
+            if rel.startswith("article/") or rel in cited_moved:
                 continue
             loc = "%s/%s" % (origin, canonical_route(rel))
             if loc not in seen:

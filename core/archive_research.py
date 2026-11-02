@@ -279,11 +279,12 @@ def with_cited(records, cited):
     The register's desks carry over; its title and wording do not. One
     outbound document then has one Record, wherever it was found.
     """
+    from core.cited_source_records import url_key
     cited = [dict(r) for r in cited]
-    by_url = {r['source_url']: r for r in cited}
+    by_url = {url_key(r['source_url']): r for r in cited}
     kept = []
     for r in records:
-        match = by_url.get(r.get('source_url'))
+        match = by_url.get(url_key(r['source_url'])) if r.get('source_url') else None
         if match is not None and r['record_type'] == 'official_link' and not r.get('ipr_url'):
             match['desks'] = sorted(set(match['desks']) | set(r['desks']))
             continue

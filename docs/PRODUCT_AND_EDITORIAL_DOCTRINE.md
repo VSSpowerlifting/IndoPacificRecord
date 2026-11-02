@@ -396,16 +396,19 @@ ordinary Brief. See `core/brief_source_linked.py` and
 
 **Cited official sources are Records (owner direction, 2026-11-01).** Each
 *official* publisher reference in an approved Brief gets one IPR Record per
-exact URL (`record/cited-<sha256[:16]>.html`). The Record publishes only what
+URL (`record/cited-<sha256[:16]>.html`, keyed on the URL with scheme and host
+lowercased and the fragment dropped; path and query stay exact). The Record publishes only what
 the Brief already publishes: original title, issuer, publisher, language,
 source-stated date and the link. It holds no source bytes, excerpt, translation
 or verification notes and adds no desk coverage or database row. The Brief
 keeps its publisher link and adds an "IPR Record" link; the Record links back to
 every citing Brief. A URL already held as a corpus record or released machine
 Record resolves to that page instead, so manual citation and collection share one
-identity. Independent reporting stays an external citation. Held families are
-omitted: MINDEF outside its approved links, and Vietnam MPS, MOIT and VPCP
-without a sealed decision. Conflicting metadata for one URL stops the build.
+identity; a cited route published before collection becomes a redirect. Independent
+reporting stays an external citation. MINDEF is omitted entirely: its 2026-10-29
+permission covers hyperlinks from a Brief, not a standalone IPR page. Vietnam MPS,
+MOIT and VPCP are omitted without a sealed decision. Conflicting metadata for one
+URL stops the build.
 Derived on every render by `core/cited_source_records.py`; nothing is hand-admitted.
 
 **The approval of 2026-10-13 applies only to** “What Is Being Built in Laos?”

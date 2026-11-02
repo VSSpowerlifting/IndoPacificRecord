@@ -16,9 +16,9 @@ image credits and the author link. Every Dossier and Timeline source is a corpus
 Record, but both Dossiers and the Timeline remain withheld as whole works, so
 those back-links render only in review. The nine Dossier external references
 x1–x9 are not Records. The 2026-10-26 grant limits them to linked use inside
-that Dossier, with no IPR record page. None of x1–x7 is an approved MINDEF link,
-and x8–x9 are `http` URLs. No DB, source-policy or collector change. Not merged
-or deployed.
+that Dossier, with no IPR record page. No MINDEF URL becomes a cited Record (link-only
+permission). Routes use a stable `url_key`, and a route superseded by later collection
+redirects to the corpus/machine Record. No DB, source-policy or collector change.
 
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
