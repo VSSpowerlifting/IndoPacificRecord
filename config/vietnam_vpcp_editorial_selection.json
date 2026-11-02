@@ -1,0 +1,7 @@
+{
+  "source_family": "vn_vpcp_official_documents_vi",
+  "decision_reference": "docs/engineering/VIETNAM_GOVERNMENT_DOCUMENTS_2026-10-23.md",
+  "policy": "config/vietnam_vpcp_metadata_policy.json",
+  "scope": "public_bibliographic_metadata_only",
+  "selections": []
+}

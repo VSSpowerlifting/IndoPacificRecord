@@ -3307,9 +3307,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         # other official links. The subject is metadata, never a document body.
         document_references = [{"source_url": r["canonical_official_url"],
             "source_identity": r["source_identity"],
-            "neutral_label": r["label"] + " · " + r["document"]["subject"]
-                + " · " + r["issuer_label"] + " · " + r["document"]["signatory"]
-                + " · " + " · ".join(r["topics"]),
+            "neutral_label": " · ".join(p for p in [r["label"], r["document"]["subject"],
+                r["issuer_label"], r["document"]["signatory"], *r["topics"]] if p),
             "published_date": r["publisher_posted_date"], "source_name": r["publisher_label"],
             "issuer_label": r["issuer_label"],
             "date_kind": "document issue date",

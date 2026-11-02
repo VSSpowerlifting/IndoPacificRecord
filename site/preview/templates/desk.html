@@ -138,7 +138,7 @@
       {% if ref.document | default(none) %}
       <p lang="vi">{{ ref.document.subject }}</p>
       <p>Issuer: {{ ref.issuer_label }} ({{ ref.document.issuer }}) · {{ ref.document_type_label }} ({{ ref.document.document_type }}) · Signatory: {{ ref.document.signatory }}</p>
-      <p class="meta">Subject index: {{ ref.topics | join(' · ') }}. Based on the portal's bibliographic subject only.</p>
+      {% if ref.topics %}<p class="meta">Subject index: {{ ref.topics | join(' · ') }}. Based on the portal's bibliographic subject only.</p>{% endif %}
       {% if ref.source_identity in vietnam_explained | default({}) %}
       <p><a href="{{ vietnam_explained[ref.source_identity] }}">Read the published English machine explanation</a></p>
       {% endif %}
