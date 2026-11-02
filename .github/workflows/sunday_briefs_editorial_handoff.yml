@@ -60,6 +60,7 @@ jobs:
       week_ending: ${{ steps.verify.outputs.week_ending }}
       collection_day: ${{ steps.verify.outputs.collection_day }}
       corpus_sha: ${{ steps.verify.outputs.corpus_sha }}
+      reservation: ${{ steps.verify.outputs.reservation }}
     steps:
       - name: Checkout production corpus on main (read-only)
         uses: actions/checkout@v4
@@ -73,7 +74,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # A rerun would repeat the paid draft and the email; refuse it.
+          # A rerun would repeat the paid draft and the email; refuse it. A new
+          # run for an already reserved week is refused by the trigger itself.
           [[ "$GITHUB_RUN_ATTEMPT" == "1" ]] || {
             echo "::error::Refused: weekend editorial reruns are not automatic"; exit 2;
           }
@@ -486,6 +488,25 @@ jobs:
           )
           print("Unapproved full-week scaffold prepared from stored records through Saturday.")
           PY
+
+      # Once-only per reporting week, ported from #957. This step's evaluated
+      # name is the reservation: the trigger refuses any later run for the same
+      # week once it has started here, so it sits after every free gate and
+      # immediately before the paid model call. A failed attempt is never
+      # retried automatically. Metadata only; no artifact or repository write.
+      - name: Model attempt ${{ needs.weekend-collection.outputs.reservation }}
+        if: env.IPR_SATURDAY_PROVISIONAL == 'true'
+        env:
+          IPR_RESERVATION: ${{ needs.weekend-collection.outputs.reservation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_RUN_ATTEMPT" == "1" \
+             && "$IPR_RESERVATION" == "ipr-weekend-saturday-$IPR_SUNDAY_WEEK_END" ]] || {
+            echo "::error::Refused: reservation differs from the verified week"; exit 2;
+          }
+          echo "Reserved $IPR_RESERVATION (run $GITHUB_RUN_ID); never retried automatically." \
+            >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate source-cited Sunday manuscript and optionally email Dylan
         env:

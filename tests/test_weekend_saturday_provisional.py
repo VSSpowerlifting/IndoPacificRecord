@@ -334,6 +334,32 @@ class WeekendWorkflowContracts(unittest.TestCase):
         self.assertIn("--saturday $WEEK_ENDING", notice)
         self.assertNotIn("upload-artifact", WORKFLOW.read_text(encoding="utf-8"))
 
+    def test_saturday_draft_is_reserved_once_before_the_model_call(self):
+        head, jobs = workflow_jobs()
+        trigger, handoff = jobs["weekend-collection"], jobs["sunday-editor-handoff"]
+        self.assertIn("reservation: ${{ steps.verify.outputs.reservation }}", trigger)
+        self.assertIn("actions: read", trigger)
+        # Every free gate runs first; the named marker sits just before the model.
+        gate = handoff.index("python -m scripts.sunday_before_model_gate")
+        marker = handoff.index(
+            "- name: Model attempt ${{ needs.weekend-collection.outputs.reservation }}")
+        model = handoff.index("python -m scripts.sunday_editorial_handoff")
+        self.assertLess(gate, marker)
+        self.assertLess(marker, model)
+        between = handoff[marker:model]
+        self.assertIn("if: env.IPR_SATURDAY_PROVISIONAL == 'true'", between)
+        self.assertIn('"ipr-weekend-saturday-$IPR_SUNDAY_WEEK_END"', between)
+        self.assertIn('"$GITHUB_RUN_ATTEMPT" == "1"', between)
+        self.assertEqual(between.count("- name:"), 2)  # marker, then the model step
+        # The reservation is run history, not a stored file: no artifact at all.
+        src = WORKFLOW.read_text(encoding="utf-8")
+        self.assertNotIn("upload-artifact", src)
+        self.assertNotIn("ipr-weekend-reservation", src)
+        # Serialised runs, and no write access to the repository.
+        self.assertIn("concurrency:\n  group: ipr-sunday-editorial-handoff\n"
+                      "  cancel-in-progress: false", head)
+        self.assertNotIn("contents: write", src)
+
 
 if __name__ == "__main__":
     unittest.main()

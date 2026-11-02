@@ -8,7 +8,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from scripts.weekend_collection_trigger import (
-    CollectionTriggerRefused, NoNewCollection, REQUIRED_STEPS, main, verify,
+    ATTEMPT_STEP, CollectionTriggerRefused, NoNewCollection, REQUIRED_STEPS,
+    already_attempted, main, reservation_name, verify,
 )
 
 REPO = "VSSpowerlifting/IndoPacificRecord"
@@ -43,6 +44,27 @@ def guard(started):
     return {"name": "Scheduling guard", "conclusion": "success",
             "started_at": stamp(started),
             "completed_at": stamp(started + timedelta(seconds=4))}
+
+
+WEEK = "ipr-weekend-saturday-2026-10-24"
+
+
+def attempt(run_id, week=WEEK, conclusion="success"):
+    """One earlier handoff run whose marker step reached the given conclusion."""
+    steps = [{"name": "Set up job", "conclusion": "success"},
+             {"name": ATTEMPT_STEP + week, "conclusion": conclusion},
+             {"name": "Generate source-cited Sunday manuscript and optionally email Dylan",
+              "conclusion": "failure" if conclusion == "success" else "skipped"}]
+    return {"id": run_id, "jobs": {"total_count": 1, "jobs": [
+        {"name": "sunday-editor-handoff", "steps": steps}]}}
+
+
+def history(*runs):
+    return {"total_count": len(runs), "workflow_runs": list(runs)}
+
+
+def unreserved(**_):
+    return history()
 
 
 def jobs(started=SATURDAY_GUARD):
@@ -188,10 +210,12 @@ class WeekendCollectionTrigger(unittest.TestCase):
             event.write_text(json.dumps(parent()), encoding="utf-8")
             marker.write_text("2026-10-24\n", encoding="utf-8")
             argv = ["--event", str(event), "--marker", str(marker), "--github-output", str(out)]
-            with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO}):
-                self.assertEqual(main(argv, now=SATURDAY, jobs_reader=lambda **_: jobs()), 0)
+            with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO, "GITHUB_RUN_ID": "700"}):
+                self.assertEqual(main(argv, now=SATURDAY, jobs_reader=lambda **_: jobs(),
+                                      history_reader=unreserved), 0)
             self.assertEqual(out.read_text(), "mode=saturday\nweek_ending=2026-10-24\n"
-                                              "collection_day=2026-10-24\n")
+                                              "collection_day=2026-10-24\n"
+                                              "reservation=ipr-weekend-saturday-2026-10-24\n")
             out.write_text("")
             # A Thursday collection skips on its own start, not on the clock,
             # even when the event is read on a Saturday.
@@ -206,8 +230,10 @@ class WeekendCollectionTrigger(unittest.TestCase):
             event.write_text(json.dumps(parent(late)), encoding="utf-8")
             marker.write_text("2026-10-25\n", encoding="utf-8")
             with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO}):
+                # Sunday's free notice is not reserved, so no history is read.
                 self.assertEqual(main(argv, now=datetime(2026, 10, 26, 0, 30, tzinfo=NY),
-                                      jobs_reader=lambda **_: jobs(late)), 0)
+                                      jobs_reader=lambda **_: jobs(late),
+                                      history_reader=lambda **_: self.fail("read")), 0)
             self.assertIn("mode=sunday\nweek_ending=2026-10-24\n", out.read_text())
             event.write_text(json.dumps(parent()), encoding="utf-8")
             marker.write_text("2026-10-23\n", encoding="utf-8")
@@ -215,6 +241,102 @@ class WeekendCollectionTrigger(unittest.TestCase):
                     self.assertRaises(SystemExit) as stop:
                 main(argv, now=SATURDAY, jobs_reader=lambda **_: jobs())
             self.assertEqual(stop.exception.code, 2)
+
+
+class OnceOnlyReservation(unittest.TestCase):
+    def run_cli(self, reader, run_id="700"):
+        import json
+        import os
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            event, marker, out = (Path(tmp) / name for name in ("e.json", "m.txt", "o.txt"))
+            event.write_text(json.dumps(parent()), encoding="utf-8")
+            marker.write_text("2026-10-24\n", encoding="utf-8")
+            argv = ["--event", str(event), "--marker", str(marker), "--github-output", str(out)]
+            env = {"GITHUB_REPOSITORY": REPO, "GITHUB_TOKEN": "t", "GITHUB_RUN_ID": run_id}
+            with patch.dict(os.environ, env):
+                try:
+                    code = main(argv, now=SATURDAY, jobs_reader=lambda **_: jobs(),
+                                history_reader=reader)
+                except SystemExit as stop:
+                    self.assertEqual(out.read_text() if out.exists() else "", "")
+                    return stop.code
+            return code
+
+    def test_second_saturday_collection_is_refused_after_a_failed_attempt(self):
+        # A different upstream run for the same Saturday: the earlier run's
+        # marker started, then its model step failed. It is never retried.
+        seen = []
+
+        def reader(**kwargs):
+            seen.append(kwargs)
+            return history(attempt(601, week="ipr-weekend-saturday-2026-10-17"), attempt(650))
+        self.assertEqual(self.run_cli(reader), 2)
+        self.assertEqual(seen, [{"repo": REPO, "since": datetime(2026, 10, 22).date(),
+                                 "token": "t"}])
+        for conclusion in ("failure", "cancelled", None):
+            with self.subTest(conclusion=conclusion):
+                self.assertEqual(self.run_cli(lambda **_: history(
+                    attempt(650, conclusion=conclusion))), 2)
+
+    def test_skipped_marker_other_weeks_and_this_run_do_not_reserve(self):
+        for runs in ((), (attempt(650, conclusion="skipped"),),
+                     (attempt(601, week="ipr-weekend-saturday-2026-10-17"),),
+                     (attempt(700),)):
+            with self.subTest(runs=runs):
+                self.assertEqual(self.run_cli(lambda **_: history(*runs)), 0)
+
+    def test_unreadable_or_unevaluated_history_fails_closed(self):
+        def broken(**_):
+            raise CollectionTriggerRefused("GitHub reservation history read failed")
+        incomplete_jobs = attempt(650)
+        incomplete_jobs["jobs"]["total_count"] = 2
+        unevaluated = attempt(650, week="${{ needs.weekend-collection.outputs.reservation }}")
+        for reader in (broken, lambda **_: {"workflow_runs": []},
+                       lambda **_: {"total_count": 3, "workflow_runs": []},
+                       lambda **_: history({"id": 650}),
+                       lambda **_: history(incomplete_jobs),
+                       lambda **_: history(unevaluated)):
+            with self.subTest(reader=reader):
+                self.assertEqual(self.run_cli(reader), 2)
+        self.assertEqual(self.run_cli(unreserved, run_id=""), 2)
+
+    def test_history_reads_this_workflows_event_runs_and_every_attempt(self):
+        import io
+        import json
+        from unittest.mock import patch
+        from scripts import weekend_collection_trigger as trigger
+        urls = []
+        bodies = [{"total_count": 1, "workflow_runs": [{"id": 650}]},
+                  {"total_count": 0, "jobs": []}]
+
+        def fake(request, timeout):
+            urls.append(request.full_url)
+            return io.BytesIO(json.dumps(bodies.pop(0)).encode())
+        with patch.object(trigger, "urlopen", fake):
+            result = trigger.fetch_history(repo=REPO, since=datetime(2026, 10, 22).date(),
+                                           token="t")
+        self.assertEqual(urls, [
+            "https://api.github.com/repos/" + REPO + "/actions/workflows/"
+            "sunday_briefs_editorial_handoff.yml/runs"
+            "?event=workflow_run&per_page=100&created=%3E%3D2026-10-22",
+            "https://api.github.com/repos/" + REPO + "/actions/runs/650/jobs"
+            "?filter=all&per_page=100"])
+        self.assertEqual(result["workflow_runs"][0]["jobs"], {"total_count": 0, "jobs": []})
+        with self.assertRaises(CollectionTriggerRefused):
+            trigger.fetch_history(repo=REPO, since=datetime(2026, 10, 22).date(), token="")
+
+    def test_only_the_exact_week_name_reserves(self):
+        name = reservation_name("saturday", "2026-10-24")
+        self.assertEqual(name, WEEK)
+        other = attempt(601, week="ipr-weekend-saturday-2026-10-17")
+        self.assertFalse(already_attempted(history(other), name, current_run_id=700))
+        self.assertTrue(already_attempted(history(attempt(650)), name, current_run_id=700))
+        prefixed = attempt(650, week=WEEK + "-x")
+        self.assertFalse(already_attempted(history(prefixed), name, current_run_id=700))
+        for bad in (("draft", "2026-10-24"), ("saturday", "2026-10-24/x")):
+            with self.subTest(bad=bad), self.assertRaises(CollectionTriggerRefused):
+                reservation_name(*bad)
 
 
 if __name__ == "__main__":

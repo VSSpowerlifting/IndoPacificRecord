@@ -8,8 +8,17 @@ only after the **Daily PLA Watch Update** workflow completes (`workflow_run`).
 `scripts/weekend_collection_trigger.py` reads the upstream run and its job steps and
 continues only for the original scheduled `main` run (attempt 1) whose pipeline,
 validation, deploy and "Record successful run" steps all succeeded, and only when
-`.github/state/last_daily_run_date.txt` equals today's New York date. Weekdays and
+`.github/state/last_daily_run_date.txt` still equals that run's own New York
+"Scheduling guard" date (never the time the event is delivered). Weekdays and
 guard-skipped green runs end with `mode=none`. Reruns of either workflow are refused.
+
+The Saturday draft is attempted **at most once per reporting week** (ported from
+#957). Immediately before the model call the draft job runs a step named
+`Model attempt ipr-weekend-saturday-<Saturday>`; the trigger reads this workflow's
+recent `workflow_run` history (every attempt's jobs) and refuses any later run that
+finds that step started, whether the earlier attempt succeeded, failed or was
+cancelled. There is no artifact or repository write, an unreadable history fails
+closed, and there is no automatic retry or override while the variable is on.
 
 - **Saturday:** the existing job drafts once for `IPR-<Saturday>` with
   `--saturday-provisional`. The packet header reads `SATURDAY PROVISIONAL; THROUGH

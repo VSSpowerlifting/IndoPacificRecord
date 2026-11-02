@@ -12,6 +12,14 @@ its success marker. It is never the time this event happens to be delivered:
 a Saturday collection that finishes after midnight is still Saturday's, and a
 delayed event is refused once a later collection has moved the marker on.
 No manuscript generation, mail or publication occurs here; output is metadata.
+
+The Saturday draft is paid and emailed, so it runs at most once per reporting
+week (ported from #957's once-only model reservation). The workflow's own run
+history is the reservation: the draft job runs a step named for the week
+immediately before the model call, and any later run for the same week that
+finds that step started in an earlier run is refused, whether the first attempt
+succeeded or failed. A failed attempt is never retried automatically, and no
+artifact or repository write is needed. Reading the history fails closed.
 """
 from __future__ import annotations
 
@@ -44,6 +52,15 @@ MAX_TRIGGER_LAG = timedelta(hours=20)
 # Prefilter: only runs started Friday-Sunday (New York) can be weekend
 # collections; Friday covers a guard that crossed midnight into Saturday.
 CANDIDATE_START_DAYS = (4, 5, 6)
+
+RESERVED_MODES = ("saturday",)
+HANDOFF_WORKFLOW = "sunday_briefs_editorial_handoff.yml"
+# Must equal the draft job's marker step name in that workflow, which appends
+# the evaluated reservation name.
+ATTEMPT_STEP = "Model attempt "
+# A run can draft week W only after W's Saturday guard (lag bound above), so
+# runs created before the preceding Thursday cannot hold that week's attempt.
+HISTORY_LOOKBACK = timedelta(days=2)
 
 
 class CollectionTriggerRefused(ValueError):
@@ -157,27 +174,92 @@ def candidate(event):
     return started.astimezone(NY).weekday() in CANDIDATE_START_DAYS
 
 
-def fetch_jobs(*, repo, run_id, token):
-    if not REPO.fullmatch(repo) or type(run_id) is not int or run_id <= 0 or not token:
-        raise CollectionTriggerRefused("upstream jobs cannot be authenticated")
-    request = Request(
-        "https://api.github.com/repos/{}/actions/runs/{}/jobs?per_page=100".format(repo, run_id),
-        headers={"Accept": "application/vnd.github+json",
-                 "Authorization": "Bearer " + token,
-                 "User-Agent": "ipr-weekend-editorial-collector-gate"},
-        method="GET",
-    )
+def _read_json(url, *, token, what):
+    request = Request(url, headers={"Accept": "application/vnd.github+json",
+                                    "Authorization": "Bearer " + token,
+                                    "User-Agent": "ipr-weekend-editorial-collector-gate"},
+                      method="GET")
     try:
         with urlopen(request, timeout=15) as response:
             raw = response.read(MAX_JSON_BYTES + 1)
     except Exception as exc:
-        raise CollectionTriggerRefused("GitHub upstream jobs read failed") from exc
+        raise CollectionTriggerRefused("GitHub {} read failed".format(what)) from exc
     if len(raw) > MAX_JSON_BYTES:
-        raise CollectionTriggerRefused("oversized upstream evidence")
+        raise CollectionTriggerRefused("oversized {}".format(what))
     try:
         return json.loads(raw)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise CollectionTriggerRefused("invalid upstream jobs JSON") from exc
+        raise CollectionTriggerRefused("invalid {} JSON".format(what)) from exc
+
+
+def fetch_jobs(*, repo, run_id, token):
+    if not REPO.fullmatch(repo) or type(run_id) is not int or run_id <= 0 or not token:
+        raise CollectionTriggerRefused("upstream jobs cannot be authenticated")
+    return _read_json(
+        "https://api.github.com/repos/{}/actions/runs/{}/jobs?per_page=100".format(repo, run_id),
+        token=token, what="upstream jobs")
+
+
+def reservation_name(mode, week_ending):
+    if mode not in MODES.values() or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(week_ending)):
+        raise CollectionTriggerRefused("invalid reservation identity")
+    return "ipr-weekend-{}-{}".format(mode, week_ending)
+
+
+def already_attempted(history, name, *, current_run_id):
+    """True when an earlier run of this workflow started this week's model step.
+
+    Any marker step that was not skipped counts, whatever its outcome, so a
+    failed or cancelled attempt still reserves the week. An unevaluated or
+    incomplete listing is refused rather than read as "no attempt".
+    """
+    if (not isinstance(history, dict) or not isinstance(history.get("workflow_runs"), list)
+            or type(history.get("total_count")) is not int):
+        raise CollectionTriggerRefused("reservation history unavailable")
+    if history["total_count"] > len(history["workflow_runs"]):
+        raise CollectionTriggerRefused("reservation history incomplete")
+    for run in history["workflow_runs"]:
+        if not isinstance(run, dict) or type(run.get("id")) is not int:
+            raise CollectionTriggerRefused("reservation history unavailable")
+        if run["id"] == current_run_id:
+            continue
+        listing = run.get("jobs")
+        if (not isinstance(listing, dict) or not isinstance(listing.get("jobs"), list)
+                or type(listing.get("total_count")) is not int
+                or listing["total_count"] > len(listing["jobs"])):
+            raise CollectionTriggerRefused("reservation history incomplete")
+        for job in listing["jobs"]:
+            steps = job.get("steps") if isinstance(job, dict) else None
+            if not isinstance(steps, list):
+                raise CollectionTriggerRefused("reservation history incomplete")
+            for step in steps:
+                label = step.get("name") if isinstance(step, dict) else None
+                if not isinstance(label, str) or not label.startswith(ATTEMPT_STEP):
+                    continue
+                if "${{" in label:
+                    raise CollectionTriggerRefused("reservation step name was not evaluated")
+                if label[len(ATTEMPT_STEP):] == name and step.get("conclusion") != "skipped":
+                    return True
+    return False
+
+
+def fetch_history(*, repo, since, token):
+    """This workflow's workflow_run-event runs since a date, with every attempt's jobs."""
+    if not REPO.fullmatch(repo) or not token:
+        raise CollectionTriggerRefused("reservation history cannot be authenticated")
+    runs = _read_json(
+        "https://api.github.com/repos/{}/actions/workflows/{}/runs"
+        "?event=workflow_run&per_page=100&created=%3E%3D{}".format(
+            repo, HANDOFF_WORKFLOW, since.isoformat()),
+        token=token, what="reservation history")
+    if isinstance(runs, dict) and isinstance(runs.get("workflow_runs"), list):
+        for run in runs["workflow_runs"]:
+            if isinstance(run, dict) and type(run.get("id")) is int and run["id"] > 0:
+                run["jobs"] = _read_json(
+                    "https://api.github.com/repos/{}/actions/runs/{}/jobs"
+                    "?filter=all&per_page=100".format(repo, run["id"]),
+                    token=token, what="reservation history")
+    return runs
 
 
 def _write(path, **values):
@@ -188,7 +270,7 @@ def _write(path, **values):
             out.write("{}={}\n".format(key, value))
 
 
-def main(argv=None, *, now=None, jobs_reader=fetch_jobs):
+def main(argv=None, *, now=None, jobs_reader=fetch_jobs, history_reader=fetch_history):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--event", required=True, type=Path)
     parser.add_argument("--marker", required=True, type=Path)
@@ -214,10 +296,22 @@ def main(argv=None, *, now=None, jobs_reader=fetch_jobs):
             _write(args.github_output, mode="none")
             print("Daily run did not collect for a weekend day. No Brief job.")
             return 0
+        name = reservation_name(report["mode"], report["week_ending"])
+        if report["mode"] in RESERVED_MODES:
+            current = os.environ.get("GITHUB_RUN_ID", "")
+            if not current.isdigit():
+                raise CollectionTriggerRefused("current run id unavailable")
+            since = datetime.fromisoformat(report["collection_day"]).date() - HISTORY_LOOKBACK
+            history = history_reader(repo=repo, since=since,
+                                     token=os.environ.get("GITHUB_TOKEN", ""))
+            if already_attempted(history, name, current_run_id=int(current)):
+                raise CollectionTriggerRefused(
+                    "this week's Saturday draft was already attempted; it is never "
+                    "regenerated automatically")
     except (OSError, ValueError, TypeError) as exc:
         parser.exit(2, "Weekend collector handoff HELD: {}\n".format(exc))
     _write(args.github_output, mode=report["mode"], week_ending=report["week_ending"],
-           collection_day=report["collection_day"])
+           collection_day=report["collection_day"], reservation=name)
     print("Validated {} production collection for {} (week ending {}).".format(
         report["mode"], report["collection_day"], report["week_ending"]))
     return 0
