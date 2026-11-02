@@ -25,12 +25,13 @@ from unittest.mock import patch
 
 from analysis import vietnam_prompts as prompts
 from core import vietnam_corpus_bridge as bridge
+from core import vietnam_daily_handoff as handoff
 from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as su
 from core.regional_reviewed_evidence import _canonical
 from migrations.versions import m0017_vietnam_article_provenance as m0017
-from processing import screening
+from processing import mps_recovery, screening
 from scripts.reconcile_db import read_only
 from tests import test_vietnam_ministry_remote_review as fixtures
 
@@ -885,6 +886,162 @@ class BridgeRuns(unittest.TestCase):
                 self.run_bridge(source_use=grant())
         self.auth.start()
         self.assertEqual(self.count(), 0)
+
+    # The owner's one MPS number-only recovery attempt (processing/mps_recovery.py).
+    MANUAL = {"GITHUB_REPOSITORY": "VSSpowerlifting/ipr-source-evidence-private",
+              "GITHUB_EVENT_NAME": "workflow_dispatch", "MODE": "daily-bridge",
+              "GITHUB_RUN_ATTEMPT": "1"}
+
+    def held_number_only(self, **pins):
+        """Every fixture record as an earlier E_NUMBER_MISMATCH hold, pinned for recovery."""
+        path = self.tmp / ("%s-ledger.json" % MPS)
+        self.run_bridge(ledger=path)
+        ledger = json.loads(path.read_text())
+        for item in ledger["items"].values():
+            item.update(outcome=qa.HELD_REVIEW, failures=["E_NUMBER_MISMATCH"],
+                        run_id="held-run", attempts=0)
+        path.write_text(json.dumps(ledger))
+        ids = sorted(ledger["items"])
+        self.assertGreaterEqual(len(ids), 2)
+        records = {i: (ledger["items"][i]["content_sha256"], "held-run") for i in ids}
+        for name, value in dict(dict(RECORDS=records, BATCHES=(tuple(ids[:1]), tuple(ids[1:])),
+                                     OPEN_BATCH=0), **pins).items():
+            started = patch.object(mps_recovery, name, value)
+            started.start()
+            self.addCleanup(started.stop)
+        return ids, path
+
+    def manual(self, **env):
+        return patch.dict(os.environ, dict(self.MANUAL, **env))
+
+    def signed_ids(self, report, path):
+        envelope = handoff.sign([report], {MPS: json.loads(path.read_text())}, key=KEY,
+                                run_id="simulated-private-run", generated_utc=NOW)
+        return {a["provenance"]["source_identity"] for f in envelope["families"]
+                for a in f["records"]}
+
+    def test_recovery_attempts_only_the_open_batch_once_and_withholds_it(self):
+        ids, path = self.held_number_only()
+        with patch.dict(os.environ, {"GITHUB_EVENT_NAME": "schedule"}):
+            report, analyzer = self.run_bridge(source_use=grant(), ledger=path)
+        self.assertEqual(set(self.outcomes(report)), {bridge.SETTLED})
+        self.assertEqual(analyzer.calls, [])
+        with self.manual():
+            report, analyzer = self.run_bridge(source_use=grant(), ledger=path,
+                                               run_id="recovery-run")
+        by_id = {o["source_identity"]: o["outcome"] for o in report["outcomes"]}
+        self.assertEqual({i: by_id[i] for i in ids[:1]}, dict.fromkeys(ids[:1], qa.PUBLISHED))
+        self.assertEqual({by_id[i] for i in ids[1:]}, {bridge.SETTLED})
+        self.assertEqual(len(analyzer.calls), 1)
+        items = json.loads(path.read_text())["items"]
+        for identity in ids[:1]:
+            marker = items[identity]["recovery_exception"]
+            self.assertEqual(marker["decision"], mps_recovery.DECISION)
+            self.assertEqual(marker["run_id"], "recovery-run")
+            self.assertEqual(marker["prior_attempt"]["failures"], ["E_NUMBER_MISMATCH"])
+            self.assertEqual(marker["prior_attempt"]["run_id"], "held-run")
+            self.assertEqual(marker["retained"]["model_id"], "synthetic-test-model")
+            self.assertEqual(marker["model_usage"], {"tasks": [], "cost_usd": None})
+        for identity in ids[1:]:
+            self.assertNotIn("recovery_exception", items[identity])
+        # Accepted, privately stored, and still not in the public handoff.
+        self.assertEqual(self.signed_ids(report, path), set())
+        # A later run (fresh private database) offers it again, still withheld.
+        conn = clone_schema(self.tmp / "later.db")
+        self.addCleanup(conn.close)
+        with self.manual():
+            again, analyzer = self.run_bridge(source_use=grant(), ledger=path, conn=conn)
+        self.assertEqual(analyzer.calls, [])
+        self.assertIn("recovery_exception", json.loads(path.read_text())["items"][ids[0]])
+        self.assertEqual(self.signed_ids(again, path), set())
+        with patch.object(mps_recovery, "RELEASED", frozenset(ids[:1])):
+            self.assertEqual(self.signed_ids(again, path), set(ids[:1]))
+
+    def test_failed_recovery_is_kept_and_never_retried(self):
+        ids, path = self.held_number_only()
+        with self.manual():
+            report, analyzer = self.run_bridge(source_use=grant(), ledger=path,
+                                               analyzer=FakeAnalyzer(passed=False))
+        self.assertEqual(len(analyzer.calls), 1)
+        items = json.loads(path.read_text())["items"]
+        for identity in ids[:1]:
+            self.assertNotEqual(items[identity]["outcome"], qa.PUBLISHED)
+            self.assertIs(items[identity]["recovery_exception"]["retained"]["passed_relevance"],
+                          False)
+        with self.manual():
+            report, analyzer = self.run_bridge(source_use=grant(), ledger=path)
+        self.assertEqual(set(self.outcomes(report)), {bridge.SETTLED})
+        self.assertEqual(analyzer.calls, [])
+        self.assertEqual(json.loads(path.read_text())["items"], items)
+        # A retryable model failure is spent too: no unattended retry follows.
+        self.setUp()
+        ids, path = self.held_number_only()
+        with self.manual():
+            report, analyzer = self.run_bridge(source_use=grant(), ledger=path,
+                                               analyzer=FakeAnalyzer(fail=True))
+        self.assertEqual(self.outcomes(report)[:1], [qa.HELD_RETRYABLE])
+        for env in ({"GITHUB_EVENT_NAME": "schedule"}, self.MANUAL):
+            with patch.dict(os.environ, env):
+                report, analyzer = self.run_bridge(source_use=grant(), ledger=path)
+            self.assertEqual(set(self.outcomes(report)), {bridge.SETTLED})
+            self.assertEqual(analyzer.calls, [])
+
+    def test_recovery_needs_the_exact_hold_and_a_first_manual_attempt(self):
+        cases = {
+            "rerun": ({}, {"GITHUB_RUN_ATTEMPT": "2"}),
+            "public_repository": ({}, {"GITHUB_REPOSITORY": "VSSpowerlifting/pla-watch"}),
+            "other_hold_run": ("run", {}),
+            "closed_batch": ({"OPEN_BATCH": 1}, {}),
+        }
+        for name, (pins, env) in cases.items():
+            with self.subTest(name):
+                self.setUp()
+                if pins == "run":
+                    ids, path = self.held_number_only()
+                    records = dict(mps_recovery.RECORDS)
+                    records[ids[0]] = (records[ids[0]][0], "another-run")
+                    started = patch.object(mps_recovery, "RECORDS", records)
+                    started.start()
+                    self.addCleanup(started.stop)
+                else:
+                    ids, path = self.held_number_only(**pins)
+                with self.manual(**env):
+                    report, analyzer = self.run_bridge(source_use=grant(), ledger=path)
+                if name == "closed_batch":
+                    # The next batch, not the first.
+                    self.assertEqual(len(analyzer.calls), len(ids) - 1)
+                    continue
+                self.assertEqual(set(self.outcomes(report)), {bridge.SETTLED})
+                self.assertEqual(analyzer.calls, [])
+        # A code beyond the number-only hold is never recovered.
+        self.setUp()
+        ids, path = self.held_number_only()
+        ledger = json.loads(path.read_text())
+        ledger["items"][ids[0]]["failures"] = ["E_NUMBER_MISMATCH", "E_DATE_MISMATCH"]
+        path.write_text(json.dumps(ledger))
+        with self.manual():
+            report, analyzer = self.run_bridge(source_use=grant(), ledger=path)
+        self.assertEqual(set(self.outcomes(report)), {bridge.SETTLED})
+        self.assertEqual(analyzer.calls, [])
+
+    def test_recovery_usage_is_priced_per_record(self):
+        from analysis.usage import UsageLedger
+        ids, path = self.held_number_only()
+        analyzer = FakeAnalyzer()
+        analyzer.usage = UsageLedger()
+        def spend(title, body, profile):
+            analyzer.usage.record_response(
+                "relevance", "claude-sonnet-4-6",
+                SimpleNamespace(input_tokens=1000, output_tokens=100,
+                                cache_creation_input_tokens=0, cache_read_input_tokens=0))
+        analyzer.hook = spend
+        with self.manual():
+            self.run_bridge(source_use=grant(), ledger=path, analyzer=analyzer)
+        items = json.loads(path.read_text())["items"]
+        for identity in ids[:1]:
+            usage = items[identity]["recovery_exception"]["model_usage"]
+            self.assertEqual([t["calls"] for t in usage["tasks"]], [1])
+            self.assertAlmostEqual(usage["cost_usd"], 0.0045)
 
 
 class PrivateCustodyDaily(unittest.TestCase):

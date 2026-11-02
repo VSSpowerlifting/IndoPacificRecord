@@ -4,6 +4,31 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-02 — Owner: one MPS number-only recovery attempt
+
+Benjamin Yang authorizes, in chat on 2 November 2026, **one** new processing
+attempt for each of the ten MPS Foreign Affairs versions held only for
+`E_NUMBER_MISMATCH` by the date-reading defect fixed in PR #955. This is a
+narrow recovery exception, not a reset or a retry policy. The exact identities,
+content hashes and holding runs are pinned in `processing/mps_recovery.py`.
+
+- Existing models, source-use permissions and per-run spending limits apply.
+  Prior attempts, outcomes and spending remain in the ledger; each new attempt
+  records the prior item, its retained model output and its own token cost.
+- Attempts run only in a manually dispatched first-attempt private
+  daily-bridge run, one reviewed batch at a time: two records, then four,
+  then four. The open batch advances only through a reviewed change, and
+  only after the previous batch's outputs are inspected against the originals
+  (dates, quantities and units, including same-number unit swaps, names,
+  attribution and action status).
+- Any non-published outcome, including a retryable provider failure, settles
+  that version permanently. A systemic defect or unexpected cost stops the run.
+- An accepted recovery is withheld from the signed handoff until a reviewed
+  change names it in `RELEASED`; only then may the scheduled bridge sign it.
+- The seven MPS records with additional QA codes, every VPCP hold and the
+  accepted 29–30 October gaps are unchanged. A recovered record does not
+  validate any missing historical output.
+
 ## 2026-11-01 — Two Briefs: owner source review, presentation and covers
 
 Bylines approved by Benjamin Yang, Founder & Executive Director: **Benjamin
