@@ -9,7 +9,9 @@ preserved as written.
 Benjamin Yang's brief "Complete Source Admission and Editorial–Records
 Integration" (2026-11-01) directs that every eligible original-source document
 used in an IPR publication be a discoverable Record. It also covers backfill
-of approved publications. It does not authorize prose or credit changes.
+of approved publications. It does not authorize prose or credit changes. The same
+brief delegates this task's engineering and release: merge of the exact head after
+green required CI, and deployment through the existing output workflow.
 Decision: official publisher references in approved, non-review Briefs become
 Records that republish only the Brief's own reference metadata (doctrine §5b).
 This is not corpus admission: no source bytes, DB rows, desk coverage, new
