@@ -41,7 +41,9 @@ jobs:
     # The October 10 pilot approval/digest guard, live-source gates and Friday
     # exclusivity check remain mandatory. Scheduled Sunday targets Dylan;
     # owner-only preview is an explicitly separate manual dispatch.
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    # New cycle is staged OFF. When separately activated, retire this legacy
+    # Sunday generator/sender rather than running parallel editorial services.
+    if: vars.IPR_SATURDAY_SUNDAY_CYCLE_ENABLED != 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:

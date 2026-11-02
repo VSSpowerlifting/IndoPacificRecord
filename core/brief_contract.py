@@ -281,6 +281,9 @@ def validate_brief(sidecar: Mapping, registry, *,
         problems.append("editorial_status must be one of: %s"
                         % ", ".join(EDITORIAL_STATUSES))
     approved = status == STATUS_APPROVED
+    if approved:
+        from core.brief_editorial_cycle import receipt_problems
+        problems += receipt_problems(sidecar)
 
     # Legacy contributor credits keep the original narrow schema and limits.
     # A source-linked Brief alone may recognize an explicit co-author credit,
@@ -497,6 +500,8 @@ def _validate_numbering(sidecar, collection, unreconciled):
 def validate_readiness(sidecar, registry, *, collection=()) -> list:
     """Release content checks, without assigning a number or asserting approval."""
     problems = validate_brief(sidecar, registry, collection=collection)
+    from core.brief_editorial_cycle import receipt_problems
+    problems += receipt_problems(sidecar)
     if is_source_linked(sidecar):
         return list(dict.fromkeys(problems + validate_source_linked(sidecar, release=True)))
     for field in REQUIRED_SECTIONS:

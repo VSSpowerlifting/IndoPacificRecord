@@ -55,6 +55,8 @@ def existing_issues(exclude=None) -> list:
 
 def readiness_problems(sidecar, issues, db):
     problems = validate_readiness(sidecar, load_registry(), collection=issues)
+    from scripts.saturday_sunday_briefs import readiness_problems as cycle_problems
+    problems += cycle_problems(sidecar, database=db)
     from core.brief_source_linked import is_source_linked
     if is_source_linked(sidecar):
         return problems

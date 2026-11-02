@@ -90,12 +90,14 @@ def article_accounting_lines(manuscript):
 
 
 def render_packet(sidecar, *, manuscript=None, as_of=None,
-                  vietnam_candidates=(), research_evidence=()):
+                  vietnam_candidates=(), research_evidence=(), saturday_provisional=False):
     if sidecar.get("editorial_status") != "draft" or sidecar.get("issue_number") is not None:
         raise ValueError("only unnumbered, unapproved draft scaffolds may be emailed")
     week_end = date.fromisoformat(sidecar["week_ending"])
     if week_end.weekday() != 5:
         raise ValueError("the Briefs editorial week must end on Saturday")
+    if saturday_provisional and as_of != sidecar["week_ending"]:
+        raise ValueError("Saturday provisional worksheet requires Saturday cutoff")
     desks = sidecar["desks"]
     trail = sidecar["source_trail"]
     if (vietnam_candidates or research_evidence) and not as_of:
@@ -123,6 +125,8 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         "Week: " + one_line(sidecar["week_start"]) + " through " + week_end.isoformat(),
         "Status: UNNUMBERED DRAFT — NOT APPROVED OR PUBLISHED",
         (("AS-OF CUT-OFF: " + as_of +
+          " (SATURDAY PROVISIONAL; DAY NOT COMPLETE; SUNDAY RECHECK REQUIRED)"
+          if saturday_provisional else "AS-OF CUT-OFF: " + as_of +
           " (SATURDAY COMPLETE; CAPTURE COMPLETENESS UNVERIFIED)"
           if as_of == sidecar["week_ending"] else
           "AS-OF CUT-OFF: " + as_of +
@@ -364,7 +368,7 @@ def quality_hold(packet_text):
 
 
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
-                preview_to_owner=False, owner_released=False):
+                preview_to_owner=False, owner_released=False, saturday_provisional=False):
     """Mail the exact bytes at ``path``.
 
     A packet that carries a narrative-quality hold is never mailed to the editor
@@ -457,9 +461,15 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         # provenance hashes, source IDs, source appendices, or a .txt envelope.
         from scripts.sunday_editor_readable import prose_only_html, prose_only_text
         original_text = original_attachment.decode("utf-8")
-        message["Subject"] = "IPR Briefs | week ending {} | Sunday draft for language edits".format(week_ending)
-        message.set_content(prose_only_text(original_text))
-        message.add_alternative(prose_only_html(original_text), subtype="html")
+        message["Subject"] = "IPR Briefs | week ending {} | {} draft for language edits".format(
+            week_ending, "Saturday provisional" if saturday_provisional else "Sunday")
+        note = ("Provisional Saturday manuscript: Saturday is not complete. Please return edits "
+                "by Sunday noon ET if agreed. Ben must reconcile refreshed Sunday evidence "
+                "before publication.\n\n" if saturday_provisional else "")
+        message.set_content(note + prose_only_text(original_text))
+        from html import escape
+        message.add_alternative(("<p>" + escape(note.strip()) + "</p>" if note else "")
+                                + prose_only_html(original_text), subtype="html")
     else:
         message["Subject"] = "IPR Briefs | week ending {} | provisional editor draft".format(week_ending)
         message.set_content(

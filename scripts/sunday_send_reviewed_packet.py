@@ -46,7 +46,7 @@ class ReviewedHandoffRefused(ValueError):
     """Unsafe or unapproved exact-file editorial handoff."""
 
 
-def validate_file(path, week_ending, *, now=None):
+def validate_file(path, week_ending, *, now=None, saturday_provisional=False):
     """Return a verified immutable-in-memory snapshot of the local worksheet."""
     path = Path(path)
     if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".txt":
@@ -64,8 +64,10 @@ def validate_file(path, week_ending, *, now=None):
     if now.tzinfo is None or now.utcoffset() is None:
         raise ReviewedHandoffRefused("local clock must have timezone")
     today = now.astimezone(NY).date()
-    if saturday >= today:
+    if saturday > today or (saturday == today and not saturday_provisional):
         raise ReviewedHandoffRefused("reporting Saturday has not ended")
+    if saturday_provisional and saturday != today:
+        raise ReviewedHandoffRefused("Saturday provisional delivery requires its current local Saturday")
     if saturday < today - timedelta(days=98):
         raise ReviewedHandoffRefused("reviewed edition is outside 98-day historical review window")
     if path.stat().st_size > MAX_BYTES:
@@ -81,6 +83,8 @@ def validate_file(path, week_ending, *, now=None):
         raise ReviewedHandoffRefused("worksheet header or exact edition identity mismatch")
     if text.count("Status: UNNUMBERED DRAFT — NOT APPROVED OR PUBLISHED") != 1:
         raise ReviewedHandoffRefused("worksheet must explicitly remain unnumbered and unapproved")
+    if saturday_provisional and "(SATURDAY PROVISIONAL; DAY NOT COMPLETE; SUNDAY RECHECK REQUIRED)" not in text:
+        raise ReviewedHandoffRefused("Saturday provisional cutoff is missing")
     for marker in STRUCTURE:
         if text.count(marker) != 1:
             raise ReviewedHandoffRefused("reviewed worksheet lacks unique protected structure: " + marker)

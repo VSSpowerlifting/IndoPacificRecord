@@ -150,6 +150,10 @@ def render_editor_docx(worksheet):
     doc.add_paragraph(
         "Ben will independently check the underlying sources and approve any publication."
     )
+    if "(SATURDAY PROVISIONAL; DAY NOT COMPLETE; SUNDAY RECHECK REQUIRED)" in worksheet:
+        doc.add_paragraph(
+            "Saturday is not complete. A fresh Sunday source reconciliation is required. "
+            "Please return edits by Sunday noon ET if agreed.")
     for key, value in sections:
         if key == "WORKING TITLE":
             p = doc.add_paragraph(style="Title")
