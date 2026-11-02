@@ -224,8 +224,35 @@ def read_timeline(path, source_dir=TIMELINES_DIR):
     return sc
 
 
+def _bound_original_version(sc, ev):
+    """Reuse source-version pins from the existing related case-study Dossier.
+
+    Only a source-version pin is read, never its editorial approval or rights.
+    Citation identity/version must match. This does not attest an excerpt or
+    borrow the Dossier's approval for a new Timeline editorial revision.
+    """
+    from core.dossier_contract import read_dossier
+    root = ROOT / "dossiers"
+    path = root / (sc["slug"] + ".json")
+    if not path.is_file():
+        return None
+    dossier = read_dossier(path, root)
+    if (dossier.get("chronology") or {}).get("timeline_slug") != sc["slug"]:
+        return None
+    for source in dossier["sources"]:
+        if source["record_id"] == ev["record_id"] and all(
+                source[key] == ev[key] for key in
+                ("desk", "source_id", "institution_id", "published_on", "url")):
+            return source["stored_original_sha256"]
+    return None
+
+
 def reconcile_sources(sc, db_path, registry=None):
-    """Resolve exact ID/desk/source/institution/date/URL and verbatim claim basis."""
+    """Reconcile originals, or exact private-version bindings for link-only use.
+
+    A private binding proves source-version continuity, not excerpt fidelity.
+    No private title/text is restored and editorial approval remains separate.
+    """
     validate_timeline(sc)
     registry = registry or load_registry()
     eligible = {d.slug: {s.slug: s for s in d.sources if s.enabled and s.contract_validated}
@@ -244,6 +271,14 @@ def reconcile_sources(sc, db_path, registry=None):
             ",".join("?" for _ in ids), ids).fetchall()
         from core.korea_corpus_bridge import publication_gate
         hidden = publication_gate(con)[1]
+        bindings = {}
+        if sc.get("public_presentation") == "references_only" and con.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='mindef_private_record_bindings'").fetchone():
+            bindings = dict(con.execute(
+                "SELECT b.article_id,b.original_body_sha256 FROM mindef_private_record_bindings b "
+                "JOIN articles a ON a.id=b.article_id "
+                "WHERE b.original_content_hash=a.content_hash").fetchall())
     records = {row["id"]: dict(row) for row in rows if row["id"] not in hidden}
     for ev in refs:
         rec = records.get(ev["record_id"])
@@ -258,10 +293,29 @@ def reconcile_sources(sc, db_path, registry=None):
                               ("published_on", "published_date")):
             if ev[field] != rec[stored]:
                 _fail("citation", "record %s mismatches %s" % (rec["id"], field))
-        if not rec["title_original"] or not rec["lang"] or not rec["institution_name"]:
+        if not rec["lang"] or not rec["institution_name"] or not rec["source_name"]:
             _fail("citation", "record %s has incomplete preserved metadata" % rec["id"])
-        if ev["excerpt"] not in (rec["text_original"] or ""):
-            _fail("citation", "record %s excerpt is absent from the preserved original" % rec["id"])
+        body = rec["text_original"]
+        if body:
+            if not rec["title_original"] or ev["excerpt"] not in body:
+                _fail("citation", "record %s excerpt is absent from the preserved original" % rec["id"])
+        else:
+            from core.mindef_permissions import TIMELINE_MINDEF_LINKS
+            if (sc.get("public_presentation") != "references_only"
+                    or rec["source_id"] != "sg_mindef_releases"
+                    or ev["url"] not in TIMELINE_MINDEF_LINKS.get(sc["slug"], ())
+                    or not (expected := _bound_original_version(sc, ev))
+                    or bindings.get(rec["id"]) != expected):
+                _fail("citation", "record %s lacks a permitted exact private source version" % rec["id"])
+            # Derived view flag only: this record was matched by identity and
+            # version pin, never by comparing its text with the excerpt.
+            rec["version_bound_only"] = True
+    if sc.get("public_presentation") == "references_only":
+        # Drop source expression at the view boundary, even in an unpublished
+        # preview. Templates cannot accidentally reveal it on this path.
+        for rec in records.values():
+            for key in ("title_original", "title_english", "text_original"):
+                rec.pop(key, None)
     return records
 
 
@@ -269,10 +323,14 @@ def timeline_view(sc, records, related, is_review=False):
     """Derived periods/counts and sorted deduplicated source ledger."""
     result = dict(sc, route="timeline/%s.html" % sc["slug"], is_review=is_review)
     result["references_only"] = sc.get("public_presentation") == "references_only"
-    result["show_originals"] = not result["references_only"] or is_review
+    result["show_originals"] = not result["references_only"]
     result["entries"] = [dict(e, evidence=[dict(ev, record=records[ev["record_id"]])
                                           for ev in sorted(e["evidence"], key=lambda x: (x["published_on"], x["record_id"]))])
                          for e in sc["entries"]]
+    if result["references_only"]:
+        for entry in result["entries"]:
+            for ev in entry["evidence"]:
+                ev.pop("excerpt", None)
     ledger = sorted(records.values(), key=lambda r: (r["published_date"], r["id"]))
     result.update(ledger=ledger, source_count=len(ledger), desk_count=len({r["desk"] for r in ledger}),
                   event_start=min(e["event"]["start"] for e in sc["entries"]),
@@ -284,6 +342,24 @@ def timeline_view(sc, records, related, is_review=False):
     result["reconciliation"] = [dict(p, entries=[e for e in result["entries"] if e["id"] in p["entry_ids"]])
                                 for p in sc.get("reconciliation", [])]
     return result
+
+
+def _held_related_brief(slug, registry):
+    """Unavailable related-work metadata; never restore its page or source text."""
+    from core.brief_contract import validate_brief, assigned_number
+    from core.mindef_public_boundary import editorial_hold
+    root = ROOT / "briefs"
+    path = root / (slug + ".json")
+    if path.is_symlink() or not path.is_file() or path.resolve().parent != root.resolve():
+        return None
+    brief = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_pairs)
+    if (not isinstance(brief, dict) or brief.get("synthetic")
+            or brief.get("editorial_status") != "approved"
+            or not editorial_hold(brief) or validate_brief(brief, registry)):
+        return None
+    # No body, source expression, approval receipt, media or live route is
+    # passed to the view. The actual Brief remains absent from the collection.
+    return dict(title=brief["title"], issue=assigned_number(brief), is_withheld=True)
 
 
 def load_timelines(db_path, related, source_dir=TIMELINES_DIR, review_path=None, registry=None):
@@ -308,11 +384,18 @@ def load_timelines(db_path, related, source_dir=TIMELINES_DIR, review_path=None,
             # Same whole-work hold as Briefs and Dossiers; the sidecar is unchanged.
             withheld.append(sc["slug"])
             continue
+        timeline_related = dict(related)
         for slug in sc["related_briefs"]:
-            if slug not in related or related[slug].get("is_review"):
+            if (selected or sc.get("public_presentation") == "references_only") and slug not in timeline_related:
+                held = _held_related_brief(slug, registry or load_registry())
+                if held is not None:
+                    timeline_related[slug] = held
+            if (slug not in timeline_related or timeline_related[slug].get("is_review")
+                    or (not selected and sc.get("public_presentation") != "references_only"
+                        and timeline_related[slug].get("is_withheld"))):
                 _fail("related_briefs", "must resolve to an approved native Brief: " + slug)
         records = reconcile_sources(sc, db_path, registry)
-        views.append(timeline_view(sc, records, related, selected))
+        views.append(timeline_view(sc, records, timeline_related, selected))
     if review and not found:
         _fail("review", "canonical source not found")
     return sorted(views, key=lambda t: (t["updated_on"], t["slug"]), reverse=True), withheld

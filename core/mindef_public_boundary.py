@@ -186,20 +186,28 @@ def assert_projected(con):
 
 
 def editorial_hold(sidecar):
-    """Withhold the whole signed document; never rewrite its references/digest."""
-    from core.mindef_permissions import APPROVED_MINDEF_LINKS
+    """Whole-work hold, except the exact reference-only Timeline link grant."""
+    from core.mindef_permissions import APPROVED_MINDEF_LINKS, TIMELINE_MINDEF_LINKS
     from urllib.parse import urlsplit
+    # A link-only timeline may cite the two separately authorized references.
+    # Briefs, Dossiers and source-text timelines retain the whole-work hold.
+    timeline_links = (TIMELINE_MINDEF_LINKS.get(sidecar.get("slug"), frozenset())
+                      if isinstance(sidecar, dict) and sidecar.get("timeline_schema") == 1
+                      and sidecar.get("public_presentation") == "references_only"
+                      else frozenset())
     def walk(value):
         if isinstance(value, dict):
-            # A corpus citation needs private original/title reconciliation.
+            # Corpus citations remain held unless this exact Timeline can use
+            # the separately permitted link without publishing source text.
             if value.get("source_id") == MINDEF_SOURCE_SLUG or value.get("source_slug") == MINDEF_SOURCE_SLUG:
-                return True
+                if value.get("url") not in timeline_links:
+                    return True
             return any(walk(v) for v in value.values())
         if isinstance(value, list):
             return any(walk(v) for v in value)
         if isinstance(value, str):
             if "mindef.gov.sg" not in value.lower():
                 return False
-            return (urlsplit(value).hostname or "").lower() not in ("mindef.gov.sg", "www.mindef.gov.sg") or value not in APPROVED_MINDEF_LINKS
+            return (urlsplit(value).hostname or "").lower() not in ("mindef.gov.sg", "www.mindef.gov.sg") or value not in APPROVED_MINDEF_LINKS | timeline_links
         return False
     return walk(sidecar)

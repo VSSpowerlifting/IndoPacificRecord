@@ -88,12 +88,13 @@
 .tl-ledger ol{list-style:none;padding:0;margin:0}
 .tl-ledger li{display:grid;grid-template-columns:12rem minmax(0,1fr);gap:3rem;border-top:1px solid var(--rule);padding:1.7rem 0;max-width:none}
 .tl-ledger-date{font-size:.875rem;color:var(--ink-2)}
+.tl-ledger-date span{display:block}
 .tl-ledger-date a{display:block;padding-block:.6rem;min-height:40px}
 .tl-ledger h3{font:600 1.0625rem/1.4 var(--sans);margin:0 0 .4rem}
 .tl-ledger p{font-size:.875rem;line-height:1.65;margin:.4rem 0}
 .tl-ledger .tl-original{font-size:1rem;color:var(--ink)}
 .tl-ledger li>div>a{display:inline-block;min-height:40px;padding-block:.5rem;font-size:.875rem}
-.tl-translation{color:var(--ink-2)}
+.tl-translation,.tl-source-note{color:var(--ink-2)}
 .tl-method{display:grid;grid-template-columns:1.4fr 1fr;gap:3rem;border-top:2px solid var(--ink);padding-top:2rem;margin-top:2rem}
 .tl-method h2{font-size:1.3rem;margin:0 0 1rem;border:0;padding:0}
 .tl-method p{font-size:.9375rem;line-height:1.8}

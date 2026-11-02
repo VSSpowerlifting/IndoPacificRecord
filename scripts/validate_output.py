@@ -276,13 +276,24 @@ def _validate_timelines(output_dir, errors):
         if item.get("public_presentation") == "references_only":
             if 'href="../record/' in text or 'class="tl-original"' in text or "<blockquote" in text:
                 errors.append("%s exposes source text or full-body record links in references-only presentation" % route)
+            # Read titles only inside the deploy gate: the public view no
+            # longer carries them, but this existing leakage check must remain.
+            ids = [rec["id"] for rec in item["ledger"]]
+            with read_only(REPO_ROOT / "pla_watch.db") as con:
+                originals = {row[0]: row[1:] for row in con.execute(
+                    "SELECT id,title_original,title_english FROM articles WHERE id IN (%s)" %
+                    ",".join("?" for _ in ids), ids)}
             for rec in item["ledger"]:
                 if ('id="source-%s"' % rec["id"]) not in text or ('href="%s"' % escape(rec["url"], quote=True)) not in text:
                     errors.append("%s has a missing publisher reference: %s" % (route, rec["id"]))
-                for key in ("title_original", "title_english"):
-                    if rec.get(key) and escape(rec[key]) in text:
+                for source_title in originals.get(rec["id"], ()):
+                    if source_title and escape(source_title) in text:
                         errors.append("%s reproduces a source title in references-only presentation" % route)
-            for entry in item["entries"]:
+            # The reference-only view deliberately has no source excerpts.
+            # Check emitted bytes against the canonical editorial source.
+            from core.timelines import read_timeline
+            source = read_timeline(REPO_ROOT / "timelines" / (item["slug"] + ".json"))
+            for entry in source["entries"]:
                 for ev in entry["evidence"]:
                     if escape(ev["excerpt"]) in text:
                         errors.append("%s reproduces a source excerpt in references-only presentation" % route)

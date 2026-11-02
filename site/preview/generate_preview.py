@@ -150,7 +150,7 @@ from core.catalogue_media import (                                   # noqa: E40
     load_admissions as load_catalogue_admissions,
     resolve_catalogue_media)
 from core.timelines import load_timelines
-from core.dossiers import load_dossiers, validate_review_destination
+from core.dossiers import load_dossiers, timeline_dossier_links, validate_review_destination
 from core.desk_registry import load_registry                         # noqa: E402
 from core.reviewed_source_links import load_public_desk_references    # noqa: E402
 from core.public_editorial_research import load_catalog as load_editorial_catalog, published_for_desk
@@ -2791,10 +2791,15 @@ def build(out_dir: Path, title: str, db_path: Path,
         db_path, {e["slug"]: e for e in collection.briefs},
         review_path=review_timeline, **timeline_options)
     dossier_options = {"source_dir": Path(dossiers_dir)} if dossiers_dir is not None else {}
+    held_dossiers = {}
     dossiers, dossiers_withheld = load_dossiers(
         db_path, {e["slug"]: e for e in collection.briefs},
         review_path=review_dossier, related_timelines={t["slug"]: t for t in timelines},
-        **dossier_options)
+        held_metadata=held_dossiers, **dossier_options)
+    for item in timelines:
+        # Small link dicts only: loaded Dossier views already point back here.
+        item["related_dossiers"], item["held_dossiers"] = timeline_dossier_links(
+            item["slug"], dossiers, held_dossiers)
     dossier_records, dossier_briefs = defaultdict(list), defaultdict(list)
     for item in dossiers:
         for rec in item["ledger"]:

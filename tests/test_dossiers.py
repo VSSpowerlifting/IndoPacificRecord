@@ -330,3 +330,61 @@ class ThematicDossierSources(unittest.TestCase):
         self.assertEqual(view['case_study_views'], [case])
         self.assertEqual(case['parent_dossiers'], [view])
         self.assertEqual((case['kind'], case['kind_label']), ('case_study', 'Exercise case study'))
+
+
+class TimelineDossierLinkSelection(unittest.TestCase):
+    """Pure selection: public Dossier destinations vs unavailable held works."""
+    SLUG = 'maritime-cooperation-2026'
+
+    @staticmethod
+    def view(slug, **extra):
+        item = dict(slug=slug, title='Title ' + slug, route='dossier/%s.html' % slug,
+                    kind_label='Living Dossier', is_review=False, chronology={},
+                    related_timelines=[], case_studies=[])
+        item.update(extra)
+        return item
+
+    def test_public_case_study_and_thematic_parent_link_in_stable_order(self):
+        case = self.view(self.SLUG, chronology={'timeline_slug': self.SLUG}, kind_label='Exercise case study')
+        parent = self.view('theme', case_studies=[self.SLUG], kind_label='Thematic dossier')
+        links, unavailable = d.timeline_dossier_links(self.SLUG, [parent, case])
+        self.assertEqual([x['route'] for x in links],
+                         ['dossier/%s.html' % self.SLUG, 'dossier/theme.html'])
+        self.assertEqual(set(links[0]), {'title', 'route', 'kind_label'})
+        self.assertEqual(unavailable, [])
+
+    def test_related_timelines_binding_also_selects_a_dossier(self):
+        links, _ = d.timeline_dossier_links(self.SLUG, [self.view('other', related_timelines=[self.SLUG])])
+        self.assertEqual([x['route'] for x in links], ['dossier/other.html'])
+
+    def test_review_and_unrelated_views_are_excluded(self):
+        draft = self.view(self.SLUG, chronology={'timeline_slug': self.SLUG}, is_review=True)
+        unrelated = self.view('unrelated', chronology={'timeline_slug': 'another-timeline'},
+                              case_studies=['not-this-case'])
+        self.assertEqual(d.timeline_dossier_links(self.SLUG, [draft, unrelated]), ([], []))
+
+    def test_held_works_are_status_only_with_no_route_and_never_duplicate_public_links(self):
+        held = {self.SLUG: dict(slug=self.SLUG, title='Held case', chronology={'timeline_slug': self.SLUG},
+                                related_timelines=[], case_studies=[]),
+                'theme': dict(slug='theme', title='Held theme', chronology={}, related_timelines=[],
+                              case_studies=[self.SLUG]),
+                'stranger': dict(slug='stranger', title='Held stranger', chronology={},
+                                 related_timelines=[], case_studies=[])}
+        links, unavailable = d.timeline_dossier_links(self.SLUG, [], held)
+        self.assertEqual(links, [])
+        self.assertEqual(unavailable, [dict(title='Held case', kind_label='Exercise case study'),
+                                       dict(title='Held theme', kind_label='Thematic dossier')])
+        public = self.view(self.SLUG, chronology={'timeline_slug': self.SLUG})
+        links, unavailable = d.timeline_dossier_links(self.SLUG, [public], held)
+        self.assertEqual([x['route'] for x in links], ['dossier/%s.html' % self.SLUG])
+        self.assertEqual([x['title'] for x in unavailable], ['Held theme'])
+
+    def test_real_holds_populate_metadata_without_views_or_prose(self):
+        held = {}
+        related = {'maritime-cooperation-2026': {'title': 'Brief'}}
+        views, withheld = d.load_dossiers(ROOT / 'pla_watch.db', related, held_metadata=held)
+        self.assertEqual(views, [])
+        self.assertEqual(sorted(held), sorted(withheld))
+        for meta in held.values():
+            self.assertEqual(set(meta), {'slug', 'title', 'chronology', 'related_timelines', 'case_studies'})
+
