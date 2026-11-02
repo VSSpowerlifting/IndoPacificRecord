@@ -1,5 +1,15 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Briefs editorial integration, Track C — review candidate (2 November 2026)
+
+Integrates Track A #957 (`ce6573a`) and Track B #956 (`0df1216`) on one branch.
+`scripts/brief_editorial_routing.py` adds Daily-completion checks ported from
+#807, durable private receipts, analyst consent/availability, the weekly cap,
+deadlines and exact revised-manuscript routing into Track A's `deliver()`.
+Offline tests use fake identities and mocked transports. Nothing is wired into
+a workflow, scheduled, sent or activated. The policy adapter and production
+storage remain open. See `docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md`, "Track C routing".
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
