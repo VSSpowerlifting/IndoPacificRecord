@@ -4,6 +4,33 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-01 — Official sources cited by Briefs become link-metadata Records
+
+Benjamin Yang's brief "Complete Source Admission and Editorial–Records
+Integration" (2026-11-01) directs that every eligible original-source document
+used in an IPR publication be a discoverable Record. It also covers backfill
+of approved publications. It does not authorize prose or credit changes. The same
+brief delegates this task's engineering and release: merge of the exact head after
+green required CI, and deployment through the existing output workflow.
+Decision: official publisher references in approved, non-review Briefs become
+Records that republish only the Brief's own reference metadata (doctrine §5b).
+This is not corpus admission: no source bytes, DB rows, desk coverage, new
+collector or rights override. Independent references, every MINDEF URL and the
+held Vietnam MPS/MOIT/VPCP families stay external-only. MINDEF's 2026-10-29
+permission covers hyperlinks from a Brief, not a standalone IPR page, so even
+its two approved links get no Record. A Record's route is keyed on the URL with
+scheme/host lowercased and the fragment dropped, so it is stable. When that URL
+is later collected as a corpus or machine Record, the cited route becomes a
+redirect to it. Any metadata conflict for one URL stops the build. A fresh-context
+proposal review returned PROCEED on the core and REJECT on MINDEF admission, and
+those fixes are applied. Every source
+document in the edition, Dossier and Timeline trails is already a corpus Record.
+Edition pages link back now. Dossier and Timeline back-links render only when
+those withheld works do. The China–Singapore Dossier's external references
+x1–x9 stay external. Their 2026-10-26 grant is linked use inside that Dossier
+only, and a Record would extend it. First result: 29 Records from five Briefs.
+4 independent references and 1 Vietnam MPS reference were omitted.
+
 ## 2026-11-01 — Two Briefs: owner source review, presentation and covers
 
 Bylines approved by Benjamin Yang, Founder & Executive Director: **Benjamin
