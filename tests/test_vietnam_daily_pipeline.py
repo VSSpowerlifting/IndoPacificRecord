@@ -468,6 +468,82 @@ class QARubric(unittest.TestCase):
         self.assertFalse(qa.needs_second_pass({"categories": ["meeting"]}))
 
 
+def summary_numbers_held(body, summary, headline="Minister Lương Tam Quang receives a delegation"):
+    """Whether the MPS headline path holds a synthetic summary on its numbers."""
+    result = good(summary_english=summary, title_english=headline, text_english=None)
+    failures = qa.output_failures({"publisher_posted_date": "2026-10-20"}, TITLE, body, result,
+                                  translation_required=False, permissions=FULL,
+                                  projection={"title_english": headline, "summary_english": summary})
+    return "E_NUMBER_MISMATCH" in failures
+
+
+class QADateEquivalence(unittest.TestCase):
+    """A source d/m date and its English form are one date, not a quantity."""
+
+    def test_equivalent_dates_pass(self):
+        for body, summary in (
+                ("Ngày 12/10/2026, Bộ trưởng tiếp đoàn.", "On 12 October 2026, the ministry said a delegation met."),
+                ("Ngày 12/10, Bộ trưởng tiếp đoàn.", "On 12 October, the ministry said a delegation met."),
+                ("Ngày 12 tháng 10 năm 2026, Bộ trưởng tiếp đoàn.", "On 12 October 2026, the ministry said."),
+                ("Ngày 12/10/2026, Bộ trưởng tiếp đoàn.", "On October 12, 2026, the ministry said."),
+                ("Ngày 12/10/2026, Bộ trưởng tiếp đoàn.", "On the 12th of October, the ministry said."),
+                ("Từ ngày 13 đến 15/10/2026, hội nghị diễn ra.", "The ministry said it ran 13–15 October 2026."),
+                ("Từ ngày 11 - 15/10/2026, hội nghị diễn ra.", "The ministry said it ran from 11 to 15 October."),
+                ("Từ ngày 30/6 - 26/8/2026, đợt cao điểm.", "The ministry said it ran from 30 June to 26 August 2026.")):
+            with self.subTest(summary=summary):
+                self.assertFalse(summary_numbers_held(body, summary))
+        self.assertFalse(summary_numbers_held("Ngày 22/10/2026, Bộ trưởng tiếp đoàn.",
+                                              "The ministry said a delegation met.",
+                                              headline="Minister receives a delegation on 22 October"))
+
+    def test_changed_dates_and_bare_quantities_still_hold(self):
+        body = "Ngày 12/10/2026, Bộ trưởng tiếp đoàn."
+        for summary in ("On 13 October 2026, the ministry said a delegation met.",
+                        "On 12 November 2026, the ministry said a delegation met.",
+                        "On 12 October 2025, the ministry said a delegation met.",
+                        "The ministry said 12 officers met.",
+                        "The ministry said 12 may be invited.",
+                        "The ministry said 25 delegates met on 12 October."):
+            with self.subTest(summary=summary):
+                self.assertTrue(summary_numbers_held(body, summary))
+        # The month of a range applies to its end day only when the source says so.
+        self.assertTrue(summary_numbers_held("Từ ngày 16-18/11/2026, hội nghị diễn ra.",
+                                             "The ministry said it ran 16–18 October 2026."))
+        # A date the source does not state at all is still a number to support.
+        self.assertTrue(summary_numbers_held(body, "On 20 October, the ministry said a delegation met."))
+
+    def test_unsupported_year_and_changed_quantities_still_hold(self):
+        body = "Ngày 12/10/2026, lực lượng thu giữ 1,5 tấn hàng và tuần tra 15 km."
+        failures = qa.output_failures(
+            {"publisher_posted_date": "2026-10-20"}, TITLE, body,
+            good(summary_english="On 12 October 2027, the ministry said goods were seized.", text_english=None),
+            translation_required=False, permissions=FULL,
+            projection={"title_english": "Minister receives a delegation",
+                        "summary_english": "On 12 October 2027, the ministry said goods were seized."})
+        self.assertIn("E_DATE_MISMATCH", failures)
+        # A source date beside a scale or unit conversion does not excuse it.
+        for summary in ("On 12 October, the ministry said 1,500 tonnes were seized.",
+                        "On 12 October, the ministry said patrols covered 9.3 miles."):
+            with self.subTest(summary=summary):
+                self.assertTrue(summary_numbers_held(body, summary))
+        self.assertFalse(summary_numbers_held(
+            body, "On 12 October, the ministry said 1.5 tonnes were seized on 15 km of patrols."))
+
+    def test_month_year_is_not_a_day_and_month(self):
+        self.assertEqual(qa._vi_dates("tháng 9/2025 và Nghị định 123/2026/NĐ-CP"), set())
+        # 'tháng 9/2025' once left a stray '25' that let an invented 25 pass.
+        self.assertTrue(summary_numbers_held("Kế hoạch tháng 9/2025 được triển khai.",
+                                             "The ministry said 25 units deployed."))
+        self.assertFalse(summary_numbers_held("Nghị định 123/2026/NĐ-CP được ban hành.",
+                                              "The ministry said Decree 123/2026/ND-CP was issued."))
+        body = "Nghị định 123/2026/NĐ-CP được ban hành ngày 5/10/2026."
+        text = "Decree 123/2026/ND-CP was issued on 5 October 2026."
+        failures = qa.output_failures({"publisher_posted_date": "2026-10-05"}, TITLE, body,
+                                      good(text_english=text), translation_required=True,
+                                      permissions=FULL, projection={})
+        self.assertNotIn("E_NUMBER_MISMATCH", failures)
+
+
 # ── Migration 0017 ───────────────────────────────────────────────────────────
 
 class ProvenanceMigration(unittest.TestCase):
