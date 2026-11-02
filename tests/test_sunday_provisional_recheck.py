@@ -400,6 +400,28 @@ class SundayRecheck(unittest.TestCase):
                     self.cli("--reviewed-by", "Owner", "--review-reference", "note", *extra)
                 self.assertEqual(stop.exception.code, 2)
 
+    def test_both_paths_pass_shared_publication_validation_only_as_reconciled(self):
+        from core import brief_contract as contract
+        from core.desk_registry import load_registry
+        self.candidate.update(collection="Indo-Pacific Record Briefs", brief_schema=1)
+        _, _, (m, f) = self.analyst_files()
+        gate = ("reconcil", "receipt", "Saturday")
+        for label, extra in (("no analyst", ()),
+                             ("analyst", ("--analyst-manifest", str(m),
+                                          "--analyst-feedback", str(f)))):
+            with self.subTest(path=label):
+                code, _, _, sidecar = self.cli("--reviewed-by", "Owner",
+                                               "--review-reference", "note", *extra)
+                self.assertEqual(code, 0)
+                approved = dict(json.loads(sidecar.read_text()), editorial_status="approved",
+                                issue_number=21)
+                problems = contract.validate_brief(approved, load_registry())
+                self.assertFalse([p for p in problems if any(g in p for g in gate)], problems)
+                edited = contract.validate_brief(dict(approved, title="Edited after Sunday"),
+                                                 load_registry())
+                self.assertIn("Sunday reconciliation does not bind this exact final "
+                              "manuscript/week", edited)
+
     def test_cli_refuses_receipts_inside_the_repository(self):
         candidate = self.tmp / "candidate.json"
         candidate.write_text(json.dumps(self.candidate), encoding="utf-8")
