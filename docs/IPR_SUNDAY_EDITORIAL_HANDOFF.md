@@ -116,6 +116,53 @@ packet/feedback work connects only after both heads are verified. The remaining
 integration is a fresh bounded session; these local interfaces do not claim an
 automated inbox, production private persistence, real delivery or Sunday release.
 
+### Track C routing — offline review candidate (2 November 2026)
+
+`scripts/brief_editorial_routing.py` connects Track A's Saturday cycle to
+Track B's analyst packet and feedback. It adds no workflow, schedule, form, gate
+or CI job, and nothing in it is activated.
+
+- **Daily completion.** `daily_completion()` ports #807's authenticated check
+  for both phases. It requires a first-attempt, scheduled, successful
+  `daily_update.yml` run on `main` in the same repository, with exactly one
+  `update` job whose pipeline, validation, deploy and record steps all
+  succeeded, and a marker dated today. A wrong day or a skipped green retry is
+  a silent no-op; any other mismatch refuses. Nothing calls it yet: wiring it
+  into the existing lane is deferred by the workflow freeze.
+- **Durable private receipts.** `durable_directory()` refuses runner temp,
+  workspace and tool-cache roots, a non-0700 directory and one not owned by
+  the operator. Assignment, return, feedback and revised manuscript files are
+  write-once (`O_EXCL`, 0600).
+- **Analyst consent and availability.** A private owner roster
+  (`ipr-analyst-roster/1`) names each analyst's consent reference, the
+  `analyst-review-manuscript-and-links-only` scope, revocation and available
+  weeks. Editor and owner addresses are never analysts. With no eligible
+  analyst the route is `NO_ANALYST`, nothing is written and Track A's
+  provisional delivery is unchanged.
+- **Weekly cap, deadline and once-only send.** One assignment per Saturday
+  (`analyst-week-<week>.json`), and the deadline must fall before Dylan's
+  Saturday 9 p.m. delivery. The owner approves the exact manifest SHA. The
+  transport must be injected; there is no default mailer. A failed or
+  uncertain send is never repeated.
+- **Routing to Dylan.** `deliver(..., analyst_routing=True)` holds while an
+  analyst is awaited before the deadline, or while a return lacks reconciled
+  feedback or feedback is `HELD`. After the deadline without a return it sends
+  the provisional packet. With reconciled feedback it sends only the
+  re-hashed revised manuscript under the canonical file name, and only if the
+  owner approved that exact SHA. The once-only editor reservation still
+  applies, so a late return cannot cause a second send.
+
+Dispositions: #807's Daily-completion guard is absorbed as a callable; its
+workflow trigger is not. #945 and #947 are not absorbed. #946's slug
+identities are superseded by `IPR_EDITOR_TO`, and slug packet identities are
+refused on this path. #952 remains independent.
+
+Not implemented: the per-family source-policy adapter (inventory drift is the
+only guard), production durable storage, any real transport, and an
+exact-SHA guard below `send_packet` outside the 2026-10-10 pilot week.
+Activation still needs Ben's explicit authority, verified analyst consent and
+the storage above.
+
 ## Historical Sunday-draft operating instructions
 
 The dated sections below preserve the earlier Sunday/Monday/Wednesday service.

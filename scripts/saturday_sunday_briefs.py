@@ -273,12 +273,15 @@ def reconcile(state, sidecar, *, database=DB_PATH, marker_path=MARKER, now=None,
 
 
 def deliver(state, directory, *, send=False, owner_confirmed=False,
-            approved_sha256="", marker_path=MARKER, now=None, database=DB_PATH):
+            approved_sha256="", marker_path=MARKER, now=None, database=DB_PATH,
+            analyst_routing=False):
     """No-send by default; uncertain SMTP attempts hold instead of double-send.
 
     The durable private directory must survive runners/restarts before this
     interface may be connected to unattended dispatch. A reservation is not a
     delivery confirmation: on SMTP failure the owner must inspect Sent.
+    ``analyst_routing`` recomputes the Track C route from durable receipts and
+    sends only the provisional or owner-reconciled exact revised manuscript.
     """
     from scripts.sunday_editorial_handoff import send_packet, single_address
     from scripts.sunday_send_reviewed_packet import validate_file
@@ -290,14 +293,25 @@ def deliver(state, directory, *, send=False, owner_confirmed=False,
     if state["packet_file"] != "IPR-Briefs-Editorial-" + week + ".txt":
         raise ValueError("accepted packet filename escaped its week identity")
     packet = directory / state["packet_file"]
+    expected, decision = state["packet_sha256"], None
+    if analyst_routing:
+        from scripts.brief_editorial_routing import durable_directory, route
+        durable_directory(directory)
+        decision = route(state, directory, now=now)
+        if decision["route"] not in ("NO_ANALYST", "DELIVER_PROVISIONAL", "DELIVER_REVISED"):
+            raise ValueError("editor delivery held by analyst routing: " + decision["route"])
+        if decision["route"] == "DELIVER_REVISED":
+            packet, expected = directory / decision["packet_file"], decision["packet_sha256"]
     payload = validate_file(packet, week, now=now, saturday_provisional=True)
     actual = hashlib.sha256(payload).hexdigest()
-    if actual != state["packet_sha256"]:
+    if actual != expected:
         raise ValueError("accepted provisional manuscript fingerprint changed")
     if any(compare(state["inventory"], inventory(week, database=database)).values()):
         raise ValueError("source evidence or permissions changed after drafting; hold editor delivery")
     result = {"status": "EDITOR_PREPARED", "packet_sha256": actual,
               "email_sent": False, "publication_authorized": False}
+    if decision is not None:
+        result["analyst_route"] = decision["route"]
     if not send:
         return result
     if not owner_confirmed or approved_sha256 != actual:
@@ -319,7 +333,7 @@ def deliver(state, directory, *, send=False, owner_confirmed=False,
                    "source_inventory_sha256": digest(state["inventory"]),
                    "recipient": editor, "identity": state["identity"]})
     with tempfile.TemporaryDirectory(prefix="ipr-editor-snapshot-", dir=directory) as folder:
-        frozen = Path(folder) / packet.name
+        frozen = Path(folder) / state["packet_file"]
         write_private(frozen, payload)
         send_packet(frozen, week, provisional=True, full_week=True,
                     owner_released=True, saturday_provisional=True)

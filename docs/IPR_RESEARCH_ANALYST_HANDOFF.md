@@ -130,11 +130,11 @@ private IO and no self-modifying feedback. No live source, contributor, email,
 model, paid judge or publication was used. Existing Dylan return semantics,
 historical credits and renderers are untouched.
 
-Track C still must implement the policy adapter, configured consenting/available
-recipient, routing from existing story selection, one-item weekly cap,
-phase/recipient-specific once-only receipts, deadline bypass versus material
-holds, and delivery of only the reconciled exact manuscript to Dylan. Review
-A/B heads first; use a fresh bounded integration session if this requires
-substantial implementation. Production activation requires explicit owner
+Track C (`scripts/brief_editorial_routing.py`, offline review candidate,
+2 November 2026) now implements the consenting/available roster, one-item
+weekly cap, phase/recipient-specific once-only receipts, deadline bypass versus
+material holds, and delivery of only the reconciled exact manuscript to Dylan.
+See `IPR_SUNDAY_EDITORIAL_HANDOFF.md`, "Track C routing". The per-family policy
+adapter is still not implemented. Production activation requires explicit owner
 approval, verified recipient consent/scope and private receipt persistence.
 No schedule, API spend, mail, merge, deployment or publication is enabled here.
