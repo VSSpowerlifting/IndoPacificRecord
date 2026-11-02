@@ -116,3 +116,12 @@ candidate, not a merged or operationally verified release. The #928 merge did
 not authorize deployment or prove a live HTTPS publication.
 Verify final-head checks and any operational readback from actual CI and release
 evidence; do not mark the remaining work done.
+
+**Shared private-output fetch recovery (2 November 2026, review candidate):**
+AFP/NSC/Kemhan fetching removes stale invocation-local inputs before refresh,
+installs valid JSON objects atomically, and reports failed-family counts to the
+existing post-delivery health gate. Signature/policy admission and accepted DB
+rows remain unchanged. No new workflow, activation, paid call or deployment.
+The [eight-desk recovery snapshot](OPERATIONAL_RECOVERY_2026-11-02.md) distinguishes
+current custody, queue, admission and observed reader evidence; it does not
+certify eight operational desks. Final-head verification belongs to this PR.
