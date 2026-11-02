@@ -509,6 +509,25 @@ class QADateEquivalence(unittest.TestCase):
         # The month of a range applies to its end day only when the source says so.
         self.assertTrue(summary_numbers_held("Từ ngày 16-18/11/2026, hội nghị diễn ra.",
                                              "The ministry said it ran 16–18 October 2026."))
+        # A date the source does not state at all is still a number to support.
+        self.assertTrue(summary_numbers_held(body, "On 20 October, the ministry said a delegation met."))
+
+    def test_unsupported_year_and_changed_quantities_still_hold(self):
+        body = "Ngày 12/10/2026, lực lượng thu giữ 1,5 tấn hàng và tuần tra 15 km."
+        failures = qa.output_failures(
+            {"publisher_posted_date": "2026-10-20"}, TITLE, body,
+            good(summary_english="On 12 October 2027, the ministry said goods were seized.", text_english=None),
+            translation_required=False, permissions=FULL,
+            projection={"title_english": "Minister receives a delegation",
+                        "summary_english": "On 12 October 2027, the ministry said goods were seized."})
+        self.assertIn("E_DATE_MISMATCH", failures)
+        # A source date beside a scale or unit conversion does not excuse it.
+        for summary in ("On 12 October, the ministry said 1,500 tonnes were seized.",
+                        "On 12 October, the ministry said patrols covered 9.3 miles."):
+            with self.subTest(summary=summary):
+                self.assertTrue(summary_numbers_held(body, summary))
+        self.assertFalse(summary_numbers_held(
+            body, "On 12 October, the ministry said 1.5 tonnes were seized on 15 km of patrols."))
 
     def test_month_year_is_not_a_day_and_month(self):
         self.assertEqual(qa._vi_dates("tháng 9/2025 và Nghị định 123/2026/NĐ-CP"), set())
