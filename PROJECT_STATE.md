@@ -1,5 +1,33 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Cited official sources as Records — review candidate (1 November 2026)
+
+`core/cited_source_records.py` derives one link-metadata Record per official URL
+cited by an approved Brief on every render (doctrine §5b; DECISION_LOG
+2026-11-01). Briefs add an "IPR Record" link beside each eligible publisher
+link. Records list every citing Brief, and the archive index carries them with
+no desks. Current output: 29 Records from five Briefs, archive index 1,688 →
+1,717. Omitted: 4 independent references and 1 Vietnam MPS reference. None of
+the 34 Brief URLs matches a DB URL, a machine Record or an archive-index source
+URL, even after normalizing host, `www.`, case, trailing slash, fragment and
+percent-encoding. Every source document in the 14 editions' trails is a corpus
+Record that already links back ("In analysis"). The 24 other edition URLs are
+image credits and the author link. Every Dossier and Timeline source is a corpus
+Record, but both Dossiers and the Timeline remain withheld as whole works, so
+those back-links render only in review. The nine Dossier external references
+x1–x9 are not Records. The 2026-10-26 grant limits them to linked use inside
+that Dossier, with no IPR record page. No MINDEF URL becomes a cited Record (link-only
+permission). Routes use a stable `url_key`, and a route superseded by later collection
+redirects to the corpus/machine Record. No DB, source-policy or collector change.
+
+**Reconciliation (2 November 2026, review candidate):** convergence now runs
+before the held-family gate, so an already-published held-family URL resolves to its page.
+Host gates match subdomains. Machine Records list citing Briefs. The cited Record's
+custody wording states what it publishes. Brief 18's MPS reference remains held, and a
+test pins it. No owner VPCP selection exists, so the selection file stays empty. The
+committed cited pages update only on the next authorized render (DECISION_LOG
+2026-11-02).
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one

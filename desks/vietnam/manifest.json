@@ -68,7 +68,7 @@
       "listing_endpoints": [
         "https://vanban.chinhphu.vn/"
       ],
-      "notes": "Public Daily retains the bounded bibliographic fallback: first 50 listing entries, at most 15 known-candidate rechecks, verified Government Office issuer. Separately authorized first-party administrative primary PDFs are preserved privately and screened from complete verified text. Source-specific Anthropic and spending gates plus independent factual QA govern short attributed English explanations through the shared Daily. No public original, PDF, full translation, substantial excerpt or media. No complete-archive claim. Policies: config/vietnam_vpcp_metadata_policy.json, config/vietnam_vpcp_text_policy.json and the sealed source-use decision."
+      "notes": "Public Daily retains the bounded bibliographic fallback: first 50 listing entries, at most 15 known-candidate rechecks, verified Government Office issuer. Separately authorized first-party administrative primary PDFs are preserved privately and screened from complete verified text. Source-specific Anthropic and spending gates plus independent factual QA govern short attributed English explanations through the shared Daily. No public original, PDF, full translation, substantial excerpt or media. No complete-archive claim. Policies: config/vietnam_vpcp_metadata_policy.json, config/vietnam_vpcp_text_policy.json and the sealed source-use decision. Exact editorial selections of already-captured versions (config/vietnam_vpcp_editorial_selection.json) publish bibliographic metadata only and grant no other use."
     }
   ]
 }

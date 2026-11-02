@@ -67,7 +67,7 @@ def collect(conn, adapter, *, source_sha, run_id, observed_utc):
             captures.append((extracted.documents[0].extra, capture.payload_sha256))
         report.update(admit(conn, captures, source_sha=source_sha, run_id=run_id,
                             observed_utc=observed_utc))
-        report["status"] = "partial" if report["held"] else "ok"
+        report["status"] = "partial" if report["held"] or report["selection"] == "vpcp_selection_invalid" else "ok"
     else:
         report["hold_reason"] = "listing_or_access_failed"
     # Includes successful zero-new/duplicate attempts. No quiet day is omitted.
