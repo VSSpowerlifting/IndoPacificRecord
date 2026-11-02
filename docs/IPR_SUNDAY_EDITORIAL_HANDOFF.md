@@ -1,5 +1,44 @@
 # Sunday IPR Briefs — full-week draft to Dylan (staged migration)
 
+## Saturday provisional draft and Sunday recheck (Phase A, disabled by default)
+
+When the owner sets the repository variable `IPR_WEEKEND_EDITORIAL_ENABLED=true`,
+this workflow stops running on its own Sunday schedule or manual dispatch and runs
+only after the **Daily PLA Watch Update** workflow completes (`workflow_run`).
+`scripts/weekend_collection_trigger.py` reads the upstream run and its job steps and
+continues only for the original scheduled `main` run (attempt 1) whose pipeline,
+validation, deploy and "Record successful run" steps all succeeded, and only when
+`.github/state/last_daily_run_date.txt` equals today's New York date. Weekdays and
+guard-skipped green runs end with `mode=none`. Reruns of either workflow are refused.
+
+- **Saturday:** the existing job drafts once for `IPR-<Saturday>` with
+  `--saturday-provisional`. The packet header reads `SATURDAY PROVISIONAL; THROUGH
+  SATURDAY DAILY COLLECTION; SUNDAY RECHECK REQUIRED`, the Word copy carries the label
+  and the `ipr-saturday-provisional` keyword, and the before-model gate requires
+  Saturday's own marker (Friday's never substitutes). The email to Dylan is labelled
+  provisional. A failed send is never regenerated: resend the exact bytes with
+  `scripts/sunday_send_reviewed_packet.py --saturday-provisional`.
+- **Sunday:** no second draft and no model call. A metadata-only job writes a step
+  summary saying the Sunday collection exists. The owner then runs, locally:
+
+  ```sh
+  .venv/bin/python -m scripts.weekly_briefs_saturday_audit --saturday <YYYY-MM-DD> \
+    --saturday-packet <private TXT> --revised-docx <Dylan's DOCX> --receipt-out <new private path>
+  ```
+
+  It compares the Saturday packet with the Sunday corpus (late Saturday arrivals,
+  backdated items, removals, metadata or eligibility changes, changed pinned originals,
+  appendix changes) and checks the revised DOCX for comments or tracked changes. Any
+  finding is **HELD** (exit 3) unless the owner names it with `--acknowledge-diff`.
+  A PASS receipt binds the SHA-256 of that exact DOCX.
+- **Readiness:** `scripts/import_brief_manuscript.py` refuses a provisional DOCX unless
+  `--provisional-recheck <receipt>` is a PASS receipt for the same SHA-256.
+
+The receipt never claims a complete week, grants credit or authorizes publication.
+Research pins are listed for human checking, not recomputed. Disabling the variable
+restores the legacy Sunday path unchanged. Activation, recipients and spend remain
+separate owner decisions.
+
 ## Narrative reform — article-first manuscript (25 October 2026)
 
 The writer now asks for one cohesive article (lead on the concrete development, optional

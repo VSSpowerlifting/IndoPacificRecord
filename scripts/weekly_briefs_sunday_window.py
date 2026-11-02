@@ -142,3 +142,38 @@ def resolve_sunday_handoff(*, event: str, now: datetime = None,
         "IPR_SUNDAY_WEEK_END": target.isoformat(),
         "IPR_SUNDAY_SHOULD_SEND": "true" if sending else "false",
     }
+
+
+def resolve_saturday_provisional(*, now: datetime = None,
+                                 saturday_daily_marker: str = "",
+                                 friday_delivery_enabled: bool = False) -> dict:
+    """Resolve the one Saturday provisional draft after Saturday's collection.
+
+    Only the New York-local reporting Saturday itself qualifies: no Friday
+    substitution and no later catch-up, because a late draft would no longer
+    be the provisional pre-Sunday manuscript. The retired Friday service must
+    stay off so that two drafts never reach Dylan for one week.
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise SundayHandoffRefused("runner clock must have a timezone")
+    today = now.astimezone(NY).date()
+    if today.weekday() != 5:
+        raise SundayHandoffRefused(
+            "Saturday provisional draft runs only on New York-local Saturday")
+    if friday_delivery_enabled:
+        raise SundayHandoffRefused(
+            "refused parallel services: disable IPR_EDITOR_DELIVERY_ENABLED "
+            "before the Saturday provisional draft")
+    if saturday_daily_marker.strip() != today.isoformat():
+        raise SundayHandoffRefused(
+            "Saturday production update has not recorded a success marker "
+            "for New York-local " + today.isoformat() +
+            "; no draft or email attempted")
+    return {
+        "IPR_SUNDAY_WEEK_START": (today - timedelta(days=6)).isoformat(),
+        "IPR_SUNDAY_AS_OF": today.isoformat(),
+        "IPR_SUNDAY_WEEK_END": today.isoformat(),
+        "IPR_SUNDAY_SHOULD_SEND": "true",
+    }

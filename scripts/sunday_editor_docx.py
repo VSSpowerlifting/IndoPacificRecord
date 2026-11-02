@@ -18,6 +18,7 @@ from docx.oxml.ns import qn
 from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.shared import Inches, Pt
 
+from scripts.sunday_editorial_handoff import is_saturday_provisional
 from scripts.sunday_editor_readable import (
     APPENDIX, ARTICLE_KEY, BEGIN, PROSE_TITLES, accounting_citations,
     editable_sections, is_article_layout, split_article,
@@ -28,6 +29,10 @@ EXTERNAL_PREFIX = "EXTERNAL SOURCE IDS:"
 RECORD_LINE = re.compile(r"^Record ([0-9]+) \|")
 EXTERNAL_LINE = re.compile(r"^External source ([A-Za-z0-9_-]+) \|")
 BOLD = re.compile(r"\*\*([^\n*]+)\*\*")
+# Visible text plus a document property: the importer refuses either one
+# without a matching Sunday recheck receipt (scripts/import_brief_manuscript).
+SATURDAY_PROVISIONAL_LABEL = "SATURDAY PROVISIONAL · SUNDAY RECHECK REQUIRED"
+SATURDAY_PROVISIONAL_KEYWORD = "ipr-saturday-provisional"
 
 
 def _references(packet):
@@ -120,9 +125,12 @@ def render_editor_docx(worksheet):
     """Return .docx bytes only after the source-text boundary validator passes."""
     sections = editable_sections(worksheet)
     sources = _references(worksheet)
+    saturday_provisional = is_saturday_provisional(worksheet)
     doc = Document()
     doc.core_properties.title = "Indo-Pacific Record — Working Brief"
     doc.core_properties.author = "Indo-Pacific Record"
+    if saturday_provisional:
+        doc.core_properties.keywords = SATURDAY_PROVISIONAL_KEYWORD
 
     section = doc.sections[0]
     section.top_margin = Inches(.82)
@@ -143,6 +151,15 @@ def render_editor_docx(worksheet):
     label = doc.add_paragraph()
     label.alignment = WD_ALIGN_PARAGRAPH.CENTER
     label.add_run("INDO-PACIFIC RECORD / BRIEFS").bold = True
+    if saturday_provisional:
+        mark = doc.add_paragraph()
+        mark.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        mark.add_run(SATURDAY_PROVISIONAL_LABEL).bold = True
+        doc.add_paragraph(
+            "Drafted from sources collected through Saturday's daily run. "
+            "Later Saturday publications may be missing; Ben rechecks the "
+            "full week on Sunday before this draft can be used."
+        )
 
     doc.add_paragraph(
         "Provisional editorial manuscript · For Dylan's language and structure edits only"
@@ -184,7 +201,9 @@ def render_editor_docx(worksheet):
             _hyperlink(p, kind + " " + identifier, url)
     footer = section.footer.paragraphs[0]
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("UNNUMBERED DRAFT · NOT APPROVED FOR PUBLICATION")
+    footer.add_run(
+        (SATURDAY_PROVISIONAL_LABEL + " · " if saturday_provisional else "") +
+        "UNNUMBERED DRAFT · NOT APPROVED FOR PUBLICATION")
 
     output = io.BytesIO()
     doc.save(output)

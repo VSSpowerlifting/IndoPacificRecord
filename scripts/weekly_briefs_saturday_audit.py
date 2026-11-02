@@ -12,11 +12,26 @@ Usage (after Saturday ends in New York):
 The first command is appropriate for manual GitHub Actions execution, with
 only aggregate counts printed. The second is local/private: source IDs from
 the original packet are compared to current full-week candidates.
+
+Sunday recheck of a Saturday provisional manuscript (owner-local, private):
+    python -m scripts.weekly_briefs_saturday_audit --saturday 2026-10-10 \
+        --saturday-packet /private/IPR-2026-10-10-saturday.txt \
+        --revised-docx /private/IPR-2026-10-10-dylan.docx \
+        --receipt-out /private/IPR-2026-10-10-recheck.json
+
+The recheck applies the writer's own eligibility and body-hash rules to the
+refreshed full week and compares them with the Saturday packet's discovery
+receipt. Any drift HOLDS; after human review the owner may rerun with
+``--acknowledge-diff <diff_sha256>``. The receipt binds the result to the
+exact revised DOCX bytes; ``import_brief_manuscript`` refuses a provisional
+manuscript without it. Only aggregate counts are printed.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import re
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
@@ -33,6 +48,10 @@ NEW_YORK = ZoneInfo("America/New_York")
 MAX_PACKET_BYTES = 2_000_000
 APPENDIX_MARKER = "=== SOURCE APPENDIX — DO NOT EDIT ==="
 END_APPENDIX = "END OF SOURCE APPENDIX"
+RECHECK_SCHEMA = "ipr-sunday-provisional-recheck/1"
+DISCOVERY_LINE = "DISCOVERY RECEIPT (private, no source body): "
+MARKER = Path(".github/state/last_daily_run_date.txt")
+WORD = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 RECORD_LINE = re.compile(
     r"^Record ([1-9][0-9]*) \| ([a-z0-9_-]+) \| ([0-9]{4}-[0-9]{2}-[0-9]{2}) \| .+$",
     re.MULTILINE,
@@ -183,12 +202,249 @@ def collect_report(saturday: str, *, original_path=None, db=DB_PATH, now=None):
                      full_draft=full_draft, original=original)
 
 
+def parse_saturday_packet(path: Path, *, saturday: date) -> dict:
+    """Read the private Saturday provisional packet's appendix and receipt.
+
+    Only the header, the immutable appendix and the writer-owned discovery
+    receipt are read; manuscript prose is ignored and never logged.
+    """
+    from scripts.sunday_editorial_handoff import is_saturday_provisional
+    if not path.is_file() or path.stat().st_size > MAX_PACKET_BYTES:
+        raise ValueError("Saturday packet missing or larger than 2 MB")
+    raw = path.read_bytes()
+    try:
+        txt = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError("Saturday packet must be UTF-8") from exc
+    txt = txt.replace("\r\n", "\n").replace("\r", "\n")
+    if not is_saturday_provisional(txt):
+        raise ValueError("packet is not a Saturday provisional draft")
+    if txt.count(APPENDIX_MARKER) != 1 or txt.count(END_APPENDIX) != 1:
+        raise ValueError("Saturday packet has invalid appendix markers")
+    head, rest = txt.split(APPENDIX_MARKER, 1)
+    if "Status: UNNUMBERED DRAFT — NOT APPROVED OR PUBLISHED" not in txt:
+        raise ValueError("packet must be an unapproved editorial worksheet")
+    if "Packet: IPR-" + saturday.isoformat() not in head.splitlines():
+        raise ValueError("Saturday packet does not match requested Saturday edition")
+    appendix = rest.split(END_APPENDIX, 1)[0]
+    entries = RECORD_LINE.findall(appendix)
+    ids = [int(rid) for rid, _, _ in entries]
+    if len(ids) != len(set(ids)):
+        raise ValueError("Saturday packet has duplicate source IDs")
+    beginning = saturday - timedelta(days=6)
+    for _rid, _desk, value in entries:
+        try:
+            pub = date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("Saturday packet contains malformed publication dates") from exc
+        if not beginning <= pub <= saturday:
+            raise ValueError("Saturday appendix includes out-of-window records")
+    receipts = [line[len(DISCOVERY_LINE):] for line in txt.splitlines()
+                if line.startswith(DISCOVERY_LINE)]
+    if len(receipts) != 1:
+        raise ValueError("Saturday packet needs exactly one discovery receipt")
+    try:
+        receipt = json.loads(receipts[0])
+    except json.JSONDecodeError as exc:
+        raise ValueError("Saturday discovery receipt is not valid JSON") from exc
+    if (not isinstance(receipt, dict) or receipt.get("schema") != "ipr-sunday-discovery/1"
+            or not isinstance(receipt.get("inventory"), list)
+            or not isinstance(receipt.get("source_pins"), list)):
+        raise ValueError("Saturday discovery receipt is incomplete")
+    production, research = {}, 0
+    for pin in receipt["source_pins"]:
+        if not isinstance(pin, dict):
+            raise ValueError("malformed Saturday source pin")
+        if pin.get("lane") == "production_record" and type(pin.get("id")) is int:
+            production[pin["id"]] = (pin.get("desk"), pin.get("body_sha256"))
+        elif pin.get("lane") == "private_research":
+            research += 1
+        else:
+            raise ValueError("unknown Saturday source pin lane")
+    return {"sha256": hashlib.sha256(raw).hexdigest(),
+            "records": {(int(r), d, v) for r, d, v in entries},
+            "inventory": _inventory(receipt["inventory"]),
+            "production_pins": production,
+            "research_pins": research}
+
+
+def _inventory(rows) -> dict:
+    """Key by typed id: numeric production rows never alias link-lane identities."""
+    result = {}
+    for row in rows:
+        if not isinstance(row, dict) or type(row.get("id")) not in (int, str):
+            raise ValueError("malformed discovery inventory row")
+        key = (type(row["id"]).__name__, str(row["id"]))
+        if key in result:
+            raise ValueError("duplicate discovery inventory identity")
+        result[key] = (row.get("desk"), row.get("date"), row.get("reason"))
+    return result
+
+
+def docx_open_questions(path: Path) -> int:
+    """Count unresolved review comments and tracked changes in the revision."""
+    from zipfile import BadZipFile, ZipFile
+    from xml.etree import ElementTree as ET
+    try:
+        with ZipFile(path) as archive:
+            names = set(archive.namelist())
+            document = ET.fromstring(archive.read("word/document.xml"))
+            comments = (ET.fromstring(archive.read("word/comments.xml"))
+                        if "word/comments.xml" in names else None)
+    except (BadZipFile, KeyError, ET.ParseError) as exc:
+        raise ValueError("revised manuscript is not a readable DOCX") from exc
+    count = sum(1 for _ in document.iter(WORD + "ins")) + sum(
+        1 for _ in document.iter(WORD + "del"))
+    if comments is not None:
+        count += sum(1 for _ in comments.iter(WORD + "comment"))
+    return count
+
+
+def diff_snapshots(saturday: dict, *, inventory: dict, pins: dict, records: set,
+                   week_ending: date) -> dict:
+    """Exact private drift between Saturday's snapshot and the refreshed week."""
+    before, after = saturday["inventory"], inventory
+    added = sorted(after.keys() - before.keys())
+    late = [k for k in added if after[k][1] == week_ending.isoformat()]
+    return {
+        "late_saturday_arrivals": late,
+        "backdated_arrivals": [k for k in added if k not in late],
+        "removed_from_week": sorted(before.keys() - after.keys()),
+        "eligibility_or_metadata_changed": sorted(
+            k for k in before.keys() & after.keys() if before[k] != after[k]),
+        "pinned_original_changed": sorted(
+            i for i in saturday["production_pins"].keys() & pins.keys()
+            if saturday["production_pins"][i] != pins[i]),
+        "pinned_original_no_longer_eligible": sorted(
+            saturday["production_pins"].keys() - pins.keys()),
+        "newly_eligible_originals": sorted(pins.keys() - saturday["production_pins"].keys()),
+        "appendix_records_changed": sorted(saturday["records"] ^ records),
+    }
+
+
+def sunday_recheck(saturday: str, *, packet_path, revised_docx, marker_path=MARKER,
+                   db=DB_PATH, now=None, acknowledge=None) -> tuple:
+    """Reconcile the Saturday draft against the refreshed full week.
+
+    Returns ``(public_report, private_receipt)``. The private receipt carries
+    exact source IDs for the owner's review; the public report only counts.
+    """
+    from scripts.sunday_briefs_auto_writer import choose_evidence
+    target = parse_saturday(saturday, now=now)
+    sunday = target + timedelta(days=1)
+    observed = Path(marker_path).read_text(encoding="utf-8").strip()
+    if observed != sunday.isoformat():
+        raise ValueError("Sunday production update has not recorded its success marker")
+    packet = parse_saturday_packet(Path(packet_path), saturday=target)
+    revised = Path(revised_docx)
+    if not revised.is_file() or revised.is_symlink():
+        raise ValueError("revised manuscript DOCX missing")
+    revised_sha = hashlib.sha256(revised.read_bytes()).hexdigest()
+    open_questions = docx_open_questions(revised)
+    desks = live_editorial_desks()
+    if len(desks) < 2:
+        raise ValueError("fewer than two production-backed desks are live")
+    start = (target - timedelta(days=6)).isoformat()
+    with read_only(Path(db)) as conn:
+        rows = get_articles_for_desks(start, target.isoformat(), desks, conn=conn)
+    sidecar = build_draft(rows, desks=desks, week_start=start, week_ending=target.isoformat())
+    inventory = []
+    verified = choose_evidence(sidecar, as_of=target.isoformat(), db=db,
+                               discovery_inventory=inventory)
+    pins = {row["id"]: (row["desk_id"], hashlib.sha256(body.encode()).hexdigest())
+            for row, body in verified}
+    records = {(e["record_id"], e["desk"], e["date"]) for e in sidecar["source_trail"]}
+    diff = diff_snapshots(packet, inventory=_inventory(inventory), pins=pins,
+                          records=records, week_ending=target)
+    counts = {key: len(value) for key, value in diff.items()}
+    drift = any(counts.values())
+    digest = hashlib.sha256(json.dumps(diff, sort_keys=True).encode()).hexdigest()
+    reasons = [key for key, value in counts.items() if value]
+    if open_questions:
+        # Comments and tracked changes are unresolved claims; no override.
+        reasons.append("revised_manuscript_has_unresolved_comments_or_tracked_changes")
+    acknowledged = bool(drift and acknowledge == digest)
+    if open_questions or (drift and not acknowledged):
+        status = "HELD"
+    else:
+        status = "SUNDAY_RECHECKED"
+    public = {
+        "schema": RECHECK_SCHEMA,
+        "week_ending": target.isoformat(),
+        "status": status,
+        "hold_reasons": reasons if status == "HELD" else [],
+        "sunday_marker": observed,
+        "counts": counts,
+        "unresolved_comments_or_tracked_changes": open_questions,
+        "research_pins_need_human_verification": packet["research_pins"],
+        "diff_sha256": digest,
+        "owner_acknowledged_changes": acknowledged,
+        "saturday_packet_sha256": packet["sha256"],
+        "revised_manuscript_sha256": revised_sha,
+        "complete_week_claimed": False,
+        "publication_authorized": False,
+    }
+    private = dict(public, diff={k: [list(x) if isinstance(x, tuple) else x for x in v]
+                                 for k, v in diff.items()})
+    return public, private
+
+
+def write_private_receipt(path: Path, receipt: dict) -> None:
+    """Owner-only, never overwritten: a second recheck needs a fresh path."""
+    fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        json.dump(receipt, stream, indent=2, sort_keys=True)
+        stream.write("\n")
+
+
+def load_recheck_receipt(path, *, manuscript_sha256: str) -> dict:
+    """Consumer check: a provisional manuscript is ready only after Sunday."""
+    try:
+        receipt = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("Sunday recheck receipt unreadable") from exc
+    if (not isinstance(receipt, dict) or receipt.get("schema") != RECHECK_SCHEMA
+            or receipt.get("status") != "SUNDAY_RECHECKED"
+            or receipt.get("publication_authorized") is not False):
+        raise ValueError("Saturday provisional manuscript lacks a passed Sunday recheck")
+    if receipt.get("revised_manuscript_sha256") != manuscript_sha256:
+        raise ValueError("Sunday recheck was made for a different manuscript revision")
+    return receipt
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--saturday", required=True, help="week-ending Saturday YYYY-MM-DD")
     parser.add_argument("--friday-packet", type=Path,
                         help="optional original private Friday .txt sent to Dylan")
+    parser.add_argument("--saturday-packet", type=Path,
+                        help="private Saturday provisional .txt sent to Dylan")
+    parser.add_argument("--revised-docx", type=Path,
+                        help="Dylan's returned DOCX revision to bind")
+    parser.add_argument("--receipt-out", type=Path,
+                        help="new private 0600 recheck receipt path")
+    parser.add_argument("--marker", type=Path, default=MARKER)
+    parser.add_argument("--acknowledge-diff",
+                        help="diff_sha256 the owner reviewed in a held receipt")
     args = parser.parse_args(argv)
+    recheck = (args.saturday_packet, args.revised_docx, args.receipt_out)
+    if any(recheck) or args.acknowledge_diff:
+        if not all(recheck) or args.friday_packet:
+            parser.error("recheck needs --saturday-packet, --revised-docx and --receipt-out only")
+        try:
+            report, receipt = sunday_recheck(
+                args.saturday, packet_path=args.saturday_packet,
+                revised_docx=args.revised_docx, marker_path=args.marker,
+                acknowledge=args.acknowledge_diff)
+            write_private_receipt(args.receipt_out, receipt)
+        except (OSError, ValueError) as exc:
+            parser.exit(2, "REFUSED: " + str(exc) + "\n")
+        print(json.dumps({k: report[k] for k in (
+            "status", "week_ending", "counts", "hold_reasons",
+            "research_pins_need_human_verification", "owner_acknowledged_changes")},
+            indent=2, sort_keys=True))
+        print("Private receipt written; publication remains unapproved.")
+        return 0 if report["status"] == "SUNDAY_RECHECKED" else 3
     try:
         report = collect_report(args.saturday, original_path=args.friday_packet)
     except ValueError as exc:
