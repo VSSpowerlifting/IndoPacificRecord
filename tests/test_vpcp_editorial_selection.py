@@ -168,10 +168,30 @@ class EditorialSelection(unittest.TestCase):
         for override in bad:
             with self.subTest(override=override), self.assertRaisesRegex(ValueError, "vpcp_selection_invalid"):
                 intake.selection(self.selection(**override))
+        # In a run, the invalid file holds the selections only: topical
+        # captures still admit and the unselected version stays unpublished.
         (self.tmp / "broken.json").write_text("{")
-        with self.assertRaisesRegex(ValueError, "vpcp_selection_invalid"):
-            self.admit([m], self.tmp / "broken.json")
-        self.assertEqual(self.versions(), 0)
+        topical = metadata()
+        report = self.admit([m, topical], self.tmp / "broken.json")
+        self.assertEqual(report["selection"], "vpcp_selection_invalid")
+        self.assertEqual(report["new"], 1)
+        self.assertEqual(self.versions(), 2)
+        self.assertEqual([r["source_identity"] for r in read_live_links(self.conn, "vietnam")],
+                         [identity(topical)])
+
+    def test_invalid_file_freezes_selection_links_and_removal_withdraws(self):
+        m = routine()
+        self.admit([m], self.selection(m))
+        broken = self.tmp / "broken.json"
+        broken.write_text("{")
+        # Recapture under an invalid file neither withdraws nor republishes.
+        report = self.admit([m], broken, observed=LATER, run="later-run")
+        self.assertEqual(report["selection"], "vpcp_selection_invalid")
+        self.assertEqual([r[0] for r in self.links()], [identity(m)])
+        report = self.admit([], self.selection(), observed=LATER, run="removal-run")
+        self.assertEqual(report["selection"], {identity(m): "selection_withdrawn"})
+        self.assertEqual(self.links(), [])
+        self.assertEqual(self.versions(), 1)
 
     def test_downstream_failure_rolls_back_without_losing_prior_evidence(self):
         m = routine()

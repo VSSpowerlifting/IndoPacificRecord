@@ -116,7 +116,9 @@ bibliographic metadata through the existing intake (`processing/government_docum
 applied by the Daily writer every run. `scripts/admit_official_document.py`
 replays the same disposition from a read-only copy or writes only an isolated
 candidate DB. The committed selection is empty; each entry is an owner release
-decision. Only VPCP is supported; other families hold. A version never captured
+decision; removing an entry withdraws its link, and an invalid file holds
+the selections only (existing selection links stay, topical admission continues).
+Only VPCP is supported; other families hold. A version never captured
 holds, because the adapter's access contract refuses individual fetch of unlisted
 URLs. Remaining: editorial backlinks and identity/policy convergence noted on
 #952, and any second family.

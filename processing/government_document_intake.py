@@ -82,8 +82,13 @@ def validate(metadata):
 def admit(conn, captures, *, source_sha, run_id, observed_utc, selection_path=None):
     """Caller holds the DB transaction; every exception rolls back that run."""
     rules = policy()
-    chosen = selection(selection_path)
-    pinned = {e["source_identity"] for e in chosen["selections"]}
+    # An invalid selection file holds the selections only: topical captures
+    # in the same run still admit and existing selection links stay as they are.
+    try:
+        chosen = selection(selection_path)
+    except ValueError:
+        chosen = None
+    pinned = {e["source_identity"] for e in chosen["selections"]} if chosen else _selection_links(conn)
     need(re.fullmatch(r"[a-f0-9]{40}", source_sha) and re.fullmatch(r"[A-Za-z0-9_.-]{1,120}", run_id),
          "vpcp_provenance_invalid")
     added = unchanged = revised = filtered = 0
@@ -126,10 +131,26 @@ def admit(conn, captures, *, source_sha, run_id, observed_utc, selection_path=No
                 "first_seen_run": old[1] if old else run_id}], proof, observed_utc, stable_versions=True)
             added += result["new_official_links"]
             unchanged += result["unchanged_official_links"]
-    selected = {e["source_identity"]: _reconcile(conn, rules, chosen, e, observed_utc)
-                for e in chosen["selections"]}
+    selected = "vpcp_selection_invalid"
+    if chosen:
+        selected = {e["source_identity"]: _reconcile(conn, rules, chosen, e, observed_utc)
+                    for e in chosen["selections"]}
+        # A removed entry withdraws its link; the version history stays intact.
+        for ident in sorted(_selection_links(conn) - pinned):
+            conn.execute("DELETE FROM regional_official_source_links WHERE source_family=? AND source_identity=?",
+                         (FAMILY, ident))
+            selected[ident] = "selection_withdrawn"
     return {"new": added, "unchanged": unchanged, "revised": revised, "filtered": filtered,
             "selection": selected, "scope": "bibliographic_metadata_only", "model_calls": 0}
+
+
+def _selection_links(conn):
+    """Identities whose public link pins a non-topical, editorially selected version."""
+    return {ident for ident, m in conn.execute("SELECT l.source_identity,v.metadata_json "
+        "FROM regional_official_source_links l JOIN official_document_versions v "
+        "ON v.source_family=l.source_family AND v.source_identity=l.source_identity "
+        "AND v.metadata_sha256=l.metadata_version_sha256 WHERE l.source_family=?", (FAMILY,))
+        if not topics(json.loads(m))}
 
 
 def _reconcile(conn, rules, chosen, entry, observed_utc):
