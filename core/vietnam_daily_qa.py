@@ -22,7 +22,7 @@ from typing import Callable, Dict, List, Optional, Sequence
 from analysis.vietnam_prompts import EVENT_TYPES
 from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES, content_sha256
 
-RUBRIC_VERSION = "vn-qa-2026-10-21.1"
+RUBRIC_VERSION = "vn-qa-2026-11-02.1"
 SECOND_PASS_RUBRIC = "vn-qa-second-pass-2026-10-21.1"
 MAX_ATTEMPTS = 3
 
@@ -118,8 +118,10 @@ def _en_number(token: str) -> str:
 
 # Dates and clock times are compared by the date checks, not as quantities:
 # 'ngày 5/10/2026' is translated '5 October 2026' and '14h30' as '2:30 p.m.'.
+# A d/m match must not cut into a longer number: 'tháng 9/2025' is not '9/20'
+# plus a stray '25', and '123/2026/NĐ-CP' keeps its number 123.
 _VI_DATE_TIME = re.compile(
-    r"\d{1,2}/\d{1,2}(?:/\d{4})?|\btháng \d{1,2}\b|\b\d{1,2}h\d{0,2}\b|\b(?:19|20)\d{2}\b",
+    r"(?<!\d)\d{1,2}/\d{1,2}(?:/\d{4})?(?!\d)|\btháng \d{1,2}\b|\b\d{1,2}h\d{0,2}\b|\b(?:19|20)\d{2}\b",
     re.I)
 _EN_DATE_TIME = re.compile(r"\b\d{1,2}:\d{2}\b|\b(?:19|20)\d{2}\b")
 
@@ -133,6 +135,55 @@ def _numbers(text: str, norm) -> set:
             value = value.rstrip("0").rstrip(".")
         out.add(value)
     return out
+
+
+# The source's own dates, as (day, month, year or None). 'M/YYYY' is a month
+# and year, never a day and month.
+_VI_DATE = re.compile(
+    r"(?<![\d/])(\d{1,2})/(\d{1,2})(?:/((?:19|20)\d{2}))?(?![\d/])"
+    r"|\bngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})(?:\s+năm\s+((?:19|20)\d{2}))?\b", re.I)
+# Month names are matched capitalised so that '12 may' is not a date.
+_MONTH = (r"(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?"
+          r"|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?")
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+_DAY = r"(\d{1,2})(?:st|nd|rd|th)?"
+_SPAN = r"(?:\s*(?:-|–|—|to|and|until|through)\s*" + _DAY + r")?"
+_EN_YEAR = r"(?:,?\s+((?:19|20)\d{2})\b)?"
+_EN_DATE = re.compile(r"\b%s%s\s+(?:of\s+)?%s\b%s|\b%s\s+%s%s\b%s"
+                      % (_DAY, _SPAN, _MONTH, _EN_YEAR, _MONTH, _DAY, _SPAN, _EN_YEAR))
+
+
+def _vi_dates(text: str) -> set:
+    out = set()
+    for m in _VI_DATE.finditer(text or ""):
+        d, mo, y = m.group(1, 2, 3) if m.group(1) else m.group(4, 5, 6)
+        if 1 <= int(d) <= 31 and 1 <= int(mo) <= 12:
+            out.add((int(d), int(mo), y))
+    return out
+
+
+def _without_source_dates(text: str, src_dates: set) -> str:
+    """Blank the day of each English date that the source states as d/m.
+
+    Only the day token inside a matching date goes: '12 October' against
+    'ngày 12/10' is the same date, while '12 officers', '13 October' or
+    '12 November' still count as numbers the source must support. When both
+    sides give a year they must agree.
+    """
+    spans = []
+    for m in _EN_DATE.finditer(text or ""):
+        if m.group(3):
+            days, month, year = (1, 2), m.group(3), m.group(4)
+        else:
+            days, month, year = (6, 7), m.group(5), m.group(8)
+        mo = _MONTHS.index(month[:3]) + 1
+        for g in days:
+            if m.group(g) and any(d == int(m.group(g)) and sm == mo and (not year or not sy or sy == year)
+                                  for d, sm, sy in src_dates):
+                spans.append(m.span(g))
+    for start, end in sorted(spans, reverse=True):
+        text = text[:start] + " " + text[end:]
+    return text
 
 
 def _paragraphs(text: str) -> List[str]:
@@ -274,7 +325,10 @@ def output_failures(record: dict, title: str, body: str, result: Optional[dict],
     if record.get("source_family") == "vn_vpcp_official_documents_vi" and version is not None:
         from processing.vpcp_document import verified_bibliographic_numbers
         src_nums |= verified_bibliographic_numbers(version)
-    extra = {n for n in _numbers(summary + " " + headline, _en_number)
+    # Vietnamese d/m dates are removed from src_nums above, so an English date
+    # the source states ('12 October' for 'ngày 12/10') is compared as a date.
+    stated = _without_source_dates(summary + " " + headline, _vi_dates(original))
+    extra = {n for n in _numbers(stated, _en_number)
              if n not in src_nums and len(n.replace(".", "")) >= 2}
     if extra:
         f["E_NUMBER_MISMATCH"] = "summary numbers absent from source: %s" % sorted(extra)[:5]
