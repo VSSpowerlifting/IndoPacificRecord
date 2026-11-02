@@ -52,7 +52,8 @@ closed, and there is no automatic retry or override while the variable is on.
   `scripts/brief_analyst_review.py` ([IPR_RESEARCH_ANALYST_HANDOFF.md](IPR_RESEARCH_ANALYST_HANDOFF.md)),
   add `--analyst-manifest <assignment manifest> --analyst-feedback <reconciled report>`.
   The recheck refuses a report that is altered, belongs to another assignment or names
-  another week. It binds the manifest and feedback hashes and the report state into the
+  another week or another Brief of the week. It binds the manifest and feedback hashes
+  and the report state into the
   receipt and holds while any finding is unresolved. Weeks without an analyst omit both
   flags. Analyst credit stays an owner decision; nothing here assigns a byline.
 - **Readiness and approval:** a PASS writes the candidate sidecar with a
@@ -64,6 +65,10 @@ closed, and there is no automatic retry or override while the variable is on.
   corpus or policy change needs a fresh reconciliation. Already accepted Briefs
   (week ending 2026-10-31 or earlier) are unchanged. The importer no longer decides
   releasability; DOCX labels are for Dylan's display only.
+- **Several Briefs in one week (#946):** each Brief is reconciled on its own. The
+  receipt takes its identity from the packet's `Packet:` line, `IPR-<Saturday>` for
+  the primary or `IPR-<Saturday>-<slug>` (slug `[a-z][a-z0-9-]{0,79}`) for an
+  additional Brief, and every Brief from the cutover week on needs its own receipt.
 
 The receipt never claims a complete week, grants credit or authorizes publication.
 Research pins are listed for human checking, not recomputed. Disabling the variable

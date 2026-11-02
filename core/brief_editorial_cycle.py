@@ -12,6 +12,7 @@ unchanged. Inventory and policy fingerprints are recomputed at readiness by
 """
 import hashlib
 import json
+import re
 from datetime import date, timedelta
 
 SCHEMA = "ipr-saturday-sunday-cycle/1"
@@ -28,6 +29,9 @@ COUNT_KEYS = (
     "pinned_original_no_longer_eligible", "newly_eligible_originals",
     "appendix_records_changed", "policy_or_source_versions_changed",
 )
+# #946's per-Brief identity: IPR-<Saturday> for the week's primary Brief,
+# IPR-<Saturday>-<slug> for an additional one; same slug grammar as there.
+COMPANION_SLUG = re.compile(r"[a-z][a-z0-9-]{0,79}\Z")
 EXCLUDED = {KEY, "approval", "issue_number", "editorial_status",
             "editorial_review", "policy_ruling"}
 
@@ -40,6 +44,14 @@ def digest(value):
 def manuscript_digest(sidecar):
     """Fingerprint of the publishable content, excluding approval metadata."""
     return digest({k: v for k, v in sidecar.items() if k not in EXCLUDED})
+
+
+def identity_matches(identity, week):
+    if not isinstance(identity, str) or not isinstance(week, str):
+        return False
+    base = "IPR-" + week
+    return identity == base or (identity.startswith(base + "-")
+                                and bool(COMPANION_SLUG.fullmatch(identity[len(base) + 1:])))
 
 
 def compare(before, after):
@@ -81,8 +93,7 @@ def receipt_problems(sidecar):
     identity = receipt.get("identity")
     if (end.weekday() != 5 or end.isoformat() != week
             or receipt.get("week_ending") != week
-            or not isinstance(identity, str)
-            or not (identity == "IPR-" + week or identity.startswith("IPR-" + week + "-"))
+            or not identity_matches(identity, week)
             # Dylan may return the revision after Sunday; never before it.
             or observed < end + timedelta(days=1)
             or receipt.get("packet_kind") not in PACKET_KINDS

@@ -156,6 +156,32 @@ class SundayRecheck(unittest.TestCase):
         self.assertEqual(public["packet_kind"], "complete_week")
         self.assertEqual(receipt_problems(reconciled), [])
 
+    def test_additional_brief_keeps_its_own_identity_and_analyst_return(self):
+        # #946: an additional Brief of the week is IPR-<Saturday>-<slug>.
+        primary = "Packet: IPR-" + SAT + "\n"
+        self.assertEqual(self.text.count(primary), 1)
+        self.text = self.text.replace(primary, "Packet: IPR-" + SAT + "-coast-guard\n")
+        self.packet.write_text(self.text, encoding="utf-8")
+        self.docx.write_bytes(render_editor_docx(self.text))
+        self.candidate = dict(scaffold(), manuscript_sha256=self.docx_sha())
+        public, _, reconciled = self.run_recheck()
+        self.assertEqual(public["identity"], "IPR-" + SAT + "-coast-guard")
+        self.assertEqual(receipt_problems(reconciled), [])
+        analyst = {"assignment_sha256": "4" * 64, "feedback_sha256": "5" * 64,
+                   "state": "ANALYSIS_RECONCILED"}
+        with self.assertRaisesRegex(ValueError, "not for this Brief"):
+            self.run_recheck(analyst=dict(analyst, packet="IPR-" + SAT))
+        bound = self.run_recheck(analyst=dict(analyst, packet="IPR-" + SAT + "-coast-guard"))[0]
+        self.assertNotIn("packet", bound["analyst"])
+        for bad in ("IPR-" + SAT + "-Coast", "IPR-" + SAT + "-", "IPR-" + SAT + "x"):
+            with self.subTest(identity=bad):
+                self.packet.write_text(self.text.replace("IPR-" + SAT + "-coast-guard", bad),
+                                       encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "requested Saturday edition"):
+                    self.run_recheck()
+                self.assertTrue(receipt_problems(dict(reconciled, **{
+                    KEY: dict(reconciled[KEY], identity=bad)})))
+
     def test_packet_kind_comes_from_the_packet_head(self):
         self.assertEqual(packet_kind(self.text.split("\n\n", 1)[0]), "saturday_provisional")
         with self.assertRaises(ValueError):
@@ -240,7 +266,8 @@ class SundayRecheck(unittest.TestCase):
             self.run_recheck(revised_docx=None)
 
     def test_held_analyst_return_holds(self):
-        analyst = {"assignment_sha256": "4" * 64, "feedback_sha256": "5" * 64, "state": "HELD"}
+        analyst = {"assignment_sha256": "4" * 64, "feedback_sha256": "5" * 64, "state": "HELD",
+                   "packet": "IPR-" + SAT}
         held = self.run_recheck(analyst=analyst)[0]
         self.assertIn("analyst_return_held", held["hold_reasons"])
         passed, _, reconciled = self.run_recheck(analyst=dict(analyst, state="REVIEWED"))

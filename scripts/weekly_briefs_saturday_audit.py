@@ -53,7 +53,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from config import DB_PATH
-from core.brief_editorial_cycle import digest
+from core.brief_editorial_cycle import digest, identity_matches
 from scripts.author_brief import build_draft
 from scripts.reconcile_db import read_only
 from scripts.weekly_briefs_auto_writer import live_editorial_desks
@@ -250,7 +250,9 @@ def parse_saturday_packet(path: Path, *, saturday: date) -> dict:
     head, rest = txt.split(APPENDIX_MARKER, 1)
     if "Status: UNNUMBERED DRAFT — NOT APPROVED OR PUBLISHED" not in txt:
         raise ValueError("packet must be an unapproved editorial worksheet")
-    if "Packet: IPR-" + saturday.isoformat() not in head.splitlines():
+    identities = [line[len("Packet: "):] for line in head.splitlines()
+                  if line.startswith("Packet: ")]
+    if len(identities) != 1 or not identity_matches(identities[0], saturday.isoformat()):
         raise ValueError("packet does not match requested Saturday edition")
     appendix = rest.split(END_APPENDIX, 1)[0]
     entries = RECORD_LINE.findall(appendix)
@@ -290,6 +292,7 @@ def parse_saturday_packet(path: Path, *, saturday: date) -> dict:
     policy = receipt.get("policy_sha256")
     return {"sha256": hashlib.sha256(raw).hexdigest(),
             "kind": kind,
+            "identity": identities[0],
             # Absent from packets written before the fingerprint existed;
             # that counts as a change a human must adjudicate.
             "policy_sha256": policy if isinstance(policy, str) else None,
@@ -435,8 +438,7 @@ def analyst_binding(manifest, report, *, week: str) -> dict:
     from core.brief_analyst_packet import digest as analyst_digest, validate_manifest
     validate_manifest(manifest)
     packet = manifest.get("packet")
-    if (manifest.get("week_ending") != week or not isinstance(packet, str)
-            or not (packet == "IPR-" + week or packet.startswith("IPR-" + week + "-"))):
+    if manifest.get("week_ending") != week or not identity_matches(packet, week):
         raise ValueError("analyst assignment is not for this reporting week")
     if (not isinstance(report, dict) or report.get("schema") != FEEDBACK
             or report.get("feedback_sha256") != analyst_digest(
@@ -445,8 +447,11 @@ def analyst_binding(manifest, report, *, week: str) -> dict:
     if (report.get("assignment_id") != manifest["assignment_id"]
             or report.get("worksheet_sha256") != manifest["worksheet_sha256"]):
         raise ValueError("analyst feedback does not belong to this assignment")
+    # ``packet`` is checked against the Saturday packet by sunday_recheck and
+    # is not kept in the receipt.
     return {"assignment_sha256": manifest["manifest_sha256"],
-            "feedback_sha256": report["feedback_sha256"], "state": report.get("state")}
+            "feedback_sha256": report["feedback_sha256"], "state": report.get("state"),
+            "packet": packet}
 
 
 def sunday_recheck(saturday: str, *, packet_path, candidate, revised_docx=None,
@@ -479,6 +484,11 @@ def sunday_recheck(saturday: str, *, packet_path, candidate, revised_docx=None,
         raise ValueError("candidate sidecar is not for this reporting week")
     base = {k: v for k, v in candidate.items() if k != KEY}
     packet = parse_saturday_packet(Path(packet_path), saturday=target)
+    if analyst is not None:
+        # One Brief's analyst return never releases another Brief of the week.
+        if not isinstance(analyst, dict) or analyst.get("packet") != packet["identity"]:
+            raise ValueError("analyst assignment is not for this Brief")
+        analyst = {k: v for k, v in analyst.items() if k != "packet"}
     expected = base.get("manuscript_sha256")
     revised_sha, open_questions = None, 0
     if revised_docx is not None or expected is not None or is_source_linked(base):
@@ -523,7 +533,7 @@ def sunday_recheck(saturday: str, *, packet_path, candidate, revised_docx=None,
     receipt = {
         "schema": SCHEMA,
         "status": status,
-        "identity": "IPR-" + week,
+        "identity": packet["identity"],
         "week_ending": week,
         "collection_day": observed,
         "packet_kind": packet["kind"],
