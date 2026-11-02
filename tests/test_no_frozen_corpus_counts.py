@@ -317,8 +317,18 @@ def corpus_context_literals(source: str):
             continue
         if not (_statement_names(node) & CORPUS_IDENTIFIERS):
             continue
-        for child in _own_nodes(node):
+        own = _own_nodes(node)
+        # A constant passed straight to a keyword is about that keyword:
+        # `row(..., chars=800, analyzed=True)` names `analyzed`, but 800 is a
+        # character count. `records=3611` is still read, because its own
+        # keyword is a corpus metric.
+        keyword_owned = {id(k.value) for k in own
+                         if isinstance(k, ast.keyword)
+                         and k.arg not in CORPUS_IDENTIFIERS}
+        for child in own:
             if not isinstance(child, ast.Constant) or id(child) in docstrings:
+                continue
+            if id(child) in keyword_owned:
                 continue
             if isinstance(child.value, bool):
                 continue
@@ -643,6 +653,10 @@ class TestTheNarrowingStillCatchesTheRealThing(unittest.TestCase):
         source = 'corpus_size = %d\n' % self.TOTAL
         self.assertIn(self.TOTAL, frozen_total_literals_from(source, ".py"))
 
+    def test_a_total_passed_to_a_corpus_keyword_is_caught(self):
+        source = 'check(metrics, records=%d, chars=10)\n' % self.TOTAL
+        self.assertIn(self.TOTAL, frozen_total_literals_from(source, ".py"))
+
     def test_a_frozen_analyzed_count_is_caught(self):
         source = 'self.assertEqual(analyzed_records, %d)\n' % self.TOTAL
         self.assertIn(self.TOTAL, frozen_total_literals_from(source, ".py"))
@@ -690,6 +704,12 @@ class TestTheKnownFalsePositivesAreGone(unittest.TestCase):
         # nothing structural is written that way.
         ("a regex repetition bound",
          'pat = r"ipr-compass-mark-small\\.svg[^|]{0,120}?byte-identical"\n', 120),
+        # Added 2026-11-02. Verbatim from tests/test_sunday_source_offer_audit.py,
+        # where 800 matched the live count of records from pla_daily because
+        # `analyzed=` named a corpus metric elsewhere in the same statement.
+        ("a fixture keyword beside a corpus keyword",
+         'rows = [row(7, "singapore", text_english="brief",\n'
+         '            chars=800), row(8, "china", analyzed=True)]\n', 800),
     )
 
     def test_none_of_the_real_world_literals_is_flagged(self):
