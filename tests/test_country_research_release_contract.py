@@ -56,7 +56,7 @@ class CountryResearchReleaseContract(unittest.TestCase):
         text = self.body
         self.assertIn('assert row["entries"] == []', text)
         self.assertIn('d["has_production_records"] is False', text)
-        self.assertIn('d["manifest"] is None', text)
+        self.assertIn('d["manifest"] == manifest, (name, d["manifest"])', text)
         self.assertIn('from core.public_editorial_research import load_catalog', text)
         self.assertIn('if name in editorial_desks:', text)
         self.assertIn('assert "IPR research published — official originals linked" in text', text)

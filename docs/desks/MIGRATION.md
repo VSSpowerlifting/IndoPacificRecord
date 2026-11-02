@@ -213,7 +213,20 @@ the affected modules (832 tests) pass, `scripts/validate_output.py` reports
 the 10 governed warnings, and a local `site/render.py` inspection shows the
 desks table at 2 configured / 2 enabled for the US desk, the desk page listing
 both sources as enabled with no records, and the two new source pages. The
-full offline suite result is recorded in the commit message. Generated
+full offline suite result is recorded in the commit message. PR CI then
+showed eight workflow guards still pinning the pre-migration registry (no
+Japan production manifest; Indonesia and US `manifest` null); they now assert
+the registered state (Japan's manifest lists `jp_mod_news_ja` only and no
+Coast Guard source, Indonesia's lists `id_kemhan_news` only, the US desk's
+two sources are manual and none is Pacific Command, and the
+country-research loop records Vietnam as live with records), while Korea's
+deliberately refusing guard in `korea_pages_file_only_release.yml` is
+untouched. The push-only `release` job of
+`country_research_render_only_release.yml` has failed on `main` since
+23 October 2026 at its editorial-research gate, before that loop runs; this
+branch does not change that. The Japan Coast Guard live adapter probe
+(`japan_jcg_adapter_proof.yml`) fails on every branch since 1 November 2026
+for a publisher-side reason unrelated to this branch. Generated
 `output/` and the tracked `pla_watch.db` are deliberately not committed:
 Daily's migration step inserts the desk/institution/source rows and its render
 republishes.

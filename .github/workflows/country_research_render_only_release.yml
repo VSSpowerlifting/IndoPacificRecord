@@ -165,10 +165,20 @@ jobs:
           # the same catalog is independently authenticated by the render gate.
           from core.public_editorial_research import load_catalog
           editorial_desks = {entry["desk"] for entry in load_catalog()}
+          # Philippines and Indonesia register manual, never-fetched sources
+          # for governed admission (runtime migration 3) and stay shadow desks
+          # without production records; Vietnam's authorized article lane has
+          # been live since 22 October 2026.
           for name in ("philippines", "vietnam", "indonesia"):
               d = country[name]
-              assert d["public"] is True and d["status"] == "shadow"
-              assert d["manifest"] is None and d["has_production_records"] is False
+              manifest = "desks/" + name + "/manifest.json"
+              assert d["public"] is True
+              assert d["manifest"] == manifest, (name, d["manifest"])
+              if name == "vietnam":
+                  assert d["status"] == "live" and d["has_production_records"] is True
+              else:
+                  assert d["status"] == "shadow"
+                  assert d["has_production_records"] is False
               text = (base / (name + ".html")).read_text(encoding="utf-8")
               if name == "philippines":
                   # Operating link and machine-explanation lanes, not shadow.
