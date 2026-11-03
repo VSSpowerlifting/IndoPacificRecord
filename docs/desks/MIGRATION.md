@@ -314,7 +314,14 @@ needed. One publication-coordination correction removes the country render-only
 workflow from its own push trigger: its seven-file publication would otherwise
 link to newly registered source pages that it does not stage. Catalog changes
 and explicit exact-main manual releases remain supported. Daily owns the full
-source-page publication. Final revision/check and release evidence belongs in
+source-page publication. Final CI at `684a4376a2` ran 8,566 tests and failed
+on two corpus-growth fixture defects: the snapshot-race mutation deleted only
+publication-hidden rows, and a source's factual participant quantity collided
+with the current original-text count. The repair mutates actual visible records
+and proves count/fingerprint drift, while distinguishing explicit participant
+quantities from archive totals without exempting files or numeric values.
+Production code, templates, source policy, DB and output remain unchanged by
+that repair. Final revision/check and release evidence belongs in
 [PR #950](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/950).
 The first genuine scheduled Daily on the integrated revision must still prove
 nine manual-source rows and source-specific dispositions, accepted-data
