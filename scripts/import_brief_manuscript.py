@@ -13,7 +13,8 @@ Removing the visible labels or changing the stated author does not remove
 it. Import fails closed: a DOCX without that provenance needs exactly one
 declaration, ``--saturday-packet`` (the cycle packet it came from) or
 ``--independent``, and ``--independent`` is refused while any cycle signal
-remains.
+remains. The snapshot is not the sidecar: copy ``editorial_cycle`` by hand
+into the canonical ``briefs/<slug>.json`` with the other imported fields.
 """
 import argparse
 import hashlib

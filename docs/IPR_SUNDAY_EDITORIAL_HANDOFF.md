@@ -78,9 +78,12 @@ closed, and there is no automatic retry or override while the variable is on.
   different Brief than a declared packet, are refused. A DOCX without them must be
   declared: `--saturday-packet <packet>` for a cycle-derived manuscript (including
   an ordinary complete-week packet), or `--independent`, which is refused while any
-  carrier or visible Saturday label remains. Copy `editorial_cycle` from the
-  import JSON into the sidecar; the recheck stamps it again and refuses a candidate
-  or revised DOCX that names another Brief.
+  carrier or visible Saturday label remains. The import JSON is a snapshot, not
+  the sidecar: the owner copies `editorial_cycle` by hand into the canonical
+  `briefs/<slug>.json` with the other imported fields. The recheck stamps it again
+  and refuses a candidate or revised DOCX that names another Brief. Policy:
+  `DECISION_LOG.md`, 2026-11-02 "Sunday reconciliation by weekend-cycle
+  participation".
 - **Several Briefs in one week (#946):** each Brief is reconciled on its own. The
   receipt takes its identity from the packet's `Packet:` line, `IPR-<Saturday>` for
   the primary or `IPR-<Saturday>-<slug>` (slug `[a-z][a-z0-9-]{0,79}`) for an

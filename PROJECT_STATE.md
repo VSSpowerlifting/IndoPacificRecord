@@ -11,8 +11,10 @@ carried. The Sunday reconciliation receipt (`core/brief_editorial_cycle.py`) is
 enforced by `validate_brief` and `validate_readiness` for every Brief carrying
 weekend editorial cycle provenance (`editorial_cycle`), whatever its date, author
 or Word labels; the importer carries that provenance from hidden DOCX properties
-and otherwise needs an explicit `--saturday-packet` or `--independent`.
-Independently authored Briefs keep the existing safeguards. It is bound to the
+and otherwise needs an explicit `--saturday-packet` or `--independent`; the owner
+copies `editorial_cycle` from the import JSON into the canonical sidecar by hand.
+Independently authored Briefs keep the existing safeguards. The owner recorded
+this policy in `DECISION_LOG.md` (2026-11-02). It is bound to the
 packet's per-Brief identity (#946), the exact final manuscript and revised DOCX, the week's inventory
 and policy fingerprints and, where used, the reconciled analyst report. The
 Saturday draft is attempted at most once per week, reserved through the workflow's
