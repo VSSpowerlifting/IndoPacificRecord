@@ -178,6 +178,73 @@ class SourceLinkedTests(unittest.TestCase):
         self.assertNotIn("<script>", html)
         self.assertIn("&lt;script&gt;", html)
 
+    def test_explicit_manual_credits_render_and_update_metadata(self):
+        value = self.reviewed_fixture()
+        value.pop("research_contributor")
+        value["editorial_credits"] = {
+            "authors": ["Benjamin Yang", "Peter Nguyen", "Dylan Tanzi"],
+            "research_and_analysis": ["Research Analyst"],
+            "editing": ["Jophy Lin"],
+        }
+        digest = fingerprint(value)
+        value["policy_ruling"]["fingerprint"] = digest
+        value["editorial_review"]["fingerprint"] = digest
+        self.assertEqual(brief_contract.validate_brief(value, self.registry), [])
+        self.assertEqual(brief_contract.validate_readiness(value, self.registry), [])
+        entry = brief_collection.brief_entry("fixture", value)
+        self.assertEqual(entry["author_names"], ["Benjamin Yang", "Peter Nguyen", "Dylan Tanzi"])
+        self.assertEqual(entry["author_name"], "Benjamin Yang, Peter Nguyen, and Dylan Tanzi")
+        view = brief_collection.brief_view("fixture", value, desk_names={},
+                          state_labels={}, state_order=[], language_label=str)
+        self.assertEqual(view["contribution_credits"]["research_and_analysis"], ["Research Analyst"])
+        self.assertEqual(view["contribution_credits"]["editing"], ["Jophy Lin"])
+        self.assertIn("Benjamin Yang, Peter Nguyen, and Dylan Tanzi, “",
+                      brief_collection.brief_citation(view))
+        html = self.render(value)
+        self.assertIn("Research &amp; Analysis:", html)
+        self.assertIn("Editing:", html)
+        self.assertIn("Jophy Lin", html)
+        self.assertNotIn('aria-label="Research contributor"', html)
+        self.assertIn("Benjamin Yang and Peter Nguyen and Dylan Tanzi", html)
+        # A credit edit invalidates the existing exact-version human attestations.
+        changed = copy.deepcopy(value)
+        changed["editorial_credits"]["editing"] = ["Another Human Editor"]
+        self.assertTrue(brief_contract.validate_readiness(changed, self.registry))
+
+    def test_editorial_credit_schema_rejects_ambiguous_or_duplicated_roles(self):
+        good = self.reviewed_fixture()
+        good.pop("research_contributor")
+        good["editorial_credits"] = {"authors": ["Benjamin Yang"],
+                                     "research_and_analysis": ["Peter Nguyen"],
+                                     "editing": ["Jophy Lin"]}
+        invalid = [
+            {"authors": []},
+            {"authors": ["Wrong Lead"]},
+            {"authors": ["Benjamin Yang", "Benjamin Yang"]},
+            {"authors": ["Benjamin Yang"], "editing": ["Benjamin Yang"]},
+            {"authors": ["Benjamin Yang"], "editing": ["  Jophy Lin"]},
+            {"authors": ["Benjamin Yang"], "fact_checkers": ["Dylan Tanzi"]},
+            {"authors": "Benjamin Yang"},
+        ]
+        for credits in invalid:
+            with self.subTest(credits=credits):
+                value = copy.deepcopy(good)
+                value["editorial_credits"] = credits
+                self.assertTrue(brief_contract.validate_brief(value, self.registry))
+        both = copy.deepcopy(good)
+        both["research_contributor"] = self.value["research_contributor"]
+        self.assertTrue(any("cannot coexist" in problem for problem in
+                            brief_contract.validate_brief(both, self.registry)))
+
+    def test_credited_names_are_html_escaped(self):
+        value = copy.deepcopy(self.value)
+        value.pop("research_contributor")
+        value["editorial_credits"] = {"authors": ["Benjamin Yang"],
+                "editing": ["<script>alert(1)</script>"]}
+        html = self.render(value)
+        self.assertIn("&lt;script&gt;", html)
+        self.assertNotIn("<script>", html)
+
     def test_laos_coauthor_byline_cards_and_citation(self):
         html = self.render()
         self.assertIn("By <span class=\"byline-name\">Benjamin Yang and Dylan Tanzi</span></p>", html)
