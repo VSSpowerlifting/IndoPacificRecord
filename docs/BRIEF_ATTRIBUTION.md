@@ -5,15 +5,19 @@ The Founder & Executive Director decides credits for each Brief **before final
 editorial review and approval**, not through an automated roster or staff title.
 
 ```json
-"editorial_credits": {
+{
+  "editorial_credits": {
   "authors": ["Benjamin Yang", "Peter Nguyen"],
   "research_and_analysis": ["Dylan Tanzi"],
   "editing": ["Jophy Lin"]
+  }
 }
 ```
 
 `authors` is required when the field is present, and its first name must
-exactly match the existing `author_name` field. For a different lead author,\nupdate the existing `author_name`, `author_title`, `author_bio` and `author_links`\nto that person’s accurate information. The other two arrays may be
+exactly match the existing `author_name` field. For a different lead author,
+update the existing `author_name`, `author_title`, `author_bio` and `author_links`
+to that person’s accurate information. The other two arrays may be
 omitted or empty. Each list contains names, not team roles. Use one credit per
 person per issue; the validator refuses duplicated names across categories,
 unknown credit roles, empty authors, and mixing this new scheme with the
