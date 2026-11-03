@@ -1,8 +1,8 @@
-"""Official originals cited by approved Briefs, admitted as link-metadata Records.
+"""Works cited by approved Briefs, admitted as link-metadata Records.
 
 An approved Brief already publishes each publisher reference's URL, publisher,
-issuer, date, language and original title. This module turns the *official*
-ones into IPR Records that publish exactly that metadata and nothing more: no
+issuer, date, language and original title. This module turns eligible official
+and independent publisher citations into link-metadata Records, containing no
 source text, no excerpt, no verification notes, no desk coverage. Every
 citing Brief links to the Record and the Record links back to every Brief.
 
@@ -13,8 +13,9 @@ that page instead of a new one, so manual citation and automated collection
 converge on one identity. When that happens to a URL that already had a cited
 page, the old route becomes a redirect rather than a dead citation.
 
-The rights gate fails closed. Independent reporting stays an external
-citation. Singapore MINDEF is omitted entirely: its 2026-10-29 permission
+The rights gate fails closed. Independent journalism and research are identified
+as independent citations, not official primary evidence or verified IPR findings.
+Singapore MINDEF is omitted entirely: its 2026-10-29 permission
 covers hyperlinks from a Brief, not a standalone page bearing its headline.
 The Vietnam MPS, MOIT and VPCP families are omitted without a sealed
 decision. The Brief's own publisher reference is left exactly as approved.
@@ -27,7 +28,7 @@ from urllib.parse import urlsplit, urlunsplit
 from core import vietnam_source_use
 
 ROUTE_DIR = "record"
-FIELDS = ("url", "publisher", "issuer", "date", "lang", "original_title")
+FIELDS = ("url", "publisher", "issuer", "date", "lang", "original_title", "independence")
 
 # Hosts whose family has no public_title_display standing until an owner
 # decision is sealed. Those decisions need a secret the renderer never holds.
@@ -63,8 +64,8 @@ def cited_path(url: str) -> str:
 
 def omission(ref: dict):
     """Why a publisher reference cannot become a Record; None when it can."""
-    if ref.get("independence") != "official":
-        return "independent_reference"
+    if ref.get("independence") not in ("official", "independent"):
+        return "unclassified_reference"
     url = ref.get("url")
     parts = urlsplit(url) if isinstance(url, str) else None
     if (not parts or parts.scheme != "https" or not parts.hostname
@@ -163,8 +164,11 @@ def archive_rows(records):
             original_title=r["original_title"], date=r["date"],
             date_kind="source-stated publication" if r["date"] else "Undated",
             desks=[], source=r["publisher"], issuer=r["issuer"],
-            record_type="official_link",
-            processing="Official-link metadata cited in " + briefs
-                + "; this Record includes no source text or independent verification",
+            record_type=("official_link" if r["independence"] == "official"
+                         else "independent_link"),
+            processing=("Official-source citation metadata" if r["independence"] == "official"
+                        else "Independent-publication citation metadata")
+                + " cited in " + briefs
+                + "; this Record includes no source text or independent IPR verification",
             ipr_url=ORIGIN + "/" + r["record_path"], source_url=r["url"],
             citation=citation(r, ORIGIN))

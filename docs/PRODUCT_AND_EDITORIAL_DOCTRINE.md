@@ -394,9 +394,10 @@ cross-desk provenance requirements above/below remain fully applicable to every
 ordinary Brief. See `core/brief_source_linked.py` and
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`.
 
-**Cited official sources are Records (owner direction, 2026-11-01).** Each
-*official* publisher reference in an approved Brief gets one IPR Record per
-URL (`record/cited-<sha256[:16]>.html`, keyed on the URL with scheme and host
+**Eligible cited works are Records (owner directions, 2026-11-01 and 2026-11-02).**
+Official and independently published works cited by approved Briefs receive
+citation-only IPR Records, with independent publications explicitly identified
+as such. Each eligible publisher reference gets one IPR Record per URL (`record/cited-<sha256[:16]>.html`, keyed on the URL with scheme and host
 lowercased and the fragment dropped; path and query stay exact). The Record publishes only what
 the Brief already publishes: original title, issuer, publisher, language,
 source-stated date and the link. It holds no source bytes, excerpt, translation
@@ -405,7 +406,8 @@ keeps its publisher link and adds an "IPR Record" link; the Record links back to
 every citing Brief. A URL already held as a corpus record or released machine
 Record resolves to that page instead, so manual citation and collection share one
 identity; a cited route published before collection becomes a redirect. Independent
-reporting stays an external citation. MINDEF is omitted entirely: its 2026-10-29
+reporting gets a bibliographic Record only, with no copied text or claim of IPR
+verification. MINDEF is omitted entirely: its 2026-10-29
 permission covers hyperlinks from a Brief, not a standalone IPR page. Vietnam MPS,
 MOIT and VPCP are omitted without a sealed decision. Conflicting metadata for one
 URL stops the build.

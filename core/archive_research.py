@@ -68,11 +68,11 @@ def projection(**values):
     result['desks'] = sorted(set(result['desks']))
     public_url(result['ipr_url'], ipr=True)
     public_url(result['source_url'])
-    if result['record_type'] == 'official_link':
+    if result['record_type'] in ('official_link', 'independent_link'):
         # Title may be copied ONLY by a loader that explicitly permits it. No body,
         # summary, model draft or private capture fields can cross this boundary.
         if result['summary'] is not None or result['text'] is not None:
-            raise ValueError('official_link_text_prohibited')
+            raise ValueError('link_reference_text_prohibited')
     return result
 
 

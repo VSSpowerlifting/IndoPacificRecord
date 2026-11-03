@@ -1,4 +1,4 @@
-"""Official originals cited by approved Briefs become link-metadata Records."""
+"""Eligible works cited by approved Briefs become link-metadata Records."""
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -40,10 +40,18 @@ class RightsGateTests(unittest.TestCase):
     def test_official_https_reference_is_admitted(self):
         self.assertIsNone(cited.omission(ref("s1", "https://www.mod.go.jp/a.html")))
 
-    def test_independent_reporting_stays_external(self):
-        self.assertEqual(cited.omission(ref("s1", "https://www.reuters.com/x",
-                                            independence="independent")),
-                         "independent_reference")
+    def test_independent_reporting_is_citation_only(self):
+        r = ref("s1", "https://www.reuters.com/x", independence="independent")
+        self.assertIsNone(cited.omission(r))
+        records, links, omitted, _ = cited.resolve(collection(brief("b", 1, [r])))
+        self.assertEqual((len(records), len(links["b"]), omitted), (1, 1, []))
+        self.assertEqual(records[0]["independence"], "independent")
+        self.assertNotIn("verification", records[0])
+
+    def test_unclassified_reporting_stays_external(self):
+        self.assertEqual(cited.omission(ref("s1", "https://example.org/x",
+                                            independence="unknown")),
+                         "unclassified_reference")
 
     def test_unsafe_urls_are_refused(self):
         for url in ("http://www.mod.go.jp/a", "https://u:p@www.mod.go.jp/a",
@@ -155,6 +163,16 @@ class ArchiveIndexTests(unittest.TestCase):
                           "https://x.gov/a"))
         self.assertIn("No. 7", row["processing"])
 
+    def test_independent_archive_row_is_never_an_official_source(self):
+        independent = ref("s1", "https://www.reuters.com/a", independence="independent")
+        records, _, _, _ = cited.resolve(collection(brief("a", 1, [independent])))
+        row = next(cited.archive_rows(records))
+        self.assertEqual(row["record_type"], "independent_link")
+        self.assertEqual(row["desks"], [])
+        self.assertIsNone(row["text"])
+        self.assertIsNone(row["summary"])
+        self.assertIn("Independent-publication", row["processing"])
+
 
 class ApprovedBriefsTests(unittest.TestCase):
     """The actual approved Briefs: what is admitted and what is deliberately omitted."""
@@ -169,14 +187,25 @@ class ApprovedBriefsTests(unittest.TestCase):
                         if (r.get("verification") or {}).get("locator")}
 
     def test_admission_counts(self):
-        self.assertEqual(len(self.records), 29)
-        self.assertEqual(sum(len(v) for v in self.links.values()), 29)
-        self.assertEqual(len({r["id"] for r in self.records}), 29)
+        self.assertEqual(len(self.records), 33)
+        self.assertEqual(sum(len(v) for v in self.links.values()), 33)
+        self.assertEqual(len({r["id"] for r in self.records}), 33)
 
     def test_deliberate_omissions(self):
         reasons = sorted(o[3] for o in self.omitted)
-        self.assertEqual(reasons, ["held_source_family:vn_mps_foreign_affairs_vi"]
-                         + ["independent_reference"] * 4)
+        self.assertEqual(reasons, ["held_source_family:vn_mps_foreign_affairs_vi"])
+        self.assertEqual(sum(r["independence"] == "independent" for r in self.records), 4)
+
+    def test_every_reference_is_linked_or_explicitly_held(self):
+        c = load_collection([], load_registry(), briefs_dir=ROOT / "briefs")
+        refs = [(b["slug"], r["id"]) for b in c.briefs
+                if not b.get("is_review") and not c.sidecars[b["slug"]].get("synthetic")
+                for r in c.sidecars[b["slug"]].get("publisher_references") or ()]
+        linked = {(slug, rid) for slug, ids in self.links.items() for rid in ids}
+        held = {(slug, rid) for slug, rid, _, _ in self.omitted}
+        self.assertEqual(set(refs), linked | held)
+        self.assertFalse(linked & held)
+        self.assertEqual(len(refs), len(linked) + len(held))
 
     def test_rendered_page_links_back_and_withholds_locators(self):
         env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
@@ -185,6 +214,7 @@ class ApprovedBriefsTests(unittest.TestCase):
         tmpl = env.get_template("_cited_source.html")
         for record in self.records:
             page = tmpl.render(record=record, cite=cited.citation(record, "https://o"))
+            self.assertIn("Independent publication" if record["independence"] == "independent" else "Official source", page)
             self.assertIn('href="%s"' % record["url"].replace("&", "&amp;"), page)
             for c in record["cited_in"]:
                 self.assertIn('href="../%s#%s"' % (c["url"], c["anchor"]), page)
