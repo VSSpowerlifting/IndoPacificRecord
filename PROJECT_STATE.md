@@ -1,5 +1,26 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Briefs weekend editorial cycle — consolidated review candidate (2 November 2026)
+
+One branch now carries the Saturday provisional draft to Dylan and the Sunday
+recheck (#960), #957's release guarantees and #956's analyst intake. There is
+one activation variable, `IPR_WEEKEND_EDITORIAL_ENABLED` (unset, so disabled), and
+one dispatcher, the `workflow_run` trigger in
+`sunday_briefs_editorial_handoff.yml`. #957's own dispatcher and variable are not
+carried. The Sunday reconciliation receipt (`core/brief_editorial_cycle.py`) is
+enforced by `validate_brief` and `validate_readiness` for every Brief carrying
+weekend editorial cycle provenance (`editorial_cycle`), whatever its date, author
+or Word labels; the importer carries that provenance from hidden DOCX properties
+and otherwise needs an explicit `--saturday-packet` or `--independent`; the owner
+copies `editorial_cycle` from the import JSON into the canonical sidecar by hand.
+Independently authored Briefs keep the existing safeguards. The owner recorded
+this policy in `DECISION_LOG.md` (2026-11-02). It is bound to the
+packet's per-Brief identity (#946), the exact final manuscript and revised DOCX, the week's inventory
+and policy fingerprints and, where used, the reconciled analyst report. The
+Saturday draft is attempted at most once per week, reserved through the workflow's
+run history. #956 files are unchanged. This is not merged, activated or live.
+Details and the owner checklist are in the consolidation PR.
+
 ## Cited official sources as Records — review candidate (1 November 2026)
 
 `core/cited_source_records.py` derives one link-metadata Record per official URL

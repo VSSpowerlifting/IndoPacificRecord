@@ -19,13 +19,16 @@ from tests.test_weekly_briefs_auto_writer import valid_manuscript
 
 WEEK = "2026-10-10"
 SUNDAY = datetime(2026, 10, 11, 19, 17, tzinfo=timezone.utc)
+SATURDAY = datetime(2026, 10, 10, 19, 17, tzinfo=timezone.utc)
+FRIDAY = datetime(2026, 10, 9, 19, 17, tzinfo=timezone.utc)
 THURSDAY = datetime(2026, 10, 15, 19, 17, tzinfo=timezone.utc)
 
 
-def create_reviewed_packet(folder):
+def create_reviewed_packet(folder, *, saturday_provisional=False):
     path = Path(folder) / "IPR-Briefs-Editorial-2026-10-10.txt"
     text = render_packet(
         scaffold(), manuscript=valid_manuscript(), as_of=WEEK,
+        saturday_provisional=saturday_provisional,
     )
     path.write_bytes(text.encode("utf-8"))
     return path
@@ -96,9 +99,10 @@ class ReviewedPacketManualHandoff(unittest.TestCase):
             digest = hashlib.sha256(approved_bytes).hexdigest()
             captured = []
             def fake_send(path, week_ending, *, provisional=False, full_week=False,
-                          owner_released=False):
+                          owner_released=False, saturday_provisional=False):
                 # The owner's confirmed exact-digest approval is the release.
                 self.assertTrue(owner_released)
+                self.assertFalse(saturday_provisional)
                 captured.append((week_ending, path.read_bytes(), full_week, provisional))
                 self.assertNotEqual(path, file)
             with patch.dict(os.environ, {
@@ -246,6 +250,74 @@ class ReviewedPacketManualHandoff(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 main(["--packet", str(file), "--week-ending", WEEK,
                       "--confirm-owner-reviewed"])
+
+
+
+class SaturdayProvisionalManualHandoff(unittest.TestCase):
+    def approved_env(self, file):
+        return {
+            "IPR_SUNDAY_OWNER_REVIEWED_WEEK": WEEK,
+            "IPR_SUNDAY_OWNER_REVIEWED_SHA256": hashlib.sha256(file.read_bytes()).hexdigest(),
+            "IPR_EDITOR_TO": "editor@example.com",
+            "IPR_PREVIEW_TO": "owner@example.com",
+        }
+
+    def test_saturday_provisional_packet_resends_on_its_saturday_only_in_mode(self):
+        with tempfile.TemporaryDirectory() as folder:
+            file = create_reviewed_packet(folder, saturday_provisional=True)
+            captured = []
+            def fake_send(path, week_ending, *, provisional=False, full_week=False,
+                          owner_released=False, saturday_provisional=False):
+                captured.append((path.read_bytes(), saturday_provisional, owner_released))
+            with patch.dict(os.environ, self.approved_env(file), clear=True), patch(
+                "scripts.sunday_send_reviewed_packet.send_packet", side_effect=fake_send,
+            ):
+                output = handoff(file, WEEK, send=True, owner_confirmed=True,
+                                 now=SATURDAY, saturday_provisional=True)
+            self.assertEqual(captured, [(file.read_bytes(), True, True)])
+            self.assertTrue(output["saturday_provisional"])
+            self.assertFalse(output["automated_model_called"])
+            self.assertFalse(output["publication_authorized"])
+
+    def test_saturday_send_without_mode_still_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            for provisional in (False, True):
+                with self.subTest(packet_is_provisional=provisional):
+                    sub = Path(folder) / str(provisional)
+                    sub.mkdir()
+                    file = create_reviewed_packet(sub, saturday_provisional=provisional)
+                    with patch.dict(os.environ, self.approved_env(file), clear=True), patch(
+                        "scripts.sunday_send_reviewed_packet.send_packet") as smtp:
+                        with self.assertRaisesRegex(ReviewedHandoffRefused, "not ended"):
+                            handoff(file, WEEK, send=True, owner_confirmed=True,
+                                    now=SATURDAY)
+                        smtp.assert_not_called()
+
+    def test_mode_must_match_packet_header(self):
+        with tempfile.TemporaryDirectory() as folder:
+            complete = create_reviewed_packet(folder)
+            with self.assertRaisesRegex(ReviewedHandoffRefused, "cut-off header"):
+                validate_file(complete, WEEK, now=SATURDAY, saturday_provisional=True)
+            provisional_dir = Path(folder) / "p"
+            provisional_dir.mkdir()
+            provisional = create_reviewed_packet(provisional_dir, saturday_provisional=True)
+            # A provisional draft never masquerades as the complete-week packet.
+            with self.assertRaisesRegex(ReviewedHandoffRefused, "cut-off header"):
+                validate_file(provisional, WEEK, now=SUNDAY)
+
+    def test_provisional_mode_refuses_friday_late_and_historical(self):
+        with tempfile.TemporaryDirectory() as folder:
+            file = create_reviewed_packet(folder, saturday_provisional=True)
+            for now in (FRIDAY, THURSDAY):
+                with self.subTest(now=now):
+                    with self.assertRaisesRegex(ReviewedHandoffRefused, "Saturday or the following"):
+                        validate_file(file, WEEK, now=now, saturday_provisional=True)
+            with patch.dict(os.environ, self.approved_env(file), clear=True), patch(
+                "scripts.sunday_send_reviewed_packet.send_packet") as smtp:
+                with self.assertRaisesRegex(ReviewedHandoffRefused, "never a historical"):
+                    handoff(file, WEEK, send=True, owner_confirmed=True, now=SATURDAY,
+                            historical_override=True, saturday_provisional=True)
+                smtp.assert_not_called()
 
 
 if __name__ == "__main__":

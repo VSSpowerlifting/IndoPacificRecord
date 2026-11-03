@@ -29,6 +29,11 @@ from scripts.sunday_pilot_owner_review import (
 ARTICLE_LAYOUT = "ipr-article-first/1"
 ARTICLE_KEY = "ARTICLE"
 ACCOUNTING_END = "END OF ARTICLE SOURCE ACCOUNTING"
+# The Saturday draft is written after Saturday's own Daily collection. It is
+# never the complete week: the Sunday recheck must reconcile the refreshed corpus
+# before the revised manuscript can be ready or approved (core.brief_editorial_cycle).
+SATURDAY_PROVISIONAL_MARK = (
+    "SATURDAY PROVISIONAL; THROUGH SATURDAY DAILY COLLECTION; SUNDAY RECHECK REQUIRED")
 
 
 EDIT_SECTIONS = (
@@ -90,7 +95,8 @@ def article_accounting_lines(manuscript):
 
 
 def render_packet(sidecar, *, manuscript=None, as_of=None,
-                  vietnam_candidates=(), research_evidence=()):
+                  vietnam_candidates=(), research_evidence=(),
+                  saturday_provisional=False):
     if sidecar.get("editorial_status") != "draft" or sidecar.get("issue_number") is not None:
         raise ValueError("only unnumbered, unapproved draft scaffolds may be emailed")
     week_end = date.fromisoformat(sidecar["week_ending"])
@@ -98,6 +104,8 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         raise ValueError("the Briefs editorial week must end on Saturday")
     desks = sidecar["desks"]
     trail = sidecar["source_trail"]
+    if saturday_provisional and as_of != sidecar["week_ending"]:
+        raise ValueError("Saturday provisional packet requires the Saturday cut-off")
     if (vietnam_candidates or research_evidence) and not as_of:
         raise ValueError("research evidence requires an explicit reporting cutoff")
     if research_evidence and vietnam_candidates:
@@ -122,7 +130,9 @@ def render_packet(sidecar, *, manuscript=None, as_of=None,
         "Packet: IPR-" + week_end.isoformat(),
         "Week: " + one_line(sidecar["week_start"]) + " through " + week_end.isoformat(),
         "Status: UNNUMBERED DRAFT — NOT APPROVED OR PUBLISHED",
-        (("AS-OF CUT-OFF: " + as_of +
+        (("AS-OF CUT-OFF: " + as_of + " (" + SATURDAY_PROVISIONAL_MARK + ")"
+          if saturday_provisional else
+          "AS-OF CUT-OFF: " + as_of +
           " (SATURDAY COMPLETE; CAPTURE COMPLETENESS UNVERIFIED)"
           if as_of == sidecar["week_ending"] else
           "AS-OF CUT-OFF: " + as_of +
@@ -363,8 +373,15 @@ def quality_hold(packet_text):
     return "\n## ARTICLE\n" in packet_text
 
 
+def is_saturday_provisional(packet_text):
+    """True only for a packet whose own header carries the Saturday mark."""
+    head = packet_text.split("\n\n", 1)[0]
+    return ("(" + SATURDAY_PROVISIONAL_MARK + ")") in head
+
+
 def send_packet(path, week_ending, *, provisional=False, full_week=False,
-                preview_to_owner=False, owner_released=False):
+                preview_to_owner=False, owner_released=False,
+                saturday_provisional=False):
     """Mail the exact bytes at ``path``.
 
     A packet that carries a narrative-quality hold is never mailed to the editor
@@ -382,6 +399,8 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
     # Fingerprint the SAME immutable bytes ultimately attached to the email.
     # A newly generated Sunday draft is not the file the owner reviewed.
     original_attachment = path.read_bytes()
+    if saturday_provisional != is_saturday_provisional(original_attachment.decode("utf-8")):
+        raise ValueError("Saturday provisional mode must match the packet's own cut-off header")
     require_exact_reviewed_manuscript(
         week_ending=week_ending, sending=not preview_to_owner,
         manuscript_bytes=original_attachment,
@@ -457,7 +476,10 @@ def send_packet(path, week_ending, *, provisional=False, full_week=False,
         # provenance hashes, source IDs, source appendices, or a .txt envelope.
         from scripts.sunday_editor_readable import prose_only_html, prose_only_text
         original_text = original_attachment.decode("utf-8")
-        message["Subject"] = "IPR Briefs | week ending {} | Sunday draft for language edits".format(week_ending)
+        message["Subject"] = (
+            "IPR Briefs | week ending {} | Saturday provisional draft for language edits"
+            if saturday_provisional else
+            "IPR Briefs | week ending {} | Sunday draft for language edits").format(week_ending)
         message.set_content(prose_only_text(original_text))
         message.add_alternative(prose_only_html(original_text), subtype="html")
     else:
@@ -503,6 +525,9 @@ def main(argv=None):
     parser.add_argument("--as-of", help="Friday or Saturday source cutoff (YYYY-MM-DD)")
     parser.add_argument("--full-week", action="store_true",
                         help="Sunday full-week draft from records through Saturday")
+    parser.add_argument("--saturday-provisional", action="store_true",
+                        help="Saturday draft after Saturday's own Daily collection; "
+                             "requires --full-week and a later Sunday recheck")
     parser.add_argument("--include-research", action="store_true",
                         help="privately synthesize bounded source-linked official research notes")
     parser.add_argument("--research-packet", type=Path,
@@ -522,6 +547,8 @@ def main(argv=None):
     if args.full_week and (not args.write_automatic
                            or args.as_of != sidecar["week_ending"]):
         parser.error("--full-week requires Saturday --as-of and --write-automatic")
+    if args.saturday_provisional and not args.full_week:
+        parser.error("--saturday-provisional requires --full-week")
     if args.include_research and not (args.full_week and args.write_automatic):
         parser.error("--include-research is private Sunday automatic drafting only")
     if args.research_packet and not args.include_research:
@@ -550,10 +577,12 @@ def main(argv=None):
         from core.brief_story_discovery import NoQualifyingStory
         try:
             manuscript = (compose(sidecar, args.as_of, supplemental=research,
-                                  automatic_story_selection=args.full_week)
+                                  automatic_story_selection=args.full_week,
+                                  saturday_provisional=args.saturday_provisional)
                           if research else compose(
                               sidecar, args.as_of,
-                              automatic_story_selection=args.full_week))
+                              automatic_story_selection=args.full_week,
+                              saturday_provisional=args.saturday_provisional))
         except NoQualifyingStory as exc:
             receipt_path = args.out.with_suffix(".selection.json")
             with os.fdopen(os.open(str(receipt_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600),
@@ -574,7 +603,8 @@ def main(argv=None):
         vietnam_candidates = load_candidates(sidecar["week_ending"], args.as_of)
     text = render_packet(sidecar, manuscript=manuscript, as_of=args.as_of,
                          vietnam_candidates=vietnam_candidates,
-                         research_evidence=research)
+                         research_evidence=research,
+                         saturday_provisional=args.saturday_provisional)
     args.out.write_text(text, encoding="utf-8")
     if quality_summary(text):
         print(quality_summary(text))
@@ -584,7 +614,8 @@ def main(argv=None):
     if args.send or args.preview_to_owner:
         send_packet(args.out, sidecar["week_ending"],
                     provisional=args.write_automatic, full_week=args.full_week,
-                    preview_to_owner=args.preview_to_owner)
+                    preview_to_owner=args.preview_to_owner,
+                    saturday_provisional=args.saturday_provisional)
         print("OWNER-ONLY PREVIEW emailed; Dylan was not contacted."
               if args.preview_to_owner else
               "Editorial worksheet delivered to configured editor.")

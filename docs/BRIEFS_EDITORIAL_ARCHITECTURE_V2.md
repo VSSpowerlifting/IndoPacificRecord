@@ -81,6 +81,16 @@ them. Already numbered publications are exempt from this new authoring gate.
 1. Import/freeze the exact manuscript using `scripts/import_brief_manuscript.py`
    and complete the canonical source-linked Brief fields and source support.
    Keep the existing manuscript/source review and §5b exception workflow.
+   Declare the manuscript's origin: the importer carries a weekend cycle DOCX's
+   hidden provenance into `editorial_cycle` in the import JSON; otherwise pass
+   `--saturday-packet` or `--independent`. The import JSON is not the sidecar:
+   copy `editorial_cycle` by hand into the canonical `briefs/<slug>.json` with
+   the other imported fields, and never drop it. A Brief carrying
+   `editorial_cycle` also needs its own `saturday_sunday_cycle` receipt,
+   written by the Sunday reconciliation for this exact manuscript and revised
+   DOCX, before `validate_readiness` and `validate_brief` pass (see `docs/IPR_SUNDAY_EDITORIAL_HANDOFF.md`).
+   Independently authored Briefs keep the existing safeguards. DOCX labels and
+   the stated author do not decide this.
 2. Prepare an explicit outline (repeat `--section` for every section):
 
    ```sh
