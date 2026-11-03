@@ -125,17 +125,118 @@ class EditorialSelection(unittest.TestCase):
         self.assertEqual(self.links()[0][1], digest(topical))
         self.assertEqual(self.versions(), 2)
 
-    def test_pin_to_older_version_than_published_link_is_an_explicit_conflict(self):
+    def test_out_of_scope_revision_follows_the_topical_rule_then_its_exact_pin(self):
         topical = metadata("220078")
         self.admit([topical])
         changed = routine()
         path = self.selection(changed)
         report = self.admit([changed], path, observed=LATER, run="later-run")
-        # The unselected rule would withdraw it; the exact pin does not silently
-        # replace the topical projection either.
-        self.assertEqual(report["selection"][identity(changed)], "selection_conflict")
-        self.assertEqual(read_live_links(self.conn, "vietnam"), [])
+        # The unselected rule withdraws the old topical projection (main's rule,
+        # unchanged); the editor's exact pin of the newest version then admits it.
+        self.assertEqual(report["selection"][identity(changed)], "selection_admitted")
+        self.assertEqual(self.links()[0][1], digest(changed))
         self.assertEqual(self.versions(), 2)
+
+    def independent(self, m, proof="e" * 64):
+        """A link admitted by another path: its proof is not a selection proof."""
+        intake.store_verified_links(self.conn, [{"source_family": FAMILY, "source_identity": identity(m),
+            "desk": "vietnam", "canonical_official_url": m["official_url"], "publisher_posted_date": m["issue_date"],
+            "official_issuer": "vn_vpcp", "official_publisher": "vn_government_portal",
+            "official_republisher": None, "source_git_commit": SHA, "metadata_version_sha256": digest(m),
+            "first_seen_run": "independent-run"}], proof, NOW, stable_versions=True)
+
+    def test_conflicting_pin_leaves_an_independent_admission_untouched(self):
+        m = routine()
+        revised = copy.deepcopy(m); revised["signatory"] += " (synthetic revision)"
+        self.admit([m])
+        self.admit([revised], observed=LATER, run="later-run")
+        self.independent(m)
+        before = self.links()
+        report = self.admit([], self.selection(revised), observed=LATER, run="pin-run")
+        self.assertEqual(report["selection"], {identity(m): "selection_conflict"})
+        self.assertEqual(self.links(), before)
+        # Removing the conflicting entry does not touch it either.
+        self.assertEqual(self.admit([], self.selection(), observed=LATER)["selection"], {})
+        self.assertEqual(self.links(), before)
+
+    def test_independent_link_at_the_pinned_version_survives_entry_removal(self):
+        m = routine()
+        self.admit([m])
+        self.independent(m)
+        before = self.links()
+        self.assertEqual(self.admit([], self.selection(m))["selection"], {identity(m): "selection_independent"})
+        self.assertEqual(self.links(), before)
+        self.assertEqual(self.admit([], self.selection(), observed=LATER)["selection"], {})
+        self.assertEqual(self.links(), before)
+        # An invalid file and a held revision do not withdraw it either.
+        (self.tmp / "broken.json").write_text("{")
+        self.admit([], self.tmp / "broken.json", observed=LATER)
+        self.assertEqual(self.links(), before)
+
+    def test_held_revision_withdraws_only_a_selection_owned_link(self):
+        m, other = routine(), routine("220077")
+        self.admit([m, other])
+        self.independent(other)
+        path = self.selection(m, other)
+        self.assertEqual(self.admit([], path)["selection"],
+                         {identity(m): "selection_admitted", identity(other): "selection_independent"})
+        later = []
+        for x in (m, other):
+            r = copy.deepcopy(x); r["signatory"] += " (synthetic revision)"; later.append(r)
+        # A recapture is applied directly so the topical rule cannot be the cause.
+        for r in later:
+            self.conn.execute("INSERT INTO official_document_versions VALUES (?,?,?,?,?,?,?,?)",
+                (FAMILY, identity(r), digest(r), json.dumps(r, ensure_ascii=False, sort_keys=True),
+                 "c" * 64, LATER, "later-run", SHA))
+        report = self.admit([], path, observed=LATER)
+        self.assertEqual(report["selection"], {identity(m): "selection_revision_held",
+                                               identity(other): "selection_revision_held"})
+        self.assertEqual([r[0] for r in self.links()], [identity(other)])
+
+    def test_repin_replaces_only_its_own_link(self):
+        m = routine()
+        revised = copy.deepcopy(m); revised["signatory"] += " (synthetic revision)"
+        self.admit([m])
+        self.admit([], self.selection(m))
+        self.assertEqual(self.links()[0][1], digest(m))
+        self.admit([revised], self.selection(m), observed=LATER, run="later-run")
+        self.assertEqual(self.links(), [])  # held: the pin is no longer the newest
+        report = self.admit([], self.selection(revised), observed=LATER)
+        self.assertEqual(report["selection"], {identity(m): "selection_admitted"})
+        self.assertEqual(self.links()[0][1], digest(revised))
+        self.assertEqual(self.versions(), 2)
+
+    def test_editing_other_entries_never_changes_ownership(self):
+        m, other = routine(), routine("220077")
+        self.admit([m, other])
+        self.admit([], self.selection(m))
+        first = self.links()
+        path = self.selection(m, other)
+        data = json.loads(path.read_text())
+        data["selections"][0]["reason"] = "edited reason"; data["selections"][0]["selected_by"] = "another editor"
+        path.write_text(json.dumps(data, ensure_ascii=False))
+        report = self.admit([], path, observed=LATER, run="later-run")
+        self.assertEqual(report["selection"], {identity(m): "selection_unchanged",
+                                               identity(other): "selection_admitted"})
+        self.assertEqual([r for r in self.links() if r[0] == identity(m)], first)
+        report = self.admit([], self.selection(other), observed=LATER)
+        self.assertEqual(report["selection"], {identity(other): "selection_unchanged",
+                                               identity(m): "selection_withdrawn"})
+        self.assertEqual([r[0] for r in self.links()], [identity(other)])
+        self.assertEqual(self.versions(), 2)
+
+    def test_proof_routes_are_distinct(self):
+        m = routine()
+        self.admit([m])
+        self.admit([], self.selection(m))
+        proof = self.links()[0][2]
+        self.assertEqual(proof, intake.selection_proof(intake.policy(), identity(m), digest(m), "b" * 64,
+                                                       "offline-fixture", SHA))
+        topical = metadata()
+        self.admit([topical])
+        topical_proof = [r for r in self.links() if r[0] == identity(topical)][0][2]
+        self.assertNotEqual(topical_proof, intake.selection_proof(intake.policy(), identity(topical),
+            digest(topical), "b" * 64, "offline-fixture", SHA))
 
     def test_pinned_topical_version_needs_no_selection_route(self):
         topical = metadata()
@@ -293,10 +394,12 @@ class Invocation(unittest.TestCase):
             code, report = self.run_cli("--private-record", str(record))
         back = report["private_readback"]
         self.assertEqual((code, back["mac"], back["metadata_sha256"]), (0, "unverified_key_absent", digest(self.m)))
+        self.assertEqual(back["custody"], "blocked:bridge_key_absent,original_not_supplied")
         self.assertNotIn("metadata", back)
         self.assertNotIn(self.m["subject"], json.dumps(report, ensure_ascii=False))
         with patch.dict(os.environ, {"VIETNAM_PRIVATE_BRIDGE_KEY": "k" * 32}):
-            self.assertEqual(self.run_cli("--private-record", str(record))[1]["private_readback"]["mac"], "verified")
+            back = self.run_cli("--private-record", str(record))[1]["private_readback"]
+            self.assertEqual((back["mac"], back["custody"]), ("verified", "blocked:original_not_supplied"))
         with patch.dict(os.environ, {"VIETNAM_PRIVATE_BRIDGE_KEY": "x" * 32}):
             self.assertEqual(self.run_cli("--private-record", str(record))[1]["reason"], "private_record_mac_invalid")
         renamed = record.with_name("e" * 64 + ".json"); record.rename(renamed)
@@ -305,6 +408,38 @@ class Invocation(unittest.TestCase):
         mismatched = self.sealed(dict(json.loads(renamed.read_text())["capture"], metadata=other,
                                       metadata_sha256=digest(other)))
         self.assertEqual(self.run_cli("--private-record", str(mismatched))[1]["reason"], "private_record_pin_mismatch")
+        self.assertEqual(self.run_cli("--private-original", str(renamed))[1]["reason"], "private_original_without_record")
+        self.assertEqual(self.link_count(), 0)
+
+    def test_dry_run_reads_a_clean_wal_copy_without_sidecars(self):
+        with sqlite3.connect(self.db) as conn:
+            self.assertEqual(conn.execute("PRAGMA journal_mode=WAL").fetchone(), ("wal",))
+        self.assertFalse(Path(str(self.db) + "-wal").exists())
+        before = self.db.read_bytes()
+        code, report = self.run_cli()
+        self.assertEqual((code, report["disposition"], report["written"]), (0, "selection_admitted", False))
+        self.assertEqual(self.db.read_bytes(), before)
+        self.assertEqual(self.link_count(), 0)
+
+    def test_custody_is_authenticated_only_with_key_and_replayed_original(self):
+        original = self.tmp / "original.bin"
+        original.write_bytes(b"%PDF- synthetic original")
+        content = "d" * 64
+        record = self.sealed(dict(json.loads(self.sealed().read_text())["capture"],
+                                  pdf_sha256=hashlib.sha256(original.read_bytes()).hexdigest()))
+        args = ("--private-record", str(record), "--private-original", str(original))
+        with patch.object(cli, "inspect_pdf", lambda data, m, expected_sha256: {"content_sha256": content}):
+            with patch.dict(os.environ, {"VIETNAM_PRIVATE_BRIDGE_KEY": ""}):
+                back = self.run_cli(*args)[1]["private_readback"]
+                self.assertEqual((back["original_replay"], back["custody"]), ("replayed", "blocked:bridge_key_absent"))
+            with patch.dict(os.environ, {"VIETNAM_PRIVATE_BRIDGE_KEY": "k" * 32}):
+                code, report = self.run_cli(*args)
+                self.assertEqual((code, report["private_readback"]["custody"]), (0, "authenticated"))
+                original.write_bytes(b"%PDF- altered")
+                self.assertEqual(self.run_cli(*args)[1]["reason"], "private_original_hash_mismatch")
+        original.write_bytes(b"%PDF- synthetic original")
+        with patch.object(cli, "inspect_pdf", lambda data, m, expected_sha256: {"content_sha256": "0" * 64}):
+            self.assertEqual(self.run_cli(*args)[1]["reason"], "private_content_hash_mismatch")
         self.assertEqual(self.link_count(), 0)
 
 

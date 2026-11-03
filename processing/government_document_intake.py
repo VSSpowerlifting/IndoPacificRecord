@@ -88,7 +88,6 @@ def admit(conn, captures, *, source_sha, run_id, observed_utc, selection_path=No
         chosen = selection(selection_path)
     except ValueError:
         chosen = None
-    pinned = {e["source_identity"] for e in chosen["selections"]} if chosen else _selection_links(conn)
     need(re.fullmatch(r"[a-f0-9]{40}", source_sha) and re.fullmatch(r"[A-Za-z0-9_.-]{1,120}", run_id),
          "vpcp_provenance_invalid")
     added = unchanged = revised = filtered = 0
@@ -106,8 +105,8 @@ def admit(conn, captures, *, source_sha, run_id, observed_utc, selection_path=No
             filtered += 1
             # A revised subject outside the bounded topical scope withdraws
             # the old public reference; the version history stays intact.
-            # A selected identity is decided by its exact pin below.
-            if old and ident not in pinned:
+            # A selection-owned link is decided by its exact pin below.
+            if old and not _owned(conn, rules, ident):
                 conn.execute("DELETE FROM regional_official_source_links WHERE source_family=? AND source_identity=?",
                              (FAMILY, ident))
             continue
@@ -133,36 +132,85 @@ def admit(conn, captures, *, source_sha, run_id, observed_utc, selection_path=No
             unchanged += result["unchanged_official_links"]
     selected = "vpcp_selection_invalid"
     if chosen:
-        selected = {e["source_identity"]: _reconcile(conn, rules, chosen, e, observed_utc)
+        entries = {e["source_identity"] for e in chosen["selections"]}
+        selected = {e["source_identity"]: _reconcile(conn, rules, e, observed_utc)
                     for e in chosen["selections"]}
-        # A removed entry withdraws its link; the version history stays intact.
-        for ident in sorted(_selection_links(conn) - pinned):
-            conn.execute("DELETE FROM regional_official_source_links WHERE source_family=? AND source_identity=?",
-                         (FAMILY, ident))
-            selected[ident] = "selection_withdrawn"
+        # A removed entry withdraws only the link that selection admitted;
+        # independent admissions and the version history stay intact.
+        for ident, version, raw, capture, run, commit in conn.execute(
+                "SELECT l.source_identity,v.metadata_sha256,v.metadata_json,v.capture_sha256,"
+                "v.source_run,v.collector_commit FROM regional_official_source_links l "
+                "JOIN official_document_versions v ON v.source_family=l.source_family "
+                "AND v.source_identity=l.source_identity AND v.metadata_sha256=l.metadata_version_sha256 "
+                "WHERE l.source_family=? ORDER BY l.source_identity", (FAMILY,)).fetchall():
+            if ident in entries or not _owned(conn, rules, ident):
+                continue
+            if topics(json.loads(raw)):
+                # Still eligible on its own: re-attribute to topical routing.
+                conn.execute("UPDATE regional_official_source_links SET release_proof_sha256=? "
+                    "WHERE source_family=? AND source_identity=?", (digest({"policy": rules,
+                    "capture_sha256": capture, "metadata_sha256": version, "collector_commit": commit,
+                    "run_id": run}), FAMILY, ident))
+                selected[ident] = "selection_released_topical"
+            else:
+                _withdraw(conn, ident)
+                selected[ident] = "selection_withdrawn"
     return {"new": added, "unchanged": unchanged, "revised": revised, "filtered": filtered,
             "selection": selected, "scope": "bibliographic_metadata_only", "model_calls": 0}
 
 
-def _selection_links(conn):
-    """Identities whose public link pins a non-topical, editorially selected version."""
-    return {ident for ident, m in conn.execute("SELECT l.source_identity,v.metadata_json "
-        "FROM regional_official_source_links l JOIN official_document_versions v "
+def selection_proof(rules, ident, version, capture, run, commit):
+    """Release proof of a link admitted by editorial selection.
+
+    Binds the exact captured version row, so it is identical for every run
+    and file edit that pins that version: editing another entry or a reason
+    never changes ownership. The policy is the exact one `policy()` enforces.
+    It is not a content hash of the original: no original is read here.
+    """
+    return digest({"policy": rules, "routing": "editorial_selection", "source_family": FAMILY,
+                   "source_identity": ident, "metadata_sha256": version, "capture_sha256": capture,
+                   "source_run": run, "collector_commit": commit})
+
+
+def _owned(conn, rules, ident):
+    """True only for a link whose proof is the selection proof of its version.
+
+    Ownership is never inferred from topic classification: a link admitted
+    by any other path keeps a different proof and is never touched here.
+    """
+    row = conn.execute("SELECT v.metadata_sha256,v.capture_sha256,v.source_run,v.collector_commit,"
+        "l.release_proof_sha256 FROM regional_official_source_links l JOIN official_document_versions v "
         "ON v.source_family=l.source_family AND v.source_identity=l.source_identity "
-        "AND v.metadata_sha256=l.metadata_version_sha256 WHERE l.source_family=?", (FAMILY,))
-        if not topics(json.loads(m))}
+        "AND v.metadata_sha256=l.metadata_version_sha256 WHERE l.source_family=? AND l.source_identity=?",
+        (FAMILY, ident)).fetchone()
+    return row is not None and row[4] == selection_proof(rules, ident, *row[:4])
 
 
-def _reconcile(conn, rules, chosen, entry, observed_utc):
+def _withdraw(conn, ident):
+    conn.execute("DELETE FROM regional_official_source_links WHERE source_family=? AND source_identity=?",
+                 (FAMILY, ident))
+
+
+def _reconcile(conn, rules, entry, observed_utc):
     """One pin's explicit disposition; a held pin never blocks the run.
 
     The newest captured version decides. A pin publishes only while it is
     still that version; a later revision is never followed automatically.
+    Only a link this selection admitted is ever withdrawn; any other link
+    for the identity is reported and left exactly as it is.
     """
     ident, pin = entry["source_identity"], entry["metadata_sha256"]
     rows = conn.execute("SELECT metadata_sha256,metadata_json,capture_sha256,source_run,collector_commit "
         "FROM official_document_versions WHERE source_family=? AND source_identity=? "
         "ORDER BY first_observed_utc,rowid", (FAMILY, ident)).fetchall()
+    link = conn.execute("SELECT metadata_version_sha256 FROM regional_official_source_links "
+        "WHERE source_family=? AND source_identity=?", (FAMILY, ident)).fetchone()
+    owned = _owned(conn, rules, ident)
+    if owned and link[0] != pin:
+        # The entry was re-pinned: the old selection link is no longer attributable.
+        _withdraw(conn, ident)
+        link = None
+        owned = False
     exact = [r for r in rows if r[0] == pin]
     if not exact:
         return "selection_version_missing"
@@ -171,30 +219,23 @@ def _reconcile(conn, rules, chosen, entry, observed_utc):
         validate(m)
         need(identity(m) == ident and digest(m) == pin, "vpcp_selection_digest_mismatch")
     except (ValueError, TypeError, KeyError):
+        if owned:
+            _withdraw(conn, ident)
         return "selection_digest_mismatch"
     newest = json.loads(rows[-1][1])
-    link = conn.execute("SELECT metadata_version_sha256 FROM regional_official_source_links "
-        "WHERE source_family=? AND source_identity=?", (FAMILY, ident)).fetchone()
     if rows[-1][0] != pin:
-        if topics(newest):
-            return "selection_superseded"
-        if link:
-            conn.execute("DELETE FROM regional_official_source_links WHERE source_family=? AND source_identity=?",
-                         (FAMILY, ident))
-        return "selection_revision_held"
+        if owned:
+            _withdraw(conn, ident)
+        return "selection_superseded" if topics(newest) else "selection_revision_held"
     if topics(m):
         return "selection_topical"
-    if link and link[0] == pin:
+    if owned:
         return "selection_unchanged"
     if link:
-        # An older topical projection is not silently replaced by a pin.
-        conn.execute("DELETE FROM regional_official_source_links WHERE source_family=? AND source_identity=?",
-                     (FAMILY, ident))
-        return "selection_conflict"
+        # An independently admitted link is never replaced or withdrawn by a pin.
+        return "selection_independent" if link[0] == pin else "selection_conflict"
     _, _, capture, run, commit = exact[0]
-    proof = digest({"policy": rules, "selection_sha256": digest(chosen), "capture_sha256": capture,
-                    "metadata_sha256": pin, "collector_commit": commit, "run_id": run,
-                    "routing": "editorial_selection"})
+    proof = selection_proof(rules, ident, pin, capture, run, commit)
     try:
         store_verified_links(conn, [{"source_family": FAMILY, "source_identity": ident, "desk": "vietnam",
             "canonical_official_url": m["official_url"], "publisher_posted_date": m["issue_date"],
