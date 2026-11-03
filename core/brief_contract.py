@@ -282,6 +282,36 @@ def validate_brief(sidecar: Mapping, registry, *,
                         % ", ".join(EDITORIAL_STATUSES))
     approved = status == STATUS_APPROVED
 
+    # Optional founder-assigned credits for this exact Brief. Legacy bylines
+    # remain untouched unless the owner explicitly supplies this field.
+    credits = sidecar.get("editorial_credits")
+    if credits is not None:
+        roles = ("authors", "research_and_analysis", "editing")
+        if not isinstance(credits, Mapping) or not set(credits) <= set(roles):
+            problems.append("editorial_credits has unknown roles or invalid structure")
+        else:
+            if sidecar.get("research_contributor") is not None:
+                problems.append("editorial_credits cannot coexist with legacy research_contributor")
+            seen = set()
+            for role in roles:
+                names = credits.get(role, [] if role != "authors" else None)
+                if not isinstance(names, list) or len(names) > 8 or (role == "authors" and not names):
+                    problems.append("editorial_credits.%s must be a list of 1–8 authors or 0–8 contributors" % role)
+                    continue
+                for name in names:
+                    if (not isinstance(name, str) or not name or len(name) > 120
+                            or name != name.strip() or any(ord(ch) < 32 for ch in name)):
+                        problems.append("editorial_credits.%s contains an invalid name" % role)
+                        continue
+                    key = name.casefold()
+                    if key in seen:
+                        problems.append("editorial_credits repeats a person across roles")
+                    seen.add(key)
+            authors = credits.get("authors")
+            if (isinstance(authors, list) and authors
+                    and authors[0] != sidecar.get("author_name")):
+                problems.append("editorial_credits first author must match author_name")
+
     # Legacy contributor credits keep the original narrow schema and limits.
     # A source-linked Brief alone may recognize an explicit co-author credit,
     # including a longer bio and an email. All evidence/release gates remain.
