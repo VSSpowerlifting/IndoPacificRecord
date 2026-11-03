@@ -309,8 +309,12 @@ this integration and its ordinary release, conditional on final qualification.
 The qualified `520d55d094de66c345f5c13b4652a4b3acf4699d` candidate was merged
 locally with main `9095590fa30baccbbaca4bb4f7c312e5591cabba` without conflicts.
 Only current production DB/output and run-state advances were incorporated;
-no executable, rights, source activation, spend or editorial changes were
-needed. Final revision/check and release evidence belongs in
+no dispatcher, rights, source activation, spend or editorial changes were
+needed. One publication-coordination correction removes the country render-only
+workflow from its own push trigger: its seven-file publication would otherwise
+link to newly registered source pages that it does not stage. Catalog changes
+and explicit exact-main manual releases remain supported. Daily owns the full
+source-page publication. Final revision/check and release evidence belongs in
 [PR #950](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/950).
 The first genuine scheduled Daily on the integrated revision must still prove
 nine manual-source rows and source-specific dispositions, accepted-data

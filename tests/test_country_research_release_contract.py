@@ -34,8 +34,10 @@ class CountryResearchReleaseContract(unittest.TestCase):
         self.assertEqual(
             [line.strip().strip('- ').strip('"') for line in
              trigger.splitlines() if line.strip().startswith('- "')],
-            [".github/workflows/country_research_render_only_release.yml",
-             "research/approved_desk_research.json"])
+            ["research/approved_desk_research.json"])
+        # A workflow-only migration must not publish country pages whose new
+        # source routes are outside the partial release staging allowlist.
+        self.assertNotIn(".github/workflows/country_research_render_only_release.yml", trigger)
         self.assertNotIn("site/preview", trigger)
         self.assertNotIn("pla_watch.db", trigger)
         self.assertNotIn("desks/registry.json", trigger)
