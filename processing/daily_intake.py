@@ -315,7 +315,12 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
             entry.update(status="held", reason="original_input_bound")
             continue
         if used >= p["max_records_per_run"]:
-            entry.update(status="pending")
+            # Deferral is not a new attempt. Keep the last failure/QA
+            # disposition intact when a newer record takes this run's slot.
+            if prior.get("status") in ("pending", "retriable"):
+                result[key] = prior
+            else:
+                entry.update(status="pending")
             continue
         if analyzer is None:
             analyzer = (analyzer_factory or Analyzer)()
