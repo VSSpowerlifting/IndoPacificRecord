@@ -31,9 +31,14 @@ exactly. All five article captures carry text-only Type 0 notices, but applying
 that scope to DAPA-authored HWPX prose and authorizing substantive source uses
 still need the founder decision specified in the
 [Korea operation qualification](../engineering/KOREA_DESK_OPERATION.md#dapa-original-source-qualification--3-november-2026).
-`156786687` is the proposed first candidate. Existing four public DAPA links,
+Existing four public DAPA links,
 private custody, failed-batch and semantic holds remain intact. No adapter,
 model call, common dispatcher change or activation occurred; #950 stays separate.
+Under the founder's offline-only Type 0 working basis, the follow-up
+[original-to-record candidate](../engineering/KOREA_DESK_OPERATION.md#offline-original-to-record-candidate--3-november-2026)
+selects body prose from SHA-pinned versions: `156786758` is the private
+candidate; joint `156786687` and heading-variant `156786759` hold. No semantic
+review, model input or public use is authorized.
 
 **Indonesia recovery candidate, 2 November 2026:** shared intake preserves
 deferred retry/QA dispositions; the existing private runner retains parsed
