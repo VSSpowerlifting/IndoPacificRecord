@@ -422,8 +422,18 @@ unchanged. Batch 0 (`mps-vi:1791803388`, `mps-vi:1791881212`) ran once in
 private dispatch `41565761646-1` on IPR `33a82b5627`: both published with no QA
 codes, at $0.0180 and $0.0300 of provider-token cost, and neither entered the
 signed handoff. Both outputs were inspected against the archived originals
-(dates, numbers, names, attribution, action status) and accepted. This change
-opens batch 1 (four records); `RELEASED` stays empty and nothing is published.
+(dates, numbers, names, attribution, action status) and accepted. Batch 1 ran
+once in private dispatch `41578652903-1` on IPR `d133fc6516`, for $0.0757 in
+total. `mps-vi:1791960707` ($0.0218) published and was accepted on inspection.
+`mps-vi:1792026540` ($0.0210) published but stays withheld by owner decision
+(`DECISION_LOG.md`, 3 November) for an unsupported location and two softened
+attributions. `mps-vi:1791882878` ($0.0153) and `mps-vi:1792227611` ($0.0176)
+were held for `E_FLAG_LOW_STAGE` and are settled. No same-number unit swap was
+found, and no recovered record entered the signed handoff. #968 merged while
+its non-required `offline-checks` was red on the base's corpus-count baseline
+defect, already fixed on main by #952; main CI passed before dispatch. This
+change opens batch 2 (four records); `RELEASED` stays empty and nothing is
+published.
 
 **Vietnam unattended verification candidate (28 October 2026).**
 Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records

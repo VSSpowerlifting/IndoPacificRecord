@@ -33,7 +33,8 @@ BATCHES = (
 )
 # The one batch a manual dispatch may attempt; advanced only after review.
 # Batch 0 ran once in 41565761646-1; both outputs were inspected and accepted.
-OPEN_BATCH = 1
+# Batch 1 ran once in 41578652903-1 and was inspected; see DECISION_LOG.md.
+OPEN_BATCH = 2
 # Accepted recoveries the owner has released to the public handoff.
 RELEASED = frozenset()
 # Private model output kept for inspection, accepted or rejected.
