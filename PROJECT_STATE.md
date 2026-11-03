@@ -70,6 +70,26 @@ Next action: review and merge this candidate, confirm the first scheduled Daily
 run writes a row per manual source, then register the US reference families
 through the same manifest and dispatcher.
 
+## Cited official sources as Records — review candidate (1 November 2026)
+
+`core/cited_source_records.py` derives one link-metadata Record per official URL
+cited by an approved Brief on every render (doctrine §5b; DECISION_LOG
+2026-11-01). Briefs add an "IPR Record" link beside each eligible publisher
+link. Records list every citing Brief, and the archive index carries them with
+no desks. Current output: 29 Records from five Briefs, archive index 1,688 →
+1,717. Omitted: 4 independent references and 1 Vietnam MPS reference. None of
+the 34 Brief URLs matches a DB URL, a machine Record or an archive-index source
+URL, even after normalizing host, `www.`, case, trailing slash, fragment and
+percent-encoding. Every source document in the 14 editions' trails is a corpus
+Record that already links back ("In analysis"). The 24 other edition URLs are
+image credits and the author link. Every Dossier and Timeline source is a corpus
+Record, but both Dossiers and the Timeline remain withheld as whole works, so
+those back-links render only in review. The nine Dossier external references
+x1–x9 are not Records. The 2026-10-26 grant limits them to linked use inside
+that Dossier, with no IPR record page. No MINDEF URL becomes a cited Record (link-only
+permission). Routes use a stable `url_key`, and a route superseded by later collection
+redirects to the corpus/machine Record. No DB, source-policy or collector change.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
@@ -460,6 +480,15 @@ checks remain enforced. No database, generated output, source-use grant or
 dossier content changes are introduced relative to the incorporated main.
 Exact-head CI and all eight affected Actions checks are recorded in PR #879
 before handoff; merge and deployment require separate authorization.
+
+**Vietnam MPS number-only recovery (2 November 2026): mechanism candidate.**
+After #955 merged (`226cefbb46`), the owner authorized one attempt for each of
+ten exact MPS versions held only for `E_NUMBER_MISMATCH`
+(`DECISION_LOG.md`, 2 November). `processing/mps_recovery.py` pins them in
+batches of 2/4/4 for manual first-attempt private bridge runs. Outputs stay in
+the private ledger with per-record cost; accepted projections are withheld from
+the signed handoff until listed in `RELEASED`. Other MPS and VPCP holds are
+unchanged. No dispatch, release or deployment is recorded here.
 
 **Vietnam unattended verification candidate (28 October 2026).**
 Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
