@@ -2721,6 +2721,16 @@ def build(out_dir: Path, title: str, db_path: Path,
         rec["weekday"] = weekday(rec["published_date"])
         rec["language_label"] = (language_label(rec["language_tag"])
                                  if rec["language_tag"] else "")
+    # An approved Brief's official publisher references become Records: an
+    # existing corpus or machine page when the exact URL is already held, a
+    # link-metadata page otherwise. See core/cited_source_records.py.
+    from core.daily_machine_records import load as load_daily_machine_records
+    from core.cited_source_records import resolve as resolve_cited
+    machine_records = load_daily_machine_records(db_path)
+    cited_records, cited_links, _cited_omitted, cited_moved = resolve_cited(
+        public_archive_collection,
+        corpus_by_url={rec["url"]: rec for rec in data["corpus"]},
+        machine_by_url={r["url"]: r for r in machine_records})
 
     # The desk roster, derived. `view` reads the same database the corpus above
     # came from, so a desk figure and a corpus figure cannot describe different
@@ -3221,6 +3231,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                                                            media=brief["article_media"])
             brief["presentation_review"] = slug == presentation_slug
             brief["adjacent"] = adjacent_items(collection, slug)
+            brief["reference_records"] = cited_links.get(slug, {})
             # A cited record this site preserves links to its record page; one
             # it does not hold links only to the source.
             for group in brief["trail_groups"]:
@@ -3469,8 +3480,8 @@ def build(out_dir: Path, title: str, db_path: Path,
             encoding="utf-8")
         written.append("record/%d.html" % rec["id"])
 
-    from core.daily_machine_records import load as load_daily_machine_records, archive_rows as machine_archive_rows
-    machine_records = load_daily_machine_records(db_path)
+    from core.daily_machine_records import archive_rows as machine_archive_rows
+    from core.cited_source_records import archive_rows as cited_archive_rows, citation as cited_citation
     machine_paths = {r["record_path"] for r in machine_records}
     for stale in (out_dir / "record").glob("source-*.html"):
         if "record/" + stale.name not in machine_paths:
@@ -3479,6 +3490,18 @@ def build(out_dir: Path, title: str, db_path: Path,
         (out_dir / rec["record_path"]).write_text(
             record_tmpl.render(page="archive.html", record=rec, **ctx), encoding="utf-8")
         written.append(rec["record_path"])
+    for rec in cited_records:
+        (out_dir / rec["record_path"]).write_text(
+            record_tmpl.render(page="archive.html", record=rec,
+                               cite=cited_citation(rec, LIVE_BASE), **ctx),
+            encoding="utf-8")
+        written.append(rec["record_path"])
+    # A cited URL that has since been collected keeps its published route,
+    # which now points at the record holding it.
+    for route, target in sorted(cited_moved.items()):
+        (out_dir / route).write_text(
+            LEGACY_REDIRECT % {"target": Path(target).name}, encoding="utf-8")
+        written.append(route)
 
     # ── Week shards ──────────────────────────────────────────────────────────
     # Ordinary static pages. Every record is reachable from corpus.html through
@@ -3510,7 +3533,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         db_path, index, cite_record=record_citation, processing_notes=CITATION_PROCESSING_NOTES,
         official_groups=archive_official_groups, originals=korea_published_original_rows,
         machine_records=machine_archive_rows(machine_records),
-        english_publications=korea_english_publication_rows, analyses=public_analyses)
+        english_publications=korea_english_publication_rows, analyses=public_analyses,
+        cited=cited_archive_rows(cited_records))
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
@@ -3894,7 +3918,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         locs, seen = [], set()
         for path in sorted(out_dir.rglob("*.html")):
             rel = path.relative_to(out_dir).as_posix()
-            if rel.startswith("article/"):
+            if rel.startswith("article/") or rel in cited_moved:
                 continue
             loc = "%s/%s" % (origin, canonical_route(rel))
             if loc not in seen:
