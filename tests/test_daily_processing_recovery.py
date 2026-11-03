@@ -5,6 +5,7 @@ import os
 import sqlite3
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -90,6 +91,53 @@ class ProcessingRecovery(unittest.TestCase):
             self.assertEqual(len(list((root / "readings" / FAMILY).glob("*.json"))), 1)
             envelope = json.loads((root / "envelopes" / (FAMILY + ".json")).read_text())
             self.assertEqual(len(envelope["packet"]["records"]), 1)
+
+    def test_downloaded_private_archive_recovers_reading_and_attempt_binding(self):
+        rejected = dict(reading(), summary_english="Invalid.")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "handoff"
+            root.mkdir()
+            self.invoke(root, analyzer(rejected))
+            original = next((root / "readings" / FAMILY).glob("*.json"))
+            retained_bytes = original.read_bytes()
+            archive_path = Path(tmp) / "private-artifact.zip"
+            with zipfile.ZipFile(archive_path, "w") as archive:
+                for path in root.rglob("*"):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(root))
+            original.unlink()  # Recovery must use the downloaded archive.
+            recovered = Path(tmp) / "downloaded"
+            with zipfile.ZipFile(archive_path) as archive:
+                archive.extractall(recovered)
+            snapshots = list((recovered / "readings" / FAMILY).glob("*.json"))
+            self.assertEqual(len(snapshots), 1)
+            self.assertEqual(snapshots[0].read_bytes(), retained_bytes)
+            saved = json.loads(snapshots[0].read_text())
+            self.assertEqual(saved["reading"], rejected)
+            self.assertEqual(saved["source_family"], FAMILY)
+            self.assertEqual(saved["source_identity"], record()["source_identity"])
+            self.assertEqual(saved["source_git_commit"], "c" * 40)
+            for field in ("metadata_version_sha256", "content_sha256", "capture_sha256"):
+                self.assertEqual(saved[field], record()[field])
+            self.assertEqual(saved["version"], intake.digest({k: saved[k] for k in (
+                "metadata_version_sha256", "content_sha256", "capture_sha256")}))
+            queue = json.loads((recovered / "queue.json").read_text())
+            entry = queue[FAMILY + ":" + saved["source_identity"]]
+            self.assertEqual(entry["version"], saved["version"])
+            self.assertEqual(entry["attempts"], saved["attempts_before"] + 1)
+            self.assertEqual(entry["quality_hold"], "daily_summary_invalid")
+            envelope = (recovered / "envelopes" / (FAMILY + ".json")).read_text()
+            self.assertEqual(json.loads(envelope)["packet"]["records"], [])
+            for private_field in ("evidence", "evidence_translation", "reading", "prior_disposition"):
+                self.assertNotIn('"' + private_field + '"', envelope)
+            self.assertNotIn(rejected["facts"][0]["evidence_translation"], envelope)
+            accepted, _ = intake.process([record()], {}, family=FAMILY,
+                policy=policy(), analyzer_factory=analyzer)
+            output = next(iter(accepted.values()))["output"]
+            for private_field in ("evidence", "evidence_translation", "reading", "prior_disposition"):
+                with self.subTest(private_field=private_field), self.assertRaises(intake.IntakeHold):
+                    intake.validate_output(dict(output, **{private_field: saved}),
+                                           FAMILY, policy()["sources"][FAMILY])
 
     def test_retention_failure_accounts_for_attempt_and_holds_before_signing(self):
         with tempfile.TemporaryDirectory() as tmp:

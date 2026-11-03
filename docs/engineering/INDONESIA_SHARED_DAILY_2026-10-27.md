@@ -22,6 +22,54 @@ placement deliberately accommodates #950's dispatch migration.
 
 ### Observed source-to-reader state
 
+**Resumed integration checkpoint, 2 November (ET):** #952 merged the shared
+corpus-guard correction as `002b987db9aef65c9eb50b87b6bceb8dc4f18a3b`.
+Korea retains #966 coordination; its full CI is green and its remaining
+diff from main is additional regressions. Indonesia reuses integrated main
+`d133fc65163b42347800206b68aa8e36cb45d41b`, without copying #966 or changing
+`chars=800`. Current main has no new shared-runner changes to reconcile;
+read-only merge previews with refreshed #950 (`b9aa7836b5`) and #954
+(`fc965dbe6c`) are clean. Their migrations remain outside this PR.
+
+Actual scheduled collector `41548695709` triggered processor `41548931410`.
+At private state `850ca4f3e663e4493e155bce3da660e426abe5cf`, ADMM-Plus retains
+**four** failures and `daily_name_or_office_unsupported`: one attempt remains
+before the existing five-failure pause. Its downloaded private artifact has
+only queue, usage and envelope files, so this pre-repair run supplies no
+parsed reading for a bilingual QA diagnosis. Do not reset or purchase a
+replacement attempt. The medical result and its four prior failures are
+unchanged; queue disposition totals are one complete, two not-selected,
+52 pending and one retriable.
+
+The added synthetic archive round-trip test deletes the local reading,
+recovers its exact bytes from the archive, and verifies source, immutable
+hashes, version and attempt-to-queue binding. Private fields are absent from
+the envelope and rejected by the strict public-output schema. This is local
+code verification, **not** recovery from a genuine post-repair Actions
+artifact. After an authorized merge, observe only the existing triggered
+cycle; download its private `shared-daily-id_kemhan_news-RUN-ATTEMPT` artifact,
+recover `queues/readings/id_kemhan_news/*.json`, and compare its reading with
+the exact original at its stored source commit. Check version hashes and
+`attempts_before` against that artifact's queue/usage before assessing QA.
+Scan the public envelope, admitted fields and deployed output for private
+evidence/translation content. A missing or malformed artifact is an evidence
+hold, never proof of successful preservation or a reason to buy a retry.
+
+The required full check must execute at the final PR head: a draft skip is
+insufficient. Marking #964 ready for review triggers the existing
+`ready_for_review` full check without changing a workflow or granting merge.
+After green checks and explicit merge authority, merge only the reviewed head
+with `gh pr merge 964 --repo VSSpowerlifting/IndoPacificRecord --merge
+--match-head-commit FINAL_REVIEWED_SHA`. No extra dispatch, activation toggle,
+hold reset or historical processing is part of that action. Genuine artifact
+recovery, original-based QA inspection and newly eligible production delivery
+remain unverified until the actual subsequent cycle. If QA fails again, retain
+the resulting pause and name the exact gate; do not adjust the validator merely
+to publish.
+
+The earlier observations below are historical receipts; this resumed checkpoint
+supersedes their queue counts and remaining-attempt estimates.
+
 - Scheduled collector `41350684468` preserved custody pin
   `666a148c56443e51b13a762d326b4d50474f9c1e` on 1 November. Its triggered
   processing run `41350848769` verified 57 originals, bound 56 public link
