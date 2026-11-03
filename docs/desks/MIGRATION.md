@@ -12,7 +12,7 @@ current main, PRs and actual source decisions before implementation.
 |---|---|---|---|
 | China | `pipeline.py`, ordinary article queue, existing collectors and URLs | Adapt the established record path to the common source/component interface without a bulk rewrite | Chinese terminology, source attribution, actual language and publisher-specific rights; no foreign desk inherits these permissions |
 | Singapore | MINDEF boundary in `core/mindef_public_boundary.py`, `core/mindef_permissions.py` and pipeline/renderer holds | Express restrictions through the same permitted-component projection; remove scattered special handling only after equal or stronger enforcement | PR #913 merged; retained evidence is private and written link permission covers exactly two URLs; no collection/model/public-text reactivation is implied |
-| Korea | `core/korea_corpus_bridge.py`, `processing/korea_shared_queue.py`, original-text and reviewed-English registries | Common checkpoints/admission and a record assembled from permitted components | HWPX fidelity, verified licence scope, source/version exclusions and reviewed English; DAPA metadata permission is separate |
+| Korea | `core/korea_corpus_bridge.py`, `processing/korea_shared_queue.py`, original-text and reviewed-English registries; [bounded timestamp-admission repair candidate](../engineering/KOREA_DESK_OPERATION.md#current-repair-phase--2-november-2026) | Common checkpoints/admission and a record assembled from permitted components; this repair does not migrate the dispatcher | HWPX fidelity, verified licence scope, source/version exclusions and reviewed English; DAPA metadata permission is separate |
 | Philippines | `processing/daily_intake.py`, `processing/daily_runner.py`, AFP/NSC validators, `daily_machine_records`; source-definition pilot merged in PR #928 | AFP and NSC registry, lifecycle dispatch, screening and machine-record projection share `core/daily_sources.py` following merged PR #928; broader cross-desk convergence remains | English originals remain private; AFP and NSC identities, attribution, policies and exceptional holds remain distinct |
 | Indonesia | Same private intake/runner as Philippines, Kemhan validator and Indonesian quality checks; source-definition pilot merged in PR #928 | Kemhan uses the same shared registry and caller paths as AFP/NSC following merged PR #928; source-specific evidence/policy stays authoritative | Preserve accepted output, version bindings, Yonif TP 880 hold, source-use decisions and bounded spend; no new paid attempts are authorized |
 | Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
@@ -24,6 +24,16 @@ Existing adapters and negative tests are retained where they encode real source
 differences. A map entry does not permit deactivation of a working path.
 
 ## Implementation order and ownership
+
+**Indonesia recovery candidate, 2 November 2026:** shared intake preserves
+deferred retry/QA dispositions; the existing private runner retains parsed
+readings with immutable source/version and attempt context in its already
+uploaded private handoff directory. No QA, source policy, retry reset, queue
+selection, workflow or activation change. The medical v4 record is already
+live; newer ADMM-Plus output remains QA-blocked and historical rejected readings
+are unavailable. See the [current source checkpoint](../engineering/INDONESIA_SHARED_DAILY_2026-10-27.md#current-checkpoint--2-november-2026-recovery-review-candidate)
+for real run/state pins, no-cost replay, release boundary and exact next action.
+This candidate does not certify recurring new delivery or replace #950/#954.
 
 1. **Shared source/component and lifecycle integration:** use the already shared
    Philippines/Indonesia lane as the first bounded implementation. Replace real

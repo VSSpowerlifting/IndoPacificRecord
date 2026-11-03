@@ -62,6 +62,18 @@ INTRO_ARTICLE = (
     "reference and does not need your edits. This is still a provisional draft.\n\n"
 )
 CLOSING = "\n\nThanks,\nBen\n"
+SATURDAY_NOTE = (
+    "This is the Saturday provisional draft, written from sources collected "
+    "through Saturday's daily run. Later Saturday publications may be missing; "
+    "I'll recheck the full week on Sunday, so some facts may still change.\n\n"
+)
+
+
+def _intro(original, article):
+    """The editor note, plus the Saturday caveat only for a provisional packet."""
+    from scripts.sunday_editorial_handoff import is_saturday_provisional
+    intro = INTRO_ARTICLE if article else INTRO
+    return intro + SATURDAY_NOTE if is_saturday_provisional(original) else intro
 
 
 class ReadableEditorError(ValueError):
@@ -152,7 +164,7 @@ def prose_only_text(original):
     """Readable plain-text editorial copy for the multipart email fallback."""
     sections = editable_sections(original)
     article = is_article_layout(sections)
-    out = [(INTRO_ARTICLE if article else INTRO).rstrip(), ""]
+    out = [_intro(original, article).rstrip(), ""]
     for key, text in sections:
         # Plain-text mail clients also deserve prose without Markdown stars.
         text = re.sub(r"\*\*([^\n*]+)\*\*", r"\1", text)
@@ -194,7 +206,7 @@ def prose_only_html(original):
         '<div style="font:14px Arial,sans-serif;color:#435664;line-height:1.6;'
         'padding:0 0 18px;border-bottom:1px solid #d8e1e6;margin-bottom:20px;">'
         + "".join("<p>" + html.escape(p, quote=True).replace("\n", " ") +
-                  "</p>" for p in (INTRO_ARTICLE if article else INTRO).strip().split("\n\n")) +
+                  "</p>" for p in _intro(original, article).strip().split("\n\n")) +
         "</div>",
     ]
     for key, text in sections:

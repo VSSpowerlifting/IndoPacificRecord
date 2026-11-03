@@ -10,6 +10,7 @@ import io
 import re
 import zipfile
 from urllib.parse import urlsplit
+from xml.sax.saxutils import escape
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -18,6 +19,11 @@ from docx.oxml.ns import qn
 from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.shared import Inches, Pt
 
+from core.brief_editorial_cycle import (
+    DOCX_CYCLE_PROPERTY, DOCX_CYCLE_VARIABLE, SATURDAY_PROVISIONAL_KEYWORD,
+    SATURDAY_PROVISIONAL_LABEL, packet_identity,
+)
+from scripts.sunday_editorial_handoff import is_saturday_provisional
 from scripts.sunday_editor_readable import (
     APPENDIX, ARTICLE_KEY, BEGIN, PROSE_TITLES, accounting_citations,
     editable_sections, is_article_layout, split_article,
@@ -28,6 +34,33 @@ EXTERNAL_PREFIX = "EXTERNAL SOURCE IDS:"
 RECORD_LINE = re.compile(r"^Record ([0-9]+) \|")
 EXTERNAL_LINE = re.compile(r"^External source ([A-Za-z0-9_-]+) \|")
 BOLD = re.compile(r"\*\*([^\n*]+)\*\*")
+CUSTOM_PROPERTIES = ("http://schemas.openxmlformats.org/officeDocument/2006/"
+                     "relationships/custom-properties")
+CUSTOM_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.custom-properties+xml"
+
+
+def _cycle_parts(files, identity):
+    """Add the hidden custom property carrying the cycle Brief identity.
+
+    Visible labels are for Dylan; this property (and the document variable)
+    is what scripts.import_brief_manuscript reads as cycle provenance.
+    """
+    value = escape(identity)
+    files["docProps/custom.xml"] = (
+        "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\n"
+        '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" '
+        'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">'
+        '<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="'
+        + escape(DOCX_CYCLE_PROPERTY) + '"><vt:lpwstr>' + value + "</vt:lpwstr></property>"
+        "</Properties>").encode()
+    files["_rels/.rels"] = files["_rels/.rels"].replace(
+        b"</Relationships>",
+        b'<Relationship Id="rIdIprCycle" Type="' + CUSTOM_PROPERTIES.encode()
+        + b'" Target="docProps/custom.xml"/></Relationships>')
+    files["[Content_Types].xml"] = files["[Content_Types].xml"].replace(
+        b"</Types>",
+        b'<Override PartName="/docProps/custom.xml" ContentType="'
+        + CUSTOM_CONTENT_TYPE.encode() + b'"/></Types>')
 
 
 def _references(packet):
@@ -120,9 +153,22 @@ def render_editor_docx(worksheet):
     """Return .docx bytes only after the source-text boundary validator passes."""
     sections = editable_sections(worksheet)
     sources = _references(worksheet)
+    saturday_provisional = is_saturday_provisional(worksheet)
+    identity = packet_identity(worksheet) if saturday_provisional else None
+    if saturday_provisional and identity is None:
+        raise ValueError("Saturday provisional worksheet lacks one Packet: identity")
     doc = Document()
     doc.core_properties.title = "Indo-Pacific Record — Working Brief"
     doc.core_properties.author = "Indo-Pacific Record"
+    if saturday_provisional:
+        doc.core_properties.keywords = SATURDAY_PROVISIONAL_KEYWORD
+        variables = OxmlElement("w:docVars")
+        variable = OxmlElement("w:docVar")
+        variable.set(qn("w:name"), DOCX_CYCLE_VARIABLE)
+        variable.set(qn("w:val"), identity)
+        variables.append(variable)
+        # CT_Settings order: w:docVars comes directly before w:rsids.
+        doc.settings.element.find(qn("w:rsids")).addprevious(variables)
 
     section = doc.sections[0]
     section.top_margin = Inches(.82)
@@ -143,6 +189,15 @@ def render_editor_docx(worksheet):
     label = doc.add_paragraph()
     label.alignment = WD_ALIGN_PARAGRAPH.CENTER
     label.add_run("INDO-PACIFIC RECORD / BRIEFS").bold = True
+    if saturday_provisional:
+        mark = doc.add_paragraph()
+        mark.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        mark.add_run(SATURDAY_PROVISIONAL_LABEL).bold = True
+        doc.add_paragraph(
+            "Drafted from sources collected through Saturday's daily run. "
+            "Later Saturday publications may be missing; Ben rechecks the "
+            "full week on Sunday before this draft can be used."
+        )
 
     doc.add_paragraph(
         "Provisional editorial manuscript · For Dylan's language and structure edits only"
@@ -184,15 +239,25 @@ def render_editor_docx(worksheet):
             _hyperlink(p, kind + " " + identifier, url)
     footer = section.footer.paragraphs[0]
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("UNNUMBERED DRAFT · NOT APPROVED FOR PUBLICATION")
+    footer.add_run(
+        (SATURDAY_PROVISIONAL_LABEL + " · " if saturday_provisional else "") +
+        "UNNUMBERED DRAFT · NOT APPROVED FOR PUBLICATION")
 
     output = io.BytesIO()
     doc.save(output)
     # ZIP wall-clock timestamps otherwise change the Word attachment between
     # owner preview and exact-TXT release, even though its contents are identical.
     stable = io.BytesIO()
-    with zipfile.ZipFile(output) as source, zipfile.ZipFile(stable, "w") as target:
-        for entry in source.infolist():
+    with zipfile.ZipFile(output) as source:
+        entries = source.infolist()
+        files = {entry.filename: source.read(entry.filename) for entry in entries}
+    if identity is not None:
+        _cycle_parts(files, identity)
+        custom = zipfile.ZipInfo("docProps/custom.xml")
+        custom.compress_type = zipfile.ZIP_DEFLATED
+        entries.append(custom)
+    with zipfile.ZipFile(stable, "w") as target:
+        for entry in entries:
             entry.date_time = (1980, 1, 1, 0, 0, 0)
-            target.writestr(entry, source.read(entry.filename))
+            target.writestr(entry, files[entry.filename])
     return stable.getvalue()

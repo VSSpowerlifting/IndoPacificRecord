@@ -55,6 +55,13 @@ def existing_issues(exclude=None) -> list:
 
 def readiness_problems(sidecar, issues, db):
     problems = validate_readiness(sidecar, load_registry(), collection=issues)
+    from core.brief_editorial_cycle import KEY, receipt_problems
+    if KEY in sidecar and not receipt_problems(sidecar):
+        # The Sunday receipt binds a week inventory and the source/policy
+        # files; anything changed since then must be reconciled again.
+        from scripts.weekly_briefs_saturday_audit import inventory_sha256
+        if sidecar[KEY]["inventory_sha256"] != inventory_sha256(sidecar["week_ending"], database=db):
+            problems.append("Sunday source inventory or rights/policy files changed; reconcile again")
     from core.brief_source_linked import is_source_linked
     if is_source_linked(sidecar):
         return problems

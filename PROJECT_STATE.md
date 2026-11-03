@@ -25,6 +25,28 @@ that Dossier, with no IPR record page. No MINDEF URL becomes a cited Record (lin
 permission). Routes use a stable `url_key`, and a route superseded by later collection
 redirects to the corpus/machine Record. No DB, source-policy or collector change.
 
+
+## Briefs weekend editorial cycle — consolidated review candidate (2 November 2026)
+
+One branch now carries the Saturday provisional draft to Dylan and the Sunday
+recheck (#960), #957's release guarantees and #956's analyst intake. There is
+one activation variable, `IPR_WEEKEND_EDITORIAL_ENABLED` (unset, so disabled), and
+one dispatcher, the `workflow_run` trigger in
+`sunday_briefs_editorial_handoff.yml`. #957's own dispatcher and variable are not
+carried. The Sunday reconciliation receipt (`core/brief_editorial_cycle.py`) is
+enforced by `validate_brief` and `validate_readiness` for every Brief carrying
+weekend editorial cycle provenance (`editorial_cycle`), whatever its date, author
+or Word labels; the importer carries that provenance from hidden DOCX properties
+and otherwise needs an explicit `--saturday-packet` or `--independent`; the owner
+copies `editorial_cycle` from the import JSON into the canonical sidecar by hand.
+Independently authored Briefs keep the existing safeguards. The owner recorded
+this policy in `DECISION_LOG.md` (2026-11-02). It is bound to the
+packet's per-Brief identity (#946), the exact final manuscript and revised DOCX, the week's inventory
+and policy fingerprints and, where used, the reconciled analyst report. The
+Saturday draft is attempted at most once per week, reserved through the workflow's
+run history. #956 files are unchanged. This is not merged, activated or live.
+Details and the owner checklist are in the consolidation PR.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
@@ -423,7 +445,12 @@ ten exact MPS versions held only for `E_NUMBER_MISMATCH`
 batches of 2/4/4 for manual first-attempt private bridge runs. Outputs stay in
 the private ledger with per-record cost; accepted projections are withheld from
 the signed handoff until listed in `RELEASED`. Other MPS and VPCP holds are
-unchanged. No dispatch, release or deployment is recorded here.
+unchanged. Batch 0 (`mps-vi:1791803388`, `mps-vi:1791881212`) ran once in
+private dispatch `41565761646-1` on IPR `33a82b5627`: both published with no QA
+codes, at $0.0180 and $0.0300 of provider-token cost, and neither entered the
+signed handoff. Both outputs were inspected against the archived originals
+(dates, numbers, names, attribution, action status) and accepted. This change
+opens batch 1 (four records); `RELEASED` stays empty and nothing is published.
 
 **Vietnam unattended verification candidate (28 October 2026).**
 Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
