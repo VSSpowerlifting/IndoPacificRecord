@@ -4,6 +4,17 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-03 — Owner: MPS recovery `mps-vi:1792026540` stays withheld
+
+Benjamin Yang decided in chat on 3 November 2026 that `mps-vi:1792026540`,
+recovered in batch 1 of the one MPS number-only recovery attempt, is never
+named in `processing/mps_recovery.py` `RELEASED`. It passed automated QA, but
+inspection against the archived original found an unsupported location in
+its English title and two softened attributions in its summary. Its private
+recovery output, ledger entry and $0.0210 provider-token cost are preserved
+unchanged. The decision withholds only this one version: it does not retry it,
+widen QA or change any other record's disposition.
+
 ## 2026-11-02 — Owner: eight-desk operational certification scope (planning only)
 
 The founder confirmed the mandatory source-family scopes and real-original-to-reader
