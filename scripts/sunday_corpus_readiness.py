@@ -37,7 +37,11 @@ def iso_day(value):
     return result
 
 
-def evaluate(*, rows, desks, week_ending, as_of, review_day, marker):
+def evaluate(*, rows, desks, week_ending, as_of, review_day, marker,
+             provisional=False):
+    """``provisional`` is the Saturday draft check: the same corpus rules,
+    but bound to Saturday's own Daily collection marker. It never emits or
+    satisfies a Sunday code and never describes the week as complete."""
     saturday = iso_day(week_ending)
     cutoff = iso_day(as_of)
     observed = iso_day(review_day)
@@ -57,6 +61,9 @@ def evaluate(*, rows, desks, week_ending, as_of, review_day, marker):
         raise ReadinessError("review date outside permitted calendar window")
     if marker and iso_day(marker) > observed:
         raise ReadinessError("success marker is dated after review date")
+    if provisional and (cutoff != saturday or observed != saturday):
+        raise ReadinessError(
+            "Saturday provisional check runs only on the reporting Saturday")
     chosen = list(dict.fromkeys(desks))
     if len(chosen) != len(desks) or len(chosen) < 2:
         raise ReadinessError("at least two distinct production-backed desks required")
@@ -91,7 +98,10 @@ def evaluate(*, rows, desks, week_ending, as_of, review_day, marker):
     issues = []
     if cutoff < saturday:
         issues.append("reporting_week_not_complete")
-    if observed < sunday:
+    if provisional:
+        if marker != saturday.isoformat():
+            issues.append("saturday_provisional_marker_missing_or_stale")
+    elif observed < sunday:
         issues.append("sunday_production_update_not_due")
     elif marker != sunday.isoformat():
         issues.append("same_sunday_success_marker_missing_or_stale")
@@ -110,8 +120,11 @@ def evaluate(*, rows, desks, week_ending, as_of, review_day, marker):
         "reporting_saturday": saturday.isoformat(),
         "source_as_of": cutoff.isoformat(),
         "evaluated_local_date": observed.isoformat(),
-        "required_sunday_marker": sunday.isoformat(),
-        "observed_sunday_marker": marker or None,
+        "required_sunday_marker": None if provisional else sunday.isoformat(),
+        "observed_sunday_marker": None if provisional else (marker or None),
+        "saturday_provisional": provisional,
+        "required_saturday_marker": saturday.isoformat() if provisional else None,
+        "observed_saturday_marker": (marker or None) if provisional else None,
         "production_desks": chosen,
         "production_desk_counts": per_desk,
         "stored_records": len(ids),
@@ -130,7 +143,8 @@ def evaluate(*, rows, desks, week_ending, as_of, review_day, marker):
 
 
 def inspect(*, week_ending, as_of, review_day, database=DB_PATH,
-            marker_path=Path(".github/state/last_daily_run_date.txt")):
+            marker_path=Path(".github/state/last_daily_run_date.txt"),
+            provisional=False):
     saturday, cutoff = iso_day(week_ending), iso_day(as_of)
     desks = eligible_desks(load_registry())
     # Validate window BEFORE querying tracked production data.
@@ -143,7 +157,8 @@ def inspect(*, week_ending, as_of, review_day, database=DB_PATH,
             (saturday - timedelta(days=6)).isoformat(), cutoff.isoformat(),
             desks, conn=conn)
     return evaluate(rows=rows, desks=desks, week_ending=week_ending,
-                    as_of=as_of, review_day=review_day, marker=marker)
+                    as_of=as_of, review_day=review_day, marker=marker,
+                    provisional=provisional)
 
 
 def main(argv=None):
