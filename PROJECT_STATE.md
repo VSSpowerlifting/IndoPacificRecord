@@ -418,7 +418,12 @@ ten exact MPS versions held only for `E_NUMBER_MISMATCH`
 batches of 2/4/4 for manual first-attempt private bridge runs. Outputs stay in
 the private ledger with per-record cost; accepted projections are withheld from
 the signed handoff until listed in `RELEASED`. Other MPS and VPCP holds are
-unchanged. No dispatch, release or deployment is recorded here.
+unchanged. Batch 0 (`mps-vi:1791803388`, `mps-vi:1791881212`) ran once in
+private dispatch `41565761646-1` on IPR `33a82b5627`: both published with no QA
+codes, at $0.0180 and $0.0300 of provider-token cost, and neither entered the
+signed handoff. Both outputs were inspected against the archived originals
+(dates, numbers, names, attribution, action status) and accepted. This change
+opens batch 1 (four records); `RELEASED` stays empty and nothing is published.
 
 **Vietnam unattended verification candidate (28 October 2026).**
 Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
