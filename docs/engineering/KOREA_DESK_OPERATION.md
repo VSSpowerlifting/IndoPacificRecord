@@ -139,7 +139,8 @@ would need its own authorization. Do not ask for a blanket whole-file licence.
 ### Recommendation for founder decision — not executed
 
 Accept the documented Type 0 basis **only for DAPA-authored prose** in authentic
-linked HWPX releases, starting with exact version `156786687` above. Authorize
+linked HWPX releases, starting with exact version `156786687` above (superseded:
+it is a joint release; see the offline candidate below). Authorize
 an offline implementation candidate that can select and bind eligible prose,
 exclude contact/media/uncertain material, and prepare private potential inputs
 for attributed English machine explanations. Preserve the complete original
@@ -176,6 +177,43 @@ to this review PR. Stop at this qualification; the next phase is the founder's
 source-use decision, then one bounded offline implementation. Production merge,
 activation, paid inference, deployment and subsequent new-release delivery remain
 separate and unperformed.
+
+### Offline original-to-record candidate — 3 November 2026
+
+Founder direction adopted the Type 0 interpretation as the **working basis
+for local offline selection and preparation only** of identifiable DAPA-authored
+prose. It does not change production source-use policy, model or public use.
+
+`scripts/build_dapa_record_candidate.py` (`core/korea_dapa_record_candidate.py`)
+reads one row only from a SHA-pinned private shadow DB (read-only), verifies the
+HWPX against that row's `document_capture_sha256`, and requires the audited
+extraction to equal `text_original`/`content_sha256`. A located walk in
+`scripts/audit_dapa_hwpx.py` (same read, same text order) maps the release
+template: masthead, timing (`보도시점`/`배포`), headline, body, contact,
+picture-only tail. Any other shape holds. Only body paragraphs are selected;
+masthead, timing, headline, contacts and pictures are excluded and counted.
+Holds cover joint-issuer signals, headline/title drift, distribution or lead-date
+mismatch, unelapsed embargo, phone/email in prose and any text-screen indicator.
+The receipt carries hashes, counts and roles only; prose goes solely to an
+explicit new 0600 file in an owner-only directory. Every use flag stays false.
+
+Genuine run against pinned DB `58b97902…73e5ed`, offline, no model:
+
+| Version | Result | Reason |
+| --- | --- | --- |
+| `156786758` | **CANDIDATE** | Sole issuer structurally confirmed; headline equals stored title; 6 body paragraphs, 1,035 characters, selected-prose SHA `fc1caba6e6ef6c9ef0dd6b0e5438f0bf2517a628febcd5945a37b128cb01bc0b`; final paragraph is a quotation needing attribution review. |
+| `156786687` | HOLD | Joint DAPA/IP-office release: two `담당 부서` blocks, agency-label contact cells and a joint lead sentence. This supersedes the earlier "first candidate" proposal. |
+| `156786759` | HOLD | `headline_punctuation_variant`: HWPX heading uses a different middle-dot code point from the stored title. |
+| `156787071` | Refused | Listing artifact with no row in the pinned archive. |
+
+**What this does not establish:** no Korean semantic review, translation or
+English explanation has occurred. The DAPA quotation's speaker attribution
+still needs a human check. Before any English explanation is prepared from
+`156786758`, these must be authorized separately: (1) a human Korean review
+of the selected paragraphs and quotation attribution; (2) a model
+provider/task/cost authorization for private inference; (3) public delivery
+through qualified code and release authority. `156786759` needs a reviewed
+heading-normalization rule, not an automatic fold.
 
 ## Current repair phase — 2 November 2026
 
