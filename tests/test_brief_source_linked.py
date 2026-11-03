@@ -205,7 +205,7 @@ class SourceLinkedTests(unittest.TestCase):
         self.assertIn("Editing:", html)
         self.assertIn("Jophy Lin", html)
         self.assertNotIn('aria-label="Research contributor"', html)
-        self.assertIn("Benjamin Yang and Peter Nguyen and Dylan Tanzi", html)
+        self.assertIn("Benjamin Yang, Peter Nguyen, and Dylan Tanzi", html)
         # A credit edit invalidates the existing exact-version human attestations.
         changed = copy.deepcopy(value)
         changed["editorial_credits"]["editing"] = ["Another Human Editor"]
