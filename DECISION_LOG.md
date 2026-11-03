@@ -4,6 +4,42 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-02 — Owner: eight-desk operational certification scope (planning only)
+
+The founder confirmed the mandatory source-family scopes and real-original-to-reader
+acceptance standard in a sequence of eight explicit decisions on 2 November 2026.
+See [the single stable scope and completion plan](docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
+and the existing [eight-desk issue #673](https://github.com/VSSpowerlifting/IndoPacificRecord/issues/673).
+
+- **Indonesia:** Kemhan Berita only; not Siaran Pers.
+- **Philippines:** AFP **and** NSC, independently qualified.
+- **Vietnam:** MPS Foreign Affairs **and** Government Office (VPCP).
+- **South Korea:** MND-labeled Korea Policy Briefing originals **and** DAPA.
+- **China:** all five existing families — PLA Daily, MOD China, Xinhua Military,
+  China Military Online and Global Times Defense — accurately classified.
+- **Japan:** accessible MOD news-feed PDFs **and** JCG English release HTML;
+  exclude challenged MOD HTML, Joint Staff and unapproved media.
+- **Singapore:** MINDEF official releases only. A narrowly bounded additional
+  permission request may be prepared for founder review; **do not contact MINDEF yet**.
+- **U.S. Indo-Pacific reference:** at least one independently qualified,
+  original-backed U.S. institutional family; investigate USCC Commission-authored
+  press releases first. Treasury/BIS metadata remains supplemental; PACOM/DVIDS
+  restrictions remain.
+
+Full qualification requires authentic permitted original retrieval, versioned
+custody, separately authorized and quality-gated substantive processing, safe
+shared admission, actual deployed reader readback, then scheduled recurrence
+and representative recovery for **every required family**. Metadata-only
+references, synthetic tests, PR merges or schedules alone do not qualify a desk.
+No arbitrary consecutive-day launch clock is introduced.
+
+**This records source scope and the success criterion only.** No source-use
+or publisher permission, commercial-model spend, collection or processing
+activation, human publication, external contact, merge, deployment, historical
+cleanup or declaration of operational completion is authorized. Actual
+source-specific grants/holds, the shared-desk standard, the workflow freeze
+and release contracts remain in force.
+
 ## 2026-11-02 — Owner: one MPS number-only recovery attempt
 
 Benjamin Yang authorizes, in chat on 2 November 2026, **one** new processing
