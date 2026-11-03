@@ -119,6 +119,28 @@ offline run with the new workflow version after integration; old runs cannot
 certify themselves. The existing offline workflow gains the main-push trigger
 and a bounded data-only lane, with no new job or required status.
 
+**Individual official-document admission (Phase A, review candidate):** an
+exact, pinned editorial selection in `config/vietnam_vpcp_editorial_selection.json`
+lets an already-captured VPCP version that topic routing missed publish its
+bibliographic metadata through the existing intake (`processing/government_document_intake.py`),
+applied by the Daily writer every run. `scripts/admit_official_document.py`
+replays the same disposition from a read-only copy or writes only an isolated
+candidate DB. The committed selection is empty; each entry is an owner release
+decision. A selection pins public metadata only; it never preserves or versions
+original content. Selection ownership is the link's release proof: a pin, repin,
+removal or held revision changes only a link carrying that selection's proof, so
+a conflicting pin leaves an independent (topical or owner-reviewed) link in
+place, and removal of an entry whose version is now topical hands the link back
+to the topical rule. An invalid file holds the selections only (existing links
+stay, topical admission continues). With `--private-record` and
+`--private-original` the CLI reports `custody`: `authenticated` only when the
+bridge MAC verified and the original's SHA-256 and extracted-content hash both
+replayed; otherwise it names the blocker. Only VPCP is supported; other families
+hold. A version never captured holds, because the adapter's access contract
+refuses individual fetch of unlisted URLs. Remaining: no published Brief cites an
+admitted VPCP record, so the Brief-to-official-record editorial backlink is
+undemonstrated; identity/policy convergence noted on #952; any second family.
+
 **Not complete:** the other six desk migrations, source definitions becoming desk manifests,
 `core/source_publication_contract.py` convergence, source-component grouping in
 #895 and model controls in #919. The qualification/Daily split above is a review
