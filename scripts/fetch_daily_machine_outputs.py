@@ -63,7 +63,7 @@ def main():
             envelope = json.loads(proc.stdout)
             if not isinstance(envelope, dict):
                 raise ValueError("not an envelope object")
-        except (ValueError, UnicodeError):
+        except (ValueError, UnicodeError, RecursionError):
             results[family] = "envelope_malformed"
             continue
         # Authentication and public-field validation remain in admit().

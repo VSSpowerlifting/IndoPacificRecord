@@ -3,6 +3,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -52,7 +53,8 @@ class FetchOutputs(unittest.TestCase):
                 self.assertNotEqual(result['ph_afp_articles'], 'fetched')
 
     def test_malformed_nonobject_and_invalid_encoding_are_isolated(self):
-        for body in [b'{', b'[]', b'null', b'"value"', b'\xff']:
+        nested = b'{"value":' + b'[' * 1100 + b'0' + b']' * 1100 + b'}'
+        for body in [b'{', b'[]', b'null', b'"value"', b'\xff', nested]:
             with self.subTest(body=body):
                 root, result, _ = self.run_fetch([self.response(body), self.response(), self.response()])
                 self.assertEqual(result['ph_afp_articles'], 'envelope_malformed')
@@ -85,6 +87,89 @@ class FetchOutputs(unittest.TestCase):
         self.assertIn('steps.shared_daily_fetch.outputs.failed_families', health)
         self.assertIn('Shared Daily handoff failed', health)
         self.assertLess(workflow.index('- name: Deploy to GitHub Pages'), workflow.index('- name: Health gate'))
+
+    def test_partial_refresh_preserves_accepted_peer_and_admits_healthy_source(self):
+        """Synthetic MACs/fixtures exercise the real fetch -> admission boundary."""
+        from tests.test_reconcile import migrate
+        from tests.test_migrations import build_legacy_db
+        from processing import daily_intake as intake
+        from processing.daily_runner import public_intake
+        from tests.test_philippines_shared_daily import record, reading, fake_analyzer
+
+        policy = load_policy()
+        keys = {family: 'synthetic-' + family * 3 for family in fetch.SOURCES}
+        envelopes = {}
+        records = {}
+        for family, label in [('ph_afp_articles', 'AFP'), ('ph_nsc_official_statements', 'NSC')]:
+            item = record()
+            item.update(source_family=family, source_identity=label.lower() + ':1')
+            if label == 'NSC':
+                item.update(official_issuer=None, official_publisher='ph_nsc',
+                            canonical_official_url='https://nsc.gov.ph/2026/10/19/synthetic-test/')
+            reply = reading()
+            reply['summary_english'] = reply['summary_english'].replace('AFP', label)
+            for fact in reply['facts']:
+                fact['sentence'] = fact['sentence'].replace('AFP', label)
+            state, _ = intake.process([item], {}, family=family, policy=policy,
+                                      analyzer_factory=lambda: fake_analyzer(reply))
+            self.assertEqual(state[family + ':' + item['source_identity']]['status'], 'complete')
+            envelopes[family] = intake.sign_outputs(state, family=family, policy=policy, key=keys[family])
+            records[family] = item
+        envelopes['id_kemhan_news'] = intake.sign_outputs({}, family='id_kemhan_news',
+                                                         policy=policy, key=keys['id_kemhan_news'])
+        env = {fetch.SOURCES[f].key_env: key for f, key in keys.items()}
+        for failed in records:
+            with self.subTest(failed=failed):
+                db = Path(self.tmp.name) / (failed + '.db')
+                build_legacy_db(db)
+                migrate(db)
+                with sqlite3.connect(db) as conn:
+                    for item in records.values():
+                        conn.execute('INSERT INTO regional_official_source_links VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', (
+                            item['source_family'], item['source_identity'], 'philippines',
+                            item['canonical_official_url'], item['publisher_posted_date'],
+                            item['official_issuer'], item['official_publisher'], None, 'c' * 40,
+                            item['metadata_version_sha256'], item['source_run'], 'official_link_only',
+                            'd' * 64, '2026-10-19T00:00:00Z'))
+                    intake.admit(conn, envelopes[failed], family=failed, policy=policy, key=keys[failed])
+                    old = conn.execute('SELECT * FROM daily_machine_records').fetchone()
+                outcomes = [self.response(code=1) if f == failed else
+                            self.response(json.dumps(envelopes[f]).encode()) for f in fetch.SOURCES]
+                root, result, _ = self.run_fetch(outcomes)
+                with patch.dict(os.environ, env):
+                    admitted = public_intake(db, root)
+                    second = public_intake(db, root)
+                healthy = next(f for f in records if f != failed)
+                self.assertNotIn(failed, admitted)
+                self.assertEqual(admitted[healthy], {'admitted': 1, 'holds': []})
+                self.assertEqual(second[healthy], {'admitted': 0, 'holds': []})
+                self.assertEqual(admitted['id_kemhan_news'], {'admitted': 0, 'holds': []})
+                with sqlite3.connect(db) as conn:
+                    self.assertEqual(conn.execute('SELECT * FROM daily_machine_records WHERE source_family=?',
+                                                  (failed,)).fetchone(), old)
+                self.assertEqual(result[failed], 'fetch_failed')
+
+    def test_health_shell_notifies_for_failure_and_accepts_quiet_or_skipped_fetch(self):
+        import textwrap
+        workflow = (Path(__file__).resolve().parents[1] /
+                    '.github/workflows/daily_update.yml').read_text()
+        health = workflow.split('      - name: Health gate\n', 1)[1]
+        shell = textwrap.dedent(health.split('        run: |\n', 1)[1])
+        root = Path(self.tmp.name)
+        (root / 'scripts').mkdir()
+        # Isolate the unchanged liveness check; execute the actual Health shell.
+        (root / 'scripts/check_source_liveness.py').write_text('raise SystemExit(0)\n')
+        import sys
+        (root / 'bin').mkdir()
+        (root / 'bin/python').symlink_to(sys.executable)
+        for count in ('1', '0', ''):
+            env = dict(os.environ, SHARED_DAILY_FETCH_FAILURES=count, TODAY_NY='2026-11-03',
+                       PATH=str(root / 'bin') + os.pathsep + os.environ['PATH'])
+            result = subprocess.run(['bash', '-c', shell], cwd=root, env=env,
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1 if count == '1' else 0, result.stderr)
+            self.assertEqual('::error title=Shared Daily handoff failed::' in result.stdout,
+                             count == '1')
 
 
 if __name__ == '__main__':

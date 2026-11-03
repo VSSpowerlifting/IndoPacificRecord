@@ -135,3 +135,18 @@ rows remain unchanged. No new workflow, activation, paid call or deployment.
 The [eight-desk recovery snapshot](OPERATIONAL_RECOVERY_2026-11-02.md) distinguishes
 current custody, queue, admission and observed reader evidence; it does not
 certify eight operational desks. Final-head verification belongs to this PR.
+
+**Isolated #954 review, 3 November 2026:** local branch
+`codex/pr954-isolated-qualification` starts at #954 head
+`fc965dbe6c9165035bd638fef1cc2f609a588a48` and integrates main
+`f02bfc60b88abb1364c9b631f75049246b5e4442` without conflicts. Deeply nested JSON
+now receives the same isolated malformed-envelope disposition. Synthetic tests
+exercise partial AFP/NSC fetch through authenticated admission, accepted-row
+preservation, duplicate replay, quiet Kemhan input and the actual Health shell.
+Genuine private envelopes at `850ca4f3e663e4493e155bce3da660e426abe5cf`
+match the six existing accepted rows and current policy hashes; production keys
+are unavailable here, so successful authentic MAC/admission replay is unverified.
+#965 remains separate and open at this check. No ownership transfer, push to
+#954, release or operational recovery is claimed. Next: the #954 integration
+owner applies the reviewed local correction, refreshes main (including #965 only
+if actually merged), and obtains full exact-head CI on the existing PR.
