@@ -4,6 +4,44 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
+
+Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday
+reconciliation receipt (`saturday_sunday_cycle`, checked by
+`core/brief_editorial_cycle.py` in `validate_readiness` and `validate_brief`).
+It replaces the review candidate's blanket rule for every Brief from the week
+ending 7 November 2026 onward. Implemented in PR #963.
+
+1. **Participation decides.** A receipt is required because a Brief took part
+   in the weekend editorial cycle, recorded as `editorial_cycle` provenance
+   naming its cycle Brief identity. Publication date, stated author and Word
+   labels do not decide it.
+2. **One receipt per Brief.** Every cycle-derived Brief, including companions,
+   human rewrites and analyst-reconciled versions, needs its own receipt bound
+   to its exact final manuscript and revised DOCX. A receipt for another
+   version or another Brief does not transfer.
+3. **Independent Briefs are unchanged.** A Brief with neither provenance nor a
+   receipt keeps the existing source, factual, presentation and owner-approval
+   requirements. Shared source URLs alone never establish cycle participation.
+4. **Import fails closed.** `scripts/import_brief_manuscript.py` carries
+   provenance it detects in the DOCX's hidden properties automatically. Without
+   it, the editor must declare `--saturday-packet <packet>` or `--independent`;
+   `--independent` is refused while any cycle signal, hidden or visible, remains.
+5. **The transfer stays manual and explicit.** The import JSON is a snapshot,
+   not the sidecar. The owner copies `editorial_cycle` from it into the
+   canonical `briefs/<slug>.json` with the other imported fields; the Sunday
+   recheck stamps it again on its candidate sidecar.
+
+Disclosed limits stand, and no further authentication is added: someone who
+deliberately deletes both the provenance and the receipt from a sidecar makes it
+look independent, and whether editors other than python-docx keep the hidden
+DOCX properties is untested (if both are lost, import stops and asks for a
+declaration). The fail-closed import and owner approval are the safeguards.
+
+This records policy only. `IPR_WEEKEND_EDITORIAL_ENABLED` stays unset; it creates
+no merge, activation, schedule, email, model spend, deployment or publication
+authority, and it does not lift the 2026-11-01 workflow freeze.
+
 ## 2026-11-02 — Owner: eight-desk operational certification scope (planning only)
 
 The founder confirmed the mandatory source-family scopes and real-original-to-reader
