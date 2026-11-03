@@ -30,6 +30,9 @@ The public U.S. Desk's existing nine PACOM official outbound URLs and the factua
 
 ## Original-backed family qualification — 3 November 2026
 
+**Initial assessment below; bounded capture findings and the updated next decision
+are recorded in the follow-up section at the end of this document.**
+
 **Recommendation: retain USCC as the selected candidate; defer original-backed
 implementation and activation.** Listing access and stable dated identities are
 confirmed. Complete original retrieval, private custody, authorship clearance,
@@ -200,3 +203,127 @@ Local Markdown file targets and `git diff --check` passed. No executable
 contract, generated output, production data, workflow, registry or source-use
 policy changed. These tests protect the existing metadata behavior; they do
 not establish original completeness, rights, model quality, CI or live delivery.
+
+## Authorized three-release capture follow-up — 3 November 2026
+
+**Result: all three qualify for bounded private retrieval/custody and served-body
+structural fidelity; all three remain HELD for broader source use.** This closes
+the original-access/custody evidence gap for these exact observations, not the
+family's processing/publication or recurring-operation qualification.
+
+### Authority checked before retrieval
+
+The founder's follow-up in the #973 task authorizes these three release HTML
+pages, private capture/readback, authorship/completeness/identity/date/version
+checks, and an update to #973. It withholds external model transmission, paid
+processing, activation, public explanations, contact, merge and deployment.
+This supersedes the earlier **owner capture-authorization** gap only; it grants
+no third-party rights. No runtime policy or source-use grant was changed.
+
+Public decisions/configuration/USCC documentation and private main
+`a3f6299bd783b9624d0754707572dbb89abdd860` (AGENTS, CLAUDE, README, docs,
+manifests and config), private issue bodies and branch names were checked.
+No additional USCC original-use grant was found in that inspected scope. #950
+and #953 remained open at the heads recorded above; no shared files are touched.
+The public isolated branch remained at `5ee650e9c4` before this follow-up.
+
+For **each** release, bounded private research retrieval/retention rests on the
+recorded [§107 assessment](https://www.copyright.gov/title17/92chap1.html#107):
+authorship/integrity examination without distribution or model use; published
+factual institutional communication; complete HTML necessary for boundary and
+byte verification, limited to three pages; restricted evidence offering no
+public substitute. Possible future commercial use is not treated as a nonprofit
+exemption. This is a reasoned limited-use assessment, not publisher permission,
+a judicial ruling or worldwide clearance. The possible §105 official-duty basis
+remains distinct and unresolved for broader uses. Full pre-request reasoning is
+in the private `AUTHORITY.md` linked below. Retention is for this qualification's
+evidence, not an activated or general-purpose corpus; preserve it pending the
+next source-use decision under existing evidence rules.
+
+### Exact private evidence and readback
+
+Private source evidence, never to be merged into public or private main:
+[`archive/uscc-qualification-20261103`, commit `9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab`](https://github.com/VSSpowerlifting/ipr-source-evidence-private/tree/9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab).
+
+- [Pre-request authority/retention assessment](https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab/qualification/2026-11-03/AUTHORITY.md)
+- [Per-release findings and limitations](https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab/qualification/2026-11-03/REPORT.md)
+- [Request ledger: exact URLs, response headers and UTC clocks](https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab/ledger/uscc-qualification-20261103-1.json)
+- [Body/date/authorship indicators and hashes](https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab/qualification/2026-11-03/results.json)
+- [File manifest](https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab/manifest.json): SHA-256 `4b7bae838f62e7c9f3043305be0551a81caa4b6eaeeb22e0dc5df122d0ca8f2d`.
+
+The existing declared-agent/NoRedirect transport and private shadow custody
+layout were reused: SHA-addressed `captures/*.bin`, `ledger/*.json`, normalized
+original text and native private Git. One-time acquisition and offline replay
+scripts remain only with the essential private qualification evidence; no
+production adapter or new custody service was added. Authenticated API confirmed
+repository ID `1420273320` is private before writing. A separate authenticated
+clone of the new private archive ref matched all **24 reachable Git objects**
+using `scripts/verify_private_github_ref_parity.py`; all 16 manifest entries
+rehash correctly and all three extractions replay without source requests.
+This establishes GitHub-only readback/restore at that revision, not an independent
+provider backup. The parity tool's rights/visibility booleans are deliberately
+false: those matters are assessed separately, not certified by Git parity.
+
+### Per-release result and immutable version references
+
+The release URLs and existing `uscc-press:<slug>` identities remain the exact
+ones in the representative-identity table above. Captures occurred at 22:20 UTC
+on 3 November 2026, using the declared IPR bot. Current robots policy permitted
+all three paths and was preserved privately. No redirect, linked work, attachment
+or media request occurred. No body text or quote is copied into this public note.
+
+| Release | HTTP / capture UTC | Raw HTML bytes / SHA-256 | Extracted UTF-8 bytes / SHA-256 | Result |
+|---|---|---|---|---|
+| July 18 departure | 200 / 22:20:02.896243 | 52,063 / `0336e745d8a0866484d63f0c2f702eac03de9a1de239db3abffd33843594d71e` | 2,352 / `494261ada2847eeaabf4e44fa2c09dd9af7f6792ff1dbca8bde556ffd57ec549` | Qualified bounded custody/fidelity; broader use HELD |
+| July 25 return | 200 / 22:20:05.522922 | 56,636 / `cd3111f115ea501ddf544655a37ca46827715f6bfd2193dacdb5a1991b9cb648` | 2,103 / `0f468f672df1c13d2becbd614957f345cc80194e037eeac75b3a94fc8d856a87` | Qualified bounded custody/fidelity; broader use HELD |
+| June 25 glossary announcement | 200 / 22:20:08.164255 | 51,350 / `93a7514453f6bbf73b27054f8ff3cfe598b6de69f99d366bd8d5cb55ca59f446` | 1,857 / `8dc9eb078f4999b266ec45879197172c3af11b84ed78e219fd4dce4310c80d0d` | Qualified bounded custody/fidelity; broader use HELD |
+
+**Identity/dates:** final URL, canonical link and article RDFa identity agree for
+each. Visible dates match the selected listing dates; CMS `<time>` values use
+the matching day plus `T12:00:00Z`. That noon field is not proof of an exact
+publication or event hour. No publication/modified meta field was found. These
+are present-day captures, not authenticated historical versions from June/July.
+
+**Completeness:** each response has a complete HTML closing tag and passes
+applicable transport length checks. Each has one full press-release article and
+one body within it; a site-wide body selector would incorrectly include repeated
+navigation blocks. Release bodies contain one h2 plus respectively 8, 6 and 7
+nonempty paragraphs. Stored text conserves all body text nodes, including link
+labels and institutional boilerplate, in order; a separate stdlib HTMLParser
+pass agrees after whitespace/NFC comparison. Stored text is UTF-8,
+BeautifulSoup `stripped_strings` joined with LF and terminal LF (no stored NFC
+normalization). Raw-byte, extracted-text and serialized-fragment hashes remain
+distinct. No inline media occurs in the release bodies; referenced site assets
+remain HTML references only. The June announcement links two research pages;
+neither was followed. This proves the served HTML body, not linked-publication
+completeness, browser layout, historic revisions or recurring delivery.
+
+**Authorship evidence and hold:** each is an institutional press-release article
+with Commission identification and Chair/Vice Chair attribution, including
+Schriver/Kuiken name indicators. No author meta tag, article author field,
+contractor/prepared-by credit indicator or reuse notice was found by the recorded
+checks. Those facts support Commission-announcement classification and distinguish
+these pages from commissioned studies. They do not identify the drafting employee,
+prove the official-duty origin of every quotation, or establish every intended
+reuse. Absence of a detected credit is not clearance. No human legal review or
+signoff is represented. Accordingly broader original-backed source use remains
+held individually for all three; this is not evidence that a contractor actually
+authored any of them.
+
+### Smallest next decision; implementation remains deferred
+
+No further capture authorization is needed for the work just completed. Review
+the preserved institutional/official-attribution evidence and decide whether a
+documented, source-specific official-duty assessment adequately supports the
+narrow Commission-written release family, with actual third-party/quotation
+exceptions held. Founder acceptance cannot itself grant third-party rights;
+if material ambiguity remains, name the missing evidence or narrower usable
+scope. Publisher contact is neither automatically required nor authorized.
+
+Before any subsequent model test, specify the applicable provider/data handling,
+permitted input/output components, spend/retry limits and accountable owner.
+This phase grants none of those uses. After adequate source-use authority, the
+smallest implementation remains the USCC adapter/custody validator and explicit
+English profile connected to existing shared lifecycle/admission, in coordination
+with #950/#953. No shared dispatcher, workflow, renderer, registry, production
+data or source activation changed here. Stop at review of these findings.
