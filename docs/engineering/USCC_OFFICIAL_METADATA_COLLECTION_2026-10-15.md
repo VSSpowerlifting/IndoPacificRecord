@@ -28,6 +28,19 @@ When genuine observation history exists, build an **idempotent USCC source metad
 
 The public U.S. Desk's existing nine PACOM official outbound URLs and the factual `access_blocked` status of direct PACOM collection must remain intact during USCC activation.
 
+## Current decision — 3 November 2026
+
+The founder accepted the exact July 18/July 25 **unquoted narrative** source-use
+assessment and proposed attributed factual-note scope of at most 90 words per
+release, including disclosed drafting uncertainty. See the authoritative
+[decision record](../../DECISION_LOG.md#2026-11-03--owner-exact-two-uscc-narrative-source-use-assessment-accepted)
+for exact versions, quotation/third-party exclusions and all operational holds.
+Unsigned drafting alone does not require a named employee or a blanket hold.
+No model transmission, spending, implementation, recurring collection,
+activation or publication is authorized. June 25 remains outside this decision.
+Earlier assessments below are dated evidence; this decision supersedes their
+blanket July source-use holds, not their custody findings or operational limits.
+
 ## Original-backed family qualification — 3 November 2026
 
 **Initial assessment below; bounded capture findings and the updated next decision
@@ -207,7 +220,8 @@ not establish original completeness, rights, model quality, CI or live delivery.
 ## Authorized three-release capture follow-up — 3 November 2026
 
 **Result: all three qualify for bounded private retrieval/custody and served-body
-structural fidelity; all three remain HELD for broader source use.** This closes
+structural fidelity. The July unquoted narrative scope is now accepted under
+the decision above; June and excluded/broader uses remain HELD.** This closes
 the original-access/custody evidence gap for these exact observations, not the
 family's processing/publication or recurring-operation qualification.
 
@@ -274,8 +288,8 @@ or media request occurred. No body text or quote is copied into this public note
 
 | Release | HTTP / capture UTC | Raw HTML bytes / SHA-256 | Extracted UTF-8 bytes / SHA-256 | Result |
 |---|---|---|---|---|
-| July 18 departure | 200 / 22:20:02.896243 | 52,063 / `0336e745d8a0866484d63f0c2f702eac03de9a1de239db3abffd33843594d71e` | 2,352 / `494261ada2847eeaabf4e44fa2c09dd9af7f6792ff1dbca8bde556ffd57ec549` | Qualified bounded custody/fidelity; broader use HELD |
-| July 25 return | 200 / 22:20:05.522922 | 56,636 / `cd3111f115ea501ddf544655a37ca46827715f6bfd2193dacdb5a1991b9cb648` | 2,103 / `0f468f672df1c13d2becbd614957f345cc80194e037eeac75b3a94fc8d856a87` | Qualified bounded custody/fidelity; broader use HELD |
+| July 18 departure | 200 / 22:20:02.896243 | 52,063 / `0336e745d8a0866484d63f0c2f702eac03de9a1de239db3abffd33843594d71e` | 2,352 / `494261ada2847eeaabf4e44fa2c09dd9af7f6792ff1dbca8bde556ffd57ec549` | Qualified custody/fidelity; narrow narrative scope accepted, operations held |
+| July 25 return | 200 / 22:20:05.522922 | 56,636 / `cd3111f115ea501ddf544655a37ca46827715f6bfd2193dacdb5a1991b9cb648` | 2,103 / `0f468f672df1c13d2becbd614957f345cc80194e037eeac75b3a94fc8d856a87` | Qualified custody/fidelity; narrow narrative scope accepted, operations held |
 | June 25 glossary announcement | 200 / 22:20:08.164255 | 51,350 / `93a7514453f6bbf73b27054f8ff3cfe598b6de69f99d366bd8d5cb55ca59f446` | 1,857 / `8dc9eb078f4999b266ec45879197172c3af11b84ed78e219fd4dce4310c80d0d` | Qualified bounded custody/fidelity; broader use HELD |
 
 **Identity/dates:** final URL, canonical link and article RDFa identity agree for
@@ -307,12 +321,15 @@ these pages from commissioned studies. They do not identify the drafting employe
 prove the official-duty origin of every quotation, or establish every intended
 reuse. Absence of a detected credit is not clearance. No human legal review or
 signoff is represented. Accordingly broader original-backed source use remains
-held individually for all three; this is not evidence that a contractor actually
-authored any of them.
+held outside the accepted July narrative scope; June remains held. This is not
+evidence that a contractor actually authored any of them. The accepted assessment
+does not require identification of the drafting employee.
 
-### Smallest next decision; implementation remains deferred
+### Historical decision request — now resolved for the July scope; operations held
 
-No further capture authorization is needed for the work just completed. Review
+The current decision above resolves the following earlier request for the July
+scope; it is retained here as assessment history. No further capture authorization
+is needed for the work just completed. The earlier request was: review
 the preserved institutional/official-attribution evidence and decide whether a
 documented, source-specific official-duty assessment adequately supports the
 narrow Commission-written release family, with actual third-party/quotation
