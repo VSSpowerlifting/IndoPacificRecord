@@ -278,8 +278,17 @@ CI and release evidence; do not mark the remaining work done.
 
 **Shared private-output fetch recovery ([PR #954](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/954), review candidate):**
 *Status 3 November 2026:* merged at `dc7beaa76c` (16:54 UTC); post-merge CI
-passed; its first scheduled Daily cycle and deployed readback are not yet
-verified. #950 merged this main in `2dfaa0b4ec`.
+passed. Scheduled Daily [41705243710](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41705243710)
+processed and published on 3 November: AFP/NSC/Kemhan each admitted zero with
+no holds; shared fetch failures were zero. This is authentic authenticated
+duplicate-replay evidence, not new-record admission or proof of every recovery
+case. The Health gate failed on Vietnam article recency after delivery. Pages
+build [41709726446](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41709726446)
+succeeded for `9e729b827feb4f1d7035613b2d3b8329f0cd93be`. Independent HTTPS
+readback of `vietnam.html` on 3 November matched its deployed SHA-256
+`e34d488b0abcd7c22a6b5f2500531bf086d3cdfed72e5109204f4f013b3fe958`.
+Later guard-skipped Daily runs add no operational evidence. #950 originally
+merged #954 main in `2dfaa0b4ec`.
 AFP/NSC/Kemhan fetching removes stale invocation-local inputs before refresh,
 installs valid JSON objects atomically (including isolated rejection of deeply
 nested JSON), and reports failed-family counts to the existing post-delivery
@@ -292,8 +301,19 @@ The 3 November integration combines original #954 head
 `20957b582c23439543830cf29a01ba5e2c574940`). No #950/#953 changes are included.
 Synthetic tests cover partial AFP/NSC fetch through authenticated admission,
 accepted-row preservation, duplicate replay, quiet Kemhan input and the actual
-Health shell. Genuine envelope equality with six accepted records is supporting
-evidence only: successful authentic MAC/admission replay remains unverified
-without an authorized isolated key-bearing validation path. Final exact-head
-checks and the remaining gap belong in #954. Stop at engineering review; no
-merge, deployment, activation or paid processing is authorized by this phase.
+Health shell. The subsequent production run above closes the authentic MAC/duplicate-replay
+gap; new-record admission and other recovery cases remain separate claims.
+
+**#950 integration checkpoint — 3 November 2026:** founder explicitly authorized
+this integration and its ordinary release, conditional on final qualification.
+The qualified `520d55d094de66c345f5c13b4652a4b3acf4699d` candidate was merged
+locally with main `9095590fa30baccbbaca4bb4f7c312e5591cabba` without conflicts.
+Only current production DB/output and run-state advances were incorporated;
+no executable, rights, source activation, spend or editorial changes were
+needed. Final revision/check and release evidence belongs in
+[PR #950](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/950).
+The first genuine scheduled Daily on the integrated revision must still prove
+nine manual-source rows and source-specific dispositions, accepted-data
+preservation and DB-to-public delivery. Guard-skipped runs do not qualify.
+Do not force an additional paid Daily cycle to replace that evidence. #953
+remains outside this phase; its integration requires a new bounded session.
