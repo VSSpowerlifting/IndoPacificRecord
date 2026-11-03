@@ -127,26 +127,21 @@ not authorize deployment or prove a live HTTPS publication.
 Verify final-head checks and any operational readback from actual CI and release
 evidence; do not mark the remaining work done.
 
-**Shared private-output fetch recovery (2 November 2026, review candidate):**
+**Shared private-output fetch recovery ([PR #954](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/954), review candidate):**
 AFP/NSC/Kemhan fetching removes stale invocation-local inputs before refresh,
-installs valid JSON objects atomically, and reports failed-family counts to the
-existing post-delivery health gate. Signature/policy admission and accepted DB
-rows remain unchanged. No new workflow, activation, paid call or deployment.
-The [eight-desk recovery snapshot](OPERATIONAL_RECOVERY_2026-11-02.md) distinguishes
-current custody, queue, admission and observed reader evidence; it does not
-certify eight operational desks. Final-head verification belongs to this PR.
+installs valid JSON objects atomically (including isolated rejection of deeply
+nested JSON), and reports failed-family counts to the existing post-delivery
+Health gate. Authentication, source/version/policy checks and accepted DB rows
+remain in the existing admission path; no rights, QA, retries or spending change.
 
-**Isolated #954 review, 3 November 2026:** local branch
-`codex/pr954-isolated-qualification` starts at #954 head
-`fc965dbe6c9165035bd638fef1cc2f609a588a48` and integrates main
-`f02bfc60b88abb1364c9b631f75049246b5e4442` without conflicts. Deeply nested JSON
-now receives the same isolated malformed-envelope disposition. Synthetic tests
-exercise partial AFP/NSC fetch through authenticated admission, accepted-row
-preservation, duplicate replay, quiet Kemhan input and the actual Health shell.
-Genuine private envelopes at `850ca4f3e663e4493e155bce3da660e426abe5cf`
-match the six existing accepted rows and current policy hashes; production keys
-are unavailable here, so successful authentic MAC/admission replay is unverified.
-#965 remains separate and open at this check. No ownership transfer, push to
-#954, release or operational recovery is claimed. Next: the #954 integration
-owner applies the reviewed local correction, refreshes main (including #965 only
-if actually merged), and obtains full exact-head CI on the existing PR.
+The 3 November integration combines original #954 head
+`fc965dbe6c9165035bd638fef1cc2f609a588a48`, correction `38a39e0` and main
+`3d78978abe2d1234db4ce1c2382cd843b2cdf530`, preserving #964 and #965 (merged as
+`20957b582c23439543830cf29a01ba5e2c574940`). No #950/#953 changes are included.
+Synthetic tests cover partial AFP/NSC fetch through authenticated admission,
+accepted-row preservation, duplicate replay, quiet Kemhan input and the actual
+Health shell. Genuine envelope equality with six accepted records is supporting
+evidence only: successful authentic MAC/admission replay remains unverified
+without an authorized isolated key-bearing validation path. Final exact-head
+checks and the remaining gap belong in #954. Stop at engineering review; no
+merge, deployment, activation or paid processing is authorized by this phase.
