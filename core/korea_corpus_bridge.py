@@ -61,8 +61,11 @@ HEADING_SEARCH_LINES = 12
 HEADING_MAX_CHARS = 200
 
 _DIST_LABEL = "배포"
+# MND prints both "2026.10.28.(수)" and "2026.10.29(목)". The final
+# date dot is punctuation; the distribution label, weekday and time still
+# anchor the heading. Do not infer a heading from an unheaded statement.
 _TIMESTAMP = re.compile(
-    r"(?:19|20)[0-9]{2}\.\s*[0-9]{1,2}\.\s*[0-9]{1,2}\.\s*"
+    r"(?:19|20)[0-9]{2}\.\s*[0-9]{1,2}\.\s*[0-9]{1,2}\.?\s*"
     r"\([월화수목금토일]\)\s*[0-9]{1,2}:[0-9]{2}\Z")
 _HANGUL = re.compile(r"[가-힣]")
 _NOT_HEADING = ("-", "□", "○", "※", "▲", "◆", "■", "*", "<", "[")

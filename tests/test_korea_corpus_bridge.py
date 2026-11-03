@@ -5,12 +5,14 @@ scratch database. No Korean text is invented and nothing touches pla_watch.db.
 """
 import hashlib
 import json
+import re
 import shutil
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 from core import korea_corpus_bridge as bridge
 from core.korea_published_originals import (
@@ -130,6 +132,28 @@ class BridgeCase(unittest.TestCase):
 
 
 class TestDocumentHeading(unittest.TestCase):
+    def test_authentic_distribution_date_without_final_dot(self):
+        # Released MND original, not a reconstructed header or portal title.
+        text = (ORIGINAL_DIR / "156786943.txt").read_text(encoding="utf-8")
+        self.assertEqual(hashlib.sha256(text.encode()).hexdigest(),
+                         "f12cda5d239164bbb77b30dda8f90a27ce8b7200cf757a86190fac41a860e196")
+        self.assertEqual(text.split("\n")[4], "2026.10.29(목) 22:00")
+        self.assertEqual(bridge.document_heading(text),
+                         (5, text.split("\n")[5]))
+
+    def test_optional_dot_does_not_remove_timestamp_anchor(self):
+        text = (ORIGINAL_DIR / "156786943.txt").read_text(encoding="utf-8")
+        for replacement in ("20261029(목) 22:00", "2026.10.29 22:00",
+                            "2026.10.29(목)", "2026.10.29(목) 22:00 extra"):
+            with self.subTest(replacement=replacement):
+                self.assertIsNone(bridge.document_heading(
+                    text.replace("2026.10.29(목) 22:00", replacement)))
+        self.assertIsNone(bridge.document_heading(
+            text.replace("\n배포\n", "\n")))
+        # The statement has no distribution header; never guess its first line.
+        statement = (ORIGINAL_DIR / "156786306.txt").read_text(encoding="utf-8")
+        self.assertIsNone(bridge.document_heading(statement))
+
     def test_heading_is_line_after_distribution_timestamp(self):
         for nid, line in EXPECTED_HEADING_LINE.items():
             text = (ORIGINAL_DIR / (nid + ".txt")).read_text(encoding="utf-8")
@@ -149,6 +173,60 @@ class TestDocumentHeading(unittest.TestCase):
 
 
 class TestAdmission(BridgeCase):
+    def test_authentic_timestamp_hold_recovers_without_reopening_qa(self):
+        from processing.korea_shared_queue import candidates
+        activate(self.conn)
+        records = json.loads(INDEX.read_text(encoding="utf-8"))["records"]
+        for nid in ("156786943", "156786306"):
+            rec = next(r for r in records
+                       if r["source_identity"] == "korea-policy:" + nid)
+            self.records.append(rec)
+            shutil.copyfile(ORIGINAL_DIR / (nid + ".txt"),
+                            self.dir / (nid + ".txt"))
+        self.write_index(self.records)
+        for rec in self.records:
+            admit_metadata(self.conn, rec)
+        # Exercise the actual former refusal, then replay the same evidence.
+        old_timestamp = re.compile(
+            r"(?:19|20)[0-9]{2}\.\s*[0-9]{1,2}\.\s*[0-9]{1,2}\.\s*"
+            r"\([월화수목금토일]\)\s*[0-9]{1,2}:[0-9]{2}\Z")
+        with mock.patch.object(bridge, "_TIMESTAMP", old_timestamp):
+            before = self.run_bridge()
+        self.assertEqual({r["source_identity"] for r in before["held"]},
+                         {"korea-policy:156786943", "korea-policy:156786306"})
+        # Preserve a terminal QA hold with its version and spent attempts.
+        held = "korea-policy:156785691"
+        self.conn.execute(
+            "UPDATE korea_corpus_admissions SET processing_state='qa_held', "
+            "processing_attempts=4, qa_version='kr-qa-v3', "
+            "glossary_version='kr-glossary-v2', "
+            "processing_reason='qa_number_added' WHERE source_identity=?", (held,))
+        existing = self.snapshot()
+        receipt = self.run_bridge()
+        self.assertEqual([r["source_identity"] for r in receipt["admitted"]],
+                         ["korea-policy:156786943"])
+        self.assertEqual(receipt["held"], [{
+            "source_identity": "korea-policy:156786306",
+            "reason": "korea_heading_unidentifiable"}])
+        # Existing corpus rows and every other ledger row are byte-for-value stable.
+        after = self.snapshot()
+        self.assertEqual(after[0][:-1], existing[0])
+        self.assertEqual([r for r in after[1] if r[0] != "korea-policy:156786943"],
+                         [r for r in existing[1] if r[0] != "korea-policy:156786943"])
+        row = self.conn.execute(
+            "SELECT a.text_original, k.processing_state, k.processing_attempts "
+            "FROM articles a JOIN korea_corpus_admissions k ON k.article_id=a.id "
+            "WHERE k.source_identity='korea-policy:156786943'").fetchone()
+        self.assertEqual(row[0], (self.dir / "156786943.txt").read_text(encoding="utf-8"))
+        self.assertEqual(tuple(row[1:]), ("pending", 0))
+        self.conn.row_factory = sqlite3.Row
+        self.assertIn("korea-policy:156786943",
+                      {r["source_identity"] for r in candidates(self.conn)})
+        self.assertNotIn(held, {r["source_identity"] for r in candidates(self.conn)})
+        self.conn.row_factory = None
+        self.run_bridge()
+        self.assertEqual(self.snapshot(), after)
+
     def test_new_admission_is_source_pinned(self):            # scenario 1, 16
         activate(self.conn)
         rec = next(r for r in self.records
