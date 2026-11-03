@@ -7,9 +7,9 @@ editorial review and approval**, not through an automated roster or staff title.
 ```json
 {
   "editorial_credits": {
-  "authors": ["Benjamin Yang", "Peter Nguyen"],
-  "research_and_analysis": ["Dylan Tanzi"],
-  "editing": ["Jophy Lin"]
+    "authors": ["Benjamin Yang", "Coauthor Example"],
+    "research_and_analysis": ["Researcher Example"],
+    "editing": ["Editor Example"]
   }
 }
 ```
