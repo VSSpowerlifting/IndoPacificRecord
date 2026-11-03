@@ -84,7 +84,7 @@ def omission(ref: dict):
 
 
 def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
-    """Admit approved Briefs' official citations.
+    """Admit approved Briefs' eligible official and independent citations.
 
     Returns `(records, brief_links, omitted, moved)`:
 

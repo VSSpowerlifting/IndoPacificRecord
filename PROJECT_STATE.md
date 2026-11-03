@@ -1,13 +1,18 @@
 # PROJECT_STATE — Indo-Pacific Record
 
-## Cited official sources as Records — review candidate (1 November 2026)
+## Brief citation completeness — PR #970 review candidate (3 November 2026)
 
-`core/cited_source_records.py` derives one link-metadata Record per official URL
-cited by an approved Brief on every render (doctrine §5b; DECISION_LOG
-2026-11-01). Briefs add an "IPR Record" link beside each eligible publisher
+`core/cited_source_records.py` derives one link-metadata Record per eligible
+official or independent URL cited by an approved Brief on every render
+(doctrine §5b; DECISION_LOG 2026-11-01 and 2026-11-02). Briefs add an "IPR Record" link beside each eligible publisher
 link. Records list every citing Brief, and the archive index carries them with
-no desks. Current output: 29 Records from five Briefs, archive index 1,688 →
-1,717. Omitted: 4 independent references and 1 Vietnam MPS reference. None of
+no desks. Candidate output: 33 Records (29 official, four explicitly labeled
+independent) from five Briefs; one Vietnam MPS reference remains explicitly
+held. The rerender also refreshes nine Archive entries and four sitemap links
+from already-committed Korea inputs; it admits no new source data. The established
+`official_link_text_prohibited` error is preserved, with text/summary/private-field
+rejection tested for both link types. Final-head CI and review evidence belong
+in PR #970; this candidate is not merged, deployed or verified live. None of
 the 34 Brief URLs matches a DB URL, a machine Record or an archive-index source
 URL, even after normalizing host, `www.`, case, trailing slash, fragment and
 percent-encoding. Every source document in the 14 editions' trails is a corpus

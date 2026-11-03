@@ -72,7 +72,9 @@ def projection(**values):
         # Title may be copied ONLY by a loader that explicitly permits it. No body,
         # summary, model draft or private capture fields can cross this boundary.
         if result['summary'] is not None or result['text'] is not None:
-            raise ValueError('link_reference_text_prohibited')
+            raise ValueError('official_link_text_prohibited'
+                             if result['record_type'] == 'official_link'
+                             else 'link_reference_text_prohibited')
     return result
 
 
