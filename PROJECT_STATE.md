@@ -35,7 +35,10 @@ seven-run observation, China and Singapore. No activation flag, merge,
 deployment or paid model run is implied.
 
 Next action: review and merge this candidate with migration 3, then confirm the
-first scheduled Daily run writes six manual-source rows and the two US receipts.
+first scheduled Daily run writes nine manual-source rows (seven governed plus
+the two Vietnam slugs as disabled) and the two US receipts. #954 merged on
+3 November 2026 (`dc7beaa76c`); merge #950 only after #954's first scheduled
+Daily cycle and deployed readback are verified.
 
 ## Shared desk architecture, runtime migration 3 — manual production sources and one governed dispatch (1 November 2026, review candidate)
 

@@ -3,7 +3,7 @@
 The [mandatory standard](README.md) applies to all eight desks now as an owner
 instruction. This map records **code boundaries, not live-service certification**.
 Baseline inspected: public `e0c0920cc4628a594df3954556739b6f73915691`,
-30 October 2026; runtime migrations 1–3 are recorded in the phase receipt below. Recheck
+30 October 2026; runtime migrations 1–4 are recorded in the phase receipts below. Recheck
 current main, PRs and actual source decisions before implementation.
 
 ## Current boundaries and required convergence
@@ -202,7 +202,8 @@ writer jobs, their `push`/`workflow_run`/`schedule` (22:17 and 22:31 UTC)/
 keeps only its `isolated-render-contract` pull-request rehearsal, which writes
 nothing to main, the database or Pages. `us_metadata_migration_preflight.yml`
 now also runs for Daily edits. Two operational consequences are deliberate:
-admission follows Daily's 12:23/12:53 UTC schedule instead of the evening
+admission follows Daily's schedule (nominal 12:23–14:23 UTC crons; GitHub
+scheduling delays actual starts by hours) instead of the evening
 crons, so an observation committed after Daily is admitted on the next run
 (the importers are append-only and idempotent); and the retired jobs'
 refusal of a moving source branch is replaced by the importer pinning each
@@ -251,8 +252,10 @@ republishes.
 **Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
 manifest/registry entry; folding it in needs a dispatcher-side run attestation
 or an owner decision to drop that binding. The first scheduled Daily run on the
-merged branch must show one `source_run_results` row per manual source (now
-six) and, for the two US families, either `OK`/`OK_ALL_DUPLICATES` receipts or
+merged branch must show one `source_run_results` row per manual source — nine
+in the registry: the seven governed slugs (Korea, AFP, NSC, Kemhan, Japan MOD,
+USCC, Treasury) plus both Vietnam slugs as `SKIPPED_DISABLED` "manual source
+with no governed admission" — and, for the two US families, either `OK`/`OK_ALL_DUPLICATES` receipts or
 a `LISTING_FAILURE` row if the clone step failed; until then the migration is a
 review candidate, not an operationally verified release. Vietnam governed
 admission (PR #933 bridge) is not routed through the dispatcher.
@@ -274,6 +277,9 @@ publication. Verify final-head checks and any operational readback from actual
 CI and release evidence; do not mark the remaining work done.
 
 **Shared private-output fetch recovery ([PR #954](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/954), review candidate):**
+*Status 3 November 2026:* merged at `dc7beaa76c` (16:54 UTC); post-merge CI
+passed; its first scheduled Daily cycle and deployed readback are not yet
+verified. #950 merged this main in `2dfaa0b4ec`.
 AFP/NSC/Kemhan fetching removes stale invocation-local inputs before refresh,
 installs valid JSON objects atomically (including isolated rejection of deeply
 nested JSON), and reports failed-family counts to the existing post-delivery
