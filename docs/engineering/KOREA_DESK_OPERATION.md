@@ -197,11 +197,14 @@ mismatch, unelapsed embargo, phone/email in prose and any text-screen indicator.
 The receipt carries hashes, counts and roles only; prose goes solely to an
 explicit new 0600 file in an owner-only directory. Every use flag stays false.
 
-Genuine run against pinned DB `58b97902…73e5ed`, offline, no model:
+Genuine run against the private `state/shadow.db` pinned above
+(`58b97902d6e5b2b33276cbea46ecdc882bb47b12df991f9ea1020d5a8773e5ed`), offline,
+no model. `156785254` (historical owner import) has no row in that DB, so it
+cannot be bound and was not evaluated; the candidate requires a pinned row.
 
 | Version | Result | Reason |
 | --- | --- | --- |
-| `156786758` | **CANDIDATE** | Sole issuer structurally confirmed; headline equals stored title; 6 body paragraphs, 1,035 characters, selected-prose SHA `fc1caba6e6ef6c9ef0dd6b0e5438f0bf2517a628febcd5945a37b128cb01bc0b`; final paragraph is a quotation needing attribution review. |
+| `156786758` | **CANDIDATE** | HWPX `1d019223e5289c7619aa4c9123a2626040caede9f133a9ef17849ceddf06b415`. Sole issuer structurally confirmed; headline equals stored title; 6 body paragraphs, 1,035 characters, selected-prose SHA `fc1caba6e6ef6c9ef0dd6b0e5438f0bf2517a628febcd5945a37b128cb01bc0b`; final paragraph is a quotation needing attribution review. |
 | `156786687` | HOLD | Joint DAPA/IP-office release: two `담당 부서` blocks, agency-label contact cells and a joint lead sentence. This supersedes the earlier "first candidate" proposal. |
 | `156786759` | HOLD | `headline_punctuation_variant`: HWPX heading uses a different middle-dot code point from the stored title. |
 | `156787071` | Refused | Listing artifact with no row in the pinned archive. |
