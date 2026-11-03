@@ -32,7 +32,8 @@ BATCHES = (
     ('mps-vi:1792371761', 'mps-vi:1792511119', 'mps-vi:1792566483', 'mps-vi:1793249662'),
 )
 # The one batch a manual dispatch may attempt; advanced only after review.
-OPEN_BATCH = 0
+# Batch 0 ran once in 41565761646-1; both outputs were inspected and accepted.
+OPEN_BATCH = 1
 # Accepted recoveries the owner has released to the public handoff.
 RELEASED = frozenset()
 # Private model output kept for inspection, accepted or rejected.
