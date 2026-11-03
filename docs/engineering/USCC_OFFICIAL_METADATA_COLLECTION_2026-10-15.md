@@ -344,3 +344,54 @@ smallest implementation remains the USCC adapter/custody validator and explicit
 English profile connected to existing shared lifecycle/admission, in coordination
 with #950/#953. No shared dispatcher, workflow, renderer, registry, production
 data or source activation changed here. Stop at review of these findings.
+
+## Offline exact-version input adapter — implementation candidate
+
+The follow-up task authorizes offline implementation only, overriding the earlier
+implementation hold solely for this slice. `core/uscc_offline_input.py` provides
+`derive_input(raw, source_identity=..., canonical_url=..., publication_date=...)`.
+It accepts in-memory bytes already in private custody and returns private
+`potential_input` plus a derived manifest. It has no acquisition, model, storage,
+registration or publication entry point. Never print or commit its returned
+prose in public. Complete originals are untouched.
+
+`config/uscc_offline_accepted_versions.json` pins exactly the two accepted
+capture/text hashes and all ordered paragraph hashes from private evidence
+`9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab`; it is an extraction constraint,
+not a runtime permission grant or new source registry. The adapter reuses USCC
+canonical identity normalization and the preserved BeautifulSoup text extraction
+algorithm. It validates exact raw bytes/length, canonical/final publication
+identity, article RDFa, visible and machine dates, complete HTML, unique body,
+text hash and ordered paragraph hashes before selection. It never trusts a
+caller-supplied permission policy. Fixed hold diagnostics contain no prose.
+
+Zero-based nonempty paragraph boundaries: July 18 includes 0–3 (the narrative
+subtitle and three narrative paragraphs), excludes 4–5 as whole quotation
+paragraphs and 6–7 as institutional boilerplate/social labels. July 25 includes
+0–1, excludes 2–3 as quotations and 4–5 as boilerplate/social labels. These map
+to the quotation line exclusions in the accepted decision. Link labels in
+excluded paragraphs never enter input; no linked work or media is read. The
+body h2 supplies the accepted title separately. Every included/excluded paragraph
+has its index/hash and exclusion reason in the manifest, alongside source
+identity, date/URL, evidence commit, decision reference and capture/text hashes.
+The potential input is canonically JSON-hashed; it is explicitly incomplete as
+an original input, with transmission/publication authority false and the potential
+note limit 90 words. No note is generated or publication eligibility granted.
+
+Private offline replay of both original captures passed twice with identical
+results. July 18 potential-input digest:
+`7d29108f450a4ce40b3dd5f322ad801a2dfc3e3ab9677c044f49568b4b9c65a5`;
+July 25: `bf1d2926736f58fc675f7bba54f517129f04633ac21379631a30381cbf080d26`.
+Derived JSON remains only in an access-restricted local private directory, not
+public fixtures or Git. Existing native private custody/readback of the complete
+originals remains authoritative; no evidence ref or original was rewritten.
+
+Synthetic tests cover deterministic scoping/accounting, unsupported publication,
+changed/truncated bytes, mismatched identity/date, incomplete HTML even with a
+matching fixture hash, duplicate/missing paragraph selection, altered paragraph
+hashes, quote inclusion, linked input and embedded media. They do not use private
+prose. No shared dispatcher/workflow/renderer/registry, dependency, production DB
+or generated output changes. This is not a live caller migration: deliberately
+no runtime caller exists until separately authorized integration. Remaining
+holds on transmission, spending, recurring acquisition, activation, publication,
+contact, merge and deployment remain. Future versions and June 25 are rejected.
