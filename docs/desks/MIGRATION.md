@@ -25,6 +25,16 @@ differences. A map entry does not permit deactivation of a working path.
 
 ## Implementation order and ownership
 
+**DAPA source-use qualification, 3 November 2026:** five authentic preserved
+HWPX versions passed integrity/structure checks; three stored originals replay
+exactly. All five article captures carry text-only Type 0 notices, but applying
+that scope to DAPA-authored HWPX prose and authorizing substantive source uses
+still need the founder decision specified in the
+[Korea operation qualification](../engineering/KOREA_DESK_OPERATION.md#dapa-original-source-qualification--3-november-2026).
+`156786687` is the proposed first candidate. Existing four public DAPA links,
+private custody, failed-batch and semantic holds remain intact. No adapter,
+model call, common dispatcher change or activation occurred; #950 stays separate.
+
 **Indonesia recovery candidate, 2 November 2026:** shared intake preserves
 deferred retry/QA dispositions; the existing private runner retains parsed
 readings with immutable source/version and attempt context in its already
