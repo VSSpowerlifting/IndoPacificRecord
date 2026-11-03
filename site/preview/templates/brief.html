@@ -59,7 +59,7 @@
 {{ cover_figure(brief.article_media) }}
     {% endif %}
     <div class="brief-context">    <p class="brief-dek">{{ brief.dek }}</p>
-    <p class="brief-byline">By <span class="byline-name">{% set byline_names = brief.author_names|default([brief.author_name]) %}{% for name in byline_names %}{% set byline_member = (team_by_name|default({})).get(name) %}{% if byline_member %}<a href="../{{ byline_member.route }}">{{ name }}</a>{% else %}{{ name }}{% endif %}{% if not loop.last %}{% if loop.length == 2 %} and {% elif loop.revindex == 2 %}, and {% else %}, {% endif %}{% endif %}{% endfor %}</span>{% if brief.author_title and (brief.author_names|length == 1) %}<span class="byline-title">{{ brief.author_title }}</span>{% endif %}</p>
+    <p class="brief-byline">By <span class="byline-name">{% set byline_names = brief.author_names|default([brief.author_name]) %}{% for name in byline_names %}{% set byline_member = (team_by_name|default({})).get(name) %}{% if byline_member %}<a href="../{{ byline_member.route }}">{{ name }}</a>{% else %}{{ name }}{% endif %}{% if not loop.last %}{% if loop.length == 2 %} and {% elif loop.revindex == 2 %}, and {% else %}, {% endif %}{% endif %}{% endfor %}</span>{% if brief.author_title and (byline_names|length == 1) %}<span class="byline-title">{{ brief.author_title }}</span>{% endif %}</p>
     {% set additional_credits = brief.contribution_credits|default({}) %}
     {% if additional_credits.get('research_and_analysis') or additional_credits.get('editing') %}
     <div class="brief-contribution-credits" aria-label="Additional editorial credits">
