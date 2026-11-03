@@ -4,6 +4,25 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-02 — Founder: all Brief works cited accounted for in the Record
+
+Benjamin Yang directed that all works cited in Briefs should appear in the
+Record. Extend the existing November 1 citation integration to include
+independently published research and journalism as citation-only metadata
+Records, clearly labeled non-official, with the original publisher URL,
+attribution and Brief back-links. Do not copy publisher text, imply IPR
+verification or count them as collected original evidence or desk coverage.
+
+This direction does not supply a third-party reuse grant or supersede a
+source-specific hold. The Vietnam MPS reference remains an explicit omission
+until its applicable source-use decision is sealed; MINDEF remains link-only
+inside approved Briefs under the October 29 grant. Keep omissions visible to
+engineering checks, not silently counted as admitted Records. This phase
+changes neither collection, paid model use, publication content nor existing
+source-activation policy. New code must pass final-head checks and regenerate
+output via the renderer before any release; no new deployment authority is
+inferred from the earlier PR #952 exact-head authorization.
+
 ## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
 
 Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday
