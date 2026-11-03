@@ -173,6 +173,25 @@ class EditorialSelection(unittest.TestCase):
         self.admit([], self.tmp / "broken.json", observed=LATER)
         self.assertEqual(self.links(), before)
 
+    def test_removal_after_topic_index_widens_hands_the_link_to_topical_routing(self):
+        m = routine()
+        self.admit([m])
+        self.admit([], self.selection(m))
+        self.assertTrue(intake._owned(self.conn, intake.policy(), identity(m)))
+        # A reviewed code change widens the index: the pinned version is now topical.
+        original = intake.topics
+        widened = lambda meta: ["Strategic industry"] if meta["subject"] == m["subject"] else original(meta)
+        with patch.object(intake, "topics", widened):
+            report = self.admit([], self.selection(), observed=LATER, run="later-run")
+            self.assertEqual(report["selection"], {identity(m): "selection_released_topical"})
+            released = self.links()
+            self.assertEqual(released[0][1], digest(m))
+            self.assertFalse(intake._owned(self.conn, intake.policy(), identity(m)))
+            # Ordinary routing re-reading the same capture keeps it, proof unchanged.
+            report = self.admit([m], self.selection(), observed=LATER, run="topical-run")
+            self.assertEqual((report["unchanged"], report["selection"]), (1, {}))
+            self.assertEqual(self.links(), released)
+
     def test_held_revision_withdraws_only_a_selection_owned_link(self):
         m, other = routine(), routine("220077")
         self.admit([m, other])
