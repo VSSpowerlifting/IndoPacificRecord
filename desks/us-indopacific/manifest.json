@@ -1,0 +1,79 @@
+{
+  "manifest_version": 1,
+  "_comment": [
+    "Production registration for the two U.S. reference families admitted under the owner's standing",
+    "metadata-only approval of 2026-10-15: the U.S.-China Economic and Security Review Commission (USCC)",
+    "press-release listing and the U.S. Department of the Treasury press-release listing.",
+    "These are MANUAL sources: public Daily never fetches uscc.gov or home.treasury.gov. The isolated",
+    "shadow collectors preserve dated listing observations on their own branches; the governed admission",
+    "(scripts/admit_uscc_official_metadata.py, scripts/admit_us_treasury_official_metadata.py) admits only",
+    "official URL, date and issuer metadata into the existing isolated tables. No headline, body,",
+    "attachment, translation, summary or topical claim enters the public corpus through this manifest.",
+    "U.S. Pacific Command (the desk's declared scope) stays access-blocked and unregistered; the",
+    "separate DVIDS shadow draft stays under shadow/us_indopacom/. The Commerce BIS family is not",
+    "registered here because its release is bound to an authenticated scheduled-run attestation that",
+    "Daily cannot reproduce (docs/desks/MIGRATION.md).",
+    "Registering the sources here gives them the same registry row, run-result row and liveness",
+    "disposition as every other production source. It enables no fetch."
+  ],
+  "desk": {
+    "desk_id": "us-indopacific",
+    "display_name": "US Indo-Pacific Reference Desk",
+    "jurisdiction_code": "US",
+    "default_timezone": "America/New_York",
+    "default_calendar": "gregorian",
+    "supported_language_tags": [
+      "en"
+    ],
+    "public_status": "shadow",
+    "active": false
+  },
+  "institutions": [
+    {
+      "institution_id": "us_uscc",
+      "display_name": "U.S.-China Economic and Security Review Commission",
+      "name_original": "U.S.-China Economic and Security Review Commission (USCC)",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "us_treasury",
+      "display_name": "U.S. Department of the Treasury",
+      "name_original": "U.S. Department of the Treasury",
+      "institution_type": "other"
+    }
+  ],
+  "sources": [
+    {
+      "slug": "uscc_press_official_metadata",
+      "institution_id": "us_uscc",
+      "display_name": "USCC website — press-release listing metadata",
+      "base_url": "https://www.uscc.gov",
+      "language_tag": "en",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_statement",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://www.uscc.gov/press-releases"
+      ],
+      "notes": "Public Daily does not fetch this source. The isolated shadow collector preserves dated observations of the official press-release listing on branch shadow/uscc-press; the governed admission admits only official URL, date and issuer metadata into uscc_official_source_records / uscc_official_observations under the owner's standing metadata-only approval of 2026-10-15 (docs/engineering/USCC_METADATA_ONLY_PRODUCTION_RELEASE_2026-10-15.md). The USCC is a congressional commission, not U.S. Pacific Command. Nothing original enters the public corpus; inclusion does not establish Indo-Pacific relevance."
+    },
+    {
+      "slug": "us_treasury_press_official_metadata",
+      "institution_id": "us_treasury",
+      "display_name": "Treasury website — press-release listing metadata",
+      "base_url": "https://home.treasury.gov",
+      "language_tag": "en",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_statement",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://home.treasury.gov/news/press-releases"
+      ],
+      "notes": "Public Daily does not fetch this source. The isolated shadow collector preserves dated observations of the official press-release listing on branch shadow/us-treasury-press; the governed admission admits only official URL, date and issuer metadata into treasury_official_source_records / treasury_official_observations under the owner's standing metadata-only approval of 2026-10-15 (docs/engineering/US_TREASURY_LIVE_METADATA_ADMISSION_2026-10-15.md). The listing is a broad executive-department feed, not a topically screened Indo-Pacific feed; inclusion does not establish Indo-Pacific relevance. Nothing original enters the public corpus."
+    }
+  ]
+}

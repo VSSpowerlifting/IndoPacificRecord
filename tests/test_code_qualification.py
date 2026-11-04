@@ -362,7 +362,7 @@ class DailyCaller(unittest.TestCase):
         # Each real consumer retains Actions' implicit success() gating.
         for name in ("Run pipeline", "Fetch permitted shared Daily machine outputs",
                      "Admit Vietnam Daily handoff", "Collect Vietnam Government Office bibliographic records",
-                     "Admit authorized Japan MOD news official links"):
+                     "Fetch Japan MOD collector branch for governed admission"):
             self.assertNotIn("always()", self.named[name]["if"])
             self.assertNotIn("failure()", self.named[name]["if"])
 

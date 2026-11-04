@@ -1,4 +1,5 @@
 """No approval, state mutation or source text in JCG Day 0 CI review."""
+import json
 import unittest
 from pathlib import Path
 
@@ -53,7 +54,9 @@ class DayZeroAuditContracts(unittest.TestCase):
         self.assertIn("human_holds", self.source)
 
     def test_no_manifest_or_corpus_activation(self):
-        self.assertFalse((ROOT / "desks/japan/manifest.json").exists())
+        production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
+        self.assertNotIn("jcg", json.dumps(production).lower())
         self.assertNotIn("scrape", self.source)
         self.assertNotIn("shadow_collect_desk", self.source)
         self.assertNotIn("weekly_editorial_handoff", self.source)

@@ -59,7 +59,9 @@ class JCGSourceContracts(unittest.TestCase):
         self.assertEqual(len(manifest["sources"]), 1)
         self.assertTrue(manifest["sources"][0]["enabled"])
         self.assertEqual(manifest["sources"][0]["slug"], "jp_jcg_press_en")
-        self.assertFalse((root / "desks/japan/manifest.json").exists())
+        production = json.loads((root / "desks/japan/manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
+        self.assertNotIn("jcg", json.dumps(production).lower())
 
     def test_dates_are_publisher_calendar_dates(self):
         self.assertEqual(source_date("06 10 2026"), "2026-10-06")

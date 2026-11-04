@@ -65,7 +65,8 @@ class TestGovernedManualSourceStatuses(unittest.TestCase):
         errors = []
         with mock.patch("config.KOREA_DAILY_AUTOMATION_ENABLED", enabled), \
                 mock.patch.object(pipeline, "_governed_admissions",
-                                  return_value={SLUG: admit} if admit else {}):
+                                  return_value={SLUG: pipeline._korea_admission(bridge=admit)}
+                                  if admit else {}):
             results = pipeline.run_governed_manual_sources(
                 list(slugs), 7, FakeRegistry(), errors, dry_run=dry_run)
         return results, errors

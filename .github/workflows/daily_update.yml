@@ -345,20 +345,42 @@ jobs:
         run: |
           python -m scripts.collect_vietnam_government_documents --database pla_watch.db --gate-dir "$RUNNER_TEMP/vpcp-host-gate"
 
-      # Reuse the existing Japan collector and this Daily's SQLite/render/Pages
-      # writer. Both a recorded source policy and explicit owner activation are
-      # required. No model call, source fetch, new schedule or parallel publisher.
-      - name: Admit authorized Japan MOD news official links
+      # Make the existing Japan collector branch available to the pipeline. The
+      # admission itself runs inside "Run pipeline" as the jp_mod_news_ja
+      # governed admission, so its disposition is that source's run-result row
+      # (an unavailable branch is reported there as listing_failure), not this
+      # step's outcome. Both a recorded source policy and explicit owner
+      # activation are required there. No model call, source fetch, new
+      # schedule or parallel publisher.
+      - name: Fetch Japan MOD collector branch for governed admission
         if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
         run: |
           set -euo pipefail
           python -c 'from core.japan_mod_official_links import require_authorization; require_authorization()'
           git fetch --no-tags origin refs/heads/shadow/jp-mod:refs/remotes/origin/shadow/jp-mod
-          python -m scripts.admit_japan_mod_official_links
+
+      # Make the preserved USCC and Treasury official press-release listing
+      # histories available to the pipeline. The admissions themselves run
+      # inside "Run pipeline" as the uscc_press_official_metadata and
+      # us_treasury_press_official_metadata governed admissions under the
+      # owner's standing metadata-only approval of 2026-10-15, so each
+      # disposition is that source's run-result row (a clone that is missing
+      # here is reported there as listing_failure). This step reads two
+      # branches of this repository; nothing is fetched from a publisher.
+      - name: Clone preserved U.S. official-listing histories for governed admission
+        if: steps.timecheck.outputs.should_run == 'true' && !inputs.vpcp_metadata_only
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          remote="https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git"
+          status=0
+          git clone --quiet --single-branch --branch shadow/uscc-press \
+            "$remote" "$RUNNER_TEMP/uscc-preserved-metadata" || status=$?
+          git clone --quiet --single-branch --branch shadow/us-treasury-press \
+            "$remote" "$RUNNER_TEMP/treasury-preserved-metadata" || status=$?
+          exit "$status"
 
       # Korean MND texts come only from the already verified, released source index.
       # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
@@ -380,7 +402,18 @@ jobs:
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
+          # Governed manual admissions run inside the pipeline so every manual
+          # source gets a run-result row. Each activation is a separate owner
+          # act; unset leaves that source reported as awaiting activation.
+          IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
+          GH_TOKEN: ${{ github.token }}
+          # Standing owner approval (2026-10-15): the pipeline admits the
+          # preserved USCC/Treasury listing metadata from these clones; an
+          # absent clone leaves that source reported, never failing the run.
+          IPR_USCC_SOURCE_CHECKOUT: ${{ runner.temp }}/uscc-preserved-metadata
+          IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}

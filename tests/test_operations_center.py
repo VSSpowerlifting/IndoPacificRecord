@@ -26,7 +26,7 @@ class OperationsCenterContracts(unittest.TestCase):
     def report(self):
         rows = []
         for desk in self.registry:
-            if not desk.is_collecting:
+            if not desk.manifest_path:
                 continue
             for src in desk.sources:
                 rows.append({
@@ -62,6 +62,15 @@ class OperationsCenterContracts(unittest.TestCase):
                 self.assertEqual(4 * desk["declared_sources"],
                                  desk["production_source_articles"])
                 self.assertTrue(desk["source_health_observed"])
+            elif desk["source_health_observed"]:
+                # Manual registrations on a non-collecting desk are observed
+                # through the same rows without becoming production.
+                self.assertEqual(4 * desk["declared_sources"],
+                                 desk["production_source_articles"])
+                self.assertEqual(desk["declared_sources"],
+                                 len(desk["production_sources"]))
+                self.assertFalse(desk["production_eligible"])
+                self.assertEqual("not_observed", desk["shadow_health"])
             else:
                 self.assertIsNone(desk["production_source_articles"])
                 self.assertEqual([], desk["production_sources"])
@@ -226,7 +235,7 @@ class TrackedDatabaseReadOnlySmoke(unittest.TestCase):
         before = db.stat().st_mtime_ns
         report = build_report(db)
         slugs = {x["source_slug"] for x in report["sources"]}
-        expected = {s.slug for d in load_registry() if d.is_collecting
+        expected = {s.slug for d in load_registry() if d.manifest_path
                     for s in d.sources}
         self.assertEqual(expected, slugs)
         self.assertEqual(before, db.stat().st_mtime_ns)

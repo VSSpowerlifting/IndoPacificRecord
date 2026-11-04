@@ -93,11 +93,24 @@ class FetchOutputs(unittest.TestCase):
         from tests.test_reconcile import migrate
         from tests.test_migrations import build_legacy_db
         from processing import daily_intake as intake
-        from processing.daily_runner import public_intake
+        from processing.daily_runner import intake_family
         from tests.test_philippines_shared_daily import record, reading, fake_analyzer
 
         policy = load_policy()
         keys = {family: 'synthetic-' + family * 3 for family in fetch.SOURCES}
+
+        def public_intake(db, root):
+            # Runtime migration 3: pipeline.run_governed_manual_sources dispatches
+            # each family on its own through intake_family. A family whose
+            # envelope the fetch removed returns None and is absent here; the
+            # others report the same admitted/holds receipt as before.
+            result = {}
+            for family in fetch.SOURCES:
+                receipt = intake_family(db, root, family, policy=policy)
+                if receipt is not None:
+                    result[family] = {k: receipt[k] for k in ('admitted', 'holds')}
+            return result
+
         envelopes = {}
         records = {}
         for family, label in [('ph_afp_articles', 'AFP'), ('ph_nsc_official_statements', 'NSC')]:

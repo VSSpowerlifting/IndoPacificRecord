@@ -125,7 +125,8 @@ class TestTheManifestClaimsOnlyWhatTheFeedCarries(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "desks" / "us_indopacific").exists())
         discovered = {p.parent.name
                       for p in (REPO_ROOT / "desks").glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "korea", "singapore", "vietnam"})
+        self.assertEqual(discovered, {"china", "indonesia", "japan", "korea",
+                                      "philippines", "singapore", "us-indopacific", "vietnam"})
 
 
 class TestTheReadmeStatesTheDominantLimitation(unittest.TestCase):
@@ -171,16 +172,24 @@ class TestThePacomFindingIsNotReinterpreted(unittest.TestCase):
         desk = load_registry().get("us-indopacific")
         self.assertEqual(desk.status, "access_blocked")
         self.assertFalse(desk.is_collecting)
-        self.assertEqual(desk.enabled_source_count, 0)
+        # The two enabled sources are the manual USCC/Treasury listing-metadata
+        # registrations of runtime migration 4; neither is a PACOM or DVIDS
+        # source and nothing fetches either of them.
+        self.assertEqual({s.access_method for s in desk.sources}, {"manual"})
+        self.assertFalse({s.slug for s in desk.sources} & {SOURCE["slug"]})
 
-    def test_the_registry_still_points_at_no_manifest(self):
+    def test_the_registry_still_points_at_no_shadow_manifest(self):
         # Wiring the shadow manifest into the registry would begin promoting
         # the desk. It stays unwired until collection has run and been
-        # reviewed.
+        # reviewed. The production manifest the registry does point at
+        # declares the USCC/Treasury metadata families only.
         raw = json.loads((REPO_ROOT / "desks" / "registry.json").read_text(
             encoding="utf-8"))
         entry = [d for d in raw["desks"] if d["slug"] == "us-indopacific"][0]
-        self.assertIsNone(entry["manifest"])
+        self.assertEqual(entry["manifest"], "desks/us-indopacific/manifest.json")
+        production = json.loads((REPO_ROOT / entry["manifest"]).read_text(encoding="utf-8"))
+        self.assertNotIn(SOURCE["slug"], {s["slug"] for s in production["sources"]})
+        self.assertFalse(production.get("_shadow", False))
         self.assertFalse(entry["has_production_records"])
 
     def test_the_adapter_never_names_a_blocked_host_as_a_permitted_one(self):

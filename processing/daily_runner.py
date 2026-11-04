@@ -12,7 +12,7 @@ from pathlib import Path
 
 from core.daily_sources import SOURCES, source_for
 from processing.daily_intake import (
-    IntakeHold, admit, bind_admitted_metadata, load_policy, need, process,
+    admit, bind_admitted_metadata, load_policy, need, process,
     sign_outputs, verified_source,
 )
 
@@ -108,26 +108,31 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
     return result
 
 
-def public_intake(db_path, input_dir):
-    """Consume independently signed source snapshots; isolate family failures.
+def intake_family(db_path, input_dir, family, *, policy=None):
+    """Admit one family's independently signed envelope; None when none was delivered.
 
-    Called before shared rendering. Daily's existing main/Pages concurrency,
-    migrations, commit and deploy gates own the resulting SQLite/site changes.
+    Called by pipeline.run_governed_manual_sources, which turns the receipt
+    (or the raised hold) into that source's run-result row. Nothing here
+    isolates failures by swallowing them: a bad envelope raises, the caller
+    records the fixed hold code, and the other families are dispatched on
+    their own. Daily's existing main/Pages concurrency, migrations, commit and
+    deploy gates own the resulting SQLite/site changes.
     """
     import sqlite3
-    policy = load_policy()
-    result = {}
-    for family, source in SOURCES.items():
-        path = Path(input_dir) / (family + ".json")
-        if not path.exists():
-            continue  # quiet/unactivated source is not an error
-        try:
-            need(path.stat().st_size <= 512000, "daily_envelope_too_large")
-            envelope = json.loads(path.read_text())
-            with sqlite3.connect(str(db_path), timeout=30) as conn:
-                conn.execute("PRAGMA foreign_keys=ON")
-                result[family] = admit(conn, envelope, family=family, policy=policy,
-                    key=os.environ.get(source.key_env, ""))
-        except (IntakeHold, ValueError, TypeError, KeyError, OSError, sqlite3.Error):
-            result[family] = {"holds": ["daily_source_intake_failed"]}
-    return result
+    source = source_for(family)
+    need(source is not None, "daily_source_family_invalid")
+    path = Path(input_dir) / (family + ".json")
+    if not path.exists():
+        return None
+    need(path.stat().st_size <= 512000, "daily_envelope_too_large")
+    envelope = json.loads(path.read_text())
+    policy = policy or load_policy()
+    with sqlite3.connect(str(db_path), timeout=30) as conn:
+        conn.execute("PRAGMA foreign_keys=ON")
+        receipt = admit(conn, envelope, family=family, policy=policy,
+                        key=os.environ.get(source.key_env, ""))
+    # `admit` validated the packet shape before touching the database, so the
+    # record list is well-formed here. Replayed records are neither admitted
+    # nor held; the caller reports them as duplicates.
+    return {"records": len(envelope["packet"]["records"]),
+            "admitted": receipt["admitted"], "holds": list(receipt["holds"])}
