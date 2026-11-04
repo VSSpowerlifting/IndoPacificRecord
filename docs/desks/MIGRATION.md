@@ -347,6 +347,13 @@ existing records, their text, hashes, dates and source identities,
 rendering is untouched. `xinhua_mil`, `china_mil_online` and all other desks
 are unaffected.
 
+Fail-closed identity: with the hold enabled, a row whose `source_slug` is
+absent, null or empty counts as held at the Briefs writers and the relevance
+model boundary, so unknown provenance cannot bypass it. Integration
+candidate: #979 composed onto #950 (merge order #950, then #979); the held
+slugs are not in #950's governed-admission families, and the hold check
+precedes its manual dispatch in `pipeline.py`. No new policy packet.
+
 All three adapters retrieve full article bodies, so the hold is a
 whole-collection hold, not a metadata-only mode. Whether metadata-only
 discovery would be permitted, and for Global Times the difference between
