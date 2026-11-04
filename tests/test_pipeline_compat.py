@@ -661,8 +661,13 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
                    "sg_mindef_releases", "kr_policy_mnd_releases",
                    "vn_mps_foreign_affairs_vi",
                    "vn_vpcp_official_documents_vi"}
+        # The two US reference sources are manifest-registered
+        # (desks/us-indopacific) and admitted through the governed dispatcher
+        # from preserved history; the Daily run never fetches them.
         manual_registrations = {"ph_afp_articles", "ph_nsc_official_statements",
-                                "id_kemhan_news", "jp_mod_news_ja"}
+                                "id_kemhan_news", "jp_mod_news_ja",
+                                "uscc_press_official_metadata",
+                                "us_treasury_press_official_metadata"}
         self.assertLessEqual(fetched, slugs)
         self.assertLessEqual(slugs, fetched | manual_registrations)
 
