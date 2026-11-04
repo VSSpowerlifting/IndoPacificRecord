@@ -4,6 +4,25 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-03 — Pending owner decision: China source-use (five families)
+
+**No approval is recorded here.** This entry records a decision that is open.
+The 3 November 2026 China Desk certification audit (issue #673) found no
+recorded source-use decision for retention, model input or any public component
+of `mod_china`, `pla_daily`, `xinhua_mil`, `china_mil_online` or
+`global_times_mil`. The evidence, options, a marked recommendation and the exact
+owner questions for each family are in
+[`docs/engineering/CHINA_SOURCE_USE_DECISIONS_2026-11-03.md`](docs/engineering/CHINA_SOURCE_USE_DECISIONS_2026-11-03.md).
+That file is the record to fill in; every decision field in it reads
+`PENDING` (or not applicable for English originals).
+
+Nothing changes until the owner decides: no manifest field, record-page gating,
+collector, activation, model-input or retention change. This entry does not
+change the narrow 25 October 2026 Maritime-dossier grant or the 18 October 2026
+headline authorization; whether a later decision should is an open owner
+question in the memo. Publisher notices in the memo are quoted
+evidence, not legal conclusions, and no publisher has been contacted.
+
 ## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
 
 Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday
