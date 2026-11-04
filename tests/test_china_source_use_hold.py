@@ -617,5 +617,29 @@ class TestBriefsWriters(unittest.TestCase):
             self.weekly(rows)
 
 
+class TestWorkflowWiring(unittest.TestCase):
+    """A repo variable reaches a job only if the workflow maps it into env."""
+
+    WORKFLOWS = (
+        "daily_update.yml",
+        "china_title_completion_batch.yml",
+        "sunday_briefs_editorial_handoff.yml",
+        "weekly_briefs_editorial_handoff.yml",
+    )
+
+    def test_every_model_spending_china_route_maps_the_switch(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+        for name in self.WORKFLOWS:
+            text = (root / name).read_text(encoding="utf-8")
+            self.assertIn(
+                "IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}",
+                text, name,
+            )
+            # Mapped from the variable only: never hard-coded on or off.
+            self.assertNotIn("IPR_CHINA_SOURCE_USE_HOLD: 'true'", text, name)
+            self.assertNotIn("IPR_CHINA_SOURCE_USE_HOLD: true", text, name)
+
+
 if __name__ == "__main__":
     unittest.main()

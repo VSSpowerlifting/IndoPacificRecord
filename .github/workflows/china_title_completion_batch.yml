@@ -32,5 +32,6 @@ jobs:
       - name: Reserve, translate headlines only and checkpoint
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}
           TITLE_BATCH_LIMIT: ${{ inputs.limit }}
         run: python scripts/china_title_release_batch.py --limit "$TITLE_BATCH_LIMIT"
