@@ -458,6 +458,16 @@ class TestPipeline(PipelineRunCase):
             self.assertTrue(body.startswith("xinhua_mil"), body)
 
 
+class TestSharedDispatchComposition(unittest.TestCase):
+    """The hold and the shared governed-admission dispatch must not overlap."""
+
+    def test_no_held_slug_is_a_governed_manual_admission(self):
+        import pipeline
+        self.assertFalse(
+            set(hold.HELD_SOURCE_SLUGS) & set(pipeline._governed_admissions()),
+            "a held China source must not also be dispatched by the governed path")
+
+
 class TestBriefsWriters(unittest.TestCase):
     """Stored text must not reach the Sunday/weekly briefs model while held."""
 
