@@ -54,6 +54,7 @@ from core.desk_registry import (                                  # noqa: E402
     DeskEntry, DeskRegistry, get_desk_registry,
 )
 from scripts.reconcile_db import _read_only                       # noqa: E402
+from core.mindef_permissions import is_mindef_source              # noqa: E402
 
 
 def _dict_row(cursor, row):
@@ -116,6 +117,24 @@ class SourceView:
     #: rounded to one decimal. Derived, never declared: a share written into a
     #: manifest note goes stale silently, and this one cannot.
     share_of_record: Optional[float] = None
+    latest_run_at: Optional[str] = None
+
+    @property
+    def collection_hold(self) -> Optional[str]:
+        """Current policy overrides configuration and historical run outcomes.
+
+        Mirrors the unconditional MINDEF source-use hold in pipeline.collect;
+        this is presentation only and never changes collection eligibility.
+        """
+        if is_mindef_source(self.slug):
+            return "New collection and model processing on hold pending a source-use decision"
+        return None
+
+    @property
+    def collection_label(self) -> str:
+        if self.collection_hold:
+            return "On hold — configured %s" % ("enabled" if self.enabled else "disabled")
+        return "Enabled" if self.enabled else "Disabled"
 
     @property
     def route(self) -> str:
@@ -177,7 +196,13 @@ class DeskView:
 
     @property
     def status_label(self) -> str:
+        if self.collection_on_hold:
+            return "Historical records — new collection on hold"
         return self.entry.status_label
+
+    @property
+    def collection_on_hold(self) -> bool:
+        return bool(self.sources) and all(s.collection_hold for s in self.sources)
 
     @property
     def status_explanation(self) -> str:
@@ -737,6 +762,7 @@ class PublicView:
                 first_published=stats.get("first_published"),
                 last_published=stats.get("last_published"),
                 latest_status=status, latest_error_detail=detail,
+                latest_run_at=(self._latest_run["started_at"] if status else None),
                 share_of_record=self._share(stats.get("n", 0)),
             ))
 
