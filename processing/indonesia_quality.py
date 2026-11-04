@@ -73,6 +73,16 @@ def factual_values(text):
     return values, text
 
 
+def without_possessive(text):
+    """Compare the name, not its English possessive suffix.
+
+    The name patterns admit a straight apostrophe but not a curly one, so
+    "Indonesia's" and "Indonesia’s" were judged differently. The base name must
+    still be local to the cited passage; nothing is added to what is accepted.
+    """
+    return re.sub(r"(?<=[A-Za-z])'s\b", "", text)
+
+
 def check_status(evidence, english):
     from processing.daily_intake import need
     tentative = re.search(TENTATIVE, evidence, re.I)
@@ -179,7 +189,8 @@ def quality_check(record, reading):
         # Names in a sentence must be local to its cited passage. Date words
         # were already compared semantically. Ordinary translated labels must
         # retain their Indonesian concept in that same passage.
-        for token in re.findall(r"\b[A-Z][A-Za-z'-]+\b", office_checked_text(evidence, sentence_text)):
+        for token in re.findall(r"\b[A-Z][A-Za-z'-]+\b",
+                                office_checked_text(evidence, without_possessive(sentence_text))):
             if token not in {"Kemhan", "The", "According", "It", "This"}:
                 need(token in evidence or (token in TRANSLATED_LABELS
                      and re.search(TRANSLATED_LABELS[token], evidence, re.I)),

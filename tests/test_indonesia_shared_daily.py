@@ -305,6 +305,31 @@ class IndonesiaSharedDaily(unittest.TestCase):
             with self.subTest(parenthesized=form):
                 self.assertEqual(len(d.quality_check(r,reply)),64)
 
+    def possessive_reading(self, sentence_name):
+        # Synthetic passage; only the possessive spelling and base name vary.
+        r,reply=record(),reading()
+        first='Delegasi Indonesia membahas rencana latihan bersama.'
+        r['body']=first+'\n\n'+reply['facts'][1]['evidence']
+        reply['facts'][0]=dict(evidence=first,
+            sentence='Kemhan reports that '+sentence_name+' delegation discusses joint exercise plans.',
+            evidence_translation='The delegation of Indonesia discusses plans for a joint exercise.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_possessive_of_a_local_name_is_judged_like_its_name(self):
+        # The straight and typographic apostrophes must not be judged differently.
+        for name in ('Indonesia','Indonesia\'s','Indonesia’s'):
+            r,reply=self.possessive_reading(name)
+            with self.subTest(name=name):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def test_possessive_does_not_make_a_nonlocal_name_or_form_local(self):
+        for name in ('Singapore','Singapore\'s','Singapore’s','Indonesian\'s','Indonesians\'',
+                     'Indonesia\'s Singapore\'s'):
+            r,reply=self.possessive_reading(name)
+            with self.subTest(name=name),self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+                d.quality_check(r,reply)
+
     def test_institution_acronyms_expansions_and_translations_are_not_inferred(self):
         for source,alias in (('Kementerian Contoh','Kemencontoh'),
                              ('Kementerian Contoh','kemencontoh'),
