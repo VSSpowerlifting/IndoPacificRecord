@@ -25,6 +25,7 @@ No network. No database. No writes.
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 import unittest
@@ -321,9 +322,15 @@ class TestThisEnablesNothing(unittest.TestCase):
                     self.assertTrue(
                         manifest.is_file(),
                         "the allowed PDF caller must belong to a shadow source")
-                    self.assertFalse(
-                        (REPO_ROOT / "desks" / "japan").exists(),
-                        "the allowed PDF caller's desk must not be in desks/")
+                    # The production Japan manifest registers a manual source
+                    # for governed link admission. It must never name this
+                    # adapter, or any adapter: nothing in desks/ may fetch it.
+                    production = REPO_ROOT / "desks" / "japan" / "manifest.json"
+                    text = production.read_text(encoding="utf-8")
+                    self.assertNotIn("scraper.sources.jp_mod", text)
+                    self.assertNotIn('"adapter"', text)
+                    for src in json.loads(text)["sources"]:
+                        self.assertEqual(src["access_method"], "manual")
 
     def test_the_view_layer_is_not_on_the_collection_path(self):
         """
@@ -455,7 +462,7 @@ class TestThisEnablesNothing(unittest.TestCase):
         `sync_desk_config()` write a row into the tracked database.
         """
         from core.manifests import load_all_desks
-        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore", "vietnam"])
+        self.assertEqual(sorted(load_all_desks()), ["china", "indonesia", "japan", "korea", "philippines", "singapore", "us-indopacific", "vietnam"])
         self.assertTrue((REPO_ROOT / "desks" / "registry.json").is_file())
         self.assertFalse((REPO_ROOT / "desks" / "registry"
                           / "manifest.json").exists())

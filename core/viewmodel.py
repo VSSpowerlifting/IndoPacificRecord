@@ -94,6 +94,9 @@ class SourceView:
     desk_slug: str
     enabled: bool
     contract_validated: bool
+    #: 'manual' sources are never fetched: their records arrive only through
+    #: a governed admission step, and the pages must not call that collection.
+    access_method: Optional[str] = None
     institution: Optional[str] = None
     institution_original: Optional[str] = None
     institution_type: Optional[str] = None
@@ -538,7 +541,7 @@ class PublicView:
                 "SELECT s.slug, s.display_name, s.desk_id, s.enabled, "
                 "       s.is_active, s.institution_id, s.language_tag, "
                 "       s.language, s.authority_tier, s.source_type, "
-                "       s.base_url, s.notes, "
+                "       s.base_url, s.notes, s.access_method, "
                 "       i.display_name AS institution, i.name_original, "
                 "       i.institution_type "
                 "  FROM sources s "
@@ -726,6 +729,7 @@ class PublicView:
                 desk_slug=row["desk_id"] or "",
                 enabled=bool(row["enabled"]),
                 contract_validated=True,
+                access_method=row["access_method"],
                 institution=row["institution"],
                 institution_original=row["name_original"],
                 institution_type=row["institution_type"],
@@ -749,6 +753,7 @@ class PublicView:
                     slug=src.slug, display_name=src.display_name,
                     desk_slug=entry.slug, enabled=src.enabled,
                     contract_validated=src.contract_validated,
+                    access_method=src.access_method,
                     institution=None, source_type=src.source_type,
                     authority_tier=src.authority_tier,
                     language_tag=src.language_tag, base_url=src.base_url,

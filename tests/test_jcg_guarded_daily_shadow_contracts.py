@@ -1,4 +1,5 @@
 """Guarded Japan Coast Guard scheduled qualification is inert by default."""
+import json
 import unittest
 from datetime import datetime, date, timezone
 from pathlib import Path
@@ -78,7 +79,9 @@ class JCGDailyQualifications(unittest.TestCase):
         self.assertIn("shadow", source)
         self.assertIn("jp_jcg_press_en", source)
         self.assertIn("linked PDFs", source)
-        self.assertFalse((ROOT / "desks/japan/manifest.json").exists())
+        production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
+        self.assertNotIn("jcg", json.dumps(production).lower())
 
 
 if __name__ == "__main__":
