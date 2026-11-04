@@ -693,55 +693,6 @@ def get_total_analyzed_count() -> int:
 
 # ── Site-generation queries ───────────────────────────────────────────────────
 
-def get_articles_for_date(date_str: str) -> list[sqlite3.Row]:
-    """Return all analyzed articles for a given date, significance-first."""
-    with get_conn() as conn:
-        return conn.execute(
-            """
-            SELECT a.*, s.display_name AS source_name, s.language AS source_language
-              FROM articles a
-              JOIN sources  s ON s.id = a.source_id
-             WHERE a.published_date = ?
-               AND a.passed_relevance = 1
-               AND a.analyzed_at IS NOT NULL
-             ORDER BY a.is_significant DESC, a.relevance_score DESC
-            """,
-            (date_str,),
-        ).fetchall()
-
-
-def get_article_categories(article_id: int) -> list[str]:
-    with get_conn() as conn:
-        rows = conn.execute(
-            """
-            SELECT c.slug
-              FROM article_categories ac
-              JOIN categories c ON c.id = ac.category_id
-             WHERE ac.article_id = ?
-            """,
-            (article_id,),
-        ).fetchall()
-    return [r["slug"] for r in rows]
-
-
-def get_recent_dates(limit: int = 30) -> list[str]:
-    """Return the most recent N distinct publication dates with analyzed articles."""
-    with get_conn() as conn:
-        rows = conn.execute(
-            """
-            SELECT DISTINCT published_date
-              FROM articles
-             WHERE passed_relevance = 1
-               AND analyzed_at IS NOT NULL
-               AND published_date IS NOT NULL
-             ORDER BY published_date DESC
-             LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
-    return [r["published_date"] for r in rows]
-
-
 def get_articles_for_date_range(start_date: str, end_date: str) -> list[sqlite3.Row]:
     """
     Return all analyzed articles published between start_date and end_date (inclusive).
@@ -816,17 +767,6 @@ def get_source_language_tag(slug: str) -> Optional[str]:
     return {"zh": "zh-Hans", "en": "en"}.get(legacy, legacy)
 
 
-def get_source_desk_id(slug: str) -> Optional[str]:
-    """Desk owning a source, or None on an unmigrated database."""
-    with get_conn() as conn:
-        if not _has_column(conn, "sources", "desk_id"):
-            return None
-        row = conn.execute(
-            "SELECT desk_id FROM sources WHERE slug = ?", (slug,)
-        ).fetchone()
-    return row["desk_id"] if row else None
-
-
 def source_is_enabled(slug: str) -> bool:
     """`enabled` if migrated, else the legacy `is_active`."""
     with get_conn() as conn:
@@ -841,26 +781,6 @@ def source_is_enabled(slug: str) -> bool:
     if row["enabled"] is not None:
         return bool(row["enabled"])
     return bool(row["is_active"])
-
-
-def get_sources_with_desk_metadata() -> list:
-    """All sources with whatever desk metadata exists. Read-only."""
-    with get_conn() as conn:
-        if not _has_column(conn, "sources", "desk_id"):
-            return conn.execute(
-                "SELECT slug, display_name, base_url, language, is_active "
-                "FROM sources ORDER BY slug"
-            ).fetchall()
-        return conn.execute(
-            """
-            SELECT s.*, d.display_name AS desk_display_name,
-                   i.display_name AS institution_display_name
-              FROM sources s
-              LEFT JOIN desks d ON d.desk_id = s.desk_id
-              LEFT JOIN institutions i ON i.institution_id = s.institution_id
-             ORDER BY s.slug
-            """
-        ).fetchall()
 
 
 def get_articles_for_desks(start_date: str, end_date: str, desks,
@@ -972,45 +892,3 @@ def record_source_run_result(run_id: int, result) -> None:
              result.relevance_rejected, result.failed_fetches,
              result.text_unavailable, result.error_detail),
         )
-
-
-def get_source_run_results(run_id: int) -> list:
-    with get_conn() as conn:
-        if not conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' "
-            "AND name='source_run_results'"
-        ).fetchone():
-            return []
-        return conn.execute(
-            "SELECT * FROM source_run_results WHERE scrape_run_id = ? "
-            "ORDER BY source_slug",
-            (run_id,),
-        ).fetchall()
-
-
-def get_last_success_by_source() -> dict:
-    """
-    Most recent run in which each source produced a new document.
-
-    Answers "when did this source last actually deliver?" — which a green run
-    does not, and which is the question MOD China's four silent weeks needed
-    someone to be asking.
-    """
-    with get_conn() as conn:
-        if not conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' "
-            "AND name='source_run_results'"
-        ).fetchone():
-            return {}
-        rows = conn.execute(
-            """
-            SELECT source_slug,
-                   MAX(CASE WHEN new_documents > 0 THEN completed_at END)
-                       AS last_new_document,
-                   MAX(CASE WHEN is_failure = 0 THEN completed_at END)
-                       AS last_successful_collection
-              FROM source_run_results
-             GROUP BY source_slug
-            """
-        ).fetchall()
-    return {r["source_slug"]: dict(r) for r in rows}
