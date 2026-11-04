@@ -58,8 +58,13 @@ class CompleteDelivery(unittest.TestCase):
         living = {str(r[0]) + '.html' for r in index['records']}
         from core.daily_machine_records import load as load_machine_records
         machine = {Path(r['record_path']).name for r in load_machine_records(ROOT / 'pla_watch.db')}
+        from core.brief_collection import load_collection
+        from core.cited_source_records import resolve
+        from core.desk_registry import load_registry
+        briefs = load_collection([], load_registry(), briefs_dir=ROOT / 'briefs')
+        cited = {Path(r['record_path']).name for r in resolve(briefs)[0]}
         self.assertEqual({p.name for p in (root / 'record').glob('*.html')},
-                         living | machine,
+                         living | machine | cited,
                          "retired, missing or extra record pages would go unchecked")
         self.assertEqual(result['failures'], [])
 

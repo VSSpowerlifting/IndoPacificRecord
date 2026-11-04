@@ -17,7 +17,9 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from scripts.sunday_editorial_handoff import quality_hold, send_packet, single_address
+from scripts.sunday_editorial_handoff import (
+    is_saturday_provisional, quality_hold, send_packet, single_address,
+)
 
 NY = ZoneInfo("America/New_York")
 SCHEMA = "ipr-reviewed-sunday-manual-handoff/1"
@@ -46,8 +48,14 @@ class ReviewedHandoffRefused(ValueError):
     """Unsafe or unapproved exact-file editorial handoff."""
 
 
-def validate_file(path, week_ending, *, now=None):
-    """Return a verified immutable-in-memory snapshot of the local worksheet."""
+def validate_file(path, week_ending, *, now=None, saturday_provisional=False):
+    """Return a verified immutable-in-memory snapshot of the local worksheet.
+
+    ``saturday_provisional`` admits the reporting Saturday itself (or its
+    Sunday, for an owner resend of the same accepted bytes) only for a packet
+    whose own header carries the Saturday provisional cut-off. Neither mode
+    accepts the other's packet.
+    """
     path = Path(path)
     if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".txt":
         raise ReviewedHandoffRefused("reviewed packet must be an existing regular .txt, not a symlink")
@@ -64,7 +72,11 @@ def validate_file(path, week_ending, *, now=None):
     if now.tzinfo is None or now.utcoffset() is None:
         raise ReviewedHandoffRefused("local clock must have timezone")
     today = now.astimezone(NY).date()
-    if saturday >= today:
+    if saturday_provisional:
+        if not today - timedelta(days=1) <= saturday <= today:
+            raise ReviewedHandoffRefused(
+                "Saturday provisional packet is sent only on its Saturday or the following Sunday")
+    elif saturday >= today:
         raise ReviewedHandoffRefused("reporting Saturday has not ended")
     if saturday < today - timedelta(days=98):
         raise ReviewedHandoffRefused("reviewed edition is outside 98-day historical review window")
@@ -92,12 +104,16 @@ def validate_file(path, week_ending, *, now=None):
         raise ReviewedHandoffRefused("thematic manuscript lacks production citation bookkeeping")
     if not text.endswith("END OF UNAPPROVED WORKSHEET\n"):
         raise ReviewedHandoffRefused("reviewed file has trailing or missing worksheet boundary")
+    if is_saturday_provisional(text) != saturday_provisional:
+        raise ReviewedHandoffRefused(
+            "Saturday provisional mode must match the packet's own cut-off header")
     return payload
 
 
 def inspect_reviewed_attachment(path, week_ending, *, approval_week="", approval_digest="",
-                                now=None):
-    packet = validate_file(path, week_ending, now=now)
+                                now=None, saturday_provisional=False):
+    packet = validate_file(path, week_ending, now=now,
+                           saturday_provisional=saturday_provisional)
     actual = hashlib.sha256(packet).hexdigest()
     approved = bool(
         approval_week == week_ending and isinstance(approval_digest, str)
@@ -111,6 +127,7 @@ def inspect_reviewed_attachment(path, week_ending, *, approval_week="", approval
         "attachment_bytes": len(packet),
         "exact_owner_approval_matches": approved,
         "quality_hold_present": quality_hold(packet.decode("utf-8")),
+        "saturday_provisional": saturday_provisional,
         "automated_model_called": False,
         "publisher_rights_or_facts_reviewed_by_program": False,
         "email_sent": False,
@@ -119,7 +136,7 @@ def inspect_reviewed_attachment(path, week_ending, *, approval_week="", approval
 
 
 def handoff(path, week_ending, *, send=False, owner_confirmed=False,
-            historical_override=False, now=None):
+            historical_override=False, now=None, saturday_provisional=False):
     """Return metadata only; never email unless BOTH explicit manual flags hold."""
     if now is None:
         now = datetime.now(NY)
@@ -127,7 +144,7 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
         path, week_ending,
         approval_week=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_WEEK", ""),
         approval_digest=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_SHA256", ""),
-        now=now,
+        now=now, saturday_provisional=saturday_provisional,
     )
     if not send:
         if owner_confirmed or historical_override:
@@ -140,8 +157,12 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
         )
     local_day = now.astimezone(NY).date()
     latest_saturday = local_day - timedelta(days=(local_day.weekday() - 5) % 7)
+    send_days = (5, 6) if saturday_provisional else (6,)
+    if saturday_provisional and historical_override:
+        raise ReviewedHandoffRefused(
+            "a Saturday provisional packet is never a historical send")
     if (week_ending != latest_saturday.isoformat()
-            or local_day.weekday() != 6) and not historical_override:
+            or local_day.weekday() not in send_days) and not historical_override:
         raise ReviewedHandoffRefused(
             "sending a past-week reviewed manuscript requires --allow-historical-send"
         )
@@ -173,7 +194,7 @@ def handoff(path, week_ending, *, send=False, owner_confirmed=False,
         # Reaching here required --confirm-owner-reviewed AND an exact digest match,
         # which is the owner's informed release of any narrative-quality hold.
         send_packet(reviewed_copy, week_ending, provisional=True, full_week=True,
-                    owner_released=True)
+                    owner_released=True, saturday_provisional=saturday_provisional)
     receipt["email_sent"] = True
     return receipt
 
@@ -189,12 +210,15 @@ def main(argv=None):
                    help="explicit owner acknowledgement for this exact attachment")
     p.add_argument("--allow-historical-send", action="store_true",
                    help="acknowledge deliberate older-edition delivery")
+    p.add_argument("--saturday-provisional", action="store_true",
+                   help="exact Saturday provisional packet, on its Saturday or Sunday")
     args = p.parse_args(argv)
     try:
         receipt = handoff(
             args.packet, args.week_ending, send=args.send,
             owner_confirmed=args.confirm_owner_reviewed,
             historical_override=args.allow_historical_send,
+            saturday_provisional=args.saturday_provisional,
         )
     except (OSError, ValueError) as exc:
         p.error(str(exc))

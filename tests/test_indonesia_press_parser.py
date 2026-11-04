@@ -50,7 +50,8 @@ class PressParserPreview(unittest.TestCase):
         from core.manifests import load_all_desks
         self.assertFalse(issubclass(type(parse_press_listing), SourceAdapter))
         self.assertNotIn("id_kemhan_press", DESKS)
-        self.assertNotIn("indonesia", load_all_desks())
+        production = load_all_desks()["indonesia"]
+        self.assertEqual([s.slug for s in production.sources], ["id_kemhan_news"])
 
     def test_source_family_and_page_guard(self):
         self.assertEqual(listing_url(LISTING, 1), LISTING)

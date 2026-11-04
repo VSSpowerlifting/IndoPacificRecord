@@ -1,0 +1,74 @@
+{
+  "manifest_version": 1,
+  "_comment": [
+    "Production registration for the owner-authorized Armed Forces of the Philippines (AFP) and National Security Council (NSC) source families.",
+    "These are MANUAL sources: public Daily never fetches afp.mil.ph or nsc.gov.ph.",
+    "Private collectors preserve the originals; the signed shared Daily envelope",
+    "(core/daily_sources.py, processing/daily_runner.py) admits only verified neutral",
+    "link metadata and short attributed machine explanations under",
+    "config/philippines_daily_policy.json. No original title, body, image,",
+    "translation or substantial excerpt enters the public corpus through this manifest.",
+    "Registering the sources here gives them the same registry row, run-result row and",
+    "liveness disposition as every other production source. It enables no fetch."
+  ],
+  "desk": {
+    "desk_id": "philippines",
+    "display_name": "Philippines Desk",
+    "jurisdiction_code": "PH",
+    "default_timezone": "Asia/Manila",
+    "default_calendar": "gregorian",
+    "supported_language_tags": [
+      "en"
+    ],
+    "public_status": "shadow",
+    "active": false
+  },
+  "institutions": [
+    {
+      "institution_id": "ph_afp",
+      "display_name": "Armed Forces of the Philippines",
+      "name_original": "Armed Forces of the Philippines (AFP)",
+      "institution_type": "armed_forces"
+    },
+    {
+      "institution_id": "ph_nsc",
+      "display_name": "National Security Council",
+      "name_original": "National Security Council (Philippines)",
+      "institution_type": "security_council"
+    }
+  ],
+  "sources": [
+    {
+      "slug": "ph_afp_articles",
+      "institution_id": "ph_afp",
+      "display_name": "AFP website — articles",
+      "base_url": "https://www.afp.mil.ph",
+      "language_tag": "en",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_news",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://www.afp.mil.ph/news"
+      ],
+      "notes": "Public Daily does not fetch this source. Originals are preserved in private custody; the signed Daily envelope for family ph_afp_articles admits neutral link metadata and short attributed machine explanations only, under config/philippines_daily_policy.json (owner decisions 2026-10-18 and 2026-10-20). Nothing original enters the public corpus. AFP claims are attributed, not independently corroborated."
+    },
+    {
+      "slug": "ph_nsc_official_statements",
+      "institution_id": "ph_nsc",
+      "display_name": "NSC website — official statements",
+      "base_url": "https://nsc.gov.ph",
+      "language_tag": "en",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_statement",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://nsc.gov.ph/category/official-statements/"
+      ],
+      "notes": "Public Daily does not fetch this source. Originals are preserved in private custody; the signed Daily envelope for family ph_nsc_official_statements admits neutral link metadata and short attributed machine explanations only, under config/philippines_daily_policy.json (owner decision 2026-10-20, bounded to the official-statements category). The source posts infrequently: a quiet run is normal, not a failure. The NSC site hosts statements from several offices, so hosting is not proof of authorship."
+    }
+  ]
+}

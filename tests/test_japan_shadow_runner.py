@@ -176,9 +176,17 @@ class TestIsolation(RunnerCase):
         finally:
             probe.unlink()
 
-    def test_the_manifest_is_not_under_desks(self):
-        self.assertFalse((ROOT / "desks" / "japan").exists())
+    def test_the_shadow_manifest_stays_separate_from_the_production_registration(self):
+        """The shadow runner reads shadow/jp_mod. The production manifest under
+        desks/japan registers one manual source for governed link admission
+        and must never carry the shadow adapter or the site-update feed."""
         self.assertTrue((ROOT / "shadow" / "jp_mod" / "manifest.json").exists())
+        production = json.loads((ROOT / "desks" / "japan" / "manifest.json")
+                                .read_text("utf-8"))
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
+        self.assertEqual(production["sources"][0]["access_method"], "manual")
+        self.assertNotIn("adapter", production["sources"][0])
+        self.assertFalse(production["desk"]["active"])
 
     def test_the_japan_source_is_enabled_only_in_shadow(self):
         m = json.loads((ROOT / "shadow" / "jp_mod" / "manifest.json")
@@ -191,7 +199,7 @@ class TestIsolation(RunnerCase):
         self.assertEqual(japan["status"], "shadow")
         self.assertTrue(japan["public"])
         self.assertFalse(japan["has_production_records"])
-        self.assertEqual(japan["manifest"], "shadow/jp_mod/manifest.json")
+        self.assertEqual(japan["manifest"], "desks/japan/manifest.json")
 
 
 # ------------------------------------------------------------------- counters

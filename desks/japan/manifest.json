@@ -1,0 +1,52 @@
+{
+  "manifest_version": 1,
+  "_comment": [
+    "Production registration for the Ministry of Defense Japanese-language news feed.",
+    "This is a MANUAL source: public Daily never fetches www.mod.go.jp.",
+    "The separate shadow collector (shadow/jp_mod/manifest.json, scripts/shadow_collect_japan.py)",
+    "preserves discovery metadata on its own branch. The only production path is the",
+    "governed official-link registration in core/japan_mod_official_links.py under",
+    "config/japan_mod_official_link_policy.json: verified official link metadata only.",
+    "No original title, body, PDF text, translation or substantial excerpt enters the public",
+    "corpus through this manifest. The site-update feed, Joint Staff and the English estate",
+    "are not registered here; see shadow/jp_mod/manifest.json."
+  ],
+  "desk": {
+    "desk_id": "japan",
+    "display_name": "Japan Desk",
+    "jurisdiction_code": "JP",
+    "default_timezone": "Asia/Tokyo",
+    "default_calendar": "gregorian",
+    "supported_language_tags": [
+      "ja"
+    ],
+    "public_status": "shadow",
+    "active": false
+  },
+  "institutions": [
+    {
+      "institution_id": "jp_mod",
+      "display_name": "Ministry of Defense",
+      "name_original": "防衛省・自衛隊",
+      "institution_type": "defense_ministry"
+    }
+  ],
+  "sources": [
+    {
+      "slug": "jp_mod_news_ja",
+      "institution_id": "jp_mod",
+      "display_name": "防衛省・自衛隊 — news feed (Japanese)",
+      "base_url": "https://www.mod.go.jp",
+      "language_tag": "ja",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_news",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://www.mod.go.jp/j/rss/news.xml"
+      ],
+      "notes": "Public Daily does not fetch this source. Discovery runs in the isolated shadow collector; the governed admission in core/japan_mod_official_links.py registers verified official link metadata only, under config/japan_mod_official_link_policy.json, and only while the owner activation is set. Nothing original enters the public corpus. HTML originals remain access-challenged and are recorded as unretrieved, never fetched around."
+    }
+  ]
+}

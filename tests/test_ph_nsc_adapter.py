@@ -1231,22 +1231,36 @@ class TestProductionIsolation(unittest.TestCase):
         self.assertIs(SOURCE["enabled"], True)
         self.assertEqual(MANIFEST["desk"]["public_status"], "shadow")
         self.assertIs(MANIFEST["desk"]["active"], False)
-        self.assertFalse((REPO_ROOT / "desks" / "philippines").exists())
+        # The production manifest registers the same family as a manual source
+        # with no adapter; this shadow adapter stays outside desks/.
+        production = json.loads((REPO_ROOT / "desks" / "philippines" / "manifest.json")
+                                .read_text(encoding="utf-8"))
+        nsc = [s for s in production["sources"] if s["slug"] == SOURCE["slug"]]
+        self.assertEqual(len(nsc), 1)
+        self.assertEqual(nsc[0]["access_method"], "manual")
+        self.assertNotIn("adapter", nsc[0])
+        self.assertIs(production["desk"]["active"], False)
         self.assertEqual(list((REPO_ROOT / "desks").rglob("*ph_nsc*")), [])
 
     def test_production_discovery_cannot_see_this_source_or_a_philippines_desk(self):
         desks = load_all_desks()
-        self.assertNotIn(MANIFEST["desk"]["desk_id"], desks)
-        self.assertNotIn(SOURCE["slug"], {s.slug for d in desks.values() for s in d.sources})
-        # The research page is declared publicly without a production manifest.
-        # Declaring a desk does not turn its shadow sources into production ones.
+        # Production discovery sees the manual registration, never this adapter:
+        # the same slug is a governed-admission source with no adapter.
+        production = desks[MANIFEST["desk"]["desk_id"]]
+        match = [s for s in production.sources if s.slug == SOURCE["slug"]]
+        self.assertEqual(len(match), 1)
+        self.assertEqual(match[0].access_method, "manual")
+        self.assertIsNone(match[0].adapter)
+        # Registering the desk does not turn its shadow sources into production
+        # ones: it stays shadow and non-collecting with no production records.
         from core.desk_registry import load_registry
         entry = load_registry().get("philippines")
         self.assertIsNotNone(entry)
         self.assertEqual(entry.status, "shadow")
-        self.assertIsNone(entry.manifest_path)
+        self.assertEqual(entry.manifest_path, "desks/philippines/manifest.json")
+        self.assertFalse(entry.is_collecting)
         self.assertFalse(entry.has_production_records)
-        self.assertEqual(entry.enabled_source_count, 0)
+        self.assertEqual({s.access_method for s in entry.sources}, {"manual"})
 
     def test_nothing_in_production_code_or_workflows_wires_the_adapter(self):
         # A private reader may reference ph_nsc as metadata without activating
@@ -1258,7 +1272,6 @@ class TestProductionIsolation(unittest.TestCase):
             REPO_ROOT / "scraper" / "sources" / "__init__.py",
             REPO_ROOT / ".github" / "workflows" / "daily_update.yml",
         ]
-        production.extend((REPO_ROOT / "desks").glob("*/manifest.json"))
         for path in production:
             with self.subTest(path=str(path)):
                 self.assertTrue(path.is_file(), "missing protected production entrypoint")
@@ -1266,6 +1279,18 @@ class TestProductionIsolation(unittest.TestCase):
                 self.assertNotIn("ph_nsc", text, path)
                 self.assertNotIn("PHNscAdapter", text, path)
                 self.assertNotIn("shadow_collect_ph_nsc", text, path)
+        # A production manifest may register the NSC family as a manual source;
+        # none may name this adapter or its runner, and no source declares one.
+        for path in (REPO_ROOT / "desks").glob("*/manifest.json"):
+            with self.subTest(path=str(path)):
+                text = path.read_text(encoding="utf-8")
+                self.assertNotIn("PHNscAdapter", text, path)
+                self.assertNotIn("shadow_collect_ph_nsc", text, path)
+                self.assertNotIn("scraper.sources.ph_nsc", text, path)
+                for source in json.loads(text)["sources"]:
+                    if "ph_nsc" in source["slug"]:
+                        self.assertEqual(source["access_method"], "manual")
+                        self.assertNotIn("adapter", source)
 
     def test_the_adapter_imports_nothing_that_stores_or_reaches_production(self):
         tree = ast.parse((REPO_ROOT / "scraper" / "sources" / "ph_nsc.py").read_text(encoding="utf-8"))

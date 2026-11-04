@@ -34,8 +34,10 @@ class CountryResearchReleaseContract(unittest.TestCase):
         self.assertEqual(
             [line.strip().strip('- ').strip('"') for line in
              trigger.splitlines() if line.strip().startswith('- "')],
-            [".github/workflows/country_research_render_only_release.yml",
-             "research/approved_desk_research.json"])
+            ["research/approved_desk_research.json"])
+        # A workflow-only migration must not publish country pages whose new
+        # source routes are outside the partial release staging allowlist.
+        self.assertNotIn(".github/workflows/country_research_render_only_release.yml", trigger)
         self.assertNotIn("site/preview", trigger)
         self.assertNotIn("pla_watch.db", trigger)
         self.assertNotIn("desks/registry.json", trigger)
@@ -56,16 +58,16 @@ class CountryResearchReleaseContract(unittest.TestCase):
         text = self.body
         self.assertIn('assert row["entries"] == []', text)
         self.assertIn('d["has_production_records"] is False', text)
-        self.assertIn('d["manifest"] is None', text)
+        self.assertIn('d["manifest"] == manifest, (name, d["manifest"])', text)
         self.assertIn('from core.public_editorial_research import load_catalog', text)
         self.assertIn('if name in editorial_desks:', text)
-        self.assertIn('assert "IPR research published — official originals linked" in text', text)
+        self.assertIn('assert status_heading[name] in text, name', text)
         self.assertIn('assert "not a production source-text archive" in text', text)
-        self.assertIn('assert "Shadow evaluation" in text', text)
+        self.assertIn('assert "ipr-published-research-heading" not in text, name', text)
         self.assertIn('assert "data-reference-list" not in text', text)
-        self.assertIn('assert "8 declared" in desk_html', text)
+        self.assertIn('assert "<dt>Declared</dt><dd>8</dd>" in desk_html', text)
         self.assertIn('if name == "philippines":', text)
-        self.assertIn('assert "Official links and machine explanations, published automatically" in text', text)
+        self.assertIn('"philippines": "Official links and machine explanations, published automatically"', text)
 
     def test_pull_request_checks_rehearse_actual_renderer_without_deployment(self):
         text = self.body
@@ -128,7 +130,7 @@ class CountryResearchReleaseContract(unittest.TestCase):
         text = self.body
         self.assertIn("test -f output/japan.html", text)
         self.assertIn('japan = country["japan"]', text)
-        self.assertIn('japan["manifest"] == "shadow/jp_mod/manifest.json"', text)
+        self.assertIn('japan["manifest"] == "desks/japan/manifest.json"', text)
         self.assertIn('japan["has_production_records"] is False', text)
         self.assertIn('"https://www.mod.go.jp/j/press/news/"', text)
         self.assertIn('"https://www.mod.go.jp/j/update/index.html"', text)

@@ -884,7 +884,7 @@ PACOM military statement has been collected through it.</p>
 <dl class="stat-rows">
   <div class="stat-row"><dt>{{ 'Corpus records' if desk.status == 'shadow' else 'Records' }}</dt><dd>{{ 'Not admitted' if desk.status == 'shadow' else 'None collected' }}</dd></div>
   <div class="stat-row"><dt>Sources configured{{ ' in production' if desk.status == 'shadow' and not desk.sources else '' }}</dt><dd>{{ desk.configured_source_count }}</dd></div>
-  <div class="stat-row"><dt>{{ 'Sources enabled in production' if desk.status == 'shadow' and not desk.sources else 'Sources enabled in shadow' if desk.status == 'shadow' else 'Sources enabled' }}</dt><dd>{{ desk.enabled_source_count }}</dd></div>
+  <div class="stat-row"><dt>{{ 'Sources enabled in production' if desk.status == 'shadow' and not desk.sources else 'Sources enabled for governed admission' if desk.status == 'shadow' else 'Sources enabled' }}</dt><dd>{{ desk.enabled_source_count }}</dd></div>
 </dl>
 <p class="meta">This desk has no admitted records in the public IPR corpus. Any independently collected shadow originals remain separate, and no number on this page counts them.</p>
 {% if desk.status == 'shadow' and not desk.sources %}
@@ -914,8 +914,10 @@ PACOM military statement has been collected through it.</p>
 </table>
 </div>
 {% if desk.status == 'shadow' %}
-<p class="meta">Enabled sources here participate only in isolated shadow collection.
-They are not enabled in production, and no shadow record enters the public record.</p>
+<p class="meta">These are registered production source definitions that the public pipeline never fetches.
+Each is enabled only for its governed admission path, which registers verified link metadata or
+signed machine output under a standing owner decision. No original document enters the public record
+through it, and any isolated shadow collection remains separate from these rows.</p>
 {% else %}
 <p class="meta">An enabled source is one the pipeline is configured to visit. It is not a promise
 that a working collector exists for it — see <a href="coverage.html">Coverage</a>, where each

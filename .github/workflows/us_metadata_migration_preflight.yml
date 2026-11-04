@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/uscc_verified_official_links_release.yml
       - .github/workflows/treasury_verified_official_links_release.yml
+      - .github/workflows/daily_update.yml
       - tests/test_us_metadata_migration_preflight.py
       - .github/workflows/us_metadata_migration_preflight.yml
   workflow_dispatch:

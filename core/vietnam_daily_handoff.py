@@ -35,6 +35,7 @@ from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as source_use
 from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
+from processing.mps_recovery import withheld
 
 SCHEMA = "ipr-vietnam-private-daily-articles/1"
 DOMAIN = b"IPR-VIETNAM-PRIVATE-DAILY-ARTICLES-v1\n"
@@ -90,6 +91,8 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
         records = []
         for identity in sorted(o["source_identity"] for o in report["outcomes"]
                                if o["outcome"] == qa.PUBLISHED):
+            if withheld(identity, items[identity]):
+                continue  # an owner recovery waits for its reviewed release
             article = items[identity]["article"]
             cost = len(_canonical(article))
             if size + cost > MAX_BYTES:

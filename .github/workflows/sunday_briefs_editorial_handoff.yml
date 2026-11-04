@@ -27,6 +27,13 @@ on:
         type: boolean
         required: true
         default: false
+  # Saturday provisional draft and Sunday recheck notice, AFTER the real Daily
+  # collection. Inert unless the owner sets IPR_WEEKEND_EDITORIAL_ENABLED=true;
+  # that same variable retires the legacy Sunday schedule and manual path.
+  workflow_run:
+    workflows: ["Daily PLA Watch Update"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -36,12 +43,88 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Reconfirm that the triggering Daily run was the original scheduled main
+  # collection and that its success marker is still the newest. The reporting
+  # day is that run's own New York guard date, not this job's clock, and the
+  # corpus commit read here is pinned for the draft job. Weekdays and
+  # guard-skipped green runs end here with mode=none. Metadata only.
+  weekend-collection:
+    if: vars.IPR_WEEKEND_EDITORIAL_ENABLED == 'true' && github.event_name == 'workflow_run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read # Read-only upstream job/step evidence.
+    outputs:
+      mode: ${{ steps.verify.outputs.mode }}
+      week_ending: ${{ steps.verify.outputs.week_ending }}
+      collection_day: ${{ steps.verify.outputs.collection_day }}
+      corpus_sha: ${{ steps.verify.outputs.corpus_sha }}
+      reservation: ${{ steps.verify.outputs.reservation }}
+    steps:
+      - name: Checkout production corpus on main (read-only)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify the weekend Daily collection before any Brief work
+        id: verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A rerun would repeat the paid draft and the email; refuse it. A new
+          # run for an already reserved week is refused by the trigger itself.
+          [[ "$GITHUB_RUN_ATTEMPT" == "1" ]] || {
+            echo "::error::Refused: weekend editorial reruns are not automatic"; exit 2;
+          }
+          python -m scripts.weekend_collection_trigger \
+            --event "$GITHUB_EVENT_PATH" \
+            --marker .github/state/last_daily_run_date.txt \
+            --github-output "$GITHUB_OUTPUT"
+          # The marker just verified belongs to this exact commit.
+          echo "corpus_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  # Sunday never writes a second automatic draft. It records only that the
+  # Sunday collection exists; the owner runs the recheck locally against the
+  # private Saturday packet and the revised manuscript.
+  weekend-sunday-recheck-notice:
+    needs: weekend-collection
+    if: needs.weekend-collection.outputs.mode == 'sunday'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Record Sunday collection and the owner-local recheck requirement
+        env:
+          WEEK_ENDING: ${{ needs.weekend-collection.outputs.week_ending }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$WEEK_ENDING" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || exit 2
+          {
+            echo "Sunday collection verified for the week ending $WEEK_ENDING."
+            echo "The Saturday provisional draft is NOT publication-ready until the"
+            echo "owner-local Sunday recheck passes for the exact revised manuscript:"
+            echo "python -m scripts.weekly_briefs_saturday_audit --saturday $WEEK_ENDING --saturday-packet <private> --revised-docx <private> --receipt-out <private>"
+            echo "No draft, email, manuscript or artifact was produced by this job."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   sunday-editor-handoff:
-    # Scheduled Sunday editor draft is now the default; manual sends still require opt-in.
+    # Scheduled Sunday editor draft is the legacy default; manual sends still require opt-in.
     # The October 10 pilot approval/digest guard, live-source gates and Friday
     # exclusivity check remain mandatory. Scheduled Sunday targets Dylan;
     # owner-only preview is an explicitly separate manual dispatch.
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    # IPR_WEEKEND_EDITORIAL_ENABLED=true retires that whole legacy path; the
+    # same job then runs only for a verified Saturday collection.
+    needs: weekend-collection
+    if: >-
+      !cancelled() && !failure() && (
+      (vars.IPR_WEEKEND_EDITORIAL_ENABLED != 'true'
+       && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'))
+      || (vars.IPR_WEEKEND_EDITORIAL_ENABLED == 'true'
+       && github.event_name == 'workflow_run'
+       && needs.weekend-collection.outputs.mode == 'saturday'))
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -49,10 +132,12 @@ jobs:
       # Legacy scheduled preview settings cannot conflict with Sunday's editor send.
       SUNDAY_OWNER_PREVIEW: 'false'
     steps:
-      - name: Checkout production corpus on main (read-only)
+      # The Saturday draft reads the same commit whose marker was verified,
+      # never a later main; the legacy Sunday path keeps reading main.
+      - name: Checkout production corpus (read-only)
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.weekend-collection.outputs.corpus_sha || 'main' }}
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
@@ -98,6 +183,8 @@ jobs:
       - name: Verify reporting Saturday and Sunday's successful database update
         env:
           IPR_EVENT: ${{ github.event_name }}
+          IPR_WEEKEND_WEEK: ${{ needs.weekend-collection.outputs.week_ending }}
+          IPR_WEEKEND_COLLECTION_DAY: ${{ needs.weekend-collection.outputs.collection_day }}
           IPR_MANUAL_SATURDAY: ${{ inputs.reporting_saturday || '' }}
           IPR_HISTORICAL_SEND: ${{ inputs.allow_historical_send == true }}
           IPR_OLD_FRIDAY_ACTIVE: ${{ vars.IPR_EDITOR_DELIVERY_ENABLED == 'true' }}
@@ -109,30 +196,48 @@ jobs:
           import os
           from pathlib import Path
           from scripts.sunday_briefs_auto_writer import live_editorial_desks
-          from scripts.weekly_briefs_sunday_window import resolve_sunday_handoff
+          from scripts.weekly_briefs_sunday_window import (
+              resolve_saturday_provisional, resolve_sunday_handoff)
 
           marker = Path(".github/state/last_daily_run_date.txt")
           last_successful_update = (
               marker.read_text(encoding="utf-8").strip()
               if marker.is_file() else ""
           )
-          window = resolve_sunday_handoff(
-              event=os.environ["IPR_EVENT"],
-              reporting_saturday=os.environ["IPR_MANUAL_SATURDAY"],
-              send_email=os.environ["SUNDAY_SEND"] == "true",
-              allow_historical_send=os.environ["IPR_HISTORICAL_SEND"] == "true",
-              sunday_daily_marker=last_successful_update,
-              friday_delivery_enabled=os.environ["IPR_OLD_FRIDAY_ACTIVE"] == "true",
-              scheduled_owner_preview=os.environ["IPR_SCHEDULED_OWNER_PREVIEW"] == "true",
-              pilot_owner_reviewed_week=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_WEEK", ""),
-              pilot_owner_reviewed_sha256=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_SHA256", ""),
-          )
+          # The Saturday provisional draft: this Saturday's own collection,
+          # no Friday substitution, the retired Friday service still off.
+          provisional = os.environ["IPR_EVENT"] == "workflow_run"
+          if provisional:
+              if os.environ.get("GITHUB_RUN_ATTEMPT") != "1":
+                  raise SystemExit("Refused: weekend editorial reruns are not automatic")
+              window = resolve_saturday_provisional(
+                  collection_day=os.environ["IPR_WEEKEND_COLLECTION_DAY"],
+                  saturday_daily_marker=last_successful_update,
+                  friday_delivery_enabled=os.environ["IPR_OLD_FRIDAY_ACTIVE"] == "true",
+              )
+              if window["IPR_SUNDAY_WEEK_END"] != os.environ["IPR_WEEKEND_WEEK"]:
+                  raise SystemExit("Refused: Saturday differs from the verified collection")
+          else:
+              window = resolve_sunday_handoff(
+                  event=os.environ["IPR_EVENT"],
+                  reporting_saturday=os.environ["IPR_MANUAL_SATURDAY"],
+                  send_email=os.environ["SUNDAY_SEND"] == "true",
+                  allow_historical_send=os.environ["IPR_HISTORICAL_SEND"] == "true",
+                  sunday_daily_marker=last_successful_update,
+                  friday_delivery_enabled=os.environ["IPR_OLD_FRIDAY_ACTIVE"] == "true",
+                  scheduled_owner_preview=os.environ["IPR_SCHEDULED_OWNER_PREVIEW"] == "true",
+                  pilot_owner_reviewed_week=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_WEEK", ""),
+                  pilot_owner_reviewed_sha256=os.environ.get("IPR_SUNDAY_OWNER_REVIEWED_SHA256", ""),
+              )
           desks = live_editorial_desks()
           if len(desks) < 2:
               raise SystemExit("Refused: fewer than two production-backed desks")
           for key, value in window.items():
               print(key + "=" + value)
           print("IPR_SUNDAY_DESKS=" + ",".join(desks))
+          print("IPR_SATURDAY_PROVISIONAL=" + ("true" if provisional else "false"))
+          print("IPR_COLLECTION_DAY=" + (
+              os.environ["IPR_WEEKEND_COLLECTION_DAY"] if provisional else ""))
           PY
 
       # Promote the independent #240 corpus diagnostic to an enforceable
@@ -344,10 +449,14 @@ jobs:
           PRIVATE_WEEK_PACKET: ${{ steps.editor_scope.outputs.packet }}
         run: |
           set -euo pipefail
-          python -m scripts.sunday_before_model_gate \
-            --week-ending "$IPR_SUNDAY_WEEK_END" \
-            --as-of "$IPR_SUNDAY_AS_OF" \
-            --research-packet "$PRIVATE_WEEK_PACKET"
+          args=(--week-ending "$IPR_SUNDAY_WEEK_END"
+                --as-of "$IPR_SUNDAY_AS_OF"
+                --research-packet "$PRIVATE_WEEK_PACKET")
+          if [[ "$IPR_SATURDAY_PROVISIONAL" == "true" ]]; then
+            # The verified collection day, not the runner clock after midnight.
+            args+=(--saturday-provisional --review-local-day "$IPR_COLLECTION_DAY")
+          fi
+          python -m scripts.sunday_before_model_gate "${args[@]}"
 
       - name: Create read-only full Saturday-ending week source scaffold
         env:
@@ -380,6 +489,25 @@ jobs:
           print("Unapproved full-week scaffold prepared from stored records through Saturday.")
           PY
 
+      # Once-only per reporting week, ported from #957. This step's evaluated
+      # name is the reservation: the trigger refuses any later run for the same
+      # week once it has started here, so it sits after every free gate and
+      # immediately before the paid model call. A failed attempt is never
+      # retried automatically. Metadata only; no artifact or repository write.
+      - name: Model attempt ${{ needs.weekend-collection.outputs.reservation }}
+        if: env.IPR_SATURDAY_PROVISIONAL == 'true'
+        env:
+          IPR_RESERVATION: ${{ needs.weekend-collection.outputs.reservation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_RUN_ATTEMPT" == "1" \
+             && "$IPR_RESERVATION" == "ipr-weekend-saturday-$IPR_SUNDAY_WEEK_END" ]] || {
+            echo "::error::Refused: reservation differs from the verified week"; exit 2;
+          }
+          echo "Reserved $IPR_RESERVATION (run $GITHUB_RUN_ID); never retried automatically." \
+            >> "$GITHUB_STEP_SUMMARY"
+
       - name: Generate source-cited Sunday manuscript and optionally email Dylan
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -401,6 +529,10 @@ jobs:
                 --write-automatic --full-week --include-research
                 --research-packet "$PRIVATE_WEEK_PACKET"
                 --as-of "$IPR_SUNDAY_AS_OF")
+          if [[ "$IPR_SATURDAY_PROVISIONAL" == "true" ]]; then
+            # Provisional header, DOCX label and receipt; never complete-week.
+            args+=(--saturday-provisional)
+          fi
           if [[ "$IPR_SUNDAY_SHOULD_SEND" == "true" ]]; then
             [[ "$IPR_PREVIEW_REQUESTED" != "true" ]] || {
               echo "::error::Editor delivery and owner-only preview cannot both be requested"; exit 2;
@@ -415,3 +547,5 @@ jobs:
       # IPR_PREVIEW_TO secret. Scheduled Sunday is reserved for Dylan only.
       # Neither mode grants manuscript publication.
       # No public manuscript artifact; no push, approval, numbering or deploy.
+      # A Saturday provisional draft stays unready until the Sunday recheck
+      # receipt matches the exact revised manuscript at import.

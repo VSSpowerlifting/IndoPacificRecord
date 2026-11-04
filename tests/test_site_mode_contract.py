@@ -342,7 +342,7 @@ class TestCandidateBuild(unittest.TestCase):
     def test_japan_renders_with_no_admitted_corpus_records(self):
         html = (self.out / "japan.html").read_text(encoding="utf-8")
         self.assertIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("No source is enabled in production.", html)
+        self.assertIn("No source is fetched in production.", html)
 
     def test_us_official_metadata_is_live_while_pacom_remains_blocked(self):
         """Congressionally sourced links are distinct from PACOM originals."""
@@ -359,15 +359,17 @@ class TestCandidateBuild(unittest.TestCase):
         from core.desk_registry import load_registry
         declared = {e.name: e for e in load_registry().public_entries}
         html = (self.out / "desks.html").read_text(encoding="utf-8")
-        # Indonesia was admitted as a public reference/status-only page with no
-        # production manifest or public corpus. Korea is now a live desk.
+        # Indonesia is a public shadow page whose production manifest registers
+        # one manual source for governed admission; it has no public corpus.
+        # Korea is now a live desk.
         self.assertEqual(declared["South Korea Desk"].status, "live")
         for name in ("Indonesia Desk",):
             with self.subTest(public_shadow=name):
                 entry = declared[name]
                 self.assertIn(name, html)
                 self.assertEqual(entry.status, "shadow")
-                self.assertIsNone(entry.manifest_path)
+                self.assertFalse(entry.is_collecting)
+                self.assertEqual({s.access_method for s in entry.sources}, {"manual"})
                 self.assertFalse(entry.has_production_records)
                 self.assertTrue((self.out / entry.route).is_file())
         for absent in ("Australia Desk", "Taiwan Desk", "India Desk",
