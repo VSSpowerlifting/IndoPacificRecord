@@ -183,6 +183,43 @@ class TestStorageSeam(PipelineRunCase):
             self.assertIsNotNone(db.insert_article(self.record("pla_daily"), run_id))
         self.assertEqual(self.count(), 1)
 
+    def test_enabled_atomic_batch_refuses_any_held_row_before_writing(self):
+        import storage.db as db
+        db.init_db()
+        run_id = db.start_scrape_run()
+        with enabled():
+            for passed, rejected in (
+                ([self.record("pla_daily")], []),
+                ([], [self.record("mod_china")]),
+                # A held row anywhere refuses the whole batch, including an
+                # unheld row that precedes it.
+                ([self.record("xinhua_mil", "http://x/a1.html"),
+                  self.record("global_times_mil", "http://x/a2.html")], []),
+            ):
+                with self.assertRaises(hold.SourceUseHold):
+                    db.insert_articles_atomic(passed, rejected, run_id)
+        self.assertEqual(self.count(), 0)
+
+    def test_enabled_atomic_batch_still_stores_unheld_sources(self):
+        import storage.db as db
+        db.init_db()
+        run_id = db.start_scrape_run()
+        with enabled():
+            done = db.insert_articles_atomic(
+                [self.record("xinhua_mil")], [], run_id)
+        self.assertEqual(len(done), 1)
+        self.assertEqual(self.count(), 1)
+
+    def test_unset_atomic_batch_stores_held_sources_as_before(self):
+        import storage.db as db
+        db.init_db()
+        run_id = db.start_scrape_run()
+        with unset():
+            done = db.insert_articles_atomic(
+                [self.record("pla_daily")], [], run_id)
+        self.assertEqual(len(done), 1)
+        self.assertEqual(self.count(), 1)
+
 
 class TestTitleTranslationCandidates(unittest.TestCase):
 
@@ -639,6 +676,46 @@ class TestWorkflowWiring(unittest.TestCase):
             # Mapped from the variable only: never hard-coded on or off.
             self.assertNotIn("IPR_CHINA_SOURCE_USE_HOLD: 'true'", text, name)
             self.assertNotIn("IPR_CHINA_SOURCE_USE_HOLD: true", text, name)
+
+    # Workflows that hold the real model key but never touch the three held
+    # publishers: Korea's owner-draft handoff drafts only from Korea's own
+    # reviewed source records. Anything new with the key must either map the
+    # switch or be listed here with a reason.
+    KEY_WITHOUT_CHINA_TEXT = ("korea_english_owner_draft_handoff.yml",)
+
+    def _workflow_root(self):
+        from pathlib import Path
+        return Path(__file__).resolve().parents[1] / ".github" / "workflows"
+
+    def test_every_workflow_holding_the_model_key_is_accounted_for(self):
+        for path in sorted(self._workflow_root().glob("*.yml")):
+            text = path.read_text(encoding="utf-8")
+            if "secrets.ANTHROPIC_API_KEY" not in text:
+                continue
+            if path.name in self.KEY_WITHOUT_CHINA_TEXT:
+                continue
+            self.assertIn(
+                "IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}",
+                text,
+                "%s holds the model key but does not map the source-use hold"
+                % path.name)
+            self.assertIn(path.name, self.WORKFLOWS, path.name)
+
+    def test_title_batch_is_gated_from_main_because_its_checkout_is_stale(self):
+        text = (self._workflow_root()
+                / "china_title_completion_batch.yml").read_text(encoding="utf-8")
+        # The checked-out operations branch predates the hold, so the env
+        # mapping alone protects nothing there: the job itself must not run.
+        self.assertIn("ref: ops/china-title-completion-20261018", text)
+        self.assertIn(
+            "if: github.ref == 'refs/heads/main' && "
+            "vars.IPR_CHINA_SOURCE_USE_HOLD != 'true'", text)
+        # The held branch must have no checkout, model key or push.
+        notice = text.split("hold-notice:", 1)[1].split("\n  batch:", 1)[0]
+        for forbidden in ("uses:", "secrets.", "git push",
+                          "china_title_release_batch"):
+            self.assertNotIn(forbidden, notice)
+        self.assertIn("vars.IPR_CHINA_SOURCE_USE_HOLD == 'true'", notice)
 
 
 if __name__ == "__main__":

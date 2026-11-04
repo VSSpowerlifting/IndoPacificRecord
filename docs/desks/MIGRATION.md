@@ -335,10 +335,11 @@ remains outside this phase; its integration requires a new bounded session.
 sources `global_times_mil`, `mod_china` and `pla_daily` (never by byline) at
 every active route: the source loop (no adapter, no request; the existing
 `SKIPPED_DISABLED` with a `source-use hold:` detail, a non-failure), the
-`insert_article` write seam (raises, so it cannot read as a duplicate), the
+`insert_article` and `insert_articles_atomic` write seams (both raise, so
+neither can read as a duplicate; the atomic batch is refused before any write
+transaction opens), the
 relevance screen, the daily analysis queue including stored backlog, headline
-translation candidates (also the China title batch scripts and workflows that
-call them), the Sunday and weekly briefs writers' evidence selection, and the
+translation candidates (also the China title batch scripts that call them), the Sunday and weekly briefs writers' evidence selection, and the
 operator scripts `backfill_unscored.py`, `backfill_translations.py` and
 `rescreen_desk.py`. It writes no processing state, flips no
 `sources.enabled`, and removes, rewrites or regenerates nothing: the 1,513
@@ -346,6 +347,17 @@ existing records, their text, hashes, dates and source identities,
 `pla_watch.db`, Git history and the private backup are unchanged, and
 rendering is untouched. `xinhua_mil`, `china_mil_online` and all other desks
 are unaffected.
+
+`china_title_completion_batch.yml` runs from main but checks out the separate
+`ops/china-title-completion-20261018` branch, which predates the hold, so an
+env mapping alone protects nothing there. Its job is therefore gated from
+main: `batch` runs only when `vars.IPR_CHINA_SOURCE_USE_HOLD != 'true'`, and a
+`hold-notice` job (no checkout, key or push) runs instead. The ops branch's own
+copy of the workflow keeps its `github.ref == 'refs/heads/main'` guard, so it
+cannot be dispatched from that ref. Actions compares strings case-insensitively
+while the Python switch requires exactly lowercase `true`; set the variable to
+exactly `true`. Every workflow that holds `secrets.ANTHROPIC_API_KEY` must map
+the switch or be listed in `tests/test_china_source_use_hold.py` with a reason.
 
 Fail-closed identity: with the hold enabled, a row whose `source_slug` is
 absent, null or empty counts as held at the Briefs writers and the relevance

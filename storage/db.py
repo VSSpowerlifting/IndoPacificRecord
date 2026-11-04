@@ -291,6 +291,12 @@ def insert_articles_atomic(
     Raises on genuine failure -- the caller decides how to record that; this
     function's only job is the transaction boundary.
     """
+    # Interim source-use hold (inert unless enabled). Checked for the whole
+    # batch before any write connection or transaction is opened, so a held
+    # batch never takes the write lock.
+    from core.china_source_use_hold import assert_not_held
+    for article in list(passed) + list(rejected):
+        assert_not_held(article["source_slug"])
     conn = _open_connection(writing=True)
     conn.row_factory = sqlite3.Row
     inserted: list = []
