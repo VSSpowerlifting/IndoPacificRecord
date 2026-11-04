@@ -499,27 +499,68 @@ class TestBriefsWriters(unittest.TestCase):
         with enabled():
             self.assertEqual(self.ids(self.sunday(self.rows())), [4, 5, 6])
 
-    def test_rows_without_source_slug_are_not_held_and_do_not_raise(self):
-        # A selection row without ``source_slug`` (older fixtures, rows absent
-        # from the offered trail) names no held source and is simply not
-        # offered; the hold must not raise for it.
+    @staticmethod
+    def _without_identity(rows):
+        bare = []
+        for r in rows:
+            r = dict(r)
+            del r["source_slug"]
+            bare.append(r)
+        return bare
+
+    def test_enabled_hold_excludes_rows_with_absent_source_identity_from_sunday(self):
+        # Unknown provenance must never bypass an enabled hold at the Briefs
+        # model boundary: a row with no ``source_slug`` is not offered to the
+        # model, in the legacy path or in complete-discovery mode.
         from scripts.sunday_briefs_auto_writer import choose_evidence
         from tests.test_sunday_source_offer_audit import sidecar, SAT
         full = self.rows()
         card = sidecar(full)
-        card["source_trail"] = []
-        bare = []
-        for r in full:
-            r = dict(r)
-            del r["source_slug"]
-            bare.append(r)
+        bare = self._without_identity(full)
+        inventory = []
         with enabled(), mock.patch("scripts.sunday_briefs_auto_writer.read_only"), \
                 mock.patch("scripts.sunday_briefs_auto_writer.get_articles_for_desks",
                            return_value=bare):
-            # Nothing is offered, so the writer's own "no usable evidence"
-            # guard answers; a KeyError here is the regression.
+            self.assertEqual(
+                choose_evidence(card, as_of=SAT, discovery_inventory=inventory), [])
             with self.assertRaisesRegex(ValueError, "fewer than two desks"):
                 choose_evidence(card, as_of=SAT)
+        self.assertEqual(
+            sorted(e["id"] for e in inventory if e["reason"] == "source_use_hold"),
+            [1, 2, 3, 4, 5, 6])
+
+    def test_enabled_hold_excludes_rows_with_absent_source_identity_from_weekly(self):
+        from scripts.author_brief import build_draft
+        from scripts.weekly_briefs_auto_writer import choose_evidence
+        full = self.rows("2026-09-30")
+        draft = build_draft(full, desks=["china", "singapore"],
+                            week_start="2026-09-27", week_ending="2026-10-03")
+        bare = self._without_identity(full)
+        with enabled(), mock.patch("scripts.weekly_briefs_auto_writer.read_only"), \
+                mock.patch("scripts.weekly_briefs_auto_writer.get_articles_for_desks",
+                           return_value=bare), \
+                self.assertRaisesRegex(ValueError, "fewer than two desks"):
+            choose_evidence(draft, as_of="2026-10-02")
+
+    def test_null_and_empty_source_slug_are_unidentified_only_while_enabled(self):
+        with enabled():
+            for value in (None, "", 0):
+                self.assertTrue(hold.is_held_row({"source_slug": value}), value)
+            self.assertTrue(hold.is_held_row({}))
+            self.assertFalse(hold.is_held_row({"source_slug": "xinhua_mil"}))
+        with unset():
+            for row in ({}, {"source_slug": None}, {"source_slug": "pla_daily"}):
+                self.assertFalse(hold.is_held_row(row), row)
+
+    def test_relevance_model_boundary_fails_closed_without_source_identity(self):
+        from processing.relevance import llm_relevance_check
+        analyzer = CountingAnalyzer()
+        art = {"url": "u", "title_original": "t", "text_original": "b"}
+        with enabled():
+            out = llm_relevance_check([art], analyzer)
+        self.assertEqual(analyzer.calls, [])
+        self.assertEqual(out[0][1], 0.0)
+        self.assertIn("source-use hold", out[0][2])
 
     def test_sqlite_rows_are_filtered_by_source_slug(self):
         import sqlite3
