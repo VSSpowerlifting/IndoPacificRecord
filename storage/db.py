@@ -224,6 +224,10 @@ def insert_article(article: dict, scrape_run_id: int) -> Optional[int]:
     Insert a new article. Returns the new row id, or None if the URL
     already exists.
     """
+    # Interim source-use hold (inert unless enabled). Raises: returning None
+    # would be reported as a duplicate URL.
+    from core.china_source_use_hold import assert_not_held
+    assert_not_held(article["source_slug"])
     source_id = get_source_id(article["source_slug"])
     if source_id is None:
         logger.error("Unknown source slug: %s", article["source_slug"])

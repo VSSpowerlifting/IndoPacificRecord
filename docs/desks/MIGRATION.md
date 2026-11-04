@@ -328,3 +328,36 @@ nine manual-source rows and source-specific dispositions, accepted-data
 preservation and DB-to-public delivery. Guard-skipped runs do not qualify.
 Do not force an additional paid Daily cycle to replace that evidence. #953
 remains outside this phase; its integration requires a new bounded session.
+
+**China Desk interim source-use hold (draft PR, review candidate; disabled by default):**
+`core/china_source_use_hold.py` is one exact-`"true"`, call-time switch,
+`IPR_CHINA_SOURCE_USE_HOLD`, inert when unset. Enabled, it holds the host
+sources `global_times_mil`, `mod_china` and `pla_daily` (never by byline) at
+every active route: the source loop (no adapter, no request; the existing
+`SKIPPED_DISABLED` with a `source-use hold:` detail, a non-failure), the
+`insert_article` write seam (raises, so it cannot read as a duplicate), the
+relevance screen, the daily analysis queue including stored backlog, headline
+translation candidates (also the China title batch scripts and workflows that
+call them), the Sunday and weekly briefs writers' evidence selection, and the
+operator scripts `backfill_unscored.py`, `backfill_translations.py` and
+`rescreen_desk.py`. It writes no processing state, flips no
+`sources.enabled`, and removes, rewrites or regenerates nothing: the 1,513
+existing records, their text, hashes, dates and source identities,
+`pla_watch.db`, Git history and the private backup are unchanged, and
+rendering is untouched. `xinhua_mil`, `china_mil_online` and all other desks
+are unaffected.
+
+All three adapters retrieve full article bodies, so the hold is a
+whole-collection hold, not a metadata-only mode. Whether metadata-only
+discovery would be permitted, and for Global Times the difference between
+restrictions on automated collection, on linking and on derived content,
+awaits the #978 owner decisions.
+
+Closed or inactive, no change needed: `scripts/generate_pla_watch.py` is
+refused unconditionally by `refuse_predecessor_authoring()` and no workflow
+calls it. Residual risk: an operator script written later that reads stored
+text and calls a model without going through the covered seams; content
+already public in the database and in Git history is untouched by design.
+Nothing here adopts a publisher grant or restriction, activates the hold, or
+changes the live site. Activation, legacy-record treatment and publisher
+correspondence remain separate founder decisions.
