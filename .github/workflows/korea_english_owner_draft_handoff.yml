@@ -112,11 +112,12 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import os
-          from scripts.send_korea_english_owner_drafts import pending
-          selected, _ = pending()
+          from scripts.send_korea_english_owner_drafts import pending_with_budget_holds
+          selected, _, held = pending_with_budget_holds()
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write("has_pending=" + ("true" if selected else "false") + "\n")
           print("Pending published originals eligible for private owner review:", len(selected))
+          print("Korea source-budget holds (no model calls):", len(held))
           PY
       - name: Read existing Pages branch without publish credentials
         if: steps.pending.outputs.has_pending == 'true'
