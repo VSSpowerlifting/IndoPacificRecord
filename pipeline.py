@@ -403,6 +403,19 @@ def run(
                 error_detail="MINDEF source-use hold; no collection or model processing"))
             continue
 
+        from core import china_source_use_hold as china_hold
+        if china_hold.is_held_source(slug):
+            # Interim source-use hold (disabled unless IPR_CHINA_SOURCE_USE_HOLD
+            # is "true"). Before any adapter call, so no publisher request is
+            # made. Reported as a hold, not a failure or an empty collection.
+            from core.collection.contract import SourceRunResult
+            logger.warning("%s: %s", slug, china_hold.hold_detail(slug))
+            source_results.append(SourceRunResult(
+                source_slug=slug, desk_id=registry.get_source(slug).desk_id,
+                status=collection_status.SKIPPED_DISABLED,
+                error_detail=china_hold.hold_detail(slug)))
+            continue
+
         if registry.get_source(slug).access_method == "manual":
             # A manual source has no adapter and is never fetched here. It
             # enters the corpus only through its governed admission path,
@@ -657,7 +670,16 @@ def run(
 
     mindef_article_ids = db.get_article_ids_for_source("sg_mindef_releases")
 
+    # Interim China source-use hold: empty (and no query) unless enabled.
+    from core import china_source_use_hold as china_hold
+    china_held_ids = china_hold.held_article_ids(db.get_article_ids_for_source)
+    china_held_count = 0
+
     def _in_daily_queue(desk_id: Optional[str], *, article_id=None, source_slug=None) -> bool:
+        nonlocal china_held_count
+        if china_hold.is_held_source(source_slug) or article_id in china_held_ids:
+            china_held_count += 1
+            return False
         if source_slug == "sg_mindef_releases" or article_id in mindef_article_ids:
             held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
             return False
@@ -717,6 +739,11 @@ def run(
     # existing reversible budget can eventually pause recurring failures.
     # The newly inserted lane has no prior retry history.
     attempts_before = prior_processing_attempts(pending_rows, unscored_rows)
+    if china_held_count:
+        logger.info(
+            "Held out of the daily analysis queue: %d China record(s) under "
+            "the interim source-use hold; no title or body is sent to a model.",
+            china_held_count)
     for desk_id, held in sorted(held_desks.items(), key=lambda kv: str(kv[0])):
         if desk_id == "korea":
             # Governed admissions are processed by the Korea lane below, on
