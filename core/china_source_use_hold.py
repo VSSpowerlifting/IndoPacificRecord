@@ -43,6 +43,21 @@ def is_held_source(source_slug) -> bool:
     return hold_enabled() and source_slug in HELD_SOURCE_SLUGS
 
 
+def is_held_row(row) -> bool:
+    """``is_held_source`` for a stored-article row (``sqlite3.Row`` or dict).
+
+    ``storage.db.get_articles_for_desks`` always selects ``source_slug``. A row
+    without that key (a hand-built fixture) names no held source, so it is
+    treated as not held rather than raising.
+    """
+    if not hold_enabled():
+        return False
+    try:
+        return row["source_slug"] in HELD_SOURCE_SLUGS
+    except (KeyError, IndexError):
+        return False
+
+
 def hold_detail(source_slug) -> str:
     return "%s: %s; no collection, storage or model processing" % (
         HOLD_DETAIL_PREFIX, source_slug)

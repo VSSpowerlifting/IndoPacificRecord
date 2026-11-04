@@ -108,7 +108,7 @@ def choose_evidence(sidecar, *, as_of, db=DB_PATH, selected_ids=None,
     offered = {entry["record_id"]: entry for entry in sidecar["source_trail"]}
     verified = []
     for row in rows:
-        if china_hold.is_held_source(row["source_slug"]):
+        if china_hold.is_held_row(row):
             # Interim source-use hold: stored text from a held publisher is
             # never offered to the model (disabled unless the hold is enabled).
             if discovery_inventory is not None:

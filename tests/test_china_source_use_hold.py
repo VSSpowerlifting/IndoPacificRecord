@@ -499,6 +499,40 @@ class TestBriefsWriters(unittest.TestCase):
         with enabled():
             self.assertEqual(self.ids(self.sunday(self.rows())), [4, 5, 6])
 
+    def test_rows_without_source_slug_are_not_held_and_do_not_raise(self):
+        # A selection row without ``source_slug`` (older fixtures, rows absent
+        # from the offered trail) names no held source and is simply not
+        # offered; the hold must not raise for it.
+        from scripts.sunday_briefs_auto_writer import choose_evidence
+        from tests.test_sunday_source_offer_audit import sidecar, SAT
+        full = self.rows()
+        card = sidecar(full)
+        card["source_trail"] = []
+        bare = []
+        for r in full:
+            r = dict(r)
+            del r["source_slug"]
+            bare.append(r)
+        with enabled(), mock.patch("scripts.sunday_briefs_auto_writer.read_only"), \
+                mock.patch("scripts.sunday_briefs_auto_writer.get_articles_for_desks",
+                           return_value=bare):
+            # Nothing is offered, so the writer's own "no usable evidence"
+            # guard answers; a KeyError here is the regression.
+            with self.assertRaisesRegex(ValueError, "fewer than two desks"):
+                choose_evidence(card, as_of=SAT)
+
+    def test_sqlite_rows_are_filtered_by_source_slug(self):
+        import sqlite3
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        held, other = conn.execute(
+            "SELECT 'pla_daily' AS source_slug UNION ALL SELECT 'xinhua_mil'").fetchall()
+        with enabled():
+            self.assertTrue(hold.is_held_row(held))
+            self.assertFalse(hold.is_held_row(other))
+        with unset():
+            self.assertFalse(hold.is_held_row(held))
+
     def test_sunday_unset_offers_every_row_as_before(self):
         with unset():
             self.assertEqual(self.ids(self.sunday(self.rows())), [1, 2, 3, 4, 5, 6])

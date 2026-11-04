@@ -56,7 +56,7 @@ def choose_evidence(sidecar, *, as_of, db=DB_PATH):
     offered = {entry["record_id"]: entry for entry in sidecar["source_trail"]}
     verified = []
     for row in rows:
-        if china_hold.is_held_source(row["source_slug"]):
+        if china_hold.is_held_row(row):
             continue  # interim source-use hold: no stored text from a held publisher
         reference = offered.get(row["id"])
         if reference is None or trail_entry(row) != reference:
