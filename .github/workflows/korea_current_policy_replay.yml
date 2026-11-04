@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   offline-contracts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
           git diff --exit-code -- pla_watch.db output/
           test -z "$(git status --porcelain --untracked-files=all -- pla_watch.db output/)"
   observed-live-policy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4

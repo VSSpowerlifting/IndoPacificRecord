@@ -38,7 +38,7 @@ class USPublisherLinkDirectoryTests(unittest.TestCase):
         registry = json.loads((ROOT/"desks/registry.json").read_text(encoding="utf-8"))
         desk = next(d for d in registry["desks"] if d["slug"]=="us-indopacific")
         self.assertEqual(desk["status"], "access_blocked")
-        self.assertIs(desk["manifest"], None)
+        self.assertEqual(desk["manifest"], "desks/us-indopacific/manifest.json")
         self.assertFalse(desk["has_production_records"])
         self.assertTrue(desk["public"])
 

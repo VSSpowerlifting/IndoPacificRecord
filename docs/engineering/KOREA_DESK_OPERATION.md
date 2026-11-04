@@ -8,7 +8,88 @@
 > notice does not claim runtime migration, change permissions or activate a source.
 
 
-## Current verification — 28 October 2026
+## Current repair phase — 2 November 2026
+
+**Engineering candidate; no merge, activation, paid call or deployment.** This
+receipt supersedes the October 28 status below, not its source-use decisions.
+Public base `cee4e74459f357a51137c177c29f28a8de3e2470`; private code main
+`a3f6299bd783b9624d0754707572dbb89abdd860`; private MND archive
+`f63e5a5bcb4df879f1f0b9933c2da00d33bd99e4`. PR #942 is merged; the dispatcher
+migration in open PR #950 is separate. No workflow or private companion change.
+
+### Observed source-to-reader frontier
+
+- Private MND attempt [41351669676-1](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/41351669676/attempts/1)
+  preserved 32 originals: eight selected/retrieved/extracted duplicates, complete
+  listing, no collection failures. Offline authenticated replay re-extracted all
+  32 HWPX originals and verified their article-local Type 1 text marks. All 19
+  released Korean texts equal their private originals byte for byte. This is
+  preserved-evidence validation, not a fresh terms check or grant.
+- The tracked corpus ledger has 14 admitted records: two processed, two screened
+  out, seven terminal QA-v3 holds and one QA-v2 hold still eligible for its exact
+  #942 recovery attempt, plus two pending admissions. Two additional
+  licensed originals are held at heading extraction.
+- #942's first eight recovery outcomes are observed in the ledger and Daily
+  logs: `156786043` passed; `156785691`, `156785888`, `156786154`, `156786296`,
+  `156786587`, `156786906` and `156786935` remain held at their incremented
+  attempt counts. `156786942` remains at QA-v2/attempt 1, eligible for its
+  already-authorized one-time attempt. `156786938` was processed independently.
+  Failed Daily [41334251491](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41334251491)
+  and [41531728940](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41531728940)
+  retained those outcomes; later green time-gated runs skipped the pipeline and
+  are not additional processing evidence.
+- Exact-source inspection of the retained failures found number findings on
+  date/time lines (`156785691`: 5/9; `156786587`: 5; `156786935`: 6), an added
+  number on `156786154`: 9, agreement findings on `156785691`: 11,
+  `156785888`: 14, `156786906`: 12/13, `156786935`: 13, a glossary finding on
+  `156786906`: 11, and a summary agreement finding on `156786296`. The current
+  code discards failed translation entries and summaries; the inspected runs
+  expose codes/locations but no retained failed output. These cannot honestly
+  be classified as model errors or validator false positives. They remain held;
+  neither the QA rules nor retry eligibility changes in this phase. The two
+  accepted machine translations still pass no-cost QA replay. The reviewed
+  benchmark still passes two releases and holds the added weekday annotation
+  in `156785286` at lines 3/5.
+
+### Repair and acceptance
+
+`156786943` is a reproducible admission false positive: the authentic distribution
+timestamp is `2026.10.29(목) 22:00`, without the final date dot required by
+`core/korea_corpus_bridge.py`. The parser now permits that punctuation variant
+while retaining the exact distribution label, weekday, time and heading guards.
+It copies the existing source heading line and changes no original text or title
+policy. `156786306`, a statement without that header, remains unidentifiable;
+the chronology/research exclusion `156785161`, frozen baseline and reviewed
+English exclusions remain intact. DAPA remains separately governed.
+
+On a disposable copy of the base production DB, the actual bridge admits only
+`156786943`, at pending/attempt 0, preserving every preexisting article, every
+other ledger row and every other table. A second replay changes nothing. The
+candidate order becomes `156786942`, `156786943`, `156786944`, `156787126`;
+all existing terminal QA holds remain excluded. The public gate remains the
+same four finished records; admission alone publishes no machine output.
+Regression tests reproduce the former hold and recovery on authentic released
+text, reject missing/ambiguous anchors and preserve an exhausted QA hold.
+
+Current HTTPS bytes were independently compared with tracked output for the
+Korea desk, original `156786943`, and both accepted machine record routes
+`record/5520.html` and `record/5911.html`; all four match. Existing scheduled
+[41456178068](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41456178068)
+also reports exact-byte readback of 19 originals plus the desk. **These verify
+existing production content, not deployment or processing of this repair.**
+Final-revision check results and commit identity belong to the review PR.
+
+After an authorized merge, the next actual gated Daily pipeline can recover
+`156786943` through normal admission and process the four eligible records at
+the existing cap. Processing/QA or an account-level block may still hold an
+individual result; reader delivery requires the normal final render, validation,
+commit and deployment. No terminal QA hold is reset. Next bounded action:
+review this repair and its exact-revision checks; after release authorization,
+observe that normal cycle and read back any newly accepted record. Diagnosing
+the terminal QA cohort still needs preserved failed output; do not purchase a
+replacement merely to inspect it.
+
+## Previous verification — 28 October 2026 (historical)
 
 **ENGINEERING READY — RELEASE OR FOLLOW-ON VERIFICATION PENDING.** The repairs
 below are a review candidate, not a production release. The October 18–19
@@ -86,10 +167,28 @@ was changed by this phase.
   [40681116462](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40681116462)
   also passed. The live [Korea desk](https://indopacificrecord.org/korea.html)
   shows the existing 21 metadata records, 8 originals and 3 reviewed pairs.
-- Immutable production QA holds remain: `156785691`, attempt 3,
-  `qa_agreement_unsupported,qa_number_added,qa_number_missing`; `156785888`,
-  attempt 3, `qa_agreement_unsupported`; `156786043`, attempt 1,
-  `qa_glossary_term_missing`. All use `kr-qa-v2` and the v3 translation prompt.
+- Production QA holds under `kr-qa-v2` and the v3 translation prompt, in
+  first-seen order: `156785691` (attempt 3,
+  `qa_agreement_unsupported,qa_number_added,qa_number_missing`), `156785888`
+  (attempt 3, `qa_agreement_unsupported`), `156786043` (1,
+  `qa_glossary_term_missing`), `156786154` (1,
+  `qa_glossary_term_missing,qa_number_added,qa_number_missing`), `156786296`
+  (1, `qa_glossary_term_missing`), `156786587` (1,
+  `qa_number_added,qa_number_missing`), `156786906` (1,
+  `qa_agreement_unsupported,qa_glossary_term_missing`), `156786935` (1,
+  `qa_agreement_unsupported`) and `156786942` (1,
+  `qa_number_added,qa_number_missing`).
+  `kr-qa-v3` corrects month.day dates such as `10.13.` (previously read as
+  decimals) and logs held findings as `code@line`; the ledger keeps codes alone.
+- Owner-authorized (November 1, 2026) one-time paid re-run under `kr-qa-v3`:
+  `QA_V3_RERUN` in `processing/korea_shared_queue.py` names exactly those nine
+  identities and their hold attempt counts. A row is selected only while it is
+  still `qa_held` with `qa_version = kr-qa-v2` at that count. Any dispatched
+  outcome writes `kr-qa-v3` and increments attempts, so a further hold is
+  terminal. For `156785691` and `156785888` this supersedes the earlier
+  no-fourth-attempt rule for this one call only. Nothing is reset in the DB;
+  the re-run happens only through the gated Daily lane after merge, at the
+  processing cap (default 4 per run, so about three Dailies in FIFO order).
   `156785986` and `156785987` were screened out on their first attempts.
   None of those outcomes was reset. The chronology hold `156785161` persists.
 - Public Daily [40565258649](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/40565258649)

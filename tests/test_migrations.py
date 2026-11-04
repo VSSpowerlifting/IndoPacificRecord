@@ -242,7 +242,7 @@ class TestApply(MigrationTestCase):
         for slug, legacy, tag in rows:
             self.assertIsNotNone(legacy, "%s lost its legacy language" % slug)
             self.assertIsNotNone(tag, "%s has no BCP 47 tag" % slug)
-            self.assertIn(tag, ("zh-Hans", "en", "ko", "vi"))
+            self.assertIn(tag, ("zh-Hans", "en", "ko", "vi", "id", "ja"))
             self.assertTrue(tag.startswith(legacy))
 
     def test_no_orphans_and_integrity_ok(self):
@@ -272,8 +272,11 @@ class TestApply(MigrationTestCase):
         desks = conn.execute("SELECT desk_id, public_status FROM desks").fetchall()
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(sorted(desks), [("china", "legacy"), ("korea", "public"),
-                                         ("singapore", "public"), ("vietnam", "public")])
+        self.assertEqual(sorted(desks), [("china", "legacy"), ("indonesia", "shadow"),
+                                         ("japan", "shadow"), ("korea", "public"),
+                                         ("philippines", "shadow"),
+                                         ("singapore", "public"), ("us-indopacific", "shadow"),
+                                         ("vietnam", "public")])
         self.assertGreaterEqual(insts, 5)
 
 
@@ -356,9 +359,10 @@ class TestReconcileReversion(MigrationTestCase):
         self.assertEqual(restored["article_ids"], migrated["article_ids"])
         self.assertEqual(restored["article_urls"], migrated["article_urls"])
         self.assertTrue(v["ok"])
-        # Four desks: China, Korea, Singapore and the manual Vietnam MPS source.
-        self.assertEqual(desks, 4)
-        self.assertEqual(sources_with_desk, 9)  # Includes the manual VPCP metadata source.
+        # China, Korea, Singapore, Vietnam and the four manual-only desks.
+        self.assertEqual(desks, 8)
+        # Nine fetched/bridged sources plus the six manual registrations.
+        self.assertEqual(sources_with_desk, 15)
 
 
 class TestRollback(MigrationTestCase):
@@ -546,7 +550,8 @@ class TestLanguageConstraint(MigrationTestCase):
         conn.close()
         legacy_slugs = {slug for slug, _ in before}
         self.assertEqual(before, [row for row in after if row[0] in legacy_slugs])
-        self.assertEqual({lang for _, lang in after}, {"zh", "en", "ko", "vi"})
+        self.assertEqual({lang for _, lang in after},
+                         {"zh", "en", "ko", "vi", "id", "ja"})
 
     def test_source_ids_preserved_across_the_rebuild(self):
         """

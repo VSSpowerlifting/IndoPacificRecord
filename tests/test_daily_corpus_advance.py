@@ -270,7 +270,19 @@ class TestAnExplicitSnapshotStillFailsClosed(unittest.TestCase):
         between aborts instead of producing a tree describing neither state.
         """
         derived = self.gp.snapshot_from_corpus(self.db)
-        drop_records(self.db, 5)
+        # The newest stored rows may be publication-held Korea candidates.
+        # Mutate the corpus the snapshot actually identifies, not hidden rows
+        # whose removal correctly leaves the public identity unchanged.
+        visible_ids = sorted(r["id"] for r in
+                             self.gp.load_corpus(self.db)["corpus"])
+        self.assertGreaterEqual(len(visible_ids), 5)
+        with closing(sqlite3.connect(self.db)) as con:
+            con.executemany("DELETE FROM articles WHERE id = ?",
+                            [(i,) for i in visible_ids[-5:]])
+            con.commit()
+        changed = self.gp.snapshot_from_corpus(self.db)
+        self.assertEqual(changed["expected_records"], derived["expected_records"] - 5)
+        self.assertNotEqual(changed["logical_sha256"], derived["logical_sha256"])
         with self.assertRaises(SystemExit) as caught:
             self.render_with(derived)
         self.assertEqual(type(caught.exception).__name__, "SnapshotMismatch")

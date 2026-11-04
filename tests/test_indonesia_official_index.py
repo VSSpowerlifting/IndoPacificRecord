@@ -62,8 +62,9 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
         self.assertTrue(desk.public)
         self.assertEqual(desk.status, "shadow")
         self.assertFalse(desk.has_production_records)
-        self.assertIsNone(desk.manifest_path)
+        self.assertEqual(desk.manifest_path, "desks/indonesia/manifest.json")
         self.assertFalse(desk.is_collecting)
+        self.assertEqual({s.access_method for s in desk.sources}, {"manual"})
         # Validate the human-facing copy as well as the actual bibliography.
         registry = json.loads(
             (DEFAULT.parents[1] / "desks" / "registry.json").read_text(encoding="utf-8")

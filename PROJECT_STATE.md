@@ -1,5 +1,119 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Shared desk architecture, runtime migration 4 — US reference families through the governed dispatcher (1 November 2026, review candidate)
+
+The USCC and Treasury press-release metadata families are now registered as
+manual production sources in `desks/us-indopacific/manifest.json`, and
+`desks/registry.json` points at it while the US desk stays `access_blocked`,
+non-collecting and without production records. `pipeline._us_metadata_admission`
+gives each family a `GovernedAdmission` that reuses the existing importer and
+fixed-code holds, so the two sources write `source_run_results` rows with the
+shared disposition: skipped while Daily delivers no preserved history,
+`LISTING_FAILURE` when the delivered path is not a clone, receipt statuses or
+the hold code otherwise. No new activation variable: the standing owner
+approval of 15 October 2026 governs, as it governed the retired jobs. Daily
+clones `shadow/uscc-press` and `shadow/us-treasury-press` after its migration
+and verification steps and hands the paths to the pipeline step; the two
+release workflows lose their production writer jobs, schedules (22:17 and
+22:31 UTC), push/workflow_run/dispatch triggers and concurrency claim and keep
+only their pull-request render rehearsal. Admission therefore follows Daily's
+schedule, and the moving-branch refusal is replaced by the importer's commit
+pin. BIS is excluded because its release is bound to a `workflow_run`
+attestation the dispatcher does not reproduce. Nothing is fetched from either
+publisher and no original document enters the public record.
+
+Verified: `TestUSMetadataGovernedDispatch` in `tests/test_manual_source_definitions.py`,
+the rewritten `tests/test_us_metadata_migration_preflight.py`, updated
+roster/contract pins (8 desks, 15 registered sources), the affected modules,
+`scripts/validate_output.py` at the 10 governed warnings and a local render
+inspection (US desk 2 configured / 2 enabled, both source pages rendered;
+institution names appear after Daily's migration sync, as for migration 3).
+The full offline suite result is recorded in the commit message. Generated
+`output/` and the tracked DB are not part of the change. Not done: BIS, Vietnam
+through the dispatcher, a liveness check keyed on `source_run_results`, the W1
+seven-run observation, China and Singapore. No activation flag, merge,
+deployment or paid model run is implied.
+
+Next action: review and merge this candidate with migration 3, then confirm the
+first scheduled Daily run writes nine manual-source rows (seven governed plus
+the two Vietnam slugs as disabled) and the two US receipts. #954 merged on
+3 November 2026 (`dc7beaa76c`); merge #950 only after #954's first scheduled
+Daily cycle and deployed readback are verified.
+
+## Shared desk architecture, runtime migration 3 — manual production sources and one governed dispatch (1 November 2026, review candidate)
+
+The Philippines (AFP, NSC), Indonesia (Kemhan) and Japan (MOD news feed) source
+families are now registered as manual production sources through
+`desks/philippines/manifest.json`, `desks/indonesia/manifest.json` and
+`desks/japan/manifest.json`; `desks/registry.json` points at them while the
+three desks stay `shadow` and non-collecting. `pipeline.run_governed_manual_sources`
+dispatches every manual source (Korea bridge, the three Daily families, Japan
+official links) through one `GovernedAdmission` table, so each writes a
+`source_run_results` row with one shared disposition (awaiting activation,
+receipt, hold code, missing envelope, missing collector ref). The replaced
+Stage 14 `public_intake` call and Daily's separate Japan admission step are
+removed; the workflow passes the existing activation variables to the pipeline
+step unchanged. Public Daily still fetches nothing from these publishers and no
+original document enters the public record through these rows.
+
+The operations center observes the manual rows without counting the desks as
+collecting, and the four slugs carry authority tier A in dedup.
+
+Verified: new `tests/test_manual_source_definitions.py`, updated roster/contract
+tests, full offline suite (remaining failures reproduce on the unchanged base
+commit and are environment-only), `scripts/validate_output.py` at the 10
+governed warnings, and a local render inspection. Generated `output/` and the tracked DB
+are not part of the change; Daily's migration sync inserts the rows and its
+render republishes. Not done: US reference family registration, Vietnam through
+the dispatcher, a liveness check keyed on `source_run_results` (manual sources
+remain `INERT` under the `articles`-keyed gate), and the W1 seven-run
+observation. No activation flag, merge, deployment or paid model run is implied.
+
+Next action: review and merge this candidate, confirm the first scheduled Daily
+run writes a row per manual source, then register the US reference families
+through the same manifest and dispatcher.
+
+## Briefs weekend editorial cycle — consolidated review candidate (2 November 2026)
+
+One branch now carries the Saturday provisional draft to Dylan and the Sunday
+recheck (#960), #957's release guarantees and #956's analyst intake. There is
+one activation variable, `IPR_WEEKEND_EDITORIAL_ENABLED` (unset, so disabled), and
+one dispatcher, the `workflow_run` trigger in
+`sunday_briefs_editorial_handoff.yml`. #957's own dispatcher and variable are not
+carried. The Sunday reconciliation receipt (`core/brief_editorial_cycle.py`) is
+enforced by `validate_brief` and `validate_readiness` for every Brief carrying
+weekend editorial cycle provenance (`editorial_cycle`), whatever its date, author
+or Word labels; the importer carries that provenance from hidden DOCX properties
+and otherwise needs an explicit `--saturday-packet` or `--independent`; the owner
+copies `editorial_cycle` from the import JSON into the canonical sidecar by hand.
+Independently authored Briefs keep the existing safeguards. The owner recorded
+this policy in `DECISION_LOG.md` (2026-11-02). It is bound to the
+packet's per-Brief identity (#946), the exact final manuscript and revised DOCX, the week's inventory
+and policy fingerprints and, where used, the reconciled analyst report. The
+Saturday draft is attempted at most once per week, reserved through the workflow's
+run history. #956 files are unchanged. This is not merged, activated or live.
+Details and the owner checklist are in the consolidation PR.
+
+## Cited official sources as Records — review candidate (1 November 2026)
+
+`core/cited_source_records.py` derives one link-metadata Record per official URL
+cited by an approved Brief on every render (doctrine §5b; DECISION_LOG
+2026-11-01). Briefs add an "IPR Record" link beside each eligible publisher
+link. Records list every citing Brief, and the archive index carries them with
+no desks. Current output: 29 Records from five Briefs, archive index 1,688 →
+1,717. Omitted: 4 independent references and 1 Vietnam MPS reference. None of
+the 34 Brief URLs matches a DB URL, a machine Record or an archive-index source
+URL, even after normalizing host, `www.`, case, trailing slash, fragment and
+percent-encoding. Every source document in the 14 editions' trails is a corpus
+Record that already links back ("In analysis"). The 24 other edition URLs are
+image credits and the author link. Every Dossier and Timeline source is a corpus
+Record, but both Dossiers and the Timeline remain withheld as whole works, so
+those back-links render only in review. The nine Dossier external references
+x1–x9 are not Records. The 2026-10-26 grant limits them to linked use inside
+that Dossier, with no IPR record page. No MINDEF URL becomes a cited Record (link-only
+permission). Routes use a stable `url_key`, and a route superseded by later collection
+redirects to the corpus/machine Record. No DB, source-policy or collector change.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
@@ -390,6 +504,20 @@ checks remain enforced. No database, generated output, source-use grant or
 dossier content changes are introduced relative to the incorporated main.
 Exact-head CI and all eight affected Actions checks are recorded in PR #879
 before handoff; merge and deployment require separate authorization.
+
+**Vietnam MPS number-only recovery (2 November 2026): mechanism candidate.**
+After #955 merged (`226cefbb46`), the owner authorized one attempt for each of
+ten exact MPS versions held only for `E_NUMBER_MISMATCH`
+(`DECISION_LOG.md`, 2 November). `processing/mps_recovery.py` pins them in
+batches of 2/4/4 for manual first-attempt private bridge runs. Outputs stay in
+the private ledger with per-record cost; accepted projections are withheld from
+the signed handoff until listed in `RELEASED`. Other MPS and VPCP holds are
+unchanged. Batch 0 (`mps-vi:1791803388`, `mps-vi:1791881212`) ran once in
+private dispatch `41565761646-1` on IPR `33a82b5627`: both published with no QA
+codes, at $0.0180 and $0.0300 of provider-token cost, and neither entered the
+signed handoff. Both outputs were inspected against the archived originals
+(dates, numbers, names, attribution, action status) and accepted. This change
+opens batch 1 (four records); `RELEASED` stays empty and nothing is published.
 
 **Vietnam unattended verification candidate (28 October 2026).**
 Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records

@@ -18,7 +18,9 @@ Properties the pipeline relies on:
   * Once per source version, with a bounded exception: a record held solely
     for unsupported agreement language under an old Korean translation prompt
     receives one corrective attempt after a prompt revision. QA remains
-    unchanged; another hold is terminal. All other held, processed,
+    unchanged; another hold is terminal. The nine kr-qa-v2 holds named in
+    QA_V3_RERUN receive one owner-authorized attempt under kr-qa-v3; another
+    hold is terminal. All other held, processed,
     not-relevant, and paused rows never receive another call. A crash between
     the articles write and ledger write is repaired without a call.
   * Isolated failures. One record's failure is recorded against that record
@@ -48,6 +50,16 @@ DISPATCHABLE = (PENDING, RETRYABLE)
 _LEDGER_STATE = {processing_state.RETRIABLE: RETRYABLE,
                  processing_state.PAUSED: PAUSED}
 
+# Owner-authorized (2026-11-01) one-time re-run under kr-qa-v3 of the nine
+# production records held under kr-qa-v2: identity -> attempts at the hold.
+QA_V3_RERUN = {
+    "korea-policy:156785691": 3, "korea-policy:156785888": 3,
+    "korea-policy:156786043": 1, "korea-policy:156786154": 1,
+    "korea-policy:156786296": 1, "korea-policy:156786587": 1,
+    "korea-policy:156786906": 1, "korea-policy:156786935": 1,
+    "korea-policy:156786942": 1,
+}
+
 PIN_TEXT_MISMATCH = "pin_text_mismatch"
 PIN_HEADING_MISMATCH = "pin_heading_mismatch"
 
@@ -59,6 +71,7 @@ class LaneReport:
     processed: list = field(default_factory=list)
     not_relevant: list = field(default_factory=list)
     qa_held: list = field(default_factory=list)       # (identity, reasons)
+    qa_located: dict = field(default_factory=dict)    # identity -> code@line, logs only
     retryable: list = field(default_factory=list)     # (identity, reason)
     paused: list = field(default_factory=list)
     repaired: list = field(default_factory=list)
@@ -85,9 +98,11 @@ def candidates(conn) -> list[dict]:
     if not _table_exists(conn):
         return []
     from analysis.korea_prompts import TRANSLATION_PROMPT_ID
-    # Owner-authorized one-time QA-v1 recovery: two exact source identities.
-    # No broad retry reset and no fourth attempt after another QA hold.
-    recovery_ids = ("korea-policy:156785691", "korea-policy:156785888")
+    # Owner-authorized one-time QA-v3 re-run: each exact identity, only while
+    # still held under kr-qa-v2 at its recorded attempt count. Any outcome
+    # rewrites qa_version or attempts, so another hold is terminal.
+    rerun = " OR ".join(["(k.source_identity = ? AND k.processing_attempts = ?)"]
+                        * len(QA_V3_RERUN))
     rows = conn.execute(
         "SELECT k.source_identity, k.article_id, k.original_text_sha256, "
         "k.document_heading_sha256, k.processing_state, k.processing_attempts, "
@@ -98,14 +113,12 @@ def candidates(conn) -> list[dict]:
         "OR (k.processing_state = ? AND k.processing_reason = ? "
         "AND k.processing_attempts = 1 "
         "AND (k.prompt_version IS NULL OR k.prompt_version NOT LIKE ?)) "
-        "OR (k.source_identity IN (?, ?) AND k.processing_state = ? "
-        "AND k.processing_reason = ? AND k.processing_attempts = 2 "
-        "AND k.qa_version = ? AND k.prompt_version LIKE ?)) "
+        "OR (k.processing_state = ? AND k.qa_version = ? AND (" + rerun + "))) "
         "ORDER BY k.first_seen_at_utc, k.source_identity",
         (PENDING, RETRYABLE, QA_HELD, "qa_agreement_unsupported",
          "%" + TRANSLATION_PROMPT_ID + "%",
-         *recovery_ids, QA_HELD, "qa_agreement_unsupported",
-         "kr-qa-v1", "%kr-translation-v3/kr-glossary-v1%")
+         QA_HELD, "kr-qa-v2",
+         *(v for pair in QA_V3_RERUN.items() for v in pair))
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -248,6 +261,7 @@ def run(analyzer, *, cap: int, db, profile=None,
                             attempts=attempts_before + 1,
                             versions=_versions(result))
             report.qa_held.append((ident, reasons))
+            report.qa_located[ident] = checked.located_string()
             continue
 
         db.update_relevance(aid, score=result["relevance_score"],
@@ -285,6 +299,7 @@ def _log(report: LaneReport) -> None:
         len(report.paused), len(report.repaired),
         "; stopped: account-level block" if report.blocked else "")
     for ident, reasons in report.qa_held:
-        logger.warning("Korea lane QA hold: %s %s", ident, reasons)
+        logger.warning("Korea lane QA hold: %s %s", ident,
+                       report.qa_located.get(ident, reasons))
     for ident, reason in report.retryable + report.paused:
         logger.warning("Korea lane failure: %s %s", ident, reason)

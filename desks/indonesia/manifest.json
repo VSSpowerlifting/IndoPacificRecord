@@ -1,0 +1,51 @@
+{
+  "manifest_version": 1,
+  "_comment": [
+    "Production registration for the Kementerian Pertahanan Republik Indonesia (Kemhan) Berita source family.",
+    "This is a MANUAL source: public Daily never fetches www.kemhan.go.id.",
+    "The private collector preserves the original Indonesian articles; the signed shared",
+    "Daily envelope (core/daily_sources.py, processing/daily_runner.py) is the only path",
+    "into the production database and is governed by config/philippines_daily_policy.json.",
+    "No original title, body, photograph, translation or substantial excerpt enters the",
+    "public corpus through this manifest. Registering the source gives it the same registry",
+    "row, run-result row and liveness disposition as every other production source."
+  ],
+  "desk": {
+    "desk_id": "indonesia",
+    "display_name": "Indonesia Desk",
+    "jurisdiction_code": "ID",
+    "default_timezone": "Asia/Jakarta",
+    "default_calendar": "gregorian",
+    "supported_language_tags": [
+      "id"
+    ],
+    "public_status": "shadow",
+    "active": false
+  },
+  "institutions": [
+    {
+      "institution_id": "id_kemhan",
+      "display_name": "Indonesia Ministry of Defense",
+      "name_original": "Kementerian Pertahanan Republik Indonesia",
+      "institution_type": "defense_ministry"
+    }
+  ],
+  "sources": [
+    {
+      "slug": "id_kemhan_news",
+      "institution_id": "id_kemhan",
+      "display_name": "Kemhan — Berita institutional news",
+      "base_url": "https://www.kemhan.go.id",
+      "language_tag": "id",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_institutional_news",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://www.kemhan.go.id/berita"
+      ],
+      "notes": "Public Daily does not fetch this source. Originals are preserved in private custody; the signed Daily envelope for family id_kemhan_news is the only production path and is held closed until the source-use policy grants private model processing, public machine explanation and unattended release. Nothing original enters the public corpus. Ministry statements are the ministry's communication, not independent confirmation."
+    }
+  ]
+}

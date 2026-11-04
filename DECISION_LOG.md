@@ -4,6 +4,202 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
+
+Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday
+reconciliation receipt (`saturday_sunday_cycle`, checked by
+`core/brief_editorial_cycle.py` in `validate_readiness` and `validate_brief`).
+It replaces the review candidate's blanket rule for every Brief from the week
+ending 7 November 2026 onward. Implemented in PR #963.
+
+1. **Participation decides.** A receipt is required because a Brief took part
+   in the weekend editorial cycle, recorded as `editorial_cycle` provenance
+   naming its cycle Brief identity. Publication date, stated author and Word
+   labels do not decide it.
+2. **One receipt per Brief.** Every cycle-derived Brief, including companions,
+   human rewrites and analyst-reconciled versions, needs its own receipt bound
+   to its exact final manuscript and revised DOCX. A receipt for another
+   version or another Brief does not transfer.
+3. **Independent Briefs are unchanged.** A Brief with neither provenance nor a
+   receipt keeps the existing source, factual, presentation and owner-approval
+   requirements. Shared source URLs alone never establish cycle participation.
+4. **Import fails closed.** `scripts/import_brief_manuscript.py` carries
+   provenance it detects in the DOCX's hidden properties automatically. Without
+   it, the editor must declare `--saturday-packet <packet>` or `--independent`;
+   `--independent` is refused while any cycle signal, hidden or visible, remains.
+5. **The transfer stays manual and explicit.** The import JSON is a snapshot,
+   not the sidecar. The owner copies `editorial_cycle` from it into the
+   canonical `briefs/<slug>.json` with the other imported fields; the Sunday
+   recheck stamps it again on its candidate sidecar.
+
+Disclosed limits stand, and no further authentication is added: someone who
+deliberately deletes both the provenance and the receipt from a sidecar makes it
+look independent, and whether editors other than python-docx keep the hidden
+DOCX properties is untested (if both are lost, import stops and asks for a
+declaration). The fail-closed import and owner approval are the safeguards.
+
+This records policy only. `IPR_WEEKEND_EDITORIAL_ENABLED` stays unset; it creates
+no merge, activation, schedule, email, model spend, deployment or publication
+authority, and it does not lift the 2026-11-01 workflow freeze.
+
+## 2026-11-02 — Owner: eight-desk operational certification scope (planning only)
+
+The founder confirmed the mandatory source-family scopes and real-original-to-reader
+acceptance standard in a sequence of eight explicit decisions on 2 November 2026.
+See [the single stable scope and completion plan](docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
+and the existing [eight-desk issue #673](https://github.com/VSSpowerlifting/IndoPacificRecord/issues/673).
+
+- **Indonesia:** Kemhan Berita only; not Siaran Pers.
+- **Philippines:** AFP **and** NSC, independently qualified.
+- **Vietnam:** MPS Foreign Affairs **and** Government Office (VPCP).
+- **South Korea:** MND-labeled Korea Policy Briefing originals **and** DAPA.
+- **China:** all five existing families — PLA Daily, MOD China, Xinhua Military,
+  China Military Online and Global Times Defense — accurately classified.
+- **Japan:** accessible MOD news-feed PDFs **and** JCG English release HTML;
+  exclude challenged MOD HTML, Joint Staff and unapproved media.
+- **Singapore:** MINDEF official releases only. A narrowly bounded additional
+  permission request may be prepared for founder review; **do not contact MINDEF yet**.
+- **U.S. Indo-Pacific reference:** at least one independently qualified,
+  original-backed U.S. institutional family; investigate USCC Commission-authored
+  press releases first. Treasury/BIS metadata remains supplemental; PACOM/DVIDS
+  restrictions remain.
+
+Full qualification requires authentic permitted original retrieval, versioned
+custody, separately authorized and quality-gated substantive processing, safe
+shared admission, actual deployed reader readback, then scheduled recurrence
+and representative recovery for **every required family**. Metadata-only
+references, synthetic tests, PR merges or schedules alone do not qualify a desk.
+No arbitrary consecutive-day launch clock is introduced.
+
+**This records source scope and the success criterion only.** No source-use
+or publisher permission, commercial-model spend, collection or processing
+activation, human publication, external contact, merge, deployment, historical
+cleanup or declaration of operational completion is authorized. Actual
+source-specific grants/holds, the shared-desk standard, the workflow freeze
+and release contracts remain in force.
+
+## 2026-11-02 — Owner: one MPS number-only recovery attempt
+
+Benjamin Yang authorizes, in chat on 2 November 2026, **one** new processing
+attempt for each of the ten MPS Foreign Affairs versions held only for
+`E_NUMBER_MISMATCH` by the date-reading defect fixed in PR #955. This is a
+narrow recovery exception, not a reset or a retry policy. The exact identities,
+content hashes and holding runs are pinned in `processing/mps_recovery.py`.
+
+- Existing models, source-use permissions and per-run spending limits apply.
+  Prior attempts, outcomes and spending remain in the ledger; each new attempt
+  records the prior item, its retained model output and its own token cost.
+- Attempts run only in a manually dispatched first-attempt private
+  daily-bridge run, one reviewed batch at a time: two records, then four,
+  then four. The open batch advances only through a reviewed change, and
+  only after the previous batch's outputs are inspected against the originals
+  (dates, quantities and units, including same-number unit swaps, names,
+  attribution and action status).
+- Any non-published outcome, including a retryable provider failure, settles
+  that version permanently. A systemic defect or unexpected cost stops the
+  phase: no further batch opens. Unexpected cost means more than $0.10 of
+  provider-token cost for any one record, the bound of the configured models'
+  output ceilings on an MPS article.
+- Markers are written only when the run completes and its ledgers are pushed.
+  A dispatch that fails or aborts after starting therefore ends its batch's
+  exception: it is never re-dispatched without the owner, and that run's cost
+  is taken from its log and provider usage rather than the ledger.
+- An accepted recovery is withheld from the signed handoff until a reviewed
+  change names it in `RELEASED`; only then may the scheduled bridge sign it.
+- The seven MPS records with additional QA codes, every VPCP hold and the
+  accepted 29–30 October gaps are unchanged. A recovered record does not
+  validate any missing historical output.
+
+## 2026-11-01 — Official sources cited by Briefs become link-metadata Records
+
+Benjamin Yang's brief "Complete Source Admission and Editorial–Records
+Integration" (2026-11-01) directs that every eligible original-source document
+used in an IPR publication be a discoverable Record. It also covers backfill
+of approved publications. It does not authorize prose or credit changes. The same
+brief delegates this task's engineering and release: merge of the exact head after
+green required CI, and deployment through the existing output workflow.
+Decision: official publisher references in approved, non-review Briefs become
+Records that republish only the Brief's own reference metadata (doctrine §5b).
+This is not corpus admission: no source bytes, DB rows, desk coverage, new
+collector or rights override. Independent references, every MINDEF URL and the
+held Vietnam MPS/MOIT/VPCP families stay external-only. MINDEF's 2026-10-29
+permission covers hyperlinks from a Brief, not a standalone IPR page, so even
+its two approved links get no Record. A Record's route is keyed on the URL with
+scheme/host lowercased and the fragment dropped, so it is stable. When that URL
+is later collected as a corpus or machine Record, the cited route becomes a
+redirect to it. Any metadata conflict for one URL stops the build. A fresh-context
+proposal review returned PROCEED on the core and REJECT on MINDEF admission, and
+those fixes are applied. Every source
+document in the edition, Dossier and Timeline trails is already a corpus Record.
+Edition pages link back now. Dossier and Timeline back-links render only when
+those withheld works do. The China–Singapore Dossier's external references
+x1–x9 stay external. Their 2026-10-26 grant is linked use inside that Dossier
+only, and a Record would extend it. First result: 29 Records from five Briefs.
+4 independent references and 1 Vietnam MPS reference were omitted.
+
+## 2026-11-01 — Two Briefs: owner source review, presentation and covers
+
+Bylines approved by Benjamin Yang, Founder & Executive Director: **Benjamin
+Yang** is the sole author of "Japan and the United States Agree to Establish
+AMRAAM Final Assembly in Japan" (`japan-us-amraam-final-assembly-sm3-production`); **Benjamin Yang and
+Jophy Lin** (Communications Editor, credited co-author) wrote "Japan and the
+Philippines Narrow Their Destroyer Talks to a First Ship"
+(`japan-philippines-first-destroyer-2026`). Historical authorship is unchanged.
+
+Benjamin stated in chat that he has "completed my original-source review of both
+briefs at commit a6771416" and confirmed `original_language`, `claim_support`,
+`chronology` and `limited_source_use` for both manuscripts. In an earlier
+statement the same day he gave final editorial and presentation approval of both
+briefs at that commit, including the rendered pages, headings, bylines,
+citations and cover images, and approved publication under the source-linked
+evidence policy. The receipts bind editorial fingerprints
+`c2f58de2fb0c6ddfe4581a20454d419ecf4ddad72c3f39e466d7445f5a670eee` (AMRAAM) and
+`2102a7fb69b3a1f26ead62c9a74c2fff119f3d4c219834a88bff96bcc11da612` (destroyer).
+This is his own attestation, not an AI-assisted or inferred review; the agent's
+earlier source comparison is preparation only. The presentation receipts bind
+digests `3030a230d219af8a83032c372f4a7ee8772d2319680a2c61579e0d68bfade0d6` and
+`a7e8fbaebf5edbca7b753748e18c2347e0aeee3f58f299ca5717edbf5b52f616`.
+
+He explicitly accepted the AMRAAM s3 limitation: the official war.gov readout
+returns HTTP 403, and the readout comparison rests on the earlier publisher
+verification in PR 938 and the accessible republication. No new successful
+retrieval of the official page is claimed.
+
+Covers, approved for each Brief's article and catalogue card with the standard
+CSS gradient and retained credit: AMRAAM, DVIDS 9245688 / VIRIN
+250805-M-OV696-1094, Lance Cpl. Bryan Giraldo, U.S. Marine Corps, public domain,
+with the exact DVIDS notice; 5 August 2025 equipment context, **not** the planned
+Japanese facility or the October meeting. The retained file is the public
+1000-pixel preview; no master-image access is claimed. Destroyer, JMSDF
+photograph of JS Jintsu (DE-230) via Wikimedia Commons, CC BY 4.0; class context
+only, not an identified transfer hull, and no event date is asserted. Evidence:
+`docs/TWO_BRIEFS_RELEASE_2026-11-01.md`.
+
+## 2026-11-01 — Owner: freeze on new proof and contract workflows until Daily is stable
+
+Benjamin Yang froze the addition of new proof, contract, rehearsal or desk
+release workflows. main held 241 workflow files at 077b1a8096, after the
+ubuntu-24.04 runner pin (#941). Each new lane adds another schedule, check and
+maintenance owner while the shared Daily path is still being repaired. The
+freeze stops that coordination load from growing until the path is stable.
+
+1. No PR may add a file under `.github/workflows/` without a later owner entry in
+   this log. Four open PRs add one: #710, #712, #740 and #746. They stay open but
+   do not merge until the freeze lifts or the owner exempts them.
+2. Changes to existing workflows remain allowed when they keep a current lane
+   working or apply a standing decision. Examples: runner and dependency pins,
+   fixes to a broken check, the W1 integrator's changes to `daily_update.yml`,
+   and retiring a workflow the owner approved from the W3 triage list. A change
+   must not weaken a check merely to make a run pass.
+3. The freeze lifts when the W1 stop condition is met: 7 consecutive scheduled
+   Daily runs succeed, with `source_run_results` rows from all eight desks on
+   each day. That evidence is recorded in `PROJECT_STATE.md`. The owner may lift
+   or amend the freeze earlier by a new entry.
+
+The freeze closes nothing and pauses no existing schedule. It creates no source
+rights, spend, retry reset, merge, deployment or publication authority. Closing
+workflows, PRs or worktrees still needs owner approval of the W3 list.
+
 ## 2026-10-30 — Owner: mandatory shared desk structure across every desk
 
 Benjamin Yang approved all three architecture-review recommendations and directed
