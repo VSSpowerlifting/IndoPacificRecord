@@ -207,7 +207,7 @@ def quality_check(record, reading):
         # distinct from the reported institutional actors.
         local_forms = set(institutional_forms(evidence_text))
         for public, english in ((True, sentence_text), (False, translation_text)):
-            mentioned = set(institutional_forms(english))
+            mentioned = set(institutional_forms(without_possessive(english)))
             if public:
                 mentioned.discard("Kemhan")
             need(mentioned <= local_forms, "daily_institution_form_not_local")
