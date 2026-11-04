@@ -4,6 +4,49 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-03 — Owner: exact-two USCC narrative source-use assessment accepted
+
+Benjamin Yang accepted in the #973 task chat the documented source-use
+assessment for the **unquoted institutional narrative** of the July 18 departure
+and July 25 return announcements, exactly as preserved at private commit
+`9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab`. He expressly accepted the disclosed
+uncertainty about drafting arrangements. A named drafting employee is not a
+prerequisite for these unsigned institutional announcements. This records owner
+acceptance of a reasoned official-duty assessment, not publisher permission,
+a judicial determination or a grant of third-party rights.
+
+Accepted potential scope: title, canonical URL, visible date and unquoted
+institutional narrative as input; an independently worded, attributed factual
+note of **at most 90 words per release** as output, confined to what the
+permitted narrative reports about Commission travel, with official URL/date
+and machine labelling when applicable. No independent corroboration, endorsement,
+new policy inference, verbatim passages, original-body republication or full
+translation is approved.
+
+Exclude entire quotation-bearing paragraphs (including paraphrases derived
+solely from them), institutional boilerplate, social-link labels, linked works,
+attachments, media and any actual third-party expression. Exact excluded text
+locators at the private commit: departure text
+`originals/494261ada2847eeaabf4e44fa2c09dd9af7f6792ff1dbca8bde556ffd57ec549.txt`,
+lines 6–7; return text
+`originals/0f468f672df1c13d2becbd614957f345cc80194e037eeac75b3a94fc8d856a87.txt`,
+lines 4–5. Preserve the authentic complete captures privately; any later derived
+input must identify omissions and bind the exact source/version hashes.
+
+**No model transmission, spending, implementation, recurring collection,
+activation or publication is authorized.** Existing prohibitions on publisher
+contact, merge and deployment remain. Provider/data handling, operational limits
+and any subsequent execution need their separately applicable authorization.
+June 25, future versions and any wider source family are outside this decision.
+Current-version custody remains verified; missing historical revisions are a
+provenance limit, not a failed custody result.
+
+This resolves the earlier blanket source-use HELD wording for the accepted July
+scope only. Excluded components and all operational holds remain. Evidence and
+assessment: [PR #973](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/973),
+[private report](https://github.com/VSSpowerlifting/ipr-source-evidence-private/blob/9036f2fc91ff59ddbbfd8f0d6655b00a6efa51ab/qualification/2026-11-03/REPORT.md).
+This policy record does not modify runtime configuration or the private evidence.
+
 ## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
 
 Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday
