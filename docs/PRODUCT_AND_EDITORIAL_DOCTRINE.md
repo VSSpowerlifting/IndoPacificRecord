@@ -24,8 +24,10 @@ and no new issue is published under it.
 
 Two layers, one masthead:
 
-- **The record** — automated preservation and rendering: scraped originals held
-  verbatim, model translation/summaries/categorization, model flags. Every
+- **The record** — permitted original preservation and component rendering:
+  authentic originals in authorized custody, and separately permitted public
+  text, model translation/summaries/categorization and model flags. Full source
+  text need not be public. Every
   automatically assembled readout is labeled as pipeline output, never as
   analyst prose.
 - **Indo-Pacific Record Briefs** — the *analysis*. Numbered, human-controlled
@@ -63,11 +65,21 @@ full originals, neutral metadata, and/or an independently permitted
 machine-produced summary. Those outputs must be clearly distinguished.
 
 **Normal model-labeled record output should eventually publish unattended**
-after explicit source-family permissions, accuracy and cost controls, and real
+after an established source/use-specific legal basis and operational authority,
+accuracy and cost controls, and real
 end-to-end acceptance; exceptions hold. This does **not** authorize new
 machine processing, derivative text or publication today. Human-authored
 IPR Briefs, bylined analysis and approval remain the distinct editorial layer.
 Implementation contract: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
+**Source-use rule (owner, 4 November 2026):**
+[`CONTENT_AND_DATA_RIGHTS.md` §7](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+governs the evidence-based alternatives to written publisher permission and
+the separate access, custody, external-model, independent-analysis and
+republication questions. Favor defensible research and permitted links or
+bounded quotation over unsupported full-text reproduction. This does not
+enlarge existing source authorizations or relax real holds, MINDEF's specific
+written-grant requirement, editorial approvals or activation controls.
 
 ## 1b. Research-led growth and development (owner, 2026-10-30)
 

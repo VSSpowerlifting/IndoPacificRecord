@@ -274,6 +274,19 @@ class RealAnalyzerPath(unittest.TestCase):
 # ── Source-use policy ────────────────────────────────────────────────────────
 
 class SourceUsePolicy(unittest.TestCase):
+    def test_offline_synopsis_alternatives_do_not_broaden_runtime_source_bases(self):
+        from core.regional_typed_source_use_decision import SYNOPSIS_RIGHTS_BASES
+        alternatives = ("documented_public_domain_status",
+                        "documented_statutory_exception",
+                        "documented_other_legal_authorization")
+        self.assertTrue(set(alternatives) <= SYNOPSIS_RIGHTS_BASES)
+        self.assertTrue(set(alternatives).isdisjoint(su.RIGHTS))
+        for family in (MPS, ENERGY, INDUSTRY, su.VPCP):
+            for basis in alternatives:
+                with self.subTest(family=family, basis=basis):
+                    with self.assertRaisesRegex(su.SourceUseError, "rights_basis_type"):
+                        grant(family, rights_basis_type=basis)
+
     def test_standing_policy_holds_every_permission(self):
         for family, code in ((MPS, "mps_reuse_and_model_terms_not_established"),
                              (ENERGY, "moit_written_consent_and_robots_review_required"),

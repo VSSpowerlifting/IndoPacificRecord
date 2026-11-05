@@ -1,11 +1,17 @@
 # Indo-Pacific Record — Eight-Desk Operational Completion Plan
 
-**Version:** 1.0  
+**Version:** 1.1 — research-first evaluation amendment, 4 November 2026
 **Founder scope decisions:** 2 November 2026  
 **Owner:** Founder & Executive Director, Indo-Pacific Record  
 **Status:** Authoritative *proposed scope and acceptance plan* recording the founder's eight decisions; **not** evidence of source-use permission, engineering implementation, production activation, deployment, or desk certification. Repository governance adoption is subject to review/merge.  
 **Intended repository home:** `docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md`  
 **Review trigger:** An explicit founder change of source scope or certification standard, or discovery of a material inconsistency with higher authority. Do not overwrite this stable plan with transient progress notes.
+
+**4 November source-use amendment:** [the canonical standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+replaces generalized publisher-permission prerequisites with evidenced,
+use-specific legal bases. The eight scopes and genuine original-to-reader
+completion standard are unchanged. MINDEF's specific written-grant requirement
+and all effective source/quality/access/spend/activation controls remain.
 
 ## 1. How to use this document in every session
 
@@ -30,7 +36,7 @@ Every **required source family** must independently demonstrate:
 
 1. **Authentic permitted collection.** Direct source/publisher evidence and compliant retrieval under a documented access contract; accurate issuer vs publisher and date distinctions; no evasion of 403, robots, challenges or restrictions. An upstream quiet day is distinguished from a missed or failed run.
 2. **Versioned permitted custody.** Retained complete eligible original text/document when permitted, official canonical identity, content hashes and authenticated, independently recoverable source/version binding. A metadata lead does not count as an original. Hold partial, damaged, ambiguous or rights-restricted evidence.
-3. **Bounded, source-appropriate processing.** Explicit rights for external model processing if used; correct source-specific language and QA profiles; relevant, attributed, non-fabricated explanations or other allowed substantive Record component; preserve names, dates, units, quantities, negations, status and uncertainties. English originals do not need translation. No unapproved cost, retry reset or routine founder review of eligible machine output.
+3. **Bounded, source-appropriate processing.** An established legal basis covering the actual external provider/input use, plus operational authority if models are used; correct source-specific language and QA profiles; relevant, attributed, non-fabricated explanations or other allowed substantive Record component; preserve names, dates, units, quantities, negations, status and uncertainties. English originals do not need translation. No unapproved cost, retry reset or routine founder review of eligible machine output.
 4. **One shared, safe admission and public experience.** Authenticated, version-pinned handoff where appropriate; accepted and permitted components enter production SQLite and appear under the same logical Record in the desk, Archive and search. Publisher source text need **not** be publicly mirrored if an independently permitted, original-backed English explanation can be published. Label machine output clearly; public data/export/feed/HTML share source rights and holds.
 5. **Actual deployed delivery.** Applicable exact-final-head qualification; committed final DB, rendered output and `gh-pages`; independent external HTTPS readback matching the exact admitted source identity, version and permitted content. Preserve last-good site on bad candidate.
 6. **Reliable unattended recurrence and recovery.** A subsequent genuine scheduled cycle with new/duplicate/quiet/error/hold accurately reported, plus real or controlled idempotent failure recovery; preserved captures, audit trails, spending/accounting, alerts and an operator path. A genuine previously captured source may establish an initial real end-to-end path, but is **not** proof of a later automatic arrival.
@@ -84,7 +90,7 @@ Full operation requires an adequate **written, specifically scoped MINDEF grant*
 
 ### 3.8 U.S. reference — one qualifying family, USCC first
 
-Investigate the existing USCC **Commission-authored official press-release family** first. Verify direct source permissions/access, original first-party text (not just publisher metadata), exact Commission authorship versus commissioned third-party studies, canonical URL/date/version/hash, applicable original retention/external model/public-output authority and accurate short English explanations. Prove real recurring original-to-reader delivery and recovery. Treasury and BIS remain permitted **metadata-only reference** sources; maintain their reliability and truthful labels but do not make full-text activation a prerequisite. PACOM access holds and paused DVIDS cannot be bypassed. If USCC proves unqualified, present a *specific* independent first-party alternative to the founder before changing the source selection; the one-family standard does not authorize a random substitute.
+Investigate the existing USCC **Commission-authored official press-release family** first. Verify the applicable use-specific legal basis and permitted access, original first-party text (not just publisher metadata), exact Commission authorship versus commissioned third-party studies, canonical URL/date/version/hash, applicable original retention/external model/public-output authority and accurate short English explanations. Qualifying U.S. government-work status may support use without a publisher letter; it must be established for the actual work and jurisdiction, not inferred from the host. Prove real recurring original-to-reader delivery and recovery. Treasury and BIS remain permitted **metadata-only reference** sources; maintain their reliability and truthful labels but do not make full-text activation a prerequisite. PACOM access holds and paused DVIDS cannot be bypassed. If USCC proves unqualified, present a *specific* independent first-party alternative to the founder before changing the source selection; the one-family standard does not authorize a random substitute.
 
 ## 4. Priority-ordered execution plan (not eight simultaneous rewrites)
 
@@ -141,11 +147,44 @@ Each agent session gets one objective, existing repository state and exact PR de
 
 **Settled:** the eight required source-family scopes, explicit exclusions and common test of full-operation; Singapore MINDEF-only with outreach held; USCC-first research direction. The founder does **not** need another broad scope interview.
 
-**Unsettled and requiring source evidence/owner action:** Singapore MINDEF contact and grant; DAPA/Japan/USCC additional permissions; any new cost or source activation; exceptional rights remediation; actual merge/release authority beyond task/standing rules.
+**Unsettled and requiring source evidence/owner action:** Singapore MINDEF contact and scoped written grant; DAPA/Japan/USCC use-specific legal-basis findings and any separately required operational decisions; any new cost or source activation; exceptional rights remediation; actual merge/release authority beyond task/standing rules. A new publisher letter is not universally required for those findings.
 
 **Still to prove:** present-day source-specific scheduled success and real original-version-to-reader delivery for every required family; CI and live readback at the exact released revision; follow-up unattended cycles and representative recovery.
 
 **Historical snapshot warning (2 November 2026):** GitHub PRs #966, #954, #964, #950, #953, #965, #932 and #940 were reviewed as open at or around the planning session; #953 depended on #950; #955 and #959 were merged; #913, #888, #951 and #935 were merged. These are **time-stamped leads, not reliable future statuses**. Re-query GitHub before work and never infer deployment from merge.
+
+### 6.1 Source-use reconciliation — 4 November 2026
+
+This is a policy/evidence account at public base `7cc77270` and private base
+`a3f6299`, not a new grant or certification. **Supported** means the cited
+standing decision covers a limited use, not that live operation was reverified.
+Read current exact source/version policies and effective switches before action.
+Source-specific records remain the authority; this table is their index.
+
+| Family | Evidence and supported scope | Retained restriction / next decision or technical work |
+|---|---|---|
+| China PLA Daily | [Existing manifest](../../desks/china/manifest.json); [#978 evidence proposal](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/978) records download/agreement notice | **Unresolved / decision-dependent:** distinguish military newspaper expression from official texts; preserve [#980 switch](../../core/china_source_use_hold.py), separately inactive unless configured. No legal clearance inferred from existing production. |
+| China MOD | Same manifest/#978; ministry originals differ from republished PLA Daily or other supplied works | **Unresolved / decision-dependent:** per-work authorship, notice, permitted input/output and historical exposure; same hold switch, no change here. |
+| China Xinhua Military | Same manifest/#978; recorded footer ownership claim is not an automatic use prohibition or licence | **Unresolved:** verify actual terms and intended use, including provider input. Not covered by #980 switch; absence of that switch's hold proves no rights. |
+| China Military Online | Same manifest/#978; English service and PLA Daily mirrors need separate publication identities | **Unresolved:** actual terms, author/issuer and use-specific basis; English needs no translation, but model input/output still require support. Not covered by #980 switch. |
+| China Global Times Defense | #978 records personal-use terms and restrictions on automation, derivatives and linking | **Restricted / decision-dependent:** no assumption that link-only solves the recorded terms. Preserve hold switch and founder decision on actual applicability and historical exposure; no contact or remediation here. |
+| Singapore MINDEF | [Written grant record](../SINGAPORE_MINDEF_LIMITED_LINK_PERMISSION_2026-10-29.md), [permission checker](../../core/mindef_permissions.py): **two exact hyperlinks only** | **Restricted / founder-dependent:** broader collection, custody, commercial-model and explanation uses need the specifically required scoped written grant. Keep corpus withholding, charset exclusions and no-contact instruction. |
+| Korea MND via Policy Briefing | [Standing licence qualifier](../../core/standing_source_rights.py), [current policy replay](../../core/korea_current_policy_replay.py): exact MND-issued, item-marked KOGL Type 1 text within conditions | **Supported conditionally:** authenticate complete version, category/issuer and third-party exclusions; no inherited PDF/media clearance. Factual QA, accepted English/cohorts and terminal holds remain. |
+| Korea DAPA | [DAPA rights evidence](../engineering/KOREA_DAPA_OCT08_FIRST_PARTY_RIGHTS_2026-10-13.md), [metadata policy](../../config/korea_dapa_official_link_automatic_admission.json) | **Metadata supported; substantive uses unresolved / decision-dependent.** DAPA B00008 is not MND A00005; exact host/version KOGL notice and attachment exceptions govern. No automatic MND licence inheritance or production/model activation. |
+| Vietnam MPS Foreign Affairs | [Sealed policy](../../config/vietnam_source_use/vn_mps_foreign_affairs_vi.json), [assessment](../engineering/VIETNAM_SOURCE_USE_OWNER_REVIEW_2026-10-21.md): private custody, bounded Anthropic input and independent attributed English explanation | **Supported within assessment, not publisher licence.** No public originals/titles, complete translations, excerpts or media. Preserve seal, QA/recovery cohorts, accepted output and attempt/spend history. |
+| Vietnam VPCP | [Sealed policy](../../config/vietnam_source_use/vn_vpcp_official_documents_vi.json), [administrative-document assessment](../engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md) and [text policy](../../config/vietnam_vpcp_text_policy.json) | **Supported within document-specific limits:** first-party Công văn/Thông báo; administrative Quyết định individually confirmed. No public PDFs/originals/translations/annexes. Preserve page/issuer/coverage checks and bounded provider/cost controls. MOIT's consent/robots hold remains outside scope. |
+| Philippines AFP | [Shared Daily decision](../engineering/PHILIPPINES_SHARED_DAILY_2026-10-19.md), [policy](../../config/philippines_daily_policy.json): permitted metadata and nonverbatim ≤90-word factual explanation | **Supported bounded use:** §§175–176/185 assessment is not a general commercial/text licence. Preserve `afp:1418`, private originals, factual QA, budgets and retries; no original/media exposure. |
+| Philippines NSC | [Independent NSC decision](../philippines/NSC_RIGHTS_AND_RELEASE_DECISION.md), same shared policy with separate identity/keys | **Supported bounded use:** AFP does not qualify NSC. Preserve category/template/identity holds and narrow historical anomaly treatment; no public source titles/bodies/media. |
+| Indonesia Kemhan Berita | [27 October decision](../../DECISION_LOG.md), [shared policy](../../config/philippines_daily_policy.json) and [manifest](../../desks/indonesia/manifest.json): bounded private factual processing and independent English output | **Supported bounded use, not broad text licence.** Preserve Yonif TP 880, language QA, private originals and spend/retry history. Siaran Pers excluded. Historical permission-inquiry drafts create no new correspondence prerequisite. |
+| Japan MOD accessible news PDFs | [PDL text qualifier](../../core/standing_source_rights.py), [production metadata policy](../../config/japan_mod_official_link_policy.json) | **Supported licence qualification / metadata; substantive activation decision-dependent.** PDL text conditions do not automatically cover PDFs/media/provider input. Complete accessible news PDFs only; challenged HTML and RSS-only leads cannot qualify as originals. |
+| Japan JCG English HTML | [Shadow contract](../../shadow/jp_jcg/README.md), [dated rights/attachment evidence with current clarification](../engineering/JAPAN_JCG_SIX_RELEASE_PDF_AND_RIGHTS_REVIEW_2026-10-12.md) | **Unresolved / decision-dependent:** Japanese PDL applicability versus English notice needs evidence; an alternative basis may be evaluated without mandatory correspondence. Preserve HTML-only limits, exact URL/date/identity checks, multilateral/media exclusions and activation gates. |
+| U.S. reference — USCC first | [Current metadata decision](../engineering/USCC_LIVE_OFFICIAL_METADATA_ADMISSION_2026-10-15.md), [manifest](../../desks/us-indopacific/manifest.json) | **Metadata supported; original/model/substantive uses unresolved / decision-dependent.** Verify employee/official-duty authorship, §105 exceptions and third-party/contractor rights. Treasury/BIS stay metadata references; PACOM/DVIDS restrictions stay. One qualifying original-backed family remains required. |
+
+**Retired administrative requirements:** a universal new publisher letter,
+licence-only private-synopsis basis, mandatory JCG correspondence/reply route
+and obsolete dossier signoff clocks. **Retained:** every actual grant,
+restriction, exception, quality hold and separate operational authority above.
+No existing source decision/configuration is re-signed or broadened here.
 
 ## 7. Minimal future-session recovery prompt
 

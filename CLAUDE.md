@@ -5,6 +5,10 @@ mission-based work admission, authority, evidence and source safeguards,
 engineering scope, stop conditions and definitions of completion. This file
 adds tool-specific implementation notes rather than duplicating those rules.
 For domain authority, follow the documentation map in `AGENTS.md`.
+For source use, read `CONTENT_AND_DATA_RIGHTS.md` §7: evaluate an evidenced
+use-specific legal basis rather than demanding a publisher letter for every use.
+Preserve actual source restrictions and MINDEF's specific written-grant rule;
+the general reform does not authorize models, collection or publication.
 
 IPR is an independent, source-grounded research publication. Automated
 source records are not human-authored IPR Briefs. *The PLA Watch* and

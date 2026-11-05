@@ -4,6 +4,35 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-04 — Founder: research-first source-use reform (review implementation)
+
+The executive mandate establishes the general evaluation direction:
+written publisher permission is not universal where another demonstrated
+lawful basis supports the particular activity. Implemented for founder PR
+review in [CONTENT_AND_DATA_RIGHTS.md §7](CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard),
+with [all eight scopes reconciled](docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md#61-source-use-reconciliation--4-november-2026).
+Applicable public-domain status, licences, actual permission, statutory
+exceptions and other legal authorizations are alternatives to investigate,
+not blanket grants. Separate access, custody, facts, external-provider input,
+independent analysis, quotation/translation, media and every public distribution
+surface. Keep binding terms, jurisdiction and contrary primary evidence visible.
+
+Superseded: general publisher-letter prerequisites, licence-only vocabulary in
+the offline private-synopsis decision, mandatory JCG correspondence/reply and
+obsolete dossier launch signoffs. Retained: actual source grants/restrictions,
+MINDEF's specific scoped written-grant rule/two links, China #978 unresolved
+decisions and merged #980 switch, source-specific licences/assessments and
+exclusions, factual QA, budgets, retries, evidence and accepted paid output.
+The synopsis vocabulary is isolated from Vietnam's runtime basis constant.
+
+This entry records the mandate and candidate implementation, not source-use
+clearance, a founder policy merge approval or operational certification. No
+source configuration, hold activation, model permission, spending, original
+evidence, production DB, generated output or historical decision is changed.
+No contact, merge, deployment, historical republication/removal or source
+activation is authorized. Prior entries remain evidence in their actual scope;
+the new general rule cannot silently erase a specific restriction.
+
 ## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
 
 Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday

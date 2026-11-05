@@ -15,6 +15,9 @@ The binding mission and growth test live in
 work is in [`docs/desks/MIGRATION.md`](desks/MIGRATION.md). Existing
 source-specific permissions, spending limits, holds and human editorial
 approvals remain authoritative.
+General source-use evaluation follows [the research-first standard](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard):
+establish a use-specific legal basis rather than add blanket publisher-letter
+prerequisites. Existing source holds and operational authority remain separate.
 
 ## A. Finish shared architecture, retire duplication
 
