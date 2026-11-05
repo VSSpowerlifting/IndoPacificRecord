@@ -14,7 +14,7 @@ from processing.daily_intake import load_policy
 
 
 class FetchOutputs(unittest.TestCase):
-    def run_fetch(self, outcomes, policy=None):
+    def run_fetch(self, outcomes, policy=None, heartbeat='2026-11-03T04:05:06Z'):
         root = Path(self.tmp.name)
         for family in fetch.SOURCES:
             (root / (family + '.json')).write_text('old envelope')
@@ -22,7 +22,8 @@ class FetchOutputs(unittest.TestCase):
                'IPR_DAILY_INTAKE_DIR': str(root),
                'GITHUB_OUTPUT': str(root / 'outputs'),
                'GITHUB_STEP_SUMMARY': str(root / 'summary')}
-        with patch.dict(os.environ, env), patch.object(fetch, 'load_policy', return_value=policy or load_policy()), patch.object(fetch.subprocess, 'run', side_effect=outcomes) as call:
+        with patch.dict(os.environ, env), patch.object(fetch, 'load_policy', return_value=policy or load_policy()), patch.object(fetch.subprocess, 'run', side_effect=outcomes) as call, \
+                patch.object(fetch, '_collector_heartbeat', return_value=heartbeat) as self.beat_call:
             result = fetch.main()
         return root, result, call
 
@@ -79,6 +80,61 @@ class FetchOutputs(unittest.TestCase):
         self.assertIn('Shared Daily handoff unavailable', stream.getvalue())
         self.assertNotIn('private malformed bytes', stream.getvalue())
         self.assertNotIn('private stderr', stream.getvalue())
+
+    def test_collector_heartbeat_sidecar_is_written_per_family_and_never_signed(self):
+        root, result, _ = self.run_fetch([self.response(), self.response(), self.response()])
+        for family in fetch.SOURCES:
+            sidecar = root / (family + '.collection.json')
+            self.assertEqual(json.loads(sidecar.read_text()),
+                             {'collector_last_run_at': '2026-11-03T04:05:06Z'})
+        self.assertEqual([c.args[0] for c in self.beat_call.call_args_list],
+                         [s.custody_ref for s in fetch.SOURCES.values()])
+        self.assertFalse(list(root.glob('*.tmp')))
+        self.assertIn('collector heartbeat: ok', (root / 'summary').read_text())
+
+    def test_heartbeat_is_recorded_even_when_the_envelope_fetch_fails(self):
+        root, result, _ = self.run_fetch([self.response(code=1), self.response(), self.response()])
+        self.assertEqual(result['ph_afp_articles'], 'fetch_failed')
+        self.assertTrue((root / 'ph_afp_articles.collection.json').exists())
+
+    def test_unreadable_heartbeat_is_a_warning_not_a_delivery_failure(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        stream = StringIO()
+        for bad in (None, 'not-a-date', '2026-11-03 04:05:06', 'x' * 100):
+            with self.subTest(bad=bad), redirect_stdout(stream):
+                root, result, _ = self.run_fetch(
+                    [self.response(), self.response(), self.response()], heartbeat=bad)
+                self.assertFalse((root / 'ph_afp_articles.collection.json').exists())
+                self.assertEqual(result['ph_afp_articles'], 'fetched')
+                self.assertEqual((root / 'outputs').read_text().splitlines()[-1], 'failed_families=0')
+        self.assertIn('Shared Daily collector heartbeat unavailable', stream.getvalue())
+
+    def test_stale_heartbeat_never_survives_a_refresh(self):
+        root = Path(self.tmp.name)
+        for family in fetch.SOURCES:
+            fetch.write_heartbeat(root, family, '2026-01-01T00:00:00Z')
+        policy = copy.deepcopy(load_policy())
+        policy['sources']['ph_afp_articles']['unattended_release'] = False
+        root, result, _ = self.run_fetch([self.response(), self.response()], policy, heartbeat=None)
+        self.assertEqual(result['ph_afp_articles'], 'policy_disabled')
+        for family in fetch.SOURCES:
+            self.assertFalse((root / (family + '.collection.json')).exists(), family)
+
+    def test_heartbeat_query_reads_commit_metadata_only(self):
+        ok = subprocess.CompletedProcess([], 0, b'2026-11-03T04:05:06Z\n', b'private stderr')
+        with patch.object(fetch.subprocess, 'run', return_value=ok) as call:
+            self.assertEqual(fetch._collector_heartbeat('archive/ph-nsc'), '2026-11-03T04:05:06Z')
+        argv = call.call_args.args[0]
+        self.assertIn('repos/%s/commits?sha=archive/ph-nsc&per_page=1' % fetch.PRIVATE_REPO, argv)
+        self.assertIn('.[0].commit.committer.date', argv)
+        self.assertFalse(any('contents' in part for part in argv))
+        for failure in (subprocess.CompletedProcess([], 1, b'', b'x'), OSError('gh'),
+                        subprocess.TimeoutExpired('gh', 45)):
+            with patch.object(fetch.subprocess, 'run', side_effect=[failure]
+                              if not isinstance(failure, subprocess.CompletedProcess)
+                              else None, return_value=failure):
+                self.assertIsNone(fetch._collector_heartbeat('archive/ph-nsc'))
 
     def test_existing_health_gate_reports_fetch_failure_after_delivery(self):
         workflow = (Path(__file__).resolve().parents[1] / '.github/workflows/daily_update.yml').read_text()
