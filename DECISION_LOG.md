@@ -4,6 +4,21 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-04 — Pending owner decision: Korea DAPA source family
+
+**No approval is recorded here.** The
+[decision candidate](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md)
+applies the §7 standard per activity. The Policy Briefing page for `156786758`
+carries a published KOGL Type 0 text-only notice, now replayable from the
+hash-bound preserved page; issuer identity rests on the portal statement and
+HWPX structure, and the 28 October capture is distinct from today's terms.
+Open for the owner: (1) option A, B or C for applying that text mark to
+DAPA-authored HWPX prose; (2) whether public originals stay link-only under the
+17 October policy; (3) model input, provider and cost, separately; (4) a
+standing replay-plus-screens rule versus per-version sign-off. #975 and #976
+are superseded as one change and are not closed. No source activation,
+publisher contact, model spend, merge or deployment is authorized.
+
 ## 2026-11-04 — Founder: research-first source-use reform (review implementation)
 
 The executive mandate establishes the general evaluation direction:
