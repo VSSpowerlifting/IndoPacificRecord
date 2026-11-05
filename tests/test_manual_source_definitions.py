@@ -702,6 +702,40 @@ class TestHeartbeatsFromRunResults(unittest.TestCase):
         self.assertEqual(liveness.heartbeats(path),
                          {"a": "2026-11-03T06:00:00Z", "d": "2026-11-03T07:00:00Z"})
 
+    def test_round_trip_through_the_real_recorder(self):
+        """dispatch -> storage.db.record_source_run_result -> migrated table ->
+        heartbeats(): the stamp survives, and no write time replaces it."""
+        from processing.daily_runner import write_heartbeat
+        from scripts import check_source_liveness as liveness
+        from storage import db
+        slug, stamp = "ph_nsc_official_statements", "2026-11-03T06:00:00Z"
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        db_path = Path(tmp.name) / "rt.db"
+        build_legacy_db(db_path)
+        conn = connect(db_path)
+        apply_all(conn)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM scrape_runs WHERE id = 1").fetchone()[0], 1)
+        conn.close()
+        write_heartbeat(tmp.name, slug, stamp)
+        entry = pipeline._daily_admission(
+            slug, intake=lambda *a: {"records": 0, "admitted": 0, "holds": []})
+        policy = {"sources": {f: {"private_model_processing": True,
+                                  "public_machine_explanation": True,
+                                  "unattended_release": True} for f in SOURCES}}
+        with mock.patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                          "IPR_DAILY_INTAKE_DIR": tmp.name}), \
+                mock.patch("processing.daily_intake.load_policy", return_value=policy), \
+                mock.patch.object(pipeline, "_governed_admissions", return_value={slug: entry}), \
+                mock.patch.object(db, "DB_PATH", db_path):
+            [result] = pipeline.run_governed_manual_sources(
+                [slug], 1, FakeRegistry("philippines"), [])
+            db.record_source_run_result(1, result)
+        self.assertEqual(liveness.heartbeats(db_path), {slug: stamp})
+        stored = sqlite3.connect(db_path).execute(
+            "SELECT status, started_at, completed_at FROM source_run_results").fetchall()
+        self.assertEqual(stored, [(st.OK_NO_PUBLICATIONS, None, stamp)])
+
     def test_database_without_the_table_has_no_heartbeats(self):
         from scripts import check_source_liveness as liveness
         tmp = tempfile.TemporaryDirectory()

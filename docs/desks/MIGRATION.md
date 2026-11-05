@@ -371,7 +371,11 @@ unreadable) is judged exactly as before. An unreadable heartbeat prints a
 private collector's last preserved attempt (unsigned)", not this process's run
 time. `storage/db.py` `get_last_success_by_source`, `scripts/source_health_report.py`
 and `scripts/operations_center.py` read `completed_at` for last-collection
-displays and will now show it for these families.
+displays and will now show it for these families. Checked: they only take
+`MAX(completed_at)` (no duration arithmetic, so the still-empty `started_at`
+is harmless), `FETCH_FAILURE` rows are excluded from "last successful
+collection", and `record_source_run_result` stores the value untouched (a
+round-trip test covers dispatch, recorder, migrated table and `heartbeats()`).
 
 *Needs founder decision or check (nothing here is done by this change):*
 (1) whether to authorize Option A, a private packet/signing/schema change, to
