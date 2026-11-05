@@ -328,3 +328,55 @@ nine manual-source rows and source-specific dispositions, accepted-data
 preservation and DB-to-public delivery. Guard-skipped runs do not qualify.
 Do not force an additional paid Daily cycle to replace that evidence. #953
 remains outside this phase; its integration requires a new bounded session.
+
+**China Desk interim source-use hold (draft PR, review candidate; disabled by default):**
+`core/china_source_use_hold.py` is one exact-`"true"`, call-time switch,
+`IPR_CHINA_SOURCE_USE_HOLD`, inert when unset. Enabled, it holds the host
+sources `global_times_mil`, `mod_china` and `pla_daily` (never by byline) at
+every active route: the source loop (no adapter, no request; the existing
+`SKIPPED_DISABLED` with a `source-use hold:` detail, a non-failure), the
+`insert_article` and `insert_articles_atomic` write seams (both raise, so
+neither can read as a duplicate; the atomic batch is refused before any write
+transaction opens), the
+relevance screen, the daily analysis queue including stored backlog, headline
+translation candidates (also the China title batch scripts that call them), the Sunday and weekly briefs writers' evidence selection, and the
+operator scripts `backfill_unscored.py`, `backfill_translations.py` and
+`rescreen_desk.py`. It writes no processing state, flips no
+`sources.enabled`, and removes, rewrites or regenerates nothing: the 1,513
+existing records, their text, hashes, dates and source identities,
+`pla_watch.db`, Git history and the private backup are unchanged, and
+rendering is untouched. `xinhua_mil`, `china_mil_online` and all other desks
+are unaffected.
+
+`china_title_completion_batch.yml` runs from main but checks out the separate
+`ops/china-title-completion-20261018` branch, which predates the hold, so an
+env mapping alone protects nothing there. Its job is therefore gated from
+main: `batch` runs only when `vars.IPR_CHINA_SOURCE_USE_HOLD != 'true'`, and a
+`hold-notice` job (no checkout, key or push) runs instead. The ops branch's own
+copy of the workflow keeps its `github.ref == 'refs/heads/main'` guard, so it
+cannot be dispatched from that ref. Actions compares strings case-insensitively
+while the Python switch requires exactly lowercase `true`; set the variable to
+exactly `true`. Every workflow that holds `secrets.ANTHROPIC_API_KEY` must map
+the switch or be listed in `tests/test_china_source_use_hold.py` with a reason.
+
+Fail-closed identity: with the hold enabled, a row whose `source_slug` is
+absent, null or empty counts as held at the Briefs writers and the relevance
+model boundary, so unknown provenance cannot bypass it. Integration
+candidate: #979 composed onto #950 (merge order #950, then #979); the held
+slugs are not in #950's governed-admission families, and the hold check
+precedes its manual dispatch in `pipeline.py`. No new policy packet.
+
+All three adapters retrieve full article bodies, so the hold is a
+whole-collection hold, not a metadata-only mode. Whether metadata-only
+discovery would be permitted, and for Global Times the difference between
+restrictions on automated collection, on linking and on derived content,
+awaits the #978 owner decisions.
+
+Closed or inactive, no change needed: `scripts/generate_pla_watch.py` is
+refused unconditionally by `refuse_predecessor_authoring()` and no workflow
+calls it. Residual risk: an operator script written later that reads stored
+text and calls a model without going through the covered seams; content
+already public in the database and in Git history is untouched by design.
+Nothing here adopts a publisher grant or restriction, activates the hold, or
+changes the live site. Activation, legacy-record treatment and publisher
+correspondence remain separate founder decisions.

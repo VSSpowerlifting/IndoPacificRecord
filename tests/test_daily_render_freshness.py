@@ -563,6 +563,12 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # that the governed USCC/Treasury admissions read under the owner's
         # standing metadata-only approval of 2026-10-15 (runtime migration 4,
         # docs/desks/MIGRATION.md); they are paths, never a publisher or a model.
+        # IPR_CHINA_SOURCE_USE_HOLD is mapped from the repository variable of
+        # the same name and is inert unless it is exactly "true"; it can only
+        # remove three China sources from collection and model use (founder
+        # direction on #979, docs/desks/MIGRATION.md), never add one.
+        self.assertIn(
+            "IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}", pipeline)
         self.assertIn("DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}", pipeline)
         self.assertIn("IPR_USCC_SOURCE_CHECKOUT: ${{ runner.temp }}/uscc-preserved-metadata", pipeline)
         self.assertIn("IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata", pipeline)
@@ -570,8 +576,8 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                          ["ANALYSIS_MODEL", "ANTHROPIC_API_KEY", "CATEGORIZATION_MODEL",
                           "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
-                          "FALLBACK_MODEL", "GH_TOKEN", "IPR_DAILY_INTAKE_DIR",
-                          "IPR_PRIVATE_DAILY_ENABLED", "IPR_USCC_SOURCE_CHECKOUT",
+                          "FALLBACK_MODEL", "GH_TOKEN", "IPR_CHINA_SOURCE_USE_HOLD",
+                          "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED", "IPR_USCC_SOURCE_CHECKOUT",
                           "IPR_US_TREASURY_SOURCE_CHECKOUT", "JAPAN_MOD_OFFICIAL_LINKS_ENABLED",
                           "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
