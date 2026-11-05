@@ -224,6 +224,10 @@ def insert_article(article: dict, scrape_run_id: int) -> Optional[int]:
     Insert a new article. Returns the new row id, or None if the URL
     already exists.
     """
+    # Interim source-use hold (inert unless enabled). Raises: returning None
+    # would be reported as a duplicate URL.
+    from core.china_source_use_hold import assert_not_held
+    assert_not_held(article["source_slug"])
     source_id = get_source_id(article["source_slug"])
     if source_id is None:
         logger.error("Unknown source slug: %s", article["source_slug"])
@@ -287,6 +291,12 @@ def insert_articles_atomic(
     Raises on genuine failure -- the caller decides how to record that; this
     function's only job is the transaction boundary.
     """
+    # Interim source-use hold (inert unless enabled). Checked for the whole
+    # batch before any write connection or transaction is opened, so a held
+    # batch never takes the write lock.
+    from core.china_source_use_hold import assert_not_held
+    for article in list(passed) + list(rejected):
+        assert_not_held(article["source_slug"])
     conn = _open_connection(writing=True)
     conn.row_factory = sqlite3.Row
     inserted: list = []

@@ -400,6 +400,8 @@ jobs:
           CATEGORIZATION_MODEL: ${{ vars.CATEGORIZATION_MODEL }}
           FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
+          # Interim source-use hold: only the exact string "true" activates it.
+          IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
           # Governed manual admissions run inside the pipeline so every manual

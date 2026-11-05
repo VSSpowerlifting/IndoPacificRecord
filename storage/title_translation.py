@@ -31,6 +31,15 @@ def candidates(conn, article_id=None):
         args = (article_id,)
     rows = [dict(zip([c[0] for c in cur.description], row))
             for cur in [conn.execute(sql, args)] for row in cur.fetchall()]
+    from core.china_source_use_hold import HELD_SOURCE_SLUGS, hold_enabled
+    if hold_enabled():
+        # Interim source-use hold: a held source's headline is never a
+        # candidate, so claim/finish/resume cannot reach a model for it either.
+        marks = ",".join("?" * len(HELD_SOURCE_SLUGS))
+        held = {r[0] for r in conn.execute(
+            "SELECT id FROM sources WHERE slug IN (%s)" % marks,
+            tuple(sorted(HELD_SOURCE_SLUGS)))}
+        rows = [r for r in rows if r["source_id"] not in held]
     columns = {r[1] for r in conn.execute("PRAGMA table_info(articles)")}
     if "title_translation_claim" in columns:
         names = sorted(name for name in columns if name.startswith("title_translation_"))

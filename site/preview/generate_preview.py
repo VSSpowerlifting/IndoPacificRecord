@@ -2473,6 +2473,24 @@ IDENTITY_DIR = Path(__file__).resolve().parent.parent / "assets" / "identity"
 #: `tests/test_identity_assets.py` asserts the emitted numbers match it.
 SOCIAL_CARD = (1200, 630)
 
+#: Pages whose link preview is their own image rather than the publication's
+#: lockup. Keyed by built path; each value is the served route (already
+#: delivered by the `frontend` asset loop below, so nothing is copied twice)
+#: and the alt text, which for these cards describes the image itself.
+#: `site/assets/frontend/<card>.json` records each card's digest and the
+#: provenance of the photograph on it. Every page not listed here keeps
+#: `/social-card.png`, so adding a card is one entry and no behaviour change
+#: anywhere else. The card's pixel size is the same 1200 x 630 as SOCIAL_CARD.
+PAGE_SOCIAL_CARDS = {
+    "briefs/japan-us-amraam-final-assembly-sm3-production.html": {
+        "route": "assets/frontend/brief-21-amraam-final-assembly-social-1200x630.png",
+        "alt": ("Indo-Pacific Record Briefs, No. 21, week ending 31 October "
+                "2026: Japan and the United States Agree to Establish AMRAAM "
+                "Final Assembly in Japan. Two AIM-120 AMRAAM missiles on a "
+                "ground handling rack in front of an AV-8B Harrier II."),
+    },
+}
+
 IDENTITY_ASSETS = {
     "mark.svg": "ipr-compass-mark-small.svg",
     "icon-16.png": "ipr-compass-icon-16.png",
@@ -3887,7 +3905,13 @@ def build(out_dir: Path, title: str, db_path: Path,
             # inventing a sentence about a document the renderer has not read,
             # which is the same rule that governs og:description.
             safe_origin = _html.escape(origin, True)
-            card = "%s/social-card.png" % safe_origin
+            page_card = PAGE_SOCIAL_CARDS.get(rel)
+            if page_card:
+                card = "%s/%s" % (safe_origin, page_card["route"])
+                card_alt = page_card["alt"]
+            else:
+                card = "%s/social-card.png" % safe_origin
+                card_alt = title
             head = "\n".join([
                 '<link rel="canonical" href="%s">' % _html.escape(loc, True),
                 '<meta property="og:url" content="%s">' % _html.escape(loc, True),
@@ -3895,10 +3919,10 @@ def build(out_dir: Path, title: str, db_path: Path,
                 '<meta property="og:image:width" content="%d">' % SOCIAL_CARD[0],
                 '<meta property="og:image:height" content="%d">' % SOCIAL_CARD[1],
                 '<meta property="og:image:alt" content="%s">' % _html.escape(
-                    title, True),
+                    card_alt, True),
                 '<meta name="twitter:image" content="%s">' % card,
                 '<meta name="twitter:image:alt" content="%s">' % _html.escape(
-                    title, True),
+                    card_alt, True),
             ])
             path.write_text(page.replace(NOINDEX_TAG, head, 1),
                             encoding="utf-8")
