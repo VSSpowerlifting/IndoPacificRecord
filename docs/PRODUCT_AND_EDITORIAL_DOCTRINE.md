@@ -468,23 +468,83 @@ help, explains terms plainly, states a necessary qualification once where it app
 keeps research-process notes in a private audit. Evidence-vs-inference rules are
 unchanged. See `docs/IPR_BRIEFS_WRITING_STANDARD.md`.
 
-## 5c. Regional Assessments — the boundary
+## 5c. Regional Assessments — distinct from Dossiers and Evidence Timelines
 
-A Regional Assessment is a separate, longer editorial format under Indo-Pacific
-Record. Only its boundary is defined here; nothing is built for it.
+**Founder editorial decision, 2026-11-05.** These are different *research
+jobs*, not three names for a long article. This section defines their editorial
+identities; it does not create a publishing pipeline, approve a manuscript,
+change a released artifact, or authorize new source use or deployment. Existing
+Dossier and Timeline contracts remain effective until deliberately amended.
 
-| | Brief | Regional Assessment |
-|---|---|---|
-| Starts from | one concrete development | a question or pattern across developments |
-| Window | the development's week (retrospective allowed, labelled) | a longer, stated period |
-| Evidence | trail entries from two or more live desks, or an approved exception | the record across desks and over time; may cite briefs |
-| Form | the existing article anatomy | longer, with its own structure |
-| Numbering | the collection's single sequence | its own identity; never numbered as a brief |
-| Pipeline | `scripts/author_brief.py`, the brief contract, the QA checklist | its own renderer, route and review gate — not built |
+| Product | Question it answers | Intellectual job | Form and lifecycle |
+|---|---|---|---|
+| **Brief** | What happened in this identifiable development, and why does it matter? | Focused, timely interpretation of one concrete development | Short dated article; current Brief contract and numbering |
+| **Living Dossier** | What is documented about this subject? | Curate, reconcile and maintain the reusable reference record | Topic-led, evidence-centered, revisable with version history |
+| **Evidence Timeline** | What happened, when, and according to which source? | Reconstruct a sourced chronology, including contested dates and documentary gaps | Chronological, event/claim/report entries; amended only with evidence and review |
+| **Regional Assessment** | What does a longer pattern or question mean, and what can we reasonably conclude? | Advance an original, qualified analytical argument | Dated, bylined, self-contained long-form essay; not a living reference file |
 
-A brief that outgrows one development is an Assessment candidate, not a longer
-brief. An Assessment keeps the same evidence rules: desk and language preserved,
-cross-desk claims cited from each desk, no coordination inferred from timing.
+**Dossiers — reference, not an author's thesis.** A Dossier organizes reliable
+source material about a defined issue, relationship, institution or capability.
+Its source-grounded findings, comparisons and uncertainties are legitimate,
+including existing approved findings and embedded chronology context; they must
+not be repurposed as a vehicle for proving one contributor's strategic thesis.
+Keep it useful to a reader who might reach a different interpretation.
+A Dossier can point to a separate Timeline for detailed event reconstruction.
+Corrections and later evidence use its established revision and approval path;
+do not silently rewrite approved Dossiers under this new description.
+
+**Evidence Timelines — reconstruction, not strategic explanation.** A Timeline
+establishes documented ordering, precision, relevant event versus publication
+dates, who made an account, differences across accounts and gaps. Reconciliation
+may say that dates or descriptions conflict; sequence and parallel timing alone
+do not prove causation, coordination or intent. Arguments about their strategic
+meaning belong in a Brief or Assessment. Existing item-level provenance,
+version binding and approval remain mandatory.
+
+**Regional Assessments — analytical essays, not academic research papers.**
+An Assessment starts with a meaningful question or pattern that cannot be
+handled well as a single-development Brief. Its author synthesizes original
+evidence over a clearly stated period, evaluates plausible interpretations
+and constraints, and advances a specific, supportable conclusion. A genuinely
+original analytical contribution and readable prose are its value, not length
+or scholarly apparatus. Use an engaging factual opening, a discernible
+argument, natural story-specific sections and a clear ending. **Do not require
+an abstract, literature review, formal methodology section, hypotheses,
+academic citations format or formulaic policy-paper architecture.** Explain
+methods and uncertainty naturally where they affect the claims. Prefer a
+roughly **1,500–2,800-word editorial target** when useful, but the argument,
+evidence and reader value—not a hard word count—set the length. Neither a
+fixed cadence nor a standing publication quota is authorized.
+
+An Assessment remains a human-authored, human-edited and founder-approved
+publication. Give the actual author a byline for verified intellectual and
+writing contribution; editing alone is not automatic coauthorship. It may
+cite existing Briefs, Dossiers or Timelines as navigation and background,
+but substantive claims must trace to independently checked original or
+otherwise appropriately characterized supporting evidence. Original
+issuer/publisher, version, date, language, rights, and source-to-claim
+reconciliation remain visible. External official documents do not become
+collected Desk Records simply because an Assessment cites them. An analyst
+may use defensible permitted sources beyond IPR's corpus, clearly distinguished
+from current desk coverage. Cross-desk and cross-period synthesis is the
+standing Assessment boundary; a narrower single-desk essay requires an
+explicit editorial scope decision, not silent dilution of the format.
+Parallel publication dates never establish coordination without affirmative
+evidence.
+
+**No required product ladder.** A Record can support all formats, and the
+formats may link to one another, but no Dossier or Timeline must be built
+before an Assessment can be written. Publishing the same source in multiple
+formats requires a genuinely different reader purpose and each format's
+applicable source-use and editorial approval. Do not duplicate a Dossier
+as an essay or pad a chronology into an Assessment.
+
+**Implementation boundary.** Regional Assessments remain defined editorially
+but unimplemented as a separately released IPR product: their own route,
+renderer and release contract have not been built. The immediate next step
+may be a human manuscript pilot under private review. No numbering, navigation
+tab, public route, feed, automated writing workflow, new source activation or
+publication is authorized by this decision.
 
 ## 6. Voice
 
