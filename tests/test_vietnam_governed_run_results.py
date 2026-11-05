@@ -143,12 +143,12 @@ class VietnamDispatch(unittest.TestCase):
                 self.assertRow(self.dispatch(MPS)[0], st.ADAPTER_ERROR,
                                detail="vietnam_daily_handoff: receipt_unreadable")
 
-    def test_unconfigured_receipt_path_is_reported_not_failed(self):
+    def test_unconfigured_receipt_path_is_failed_when_enabled(self):
         with mock.patch.dict(os.environ, {"IPR_VIETNAM_HANDOFF_RECEIPT": ""}):
             r, errors = self.dispatch(MPS)
-        self.assertRow(r, st.SKIPPED_DISABLED,
+        self.assertRow(r, st.FETCH_FAILURE,
                        detail="no Vietnam handoff receipt path configured")
-        self.assertEqual(errors, [])
+        self.assertEqual(len(errors), 1)
 
     def test_a_re_served_stale_envelope_is_missed_not_quiet(self):
         """The handoff re-serves the last envelope when the private run did not
