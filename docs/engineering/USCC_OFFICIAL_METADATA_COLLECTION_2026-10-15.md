@@ -396,18 +396,20 @@ no runtime caller exists until separately authorized integration. Remaining
 holds on transmission, spending, recurring acquisition, activation, publication,
 contact, merge and deployment remain. Future versions and June 25 are rejected.
 
-## Standing-family assessment — founder-endorsed in chat, pending PR adoption (4 November 2026)
+## Standing-family assessment — founder-approved text, pending merge (4 November 2026)
 
-**Status: proposed standing assessment, not yet adopted.** On 4 November 2026 the
-founder supported, in chat, extending the 11-03 assessment to a narrowly defined
-standing family of unsigned, Commission-issued institutional press releases,
-subject to the corrections incorporated below. That chat direction is not a
-`DECISION_LOG.md` acceptance: `CONTENT_AND_DATA_RIGHTS.md` §7.4 requires a new
-basis to be reconciled with the existing source-specific decision, and
-source-rights amendments stop at founder PR review. Adoption occurs, if at all,
-when the founder approves this PR's text. Until then the 11-03 decision still
-covers only the two exact captures. Nothing here widens the adapter, calls a
-model, collects, activates, publishes or deploys. No release body was fetched.
+**Status: text approved by the founder in chat on 4 November 2026; not yet in
+effect, because PR #987 is unmerged.** The founder supported extending the 11-03
+assessment to a narrowly defined standing family of unsigned, Commission-issued
+institutional press releases, subject to the corrections incorporated below, and
+then approved this text. The approval is recorded in `DECISION_LOG.md`
+(2026-11-04, "USCC standing-family assessment text approved"), as
+`CONTENT_AND_DATA_RIGHTS.md` §7.4 requires a new basis to be reconciled with the
+existing source-specific decision. It approves policy text only: it is not a
+merge approval and authorizes no code change, model transmission, spend,
+collection, activation, publication or deployment. Until the PR is merged the
+11-03 decision is the only recorded basis and covers the two exact captures.
+Nothing here widens the adapter. No release body was fetched.
 
 ### What is established, and what is not
 
@@ -555,13 +557,13 @@ endorsement authorizes them.
 
 ### Implementation state
 
-Policy proposed (pending PR adoption); code unchanged in behavior. The offline
-adapter still admits only the two exact accepted versions and holds everything
-else, including routine new releases the proposed policy would qualify. No
-family qualifier is built: it would implement a policy that is not adopted and
-has no authorized caller, and the six checks above are a policy statement, not
-code. If the founder adopts this text, the next bounded step is one reviewed
-change that implements the checks against a real caller. Tests added here pin
+Policy text approved (takes effect only on merge); code unchanged in behavior.
+The offline adapter still admits only the two exact accepted versions and holds
+everything else, including routine new releases the approved policy would
+qualify. No family qualifier is built: it has no authorized caller yet, and the
+six checks above are a policy statement, not code. The next bounded step, if the
+founder asks for it, is one reviewed change that implements the checks against a
+real caller. Tests added here pin
 that the shipped policy is still exactly the two accepted versions, that the
 June 25 and invented identities are refused through the public API, that a
 changed capture of each accepted release is held with `capture_version_mismatch`,

@@ -4,6 +4,32 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-04 — Founder: USCC standing-family assessment text approved (PR #987)
+
+Benjamin Yang approved in chat the text of
+[PR #987](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/987)'s
+standing-family assessment for unsigned, Commission-issued institutional USCC
+press releases, as set out in
+[the assessment](docs/engineering/USCC_OFFICIAL_METADATA_COLLECTION_2026-10-15.md#standing-family-assessment--founder-approved-text-pending-merge-4-november-2026).
+It extends the 11-03 exact-two assessment on a **rebuttable, evidence-based**
+footing: 17 U.S.C. §105 as the Copyright Office's Compendium (Third) §313.6(C)(1)
+applies it to federal commissions and Congress, with actual release authorship
+left an evidence question (no blanket public-domain clearance). A routine new
+release qualifies without per-record founder approval only when first-party
+identity, official narrative, verifiable structure, Commission-only authorship
+indicators, access conditions and source-specific exclusions all pass. A changed
+version of an existing release keeps strict version-integrity review. Contractor
+or third-party expression, quotations, attachments and linked works, media,
+boilerplate and unsupported components stay held individually. The 90-word
+attributed-note limit is a size cap, not a legal authorization.
+
+**This approves policy text only.** It does not approve merging PR #987 and
+authorizes no code change, family qualifier, model transmission, provider
+handling, spending, recurring collection, activation, publication or
+deployment; each stays separately governed. The offline adapter still admits
+only the two exact accepted versions. June 25 and every excluded component stay
+held. The text takes effect in the repository only if PR #987 is merged.
+
 ## 2026-11-04 — Founder: research-first source-use reform (review implementation)
 
 The executive mandate establishes the general evaluation direction:
