@@ -220,7 +220,7 @@ class RecordCandidateTest(unittest.TestCase):
         self.assertEqual(receipt["rights_basis"]["article_page_text"],
                          "kogl_type0_page_notice_replayed")
         self.assertEqual(receipt["rights_basis"]["hwpx_attachment_prose"],
-                         "interpretation_pending_owner_decision")
+                         "interpretation_accepted_by_owner_option_a")
         self.assertIs(receipt["model_input_authorized"], False)
         self.assertNotIn("가상", json.dumps(receipt, ensure_ascii=False))
         # Without a capture the receipt states the mark was not replayed.

@@ -205,7 +205,7 @@ URL, and must carry one text-only Type 0 marker, a consistent badge and the
 non-text exclusion notice with no other KOGL type. A failed replay becomes a
 `license_mark:*` hold. The receipt records `rights_basis`; the mark is proved
 for the page text only, and its application to the HWPX prose stays
-`interpretation_pending_owner_decision`. Without the option the receipt says
+`interpretation_accepted_by_owner_option_a`. Without the option the receipt says
 the notice was recorded by the collector and not replayed. The decision
 candidate is
 [KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md](KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md).

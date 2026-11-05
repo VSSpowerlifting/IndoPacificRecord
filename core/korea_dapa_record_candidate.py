@@ -305,7 +305,7 @@ def build_candidate(db_path, db_sha256, source_identity, hwpx_path, as_of=None,
             "article_page_text": ("kogl_type0_page_notice_replayed"
                                   if license_mark else
                                   "kogl_type0_page_notice_recorded_by_collector_not_replayed"),
-            "hwpx_attachment_prose": "interpretation_pending_owner_decision",
+            "hwpx_attachment_prose": "interpretation_accepted_by_owner_option_a",
             "scope": "offline_preparation_only",
         },
         "network_requests": 0,

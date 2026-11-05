@@ -2,7 +2,8 @@
 
 **Prepared:** 2026-11-04. **Disposition:** DECISION CANDIDATE plus one verified
 offline candidate; **no source activation, publisher contact, model spend,
-merge or deployment**. No approval is recorded here (see §8).
+merge or deployment**. **Owner chose option A on 4 Nov 2026 (see §8)**; the
+other §8 items remain open.
 
 This completes the bounded DAPA source-completion phase on top of the earlier
 qualification and offline-candidate work (#975, #976), which it carries
@@ -20,7 +21,7 @@ themselves a basis) and the shared-desk rules in `docs/desks/README.md`
   basis for the page text, not merely a founder interpretation.
 - The one step that remains interpretive is applying that page-text mark to the
   DAPA-authored prose inside the linked HWPX. It is documented, plausible and
-  favourable, but not an explicit attachment licence. It is the owner's call.
+  favourable, but not an explicit attachment licence. The owner chose to rely on it (option A, §8).
 - The shortest defensible path to a source-grounded Record is therefore
   *decision on §5, then one bounded shared-pipeline profile*, not new
   collection, a publisher letter or a new engine.
@@ -56,7 +57,7 @@ verified in this phase; the stored text is the HWPX extraction.
 | --- | --- | --- |
 | Retain the original in private custody | Existing owner-gated collection | Supported |
 | Independent analysis from facts, without reproducing DAPA wording | Strongest position; needs no licence beyond lawful access | Supported |
-| Quote or translate DAPA prose, attributed | Type 0 for page text; for HWPX prose, interpretation | Pending owner decision (§5) |
+| Quote or translate DAPA prose, attributed | Type 0 for page text; for HWPX prose, interpretation | Option A chosen 4 Nov (§8): allowed per version under the §5 conditions; not yet wired |
 | Machine-model input | Licence breadth would cover it, but provider, retention, cost and task authority are separate | Pending; not authorized here |
 | Public original text | Conflicts with the 17 Oct 2026 official-link policy (`config/korea_dapa_official_link_automatic_admission.json`) | Owner decision; recommend keep link-only |
 | Photographs, images, video, contact blocks | Excluded by the mark and by the candidate's screens | Excluded |
@@ -100,23 +101,26 @@ Contains (offline, no network, no model, no generated output):
 - Optional `--page-capture` / `page_capture_path` in the existing candidate
   builder. The capture is bound to the pinned row's digest; a failed replay
   becomes a `license_mark:*` HOLD; the receipt records `rights_basis` with the
-  HWPX prose basis stated as pending.
+  HWPX prose basis stated as an interpretation accepted by the owner (option A).
 - Tests with synthetic fixtures built from the real wrapper structure (no
   capture is committed). The previously staged #975/#976 code, tests and
   operating notes are carried here.
 
-Follows only after the owner decision: one DAPA profile in the existing shared
+Follows, now that option A is chosen and once the open §8 items are settled: one DAPA profile in the existing shared
 source definition and lifecycle (coordinate with the shared-pipeline owner and
 #950; do not duplicate the Philippines work), with the policy entry added at
 that point and gated off until each separate authority exists.
 
-## 8. Pending owner decision — nothing approved
+## 8. Owner decision — option A chosen; remainder pending
 
-1. Choose A, B or C in §5 for HWPX DAPA-authored prose.
-2. Confirm public originals stay link-only under the 17 Oct policy, or amend it.
-3. Model input, provider and cost: decide separately, if at all.
-4. Standing per-version rule (replayed mark plus screens) versus per-version
-   sign-off.
+1. **Decided 4 Nov 2026 (Ben, in chat): option A** in §5 for HWPX DAPA-authored
+   prose. Applies per version, only under the §5 conditions; it does not
+   activate the source or authorize model or public use.
+2. Open: confirm public originals stay link-only under the 17 Oct policy, or
+   amend it (option A assumes link-only).
+3. Open: model input, provider and cost, decided separately, if at all.
+4. Open: standing per-version rule (replayed mark plus screens) versus
+   per-version sign-off.
 
 Verified here: unit tests for the replay, the candidate builder and the HWPX
 auditor; the replay against the real preserved page. Not claimed: Korean

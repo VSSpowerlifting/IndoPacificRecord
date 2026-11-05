@@ -4,20 +4,24 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
-## 2026-11-04 — Pending owner decision: Korea DAPA source family
+## 2026-11-04 — Owner decision: Korea DAPA source family, option A (partial)
 
-**No approval is recorded here.** The
-[decision candidate](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md)
-applies the §7 standard per activity. The Policy Briefing page for `156786758`
-carries a published KOGL Type 0 text-only notice, now replayable from the
-hash-bound preserved page; issuer identity rests on the portal statement and
-HWPX structure, and the 28 October capture is distinct from today's terms.
-Open for the owner: (1) option A, B or C for applying that text mark to
-DAPA-authored HWPX prose; (2) whether public originals stay link-only under the
-17 October policy; (3) model input, provider and cost, separately; (4) a
-standing replay-plus-screens rule versus per-version sign-off. #975 and #976
-are superseded as one change and are not closed. No source activation,
-publisher contact, model spend, merge or deployment is authorized.
+**Decided (Ben, in chat, 4 Nov 2026): option A** of the
+[decision candidate](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md).
+For DAPA-authored prose in the linked HWPX, the published KOGL Type 0 text
+notice may be relied on **per version**, only when the notice replays from the
+hash-bound preserved page, the issuer is structurally sole, and the candidate's
+screens pass. This permits private inference/translation and independently
+worded, attributed explanations as source uses. Public originals stay
+link-only. Issuer identity rests on the portal statement and HWPX structure,
+and the 28 October capture is distinct from today's terms.
+
+**Still open:** (2) whether public originals stay link-only under the 17 October
+policy (option A assumes they do; not separately confirmed); (3) model input,
+provider and cost; (4) a standing replay-plus-screens rule versus per-version
+sign-off. **Not authorized:** source activation, a DAPA policy entry, publisher
+contact, model spend, merge or deployment. #975 and #976 are superseded as one
+change and are not closed.
 
 ## 2026-11-04 — Founder: research-first source-use reform (review implementation)
 
