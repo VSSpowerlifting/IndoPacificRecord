@@ -35,7 +35,7 @@ is prepared separately; ChatGPT Project Sources are not installed by Git changes
 | Korea | `core/korea_corpus_bridge.py`, `processing/korea_shared_queue.py`, original-text and reviewed-English registries; [bounded timestamp-admission repair candidate](../engineering/KOREA_DESK_OPERATION.md#current-repair-phase--2-november-2026) | Common checkpoints/admission and a record assembled from permitted components; this repair does not migrate the dispatcher | HWPX fidelity, verified licence scope, source/version exclusions and reviewed English; DAPA metadata permission is separate |
 | Philippines | `processing/daily_intake.py`, `processing/daily_runner.py`, AFP/NSC validators, `daily_machine_records`; source-definition pilot merged in PR #928; manual production manifest `desks/philippines/manifest.json` and governed dispatch (runtime migration 3, review candidate) | AFP and NSC registry, lifecycle dispatch, screening and machine-record projection share `core/daily_sources.py` following merged PR #928; admission runs through `pipeline.run_governed_manual_sources` with every other manual source; broader cross-desk convergence remains | English originals remain private; AFP and NSC identities, attribution, policies and exceptional holds remain distinct |
 | Indonesia | Same private intake/runner as Philippines, Kemhan validator and Indonesian quality checks; source-definition pilot merged in PR #928; manual production manifest `desks/indonesia/manifest.json` (runtime migration 3, review candidate) | Kemhan uses the same shared registry, caller paths and governed dispatch as AFP/NSC; source-specific evidence/policy stays authoritative | Preserve accepted output, version bindings, Yonif TP 880 hold, source-use decisions and bounded spend; no new paid attempts are authorized |
-| Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
+| Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA; run-result reporting through the governed dispatcher in review candidate #953 | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
 | Japan | Isolated shadow RSS/PDF collection under `shadow/jp_mod/`, `core/japan_mod_official_links.py` and public link admission; manual production manifest `desks/japan/manifest.json` registering only `jp_mod_news_ja` (runtime migration 3, review candidate) | Same metadata/component projection and delivery contracts; link admission runs through the governed dispatcher rather than a separate Daily step; no separate Japan publisher | Retrieved/verified news-PDF metadata only under current grant; challenged HTML and all excluded original/model/media uses remain excluded; JCG is separate (shadow only; its index cross-section rows are disclosed exclusions, not identities, per `shadow/jp_jcg/README.md`) |
 | US reference | Existing `core/us_*` metadata adapters and source-specific release paths | Common source-link identity, projection, admission and delivery | Keep publisher access restrictions and narrow source scopes; this does not authorize a broad US collection program |
 
@@ -272,13 +272,19 @@ republishes.
 **Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
 manifest/registry entry; folding it in needs a dispatcher-side run attestation
 or an owner decision to drop that binding. The first scheduled Daily run on the
-merged branch must show one `source_run_results` row per manual source — nine
-in the registry: the seven governed slugs (Korea, AFP, NSC, Kemhan, Japan MOD,
-USCC, Treasury) plus both Vietnam slugs as `SKIPPED_DISABLED` "manual source
-with no governed admission" — and, for the two US families, either `OK`/`OK_ALL_DUPLICATES` receipts or
-a `LISTING_FAILURE` row if the clone step failed; until then the migration is a
-review candidate, not an operationally verified release. Vietnam governed
-admission (PR #933 bridge) is not routed through the dispatcher.
+merged branch must show one `source_run_results` row for each of the nine
+registered manual source slugs (Korea, AFP, NSC, Kemhan, Japan MOD, USCC,
+Treasury, Vietnam MPS and VPCP). The two U.S. families require an
+`OK`/`OK_ALL_DUPLICATES` receipt or truthful `LISTING_FAILURE` after a failed
+clone. Under runtime migration 5 (#953), the Vietnam families must report
+their actual signed-handoff and bibliographic-collector outcomes rather
+than the previous artificial `SKIPPED_DISABLED` "no governed admission"
+disposition. The Vietnam admission steps still run separately, because the
+signed handoff replaces the DB atomically: the governed dispatcher records
+their outcomes, rather than repeating admission. The first real scheduled
+Daily cycle after integration must verify each family and the failure/quiet
+distinction; code integration alone does not certify live recurrence.
+MOIT stays unregistered.
 `scripts/check_source_liveness.py` is keyed on `articles`, so manual
 link/metadata/machine-record sources stay `INERT` even when their
 `source_run_results` rows are `OK`; the W1 stop condition needs a liveness
@@ -295,6 +301,15 @@ migrations 3 and 4 are review candidates, not merged or operationally verified
 releases. The #928 merge did not authorize deployment or prove a live HTTPS
 publication. Verify final-head checks and any operational readback from actual
 CI and release evidence; do not mark the remaining work done.
+
+**Runtime migration 5 — Vietnam source-run reporting (PR #953; 5 November
+2026 review candidate):** Reconciled the draft Vietnam-only reporting phase
+against merged #950 and current main. MPS reports the signed handoff's
+versioned per-family disposition; VPCP combines its own bibliographic
+collector's run record with its handoff outcome, with failures never hidden
+by successful or quiet peers. No ingestion step, issuer, policy, schedule,
+activation or publisher source changed. Required final-head CI and genuine
+post-integration scheduled outcomes remain separate evidence.
 
 **Shared private-output fetch recovery ([PR #954](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/954), review candidate):**
 *Status 3 November 2026:* merged at `dc7beaa76c` (16:54 UTC); post-merge CI
