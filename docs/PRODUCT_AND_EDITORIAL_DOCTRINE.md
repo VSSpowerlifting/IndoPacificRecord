@@ -483,6 +483,24 @@ Dossier and Timeline contracts remain effective until deliberately amended.
 | **Evidence Timeline** | What happened, when, and according to which source? | Reconstruct a sourced chronology, including contested dates and documentary gaps | Chronological, event/claim/report entries; amended only with evidence and review |
 | **Regional Assessment** | What does a longer pattern or question mean, and what can we reasonably conclude? | Advance an original, qualified analytical argument | Dated, bylined, self-contained long-form essay; not a living reference file |
 
+**Reader-facing format descriptions (approved editorial copy, 2026-11-05).**
+Use these short definitions in local research navigation and collection
+introductions where the format is actually available; adapt line breaks for
+small screens, but preserve the underlying distinctions. They are reader copy,
+not new publishing entitlements or a promise to publish on a fixed schedule:
+
+- **Briefs:** “Our weekly analysis of key developments in Indo-Pacific defense and security—what happened and why it matters.”
+- **Dossiers:** “Our living research references on the region’s security issues, institutions, and partnerships, updated as new evidence emerges.”
+- **Evidence Timelines:** “Our sourced chronologies of consequential events, showing what happened, when, and how different institutions reported it.”
+- **Assessments:** “Our longer-form analytical essays exploring the questions and strategic implications shaping the Indo-Pacific.”
+
+Keep the global masthead unified, retain the Briefs collection/numbering,
+and show Dossier/Timeline/Assessment destinations only when approved
+publications actually exist. Briefs' weekly positioning describes the
+normal editorial rhythm; it is not an automated quota or a requirement
+to publish unsupported material. Do not advertise an unbuilt Assessment
+collection or show a draft to public readers.
+
 **Dossiers — reference, not an author's thesis.** A Dossier organizes reliable
 source material about a defined issue, relationship, institution or capability.
 Its source-grounded findings, comparisons and uncertainties are legitimate,
