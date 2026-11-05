@@ -1,9 +1,10 @@
 # ChatGPT Project Sources — research-first amendment package
 
 **Prepared 4 November 2026. NOT INSTALLED.** The named Project Source originals
-were not available in the assigned public/private repositories. Connected Drive
-search failed because the tool requires a connection identifier unavailable in
-this session; no Project Source content was read. No open Page was supplied.
+were not available in the assigned public/private repositories. Searches of both
+connected Drive accounts by the named documents and broader IPR keywords found
+no matching Project Sources; no Project Source content was read. No open Page
+was supplied.
 These are exact replacement/addition sections, not claimed reconstructions of
 unavailable documents. Preserve unrelated founder preferences verbatim.
 
