@@ -6,6 +6,24 @@ and the relevant row of [`docs/desks/MIGRATION.md`](docs/desks/MIGRATION.md).
 These tracked files are durable Codex/Claude project memory. Do not substitute
 old chat history, local auto-memory or a dated rollout plan for current rules.
 
+## Research-first source use — owner decision, 4 November 2026
+
+Read [`CONTENT_AND_DATA_RIGHTS.md` §7](CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+for the canonical source-use rule in both repositories. Establish a defensible
+basis for each intended activity; written publisher permission is one alternative,
+not a universal prerequisite. Public domain, applicable licences, statutory
+exceptions and other demonstrated legal authority must be evaluated in their
+actual scope, jurisdiction and binding terms. Public access, private custody,
+research purpose and an owner signature do not establish a basis by themselves.
+
+This general reform does not clear unresolved uses or change runtime authority.
+Keep source-specific grants, exclusions, holds, allowed public components,
+MINDEF's specific written-grant requirement, budgets and activation intact.
+Routine eligible records under established standing authority need no new
+publisher request or per-record owner approval. Substantive governance/source-
+rights amendments stop at founder PR review; collection/model activation,
+deployment, historical-content treatment and outside contact remain separate.
+
 ## Standing owner decision — 30 October 2026
 
 Applies to China, Singapore, Korea, Philippines, Indonesia, Vietnam, Japan, the
@@ -71,7 +89,7 @@ the owner, not a gate, and exempt work does not need it.
 |---|---|
 | Mission, audience, editorial/evidence trust, growth decisions | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md`, explicit current owner decisions |
 | Source-owned all-desk architecture | `docs/desks/README.md`; verified next code phase in `docs/desks/MIGRATION.md` |
-| Source-specific rights, custody, holds, spending, approval | Actual applicable policies and grants; `DECISION_LOG.md` |
+| General source-use evaluation; source-specific rights, custody, holds, spending, approval | `CONTENT_AND_DATA_RIGHTS.md` §7; actual applicable law, terms, grants and source decisions; `DECISION_LOG.md` |
 | Production and build verification | `docs/ARCHITECTURE_AND_PUBLISHING.md`, actual CI/workflows and code |
 | Current strategic priorities | `docs/ROADMAP.md`, checked against real repo/source/site status |
 | Agent instructions | This file; `CLAUDE.md` supplies only Claude-specific operating notes; shared skills live in `.agents/skills/` |
@@ -79,7 +97,10 @@ the owner, not a gate, and exempt work does not need it.
 
 If references appear to conflict, preserve the stricter real evidence,
 source-rights and activation control pending an explicit owner decision.
-A general architecture or roadmap instruction never creates a source grant.
+A general architecture, roadmap or research-first instruction never establishes
+a source-specific legal basis or operational authority. Superseded blanket
+publisher-letter rules are not real source restrictions; actual restrictions
+and unresolved material questions remain protected under §7.
 
 ### Different definitions of done
 

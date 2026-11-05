@@ -6,6 +6,26 @@ Baseline inspected: public `e0c0920cc4628a594df3954556739b6f73915691`,
 30 October 2026; runtime migrations 1–4 are recorded in the phase receipts below. Recheck
 current main, PRs and actual source decisions before implementation.
 
+## Research-first governance reconciliation — 4 November 2026
+
+The [canonical source-use standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+replaces blanket publisher-letter prerequisites with documented use-specific
+legal bases. The [eight-desk account](EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md#61-source-use-reconciliation--4-november-2026)
+indexes actual policies, supported uses, restrictions and owner decisions.
+This candidate reconciles agent/shared-desk/editorial instructions and the
+offline typed private-synopsis decision vocabulary; it does not change runtime
+source eligibility, manifests, sealed policies, allowed fields, holds or switches.
+The synopsis validator retains its owner/source-version checks and all false
+dispatch/publication outputs. Its expanded `SYNOPSIS_RIGHTS_BASES` is separate
+from the legacy `RIGHTS` imported by Vietnam, so MOIT and existing MPS/VPCP
+source-specific limits do not broaden. No shared-engine migration is claimed.
+
+The private governance companion is based on `a3f6299`; founder-approved public
+policy merges first, private references second. Final PR/head/check evidence
+belongs in the paired PR bodies. Neither merge activates a source or deploys
+behavior. The [project-source replacement package](../engineering/PROJECT_SOURCE_UPDATE_PACKAGE_2026-11-04.md)
+is prepared separately; ChatGPT Project Sources are not installed by Git changes.
+
 ## Current boundaries and required convergence
 
 | Desk | Existing integration to preserve | Required convergence | Source-specific boundary |
@@ -329,7 +349,7 @@ preservation and DB-to-public delivery. Guard-skipped runs do not qualify.
 Do not force an additional paid Daily cycle to replace that evidence. #953
 remains outside this phase; its integration requires a new bounded session.
 
-**China Desk interim source-use hold (draft PR, review candidate; disabled by default):**
+**China Desk interim source-use hold (PR #980 merged at `7cc77270`; separately inactive unless configured):**
 `core/china_source_use_hold.py` is one exact-`"true"`, call-time switch,
 `IPR_CHINA_SOURCE_USE_HOLD`, inert when unset. Enabled, it holds the host
 sources `global_times_mil`, `mod_china` and `pla_daily` (never by byline) at

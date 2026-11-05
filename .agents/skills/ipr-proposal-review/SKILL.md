@@ -87,8 +87,12 @@ For each safeguard the proposal touches, say preserved, at risk or unknown:
   current CI gates and the validator warning baseline hold).
 - Accepted records and outputs (no hand-edited `output/` or canonical sidecars).
 
-For a source-permission or AI-model change, require the primary evidence (the
-grant or policy text, evaluation results) rather than the proposal's summary.
+For a source-use or AI-model change, require primary evidence (applicable law,
+licence/grant or binding terms, source-specific assessment and evaluation
+results as relevant) rather than the proposal's summary. Follow
+`CONTENT_AND_DATA_RIGHTS.md` §7; written publisher permission is not universal.
+Alternative bases must cover the particular use; owner approval, private custody
+and research purpose alone do not establish rights or activate a source.
 
 ## 6. Verdict
 

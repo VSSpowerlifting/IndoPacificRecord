@@ -19,6 +19,14 @@ SCHEMA = "ipr-typed-private-synopsis-human-decision/1"
 DOMAIN = b"IPR-TYPED-PRIVATE-SYNOPSIS-HUMAN-DECISION-v1\n"
 PURPOSE = "future_regional_theme_private_analyst_synopsis_only"
 RIGHTS = frozenset(("explicit_official_reuse_terms", "written_rights_owner_permission"))
+# RIGHTS is also consumed by the Vietnam runtime policy. Keep its existing
+# source-specific scope unchanged; these alternatives apply ONLY to this
+# offline human private-synopsis decision, never model/public authority.
+SYNOPSIS_RIGHTS_BASES = RIGHTS | frozenset((
+    "documented_public_domain_status",
+    "documented_statutory_exception",
+    "documented_other_legal_authorization",
+))
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 
 
@@ -193,10 +201,10 @@ def _check_decisions(document, inventory, research_rows):
         need(line(chosen["translation_and_attribution_cautions"], 30, 400),
              "source interpretation and limitations must be explicit")
         need(isinstance(chosen["rights_basis_type"], str)
-             and chosen["rights_basis_type"] in RIGHTS,
+             and chosen["rights_basis_type"] in SYNOPSIS_RIGHTS_BASES,
              "mere attribution/footer or unreviewed rights cannot authorize synopsis")
         need(line(chosen["rights_basis_reference"], 12, 500),
-             "official license/rights-owner permission reference needed")
+             "use-specific legal basis evidence/assessment reference needed")
         need(line(chosen["independent_analyst_synopsis"], 65, 650)
              and line(chosen["evidence_limitations"], 30, 350),
              "bounded original analyst synopsis and accuracy caveats required")
