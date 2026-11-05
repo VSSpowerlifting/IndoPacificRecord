@@ -197,11 +197,12 @@ class VietnamDispatch(unittest.TestCase):
         self.assertRow(r, st.FETCH_FAILURE, detail="no bibliographic collection recorded this run")
         self.assertEqual(len(errors), 1)
 
-    def test_no_workflow_run_cannot_match_a_record(self):
+    def test_enabled_collector_without_run_id_is_failed_not_disabled(self):
         env = {k: v for k, v in self.metadata_only().items() if not k.startswith("GITHUB_")}
-        r, _ = self.dispatch(VPCP, report={"status": "ok"}, env=env)
-        self.assertRow(r, st.SKIPPED_DISABLED,
+        r, errors = self.dispatch(VPCP, report={"status": "ok"}, env=env)
+        self.assertRow(r, st.FETCH_FAILURE,
                        detail="no workflow run to match a collection record")
+        self.assertEqual(len(errors), 1)
 
     def test_a_failed_lane_is_never_hidden_by_the_other(self):
         stale = (NOW - timedelta(days=3)).strftime("%Y-%m-%dT%H:%M:%SZ")

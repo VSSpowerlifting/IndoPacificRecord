@@ -518,7 +518,9 @@ def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
     from core.vietnam_daily_qa import PUBLISHED
     path = os.environ.get(_VN_HANDOFF_RECEIPT_ENV)
     if not path:
-        return GovernedOutcome(collection_status.SKIPPED_DISABLED,
+        # Activation was on: a missing required receipt path is a reporting
+        # failure, not evidence that this source was intentionally disabled.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
                                error_detail="no Vietnam handoff receipt path configured")
     try:
         receipt = json.loads(_Path(path).read_text(encoding="utf-8"))
@@ -570,7 +572,9 @@ def _vpcp_metadata_outcome(read_report=None) -> GovernedOutcome:
     """The collector's own run record for this workflow run and attempt."""
     run = os.environ.get("GITHUB_RUN_ID")
     if not run:
-        return GovernedOutcome(collection_status.SKIPPED_DISABLED,
+        # This collector is enabled but its run cannot be authenticated to
+        # a run/attempt: do not misreport missing evidence as an inactive lane.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
                                error_detail="no workflow run to match a collection record")
     source_run = "%s-%s" % (run, os.environ.get("GITHUB_RUN_ATTEMPT", "1"))
     report = (read_report or _read_vpcp_collection_report)(source_run)
