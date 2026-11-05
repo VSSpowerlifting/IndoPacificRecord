@@ -27,7 +27,13 @@ class OfflineInputTests(unittest.TestCase):
         self.assertEqual(a, _derive(RAW, ID, URL, '2026-07-18', spec()))
         self.assertEqual(a['potential_input']['narrative'], 'Invented visit facts.')
         self.assertEqual(len(a['manifest']['excluded_paragraphs']), 2)
-        self.assertFalse(a['manifest']['model_transmission_authorized'])
+        m = a['manifest']
+        # Output never authorizes transmission, publication or a complete original input;
+        # the 90-word figure is a size cap on a note, not an authorization.
+        self.assertFalse(m['model_transmission_authorized'])
+        self.assertFalse(m['publication_authorized'])
+        self.assertFalse(m['complete_original_input'])
+        self.assertEqual(m['potential_note_max_words'], 90)
 
     def test_public_api_does_not_accept_synthetic_or_unknown_release(self):
         with self.assertRaisesRegex(USCCInputHold, '^unsupported_publication$'):
@@ -79,6 +85,26 @@ class AcceptedScopeTests(unittest.TestCase):
                 self.assertEqual(set(inc) | set(exc), set(range(len(s['paragraph_text_sha256']))))
                 self.assertLessEqual(set(exc.values()), self.REASONS)
                 self.assertEqual(s['canonical_url'], 'https://www.uscc.gov/press-releases/' + key.split(':', 1)[1])
+
+    def test_policy_keys_are_exact_versions_not_a_family_pattern(self):
+        # A standing family would need a reviewed qualifier; the file must not smuggle one in.
+        for key, s in self.POLICY.items():
+            with self.subTest(key=key):
+                self.assertRegex(key, r'^uscc-press:[a-z0-9-]+$')
+                self.assertEqual(set(s), {'canonical_url', 'date', 'payload_bytes', 'capture_sha256',
+                                          'content_sha256', 'paragraph_text_sha256',
+                                          'included', 'excluded'})
+                self.assertRegex(s['capture_sha256'], r'^[0-9a-f]{64}$')
+
+    def test_changed_capture_of_each_accepted_release_holds_via_public_api(self):
+        # Strict version integrity: any bytes other than the exact accepted capture hold,
+        # even with the accepted identity, URL and date.
+        for key, s in self.POLICY.items():
+            for raw in (b'', b'x' * s['payload_bytes'], b'x' * (s['payload_bytes'] + 1)):
+                with self.subTest(key=key, size=len(raw)), \
+                        self.assertRaisesRegex(USCCInputHold, '^capture_version_mismatch$'):
+                    derive_input(raw, source_identity=key, canonical_url=s['canonical_url'],
+                                 publication_date=s['date'])
 
     def test_other_releases_hold_through_public_api(self):
         # June 25 (linked-work pattern) and an invented release are outside the decision.

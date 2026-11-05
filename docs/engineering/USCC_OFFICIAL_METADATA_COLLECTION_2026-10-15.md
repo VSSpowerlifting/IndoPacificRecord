@@ -396,106 +396,174 @@ no runtime caller exists until separately authorized integration. Remaining
 holds on transmission, spending, recurring acquisition, activation, publication,
 contact, merge and deployment remain. Future versions and June 25 are rejected.
 
-## Standing-family assessment — proposed for founder review (4 November 2026)
+## Standing-family assessment — founder-endorsed in chat, pending PR adoption (4 November 2026)
 
-**Status: a proposal, not a source-use decision.** The 11-03 acceptance covers
-only the unquoted narrative of the exact July 18 and July 25 captures and
-expressly leaves June 25, future versions and any wider source family outside
-it. `CONTENT_AND_DATA_RIGHTS.md` §7.4 requires a new basis to be reconciled with
-the existing source-specific decision first, and source-rights amendments stop at
-founder PR review. Nothing here adds a `DECISION_LOG.md` acceptance, widens the
-adapter, calls a model, collects, activates, publishes or deploys. No release
-body was fetched for this section.
+**Status: proposed standing assessment, not yet adopted.** On 4 November 2026 the
+founder supported, in chat, extending the 11-03 assessment to a narrowly defined
+standing family of unsigned, Commission-issued institutional press releases,
+subject to the corrections incorporated below. That chat direction is not a
+`DECISION_LOG.md` acceptance: `CONTENT_AND_DATA_RIGHTS.md` §7.4 requires a new
+basis to be reconciled with the existing source-specific decision, and
+source-rights amendments stop at founder PR review. Adoption occurs, if at all,
+when the founder approves this PR's text. Until then the 11-03 decision still
+covers only the two exact captures. Nothing here widens the adapter, calls a
+model, collects, activates, publishes or deploys. No release body was fetched.
 
-### Evidence added (retrieved 4 November 2026)
+### What is established, and what is not
 
-- **22 U.S.C. § 7002** (Legal Information Institute text). The Commission is
-  statutory. Subsection (e)(3) has its executive director and other personnel
-  appointed, compensated and terminated as under the Trade Deficit Review
-  Commission Act and deems Commission employees to be § 2105 employees "for
-  purposes of chapters 63, 81, 83, 84, 85, 87, 89, and 90" of title 5 only. That
-  is a limited-purpose personnel provision; it is not a finding about who is an
-  "officer or employee" under 17 U.S.C. § 101 or § 105. Subsection (e)(4) permits
-  details of federal employees and (e)(6) lets the Chairman procure temporary and
-  intermittent services. So the statute confirms that Commission employees exist
-  and also that non-employee contributors are lawful, but it does not say who
-  drafts a press release.
-- **Site-wide notice.** A search limited to `uscc.gov` for a copyright, reuse or
-  terms notice returned only the home, research, about, press-release and
-  annual-report pages (excerpts only). No notice surfaced. That is not proof of
-  absence and is not permission; it only fails to add a restriction or a grant.
-- Everything else (privacy-page staffing statement, robots permission, identity
-  table, Commission-only identification of the July releases, contractor-credited
-  2026-08-26 and 2026-09-22 announcements, the June 25 research-linked glossary
-  announcement) is the evidence already recorded above and is not restated.
+**Established legal principle.** 17 U.S.C. § 105 denies copyright protection to a
+"work of the United States Government", which § 101 defines as a work prepared by
+an officer or employee of the U.S. Government as part of that person's official
+duties. The U.S. Copyright Office, *Compendium of U.S. Copyright Office Practices*
+(Third) § 313.6(C)(1), "U.S. Government Works" (official edition at
+`copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf`, retrieved
+4 November 2026), states that this principle expressly extends to Congress and to
+federal "departments, agencies, boards, bureaus, or commissions", for works of an
+officer or employee within the course of official duties. The Compendium quotes
+*Georgia v. Public.Resource.Org, Inc.*, 140 S. Ct. 1498, 1509–10 (2020), for the
+point that the bar covers works of all federal officers or employees without
+regard to the nature of their position or the scope of their authority. (The
+*Georgia* holding is cited here as the Compendium reports it; the opinion was not
+separately read for this section. Another, older Compendium copy on a third-party
+site omits the word "commissions"; the Copyright Office's own current text is the
+authority used.) The Compendium is the Office's registration guidance rather than
+binding law, so the statute and the case remain the underlying authority.
 
-### Separating the activities
+The same Compendium section also records the limits that matter here: the
+government can hold a copyright acquired by assignment, so a contractor's work
+that was assigned to an agency can be copyrighted; a work prepared outside a
+person's official duties is outside the bar; and a few statute-specific
+carve-outs exist (Smithsonian trust-fund staff, certain National Defense
+University faculty works, NTIS standard reference data). None of those is shown
+for USCC; the first two are the live ones.
 
-The family question matters differently for each use. A standing basis need not
-be all-or-nothing.
+**What the principle does not settle.** Category coverage is not authorship.
+Whether a given unsigned release was in fact prepared by a Commission officer or
+employee in the course of official duties, rather than by a contractor, a
+commissioned author or another non-employee, is a question of fact about that
+release. 22 U.S.C. § 7002 (retrieved 4 November 2026) does not say who drafts
+press releases. Its subsection (e)(3) deems Commission employees to be § 2105
+employees "for purposes of chapters 63, 81, 83, 84, 85, 87, 89, and 90" of
+title 5 only, which is a limited-purpose personnel provision and not a finding
+under §§ 101 and 105; subsection (e)(4) permits details of federal employees and
+(e)(6) lets the Chairman procure temporary and intermittent services, so
+non-employee contributors are lawful. The 11-03 residual drafting-arrangement
+uncertainty is the only treatment of that question, and only for two captures.
+A search limited to `uscc.gov` for a copyright, reuse or terms notice surfaced
+none (excerpts only). That neither adds a restriction nor grants permission.
 
-| Activity | Exact July 18/25 narratives | Routine Commission-authored releases as a class |
-|---|---|---|
-| Discover and link metadata | Supported (existing metadata path) | Supported (existing metadata path) |
-| Retrieve and retain in private custody | Supported within 11-03 | Plausible § 105 basis only if the work is by a Commission employee in official duties; per-release exceptions must hold; **unresolved** |
-| Extract facts; write an independent attributed note of at most 90 words | Strongest basis: facts are not protected (§ 102(b)) and the note is IPR's own wording; the input stays the accepted narrative | Same reasoning for the output, but each release still needs a legitimate, correctly delimited input; **depends on the first row** |
-| Send input to an external model | 11-03 accepts the input scope but authorizes no transmission; provider terms, data handling and spend are separate and open | **Unresolved** and additionally depends on provider and spend decisions that no source assessment can supply |
-| Quote, translate or reproduce | Not supported; quotation paragraphs are excluded and verbatim text is barred | Not supported |
-| Public components | Metadata and link only; no media or release text | Metadata and link only |
-| Future versions | Held: the adapter rejects any capture whose hashes differ (`capture_version_mismatch`) | Held per version; a changed release needs fresh review |
+### The standing assessment is rebuttable and evidence-based
 
-Section 107 is not relied on: the purpose is analytic, but the factor analysis
-for full-text model input and retention of whole releases is not made out here,
-and a route that depends on a four-factor judgement per release is not a
-standing basis.
+This is not blanket public-domain clearance of USCC material. The proposal is that
+a release inside the family is treated as a § 105 work **unless the evidence
+rebuts it**, release by release. A single affirmative sign of non-employee
+authorship, assignment or licence, or a source notice, withdraws the presumption
+for that release, and a pattern of them withdraws it for the class.
 
-### Proposed exception classes (to be held individually)
+**Routine new releases qualify without per-record founder approval** when every
+one of these holds, checked from the capture rather than assumed:
 
-1. **Contractor or commissioned-study announcements**, identified by a named
-   external author or organization (the 2026-08-26 and 2026-09-22 identities).
-2. **Quotation paragraphs** of any kind; attribution to a speaker does not
-   establish who wrote the words (provenance unproven).
-3. **Linked works**, including research products and glossaries a release points
-   to (the June 25 pattern); the announcement can be metadata only.
+1. **First-party identity.** The release is on the Commission's own domain under
+   its canonical press-release URL, with a single consistent publication identity.
+2. **Official narrative.** The text in scope is the unquoted institutional
+   narrative, not a speech, testimony, quotation or linked work.
+3. **Structure.** The page matches a structure that can be mechanically verified
+   (one body, one date, one title, no scripts, media or embeds in the body).
+4. **Authorship indicators.** The release is unsigned and carries
+   Commission-only identification: no named external author or organization,
+   contractor or commissioned-study credit, "prepared by" line or third-party
+   attribution.
+5. **Access conditions.** The page is lawfully and publicly retrievable with no
+   login, paywall, access control or robots restriction in the way, and no
+   copyright, reuse or terms notice that contradicts the assessment.
+6. **Source-specific exclusions.** None of the exception classes below applies to
+   the portion in scope, and no existing source-specific hold (for example the
+   June 25 research-linked glossary announcement) covers that release.
+
+A release that passes is not individually presented to the founder. A release
+that fails any item is held individually, as are those whose pattern the checks
+cannot recognise.
+
+**A changed version of an existing release keeps strict version-integrity
+review.** A prior qualification attaches to the exact captured version (capture,
+content and paragraph hashes), never to the release's URL or to the family. A
+changed version is a new version: it is compared against the version assessed,
+the change is explained (correction, addition, removal), and it re-qualifies
+under all six checks before use. A mismatch is held; it is never carried forward
+automatically.
+
+### Components that stay held individually
+
+1. **Contractor, commissioned-study or other third-party expression**, including
+   releases that credit an external author or organization (the 2026-08-26 and
+   2026-09-22 announcements).
+2. **Quotations** of any kind. Attribution to a speaker does not establish who
+   wrote the words.
+3. **Attachments and linked works**, including research products and glossaries
+   a release points to (the June 25 pattern). The announcement alone can be
+   metadata and a link.
 4. **Media**: photographs, graphics, video and embeds.
 5. **Boilerplate and social labels.**
-6. **Third-party material** and testimony excerpts.
-7. **Any release without Commission-only identification** or whose structure
-   falls outside what an adapter can verify.
+6. **Testimony excerpts and other third-party material.**
+7. **Any release or component without Commission-only identification** or whose
+   structure falls outside what can be verified, and anything else unsupported.
+
+### The 90-word limit is not a legal authorization
+
+An independent, attributed factual note of at most 90 words may be eligible as an
+output. The limit is a size control on IPR's own wording. It does not authorize
+anything: whether the input may be retained and used rests on the § 105 analysis
+above (and facts are not protected, § 102(b)), and the note must contain no
+verbatim source text. A note within 90 words drawn from an input that fails the
+checks is still held.
+
+### Activities, separately
+
+| Activity | Exact July 18/25 narratives (11-03) | Routine releases in the proposed family |
+|---|---|---|
+| Discover and link metadata | Supported (existing metadata path) | Supported (existing metadata path) |
+| Retrieve and retain in private custody | Supported within 11-03 | Proposed: rebuttable § 105 presumption when the six checks pass; residual authorship uncertainty remains and is the point of founder review |
+| Extract facts; write an independent attributed note of at most 90 words | Accepted scope (no verbatim text) | Proposed on the same basis; output only, never reproduction |
+| Send input to an external model | Not authorized by 11-03 | **Separately governed**: provider terms, data handling and spend |
+| Quote, translate or reproduce | Not supported | Not supported |
+| Public components | Metadata and link only | Metadata and link only |
+| Changed versions | Held (`capture_version_mismatch`) | Strict version-integrity review; held until re-qualified |
+
+Section 107 is not relied on: the factor analysis for full-text model input and
+whole-release retention is not made out here, and a per-release four-factor
+judgement is not a standing basis.
+
+### Separately governed, not decided here
+
+External-model transmission, provider handling and data terms, spending,
+recurring collection, activation, publication, deployment and outside contact
+each need their own decision. Neither the family assessment nor the chat
+endorsement authorizes them.
 
 ### Gaps that remain
 
-- No Commission-specific authority located on how § 101/§ 105 applies to
-  legislative-branch staff work; not separately researched here.
-- No evidence of who drafts routine releases: staff, detailees, or contractors
-  engaged under § 7002(e)(6). The accepted 11-03 residual uncertainty is the
-  only treatment of that point, and only for two exact captures.
+- No Commission-specific authority located on how §§ 101 and 105 apply to
+  Commission staff drafting (employee status beyond the limited § 7002(e)(3)
+  deeming is not separately researched here).
+- No affirmative evidence of who drafts routine releases: staff, detailees or
+  contractors engaged under § 7002(e)(6). The rebuttable presumption and the
+  Commission-only identification check are the response to that gap, not a
+  closure of it.
 - No site-wide legal or copyright notice located.
-- Quotation provenance and the full set of future release templates are unknown.
+- Quotation provenance and future release templates are unknown; a new template
+  fails the structure check and is held.
 
-### The precise unresolved decision
+### Implementation state
 
-**Does the owner extend the 11-03 accepted residual drafting-arrangement
-uncertainty from the two exact captures to unsigned Commission press releases as
-a class,** limited to (a) Commission-only identification with no contractor or
-author credit, (b) unquoted institutional narrative, (c) attributed factual
-notes of at most 90 words, (d) per-version hash holds, and (e) the exception
-classes above held individually, with model transmission, provider terms and
-spend remaining separate decisions?
-
-My assessment, for the owner to accept or reject: the residual risk differs from
-the accepted case in scale and in unseen releases, not in kind, so the extension
-is defensible for private retention and the independent note, and is the least
-defensible for external-model transmission, which should wait for a separate
-provider and data-handling decision. A "no" leaves exact-version admission as the
-only supported path and USCC cannot become a recurring family without a new
-publisher or counsel-backed basis; the one-family standard then points to a
-specific alternative, not a random substitute.
-
-### What was deliberately not built
-
-No family admission gate or identity-pattern detector: it would implement a
-policy that is not accepted and has no caller. The adapter already holds every
-unsupported identity and every changed version. Added instead are tests that pin
-the existing configuration's shape and show the June 25 identity is refused
-through the public API.
+Policy proposed (pending PR adoption); code unchanged in behavior. The offline
+adapter still admits only the two exact accepted versions and holds everything
+else, including routine new releases the proposed policy would qualify. No
+family qualifier is built: it would implement a policy that is not adopted and
+has no authorized caller, and the six checks above are a policy statement, not
+code. If the founder adopts this text, the next bounded step is one reviewed
+change that implements the checks against a real caller. Tests added here pin
+that the shipped policy is still exactly the two accepted versions, that the
+June 25 and invented identities are refused through the public API, that a
+changed capture of each accepted release is held with `capture_version_mismatch`,
+and that no output manifest authorizes transmission, publication or a complete
+original input.
