@@ -1,0 +1,56 @@
+{
+  "uscc-press:press-release-us-china-commission-departs-fact-finding-trip-china": {
+    "canonical_url": "https://www.uscc.gov/press-releases/press-release-us-china-commission-departs-fact-finding-trip-china",
+    "capture_sha256": "0336e745d8a0866484d63f0c2f702eac03de9a1de239db3abffd33843594d71e",
+    "content_sha256": "494261ada2847eeaabf4e44fa2c09dd9af7f6792ff1dbca8bde556ffd57ec549",
+    "date": "2026-07-18",
+    "excluded": {
+      "4": "quotation",
+      "5": "quotation",
+      "6": "institutional_boilerplate_and_social_labels",
+      "7": "institutional_boilerplate_and_social_labels"
+    },
+    "included": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "paragraph_text_sha256": [
+      "7ee756eccc9ed7b93a898500cb5a393f44926df305daecc421d2dc9cc0288ff2",
+      "828f16012e911a3a630710dbad34b3cb561e8f2328fac27abeb74785314177a5",
+      "aaeb9fde8ceb043ddcb258e530683670e09502359861aa3981a0e9e05930388f",
+      "d0831ca562a71c988cdbbbfa8cd08146b853c968dede1a4c00c1406a5b6eb7d4",
+      "4ffea50c1905132fa08b66859edde7429f3713e46bdd8aba48b47d5239e036f8",
+      "7dbd14642e57db140c469106f8c81c27744e1b8bfc5d75a4366eb8c646b3b786",
+      "ffdb24a69dbfd986ddb94bdb53594c88a161f1f940b796b252f9f6d598e687a9",
+      "6793445a36153c0db19e3d03e7c7e6e52849fdede73c94457c50fc8580824ca2"
+    ],
+    "payload_bytes": 52063
+  },
+  "uscc-press:press-release-us-china-commission-returns-fact-finding-trip-china": {
+    "canonical_url": "https://www.uscc.gov/press-releases/press-release-us-china-commission-returns-fact-finding-trip-china",
+    "capture_sha256": "cd3111f115ea501ddf544655a37ca46827715f6bfd2193dacdb5a1991b9cb648",
+    "content_sha256": "0f468f672df1c13d2becbd614957f345cc80194e037eeac75b3a94fc8d856a87",
+    "date": "2026-07-25",
+    "excluded": {
+      "2": "quotation",
+      "3": "quotation",
+      "4": "institutional_boilerplate_and_social_labels",
+      "5": "institutional_boilerplate_and_social_labels"
+    },
+    "included": [
+      0,
+      1
+    ],
+    "paragraph_text_sha256": [
+      "cfc39dc61e2d33179de98ef6e081cf222c9a2e2e28c45092531cfc8a965ac8d3",
+      "5effe8252f0d3ea1695a466eb255adc37eec1aa8ecd88fac5712fdbb0c542d80",
+      "d57cc7752c70f091e06768e36f34c82cdf75528ab606b9a94b99150d08302e52",
+      "e4fe651ffddbb3298c4d20f51b94d84b43f833a373ab7b52a9b0d3cd6b61381a",
+      "010453f29c92d280a411f45310d1aa95eaa1981a5881d59b98fe87c1a0f06f67",
+      "f6662895d4ba7feb6d57753807bbb91a3ddb9ba74e2c875a56260a6ba3ce58a6"
+    ],
+    "payload_bytes": 56636
+  }
+}
