@@ -1,5 +1,13 @@
 # Shared desk system — mandatory architecture
 
+**Founder-approved source-family scopes and full-operation acceptance (2 November 2026):**
+Read [`EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md`](EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
+for the eight fixed scope decisions and the original-to-reader certification
+standard before consequential desk planning or coding. The present file remains
+the binding *engineering architecture*; the scope plan does not grant source
+rights, activate lanes, merge code or prove live service. Current source/CI/
+release evidence remains in its existing authoritative locations.
+
 **Owner decision: 30 October 2026. Applies to every current and future desk:**
 China, Singapore, Korea, Philippines, Indonesia, Vietnam, Japan and the US
 reference desk. Applies in the public repository and the explicitly assigned
@@ -10,6 +18,11 @@ shared-Daily *aspiration* with a mandatory implementation contract. Older desk
 plans, examples and launch procedures cannot authorize a competing design.
 Specific source-use decisions, genuine evidence, spending limits, access
 restrictions and human editorial approvals remain authoritative in their scope.
+
+**Source-use evaluation:** [the canonical research-first standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+recognizes use-specific legal bases, including applicable exceptions, without
+a universal publisher-letter prerequisite. It does not change existing source
+holds, components, activation or MINDEF's specific written-grant decision.
 
 **Adoption is not migration.** This documentation change does not consolidate
 the running code, qualify a revision, grant source rights, activate a collector,
@@ -37,7 +50,8 @@ Each source has one validated definition referencing:
 | Activation | Collection, processing and publication switches; separate from permission |
 
 Use existing manifests, registries and decision files while implementing this
-interface. Reference an authoritative permission record; do not copy its grants
+interface. Reference the authoritative source-use decision and its evidenced
+legal basis, conditions and exclusions; do not copy its authorizations
 into several independently editable files. Register sources that currently lack
 a normal desk manifest through an explicit reviewed migration, never by silently
 making a shadow manifest discoverable. Do not create an unused parallel registry.
@@ -116,7 +130,8 @@ Common implementations must provide:
 Once standing source-use, quality, spending and activation decisions permit
 routine machine records, eligible records publish unattended. Do not invent
 per-record owner review, new ministry-correspondence prerequisites or seven-
-permission forms. Respect actual access/terms and unresolved source-use limits.
+permission forms. An established applicable legal basis need not be a publisher
+grant. Respect actual access/terms and unresolved source-use limits.
 Translate only when needed; English originals do not acquire a translation job.
 
 ## 4. Qualify code separately from delivering data

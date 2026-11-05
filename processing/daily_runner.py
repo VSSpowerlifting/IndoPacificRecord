@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from core.daily_sources import SOURCES, source_for
@@ -20,7 +21,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
                 source_identity=None, no_release=False):
     """spec is FAMILY,PRIVATE_GIT_CHECKOUT,IMMUTABLE_COMMIT."""
     from scripts.reconcile_db import read_only
-    from processing.daily_intake import ROOT
+    from processing.daily_intake import ROOT, digest, git
     family, repo, commit = spec.split(",", 2)
     need(source_for(family) is not None, "daily_source_family_invalid")
     policy = load_policy()
@@ -39,8 +40,46 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
          "private_daily_state_must_remain_outside_public_checkout")
     state = json.loads(path.read_text()) if path.exists() else {}
     readings = {}
-    observer = (lambda identity, reading: readings.update({identity: reading})) if no_release else None
-    state, usage = process(eligible, state, family=family, policy=policy, reading_observer=observer)
+    preservation_holds = []
+    processor_commit = git(ROOT, "rev-parse", "HEAD").decode().strip()
+
+    def observe(identity, reading):
+        # Persist before QA, including rejected/partial results. Routine runs
+        # upload this existing private handoff directory on failure too. Never
+        # put these readings in the queue or the signed public-safe envelope.
+        record = next(r for r in eligible if r["source_identity"] == identity)
+        prior = state.get(family + ":" + identity, {})
+        version = digest({k: record[k] for k in (
+            "metadata_version_sha256", "content_sha256", "capture_sha256")})
+        target_dir = path.parent / "readings" / family
+        snapshot = {
+            "source_family": family, "source_identity": identity,
+            "version": version, "source_git_commit": commit,
+            **{k: record[k] for k in (
+                "metadata_version_sha256", "content_sha256", "capture_sha256")},
+            "processor_commit": processor_commit,
+            "policy_sha256": digest(policy["sources"][family]),
+            "attempts_before": prior.get("attempts", 0),
+            "prior_disposition": prior, "reading": reading,
+        }
+        # Unique private files preserve earlier attempts on repeated local
+        # invocations. A retention failure must not erase the paid attempt:
+        # persist accounting and hold this version before signing below.
+        try:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8",
+                    dir=target_dir, prefix=version + "-", suffix=".json",
+                    delete=False) as retained:
+                json.dump(snapshot, retained, ensure_ascii=False)
+        except OSError:
+            preservation_holds.append(identity)
+        if no_release:
+            readings[identity] = reading
+
+    state, usage = process(eligible, state, family=family, policy=policy, reading_observer=observe)
+    for identity in preservation_holds:
+        state[family + ":" + identity].update(
+            status="held", reason="private_reading_preservation_failed")
     if readings:
         # Explicit private-only verification; supporting source spans never
         # enter the queue, a public envelope, logs or the public checkout.
@@ -57,6 +96,9 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
     result = {"source_family": family, "source_commit": commit,
               "verified": len(records), "bound_public_links": len(eligible),
               "usage": usage, "model_calls_enabled": policy["sources"][family]["private_model_processing"]}
+    if preservation_holds:
+        result["holds"] = {identity: "private_reading_preservation_failed"
+                           for identity in preservation_holds}
     if not no_release and policy["sources"][family]["public_machine_explanation"]:
         envelope = sign_outputs(state, family=family, policy=policy,
                                  key=os.environ.get("DAILY_OUTPUT_KEY", ""))

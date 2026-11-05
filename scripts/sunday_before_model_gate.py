@@ -8,6 +8,10 @@ For current-week Sunday, require the complete Saturday window, exact Sunday
 successful daily marker, and usable full text from at least two real production
 desks. A historical replay can assess the archive snapshot, but CANNOT attest
 that the old Sunday collection completed: keep that distinction explicit.
+
+``--saturday-provisional`` is the one Saturday exception: it runs only on the
+reporting Saturday itself, requires that Saturday's own Daily success marker,
+and reports a provisional scope. It never claims a Sunday collection.
 """
 from __future__ import annotations
 
@@ -31,13 +35,20 @@ class BeforeModelRefused(ValueError):
 
 
 def gate(*, week_ending, as_of, review_local_day, database=DB_PATH,
-         marker_path=MARKER, research_packet=None):
+         marker_path=MARKER, research_packet=None, saturday_provisional=False):
     saturday = iso_day(week_ending)
     observed = iso_day(review_local_day)
     if saturday.weekday() != 5:
         raise BeforeModelRefused("reporting end must be Saturday")
     sunday = saturday + timedelta(days=1)
-    if observed < sunday:
+    if saturday_provisional:
+        # No Friday substitution and no later catch-up: the provisional
+        # draft belongs to the Saturday whose own collection just finished.
+        if observed != saturday or as_of != week_ending:
+            raise BeforeModelRefused(
+                "Saturday provisional draft runs only on the reporting Saturday "
+                "with a Saturday cut-off")
+    elif observed < sunday:
         raise BeforeModelRefused(
             "reporting Saturday has not ended and Sunday's update has not completed"
         )
@@ -45,6 +56,7 @@ def gate(*, week_ending, as_of, review_local_day, database=DB_PATH,
     report = inspect(
         week_ending=week_ending, as_of=as_of, review_day=review_local_day,
         database=database, marker_path=marker_path,
+        provisional=saturday_provisional,
     )
     unmet = list(report["unmet_gates"])
     research_support = False
@@ -65,7 +77,15 @@ def gate(*, week_ending, as_of, review_local_day, database=DB_PATH,
         if research_support:
             unmet = [issue for issue in unmet if
                      issue != "fewer_than_two_desks_with_usable_source_text"]
-    if observed == sunday:
+    if saturday_provisional:
+        if unmet or (report["machine_preflight_verdict"] != CURRENT_READY
+                     and not research_support):
+            raise BeforeModelRefused(
+                "Saturday provisional corpus is not model-ready: " +
+                ", ".join(unmet or ["audit_not_ready"])
+            )
+        scope = "saturday_provisional_collection_marker_and_corpus_checked"
+    elif observed == sunday:
         # Sunday must have an actual same-Sunday successful collection marker.
         # Two stored desk names do not suffice without full text from BOTH.
         if unmet or (report["machine_preflight_verdict"] != CURRENT_READY
@@ -94,7 +114,9 @@ def gate(*, week_ending, as_of, review_local_day, database=DB_PATH,
         "pre_model_scope": scope,
         "production_desks_with_usable_text": report["desks_with_usable_text"],
         "usable_text_records": report["usable_text_records"],
-        "sunday_collection_verified_for_this_execution": observed == sunday,
+        "sunday_collection_verified_for_this_execution": (
+            observed == sunday and not saturday_provisional),
+        "saturday_collection_verified_for_this_execution": saturday_provisional,
         "research_supported_editorial_draft_only": research_support,
         "typed_research_candidates": offered_research_count,
         "model_output_reviewed": False,
@@ -114,13 +136,16 @@ def main(argv=None):
     parser.add_argument("--marker", type=Path, default=MARKER)
     parser.add_argument("--research-packet", type=Path,
                         help="validated exact-week private editor-safe research notes")
+    parser.add_argument("--saturday-provisional", action="store_true",
+                        help="Saturday draft after Saturday's own Daily collection")
     args = parser.parse_args(argv)
     today = (args.review_local_day or
              datetime.now(NY).date().isoformat())
     try:
         result = gate(week_ending=args.week_ending, as_of=args.as_of,
                       review_local_day=today, database=args.db,
-                      marker_path=args.marker, research_packet=args.research_packet)
+                      marker_path=args.marker, research_packet=args.research_packet,
+                      saturday_provisional=args.saturday_provisional)
     except (BeforeModelRefused, ReadinessError, OSError, ValueError) as exc:
         parser.error(str(exc))
     print(json.dumps(result, sort_keys=True))

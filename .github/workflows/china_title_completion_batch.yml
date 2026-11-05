@@ -12,8 +12,17 @@ concurrency:
 permissions:
   contents: write
 jobs:
+  # This workflow file runs from main but checks out the separate operations
+  # branch below, whose code predates the source-use hold. The hold therefore
+  # has to stop the job here, not inside that checkout. Actions compares
+  # strings case-insensitively, so this holds for any casing of "true".
+  hold-notice:
+    if: github.ref == 'refs/heads/main' && vars.IPR_CHINA_SOURCE_USE_HOLD == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "source-use hold - batch not run; no checkout, no model call, no checkpoint push"
   batch:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.IPR_CHINA_SOURCE_USE_HOLD != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -32,5 +41,6 @@ jobs:
       - name: Reserve, translate headlines only and checkpoint
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}
           TITLE_BATCH_LIMIT: ${{ inputs.limit }}
         run: python scripts/china_title_release_batch.py --limit "$TITLE_BATCH_LIMIT"

@@ -4,6 +4,168 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-04 — Founder: research-first source-use reform (review implementation)
+
+The executive mandate establishes the general evaluation direction:
+written publisher permission is not universal where another demonstrated
+lawful basis supports the particular activity. Implemented for founder PR
+review in [CONTENT_AND_DATA_RIGHTS.md §7](CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard),
+with [all eight scopes reconciled](docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md#61-source-use-reconciliation--4-november-2026).
+Applicable public-domain status, licences, actual permission, statutory
+exceptions and other legal authorizations are alternatives to investigate,
+not blanket grants. Separate access, custody, facts, external-provider input,
+independent analysis, quotation/translation, media and every public distribution
+surface. Keep binding terms, jurisdiction and contrary primary evidence visible.
+
+Superseded: general publisher-letter prerequisites, licence-only vocabulary in
+the offline private-synopsis decision, mandatory JCG correspondence/reply and
+obsolete dossier launch signoffs. Retained: actual source grants/restrictions,
+MINDEF's specific scoped written-grant rule/two links, China #978 unresolved
+decisions and merged #980 switch, source-specific licences/assessments and
+exclusions, factual QA, budgets, retries, evidence and accepted paid output.
+The synopsis vocabulary is isolated from Vietnam's runtime basis constant.
+
+This entry records the mandate and candidate implementation, not source-use
+clearance, a founder policy merge approval or operational certification. No
+source configuration, hold activation, model permission, spending, original
+evidence, production DB, generated output or historical decision is changed.
+No contact, merge, deployment, historical republication/removal or source
+activation is authorized. Prior entries remain evidence in their actual scope;
+the new general rule cannot silently erase a specific restriction.
+
+## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
+
+Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday
+reconciliation receipt (`saturday_sunday_cycle`, checked by
+`core/brief_editorial_cycle.py` in `validate_readiness` and `validate_brief`).
+It replaces the review candidate's blanket rule for every Brief from the week
+ending 7 November 2026 onward. Implemented in PR #963.
+
+1. **Participation decides.** A receipt is required because a Brief took part
+   in the weekend editorial cycle, recorded as `editorial_cycle` provenance
+   naming its cycle Brief identity. Publication date, stated author and Word
+   labels do not decide it.
+2. **One receipt per Brief.** Every cycle-derived Brief, including companions,
+   human rewrites and analyst-reconciled versions, needs its own receipt bound
+   to its exact final manuscript and revised DOCX. A receipt for another
+   version or another Brief does not transfer.
+3. **Independent Briefs are unchanged.** A Brief with neither provenance nor a
+   receipt keeps the existing source, factual, presentation and owner-approval
+   requirements. Shared source URLs alone never establish cycle participation.
+4. **Import fails closed.** `scripts/import_brief_manuscript.py` carries
+   provenance it detects in the DOCX's hidden properties automatically. Without
+   it, the editor must declare `--saturday-packet <packet>` or `--independent`;
+   `--independent` is refused while any cycle signal, hidden or visible, remains.
+5. **The transfer stays manual and explicit.** The import JSON is a snapshot,
+   not the sidecar. The owner copies `editorial_cycle` from it into the
+   canonical `briefs/<slug>.json` with the other imported fields; the Sunday
+   recheck stamps it again on its candidate sidecar.
+
+Disclosed limits stand, and no further authentication is added: someone who
+deliberately deletes both the provenance and the receipt from a sidecar makes it
+look independent, and whether editors other than python-docx keep the hidden
+DOCX properties is untested (if both are lost, import stops and asks for a
+declaration). The fail-closed import and owner approval are the safeguards.
+
+This records policy only. `IPR_WEEKEND_EDITORIAL_ENABLED` stays unset; it creates
+no merge, activation, schedule, email, model spend, deployment or publication
+authority, and it does not lift the 2026-11-01 workflow freeze.
+
+## 2026-11-02 — Owner: eight-desk operational certification scope (planning only)
+
+The founder confirmed the mandatory source-family scopes and real-original-to-reader
+acceptance standard in a sequence of eight explicit decisions on 2 November 2026.
+See [the single stable scope and completion plan](docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
+and the existing [eight-desk issue #673](https://github.com/VSSpowerlifting/IndoPacificRecord/issues/673).
+
+- **Indonesia:** Kemhan Berita only; not Siaran Pers.
+- **Philippines:** AFP **and** NSC, independently qualified.
+- **Vietnam:** MPS Foreign Affairs **and** Government Office (VPCP).
+- **South Korea:** MND-labeled Korea Policy Briefing originals **and** DAPA.
+- **China:** all five existing families — PLA Daily, MOD China, Xinhua Military,
+  China Military Online and Global Times Defense — accurately classified.
+- **Japan:** accessible MOD news-feed PDFs **and** JCG English release HTML;
+  exclude challenged MOD HTML, Joint Staff and unapproved media.
+- **Singapore:** MINDEF official releases only. A narrowly bounded additional
+  permission request may be prepared for founder review; **do not contact MINDEF yet**.
+- **U.S. Indo-Pacific reference:** at least one independently qualified,
+  original-backed U.S. institutional family; investigate USCC Commission-authored
+  press releases first. Treasury/BIS metadata remains supplemental; PACOM/DVIDS
+  restrictions remain.
+
+Full qualification requires authentic permitted original retrieval, versioned
+custody, separately authorized and quality-gated substantive processing, safe
+shared admission, actual deployed reader readback, then scheduled recurrence
+and representative recovery for **every required family**. Metadata-only
+references, synthetic tests, PR merges or schedules alone do not qualify a desk.
+No arbitrary consecutive-day launch clock is introduced.
+
+**This records source scope and the success criterion only.** No source-use
+or publisher permission, commercial-model spend, collection or processing
+activation, human publication, external contact, merge, deployment, historical
+cleanup or declaration of operational completion is authorized. Actual
+source-specific grants/holds, the shared-desk standard, the workflow freeze
+and release contracts remain in force.
+
+## 2026-11-02 — Owner: one MPS number-only recovery attempt
+
+Benjamin Yang authorizes, in chat on 2 November 2026, **one** new processing
+attempt for each of the ten MPS Foreign Affairs versions held only for
+`E_NUMBER_MISMATCH` by the date-reading defect fixed in PR #955. This is a
+narrow recovery exception, not a reset or a retry policy. The exact identities,
+content hashes and holding runs are pinned in `processing/mps_recovery.py`.
+
+- Existing models, source-use permissions and per-run spending limits apply.
+  Prior attempts, outcomes and spending remain in the ledger; each new attempt
+  records the prior item, its retained model output and its own token cost.
+- Attempts run only in a manually dispatched first-attempt private
+  daily-bridge run, one reviewed batch at a time: two records, then four,
+  then four. The open batch advances only through a reviewed change, and
+  only after the previous batch's outputs are inspected against the originals
+  (dates, quantities and units, including same-number unit swaps, names,
+  attribution and action status).
+- Any non-published outcome, including a retryable provider failure, settles
+  that version permanently. A systemic defect or unexpected cost stops the
+  phase: no further batch opens. Unexpected cost means more than $0.10 of
+  provider-token cost for any one record, the bound of the configured models'
+  output ceilings on an MPS article.
+- Markers are written only when the run completes and its ledgers are pushed.
+  A dispatch that fails or aborts after starting therefore ends its batch's
+  exception: it is never re-dispatched without the owner, and that run's cost
+  is taken from its log and provider usage rather than the ledger.
+- An accepted recovery is withheld from the signed handoff until a reviewed
+  change names it in `RELEASED`; only then may the scheduled bridge sign it.
+- The seven MPS records with additional QA codes, every VPCP hold and the
+  accepted 29–30 October gaps are unchanged. A recovered record does not
+  validate any missing historical output.
+
+## 2026-11-01 — Official sources cited by Briefs become link-metadata Records
+
+Benjamin Yang's brief "Complete Source Admission and Editorial–Records
+Integration" (2026-11-01) directs that every eligible original-source document
+used in an IPR publication be a discoverable Record. It also covers backfill
+of approved publications. It does not authorize prose or credit changes. The same
+brief delegates this task's engineering and release: merge of the exact head after
+green required CI, and deployment through the existing output workflow.
+Decision: official publisher references in approved, non-review Briefs become
+Records that republish only the Brief's own reference metadata (doctrine §5b).
+This is not corpus admission: no source bytes, DB rows, desk coverage, new
+collector or rights override. Independent references, every MINDEF URL and the
+held Vietnam MPS/MOIT/VPCP families stay external-only. MINDEF's 2026-10-29
+permission covers hyperlinks from a Brief, not a standalone IPR page, so even
+its two approved links get no Record. A Record's route is keyed on the URL with
+scheme/host lowercased and the fragment dropped, so it is stable. When that URL
+is later collected as a corpus or machine Record, the cited route becomes a
+redirect to it. Any metadata conflict for one URL stops the build. A fresh-context
+proposal review returned PROCEED on the core and REJECT on MINDEF admission, and
+those fixes are applied. Every source
+document in the edition, Dossier and Timeline trails is already a corpus Record.
+Edition pages link back now. Dossier and Timeline back-links render only when
+those withheld works do. The China–Singapore Dossier's external references
+x1–x9 stay external. Their 2026-10-26 grant is linked use inside that Dossier
+only, and a Record would extend it. First result: 29 Records from five Briefs.
+4 independent references and 1 Vietnam MPS reference were omitted.
+
 ## 2026-11-01 — Vietnam: 29–30 October missed slots accepted, not recovered
 
 Benjamin Yang accepted in chat the missing 29–30 October 2026 Vietnam MPS/VPCP

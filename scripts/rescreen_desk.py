@@ -66,7 +66,10 @@ def desk_records(con, desk_id: str) -> list:
          WHERE s.desk_id = ?
          ORDER BY a.id
         """, (desk_id,)).fetchall()
-    return [dict(r) for r in rows]
+    # Interim source-use hold: a held publisher's record is never listed, so
+    # `propose` cannot send its title or body to a model.
+    from core.china_source_use_hold import is_held_source
+    return [dict(r) for r in rows if not is_held_source(r["source_slug"])]
 
 
 def stage_of(rec: dict) -> str:

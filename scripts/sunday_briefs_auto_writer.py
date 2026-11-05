@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from config import DB_PATH
+from core import china_source_use_hold as china_hold
 from core.brief_contract import trail_entry
 from core.brief_editorial_evidence import evidence_prompt as research_prompt
 from core.brief_prose_standard import (
@@ -107,6 +108,13 @@ def choose_evidence(sidecar, *, as_of, db=DB_PATH, selected_ids=None,
     offered = {entry["record_id"]: entry for entry in sidecar["source_trail"]}
     verified = []
     for row in rows:
+        if china_hold.is_held_row(row):
+            # Interim source-use hold: stored text from a held publisher is
+            # never offered to the model (disabled unless the hold is enabled).
+            if discovery_inventory is not None:
+                discovery_inventory.append({"id": row["id"], "desk": row["desk_id"],
+                    "date": row["published_date"], "reason": "source_use_hold"})
+            continue
         reference = offered.get(row["id"])
         reason = None
         if discovery_inventory is not None:
@@ -661,8 +669,25 @@ def prepare_discovery(sidecar, chosen, extra, inventory):
                                  coverage=coverage, continuity=sorted(continuity, key=lambda b: b["week_ending"])[-6:])
 
 
+SATURDAY_PROVISIONAL_CUTOFF = (
+    "Saturday provisional: collected through Saturday's daily run only; later "
+    "Saturday publications may be missing and a Sunday recheck follows. Do not "
+    "describe the week as complete.")
+
+
+def cutoff_statement(as_of, week_ending, saturday_provisional=False):
+    """One honest description of the evidence window, shared by both prompts."""
+    if saturday_provisional:
+        if as_of != week_ending:
+            raise ValueError("Saturday provisional draft must use the Saturday cutoff")
+        return SATURDAY_PROVISIONAL_CUTOFF
+    if as_of != week_ending:
+        return "Friday provisional: Saturday is excluded."
+    return "Saturday has elapsed; this is not proof of exhaustive collection."
+
+
 def article_instruction(week_start, as_of, week_ending, allowed_ids, extra_ids,
-                        evidence_text, supplemental_text):
+                        evidence_text, supplemental_text, saturday_provisional=False):
     """Prompt for the article-first manuscript (the shared evidence tail is unchanged)."""
     return (
         "WRITE A PROVISIONAL, HUMAN-EDITED INDO-PACIFIC RECORD BRIEF. "
@@ -696,9 +721,7 @@ def article_instruction(week_start, as_of, week_ending, allowed_ids, extra_ids,
         "END PRODUCTION RECORD EVIDENCE{}"
     ).format(
         week_start, as_of, week_ending,
-        ("Friday provisional: Saturday is excluded."
-         if as_of != week_ending else
-         "Saturday has elapsed; this is not proof of exhaustive collection."),
+        cutoff_statement(as_of, week_ending, saturday_provisional),
         ", ".join(str(i) for i in allowed_ids),
         ("Numeric production citation arrays may be empty only where the same block "
          "cites a relevant typed external source in supplemental_citations. Every "
@@ -720,7 +743,11 @@ ARTICLE_RETRY = (
 
 def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
             selected_theme=None, reviewed_synopses=None,
-            automatic_story_selection=False, article_first=True):
+            automatic_story_selection=False, article_first=True,
+            saturday_provisional=False):
+    if saturday_provisional and not automatic_story_selection:
+        raise ValueError("Saturday provisional draft uses ordinary automatic selection only")
+    cutoff_statement(as_of, sidecar["week_ending"], saturday_provisional)
     if automatic_story_selection and selected_theme is not None:
         raise ValueError("automatic selection cannot override signed owner trial")
     # Optional owner theme guidance is deliberately NOT supplied by Sunday's
@@ -898,9 +925,7 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
         "END PRODUCTION RECORD EVIDENCE{}"
     ).format(
         sidecar["week_start"], as_of, sidecar["week_ending"],
-        ("Friday provisional: Saturday is excluded."
-         if as_of != sidecar["week_ending"] else
-         "Saturday has elapsed; this is not proof of exhaustive collection."),
+        cutoff_statement(as_of, sidecar["week_ending"], saturday_provisional),
         ("numeric production citation arrays may be EMPTY only if the same "
          "section cites a relevant typed external source. Use the "
          "supplemental_citations arrays for such external source IDs. "
@@ -915,7 +940,7 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
     if article_first:
         prompt = article_instruction(
             sidecar["week_start"], as_of, sidecar["week_ending"], allowed_ids,
-            extra_ids, evidence_text, supplemental_text)
+            extra_ids, evidence_text, supplemental_text, saturday_provisional)
     if automatic_story_selection:
         prompt += (
             "\n\nAUTOMATIC STORY SELECTION: decide BEFORE composing, within this same call. "
@@ -1045,8 +1070,14 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                 validated["_prose_quality"] = check_article(
                     validated, desk_by_id={row["id"]: row["desk_id"] for row, _ in chosen})
             if automatic_story_selection:
+                from core.brief_editorial_cycle import digest
                 from core.brief_story_discovery import receipt
-                validated["_story_discovery"] = receipt(discovery, validated["story_selection"])
+                from scripts.weekly_briefs_saturday_audit import policy_snapshot
+                # The Sunday recheck compares this with the then-current
+                # source, rights and policy files before release.
+                validated["_story_discovery"] = dict(
+                    receipt(discovery, validated["story_selection"]),
+                    policy_sha256=digest(policy_snapshot()))
             if selected_theme is not None:
                 # Program-owned provenance, not an LLM authorization claim.
                 validated["_private_owner_selected_theme_slug"] = selected_theme["theme_slug"]

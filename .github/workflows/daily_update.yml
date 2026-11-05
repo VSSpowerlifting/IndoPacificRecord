@@ -332,6 +332,7 @@ jobs:
       # pipeline writes ONLY there, so no tracked file is dirty while the rebase
       # steps below run; step 8b appends that one record to the tracked history.
       - name: Fetch permitted shared Daily machine outputs
+        id: shared_daily_fetch
         if: steps.timecheck.outputs.should_run == 'true' && !inputs.vpcp_metadata_only && vars.IPR_PRIVATE_DAILY_ENABLED == 'true'
         env:
           IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
@@ -403,6 +404,8 @@ jobs:
           CATEGORIZATION_MODEL: ${{ vars.CATEGORIZATION_MODEL }}
           FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
+          # Interim source-use hold: only the exact string "true" activates it.
+          IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
           # Governed manual admissions run inside the pipeline so every manual
@@ -800,9 +803,17 @@ jobs:
         if: steps.timecheck.outputs.should_run == 'true'
         env:
           TODAY_NY: ${{ steps.timecheck.outputs.today_ny }}
+          SHARED_DAILY_FETCH_FAILURES: ${{ steps.shared_daily_fetch.outputs.failed_families }}
         run: |
           set -uo pipefail
           PROBLEMS=0
+
+          # Isolate source handoff failures during delivery, then notify here.
+          # Do not suppress the last-good DB/site or misreport a fetch as quiet.
+          if [ "${SHARED_DAILY_FETCH_FAILURES:-0}" != '0' ]; then
+            echo "::error title=Shared Daily handoff failed::${SHARED_DAILY_FETCH_FAILURES} source output fetch(es) failed; see the fetch step summary. Existing records were preserved."
+            PROBLEMS=$((PROBLEMS + 1))
+          fi
 
           # ── Billing: did pipeline.py record an account block today? ────────
           MARKER=".github/state/last_billing_failure_date.txt"

@@ -3,8 +3,28 @@
 The [mandatory standard](README.md) applies to all eight desks now as an owner
 instruction. This map records **code boundaries, not live-service certification**.
 Baseline inspected: public `e0c0920cc4628a594df3954556739b6f73915691`,
-30 October 2026; runtime migrations 1–3 are recorded in the phase receipt below. Recheck
+30 October 2026; runtime migrations 1–4 are recorded in the phase receipts below. Recheck
 current main, PRs and actual source decisions before implementation.
+
+## Research-first governance reconciliation — 4 November 2026
+
+The [canonical source-use standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+replaces blanket publisher-letter prerequisites with documented use-specific
+legal bases. The [eight-desk account](EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md#61-source-use-reconciliation--4-november-2026)
+indexes actual policies, supported uses, restrictions and owner decisions.
+This candidate reconciles agent/shared-desk/editorial instructions and the
+offline typed private-synopsis decision vocabulary; it does not change runtime
+source eligibility, manifests, sealed policies, allowed fields, holds or switches.
+The synopsis validator retains its owner/source-version checks and all false
+dispatch/publication outputs. Its expanded `SYNOPSIS_RIGHTS_BASES` is separate
+from the legacy `RIGHTS` imported by Vietnam, so MOIT and existing MPS/VPCP
+source-specific limits do not broaden. No shared-engine migration is claimed.
+
+The private governance companion is based on `a3f6299`; founder-approved public
+policy merges first, private references second. Final PR/head/check evidence
+belongs in the paired PR bodies. Neither merge activates a source or deploys
+behavior. The [project-source replacement package](../engineering/PROJECT_SOURCE_UPDATE_PACKAGE_2026-11-04.md)
+is prepared separately; ChatGPT Project Sources are not installed by Git changes.
 
 ## Current boundaries and required convergence
 
@@ -12,10 +32,10 @@ current main, PRs and actual source decisions before implementation.
 |---|---|---|---|
 | China | `pipeline.py`, ordinary article queue, existing collectors and URLs | Adapt the established record path to the common source/component interface without a bulk rewrite | Chinese terminology, source attribution, actual language and publisher-specific rights; no foreign desk inherits these permissions |
 | Singapore | MINDEF boundary in `core/mindef_public_boundary.py`, `core/mindef_permissions.py` and pipeline/renderer holds | Express restrictions through the same permitted-component projection; remove scattered special handling only after equal or stronger enforcement | PR #913 merged; retained evidence is private and written link permission covers exactly two URLs; no collection/model/public-text reactivation is implied |
-| Korea | `core/korea_corpus_bridge.py`, `processing/korea_shared_queue.py`, original-text and reviewed-English registries | Common checkpoints/admission and a record assembled from permitted components | HWPX fidelity, verified licence scope, source/version exclusions and reviewed English; DAPA metadata permission is separate |
+| Korea | `core/korea_corpus_bridge.py`, `processing/korea_shared_queue.py`, original-text and reviewed-English registries; [bounded timestamp-admission repair candidate](../engineering/KOREA_DESK_OPERATION.md#current-repair-phase--2-november-2026) | Common checkpoints/admission and a record assembled from permitted components; this repair does not migrate the dispatcher | HWPX fidelity, verified licence scope, source/version exclusions and reviewed English; DAPA metadata permission is separate |
 | Philippines | `processing/daily_intake.py`, `processing/daily_runner.py`, AFP/NSC validators, `daily_machine_records`; source-definition pilot merged in PR #928; manual production manifest `desks/philippines/manifest.json` and governed dispatch (runtime migration 3, review candidate) | AFP and NSC registry, lifecycle dispatch, screening and machine-record projection share `core/daily_sources.py` following merged PR #928; admission runs through `pipeline.run_governed_manual_sources` with every other manual source; broader cross-desk convergence remains | English originals remain private; AFP and NSC identities, attribution, policies and exceptional holds remain distinct |
 | Indonesia | Same private intake/runner as Philippines, Kemhan validator and Indonesian quality checks; source-definition pilot merged in PR #928; manual production manifest `desks/indonesia/manifest.json` (runtime migration 3, review candidate) | Kemhan uses the same shared registry, caller paths and governed dispatch as AFP/NSC; source-specific evidence/policy stays authoritative | Preserve accepted output, version bindings, Yonif TP 880 hold, source-use decisions and bounded spend; no new paid attempts are authorized |
-| Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA; MPS and VPCP report run-result rows through the governed dispatcher (runtime migration 5, review candidate) | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
+| Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA; run-result reporting through the governed dispatcher in review candidate #953 | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
 | Japan | Isolated shadow RSS/PDF collection under `shadow/jp_mod/`, `core/japan_mod_official_links.py` and public link admission; manual production manifest `desks/japan/manifest.json` registering only `jp_mod_news_ja` (runtime migration 3, review candidate) | Same metadata/component projection and delivery contracts; link admission runs through the governed dispatcher rather than a separate Daily step; no separate Japan publisher | Retrieved/verified news-PDF metadata only under current grant; challenged HTML and all excluded original/model/media uses remain excluded; JCG is separate (shadow only; its index cross-section rows are disclosed exclusions, not identities, per `shadow/jp_jcg/README.md`) |
 | US reference | Existing `core/us_*` metadata adapters and source-specific release paths | Common source-link identity, projection, admission and delivery | Keep publisher access restrictions and narrow source scopes; this does not authorize a broad US collection program |
 
@@ -24,6 +44,16 @@ Existing adapters and negative tests are retained where they encode real source
 differences. A map entry does not permit deactivation of a working path.
 
 ## Implementation order and ownership
+
+**Indonesia recovery candidate, 2 November 2026:** shared intake preserves
+deferred retry/QA dispositions; the existing private runner retains parsed
+readings with immutable source/version and attempt context in its already
+uploaded private handoff directory. No QA, source policy, retry reset, queue
+selection, workflow or activation change. The medical v4 record is already
+live; newer ADMM-Plus output remains QA-blocked and historical rejected readings
+are unavailable. See the [current source checkpoint](../engineering/INDONESIA_SHARED_DAILY_2026-10-27.md#current-checkpoint--2-november-2026-recovery-review-candidate)
+for real run/state pins, no-cost replay, release boundary and exact next action.
+This candidate does not certify recurring new delivery or replace #950/#954.
 
 1. **Shared source/component and lifecycle integration:** use the already shared
    Philippines/Indonesia lane as the first bounded implementation. Replace real
@@ -192,7 +222,8 @@ writer jobs, their `push`/`workflow_run`/`schedule` (22:17 and 22:31 UTC)/
 keeps only its `isolated-render-contract` pull-request rehearsal, which writes
 nothing to main, the database or Pages. `us_metadata_migration_preflight.yml`
 now also runs for Daily edits. Two operational consequences are deliberate:
-admission follows Daily's 12:23/12:53 UTC schedule instead of the evening
+admission follows Daily's schedule (nominal 12:23–14:23 UTC crons; GitHub
+scheduling delays actual starts by hours) instead of the evening
 crons, so an observation committed after Daily is admitted on the next run
 (the importers are append-only and idempotent); and the retired jobs'
 refusal of a moving source branch is replaced by the importer pinning each
@@ -241,15 +272,19 @@ republishes.
 **Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
 manifest/registry entry; folding it in needs a dispatcher-side run attestation
 or an owner decision to drop that binding. The first scheduled Daily run on the
-merged branch must show one `source_run_results` row per manual source (now
-six) and, for the two US families, either `OK`/`OK_ALL_DUPLICATES` receipts or
-a `LISTING_FAILURE` row if the clone step failed; until then the migration is a
-review candidate, not an operationally verified release. Vietnam's two
-registered families now report through the dispatcher (runtime migration 5,
-PR #953, stacked on #950): each admission reads what Vietnam's own Daily steps recorded
-this run (the signed handoff receipt and the VPCP collector's run record)
-rather than repeat them, so the false "no governed admission" skip becomes a
-quiet, held, duplicate or missed row. The MOIT families stay unregistered.
+merged branch must show one `source_run_results` row for each of the nine
+registered manual source slugs (Korea, AFP, NSC, Kemhan, Japan MOD, USCC,
+Treasury, Vietnam MPS and VPCP). The two U.S. families require an
+`OK`/`OK_ALL_DUPLICATES` receipt or truthful `LISTING_FAILURE` after a failed
+clone. Under runtime migration 5 (#953), the Vietnam families must report
+their actual signed-handoff and bibliographic-collector outcomes rather
+than the previous artificial `SKIPPED_DISABLED` "no governed admission"
+disposition. The Vietnam admission steps still run separately, because the
+signed handoff replaces the DB atomically: the governed dispatcher records
+their outcomes, rather than repeating admission. The first real scheduled
+Daily cycle after integration must verify each family and the failure/quiet
+distinction; code integration alone does not certify live recurrence.
+MOIT stays unregistered.
 `scripts/check_source_liveness.py` is keyed on `articles`, so manual
 link/metadata/machine-record sources stay `INERT` even when their
 `source_run_results` rows are `OK`; the W1 stop condition needs a liveness
@@ -266,3 +301,117 @@ migrations 3 and 4 are review candidates, not merged or operationally verified
 releases. The #928 merge did not authorize deployment or prove a live HTTPS
 publication. Verify final-head checks and any operational readback from actual
 CI and release evidence; do not mark the remaining work done.
+
+**Runtime migration 5 — Vietnam source-run reporting (PR #953; 5 November
+2026 review candidate):** Reconciled the draft Vietnam-only reporting phase
+against merged #950 and current main. MPS reports the signed handoff's
+versioned per-family disposition; VPCP combines its own bibliographic
+collector's run record with its handoff outcome, with failures never hidden
+by successful or quiet peers. No ingestion step, issuer, policy, schedule,
+activation or publisher source changed. Required final-head CI and genuine
+post-integration scheduled outcomes remain separate evidence.
+
+**Shared private-output fetch recovery ([PR #954](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/954), review candidate):**
+*Status 3 November 2026:* merged at `dc7beaa76c` (16:54 UTC); post-merge CI
+passed. Scheduled Daily [41705243710](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41705243710)
+processed and published on 3 November: AFP/NSC/Kemhan each admitted zero with
+no holds; shared fetch failures were zero. This is authentic authenticated
+duplicate-replay evidence, not new-record admission or proof of every recovery
+case. The Health gate failed on Vietnam article recency after delivery. Pages
+build [41709726446](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/41709726446)
+succeeded for `9e729b827feb4f1d7035613b2d3b8329f0cd93be`. Independent HTTPS
+readback of `vietnam.html` on 3 November matched its deployed SHA-256
+`e34d488b0abcd7c22a6b5f2500531bf086d3cdfed72e5109204f4f013b3fe958`.
+Later guard-skipped Daily runs add no operational evidence. #950 originally
+merged #954 main in `2dfaa0b4ec`.
+AFP/NSC/Kemhan fetching removes stale invocation-local inputs before refresh,
+installs valid JSON objects atomically (including isolated rejection of deeply
+nested JSON), and reports failed-family counts to the existing post-delivery
+Health gate. Authentication, source/version/policy checks and accepted DB rows
+remain in the existing admission path; no rights, QA, retries or spending change.
+
+The 3 November integration combines original #954 head
+`fc965dbe6c9165035bd638fef1cc2f609a588a48`, correction `38a39e0` and main
+`3d78978abe2d1234db4ce1c2382cd843b2cdf530`, preserving #964 and #965 (merged as
+`20957b582c23439543830cf29a01ba5e2c574940`). No #950/#953 changes are included.
+Synthetic tests cover partial AFP/NSC fetch through authenticated admission,
+accepted-row preservation, duplicate replay, quiet Kemhan input and the actual
+Health shell. The subsequent production run above closes the authentic MAC/duplicate-replay
+gap; new-record admission and other recovery cases remain separate claims.
+
+**#950 integration checkpoint — 3 November 2026:** founder explicitly authorized
+this integration and its ordinary release, conditional on final qualification.
+The qualified `520d55d094de66c345f5c13b4652a4b3acf4699d` candidate was merged
+locally with main `9095590fa30baccbbaca4bb4f7c312e5591cabba` without conflicts.
+Only current production DB/output and run-state advances were incorporated;
+no dispatcher, rights, source activation, spend or editorial changes were
+needed. One publication-coordination correction removes the country render-only
+workflow from its own push trigger: its seven-file publication would otherwise
+link to newly registered source pages that it does not stage. Catalog changes
+and explicit exact-main manual releases remain supported. Daily owns the full
+source-page publication. Final CI at `684a4376a2` ran 8,566 tests and failed
+on two corpus-growth fixture defects: the snapshot-race mutation deleted only
+publication-hidden rows, and a source's factual participant quantity collided
+with the current original-text count. The repair mutates actual visible records
+and proves count/fingerprint drift, while distinguishing explicit participant
+quantities from archive totals without exempting files or numeric values.
+Production code, templates, source policy, DB and output remain unchanged by
+that repair. Final revision/check and release evidence belongs in
+[PR #950](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/950).
+The first genuine scheduled Daily on the integrated revision must still prove
+nine manual-source rows and source-specific dispositions, accepted-data
+preservation and DB-to-public delivery. Guard-skipped runs do not qualify.
+Do not force an additional paid Daily cycle to replace that evidence. #953
+remains outside this phase; its integration requires a new bounded session.
+
+**China Desk interim source-use hold (PR #980 merged at `7cc77270`; separately inactive unless configured):**
+`core/china_source_use_hold.py` is one exact-`"true"`, call-time switch,
+`IPR_CHINA_SOURCE_USE_HOLD`, inert when unset. Enabled, it holds the host
+sources `global_times_mil`, `mod_china` and `pla_daily` (never by byline) at
+every active route: the source loop (no adapter, no request; the existing
+`SKIPPED_DISABLED` with a `source-use hold:` detail, a non-failure), the
+`insert_article` and `insert_articles_atomic` write seams (both raise, so
+neither can read as a duplicate; the atomic batch is refused before any write
+transaction opens), the
+relevance screen, the daily analysis queue including stored backlog, headline
+translation candidates (also the China title batch scripts that call them), the Sunday and weekly briefs writers' evidence selection, and the
+operator scripts `backfill_unscored.py`, `backfill_translations.py` and
+`rescreen_desk.py`. It writes no processing state, flips no
+`sources.enabled`, and removes, rewrites or regenerates nothing: the 1,513
+existing records, their text, hashes, dates and source identities,
+`pla_watch.db`, Git history and the private backup are unchanged, and
+rendering is untouched. `xinhua_mil`, `china_mil_online` and all other desks
+are unaffected.
+
+`china_title_completion_batch.yml` runs from main but checks out the separate
+`ops/china-title-completion-20261018` branch, which predates the hold, so an
+env mapping alone protects nothing there. Its job is therefore gated from
+main: `batch` runs only when `vars.IPR_CHINA_SOURCE_USE_HOLD != 'true'`, and a
+`hold-notice` job (no checkout, key or push) runs instead. The ops branch's own
+copy of the workflow keeps its `github.ref == 'refs/heads/main'` guard, so it
+cannot be dispatched from that ref. Actions compares strings case-insensitively
+while the Python switch requires exactly lowercase `true`; set the variable to
+exactly `true`. Every workflow that holds `secrets.ANTHROPIC_API_KEY` must map
+the switch or be listed in `tests/test_china_source_use_hold.py` with a reason.
+
+Fail-closed identity: with the hold enabled, a row whose `source_slug` is
+absent, null or empty counts as held at the Briefs writers and the relevance
+model boundary, so unknown provenance cannot bypass it. Integration
+candidate: #979 composed onto #950 (merge order #950, then #979); the held
+slugs are not in #950's governed-admission families, and the hold check
+precedes its manual dispatch in `pipeline.py`. No new policy packet.
+
+All three adapters retrieve full article bodies, so the hold is a
+whole-collection hold, not a metadata-only mode. Whether metadata-only
+discovery would be permitted, and for Global Times the difference between
+restrictions on automated collection, on linking and on derived content,
+awaits the #978 owner decisions.
+
+Closed or inactive, no change needed: `scripts/generate_pla_watch.py` is
+refused unconditionally by `refuse_predecessor_authoring()` and no workflow
+calls it. Residual risk: an operator script written later that reads stored
+text and calls a model without going through the covered seams; content
+already public in the database and in Git history is untouched by design.
+Nothing here adopts a publisher grant or restriction, activates the hold, or
+changes the live site. Activation, legacy-record treatment and publisher
+correspondence remain separate founder decisions.

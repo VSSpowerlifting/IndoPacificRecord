@@ -112,6 +112,16 @@ def _without_held_desks(conn, rows):
             "Skipping %d record(s) from desks not on the China analysis path; "
             "they are screened by the daily pipeline with their own desk "
             "profile.", len(rows) - len(kept))
+    from core.china_source_use_hold import HELD_SOURCE_SLUGS, hold_enabled
+    if hold_enabled():
+        marks = ",".join("?" * len(HELD_SOURCE_SLUGS))
+        held = {r[0] for r in conn.execute(
+            "SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id "
+            "WHERE s.slug IN (%s)" % marks, tuple(sorted(HELD_SOURCE_SLUGS)))}
+        if held & {r["id"] for r in kept}:
+            logger.info("Skipping China record(s) under the interim "
+                        "source-use hold; no title or body is sent to a model.")
+        kept = [r for r in kept if r["id"] not in held]
     return kept
 
 

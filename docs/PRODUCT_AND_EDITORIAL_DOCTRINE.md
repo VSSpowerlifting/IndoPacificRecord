@@ -24,8 +24,10 @@ and no new issue is published under it.
 
 Two layers, one masthead:
 
-- **The record** — automated preservation and rendering: scraped originals held
-  verbatim, model translation/summaries/categorization, model flags. Every
+- **The record** — permitted original preservation and component rendering:
+  authentic originals in authorized custody, and separately permitted public
+  text, model translation/summaries/categorization and model flags. Full source
+  text need not be public. Every
   automatically assembled readout is labeled as pipeline output, never as
   analyst prose.
 - **Indo-Pacific Record Briefs** — the *analysis*. Numbered, human-controlled
@@ -63,11 +65,21 @@ full originals, neutral metadata, and/or an independently permitted
 machine-produced summary. Those outputs must be clearly distinguished.
 
 **Normal model-labeled record output should eventually publish unattended**
-after explicit source-family permissions, accuracy and cost controls, and real
+after an established source/use-specific legal basis and operational authority,
+accuracy and cost controls, and real
 end-to-end acceptance; exceptions hold. This does **not** authorize new
 machine processing, derivative text or publication today. Human-authored
 IPR Briefs, bylined analysis and approval remain the distinct editorial layer.
 Implementation contract: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+
+**Source-use rule (owner, 4 November 2026):**
+[`CONTENT_AND_DATA_RIGHTS.md` §7](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+governs the evidence-based alternatives to written publisher permission and
+the separate access, custody, external-model, independent-analysis and
+republication questions. Favor defensible research and permitted links or
+bounded quotation over unsupported full-text reproduction. This does not
+enlarge existing source authorizations or relax real holds, MINDEF's specific
+written-grant requirement, editorial approvals or activation controls.
 
 ## 1b. Research-led growth and development (owner, 2026-10-30)
 
@@ -393,6 +405,23 @@ render the public page and deploy it. The default record-backed rules and
 cross-desk provenance requirements above/below remain fully applicable to every
 ordinary Brief. See `core/brief_source_linked.py` and
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`.
+
+**Cited official sources are Records (owner direction, 2026-11-01).** Each
+*official* publisher reference in an approved Brief gets one IPR Record per
+URL (`record/cited-<sha256[:16]>.html`, keyed on the URL with scheme and host
+lowercased and the fragment dropped; path and query stay exact). The Record publishes only what
+the Brief already publishes: original title, issuer, publisher, language,
+source-stated date and the link. It holds no source bytes, excerpt, translation
+or verification notes and adds no desk coverage or database row. The Brief
+keeps its publisher link and adds an "IPR Record" link; the Record links back to
+every citing Brief. A URL already held as a corpus record or released machine
+Record resolves to that page instead, so manual citation and collection share one
+identity; a cited route published before collection becomes a redirect. Independent
+reporting stays an external citation. MINDEF is omitted entirely: its 2026-10-29
+permission covers hyperlinks from a Brief, not a standalone IPR page. Vietnam MPS,
+MOIT and VPCP are omitted without a sealed decision. Conflicting metadata for one
+URL stops the build.
+Derived on every render by `core/cited_source_records.py`; nothing is hand-admitted.
 
 **The approval of 2026-10-13 applies only to** “What Is Being Built in Laos?”
 with fingerprint
