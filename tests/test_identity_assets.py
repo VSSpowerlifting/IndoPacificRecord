@@ -537,6 +537,64 @@ class TestTheCurrentMetadataIdentity(IdentityBuildCase):
                 self.assertEqual(meta, og)
 
 
+class TestAPageMayCarryItsOwnSocialCard(IdentityBuildCase):
+    """
+    A Brief's link preview may be its own image, but only through the single
+    renderer map `PAGE_SOCIAL_CARDS`; every page not in it keeps the
+    publication card. The delivered file is pinned to its receipt so the image
+    a reader shares is the image that was approved.
+    """
+
+    def test_every_override_is_a_delivered_1200_by_630_asset_with_a_receipt(self):
+        import json
+        self.assertTrue(gp.PAGE_SOCIAL_CARDS)
+        for page, card in gp.PAGE_SOCIAL_CARDS.items():
+            with self.subTest(page=page):
+                self.assertTrue((self.out / page).is_file(), page)
+                shipped = self.out / card["route"]
+                self.assertTrue(shipped.is_file(), card["route"])
+                self.assertEqual(tuple(gp.SOCIAL_CARD), png_size(shipped))
+                receipt = json.loads(
+                    (REPO_ROOT / "site" / "assets" / "frontend"
+                     / (Path(card["route"]).stem + ".json")
+                     ).read_text(encoding="utf-8"))
+                self.assertEqual(receipt["sha256"], sha256_of(shipped))
+                self.assertEqual(receipt["bytes"], shipped.stat().st_size)
+                self.assertEqual(receipt["route"], card["route"])
+                self.assertTrue(receipt["photo"]["credit"])
+                self.assertIn("not the planned facility",
+                              receipt["photo"]["note"])
+
+    def test_an_override_page_points_both_scrapers_at_its_own_card(self):
+        for page, card in gp.PAGE_SOCIAL_CARDS.items():
+            head = self.head(self.page(page))
+            url = "%s/%s" % (SITE_ORIGIN, card["route"])
+            with self.subTest(page=page):
+                self.assertIn(
+                    '<meta property="og:image" content="%s">' % url, head)
+                self.assertIn(
+                    '<meta name="twitter:image" content="%s">' % url, head)
+                self.assertNotIn("/social-card.png", head)
+                self.assertIn('<meta property="og:image:width" content="1200">',
+                              head)
+                self.assertIn('<meta property="og:image:height" content="630">',
+                              head)
+                self.assertEqual(
+                    head.count('property="og:image"'), 1)
+                self.assertIn(
+                    'property="og:image:alt" content="%s"'
+                    % card["alt"].replace("&", "&amp;"), head)
+
+    def test_every_other_page_keeps_the_publication_card(self):
+        for name, html in self.sample().items():
+            if name in gp.PAGE_SOCIAL_CARDS:
+                continue
+            with self.subTest(page=name):
+                self.assertIn(
+                    '<meta property="og:image" content="%s/social-card.png">'
+                    % SITE_ORIGIN, self.head(html))
+
+
 class TestNestedRoutesResolve(IdentityBuildCase):
     """
     Record, article and source pages sit one directory down. Every asset
