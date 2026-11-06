@@ -147,6 +147,127 @@ public admission, render/validation and deployment gates remain unchanged and
 continue protecting the last verified site. This phase performs no merge,
 paid call, production mutation, activation or deployment.
 
+### Operational completion review — 3 November 2026 (documentation only)
+
+This review changes no code, workflow, policy, queue or output. It reads the
+private artifacts (queue, usage and envelope, 30-day retention) of the seven
+retained collector-triggered Kemhan processor runs. Private originals,
+translations and rejected prose are deliberately absent; items are cited by
+version-hash prefix.
+
+**What each cycle did.** The shared processor workflow runs two to three times a
+day, but most runs process the Philippines families; Kemhan artifacts exist for
+about one run a day. Every run below ended `success` with the one-record,
+two-call bound intact (cost $0.001 to $0.014 per run against the $0.35 limit;
+all model calls returned, `failed_calls` 0; Sonnet output about 400 tokens
+against a 2,200-token cap, so nothing was truncated).
+
+| Run | Date (UTC) | Item | Outcome |
+|---|---|---|---|
+| `40961161769` | 29 Oct | `2810d3c1` fire-risk/combat-capability item | Analysis failed; hold `daily_name_or_office_unsupported`; attempt 1 |
+| `41131633031` | 30 Oct | `b93b8fc9` ADMM-Plus | Analysis failed; same hold; attempt 1 |
+| `41140281408` | 30 Oct | `b93b8fc9` | Same; attempt 2 |
+| `41239082119` | 31 Oct | `b93b8fc9` | Same; attempt 3 |
+| `41350848769` | 1 Nov | `5fcb5bd2` Hambalang item | Haiku relevance rejection, `not_selected`; one call; `b93b8fc9` deferred and shown `pending`, 3, reason erased by pre-#964 code |
+| `41548931410` | 2 Nov | `b93b8fc9` | Same hold; attempt 4; no preserved reading (pre-#964) |
+| `41730077400` | 3 Nov | `2e980f61` DPN meeting item | Haiku relevance rejection, `not_selected`; one call; one reading preserved privately |
+
+Result: of seven inspected runs, five were analysis/QA failures (two distinct
+originals), two were relevance rejections and none was a pass. Every failure
+whose diagnostic survived carries the same code,
+`daily_name_or_office_unsupported`. Five recorded failures on two entries
+are outside the retained artifacts: `8788720e` (one) and the 23 October medical
+record (four). The historical record below attributes them to earlier-version
+gates (v1 summary equality, and a title-only institution abbreviation that a
+later repair addressed; the industry reading failed word count, evidence
+locality, private-translation and action-status gates, so it was a genuine
+reading defect), not to the name/office gate. The queue's own counters give the
+longer record: the 23 October medical item is `complete` with attempts 4 (four failed
+analyses before its pass), `8788720e` and `2810d3c1` have one each, and ADMM-Plus
+has four: ten recorded failures in total against one pass. The medical
+record's earlier runs fall outside the seven retained artifacts.
+
+**Queue at `41730077400`.** 58 entries; the 59th retained original is the
+excluded Yonif TP 880 record (confirmed by identity in the policy file and by
+its text in the private database).
+
+| State | Count | Notes |
+|---|---|---|
+| `complete` | 1 | The 23 October medical record, live and unchanged. |
+| `not_selected` | 3 | Haiku relevance verdicts, permanent. The 3 November meeting item was read against its original: routine and generic, a legitimate hold. |
+| `retriable` | 1 | ADMM-Plus, 4 of 5 failures, hold `daily_name_or_office_unsupported`. |
+| `pending` | 53 | Never analyzed, except `8788720e` and `2810d3c1` (one recorded failure each). 47 pre-date the 27 October approval (earliest 30 September); 6 were published since. |
+
+**Most important remaining blocker: repeated name/office QA failure, amplified by
+one-slot, newest-first allocation.** Two limits compound.
+
+1. *Failures dominate the slots.* The one pass in eleven recorded analysis attempts
+   is the 23 October record. Every failure with a surviving diagnostic stops
+   at the daily name/office gate. Whether that is a genuine model error or an over-strict
+   validator is **not established**, because no parsed reading was retained for
+   any failure before #964 (merge `f02bfc60b8`; branch commit `72ad6eb0d2`,
+   merged 3 Nov 05:56 UTC). The artifacts for runs `41131633031` to
+   `41548931410` contain no `readings/` directory; only the 3 November run has
+   one. An offline, no-model inspection shows the capitalized-token locality gate
+   accepts a token only if it is in the cited passage or in the closed
+   `TRANSLATED_LABELS` set, so it would reject ordinary English renderings (for
+   example a title or country name) that the prompt never instructs against.
+   That is a possible mechanism, not evidence about these failures. The
+   validator and prompt stay unchanged, per the standing instruction not to
+   adjust QA merely to publish. A prompt change would not reset failure counts
+   (the source-version key excludes the prompt).
+2. *Allocation turns each failure into a day.* `process()` visits entries by
+   `(publisher_posted_date, source_identity)` descending (the private database
+   `published_date` is that field), skips terminal states, and gives the single
+   slot to the first pending or retriable entry; a relevance rejection also
+   consumes it. With about one Kemhan run, so one slot, a day, a failed item
+   costs a day, a routine newer item that Haiku rejects costs another, and the
+   five-failure pause arrives after five such days. ADMM-Plus is the second
+   eligible entry, behind one 3 November pending item. If no newer eligible
+   original appears it is next after that item, so its fifth and final attempt
+   is plausibly days away rather than blocked; each new arrival (1, 2, 3, 0, 1,
+   0 and 2 originals on 28 October to 3 November) can push it back. The
+   backlog split above matters here: the 47 earlier originals (dated by their
+   URL path) are a pre-activation archive whose backfill is an owner question,
+   not a delivery failure; the 7 eligible post-activation entries, ADMM-Plus
+   among them, are within reach of one slot a day.
+   Slot allocation lives in shared `processing/daily_intake.py`, which this task
+   does not change; the open governed-dispatch pull request (#950) is the
+   nearest related work but has not been confirmed to cover per-source slots.
+
+**Two pending entries with one failure and no reason** (`8788720e`,
+`2810d3c1`). The pre-#964 deferral branch rebuilt the entry from `version` and
+`attempts` and set `pending`, dropping the reason (verified against the code at
+the parent of `f02bfc60b8`; the same erasure is visible for ADMM-Plus in
+`41350848769`). `2810d3c1` recorded the name/office hold in `40961161769`;
+`8788720e`'s failure is attributed in the historical record below to the
+earlier-version industry reading (word count, evidence locality and related
+gates), not to this hold. #964 now keeps such entries unchanged. No action.
+
+**Not a Kemhan issue.** The 3 November 19:39 UTC Daily failure (run
+`41705243710`) was a health-gate notice for two non-Kemhan sources (Ministry of
+Public Security — Foreign Affairs, last article 22 October; Government Office
+official-document metadata, 25 October). Later Daily runs succeeded.
+
+**Public state (HTTPS readback, 4 November 2026 01:57 UTC).**
+`https://indopacificrecord.org/indonesia.html` returned 200 and shows one Kemhan
+machine explanation, the 23 October air-medical-evacuation record, alongside the
+official-link metadata records. No additional authentic Kemhan explanation has
+reached production. State: this review is documentation only, no tests apply,
+nothing here is merged or deployed, and no new record is live-verified. #964 is
+merged and in force because the private workflow checks out public main.
+
+**Next event and remaining path.** Do nothing to the queue. ADMM-Plus's fifth
+attempt will be the first with a preserved reading. If it passes QA it follows
+normal signed admission. If it pauses, adjudicate its tokens against the cited
+passages in private. Only if that shows a legitimate English rendering rejected
+by a gate, make a narrow, tested `TRANSLATED_LABELS`-style allowance. That needs
+owner sign-off, and an authorized retry reset for that one entry because the
+pause would otherwise intervene. Reliable unattended recurrence needs, in order:
+a passing or diagnosed reading for the name/office hold; the owner's decision on
+slots per run and ordering within the $0.35 bound; and a decision on whether the
+pre-activation archive is to be backfilled.
+
 ## Historical implementation and controlled-release record
 
 The owner approved the narrow standing source-use, spending and controlled
