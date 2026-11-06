@@ -7,6 +7,26 @@ to `e0cd41a2eb5ac0a540433859330799354f8b3670`. This feature is ready for review;
 the Maritime Cooperation pilot remains **draft and unpublished**. Approval of
 Brief No. 15 does not authorize a new timeline.
 
+## Editorial identity and boundary (founder, 2026-11-05)
+
+An Evidence Timeline is IPR's **chronological reconstruction product**: it
+answers what happened, when, and according to which exactly attributable
+document. Its editorial value is event/claim/report precision, separating
+event dates from publication dates, competing official chronologies and
+explicit evidence gaps. Source comparison may reconcile a disagreement or
+state that it remains unresolved; chronology and coincident timing do not
+alone support a causal explanation, coordination claim or inferred intent.
+
+For a continuing thematic reference that organizes broader evidence and
+institutional context, use a **Living Dossier**. For a developed human
+argument evaluating the strategic meaning of events, use a **Regional
+Assessment** (a dated, readable analytical essay). See
+[product and editorial doctrine §5c](PRODUCT_AND_EDITORIAL_DOCTRINE.md#5c-regional-assessments--distinct-from-dossiers-and-evidence-timelines).
+A Dossier may show a version-bound chronology projection under its existing
+rules; the Timeline remains the canonical event reconstruction. This
+clarification does not change the Timeline schema, source restrictions,
+existing pilots or founder release/approval requirements.
+
 ## Changed files
 
 | Responsibility | Files |
