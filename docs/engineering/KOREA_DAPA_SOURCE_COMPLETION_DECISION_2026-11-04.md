@@ -26,8 +26,8 @@ themselves a basis) and the shared-desk rules in `docs/desks/README.md`
   *decision on §5, then one bounded shared-pipeline profile*, not new
   collection, a publisher letter or a new engine.
 - This PR adds the missing piece that needs no decision: a **per-version replay
-  of the Type 0 mark from the exact preserved page bytes**, wired as an optional
-  step of the existing offline candidate builder.
+  of the Type 0 mark from the exact preserved page bytes**, now required
+  before the existing offline candidate builder can label prose CANDIDATE.
 
 ## 2. Evidence reviewed
 
@@ -98,10 +98,13 @@ Contains (offline, no network, no model, no generated output):
   one canonical link equal to the expected article URL; one licence wrapper; the
   text-only Type 0 marker; a badge consistent with the text; the non-text
   exclusion notice; no conflicting type label. Fixed-code errors, no source text.
-- Optional `--page-capture` / `page_capture_path` in the existing candidate
-  builder. The capture is bound to the pinned row's digest; a failed replay
-  becomes a `license_mark:*` HOLD; the receipt records `rights_basis` with the
-  HWPX prose basis stated as an interpretation accepted by the owner (option A).
+- `--page-capture` / `page_capture_path` in the existing candidate builder.
+  A valid preserved article capture is **required for CANDIDATE/private prose
+  export** under owner option A. Missing or failed replay produces a
+  `license_mark:*` HOLD, leaves prose private and unexported, and records an
+  explicitly held HWPX use rather than treating the interpretation as a usable
+  basis without the mark. The existing CLI can still report a safe HOLD when
+  `--page-capture` is omitted.
 - Tests with synthetic fixtures built from the real wrapper structure (no
   capture is committed). The previously staged #975/#976 code, tests and
   operating notes are carried here.
@@ -120,7 +123,12 @@ that point and gated off until each separate authority exists.
    amend it (option A assumes link-only).
 3. Open: model input, provider and cost, decided separately, if at all.
 4. Open: standing per-version rule (replayed mark plus screens) versus
-   per-version sign-off.
+   per-version sign-off. **Recommendation:** adopt standing routine eligibility
+   for future exact-source versions that authenticate the same Type 0 text mark,
+   sole DAPA issuer and approved exclusions, keeping changed/ambiguous versions
+   held individually. This proposal is **not** a standing activation or release
+   grant; provider/model/cost, Korean semantic review and public components
+   remain separate decisions.
 
 Verified here: unit tests for the replay, the candidate builder and the HWPX
 auditor; the replay against the real preserved page. Not claimed: Korean
