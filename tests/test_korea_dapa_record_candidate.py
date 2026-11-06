@@ -81,8 +81,15 @@ class RecordCandidateTest(unittest.TestCase):
         os.chmod(self.root, 0o700)
 
     def fixture(self, raw=None, title=TITLE, db_text=None, doc_sha=None,
-                identity=IDENTITY, capture_sha="c" * 64):
+                identity=IDENTITY, capture_sha=None):
         raw = raw if raw is not None else release()
+        capture = self.root / "page.bin"
+        if not capture.exists():
+            capture.write_bytes(page_html(
+                url="https://www.korea.kr/briefing/pressReleaseView.do?newsId="
+                    + identity.split(":")[-1]))
+        if capture_sha is None:
+            capture_sha = hashlib.sha256(capture.read_bytes()).hexdigest()
         hwpx = self.root / "original.hwpx"
         hwpx.write_bytes(raw)
         text = db_text if db_text is not None else lines_of(raw)
@@ -115,7 +122,8 @@ class RecordCandidateTest(unittest.TestCase):
 
     def build(self, *args, as_of=None, **kwargs):
         db, sha, hwpx = self.fixture(*args, **kwargs)
-        return build_candidate(db, sha, IDENTITY, hwpx, as_of)
+        return build_candidate(db, sha, IDENTITY, hwpx, as_of,
+                               self.root / "page.bin")
 
     def test_sole_issuer_release_becomes_private_candidate_only(self):
         receipt, paragraphs = self.build()
@@ -223,10 +231,18 @@ class RecordCandidateTest(unittest.TestCase):
                          "interpretation_accepted_by_owner_option_a")
         self.assertIs(receipt["model_input_authorized"], False)
         self.assertNotIn("가상", json.dumps(receipt, ensure_ascii=False))
-        # Without a capture the receipt states the mark was not replayed.
-        bare, _ = build_candidate(db, sha, IDENTITY, hwpx)
+        # No preserved page means no licensed prose candidate or private export.
+        bare, private = build_candidate(db, sha, IDENTITY, hwpx)
+        self.assertEqual(bare["status"], "HOLD")
+        self.assertIsNone(private)
         self.assertIsNone(bare["license_mark_replay"])
+        self.assertIn("license_mark:preserved_page_capture_required",
+                      bare["reason_codes"])
         self.assertIn("not_replayed", bare["rights_basis"]["article_page_text"])
+        self.assertEqual(bare["rights_basis"]["hwpx_attachment_prose"],
+                         "held_pending_article_license_mark_replay")
+        with self.assertRaisesRegex(CandidateHold, "requires_candidate"):
+            write_private_input(self.root / "unqualified.json", bare, private)
 
     def test_page_capture_hash_or_mark_failure_holds(self):
         raw = page_html(url="https://www.korea.kr/briefing/pressReleaseView.do"
@@ -281,6 +297,17 @@ class RecordCandidateTest(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             code = cli.main(["--db", str(db), "--db-sha256", sha,
                              "--source-identity", IDENTITY, "--hwpx", str(hwpx),
+                             "--private-output", str(self.root / "p.json")])
+        self.assertEqual(code, 3)
+        self.assertNotIn("가상", out.getvalue())
+        self.assertIn("license_mark:preserved_page_capture_required",
+                      json.loads(out.getvalue())["reason_codes"])
+        self.assertFalse((self.root / "p.json").exists())
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = cli.main(["--db", str(db), "--db-sha256", sha,
+                             "--source-identity", IDENTITY, "--hwpx", str(hwpx),
+                             "--page-capture", str(self.root / "page.bin"),
                              "--private-output", str(self.root / "p.json")])
         self.assertEqual(code, 0)
         self.assertNotIn("가상", out.getvalue())
