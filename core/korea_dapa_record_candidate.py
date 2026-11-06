@@ -6,8 +6,8 @@ government-authored body prose from masthead, timing, headline, contact and
 picture elements. Expected values come only from the SHA-pinned DB row.
 
 Rights basis: the preserved Policy Briefing article page carries a published
-KOGL Type 0 notice for its *text*. When a captured page is supplied, that mark
-is replayed from the hash-bound bytes (core.korea_dapa_archived_kogl_replay).
+KOGL Type 0 notice for its *text*. A CANDIDATE requires replaying that mark
+from the hash-bound bytes (core.korea_dapa_archived_kogl_replay).
 Applying the page-text mark to the linked HWPX's DAPA-authored prose is a
 documented interpretation, not an explicit attachment licence, and is not
 decided here. This module prepares a local offline candidate only: it
@@ -206,8 +206,8 @@ def build_candidate(db_path, db_sha256, source_identity, hwpx_path, as_of=None,
                     page_capture_path=None):
     """Return (public-safe receipt, private paragraphs or None).
 
-    ``page_capture_path`` optionally replays the article-page KOGL Type 0 text
-    mark from the preserved capture named by the pinned row's digest.
+    The preserved page capture is mandatory for a CANDIDATE: the KOGL Type 0
+    mark must replay from exact hash-bound bytes, as the owner decision requires.
     """
     row, meta = read_pinned_row(db_path, db_sha256, source_identity)
     try:
@@ -222,7 +222,9 @@ def build_candidate(db_path, db_sha256, source_identity, hwpx_path, as_of=None,
     issuer = issuer_resolution(shape)
     holds = [f"issuer:{r}" for r in issuer["reasons"]]
     license_mark = None
-    if page_capture_path is not None:
+    if page_capture_path is None:
+        holds.append("license_mark:preserved_page_capture_required")
+    else:
         try:
             license_mark = replay_capture_file(
                 page_capture_path, row["capture_sha256"], row["url"])
@@ -305,7 +307,9 @@ def build_candidate(db_path, db_sha256, source_identity, hwpx_path, as_of=None,
             "article_page_text": ("kogl_type0_page_notice_replayed"
                                   if license_mark else
                                   "kogl_type0_page_notice_recorded_by_collector_not_replayed"),
-            "hwpx_attachment_prose": "interpretation_accepted_by_owner_option_a",
+            "hwpx_attachment_prose": ("interpretation_accepted_by_owner_option_a"
+                                       if license_mark else
+                                       "held_pending_article_license_mark_replay"),
             "scope": "offline_preparation_only",
         },
         "network_requests": 0,
