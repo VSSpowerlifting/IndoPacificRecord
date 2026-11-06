@@ -25,7 +25,7 @@ def main(argv=None):
     p.add_argument("--source-identity", required=True)
     p.add_argument("--hwpx", type=Path, required=True)
     p.add_argument("--page-capture", type=Path,
-                   help="preserved article page; replays the KOGL Type 0 mark")
+                   help="preserved article page; required for a CANDIDATE under KOGL Type 0")
     p.add_argument("--private-output", type=Path)
     p.add_argument("--as-of", type=datetime.fromisoformat,
                    help="timezone-aware ISO time for the embargo check")
