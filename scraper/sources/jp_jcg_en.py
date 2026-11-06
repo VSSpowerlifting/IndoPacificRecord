@@ -158,8 +158,19 @@ class JCGEnglishAdapter(ListingShadowAdapter):
                    "official release body")
         for node in body.select("script, style, noscript, nav, form, iframe, svg"):
             node.decompose()
-        paragraphs = [p.get_text(" ", strip=True) for p in body.select("p, li, blockquote")]
-        paragraphs = [p for p in paragraphs if p]
+        # Narrative leads and numbered sections can be headings rather than
+        # paragraphs (for example the Quad-at-Sea English release). Preserve
+        # their text in DOM order without treating gallery/link labels as prose.
+        paragraphs = []
+        for element in body.select("h2, h3, h4, p, li, blockquote"):
+            value = element.get_text(" ", strip=True)
+            if not value:
+                continue
+            if element.name in ("h2", "h3", "h4"):
+                heading = re.sub(r"\s+", " ", value).strip().casefold()
+                if heading in ("photo gallery", "links"):
+                    continue
+            paragraphs.append(value)
         if not title or len(" ".join(paragraphs)) < 180:
             raise ValueError("body too short for a substantive original HTML release")
         if not any(len(p) > 70 for p in paragraphs):
