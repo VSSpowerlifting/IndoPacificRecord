@@ -125,8 +125,9 @@ class WriterContractTests(unittest.TestCase):
             self.assertEqual(compose(sidecar, "2026-10-09", client=fake), manuscript)
         self.assertEqual(len(recorded), 1)
         self.assertEqual(recorded[0]["tool_choice"]["name"], "compose_editorial_draft")
-        # Smaller non-discovery drafts retain strict tool-grammar constraints.
-        self.assertIs(recorded[0]["tools"][0]["strict"], True)
+        # The legacy writer has no strict-mode tool flag; Sunday-mode
+        # configurations are checked by test_sunday_strict_tool_schema.
+        self.assertNotIn("strict", recorded[0]["tools"][0])
         schema = recorded[0]["tools"][0]["input_schema"]
         self.assertEqual(schema["properties"]["citations"]["properties"]["opening_note"]["items"]["enum"], [1, 2])
         self.assertIn("The only allowed record IDs are 1, 2.", recorded[0]["messages"][0]["content"])
