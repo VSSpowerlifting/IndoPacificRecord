@@ -5,7 +5,6 @@ source identity. This adapter only supplies the existing isolated collection
 runner; it never admits public records or licenses originals for reuse.
 """
 import re
-from datetime import date
 from urllib.parse import parse_qs, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
@@ -13,6 +12,7 @@ from bs4 import BeautifulSoup
 from core.collection.contract import ExtractedDocument
 from scraper.sources.desk_shadow_http import Page, ListingShadowAdapter
 from scraper.sources.id_kemhan import one
+from scraper.sources.iso39 import date_py39
 from scraper.sources.kr_policy_briefing import (
     KoreaPolicyAdapter, LISTING, HOST, article_url, hwpx_text,
 )
@@ -73,7 +73,7 @@ class KoreaDapaPolicyAdapter(KoreaPolicyAdapter):
             spans = one(anchor.select(".source"), "release source").find_all("span", recursive=False)
             if len(spans) != 2 or spans[1].get_text(strip=True) != ISSUER:
                 raise ValueError("DAPA listing contains another issuer")
-            published = date.fromisoformat(spans[0].get_text(strip=True).replace(".", "-")).isoformat()
+            published = date_py39(spans[0].get_text(strip=True).replace(".", "-")).isoformat()
             if not request[1]["startDate"] <= published <= request[1]["endDate"]:
                 raise ValueError("DAPA release outside declared search window")
             title = one(anchor.select("strong"), "release original title").get_text(" ", strip=True)
@@ -107,7 +107,7 @@ class KoreaDapaPolicyAdapter(KoreaPolicyAdapter):
             raise ValueError("DAPA article canonical identity changed")
         title = one(soup.select(".view_title h1"), "DAPA original title").get_text(" ", strip=True)
         info = one(soup.select(".variety .info"), "DAPA issuer/date")
-        published = date.fromisoformat(
+        published = date_py39(
             one(info.select("span:first-child"), "DAPA posting date").get_text(strip=True).replace(".", "-")
         ).isoformat()
         issuer = one(

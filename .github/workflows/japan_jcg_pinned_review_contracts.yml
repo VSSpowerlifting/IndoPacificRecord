@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Check review receipts and read-only workflow contract
         run: python -m unittest tests.test_japan_jcg_pinned_review_receipt -v
       - name: Ensure no unexpected changes to tracked repository

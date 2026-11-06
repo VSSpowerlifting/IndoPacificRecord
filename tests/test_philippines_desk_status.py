@@ -216,7 +216,7 @@ class MachineExplanationEligibility(unittest.TestCase):
 
 
 class PhilippinesWorkflowRunners(unittest.TestCase):
-    """Python 3.9 jobs must not run on ubuntu-latest (Ubuntu 26.04 has none)."""
+    """Philippines jobs stay on the pinned ubuntu-24.04 runner image."""
 
     WORKFLOWS = (
         "ph_afp_verified_official_link_production.yml",
@@ -225,11 +225,11 @@ class PhilippinesWorkflowRunners(unittest.TestCase):
         "ph_nsc_shadow.yml",
     )
 
-    def test_philippines_python39_jobs_use_ubuntu_2404(self):
+    def test_philippines_jobs_use_pinned_ubuntu_2404(self):
         for name in self.WORKFLOWS:
             with self.subTest(workflow=name):
                 text = (REPO_ROOT / ".github" / "workflows" / name).read_text("utf-8")
-                self.assertIn("python-version: '3.9'", text)
+                self.assertIn("python-version: '3.13'", text)
                 runners = re.findall(r"^\s*runs-on:\s*(\S+)", text, re.M)
                 self.assertTrue(runners)
                 self.assertEqual(set(runners), {"ubuntu-24.04"})

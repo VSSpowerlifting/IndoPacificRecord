@@ -39,7 +39,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.13"
       - name: Synthetic permission and audit tests
         run: python -m unittest -v tests.test_mindef_permissions tests.test_mindef_public_surfaces tests.test_audit_generated_record_text tests.test_mindef_stage_projection
       - name: Enforce current public surface boundary (not history clearance)

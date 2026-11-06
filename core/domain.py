@@ -5,8 +5,8 @@ This module is deliberately free of China-specific knowledge: no source slugs,
 no outlet names, no Chinese-language terms, no topical categories. Everything
 country-specific lives in `desks/<desk_id>/manifest.json` and its taxonomy.
 
-Python 3.9 compatible (the CI runner pins 3.9): no PEP 604 unions (`X | None`),
-no `match`. `Optional[...]` and `List[...]` throughout.
+Written for Python 3.9, so it uses `Optional[...]` and `List[...]` rather than
+PEP 604 unions or `match`. CI now pins 3.13; the older spelling is still valid.
 """
 
 from __future__ import annotations

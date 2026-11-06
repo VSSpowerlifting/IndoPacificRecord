@@ -52,7 +52,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Prove release verifier rejects broken references and legacy routes
         run: python -m unittest -v tests.test_china_retirement_release tests.test_china_retirement_pages_readback tests.test_china_retirement_crossdesk tests.test_china_retirement_backup_lineage tests.test_china_retirement_release_queue
       - name: Prove this contract did not modify the tracked corpus/site
@@ -111,7 +111,7 @@ jobs:
           test ! -e pla_watch.db-shm
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - run: pip install -r requirements.txt
       - name: Recheck exact retirement, reingestion, and publication protection contracts

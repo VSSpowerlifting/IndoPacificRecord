@@ -14,7 +14,6 @@ import re
 import time
 import urllib.error
 import urllib.request
-import urllib.robotparser
 from html.parser import HTMLParser
 from urllib.parse import parse_qs, urljoin, urlsplit
 
@@ -22,6 +21,7 @@ from scripts.probe_vietnam_mod_defrel_access import NoRedirect
 from core.korea_dapa_private_identity_bridge import (
     DAPAHold, ListingRows, canonical_article_identity,
 )
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 HOST = "https://www.dapa.go.kr"
 ROBOTS = HOST + "/robots.txt"
@@ -73,9 +73,7 @@ def robots_allow(data):
         line.strip().lower().startswith("user-agent:") for line in body.splitlines()
     ):
         raise AccessHold("publisher_robots_unreadable_or_challenged")
-    robots = urllib.robotparser.RobotFileParser()
-    robots.parse(body.splitlines())
-    if not robots.can_fetch(USER_AGENT, LISTING):
+    if not legacy_can_fetch(body.splitlines(), USER_AGENT, LISTING):
         raise AccessHold("publisher_robots_disallow_listing")
     return True
 

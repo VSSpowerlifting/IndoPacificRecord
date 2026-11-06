@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Synthetic schedule/ledger and published-link tamper checks
         run: python -m unittest tests.test_indonesia_operational_health -v
       - name: Assert no tracked output or source state was modified
@@ -68,7 +68,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Record immutable production files
         run: |
           set -euo pipefail

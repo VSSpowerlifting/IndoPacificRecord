@@ -12,11 +12,11 @@ import json
 import re
 import sys
 import urllib.parse
-import urllib.robotparser
 from datetime import date, datetime, timezone
 from pathlib import Path
 
 from bs4 import BeautifulSoup, Tag
+from scraper.sources.robots_prefix import legacy_can_fetch
 from scripts.probe_us_navy_first_party_access import AGENT, MAX_ROBOTS_BYTES, NoRedirect, _fetch
 import urllib.request
 
@@ -125,9 +125,7 @@ def collect(*, opener=None, as_of=None):
         raise USCCHold("uscc_robots_not_text") from None
     need("user-agent:" in text.lower() and "<html" not in text.lower()
          and "<script" not in text.lower(),"uscc_robots_not_usable")
-    parser=urllib.robotparser.RobotFileParser(ROBOTS)
-    parser.parse(text.splitlines())
-    need(parser.can_fetch(AGENT,INDEX),"uscc_listing_disallowed_by_policy")
+    need(legacy_can_fetch(text.splitlines(),AGENT,INDEX),"uscc_listing_disallowed_by_policy")
     payload,status=_fetch(opener,INDEX,MAX_BYTES)
     need(status=="ok" and payload is not None,"uscc_listing_"+status)
     rows=extract(payload,as_of=as_of)

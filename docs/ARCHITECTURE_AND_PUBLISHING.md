@@ -154,8 +154,8 @@ screenshots at 1280 and 375 widths.
   the pipeline (which renders through
   `site/render.py`), commits `pla_watch.db` + `output/` to main, deploys
   `output/` → `gh-pages` (peaceiris/actions-gh-pages@v3,
-  `cname: indopacificrecord.org`). Python 3.9 on the runner — keep the
-  validator and both renderers 3.9-compatible.
+  `cname: indopacificrecord.org`). Python 3.13 on the runner — keep the
+  validator and both renderers 3.13-compatible.
 - `deploy_output_only.yml` — manual: validates then publishes the
   already-committed `output/` from main, with the same CNAME. Use after local
   re-renders.

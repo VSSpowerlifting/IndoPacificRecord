@@ -14,7 +14,6 @@ import json
 import time
 import urllib.error
 import urllib.request
-import urllib.robotparser
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
@@ -22,6 +21,7 @@ from scripts.review_korea_dapa_source_contract import (
     DAPASourceHold, article_identity, listing_filter,
 )
 from scripts.probe_vietnam_mod_defrel_access import NoRedirect
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 HOST = "https://www.korea.kr"
 ROBOTS = HOST + "/robots.txt"
@@ -97,9 +97,7 @@ def robots_permit(data):
         x.strip().lower().startswith("user-agent") for x in body.splitlines()
     ):
         raise AccessRefused("robots absent, replaced or challenged")
-    policy = urllib.robotparser.RobotFileParser()
-    policy.parse(body.splitlines())
-    if not policy.can_fetch(USER_AGENT, DAPA_LISTING):
+    if not legacy_can_fetch(body.splitlines(), USER_AGENT, DAPA_LISTING):
         raise AccessRefused("robots disallows DAPA listing")
     return True
 

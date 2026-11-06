@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Run source-free failure and success contracts
         run: |
           python -m unittest tests.test_ph_afp_first23_reconciliation \

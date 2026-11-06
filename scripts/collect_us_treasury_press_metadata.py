@@ -10,10 +10,10 @@ import json
 import re
 import urllib.parse
 import urllib.request
-import urllib.robotparser
 from datetime import date, datetime, timezone
 from pathlib import Path
 from bs4 import BeautifulSoup, Tag
+from scraper.sources.robots_prefix import legacy_can_fetch
 from scripts.probe_us_navy_first_party_access import (
     AGENT, MAX_ROBOTS_BYTES, NoRedirect, _fetch
 )
@@ -115,9 +115,7 @@ def collect(*,opener=None,as_of=None):
     except UnicodeError: raise TreasuryHold("robots_not_utf8") from None
     require("user-agent:" in text.lower() and "<html" not in text.lower()
             and "<script" not in text.lower(),"treasury_robots_invalid")
-    checker=urllib.robotparser.RobotFileParser(ROBOTS)
-    checker.parse(text.splitlines())
-    require(checker.can_fetch(AGENT,INDEX),"treasury_listing_robots_disallow")
+    require(legacy_can_fetch(text.splitlines(),AGENT,INDEX),"treasury_listing_robots_disallow")
     payload,status=_fetch(opener,INDEX,MAX_BYTES)
     require(status=="ok" and payload is not None,"treasury_listing_"+status)
     rows=extract(payload,as_of=as_of)

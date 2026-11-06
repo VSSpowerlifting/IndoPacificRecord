@@ -9,7 +9,6 @@ import io
 import re
 import sys
 import zipfile
-from datetime import date
 from urllib.parse import parse_qs, urljoin, urlsplit
 from xml.etree import ElementTree as ET
 
@@ -20,6 +19,7 @@ from core.collection import status as st
 from core.collection.contract import ExtractedDocument
 from scraper.sources.desk_shadow_http import ListingShadowAdapter, Page, Refused
 from scraper.sources.id_kemhan import one
+from scraper.sources.iso39 import date_py39
 
 HOST = "www.korea.kr"
 LISTING = "https://" + HOST + "/briefing/pressReleaseList.do"
@@ -152,7 +152,7 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
             source = one(anchor.select(".source"), "listing source").find_all("span", recursive=False)
             if len(source) != 2 or source[1].get_text(strip=True) != ISSUER:
                 raise ValueError("ministry filter returned another issuer")
-            published = date.fromisoformat(source[0].get_text(strip=True).replace(".", "-")).isoformat()
+            published = date_py39(source[0].get_text(strip=True).replace(".", "-")).isoformat()
             if not request[1]["startDate"] <= published <= request[1]["endDate"]:
                 raise ValueError("search returned a date outside the requested window")
             title = one(anchor.select("strong"), "release title").get_text(" ", strip=True)
@@ -183,7 +183,7 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
             raise ValueError("canonical release identity disagrees")
         title = one(soup.select(".view_title h1"), "release title").get_text(" ", strip=True)
         info = one(soup.select(".variety .info"), "release provenance")
-        published = date.fromisoformat(one(info.select("span:first-child"), "release date").get_text(strip=True).replace(".", "-")).isoformat()
+        published = date_py39(one(info.select("span:first-child"), "release date").get_text(strip=True).replace(".", "-")).isoformat()
         issuer = one(info.select('a.gotosite[href="/news/ministryNewsList.do?repCode=A00005"]'), "release issuer")
         if not issuer.get_text(strip=True).startswith(ISSUER):
             raise ValueError("release issuer changed")

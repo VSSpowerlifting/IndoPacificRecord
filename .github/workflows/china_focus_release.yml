@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m unittest tests.test_china_focus_release -v
 
   release:
@@ -65,7 +65,7 @@ jobs:
           sha256sum pla_watch.db > "$RUNNER_TEMP/china-db.sha"
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - run: pip install -r requirements.txt
       - name: Recheck release and focus contracts

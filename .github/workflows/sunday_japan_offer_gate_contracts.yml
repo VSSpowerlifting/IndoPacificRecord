@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Test exact first-Sunday Japan model roster, future omission and no-send
         run: python -m unittest tests.test_sunday_japan_offer_gate -v
       - name: Audit first-Sunday actual private research packet without model or SMTP

@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.13"
       - name: Run strict no-network DAPA adversarial reconciliation suite
         run: python -m unittest -v tests.test_korea_dapa_private_identity_bridge
       - name: Confirm zero archive, original or production changes
