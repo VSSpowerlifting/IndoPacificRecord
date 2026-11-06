@@ -95,6 +95,8 @@ class JapanModAdmission(unittest.TestCase):
         self.assertEqual(self.approved["permitted_fields"], gate.PERMITTED)
         self.assertIn("unqualified or incomplete original bodies",
                       self.approved["excluded_uses"])
+        self.assertIn("unqualified or unlicensed source excerpts",
+                      self.approved["excluded_uses"])
         self.assertIn("maps, diagrams, media and embedded third-party assets",
                       self.approved["excluded_uses"])
         self.assertNotIn("original bodies", self.approved["excluded_uses"])
