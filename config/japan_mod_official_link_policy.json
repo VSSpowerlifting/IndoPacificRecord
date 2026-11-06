@@ -16,6 +16,7 @@
   "excluded_uses": [
     "publisher headlines",
     "unqualified or incomplete original bodies",
+    "unqualified or unlicensed source excerpts",
     "unqualified or unattributed translations",
     "PDF copies",
     "photographs",
