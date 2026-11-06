@@ -78,18 +78,21 @@ def replay_private_pdf(repo, commit, source_identity, pdf_path, *, fetch_run):
         raise JapanOriginalHold("japan_shadow_db_unavailable") from None
     require(hashlib.sha256(frozen).hexdigest() == evidence["state_sha256"],
             "japan_shadow_db_version_mismatch")
-    with tempfile.TemporaryDirectory(prefix="ipr-jp-pdf-replay-") as folder:
-        path = Path(folder) / "shadow.db"
-        path.write_bytes(frozen)
-        with sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1",
-                             uri=True) as conn:
-            require(conn.execute("PRAGMA quick_check").fetchone() == ("ok",),
-                    "japan_shadow_db_invalid")
-            row = conn.execute(
-                "SELECT source_slug,content_sha256,capture_sha256,"
-                "text_original,first_seen_run,published_date "
-                "FROM shadow_records WHERE url=?",
-                (candidate["canonical_official_url"],)).fetchone()
+    try:
+        with tempfile.TemporaryDirectory(prefix="ipr-jp-pdf-replay-") as folder:
+            path = Path(folder) / "shadow.db"
+            path.write_bytes(frozen)
+            with sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1",
+                                 uri=True) as conn:
+                require(conn.execute("PRAGMA quick_check").fetchone() == ("ok",),
+                        "japan_shadow_db_invalid")
+                row = conn.execute(
+                    "SELECT source_slug,content_sha256,capture_sha256,"
+                    "text_original,first_seen_run,published_date "
+                    "FROM shadow_records WHERE url=?",
+                    (candidate["canonical_official_url"],)).fetchone()
+    except sqlite3.Error:
+        raise JapanOriginalHold("japan_shadow_db_invalid") from None
     require(row is not None and row[0] == gate.FAMILY
             and row[4] == candidate["first_seen_run"]
             and row[5] == candidate["publisher_posted_date"],
