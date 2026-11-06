@@ -3,9 +3,46 @@
   "source_family": "jp_mod_news_ja",
   "standing_metadata_publication_authorized": true,
   "owner_decision_reference": "DECISION_LOG.md#2026-10-27--owner-japan-mod-news-pdf-linked-metadata-authorization",
-  "permitted_fields": ["source_identity", "canonical_official_url", "rss_date", "date_type", "official_issuer", "official_publisher"],
+  "permitted_fields": [
+    "source_identity",
+    "canonical_official_url",
+    "rss_date",
+    "date_type",
+    "official_issuer",
+    "official_publisher"
+  ],
   "date_type": "RSS pubDate (not independently verified document issue date)",
   "eligible_scope": "Successfully retrieved news-feed PDF records only; challenged, failed, undated and unassigned records excluded",
-  "excluded_uses": ["publisher headlines", "original bodies", "excerpts", "PDF copies", "photographs", "translations", "external model processing", "machine explanations"],
-  "notes": "Standing source-use authorization approved by Benjamin Yang on 2026-10-27. This does not authorize merge, intake activation, manual workflow dispatch or deployment; a separate release decision is required. The shared Daily activation variable remains unset. No authority is inherited from the collector or other desks."
+  "excluded_uses": [
+    "publisher headlines",
+    "unqualified or incomplete original bodies",
+    "unqualified or unattributed translations",
+    "PDF copies",
+    "photographs",
+    "maps, diagrams, media and embedded third-party assets",
+    "public original text or translation release without separate approval",
+    "external model processing",
+    "machine explanations"
+  ],
+  "notes": "27 October standing metadata approval remains effective, unchanged. November source-use reconciliation candidate: PDL1 may qualify authentic complete first-party source text and unofficial English derivative under the existing standing-source-rights trusted replay; this is eligibility for separately governed text research, not a grant to send PDF/text to external models, generate machine explanations, publish original or translated text, collect inaccessible documents, or activate intake. No runtime text caller exists under this metadata policy. The source-use amendment requires founder review and merge, and any later substantive model/publication release needs separately applicable decisions. The shared Daily activation variable remains unset.",
+  "standing_license_text_eligibility": {
+    "status": "qualified_only_after_source_version_and_license_replay",
+    "license_policy_id": "jp-mod-public-data-terms-pdl1",
+    "license_notice_url": "https://www.mod.go.jp/j/info/contents.html",
+    "license_qualification_contract": "core.standing_source_rights.qualify_standing_text",
+    "candidate_scopes": [
+      "original_text",
+      "translation_en"
+    ],
+    "required_checks": [
+      "first_party_jp_mod_news_ja_official_pdf_origin",
+      "authenticated_complete_clean_text_and_immutable_capture_version",
+      "fresh_publisher_PDL1_policy_replay_and_separate_notice_check",
+      "document_level_third_party_privacy_and_separate_terms_exclusions",
+      "attribution_and_unofficial_translation_change_notice"
+    ],
+    "public_text_release_authorized": false,
+    "external_model_input_authorized": false,
+    "automated_text_processing_or_release_authorized": false
+  }
 }
