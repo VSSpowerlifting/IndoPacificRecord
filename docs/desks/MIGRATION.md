@@ -288,7 +288,8 @@ MOIT stays unregistered.
 `scripts/check_source_liveness.py` is keyed on `articles`, so manual
 link/metadata/machine-record sources stay `INERT` even when their
 `source_run_results` rows are `OK`; the W1 stop condition needs a liveness
-check keyed on `source_run_results`. A missing Daily envelope with activation
+check keyed on `source_run_results` (the shared Daily families now have one:
+see "Shared Daily collector heartbeat" below). A missing Daily envelope with activation
 on is reported as `FETCH_FAILURE` because the public pipeline cannot
 distinguish a private-side outage from a run that produced nothing. Tracked DB
 rows for the four manual-source desks appear only after Daily's migration
@@ -338,6 +339,68 @@ Synthetic tests cover partial AFP/NSC fetch through authenticated admission,
 accepted-row preservation, duplicate replay, quiet Kemhan input and the actual
 Health shell. The subsequent production run above closes the authentic MAC/duplicate-replay
 gap; new-record admission and other recovery cases remain separate claims.
+
+**Shared Daily collector heartbeat (issue #673, review candidate, 4 November 2026):**
+*Problem.* The signed Daily packet is exactly `{schema, family, source_repository,
+source_ref, processor_commit, records, held}`: it carries no collection time, and
+public admission applies no freshness bound. A stopped private collector therefore
+yields the same envelope and the same `ok_all_duplicates` as a publisher with
+nothing new, the shared-Daily `source_run_results` rows have empty
+`started_at`/`completed_at`, and `check_source_liveness.py` (which reads
+`sources LEFT JOIN articles`) can only call these families `INERT`. Keying
+liveness on admission recency is rejected: NSC last posted in July and would be
+permanently red. This is the gap `docs/desks/README.md` §4 forbids ("quiet source
+... missed cycle ... must remain distinguishable").
+
+| | **A. Signed collection time in the packet** | **B. Read private custody metadata from the public side (implemented)** |
+|---|---|---|
+| Signal | `collected_at` inside the MAC'd packet | Committer date of the head commit of the family's `archive/<…>` custody branch (`SOURCES[family].custody_ref`) |
+| Public files | `processing/daily_intake.py` (packet key set, `admit`), `core/daily_sources.py`, `processing/daily_runner.py`, `pipeline.py` (record it), `scripts/check_source_liveness.py`, tests | `scripts/fetch_daily_machine_outputs.py`, `processing/daily_runner.py`, `pipeline.py`, `scripts/check_source_liveness.py`, tests; no workflow or secret change |
+| Private files | the processor's `sign_outputs` call path and the collector/processor workflow that supplies the time (private checkout was not available; exact files to be confirmed by the private-repo owner), plus a schema bump and a coordinated rollout | none |
+| Trust | tamper-evident (MAC) | unsigned, read with the existing CI token; forging it can change only a monitoring result, because `admit` never reads it |
+| Closes | collector stall **and** processor/signing stall (if the time is stamped at signing) | collector stall |
+| Does not close | a collector that runs but fails to preserve (the custody commit still lands) | processor/signing stall while the collector keeps committing; a collector that runs but fails |
+| Needs founder authorization | yes: private repo, signing contract/schema, secret/rollout | no (public, read-only, no new secret); activation and merge/deploy are still separate |
+
+*Recommendation: B now, A only if processor stalls prove to matter.* B is entirely
+inside the shared lifecycle, changes neither keys nor signing nor the private
+repo, and is testable offline. The brief's premise needs one correction: B does
+read private-repo *metadata* (one `gh api .../commits?sha=<ref>&per_page=1`
+call per active family, no content), but it modifies nothing there.
+
+*Implementation (B).* The fetch step writes an unsigned sidecar
+`<family>.collection.json` (`{"collector_last_run_at": "<UTC stamp>"}`) beside the
+envelope, deleting any prior one first. `pipeline.GovernedAdmission.heartbeat`
+reads it and `run_governed_manual_sources` records it as that run's
+`source_run_results.completed_at` for every outcome of an active admission
+(OK, duplicates, held, `FETCH_FAILURE`); inactive or dry-run admissions record
+none. `check_source_liveness.py` reads the latest row per source: a manual family
+with a heartbeat no older than `--heartbeat-max-days` (default 3, a founder-tunable
+value; `silence_threshold_days` is deliberately not reused because it measures
+publisher silence) is `HEALTHY` however old its last article, an older one is
+`UNHEALTHY`, and a family with no heartbeat (not activated, disabled, date
+unreadable) is judged exactly as before. An unreadable heartbeat prints a
+`::warning` annotation and is not counted in `failed_families`.
+
+*Semantics to preserve.* For governed manual rows, `completed_at` means "the
+private collector's last preserved attempt (unsigned)", not this process's run
+time. `storage/db.py` `get_last_success_by_source`, `scripts/source_health_report.py`
+and `scripts/operations_center.py` read `completed_at` for last-collection
+displays and will now show it for these families. Checked: they only take
+`MAX(completed_at)` (no duration arithmetic, so the still-empty `started_at`
+is harmless), `FETCH_FAILURE` rows are excluded from "last successful
+collection", and `record_source_run_result` stores the value untouched (a
+round-trip test covers dispatch, recorder, migrated table and `heartbeats()`).
+
+*Needs founder decision or check (nothing here is done by this change):*
+(1) whether to authorize Option A, a private packet/signing/schema change, to
+also cover processor stalls; (2) confirm that the CI read token
+(`IPR_DAILY_OUTPUT_READ_TOKEN`/`IPR_PRIVATE_VAULT_READ_TOKEN`) can read commits on
+the `archive/*` branches (verified only with the owner's admin token; if not, the
+warning appears and behaviour is unchanged); (3) the 3-day staleness value;
+(4) activation of the private Daily lane; (5) merge and deploy. Vietnam,
+Indonesia and DAPA are untouched; `id_kemhan_news` is covered generically if its
+policy is enabled.
 
 **#950 integration checkpoint — 3 November 2026:** founder explicitly authorized
 this integration and its ordinary release, conditional on final qualification.

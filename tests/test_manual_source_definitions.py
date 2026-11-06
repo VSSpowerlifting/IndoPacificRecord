@@ -297,6 +297,77 @@ class TestGovernedDispatch(unittest.TestCase):
         self.assertEqual(by_slug["ph_nsc_official_statements"].status, st.ADAPTER_ERROR)
         self.assertEqual(len(errors), 1)
 
+    # -- Collector heartbeat (monitoring only) -----------------------------
+
+    def with_heartbeat(self, stamp, intake, family="ph_nsc_official_statements"):
+        """Dispatch `family` with an intake dir that holds `stamp` as its heartbeat."""
+        from processing.daily_runner import heartbeat_path, write_heartbeat
+        with tempfile.TemporaryDirectory() as tmp:
+            if stamp == "malformed":
+                heartbeat_path(tmp, family).write_text("{not json", encoding="utf-8")
+            elif stamp:
+                write_heartbeat(tmp, family, stamp)
+            with mock.patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                              "IPR_DAILY_INTAKE_DIR": tmp}), \
+                    self.policy_open():
+                return self.dispatch(family, self.daily(family, intake=intake))
+
+    def test_heartbeat_is_recorded_as_completed_at_for_every_active_outcome(self):
+        stamp = "2026-11-03T06:00:00Z"
+        outcomes = {
+            "quiet": ({"records": 0, "admitted": 0, "holds": []}, st.OK_NO_PUBLICATIONS),
+            "admitted": ({"records": 2, "admitted": 2, "holds": []}, st.OK),
+            "held": ({"records": 1, "admitted": 0, "holds": ["daily_record_copying"]},
+                     st.OK_ALL_FILTERED),
+            "no envelope": (None, st.FETCH_FAILURE),
+        }
+        for name, (receipt, status) in outcomes.items():
+            with self.subTest(outcome=name):
+                r, _ = self.with_heartbeat(stamp, lambda *a, rc=receipt: rc)
+                self.assertEqual(r.status, status)
+                self.assertEqual(r.completed_at, stamp)
+
+    def test_heartbeat_survives_an_intake_hold(self):
+        def intake(*a):
+            raise IntakeHold("daily_envelope_mac_invalid")
+        r, _ = self.with_heartbeat("2026-11-03T06:00:00Z", intake)
+        self.assertEqual(r.status, st.ADAPTER_ERROR)
+        self.assertEqual(r.completed_at, "2026-11-03T06:00:00Z")
+
+    def test_heartbeat_absent_or_malformed_records_no_completion_time(self):
+        quiet = {"records": 0, "admitted": 0, "holds": []}
+        for stamp in (None, "malformed"):
+            with self.subTest(stamp=stamp):
+                r, _ = self.with_heartbeat(stamp, lambda *a: quiet)
+                self.assertEqual(r.status, st.OK_NO_PUBLICATIONS)
+                self.assertIsNone(r.completed_at)
+
+    def test_inactive_admission_never_reports_a_heartbeat(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from processing.daily_runner import write_heartbeat
+            write_heartbeat(tmp, "ph_afp_articles", "2026-11-03T06:00:00Z")
+            with mock.patch.dict(os.environ, {"IPR_DAILY_INTAKE_DIR": tmp}):
+                os.environ.pop("IPR_PRIVATE_DAILY_ENABLED", None)
+                r, _ = self.dispatch("ph_afp_articles",
+                                     self.daily(intake=lambda *a: self.fail("ran")))
+            self.assertEqual(r.status, st.SKIPPED_DISABLED)
+            self.assertIsNone(r.completed_at)
+            with self.activated(), self.policy_open():
+                os.environ["IPR_DAILY_INTAKE_DIR"] = tmp
+                r, _ = self.dispatch("ph_afp_articles",
+                                     self.daily(intake=lambda *a: self.fail("ran")),
+                                     dry_run=True)
+            self.assertIsNone(r.completed_at)
+
+    def test_heartbeat_is_never_an_admission_input(self):
+        """The same receipt gives the same result whatever the heartbeat says."""
+        receipt = {"records": 2, "admitted": 0, "holds": []}
+        seen = []
+        for stamp in (None, "2020-01-01T00:00:00Z", "2026-11-03T06:00:00Z"):
+            r, _ = self.with_heartbeat(stamp, lambda *a: receipt)
+            seen.append((r.status, r.new_documents, r.duplicates, r.error_detail))
+        self.assertEqual(len(set(seen)), 1)
+
     # -- Japan official links --------------------------------------------
 
     def japan(self, admit_links=None, resolve_commit=None):
@@ -530,6 +601,148 @@ class TestLivenessTreatsManualRegistrationsAsInert(unittest.TestCase):
                 state, _, detail = liveness.classify(slug, 0, None, date(2026, 11, 1), 7, exp)
                 self.assertEqual(state, "INERT")
                 self.assertIn("manual source", detail)
+
+    # -- Collector heartbeat -------------------------------------------------
+    # NSC last posted in July and must not read as red while its collector runs.
+
+    TODAY = date(2026, 11, 4)
+
+    def classify(self, slug, total, last_seen, heartbeat, **kw):
+        from scripts import check_source_liveness as liveness
+        exp = liveness.expectations()[slug]
+        return liveness.classify(slug, total, last_seen, self.TODAY, 7, exp,
+                                 heartbeat=heartbeat, **kw)
+
+    def test_quiet_publisher_behind_a_running_collector_is_healthy(self):
+        state, days, detail = self.classify(
+            "ph_nsc_official_statements", 3, "2026-07-14", "2026-11-03T06:00:00Z")
+        self.assertEqual((state, days), ("HEALTHY", 1))
+        self.assertIn("collector heartbeat 2026-11-03", detail)
+        self.assertIn("last article 2026-07-14", detail)
+
+    def test_never_admitted_family_with_a_running_collector_is_healthy(self):
+        state, _, detail = self.classify(
+            "ph_afp_articles", 0, None, "2026-11-04T06:00:00Z")
+        self.assertEqual(state, "HEALTHY")
+        self.assertIn("no article admitted", detail)
+
+    def test_stalled_collector_is_unhealthy_whatever_the_articles_say(self):
+        state, days, detail = self.classify(
+            "ph_afp_articles", 40, "2026-11-03", "2026-10-28T06:00:00Z")
+        self.assertEqual((state, days), ("UNHEALTHY", 7))
+        self.assertIn("collector heartbeat last observed 2026-10-28", detail)
+
+    def test_heartbeat_threshold_is_inclusive_and_tunable(self):
+        edge = "2026-11-01T06:00:00Z"          # 3 days
+        self.assertEqual(self.classify("ph_afp_articles", 0, None, edge)[0], "HEALTHY")
+        late = "2026-10-31T06:00:00Z"          # 4 days
+        self.assertEqual(self.classify("ph_afp_articles", 0, None, late)[0], "UNHEALTHY")
+        self.assertEqual(self.classify("ph_afp_articles", 0, None, "2026-10-30T06:00:00Z",
+                                       heartbeat_max_days=5)[0], "HEALTHY")
+
+    def test_no_heartbeat_is_judged_exactly_as_before(self):
+        self.assertEqual(self.classify("ph_afp_articles", 0, None, None)[0], "INERT")
+        # Without a heartbeat an old article is still stale, as before.
+        self.assertEqual(self.classify(
+            "ph_nsc_official_statements", 3, "2026-07-14", None)[0], "UNHEALTHY")
+
+    def test_unparseable_heartbeat_falls_back(self):
+        self.assertEqual(self.classify("ph_afp_articles", 0, None, "garbage")[0], "INERT")
+
+    def test_broken_inert_and_scraped_expectations_are_unaffected(self):
+        from scripts import check_source_liveness as liveness
+        fresh = "2026-11-04T06:00:00Z"
+        broken = liveness.Expectation(broken=True, reason="adapter unusable")
+        inert = liveness.Expectation(inert=True, reason="declared stub")
+        scraped = liveness.Expectation(threshold=7)
+        self.assertEqual(liveness.classify("x", 5, "2026-11-03", self.TODAY, 7, broken,
+                                           heartbeat=fresh)[0], "UNHEALTHY")
+        self.assertEqual(liveness.classify("x", 0, None, self.TODAY, 7, inert,
+                                           heartbeat=fresh)[0], "INERT")
+        # A scraped source is judged by article recency; a heartbeat is ignored.
+        self.assertEqual(liveness.classify("x", 5, "2026-10-01", self.TODAY, 7, scraped,
+                                           heartbeat=fresh)[0], "UNHEALTHY")
+
+    def test_every_manual_family_classifies_by_heartbeat(self):
+        for slug in MANUAL_FAMILIES:
+            with self.subTest(source=slug):
+                self.assertEqual(self.classify(slug, 0, None, "2026-11-03T06:00:00Z")[0],
+                                 "HEALTHY")
+                self.assertEqual(self.classify(slug, 0, None, "2026-10-01T06:00:00Z")[0],
+                                 "UNHEALTHY")
+
+
+class TestHeartbeatsFromRunResults(unittest.TestCase):
+    """`heartbeats()` reads only the latest row per slug from source_run_results."""
+
+    def build(self, rows):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "t.db"
+        conn = sqlite3.connect(path)
+        conn.execute("CREATE TABLE source_run_results (id INTEGER PRIMARY KEY, "
+                     "source_slug TEXT, status TEXT, completed_at TEXT)")
+        conn.executemany("INSERT INTO source_run_results (source_slug, status, completed_at) "
+                         "VALUES (?,?,?)", rows)
+        conn.commit()
+        conn.close()
+        return path
+
+    def test_latest_row_wins_and_disabled_or_null_rows_give_none(self):
+        from scripts import check_source_liveness as liveness
+        path = self.build([
+            ("a", st.OK, "2026-11-01T06:00:00Z"),
+            ("a", st.OK_ALL_DUPLICATES, "2026-11-03T06:00:00Z"),   # latest
+            ("b", st.OK, "2026-11-02T06:00:00Z"),
+            ("b", st.SKIPPED_DISABLED, "2026-11-03T06:00:00Z"),    # disabled since
+            ("c", st.OK, "2026-11-02T06:00:00Z"),
+            ("c", st.OK, None),                                    # unreadable since
+            ("d", st.FETCH_FAILURE, "2026-11-03T07:00:00Z"),       # collector ran
+        ])
+        self.assertEqual(liveness.heartbeats(path),
+                         {"a": "2026-11-03T06:00:00Z", "d": "2026-11-03T07:00:00Z"})
+
+    def test_round_trip_through_the_real_recorder(self):
+        """dispatch -> storage.db.record_source_run_result -> migrated table ->
+        heartbeats(): the stamp survives, and no write time replaces it."""
+        from processing.daily_runner import write_heartbeat
+        from scripts import check_source_liveness as liveness
+        from storage import db
+        slug, stamp = "ph_nsc_official_statements", "2026-11-03T06:00:00Z"
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        db_path = Path(tmp.name) / "rt.db"
+        build_legacy_db(db_path)
+        conn = connect(db_path)
+        apply_all(conn)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM scrape_runs WHERE id = 1").fetchone()[0], 1)
+        conn.close()
+        write_heartbeat(tmp.name, slug, stamp)
+        entry = pipeline._daily_admission(
+            slug, intake=lambda *a: {"records": 0, "admitted": 0, "holds": []})
+        policy = {"sources": {f: {"private_model_processing": True,
+                                  "public_machine_explanation": True,
+                                  "unattended_release": True} for f in SOURCES}}
+        with mock.patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                          "IPR_DAILY_INTAKE_DIR": tmp.name}), \
+                mock.patch("processing.daily_intake.load_policy", return_value=policy), \
+                mock.patch.object(pipeline, "_governed_admissions", return_value={slug: entry}), \
+                mock.patch.object(db, "DB_PATH", db_path):
+            [result] = pipeline.run_governed_manual_sources(
+                [slug], 1, FakeRegistry("philippines"), [])
+            db.record_source_run_result(1, result)
+        self.assertEqual(liveness.heartbeats(db_path), {slug: stamp})
+        stored = sqlite3.connect(db_path).execute(
+            "SELECT status, started_at, completed_at FROM source_run_results").fetchall()
+        self.assertEqual(stored, [(st.OK_NO_PUBLICATIONS, None, stamp)])
+
+    def test_database_without_the_table_has_no_heartbeats(self):
+        from scripts import check_source_liveness as liveness
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "empty.db"
+        sqlite3.connect(path).close()
+        self.assertEqual(liveness.heartbeats(path), {})
 
 
 if __name__ == "__main__":

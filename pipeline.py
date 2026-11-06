@@ -268,6 +268,12 @@ class GovernedAdmission:
     inactive_reason: Callable[[], Optional[str]]
     admit: Callable[[Optional[int]], GovernedOutcome]
     holds: tuple = ()
+    #: Optional. When the source's own upstream collector last ran (UTC
+    #: ISO-8601), if this path can observe that. Recorded as the run result's
+    #: `completed_at` for every outcome of an active admission, held or failed
+    #: included, and read only by scripts/check_source_liveness.py. Monitoring
+    #: only: it is not the time this process ran and never gates admission.
+    heartbeat: Optional[Callable[[], Optional[str]]] = None
 
 
 _AWAITING_ACTIVATION = "governed admission awaiting owner activation"
@@ -365,8 +371,13 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
                     family, receipt["records"], admitted, len(receipt["holds"]))
         return _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
 
+    def heartbeat():
+        from processing.daily_runner import read_heartbeat
+        intake_dir = os.environ.get("IPR_DAILY_INTAKE_DIR")
+        return read_heartbeat(intake_dir, family) if intake_dir else None
+
     return GovernedAdmission("daily_intake", inactive_reason, admit,
-                             holds=(IntakeHold,))
+                             holds=(IntakeHold,), heartbeat=heartbeat)
 
 
 # Japan: verified official link metadata from the isolated shadow collector's
@@ -689,10 +700,13 @@ def run_governed_manual_sources(manual_slugs: list, run_id: Optional[int],
         desk_id = registry.get_source(slug).desk_id
         entry = governed.get(slug)
 
+        beat = None   # set once the admission is active; see GovernedAdmission
+
         def _result(status, detail=None, new=0, dups=0):
             return SourceRunResult(source_slug=slug, status=status,
                                    desk_id=desk_id, new_documents=new,
-                                   duplicates=dups, error_detail=detail)
+                                   duplicates=dups, error_detail=detail,
+                                   completed_at=beat)
 
         if entry is None:
             results.append(_result(collection_status.SKIPPED_DISABLED,
@@ -708,6 +722,8 @@ def run_governed_manual_sources(manual_slugs: list, run_id: Optional[int],
                 results.append(_result(collection_status.SKIPPED_DISABLED,
                                        "dry run: governed admission not run"))
                 continue
+            if entry.heartbeat is not None:
+                beat = entry.heartbeat()
             outcome = entry.admit(run_id)
         except entry.holds as exc:
             # Fixed machine code only; never source text.
