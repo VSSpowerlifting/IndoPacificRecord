@@ -175,3 +175,52 @@ public result, before calling the service operational. Future eligible records
 then follow the same path without per-item approvals. No paid processing or
 additional schedule is needed. To pause new intake, unset the variable; preserve
 already released rows and their approved presentation.
+
+## 6 November 2026 — authenticated PDF original replay, offline candidate
+
+The next source-to-reader prerequisite is **raw original-byte fidelity**. The
+current shadow collector's genuine `jp_mod_news_ja` state preserves the source
+PDF SHA-256, normalized extracted text SHA-256, dates and scheduled-run ledger,
+but **not the original PDF bytes**. A later successful PDF URL fetch is not proof
+that the publisher served the same version. No historical capture can be
+manufactured from a digest.
+
+A bounded read-only bridge is proposed in
+`core/japan_mod_original_replay.py` with the no-body-output CLI
+`scripts/verify_japan_mod_original.py`. It accepts an already privately held
+raw PDF **outside the repository**, an exact `shadow/jp-mod` state commit and
+the existing `jp_mod_news_ja` source identity. It first reuses the live
+`core.japan_mod_official_links.candidates` authenticated metadata route:
+verified Actions source commit, frozen ledger, robots/access observation,
+correct source family and first-seen identity. It then compares:
+
+- the exact state DB SHA-256 and archived row with the verified candidate;
+- the **PDF byte SHA-256** against the originally archived capture hash;
+- the current project's normal PDF extractor with its exact archived
+  normalized text and text hash; and
+- every page's text-layer presence and extraction success, rather than
+  treating a partial PDF text layer as a complete document.
+
+The result is a **private in-memory text value** plus a public-safe hash/count
+receipt. The CLI prints only the receipt and never persists source bytes,
+publisher prose or a PDF copy. Missing/changed originals, missing text-layer
+pages, unverified source/run lineage and foreign source families hold. This
+does not resolve maps, diagrams, photographs, overall visual-document
+completeness, third-party material or PDF redistribution. A PDF containing
+illustration-only pages can match bytes and still be held from full-text
+qualification.
+
+This is an **engineering candidate**, not an adopted use-rights amendment,
+source activation or production machine record. The current metadata-only
+release policy remains effective while [PR #994](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/994)
+is separately reviewed. No external model, translation, English explanation,
+new source collection/custody, public original, machine record, DB mutation or
+site publication is authorized by replay.
+
+**Concrete next boundary:** obtain a legitimately retained, version-bound
+official PDF through an authorized private custody path, run this exact replay
+against its authentic state/version and independently assess each candidate's
+text/media exceptions. Only afterward should a separately approved provider
+and bounded shared-source profile generate an English explanation and pass
+existing QA/admission and site readback. Japan still requires JCG English HTML
+as a separate qualifying family for the eight-desk certification.
