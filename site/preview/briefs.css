@@ -295,3 +295,9 @@ main#main.brief-page>.wrap{background:var(--brief-paper);border:0}
 .brief-trail::after{width:240px;height:28px;top:-48px}
 @media(max-width:600px){.brief-page{--brief-profile-span:112px;--brief-profile-height:18px;--brief-profile-top:-38px}.brief-trail::after{width:160px;height:20px;top:-40px}}
 @media print,(forced-colors:active){.brief-section::after{display:none}}
+
+/* Optional named human contribution credits, separate from the author byline. */
+.brief-contribution-credits{margin:6px 0 0;font:13px/1.65 var(--sans);color:var(--band-muted)}
+.brief-contribution-credits p{margin:2px 0}
+.brief-contribution-label{font-weight:600}
+.brief-contribution-credits a{color:inherit;text-underline-offset:2px}
