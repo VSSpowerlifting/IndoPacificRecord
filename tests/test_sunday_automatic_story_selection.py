@@ -149,6 +149,9 @@ class AutomaticStorySelectionContracts(unittest.TestCase):
                 scaffold(), SAT, client=fake, supplemental=self.research,
                 automatic_story_selection=True)
         self.assertEqual(len(offered), 1)
+        # Full-week combined tool schema exceeds the strict grammar budget.
+        # Offline ID/anchor/manuscript validation remains mandatory.
+        self.assertIs(offered[0]["tools"][0]["strict"], False)
         self.assertEqual(draft["story_selection"]["selected_slug"],
                          "official-military-cooperation")
         self.assertIn("AUTOMATIC STORY SELECTION", offered[0]["messages"][0]["content"])
