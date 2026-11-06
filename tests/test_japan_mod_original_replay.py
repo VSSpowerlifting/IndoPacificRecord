@@ -137,6 +137,12 @@ class JapanOriginalReplayTests(unittest.TestCase):
         with self.assertRaisesRegex(JapanOriginalHold,
                                     "japan_shadow_db_version_mismatch"):
             self.replay(state=self.frozen + b"x")
+        corrupt = b"synthetic non-sqlite bytes"
+        with self.assertRaisesRegex(JapanOriginalHold,
+                                    "japan_shadow_db_invalid"):
+            self.replay(state=corrupt,
+                        evidence={"source_commit": COMMIT,
+                                  "state_sha256": sha(corrupt)})
         with self.assertRaisesRegex(JapanOriginalHold,
                                     "japan_source_commit_mismatch"):
             self.replay(evidence={"source_commit": "b" * 40,
