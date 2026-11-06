@@ -60,7 +60,7 @@ selects body prose from SHA-pinned versions: `156786758` is the private
 candidate; joint `156786687` and heading-variant `156786759` hold. No semantic
 review, model input or public use is authorized. The 4 November
 [decision candidate](../engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md)
-adds an optional hash-bound replay of the article's Type 0 text notice and sets
+adds hash-bound replay of the article's Type 0 text notice (now required for a prose CANDIDATE) and sets
 out options A–C for the HWPX prose; nothing is activated and no DAPA
 standing-rights policy entry is added.
 
