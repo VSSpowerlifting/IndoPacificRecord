@@ -68,10 +68,7 @@ class JapanOriginalReplayTests(unittest.TestCase):
 
     def replay(self, *, pdf=None, identity=IDENTITY, rows=None,
                state=None, evidence=None):
-        with patch.object(gate, "candidates",
-                          return_value=(self.row if rows is None
-                                        else rows, self.evidence if evidence is None
-                                        else evidence)) as mocked_candidates, \\
+        with patch.object(gate, "candidates") as mocked_candidates, \
              patch.object(gate, "_blob",
                           return_value=self.frozen if state is None else state):
             # Use a list of trusted candidates, as candidates() returns.
@@ -171,8 +168,8 @@ class JapanOriginalReplayTests(unittest.TestCase):
     def test_cli_reports_hashes_only_and_fails_closed(self):
         output = io.StringIO()
         with patch.object(gate, "candidates",
-                          return_value=([self.row], self.evidence)), \\
-             patch.object(gate, "_blob", return_value=self.frozen), \\
+                          return_value=([self.row], self.evidence)), \
+             patch.object(gate, "_blob", return_value=self.frozen), \
              contextlib.redirect_stdout(output):
             code = cli_run([
                 "--source-repo", str(self.repo),
@@ -183,7 +180,7 @@ class JapanOriginalReplayTests(unittest.TestCase):
         self.assertEqual(json.loads(output.getvalue())["status"],
                          "PDF_TEXT_LAYER_REPLAYED")
         output = io.StringIO()
-        with patch.object(gate, "candidates", side_effect=ValueError("no")), \\
+        with patch.object(gate, "candidates", side_effect=ValueError("no")), \
              contextlib.redirect_stdout(output):
             code = cli_run([
                 "--source-repo", str(self.repo),
