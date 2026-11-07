@@ -16,7 +16,7 @@ originals stay link-only. Page-to-attachment binding does **not** prove licence
 equivalence: this accepts the documented interpretation and does not claim
 equivalence was verified. The DAPA profile is integrated into the shared daily
 lifecycle **disabled by default** (all policy flags false, desk unregistered;
-migration m0021 not applied in production). **Not authorized:** model, provider
+m0021 is not yet in production; the daily workflow applies it on the first run after merge, and a scratch-copy rehearsal preserved every existing row). **Not authorized:** model, provider
 or cost, private or public processing, activation, merge or deployment. See
 [decision §8–§9](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md#9-shared-pipeline-integration-7-nov-2026-and-activation-proposal).
 

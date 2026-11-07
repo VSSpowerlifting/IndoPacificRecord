@@ -162,7 +162,7 @@ class FetchOutputs(unittest.TestCase):
                     self.assertEqual(conn.execute('SELECT * FROM daily_machine_records WHERE source_family=?',
                                                   (failed,)).fetchone(), old)
                 self.assertEqual(result[failed], 'fetch_failed')
-                # DAPA is registered but policy-disabled: no fetch, no envelope, no intake.
+                # DAPA is in fetch.SOURCES but policy-disabled: no fetch, no envelope, no intake.
                 self.assertEqual(result['kr_policy_dapa_releases'], 'policy_disabled')
                 self.assertNotIn('kr_policy_dapa_releases', admitted)
 
