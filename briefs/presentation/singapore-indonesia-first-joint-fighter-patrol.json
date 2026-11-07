@@ -1,0 +1,27 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "singapore-indonesia-first-joint-fighter-patrol",
+  "manuscript_fingerprint": "a31ffed37cc8e180f6f8a09f063082aee8324c4b459f3660ce08accca51d4857",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-inaugural-patrol",
+      "start": 1,
+      "end": 3,
+      "heading": "The first coordinated patrol"
+    },
+    {
+      "id": "reading-agreement-to-strait",
+      "start": 4,
+      "end": 6,
+      "heading": "From a defence agreement to a patrol"
+    },
+    {
+      "id": "reading-beyond-inaugural",
+      "start": 7,
+      "end": 9,
+      "heading": "The work after the inaugural flight"
+    }
+  ],
+  "approval": null
+}
