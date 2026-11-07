@@ -47,6 +47,49 @@ class SourceLinkedTests(unittest.TestCase):
         env.filters["brief_prose"] = brief_collection.linked_prose
         return env.get_template("brief.html").render(brief=view)
 
+    def test_role_specific_credits_keep_a_single_author(self):
+        draft = copy.deepcopy(self.value)
+        draft["editorial_status"] = "draft"
+        draft["issue_number"] = None
+        draft.pop("approval", None)
+        draft.pop("editorial_review", None)
+        draft.pop("policy_ruling", None)
+        draft["editorial_credits"] = [
+            {"role": "Editing", "name": "Dylan Tanzi"},
+            {"role": "Research and analysis", "name": "Peter"},
+        ]
+        self.assertEqual(brief_contract.validate_brief(draft, self.registry), [])
+        self.assertEqual(brief_collection.credited_author_names(
+            draft, "Benjamin Yang"), ("Benjamin Yang",))
+        page = self.render(draft)
+        self.assertIn("Edited by", page)
+        self.assertIn("Dylan Tanzi", page)
+        self.assertIn("Research and analysis by", page)
+        self.assertIn("Peter", page)
+        self.assertNotIn("By <span class=\"byline-name\">Benjamin Yang and", page)
+
+        bad = copy.deepcopy(draft)
+        bad["editorial_credits"][1]["role"] = "Co-author"
+        self.assertTrue(any("editorial credit" in p for p in
+                            brief_contract.validate_brief(bad, self.registry)))
+        duplicate = copy.deepcopy(draft)
+        duplicate["editorial_credits"][1]["role"] = "Editing"
+        self.assertTrue(any("editorial credit" in p for p in
+                            brief_contract.validate_brief(duplicate, self.registry)))
+
+    def test_western_pacific_candidate_remains_unpublished_with_valid_sources(self):
+        candidate = json.loads((ROOT / "briefs/china-western-pacific-deployment-coordination-2026.json").read_text())
+        self.assertEqual(candidate["editorial_status"], "draft")
+        self.assertIsNone(candidate["issue_number"])
+        self.assertEqual(candidate["author_name"], "Benjamin Yang")
+        self.assertEqual(candidate["editorial_credits"][0]["role"], "Editing")
+        self.assertEqual(candidate["editorial_credits"][1]["role"], "Research and analysis")
+        self.assertEqual(validate_source_linked(candidate), [])
+        self.assertEqual(brief_contract.validate_brief(candidate, self.registry), [])
+        self.assertTrue(validate_source_linked(candidate, release=True),
+                        "a draft must not satisfy the human release gate")
+        self.assertEqual(manuscript_html_errors(candidate, self.render(candidate)), [])
+
     def test_frozen_manuscript_and_seven_associations(self):
         fields = {k: self.value[k] for k in ("title", "dek", "body_paragraphs", "manuscript_sha256")}
         fields["publisher_references"] = [{k: s[k] for k in ("id", "url")}
