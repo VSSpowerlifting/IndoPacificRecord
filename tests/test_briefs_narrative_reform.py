@@ -351,6 +351,11 @@ class WriterContractTests(unittest.TestCase):
                 "Prefer affirmative, direct statements",
                 "That distinction matters",
                 "prefer flowing sentences",
+                "3a. ANALYTICAL PAYOFF",
+                "best source-supported alternative explanation",
+                "as much or more reader attention",
+                "3b. ECONOMICAL QUOTES",
+                "source-verified and attributed quote",
                 "Semicolons are welcome",
                 "No stylistic improvement can justify"):
             self.assertIn(rule, sent)
