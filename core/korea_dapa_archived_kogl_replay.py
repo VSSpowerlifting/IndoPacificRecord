@@ -17,7 +17,7 @@ a model, or publish anything. Errors are fixed codes, never source text.
 preserved HWPX to that marked page version: the page must list exactly one
 HWPX attachment, equal to the collector's recorded download, and carry the
 single DAPA reprint remark. It also records the article-body form. On every
-preserved DAPA page the marked article body is only a document-viewer frame
+pinned DAPA page version surveyed (Nov 2026) the marked article body is only a document-viewer frame
 (a conversion of an attachment that is not preserved) plus the remark, so
 page-text/HWPX equivalence cannot be verified offline; any change to that
 form is held until reviewed. The remark corroborates DAPA as the reprinted

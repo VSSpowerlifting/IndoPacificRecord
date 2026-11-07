@@ -204,9 +204,13 @@ bound to the pinned row's `capture_sha256`, must name its own canonical article
 URL, and must carry one text-only Type 0 marker, a consistent badge and the
 non-text exclusion notice with no other KOGL type. A failed replay becomes a
 `license_mark:*` hold. The receipt records `rights_basis`; the mark is proved
-for the page text only, and its application to the HWPX prose stays
-`interpretation_accepted_by_owner_option_a`. Without the option the receipt says
-the notice was recorded by the collector and not replayed. The decision
+for the page text only. The receipt records its application to the HWPX prose
+as `interpretation_accepted_by_owner_option_a` only when the CANDIDATE is fully
+clean. Without `--page-capture`, or with any hold, the receipt is a HOLD and
+records `held_pending_clean_candidate`, and no private prose is written. Since
+7 November 2026 the same bytes must also bind the HWPX to the page
+(`page_binding:*` holds): exactly one listed `.hwpx` equal to `document_url`, a
+viewer-only body and the reprint remark. The decision
 candidate is
 [KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md](KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md).
 
