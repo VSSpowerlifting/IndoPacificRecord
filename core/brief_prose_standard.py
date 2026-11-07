@@ -81,7 +81,12 @@ PROMPT_STANDARD = (
     "Use rhetorical questions, em dashes, three-item lists, symmetrical contrasts "
     "and not-X-but-Y only when the evidence genuinely requires them. Do not invent "
     "an opposing view to stage a contrast. Avoid habitual Moreover, Notably, "
-    "Ultimately and Taken together.\n"
+    "Ultimately and Taken together. Prefer affirmative, direct statements for "
+    "straightforward facts. Resist repetitive not-X-but-Y, does-not, and rather-than "
+    "framing. Retain factual negatives when absence or denial materially changes "
+    "the claim, and attribute them precisely. Avoid empty signposts such as "
+    "'That distinction matters' or 'This matters because'; state the specific "
+    "sourced implication or cut the signpost.\n"
     "5. EVIDENCE, ATTRIBUTION AND LIMITS. Separate official assertions, plans, "
     "reported activities, implemented measures and demonstrated results; never "
     "upgrade one into another. Attribute disputed claims, performance figures "
@@ -126,6 +131,9 @@ HEDGE_PATTERNS = (
     ("caution_stock", re.compile(r"\b(?:it is important to note|it should be noted|caution is warranted|care is needed)\b", re.I)),
 )
 STOCK_PATTERNS = (
+    ("empty_significance_bridge", re.compile(
+        r"\b(?:that|this) (?:distinction|difference) matters\b|\b(?:that|this) matters because\b|"
+        r"\bwhat this means\b", re.I)),
     ("significance_stock", re.compile(r"\b(?:underscor\w+|highlights? the (?:importance|need)|signals? (?:a |the )?(?:shift|growing)|testament to|speaks volumes|in an increasingly|rapidly evolving|complex landscape|delve\w*|tapestry|pivotal)\b", re.I)),
     ("not_x_but_y", re.compile(r"\bnot (?:just|only|merely|simply)\b[^.;]{0,90}\bbut\b|\bnot (?:a |an |the )?[^.;,]{3,50}, but\b", re.I)),
     ("filler_opener", re.compile(r"(?:^|(?<=[.!?] ))(?:Notably|Importantly|Interestingly|Ultimately|Overall|Moreover|Furthermore),", re.M)),
