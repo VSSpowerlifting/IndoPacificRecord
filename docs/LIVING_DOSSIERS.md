@@ -16,6 +16,28 @@ source identities, body hashes and those fields are recorded in `SOURCE_USES`.
 Readiness has no outstanding decision holds. Merge, deployment and publication
 remain unauthorized by this preparation task.
 
+## Editorial identity and boundary (founder, 2026-11-05)
+
+A Living Dossier is IPR's **maintained reference product**: it answers what
+reliable, source-grounded evidence establishes about a defined issue,
+relationship, institution or capability. Organize documents, institutional
+context, verified findings, areas of agreement or discrepancy, and open
+questions so that a reader can use the evidence without accepting an author's
+strategic argument. Findings and careful synthesis remain valid parts of
+existing Dossiers; this decision does **not** strip or retrospectively rewrite
+their approved findings.
+
+A detailed event-by-event reconstruction belongs primarily in an **Evidence
+Timeline**, although a Dossier may retain brief chronology context or a
+version-bound Timeline projection under its existing contract. A novel,
+human-authored thesis about implications or explanations belongs in a
+**Regional Assessment** (a dated analytical essay), not a living Dossier.
+See [product and editorial doctrine §5c](PRODUCT_AND_EDITORIAL_DOCTRINE.md#5c-regional-assessments--distinct-from-dossiers-and-evidence-timelines).
+Cross-links may support research but are not a prerequisite for publication.
+All existing Dossier versioning, sources, public-field permissions, approval
+and publication holds remain in effect. This is an editorial clarification,
+not a schema, renderer or release change.
+
 ## Ordinary workflow
 
 Use the repository Python environment (on the current machine:

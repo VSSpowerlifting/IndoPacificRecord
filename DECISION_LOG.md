@@ -4,6 +4,39 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-05 — Founder: distinct editorial identities and essay-led Regional Assessments
+
+The founder affirmed four separate IPR research jobs: **Briefs** interpret a
+specific development; **Living Dossiers** maintain a reusable evidence-centered
+reference on a topic; **Evidence Timelines** reconstruct the documented event
+sequence, including disagreements and gaps; **Regional Assessments** answer a
+broader question through original, human-authored analysis and a defensible
+argument. These are distinctions of reader value, not merely word length.
+
+Assessments should read as thoughtful, accessible **analytical essays** rather
+than academic research papers. A clear question, grounded thesis, sound source
+trail, proportionate discussion of rival explanations and explicit limits matter;
+an abstract, literature review, formal methods section and policy-memo template
+are not required. A flexible 1,500–2,800-word target is guidance, not a
+validator, word quota or automatic assignment. Existing cross-desk/time source
+expectations remain the default; any narrower exception needs a specific
+editorial scope decision.
+
+Dossier findings and optional chronology features are not invalidated or
+retrospectively changed; Timelines do not infer intent from coincident dates.
+External original sources may inform human research when specifically
+verified and permitted, without being falsely counted as collected Desk Records.
+Authentic human authorship, assigned human editing, independent source-to-claim
+review, exact release approval and existing rights/holds remain mandatory.
+
+**Scope of decision:** durable editorial definitions in
+`docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md`, with matching clarifications in
+`docs/LIVING_DOSSIERS.md` and `docs/EVIDENCE_TIMELINES.md`. Regional
+Assessments have **no implemented route/renderer/contract**, approved
+manuscript, numbered issue, release, new model workflow or fixed production
+cadence by this decision. A future private essay pilot may test usefulness
+before proposing software; eight-desk operational priorities remain intact.
+
 ## 2026-11-04 — Founder: research-first source-use reform (review implementation)
 
 The executive mandate establishes the general evaluation direction:
