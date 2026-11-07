@@ -187,8 +187,7 @@ def assert_projected(con):
 
 def editorial_hold(sidecar):
     """Withhold the whole signed document; never rewrite its references/digest."""
-    from core.mindef_permissions import APPROVED_MINDEF_LINKS
-    from urllib.parse import urlsplit
+    from core.mindef_permissions import source_link_approved
     def walk(value):
         if isinstance(value, dict):
             # A corpus citation needs private original/title reconciliation.
@@ -200,6 +199,6 @@ def editorial_hold(sidecar):
         if isinstance(value, str):
             if "mindef.gov.sg" not in value.lower():
                 return False
-            return (urlsplit(value).hostname or "").lower() not in ("mindef.gov.sg", "www.mindef.gov.sg") or value not in APPROVED_MINDEF_LINKS
+            return not source_link_approved(MINDEF_SOURCE_SLUG, value)
         return False
     return walk(sidecar)
