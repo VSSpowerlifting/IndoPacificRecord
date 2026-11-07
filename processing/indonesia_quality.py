@@ -37,14 +37,32 @@ CONCEPTS = {
 TRANSLATED_LABELS = {"Research": CONCEPTS[r"\bresearch\b"],
                      "Development": CONCEPTS[r"\bdevelopment\b"],
                      "Human": CONCEPTS[r"\bhuman[- ]resources?\b"],
-                     "Resource": CONCEPTS[r"\bhuman[- ]resources?\b"]}
+                     "Resource": CONCEPTS[r"\bhuman[- ]resources?\b"],
+                     # Weekday names are translated, not copied. Lowercase
+                     # "minggu" means "week", so Sunday must match "Minggu".
+                     "Monday": r"\bSenin\b", "Tuesday": r"\bSelasa\b",
+                     "Wednesday": r"\bRabu\b", "Thursday": r"\bKamis\b",
+                     "Friday": r"\bJum'?at\b", "Saturday": r"\bSabtu\b",
+                     "Sunday": r"(?-i:\bMinggu\b)"}
+# "840/Golok Sakti (GS)" defines the same unit identifier as "840/GS".
+DEFINED_SUFFIX = re.compile(
+    r"(?<!\w)(\d+)/((?:[A-Z][a-z]+\s+)*[A-Z][a-z]+)\s*\(([A-Z]{2,})\)")
 
 
-def factual_values(text):
+def suffix_definitions(evidence):
+    """Numeric unit suffixes the cited passage itself defines by exact initials."""
+    return {(m.group(1), tuple(m.group(2).split()), m.group(3))
+            for m in DEFINED_SUFFIX.finditer(evidence)
+            if "".join(w[0] for w in m.group(2).split()) == m.group(3)}
+
+
+def factual_values(text, definitions=()):
     """Canonical dates, with all remaining numbers kept exact.
 
     Kemhan numeric dates are day/month/year. Equivalent English/Indonesian
     month names or zero padding change presentation, not the event date.
+    A suffix defined in the cited passage ("N/Long Name (LN)") is one
+    identifier whether written long, abbreviated or both.
     """
     from processing.daily_intake import need
     values = set()
@@ -67,9 +85,16 @@ def factual_values(text):
     ):
         text = re.sub(pattern, replace, text, flags=re.I)
     values.update(('number', number) for number in re.findall(NUMBER, text))
+    # Identifier extraction only; the returned text keeps the original wording.
+    identifiers = text
+    for number, words, abbreviation in sorted(definitions):
+        identifiers = re.sub(
+            r"(?<!\w)" + number + "/" + r"\s+".join(map(re.escape, words))
+            + r"(?:\s*\(" + abbreviation + r"\))?(?!\w)",
+            number + "/" + abbreviation, identifiers)
     # Numeric suffixes are part of a unit/model identity, not just a quantity.
     values.update(('identifier', token.upper()) for token in re.findall(
-        r'\b(?=[\w/-]*[A-Z])(?=[\w/-]*\d)[A-Za-z0-9]+(?:[-/][A-Za-z0-9]+)*\b', text))
+        r'\b(?=[\w/-]*[A-Z])(?=[\w/-]*\d)[A-Za-z0-9]+(?:[-/][A-Za-z0-9]+)*\b', identifiers))
     return values, text
 
 
@@ -171,9 +196,10 @@ def quality_check(record, reading):
              "daily_private_translation_incomplete")
         need(not re.search(r"[\[\]]", translation), "daily_private_translation_completion_held")
         need(re.search(r"\bKemhan\b", sentence) is not None, "daily_attribution_missing")
-        original_values, evidence_text = factual_values(evidence)
-        translation_values, translation_text = factual_values(translation)
-        sentence_values, sentence_text = factual_values(sentence)
+        defined = suffix_definitions(evidence)
+        original_values, evidence_text = factual_values(evidence, defined)
+        translation_values, translation_text = factual_values(translation, defined)
+        sentence_values, sentence_text = factual_values(sentence, defined)
         need(translation_values == original_values and sentence_values <= original_values,
              "daily_quantity_or_date_unsupported")
         # Names in a sentence must be local to its cited passage. Date words
@@ -231,4 +257,4 @@ def quality_check(record, reading):
          "daily_indonesia_flag_held")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
          and reading.get("prompt_version") == VERSION, "daily_model_provenance_incomplete")
-    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v4"})
+    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v5"})

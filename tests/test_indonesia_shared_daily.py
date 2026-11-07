@@ -280,6 +280,50 @@ class IndonesiaSharedDaily(unittest.TestCase):
         reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
         return r,reply
 
+    def first_fact(self, evidence, sentence, translation, rest=''):
+        # Synthetic Indonesian text and invented units; never publisher text.
+        r,reply=record(),reading()
+        r['body']=evidence+'\n\n'+reply['facts'][1]['evidence']+rest
+        reply['facts'][0]=dict(evidence=evidence,sentence=sentence,evidence_translation=translation)
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_suffix_defined_by_exact_initials_in_cited_passage_is_same_identifier(self):
+        long,both,short='123/Garuda Satu','123/Garuda Satu (GS)','123/GS'
+        for sentence_unit,translation_unit in ((short,both),(long,both),(both,both),(short,long),(short,short)):
+            r,reply=self.first_fact('Batalyon Uji '+both+' menggelar latihan.',
+                'Kemhan reports that Batalyon Uji '+sentence_unit+' holds an exercise.',
+                'Batalyon Uji '+translation_unit+' holds an exercise.')
+            with self.subTest(sentence=sentence_unit,translation=translation_unit):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def test_suffix_abbreviation_without_exact_local_definition_holds(self):
+        cases=[  # wrong number; mismatched initials; definition only elsewhere in body
+            ('Batalyon Uji 123/Garuda Satu (GS) menggelar latihan.','124/GS','Batalyon Uji 123/Garuda Satu (GS)',''),
+            ('Batalyon Uji 123/Garuda Satu (GX) menggelar latihan.','123/GX','Batalyon Uji 123/Garuda Satu (GX)',''),
+            ('Batalyon Uji 123/Garuda Satu menggelar latihan.','123/GS','Batalyon Uji 123/Garuda Satu',
+             '\n\nBatalyon Uji 123/Garuda Satu (GS) dibentuk.')]
+        for evidence,unit,translated,rest in cases:
+            r,reply=self.first_fact(evidence,'Kemhan reports that Batalyon Uji '+unit+' holds an exercise.',
+                translated+' holds an exercise.',rest)
+            with self.subTest(unit=unit,rest=bool(rest)),self.assertRaisesRegex(d.IntakeHold,'daily_quantity_or_date_unsupported'):
+                d.quality_check(r,reply)
+
+    def test_weekday_requires_its_indonesian_name_in_cited_passage(self):
+        evidence='Latihan direncanakan akan berlangsung pada Selasa, 23 Oktober.'
+        def run(day,source=evidence):
+            return self.first_fact(source,'Kemhan reports plans for an exercise on '+day+', 23 Oktober.',
+                'An exercise is planned for '+day+', 23 Oktober.')
+        self.assertEqual(len(d.quality_check(*run('Tuesday'))),64)
+        r,reply=run('Sunday','Latihan direncanakan akan berlangsung pada Minggu, 23 Oktober.')
+        self.assertEqual(len(d.quality_check(r,reply)),64)
+        for day,source in (('Wednesday',evidence),
+                           ('Tuesday','Latihan direncanakan akan berlangsung pada 23 Oktober.'),
+                           ('Sunday','Latihan satu minggu direncanakan pada 23 Oktober.')):
+            r,reply=run(day,source)
+            with self.subTest(day=day,source=source),self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+                d.quality_check(r,reply)
+
     def institution_reading(self, form='Kementerian Contoh'):
         # Synthetic institutions and text; no publisher article or real response.
         r,reply=record(),reading()
