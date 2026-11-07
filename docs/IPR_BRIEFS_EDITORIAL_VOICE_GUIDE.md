@@ -73,6 +73,8 @@ A red flag is a **revision trigger**, not proof that any sentence was written by
 
 **Contrast:** “Not only X but also Y,” “not merely X, but Y,” “more than X—it is Y,” and “rather than X, Y” are *exceptional tools*. A real contrast can be valuable; an imaginary straw man is not. Prefer a plain direct statement.
 
+**Affirmative framing and significance signposts:** Lead with the event, observed change, responsible actor or precise evidence gap. Repeated “not X,” “does not,” “rather than,” and “not only X but Y” constructions often make a Brief argue with an imaginary alternative. Use a factual negative when its absence or denial materially changes the reader's understanding; retain attribution and say it once. Cut phrases such as “That distinction matters,” “That difference matters,” “This matters because” and “What this means” when they merely announce importance. If the consequence is genuine, report the specific supporting fact or mechanism directly. These are editorial revision prompts, never a blanket prohibition on truthful negative findings.
+
 **Transitions:** Eliminate habitual “moreover,” “furthermore,” “notably,” “importantly,” “ultimately,” “in this context” and “taken together.” Keep only if they clarify an actual relationship not otherwise clear. A new paragraph often needs no transition at all.
 
 **Participial summaries:** Watch sentence tails beginning “highlighting,” “reflecting,” “underscoring,” “signaling,” “reinforcing,” “positioning” or “showcasing.” They often insert unsupported significance. Delete the tail, or explain the observable mechanism as a separate attributed inference.
