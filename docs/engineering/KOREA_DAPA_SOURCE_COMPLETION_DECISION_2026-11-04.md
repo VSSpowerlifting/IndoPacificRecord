@@ -3,8 +3,9 @@
 **Prepared:** 2026-11-04. **Disposition:** DECISION CANDIDATE plus one verified
 offline candidate; **no source activation, publisher contact, model spend,
 merge or deployment**. **Owner chose option A on 4 Nov 2026 and adopted
-standing conditional eligibility on 7 Nov 2026 (see §8)**; model, provider,
-cost and public release remain open. §9 records the disabled-by-default
+standing conditional eligibility on 7 Nov 2026 (see §8), and approved the
+proposed model pair on 7 Nov 2026 (§9)**; provider terms, processing and
+public release remain open. §9 records the disabled-by-default
 shared-pipeline integration and the consolidated activation proposal.
 
 This completes the bounded DAPA source-completion phase on top of the earlier
@@ -224,11 +225,12 @@ Nothing was written to `pla_watch.db`, `output/` or any canonical sidecar.
 | Permitted inputs | Only the authenticated lead/body paragraphs of an eligible exact version, read from pinned private custody; at most 1 record and 16,000 characters per run (policy caps). No page images, tables, attachments other than the bound HWPX, or held versions. |
 | Permitted outputs | An English machine explanation (summary plus attributed facts naming DAPA), the official korea.kr link only, and private evidence translations kept in private custody. No Korean original text, no reproduced prose, no images. |
 | Provider handling | The provider behind the existing shared Analyzer path, private runner only; API key held only as a repository secret; prompts, inputs and readings never logged. The owner confirms the provider's retention/training terms are acceptable for Korean government prose before enabling. |
-| Model | **Proposed, subject to owner approval:** the configured defaults in `config.py`, `claude-haiku-4-5-20251001` for relevance (500 max output tokens) and `claude-sonnet-4-6` for the summary (2200). The shared cost guard binds the run to exactly those two calls. At the 16,000-character input cap (about 52 KB of UTF-8 Hangul with framing) the guard reserves about $0.07 + $0.23 = **$0.30 per run**, computed with `analysis.pricing.estimate_usage_cost_usd`; that is an estimated reservation, not observed spend. |
+| Model | **Owner approved on 7 Nov 2026:** the configured defaults in `config.py`, `claude-haiku-4-5-20251001` for relevance (500 max output tokens) and `claude-sonnet-4-6` for the summary (2200). The shared cost guard binds the run to exactly those two calls. At the 16,000-character input cap (about 52 KB of UTF-8 Hangul with framing) the guard reserves about $0.07 + $0.23 = **$0.30 per run**, computed with `analysis.pricing.estimate_usage_cost_usd`; that is an estimated reservation, not observed spend. |
 | Cost cap | `max_estimated_cost_usd_per_run: 0.35`, the ceiling the policy validator allows and the peer sources use; the shared guard reserves estimated cost before each call and refuses calls beyond it. |
 | Activation changes | (1) a Korea desk manifest entry and `desk_registered=True`; (2) add `korea` to the desk-page machine-explanation filter in `site/preview/generate_preview.py`; (3) set `private_model_processing`, then `public_machine_explanation` and `unattended_release`, with a dated `owner_decision`; (4) add the `DAILY_KR_POLICY_DAPA_RELEASES_KEY` secret on both private and public sides; (5) m0021 itself: the daily workflow runs `python -m migrations.cli --apply` before collection, so **merging this change applies m0021 to the production database on the next scheduled run**. Rehearsed on a scratch copy of the tracked `pla_watch.db` at 0020: all 6 existing rows (AFP 4, NSC 1, Kemhan 1) survive byte-identical, `integrity_check` is `ok` and `foreign_key_check` is empty. |
 | Release steps | Merge (m0021 applies on the next daily run; confirm the schema is at 0021 with rows intact) → enable private processing only and review the private outputs for one run → enable the public explanation → enable unattended release → verify the deployed Record page (link-only, attribution, no Korean text) and the validator's governed-warning baseline. |
 
-**Genuine blockers:** the owner's approval of the proposed model pair and
-provider retention/training terms, and the owner's merge (which applies m0021
-to production on the next daily run). Neither is authorized here.
+**Genuine blockers:** the owner's confirmation of provider
+retention/training terms, the processing and release flags, and the owner's merge (which applies m0021
+to production on the next daily run). None is authorized here. Approving the model pair is not an activation
+grant: it authorizes no model call, spend or flag change.
