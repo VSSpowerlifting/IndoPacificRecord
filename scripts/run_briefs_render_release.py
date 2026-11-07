@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -40,7 +41,13 @@ def _assert_rendered_contract() -> None:
     out = ROOT / "output"
     analysis = (out / "analysis.html").read_text(encoding="utf-8")
     article_path = out / "briefs" / "trident-resolve-regional-scale-specific-chinese-tasks.html"
-    article = article_path.read_text(encoding="utf-8")
+    from core.mindef_public_boundary import editorial_hold
+    no17_sidecar = json.loads((ROOT / "briefs" / (article_path.stem + ".json")).read_text(encoding="utf-8"))
+    no17_held = editorial_hold(no17_sidecar)
+    if no17_held:
+        assert not article_path.exists() and article_path.stem not in analysis, "held No. 17 appeared in public output"
+    else:
+        article = article_path.read_text(encoding="utf-8")
     historical = (out / "the-pla-watch" / "posts" / "2026-08-15.html").read_text(
         encoding="utf-8")
     no12 = (out / "the-pla-watch" / "posts" / "2026-08-01.html").read_text(
@@ -62,44 +69,47 @@ def _assert_rendered_contract() -> None:
                   "assets/catalogue/media/no-23-liaoning-j15-20220506-cover.jpg"):
         assert _sha256(ROOT / "site" / route) == _sha256(out / route), f"No. 23 asset mismatch: {route}"
 
-    assert "no-17-trident-resolve-basarnas-drone.jpg" in analysis, (
-        "No. 17 catalogue card is missing its admitted photograph")
+    if not no17_held:
+        assert "no-17-trident-resolve-basarnas-drone.jpg" in analysis, (
+            "No. 17 catalogue card is missing its admitted photograph")
     assert "no-08-liaoning-j15-recovery.jpg" in analysis, (
         "No. 8's existing catalogue photograph disappeared")
     assert "no-09-scarborough-shoal-iss.jpg" in analysis, (
         "No. 9's existing catalogue photograph disappeared")
-    for required in (
-        "trident-resolve-basarnas-drone-800.webp",
-        "9957254",
-        "Sgt. 1st Class Timothy Hughes",
-        "does not imply or constitute DoW endorsement",
-    ):
-        assert required in article, f"No. 17 article is missing {required!r}"
+    if not no17_held:
+        for required in (
+            "trident-resolve-basarnas-drone-800.webp",
+            "9957254",
+            "Sgt. 1st Class Timothy Hughes",
+            "does not imply or constitute DoW endorsement",
+        ):
+            assert required in article, f"No. 17 article is missing {required!r}"
     assert "Adjacent historical issues" in historical, (
         "historical Brief navigation is absent from the rerendered article")
     assert "Downloaded from PLA Daily / 81.cn" not in no12, (
         "the prohibited No. 12 collector note has appeared")
     assert (ROOT / "site" / "assets" / "editorial" / "trident-resolve-basarnas-drone.jpg").is_file(), (
         "verified source photograph is missing from the editorial source tree")
-    for rel in (
-        "assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.jpg",
-        "assets/editorial/derivatives/trident-resolve-basarnas-drone-800.webp",
-        "assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.webp",
-        "assets/catalogue/media/no-17-trident-resolve-basarnas-drone.jpg",
-    ):
-        assert (out / rel).is_file(), f"required No. 17 asset is missing: {rel}"
-    for source_rel, output_rel in (
-        ("site/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.jpg",
-         "output/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.jpg"),
-        ("site/assets/editorial/derivatives/trident-resolve-basarnas-drone-800.webp",
-         "output/assets/editorial/derivatives/trident-resolve-basarnas-drone-800.webp"),
-        ("site/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.webp",
-         "output/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.webp"),
-        ("site/assets/catalogue/media/no-17-trident-resolve-basarnas-drone.jpg",
-         "output/assets/catalogue/media/no-17-trident-resolve-basarnas-drone.jpg"),
-    ):
-        assert _sha256(ROOT / source_rel) == _sha256(ROOT / output_rel), (
-            "public output asset hash mismatch: " + output_rel)
+    if not no17_held:
+        for rel in (
+            "assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.jpg",
+            "assets/editorial/derivatives/trident-resolve-basarnas-drone-800.webp",
+            "assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.webp",
+            "assets/catalogue/media/no-17-trident-resolve-basarnas-drone.jpg",
+        ):
+            assert (out / rel).is_file(), f"required No. 17 asset is missing: {rel}"
+        for source_rel, output_rel in (
+            ("site/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.jpg",
+             "output/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.jpg"),
+            ("site/assets/editorial/derivatives/trident-resolve-basarnas-drone-800.webp",
+             "output/assets/editorial/derivatives/trident-resolve-basarnas-drone-800.webp"),
+            ("site/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.webp",
+             "output/assets/editorial/derivatives/trident-resolve-basarnas-drone-1600.webp"),
+            ("site/assets/catalogue/media/no-17-trident-resolve-basarnas-drone.jpg",
+             "output/assets/catalogue/media/no-17-trident-resolve-basarnas-drone.jpg"),
+        ):
+            assert _sha256(ROOT / source_rel) == _sha256(ROOT / output_rel), (
+                "public output asset hash mismatch: " + output_rel)
     for date in HISTORICAL_DATES:
         assert (out / "the-pla-watch" / "posts" / f"{date}.html").is_file(), (
             f"historical Brief page missing after render: {date}")
