@@ -13,9 +13,15 @@ Indo-Pacific Record should sound like a specialist publication whose reporters k
 
 The aim is **more journalistic than academic, without losing analytical precision**. Readers should come away understanding one concrete development and the particular observation IPR can justify about it. A Brief is neither a mechanical recap of official announcements nor an essay in which a generic regional-security thesis precedes the evidence.
 
-Write for policy professionals and analysts first, but allow an informed nonspecialist to understand every necessary term. Prefer expert substance to jargon. The preferred tendency is **reporting and explanation before interpretation**—roughly a 70/30 editorial feel when the story supports it, never a numerical quota.
+Write for policy professionals and analysts first, but allow an informed nonspecialist to understand every necessary term. Prefer expert substance to jargon. The sequence is **establish the event, then earn a substantive interpretation**. For an analytically rich Brief, the explanation of mechanisms, competing explanations and limits should occupy as much or more attention than the chronology. Reporting should carry only the detail needed for readers to test IPR's argument. This is an editorial priority, not a word-count quota: a thin record calls for a narrower claim, a shorter piece or abstention.
 
 **Do not aim to evade AI detection.** The objective is distinctive, readable, original and factually accountable prose, regardless of how the first draft was produced. A natural rhythm must never come at the expense of a necessary caveat.
+
+### The analytical contribution is the reason to publish
+
+A Brief should answer a question the source announcement leaves open. After a concise factual foundation, explain **how a development could produce a consequence**, why the geography, operating procedure, institutional rule or historical comparison changes the interpretation, and what the strongest alternative explanation would predict. An attributed outside analyst's hypothesis is a proposition for IPR to test, not our original conclusion. Separate verified observation, outside assessment and IPR inference in natural prose. Offer concrete discriminating evidence—an additional movement, timing comparison, document, performance result or command link—that would make one explanation more persuasive. If no supported analytical contribution survives this test, publish a concise reported item instead of inflating it into a Brief.
+
+Use **short, exact, verified, properly attributed quotations** when an official's own words efficiently establish a position or contested claim, freeing the rest of the paragraph for analysis. Quote only source text available for comparison with the original; preserve context, translation status, rights and any limits on reproduction. Never invent, approximate or stitch quotations, make lengthy excerpts to save writing effort, or treat a quote as independent verification of the speaker's claim. Reconcile any quoted change after human editing against the same source-to-block accounting used for other claims.
 
 ## 2. Five failure modes to correct
 
@@ -159,9 +165,9 @@ Similarly, do not ban em dashes, semicolons, three-part lists, passive voice, ca
 
 The Sunday model should follow these decisions **while generating the first manuscript**, not through a second model-based “humanizer” pass.
 
-**Before prose:** Internally identify the best supported angle, its telling detail, the actual earlier baseline (if known), which source has what authority, and the one limitation that could change the core claim. If there is no sufficiently supported angle, preserve the existing abstention pathway.
+**Before prose:** Internally identify the best supported angle, its telling detail, the actual earlier baseline (if known), which source has what authority, the question IPR can answer beyond recapping the source, the best competing explanation and the one limitation that could change the core claim. If there is no sufficiently supported angle, preserve the existing abstention pathway.
 
-**While drafting:** Use evidence-specific paragraph moves rather than a preselected list of sections. Prefer actors and action; resist the urge to append “what this means” after each fact. A paragraph is allowed to consist of straightforward reporting. Headings, comparisons and explanatory detours must emerge from the story.
+**While drafting:** Use evidence-specific paragraph moves rather than a preselected list of sections. Keep the event recap economical; spend substantial space on a sourced mechanism, testable interpretation or meaningful rival explanation. Prefer actors and action; resist the urge to append “what this means” after each fact. A paragraph is allowed to consist of straightforward reporting. Headings, comparisons and explanatory detours must emerge from the story.
 
 **Before handing off:** Apply a *deletion pass*, not a synonym pass: remove every sentence that only states importance, announces a transition, restates the thesis, invents a debate, describes the research process, or adds an irrelevant caveat. When a central argument is unsupported, narrow or delete the claim—not its necessary qualification.
 
