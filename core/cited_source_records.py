@@ -149,6 +149,20 @@ def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
     return records, brief_links, omitted, moved
 
 
+def released(records, root):
+    """The cited Records a rendered site at `root` must carry.
+
+    A cited Record belongs to a site once any Brief citing it is itself
+    published there. Approved Briefs reach `output/` only through the
+    render-only release, so a committed snapshot may legitimately predate
+    a newly approved Brief and its Records; a fresh render must include all.
+    """
+    from pathlib import Path
+    root = Path(root)
+    return [r for r in records
+            if any((root / c["url"]).is_file() for c in r["cited_in"])]
+
+
 def citation(record: dict, origin: str) -> str:
     return "%s. “%s.” %s. %s. Record: %s/%s" % (
         record["issuer"], record["original_title"], record["date"] or "Undated",

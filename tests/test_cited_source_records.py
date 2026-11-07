@@ -132,6 +132,22 @@ class ResolveTests(unittest.TestCase):
                      "publisher_references": [ref("s1", "https://x.gov/f")]})
         self.assertEqual(cited.resolve(collection(review, synthetic)), ([], {}, [], {}))
 
+    def test_released_records_follow_their_published_citing_briefs(self):
+        import tempfile
+        shared, only_new = "https://x.gov/shared", "https://x.gov/new"
+        records, _, _, _ = cited.resolve(collection(
+            brief("old", 1, [ref("s1", shared)]),
+            brief("new", 2, [ref("s1", shared), ref("s2", only_new)])))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.assertEqual(cited.released(records, root), [])
+            (root / "briefs").mkdir()
+            (root / "briefs/old.html").write_text("")
+            self.assertEqual([r["url"] for r in cited.released(records, root)], [shared])
+            (root / "briefs/new.html").write_text("")
+            self.assertEqual(sorted(r["url"] for r in cited.released(records, root)),
+                             sorted([shared, only_new]))
+
 
 class ArchiveIndexTests(unittest.TestCase):
     def test_cited_record_replaces_unpaged_register_link_and_keeps_desks(self):

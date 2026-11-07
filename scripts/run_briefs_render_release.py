@@ -113,6 +113,28 @@ def _assert_rendered_contract() -> None:
     for date in HISTORICAL_DATES:
         assert (out / "the-pla-watch" / "posts" / f"{date}.html").is_file(), (
             f"historical Brief page missing after render: {date}")
+    _assert_approved_brief_records_delivered(out)
+
+
+def _assert_approved_brief_records_delivered(out: Path) -> None:
+    """A fresh render carries every approved Brief and each cited Record.
+
+    The committed snapshot may predate a newly approved Brief; the release
+    render may not. Each route must exist and meet the delivery budgets.
+    """
+    from core.brief_collection import load_collection
+    from core.cited_source_records import resolve
+    from core.desk_registry import load_registry
+    from scripts.verify_frontend_delivery import verify
+    collection = load_collection([], load_registry(), briefs_dir=ROOT / "briefs")
+    routes = {b["url"] for b in collection.briefs}
+    routes |= {r["record_path"] for r in resolve(collection)[0]}
+    missing = sorted(route for route in routes if not (out / route).is_file())
+    assert not missing, "approved Brief routes missing from the render: " + "; ".join(missing)
+    result = verify(out, only=routes)
+    assert result["routes_checked"] == len(routes)
+    assert not result["failures"], "approved Brief routes over delivery budget: " + "; ".join(
+        f["route"] for f in result["failures"])
 
 
 def _check_db_and_worktree(db_hash: str) -> None:
