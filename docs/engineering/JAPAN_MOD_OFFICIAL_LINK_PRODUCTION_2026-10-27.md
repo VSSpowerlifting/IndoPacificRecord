@@ -224,3 +224,48 @@ text/media exceptions. Only afterward should a separately approved provider
 and bounded shared-source profile generate an English explanation and pass
 existing QA/admission and site readback. Japan still requires JCG English HTML
 as a separate qualifying family for the eight-desk certification.
+
+## 6 November 2026 — narrower PDL text boundary proposed for founder review
+
+This is a **source-specific policy amendment candidate**, not a grant already
+effective on `main`. The 27 October metadata-only approval and its existing
+activation gate remain in force unless a separately reviewed change is merged.
+The authoritative research-first standard is
+[`CONTENT_AND_DATA_RIGHTS.md` §7](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard).
+
+The [MOD's first-party current reuse notice](https://www.mod.go.jp/j/info/contents.html)
+states that covered ministry-owned website content may be reproduced, translated
+and adapted, including commercial uses, under PDL1.0 conditions. The
+[Digital Agency PDL1.0 terms](https://www.digital.go.jp/resources/open_data/public_data_license_v1.0)
+require attribution, modification/translation disclosure, third-party rights
+screening, and respect for separate terms and other legal exclusions.
+This supports **conditional eligibility** of qualifying *extracted first-party
+official news text* and unofficial English text derivatives. It does not
+establish that a PDF with maps, photographs, mixed copyright, incomplete
+extraction, revised pages or alternate terms passes.
+
+The proposed `config/japan_mod_official_link_policy.json` now expresses
+that narrower boundary rather than an undifferentiated text-and-translation
+ban. Every eligible version must pass the existing
+`core.standing_source_rights.qualify_standing_text` contract's trusted
+source/capture, completeness, fresh publisher-license and exception replays,
+attribution and derivative notice. No per-record signature is needed for an
+actual passing standing-license qualification, but all failed/missing checks
+hold. The historical archive preserves extracted text and capture hashes,
+**not authenticated complete raw PDF custody**, so the existing seven metadata
+items are not thereby declared text-qualified.
+
+Still **not authorized by this proposal**: external commercial-model input,
+automated text processing, public original/translation pages, complete PDF or
+media reproduction, machine explanations, collector activation, manual
+dispatch, source admission, spending, or deployment. Existing metadata-only
+`permitted_fields`, source family/URL/date checks, public link projection,
+recovery holds and the production activation switch stay unchanged. No
+production text caller is added; source-to-reader substantive delivery needs
+its own rights, custody, quality, provider and release integration phase.
+
+**Next decision:** founder reviews this exact source-specific policy
+amendment in the draft PR. If adopted, integrate the qualified text stage with
+the shared lifecycle in a separate bounded task without weakening current
+source/quality protections. Verify actual PDF version and licensing on genuine
+evidence before any substantive publication.
