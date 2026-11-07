@@ -11,7 +11,7 @@ refuelling training mission over Indonesia on 19 February 2025, not the November
   non-endorsement disclaimer and preserve other rights and restrictions.
 - Retrieved from the publicly accessible [Wikimedia Commons original](https://upload.wikimedia.org/wikipedia/commons/4/4e/HIANG_conducts_AAR_with_IDAF_%288879603%29.jpg)
   on 7 November 2026 at 20:50:23 UTC; HTTP 200, 9,623,082 bytes,
-  ETag `1a143d1530e74ba972bd3ff8f16f3e27`. The request used the user agent
+  ETag `1a143d1530e74ba972bd3ff8f16f3e27`. The request used
   an `IPR-editorial-review/1.0` user agent with an unverified contact field
   (omitted here); it must not be used as contact evidence.
 - Retained original SHA-256: `0178cc48b180125e5d9e59248b0e67e6601d46189c70927b8b8ab6f65184afe4`.
