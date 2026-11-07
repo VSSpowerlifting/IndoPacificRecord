@@ -45,6 +45,22 @@ def _assert_rendered_contract() -> None:
         encoding="utf-8")
     no12 = (out / "the-pla-watch" / "posts" / "2026-08-01.html").read_text(
         encoding="utf-8")
+    brief23_slug = "china-western-pacific-deployment-coordination-2026"
+    brief23 = (out / "briefs" / (brief23_slug + ".html")).read_text(encoding="utf-8")
+    assert brief23_slug in analysis and brief23_slug in (out / "index.html").read_text(encoding="utf-8")
+    assert brief23_slug in (out / "briefs" / "feed.xml").read_text(encoding="utf-8")
+    assert brief23_slug in (out / "sitemap.xml").read_text(encoding="utf-8")
+    for required in ("Benjamin Yang", "Edited by Dylan Tanzi", "Research and analysis by Peter",
+                     "Archival image; does not depict the November 2026 deployment.",
+                     "liaoning-j15-20220506-cover-800.webp"):
+        assert required in brief23, f"No. 23 article is missing {required!r}"
+    for route in ("record/cited-b9a27aaa35d15b52.html", "record/cited-984b3bff98a5a213.html"):
+        assert (out / route).is_file(), f"No. 23 cited record is missing: {route}"
+    for route in ("assets/editorial/derivatives/liaoning-j15-20220506-cover-1600.jpg",
+                  "assets/editorial/derivatives/liaoning-j15-20220506-cover-800.webp",
+                  "assets/editorial/derivatives/liaoning-j15-20220506-cover-1600.webp",
+                  "assets/catalogue/media/no-23-liaoning-j15-20220506-cover.jpg"):
+        assert _sha256(ROOT / "site" / route) == _sha256(out / route), f"No. 23 asset mismatch: {route}"
 
     assert "no-17-trident-resolve-basarnas-drone.jpg" in analysis, (
         "No. 17 catalogue card is missing its admitted photograph")

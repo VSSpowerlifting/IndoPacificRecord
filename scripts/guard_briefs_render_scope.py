@@ -12,6 +12,18 @@ import subprocess
 from pathlib import Path
 
 REVIEWED_OUTPUT_PATHS = frozenset({
+    "output/index.html",
+    "output/sitemap.xml",
+    "output/authors/benjamin-yang.html",
+    "output/briefs/feed.xml",
+    "output/briefs/china-western-pacific-deployment-coordination-2026.html",
+    "output/briefs/japan-philippines-first-destroyer-2026.html",
+    "output/record/cited-b9a27aaa35d15b52.html",
+    "output/record/cited-984b3bff98a5a213.html",
+    "output/assets/editorial/derivatives/liaoning-j15-20220506-cover-1600.jpg",
+    "output/assets/editorial/derivatives/liaoning-j15-20220506-cover-800.webp",
+    "output/assets/editorial/derivatives/liaoning-j15-20220506-cover-1600.webp",
+    "output/assets/catalogue/media/no-23-liaoning-j15-20220506-cover.jpg",
     "output/analysis.html",
     "output/briefs.css",
     "output/shell.js",

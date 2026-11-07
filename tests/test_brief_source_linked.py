@@ -78,17 +78,16 @@ class SourceLinkedTests(unittest.TestCase):
         self.assertTrue(any("editorial credit" in p for p in
                             brief_contract.validate_brief(duplicate, self.registry)))
 
-    def test_western_pacific_candidate_remains_unpublished_with_valid_sources(self):
+    def test_western_pacific_candidate_has_valid_release_evidence(self):
         candidate = json.loads((ROOT / "briefs/china-western-pacific-deployment-coordination-2026.json").read_text())
-        self.assertEqual(candidate["editorial_status"], "draft")
-        self.assertIsNone(candidate["issue_number"])
+        self.assertEqual(candidate["editorial_status"], "approved")
+        self.assertEqual(candidate["issue_number"], 23)
         self.assertEqual(candidate["author_name"], "Benjamin Yang")
         self.assertEqual(candidate["editorial_credits"][0]["role"], "Editing")
         self.assertEqual(candidate["editorial_credits"][1]["role"], "Research and analysis")
         self.assertEqual(validate_source_linked(candidate), [])
         self.assertEqual(brief_contract.validate_brief(candidate, self.registry), [])
-        self.assertTrue(validate_source_linked(candidate, release=True),
-                        "a draft must not satisfy the human release gate")
+        self.assertEqual(validate_source_linked(candidate, release=True), [])
         self.assertEqual(manuscript_html_errors(candidate, self.render(candidate)), [])
 
     def test_frozen_manuscript_and_seven_associations(self):

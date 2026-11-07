@@ -280,8 +280,8 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
-  "issue_number": null,
+  "editorial_status": "approved",
+  "issue_number": 23,
   "week_start": "2026-11-01",
   "week_ending": "2026-11-07",
   "desks": [],
@@ -398,5 +398,10 @@
     "reviewed_on": "2026-11-07",
     "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/issues/1003#issuecomment-6712920124",
     "fingerprint": "9e968599776adaddc6ccef3213575782a13cb94e10105cd5b50a1451e6936a83"
+  },
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-11-07",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/issues/1003#issuecomment-6712855433"
   }
 }

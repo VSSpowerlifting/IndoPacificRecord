@@ -28,7 +28,7 @@ class BriefsOutputScopeTests(unittest.TestCase):
             "output/the-pla-watch/media/2026-08-01-veil.jpg",
             "output/assets/editorial/other-photo.jpg",
             "output/assets/editorial/trident-resolve-basarnas-drone.jpg",
-            "output/briefs/feed.xml",
+            "output/briefs/unreviewed-feed.xml",
         ):
             with self.subTest(path=path):
                 self.assertFalse(is_reviewed_path(path))
