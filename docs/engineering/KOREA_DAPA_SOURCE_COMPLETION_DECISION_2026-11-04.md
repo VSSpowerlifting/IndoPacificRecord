@@ -2,8 +2,10 @@
 
 **Prepared:** 2026-11-04. **Disposition:** DECISION CANDIDATE plus one verified
 offline candidate; **no source activation, publisher contact, model spend,
-merge or deployment**. **Owner chose option A on 4 Nov 2026 (see §8)**; the
-other §8 items remain open.
+merge or deployment**. **Owner chose option A on 4 Nov 2026 and adopted
+standing conditional eligibility on 7 Nov 2026 (see §8)**; model, provider,
+cost and public release remain open. §9 records the disabled-by-default
+shared-pipeline integration and the consolidated activation proposal.
 
 This completes the bounded DAPA source-completion phase on top of the earlier
 qualification and offline-candidate work (#975, #976), which it carries
@@ -49,7 +51,7 @@ themselves a basis) and the shared-desk rules in `docs/desks/README.md`
 | `156786687` | HOLD — joint release with an IP office (issuer). |
 | `156786759` | HOLD — headline middle-dot variant. |
 | `156787670` | HOLD — `joint_release_masthead` (a "공동보도자료" masthead table; not a DAPA single-issuer template). |
-| `156788018` | **Structural CANDIDATE** (first preserved in run `42150393907-1`). HWPX `fileId` 198584502, 6 body paragraphs, 968 characters, selected-prose SHA `01f48248…`. Option A applies **per version**, so this version needs its own owner sign-off. No private prose input has been written for it. |
+| `156788018` | **Structural CANDIDATE** (first preserved in run `42150393907-1`). HWPX `fileId` 198584502, 6 body paragraphs, 968 characters, selected-prose SHA `01f48248…`. Eligible under the 7 Nov standing conditional rule (§8) when its exact version authenticates; in the offline integration rehearsal (§9) it did, and it reached a rendered Record with synthetic processing output. |
 | `156787071` | Refused. |
 
 **Re-run on 7 Nov** against the newer private archive state (archive commit `7542326`, run `42326645197-1`, shadow DB SHA-256 `4150a9cd…c903`). Every row above reproduces. `156786758` stays CANDIDATE with the same prose SHA `fc1caba6…`. The older DB `58b97902…e5ed` gives identical results for its three rows. Every row binds cleanly (§2).
@@ -137,20 +139,95 @@ that point and gated off until each separate authority exists.
 1. **Decided 4 Nov 2026 (Ben, in chat): option A** in §5 for HWPX DAPA-authored
    prose. Applies per version, only under the §5 conditions; it does not
    activate the source or authorize model or public use.
-1a. Open: per-version sign-off for `156788018` (structural CANDIDATE, §3), if
-   the owner wants it treated like `156786758`.
+1a. **Resolved 7 Nov 2026 by item 4**: `156788018` needs no separate
+   signature; it is eligible when its exact version satisfies the standing
+   conditions.
 2. Open: confirm public originals stay link-only under the 17 Oct policy, or
    amend it (option A assumes link-only).
 3. Open: model input, provider and cost, decided separately, if at all.
-4. Open: standing per-version rule (replayed mark plus screens) versus
-   per-version sign-off. **Recommendation:** adopt standing routine eligibility
-   for future exact-source versions that authenticate the same Type 0 text mark,
-   sole DAPA issuer and approved exclusions, keeping changed/ambiguous versions
-   held individually. This proposal is **not** a standing activation or release
-   grant; provider/model/cost, Korean semantic review and public components
-   remain separate decisions.
+4. **Decided 7 Nov 2026 (founder): standing conditional eligibility** under
+   option A replaces per-release signatures. An exact version is eligible only
+   when it authenticates the preserved page's Type 0 text mark, the page-to-HWPX
+   attachment binding, the sole DAPA issuer and the approved lead/body prose
+   scope. Joint, ambiguous, changed or excluded material stays held. Public
+   originals stay link-only. **Limitation kept:** page-to-attachment binding
+   does not prove licence equivalence; the owner accepted the documented
+   interpretation, and equivalence was not verified. This is not an activation
+   or release grant; provider/model/cost, Korean semantic review and public
+   components remain separate decisions.
 
 Verified here: unit tests for the replay, the candidate builder and the HWPX
 auditor; the replay against the real preserved page. Not claimed: Korean
 semantic review, English explanation, CI on the final head, merge, activation,
 deployment or any live change.
+
+## 9. Shared-pipeline integration (7 Nov 2026) and activation proposal
+
+**What the integration PR adds (disabled by default).** One `DailySource`
+profile, `kr_policy_dapa_releases` (desk `korea`, `desk_registered=False`), in
+the existing shared definition and lifecycle: custody → `process` (existing
+`Analyzer` interface) → signed handoff → `admit` → reader → render. No new
+engine, queue or workflow. The material expansions are:
+
+- **Migration `m0021_dapa_daily_machine_parent`**: m0015's single foreign key
+  points at `regional_official_source_links`, but DAPA links live in
+  `korea_official_source_records`, so a DAPA machine row could never be
+  written. m0021 rebuilds `daily_machine_records` with identical columns, keys
+  and CHECKs, replacing the foreign key with family-scoped insert/update
+  triggers: DAPA rows need a `korea_official_source_records` parent with
+  `official_issuer='kr_dapa'` and `public_scope='official_link_only'`; every
+  other family keeps its exact `regional_official_source_links` parent. A DAPA
+  Record therefore binds to the same link-only identity the site already
+  lists, and every reader re-reads the parent and fails closed when it is
+  missing or at another version. Admission refuses DAPA
+  envelopes until the migration is present (`admission_migration`,
+  fixed code `daily_migration_required`).
+- **New `DailySource` hooks** (`approved_input`, `parent`,
+  `admission_migration`, `desk_registered`): the approved-input hook passes
+  only the authenticated lead/body paragraphs to the model; the parent hook
+  binds admission, loading, reconciliation and the weekly audit to the Korea
+  link row by candidate version and text/page hashes; the others keep an unregistered desk and
+  an unmigrated database fail-closed; an unregistered source gets no
+  governed-admission row in `pipeline.py`. Existing sources use the defaults
+  and are unchanged.
+- `_dapa_links` re-derives eligibility from pinned private custody on every
+  run (mark replay, page binding, sole issuer, headline/date screens) and binds
+  each record to a `metadata_version_sha256` over identity, URL, posted date
+  and the original text/page/HWPX hashes. Any failure is a fixed-code HOLD
+  (`capture_missing_at_pin`, `document_capture_missing`, `issuer:*`,
+  `license_mark:*`, `page_binding:*`, `headline_punctuation_variant`,
+  `joint_release_masthead`). Logs carry no Korean text.
+- DAPA prompts (`analysis/korea_dapa_prompts.py`) and output quality screens
+  (`processing/korea_dapa_quality.py`: modality and negation holds).
+- Policy entry `kr_policy_dapa_releases` with every flag false.
+- The shared machine-explanation partial names the correct desk and source
+  language for Korea (Philippines and Indonesia output unchanged).
+
+**Offline rehearsal (no network, no model, isolated scratch DB).** Against
+the pinned private archive: `156788018` and `156786758` reached CANDIDATE;
+`156786759` held (`headline_punctuation_variant`), `156787670` held
+(`joint_release_masthead`), `156786687` held on three `issuer:*` codes;
+`156785254` has no rows at pin `c87b219`. The two candidates ran through
+`process` with a clearly labelled **synthetic** reading (model id
+`synthetic-offline-rehearsal`; text states "synthetic offline rehearsal
+text"). It is not generated research and not semantic review. They were
+signed (envelope: 2 records, ASCII only), admitted (`admitted: 2`; re-run
+`admitted: 0`), loaded by the reader and rendered to an isolated output
+directory. Each Record page carried no Hangul, linked the korea.kr original
+only, named DAPA as publisher and issuer, and showed the synthetic label.
+Nothing was written to `pla_watch.db`, `output/` or any canonical sidecar.
+
+**Consolidated activation proposal (requires separate owner authorization).**
+
+| Item | Proposal |
+| --- | --- |
+| Permitted inputs | Only the authenticated lead/body paragraphs of an eligible exact version, read from pinned private custody; at most 1 record and 16,000 characters per run (policy caps). No page images, tables, attachments other than the bound HWPX, or held versions. |
+| Permitted outputs | An English machine explanation (summary plus attributed facts naming DAPA), the official korea.kr link only, and private evidence translations kept in private custody. No Korean original text, no reproduced prose, no images. |
+| Provider handling | The provider behind the existing shared Analyzer path, private runner only; API key held only as a repository secret; prompts, inputs and readings never logged. The owner confirms the provider's retention/training terms are acceptable for Korean government prose before enabling. |
+| Model | **Owner decision (open).** The shared cost guard binds the run to two calls on the configured `RELEVANCE_MODEL` and `ANALYSIS_MODEL` (the pair the peer sources use); the owner accepts that pair or names another. |
+| Cost cap | `max_estimated_cost_usd_per_run: 0.35`, the ceiling the policy validator allows and the peer sources use; the shared guard reserves estimated cost before each call and refuses calls beyond it. |
+| Activation changes | (1) a Korea desk manifest entry and `desk_registered=True`; (2) add `korea` to the desk-page machine-explanation filter in `site/preview/generate_preview.py`; (3) set `private_model_processing`, then `public_machine_explanation` and `unattended_release`, with a dated `owner_decision`; (4) add the `DAILY_KR_POLICY_DAPA_RELEASES_KEY` secret on both private and public sides; (5) apply m0021 to the production database through the documented migration path. |
+| Release steps | Apply m0021 → enable private processing only and review the private outputs for one run → enable the public explanation → enable unattended release → verify the deployed Record page (link-only, attribution, no Korean text) and the validator's governed-warning baseline. |
+
+**Genuine blockers:** the owner's model/provider/cost choice, and applying
+m0021 to production. Neither is authorized here.

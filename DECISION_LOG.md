@@ -4,6 +4,22 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-07 — Founder: DAPA standing conditional eligibility; disabled integration
+
+**Decided (founder, 7 Nov 2026):** under option A, standing conditional
+eligibility replaces per-release source-use signatures, including for
+`156788018` when its exact version qualifies. A version is eligible only when
+it authenticates the preserved page's Type 0 text mark, the page-to-HWPX
+attachment binding, the sole DAPA issuer and the approved lead/body scope;
+joint, ambiguous, changed or excluded material stays held and public
+originals stay link-only. Page-to-attachment binding does **not** prove licence
+equivalence: this accepts the documented interpretation and does not claim
+equivalence was verified. The DAPA profile is integrated into the shared daily
+lifecycle **disabled by default** (all policy flags false, desk unregistered;
+migration m0021 not applied in production). **Not authorized:** model, provider
+or cost, private or public processing, activation, merge or deployment. See
+[decision §8–§9](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md#9-shared-pipeline-integration-7-nov-2026-and-activation-proposal).
+
 ## 2026-11-04 — Owner decision: Korea DAPA source family, option A (partial)
 
 **Decided (Ben, in chat, 4 Nov 2026): option A** of the

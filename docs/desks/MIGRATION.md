@@ -63,6 +63,14 @@ review, model input or public use is authorized. The 4 November
 adds hash-bound replay of the article's Type 0 text notice (now required for a prose CANDIDATE) and sets
 out options A–C for the HWPX prose; nothing is activated and no DAPA
 standing-rights policy entry is added.
+On 7 November the founder adopted standing conditional eligibility under
+option A, and DAPA became one disabled-by-default `DailySource` profile
+(`kr_policy_dapa_releases`) in the shared lifecycle, with migration m0021 so
+machine rows can reference Korea official-link parents. All policy flags are false and the desk is unregistered.
+An offline rehearsal with synthetic processing output carried `156788018` and
+`156786758` from candidate to rendered Record in isolation; the
+[activation proposal](../engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md#9-shared-pipeline-integration-7-nov-2026-and-activation-proposal)
+lists the remaining owner decisions.
 
 **Indonesia recovery candidate, 2 November 2026:** shared intake preserves
 deferred retry/QA dispositions; the existing private runner retains parsed

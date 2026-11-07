@@ -147,7 +147,8 @@ class FetchOutputs(unittest.TestCase):
                     intake.admit(conn, envelopes[failed], family=failed, policy=policy, key=keys[failed])
                     old = conn.execute('SELECT * FROM daily_machine_records').fetchone()
                 outcomes = [self.response(code=1) if f == failed else
-                            self.response(json.dumps(envelopes[f]).encode()) for f in fetch.SOURCES]
+                            self.response(json.dumps(envelopes[f]).encode())
+                            for f in fetch.SOURCES if f in envelopes]
                 root, result, _ = self.run_fetch(outcomes)
                 with patch.dict(os.environ, env):
                     admitted = public_intake(db, root)
@@ -161,6 +162,9 @@ class FetchOutputs(unittest.TestCase):
                     self.assertEqual(conn.execute('SELECT * FROM daily_machine_records WHERE source_family=?',
                                                   (failed,)).fetchone(), old)
                 self.assertEqual(result[failed], 'fetch_failed')
+                # DAPA is registered but policy-disabled: no fetch, no envelope, no intake.
+                self.assertEqual(result['kr_policy_dapa_releases'], 'policy_disabled')
+                self.assertNotIn('kr_policy_dapa_releases', admitted)
 
     def test_health_shell_notifies_for_failure_and_accepts_quiet_or_skipped_fetch(self):
         import textwrap
