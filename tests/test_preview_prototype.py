@@ -2454,13 +2454,23 @@ class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
             self.assertEqual(row[1:], (None,) * 7, rec_id)
 
     def test_linkable_urls_are_exactly_the_safe_official_host_urls(self):
+        # Independent of the gate: every stored identity is a plain official
+        # www.mindef.gov.sg HTTPS path, so every one is linked.
         allowed = {r["id"] for r in self.mindef if r["mindef_link_allowed"]}
-        by_url = {rid: self.stored[rid][0] for rid in self.stored}
         self.assertTrue(allowed)
-        for rec_id in self.stored:
-            self.assertEqual(rec_id in allowed,
-                             source_link_approved(MINDEF_SOURCE_SLUG, by_url[rec_id]),
-                             rec_id)
+        for rec_id, row in self.stored.items():
+            url = row[0]
+            with self.subTest(record=rec_id):
+                self.assertRegex(url, r"\Ahttps://www\.mindef\.gov\.sg/[A-Za-z0-9_./-]*\Z")
+                self.assertNotIn("..", url)
+                self.assertIn(rec_id, allowed)
+        for granted in (
+                "https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/",
+                "https://www.mindef.gov.sg/news-and-events/latest-releases/31may25_nr3/"):
+            self.assertTrue(source_link_approved(MINDEF_SOURCE_SLUG, granted), granted)
+        for refused in ("https://mindef.gov.sg/news/", "https://www.mindef.gov.sg/news?x=1",
+                        "https://www.mindef.gov.sg.evil.example/"):
+            self.assertFalse(source_link_approved(MINDEF_SOURCE_SLUG, refused), refused)
 
     def test_pages_show_a_label_and_no_source_text(self):
         for rec in self.mindef:
