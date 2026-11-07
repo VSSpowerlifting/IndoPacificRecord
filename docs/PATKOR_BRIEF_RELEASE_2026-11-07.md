@@ -38,13 +38,14 @@ original-source review.
 On `main`, `APPROVED_MINDEF_LINKS` admits only two MINDEF URLs. This Brief
 cites five other MINDEF pages (s1, s3, s4, s5, s6), so the publication gate
 holds it. PR #1004 replaces the list with an exact-host gate. Two commits on
-that PR fix its CI regressions:
+that PR address its CI regressions:
 
 - The bare `https://www.mindef.gov.sg` homepage link is accepted.
 - Stale test imports are retired.
-- The PR head is `d2e623db25`.
+- The PR head is `d2e623db25`. When this record was written, every check on it
+  had passed except `offline-checks`, which was still pending.
 
-Green CI does not authorize merging. The PR's own conditions still need the
+Passing CI would not authorize merging. The PR's own conditions still need the
 founder's substantive policy review and reconciliation of the rights evidence.
 The founder-reported reply granting "all linking requests" has not been
 authenticated in the repository. It covers linking only, not reproduction.
@@ -83,22 +84,29 @@ is not something to infer. Choose one:
 
 ### 3. Owner review and approvals
 
-These must be the owner's own statements, made in chat, against the final
-commit and fingerprint. A template follows. Adjust it if it does not describe
-what you actually did.
+The release brief already settles the headline, manuscript, coauthors, cover
+choice and publication intent, so they are not asked again. What remains must be
+the owner's own statements, made in chat, against the final commit and
+fingerprint. A template follows. Adjust it if it does not describe what you
+actually did.
 
 > I have completed my original-source review of the Patkor Indopura Brief at
 > commit `<sha>` (fingerprint `<fingerprint>`). I confirm original_language,
-> claim_support, chronology and limited_source_use, including my decision on the
-> paragraph 6 MINDEF speech quotation.
+> claim_support, chronology and limited_source_use. For the paragraph 6 MINDEF
+> quotation I choose option `<A or B>`.
 >
-> I confirm my final editorial and presentation approval of the rendered page,
-> headings, bylines (Benjamin Yang and Dylan Tanzi), citations and the DVIDS
-> 8879603 cover captioned as a separate February 2025 refuelling exercise.
+> I approve the rendered page and presentation at that commit (digest
+> `<digest>`), including its headings and citations.
 >
 > As Founder & Executive Director, I approve publication under the
 > source-linked evidence policy, and I approve merging PR #1004. I hold the
 > original MINDEF reply on which it relies.
+
+The review render has no cover, because cover admission needs the issue number.
+After `approve`, the cover, its caption and the catalogue crop are checked in
+the final numbered render, and shown to the owner, before the release PR merges.
+The caption must say the photograph shows a separate February 2025 refuelling
+exercise.
 
 After these statements, the steps are:
 
