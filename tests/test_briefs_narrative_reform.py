@@ -350,6 +350,8 @@ class WriterContractTests(unittest.TestCase):
                 "fact-caveat-interpretation rhythm",
                 "Prefer affirmative, direct statements",
                 "That distinction matters",
+                "prefer flowing sentences",
+                "Semicolons are welcome",
                 "No stylistic improvement can justify"):
             self.assertIn(rule, sent)
         self.assertIn("ONE cohesive article", sent)
