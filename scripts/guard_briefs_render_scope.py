@@ -27,7 +27,6 @@ REVIEWED_OUTPUT_PATHS = frozenset({
     "output/analysis.html",
     "output/briefs.css",
     "output/shell.js",
-    "output/briefs/what-is-being-built-in-laos.html",
     "output/briefs-catalog.css",
     "output/briefs/maritime-cooperation-2026.html",
     "output/briefs/xiangshan-security-frames-defense-ties.html",
