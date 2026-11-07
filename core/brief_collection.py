@@ -126,7 +126,10 @@ def brief_route(slug: str) -> str:
 
 
 def credited_author_names(sidecar: Mapping, lead_name: str) -> tuple:
-    """Keep distinct authors for metadata while displaying a readable joint byline."""
+    """Preserve legacy coauthors; use explicit, owner-assigned author lists when present."""
+    credits = sidecar.get("editorial_credits")
+    if isinstance(credits, dict) and isinstance(credits.get("authors"), list):
+        return tuple(credits["authors"])
     contributor = sidecar.get("research_contributor")
     if (isinstance(contributor, dict) and contributor.get("credit_role") == "co-author"
             and isinstance(contributor.get("name"), str)
@@ -137,7 +140,10 @@ def credited_author_names(sidecar: Mapping, lead_name: str) -> tuple:
 
 
 def credited_author_name(sidecar: Mapping, lead_name: str) -> str:
-    return " and ".join(credited_author_names(sidecar, lead_name))
+    authors = credited_author_names(sidecar, lead_name)
+    if len(authors) <= 2:
+        return " and ".join(authors)
+    return ", ".join(authors[:-1]) + ", and " + authors[-1]
 
 
 #: The former series' masthead, as it opens an earlier issue's stored title.
@@ -729,6 +735,11 @@ def brief_view(slug: str, sidecar: Mapping, *, desk_names: Mapping,
             "reviewed_on": e["human_review"]["reviewed_on"],
         } for e in sidecar.get("external_evidence") or []],
         "author_name": credited_author_name(sidecar, identity["author_name"]),
+        "author_names": list(credited_author_names(sidecar, identity["author_name"])),
+        "contribution_credits": {
+            "research_and_analysis": list((sidecar.get("editorial_credits") or {}).get("research_and_analysis") or []),
+            "editing": list((sidecar.get("editorial_credits") or {}).get("editing") or []),
+        },
         "author_card_name": identity["author_name"],
         "author_title": identity["author_title"],
         "author_bio": identity["author_bio"],
