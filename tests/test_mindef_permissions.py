@@ -7,6 +7,7 @@ class MINDEFPermissionTests(unittest.TestCase):
     def test_valid_official_https_links_include_new_articles(self):
         self.assertEqual(MINDEF_LINK_HOST, "www.mindef.gov.sg")
         for url in (
+            "https://www.mindef.gov.sg",
             "https://www.mindef.gov.sg/",
             "https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/",
             "https://www.mindef.gov.sg/news-and-events/latest-releases/4nov26-nr/",

@@ -24,11 +24,12 @@ def source_link_approved(source_slug, url):
         return False
     try:
         p = urlsplit(url)
+        path = p.path or "/"  # bare host is the official homepage root
         return (p.scheme == "https" and p.hostname == MINDEF_LINK_HOST
                 and p.username is None and p.password is None and p.port is None
                 and not p.query and not p.fragment and not p.netloc.endswith(".")
-                and SAFE_PATH.fullmatch(p.path) is not None
-                and not p.path.startswith("//") and ".." not in p.path.split("/"))
+                and SAFE_PATH.fullmatch(path) is not None
+                and not path.startswith("//") and ".." not in path.split("/"))
     except ValueError:
         return False
 

@@ -40,7 +40,7 @@ import generate_preview as gp                                    # noqa: E402
 from core.desk_registry import load_registry                     # noqa: E402
 from migrations.runner import apply_all, connect                 # noqa: E402
 from tests.test_migrations import build_legacy_db                # noqa: E402
-from core.mindef_permissions import APPROVED_MINDEF_LINKS, MINDEF_SOURCE_SLUG  # noqa: E402
+from core.mindef_permissions import MINDEF_SOURCE_SLUG, source_link_approved  # noqa: E402
 
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
 PRODUCTION_OUT = REPO_ROOT / "output"
@@ -2453,14 +2453,14 @@ class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
         for rec_id, row in self.stored.items():
             self.assertEqual(row[1:], (None,) * 7, rec_id)
 
-    def test_the_only_linkable_urls_are_the_two_exact_grants(self):
-        self.assertEqual(len(APPROVED_MINDEF_LINKS), 2)
+    def test_linkable_urls_are_exactly_the_safe_official_host_urls(self):
         allowed = {r["id"] for r in self.mindef if r["mindef_link_allowed"]}
         by_url = {rid: self.stored[rid][0] for rid in self.stored}
         self.assertTrue(allowed)
         for rec_id in self.stored:
             self.assertEqual(rec_id in allowed,
-                             by_url[rec_id] in APPROVED_MINDEF_LINKS, rec_id)
+                             source_link_approved(MINDEF_SOURCE_SLUG, by_url[rec_id]),
+                             rec_id)
 
     def test_pages_show_a_label_and_no_source_text(self):
         for rec in self.mindef:
@@ -2474,7 +2474,8 @@ class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
                                  html)
 
     def test_outbound_anchors_exist_only_for_the_approved_urls(self):
-        approved = set(APPROVED_MINDEF_LINKS)
+        approved = {row[0] for row in self.stored.values()
+                    if source_link_approved(MINDEF_SOURCE_SLUG, row[0])}
         seen = set()
         for rec in self.mindef:
             html = self.page(rec["id"])
@@ -2489,8 +2490,8 @@ class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
                     self.assertEqual(anchors, set())
                     self.assertIn("link not permitted", html)
                     self.assertIn(url, html)  # recorded as provenance text
-        # A grant does not create a record; new stored identities must still
-        # match the exact source-specific grant.
+        # The host gate does not create records; every safe stored identity
+        # is linked and every unsafe one stays provenance text.
         self.assertEqual(seen, {row[0] for row in self.stored.values()} & approved)
 
     def test_other_records_keep_their_ordinary_evidence_layout(self):
