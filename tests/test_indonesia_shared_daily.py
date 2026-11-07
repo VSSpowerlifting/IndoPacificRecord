@@ -249,6 +249,44 @@ class IndonesiaSharedDaily(unittest.TestCase):
             bad['summary_english']=' '.join(f['sentence'] for f in bad['facts'])
             with self.subTest(field=field),self.assertRaisesRegex(d.IntakeHold,'daily_cross_passage_claim_unsupported'):d.quality_check(r,bad)
 
+    def development_reading(self, passage, sentence, translation, other=None):
+        # Synthetic passages; only the "development" phrase and its support vary.
+        r,reply=record(),reading()
+        r['body']=passage+'\n\n'+(other+'\n\n' if other else '')+reply['facts'][1]['evidence']
+        reply['facts'][0]=dict(evidence=passage,sentence='Kemhan reports that '+sentence+'.',
+            evidence_translation=translation+'.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_development_rendering_a_local_phrase_is_not_an_industry_claim(self):
+        passage='Latihan bersama mendukung pembinaan satuan dan pembangunan daerah.'
+        for phrase in ('unit-development and regional development','unit development and regional development'):
+            r,reply=self.development_reading(passage,'the joint exercise supports '+phrase,
+                'The joint exercise supports '+phrase)
+            with self.subTest(phrase=phrase):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def test_development_needs_its_own_phrase_in_the_cited_passage(self):
+        both='Latihan bersama mendukung pembinaan satuan dan pembangunan daerah.'
+        cases=(  # (cited passage, other passage, unsupported phrase)
+            ('Latihan bersama membahas rencana satuan.','Program pembinaan satuan dan pembangunan daerah berlanjut.','unit-development'),
+            ('Latihan bersama membahas rencana satuan.','Program pembinaan satuan dan pembangunan daerah berlanjut.','regional development'),
+            ('Latihan bersama mendukung pembinaan satuan.',None,'regional development'),
+            ('Latihan bersama mendukung pembangunan daerah.',None,'unit development'),
+            # A unit name containing "Pembangunan" is not regional development.
+            ('Batalyon Contoh Pembangunan (Yonif CP) membahas latihan.',None,'regional development'),
+            (both,None,'development'),(both,None,'weapons development'),
+            (both,None,'research and development'),(both,None,'defense-industry development'))
+        for passage,other,phrase in cases:
+            for field in ('sentence','evidence_translation'):
+                r,reply=self.development_reading(passage,'the joint exercise is discussed',
+                    'The joint exercise is discussed',other)
+                reply['facts'][0][field]=reply['facts'][0][field][:-1]+' for '+phrase+'.'
+                reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+                with self.subTest(passage=passage,phrase=phrase,field=field),\
+                        self.assertRaisesRegex(d.IntakeHold,'daily_cross_passage_claim_unsupported'):
+                    d.quality_check(r,reply)
+
     def test_derived_summary_cannot_shorten_an_over_budget_fact(self):
         r,reply=self.dated_reading();reply['facts'][0]['sentence']+=' reported'*90
         reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
@@ -348,6 +386,48 @@ class IndonesiaSharedDaily(unittest.TestCase):
             reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
             with self.subTest(parenthesized=form):
                 self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def holder_reading(self, passage, sentence_form, translation_form, other=None):
+        # Synthetic title, abbreviation and people; never publisher text.
+        r,reply=record(),reading()
+        r['body']=passage+'\n\n'+(other+'\n\n' if other else '')+reply['facts'][1]['evidence']
+        reply['facts'][0]=dict(evidence=passage,
+            sentence='Kemhan reports that '+sentence_form+' discusses joint exercise plans.',
+            evidence_translation=translation_form+' discusses plans for a joint exercise.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        return r,reply
+
+    def test_abbreviation_and_holder_defined_in_the_cited_passage_pass(self):
+        for passage,form in (
+                ('Menteri Contoh Negara (MCN) Budi Contoh membahas rencana latihan bersama.','MCN Budi Contoh'),
+                ('Menteri Contoh Republik Negara (Mencon RN) Budi Contoh membahas rencana latihan.','Mencon RN Budi Contoh')):
+            r,reply=self.holder_reading(passage,form,form)
+            with self.subTest(form=form):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+
+    def test_abbreviation_holder_form_is_not_inferred_or_borrowed(self):
+        defined='Menteri Contoh Negara (MCN) Budi Contoh hadir dalam pertemuan.'
+        cases=(  # (cited passage, other passage, abbreviation-holder form)
+            # Mismatched person: both people are local; only one is defined.
+            ('Menteri Contoh Negara (MCN) Budi Contoh membahas latihan bersama Ani Lain.',None,'MCN Ani Lain'),
+            ('Menteri Contoh Negara (MCN) Budi Contoh membahas rencana latihan.',None,'MCN Budi'),
+            # Undefined abbreviation: no multiword title, lowercase title or parentheses.
+            ('Pejabat (MCN) Budi Contoh membahas rencana latihan bersama.',None,'MCN Budi Contoh'),
+            ('menteri contoh negara (MCN) Budi Contoh membahas rencana latihan.',None,'MCN Budi Contoh'),
+            ('Menteri Contoh Negara MCN, Budi Contoh, membahas rencana latihan.',None,'MCN Budi Contoh'),
+            # Definition found only in another passage of the same article.
+            ('MCN membahas rencana latihan bersama Budi Contoh.',defined,'MCN Budi Contoh'))
+        for passage,other,form in cases:
+            for field in ('sentence','evidence_translation'):
+                forms=dict(sentence='MCN',evidence_translation='MCN');forms[field]=form
+                r,reply=self.holder_reading(passage,forms['sentence'],forms['evidence_translation'],other)
+                with self.subTest(passage=passage,form=form,field=field),\
+                        self.assertRaisesRegex(d.IntakeHold,'daily_institution_form_not_local'):
+                    d.quality_check(r,reply)
+        # A holder named only by the other passage's definition stays a name hold.
+        r,reply=self.holder_reading('MCN membahas rencana latihan bersama.','MCN Budi','MCN',defined)
+        with self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
+            d.quality_check(r,reply)
 
     def possessive_reading(self, sentence_name):
         # Synthetic passage; only the possessive spelling and base name vary.

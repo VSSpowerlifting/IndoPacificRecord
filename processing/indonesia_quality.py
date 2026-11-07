@@ -44,6 +44,18 @@ TRANSLATED_LABELS = {"Research": CONCEPTS[r"\bresearch\b"],
                      "Wednesday": r"\bRabu\b", "Thursday": r"\bKamis\b",
                      "Friday": r"\bJum'?at\b", "Saturday": r"\bSabtu\b",
                      "Sunday": r"(?-i:\bMinggu\b)"}
+# Ordinary English "development" also renders these exact local phrases. Each
+# pair is accepted only when its own Indonesian phrase is in the cited passage;
+# every other "development" still needs "pengembangan" there.
+LOCAL_DEVELOPMENT = ((r"\bunit[- ]development\b", r"\bpembinaan satuan\b"),
+                     (r"\bregional development\b", r"\bpembangunan daerah\b"))
+# "Full Title (Abbr) Holder Name" in one cited passage defines the literal
+# form "Abbr Holder Name". Title, abbreviation and person are all required in
+# that same passage; nothing is derived from initials or another passage.
+DEFINED_HOLDER = re.compile(
+    r"(?<![\w(])[A-Z][a-z]+(?:[ \t]+[A-Z][a-z]+)+[ \t]*"
+    r"\(([A-Z][A-Za-z]*(?:[ \t]+[A-Z][A-Za-z]*)*)\)[ \t]+"
+    r"([A-Z][a-z][A-Za-z'-]*(?:[ \t]+[A-Z][a-z][A-Za-z'-]*)*)")
 # "840/Golok Sakti (GS)" defines the same unit identifier as "840/GS".
 DEFINED_SUFFIX = re.compile(
     r"(?<!\w)(\d+)/((?:[A-Z][a-z]+\s+)*[A-Z][a-z]+)\s*\(([A-Z]{2,})\)")
@@ -96,6 +108,20 @@ def factual_values(text, definitions=()):
     values.update(('identifier', token.upper()) for token in re.findall(
         r'\b(?=[\w/-]*[A-Z])(?=[\w/-]*\d)[A-Za-z0-9]+(?:[-/][A-Za-z0-9]+)*\b', identifiers))
     return values, text
+
+
+def defined_holder_forms(evidence):
+    """Literal "Abbr Name" forms that the cited passage itself defines."""
+    return {abbr + " " + name for abbr, name in DEFINED_HOLDER.findall(evidence)
+            if any(sum(c.isupper() for c in part) >= 2 for part in abbr.split())}
+
+
+def without_local_development(evidence, english):
+    """Remove only "development" phrases whose own source phrase is local."""
+    for phrase, support in LOCAL_DEVELOPMENT:
+        if re.search(support, evidence, re.I):
+            english = re.sub(phrase, " ", english, flags=re.I)
+    return english
 
 
 def without_possessive(text):
@@ -231,15 +257,16 @@ def quality_check(record, reading):
         # institutional alias glossary; ordinary Head/medical mappings above
         # do not exempt names. Kemhan's fixed public publisher attribution is
         # distinct from the reported institutional actors.
-        local_forms = set(institutional_forms(evidence_text))
+        local_forms = set(institutional_forms(evidence_text)) | defined_holder_forms(evidence_text)
         for public, english in ((True, sentence_text), (False, translation_text)):
             mentioned = set(institutional_forms(without_possessive(english)))
             if public:
                 mentioned.discard("Kemhan")
             need(mentioned <= local_forms, "daily_institution_form_not_local")
         for english in (translation, sentence):
+            claimed = without_local_development(evidence, english)
             for concept, support in CONCEPTS.items():
-                if re.search(concept, english, re.I):
+                if re.search(concept, claimed, re.I):
                     need(re.search(support, evidence, re.I) is not None,
                          "daily_cross_passage_claim_unsupported")
             check_status(evidence, english)
@@ -268,4 +295,4 @@ def quality_check(record, reading):
          "daily_indonesia_flag_held")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
          and reading.get("prompt_version") == VERSION, "daily_model_provenance_incomplete")
-    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v5"})
+    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v6"})

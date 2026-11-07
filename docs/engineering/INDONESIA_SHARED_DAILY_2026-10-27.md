@@ -7,6 +7,30 @@
 > evidence and still-used commands remain valid in their actual scope. This
 > notice does not claim runtime migration, change permissions or activate a source.
 
+## QA integration checkpoint — 7 November 2026, review candidate
+
+One branch integrates #982 (possessive institutional forms) and #998 (locally
+defined unit suffixes, translated weekdays), plus two fixes in
+`processing/indonesia_quality.py` (digest `id-quality-v6`; prompt `VERSION`
+unchanged):
+
+- "Abbr Name" counts as local only when the *same cited passage* has
+  "Full Title (Abbr) Name". Other people, truncated names, undefined
+  abbreviations and definitions found in other passages still hold.
+- English "unit development" or "regional development" no longer counts as an
+  industry/R&D claim when the cited passage has "pembinaan satuan" or
+  "pembangunan daerah". Bare "development", weapons/R&D/defense-industry
+  development and phrases supported only in another passage still hold.
+
+Zero-call offline replay of the four saved private readings, gate names only:
+version `f8ba8672` holds at `daily_quantity_or_date_unsupported` on main and
++#982, at `daily_institution_form_not_local` on +#998, and at
+`daily_name_or_office_unsupported` with both fixes. That last hold is fact 1's
+cross-passage minister name, so it is preserved. The two relevance rejections
+stay unchanged. This replay does not predict future attempts. `f8ba8672` remains
+at 2/5 attempts; ADMM-Plus `b93b8fc9` (4/5 attempts, no saved reading) is
+untouched. Next: owner review, then inspect the next routine reading only. No
+reset, paid call, merge or activation is part of this phase.
 
 ## Current checkpoint — 2 November 2026, recovery review candidate
 
