@@ -135,6 +135,9 @@ class IndividualHoldTests(unittest.TestCase):
              'unrecognized_release_structure'),
             (page(head='<link rel="canonical" href="https://example.test/">'),
              'ambiguous_identity'),
+            (page(body=f'<p>{NARRATIVE} <time datetime="{DAY}">07/18/2026</time></p>'
+                       f'<p>{BOILER}</p>{SOCIAL}'), 'ambiguous_body_or_date'),
+            (page(title='Invented example</h2><h2>Second invented title'), 'ambiguous_title'),
         ]:
             with self.subTest(code=code):
                 self.hold(code, raw=raw, acc=access(raw))
