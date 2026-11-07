@@ -7,7 +7,11 @@ picture elements. Expected values come only from the SHA-pinned DB row.
 
 Rights basis: the preserved Policy Briefing article page carries a published
 KOGL Type 0 notice for its *text*. A CANDIDATE requires replaying that mark
-from the hash-bound bytes (core.korea_dapa_archived_kogl_replay).
+from the hash-bound bytes (core.korea_dapa_archived_kogl_replay) and binding
+the HWPX to that page version: the page must list exactly one HWPX attachment,
+equal to the collector's recorded download, with the DAPA reprint remark. The
+page's marked article body is a viewer conversion of an attachment that is
+not preserved, so page-text/HWPX equivalence is recorded as unverifiable.
 Applying the page-text mark to the linked HWPX's DAPA-authored prose is a
 documented interpretation, not an explicit attachment licence, and is not
 decided here. This module prepares a local offline candidate only: it
@@ -24,7 +28,9 @@ import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from core.korea_dapa_archived_kogl_replay import MarkHold, replay_capture_file
+from core.korea_dapa_archived_kogl_replay import (
+    DOCUMENT_URL, MarkHold, inspect_page_binding, read_capture,
+    replay_capture_bytes)
 from core.korea_dapa_private_to_production import (
     HASH, ISSUER, NEWS, PREFIX, REPUBLISHER, RUN, URL_PREFIX)
 from core.korea_text_only_exception_replay import inspect_text_only
@@ -108,7 +114,8 @@ def read_pinned_row(db_path, db_sha256, source_identity):
             or meta.get("publisher_text_license_notice") != LICENSE_NOTICE
             or meta.get("content_sha256") != row["content_sha256"]
             or meta.get("capture_sha256") != row["capture_sha256"]
-            or not HASH.fullmatch(str(meta.get("document_capture_sha256")))):
+            or not HASH.fullmatch(str(meta.get("document_capture_sha256")))
+            or not DOCUMENT_URL.fullmatch(str(meta.get("document_url")))):
         raise CandidateHold("db_row_identity_or_provenance_drift")
     if _sha(row["text_original"]) != row["content_sha256"]:
         raise CandidateHold("db_text_content_sha256_mismatch")
@@ -139,6 +146,8 @@ def classify(items):
     """Map the DAPA release template; any unrecognized shape is a hold."""
     segs = _segments(items)
     shape = [s["key"][0] for s in segs]
+    if segs and segs[0]["key"][0] == "table" and segs[0]["lines"][:1] == ["공동보도자료"]:
+        raise CandidateHold("joint_release_masthead")
     base = ["table"] * 3 + ["body", "table"]
     if shape not in (base, base + ["table"]):
         raise CandidateHold("unrecognized_dapa_template")
@@ -221,15 +230,22 @@ def build_candidate(db_path, db_sha256, source_identity, hwpx_path, as_of=None,
     shape = classify(items)
     issuer = issuer_resolution(shape)
     holds = [f"issuer:{r}" for r in issuer["reasons"]]
-    license_mark = None
+    license_mark = binding = None
     if page_capture_path is None:
         holds.append("license_mark:preserved_page_capture_required")
     else:
         try:
-            license_mark = replay_capture_file(
-                page_capture_path, row["capture_sha256"], row["url"])
+            content = read_capture(page_capture_path, row["capture_sha256"])
         except MarkHold as exc:
             holds.append(f"license_mark:{exc}")
+        else:
+            try:
+                license_mark = replay_capture_bytes(
+                    content, row["capture_sha256"], row["url"])
+            except MarkHold as exc:
+                holds.append(f"license_mark:{exc}")
+            binding = inspect_page_binding(content, meta["document_url"])
+            holds.extend(f"page_binding:{c}" for c in binding["holds"])
 
     joined = " ".join(shape["headline"])
     if joined != row["title_original"]:
@@ -303,13 +319,17 @@ def build_candidate(db_path, db_sha256, source_identity, hwpx_path, as_of=None,
             "text_screen": screen,
         },
         "license_mark_replay": license_mark,
+        "page_binding": binding,
         "rights_basis": {
             "article_page_text": ("kogl_type0_page_notice_replayed"
                                   if license_mark else
                                   "kogl_type0_page_notice_recorded_by_collector_not_replayed"),
+            # Option A applies only to a fully clean version: any hold
+            # (issuer, mark, binding, headline, dates, screen) withholds it.
             "hwpx_attachment_prose": ("interpretation_accepted_by_owner_option_a"
-                                       if license_mark else
-                                       "held_pending_article_license_mark_replay"),
+                                       if not holds else
+                                       "held_pending_clean_candidate"),
+            "page_text_hwpx_equivalence": "not_verifiable_from_preserved_page",
             "scope": "offline_preparation_only",
         },
         "network_requests": 0,

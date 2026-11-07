@@ -10,7 +10,8 @@ import unittest
 from pathlib import Path
 
 from core.korea_dapa_archived_kogl_replay import (
-    MarkHold, inspect_captured_type0_mark, replay_capture_file)
+    MarkHold, inspect_captured_type0_mark, inspect_page_binding,
+    replay_capture_file)
 
 URL = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=123456789"
 TEXT_MARK = "텍스트에 한하여 공공누리 제0유형(자유이용)의 조건"
@@ -22,8 +23,30 @@ BADGE = ('<a href="https://www.kogl.or.kr/info/license.do">'
          'src="/images/v5/common/open_type_00.png"/></a>')
 
 
+DOC_URL = "https://www.korea.kr/common/download.do?fileId=123456&tblKey=GMN"
+REMARK = "“이 자료는 방위사업청의 보도자료를 전재하여 제공함을 알려드립니다.”"
+FRAME = ('<iframe id="content_press" src="/docViewer/iframe_skin/doc.html?fn='
+         + "a" * 32 + '&rs=/docViewer/result/2026.10/28/a"></iframe>')
+
+
+def entry(file_id="123456", name="가상 보도자료.hwpx"):
+    return (f'<p><span><a href="/common/download.do?fileId={file_id}&amp;tblKey=GMN">'
+            f'{name}</a></span><span><a href="#">바로보기</a></span></p>')
+
+
+def body_block(inner=FRAME, remark=REMARK):
+    remark_html = f'<p class="remark">{remark}</p>' if remark is not None else ""
+    return (f'<div class="article_body"><div class="view_cont">{inner}'
+            f'{remark_html}</div></div>')
+
+
+def files_block(*entries):
+    entries = entries or (entry(), entry("123457", "가상 보도자료.pdf"))
+    return f'<div class="filedown"><dl><dd>{"".join(entries)}</dd></dl></div>'
+
+
 def page(url=URL, mark=TEXT_MARK, badge=BADGE, media=MEDIA, wrappers=1,
-         canonicals=1, extra_in_wrapper=""):
+         canonicals=1, extra_in_wrapper="", body=None, files=None):
     block = (
         '<div class="kogl_wrap"><div class="kogl"><div class="guide">'
         f'<div class="type">{badge}<span>이 자료는 <strong>{mark}</strong>에 따라 '
@@ -32,7 +55,9 @@ def page(url=URL, mark=TEXT_MARK, badge=BADGE, media=MEDIA, wrappers=1,
         '<div class="btn"><a href="/guide/copyRight.do">저작권정책</a></div>'
         '</div></div></div></div>')
     link = f'<link rel="canonical" href="{url}"/>' * canonicals
-    return (f"<html><head>{link}</head><body><p>가상 기사</p>"
+    body = body_block() if body is None else body
+    files = files_block() if files is None else files
+    return (f"<html><head>{link}</head><body>{body}{files}"
             + block * wrappers + "</body></html>").encode()
 
 
@@ -119,6 +144,74 @@ class Type0MarkReplayTest(unittest.TestCase):
             os.symlink(path, link)
             with self.assertRaisesRegex(MarkHold, "missing_or_oversize"):
                 replay_capture_file(link, digest, URL)
+
+
+class PageBindingTest(unittest.TestCase):
+    def holds(self, html, url=DOC_URL):
+        return inspect_page_binding(html, url)["holds"]
+
+    def test_viewer_only_page_binds_listed_hwpx(self):
+        result = inspect_page_binding(page(), DOC_URL)
+        self.assertEqual(result["holds"], [])
+        self.assertEqual(result["hwpx_file_id"], "123456")
+        self.assertIs(result["hwpx_matches_collector_document_url"], True)
+        self.assertEqual(result["other_attachment_count"], 1)
+        self.assertEqual(result["article_body_form"], "document_viewer_frame_only")
+        self.assertIs(result["dapa_reprint_remark_present"], True)
+        for flag in ("inline_article_prose_present", "viewer_conversion_preserved",
+                     "viewer_source_attachment_identified",
+                     "page_text_hwpx_equivalence_verifiable_offline",
+                     "remark_proves_sole_issuer"):
+            self.assertIs(result[flag], False, flag)
+
+    def test_collector_url_must_be_valid_and_listed(self):
+        self.assertIn("document_url_invalid",
+                      self.holds(page(), "https://example.org/a.hwpx"))
+        self.assertIn("document_url_invalid", self.holds(page(), None))
+        self.assertEqual(self.holds(page(), DOC_URL.replace("123456", "999999")),
+                         ["document_url_not_listed_on_page"])
+
+    def test_attachment_list_shape_holds(self):
+        self.assertEqual(self.holds(page(files="")),
+                         ["attachment_list_missing_or_ambiguous"])
+        self.assertIn("attachment_list_missing_or_ambiguous",
+                      self.holds(page(files=files_block() * 2)))
+        self.assertEqual(self.holds(page(files=files_block(entry("123457", "a.pdf")))),
+                         ["hwpx_attachment_missing_or_ambiguous"])
+        self.assertEqual(self.holds(page(files=files_block(
+            entry(), entry("123458", "b.hwpx")))),
+            ["hwpx_attachment_missing_or_ambiguous"])
+        odd = '<p><span><a href="https://example.org/x.hwpx">x.hwpx</a></span></p>'
+        self.assertIn("attachment_entry_not_recognized",
+                      self.holds(page(files=files_block(entry(), odd))))
+
+    def test_article_body_form_and_inline_prose_hold(self):
+        self.assertIn("article_body_form_changed",
+                      self.holds(page(body=body_block(inner=""))))
+        self.assertIn("article_body_form_changed", self.holds(page(
+            body=body_block(inner=FRAME.replace("content_press", "other")))))
+        self.assertIn("article_body_form_changed", self.holds(page(body="")))
+        prose = self.holds(page(body=body_block(inner=FRAME + "<p>가상 본문</p>")))
+        self.assertEqual(prose,
+                         ["inline_article_prose_present_requires_equivalence_review"])
+
+    def test_reprint_remark_must_be_exact_and_single(self):
+        self.assertEqual(self.holds(page(body=body_block(remark=None))),
+                         ["dapa_reprint_remark_missing_or_changed"])
+        changed = REMARK.replace("방위사업청", "가상기관")
+        self.assertIn("dapa_reprint_remark_missing_or_changed",
+                      self.holds(page(body=body_block(remark=changed))))
+
+    def test_undecodable_bytes_hold_without_raising(self):
+        holds = self.holds(b"\xff\xfe")
+        self.assertIn("attachment_list_missing_or_ambiguous", holds)
+        self.assertIn("article_body_form_changed", holds)
+
+    def test_binding_carries_no_source_text(self):
+        import json
+        text = json.dumps(inspect_page_binding(page(), DOC_URL), ensure_ascii=False)
+        self.assertNotIn("가상", text)
+        self.assertNotIn("방위사업청", text)
 
 
 if __name__ == "__main__":

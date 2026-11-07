@@ -18,7 +18,8 @@ from pathlib import Path
 from core.korea_dapa_record_candidate import (
     CandidateHold, build_candidate, write_private_input)
 from scripts import build_dapa_record_candidate as cli
-from tests.test_korea_dapa_archived_kogl_replay import page as page_html
+from tests.test_korea_dapa_archived_kogl_replay import (
+    DOC_URL, body_block, files_block, entry, page as page_html)
 
 NEWS_ID = "123456789"
 IDENTITY = "korea-dapa-policy:" + NEWS_ID
@@ -81,7 +82,7 @@ class RecordCandidateTest(unittest.TestCase):
         os.chmod(self.root, 0o700)
 
     def fixture(self, raw=None, title=TITLE, db_text=None, doc_sha=None,
-                identity=IDENTITY, capture_sha=None):
+                identity=IDENTITY, capture_sha=None, document_url=DOC_URL):
         raw = raw if raw is not None else release()
         capture = self.root / "page.bin"
         if not capture.exists():
@@ -96,6 +97,7 @@ class RecordCandidateTest(unittest.TestCase):
         sha = hashlib.sha256(text.encode()).hexdigest()
         meta = {"source_identity": identity, "issuer": "방위사업청",
                 "publisher_text_license_notice": "KOGL_type_0_text_notice_only",
+                "document_url": document_url,
                 "content_sha256": sha, "capture_sha256": capture_sha,
                 "document_capture_sha256":
                     doc_sha or hashlib.sha256(raw).hexdigest()}
@@ -176,6 +178,52 @@ class RecordCandidateTest(unittest.TestCase):
         with self.assertRaisesRegex(CandidateHold, "requires_candidate"):
             write_private_input(self.root / "held.json", receipt, None)
 
+    def test_joint_hold_never_reports_accepted_prose_basis(self):
+        joint = "방위사업청(청장 가상인)과 가상기관(기관장 가상인)은 10월 28일(수) 회의를 열었다."
+        receipt, _ = self.build(release(lead=joint))
+        self.assertEqual(receipt["status"], "HOLD")
+        self.assertEqual(receipt["rights_basis"]["hwpx_attachment_prose"],
+                         "held_pending_clean_candidate")
+
+    def test_joint_release_masthead_is_not_a_dapa_template(self):
+        raw = release()
+        joint = zipfile.ZipFile(io.BytesIO(raw)).read("Contents/section0.xml") \
+            .decode().replace("보도자료", "공동보도자료", 1)
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w") as z:
+            z.writestr("Contents/section0.xml", joint)
+        with self.assertRaisesRegex(CandidateHold, "joint_release_masthead"):
+            self.build(b.getvalue())
+
+    def test_collector_document_url_drift_holds(self):
+        with self.assertRaisesRegex(CandidateHold, "db_row_identity_or_provenance_drift"):
+            self.build(document_url="https://example.org/download?fileId=1")
+
+    def test_page_binding_failures_hold_without_private_prose(self):
+        url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=" + NEWS_ID
+        cases = (
+            (page_html(url=url, files=files_block(entry("999999", "다른.hwpx"))),
+             "page_binding:document_url_not_listed_on_page"),
+            (page_html(url=url, body=body_block(inner="<p>가상 본문</p>")),
+             "page_binding:article_body_form_changed"),
+            (page_html(url=url, body=body_block(remark=None)),
+             "page_binding:dapa_reprint_remark_missing_or_changed"))
+        for raw, code in cases:
+            with self.subTest(code=code):
+                cap = self.root / "page.bin"
+                cap.write_bytes(raw)
+                db, sha, hwpx = self.fixture(
+                    capture_sha=hashlib.sha256(raw).hexdigest())
+                receipt, paragraphs = build_candidate(db, sha, IDENTITY, hwpx,
+                                                      None, cap)
+                self.assertEqual(receipt["status"], "HOLD")
+                self.assertIn(code, receipt["reason_codes"])
+                self.assertIsNone(paragraphs)
+                self.assertIsNotNone(receipt["license_mark_replay"])
+                self.assertEqual(receipt["rights_basis"]["hwpx_attachment_prose"],
+                                 "held_pending_clean_candidate")
+                self.assertNotIn("가상", json.dumps(receipt, ensure_ascii=False))
+
     def test_unrecognized_template_shapes_hold(self):
         for raw, reason in (
                 (release(extra_after_body=table(para("가상 표"))), "unrecognized"),
@@ -206,6 +254,8 @@ class RecordCandidateTest(unittest.TestCase):
                 self.assertEqual(receipt["status"], "HOLD")
                 self.assertIn(reason, receipt["reason_codes"])
                 self.assertIsNone(paragraphs)
+                self.assertEqual(receipt["rights_basis"]["hwpx_attachment_prose"],
+                                 "held_pending_clean_candidate")
 
     def test_embargo_must_have_elapsed(self):
         raw = release(embargo="2026.10.28.(수) 16:00")
@@ -240,7 +290,7 @@ class RecordCandidateTest(unittest.TestCase):
                       bare["reason_codes"])
         self.assertIn("not_replayed", bare["rights_basis"]["article_page_text"])
         self.assertEqual(bare["rights_basis"]["hwpx_attachment_prose"],
-                         "held_pending_article_license_mark_replay")
+                         "held_pending_clean_candidate")
         with self.assertRaisesRegex(CandidateHold, "requires_candidate"):
             write_private_input(self.root / "unqualified.json", bare, private)
 

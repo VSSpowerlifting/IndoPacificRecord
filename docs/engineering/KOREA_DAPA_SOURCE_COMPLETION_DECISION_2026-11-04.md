@@ -38,18 +38,23 @@ themselves a basis) and the shared-desk rules in `docs/desks/README.md`
 | Version | Terms replayed from the page captured 28 Oct 2026 (SHA-256 `c45188ef…461ab`, 150,928 bytes, hash-verified). A Firecrawl retrieval on 4 Nov (not forced live, so possibly cached) shows the same notice. | Today's terms are a different observation from the captured version; both are recorded, neither substitutes for the other. |
 | Custody | Private `archive/korea-dapa-policy-briefing` (commit `85cefcc4…`) holds the row, page capture, HWPX, ledgers. Shadow DB SHA-256 `58b97902…e5ed`. | Public repository holds signed link metadata only. |
 | Existing holds | Joint release `156786687` (HOLD), heading-variant `156786759` (HOLD), orphan `156787071` (refused), historical `156785254` (no pinned row). | Unchanged. |
+| Page ↔ HWPX binding (7 Nov) | On every preserved DAPA page, the attachment list has exactly one `.hwpx`, and its `fileId` equals the collector's recorded `document_url`. There is also one PDF. The marked article body holds no inline prose: it is only a document-viewer `iframe` (a server-side conversion of an attachment) plus the DAPA reprint remark. | The viewer conversion is not preserved and does not name its source attachment. Page-text/HWPX equivalence therefore **cannot be verified offline**. The binding proves only that the HWPX is the one listed on the marked page version. |
+| Reprint remark | The same remark appears on the joint releases `156786687` and `156787670`. | It corroborates DAPA as the reprinted source. It never proves sole issuance. |
 
 ## 3. Result of the offline candidate (no network, no model)
 
 | Identity | Result |
 | --- | --- |
 | `156786758` | **CANDIDATE** — re-run end to end on 4 Nov against the pinned archive (`shadow.db`, HWPX and page capture all hash-matched, `--page-capture` supplied, `network_requests: 0`). HWPX `1d019223…b415`, 6 body paragraphs, 1,035 characters, selected-prose SHA `fc1caba6…bc0b`. The final paragraph is a quotation whose speaker attribution needs human review. The Type 0 text mark replays from the captured page (mark digest `27af6358…7700`, scope `article_text_only`). |
-| `156786687` | HOLD — joint release with an IP office (result of the 3 Nov run; not re-run). |
+| `156786687` | HOLD — joint release with an IP office (issuer). |
 | `156786759` | HOLD — headline middle-dot variant. |
+| `156787670` | HOLD — `joint_release_masthead` (a "공동보도자료" masthead table; not a DAPA single-issuer template). |
+| `156788018` | **Structural CANDIDATE** (first preserved in run `42150393907-1`). HWPX `fileId` 198584502, 6 body paragraphs, 968 characters, selected-prose SHA `01f48248…`. Option A applies **per version**, so this version needs its own owner sign-off. No private prose input has been written for it. |
 | `156787071` | Refused. |
 
-Whether the captured page's body text is equivalent to the HWPX prose was **not**
-verified in this phase; the stored text is the HWPX extraction.
+**Re-run on 7 Nov** against the newer private archive state (archive commit `7542326`, run `42326645197-1`, shadow DB SHA-256 `4150a9cd…c903`). Every row above reproduces. `156786758` stays CANDIDATE with the same prose SHA `fc1caba6…`. The older DB `58b97902…e5ed` gives identical results for its three rows. Every row binds cleanly (§2).
+
+Page-text/HWPX equivalence is **not verifiable from the preserved page**: the page body is a viewer frame, not text. The stored text is the HWPX extraction. The receipt records this as `page_text_hwpx_equivalence: not_verifiable_from_preserved_page`.
 
 ## 4. Basis per activity (§7)
 
@@ -105,6 +110,19 @@ Contains (offline, no network, no model, no generated output):
   explicitly held HWPX use rather than treating the interpretation as a usable
   basis without the mark. The existing CLI can still report a safe HOLD when
   `--page-capture` is omitted.
+- `inspect_page_binding`: from the same hash-bound page bytes, it requires:
+  - exactly one listed `.hwpx` equal to the collector's `document_url`
+  - a viewer-only article body with no inline prose
+  - the single DAPA reprint remark
+
+  Any failure is a `page_binding:*` HOLD. A changed body form, or inline prose
+  that would need an equivalence review, is held rather than assumed. An invalid
+  `document_url` in the pinned row is treated as provenance drift.
+- A joint-release masthead table is now an issuer HOLD (`joint_release_masthead`)
+  rather than an unrecognized template.
+- The receipt's HWPX prose basis reads `interpretation_accepted_by_owner_option_a`
+  only on a fully clean CANDIDATE. Any hold (issuer, mark, binding, headline,
+  dates, screens) records `held_pending_clean_candidate`.
 - Tests with synthetic fixtures built from the real wrapper structure (no
   capture is committed). The previously staged #975/#976 code, tests and
   operating notes are carried here.
@@ -119,6 +137,8 @@ that point and gated off until each separate authority exists.
 1. **Decided 4 Nov 2026 (Ben, in chat): option A** in §5 for HWPX DAPA-authored
    prose. Applies per version, only under the §5 conditions; it does not
    activate the source or authorize model or public use.
+1a. Open: per-version sign-off for `156788018` (structural CANDIDATE, §3), if
+   the owner wants it treated like `156786758`.
 2. Open: confirm public originals stay link-only under the 17 Oct policy, or
    amend it (option A assumes link-only).
 3. Open: model input, provider and cost, decided separately, if at all.
