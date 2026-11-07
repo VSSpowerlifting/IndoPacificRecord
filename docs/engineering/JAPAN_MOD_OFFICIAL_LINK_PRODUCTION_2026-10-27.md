@@ -326,9 +326,8 @@ exists. None was fabricated, and the gate was not relaxed.
    images carry their own terms is unknown.
 4. *Privacy or secrecy.* The PDF metadata includes Microsoft MSIP
    sensitivity-label keys (label name, content bits, tenant/site identifiers).
-   The label values were deliberately not read. A label on a publicly posted
-   press PDF is probably a routine office default, but that is a human
-   judgment and cannot be inferred automatically.
+   The label values were deliberately not read. What the label means is a
+   human judgment and cannot be inferred automatically.
 5. *Media.* `complete_pdf_visual_content_verified` remains `false`. A
    text-only release would exclude the images, but `exception_replay` must
    still certify what the released artifact embeds.
@@ -348,14 +347,16 @@ This procedure binds a reviewer's determination to the exact evidence above.
 It produces a private record. It does not produce an automated verifier.
 
 1. **Policy capture.** In the reviewer's own normal browser session, open
-   `https://www.mod.go.jp/j/info/contents.html` and save the page bytes as
-   served. Record their SHA-256, the UTC observation time and the browser
+   `https://www.mod.go.jp/j/info/contents.html` and save the raw response body
+   of the document request from the browser's developer tools (Network panel).
+   Do not use "Save Page As", which can rewrite HTML. Record its SHA-256, the UTC observation time and the browser
    used. Confirm that the page still (a) applies PDL1.0 to ministry-owned
    site content, (b) permits reproduction and translation, (c) preserves the
    third-party, separate-terms and legal exclusions, and (d) is neither
    withdrawn nor changed in substance. Note the PDL1.0 version it cites.
    Under the gate's `MAX_POLICY_AGE`, qualification must run **within 7 days**
-   of this observation.
+   of this observation. The hash binds this reviewer's capture; it is not
+   expected to be reproducible later.
 2. **Document fetch binding.** Retrieve blob
    `1e4322192baa2e046ceab4210439ea558798593a` from the private evidence
    repository. Confirm SHA-256 `7069b9ba…b83b53d` before opening it.
@@ -371,8 +372,11 @@ It produces a private record. It does not produce an automated verifier.
    this repository) with these fields: reviewer, UTC time, the policy-page
    SHA-256 and observation time, the PDF SHA-256, text SHA-256 `56c4d16e…`,
    state commit `4ac08f6f…` and state SHA-256 `76917f9a…`, the per-page findings, and
-   the six `exception_replay` determinations
-   (`first_party_official_text`, `third_party_text_present`,
+   the eight `policy_replay` fields (`policy_id`, `official_policy_url`,
+   `observed_at_utc`, `publisher_policy_sha256`, `text_reproduction_permitted`,
+   `derivatives_permitted`, `third_party_exclusions_preserved`,
+   `policy_changed_or_withdrawn`), and the six `exception_replay`
+   determinations (`first_party_official_text`, `third_party_text_present`,
    `separate_terms_apply`, `privacy_or_secrecy_exception`,
    `released_artifact_embeds_media`, `entire_source_text_version_sha256`).
    Any "unsure" answer is a HOLD.
@@ -393,5 +397,9 @@ passing `exception_replay` or `policy_replay` for this document class. The
 founder must decide whether a **human-attested, hash-bound private review
 record** (the procedure above) may serve as the trusted verifier for
 individual Japan MOD PDF versions. If not, Japan MOD text remains held and
-the desk stays metadata-only. No code was added for either branch. That
+the desk stays metadata-only. Operating cost: the gate's 7-day
+`MAX_POLICY_AGE` and the bot challenge together mean that a "yes" requires a
+fresh human policy capture at least weekly, indefinitely, plus a per-version
+human review. That is recurring human work, not unattended routine
+ingestion. No code was added for either branch. That
 decision comes first.
