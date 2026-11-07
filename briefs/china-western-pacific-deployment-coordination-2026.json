@@ -1,7 +1,7 @@
 {
   "title": "Taiwan Reports More Than 100 Chinese Vessels Across the Western Pacific",
   "dek": "Japanese patrols tracked one destroyer through repeated passages in the first island chain. The wider deployment raises questions about coordination across China's naval forces.",
-  "manuscript_sha256": "00281bb25f2339e7ce30d22b9305e6e0f743d3e341387fc50329a1f071a35baf",
+  "manuscript_sha256": "6bf11f9509d285f0a2d3ff44edbb59c1a09ade58377bb73771a61959f6099a0c",
   "body_paragraphs": [
     [
       {
@@ -31,14 +31,14 @@
     ],
     [
       {
-        "text": "At the same time, Taiwan was watching Chinese vessels spread across a much larger area. National Security Council Secretary-General Joseph Wu reported "
+        "text": "At the same time, Taiwan was watching Chinese vessels spread across a much larger area. Taiwan News reported that National Security Council Secretary-General Joseph Wu said "
       },
       {
         "text": "more than 100",
         "source": "s3"
       },
       {
-        "text": " navy and coast guard ships operating across the Western Pacific on November 3. He accused Beijing of applying pressure and wrote, “"
+        "text": " navy and coast guard ships were operating across the Western Pacific as of November 3. Taiwan News reported that he accused Beijing of applying pressure and wrote, “"
       },
       {
         "text": "We won’t provoke, but we won’t bow to any pressure.",
@@ -238,7 +238,7 @@
       "temporal_role": "in-window",
       "verification": {
         "method": "indexed-original",
-        "locator": "ISW publisher-hosted report indexed Nov 6, text available in indexed original; four task forces from Eastern/Northern/Southern theater commands between Taiwan and Guam; isolation hypothesis and uncertainties."
+        "locator": "ISW Nov 6 report, publisher-hosted search index text; direct publisher page returned HTTP 403. Four task forces from three theater commands between Taiwan and Guam; isolation hypothesis attributed to ISW."
       }
     },
     {

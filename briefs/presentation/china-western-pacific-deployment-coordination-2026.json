@@ -1,0 +1,21 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "china-western-pacific-deployment-coordination-2026",
+  "manuscript_fingerprint": "9e968599776adaddc6ccef3213575782a13cb94e10105cd5b50a1451e6936a83",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-introduction",
+      "start": 1,
+      "end": 1,
+      "heading": "Introduction"
+    },
+    {
+      "id": "reading-analysis",
+      "start": 2,
+      "end": 11,
+      "heading": "Deployment and coordination"
+    }
+  ],
+  "approval": null
+}

@@ -54,6 +54,7 @@ class SourceLinkedTests(unittest.TestCase):
         draft.pop("approval", None)
         draft.pop("editorial_review", None)
         draft.pop("policy_ruling", None)
+        draft.pop("research_contributor", None)
         draft["editorial_credits"] = [
             {"role": "Editing", "name": "Dylan Tanzi"},
             {"role": "Research and analysis", "name": "Peter"},
