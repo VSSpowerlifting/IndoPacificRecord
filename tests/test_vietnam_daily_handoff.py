@@ -12,12 +12,15 @@ import json
 import os
 import sqlite3
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import pipeline as ipr_pipeline
 from core import vietnam_corpus_bridge as bridge
 from core import vietnam_daily_handoff as handoff
+from core.collection import status as st
 from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from tests import test_vietnam_daily_pipeline as pipeline
@@ -25,6 +28,8 @@ from tests.test_vietnam_daily_pipeline import (ENERGY, KEY, MPS, NOW, PROMOTED,
                                                FakeAnalyzer, clone_schema, decision, grant)
 
 BRIDGE_KEY = b"fictional-test-only-private-bridge-key-0000"
+#: When the Daily pipeline reads the receipt: the same day the envelope was signed.
+RECEIVED = datetime(2026, 10, 20, 11, 0, tzinfo=timezone.utc)
 WITHHOLD = {"public_original_storage": False, "public_full_translation": False,
             "public_excerpt": False}
 
@@ -266,18 +271,33 @@ class Handoff(unittest.TestCase):
                 code = handoff.main(["--database", str(db), "--handoff", str(path)])
             return code, json.loads(out.getvalue())
 
+        def reported(out):
+            # The printed receipt is exactly what the Daily pipeline reports.
+            receipt = self.tmp / "receipt.json"
+            receipt.write_text(json.dumps(out))
+            with patch.dict(os.environ, {"IPR_VIETNAM_HANDOFF_RECEIPT": str(receipt)}):
+                return ipr_pipeline._vn_handoff_outcome(MPS, RECEIVED)
+
         before = hashlib.sha256(db.read_bytes()).hexdigest()
         code, out = run()  # live MPS still requires a sealed owner decision
         self.assertEqual((code, out["status"], out["reason"]),
                          (2, "HOLD", "source_use_decision_unsealed"))
         self.assertEqual(hashlib.sha256(db.read_bytes()).hexdigest(), before)
+        self.assertEqual(reported(out), ipr_pipeline.GovernedOutcome(
+            st.ADAPTER_ERROR, error_detail="vietnam_daily_handoff: source_use_decision_unsealed"))
         with patch.object(handoff, "DECISIONS", self.decisions()), \
                 patch.object(bridge, "desk_promoted", return_value=True):
             code, out = run()
             self.assertEqual((code, out["counts"]), (0, {qa.PUBLISHED: 2}))
+            self.assertEqual(out["by_family"], {MPS: {qa.PUBLISHED: 2}})
+            self.assertEqual(out["generated_utc"], NOW)
             self.assertNotIn("summary_english", json.dumps(out))
+            self.assertEqual(reported(out), ipr_pipeline.GovernedOutcome(st.OK, 2, 0))
             code, out = run()
             self.assertEqual((code, out["counts"]), (0, {bridge.DUPLICATE: 2}))
+            self.assertEqual(out["by_family"], {MPS: {bridge.DUPLICATE: 2}})
+            self.assertEqual(reported(out),
+                             ipr_pipeline.GovernedOutcome(st.OK_ALL_DUPLICATES, 0, 2))
         with closing_ro(db) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM articles").fetchone(), (2,))
         self.assertFalse(any(p.name.startswith(".vietnam-handoff-") for p in self.tmp.iterdir()))

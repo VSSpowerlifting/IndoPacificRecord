@@ -569,7 +569,13 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # direction on #979, docs/desks/MIGRATION.md), never add one.
         self.assertIn(
             "IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}", pipeline)
+        # The two existing Vietnam activation switches and a run-local
+        # receipt are passed to the governed dispatcher for reporting only.
+        # This does not activate a collector, model, or publication path.
         self.assertIn("DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}", pipeline)
+        self.assertIn("IPR_VIETNAM_HANDOFF_RECEIPT: ${{ runner.temp }}/vietnam-handoff.json", pipeline)
+        for key in ("VIETNAM_DAILY_HANDOFF_ENABLED", "VIETNAM_VPCP_METADATA_ENABLED"):
+            self.assertIn(key + ": ${{ vars." + key + " }}", pipeline)
         self.assertIn("IPR_USCC_SOURCE_CHECKOUT: ${{ runner.temp }}/uscc-preserved-metadata", pipeline)
         self.assertIn("IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata", pipeline)
         self.assertEqual(sorted(env_keys),
@@ -578,11 +584,13 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "FALLBACK_MODEL", "GH_TOKEN", "IPR_CHINA_SOURCE_USE_HOLD",
                           "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED", "IPR_USCC_SOURCE_CHECKOUT",
-                          "IPR_US_TREASURY_SOURCE_CHECKOUT", "JAPAN_MOD_OFFICIAL_LINKS_ENABLED",
+                          "IPR_US_TREASURY_SOURCE_CHECKOUT", "IPR_VIETNAM_HANDOFF_RECEIPT",
+                           "JAPAN_MOD_OFFICIAL_LINKS_ENABLED",
                           "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE", "RELEVANCE_MODEL", "SUMMARY_MODEL",
-                          "TRANSLATION_MODEL", "VPCP_METADATA_ONLY"])
+                          "TRANSLATION_MODEL", "VIETNAM_DAILY_HANDOFF_ENABLED",
+                           "VIETNAM_VPCP_METADATA_ENABLED", "VPCP_METADATA_ONLY"])
         # Every new model input is deliberately mapped, with incumbent defaults
         # or an empty override. Keep the exact-key assertion above so future
         # unreviewed environment additions continue to fail closed.

@@ -280,6 +280,10 @@ class TestThisEnablesNothing(unittest.TestCase):
     #: the production corpus". So the allowance is a named file, not a relaxed
     #: assertion, and the production path below is still checked.
     PDF_CALLERS_ALLOWED = {"jp_mod.py"}
+    # Source-specific exact-byte verifier is read-only, manually invoked and
+    # writes neither public originals nor production Records. It is not an
+    # additional collector or permission to import PDF bodies into Daily.
+    PDF_OFFLINE_REPLAY_ALLOWED = {"core/japan_mod_original_replay.py"}
 
     def test_the_pdf_extractor_reaches_no_unexpected_caller(self):
         for path in self.source_files():
@@ -287,9 +291,29 @@ class TestThisEnablesNothing(unittest.TestCase):
                 continue
             if path.name in self.PDF_CALLERS_ALLOWED:
                 continue
+            if path.relative_to(REPO_ROOT).as_posix() in self.PDF_OFFLINE_REPLAY_ALLOWED:
+                continue
             text = path.read_text(encoding="utf-8")
             with self.subTest(file=str(path.relative_to(REPO_ROOT))):
                 self.assertNotIn("pdf_text", text)
+
+    def test_the_offline_original_replay_is_not_a_production_entrypoint(self):
+        module = REPO_ROOT / "core" / "japan_mod_original_replay.py"
+        self.assertTrue(module.is_file())
+        source = module.read_text(encoding="utf-8")
+        self.assertIn("from processing import pdf_text", source)
+        for forbidden in ("from pipeline", "import pipeline", "from analysis",
+                          "from storage", "requests.get", "urlopen(",
+                          "pla_watch.db", "output/"):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, source)
+        for path in (REPO_ROOT / "pipeline.py",
+                     REPO_ROOT / "processing" / "daily_intake.py",
+                     REPO_ROOT / "desks" / "japan" / "manifest.json",
+                     REPO_ROOT / ".github" / "workflows" / "daily_update.yml"):
+            with self.subTest(path=str(path.relative_to(REPO_ROOT))):
+                self.assertNotIn("japan_mod_original_replay",
+                                 path.read_text(encoding="utf-8"))
 
     def test_the_pdf_extractor_stays_off_the_production_collection_path(self):
         """
