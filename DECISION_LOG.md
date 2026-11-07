@@ -4,6 +4,26 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-07 — Founder: USCC standing-family adoption and qualifier prepared for review
+
+Benjamin Yang directed that the standing-family assessment approved on 11-04
+be prepared for adoption together with its implementation as one review
+candidate, replacing the offline adapter's exact-two-version limit for
+qualifying routine releases. `core/uscc_offline_input.py` now implements the
+six documented checks (policy `uscc-standing-family/1`) and records each
+qualification as a hash-only receipt keyed to an already admitted
+`uscc_official_source_records` row. A hold is recorded, never auto-reopened;
+a changed version needs explicit supersession of the latest receipt; the
+June 25 release stays individually held. The two previously accepted versions
+are retained only as a test regression fixture, and the runtime allow-list file
+is retired.
+
+**Adoption takes effect only when the candidate PR is merged.** This entry
+does not approve the merge and authorizes no model transmission, provider
+handling, spending, new acquisition, recurring collection, activation,
+publication or deployment. Public scope remains the official metadata link;
+the 90-word attributed-note cap is an output limit, not a legal basis.
+
 ## 2026-11-04 — Founder: USCC standing-family assessment text approved (PR #987)
 
 Benjamin Yang approved in chat the text of

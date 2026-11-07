@@ -26,7 +26,8 @@
       "ffdb24a69dbfd986ddb94bdb53594c88a161f1f940b796b252f9f6d598e687a9",
       "6793445a36153c0db19e3d03e7c7e6e52849fdede73c94457c50fc8580824ca2"
     ],
-    "payload_bytes": 52063
+    "payload_bytes": 52063,
+    "potential_input_sha256": "7d29108f450a4ce40b3dd5f322ad801a2dfc3e3ab9677c044f49568b4b9c65a5"
   },
   "uscc-press:press-release-us-china-commission-returns-fact-finding-trip-china": {
     "canonical_url": "https://www.uscc.gov/press-releases/press-release-us-china-commission-returns-fact-finding-trip-china",
@@ -51,6 +52,7 @@
       "010453f29c92d280a411f45310d1aa95eaa1981a5881d59b98fe87c1a0f06f67",
       "f6662895d4ba7feb6d57753807bbb91a3ddb9ba74e2c875a56260a6ba3ce58a6"
     ],
-    "payload_bytes": 56636
+    "payload_bytes": 56636,
+    "potential_input_sha256": "bf1d2926736f58fc675f7bba54f517129f04633ac21379631a30381cbf080d26"
   }
 }

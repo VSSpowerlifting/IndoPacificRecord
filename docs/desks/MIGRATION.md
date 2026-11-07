@@ -269,6 +269,17 @@ for a publisher-side reason unrelated to this branch. Generated
 Daily's migration step inserts the desk/institution/source rows and its render
 republishes.
 
+**USCC narrative eligibility (adoption candidate, 7 November 2026; not merged,
+not wired into Daily):** `core/uscc_offline_input.qualify_admitted` qualifies a
+privately held capture against the admitted `uscc_official_source_records` row
+under the standing-family policy and writes a hash-only receipt to
+`uscc_narrative_eligibility_receipts`. It adds no dispatcher, manifest, registry,
+workflow or renderer change; no public loader reads the receipts, and the
+metadata admission above is unchanged. A runtime caller, model transmission and
+any public note stay separately governed
+(`docs/engineering/USCC_OFFICIAL_METADATA_COLLECTION_2026-10-15.md`,
+"Implementation state").
+
 **Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
 manifest/registry entry; folding it in needs a dispatcher-side run attestation
 or an owner decision to drop that binding. The first scheduled Daily run on the

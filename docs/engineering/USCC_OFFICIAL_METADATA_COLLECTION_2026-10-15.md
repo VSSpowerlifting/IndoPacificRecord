@@ -345,7 +345,12 @@ English profile connected to existing shared lifecycle/admission, in coordinatio
 with #950/#953. No shared dispatcher, workflow, renderer, registry, production
 data or source activation changed here. Stop at review of these findings.
 
-## Offline exact-version input adapter — implementation candidate
+## Offline exact-version input adapter — superseded by the family qualifier
+
+*Historical record of the exact-two slice. The family qualifier described under
+"Implementation state" below replaces its runtime allow-list; the two pinned
+versions now live only in `tests/fixtures/uscc_accepted_regression_versions.json`
+as regression cases, and `config/uscc_offline_accepted_versions.json` is retired.*
 
 The follow-up task authorizes offline implementation only, overriding the earlier
 implementation hold solely for this slice. `core/uscc_offline_input.py` provides
@@ -398,8 +403,10 @@ contact, merge and deployment remain. Future versions and June 25 are rejected.
 
 ## Standing-family assessment — founder-approved text, pending merge (4 November 2026)
 
-**Status: text approved by the founder in chat on 4 November 2026; not yet in
-effect, because PR #987 is unmerged.** The founder supported extending the 11-03
+**Status: text approved by the founder in chat on 4 November 2026; on
+7 November the founder directed that it be adopted together with its
+implementation as one review candidate (`DECISION_LOG.md`, 2026-11-07). It takes
+effect only when that candidate is merged.** The founder supported extending the 11-03
 assessment to a narrowly defined standing family of unsigned, Commission-issued
 institutional press releases, subject to the corrections incorporated below, and
 then approved this text. The approval is recorded in `DECISION_LOG.md`
@@ -557,15 +564,50 @@ endorsement authorizes them.
 
 ### Implementation state
 
-Policy text approved (takes effect only on merge); code unchanged in behavior.
-The offline adapter still admits only the two exact accepted versions and holds
-everything else, including routine new releases the approved policy would
-qualify. No family qualifier is built: it has no authorized caller yet, and the
-six checks above are a policy statement, not code. The next bounded step, if the
-founder asks for it, is one reviewed change that implements the checks against a
-real caller. Tests added here pin
-that the shipped policy is still exactly the two accepted versions, that the
-June 25 and invented identities are refused through the public API, that a
-changed capture of each accepted release is held with `capture_version_mismatch`,
-and that no output manifest authorizes transmission, publication or a complete
-original input.
+Adoption candidate (7 November 2026): policy and implementation together, in
+effect only on merge. `core/uscc_offline_input.py` implements the six checks as
+policy `uscc-standing-family/1`; there is no parallel engine, permission file or
+shared-file change.
+
+- **`qualify(raw, *, source_identity, canonical_url, publication_date, access,
+  robots_txt)`** runs, in order: identity-keyed holds (June 25 stays held under
+  the 11-03 decision), first-party identity (canonical/final URL, RDFa article
+  identity, single title, visible and machine dates equal to the admitted date),
+  access conditions (the capture's access receipt must match the bytes' SHA-256
+  and length, an unredirected public HTML 200 response, and a robots.txt whose
+  hash matches the receipt and that permits the fetching agent and `*`), page
+  gates (paywall/login or copyright/licence notice holds), authorship indicators
+  (bylines, credit lines, author metadata, "prepared/contracted by" language
+  hold), template structure (narrative → whole-paragraph quotations →
+  institutional boilerplate → social labels; anything else holds as
+  `unrecognized_release_structure`, links or media in narrative hold) and
+  non-narrative forms (testimony, speeches, remarks, op-eds hold).
+- **Output.** Private `potential_input` (title, canonical URL, date, narrative
+  paragraphs only) plus a hash-only manifest (`ipr-uscc-family-potential-input/2`)
+  recording every paragraph's index, hash and inclusion or exclusion reason. The
+  manifest states `complete_original_input`, `model_transmission_authorized` and
+  `publication_authorized` false, `public_scope` `official_link_only` and the
+  90-word note cap as an output limit.
+- **Lifecycle integration.** `qualify_admitted(con, raw, …)` reads URL and date
+  from the existing `uscc_official_source_records` row (unadmitted identities
+  hold), and writes one row per capture to `uscc_narrative_eligibility_receipts`
+  (FK to that table, hash-only manifest, custody commit, `public_scope` and
+  `model_transmission_authorized` fixed by CHECK constraints). Re-qualifying the
+  same capture is idempotent; a differing result raises. Any held version keeps
+  the release held (`prior_version_held`); a changed version must name the
+  latest receipt it supersedes and records a paragraph-hash change summary. The
+  caller commits; no public loader or renderer reads this table.
+
+**Demonstrated.** Offline replay of the two preserved accepted captures through
+the family qualifier reproduces their accepted potential-input digests exactly
+(July 18 `7d29108f…`, July 25 `bf1d2926…`), and the preserved June 25 capture
+holds (by identity, and by structure if that hold is removed). Synthetic tests,
+all labelled as such, cover positive eligibility, every hold code, changed and
+truncated captures, leakage of excluded components, receipt integrity and
+isolation from public loading.
+
+**Not demonstrated.** No additional authentic routine release was available
+without new acquisition, so general-family success rests on two regression
+positives and one authentic hold. Template drift, quotation provenance and actual
+drafting authorship remain open (see "Gaps that remain"). No note was generated,
+no model called and nothing published.
