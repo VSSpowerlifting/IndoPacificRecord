@@ -8,6 +8,233 @@
 > notice does not claim runtime migration, change permissions or activate a source.
 
 
+## DAPA original-source qualification — 3 November 2026
+
+**Decision-ready evidence; proposed source use, not an adopted grant.** Public
+baseline `895aa3469844866f5f63aa07109a2827dfedbf64`; private code main
+`a3f6299bd783b9624d0754707572dbb89abdd860`; private custody
+[`archive/korea-dapa-policy-briefing` at `85cefcc42e5a5f53ef1dc32dc8b8d903f08abbab`](https://github.com/VSSpowerlifting/ipr-source-evidence-private/tree/85cefcc42e5a5f53ef1dc32dc8b8d903f08abbab/state).
+This section updates the DAPA boundary; the MND repair below remains a separate
+phase. The founder's [eight-desk scope](../desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
+requires DAPA independently of MND. No source policy, runtime, workflow, model,
+production database, original, published output or private archive was changed.
+
+### Authentic evidence and current reader frontier
+
+The private `state/shadow.db` passes SQLite integrity checking and has SHA-256
+`58b97902d6e5b2b33276cbea46ecdc882bb47b12df991f9ea1020d5a8773e5ed`.
+Its three records are `156786687`, `156786759` and `156786758`. All three stored
+texts re-extract byte for byte from their preserved HWPX; their stored headings
+match their captured article headings. All 30 preserved capture/original file
+paths were read independently through GitHub at the pinned commit: 29 distinct
+payloads, including a repeated robots payload. SHA-256 verification succeeded
+for every payload; all 16 retained collector ledgers' request hashes and byte
+lengths match the retained captures. This does not certify missing historical
+slots or make failed attempts successful.
+
+| Portal newsId | Posted date | HWPX fileId / bytes | Custody and qualification disposition |
+| --- | --- | --- | --- |
+| `156786687` | 2026-10-27 | `198578348` / 235,784 | First candidate: scheduled `40614736442-1`; stored text matches, normalized article heading occurs in HWPX. |
+| `156786759` | 2026-10-28 | `198578611` / 230,189 | Scheduled `40802644509-1`; stored text matches. Normalized article heading does not occur verbatim in extracted HWPX; review the variation before substantive use. |
+| `156786758` | 2026-10-28 | `198578609` / 227,771 | Same successful run; stored text and normalized heading match. An MND name occurs in the text; this alone establishes neither joint authorship nor a rights conflict. Review issuer/third-party scope. |
+| `156787071` | 2026-10-29 | `198579982` / 238,043 | Preserved HWPX in failed `40988894694-1`, absent from source DB. Another item (`156787009`) failed listing/detail agreement, rolling back the batch. Do not admit this orphan by bypassing the failed-batch contract. Its heading also needs variation review. |
+| `156785254` | 2026-10-15 | `198570147` / 230,559 | Separate historical owner-capture/import, not scheduled acquisition. Existing link-only approval does not clear substantive use; retained semantic/rights flags remain false. Useful regression sample. |
+
+The recent successful scheduled runs
+[`41372802102`](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/41372802102)
+and [`41572372748`](https://github.com/VSSpowerlifting/ipr-source-evidence-private/actions/runs/41572372748)
+are **quiet days**, nominal November 1 and 2 respectively, executed the following
+UTC date. Their actual collection/readback jobs passed, robots and complete
+filtered listings were captured, `ok_no_publications` was recorded, no originals
+arrived and public dispatch was skipped. They establish continued collection
+operation, not new original-to-reader delivery. The October 29 failed batch
+remains failed and its unadmitted HWPX remains preserved.
+
+Independent HTTPS inspection of [the Korea desk](https://indopacificrecord.org/korea.html)
+on November 3 found **four DAPA official-link entries**: `156785254`, `156786687`,
+`156786758`, `156786759`, matching the baseline's tracked Korea page. The live
+page explicitly limits DAPA to metadata and separate review. This was identity/
+scope inspection, not a byte-for-byte site attestation or substantive DAPA Record
+delivery. No DAPA English explanation was qualified here.
+
+### Exact original versions
+
+Each canonical article is
+`https://www.korea.kr/briefing/pressReleaseView.do?newsId=<newsId>`; each HWPX
+download is `https://www.korea.kr/common/download.do?fileId=<fileId>&tblKey=GMN`.
+DAPA (`kr_dapa`, portal issuer `B00008`) is the **issuer**; Korea Policy Briefing
+(`kr_policy_briefing`) is the **republisher**. Source family stays
+`kr_policy_dapa_releases`, identity prefix `korea-dapa-policy:`.
+
+| newsId | Captured article SHA-256 | HWPX SHA-256 | Existing extractor's text SHA-256 |
+| --- | --- | --- | --- |
+| `156786687` | `464a5f0e0314687d763834c4a5649fef0af7715812a897e4cb1c4b515a235085` | `1b447257bfd7359d5acab8f56051a6371c30cbd3b58688e884505a377c991e31` | `c36017771290580e93fd4fef0fea2b86c27c61f6828377a3979e5f1f6d9bba0c` |
+| `156786759` | `b3a0660340b4250c941c0f0937c510e7cd2717e1bd33bd72ddc87d993dc40994` | `3099381ebde8bec90398418282ac8295fd0481c707e51e7b662e20c29907941d` | `6755f8ed9cdfbf9f4f7b73449f453776db3c27416035c2f2b1d62893eb6720dc` |
+| `156786758` | `c45188ef880fee6313b480af5c6569b31d1c9e91a9e25bb70d170007212461ab` | `1d019223e5289c7619aa4c9123a2626040caede9f133a9ef17849ceddf06b415` | `4fb52ca49b9009608617b7bb2b8bcd2d310080e876caf00e542e59d103095330` |
+| `156787071` | `8bcb8dfad817234c5076c84be2feb7a548fe9537ad1c7df7131409052139589a` | `a49534176388a951c98d59d01f1a749a649674f5daeb9931053e9168388b5d96` | `a15e3347fef72a76bf27902952071d3b158dfdc332129a57d95d8683cee55c20` |
+| `156785254` | `18d6f645ac345f8a76958be45c6445672e39792e905b6a1edb9472b4a315b992` | `dc832374f7709dfc14a08baf4fad526bf8b519114f0cebdca9793a49a64dd8a8` | `23c014be6ed75bef835553d6d4a674871c6f10f7abb4aa41bee432650fff3abb` |
+
+Ordinary originals/captures are `state/captures/<sha256>.bin`. The historical
+original and its HTML are instead under
+`state/historical_owner_imports/dapa-2026-10-15-156785254/`, with the HWPX named
+`<sha256>.hwpx` and HTML in `captures/<sha256>.bin`. Original bytes stay private.
+
+All five pass the existing `scripts/audit_dapa_hwpx.py` SHA/size/structure audit
+and ZIP CRC checking. Each has one XML section. Extracted character counts are
+1,765 / 1,315 / 1,245 / 938 / 1,342 in table order; table counts are 5 / 5 / 5 /
+6 / 5, and embedded binary-member counts 5 / 5 / 5 / 6 / 5. The extractor's
+sequence matches all section XML text runs after whitespace removal. This
+supports text-run coverage, **not** visual reading order, table relationships,
+image-text completeness or Korean semantic approval. Embedded previews are
+approximately 1,022 characters and cannot replace complete section extraction.
+
+### Source-use finding and exact unresolved boundary
+
+All five captured article pages have one article-local **KOGL Type 0, text-only**
+notice and the `open_type_00.png` mark/Type 0 alt text. Each explicitly excludes
+non-text photos, images, illustrations and video from automatic permission.
+Their body is a document-viewer iframe with an opaque viewer identifier; this
+audit did not capture the rendered viewer or prove viewer-to-HWPX byte identity.
+The named official HWPX attachment and collection request/capture chain are
+verified; an iframe shell is not the original text.
+
+The [KOGL authority's current type guide](https://www.kogl.or.kr/info/license.do)
+explicitly recognizes Type 0 and permits commercial/noncommercial use and
+adaptations without an attribution condition, while preserving moral rights.
+The [portal's general copyright policy](https://www.korea.kr/guide/copyRight.do),
+read November 3, still describes Type 1 as its standard text category, requests
+specific attribution and a copyright-policy link, excludes third-party media,
+and explains that agency releases flow in from their issuing institutions.
+Thus Type 0 is not an invalid/missing mark; preserve the actual per-item Type 0
+and satisfy the portal's attribution/link requests rather than relabel it Type 1.
+These policy readings are current web observations, not hashed archival captures.
+
+**Permitted now by IPR:** existing owner-gated private collection/custody,
+read-only local integrity inspection, and verified official-link metadata under
+[`config/korea_dapa_official_link_automatic_admission.json`](../../config/korea_dapa_official_link_automatic_admission.json).
+Its prohibitions on public titles/text, media, translation/analysis and
+model/email transmission remain in force. The shadow manifest's older one-time
+wording is not the current schedule authority: the actual private workflow has
+a distinct owner-approved recurring-access gate. That gate grants no reuse.
+
+**Favorable publisher evidence, pending an IPR source-use decision:** text-only
+reuse/adaptation of DAPA-authored material in the exact linked HWPX. Applying
+the article's Type 0 notice to that attachment's DAPA-authored prose is a
+documented interpretation, not an independently explicit attachment licence or
+a verified viewer equivalence. No separate model-specific prohibition was found
+in the observed notices/guide; that absence is not model authorization. A founder
+decision may accept this documented scope interpretation, but cannot grant
+third-party rights or waive a contrary document restriction.
+
+**Still restricted or uncertain:** complete HWPX/PDF rehosting, embedded media,
+unidentified third-party/joint-authored material, contact/personnel blocks,
+image-only information, heading variations, semantic/table order, provider
+retention/training conditions and new model spending. No publisher contact is
+authorized. If attachment-text scope cannot be accepted on this evidence, the
+precise missing clarification is whether the article's text-only Type 0 notice
+covers DAPA-authored prose in its named HWPX for private third-party machine
+inference and independently worded attributed English explanations; contact
+would need its own authorization. Do not ask for a blanket whole-file licence.
+
+### Recommendation for founder decision — not executed
+
+Accept the documented Type 0 basis **only for DAPA-authored prose** in authentic
+linked HWPX releases, starting with exact version `156786687` above (superseded:
+it is a joint release; see the offline candidate below). Authorize
+an offline implementation candidate that can select and bind eligible prose,
+exclude contact/media/uncertain material, and prepare private potential inputs
+for attributed English machine explanations. Preserve the complete original
+separately. Use `156785254` as an existing-evidence regression; retain the other
+samples' stated review/failed-batch dispositions. Do not grandfather future
+releases by issuer alone: inspect each version's notice, attachment identity and
+exceptions. Once reviewed rules exist, routine eligible versions should not
+need a new owner ritual.
+
+The proposed decision should explicitly allow the **source uses** of private
+inference/translation and public independently worded machine explanations,
+while keeping public originals/media excluded. It should **not** activate those
+uses: model calls require separately authorized provider/task/cost controls;
+public delivery requires qualified code and applicable release authority. If
+the founder declines the attachment-scope interpretation, preserve all work and
+hold substantive processing pending the narrow clarification above. Neither
+response changes existing link-only service.
+
+No new adapter was added in this phase: the existing extractor already replays
+the three database originals exactly; additional processing code cannot resolve
+the unadopted source-use boundary. `core/korea_corpus_bridge.py` deliberately
+accepts MND-only, already-public Type 1 originals; DAPA cannot be made eligible
+by relabeling its issuer, copying it into MND's release index or publishing an
+original as a bridge prerequisite. After the decision, extend the existing
+source definition/private custody and shared lifecycle with a DAPA profile and
+permitted-component projection, coordinating shared integration with #950.
+Retain the current DAPA metadata handoff until a reviewed replacement is real.
+
+**Verification/stop:** existing auditor's four synthetic negative/structure tests
+pass; five genuine original audits, three stored-text equalities, 16 request-chain
+checks and the metadata-only HTTPS inspection above are verified. No semantic
+review or new source-to-reader acceptance is claimed. Full final-head CI belongs
+to this review PR. Stop at this qualification; the next phase is the founder's
+source-use decision, then one bounded offline implementation. Production merge,
+activation, paid inference, deployment and subsequent new-release delivery remain
+separate and unperformed.
+
+### Offline original-to-record candidate — 3 November 2026
+
+Founder direction adopted the Type 0 interpretation as the **working basis
+for local offline selection and preparation only** of identifiable DAPA-authored
+prose. It does not change production source-use policy, model or public use.
+
+`scripts/build_dapa_record_candidate.py` (`core/korea_dapa_record_candidate.py`)
+reads one row only from a SHA-pinned private shadow DB (read-only), verifies the
+HWPX against that row's `document_capture_sha256`, and requires the audited
+extraction to equal `text_original`/`content_sha256`. A located walk in
+`scripts/audit_dapa_hwpx.py` (same read, same text order) maps the release
+template: masthead, timing (`보도시점`/`배포`), headline, body, contact,
+picture-only tail. Any other shape holds. Only body paragraphs are selected;
+masthead, timing, headline, contacts and pictures are excluded and counted.
+Holds cover joint-issuer signals, headline/title drift, distribution or lead-date
+mismatch, unelapsed embargo, phone/email in prose and any text-screen indicator.
+The receipt carries hashes, counts and roles only; prose goes solely to an
+explicit new 0600 file in an owner-only directory. Every use flag stays false.
+
+**Page-mark replay (4 November 2026).** With `--page-capture` the builder also
+replays the article's published KOGL Type 0 *text* notice from the exact
+preserved page bytes (`core/korea_dapa_archived_kogl_replay.py`): the capture is
+bound to the pinned row's `capture_sha256`, must name its own canonical article
+URL, and must carry one text-only Type 0 marker, a consistent badge and the
+non-text exclusion notice with no other KOGL type. A failed replay becomes a
+`license_mark:*` hold. The receipt records `rights_basis`; the mark is proved
+for the page text only. The receipt records its application to the HWPX prose
+as `interpretation_accepted_by_owner_option_a` only when the CANDIDATE is fully
+clean. Without `--page-capture`, or with any hold, the receipt is a HOLD and
+records `held_pending_clean_candidate`, and no private prose is written. Since
+7 November 2026 the same bytes must also bind the HWPX to the page
+(`page_binding:*` holds): exactly one listed `.hwpx` equal to `document_url`, a
+viewer-only body and the reprint remark. The decision
+candidate is
+[KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md](KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md).
+
+Genuine run against the private `state/shadow.db` pinned above
+(`58b97902d6e5b2b33276cbea46ecdc882bb47b12df991f9ea1020d5a8773e5ed`), offline,
+no model. `156785254` (historical owner import) has no row in that DB, so it
+cannot be bound and was not evaluated; the candidate requires a pinned row.
+
+| Version | Result | Reason |
+| --- | --- | --- |
+| `156786758` | **CANDIDATE** | HWPX `1d019223e5289c7619aa4c9123a2626040caede9f133a9ef17849ceddf06b415`. Sole issuer structurally confirmed; headline equals stored title; 6 body paragraphs, 1,035 characters, selected-prose SHA `fc1caba6e6ef6c9ef0dd6b0e5438f0bf2517a628febcd5945a37b128cb01bc0b`; final paragraph is a quotation needing attribution review. |
+| `156786687` | HOLD | Joint DAPA/IP-office release: two `담당 부서` blocks, agency-label contact cells and a joint lead sentence. This supersedes the earlier "first candidate" proposal. |
+| `156786759` | HOLD | `headline_punctuation_variant`: HWPX heading uses a different middle-dot code point from the stored title. |
+| `156787071` | Refused | Listing artifact with no row in the pinned archive. |
+
+**What this does not establish:** no Korean semantic review, translation or
+English explanation has occurred. The DAPA quotation's speaker attribution
+still needs a human check. Before any English explanation is prepared from
+`156786758`, these must be authorized separately: (1) a human Korean review
+of the selected paragraphs and quotation attribution; (2) a model
+provider/task/cost authorization for private inference; (3) public delivery
+through qualified code and release authority. `156786759` needs a reviewed
+heading-normalization rule, not an automatic fold.
+
 ## Current repair phase — 2 November 2026
 
 **Engineering candidate; no merge, activation, paid call or deployment.** This

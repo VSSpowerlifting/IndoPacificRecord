@@ -29,9 +29,18 @@ def load(db_path):
             r["categories"] = json.loads(r["categories"])
             r["model_flagged"] = bool(r["model_flagged"])
             validate_output(r, family, p)
-            link = conn.execute("SELECT canonical_official_url,publisher_posted_date,"
-                "metadata_version_sha256,official_publisher FROM regional_official_source_links "
-                "WHERE source_family=? AND source_identity=?", (family, r["source_identity"])).fetchone()
+            if source.parent:
+                # Source-owned parent (DAPA: Korea official link); same version
+                # by candidate, text and page hashes, else the record is withheld.
+                parent = source.parent_link(conn, r["source_identity"])
+                link = parent and (parent["canonical_official_url"], parent["publisher_posted_date"],
+                                   parent["metadata_version_sha256"])
+                if not parent or any(parent[k] != r[k] for k in ("content_sha256", "capture_sha256")):
+                    continue
+            else:
+                link = conn.execute("SELECT canonical_official_url,publisher_posted_date,"
+                    "metadata_version_sha256,official_publisher FROM regional_official_source_links "
+                    "WHERE source_family=? AND source_identity=?", (family, r["source_identity"])).fetchone()
             if not link or link[2] != r["metadata_version_sha256"]:
                 continue
             if source.release_hold():

@@ -45,6 +45,33 @@ differences. A map entry does not permit deactivation of a working path.
 
 ## Implementation order and ownership
 
+**DAPA source-use qualification, 3 November 2026:** five authentic preserved
+HWPX versions passed integrity/structure checks; three stored originals replay
+exactly. All five article captures carry text-only Type 0 notices, but applying
+that scope to DAPA-authored HWPX prose and authorizing substantive source uses
+still need the founder decision specified in the
+[Korea operation qualification](../engineering/KOREA_DESK_OPERATION.md#dapa-original-source-qualification--3-november-2026).
+Existing four public DAPA links,
+private custody, failed-batch and semantic holds remain intact. No adapter,
+model call, common dispatcher change or activation occurred; #950 stays separate.
+Under the founder's offline-only Type 0 working basis, the follow-up
+[original-to-record candidate](../engineering/KOREA_DESK_OPERATION.md#offline-original-to-record-candidate--3-november-2026)
+selects body prose from SHA-pinned versions: `156786758` is the private
+candidate; joint `156786687` and heading-variant `156786759` hold. No semantic
+review, model input or public use is authorized. The 4 November
+[decision candidate](../engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md)
+adds hash-bound replay of the article's Type 0 text notice (now required for a prose CANDIDATE) and sets
+out options A–C for the HWPX prose; nothing is activated and no DAPA
+standing-rights policy entry is added.
+On 7 November the founder adopted standing conditional eligibility under
+option A, and DAPA became one disabled-by-default `DailySource` profile
+(`kr_policy_dapa_releases`) in the shared lifecycle, with migration m0021 so
+machine rows can reference Korea official-link parents. All policy flags are false and the desk is unregistered.
+An offline rehearsal with synthetic processing output carried `156788018` and
+`156786758` from candidate to rendered Record in isolation; the
+[activation proposal](../engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md#9-shared-pipeline-integration-7-nov-2026-and-activation-proposal)
+lists the remaining owner decisions.
+
 **Indonesia recovery candidate, 2 November 2026:** shared intake preserves
 deferred retry/QA dispositions; the existing private runner retains parsed
 readings with immutable source/version and attempt context in its already

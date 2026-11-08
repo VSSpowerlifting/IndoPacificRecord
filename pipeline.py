@@ -665,8 +665,9 @@ def _governed_admissions() -> dict:
     from core import japan_mod_official_links
     from core.daily_sources import SOURCES
     out = {korea_corpus_bridge.SOURCE_SLUG: _korea_admission()}
-    for family in SOURCES:
-        out[family] = _daily_admission(family)
+    for family, source in SOURCES.items():
+        if source.desk_registered:
+            out[family] = _daily_admission(family)
     out[japan_mod_official_links.FAMILY] = _japan_admission()
     for slug in _US_METADATA_FAMILIES:
         out[slug] = _us_metadata_admission(slug)
