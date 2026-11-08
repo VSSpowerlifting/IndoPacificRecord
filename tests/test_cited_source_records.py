@@ -186,16 +186,20 @@ class ApprovedBriefsTests(unittest.TestCase):
                         if (r.get("verification") or {}).get("locator")}
 
     def test_admission_counts(self):
-        # No. 23 adds its two Japan Joint Staff PDFs (s1, s2) to the 29.
-        self.assertEqual(len(self.records), 31)
-        self.assertEqual(sum(len(v) for v in self.links.values()), 31)
-        self.assertEqual(len({r["id"] for r in self.records}), 31)
+        # No. 23 adds its two Japan Joint Staff PDFs (s1, s2) to the 29;
+        # No. 24 adds its TNI AU release (s2).
+        self.assertEqual(len(self.records), 32)
+        self.assertEqual(sum(len(v) for v in self.links.values()), 32)
+        self.assertEqual(len({r["id"] for r in self.records}), 32)
 
     def test_deliberate_omissions(self):
         reasons = sorted(o[3] for o in self.omitted)
         self.assertEqual(reasons, ["held_source_family:vn_mps_foreign_affairs_vi"]
                          # No. 23 adds four (Taiwan News, ISW, Reuters, USNI).
-                         + ["independent_reference"] * 8)
+                         + ["independent_reference"] * 8
+                         # No. 24's five MINDEF pages stay link-only: outbound
+                         # links are permitted, IPR-held record pages are not.
+                         + ["mindef_link_only_permission"] * 5)
 
     def test_rendered_page_links_back_and_withholds_locators(self):
         env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
