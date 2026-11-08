@@ -1,6 +1,15 @@
 # DECISION_LOG — Indo-Pacific Record
 
-## 2026-11-07 — Founder: retire MINDEF two-URL outbound-link limit (review candidate)
+## 2026-11-07 — Founder: retire MINDEF two-URL outbound-link limit (adopted)
+
+Adopted 7 November 2026 by Benjamin Yang, Founder & Executive Director (PR
+#1005, comment 6715346963), "based on the permission wording previously
+supplied, with the original later correspondence still unverified". He did not
+personally authenticate the later MINDEF reply, and nobody else has. This ruling
+satisfies the review requirement below on the founder's authority; it is not an
+original-evidence confirmation. Outbound links only; no reproduction rights.
+
+Original candidate text:
 
 Founder supplied text attributed to a new MINDEF response granting all linking
 requests, including future requests, and instructed removal of the internal

@@ -19,8 +19,10 @@ new source-citation Records or release of any Brief. Preserve other holds,
 access, evidence and publisher Terms of Use §§5–6. A broad expression such as
 “anything else” is not a specific copyright or automated-processing licence.
 
-**Status:** founder-directed amendment proposed for rights/governance PR review,
-not merged, activated, deployed, or independently grant-verified.
+**Status:** adopted 7 November 2026 by founder ruling (PR #1005, comment
+6715346963) on the permission wording previously supplied. The later MINDEF
+correspondence has not been independently verified or authenticated, by the
+founder or anyone else. Outbound hyperlinks only.
 
 ## Evidence and scope
 
