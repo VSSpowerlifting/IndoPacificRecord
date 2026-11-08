@@ -17,6 +17,8 @@ REVIEWED_OUTPUT_PATHS = frozenset({
     "output/authors/benjamin-yang.html",
     "output/briefs/feed.xml",
     "output/briefs/china-western-pacific-deployment-coordination-2026.html",
+    "output/briefs/bersama-lima-2026-five-power-coordination-at-sea.html",
+    "output/briefs/japan-us-amraam-final-assembly-sm3-production.html",
     "output/briefs/japan-philippines-first-destroyer-2026.html",
     "output/record/cited-b9a27aaa35d15b52.html",
     "output/record/cited-984b3bff98a5a213.html",
