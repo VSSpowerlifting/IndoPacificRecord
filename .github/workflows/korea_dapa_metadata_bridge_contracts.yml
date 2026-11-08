@@ -12,6 +12,13 @@ on:
       - scripts/korea_dapa_private_recovery_plan.py
       - tests/test_korea_dapa_private_recovery_plan.py
       - tests/test_korea_dapa_private_collector.py
+      - core/korea_dapa_record_candidate.py
+      - core/korea_dapa_archived_kogl_replay.py
+      - scripts/build_dapa_record_candidate.py
+      - scripts/audit_dapa_hwpx.py
+      - tests/test_korea_dapa_record_candidate.py
+      - tests/test_korea_dapa_archived_kogl_replay.py
+      - tests/test_dapa_hwpx_local_audit.py
       - .github/workflows/korea_dapa_metadata_bridge_contracts.yml
       - .github/workflows/korea_verified_official_link_production.yml
 
@@ -37,7 +44,10 @@ jobs:
             tests.test_korea_dapa_private_to_production \
             tests.test_korea_dapa_official_metadata_policy_and_schema \
             tests.test_korea_dapa_private_recovery_plan \
-            tests.test_korea_dapa_private_collector
+            tests.test_korea_dapa_private_collector \
+            tests.test_dapa_hwpx_local_audit \
+            tests.test_korea_dapa_record_candidate \
+            tests.test_korea_dapa_archived_kogl_replay
       - name: Verify disabled-by-default private dispatch trust boundary
         shell: bash
         run: |

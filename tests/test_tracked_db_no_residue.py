@@ -112,7 +112,8 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                     # shared Daily 0015, Korea corpus 0016, Vietnam provenance 0017
                     # Government Office document versions 0018 and the
                     # source-scoped provenance widening 0019 and the empty
-                    # Japan MOD news link-index capability 0020
+                    # Japan MOD news link-index capability 0020 and the DAPA
+                    # daily-machine parent capability 0021
                     # may await separate production application, depending on
                     # this tracked snapshot. Accept exactly those known gaps,
                     # never an arbitrary pending migration or verifier failure.
@@ -123,7 +124,7 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                         pending = ({m.version for m in discover()}
                                    - applied)
                     self.assertTrue(pending)
-                    self.assertEqual({"0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020"} - applied, pending,
+                    self.assertEqual({"0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021"} - applied, pending,
                                      "an unrecognized migration is pending")
                     self.assertIn("database is 'partially_applied'",
                                   proc.stderr)

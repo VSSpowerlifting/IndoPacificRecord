@@ -164,7 +164,7 @@ lag amendments. Relevant starting points, **not source-family clearances**, are:
 | Jurisdiction | Primary material and issue to evaluate |
 |---|---|
 | China | [NCAC copyright law, 2020 amendment](https://www.ncac.gov.cn/xxfb/flfg/flfg_532/202103/t20210309_50530.html), especially Articles 5 and 24; distinguish excluded official texts/facts from protected newspaper or agency expression and the conditions on exceptions. |
-| Singapore | [Copyright Act 2021](https://sso.agc.gov.sg/Act/CA2021) and [IPOS guidance](https://ask.gov.sg/ipos/questions/clglxzrrv00f5l408in5a0ozr); fair use and computational-analysis provisions have distinct conditions. They do not displace IPR's specific MINDEF written-grant decision. |
+| Singapore | [Copyright Act 2021](https://sso.agc.gov.sg/Act/CA2021) and [IPOS guidance](https://ask.gov.sg/ipos/questions/clglxzrrv00f5l408in5a0ozr); fair use and computational-analysis provisions have distinct conditions. They do not independently authorize MINDEF text/media reuse. The founder-reported standing link grant requires its own source evidence and does not clear reproduction, model or corpus uses. |
 | Korea | [Copyright Act, official legal-information translation](https://elaw.klri.re.kr/eng_mobile/viewer.do?hseq=71274&key=Copyright&type=lawname), including public-work and exception provisions; [Policy Briefing copyright policy](https://www.korea.kr/guide/copyRight.do) and actual item-level KOGL category/exclusions remain essential. |
 | Japan | [Copyright Act, e-Gov](https://laws.e-gov.go.jp/law/345AC0000000048) and [MOD reuse notice](https://www.mod.go.jp/j/info/contents.html); assess the actual PDL scope, third-party exclusions and the separate conditions of quotation/other exceptions. MOD evidence cannot clear JCG. |
 | Vietnam | [Official 67/VBHN-VPQH consolidation, 23 March 2026](https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm); the [existing VPCP assessment](docs/engineering/VIETNAM_GOVERNMENT_DOCUMENT_TEXT_2026-10-23.md) distinguishes administrative primary documents from attachments and conditional AI-related provisions. It is not a general MPS or foreign-source exemption. |
@@ -190,8 +190,8 @@ identifies supported scopes, restrictions and unresolved decisions. Source
 policies/manifests and actual grants or assessments control exact activities;
 the [shared desk standard](docs/desks/README.md) controls implementation.
 Retire only the general insistence on publisher writing where another basis
-has actually been established. Preserve MINDEF's specific narrow written-grant
-requirement, KOGL/PDL exclusions, China decision-dependent controls, real QA and
+has actually been established. Retain MINDEF's separate original-text, media, model and public-data holds,
+KOGL/PDL exclusions, China decision-dependent controls, real QA and
 recovery holds, access restrictions, paid-output/attempt history and budgets.
 
 This reform does not relax a current hold, enable an additional source, widen

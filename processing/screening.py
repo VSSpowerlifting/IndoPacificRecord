@@ -219,6 +219,21 @@ INDONESIA_PROFILE = ScreeningProfile(
     source_family="id_kemhan_news", categories=id_prompts.CATEGORIES,
 )
 
+from analysis import korea_dapa_prompts as dapa_prompts
+
+# DAPA releases: a source-level Korea profile. KOREA_PROFILE (MND, public
+# queue) is untouched; DAPA input is only the builder's approved prose scope.
+DAPA_PROFILE = ScreeningProfile(
+    desk_id="korea", keyword_prefilter=False, daily_queue=False,
+    build_messages=dapa_prompts.relevance_messages,
+    prompt_version=dapa_prompts.RELEVANCE_VERSION,
+    build_system_prompt=dapa_prompts.system_prompt,
+    build_analysis_messages=dapa_prompts.analysis_messages,
+    build_analysis_system_prompt=dapa_prompts.system_prompt,
+    analysis_prompt_version=dapa_prompts.ANALYSIS_VERSION, source_language="ko",
+    source_family="kr_policy_dapa_releases", categories=dapa_prompts.CATEGORIES,
+)
+
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
@@ -235,6 +250,7 @@ _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
 # source definition. A family without a definition never inherits one.
 for _s in DAILY_SOURCES.values():
     _SOURCE_PROFILES[_s.family] = _PROFILES[_s.desk_id]
+_SOURCE_PROFILES[DAPA_PROFILE.source_family] = DAPA_PROFILE
 # Government Office is explicitly bibliographic-only. Neither the common
 # public queue nor the ministry bridge may turn a subject line into analysis.
 _SOURCE_PROFILES["vn_vpcp_official_documents_vi"] = ScreeningProfile(

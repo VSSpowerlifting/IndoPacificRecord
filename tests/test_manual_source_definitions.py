@@ -78,7 +78,11 @@ class FakeRegistry:
 class TestRegistration(unittest.TestCase):
 
     def test_every_governed_family_is_a_manual_production_source(self):
-        self.assertEqual(set(SOURCES) | {jp.FAMILY} | set(pipeline._US_METADATA_FAMILIES),
+        registered = {f for f, s in SOURCES.items() if s.desk_registered}
+        # DAPA is defined but undeclared on the live Korea desk until activation.
+        self.assertEqual(set(SOURCES) - registered, {"kr_policy_dapa_releases"})
+        self.assertNotIn("kr_policy_dapa_releases", pipeline._governed_admissions())
+        self.assertEqual(registered | {jp.FAMILY} | set(pipeline._US_METADATA_FAMILIES),
                          set(MANUAL_FAMILIES))
         registry = load_registry()
         for slug, desk in MANUAL_FAMILIES.items():
@@ -110,6 +114,8 @@ class TestRegistration(unittest.TestCase):
     def test_daily_source_metadata_matches_the_manifest(self):
         desks = load_all_desks()
         for family, source in SOURCES.items():
+            if not source.desk_registered:
+                continue
             with self.subTest(family=family):
                 cfg = desks[source.desk_id]
                 src = {s.slug: s for s in cfg.sources}[family]

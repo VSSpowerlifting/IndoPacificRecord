@@ -47,7 +47,7 @@ class PublicMINDEFExposureTests(unittest.TestCase):
             'Approved</a><div class="original-text"><p>SYNTHETIC SOURCE BODY</p></div>',
             encoding="utf-8")
         (self.output / "record/102.html").write_text(
-            '<a href="https://www.mindef.gov.sg/other/">Not approved</a>',
+            '<a href="http://www.mindef.gov.sg/other/">Invalid scheme</a>',
             encoding="utf-8")
 
     def test_census_separates_body_database_and_links(self):
@@ -99,10 +99,20 @@ class PublicMINDEFExposureTests(unittest.TestCase):
                 "a citation containing https://www.mindef.gov.sg/other/",
             ]}), encoding="utf-8")
         result = audit(self.db, self.output)
-        self.assertEqual(result["potential_unapproved_json_url_occurrences"], 2)
+        self.assertEqual(result["potential_unapproved_json_url_occurrences"], 1)
         self.assertEqual(result["json_routes_with_potential_unapproved_urls"],
                          ["archive-research-index.json"])
         self.assertFalse(result["release_eligible_from_this_scan"])
+
+    def test_standing_valid_links_and_invalid_lookalikes(self):
+        (self.output / "record/102.html").write_text(
+            '<a href="https://www.mindef.gov.sg/other/">Valid official page</a>'
+            '<a href="https://mindef.gov.sg/other/">Unapproved different host</a>',
+            encoding="utf-8")
+        r = audit(self.db, self.output)
+        self.assertEqual(r["approved_outbound_link_count"], 2)
+        self.assertEqual(r["unapproved_outbound_link_count"], 1)
+        self.assertEqual(r["unapproved_link_routes"], ["record/102.html"])
 
     def test_no_original_text_or_titles_logged_and_no_mutation(self):
         h1 = hashlib.sha256(self.db.read_bytes()).hexdigest()
