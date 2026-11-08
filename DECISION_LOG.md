@@ -1,5 +1,34 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-07 — Brief No. 24 editing and analysis credit
+
+After Brief No. 24 went live, Benjamin Yang, Founder & Executive Director,
+directed and authorized a role-specific **Editing** and **Research and analysis**
+credit for Benjamin Yang on this article. Dylan Tanzi remains the **sole
+bylined author**; Benjamin Yang is not added as a co-author. These are two
+existing non-author credit roles, not a new publication role or author identity.
+
+The correction changes only the `editorial_credits` field, which the existing
+Brief renderer displays as "Edited by Benjamin Yang" and "Research and analysis
+by Benjamin Yang". The headline, article body, paragraph support, all six
+publisher references, source-use terms, issue identity, cover, catalogue photo,
+author biography and sole-author citation are unchanged.
+
+Because the canonical editorial fingerprint includes credit fields, the earlier
+fingerprint `3b38dbf6…` is superseded by
+`3743f5ad02dbf30a5f0f6f8284de48ff917342a726dcc00932334fde211c2453`.
+The presentation sections and excerpts are unchanged; only their manuscript
+binding changes, yielding digest
+`a7c41b95e80011e00d409c56345ff4a1bac051f998fa06efaa4f14c5e3b34bf8`.
+
+The founder's new instruction authorizes the added credit, **not a new review
+of the underlying official sources or a new inspection of the revised rendered
+page**. The prior source, policy and presentation assessment remains applicable
+only because all substantive reporting and image/rights evidence is unchanged.
+The revised render and current-commit release checks must pass, and the public
+credit display must be independently read back after deployment. Do not count
+this correction as a new human fact-check or a second article.
+
 ## 2026-11-07 — Brief No. 24 sole authorship: Dylan Tanzi
 
 Benjamin Yang, as Founder, directed and approved on 7 November 2026, in his

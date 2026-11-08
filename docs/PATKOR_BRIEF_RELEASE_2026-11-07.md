@@ -1,7 +1,28 @@
 # Patkor Indopura Brief: release record
 
-Status: **approved as Brief No. 24; release in progress.** `author_brief.py
-approve` assigned No. 24 (commit `e7bdc1bbc7`).
+Status: **Brief No. 24 was published on 7 November 2026** via successful
+output-only workflow [#42442061766](https://github.com/VSSpowerlifting/IndoPacificRecord/actions/runs/42442061766).
+The post-publication editorial-credit correction below is a separate reviewed
+change, not part of that initial deployment. `author_brief.py approve` assigned
+No. 24 (commit `e7bdc1bbc7`).
+
+## Editing and analysis credit correction (7 November 2026)
+
+The founder directed the additional non-author credits **Editing — Benjamin
+Yang** and **Research and analysis — Benjamin Yang**. Dylan Tanzi remains sole
+author and alone in the public byline and "Cite this brief" identity. The article,
+original-language sources, references, source-use limits, photograph, issue
+number and approved headings/excerpts are unchanged.
+
+- The new article editorial fingerprint is
+  `3743f5ad02dbf30a5f0f6f8284de48ff917342a726dcc00932334fde211c2453`.
+- The new presentation fingerprint is
+  `a7c41b95e80011e00d409c56345ff4a1bac051f998fa06efaa4f14c5e3b34bf8`.
+- These replace the prior sole-author fingerprints `3b38dbf6…` and
+  `421d643d…`. No additional factual review is asserted; see the
+  [founder decision](../DECISION_LOG.md#2026-11-07--brief-no-24-editing-and-analysis-credit).
+- Publication of this credit correction still requires final-head validation
+  and public-page readback. Do not hand-edit `output/`.
 
 ## Authorship change: Dylan Tanzi sole author (7 November 2026)
 
@@ -15,9 +36,9 @@ removed from the byline and all public author metadata. See the
 - Unchanged and checked by script against the previous revision: headline, dek,
   nine paragraphs including the paragraph 6 paraphrase, six references,
   paragraph support, `manuscript_sha256`, issue number, cover and caption.
-- Current editorial fingerprint:
+- Sole-author release editorial fingerprint (superseded by the later non-author credit correction):
   `3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820`.
-- Current presentation digest:
+- Sole-author release presentation digest (superseded by the later non-author credit correction):
   `421d643df0edc517acc7af430514499c199153b64431cc44b9009caf9b7d036c`.
 - The `21ab36ab…` and `d45f371e…` values in the receipts below are superseded.
   They describe the co-authored version the founder reviewed. The source-review
