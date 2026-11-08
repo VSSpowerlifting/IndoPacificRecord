@@ -6,29 +6,32 @@ from core import daily_sources
 from core.daily_sources import SOURCES, source_for
 from processing import daily_intake as d
 from processing.screening import (
-    INDONESIA_PROFILE, PHILIPPINES_PROFILE, profile_for_desk, profile_for_source,
+    DAPA_PROFILE, INDONESIA_PROFILE, PHILIPPINES_PROFILE, profile_for_desk, profile_for_source,
 )
 from tests.test_philippines_shared_daily import record as ph_record
 
 AFP, NSC, KEMHAN = "ph_afp_articles", "ph_nsc_official_statements", "id_kemhan_news"
+DAPA = "kr_policy_dapa_releases"
 
 
 class SourceDefinitions(unittest.TestCase):
     def test_registry_matches_policy_and_private_signer_exports(self):
-        self.assertEqual(list(SOURCES), [AFP, NSC, KEMHAN])
+        self.assertEqual(list(SOURCES), [AFP, NSC, KEMHAN, DAPA])
         self.assertEqual(set(d.load_policy()["sources"]), set(SOURCES))
         # The private signer reads these module-level names from this module.
         self.assertEqual(d.REFS, {AFP: "archive/ph-afp", NSC: "archive/ph-nsc",
-                                  KEMHAN: "archive/indonesia-kemhan"})
+                                  KEMHAN: "archive/indonesia-kemhan",
+                                  DAPA: "archive/korea-dapa-policy-briefing"})
         self.assertEqual([s.key_env for s in SOURCES.values()],
                          ["DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
-                          "DAILY_ID_KEMHAN_NEWS_KEY"])
+                          "DAILY_ID_KEMHAN_NEWS_KEY", "DAILY_KR_POLICY_DAPA_RELEASES_KEY"])
         self.assertEqual(d.PUBLIC_FIELDS[:3],
                          ("source_family", "source_identity", "metadata_version_sha256"))
 
     def test_every_adapter_reference_resolves(self):
         for s in SOURCES.values():
-            for ref in (s.links, s.quality, s.release_gate, s.known_hold, s.output_check):
+            for ref in (s.links, s.quality, s.release_gate, s.known_hold, s.output_check,
+                        s.approved_input, s.parent, s.admission_migration):
                 if ref:
                     self.assertTrue(callable(daily_sources._call(ref)), (s.family, ref))
 
@@ -36,8 +39,11 @@ class SourceDefinitions(unittest.TestCase):
         self.assertIs(profile_for_source(AFP), PHILIPPINES_PROFILE)
         self.assertIs(profile_for_source(NSC), PHILIPPINES_PROFILE)
         self.assertIs(profile_for_source(KEMHAN), INDONESIA_PROFILE)
+        # DAPA has its own fact-only prompts; the MND-bound Korea desk profile is untouched.
+        self.assertIs(profile_for_source(DAPA), DAPA_PROFILE)
+        self.assertIsNot(DAPA_PROFILE, profile_for_desk("korea"))
         for s in SOURCES.values():
-            profile = profile_for_desk(s.desk_id)
+            profile = profile_for_source(s.family)
             self.assertIn(profile.prompt_version + "+" + profile.analysis_prompt_version,
                           s.prompt_versions)
             self.assertEqual(d.allowed_prompt_versions(s.family), s.prompt_versions)

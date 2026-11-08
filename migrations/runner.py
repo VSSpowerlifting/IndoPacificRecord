@@ -294,6 +294,22 @@ def verify(conn: sqlite3.Connection) -> Dict[str, object]:
             "SELECT COUNT(*) FROM institutions i LEFT JOIN desks d "
             "ON d.desk_id = i.desk_id WHERE d.desk_id IS NULL"
         )
+    # m0021 replaced the machine-record foreign key with INSERT/UPDATE
+    # triggers, so a deleted parent is no longer caught by foreign_key_check.
+    # Count stored rows failing the triggers' own predicates. Before m0021 the
+    # m0015 foreign key still applies and foreign_key_check covers it.
+    from migrations.versions import m0021_dapa_daily_machine_parent as m21
+    if table_exists(m21.TABLE) and m21.is_already_applied(conn):
+        for key, missing, parent, family_sql in (
+            ("daily_machine_dapa_without_korea_parent", m21.dapa_parent_missing,
+             m21.DAPA_PARENT_TABLE, "m.source_family = '%s'" % m21.DAPA_FAMILY),
+            ("daily_machine_without_regional_parent", m21.regional_parent_missing,
+             m21.REGIONAL_PARENT_TABLE, "m.source_family <> '%s'" % m21.DAPA_FAMILY),
+        ):
+            # An absent parent table leaves every row of that kind orphaned.
+            where = missing("m") if table_exists(parent) else family_sql
+            orphans[key] = scalar(
+                "SELECT COUNT(*) FROM %s m WHERE %s" % (m21.TABLE, where))
     out["orphans"] = orphans
 
     out["integrity_check"] = conn.execute("PRAGMA integrity_check").fetchone()[0]

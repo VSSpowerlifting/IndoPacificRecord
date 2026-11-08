@@ -114,6 +114,42 @@ The image is context, not the November 2026 deployment. See the
 [image evidence](docs/evidence/brief-b-cover-2026-11-07/README.md) for source,
 rights, retrieval and limits. This decision does not attest deployment.
 
+## 2026-11-07 — Founder: DAPA standing conditional eligibility; disabled integration
+
+**Decided (founder, 7 Nov 2026):** under option A, standing conditional
+eligibility replaces per-release source-use signatures, including for
+`156788018` when its exact version qualifies. A version is eligible only when
+it authenticates the preserved page's Type 0 text mark, the page-to-HWPX
+attachment binding, the sole DAPA issuer and the approved lead/body scope;
+joint, ambiguous, changed or excluded material stays held and public
+originals stay link-only. Page-to-attachment binding does **not** prove licence
+equivalence: this accepts the documented interpretation and does not claim
+equivalence was verified. The DAPA profile is integrated into the shared daily
+lifecycle **disabled by default** (all policy flags false, desk unregistered;
+m0021 is not yet in production; the daily workflow applies it on the first run after merge, and a scratch-copy rehearsal preserved every existing row). **Model pair approved (same day):** `claude-haiku-4-5-20251001` relevance and
+`claude-sonnet-4-6` summary under the 0.35 USD per-run guard; this authorizes no
+call or spend. **Not authorized:** provider terms, private or public processing, activation, merge or deployment. See
+[decision §8–§9](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md#9-shared-pipeline-integration-7-nov-2026-and-activation-proposal).
+
+## 2026-11-04 — Owner decision: Korea DAPA source family, option A (partial)
+
+**Decided (Ben, in chat, 4 Nov 2026): option A** of the
+[decision candidate](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md).
+For DAPA-authored prose in the linked HWPX, the published KOGL Type 0 text
+notice may be relied on **per version**, only when the notice replays from the
+hash-bound preserved page, the issuer is structurally sole, and the candidate's
+screens pass. This permits private inference/translation and independently
+worded, attributed explanations as source uses. Public originals stay
+link-only. Issuer identity rests on the portal statement and HWPX structure,
+and the 28 October capture is distinct from today's terms.
+
+**Still open:** (2) whether public originals stay link-only under the 17 October
+policy (option A assumes they do; not separately confirmed); (3) model input,
+provider and cost; (4) a standing replay-plus-screens rule versus per-version
+sign-off. **Not authorized:** source activation, a DAPA policy entry, publisher
+contact, model spend, merge or deployment. #975 and #976 are superseded as one
+change and are not closed.
+
 ## 2026-11-04 — Founder: research-first source-use reform (review implementation)
 
 The executive mandate establishes the general evaluation direction:

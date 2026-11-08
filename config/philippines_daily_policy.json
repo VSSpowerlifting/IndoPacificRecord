@@ -34,6 +34,18 @@
       ],
       "max_records_per_run": 1,
       "max_input_characters": 16000
+    },
+    "kr_policy_dapa_releases": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": "2026-11-07 founder: standing option A source-use eligibility for exact DAPA versions that authenticate the preserved Type 0 page mark, attachment binding, sole DAPA issuer and approved lead/body scope; page-to-attachment binding does not prove licence equivalence. Model processing, provider, cost and public release NOT authorized.",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [
+        "korea-dapa-policy:156787071"
+      ],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
     }
   }
 }
