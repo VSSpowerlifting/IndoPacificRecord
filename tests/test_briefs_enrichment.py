@@ -59,10 +59,14 @@ class CompleteDelivery(unittest.TestCase):
         from core.daily_machine_records import load as load_machine_records
         machine = {Path(r['record_path']).name for r in load_machine_records(ROOT / 'pla_watch.db')}
         from core.brief_collection import load_collection
-        from core.cited_source_records import resolve
+        from core.cited_source_records import released, resolve
         from core.desk_registry import load_registry
         briefs = load_collection([], load_registry(), briefs_dir=ROOT / 'briefs')
-        cited = {Path(r['record_path']).name for r in resolve(briefs)[0]}
+        # Records cited by Briefs published in this committed snapshot; a
+        # newly approved Brief's Records arrive with its render-only release,
+        # whose fresh render must carry every approved Brief's Records.
+        cited = {Path(r['record_path']).name
+                 for r in released(resolve(briefs)[0], root)}
         self.assertEqual({p.name for p in (root / 'record').glob('*.html')},
                          living | machine | cited,
                          "retired, missing or extra record pages would go unchecked")

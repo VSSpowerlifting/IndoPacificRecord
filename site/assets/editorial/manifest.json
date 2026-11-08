@@ -1159,5 +1159,72 @@
     "built_with": {
       "pillow": "13.0.0"
     }
+  },
+  {
+    "id": "liaoning-j15-20220506-cover",
+    "file": "liaoning-j15-20220506-cover.jpg",
+    "sha256": "08b425ca9680ed5aeb99e5b2cdf7762feee72b6eacd313441e1da81c3c90870b",
+    "alt": "A J-15 fighter approaches the stern of the aircraft carrier Liaoning at sea.",
+    "caption": "The Chinese aircraft carrier Liaoning and an approaching J-15 fighter during operations on May 5, 2022, photographed by Japan’s Joint Staff. Archival image; does not depict the November 2026 deployment.",
+    "date_note": "Japan Joint Staff notice published May 6, 2022; reports May 5 activity.",
+    "creator": "Japan Ministry of Defense, Joint Staff",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "credit": "Japan Ministry of Defense, Joint Staff · CC BY 4.0 · via Wikimedia Commons",
+    "source_page": "https://commons.wikimedia.org/wiki/File:A_PLAN_Shenyang_J-15_carrier-based_fighter_aircraft_is_preparing_to_land_on_Chinese_aircraft_carrier_PLANS_Liaoning_(CV-16)_20220506.jpg",
+    "source_label": "Wikimedia Commons",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "china-western-pacific-deployment-coordination-2026"
+      ],
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": []
+    },
+    "focal": "50% 50%",
+    "notice": "",
+    "original_url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/A_PLAN_Shenyang_J-15_carrier-based_fighter_aircraft_is_preparing_to_land_on_Chinese_aircraft_carrier_PLANS_Liaoning_%28CV-16%29_20220506.jpg",
+    "origin_reference": "https://www.mod.go.jp/js/pdf/2022/p20220506_02.pdf",
+    "license_basis": "Japan MOD PDL 1.0 and Commons CC BY 4.0; see docs/evidence/brief-b-cover-2026-11-07/README.md",
+    "retrieval": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/A_PLAN_Shenyang_J-15_carrier-based_fighter_aircraft_is_preparing_to_land_on_Chinese_aircraft_carrier_PLANS_Liaoning_%28CV-16%29_20220506.jpg",
+      "retrieved_at": "2026-11-07T20:42:44Z",
+      "status": 200,
+      "bytes": 393520,
+      "etag": "247a22a59b6849fa17b7a314836bc975",
+      "user_agent": "curl/8.7.1"
+    },
+    "derivatives": [
+      {
+        "file": "derivatives/liaoning-j15-20220506-cover-1600.jpg",
+        "width": 1498,
+        "height": 999,
+        "sha256": "a170af49011e1ec07c30c7546a43e62e30c0a63da017c2be3aee859987839c92"
+      },
+      {
+        "file": "derivatives/liaoning-j15-20220506-cover-800.webp",
+        "width": 800,
+        "height": 534,
+        "sha256": "e65bafd429cfa8942e9ea4f8ba1834fd8971f72e826ea49c27969085be5c97de"
+      },
+      {
+        "file": "derivatives/liaoning-j15-20220506-cover-1600.webp",
+        "width": 1498,
+        "height": 999,
+        "sha256": "a36c5fa1596f45e5282f024c1d96e26a7921059e06aa7ae63aab97199d5070cf"
+      }
+    ],
+    "built_with": {
+      "pillow": "11.3.0"
+    }
   }
 ]

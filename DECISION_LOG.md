@@ -4,6 +4,15 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-07 — Brief No. 23 archival Liaoning cover
+
+Benjamin Yang approved the Japan Joint Staff May 2022 Liaoning/J-15 image for
+both Brief No. 23 surfaces, the centered 3:2 card, restrained CSS gradient and
+archival caption in [PR #1003 comment 6712855433](https://github.com/VSSpowerlifting/IndoPacificRecord/issues/1003#issuecomment-6712855433).
+The image is context, not the November 2026 deployment. See the
+[image evidence](docs/evidence/brief-b-cover-2026-11-07/README.md) for source,
+rights, retrieval and limits. This decision does not attest deployment.
+
 ## 2026-11-04 — Founder: research-first source-use reform (review implementation)
 
 The executive mandate establishes the general evaluation direction:
