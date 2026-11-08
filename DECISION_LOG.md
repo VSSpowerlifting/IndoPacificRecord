@@ -1,5 +1,28 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-07 — Founder: retire MINDEF two-URL outbound-link limit (adopted)
+
+Adopted 7 November 2026 by Benjamin Yang, Founder & Executive Director (PR
+#1005, comment 6715346963), "based on the permission wording previously
+supplied, with the original later correspondence still unverified". He did not
+personally authenticate the later MINDEF reply, and nobody else has. This ruling
+satisfies the review requirement below on the founder's authority; it is not an
+original-evidence confirmation. Outbound links only; no reproduction rights.
+
+Original candidate text:
+
+Founder supplied text attributed to a new MINDEF response granting all linking
+requests, including future requests, and instructed removal of the internal
+page-by-page link policy. The underlying message, sender and original channel
+have not been independently inspected. Propose replacing the exact two-URL
+allowlist with official-host HTTPS URL validation; this is a source-rights
+change requiring PR review and original-evidence confirmation before adoption.
+No copied correspondence or private contact information is public.
+Preserve text/media, model, collection, public-data, source integrity and cost
+holds. No Brief editorial attestation, issue number, merge, activation, deploy
+or public release is authorized by this policy candidate.
+
+
 Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.

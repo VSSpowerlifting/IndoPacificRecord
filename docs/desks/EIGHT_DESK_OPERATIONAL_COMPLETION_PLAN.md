@@ -10,8 +10,8 @@
 **4 November source-use amendment:** [the canonical standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
 replaces generalized publisher-permission prerequisites with evidenced,
 use-specific legal bases. The eight scopes and genuine original-to-reader
-completion standard are unchanged. MINDEF's specific written-grant requirement
-and all effective source/quality/access/spend/activation controls remain.
+completion standard are unchanged. MINDEF's original-text, media, model and
+public-data holds and all effective source/quality/access/spend/activation controls remain.
 
 ## 1. How to use this document in every session
 

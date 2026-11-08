@@ -78,8 +78,8 @@ governs the evidence-based alternatives to written publisher permission and
 the separate access, custody, external-model, independent-analysis and
 republication questions. Favor defensible research and permitted links or
 bounded quotation over unsupported full-text reproduction. This does not
-enlarge existing source authorizations or relax real holds, MINDEF's specific
-written-grant requirement, editorial approvals or activation controls.
+enlarge content-reuse authorizations or relax real holds, MINDEF's separate
+original-text/media/model controls, editorial approvals or activation controls.
 
 ## 1b. Research-led growth and development (owner, 2026-10-30)
 
@@ -417,8 +417,8 @@ keeps its publisher link and adds an "IPR Record" link; the Record links back to
 every citing Brief. A URL already held as a corpus record or released machine
 Record resolves to that page instead, so manual citation and collection share one
 identity; a cited route published before collection becomes a redirect. Independent
-reporting stays an external citation. MINDEF is omitted entirely: its 2026-10-29
-permission covers hyperlinks from a Brief, not a standalone IPR page. Vietnam MPS,
+reporting stays an external citation. MINDEF remains omitted from the references-only Record admission rule: authority
+to link is not authority to create a new public Record or expose held material. Vietnam MPS,
 MOIT and VPCP are omitted without a sealed decision. Conflicting metadata for one
 URL stops the build.
 Derived on every render by `core/cited_source_records.py`; nothing is hand-admitted.

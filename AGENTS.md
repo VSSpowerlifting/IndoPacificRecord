@@ -18,7 +18,7 @@ research purpose and an owner signature do not establish a basis by themselves.
 
 This general reform does not clear unresolved uses or change runtime authority.
 Keep source-specific grants, exclusions, holds, allowed public components,
-MINDEF's specific written-grant requirement, budgets and activation intact.
+MINDEF's original-text, media, model, access and public-data holds, budgets and activation intact. Standing outbound-link permission does not clear those other uses.
 Routine eligible records under established standing authority need no new
 publisher request or per-record owner approval. Substantive governance/source-
 rights amendments stop at founder PR review; collection/model activation,
