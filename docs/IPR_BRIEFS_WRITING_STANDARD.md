@@ -32,7 +32,7 @@ The model returns `title`, `dek`, `article`, `audit` and `editorial_questions`.
   no stock significance language ("underscores", "increasingly complex landscape");
   no recap of the lead. This is a register to write toward, not an imitation of any
   one writer.
-- Owner-preferred cadence: sometimes front an adverbial clause of time, circumstance or condition so the reader encounters context before the main claim; allow longer, layered sentences where their clauses advance a connected explanation. Mix fronted and subject-first openings rather than turning this into a new formula. Preserve attribution, clarity, and the evidence-specific qualification regardless of sentence order.
+- Owner-preferred prose, when appropriate to the Brief/byline: sometimes front adverbial clauses of time, circumstance or condition; also allow selective grammatical inversion, delayed main clauses and parenthetical qualifications. Let longer layered sentences carry connected reasoning and build successive sentences cumulatively from concrete actors and chronology to the practical implication. Use purposeful temporal/conversational transitions and accessible language alongside precise technical terms. Mix these with direct subject-first statements; preserve factual attribution, material uncertainty and source-linked claims. See the full examples and non-template cautions in `IPR_BRIEFS_EDITORIAL_VOICE_GUIDE.md`.
 
 ## 1a. Editorial voice v2 is active in the FIRST Sunday draft
 
