@@ -90,9 +90,11 @@ Its own conditions remain:
 
 Because the body no longer reproduces MINDEF text, the Brief now matches IPR's
 26 October representation to MINDEF: "independent commentary and factual
-paraphrase, not … article text". It needs no reproduction permission. The only
-words still taken from MINDEF are short factual phrases used as link anchors. The
-owner's limited_source_use check confirms that.
+paraphrase, not … article text". On its face the
+Brief therefore no longer relies on reproduction permission, but that is the
+owner's decision. Nobody has yet compared the remaining link-anchor phrasing
+against the s1–s6 pages. The owner's limited_source_use check is the step that
+confirms it.
 
 ## Owner statements still required
 
@@ -102,12 +104,13 @@ owner's own statements, made in chat, against the final commit and fingerprint.
 Adjust the template if it does not describe what you actually did.
 
 > I have completed my original-source review of the Patkor Indopura Brief at
-> commit `<sha>` (fingerprint `21ab36ab…272fc`). I confirm original_language,
+> commit `<sha>` (fingerprint
+> `21ab36abf8fd700a5c65c56f0fa46c42b889d1b7b67a7298f1d7efedc90272fc`). I confirm original_language,
 > claim_support, chronology and limited_source_use, and I approve the paragraph 6
 > paraphrase.
 >
 > I approve the rendered page and presentation at that commit (digest
-> `d45f371e…bbbe8`), including its headings, citations and credits.
+> `d45f371e65305102e4cc396a5ac9d8cd9ab535309963d04a0cd373f78c8bbbe8`), including its headings, citations and credits.
 >
 > As Founder & Executive Director, I approve publication under the source-linked
 > evidence policy, and I approve merging PR #1004. I hold the original MINDEF reply
@@ -145,3 +148,12 @@ yet admitted, because admission depends on the assigned issue number.
   re-verified against `site/assets/editorial/patkor-indopura-context-2025.jpg`.
 - It shows a separate 2025 refuelling mission. It must never be captioned as the
   November 2026 patrol.
+
+### Unlinked derivatives
+
+`scripts/pw_env.py` `copy_editorial_assets` copies only manifest-listed originals,
+but it copies every file in `site/assets/editorial/derivatives/` regardless. It runs
+from `scripts/rerender_pla_watch.py` and from the legacy generator. If this branch
+merged before `approve`, a rerender would place the three Patkor derivatives at
+public URLs that no page links to. Merge this branch only as part of the numbered
+release PR.
