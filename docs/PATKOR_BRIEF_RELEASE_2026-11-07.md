@@ -1,20 +1,28 @@
 # Patkor Indopura Brief: release record
 
-Status: **technically ready for final review, held at the owner gate.** No issue
-number has been assigned. No review, ruling or presentation approval has been
-recorded. Every release step that does not need a human decision is done.
+Status: **owner review, policy ruling and presentation approval recorded; release
+in progress.** No issue number has been assigned yet.
 
-Release attempt, 7 November 2026: stopped at two gates.
+Owner receipts, 7 November 2026 (PR #1005, comment 6715346963):
 
-- #1004 is still green and mergeable at `d2e623db25`, but it has not been
-  merged. Its own decision-log entry requires "original-evidence confirmation
-  before adoption". The later MINDEF reply could not be found in the Gmail
-  account connected to this session, so it has not been inspected.
-- `author_brief.py ready` still requires an exact-version human
-  `editorial_review` (all seven checks) and a `policy_ruling`. No statement
-  covering fingerprint `21ab36ab…` has been made yet.
+- Benjamin Yang stated that he completed his review of the Brief at
+  `94e08c9792` against fingerprint `21ab36ab…`. He approved all seven
+  `editorial_review` checks and the paragraph 6 paraphrase, and confirmed the
+  paragraph 4 March 2024 DCA claim against s3. These are recorded in the
+  sidecar's `editorial_review`.
+- As Founder & Executive Director he approved publication under the
+  source-linked evidence policy. This is recorded as `policy_ruling`.
+- He approved the presentation at digest `d45f371e…`: headings, excerpts and the
+  rendered article. The manifest has no in-body figures, so the `media` check
+  covers none. The numbered cover and catalogue image remain subject to his
+  separate visual check.
+- For #1004 he approved the outbound-link policy on the permission wording
+  previously supplied. The later MINDEF correspondence is still unverified. He
+  did not authenticate it, and nobody else has either.
+- `author_brief.py ready` now passes.
 
-Nothing was numbered, merged or deployed.
+An earlier statement the same day (comment 6715316389) expressly did not claim
+personal review, so it was not recorded as `editorial_review`.
 
 | Field | Value |
 |---|---|
@@ -108,25 +116,7 @@ owner's decision. Nobody has yet compared the remaining link-anchor phrasing
 against the s1–s6 pages. The owner's limited_source_use check is the step that
 confirms it.
 
-## Owner statements still required
-
-The release brief already settles the headline, manuscript, coauthors, cover choice
-and publication intent, so they are not asked again. What remains must be the
-owner's own statements, made in chat, against the final commit and fingerprint.
-Adjust the template if it does not describe what you actually did.
-
-> I have completed my original-source review of the Patkor Indopura Brief at
-> commit `<sha>` (fingerprint
-> `21ab36abf8fd700a5c65c56f0fa46c42b889d1b7b67a7298f1d7efedc90272fc`). I confirm original_language,
-> claim_support, chronology and limited_source_use, and I approve the paragraph 6
-> paraphrase.
->
-> I approve the rendered page and presentation at that commit (digest
-> `d45f371e65305102e4cc396a5ac9d8cd9ab535309963d04a0cd373f78c8bbbe8`), including its headings, citations and credits.
->
-> As Founder & Executive Director, I approve publication under the source-linked
-> evidence policy, and I approve merging PR #1004. I hold the original MINDEF reply
-> on which it relies.
+## Remaining release steps
 
 The review render has no cover, because cover admission needs the issue number.
 After `approve`, the cover, its caption and the catalogue crop are checked in the
@@ -134,10 +124,11 @@ final numbered render and shown to the owner before the release PR merges. The
 caption must say that the photograph shows a separate February 2025 refuelling
 exercise.
 
-Once those statements are made, the remaining steps are:
+Steps:
 
-1. Record the review, ruling and presentation receipts.
-2. Merge PR #1004. This needs owner approval, and its head must still be green.
+1. Record the review, ruling and presentation receipts (done).
+2. Merge PR #1004 after recording the founder ruling and its limitation. Its
+   head must still be green.
 3. Run `author_brief.py approve`, which assigns the next canonical number. No. 23
    belongs to the Western Pacific Brief (PR #1003). No number is to be invented or
    reserved here.

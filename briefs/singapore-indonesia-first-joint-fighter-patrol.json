@@ -351,8 +351,27 @@
       ]
     }
   ],
-  "editorial_review": null,
-  "policy_ruling": null,
+  "editorial_review": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-07",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1005#issuecomment-6715346963",
+    "fingerprint": "21ab36abf8fd700a5c65c56f0fa46c42b889d1b7b67a7298f1d7efedc90272fc",
+    "checks": {
+      "authorship": true,
+      "chronology": true,
+      "claim_support": true,
+      "limited_source_use": true,
+      "manuscript_fidelity": true,
+      "original_language": true,
+      "rendered_review": true
+    }
+  },
+  "policy_ruling": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-07",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1005#issuecomment-6715346963",
+    "fingerprint": "21ab36abf8fd700a5c65c56f0fa46c42b889d1b7b67a7298f1d7efedc90272fc"
+  },
   "research_contributor": {
     "name": "Dylan Tanzi",
     "title": "Lead Research Analyst",

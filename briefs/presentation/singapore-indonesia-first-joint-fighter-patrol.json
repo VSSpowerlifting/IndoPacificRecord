@@ -2,7 +2,7 @@
   "version": "brief-presentation-v1",
   "article": "singapore-indonesia-first-joint-fighter-patrol",
   "manuscript_fingerprint": "21ab36abf8fd700a5c65c56f0fa46c42b889d1b7b67a7298f1d7efedc90272fc",
-  "status": "draft",
+  "status": "approved",
   "sections": [
     {
       "id": "reading-inaugural-patrol",
@@ -23,5 +23,16 @@
       "heading": "The work after the inaugural flight"
     }
   ],
-  "approval": null
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-07",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1005#issuecomment-6715346963",
+    "fingerprint": "d45f371e65305102e4cc396a5ac9d8cd9ab535309963d04a0cd373f78c8bbbe8",
+    "checks": {
+      "headings": true,
+      "excerpts": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
 }
