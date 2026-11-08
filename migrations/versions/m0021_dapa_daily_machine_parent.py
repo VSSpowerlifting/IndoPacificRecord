@@ -18,7 +18,9 @@ Unlike the old foreign key, the triggers apply whatever the
 trigger on a parent table would vanish silently in any later rebuild of that
 table. Instead every reader (``core.daily_machine_records.load``, the
 reconcile check and the weekly audit) re-reads the parent and fails closed
-when it is missing, held or at another version.
+when it is missing, held or at another version, and ``migrations.runner.verify``
+counts stored rows whose parent no longer satisfies these same predicates as
+orphans, so ``migrations.cli --verify`` fails on them.
 
 Every other schema object on the table (the MINDEF machine-publication
 triggers today) is captured from ``sqlite_master`` and replayed unchanged.
@@ -40,13 +42,27 @@ _FK = (",\n FOREIGN KEY(source_family, source_identity)\n"
        " REFERENCES regional_official_source_links(source_family, source_identity)\n)")
 DDL = _once(_once(prev.DDL, _FK, "\n)"), "CREATE TABLE " + TABLE, "CREATE TABLE " + TEMP)
 
-_PARENT_MISSING = (
-    "(NEW.source_family='{dapa}' AND NOT EXISTS (SELECT 1 FROM korea_official_source_records k "
-    "WHERE k.source_identity=NEW.source_identity AND k.official_issuer='kr_dapa' "
-    "AND k.public_scope='official_link_only')) OR "
-    "(NEW.source_family<>'{dapa}' AND NOT EXISTS (SELECT 1 FROM regional_official_source_links r "
-    "WHERE r.source_family=NEW.source_family AND r.source_identity=NEW.source_identity))"
-).format(dapa=DAPA_FAMILY)
+DAPA_PARENT_TABLE = "korea_official_source_records"
+REGIONAL_PARENT_TABLE = "regional_official_source_links"
+
+
+def dapa_parent_missing(row):
+    """True when a DAPA row lacks its kr_dapa, official-link-only parent."""
+    return ("({row}.source_family='{dapa}' AND NOT EXISTS (SELECT 1 FROM korea_official_source_records k "
+            "WHERE k.source_identity={row}.source_identity AND k.official_issuer='kr_dapa' "
+            "AND k.public_scope='official_link_only'))").format(row=row, dapa=DAPA_FAMILY)
+
+
+def regional_parent_missing(row):
+    """True when a non-DAPA row lacks its exact regional_official_source_links row."""
+    return ("({row}.source_family<>'{dapa}' AND NOT EXISTS (SELECT 1 FROM regional_official_source_links r "
+            "WHERE r.source_family={row}.source_family AND r.source_identity={row}.source_identity))"
+            ).format(row=row, dapa=DAPA_FAMILY)
+
+
+# The trigger condition; ``migrations.runner.verify`` reuses the same two
+# predicates on stored rows, so deleted parents are reported as orphans.
+_PARENT_MISSING = dapa_parent_missing("NEW") + " OR " + regional_parent_missing("NEW")
 
 
 def _trigger(name, event):

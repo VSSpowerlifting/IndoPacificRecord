@@ -255,5 +255,229 @@ class DapaAdmission(unittest.TestCase):
             self.raw_insert(conn, family="ph_afp_articles", identity="afp:1")
 
 
+REGIONAL_FAMILY = "ph_afp_articles"
+REGIONAL_IDENT = "afp:1"
+DAPA_ORPHANS = "daily_machine_dapa_without_korea_parent"
+REGIONAL_ORPHANS = "daily_machine_without_regional_parent"
+
+
+def insert_regional_parent(conn):
+    conn.execute(
+        "INSERT INTO regional_official_source_links (source_family,source_identity,desk,"
+        "canonical_official_url,publisher_posted_date,official_issuer,official_publisher,"
+        "official_republisher,source_git_commit,metadata_version_sha256,first_seen_run,"
+        "release_scope,release_proof_sha256,released_at_utc) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (REGIONAL_FAMILY, REGIONAL_IDENT, "philippines", "https://www.afp.mil.ph/news/1",
+         "2026-10-28", "ph_afp", "ph_afp", None, "e" * 40, "a" * 64, "1-1",
+         "official_link_only", "d" * 64, "2026-11-07T00:00:00Z"))
+
+
+class MachineRecordOrphanVerification(DapaAdmission):
+    """m0021 dropped the FK, so `migrations.cli --verify` must count orphans."""
+
+    test_m0021_is_applied_and_triggers_require_the_family_parent = None
+    test_admission_binds_link_only_parent_and_reader_rebinds_version = None
+    test_admission_refuses_unmigrated_schema = None
+    test_other_families_still_need_their_regional_link = None
+
+    def populated(self):
+        conn = self.connect()
+        with conn:
+            insert_parent(conn)
+            insert_regional_parent(conn)
+            self.raw_insert(conn)
+            self.raw_insert(conn, family=REGIONAL_FAMILY, identity=REGIONAL_IDENT)
+        return conn
+
+    def report(self):
+        from migrations.runner import connect, verify
+        conn = connect(self.db)
+        try:
+            return verify(conn)
+        finally:
+            conn.close()
+
+    def test_valid_dapa_and_regional_records_pass(self):
+        self.populated().close()
+        report = self.report()
+        self.assertEqual(report["orphans"][DAPA_ORPHANS], 0)
+        self.assertEqual(report["orphans"][REGIONAL_ORPHANS], 0)
+        self.assertEqual(report["foreign_key_violations"], 0)
+        self.assertTrue(report["ok"])
+
+    def test_deleting_the_dapa_parent_is_reported(self):
+        conn = self.populated()
+        with conn:
+            conn.execute("DELETE FROM korea_official_source_records")
+        conn.close()
+        report = self.report()
+        self.assertEqual(report["orphans"][DAPA_ORPHANS], 1)
+        self.assertEqual(report["orphans"][REGIONAL_ORPHANS], 0)
+        self.assertEqual(report["foreign_key_violations"], 0)
+        self.assertFalse(report["ok"])
+
+    def test_deleting_the_regional_parent_is_reported(self):
+        conn = self.populated()
+        with conn:
+            conn.execute("DELETE FROM regional_official_source_links")
+        conn.close()
+        report = self.report()
+        self.assertEqual(report["orphans"][DAPA_ORPHANS], 0)
+        self.assertEqual(report["orphans"][REGIONAL_ORPHANS], 1)
+        self.assertEqual(report["foreign_key_violations"], 0)
+        self.assertFalse(report["ok"])
+
+    def test_a_parent_that_stops_qualifying_is_reported(self):
+        # The korea table's CHECK already pins official_issuer to kr_dapa for
+        # DAPA identities, so scope and identity drift are the reachable cases.
+        moved = ("source_identity='korea-dapa-policy:100000002', canonical_official_url="
+                 "'https://www.korea.kr/briefing/pressReleaseView.do?newsId=100000002'")
+        for column, assignment in (("public_scope", "public_scope='held'"),
+                                   ("source_identity", moved)):
+            with self.subTest(column=column):
+                with sqlite3.connect(str(self.db)) as c:
+                    c.execute("DELETE FROM daily_machine_records")
+                    c.execute("DELETE FROM korea_official_source_records")
+                    c.execute("DELETE FROM regional_official_source_links")
+                conn = self.populated()
+                with conn:
+                    conn.execute("UPDATE korea_official_source_records SET " + assignment)
+                conn.close()
+                report = self.report()
+                self.assertEqual(report["orphans"][DAPA_ORPHANS], 1)
+                self.assertEqual(report["orphans"][REGIONAL_ORPHANS], 0)
+                self.assertFalse(report["ok"])
+
+    def test_triggers_still_refuse_a_missing_or_invalid_dapa_parent(self):
+        conn = self.connect()
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "daily_machine_record_parent_missing"):
+            self.raw_insert(conn)
+        with conn:
+            insert_parent(conn, scope="held")
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "daily_machine_record_parent_missing"):
+            self.raw_insert(conn)
+        conn.close()
+        self.assertTrue(self.report()["ok"])
+
+    def snapshot(self):
+        return {p.name: p.read_bytes() for p in self.db.parent.iterdir()
+                if p.name.startswith(self.db.name)}
+
+    def test_cli_verify_fails_and_leaves_db_and_sidecars_unchanged(self):
+        import subprocess
+        import sys
+        conn = self.populated()
+        with conn:
+            conn.execute("DELETE FROM korea_official_source_records")
+        # Production pla_watch.db uses the rollback journal; match it so the
+        # file set is stable and any write by --verify would show in the bytes.
+        conn.close()
+        with sqlite3.connect(str(self.db)) as c:
+            self.assertEqual(c.execute("PRAGMA journal_mode=DELETE").fetchone()[0], "delete")
+        c.close()
+        # The fixture's read-only reader cannot unlink WAL sidecars on close;
+        # a rollback-journal database never reads a stale -shm, so drop it.
+        for name in ("-wal", "-shm"):
+            Path(str(self.db) + name).unlink(missing_ok=True)
+        root = Path(__file__).resolve().parent.parent
+        before = self.snapshot()
+        self.assertEqual(set(before), {self.db.name})
+        run = subprocess.run([sys.executable, "-m", "migrations.cli", "--verify", "--db", str(self.db)],
+                             cwd=str(root), capture_output=True, text=True)
+        self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+        self.assertIn(DAPA_ORPHANS, run.stdout)
+        self.assertIn("PROBLEMS FOUND", run.stdout)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_verify_issues_no_writes_on_a_query_only_connection(self):
+        conn = self.populated()
+        with conn:
+            conn.execute("DELETE FROM regional_official_source_links")
+        conn.close()
+        from migrations.runner import connect, verify
+        c = connect(self.db)
+        try:
+            c.execute("PRAGMA query_only=ON")
+            changes = c.total_changes
+            report = verify(c)
+            self.assertEqual(c.total_changes, changes)
+        finally:
+            c.close()
+        self.assertEqual(report["orphans"][REGIONAL_ORPHANS], 1)
+        self.assertEqual(report["integrity_check"], "ok")
+        self.assertTrue(all(v >= 0 for v in report["orphans"].values()), report["orphans"])
+        self.assertFalse(report["ok"])
+
+    def test_existing_integrity_checks_still_fail(self):
+        self.populated().close()
+        with sqlite3.connect(str(self.db)) as c:
+            c.execute("PRAGMA foreign_keys=OFF")
+            c.execute("INSERT INTO article_categories (article_id, category_id) "
+                      "SELECT 999999999, id FROM categories LIMIT 1")
+        report = self.report()
+        self.assertGreater(report["orphans"]["article_categories_without_article"], 0)
+        self.assertEqual(report["orphans"][DAPA_ORPHANS], 0)
+        self.assertFalse(report["ok"])
+
+    def test_absent_parent_table_counts_rows_without_false_failure_when_empty(self):
+        with sqlite3.connect(str(self.db)) as c:
+            c.execute("PRAGMA foreign_keys=OFF")
+            c.execute("DROP TABLE korea_official_source_records")
+        report = self.report()
+        self.assertEqual(report["orphans"][DAPA_ORPHANS], 0)
+        self.assertTrue(report["ok"])
+        with sqlite3.connect(str(self.db)) as c:
+            c.execute("DROP TRIGGER %s" % m21.INSERT_TRIGGER)
+            self.raw_insert(c)
+            c.execute(m21.TRIGGERS[0])
+        report = self.report()
+        self.assertEqual(report["orphans"][DAPA_ORPHANS], 1)
+        self.assertFalse(report["ok"])
+
+
+class MachineRecordOrphanCompatibility(unittest.TestCase):
+    """Pre-m0021 databases keep the m0015 FK path and gain no new keys."""
+
+    def build(self, below):
+        from migrations import runner
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        db = Path(tmp.name) / "legacy.db"
+        build_legacy_db(db)
+        found = [m for m in runner.discover() if m.version < below]
+        conn = runner.connect(db)
+        self.addCleanup(conn.close)
+        with patch.object(runner, "discover", return_value=found):
+            runner.apply_all(conn)
+        return conn
+
+    def test_before_m0015_the_table_is_absent_and_verify_passes(self):
+        from migrations.runner import verify
+        conn = self.build("0015")
+        report = verify(conn)
+        self.assertNotIn(DAPA_ORPHANS, report["orphans"])
+        self.assertNotIn(REGIONAL_ORPHANS, report["orphans"])
+        self.assertTrue(report["ok"])
+
+    def test_between_m0015_and_m0021_foreign_key_check_still_covers_orphans(self):
+        from migrations.runner import verify
+        conn = self.build("0021")
+        self.assertFalse(m21.is_already_applied(conn))
+        report = verify(conn)
+        self.assertNotIn(DAPA_ORPHANS, report["orphans"])
+        self.assertTrue(report["ok"])
+        insert_regional_parent(conn)
+        row = dict(zip(d.PUBLIC_FIELDS, [REGIONAL_FAMILY, REGIONAL_IDENT] + ["a" * 64] * 3
+                       + ["e" * 40, "1-1", "s.", "[]", 0, None, "m", "v", "q" * 64, "p" * 64]))
+        cols = ["categories_json" if k == "categories" else k for k in row]
+        conn.execute("INSERT INTO daily_machine_records (" + ",".join(cols) + ") VALUES ("
+                     + ",".join("?" * len(cols)) + ")", list(row.values()))
+        conn.execute("PRAGMA foreign_keys=OFF")
+        conn.execute("DELETE FROM regional_official_source_links")
+        report = verify(conn)
+        self.assertEqual(report["foreign_key_violations"], 1)
+        self.assertFalse(report["ok"])
+
+
 if __name__ == "__main__":
     unittest.main()
