@@ -57,7 +57,7 @@ def _assert_rendered_contract() -> None:
     assert brief23_slug in analysis and brief23_slug in (out / "index.html").read_text(encoding="utf-8")
     assert brief23_slug in (out / "briefs" / "feed.xml").read_text(encoding="utf-8")
     assert brief23_slug in (out / "sitemap.xml").read_text(encoding="utf-8")
-    for required in ("Benjamin Yang", "Edited by Dylan Tanzi", "Research and analysis by Peter",
+    for required in ("Benjamin Yang", "Edited by Dylan Tanzi", "Research and analysis by Peter Nguyen",
                      "Archival image; does not depict the November 2026 deployment.",
                      "liaoning-j15-20220506-cover-800.webp"):
         assert required in brief23, f"No. 23 article is missing {required!r}"
