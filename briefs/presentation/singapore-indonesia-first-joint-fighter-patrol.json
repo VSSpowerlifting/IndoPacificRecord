@@ -1,0 +1,38 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "singapore-indonesia-first-joint-fighter-patrol",
+  "manuscript_fingerprint": "3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820",
+  "status": "approved",
+  "sections": [
+    {
+      "id": "reading-inaugural-patrol",
+      "start": 1,
+      "end": 3,
+      "heading": "The first coordinated patrol"
+    },
+    {
+      "id": "reading-agreement-to-strait",
+      "start": 4,
+      "end": 6,
+      "heading": "From a defence agreement to a patrol"
+    },
+    {
+      "id": "reading-beyond-inaugural",
+      "start": 7,
+      "end": 9,
+      "heading": "The work after the inaugural flight"
+    }
+  ],
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-07",
+    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-sole-authorship-dylan-tanzi",
+    "fingerprint": "421d643df0edc517acc7af430514499c199153b64431cc44b9009caf9b7d036c",
+    "checks": {
+      "headings": true,
+      "excerpts": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
+}

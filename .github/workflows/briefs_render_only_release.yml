@@ -48,7 +48,7 @@ jobs:
       - name: Render both historical Briefs and the current IPR site; never publish
         run: |
           set -euo pipefail
-          if git diff --name-only HEAD^1 HEAD -- briefs/china-western-pacific-deployment-coordination-2026.json | grep -Fxq briefs/china-western-pacific-deployment-coordination-2026.json; then
+          if git diff --name-only HEAD^1 HEAD -- briefs/china-western-pacific-deployment-coordination-2026.json briefs/singapore-indonesia-first-joint-fighter-patrol.json | grep -q .; then
             python -m scripts.run_briefs_render_release --scope strict 2>&1 | tee "$RUNNER_TEMP/briefs-render-report.txt"
           else
             python -m scripts.run_briefs_render_release --scope strict --verify-current 2>&1 | tee "$RUNNER_TEMP/briefs-render-report.txt"
