@@ -36,9 +36,9 @@ removed from the byline and all public author metadata. See the
 - Unchanged and checked by script against the previous revision: headline, dek,
   nine paragraphs including the paragraph 6 paraphrase, six references,
   paragraph support, `manuscript_sha256`, issue number, cover and caption.
-- Current editorial fingerprint:
+- Sole-author release editorial fingerprint (superseded by the later non-author credit correction):
   `3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820`.
-- Current presentation digest:
+- Sole-author release presentation digest (superseded by the later non-author credit correction):
   `421d643df0edc517acc7af430514499c199153b64431cc44b9009caf9b7d036c`.
 - The `21ab36ab…` and `d45f371e…` values in the receipts below are superseded.
   They describe the co-authored version the founder reviewed. The source-review
