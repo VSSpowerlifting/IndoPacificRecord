@@ -1,5 +1,35 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Brief publication CI — parallel full suite and fail-closed editorial lane (7 November 2026, draft PR)
+
+Full PR CI and the daily workflow's offline suite now run through
+`scripts/parallel_unittest.py`. It uses the same `unittest` discovery and
+a fresh interpreter per module, with slow hook-free modules split by
+`TestCase` class. It proves completeness by test-id multiset, and any import
+error, silent worker, mismatch or failure fails the run. Coverage, the
+required step names, qualification reuse rules and the main-push backstop
+are unchanged.
+
+`scripts/pr_ci_scope.py` adds an `editorial` mode, read from the raw merge
+diff, for PRs that touch only canonical Brief JSON, presentation manifests,
+`site/preview/staff.json`, admitted catalogue/editorial images and their
+manifests, or `docs/evidence/` receipts, as plain added or modified regular
+files. That mode runs the Brief-reading test modules and real-browser
+suites, then the isolated render, the validator and the DB/output
+assertion. A contract test keeps every editorial-input reader in that test
+set. On history, the lane catches data-only corrections: #1007 (the No. 24
+credit erratum, 35 m 39 s of full CI) classifies editorial. Every other
+recently merged PR, including the Brief releases #1003, #1005 and #1006,
+classifies exactly as before, because releases also edit per-Brief pins in
+`scripts/` and `tests/`. Locally the lane's tests take 143 s, the render
+4 s and the validator 9 s (10 governed warnings). Hosted timings are not
+measured yet. Every reduced lane (docs, focused, editorial) additionally
+requires each changed entry, documentation and timeline files included, to be
+a plain added or modified non-executable regular file; a deleted, symlinked,
+executable, mode-changed or type-changed entry sends the PR to full CI. Moving those pins into data, and splitting the approval
+fingerprint into reporting/source, authorship/credit and presentation, are
+separate follow-up phases. Not merged, deployed or live.
+
 ## Shared desk architecture, runtime migration 5 — Vietnam run-result rows through the governed dispatcher (5 November 2026, review candidate #953 reconciled against merged #950; final checks pending)
 
 Daily runs 191 and 192 recorded both registered Vietnam families

@@ -446,8 +446,12 @@ class TestDraftScheduling(unittest.TestCase):
                          "${{ steps.scope.outputs.mode == 'full' }}")
         self.assertEqual(steps["Run focused timeline presentation contracts"]["if"],
                          "${{ steps.scope.outputs.mode == 'focused' }}")
+        self.assertEqual(steps["Run editorial Brief contracts"]["if"],
+                         "${{ steps.scope.outputs.mode == 'editorial' }}")
+        self.assertEqual(steps["Render isolated output for validation"]["if"],
+                         steps["Validate rendered output"]["if"])
         self.assertEqual(steps["Validate rendered output"]["if"],
-                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}")
+                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' || steps.scope.outputs.mode == 'editorial' }}")
         self.assertEqual(steps["Install Chromium for the browser-backed tests"]["if"],
                          "${{ steps.scope.outputs.browser == 'true' }}")
         self.assertEqual(steps["Verify Chromium launches"]["if"],
@@ -472,7 +476,7 @@ class TestChangeRiskScope(unittest.TestCase):
         self.assertEqual(steps["Assert the tracked database and output are unchanged"]["if"],
                          "${{ !cancelled() && steps.baseline.outcome == 'success' }}")
         self.assertEqual(steps["Install dependencies"]["if"],
-                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}")
+                         "${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' || steps.scope.outputs.mode == 'editorial' }}")
 
 
 class TestPermissions(unittest.TestCase):
@@ -521,7 +525,8 @@ class TestPermissions(unittest.TestCase):
 class TestItRunsTheRealChecks(unittest.TestCase):
     """The commands must be the repository's own, not weakened variants."""
 
-    OFFLINE_SUITE = "python -m unittest discover -s tests -t . -v"
+    OFFLINE_SUITE = "python -m scripts.parallel_unittest -s tests -t . -v"
+    EDITORIAL_LANE = "python -m scripts.parallel_unittest -s tests -t . -v --editorial"
     VALIDATOR = "python scripts/validate_output.py"
 
     def test_it_runs_the_full_offline_suite(self):
@@ -564,12 +569,15 @@ class TestItRunsTheRealChecks(unittest.TestCase):
         )
         direct_suites = [
             body for body in bodies
-            if re.search(r"\bpython(?:3)?\s+-m\s+unittest\b", body)
+            if re.search(r"\bpython(?:3)?\s+-m\s+(?:unittest|scripts\.parallel_unittest)\b", body)
         ]
         self.assertEqual(
-            direct_suites, [self.OFFLINE_SUITE],
-            "no alternate or narrowed direct unittest suite is permitted",
+            sorted(direct_suites), sorted([self.OFFLINE_SUITE, self.EDITORIAL_LANE]),
+            "only the full suite and the mode-gated editorial lane may run directly",
         )
+        steps = {s["name"]: s for s in steps_of(load_workflow())}
+        self.assertEqual(steps["Run offline test suite"]["run"], self.OFFLINE_SUITE)
+        self.assertEqual(steps["Run editorial Brief contracts"]["run"], self.EDITORIAL_LANE)
 
     def test_the_validator_is_not_given_a_softening_flag(self):
         for body in run_bodies(load_workflow()):
