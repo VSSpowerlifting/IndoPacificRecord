@@ -354,8 +354,8 @@
   "editorial_review": {
     "reviewed_by": "Benjamin Yang",
     "reviewed_on": "2026-11-07",
-    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-sole-authorship-dylan-tanzi",
-    "fingerprint": "3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820",
+    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-editing-and-analysis-credit",
+    "fingerprint": "3743f5ad02dbf30a5f0f6f8284de48ff917342a726dcc00932334fde211c2453",
     "checks": {
       "authorship": true,
       "chronology": true,
@@ -369,13 +369,23 @@
   "policy_ruling": {
     "reviewed_by": "Benjamin Yang",
     "reviewed_on": "2026-11-07",
-    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-sole-authorship-dylan-tanzi",
-    "fingerprint": "3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820"
+    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-editing-and-analysis-credit",
+    "fingerprint": "3743f5ad02dbf30a5f0f6f8284de48ff917342a726dcc00932334fde211c2453"
   },
   "issue_number": 24,
   "approval": {
     "approved_by": "Benjamin Yang",
     "approved_on": "2026-11-07",
-    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-sole-authorship-dylan-tanzi"
-  }
+    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-editing-and-analysis-credit"
+  },
+  "editorial_credits": [
+    {
+      "role": "Editing",
+      "name": "Benjamin Yang"
+    },
+    {
+      "role": "Research and analysis",
+      "name": "Benjamin Yang"
+    }
+  ]
 }
