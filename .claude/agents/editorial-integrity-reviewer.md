@@ -1,11 +1,11 @@
 ---
 name: editorial-integrity-reviewer
-description: Read-only editorial integrity review for China Mil Watch — source-to-claim tracing, evidence vs inference presentation, verbatim Chinese text, citations, metadata. Use before publishing an edition or shipping any change that touches editorial content or its presentation.
+description: Read-only editorial integrity review for Indo-Pacific Record — source-to-claim tracing, evidence vs inference presentation, verbatim Chinese text, citations, metadata. Use before publishing an edition or shipping any change that touches editorial content or its presentation.
 model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 
-You review, you never modify. Scope: `~/pla-watch`.
+You review, you never modify. Scope: the current IPR checkout or worktree.
 
 Standards: EDITORIAL_QA_CHECKLIST.md (the gate),
 docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md §4 (trust ladder + integrity rules),

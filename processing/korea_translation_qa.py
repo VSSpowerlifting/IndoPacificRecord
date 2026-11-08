@@ -28,7 +28,7 @@ from typing import Iterable, List, Optional, Sequence, Tuple
 
 from core.korea_corpus_bridge import source_lines
 
-QA_VERSION = "kr-qa-v2"
+QA_VERSION = "kr-qa-v3"
 GUIDE_PATH = Path(__file__).resolve().parent.parent / "config" / "korea_translation_guide.json"
 
 # Dispatch holds (decided before any paid call).
@@ -73,7 +73,10 @@ _KO_GROUP = r"(?:%s)[천만억조]+" % _NUM
 _KO_COMPOUND = re.compile(r"%s(?:\s*%s)*" % (_KO_GROUP, _KO_GROUP))
 _KO_GROUP_RE = re.compile(r"(%s)([천만억조]+)" % _NUM)
 _KO_DOTTED_DATE = re.compile(r"(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.?")
-_KO_SHORT_DATE = re.compile(r"(?<![\d.])(\d{1,2})\.\s*(\d{1,2})\.(?=\s*\()")
+# "10.13." / "11.3.(월)" is month.day; only valid month/day pairs qualify, so
+# a decimal ("2.5") or section number ("13.40.") is never read as a date.
+_KO_SHORT_DATE = re.compile(
+    r"(?<![\d.])(0?[1-9]|1[0-2])\.\s*(0?[1-9]|[12]\d|3[01])\.(?!\d)")
 _PLAIN = re.compile(_NUM)
 
 _MONTHS = {m: i for i, m in enumerate(
@@ -233,6 +236,14 @@ class QAResult:
 
     def reason_string(self) -> str:
         return ",".join(self.reasons)
+
+    def located_string(self) -> str:
+        """Codes with their 1-based source lines (code@line), for logs only.
+
+        The ledger keeps reason_string(): its CHECK admits codes alone.
+        """
+        located = sorted({(f.code, f.line or 0) for f in self.findings})
+        return ",".join(c if n == 0 else "%s@%d" % (c, n) for c, n in located)
 
 
 def dispatch_hold(text: str, *, max_output_tokens: int,

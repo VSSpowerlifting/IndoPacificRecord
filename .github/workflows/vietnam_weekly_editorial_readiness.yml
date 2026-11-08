@@ -24,7 +24,7 @@ concurrency:
 jobs:
   audit:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - name: Checkout reviewed code only

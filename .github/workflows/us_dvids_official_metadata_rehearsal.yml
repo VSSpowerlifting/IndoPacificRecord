@@ -23,7 +23,7 @@ permissions:
 jobs:
   source-free-official-contracts:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.owner_authorized_dvids_api_rehearsal == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
       DVIDS_API_KEY: ${{ secrets.DVIDS_API_KEY }}

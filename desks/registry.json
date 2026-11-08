@@ -76,7 +76,7 @@
       "status": "shadow",
       "status_explanation": "Japan remains shadow-only. The two MOD Japanese-language RSS feeds support official discovery, but body retrieval is partial: some PDF-published originals yield extractable text while most HTML articles are challenged and retained only as dated discovery metadata. Separately, a Japan Coast Guard English HTML pilot has one verified, manually authorized October 8 Day 0. The guarded daily gate was observed unset or unavailable in an October 12 read-only Actions run, so no subsequent JCG collecting-day continuity is established; linked PDF/media rights remain held. Nothing from either source family is admitted to the production corpus, and neither proves complete Japanese defense or maritime-security coverage.",
       "public": true,
-      "manifest": "shadow/jp_mod/manifest.json",
+      "manifest": "desks/japan/manifest.json",
       "has_production_records": false,
       "research": {
         "source_families": [
@@ -151,7 +151,7 @@
         ]
       },
       "limits": [
-        "No source is enabled in production. Nothing collected here reaches the production database, the public site, or any public count.",
+        "No source is fetched in production. The registered news-feed source is manual: it exists so that governed official-link registration under the standing grant has a production source row, and it is never fetched by public Daily. Nothing collected in shadow reaches the production database, the public site, or any public count.",
         "Retrieval is partial. On 2026-08-26, 8 of 142 news-feed items (6 percent) were PDF-format candidates and 134 were HTML; the PDF count did not establish usable or complete full text, while challenged HTML bodies were recorded as unretrieved metadata. This is not complete Ministry of Defense or Joint Staff coverage.",
         "The MOD feeds are Japanese-language. The Ministry's English press releases and Joint Staff remain access-challenged and uncollected. The separate JCG English pilot has a specifically approved manual source observation dated October 8, 2026; its repository gate was observed unset or unavailable on October 12 and no daily continuity, production admission or per-document rights clearance is established.",
         "MOD RSS shadow testing began 2026-08-26, and 30 scheduled MOD collection slots from September 12 to October 11 were independently verified but all partial; named Day 7/14/30 human source reviews remain unsigned. JCG's separate manual Day 0 was 2026-10-08 with no verified daily continuity. These distinct collection clocks confer no source publication authority."
@@ -225,7 +225,7 @@
       "public_status_label": "Official links and machine explanations — not in corpus",
       "status_explanation": "AFP and NSC are collected daily into private custody. Verified neutral official links and short, attributed, machine-labeled explanations are then published automatically, with no per-record human review. Original titles, bodies, images and translations stay private and are not republished. Neither source has original-document records in the IPR corpus, and a quiet source is not a failure.",
       "public": true,
-      "manifest": null,
+      "manifest": "desks/philippines/manifest.json",
       "has_production_records": false,
       "research": {
         "source_families": [
@@ -403,7 +403,7 @@
    "status": "shadow",
    "status_explanation": "Kemhan Berita is collected daily into a private evidence archive for source evaluation. Its original Indonesian articles are not in the public IPR corpus. Fifteen dated Berita links and two historical Siaran Pers press links provide attributed outbound navigation only; neither group constitutes human-reviewed IPR citations or public archive records. Five preserved originals received preliminary review; independent Indonesian-language signoff and the Day 7/14/30 collection reviews remain outstanding.",
    "public": true,
-   "manifest": null,
+   "manifest": "desks/indonesia/manifest.json",
    "has_production_records": false,
    "research": {
     "source_families": [
@@ -452,10 +452,10 @@
       "status": "access_blocked",
       "status_explanation": "Declared scope only, and access-blocked at the edge. Probed once per endpoint on 2026-08-26 with the project user agent: the site root, the Press Releases and Readouts listing, and robots.txt itself all return HTTP 403 from the edge. An RSS endpoint does answer, but robots.txt cannot be read, so there is no basis on which to say collection is permitted. Collecting only through the one endpoint that happens to answer, while the same edge refuses everything else including the file that would state the rules, would be opportunistic rather than honest.",
       "public": true,
-      "manifest": null,
+      "manifest": "desks/us-indopacific/manifest.json",
       "has_production_records": false,
       "limits": [
-        "Nothing has been configured, enabled or collected.",
+        "No source is fetched. Two manual sources are registered for governed admission of official USCC and Treasury press-release URL, date and issuer metadata only, under the standing owner approval of 2026-10-15; nothing from U.S. Pacific Command has been configured, enabled or collected.",
         "robots.txt returns 403, so this project cannot establish that collection is permitted. That is a blocker on its own, independent of whether any endpoint answers.",
         "The institution's current name is U.S. Pacific Command, restored in 2026. If a source is ever built, its identity follows the institution's own name even though the desk stays geographically labeled Indo-Pacific.",
         "If it is ever built it is collected under the same contract, health thresholds and evidence hierarchy as every other desk. U.S. institutional statements are evaluated under the same source-verification and editorial standards as every other desk; they are not treated as independent confirmation of their own claims."

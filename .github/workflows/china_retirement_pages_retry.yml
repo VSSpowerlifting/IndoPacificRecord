@@ -20,7 +20,7 @@ permissions:
 jobs:
   verify-and-redeploy:
     if: github.repository == 'VSSpowerlifting/IndoPacificRecord' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: write

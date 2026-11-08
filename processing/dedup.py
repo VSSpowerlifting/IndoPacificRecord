@@ -73,6 +73,16 @@ _SOURCE_AUTHORITY_TIER: dict[str, str] = {
     "kr_policy_mnd_releases": "B",
     "vn_mps_foreign_affairs_vi": "A",
     "vn_vpcp_official_documents_vi": "A",
+    # Manual production registrations (desks/philippines, desks/indonesia,
+    # desks/japan): governed admission only, never fetched; official publishers.
+    "ph_afp_articles":    "A",
+    "ph_nsc_official_statements": "A",
+    "id_kemhan_news":     "A",
+    "jp_mod_news_ja":     "A",
+    # desks/us-indopacific: USCC and Treasury official listing metadata,
+    # governed admission under the standing 2026-10-15 approval; never fetched.
+    "uscc_press_official_metadata": "A",
+    "us_treasury_press_official_metadata": "A",
 }
 
 # Fallback only: used when an article dict carries no `source_slug` (the spec

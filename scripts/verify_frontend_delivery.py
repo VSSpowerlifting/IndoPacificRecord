@@ -32,10 +32,13 @@ def html_css_cap(route):
     return 300000 if parts[-1] in INDEX_NAMES else 120000
 
 
-def verify(root):
+def verify(root, only=None):
+    """Measure every HTML route, or just the site-relative routes in `only`."""
     root = Path(root).resolve()
     routes, failures = [], []
-    for page in sorted(root.rglob('*.html')):
+    pages = (sorted(root.rglob('*.html')) if only is None
+             else [root / route for route in sorted(set(only))])
+    for page in pages:
         route = page.relative_to(root).as_posix()
         html_cap = html_css_cap(route)
         js_cap = 12000 if route == 'index.html' else 10000

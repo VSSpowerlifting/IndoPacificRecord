@@ -98,52 +98,84 @@ class TestRosterMatchesConfiguration(DeskCase):
                 if not entry.is_collecting:
                     self.assertFalse(entry.has_production_records)
 
-    def test_the_database_contains_only_declared_collecting_desks(self):
+    def test_the_database_contains_only_desks_with_production_manifests(self):
+        """Every desk row was synced from a production manifest, and every
+        collecting desk has its row. The tracked database may lag a newly
+        registered manifest until Daily's migration step syncs it; it may
+        never lead configuration."""
         with self.db() as con:
-            desks = [r[0] for r in con.execute("SELECT desk_id FROM desks")]
-        collecting = sorted(e.slug for e in load_registry() if e.is_collecting)
-        self.assertEqual(sorted(desks), collecting)
+            desks = {r[0] for r in con.execute("SELECT desk_id FROM desks")}
+        registry = load_registry()
+        declared = {e.slug for e in registry if e.manifest_path is not None}
+        collecting = {e.slug for e in registry if e.is_collecting}
+        self.assertLessEqual(desks, declared)
+        self.assertLessEqual(collecting, desks)
 
-    def test_every_enabled_source_belongs_to_a_declared_collecting_desk(self):
-        """A source enabled under any other desk would be collection this
-        product has not declared."""
+    def test_every_enabled_source_belongs_to_a_collecting_desk_or_is_manual(self):
+        """A fetched source enabled under any other desk would be collection
+        this product has not declared. A manual source is never fetched: it
+        is enabled only for its governed admission, and may sit under a
+        non-collecting desk because admitting link metadata or signed machine
+        output is not collection."""
         with self.db() as con:
             rows = con.execute(
-                "SELECT slug, desk_id, is_active FROM sources").fetchall()
+                "SELECT slug, desk_id, is_active, access_method FROM sources").fetchall()
         self.assertTrue(rows, "no sources configured")
         collecting = {e.slug for e in load_registry() if e.is_collecting}
-        for slug, desk_id, active in rows:
+        for slug, desk_id, active, access_method in rows:
             with self.subTest(source=slug):
-                if active:
+                if active and access_method != "manual":
                     self.assertIn(desk_id, collecting)
 
-    def test_no_japan_source_exists_or_is_enabled(self):
+    def test_japan_has_no_fetched_source_and_no_articles(self):
+        """The only Japan source production may know is the manual news-feed
+        registration for governed link admission. Nothing fetches it and no
+        Japan article row may exist."""
         with self.db() as con:
             japan = con.execute(
-                "SELECT slug FROM sources WHERE desk_id = 'japan' "
+                "SELECT slug, access_method FROM sources WHERE desk_id = 'japan' "
                 "OR slug LIKE '%japan%' OR slug LIKE '%mod_jp%'").fetchall()
-        self.assertEqual(japan, [])
+            articles = con.execute(
+                "SELECT COUNT(*) FROM articles a JOIN sources s ON s.id = a.source_id "
+                "WHERE s.desk_id IN ('japan', 'philippines', 'indonesia')").fetchone()[0]
+        self.assertLessEqual({slug for slug, _ in japan}, {"jp_mod_news_ja"})
+        self.assertTrue(all(method == "manual" for _, method in japan))
+        self.assertEqual(articles, 0)
 
-    def test_no_japan_manifest_is_discoverable(self):
-        """The draft manifest lives under shadow/ precisely so the loader
-        cannot find it. If it ever lands in desks/, collection starts by
-        accident."""
+    def test_only_reviewed_production_manifests_are_discoverable(self):
+        """The loader globs desks/*/manifest.json, so a manifest landing there
+        is a reviewed act (docs/desks/MIGRATION.md). Shadow drafts stay under
+        shadow/. The three shadow desks registered on 2026-11-01 declare only
+        manual sources, which nothing fetches."""
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "korea", "singapore", "vietnam"})
+        self.assertEqual(discovered, {"china", "indonesia", "japan", "korea",
+                                      "philippines", "singapore", "us-indopacific", "vietnam"})
+        from core.manifests import load_all_desks
+        for desk in ("indonesia", "japan", "philippines", "us-indopacific"):
+            cfg = load_all_desks()[desk]
+            self.assertEqual(cfg.desk.public_status, "shadow")
+            self.assertFalse(cfg.desk.active)
+            for src in cfg.sources:
+                self.assertEqual(src.access_method, "manual")
+                self.assertIsNone(src.adapter)
 
     def test_the_us_is_not_a_live_desk(self):
         """
         Moved from `planned` to `access_blocked` on 2026-08-26: probed once per
         endpoint, the site root, the Press Releases and Readouts listing and
         robots.txt itself all return 403 at the edge. What this test protects is
-        unchanged — the desk collects nothing and has no enabled source.
+        unchanged — the desk collects nothing. Since runtime migration 4 its
+        two registered sources are the manual USCC and Treasury listing-metadata
+        families admitted through the governed dispatch; nothing fetches them.
         """
         us = load_registry().get("us-indopacific")
         self.assertIsNotNone(us)
         self.assertEqual(us.status, "access_blocked")
         self.assertFalse(us.is_collecting)
-        self.assertEqual(us.configured_source_count, 0)
-        self.assertEqual(us.enabled_source_count, 0)
+        self.assertEqual(us.manifest_path, "desks/us-indopacific/manifest.json")
+        self.assertEqual(us.configured_source_count, 2)
+        self.assertEqual(us.enabled_source_count, 2)
+        self.assertEqual({s.access_method for s in us.sources}, {"manual"})
         self.assertIn("not collecting", us.status_label.lower())
 
     def test_us_desk_limit_uses_owner_approved_neutral_evidence_standard(self):
@@ -157,7 +189,7 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertTrue(us.limits[-1].endswith(expected), us.limits[-1])
         self.assertNotIn("our side", " ".join(us.limits).lower())
         self.assertEqual(us.status, "access_blocked")
-        self.assertEqual(us.enabled_source_count, 0)
+        self.assertEqual({s.access_method for s in us.sources}, {"manual"})
 
     def test_singapore_is_live_and_promoted(self):
         """
@@ -184,7 +216,8 @@ class TestRosterMatchesConfiguration(DeskCase):
         self.assertEqual(sg.manifest_path, "desks/singapore/manifest.json")
         self.assertTrue((MANIFESTS / "singapore" / "manifest.json").exists())
         discovered = {p.parent.name for p in MANIFESTS.glob("*/manifest.json")}
-        self.assertEqual(discovered, {"china", "korea", "singapore", "vietnam"})
+        self.assertEqual(discovered, {"china", "indonesia", "japan", "korea",
+                                      "philippines", "singapore", "us-indopacific", "vietnam"})
 
     def test_singapore_shows_no_stale_shadow_language(self):
         """
@@ -284,9 +317,11 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
         self.assertIsNotNone(entry)
         self.assertEqual(entry.status, "shadow")
         self.assertTrue(entry.public)
-        self.assertIsNone(entry.manifest_path)
+        self.assertEqual(str(entry.manifest_path).replace("\\", "/")
+                         .rsplit("desks/", 1)[-1], "indonesia/manifest.json")
         self.assertFalse(entry.has_production_records)
         self.assertFalse(entry.is_collecting)
+        self.assertEqual([s.access_method for s in entry.sources], ["manual"])
         self.assertIn('href="indonesia.html"', self.page("desks.html"))
         self.assertTrue((self.out / "indonesia.html").is_file())
 
@@ -335,15 +370,17 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
         self.assertTrue((self.out / "japan.html").is_file())
         self.assertIn('href="japan.html"', self.page("desks.html"))
 
-    def test_the_japan_page_states_no_production_records_and_two_shadow_sources(self):
+    def test_the_japan_page_states_no_production_records_and_one_manual_source(self):
         html = self.page("japan.html")
         self.assertIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("Sources enabled in shadow</dt><dd>2", html)
-        self.assertIn("No source is enabled in production.", html)
-        self.assertIn("participate only in isolated shadow collection", html)
+        self.assertIn("Sources enabled for governed admission</dt><dd>1", html)
+        self.assertIn("No source is fetched in production.", html)
+        self.assertIn("the public pipeline never fetches", html)
+        self.assertNotIn("Sources enabled in shadow", html)
+        self.assertNotIn("participate only in isolated shadow collection", html)
         source = self.page("source/jp_mod_news_ja.html")
-        self.assertIn("Enabled for shadow collection</th>", source)
-        self.assertIn("Shadow enablement does not admit it to production", source)
+        self.assertIn("Enabled for governed admission</th>", source)
+        self.assertNotIn("Enabled for collection</th>", source)
 
     def test_the_japan_page_shows_no_collection_statistic(self):
         """Observed publication volume describes the ministry's output, not
@@ -553,21 +590,26 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
         self.assertIsNotNone(entry)
         self.assertTrue(entry.public)
         self.assertEqual(entry.status, "shadow")
-        self.assertIsNone(entry.manifest_path)
+        self.assertIsNotNone(entry.manifest_path)
         self.assertFalse(entry.is_collecting)
         self.assertFalse(entry.has_production_records)
         self.assertFalse(entry.may_show_record_count)
         self.assertEqual((entry.configured_source_count,
-                          entry.enabled_source_count), (0, 0))
+                          entry.enabled_source_count), (2, 2))
+        self.assertEqual({s.access_method for s in entry.sources}, {"manual"})
 
-    def test_production_still_has_no_philippines_manifest_or_source(self):
+    def test_production_philippines_sources_are_manual_and_fetch_nothing(self):
         from core.manifests import load_all_desks
-        self.assertFalse((MANIFESTS / "philippines").exists())
-        self.assertNotIn("philippines", load_all_desks())
+        cfg = load_all_desks()["philippines"]
+        self.assertEqual(sorted(s.slug for s in cfg.sources),
+                         ["ph_afp_articles", "ph_nsc_official_statements"])
+        for src in cfg.sources:
+            self.assertEqual(src.access_method, "manual")
+            self.assertIsNone(src.adapter)
         with self.db() as con:
             self.assertEqual(con.execute(
-                "SELECT COUNT(*) FROM sources WHERE desk_id = 'philippines'"
-            ).fetchone()[0], 0)
+                "SELECT COUNT(*) FROM sources WHERE desk_id = 'philippines' "
+                "AND access_method != 'manual'").fetchone()[0], 0)
 
     def test_countries_have_honest_empty_public_corpus(self):
         # Admitted AFP and NSC link metadata are not general corpus coverage.

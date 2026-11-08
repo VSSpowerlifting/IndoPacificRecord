@@ -210,6 +210,19 @@ def grouped_literals(text: str):
     return {int(m.replace(",", "")) for m in GROUPED.findall(cleaned)}
 
 
+def template_total_literals(text: str):
+    """Keep corpus totals distinct from explicit source participant quantities.
+
+    A publisher's "1,509 participants" is a historical fact, even when its
+    value happens to equal today's original-text count. Blank only that
+    number's span; an equal corpus total elsewhere must still be detected.
+    Python assertions and JSON configuration retain their existing rules.
+    """
+    participants = re.compile(r"\b\d{1,3}(?:,\d{3})+\b(?=\s+participants\b)")
+    cleaned = participants.sub(lambda m: " " * len(m.group(0)), text)
+    return grouped_literals(cleaned)
+
+
 def _docstring_node_ids(tree) -> set:
     """
     The identity of every module, class and function docstring in `tree`.
@@ -317,8 +330,18 @@ def corpus_context_literals(source: str):
             continue
         if not (_statement_names(node) & CORPUS_IDENTIFIERS):
             continue
-        for child in _own_nodes(node):
+        own = _own_nodes(node)
+        # A constant passed straight to a keyword is about that keyword:
+        # `row(..., chars=800, analyzed=True)` names `analyzed`, but 800 is a
+        # character count. `records=3611` is still read, because its own
+        # keyword is a corpus metric.
+        keyword_owned = {id(k.value) for k in own
+                         if isinstance(k, ast.keyword)
+                         and k.arg not in CORPUS_IDENTIFIERS}
+        for child in own:
             if not isinstance(child, ast.Constant) or id(child) in docstrings:
+                continue
+            if id(child) in keyword_owned:
                 continue
             if isinstance(child.value, bool):
                 continue
@@ -336,9 +359,9 @@ def frozen_total_literals(path: Path):
     Python files get both rules, and both read the parse tree rather than the
     raw text, so a figure in a comment or a docstring is invisible to each.
 
-    Everything else gets the raw comma-grouped rule: a template or a JSON
-    config has no statements to read context from and no docstrings to
-    exclude, and every number in one is content. The mutation proof in
+    Non-Python files retain the comma-grouped rule; HTML distinguishes explicit
+    source-reported participant quantities from archive totals. No template or
+    value is exempted. JSON retains the raw rule. The mutation proof in
     `test_daily_corpus_advance.py` covers a template that freezes a figure far
     better than any literal scan could — it renders a different corpus and
     checks the page followed it.
@@ -346,7 +369,7 @@ def frozen_total_literals(path: Path):
     text = path.read_text(encoding="utf-8")
     if path.suffix == ".py":
         return grouped_literals_in_code(text) | corpus_context_literals(text)
-    return grouped_literals(text)
+    return template_total_literals(text) if path.suffix == ".html" else grouped_literals(text)
 
 
 def frozen_total_literals_from(text: str, suffix: str):
@@ -360,7 +383,7 @@ def frozen_total_literals_from(text: str, suffix: str):
     """
     if suffix == ".py":
         return grouped_literals_in_code(text) | corpus_context_literals(text)
-    return grouped_literals(text)
+    return template_total_literals(text) if suffix == ".html" else grouped_literals(text)
 
 
 class FrozenCountCase(unittest.TestCase):
@@ -588,8 +611,8 @@ class TestProseIsInvisibleEndToEnd(unittest.TestCase):
 class TestNonPythonFilesStillReadEveryNumber(unittest.TestCase):
     """
     The AST scoping applies to Python only. A template has no docstrings and no
-    comments in the Python sense — every number in one is content a reader
-    sees, so the raw rule stays.
+    comments in the Python sense. Grouped corpus totals remain guarded while
+    explicit source participant quantities are distinguished by their unit.
     """
 
     TOTAL = 3611
@@ -608,6 +631,20 @@ class TestNonPythonFilesStillReadEveryNumber(unittest.TestCase):
         """
         self.assertIn(self.TOTAL, frozen_total_literals_from(
             '{# was %s records #}\n' % self.GROUPED, ".html"))
+
+    def test_source_participants_are_not_an_archive_total(self):
+        for value in (1509, self.TOTAL):
+            grouped = format(value, ",")
+            with self.subTest(value=value):
+                narrative = '<p>The source reports %s participants.</p>' % grouped
+                self.assertNotIn(value, frozen_total_literals_from(narrative, ".html"))
+                # Equal numbers must remain distinct by their occurrence.
+                page = narrative + '<dd>%s records</dd>' % grouped
+                self.assertIn(value, frozen_total_literals_from(page, ".html"))
+                self.assertIn(value, frozen_total_literals_from(
+                    '<dd>%s</dd>' % grouped, ".html"))
+                self.assertIn(value, frozen_total_literals_from(
+                    '{"expected_records": "%s participants"}' % grouped, ".json"))
 
     def test_a_grouped_total_in_a_json_config_is_caught(self):
         self.assertIn(self.TOTAL, frozen_total_literals_from(
@@ -641,6 +678,10 @@ class TestTheNarrowingStillCatchesTheRealThing(unittest.TestCase):
 
     def test_a_bare_total_assigned_to_a_corpus_name_is_caught(self):
         source = 'corpus_size = %d\n' % self.TOTAL
+        self.assertIn(self.TOTAL, frozen_total_literals_from(source, ".py"))
+
+    def test_a_total_passed_to_a_corpus_keyword_is_caught(self):
+        source = 'check(metrics, records=%d, chars=10)\n' % self.TOTAL
         self.assertIn(self.TOTAL, frozen_total_literals_from(source, ".py"))
 
     def test_a_frozen_analyzed_count_is_caught(self):
@@ -690,6 +731,12 @@ class TestTheKnownFalsePositivesAreGone(unittest.TestCase):
         # nothing structural is written that way.
         ("a regex repetition bound",
          'pat = r"ipr-compass-mark-small\\.svg[^|]{0,120}?byte-identical"\n', 120),
+        # Added 2026-11-02. Verbatim from tests/test_sunday_source_offer_audit.py,
+        # where 800 matched the live count of records from pla_daily because
+        # `analyzed=` named a corpus metric elsewhere in the same statement.
+        ("a fixture keyword beside a corpus keyword",
+         'rows = [row(7, "singapore", text_english="brief",\n'
+         '            chars=800), row(8, "china", analyzed=True)]\n', 800),
     )
 
     def test_none_of_the_real_world_literals_is_flagged(self):

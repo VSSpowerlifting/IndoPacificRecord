@@ -73,9 +73,19 @@ class ScheduledOwnerPreviewContracts(unittest.TestCase):
 
     def test_scheduled_editor_send_is_default_but_manual_stays_opt_in(self):
         src = WORKFLOW.read_text(encoding="utf-8")
+        job = src.split("\n  sunday-editor-handoff:\n", 1)[1]
+        job_if = " ".join(job.split("\n    runs-on:", 1)[0].split())
+        # The legacy schedule/manual path runs only while the weekend variable
+        # is off; with it on, the whole job runs only for a verified Saturday.
         self.assertIn(
-            "if: github.event_name == 'workflow_dispatch' || "
-            "github.event_name == 'schedule'", src,
+            "(vars.IPR_WEEKEND_EDITORIAL_ENABLED != 'true' && "
+            "(github.event_name == 'workflow_dispatch' || "
+            "github.event_name == 'schedule'))", job_if,
+        )
+        self.assertIn(
+            "|| (vars.IPR_WEEKEND_EDITORIAL_ENABLED == 'true' && "
+            "github.event_name == 'workflow_run' && "
+            "needs.weekend-collection.outputs.mode == 'saturday'))", job_if,
         )
         self.assertIn(
             "SUNDAY_SEND: ${{ github.event_name == 'schedule' || "

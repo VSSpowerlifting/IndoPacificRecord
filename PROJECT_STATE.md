@@ -1,5 +1,184 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Brief publication CI — parallel full suite and fail-closed editorial lane (7 November 2026, draft PR)
+
+Full PR CI and the daily workflow's offline suite now run through
+`scripts/parallel_unittest.py`. It uses the same `unittest` discovery and
+a fresh interpreter per module, with slow hook-free modules split by
+`TestCase` class. It proves completeness by test-id multiset, and any import
+error, silent worker, mismatch or failure fails the run. Coverage, the
+required step names, qualification reuse rules and the main-push backstop
+are unchanged.
+
+`scripts/pr_ci_scope.py` adds an `editorial` mode, read from the raw merge
+diff, for PRs that touch only canonical Brief JSON, presentation manifests,
+`site/preview/staff.json`, admitted catalogue/editorial images and their
+manifests, or `docs/evidence/` receipts, as plain added or modified regular
+files. That mode runs the Brief-reading test modules and real-browser
+suites, then the isolated render, the validator and the DB/output
+assertion. A contract test keeps every editorial-input reader in that test
+set. On history, the lane catches data-only corrections: #1007 (the No. 24
+credit erratum, 35 m 39 s of full CI) classifies editorial. Every other
+recently merged PR, including the Brief releases #1003, #1005 and #1006,
+classifies exactly as before, because releases also edit per-Brief pins in
+`scripts/` and `tests/`. Locally the lane's tests take 143 s, the render
+4 s and the validator 9 s (10 governed warnings). Hosted timings are not
+measured yet. Every reduced lane (docs, focused, editorial) additionally
+requires each changed entry, documentation and timeline files included, to be
+a plain added or modified non-executable regular file; a deleted, symlinked,
+executable, mode-changed or type-changed entry sends the PR to full CI. Moving those pins into data, and splitting the approval
+fingerprint into reporting/source, authorship/credit and presentation, are
+separate follow-up phases. Not merged, deployed or live.
+
+## Shared desk architecture, runtime migration 5 — Vietnam run-result rows through the governed dispatcher (5 November 2026, review candidate #953 reconciled against merged #950; final checks pending)
+
+Daily runs 191 and 192 recorded both registered Vietnam families
+(`vn_mps_foreign_affairs_vi`, `vn_vpcp_official_documents_vi`) as
+`SKIPPED_DISABLED` "manual source with no governed admission", even when the
+signed handoff and the VPCP bibliographic collector had run. `pipeline.py` now
+gives each a `GovernedAdmission` that reports what Vietnam's own Daily steps
+recorded rather than repeating them (the handoff replaces `pla_watch.db`
+atomically and cannot run under the pipeline's connections). MPS reads its
+share of the handoff receipt; VPCP combines that with the collector's
+`official_document_collection_runs` row for this run and attempt, and a failed
+lane is never hidden by a quiet one. `core.vietnam_daily_handoff` adds
+`by_family` and `generated_utc` to its OK receipt; Daily writes the receipt to
+`$RUNNER_TEMP` and passes the two existing owner variables to the pipeline
+step (no new workflow file, variable or activation). Outcomes: awaiting
+activation; metadata-only; quiet, admitted, duplicates or held by fixed code;
+`ADAPTER_ERROR` for a HOLD or unreadable receipt; `FETCH_FAILURE` for a missing
+receipt, a missing collector row or an envelope older than 36 hours (a
+re-served envelope after a missed private run). The last case is a deliberate
+behaviour change: a missed Vietnam run now counts as a source failure that
+marks the Daily run `degraded` (exit 0, no retry) rather than a silent skip.
+The founder accepted the 29–30 October MPS/VPCP gap without recovery (see
+`DECISION_LOG.md`, 1 November 2026); if the handoff envelope is still more
+than 36 hours old, the first Daily after merge records Vietnam `FETCH_FAILURE`
+until a fresh private run lands. That is the stale envelope being reported,
+not a regression. MOIT families stay unregistered. No ledger, hold,
+attempt, missed-slot recovery or liveness gate is touched.
+
+Verified: `tests/test_vietnam_governed_run_results.py` (19) and the extended
+`tests/test_vietnam_daily_handoff.py`, plus the Vietnam, workflow-contract and
+manual-source modules; results are in the commit message. Not verified live:
+the first scheduled Daily run after merge must show both Vietnam rows with
+receipt-derived statuses. Founder decisions outstanding: a
+`source_run_results`-keyed liveness gate and MOIT registration.
+
+## Shared desk architecture, runtime migration 4 — US reference families through the governed dispatcher (1 November 2026, review candidate)
+
+The USCC and Treasury press-release metadata families are now registered as
+manual production sources in `desks/us-indopacific/manifest.json`, and
+`desks/registry.json` points at it while the US desk stays `access_blocked`,
+non-collecting and without production records. `pipeline._us_metadata_admission`
+gives each family a `GovernedAdmission` that reuses the existing importer and
+fixed-code holds, so the two sources write `source_run_results` rows with the
+shared disposition: skipped while Daily delivers no preserved history,
+`LISTING_FAILURE` when the delivered path is not a clone, receipt statuses or
+the hold code otherwise. No new activation variable: the standing owner
+approval of 15 October 2026 governs, as it governed the retired jobs. Daily
+clones `shadow/uscc-press` and `shadow/us-treasury-press` after its migration
+and verification steps and hands the paths to the pipeline step; the two
+release workflows lose their production writer jobs, schedules (22:17 and
+22:31 UTC), push/workflow_run/dispatch triggers and concurrency claim and keep
+only their pull-request render rehearsal. Admission therefore follows Daily's
+schedule, and the moving-branch refusal is replaced by the importer's commit
+pin. BIS is excluded because its release is bound to a `workflow_run`
+attestation the dispatcher does not reproduce. Nothing is fetched from either
+publisher and no original document enters the public record.
+
+Verified: `TestUSMetadataGovernedDispatch` in `tests/test_manual_source_definitions.py`,
+the rewritten `tests/test_us_metadata_migration_preflight.py`, updated
+roster/contract pins (8 desks, 15 registered sources), the affected modules,
+`scripts/validate_output.py` at the 10 governed warnings and a local render
+inspection (US desk 2 configured / 2 enabled, both source pages rendered;
+institution names appear after Daily's migration sync, as for migration 3).
+The full offline suite result is recorded in the commit message. Generated
+`output/` and the tracked DB are not part of the change. Not done: BIS, Vietnam
+through the dispatcher, a liveness check keyed on `source_run_results`, the W1
+seven-run observation, China and Singapore. No activation flag, merge,
+deployment or paid model run is implied.
+
+Next action: review and merge this candidate with migration 3, then confirm the
+first scheduled Daily run writes nine manual-source rows (seven governed plus
+the two Vietnam slugs as disabled) and the two US receipts. #954 merged on
+3 November 2026 (`dc7beaa76c`); merge #950 only after #954's first scheduled
+Daily cycle and deployed readback are verified.
+
+## Shared desk architecture, runtime migration 3 — manual production sources and one governed dispatch (1 November 2026, review candidate)
+
+The Philippines (AFP, NSC), Indonesia (Kemhan) and Japan (MOD news feed) source
+families are now registered as manual production sources through
+`desks/philippines/manifest.json`, `desks/indonesia/manifest.json` and
+`desks/japan/manifest.json`; `desks/registry.json` points at them while the
+three desks stay `shadow` and non-collecting. `pipeline.run_governed_manual_sources`
+dispatches every manual source (Korea bridge, the three Daily families, Japan
+official links) through one `GovernedAdmission` table, so each writes a
+`source_run_results` row with one shared disposition (awaiting activation,
+receipt, hold code, missing envelope, missing collector ref). The replaced
+Stage 14 `public_intake` call and Daily's separate Japan admission step are
+removed; the workflow passes the existing activation variables to the pipeline
+step unchanged. Public Daily still fetches nothing from these publishers and no
+original document enters the public record through these rows.
+
+The operations center observes the manual rows without counting the desks as
+collecting, and the four slugs carry authority tier A in dedup.
+
+Verified: new `tests/test_manual_source_definitions.py`, updated roster/contract
+tests, full offline suite (remaining failures reproduce on the unchanged base
+commit and are environment-only), `scripts/validate_output.py` at the 10
+governed warnings, and a local render inspection. Generated `output/` and the tracked DB
+are not part of the change; Daily's migration sync inserts the rows and its
+render republishes. Not done: US reference family registration, Vietnam through
+the dispatcher, a liveness check keyed on `source_run_results` (manual sources
+remain `INERT` under the `articles`-keyed gate), and the W1 seven-run
+observation. No activation flag, merge, deployment or paid model run is implied.
+
+Next action: review and merge this candidate, confirm the first scheduled Daily
+run writes a row per manual source, then register the US reference families
+through the same manifest and dispatcher.
+
+## Briefs weekend editorial cycle — consolidated review candidate (2 November 2026)
+
+One branch now carries the Saturday provisional draft to Dylan and the Sunday
+recheck (#960), #957's release guarantees and #956's analyst intake. There is
+one activation variable, `IPR_WEEKEND_EDITORIAL_ENABLED` (unset, so disabled), and
+one dispatcher, the `workflow_run` trigger in
+`sunday_briefs_editorial_handoff.yml`. #957's own dispatcher and variable are not
+carried. The Sunday reconciliation receipt (`core/brief_editorial_cycle.py`) is
+enforced by `validate_brief` and `validate_readiness` for every Brief carrying
+weekend editorial cycle provenance (`editorial_cycle`), whatever its date, author
+or Word labels; the importer carries that provenance from hidden DOCX properties
+and otherwise needs an explicit `--saturday-packet` or `--independent`; the owner
+copies `editorial_cycle` from the import JSON into the canonical sidecar by hand.
+Independently authored Briefs keep the existing safeguards. The owner recorded
+this policy in `DECISION_LOG.md` (2026-11-02). It is bound to the
+packet's per-Brief identity (#946), the exact final manuscript and revised DOCX, the week's inventory
+and policy fingerprints and, where used, the reconciled analyst report. The
+Saturday draft is attempted at most once per week, reserved through the workflow's
+run history. #956 files are unchanged. This is not merged, activated or live.
+Details and the owner checklist are in the consolidation PR.
+
+## Cited official sources as Records — review candidate (1 November 2026)
+
+`core/cited_source_records.py` derives one link-metadata Record per official URL
+cited by an approved Brief on every render (doctrine §5b; DECISION_LOG
+2026-11-01). Briefs add an "IPR Record" link beside each eligible publisher
+link. Records list every citing Brief, and the archive index carries them with
+no desks. Current output: 29 Records from five Briefs, archive index 1,688 →
+1,717. Omitted: 4 independent references and 1 Vietnam MPS reference. None of
+the 34 Brief URLs matches a DB URL, a machine Record or an archive-index source
+URL, even after normalizing host, `www.`, case, trailing slash, fragment and
+percent-encoding. Every source document in the 14 editions' trails is a corpus
+Record that already links back ("In analysis"). The 24 other edition URLs are
+image credits and the author link. Every Dossier and Timeline source is a corpus
+Record, but both Dossiers and the Timeline remain withheld as whole works, so
+those back-links render only in review. The nine Dossier external references
+x1–x9 are not Records. The 2026-10-26 grant limits them to linked use inside
+that Dossier, with no IPR record page. No MINDEF URL becomes a cited Record (link-only
+permission). Routes use a stable `url_key`, and a route superseded by later collection
+redirects to the corpus/machine Record. No DB, source-policy or collector change.
+
 ## Shared desk architecture, runtime migration 1 — Philippines/Indonesia source definitions (30 October 2026, review candidate)
 
 The private-source Daily lane (AFP, NSC, Kemhan) now reads each family from one
@@ -390,6 +569,20 @@ checks remain enforced. No database, generated output, source-use grant or
 dossier content changes are introduced relative to the incorporated main.
 Exact-head CI and all eight affected Actions checks are recorded in PR #879
 before handoff; merge and deployment require separate authorization.
+
+**Vietnam MPS number-only recovery (2 November 2026): mechanism candidate.**
+After #955 merged (`226cefbb46`), the owner authorized one attempt for each of
+ten exact MPS versions held only for `E_NUMBER_MISMATCH`
+(`DECISION_LOG.md`, 2 November). `processing/mps_recovery.py` pins them in
+batches of 2/4/4 for manual first-attempt private bridge runs. Outputs stay in
+the private ledger with per-record cost; accepted projections are withheld from
+the signed handoff until listed in `RELEASED`. Other MPS and VPCP holds are
+unchanged. Batch 0 (`mps-vi:1791803388`, `mps-vi:1791881212`) ran once in
+private dispatch `41565761646-1` on IPR `33a82b5627`: both published with no QA
+codes, at $0.0180 and $0.0300 of provider-token cost, and neither entered the
+signed handoff. Both outputs were inspected against the archived originals
+(dates, numbers, names, attribution, action status) and accepted. This change
+opens batch 1 (four records); `RELEASED` stays empty and nothing is published.
 
 **Vietnam unattended verification candidate (28 October 2026).**
 Current committed/gh-pages/HTTPS Vietnam Desk, Archive, research index and records
@@ -1511,8 +1704,9 @@ review date, not a qualification threshold. Neither desk is promoted.
 ## 6. Known technical debt
 
 * **gh-pages stale-rollback race — audited, NOT fixed (#346, 2026-10-15).**
-  `scripts/audit_pages_writers.py` inventories 24 Pages writers (10 full-tree,
-  1 overlay, 13 file-only). An unregistered or widened writer fails PR CI and
+  `scripts/audit_pages_writers.py` inventories 22 Pages writers (10 full-tree,
+  1 overlay, 11 file-only; the USCC/Treasury metadata writers were retired
+  into Daily by `24ecca9686`). An unregistered or widened writer fails PR CI and
   `daily_update`'s pre-deploy gate (step 6c), never collection: step 4c defers
   the ratchet (`IPR_DEFER_PAGES_WRITER_AUDIT`), proven by
   `tests/test_pages_audit_collection_isolation.py`.

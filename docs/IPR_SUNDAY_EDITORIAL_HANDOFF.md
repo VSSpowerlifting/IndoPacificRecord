@@ -1,5 +1,99 @@
 # Sunday IPR Briefs — full-week draft to Dylan (staged migration)
 
+## Saturday provisional draft and Sunday recheck (Phase A, disabled by default)
+
+When the owner sets the repository variable `IPR_WEEKEND_EDITORIAL_ENABLED=true`,
+this workflow stops running on its own Sunday schedule or manual dispatch and runs
+only after the **Daily PLA Watch Update** workflow completes (`workflow_run`).
+`scripts/weekend_collection_trigger.py` reads the upstream run and its job steps and
+continues only for the original scheduled `main` run (attempt 1) whose pipeline,
+validation, deploy and "Record successful run" steps all succeeded, and only when
+`.github/state/last_daily_run_date.txt` still equals that run's own New York
+"Scheduling guard" date (never the time the event is delivered). Weekdays and
+guard-skipped green runs end with `mode=none`. Reruns of either workflow are refused.
+
+The Saturday draft is attempted **at most once per reporting week** (ported from
+#957). Immediately before the model call the draft job runs a step named
+`Model attempt ipr-weekend-saturday-<Saturday>`; the trigger reads this workflow's
+recent `workflow_run` history (every attempt's jobs) and refuses any later run that
+finds that step started, whether the earlier attempt succeeded, failed or was
+cancelled. There is no artifact or repository write, an unreadable history fails
+closed, and there is no automatic retry or override while the variable is on.
+
+- **Saturday:** the existing job drafts once for `IPR-<Saturday>` with
+  `--saturday-provisional`. The packet header reads `SATURDAY PROVISIONAL; THROUGH
+  SATURDAY DAILY COLLECTION; SUNDAY RECHECK REQUIRED`, the Word copy carries the label
+  and the `ipr-saturday-provisional` keyword, and the before-model gate requires
+  Saturday's own marker (Friday's never substitutes). The email to Dylan is labelled
+  provisional. A failed send is never regenerated: resend the exact bytes with
+  `scripts/sunday_send_reviewed_packet.py --saturday-provisional`.
+- **Sunday:** no second draft and no model call. A metadata-only job writes a step
+  summary saying the Sunday collection exists. The owner then runs, locally:
+
+  ```sh
+  .venv/bin/python -m scripts.weekly_briefs_saturday_audit --saturday <YYYY-MM-DD> \
+    --saturday-packet <private TXT> --candidate <imported sidecar JSON> \
+    --revised-docx <Dylan's DOCX> --reviewed-by <name> --review-reference <note> \
+    --receipt-out <new private path> --sidecar-out <new private path>
+  ```
+
+  Any editorial packet (Saturday provisional, Friday provisional or complete week)
+  with a discovery receipt can be reconciled; the kind is read from the packet's
+  as-of line, not from the DOCX. The recheck needs a production collection recorded
+  after the week ended (Sunday or later) and compares the packet with that corpus:
+  late Saturday arrivals, backdated items, removals, metadata or eligibility changes,
+  changed or ineligible pinned originals, newly eligible originals, appendix changes
+  and changed rights/source policy files. It also checks the revised DOCX for
+  comments or tracked changes and requires a named source-to-claim review. Any
+  finding is **HELD** (exit 3) unless the named reviewer adjudicates that exact diff
+  with `--acknowledge-diff <diff_sha256>`. Receipts must be written outside the
+  repository.
+- **Optional research analyst:** when the week also went to an analyst through
+  `scripts/brief_analyst_review.py` ([IPR_RESEARCH_ANALYST_HANDOFF.md](IPR_RESEARCH_ANALYST_HANDOFF.md)),
+  add `--analyst-manifest <assignment manifest> --analyst-feedback <reconciled report>`.
+  The recheck refuses a report that is altered, belongs to another assignment or names
+  another week or another Brief of the week. It binds the manifest and feedback hashes
+  and the report state into the
+  receipt and holds while any finding is unresolved. Weeks without an analyst omit both
+  flags. Analyst credit stays an owner decision; nothing here assigns a byline.
+- **Readiness and approval:** a PASS writes the candidate sidecar with a
+  `saturday_sunday_cycle` receipt binding the manuscript digest, the revised DOCX
+  SHA-256, the packet and the week's inventory/policy fingerprint
+  (`core/brief_editorial_cycle.py`). `author_brief.py ready` recomputes the
+  inventory fingerprint, so a later corpus or policy change needs a fresh
+  reconciliation.
+- **Who needs a receipt (participation, not date):** a Brief derived from a weekend
+  editorial cycle carries `editorial_cycle` provenance naming its packet identity.
+  The recheck always stamps it, and `validate_readiness` and `validate_brief`
+  refuse a marked Brief without its own valid receipt. Provenance is inside the
+  manuscript digest, so a companion Brief, a human rewrite or an analyst-reconciled
+  version needs its own receipt, and removing the marker breaks the receipt it had.
+  A Brief with neither marker nor receipt was authored independently and keeps the
+  existing publication safeguards; shared source URLs are not provenance. All
+  accepted Briefs are unmarked and unchanged.
+- **Import carries provenance, fail closed:** the Saturday DOCX also holds its
+  identity in a custom document property and a document variable, which survive
+  deleting the visible labels or changing the author in Word. The importer copies
+  either one into `editorial_cycle`; carriers that disagree, or that name a
+  different Brief than a declared packet, are refused. A DOCX without them must be
+  declared: `--saturday-packet <packet>` for a cycle-derived manuscript (including
+  an ordinary complete-week packet), or `--independent`, which is refused while any
+  carrier or visible Saturday label remains. The import JSON is a snapshot, not
+  the sidecar: the owner copies `editorial_cycle` by hand into the canonical
+  `briefs/<slug>.json` with the other imported fields. The recheck stamps it again
+  and refuses a candidate or revised DOCX that names another Brief. Policy:
+  `DECISION_LOG.md`, 2026-11-02 "Sunday reconciliation by weekend-cycle
+  participation".
+- **Several Briefs in one week (#946):** each Brief is reconciled on its own. The
+  receipt takes its identity from the packet's `Packet:` line, `IPR-<Saturday>` for
+  the primary or `IPR-<Saturday>-<slug>` (slug `[a-z][a-z0-9-]{0,79}`) for an
+  additional Brief, and each needs its own receipt.
+
+The receipt never claims a complete week, grants credit or authorizes publication.
+Research pins are listed for human checking, not recomputed. Disabling the variable
+restores the legacy Sunday path unchanged. Activation, recipients and spend remain
+separate owner decisions.
+
 ## Narrative reform — article-first manuscript (25 October 2026)
 
 The writer now asks for one cohesive article (lead on the concrete development, optional

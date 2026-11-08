@@ -228,6 +228,15 @@ def record_models(operation):
     return recorded
 
 
+DAPA_FAMILY = "kr_policy_dapa_releases"
+
+
+def _fact_only(profile) -> bool:
+    """Private-original, two-fact English-only contracts (Kemhan, DAPA)."""
+    return (profile.desk_id == "indonesia"
+            or getattr(profile, "source_family", None) == DAPA_FAMILY)
+
+
 class Analyzer:
     """
     Runs all four LLM analysis tasks.
@@ -914,6 +923,9 @@ class Analyzer:
         None, or a profile without its own analysis (China), is exactly
         `analyze()`; a desk profile with an analysis builder is `analyze_desk()`.
         """
+        if profile is not None and getattr(profile, "source_family", None) == DAPA_FAMILY:
+            # DAPA is a fact-only shared-source profile, not the MND corpus path.
+            return self.analyze_desk(title, body, profile)
         if profile is not None and profile.desk_id == "korea":
             from analysis.korea_daily import analyze as analyze_korea
             return analyze_korea(self, title, body, profile)
@@ -1008,7 +1020,7 @@ class Analyzer:
             **partial,
             **({"document_facts":fields.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {}),
             **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
-               if profile.desk_id in ("philippines", "indonesia") else {}),
+               if profile.desk_id in ("philippines", "indonesia") or _fact_only(profile) else {}),
             "title_english":          title_en,
             "text_english":           text_en,
             "summary_english":        fields["summary"],
@@ -1031,15 +1043,19 @@ class Analyzer:
         # Private-source evidence references are resolved exclusively against the
         # unchanged original. A model supplies IDs, never authoritative quoted
         # text; the existing private quality gate still checks every claim.
-        if profile.desk_id in ("philippines", "indonesia") and isinstance(data, dict):
+        fact_only = _fact_only(profile)
+        if (profile.desk_id in ("philippines", "indonesia") or fact_only) and isinstance(data, dict):
             from analysis.philippines_prompts import evidence_passages
             if profile.desk_id == "indonesia":
                 from analysis.indonesia_prompts import evidence_passages
+            elif fact_only:
+                from analysis.korea_dapa_prompts import evidence_passages
+            if fact_only:
                 if (set(data) != {"flag", "flag_reason", "flag_evidence_id", "categories", "facts"}
                         or data.get("flag") is not False or data.get("flag_reason") is not None
                         or data.get("flag_evidence_id") is not None):
                     self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
-                    raise AnalysisError("Invalid Indonesian fact-only contract")
+                    raise AnalysisError("Invalid fact-only contract")
             source_passages = dict(evidence_passages(body))
             facts = data.get("facts")
             if isinstance(facts, list):
@@ -1048,16 +1064,16 @@ class Analyzer:
                     if isinstance(fact, dict) and "evidence_id" in fact:
                         ref = fact["evidence_id"]
                         if (set(fact) != ({"sentence", "evidence_id", "evidence_translation"}
-                                          if profile.desk_id == "indonesia" else {"sentence", "evidence_id"})
+                                          if fact_only else {"sentence", "evidence_id"})
                                 or type(ref) is not str or ref not in source_passages):
                             self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
                             raise AnalysisError("Invalid private-source evidence reference")
                         resolved.append({"sentence": fact["sentence"],
                                          "evidence": source_passages[ref],
                                          **({"evidence_translation": fact["evidence_translation"]}
-                                            if profile.desk_id == "indonesia" else {})})
+                                            if fact_only else {})})
                     else:
-                        if profile.desk_id == "indonesia":
+                        if fact_only:
                             self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
                             raise AnalysisError("Invalid private-source evidence reference")
                         resolved.append(fact)  # legacy Philippines test fixtures
@@ -1070,13 +1086,13 @@ class Analyzer:
                         raise AnalysisError("Invalid private-source flag evidence reference")
                     data["flag_evidence"] = source_passages[ref]
                 del data["flag_evidence_id"]
-        if profile.desk_id == "indonesia":
+        if fact_only:
             facts = data.get("facts") if isinstance(data, dict) else None
             if (not isinstance(facts, list) or len(facts) != 2
                     or any(not isinstance(f, dict) or not isinstance(f.get("sentence"), str)
                            or not f["sentence"].strip() for f in facts)):
                 self.usage.mark_failed(TASK_SUMMARY, self.task_model(TASK_SUMMARY))
-                raise AnalysisError("Invalid Indonesian facts")
+                raise AnalysisError("Invalid fact-only facts")
             # QA validates every retained fact and the combined word budget
             # before persistence. Never truncate or silently drop a claim.
             summary = " ".join(f["sentence"] for f in facts)

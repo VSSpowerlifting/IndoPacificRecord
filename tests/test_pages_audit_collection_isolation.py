@@ -29,7 +29,7 @@ from scripts import audit_pages_writers as audit  # noqa: E402
 
 WORKFLOWS = ROOT / ".github" / "workflows"
 GATE_RUN = "python scripts/audit_pages_writers.py"
-SUITE_RUN = "python -m unittest discover -s tests -t ."
+SUITE_RUN = "python -m scripts.parallel_unittest -s tests -t ."
 
 UNREGISTERED_WRITER = """\
 name: Unregistered publisher
@@ -60,8 +60,8 @@ class CollectionSurvivesFailingAudit(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = Path(tempfile.mkdtemp())
-        for rel in ("scripts/audit_pages_writers.py", "tests/__init__.py",
-                    "tests/test_pages_writer_audit.py"):
+        for rel in ("scripts/audit_pages_writers.py", "scripts/parallel_unittest.py",
+                    "tests/__init__.py", "tests/test_pages_writer_audit.py"):
             (cls.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / rel, cls.tmp / rel)
         wf = cls.tmp / ".github" / "workflows"
@@ -86,8 +86,8 @@ class CollectionSurvivesFailingAudit(unittest.TestCase):
 
     def test_collection_suite_step_passes(self):
         result = self.run_in_tmp(SUITE_RUN + " -v", defer=True)
-        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
-        self.assertIn("deferred to daily_update's publication gate", result.stderr)
+        self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-2000:])
+        self.assertIn("deferred to daily_update's publication gate", result.stdout)
 
     def test_publication_gate_blocks(self):
         result = self.run_in_tmp(GATE_RUN, defer=True)

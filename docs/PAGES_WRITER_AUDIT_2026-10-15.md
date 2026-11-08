@@ -21,6 +21,12 @@ Deliverables:
 
 ## 1. Writer inventory (24 jobs across 240 workflow files; auditor output)
 
+> **Update after merging main (2026-11-08):** `24ecca9686` retired the
+> `production-metadata-page-only` jobs in the USCC and Treasury
+> `*_verified_official_links_release` workflows; Daily now admits that
+> metadata. The registry drops both, leaving 22 writers (11 file-only). The
+> table below is the 2026-10-15 snapshot.
+
 | Writer (`file::job`) | Class | Concurrency held | Checkout | Freshness before publish |
 |---|---|---|---|---|
 | `daily_update::update` | full-tree | daily-update | main @ job start | **none** on the no-commit path; rebase+push then a window before deploy |

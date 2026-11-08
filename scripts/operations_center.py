@@ -125,7 +125,11 @@ def assemble(registry, production_report: dict, shadow_root: Path,
             raise SnapshotError("missing or duplicate source health identity")
         observations[slug] = source
 
-    expected = {source.slug for desk in registry if desk.is_collecting
+    # Every source with a production registration is observed, including the
+    # manual sources of desks that are not collecting: their governed
+    # admissions write the same source_run_results rows. Observation is not
+    # production status; `is_production` below still means collecting.
+    expected = {source.slug for desk in registry if desk.manifest_path
                 for source in desk.sources}
     if set(observations) != expected:
         raise SnapshotError("production source health/registry mismatch: "
@@ -137,8 +141,9 @@ def assemble(registry, production_report: dict, shadow_root: Path,
     alerts = []
     for desk in registry:
         live = desk.is_collecting
+        observed = bool(desk.manifest_path) and bool(desk.sources)
         sources = []
-        if live:
+        if observed:
             for src in desk.sources:
                 obs = observations[src.slug]
                 if obs.get("desk_id") != desk.slug:
@@ -176,9 +181,9 @@ def assemble(registry, production_report: dict, shadow_root: Path,
             "registry_status": desk.status, "is_production": live,
             "declared_sources": desk.configured_source_count,
             "enabled_sources": desk.enabled_source_count,
-            "source_health_observed": live,
+            "source_health_observed": observed,
             "production_source_articles": (
-                sum(s["archive_articles"] for s in sources) if live else None
+                sum(s["archive_articles"] for s in sources) if observed else None
             ),
             "production_sources": sources,
             "shadow_health": "not_observed" if not live else "not_applicable",

@@ -29,7 +29,7 @@ concurrency:
 jobs:
   real-pinned-kemhan-shadow:
     if: github.event_name == 'pull_request' || inputs.approve_existing_shadow_state_only == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4

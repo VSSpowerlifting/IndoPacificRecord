@@ -32,9 +32,11 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
-from typing import Optional
+from dataclasses import dataclass
+from typing import Callable, NamedTuple, Optional
 
 from config import (
     ANTHROPIC_API_KEY, BACKLOG_RESERVE_FRACTION, CACHE_DIR, DAILY_ANALYSIS_CAP,
@@ -237,13 +239,56 @@ def _store_atomic_batches(kw_passed: list, kw_rejected: list, run_id,
 # ── Governed manual sources ──────────────────────────────────────────────────
 #
 # A manual source is fetched by nobody in this process. Its records enter the
-# corpus through one governed, source-pinned admission function; a manual
-# source without one contributes nothing and says so.
+# corpus through one governed, source-pinned admission; a manual source without
+# one contributes nothing and says so. Every manual source gets the same
+# dispatch, the same activation check, the same fixed-code error reporting and
+# the same `source_run_results` row as a scraped source, so the liveness gate,
+# the run aggregate and the desk pages read one lifecycle.
 
-def _governed_admissions() -> dict:
-    from core import korea_corpus_bridge
-    return {korea_corpus_bridge.SOURCE_SLUG: _admit_korea_mnd}
+class GovernedOutcome(NamedTuple):
+    """What one governed admission did, in run-result terms."""
+    status: str
+    new_documents: int = 0
+    duplicates: int = 0
+    error_detail: Optional[str] = None
 
+
+@dataclass(frozen=True)
+class GovernedAdmission:
+    """One manual source's production path.
+
+    `label` prefixes every error_detail so a row names its path, never source
+    text. `inactive_reason()` returns None once the owner activation (and any
+    source-use policy) permits the admission to run, else a fixed reason.
+    `admit(run_id)` performs the admission and maps its receipt to an outcome;
+    it may raise one of `holds` (whose str() is a fixed machine code) or any
+    other exception (reported by type name only).
+    """
+    label: str
+    inactive_reason: Callable[[], Optional[str]]
+    admit: Callable[[Optional[int]], GovernedOutcome]
+    holds: tuple = ()
+
+
+_AWAITING_ACTIVATION = "governed admission awaiting owner activation"
+
+
+def _receipt_outcome(admitted: int, unchanged: int, *, holds=()) -> GovernedOutcome:
+    """Map an admission receipt to a status, the same way for every path."""
+    if admitted:
+        status = collection_status.OK
+    elif holds:
+        return GovernedOutcome(collection_status.OK_ALL_FILTERED,
+                               duplicates=unchanged,
+                               error_detail="held: " + ", ".join(sorted(set(holds))))
+    elif unchanged:
+        status = collection_status.OK_ALL_DUPLICATES
+    else:
+        status = collection_status.OK_NO_PUBLICATIONS
+    return GovernedOutcome(status, new_documents=admitted, duplicates=unchanged)
+
+
+# Korea: the released MND source index, bridged under its own sealed decision.
 
 def _admit_korea_mnd(run_id: Optional[int]) -> dict:
     """Run the Korean MND bridge in its own explicit transaction."""
@@ -255,73 +300,438 @@ def _admit_korea_mnd(run_id: Optional[int]) -> dict:
         return korea_corpus_bridge.apply(conn, run_id=run_id)
 
 
+def _korea_admission(bridge=None) -> GovernedAdmission:
+    from core.korea_corpus_bridge import SOURCE_SLUG, BridgeHold
+    from core.korea_published_originals import PublishedKoreaHold
+    bridge = bridge or _admit_korea_mnd
+
+    def inactive_reason():
+        import config
+        return None if config.KOREA_DAILY_AUTOMATION_ENABLED else _AWAITING_ACTIVATION
+
+    def admit(run_id):
+        receipt = bridge(run_id)
+        admitted, unchanged = len(receipt["admitted"]), len(receipt["unchanged"])
+        logger.info(
+            "%s: governed admission — %d admitted, %d unchanged, %d held, "
+            "%d withdrawn, %d excluded, %d deferred", SOURCE_SLUG, admitted,
+            unchanged, len(receipt["held"]), len(receipt["withdrawn"]),
+            len(receipt["excluded"]), len(receipt["deferred"]))
+        for item in receipt["held"] + receipt["withdrawn"]:
+            logger.warning("%s: %s %s", SOURCE_SLUG, item["source_identity"],
+                           item["reason"])
+        # Held and withdrawn Korea items are logged individually above and are
+        # not a filter on this run's new material, so the status keeps its
+        # established meaning: OK / all duplicates / nothing new.
+        return _receipt_outcome(admitted, unchanged)
+
+    return GovernedAdmission("korea_corpus_bridge", inactive_reason, admit,
+                             holds=(BridgeHold, PublishedKoreaHold))
+
+
+# Shared Daily: independently signed machine-output envelopes from private
+# custody (core/daily_sources.py). Public Daily never fetches these sources.
+
+def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
+    from processing.daily_intake import IntakeHold
+
+    def inactive_reason():
+        if os.environ.get("IPR_PRIVATE_DAILY_ENABLED") != "true":
+            return _AWAITING_ACTIVATION
+        from processing.daily_intake import load_policy
+        flags = load_policy()["sources"][family]
+        if not all(flags[k] for k in ("private_model_processing",
+                                      "public_machine_explanation",
+                                      "unattended_release")):
+            return "source-use policy withholds unattended release"
+        return None
+
+    def admit(run_id):
+        intake_dir = os.environ.get("IPR_DAILY_INTAKE_DIR")
+        if not intake_dir:
+            return GovernedOutcome(collection_status.SKIPPED_DISABLED,
+                                   error_detail="no shared Daily intake directory configured")
+        from processing.daily_runner import intake_family
+        receipt = (intake or intake_family)(DB_PATH, intake_dir, family)
+        if receipt is None:
+            # The fetch step was enabled for this family and delivered nothing.
+            # This process cannot tell an outage from a silent private side,
+            # so it reports the fact and lets the run aggregate carry it.
+            return GovernedOutcome(collection_status.FETCH_FAILURE,
+                                   error_detail="no signed envelope delivered this run")
+        admitted = receipt["admitted"]
+        unchanged = max(receipt["records"] - admitted, 0)
+        logger.info("%s: governed admission — %d records, %d admitted, %d held",
+                    family, receipt["records"], admitted, len(receipt["holds"]))
+        return _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
+
+    return GovernedAdmission("daily_intake", inactive_reason, admit,
+                             holds=(IntakeHold,))
+
+
+# Japan: verified official link metadata from the isolated shadow collector's
+# branch, under config/japan_mod_official_link_policy.json. No fetch.
+
+def _japan_admission(*, admit_links=None, resolve_commit=None) -> GovernedAdmission:
+    from core.japan_mod_official_links import SOURCE_REF
+    from core.regional_official_link_release import RegionalLinkHold
+
+    def inactive_reason():
+        if os.environ.get("JAPAN_MOD_OFFICIAL_LINKS_ENABLED") != "true":
+            return _AWAITING_ACTIVATION
+        return None
+
+    def _resolve_commit():
+        import subprocess
+        from pathlib import Path as _Path
+        root = str(_Path(__file__).resolve().parent)
+        proc = subprocess.run(
+            ["git", "-C", root, "rev-parse", "--verify",
+             "refs/remotes/origin/%s^{commit}" % SOURCE_REF],
+            capture_output=True, text=True, timeout=30)
+        return proc.stdout.strip() if proc.returncode == 0 else None
+
+    def admit(run_id):
+        commit = (resolve_commit or _resolve_commit)()
+        if not commit:
+            return GovernedOutcome(collection_status.LISTING_FAILURE,
+                                   error_detail="japan_mod_source_ref_unavailable")
+        from scripts.admit_japan_mod_official_links import run as _run_links
+        from pathlib import Path as _Path
+        root = str(_Path(__file__).resolve().parent)
+        receipt = (admit_links or _run_links)(root, commit, DB_PATH)
+        new, unchanged = receipt["new_official_links"], receipt["unchanged_official_links"]
+        logger.info("jp_mod_news_ja: governed admission — %d new official links, "
+                    "%d unchanged", new, unchanged)
+        return _receipt_outcome(new, unchanged)
+
+    return GovernedAdmission("japan_mod_official_links", inactive_reason, admit,
+                             holds=(RegionalLinkHold,))
+
+
+# United States: official press-release listing metadata preserved by the
+# isolated USCC and Treasury shadow collectors on their own branches, admitted
+# under the owner's standing metadata-only approval of 2026-10-15
+# (docs/engineering/USCC_METADATA_ONLY_PRODUCTION_RELEASE_2026-10-15.md,
+# docs/engineering/US_TREASURY_LIVE_METADATA_ADMISSION_2026-10-15.md). The
+# Daily workflow clones each preserved history into a run-local checkout and
+# names it through the environment; nothing here fetches a publisher.
+
+class _USMetadataFamily(NamedTuple):
+    label: str
+    checkout_env: str
+    unavailable_code: str
+    importer: str          # scripts module whose run(checkout, db) admits
+    hold: tuple            # (module, class name) of the fixed-code hold
+
+
+_US_METADATA_FAMILIES = {
+    "uscc_press_official_metadata": _USMetadataFamily(
+        "uscc_official_metadata", "IPR_USCC_SOURCE_CHECKOUT",
+        "uscc_source_checkout_unavailable",
+        "scripts.admit_uscc_official_metadata",
+        ("core.uscc_official_metadata", "USCCAdmissionHold")),
+    "us_treasury_press_official_metadata": _USMetadataFamily(
+        "treasury_official_metadata", "IPR_US_TREASURY_SOURCE_CHECKOUT",
+        "treasury_source_checkout_unavailable",
+        "scripts.admit_us_treasury_official_metadata",
+        ("core.us_treasury_official_metadata", "TreasuryAdmissionHold")),
+}
+
+_US_HISTORY_NOT_DELIVERED = "preserved source history not delivered to this run"
+
+
+def _us_metadata_admission(slug: str, *, admit_metadata=None) -> GovernedAdmission:
+    import importlib
+    family = _US_METADATA_FAMILIES[slug]
+    hold = getattr(importlib.import_module(family.hold[0]), family.hold[1])
+
+    def inactive_reason():
+        # The approval is standing, so there is no activation variable to
+        # await: a run that was not handed the preserved history simply has
+        # nothing to admit, and says so without failing.
+        if not os.environ.get(family.checkout_env):
+            return _US_HISTORY_NOT_DELIVERED
+        return None
+
+    def admit(run_id):
+        from pathlib import Path as _Path
+        checkout = _Path(os.environ[family.checkout_env])
+        if not (checkout / ".git").exists():
+            return GovernedOutcome(collection_status.LISTING_FAILURE,
+                                   error_detail=family.unavailable_code)
+        run_import = admit_metadata or importlib.import_module(family.importer).run
+        # The importer opens its own connection, pins the checkout's HEAD,
+        # validates every preserved observation and admits in one immediate
+        # transaction, exactly as the retired release job invoked it.
+        receipt = run_import(checkout, DB_PATH)
+        new = receipt["new_official_metadata_records"]
+        logger.info("%s: governed admission — %d new official metadata records "
+                    "from %d preserved observations at %s", slug, new,
+                    receipt["observations"], receipt["source_commit_sha"][:12])
+        if new:
+            return GovernedOutcome(collection_status.OK, new_documents=new)
+        # The whole preserved history was re-examined and is already admitted.
+        # The receipt counts observation files, not records, so no duplicate
+        # figure is claimed for the row.
+        return GovernedOutcome(collection_status.OK_ALL_DUPLICATES)
+
+    return GovernedAdmission(family.label, inactive_reason, admit, holds=(hold,))
+
+
+# Vietnam: the private runner's signed article handoff and the Government
+# Office bibliographic collector. Each writes pla_watch.db in its own Daily
+# step before this process starts; the handoff replaces the database file
+# atomically and so cannot run under this process's open connections. These
+# admissions therefore report what those steps recorded for this run rather
+# than repeat them. Activation stays with each step's own owner variable.
+
+_VN_HANDOFF_RECEIPT_ENV = "IPR_VIETNAM_HANDOFF_RECEIPT"
+# The private runner signs a fresh envelope on every scheduled run, including
+# runs that publish nothing. One older than this was re-served after a missed
+# private run: its records are duplicates, not evidence of a quiet source.
+_VN_HANDOFF_MAX_AGE = timedelta(hours=36)
+_VN_CODE = re.compile(r"[a-z0-9_]{1,80}")
+_VN_RUN = re.compile(r"[A-Za-z0-9_.-]{1,80}")
+_VN_HANDOFF_LANE = "vietnam_daily_handoff"
+_VN_METADATA_LANE = "vpcp_bibliographic_metadata"
+
+
+def _vn_code(value) -> str:
+    """A receipt's reason only when it is a fixed machine code."""
+    return value if isinstance(value, str) and _VN_CODE.fullmatch(value) else "unclassified_hold"
+
+
+def _vn_handoff_inactive() -> Optional[str]:
+    # Parity with the "Admit Vietnam Daily handoff" step's own condition.
+    if os.environ.get("VIETNAM_DAILY_HANDOFF_ENABLED") != "true":
+        return _AWAITING_ACTIVATION
+    if os.environ.get("VPCP_METADATA_ONLY") == "true":
+        return "metadata-only run: Vietnam handoff not admitted"
+    return None
+
+
+def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
+    """This family's share of the handoff step's printed receipt."""
+    from pathlib import Path as _Path
+    from core.vietnam_corpus_bridge import DUPLICATE
+    from core.vietnam_daily_qa import PUBLISHED
+    path = os.environ.get(_VN_HANDOFF_RECEIPT_ENV)
+    if not path:
+        # Activation was on: a missing required receipt path is a reporting
+        # failure, not evidence that this source was intentionally disabled.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no Vietnam handoff receipt path configured")
+    try:
+        receipt = json.loads(_Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no handoff receipt recorded this run")
+    except (OSError, ValueError):
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: receipt_unreadable" % _VN_HANDOFF_LANE)
+    if not isinstance(receipt, dict) or receipt.get("status") != "OK":
+        reason = receipt.get("reason") if isinstance(receipt, dict) else None
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: %s" % (_VN_HANDOFF_LANE, _vn_code(reason)))
+    run = receipt.get("run_id")
+    if not (isinstance(run, str) and _VN_RUN.fullmatch(run)):
+        run = "unidentified"
+    try:
+        generated = datetime.fromisoformat(receipt["generated_utc"].replace("Z", "+00:00"))
+        if generated.tzinfo is None:
+            generated = generated.replace(tzinfo=timezone.utc)
+        tally = receipt["by_family"].get(family)
+    except (KeyError, TypeError, AttributeError, ValueError):
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: receipt_unreadable" % _VN_HANDOFF_LANE)
+    if now - generated > _VN_HANDOFF_MAX_AGE:
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="signed handoff not refreshed since %s (run %s)"
+                               % (generated.strftime("%Y-%m-%dT%H:%MZ"), run))
+    if not isinstance(tally, dict):
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="signed handoff (run %s) carried no report "
+                               "for this family" % run)
+    admitted, unchanged = tally.get(PUBLISHED, 0), tally.get(DUPLICATE, 0)
+    holds = [_vn_code(k.replace(":", "_").lower()) for k in tally
+             if k not in (PUBLISHED, DUPLICATE)]
+    logger.info("%s: handoff run %s — %d admitted, %d unchanged, %d held",
+                family, run, admitted, unchanged, len(holds))
+    return _receipt_outcome(admitted, unchanged, holds=holds)
+
+
+def _vpcp_metadata_inactive() -> Optional[str]:
+    # Parity with the bibliographic collection step's own condition.
+    if os.environ.get("VIETNAM_VPCP_METADATA_ENABLED") != "true":
+        return _AWAITING_ACTIVATION
+    return None
+
+
+def _vpcp_metadata_outcome(read_report=None) -> GovernedOutcome:
+    """The collector's own run record for this workflow run and attempt."""
+    run = os.environ.get("GITHUB_RUN_ID")
+    if not run:
+        # This collector is enabled but its run cannot be authenticated to
+        # a run/attempt: do not misreport missing evidence as an inactive lane.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no workflow run to match a collection record")
+    source_run = "%s-%s" % (run, os.environ.get("GITHUB_RUN_ATTEMPT", "1"))
+    report = (read_report or _read_vpcp_collection_report)(source_run)
+    if report is None:
+        # The step was enabled and recorded nothing: it failed before its
+        # transaction committed. Missed, not quiet.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no bibliographic collection recorded this run")
+    if report.get("status") == "held":
+        return GovernedOutcome(collection_status.LISTING_FAILURE,
+                               error_detail="%s: %s" % (_VN_METADATA_LANE,
+                                                        _vn_code(report.get("hold_reason"))))
+    admitted = report.get("new", 0) + report.get("revised", 0)
+    held = report.get("held", 0)
+    logger.info("vn_vpcp_official_documents_vi: bibliographic run %s — %d new, "
+                "%d revised, %d unchanged, %d held", source_run, report.get("new", 0),
+                report.get("revised", 0), report.get("unchanged", 0), held)
+    return _receipt_outcome(admitted, report.get("unchanged", 0),
+                            holds=("%d_records_held" % held,) if held else ())
+
+
+def _read_vpcp_collection_report(source_run: str) -> Optional[dict]:
+    from scripts.collect_vietnam_government_documents import FAMILY
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT report_json FROM official_document_collection_runs "
+            "WHERE source_family=? AND source_run=?", (FAMILY, source_run)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def _combine_lanes(lanes: list) -> GovernedOutcome:
+    """One row for a source fed by more than one lane.
+
+    A failed lane always shows, so a missed lane is never hidden by a quiet or
+    productive one; otherwise new material, then holds, then duplicates, and
+    the source is quiet only when every lane is quiet. Counts are summed.
+    """
+    new = sum(o.new_documents for _, o in lanes)
+    dups = sum(o.duplicates for _, o in lanes)
+    details = ["%s: %s" % (name, o.error_detail) for name, o in lanes if o.error_detail]
+    detail = "; ".join(details) or None
+    statuses = [o.status for _, o in lanes]
+    for status in statuses:
+        if collection_status.is_failure(status):
+            return GovernedOutcome(status, new, dups, detail)
+    for status in (collection_status.OK, collection_status.OK_ALL_FILTERED,
+                   collection_status.OK_ALL_DUPLICATES):
+        if status in statuses:
+            return GovernedOutcome(status, new, dups, detail)
+    return GovernedOutcome(collection_status.OK_NO_PUBLICATIONS, new, dups, detail)
+
+
+def _vietnam_handoff_admission(family: str, *, clock=None) -> GovernedAdmission:
+    def admit(run_id):
+        return _vn_handoff_outcome(family, (clock or _utcnow)())
+
+    return GovernedAdmission(_VN_HANDOFF_LANE, _vn_handoff_inactive, admit)
+
+
+def _vpcp_admission(*, clock=None, read_report=None) -> GovernedAdmission:
+    from scripts.collect_vietnam_government_documents import FAMILY
+
+    def inactive_reason():
+        handoff, metadata = _vn_handoff_inactive(), _vpcp_metadata_inactive()
+        return handoff if handoff and metadata else None
+
+    def admit(run_id):
+        lanes = []
+        if not _vpcp_metadata_inactive():
+            lanes.append((_VN_METADATA_LANE, _vpcp_metadata_outcome(read_report)))
+        if not _vn_handoff_inactive():
+            lanes.append((_VN_HANDOFF_LANE,
+                          _vn_handoff_outcome(FAMILY, (clock or _utcnow)())))
+        if len(lanes) == 1:
+            return lanes[0][1]
+        return _combine_lanes(lanes)
+
+    return GovernedAdmission("vietnam_vpcp", inactive_reason, admit)
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _governed_admissions() -> dict:
+    """slug → GovernedAdmission for every manual source with a production path."""
+    from core import korea_corpus_bridge
+    from core import japan_mod_official_links
+    from core.daily_sources import SOURCES
+    out = {korea_corpus_bridge.SOURCE_SLUG: _korea_admission()}
+    for family, source in SOURCES.items():
+        if source.desk_registered:
+            out[family] = _daily_admission(family)
+    out[japan_mod_official_links.FAMILY] = _japan_admission()
+    for slug in _US_METADATA_FAMILIES:
+        out[slug] = _us_metadata_admission(slug)
+    # Only the registered Vietnam families; the MOIT families remain
+    # unregistered and so receive no run-result row at all.
+    out["vn_mps_foreign_affairs_vi"] = _vietnam_handoff_admission("vn_mps_foreign_affairs_vi")
+    out["vn_vpcp_official_documents_vi"] = _vpcp_admission()
+    return out
+
+
 def run_governed_manual_sources(manual_slugs: list, run_id: Optional[int],
                                 registry, errors: list, *,
                                 dry_run: bool = False) -> list:
     """One honest SourceRunResult per manual source; never raises."""
-    import config
     from core.collection.contract import SourceRunResult
-    from core.korea_corpus_bridge import BridgeHold
-    from core.korea_published_originals import PublishedKoreaHold
 
     governed = _governed_admissions()
     results = []
     for slug in manual_slugs:
         desk_id = registry.get_source(slug).desk_id
-        admit = governed.get(slug)
+        entry = governed.get(slug)
 
         def _result(status, detail=None, new=0, dups=0):
             return SourceRunResult(source_slug=slug, status=status,
                                    desk_id=desk_id, new_documents=new,
                                    duplicates=dups, error_detail=detail)
 
-        if admit is None:
+        if entry is None:
             results.append(_result(collection_status.SKIPPED_DISABLED,
                                    "manual source with no governed admission"))
             continue
-        if not config.KOREA_DAILY_AUTOMATION_ENABLED:
-            logger.info("%s: governed admission awaiting owner activation", slug)
-            results.append(_result(collection_status.SKIPPED_DISABLED,
-                                   "governed admission awaiting owner activation"))
-            continue
-        if dry_run:
-            results.append(_result(collection_status.SKIPPED_DISABLED,
-                                   "dry run: governed admission not run"))
-            continue
         try:
-            receipt = admit(run_id)
-        except (BridgeHold, PublishedKoreaHold) as exc:
+            reason = entry.inactive_reason()
+            if reason:
+                logger.info("%s: %s", slug, reason)
+                results.append(_result(collection_status.SKIPPED_DISABLED, reason))
+                continue
+            if dry_run:
+                results.append(_result(collection_status.SKIPPED_DISABLED,
+                                       "dry run: governed admission not run"))
+                continue
+            outcome = entry.admit(run_id)
+        except entry.holds as exc:
             # Fixed machine code only; never source text.
             msg = "%s: governed admission held — %s" % (slug, exc)
             logger.error(msg)
             errors.append(msg)
             results.append(_result(collection_status.ADAPTER_ERROR,
-                                   "korea_corpus_bridge: %s" % exc))
+                                   "%s: %s" % (entry.label, exc)))
             continue
         except Exception as exc:
             msg = "%s: governed admission failed — %s" % (slug, type(exc).__name__)
             logger.error(msg)
             errors.append(msg)
             results.append(_result(collection_status.ADAPTER_ERROR,
-                                   "korea_corpus_bridge: %s" % type(exc).__name__))
+                                   "%s: %s" % (entry.label, type(exc).__name__)))
             continue
 
-        admitted, unchanged = len(receipt["admitted"]), len(receipt["unchanged"])
-        logger.info(
-            "%s: governed admission — %d admitted, %d unchanged, %d held, "
-            "%d withdrawn, %d excluded, %d deferred", slug, admitted, unchanged,
-            len(receipt["held"]), len(receipt["withdrawn"]),
-            len(receipt["excluded"]), len(receipt["deferred"]))
-        for item in receipt["held"] + receipt["withdrawn"]:
-            logger.warning("%s: %s %s", slug, item["source_identity"],
-                           item["reason"])
-        if admitted:
-            status = collection_status.OK
-        elif unchanged:
-            status = collection_status.OK_ALL_DUPLICATES
-        else:
-            status = collection_status.OK_NO_PUBLICATIONS
-        results.append(_result(status, new=admitted, dups=unchanged))
+        if collection_status.is_failure(outcome.status):
+            msg = "%s: governed admission failed — %s" % (slug, outcome.error_detail)
+            logger.error(msg)
+            errors.append(msg)
+        results.append(_result(outcome.status, outcome.error_detail,
+                               new=outcome.new_documents, dups=outcome.duplicates))
     return results
 
 
@@ -401,6 +811,19 @@ def run(
                 source_slug=slug, desk_id="singapore",
                 status=collection_status.SKIPPED_DISABLED,
                 error_detail="MINDEF source-use hold; no collection or model processing"))
+            continue
+
+        from core import china_source_use_hold as china_hold
+        if china_hold.is_held_source(slug):
+            # Interim source-use hold (disabled unless IPR_CHINA_SOURCE_USE_HOLD
+            # is "true"). Before any adapter call, so no publisher request is
+            # made. Reported as a hold, not a failure or an empty collection.
+            from core.collection.contract import SourceRunResult
+            logger.warning("%s: %s", slug, china_hold.hold_detail(slug))
+            source_results.append(SourceRunResult(
+                source_slug=slug, desk_id=registry.get_source(slug).desk_id,
+                status=collection_status.SKIPPED_DISABLED,
+                error_detail=china_hold.hold_detail(slug)))
             continue
 
         if registry.get_source(slug).access_method == "manual":
@@ -657,7 +1080,16 @@ def run(
 
     mindef_article_ids = db.get_article_ids_for_source("sg_mindef_releases")
 
+    # Interim China source-use hold: empty (and no query) unless enabled.
+    from core import china_source_use_hold as china_hold
+    china_held_ids = china_hold.held_article_ids(db.get_article_ids_for_source)
+    china_held_count = 0
+
     def _in_daily_queue(desk_id: Optional[str], *, article_id=None, source_slug=None) -> bool:
+        nonlocal china_held_count
+        if china_hold.is_held_source(source_slug) or article_id in china_held_ids:
+            china_held_count += 1
+            return False
         if source_slug == "sg_mindef_releases" or article_id in mindef_article_ids:
             held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
             return False
@@ -717,6 +1149,11 @@ def run(
     # existing reversible budget can eventually pause recurring failures.
     # The newly inserted lane has no prior retry history.
     attempts_before = prior_processing_attempts(pending_rows, unscored_rows)
+    if china_held_count:
+        logger.info(
+            "Held out of the daily analysis queue: %d China record(s) under "
+            "the interim source-use hold; no title or body is sent to a model.",
+            china_held_count)
     for desk_id, held in sorted(held_desks.items(), key=lambda kv: str(kv[0])):
         if desk_id == "korea":
             # Governed admissions are processed by the Korea lane below, on
@@ -1129,11 +1566,6 @@ def run(
     # Second, regenerating from a DB whose analysis is knowingly incomplete
     # rewrites the published site from a partial record.
     if not dry_run and not no_analysis:
-        intake_dir = os.environ.get("IPR_DAILY_INTAKE_DIR")
-        if intake_dir:
-            from processing.daily_runner import public_intake
-            logger.info("Shared private-source Daily intake: %s",
-                        public_intake(DB_PATH, intake_dir))
         try:
             import importlib.util
             from pathlib import Path as _Path

@@ -6,7 +6,7 @@ import json
 import unittest
 
 from core.regional_typed_source_use_decision import (
-    TypedSourceDecisionError, make_unsigned_decision,
+    RIGHTS, SYNOPSIS_RIGHTS_BASES, TypedSourceDecisionError, make_unsigned_decision,
     sign_owner_decision, verify_owner_decision,
 )
 from tests.test_regional_typed_research_holds import fixture
@@ -47,6 +47,59 @@ def approve(item):
 
 
 class TypedSourceUseDecisionTests(unittest.TestCase):
+    def test_documented_alternative_bases_preserve_offline_authority_boundary(self):
+        # Synthetic assessments only: acceptance authenticates a human decision,
+        # never the legal merits or source/model/public-use eligibility.
+        for basis in SYNOPSIS_RIGHTS_BASES - RIGHTS:
+            with self.subTest(basis=basis):
+                inv, rows, form = docket()
+                approve(form["decisions"][0])
+                form["decisions"][0].update(
+                    rights_basis_type=basis,
+                    rights_basis_reference=
+                        "Fictional source/version-specific assessment of applicable "
+                        "law, jurisdiction, private synopsis use and contrary terms; test only")
+                signed = sign_owner_decision(form, inv, rows, OWNER_KEY)
+                out = verify_owner_decision(signed, inv, rows, OWNER_KEY)
+                self.assertEqual(out["source_ids_human_approved_in_signed_docket"],
+                                 [form["decisions"][0]["id"]])
+                for field in ("model_input_authorized", "dylan_editor_email_authorized",
+                              "publication_authorized", "japan_vietnam_production_activated",
+                              "publisher_permission_independently_proven_by_software"):
+                    self.assertIs(out[field], False)
+                self.assertEqual(len(out["held_source_ids"]), 5)
+                signed["review"]["decisions"][0]["rights_basis_reference"] += " altered"
+                with self.assertRaisesRegex(TypedSourceDecisionError, "signature invalid"):
+                    verify_owner_decision(signed, inv, rows, OWNER_KEY)
+
+    def test_alternative_basis_does_not_bypass_evidence_or_scope_checks(self):
+        for basis in SYNOPSIS_RIGHTS_BASES - RIGHTS:
+            for mutation in (
+                {"rights_basis_reference": None},
+                {"current_publisher_observation_sha256": None},
+                {"original_language_human_checked": False},
+                {"private_synopsis_use_scope_confirmed": False},
+                {"publisher_body_copy_authorized": True},
+                {"publication_authorized": True},
+            ):
+                with self.subTest(basis=basis, mutation=mutation):
+                    inv, rows, form = docket()
+                    approve(form["decisions"][0])
+                    form["decisions"][0]["rights_basis_type"] = basis
+                    form["decisions"][0].update(mutation)
+                    with self.assertRaises(TypedSourceDecisionError):
+                        sign_owner_decision(form, inv, rows, OWNER_KEY)
+
+    def test_research_label_or_unknown_basis_is_not_a_basis(self):
+        for basis in ("research", "fair_use", "publicly_accessible", "private_custody",
+                      "owner_approved", "unknown", "unreviewed"):
+            with self.subTest(basis=basis):
+                inv, rows, form = docket()
+                approve(form["decisions"][0])
+                form["decisions"][0]["rights_basis_type"] = basis
+                with self.assertRaisesRegex(TypedSourceDecisionError, "unreviewed rights"):
+                    sign_owner_decision(form, inv, rows, OWNER_KEY)
+
     def test_real_six_sources_are_hold_by_default_even_if_signed(self):
         inventory, rows, form = docket()
         self.assertEqual(len(form["decisions"]), 6)

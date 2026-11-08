@@ -166,16 +166,18 @@ def _repo_checkouts(repo_root: Path) -> List[Path]:
 
 
 def assert_isolated(state_dir: Path) -> None:
-    if state_dir.exists() and any(p.is_symlink() for p in state_dir.rglob("*")):
-        raise ValueError("shadow state must not contain symlinks")
-    state_dir = state_dir.resolve()
+    # Containment first: a checkout may legitimately track symlinks, and its
+    # contents should never be scanned as if they were shadow state.
+    resolved = state_dir.resolve()
     for root in _repo_checkouts(REPO_ROOT):
-        if root in state_dir.parents or state_dir == root:
+        if root in resolved.parents or resolved == root:
             raise SystemExit(
                 "refusing to write shadow state inside a working-tree "
                 "checkout of this repository: %s is inside %s.\nShadow "
                 "state belongs on its own state branch or directory, "
-                "checked out elsewhere." % (state_dir, root))
+                "checked out elsewhere." % (resolved, root))
+    if state_dir.exists() and any(p.is_symlink() for p in state_dir.rglob("*")):
+        raise ValueError("shadow state must not contain symlinks")
 
 
 def file_sha256(path: Path):

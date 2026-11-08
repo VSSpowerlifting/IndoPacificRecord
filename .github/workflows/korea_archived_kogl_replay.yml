@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   source-mark-synthetic-contracts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
           git diff --exit-code -- pla_watch.db output/
           test -z "$(git status --porcelain --untracked-files=all -- pla_watch.db output/)"
   real-archived-source-mark-readback:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

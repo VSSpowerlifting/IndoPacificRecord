@@ -125,14 +125,10 @@ REGISTRY = {
     "ph_nsc_verified_official_link_production.yml::publish-philippines-nsc-links": {
         "class": "file-only", "locks": ("philippines-verified-official-link-production",),
         "guards": _FC + ("main_ref_guard",)},
-    "treasury_verified_official_links_release.yml::production-metadata-page-only": {
-        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC + ("main_ref_guard",)},
     "us_bis_verified_official_links_release.yml::genuine-scheduled-source-only": {
         "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC},
     "us_pacom_pages_file_only_release.yml::us-pacom-pages-file-only-release": {
         "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC},
-    "uscc_verified_official_links_release.yml::production-metadata-page-only": {
-        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC + ("main_ref_guard",)},
     # Inert until owner release; its sibling shadow job pushes only shadow/ state.
     "vietnam_ministry_shadow.yml::reviewed-release": {
         "class": "file-only", "locks": (SHARED_LOCK, "vietnam-ministry-shadow"),

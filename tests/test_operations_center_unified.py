@@ -40,7 +40,7 @@ class UnifiedOperationsContracts(unittest.TestCase):
     def report(self):
         sources = []
         for desk in self.registry:
-            if desk.is_collecting:
+            if desk.manifest_path:  # every production registration is observed
                 for source in desk.sources:
                     sources.append({
                         "desk_id": desk.slug, "source_slug": source.slug,

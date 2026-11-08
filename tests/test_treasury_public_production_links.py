@@ -17,11 +17,19 @@ class TreasuryPublicContracts(unittest.TestCase):
         self.assertIn("executive department",template)
         self.assertIn("Access blocked",template)
     def test_release_uses_only_approved_paths(self):
+        # Runtime migration 4: the scheduled Daily workflow clones the preserved
+        # listing history and the pipeline's governed admission writes the rows;
+        # Daily's own commit and deploy steps publish the database and site.
+        daily=(ROOT/".github/workflows/daily_update.yml").read_text(encoding="utf-8")
+        self.assertIn("shadow/us-treasury-press",daily)
+        self.assertIn("IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata",daily)
+        self.assertIn("git add pla_watch.db output/",daily)
+        self.assertNotIn("deploy_output_only",daily)
         workflow=(ROOT/".github/workflows/treasury_verified_official_links_release.yml").read_text(encoding="utf-8")
-        self.assertIn("git add -- pla_watch.db output/us-indopacific.html",workflow)
-        self.assertIn("cp ../output/us-indopacific.html us-indopacific.html",workflow)
         self.assertIn("shadow/us-treasury-press",workflow)
-        self.assertNotIn("deploy_output_only",workflow)
+        self.assertIn("isolated-render-contract",workflow)
+        self.assertNotIn("production-metadata-page-only",workflow)
+        self.assertNotIn("git push",workflow)
 
 if __name__=="__main__":
     unittest.main()
