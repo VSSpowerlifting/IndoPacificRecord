@@ -4,6 +4,18 @@ Status: **technically ready for final review, held at the owner gate.** No issue
 number has been assigned. No review, ruling or presentation approval has been
 recorded. Every release step that does not need a human decision is done.
 
+Release attempt, 7 November 2026: stopped at two gates.
+
+- #1004 is still green and mergeable at `d2e623db25`, but it has not been
+  merged. Its own decision-log entry requires "original-evidence confirmation
+  before adoption". The later MINDEF reply could not be found in the Gmail
+  account connected to this session, so it has not been inspected.
+- `author_brief.py ready` still requires an exact-version human
+  `editorial_review` (all seven checks) and a `policy_ruling`. No statement
+  covering fingerprint `21ab36ab…` has been made yet.
+
+Nothing was numbered, merged or deployed.
+
 | Field | Value |
 |---|---|
 | Slug | `singapore-indonesia-first-joint-fighter-patrol` |
