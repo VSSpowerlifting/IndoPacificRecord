@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.mindef_permissions import APPROVED_MINDEF_LINKS, MINDEF_SOURCE_SLUG
+from core.mindef_permissions import MINDEF_SOURCE_SLUG, source_link_approved
 from core.mindef_public_boundary import EXTRA_RESTRICTED
 from scripts.audit_generated_record_text import CapturedTextParser
 from scripts.reconcile_db import read_only
@@ -55,7 +55,7 @@ class OutboundLinks(HTMLParser):
             return
         for key, url in attrs:
             if key == "href" and _is_mindef_url(url):
-                if url in APPROVED_MINDEF_LINKS:
+                if source_link_approved(MINDEF_SOURCE_SLUG, url):
                     self.approved += 1
                 else:
                     self.bad += 1
@@ -145,10 +145,10 @@ def audit(db_path, output_dir):
             elif isinstance(value, list):
                 stack.extend(value)
             elif isinstance(value, str) and "mindef.gov.sg" in value:
-                # A source URL embedded in a citation string is not an exact
-                # authorized hyperlink. Treat it conservatively, without
-                # printing the text. Exact URL fields retain the two grants.
-                if value not in APPROVED_MINDEF_LINKS:
+                # Embedded URLs in sentences are not exact safe source links;
+                # scan them conservatively without printing private text.
+                # Exact URL values use the same official-host validator as HTML.
+                if not source_link_approved(MINDEF_SOURCE_SLUG, value):
                     count += 1
         if count:
             json_url_occurrences += count
