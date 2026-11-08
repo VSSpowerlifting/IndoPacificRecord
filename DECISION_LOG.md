@@ -1,5 +1,42 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-07 — Brief No. 24 sole authorship: Dylan Tanzi
+
+Benjamin Yang, as Founder, directed and approved on 7 November 2026, in his
+written release instructions to the release agent (not posted publicly), that
+Dylan Tanzi is the sole author of Brief No. 24, "Singapore and Indonesia Fly
+Their First Joint Fighter Patrol". Benjamin Yang is removed from the byline and
+from all public author metadata. The approval is the founder's own; it does not
+come from Dylan Tanzi or anyone else.
+
+- Credit: `author_name` Dylan Tanzi, `author_title` Lead Research Analyst,
+  `author_bio` the canonical `site/preview/staff.json` biography, which Brief
+  No. 20 also uses. The separate co-author `research_contributor` record is
+  removed, including its different biography.
+- Unchanged: headline, dek, all nine paragraphs, including the paragraph 6
+  paraphrase, all six publisher references, `paragraph_support`,
+  `manuscript_sha256`, issue number, cover and caption. A script compared them
+  with the previous revision and found them byte-identical.
+- Fingerprints: the editorial fingerprint binds credit fields, so it changed
+  from `21ab36ab…` to the value now in the sidecar. The presentation digest
+  changed from `d45f371e…` because only its `manuscript_fingerprint` binding
+  changed; headings and excerpts did not. The earlier values are superseded, and
+  the earlier PR #1005 receipt (comment 6715346963) covered the co-authored
+  byline at those digests only.
+- What the rebound `editorial_review` checks rest on:
+  - `original_language`, `claim_support`, `chronology` and `limited_source_use`
+    are carried over from the founder's 7 November review of the unchanged
+    reporting. There was no new source review.
+  - `authorship` rests on this instruction.
+  - `manuscript_fidelity` and `rendered_review` rest on the automated render and
+    `manuscript_html_errors` checks of the final revision. They do not rest on a
+    new human inspection of the page.
+- The `policy_ruling`, presentation approval and publication approval are
+  rebound to this entry on the founder's authority in the same instruction.
+
+This entry does not change the factual conclusions or the source-rights position
+recorded in `docs/PATKOR_BRIEF_RELEASE_2026-11-07.md`.
+
 ## 2026-11-07 — Brief No. 24 Patkor Indopura context cover
 
 Benjamin Yang, as Founder, approved DVIDS photograph 8879603 for both Brief

@@ -1,7 +1,7 @@
 {
   "version": "brief-presentation-v1",
   "article": "singapore-indonesia-first-joint-fighter-patrol",
-  "manuscript_fingerprint": "21ab36abf8fd700a5c65c56f0fa46c42b889d1b7b67a7298f1d7efedc90272fc",
+  "manuscript_fingerprint": "3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820",
   "status": "approved",
   "sections": [
     {
@@ -26,8 +26,8 @@
   "approval": {
     "reviewed_by": "Benjamin Yang",
     "reviewed_on": "2026-11-07",
-    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1005#issuecomment-6715346963",
-    "fingerprint": "d45f371e65305102e4cc396a5ac9d8cd9ab535309963d04a0cd373f78c8bbbe8",
+    "reference": "DECISION_LOG.md#2026-11-07--brief-no-24-sole-authorship-dylan-tanzi",
+    "fingerprint": "421d643df0edc517acc7af430514499c199153b64431cc44b9009caf9b7d036c",
     "checks": {
       "headings": true,
       "excerpts": true,

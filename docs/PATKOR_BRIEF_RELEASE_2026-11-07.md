@@ -3,7 +3,28 @@
 Status: **approved as Brief No. 24; release in progress.** `author_brief.py
 approve` assigned No. 24 (commit `e7bdc1bbc7`).
 
-Owner receipts, 7 November 2026 (PR #1005, comment 6715346963):
+## Authorship change: Dylan Tanzi sole author (7 November 2026)
+
+The founder directed that Dylan Tanzi is the sole author. Benjamin Yang is
+removed from the byline and all public author metadata. See the
+[decision](../DECISION_LOG.md#2026-11-07--brief-no-24-sole-authorship-dylan-tanzi).
+
+- Credit: Dylan Tanzi, Lead Research Analyst, with the canonical
+  `site/preview/staff.json` biography. The co-author `research_contributor`
+  record is removed.
+- Unchanged and checked by script against the previous revision: headline, dek,
+  nine paragraphs including the paragraph 6 paraphrase, six references,
+  paragraph support, `manuscript_sha256`, issue number, cover and caption.
+- Current editorial fingerprint:
+  `3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820`.
+- Current presentation digest:
+  `421d643df0edc517acc7af430514499c199153b64431cc44b9009caf9b7d036c`.
+- The `21ab36ab…` and `d45f371e…` values in the receipts below are superseded.
+  They describe the co-authored version the founder reviewed. The source-review
+  checks carry over only because the reporting did not change.
+
+Original owner receipts, 7 November 2026 (PR #1005, comment 6715346963), for
+the superseded co-authored version:
 
 - Benjamin Yang stated that he completed his review of the Brief at
   `94e08c9792` against fingerprint `21ab36ab…`. He approved all seven
@@ -28,11 +49,11 @@ personal review, so it was not recorded as `editorial_review`.
 |---|---|
 | Slug | `singapore-indonesia-first-joint-fighter-patrol` |
 | Headline | Singapore and Indonesia Fly Their First Joint Fighter Patrol |
-| Credit | Benjamin Yang and Dylan Tanzi (`research_contributor`, Lead Research Analyst) |
+| Credit | Dylan Tanzi, Lead Research Analyst (sole author) |
 | Body | 9 paragraphs, 1,009 words, 6 publisher references, no direct quotations |
 | Manuscript SHA-256 | `dea90e45…ec70` (approved DOCX; see the paragraph 6 change below) |
-| Editorial fingerprint | `21ab36abf8fd700a5c65c56f0fa46c42b889d1b7b67a7298f1d7efedc90272fc` |
-| Presentation digest | `d45f371e65305102e4cc396a5ac9d8cd9ab535309963d04a0cd373f78c8bbbe8` |
+| Editorial fingerprint | `3b38dbf60d6f41d08f954d4ee7dad9bd8b8f3c68f50c48ab1159d36af59de820` (superseded: `21ab36ab…`) |
+| Presentation digest | `421d643df0edc517acc7af430514499c199153b64431cc44b9009caf9b7d036c` (superseded: `d45f371e…`) |
 | Week | 1–7 November 2026 |
 
 ## Manuscript change from the approved DOCX
@@ -65,8 +86,8 @@ emphasis are unchanged, but the presentation digest is now `d45f371e…` (it was
   375px:
   - It shows the 9 manuscript paragraphs under the 3 proposed section headings.
   - There is no horizontal overflow and no console errors.
-  - The byline reads "By Benjamin Yang and Dylan Tanzi". Dylan Tanzi's contributor
-    credit, Lead Research Analyst, is shown.
+  - The byline then read "By Benjamin Yang and Dylan Tanzi". This was superseded by
+    the sole-authorship change above.
 - `manuscript_html_errors` finds no differences, so the rendered text, paragraph
   order and inline source links match the sidecar exactly. Both s5 links in
   paragraph 6 point to MINDEF's 5 August 2025 speech page.

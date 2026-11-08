@@ -75,7 +75,10 @@ def _assert_rendered_contract() -> None:
     assert brief24_slug in (out / "briefs" / "feed.xml").read_text(encoding="utf-8")
     assert brief24_slug in (out / "sitemap.xml").read_text(encoding="utf-8")
     assert brief24_slug + ".html" in brief23, "No. 23 must link forward to No. 24"
-    for required in ("Benjamin Yang", "Dylan Tanzi", "Lead Research Analyst",
+    byline24 = brief24.split('<p class="brief-byline">', 1)[1].split("</p>", 1)[0]
+    assert "Dylan Tanzi" in byline24 and "Benjamin Yang" not in byline24 and " and " not in byline24, (
+        "No. 24 byline must credit Dylan Tanzi as sole author")
+    for required in ("Dylan Tanzi", "Lead Research Analyst",
                      "Context image; does not depict the November 2026 joint patrol.",
                      "does not imply or constitute DoW endorsement",
                      "patkor-indopura-context-2025-800.webp"):
