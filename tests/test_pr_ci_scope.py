@@ -1,6 +1,27 @@
 """Conservative, explicit PR CI scope boundaries."""
 import unittest
-from scripts.pr_ci_scope import Scope, classify
+from scripts.pr_ci_scope import Entry, Scope, classify, classify_entries, parse_raw
+
+Z = "0" * 40
+S = "1" * 40
+
+
+def raw(*records):
+    """Build ``git diff --raw -z --no-renames`` bytes from (old, new, status, path)."""
+    out = b""
+    for old, new, status, path in records:
+        out += (":%s %s %s %s %s" % (old, new, Z if old == "000000" else S,
+                                         Z if new == "000000" else S, status)).encode()
+        out += b"\0" + path.encode() + b"\0"
+    return out
+
+
+def add(path, mode="100644"):
+    return ("000000", mode, "A", path)
+
+
+def mod(path, old="100644", new="100644"):
+    return (old, new, "M", path)
 
 
 class TestPrCiScope(unittest.TestCase):
@@ -43,6 +64,90 @@ class TestPrCiScope(unittest.TestCase):
                       ["docs\\FAKE.md"], [""]):
             with self.subTest(paths=paths):
                 self.assertEqual(classify(paths), Scope("full", True, True))
+
+
+class TestEditorialLane(unittest.TestCase):
+    EDITORIAL = Scope("editorial", True, False)
+
+    def scope(self, *records):
+        return classify_entries(parse_raw(raw(*records)))
+
+    def test_parse_raw_reads_modes_status_and_path(self):
+        self.assertEqual(parse_raw(raw(add("briefs/x.json"), mod("a b.md"))),
+                         [Entry("000000", "100644", "A", "briefs/x.json"),
+                          Entry("100644", "100644", "M", "a b.md")])
+        self.assertEqual(parse_raw(b""), [])
+
+    def test_malformed_raw_diff_raises(self):
+        for data in (b":100644 100644 x y M\0", b"garbage\0path\0",
+                     b"100644 100644 a b M\0p\0", b":100644 100644 a M\0p\0"):
+            with self.subTest(data=data), self.assertRaises(ValueError):
+                parse_raw(data)
+
+    def test_governed_brief_content_and_presentation_assets_are_editorial(self):
+        for path in ("briefs/brief-24.json", "briefs/presentation/brief-24.json",
+                     "briefs/media/brief-24-cover.webp", "briefs/media/brief-24-cover.json",
+                     "site/assets/catalogue/media/patkor-01.jpg",
+                     "site/assets/catalogue/admissions.json",
+                     "site/assets/editorial/brief-24-master.png",
+                     "site/assets/editorial/derivatives/brief-24-1200.webp",
+                     "site/assets/editorial/manifest.json", "site/preview/staff.json",
+                     "docs/evidence/brief-24/approval.json",
+                     "docs/evidence/brief-24/source-capture.png"):
+            with self.subTest(path=path):
+                self.assertEqual(self.scope(add(path)), self.EDITORIAL)
+                self.assertEqual(self.scope(mod(path)), self.EDITORIAL)
+
+    def test_a_typical_brief_publication_bundle_is_editorial(self):
+        self.assertEqual(self.scope(add("briefs/brief-24.json"),
+                                    add("site/assets/catalogue/media/patkor-01.jpg"),
+                                    mod("site/assets/catalogue/admissions.json"),
+                                    add("docs/evidence/brief-24/receipt.md"),
+                                    mod("PROJECT_STATE.md")), self.EDITORIAL)
+
+    def test_docs_alone_stay_docs(self):
+        # Markdown receipts were already source-neutral docs before this lane.
+        for path in ("docs/ROADMAP.md", "docs/evidence/brief-24/receipt.md"):
+            with self.subTest(path=path):
+                self.assertEqual(self.scope(mod(path)), Scope("docs", False, False))
+
+    def test_historical_brief_prs_that_also_pin_tests_or_scripts_are_full(self):
+        # Shape of merged Brief PRs to date: content plus per-Brief pins in
+        # tests/ or scripts/. Any code path takes the whole PR to full CI.
+        for extra in (mod("tests/test_brief_publication.py"), add("tests/test_brief_23.py"),
+                      mod("scripts/guard_briefs_render_scope.py"), mod("site/render.py"),
+                      mod("site/preview/templates/brief.html"), mod("site/preview/brief.css"),
+                      mod(".github/workflows/briefs_render_only_release.yml"),
+                      mod("site/assets/timelines/x.webp"), mod("pla_watch.db")):
+            with self.subTest(extra=extra[3]):
+                self.assertEqual(self.scope(add("briefs/brief-24.json"), extra).mode, "full")
+
+    def test_unsafe_entry_shapes_fail_closed(self):
+        cases = {
+            "deletion": ("100644", "000000", "D", "briefs/brief-03.json"),
+            "symlink": add("briefs/brief-24.json", mode="120000"),
+            "executable": add("briefs/brief-24.json", mode="100755"),
+            "mode change": mod("briefs/brief-24.json", old="100755"),
+            "type change": ("120000", "100644", "T", "briefs/brief-24.json"),
+            "submodule": add("briefs/media/x.json", mode="160000"),
+            "nested": add("briefs/drafts/brief-24.json"),
+            "deep evidence": add("docs/evidence/brief-24/sub/approval.json"),
+            "evidence at root": add("docs/evidence/approval.json"),
+            "unknown extension": add("briefs/brief-24.py"),
+            "image in briefs root": add("briefs/cover.webp"),
+            "svg asset": add("site/assets/catalogue/media/x.svg"),
+            "dotfile": add("briefs/.brief-24.json"),
+            "other staff file": add("site/preview/staff.yaml"),
+            "traversal": add("briefs/../scripts/x.json"),
+        }
+        for name, record in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.scope(record).mode, "full")
+                self.assertEqual(self.scope(add("briefs/brief-24.json"), record).mode, "full")
+
+    def test_editorial_never_yields_reusable_full_qualification(self):
+        # code_qualification reuses only "full" runs; the lane can never be one.
+        self.assertNotEqual(self.scope(add("briefs/brief-24.json")).mode, "full")
 
 
 if __name__ == "__main__":

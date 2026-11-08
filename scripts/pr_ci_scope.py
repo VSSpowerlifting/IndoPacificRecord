@@ -1,8 +1,15 @@
-"""Fail-closed PR scope selection: small docs/timeline diffs avoid unrelated full CI.
+"""Fail-closed PR scope selection: small docs/timeline/editorial diffs avoid unrelated full CI.
 
 This selects *which tests to execute*, not publisher/source permissions,
 review authority, required deploy validation or production permissions.
 Any unrecognised changed path triggers full CI.
+
+The editorial lane admits only governed Brief content and approved
+presentation assets (canonical Brief JSON, presentation manifests, the
+author registry, admitted photos and their manifests, evidence receipts)
+as plain added/modified regular files. Its tests and checks are chosen by
+the workflow; it never yields the "full" mode that trusted qualification
+reuse requires, so main-push full CI remains the code backstop.
 """
 from __future__ import annotations
 
@@ -27,6 +34,63 @@ TIMELINE_PRESENTATION = {
 }
 TIMELINE_ASSET_PREFIX = "site/assets/timelines/"
 
+IMAGE = {".jpg", ".jpeg", ".png", ".webp"}
+# (directory, allowed suffixes). Files must sit directly in the directory,
+# except evidence receipts, which live one folder deep under docs/evidence/.
+EDITORIAL_DIRS = (
+    ("briefs", {".json"}),                       # canonical Brief manuscripts
+    ("briefs/presentation", {".json"}),          # rendered-presentation manifests
+    ("briefs/media", IMAGE | {".json"}),         # Brief-owned media + sidecars
+    ("site/assets/catalogue/media", IMAGE),      # admitted catalogue photos
+    ("site/assets/editorial", IMAGE),            # editorial masters
+    ("site/assets/editorial/derivatives", IMAGE),
+)
+EDITORIAL_FILES = {
+    "site/assets/catalogue/admissions.json",     # image admissions
+    "site/assets/editorial/manifest.json",       # editorial image manifest
+    "site/preview/staff.json",                   # author identities / credits
+}
+EVIDENCE_PREFIX = "docs/evidence/"
+EVIDENCE_SUFFIXES = IMAGE | {".md", ".json"}
+
+# The editorial lane's test modules (fnmatch patterns over dotted module
+# names). Every test module that reads a governed editorial input, plus the
+# real-browser suites that render Brief pages. A contract test re-derives the
+# readers from tests/ so a new reader cannot silently fall outside this set;
+# each pattern must match at least one discovered module or the lane fails.
+EDITORIAL_TEST_PATTERNS = (
+    "tests.test_brief_*",
+    "tests.test_briefs_*",
+    "tests.test_ipr_briefs",
+    "tests.test_archive_integration",
+    "tests.test_article_media",
+    "tests.test_catalogue_media",
+    "tests.test_china_active_retirement",
+    "tests.test_cited_source_records",
+    "tests.test_coastal_palette",
+    "tests.test_desks_p4a_release_contract",
+    "tests.test_dossier_rendering",
+    "tests.test_editorial_staff",
+    "tests.test_frontend_production",
+    "tests.test_historical_brief_shell",
+    "tests.test_home_briefs_band_veil",
+    "tests.test_home_paired_records",
+    "tests.test_indo_pacific_identity",
+    "tests.test_korea_output_release_scope",
+    "tests.test_pla_watch_authoring_identity",
+    "tests.test_pla_watch_reading_ergonomics",
+    "tests.test_pla_watch_veil_contrast",
+    "tests.test_preview_prototype",
+    "tests.test_public_chrome_is_truthful",
+    "tests.test_public_editorial_render_gate",
+    "tests.test_public_editorial_research",
+    "tests.test_relief_primitives",
+    "tests.test_site_mode_contract",
+    "tests.test_sitewide_render_preview",
+    "tests.test_timeline_rendering",
+    "tests.test_timelines",
+)
+
 
 @dataclass(frozen=True)
 class Scope:
@@ -46,6 +110,21 @@ def is_timeline_presentation(path: str) -> bool:
         path.startswith(TIMELINE_ASSET_PREFIX)
         and Path(path).suffix.lower() in {".webp", ".png", ".jpg", ".jpeg", ".svg"}
     )
+
+
+def is_editorial(path: str) -> bool:
+    if path in EDITORIAL_FILES:
+        return True
+    parent, _, name = path.rpartition("/")
+    suffix = Path(name).suffix.lower()
+    if not name or name.startswith("."):
+        return False
+    if any(parent == d and suffix in allowed for d, allowed in EDITORIAL_DIRS):
+        return True
+    if path.startswith(EVIDENCE_PREFIX):
+        rest = path[len(EVIDENCE_PREFIX):].split("/")
+        return len(rest) == 2 and suffix in EVIDENCE_SUFFIXES
+    return False
 
 
 def needs_replay(path: str) -> bool:
@@ -71,6 +150,53 @@ def classify(paths: list[str]) -> Scope:
     return Scope("full", True, any(needs_replay(p) for p in paths))
 
 
+@dataclass(frozen=True)
+class Entry:
+    """One ``git diff --raw`` record: modes, status letter and path."""
+    old_mode: str
+    new_mode: str
+    status: str
+    path: str
+
+
+def parse_raw(data: bytes) -> list[Entry]:
+    # -z --raw --no-renames: ":<old> <new> <oldsha> <newsha> <status>\0<path>\0"
+    fields = data.split(b"\0")
+    if fields and fields[-1] == b"":
+        fields.pop()
+    if len(fields) % 2:
+        raise ValueError("malformed raw diff")
+    entries = []
+    for meta, path in zip(fields[0::2], fields[1::2]):
+        parts = meta.decode("ascii").split(" ")
+        if len(parts) != 5 or not parts[0].startswith(":"):
+            raise ValueError("malformed raw diff record: %r" % meta)
+        entries.append(Entry(parts[0][1:], parts[1], parts[4],
+                             path.decode("utf-8", "surrogateescape")))
+    return entries
+
+
+def editorial_entry(e: Entry) -> bool:
+    # Only plain additions/modifications of regular non-executable files.
+    # Deletions, type changes, symlinks, submodules and executables are full.
+    return (
+        is_editorial(e.path)
+        and e.new_mode == "100644"
+        and ((e.status == "A" and e.old_mode == "000000")
+             or (e.status == "M" and e.old_mode == "100644"))
+    )
+
+
+def classify_entries(entries: list[Entry]) -> Scope:
+    scope = classify([e.path for e in entries])
+    if scope.mode != "full" or scope.source_replay:
+        return scope
+    if (any(editorial_entry(e) for e in entries)
+            and all(editorial_entry(e) or is_doc(e.path) for e in entries)):
+        return Scope("editorial", True, False)
+    return scope
+
+
 def main_push_scope(root: Path, base: str, head: str, paths: list[str]) -> Scope:
     # Only the workflow's authenticated main-push event uses the data lane.
     # Compare modes/types/blob maps too: a .db symlink or executable HTML is
@@ -92,11 +218,12 @@ def main() -> None:
     # If shallow checkout or Git itself is broken, fail rather than silently
     # assigning an inaccurately small test scope.
     data = subprocess.check_output([
-        "git", "diff", "--name-only", "-z", "--no-renames",
+        "git", "diff", "--raw", "-z", "--no-renames", "--no-abbrev",
         args.base, args.head, "--",
     ])
-    paths = [s.decode("utf-8", "surrogateescape") for s in data.split(b"\0") if s]
-    scope = classify(paths)
+    entries = parse_raw(data)
+    paths = [e.path for e in entries]
+    scope = classify_entries(entries)
     if os.environ.get("GITHUB_EVENT_NAME") == "push" and os.environ.get("GITHUB_REF") == "refs/heads/main":
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         scope = main_push_scope(Path.cwd(), args.base, args.head, paths)

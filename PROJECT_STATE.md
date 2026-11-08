@@ -1,5 +1,28 @@
 # PROJECT_STATE — Indo-Pacific Record
 
+## Brief publication CI — parallel full suite and fail-closed editorial lane (7 November 2026, draft PR)
+
+Full PR CI and the daily workflow's offline suite now run through
+`scripts/parallel_unittest.py`. It uses the same `unittest` discovery and
+a fresh interpreter per module, with slow hook-free modules split by
+`TestCase` class. It proves completeness by test-id multiset, and any import
+error, silent worker, mismatch or failure fails the run. Coverage, the
+required step names, qualification reuse rules and the main-push backstop
+are unchanged.
+
+`scripts/pr_ci_scope.py` adds an `editorial` mode, read from the raw merge
+diff, for PRs that touch only canonical Brief JSON, presentation manifests,
+`site/preview/staff.json`, admitted catalogue/editorial images and their
+manifests, or `docs/evidence/` receipts, as plain added or modified regular
+files. That mode runs the Brief-reading test modules and real-browser
+suites, then the isolated render, the validator and the DB/output
+assertion. A contract test keeps every editorial-input reader in that test
+set. The lane is **dormant** for now: all 80 recently merged PRs and #1005
+still classify exactly as before, because Brief PRs also edit per-Brief pins
+in `scripts/` and `tests/`. Moving those pins into data, and splitting the
+approval fingerprint into reporting/source, authorship/credit and
+presentation, are separate follow-up phases. Not merged, deployed or live.
+
 ## Shared desk architecture, runtime migration 5 — Vietnam run-result rows through the governed dispatcher (5 November 2026, review candidate #953 reconciled against merged #950; final checks pending)
 
 Daily runs 191 and 192 recorded both registered Vietnam families
