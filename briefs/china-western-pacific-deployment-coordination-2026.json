@@ -375,14 +375,14 @@
     },
     {
       "role": "Research and analysis",
-      "name": "Peter"
+      "name": "Peter Nguyen"
     }
   ],
   "editorial_review": {
     "reviewed_by": "Benjamin Yang",
     "reviewed_on": "2026-11-07",
-    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/issues/1003#issuecomment-6712920124",
-    "fingerprint": "9e968599776adaddc6ccef3213575782a13cb94e10105cd5b50a1451e6936a83",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1003#issuecomment-6715128152",
+    "fingerprint": "2e59f8e65f054fbbc892ea3098d9c3f99c89986a7616eb311a96c7a5896a81a5",
     "checks": {
       "original_language": true,
       "claim_support": true,
@@ -396,8 +396,8 @@
   "policy_ruling": {
     "reviewed_by": "Benjamin Yang",
     "reviewed_on": "2026-11-07",
-    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/issues/1003#issuecomment-6712920124",
-    "fingerprint": "9e968599776adaddc6ccef3213575782a13cb94e10105cd5b50a1451e6936a83"
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1003#issuecomment-6715128152",
+    "fingerprint": "2e59f8e65f054fbbc892ea3098d9c3f99c89986a7616eb311a96c7a5896a81a5"
   },
   "approval": {
     "approved_by": "Benjamin Yang",

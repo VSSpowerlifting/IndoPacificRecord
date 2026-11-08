@@ -108,6 +108,8 @@ def verified_source(repo, commit, family):
                 "SELECT * FROM shadow_records WHERE source_slug=?", (family,))}
     result = []
     for link in links:
+        # Underscore keys carry builder-selected private prose; never persisted.
+        private = {k: link.pop(k) for k in [k for k in link if k.startswith("_")]}
         r = rows[link["source_identity"]]
         need(r["url"] == link["canonical_official_url"]
              and r["published_date"] == link["publisher_posted_date"]
@@ -118,7 +120,7 @@ def verified_source(repo, commit, family):
                        "content_sha256": r["content_sha256"],
                        "capture_sha256": r["capture_sha256"],
                        "source_run": r["first_seen_run"],
-                       "title": r["title_original"], "body": r["text_original"]})
+                       "title": r["title_original"], "body": source.model_input(private, r)})
     return sorted(result, key=lambda r: (r["publisher_posted_date"], r["source_identity"]), reverse=True)
 
 
@@ -246,6 +248,19 @@ def bind_admitted_metadata(records, conn, *, source_repo):
     bound, snapshots = [], {}
     fields = ("canonical_official_url", "publisher_posted_date", "official_issuer",
               "official_publisher", "official_republisher", "first_seen_run")
+    source = source_for(records[0]["source_family"]) if records else None
+    if source is not None and source.parent:
+        # Family-owned parent (DAPA: korea_official_source_records). It keeps
+        # no run; the exact title/text/page hashes and candidate version bind.
+        for r in records:
+            link = source.parent_link(conn, r["source_identity"])
+            if (link and link["canonical_official_url"] == r["canonical_official_url"]
+                    and link["publisher_posted_date"] == r["publisher_posted_date"]
+                    and link["content_sha256"] == r["content_sha256"]
+                    and link["capture_sha256"] == r["capture_sha256"]
+                    and link["title_sha256"] == hashlib.sha256(r["title"].encode()).hexdigest()):
+                bound.append({**r, "metadata_version_sha256": link["metadata_version_sha256"]})
+        return bound
     for r in records:
         link = conn.execute("SELECT " + ",".join(fields) + ",metadata_version_sha256,source_git_commit "
             "FROM regional_official_source_links WHERE source_family=? AND source_identity=?",
@@ -417,7 +432,7 @@ def admit(conn, envelope, *, family, policy, key):
     gate = source.release_hold()
     need(gate is None, gate)
     from migrations.versions.m0015_daily_machine_records import is_already_applied
-    need(is_already_applied(conn), "daily_migration_required")
+    need(is_already_applied(conn) and source.admission_ready(conn), "daily_migration_required")
     accepted, held = 0, []
     with conn:
         for ident in packet["held"]:
@@ -426,11 +441,18 @@ def admit(conn, envelope, *, family, policy, key):
         for r in packet["records"]:
             try:
                 validate_output(r, family, p)
-                link = conn.execute("SELECT metadata_version_sha256,first_seen_run FROM "
-                    "regional_official_source_links WHERE source_family=? AND source_identity=?",
-                    (family, r["source_identity"])).fetchone()
-                need(link is not None and link[0] == r["metadata_version_sha256"]
-                     and link[1] == r["source_run"], "daily_admitted_source_version_mismatch")
+                if source.parent:
+                    link = source.parent_link(conn, r["source_identity"])
+                    need(link is not None and link["metadata_version_sha256"] == r["metadata_version_sha256"]
+                         and link["content_sha256"] == r["content_sha256"]
+                         and link["capture_sha256"] == r["capture_sha256"],
+                         "daily_admitted_source_version_mismatch")
+                else:
+                    link = conn.execute("SELECT metadata_version_sha256,first_seen_run FROM "
+                        "regional_official_source_links WHERE source_family=? AND source_identity=?",
+                        (family, r["source_identity"])).fetchone()
+                    need(link is not None and link[0] == r["metadata_version_sha256"]
+                         and link[1] == r["source_run"], "daily_admitted_source_version_mismatch")
                 prior = conn.execute("SELECT summary,content_sha256,capture_sha256,metadata_version_sha256,policy_sha256 FROM daily_machine_records "
                     "WHERE source_family=? AND source_identity=?", (family, r["source_identity"])).fetchone()
                 if prior:

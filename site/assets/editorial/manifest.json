@@ -1226,5 +1226,73 @@
     "built_with": {
       "pillow": "11.3.0"
     }
+  },
+  {
+    "id": "patkor-indopura-context-2025",
+    "file": "patkor-indopura-context-2025.jpg",
+    "sha256": "0178cc48b180125e5d9e59248b0e67e6601d46189c70927b8b8ab6f65184afe4",
+    "alt": "Two Indonesian Air Force F-16 fighters fly above the clouds, seen past the wing of a U.S. Air Force tanker aircraft.",
+    "caption": "Two Indonesian Air Force F-16 fighters during a separate air-refuelling training mission over Indonesia, 19 February 2025. Context image; does not depict the November 2026 joint patrol.",
+    "date_note": "Photographed 19 February 2025; historical context.",
+    "creator": "Master Sgt. Mysti Bicoy, U.S. Air National Guard",
+    "license": "Public domain",
+    "license_url": "https://www.dvidshub.net/about/copyright",
+    "credit": "Master Sgt. Mysti Bicoy, U.S. Air National Guard · Public domain · via DVIDS",
+    "source_page": "https://www.dvidshub.net/image/8879603/hiang-conducts-aar-with-idaf",
+    "source_label": "DVIDS",
+    "dod_id": "250219-Z-RV808-7846",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "singapore-indonesia-first-joint-fighter-patrol"
+      ],
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": []
+    },
+    "focal": "50% 50%",
+    "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+    "original_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/HIANG_conducts_AAR_with_IDAF_%288879603%29.jpg",
+    "origin_reference": "https://www.dvidshub.net/image/8879603/hiang-conducts-aar-with-idaf",
+    "license_basis": "DVIDS public-domain marking and terms with non-endorsement notice; see docs/evidence/brief-cover-patkor-2026-11-07/README.md",
+    "retrieval": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/HIANG_conducts_AAR_with_IDAF_%288879603%29.jpg",
+      "retrieved_at": "2026-11-07T20:50:23Z",
+      "status": 200,
+      "bytes": 9623082,
+      "etag": "1a143d1530e74ba972bd3ff8f16f3e27",
+      "user_agent": "IPR-editorial-review/1.0"
+    },
+    "derivatives": [
+      {
+        "file": "derivatives/patkor-indopura-context-2025-1600.jpg",
+        "width": 1600,
+        "height": 1067,
+        "sha256": "f8a45a411686e726291fdd3003bff63c0447bb9005da40acc9d65e199eee4332"
+      },
+      {
+        "file": "derivatives/patkor-indopura-context-2025-800.webp",
+        "width": 800,
+        "height": 533,
+        "sha256": "834ceb443db22f28d6ca935f0eea488148052c254188c56cef7388e9a08c01c5"
+      },
+      {
+        "file": "derivatives/patkor-indopura-context-2025-1600.webp",
+        "width": 1600,
+        "height": 1067,
+        "sha256": "f9f5753f3727846dd615b1f5dc2ef10e9014f6c0d80ae720288f2bc79b563d13"
+      }
+    ],
+    "built_with": {
+      "pillow": "11.3.0"
+    }
   }
 ]

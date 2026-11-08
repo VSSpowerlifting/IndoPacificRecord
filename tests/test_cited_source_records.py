@@ -9,7 +9,6 @@ from core import cited_source_records as cited
 from core.archive_research import with_cited
 from core.brief_collection import load_collection
 from core.desk_registry import load_registry
-from core.mindef_permissions import APPROVED_MINDEF_LINKS
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES = ROOT / "site" / "preview" / "templates"
@@ -51,9 +50,11 @@ class RightsGateTests(unittest.TestCase):
             self.assertEqual(cited.omission(ref("s1", url)), "unsafe_url", url)
 
     def test_mindef_is_never_a_cited_record(self):
-        # The 2026-10-29 permission is for hyperlinks from a Brief, so even
-        # the two approved links stay external rather than gain a page.
-        for url in ("https://www.mindef.gov.sg/news/unapproved",) + tuple(APPROVED_MINDEF_LINKS):
+        # MINDEF permission covers hyperlinks only, so even official-host
+        # links stay external rather than gain a Record page.
+        for url in ("https://www.mindef.gov.sg/news/unapproved",
+                    "https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/",
+                    "https://www.mindef.gov.sg/news-and-events/latest-releases/4nov26-nr/"):
             self.assertEqual(cited.omission(ref("s1", url)), "mindef_link_only_permission")
 
     def test_held_vietnam_families_are_omitted(self):
@@ -185,16 +186,20 @@ class ApprovedBriefsTests(unittest.TestCase):
                         if (r.get("verification") or {}).get("locator")}
 
     def test_admission_counts(self):
-        # No. 23 adds its two Japan Joint Staff PDFs (s1, s2) to the 29.
-        self.assertEqual(len(self.records), 31)
-        self.assertEqual(sum(len(v) for v in self.links.values()), 31)
-        self.assertEqual(len({r["id"] for r in self.records}), 31)
+        # No. 23 adds its two Japan Joint Staff PDFs (s1, s2) to the 29;
+        # No. 24 adds its TNI AU release (s2).
+        self.assertEqual(len(self.records), 32)
+        self.assertEqual(sum(len(v) for v in self.links.values()), 32)
+        self.assertEqual(len({r["id"] for r in self.records}), 32)
 
     def test_deliberate_omissions(self):
         reasons = sorted(o[3] for o in self.omitted)
         self.assertEqual(reasons, ["held_source_family:vn_mps_foreign_affairs_vi"]
                          # No. 23 adds four (Taiwan News, ISW, Reuters, USNI).
-                         + ["independent_reference"] * 8)
+                         + ["independent_reference"] * 8
+                         # No. 24's five MINDEF pages stay link-only: outbound
+                         # links are permitted, IPR-held record pages are not.
+                         + ["mindef_link_only_permission"] * 5)
 
     def test_rendered_page_links_back_and_withholds_locators(self):
         env = Environment(loader=FileSystemLoader(str(TEMPLATES)),

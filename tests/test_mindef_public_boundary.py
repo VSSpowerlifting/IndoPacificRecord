@@ -113,6 +113,8 @@ class MINDEFPublicBoundary(unittest.TestCase):
     def test_exact_link_scope_and_signed_editorial_hold(self):
         approved = 'https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/'
         self.assertFalse(editorial_hold({'url': approved}))
+        self.assertFalse(editorial_hold({'url': 'https://www.mindef.gov.sg/news-and-events/latest-releases/4nov26-nr/'}))
+        self.assertTrue(editorial_hold({'url': 'https://www.mindef.gov.sg.evil.example/'}))
         self.assertTrue(editorial_hold({'url': approved + '?other=1'}))
         self.assertTrue(editorial_hold({'sources': [{'source_id': 'sg_mindef_releases'}]}))
         self.assertFalse(editorial_hold({'url': 'https://www.mod.go.jp/example'}))
