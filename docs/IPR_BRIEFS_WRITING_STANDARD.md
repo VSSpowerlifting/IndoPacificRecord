@@ -32,6 +32,7 @@ The model returns `title`, `dek`, `article`, `audit` and `editorial_questions`.
   no stock significance language ("underscores", "increasingly complex landscape");
   no recap of the lead. This is a register to write toward, not an imitation of any
   one writer.
+- Owner-preferred cadence: sometimes front an adverbial clause of time, circumstance or condition so the reader encounters context before the main claim; allow longer, layered sentences where their clauses advance a connected explanation. Mix fronted and subject-first openings rather than turning this into a new formula. Preserve attribution, clarity, and the evidence-specific qualification regardless of sentence order.
 
 ## 1a. Editorial voice v2 is active in the FIRST Sunday draft
 
