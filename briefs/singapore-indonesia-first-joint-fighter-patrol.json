@@ -282,7 +282,7 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
+  "editorial_status": "approved",
   "week_start": "2026-11-01",
   "week_ending": "2026-11-07",
   "desks": [],
@@ -379,5 +379,11 @@
     "linkedin": "https://www.linkedin.com/in/dylan-tanzi/",
     "email": "dt822@georgetown.edu",
     "credit_role": "co-author"
+  },
+  "issue_number": 24,
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-11-07",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1005#issuecomment-6715346963"
   }
 }
