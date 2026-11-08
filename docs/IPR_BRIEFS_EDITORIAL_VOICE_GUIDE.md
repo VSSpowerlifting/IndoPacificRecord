@@ -229,6 +229,8 @@ Use technical language when it contributes precision, then define it once in ord
 
 Let sentence length reflect meaning. A complex explanation can be long. A concrete finding may need six words. Do not engineer arbitrary variation for its own sake. Avoid a stream of perfectly symmetrical sentences, neat three-item abstractions or identical paragraph lengths.
 
+**Owner-preferred sentence rhythm (8 November 2026):** Use **fronted adverbial clauses** when introducing the time, circumstances, or conditions first will help the reader understand the main assertion. For example, a hypothetical construction is: “After the exercise concluded, the ministry published its account of the participating crews.” Let longer compound and complex sentences carry a connected line of reasoning when appropriate, and mix context-first openings with subject-first sentences. Fronting is a favored option, not a repeatable template or a reason to bury the factual action. Avoid manufactured contrast, preserve source attribution and the necessary limits of each claim, and keep the prose precise.
+
 Transitional language should connect real reasoning, not decorate it. Use “but,” “because,” “however” and “meanwhile” when there is an actual contrast, cause or simultaneous development. Omit connective phrases when one sentence naturally follows another.
 
 Use em dashes, colons, rhetorical questions and “not X but Y” contrasts sparingly. They are useful devices, not a recognizable house rhythm. Avoid frequent “not merely X, but Y,” “underscores,” “highlights the importance,” “signals a shift,” “evolving landscape,” “pivotal,” “testament to,” “taken together” and “time will tell.” Do **not** impose blanket word bans; judge whether a phrase is informative in context.
