@@ -176,23 +176,38 @@ def parse_raw(data: bytes) -> list[Entry]:
     return entries
 
 
-def editorial_entry(e: Entry) -> bool:
-    # Only plain additions/modifications of regular non-executable files.
-    # Deletions, type changes, symlinks, submodules and executables are full.
+def safe_entry(e: Entry) -> bool:
+    # Only plain additions/modifications of regular non-executable files may
+    # enter any reduced lane (docs, focused, editorial). Deletions, type
+    # changes, symlinks, submodules and executables are full, whatever the path.
     return (
-        is_editorial(e.path)
-        and e.new_mode == "100644"
+        e.new_mode == "100644"
         and ((e.status == "A" and e.old_mode == "000000")
              or (e.status == "M" and e.old_mode == "100644"))
     )
 
 
+def editorial_entry(e: Entry) -> bool:
+    return is_editorial(e.path) and safe_entry(e)
+
+
+def require_safe_entries(scope: Scope, entries: list[Entry]) -> Scope:
+    # "full" and the main-push "data" verdict pass through; any reduced lane
+    # holding an unsafe entry becomes full (replay flag from the path scope).
+    if scope.mode in ("full", "data") or all(safe_entry(e) for e in entries):
+        return scope
+    return Scope("full", True, scope.source_replay)
+
+
 def classify_entries(entries: list[Entry]) -> Scope:
     scope = classify([e.path for e in entries])
-    if scope.mode != "full" or scope.source_replay:
+    if scope.mode != "full":
+        return require_safe_entries(scope, entries)
+    if scope.source_replay:
         return scope
     if (any(editorial_entry(e) for e in entries)
-            and all(editorial_entry(e) or is_doc(e.path) for e in entries)):
+            and all(editorial_entry(e) or (is_doc(e.path) and safe_entry(e))
+                    for e in entries)):
         return Scope("editorial", True, False)
     return scope
 
@@ -226,7 +241,8 @@ def main() -> None:
     scope = classify_entries(entries)
     if os.environ.get("GITHUB_EVENT_NAME") == "push" and os.environ.get("GITHUB_REF") == "refs/heads/main":
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-        scope = main_push_scope(Path.cwd(), args.base, args.head, paths)
+        scope = require_safe_entries(
+            main_push_scope(Path.cwd(), args.base, args.head, paths), entries)
     print("PR files:", paths, flush=True)
     print("CI mode:", scope.mode, "browser:", scope.browser,
           "source_replay:", scope.source_replay, flush=True)

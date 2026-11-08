@@ -23,7 +23,10 @@ recently merged PR, including the Brief releases #1003, #1005 and #1006,
 classifies exactly as before, because releases also edit per-Brief pins in
 `scripts/` and `tests/`. Locally the lane's tests take 143 s, the render
 4 s and the validator 9 s (10 governed warnings). Hosted timings are not
-measured yet. Moving those pins into data, and splitting the approval
+measured yet. Every reduced lane (docs, focused, editorial) additionally
+requires each changed entry, documentation and timeline files included, to be
+a plain added or modified non-executable regular file; a deleted, symlinked,
+executable, mode-changed or type-changed entry sends the PR to full CI. Moving those pins into data, and splitting the approval
 fingerprint into reporting/source, authorship/credit and presentation, are
 separate follow-up phases. Not merged, deployed or live.
 

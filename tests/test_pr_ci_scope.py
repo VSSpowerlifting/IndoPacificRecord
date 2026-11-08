@@ -1,6 +1,7 @@
 """Conservative, explicit PR CI scope boundaries."""
 import unittest
-from scripts.pr_ci_scope import Entry, Scope, classify, classify_entries, parse_raw
+from scripts.pr_ci_scope import (Entry, Scope, classify, classify_entries,
+                                 parse_raw, require_safe_entries)
 
 Z = "0" * 40
 S = "1" * 40
@@ -144,6 +145,48 @@ class TestEditorialLane(unittest.TestCase):
             with self.subTest(name):
                 self.assertEqual(self.scope(record).mode, "full")
                 self.assertEqual(self.scope(add("briefs/brief-24.json"), record).mode, "full")
+
+    def test_unsafe_documentation_entries_cannot_enter_any_reduced_lane(self):
+        unsafe = {
+            "deleted doc": ("100644", "000000", "D", "docs/OLD.md"),
+            "symlinked doc": add("docs/LINK.md", mode="120000"),
+            "executable doc": add("docs/RUN.md", mode="100755"),
+            "doc mode change": mod("docs/ROADMAP.md", old="100644", new="100755"),
+            "doc type change": ("120000", "100644", "T", "docs/ROADMAP.md"),
+            "deleted root doc": ("100644", "000000", "D", "PROJECT_STATE.md"),
+            "deleted evidence receipt": ("100644", "000000", "D", "docs/evidence/b/r.md"),
+        }
+        brief = add("briefs/brief-24.json")
+        timeline = mod("site/preview/timelines.css")
+        for name, record in unsafe.items():
+            with self.subTest(name):
+                self.assertEqual(self.scope(record), Scope("full", True, False))
+                # Mixed Brief + documentation, and docs + focused timeline.
+                self.assertEqual(self.scope(brief, record), Scope("full", True, False))
+                self.assertEqual(self.scope(timeline, record), Scope("full", True, False))
+
+    def test_unsafe_timeline_entries_cannot_enter_focused(self):
+        for record in (("100644", "000000", "D", "site/assets/timelines/x.webp"),
+                       add("site/assets/timelines/x.webp", mode="120000"),
+                       mod("site/preview/timelines.css", old="100755")):
+            with self.subTest(record=record):
+                self.assertEqual(self.scope(record), Scope("full", True, False))
+
+    def test_safe_documentation_mixes_keep_their_lane(self):
+        self.assertEqual(self.scope(add("docs/NEW.md"), mod("README.md")),
+                         Scope("docs", False, False))
+        self.assertEqual(self.scope(mod("site/preview/timelines.css"), add("docs/NEW.md")),
+                         Scope("focused", True, False))
+        self.assertEqual(self.scope(add("briefs/brief-24.json"), add("docs/NEW.md")),
+                         self.EDITORIAL)
+
+    def test_unsafe_entry_keeps_replay_flag_and_never_downgrades(self):
+        deleted_pilot = ("100644", "000000", "D", "research/topic_pilot_v1/x.json")
+        self.assertEqual(self.scope(deleted_pilot), Scope("full", True, True))
+        self.assertEqual(self.scope(deleted_pilot, add("docs/NEW.md")), Scope("full", True, True))
+        for scope in (Scope("full", True, True), Scope("data", False, False)):
+            self.assertIs(require_safe_entries(scope, parse_raw(raw(
+                ("100644", "000000", "D", "docs/OLD.md")))), scope)
 
     def test_editorial_never_yields_reusable_full_qualification(self):
         # code_qualification reuses only "full" runs; the lane can never be one.
