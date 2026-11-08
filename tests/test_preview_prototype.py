@@ -1492,7 +1492,8 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         identity = resolve_identity(original)
         byline = BeautifulSoup(self.page("analysis.html"), "html.parser").select_one(
             ".briefs-lead-byline").get_text()
-        self.assertEqual(byline, "%s, %s" % (identity["author_name"], identity["author_title"]))
+        self.assertEqual(byline, identity["author_name"])
+        self.assertNotIn(identity["author_title"], byline)
         self.assertNotIn(gp.MAINTAINER["role"], byline)
 
     # ── Typography ──────────────────────────────────────────────────────
