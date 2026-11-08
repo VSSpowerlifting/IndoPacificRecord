@@ -54,7 +54,8 @@ def _assert_rendered_contract() -> None:
         encoding="utf-8")
     brief23_slug = "china-western-pacific-deployment-coordination-2026"
     brief23 = (out / "briefs" / (brief23_slug + ".html")).read_text(encoding="utf-8")
-    assert brief23_slug in analysis and brief23_slug in (out / "index.html").read_text(encoding="utf-8")
+    # The homepage features only the latest Brief; No. 24 supersedes No. 23 there.
+    assert brief23_slug in analysis
     assert brief23_slug in (out / "briefs" / "feed.xml").read_text(encoding="utf-8")
     assert brief23_slug in (out / "sitemap.xml").read_text(encoding="utf-8")
     for required in ("Benjamin Yang", "Edited by Dylan Tanzi", "Research and analysis by Peter",
