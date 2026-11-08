@@ -582,6 +582,34 @@
       "review_note": "Benjamin Yang approved the exact JS Jintsu context cover on November 1, 2026 (DECISION_LOG 2026-11-01; docs/TWO_BRIEFS_RELEASE_2026-11-01.md).",
       "creator_native": "",
       "creator_native_lang": ""
+    },
+    {
+      "alt": "A J-15 fighter approaches the stern of the aircraft carrier Liaoning at sea.",
+      "caption": "The Chinese aircraft carrier Liaoning and an approaching J-15 fighter during operations on May 5, 2022, photographed by Japan’s Joint Staff. Archival image; does not depict the November 2026 deployment.",
+      "creator": "Japan Ministry of Defense, Joint Staff",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "credit": "Japan Ministry of Defense, Joint Staff · CC BY 4.0 · via Wikimedia Commons",
+      "source_page": "https://commons.wikimedia.org/wiki/File:A_PLAN_Shenyang_J-15_carrier-based_fighter_aircraft_is_preparing_to_land_on_Chinese_aircraft_carrier_PLANS_Liaoning_(CV-16)_20220506.jpg",
+      "source_label": "Wikimedia Commons",
+      "depicts": "context",
+      "cover_treatment": "gradient",
+      "date_note": "Japan Joint Staff notice published May 6, 2022; reports May 5 activity.",
+      "notice": "",
+      "issue": 23,
+      "week_ending": "2026-11-07",
+      "status": "admitted",
+      "source_file": "site/assets/editorial/derivatives/liaoning-j15-20220506-cover-1600.jpg",
+      "source_manifest_id": "liaoning-j15-20220506-cover",
+      "focal": "50% 50%",
+      "served": "assets/catalogue/media/no-23-liaoning-j15-20220506-cover.jpg",
+      "source_sha256": "a170af49011e1ec07c30c7546a43e62e30c0a63da017c2be3aee859987839c92",
+      "served_sha256": "d0f064200d1860834b8438908361e7a3651c8521f728e62d555c039353d8b491",
+      "width": 720,
+      "height": 480,
+      "change_note": "Cropped and resized by IPR; IPR gradient overlaid.",
+      "creator_native": "",
+      "creator_native_lang": ""
     }
   ]
 }

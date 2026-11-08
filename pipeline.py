@@ -32,6 +32,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 from dataclasses import dataclass
@@ -478,6 +479,186 @@ def _us_metadata_admission(slug: str, *, admit_metadata=None) -> GovernedAdmissi
     return GovernedAdmission(family.label, inactive_reason, admit, holds=(hold,))
 
 
+# Vietnam: the private runner's signed article handoff and the Government
+# Office bibliographic collector. Each writes pla_watch.db in its own Daily
+# step before this process starts; the handoff replaces the database file
+# atomically and so cannot run under this process's open connections. These
+# admissions therefore report what those steps recorded for this run rather
+# than repeat them. Activation stays with each step's own owner variable.
+
+_VN_HANDOFF_RECEIPT_ENV = "IPR_VIETNAM_HANDOFF_RECEIPT"
+# The private runner signs a fresh envelope on every scheduled run, including
+# runs that publish nothing. One older than this was re-served after a missed
+# private run: its records are duplicates, not evidence of a quiet source.
+_VN_HANDOFF_MAX_AGE = timedelta(hours=36)
+_VN_CODE = re.compile(r"[a-z0-9_]{1,80}")
+_VN_RUN = re.compile(r"[A-Za-z0-9_.-]{1,80}")
+_VN_HANDOFF_LANE = "vietnam_daily_handoff"
+_VN_METADATA_LANE = "vpcp_bibliographic_metadata"
+
+
+def _vn_code(value) -> str:
+    """A receipt's reason only when it is a fixed machine code."""
+    return value if isinstance(value, str) and _VN_CODE.fullmatch(value) else "unclassified_hold"
+
+
+def _vn_handoff_inactive() -> Optional[str]:
+    # Parity with the "Admit Vietnam Daily handoff" step's own condition.
+    if os.environ.get("VIETNAM_DAILY_HANDOFF_ENABLED") != "true":
+        return _AWAITING_ACTIVATION
+    if os.environ.get("VPCP_METADATA_ONLY") == "true":
+        return "metadata-only run: Vietnam handoff not admitted"
+    return None
+
+
+def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
+    """This family's share of the handoff step's printed receipt."""
+    from pathlib import Path as _Path
+    from core.vietnam_corpus_bridge import DUPLICATE
+    from core.vietnam_daily_qa import PUBLISHED
+    path = os.environ.get(_VN_HANDOFF_RECEIPT_ENV)
+    if not path:
+        # Activation was on: a missing required receipt path is a reporting
+        # failure, not evidence that this source was intentionally disabled.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no Vietnam handoff receipt path configured")
+    try:
+        receipt = json.loads(_Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no handoff receipt recorded this run")
+    except (OSError, ValueError):
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: receipt_unreadable" % _VN_HANDOFF_LANE)
+    if not isinstance(receipt, dict) or receipt.get("status") != "OK":
+        reason = receipt.get("reason") if isinstance(receipt, dict) else None
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: %s" % (_VN_HANDOFF_LANE, _vn_code(reason)))
+    run = receipt.get("run_id")
+    if not (isinstance(run, str) and _VN_RUN.fullmatch(run)):
+        run = "unidentified"
+    try:
+        generated = datetime.fromisoformat(receipt["generated_utc"].replace("Z", "+00:00"))
+        if generated.tzinfo is None:
+            generated = generated.replace(tzinfo=timezone.utc)
+        tally = receipt["by_family"].get(family)
+    except (KeyError, TypeError, AttributeError, ValueError):
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: receipt_unreadable" % _VN_HANDOFF_LANE)
+    if now - generated > _VN_HANDOFF_MAX_AGE:
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="signed handoff not refreshed since %s (run %s)"
+                               % (generated.strftime("%Y-%m-%dT%H:%MZ"), run))
+    if not isinstance(tally, dict):
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="signed handoff (run %s) carried no report "
+                               "for this family" % run)
+    admitted, unchanged = tally.get(PUBLISHED, 0), tally.get(DUPLICATE, 0)
+    holds = [_vn_code(k.replace(":", "_").lower()) for k in tally
+             if k not in (PUBLISHED, DUPLICATE)]
+    logger.info("%s: handoff run %s — %d admitted, %d unchanged, %d held",
+                family, run, admitted, unchanged, len(holds))
+    return _receipt_outcome(admitted, unchanged, holds=holds)
+
+
+def _vpcp_metadata_inactive() -> Optional[str]:
+    # Parity with the bibliographic collection step's own condition.
+    if os.environ.get("VIETNAM_VPCP_METADATA_ENABLED") != "true":
+        return _AWAITING_ACTIVATION
+    return None
+
+
+def _vpcp_metadata_outcome(read_report=None) -> GovernedOutcome:
+    """The collector's own run record for this workflow run and attempt."""
+    run = os.environ.get("GITHUB_RUN_ID")
+    if not run:
+        # This collector is enabled but its run cannot be authenticated to
+        # a run/attempt: do not misreport missing evidence as an inactive lane.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no workflow run to match a collection record")
+    source_run = "%s-%s" % (run, os.environ.get("GITHUB_RUN_ATTEMPT", "1"))
+    report = (read_report or _read_vpcp_collection_report)(source_run)
+    if report is None:
+        # The step was enabled and recorded nothing: it failed before its
+        # transaction committed. Missed, not quiet.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no bibliographic collection recorded this run")
+    if report.get("status") == "held":
+        return GovernedOutcome(collection_status.LISTING_FAILURE,
+                               error_detail="%s: %s" % (_VN_METADATA_LANE,
+                                                        _vn_code(report.get("hold_reason"))))
+    admitted = report.get("new", 0) + report.get("revised", 0)
+    held = report.get("held", 0)
+    logger.info("vn_vpcp_official_documents_vi: bibliographic run %s — %d new, "
+                "%d revised, %d unchanged, %d held", source_run, report.get("new", 0),
+                report.get("revised", 0), report.get("unchanged", 0), held)
+    return _receipt_outcome(admitted, report.get("unchanged", 0),
+                            holds=("%d_records_held" % held,) if held else ())
+
+
+def _read_vpcp_collection_report(source_run: str) -> Optional[dict]:
+    from scripts.collect_vietnam_government_documents import FAMILY
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT report_json FROM official_document_collection_runs "
+            "WHERE source_family=? AND source_run=?", (FAMILY, source_run)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def _combine_lanes(lanes: list) -> GovernedOutcome:
+    """One row for a source fed by more than one lane.
+
+    A failed lane always shows, so a missed lane is never hidden by a quiet or
+    productive one; otherwise new material, then holds, then duplicates, and
+    the source is quiet only when every lane is quiet. Counts are summed.
+    """
+    new = sum(o.new_documents for _, o in lanes)
+    dups = sum(o.duplicates for _, o in lanes)
+    details = ["%s: %s" % (name, o.error_detail) for name, o in lanes if o.error_detail]
+    detail = "; ".join(details) or None
+    statuses = [o.status for _, o in lanes]
+    for status in statuses:
+        if collection_status.is_failure(status):
+            return GovernedOutcome(status, new, dups, detail)
+    for status in (collection_status.OK, collection_status.OK_ALL_FILTERED,
+                   collection_status.OK_ALL_DUPLICATES):
+        if status in statuses:
+            return GovernedOutcome(status, new, dups, detail)
+    return GovernedOutcome(collection_status.OK_NO_PUBLICATIONS, new, dups, detail)
+
+
+def _vietnam_handoff_admission(family: str, *, clock=None) -> GovernedAdmission:
+    def admit(run_id):
+        return _vn_handoff_outcome(family, (clock or _utcnow)())
+
+    return GovernedAdmission(_VN_HANDOFF_LANE, _vn_handoff_inactive, admit)
+
+
+def _vpcp_admission(*, clock=None, read_report=None) -> GovernedAdmission:
+    from scripts.collect_vietnam_government_documents import FAMILY
+
+    def inactive_reason():
+        handoff, metadata = _vn_handoff_inactive(), _vpcp_metadata_inactive()
+        return handoff if handoff and metadata else None
+
+    def admit(run_id):
+        lanes = []
+        if not _vpcp_metadata_inactive():
+            lanes.append((_VN_METADATA_LANE, _vpcp_metadata_outcome(read_report)))
+        if not _vn_handoff_inactive():
+            lanes.append((_VN_HANDOFF_LANE,
+                          _vn_handoff_outcome(FAMILY, (clock or _utcnow)())))
+        if len(lanes) == 1:
+            return lanes[0][1]
+        return _combine_lanes(lanes)
+
+    return GovernedAdmission("vietnam_vpcp", inactive_reason, admit)
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 def _governed_admissions() -> dict:
     """slug → GovernedAdmission for every manual source with a production path."""
     from core import korea_corpus_bridge
@@ -489,6 +670,10 @@ def _governed_admissions() -> dict:
     out[japan_mod_official_links.FAMILY] = _japan_admission()
     for slug in _US_METADATA_FAMILIES:
         out[slug] = _us_metadata_admission(slug)
+    # Only the registered Vietnam families; the MOIT families remain
+    # unregistered and so receive no run-result row at all.
+    out["vn_mps_foreign_affairs_vi"] = _vietnam_handoff_admission("vn_mps_foreign_affairs_vi")
+    out["vn_vpcp_official_documents_vi"] = _vpcp_admission()
     return out
 
 

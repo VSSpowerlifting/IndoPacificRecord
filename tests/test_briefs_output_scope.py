@@ -13,7 +13,7 @@ from scripts.guard_briefs_render_scope import (
 class BriefsOutputScopeTests(unittest.TestCase):
     def test_exact_native_and_historical_routes_are_reviewed(self):
         self.assertTrue(is_reviewed_path("output/analysis.html"))
-        self.assertTrue(is_reviewed_path("output/briefs/what-is-being-built-in-laos.html"))
+        self.assertTrue(is_reviewed_path("output/briefs/china-western-pacific-deployment-coordination-2026.html"))
         self.assertTrue(is_reviewed_path("output/shell.js"))
         self.assertTrue(is_reviewed_path("output/briefs/trident-resolve-regional-scale-specific-chinese-tasks.html"))
         self.assertTrue(is_reviewed_path("output/the-pla-watch/posts/2026-08-15.html"))
@@ -25,10 +25,11 @@ class BriefsOutputScopeTests(unittest.TestCase):
             "output/indonesia.html",
             "output/korea.html",
             "output/briefs/unreviewed.html",
+            "output/briefs/what-is-being-built-in-laos.html",
             "output/the-pla-watch/media/2026-08-01-veil.jpg",
             "output/assets/editorial/other-photo.jpg",
             "output/assets/editorial/trident-resolve-basarnas-drone.jpg",
-            "output/briefs/feed.xml",
+            "output/briefs/unreviewed-feed.xml",
         ):
             with self.subTest(path=path):
                 self.assertFalse(is_reviewed_path(path))
