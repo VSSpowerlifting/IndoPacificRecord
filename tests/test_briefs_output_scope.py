@@ -14,6 +14,8 @@ class BriefsOutputScopeTests(unittest.TestCase):
     def test_exact_native_and_historical_routes_are_reviewed(self):
         self.assertTrue(is_reviewed_path("output/analysis.html"))
         self.assertTrue(is_reviewed_path("output/briefs/china-western-pacific-deployment-coordination-2026.html"))
+        self.assertTrue(is_reviewed_path("output/briefs/bersama-lima-2026-five-power-coordination-at-sea.html"))
+        self.assertTrue(is_reviewed_path("output/briefs/japan-us-amraam-final-assembly-sm3-production.html"))
         self.assertTrue(is_reviewed_path("output/shell.js"))
         self.assertTrue(is_reviewed_path("output/briefs/trident-resolve-regional-scale-specific-chinese-tasks.html"))
         self.assertTrue(is_reviewed_path("output/the-pla-watch/posts/2026-08-15.html"))
