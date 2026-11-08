@@ -273,6 +273,7 @@ def main(argv=None) -> int:
     tmp = tempfile.TemporaryDirectory(prefix="ipr-parallel-unittest.")
     totals = Counter()
     problems: list[str] = []
+    failed_units = set()
     durations: dict[str, float] = {}
 
     def run_one(unit: str):
@@ -325,6 +326,8 @@ def main(argv=None) -> int:
                     print("PROBLEM %s: %s" % (module, problem), flush=True)
                 sys.stdout.flush()
                 problems.extend("%s: %s" % (module, p) for p in local)
+                if local:
+                    failed_units.add(module)
     tmp.cleanup()
 
     elapsed = time.monotonic() - started
@@ -336,9 +339,9 @@ def main(argv=None) -> int:
           % (totals["run"], elapsed, expected_total, len(modules), len(order), workers))
     if problems:
         print("\nFAILED (failures=%d, errors=%d, unexpected successes=%d, "
-              "incomplete or failed run units=%d)" % (
+              "incomplete or failed run units=%d, problems=%d)" % (
                   totals["failures"], totals["errors"],
-                  totals["unexpected_successes"], len(problems)))
+                  totals["unexpected_successes"], len(failed_units), len(problems)))
         for problem in problems:
             print("  " + problem)
         return 1
