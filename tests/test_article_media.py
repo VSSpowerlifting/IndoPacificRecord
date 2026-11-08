@@ -60,6 +60,7 @@ EXPECTED = {
     21: am.PHOTOGRAPH,   # owner-approved 2025 AMRAAM handling context photograph
     22: am.PHOTOGRAPH,   # owner-approved JS Jintsu Abukuma-class context photograph
     23: am.PHOTOGRAPH,   # owner-approved 2022 Liaoning archival context
+    24: am.PHOTOGRAPH,   # owner-approved 2025 Indonesian F-16 refuelling context
 }
 
 #: Han, kana and CJK punctuation: script that needs a declared language.
@@ -519,7 +520,9 @@ class ArticleMediaPagesTests(unittest.TestCase):
         self.assertIn("No. 21", prev22.get_text())
         next22 = self.native_auth[22][2].select_one("nav.brief-issue-nav a[rel=next]")
         self.assertEqual(next22["href"], self.native_auth[23][0]["slug"] + ".html")
-        self.assertIsNone(self.native_auth[23][2].select_one("nav.brief-issue-nav a[rel=next]"))
+        next23 = self.native_auth[23][2].select_one("nav.brief-issue-nav a[rel=next]")
+        self.assertEqual(next23["href"], self.native_auth[24][0]["slug"] + ".html")
+        self.assertIsNone(self.native_auth[24][2].select_one("nav.brief-issue-nav a[rel=next]"))
 
 
     def test_historical_pages_load_the_shared_nav_and_media_rules(self):

@@ -1,7 +1,7 @@
 # Patkor Indopura Brief: release record
 
-Status: **owner review, policy ruling and presentation approval recorded; release
-in progress.** No issue number has been assigned yet.
+Status: **approved as Brief No. 24; release in progress.** `author_brief.py
+approve` assigned No. 24 (commit `e7bdc1bbc7`).
 
 Owner receipts, 7 November 2026 (PR #1005, comment 6715346963):
 
@@ -95,13 +95,11 @@ the 29 October 2026 reply. That evidence is in
 itself is held privately. This Brief links five other MINDEF pages (s1, s3, s4,
 s5 and s6), so the publication gate holds it.
 
-PR #1004 replaces that list with an exact-host HTTPS gate. At head `d2e623db25`
-every required check, `offline-checks` included, has passed. The PR is open and
-mergeable, and it has not been merged.
+PR #1004 replaced that list with an exact-host HTTPS gate. The founder adopted it
+(see `DECISION_LOG.md`) and it was merged to `main` as `c902f113d6`.
 
-Its own conditions remain:
+Its limits remain:
 
-- It needs the founder's substantive policy review.
 - The wording granting "all linking requests" is attributed to a later MINDEF
   contact, but nobody has inspected the original message in the repository. The
   founder must hold it privately.
@@ -118,30 +116,27 @@ confirms it.
 
 ## Remaining release steps
 
-The review render has no cover, because cover admission needs the issue number.
-After `approve`, the cover, its caption and the catalogue crop are checked in the
-final numbered render and shown to the owner before the release PR merges. The
+The cover, its caption and the catalogue crop are checked in the final numbered
+render and shown to the owner before the release PR merges. The
 caption must say that the photograph shows a separate February 2025 refuelling
 exercise.
 
 Steps:
 
 1. Record the review, ruling and presentation receipts (done).
-2. Merge PR #1004 after recording the founder ruling and its limitation. Its
-   head must still be green.
-3. Run `author_brief.py approve`, which assigns the next canonical number. No. 23
-   belongs to the Western Pacific Brief (PR #1003). No number is to be invented or
-   reserved here.
-4. Admit the cover and the 720 × 480 catalogue crop under that number, with the
-   DVIDS credit and the non-endorsement notice.
+2. Merge PR #1004 after recording the founder ruling and its limitation (done,
+   `c902f113d6`).
+3. Run `author_brief.py approve` (done; it assigned No. 24).
+4. Admit the cover and the 720 × 480 catalogue crop under No. 24, with the
+   DVIDS credit and the non-endorsement notice (done).
 5. Render and run the validator (10 governed warnings at baseline). Then open the
    PR, wait for CI and merge.
 6. Deploy the output only, and verify it over HTTPS.
 
 ## Cover
 
-The receipt is `docs/evidence/brief-cover-patkor-2026-11-07/`. The cover is not
-yet admitted, because admission depends on the assigned issue number.
+The receipt is `docs/evidence/brief-cover-patkor-2026-11-07/`. The cover is
+admitted under No. 24 for the article and the catalogue.
 
 - DVIDS 8879603, VIRIN 250219-Z-RV808-7846, U.S. Air National Guard photo by
   Master Sgt. Mysti Bicoy, 19 February 2025. It is in the public domain, subject
@@ -152,11 +147,7 @@ yet admitted, because admission depends on the assigned issue number.
 - It shows a separate 2025 refuelling mission. It must never be captioned as the
   November 2026 patrol.
 
-### Unlinked derivatives
+### Derivatives
 
-`scripts/pw_env.py` `copy_editorial_assets` copies only manifest-listed originals,
-but it copies every file in `site/assets/editorial/derivatives/` regardless. It runs
-from `scripts/rerender_pla_watch.py` and from the legacy generator. If this branch
-merged before `approve`, a rerender would place the three Patkor derivatives at
-public URLs that no page links to. Merge this branch only as part of the numbered
-release PR.
+The three article derivatives are now linked from the No. 24 article, so a
+rerender no longer places unlinked Patkor files at public URLs.

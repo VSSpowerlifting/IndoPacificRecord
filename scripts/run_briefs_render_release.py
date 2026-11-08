@@ -68,6 +68,23 @@ def _assert_rendered_contract() -> None:
                   "assets/editorial/derivatives/liaoning-j15-20220506-cover-1600.webp",
                   "assets/catalogue/media/no-23-liaoning-j15-20220506-cover.jpg"):
         assert _sha256(ROOT / "site" / route) == _sha256(out / route), f"No. 23 asset mismatch: {route}"
+    brief24_slug = "singapore-indonesia-first-joint-fighter-patrol"
+    brief24 = (out / "briefs" / (brief24_slug + ".html")).read_text(encoding="utf-8")
+    assert brief24_slug in analysis and brief24_slug in (out / "index.html").read_text(encoding="utf-8")
+    assert brief24_slug in (out / "briefs" / "feed.xml").read_text(encoding="utf-8")
+    assert brief24_slug in (out / "sitemap.xml").read_text(encoding="utf-8")
+    assert brief24_slug + ".html" in brief23, "No. 23 must link forward to No. 24"
+    for required in ("Benjamin Yang", "Dylan Tanzi", "Lead Research Analyst",
+                     "Context image; does not depict the November 2026 joint patrol.",
+                     "does not imply or constitute DoW endorsement",
+                     "patkor-indopura-context-2025-800.webp"):
+        assert required in brief24, f"No. 24 article is missing {required!r}"
+    assert "no-24-patkor-indopura-context-2025.jpg" in analysis, "No. 24 catalogue card is missing its admitted photograph"
+    for route in ("assets/editorial/derivatives/patkor-indopura-context-2025-1600.jpg",
+                  "assets/editorial/derivatives/patkor-indopura-context-2025-800.webp",
+                  "assets/editorial/derivatives/patkor-indopura-context-2025-1600.webp",
+                  "assets/catalogue/media/no-24-patkor-indopura-context-2025.jpg"):
+        assert _sha256(ROOT / "site" / route) == _sha256(out / route), f"No. 24 asset mismatch: {route}"
 
     if not no17_held:
         assert "no-17-trident-resolve-basarnas-drone.jpg" in analysis, (

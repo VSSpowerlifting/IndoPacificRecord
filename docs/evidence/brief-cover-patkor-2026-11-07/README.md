@@ -1,4 +1,4 @@
-# Patkor Indopura Brief: cover preparation (not admitted)
+# Brief No. 24 cover — DVIDS 8879603
 
 The founder approved DVIDS photograph 8879603 for the article and catalogue as
 historical context. It depicts two Indonesian Air Force F-16s during a separate
@@ -15,12 +15,13 @@ refuelling training mission over Indonesia on 19 February 2025, not the November
   an `IPR-editorial-review/1.0` user agent with an unverified contact field
   (omitted here); it must not be used as contact evidence.
 - Retained original SHA-256: `0178cc48b180125e5d9e59248b0e67e6601d46189c70927b8b8ab6f65184afe4`.
-- Article derivatives were prepared using `scripts/build_brief_cover.py`'s
-  `derive` function; the provisional 720 × 480 centre crop uses
-  `scripts/build_catalogue_media.py`'s `derive` function. They are not yet
-  admitted to the manifests or approved after review on the actual pages.
-
-Before release, record the owner decision in the decision log, complete the
-cover manifest and paired catalogue admission using the actual canonically
-assigned issue number, run the builders and photography checks, and review both
-rendered surfaces. Do not label this February 2025 image as the patrol.
+- Admitted under Brief No. 24 (assigned by `author_brief.py approve`) in
+  `site/assets/editorial/manifest.json` and `site/assets/catalogue/admissions.json`.
+  Article derivatives come from `scripts/build_brief_cover.py`; the 1600 px JPEG
+  SHA-256 is `f8a45a411686e726291fdd3003bff63c0447bb9005da40acc9d65e199eee4332`.
+- The 720 × 480 catalogue image `no-24-patkor-indopura-context-2025.jpg` is a
+  centred (50% 50%) crop from `scripts/build_catalogue_media.py`, SHA-256
+  `6b519a38338f393111ffd55adc3ac3923b145edf819bda471fa65f0516a745c1`. The IPR
+  gradient is applied in CSS; the pixels are not altered beyond crop and resize.
+- The founder's approval is recorded in `DECISION_LOG.md` (7 November 2026).
+  Never label this February 2025 image as the patrol.

@@ -1,5 +1,17 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-07 — Brief No. 24 Patkor Indopura context cover
+
+Benjamin Yang, as Founder, approved DVIDS photograph 8879603 for both Brief
+No. 24 surfaces in his written release instructions of 7 November 2026 (given to
+the release agent, not posted publicly). The image shows Indonesian F-16s on a
+separate 19 February 2025 refuelling mission, not the November 2026 patrol, and
+the caption says so. It uses the centred 3:2 card and the standard CSS gradient.
+His separate visual check of the numbered cover and catalogue card is recorded
+on PR #1005 when he gives it. See the
+[image evidence](docs/evidence/brief-cover-patkor-2026-11-07/README.md) for
+source, rights, retrieval and limits. This decision does not attest the patrol.
+
 ## 2026-11-07 — Founder: retire MINDEF two-URL outbound-link limit (adopted)
 
 Adopted 7 November 2026 by Benjamin Yang, Founder & Executive Director (PR
