@@ -1,8 +1,10 @@
 """Safe official outbound MINDEF hyperlinks; NOT a content reuse license.
 
-Founder-reported standing link permission requires private provenance review
-before this amendment merges. Historic 2026-10-29 two-URL grant is documented
-separately. No right to reproduce text/media or invoke collectors/models follows.
+The founder adopted a reported standing outbound-link grant on 2026-11-07;
+PR #1004 merged the safe official-host rule. The original later publisher message
+is not independently authenticated in retained private evidence. The 2026-10-29
+two-URL grant remains historical. Linking permits no inferred text/media reuse,
+collection, model input or machine publication.
 """
 import re
 from urllib.parse import urlsplit
