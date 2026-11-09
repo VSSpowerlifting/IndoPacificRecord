@@ -1,5 +1,18 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-09 — Founder: Japan original-text scope expansion and JCG HTML-only standing eligibility
+
+Benjamin Yang, Founder & Executive Director, approved advancing Japan based on authentic, genuinely accessible official source text rather than an arbitrary PDF-only certification rule or a requirement to process all attached media. This amends the 2 November eight-desk source scope for **Japan only**; China and other desk scopes are unchanged.
+
+**Japan MOD:** First-party ministry news originals can qualify from authentic PDFs **or** authentically served, complete HTML original pages. Both Japanese and English first-party MOD text are in scope when their source family, version, issuer, actual access and PDL1.0 exceptions qualify. Challenged MOD HTML pages remain honestly unavailable; the policy change does not circumvent a challenge or make the PDF-specific collector an HTML processor. Text-only source-grounded explanations do not require the project's custody, licensing or reproduction of unrelated photographs, figures or attachment media. Actual external-model and unattended publication activation require the relevant existing operating checks and authorization.
+
+**Japan Coast Guard:** Exact first-party English release HTML text is an independently qualifying government original, subject to official JCG PDL1.0, attribution, version integrity and actual text-specific exceptions. Linked PDFs, photographs, inaccessible unrelated HTML routes, and legacy PDF completeness checks are **not prerequisites** to qualify or publish an independent, clearly scoped HTML-text-based Record or machine-labeled explanation. Any material found only in linked PDFs is outside the HTML original; the Record must not claim full HTML-plus-PDF coverage. The existing shared standing-source-rights contract now has a JCG text-only policy. Old Day 7/14/30 checkpoint and 30-day launch waits are retired as compulsory new promotion gates, but real recurring retrieval, integrity, QA, spending and deployed readback remain required. Existing source-specific historical evidence and holds are preserved.
+
+**Other desk priorities reaffirmed:** MND, AFP, Indonesia and Vietnam should progress through current operational evidence and QA; DAPA advances using previously accepted standing conditional Type 0 eligibility and its disabled shared-lifecycle integration, with actual paid model use and live publication separately controlled; NSC should investigate the legitimate PIA-hosted channel while preserving NSC-issuer verification and site-access rules; the U.S. Desk should advance its Commission-authored USCC substantive path; China is **left unchanged**. Singapore's separate founder instruction is recorded in issue #673.
+
+This ruling approves scoped policy implementation/review, **not** a production collector switch, paid model call, source-output release, editorial publication, merge of an unverified implementation, or site deployment. Retire superseded artificial rules while keeping actual publisher access, third-party media, provenance and quality protections.
+
+
 ## 2026-11-07 — Brief No. 24 editing and analysis credit
 
 After Brief No. 24 went live, Benjamin Yang, Founder & Executive Director,
