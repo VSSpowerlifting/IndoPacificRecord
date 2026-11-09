@@ -173,6 +173,73 @@ class StandingReuseContracts(unittest.TestCase):
         self.assertTrue(receipt["original_text_matches_authenticated_capture"])
         self.assertFalse(receipt["publication_performed"])
 
+    def test_jcg_first_party_english_html_text_uses_standing_pdl_without_pdf_gate(self):
+        s = original()
+        s["source_family"] = "jp_jcg_press_en"
+        s["source_identity"] = "jcg-en:9436"
+        s["official_url"] = "https://www.kaiho.mlit.go.jp/e/topics_archive/article9436.html"
+        s["language"] = "en"
+        result = rights.qualify_standing_text(s, **options(s))
+        self.assertEqual(result["license_id"], "jcg-english-html-text-pdl1")
+        self.assertEqual(result["scope"], "original_text")
+        self.assertFalse(result["publication_performed"])
+        self.assertTrue(result["uses_standing_publisher_license_instead_of_per_record_rights_signoff"])
+
+    def test_jcg_pdf_and_photographs_never_inherit_html_text_scope(self):
+        s = original()
+        s["source_family"] = "jp_jcg_press_en"
+        s["official_url"] = "https://www.kaiho.mlit.go.jp/e/topics_archive/article9453.html"
+        s["language"] = "en"
+        for component in ("original_pdf", "original_media", "embedded_assets",
+                          "translation_en"):
+            with self.subTest(component=component):
+                x = options(s)
+                x["kind"] = component
+                with self.assertRaisesRegex(rights.StandingLicenseHold,
+                                            "requested_use_not_covered_by_license"):
+                    rights.qualify_standing_text(s, **x)
+        blocked = options(s)
+        def media(source, policy):
+            receipt = exception_replay(source, policy)
+            receipt["released_artifact_embeds_media"] = True
+            return receipt
+        blocked["exception_replay"] = media
+        with self.assertRaisesRegex(rights.StandingLicenseHold,
+                                    "source_item_excluded_by_rights_or_scope"):
+            rights.qualify_standing_text(s, **blocked)
+
+    def test_jcg_other_html_paths_and_false_language_are_not_accepted(self):
+        s = original()
+        s["source_family"] = "jp_jcg_press_en"
+        s["official_url"] = "https://www.kaiho.mlit.go.jp/e/topics_archive/article9455.html"
+        s["language"] = "en"
+        for bad_url in (
+            "https://www.kaiho.mlit.go.jp/e/topics_archive/index.html",
+            "https://www.kaiho.mlit.go.jp/e/topics_archive/article9455.html?copy=1",
+            "https://www.kaiho.mlit.go.jp/info/topics/rescueforeignvessels.html",
+            "https://www.kaiho.mlit.go.jp.evil.invalid/e/topics_archive/article9455.html"
+        ):
+            with self.subTest(url=bad_url):
+                changed = dict(s, official_url=bad_url)
+                with self.assertRaisesRegex(rights.StandingLicenseHold,
+                                            "publisher_outside_standing_policy_scope"):
+                    rights.qualify_standing_text(changed, **options(changed))
+        changed = dict(s, language="ja")
+        with self.assertRaisesRegex(rights.StandingLicenseHold,
+                                    "original_source_language_mismatch"):
+            rights.qualify_standing_text(changed, **options(changed))
+
+    def test_jcg_cannot_skip_trusted_replay_or_item_exception_inspection(self):
+        s = original()
+        s["source_family"] = "jp_jcg_press_en"
+        s["official_url"] = "https://www.kaiho.mlit.go.jp/e/topics_archive/article9453.html"
+        s["language"] = "en"
+        x = options(s)
+        x["exception_replay"] = None
+        with self.assertRaisesRegex(rights.StandingLicenseHold,
+                                    "trusted_source_policy_and_exception_verifiers_required"):
+            rights.qualify_standing_text(s, **x)
+
     def test_korea_kogl_type1_text_must_verify_item_specific_mark(self):
         s=original("korea")
         r=rights.qualify_standing_text(s,**options(s))
