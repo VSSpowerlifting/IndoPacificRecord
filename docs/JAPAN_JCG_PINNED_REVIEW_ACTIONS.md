@@ -21,7 +21,7 @@ The review workflow validates the fields, clones **only** the named state branch
 
 The Actions artifact contains **only** `receipt.json`, `formal/report.json` and `formal/report.md`; original source text, `records.jsonl`, HTML and binary captures are deliberately not uploaded by this workflow. A separate authorized source reviewer can retrieve the originals from the pinned state branch when comparing publisher webpages and attachment PDFs.
 
-**A machine-clear result is not a human approval.** Every receipt explicitly records `human_review_completed: false`, `promotion_authorized: false` and `editorial_release_authorized: false`. Existing Day 7/14/30 human checkpoints and 30 healthy collecting days remain mandatory. PDF-linked content remains uncollected by the HTML adapter; see [JCG PDF-completeness PR #217](https://github.com/VSSpowerlifting/China-Mil-Watch/pull/217) for the separate original-document research findings.
+**A machine-clear result is not a human approval.** Every receipt explicitly records `human_review_completed: false`, `promotion_authorized: false` and `editorial_release_authorized: false`. The historical Day 7/14/30 review program and 30-day minimum were superseded by the current shared-desk acceptance standard: verify genuine source versions, source-specific text exceptions, ordinary recurrence, held/failure behavior, quality and controlled live publication instead of waiting out a fixed clock. Linked PDFs remain separate, uncollected material; the HTML-only source does not claim PDF-package coverage. See [JCG PDF-completeness PR #217](https://github.com/VSSpowerlifting/China-Mil-Watch/pull/217) for the historical comparison.
 
 ## Failure conditions and honest claims
 
