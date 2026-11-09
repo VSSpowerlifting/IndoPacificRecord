@@ -59,8 +59,9 @@ follow the shared policy.
 
 #1014 (head `9523b9481b`) records the founder's source-use decision and governance
 wording. #1017 (head `ecee078bf7`) implements it and does not restate or replace it.
-The integration branch merges both onto `main` `8a79605212` and resolves the two
-shared files as follows:
+The integration branch merges both onto `main` `8a79605212` (later refreshed with
+Daily-update commits `aafddd1397` and `b4323c13ad`, which touch no shared file) and
+resolves the two shared files as follows:
 
 - `core/mindef_permissions.py` (module docstring only): #1014's evidence
   classification sentences are kept, with this PR's pointer to the per-component

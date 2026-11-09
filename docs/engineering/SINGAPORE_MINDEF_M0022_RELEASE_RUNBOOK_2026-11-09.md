@@ -32,10 +32,15 @@ A failed migration step fails the Daily job before collection, commit or deploy.
 ## 2. What m0022 changes (rehearsed on a copy of the tracked database)
 
 Rehearsal date 2026-11-09, code at the integration head, input = the tracked
-`pla_watch.db` at git blob `d0fdab6d8e936eb5c4a8643bd5ffaa898672fe2c`
-(sha256 `6520f739d2b80934a82636b524907d577c15b47d98c7f92714711be217683324`,
-identical on `origin/main` `8a79605212`). The copy lived outside the repository;
-the tracked file's hash was unchanged afterwards.
+`pla_watch.db` of `origin/main` `aafddd1397` (the 2026-11-09 Daily update; the
+later `b4323c13ad` changed only `.github/state/` files, so the blob is the same), git
+blob `5cdb17c5d85a009f9ee9a99b48102f64e26ba146`, sha256
+`984dc8ce2d5aa0861f00dbc0a8a4531674dc96e05e888dfae2b16b9d7efc2d56`. The copy
+lived outside the repository; the tracked file's hash was unchanged afterwards.
+The rehearsal was first run on the previous main blob
+`d0fdab6d8e936eb5c4a8643bd5ffaa898672fe2c` (`8a79605212`) with the same results,
+then repeated after the Daily commit moved main. Main moves daily, so section 3
+item 4 requires a repeat if the blob has changed again at merge time.
 
 | Check | Before | After |
 | --- | --- | --- |
@@ -43,15 +48,20 @@ the tracked file's hash was unchanged afterwards.
 | `--dry-run` | file hash unchanged | n/a |
 | Tables | n/a | one added: `singapore_mindef_source_records` (0 rows) |
 | Row counts in every pre-existing table | n/a | unchanged except `schema_migrations` 21 → 22 |
-| `daily_machine_records` | 6 rows (AFP 4, NSC 1, Kemhan 1; 0 Singapore) | identical |
+| `daily_machine_records` | 6 rows (AFP 4, NSC 1, Kemhan 1; 0 Singapore) | identical (6; 0 Singapore) |
 | Triggers added / removed | n/a | none; four **replaced**: `mindef_public_no_machine_insert`, `mindef_public_no_machine_update`, `daily_machine_parent_insert`, `daily_machine_parent_update` |
 | `integrity_check` / `foreign_key_check` | n/a | `ok` / empty |
 | `--verify` | n/a | `RESULT: OK`, all orphan counts 0 |
 | `scripts/verify_db_current.py --db` | n/a | `fully_current` |
 | Second `--apply` | n/a | applies nothing (idempotent) |
 
-Trigger behaviour on the migrated copy, each probe in a rolled-back
-transaction:
+Trigger behaviour, each probe in a rolled-back transaction. The full six-probe
+set ran on the previous blob; on the current blob the first two rows were
+re-run directly against the migrated copy (all aborted, zero Singapore rows
+left), and the whole set is covered by `SingaporeAdmission` and the identity
+tests in `tests/test_singapore_daily_completion.py`, which passed. The two
+direct frozen-identity probes have no parent either, so they confirm the hold,
+not the identity rule in isolation; the tests isolate it.
 
 | Insert into `daily_machine_records` | Result |
 | --- | --- |
@@ -173,6 +183,8 @@ After the deploy step finishes, with the pages' own text as the source of truth:
   public page (`scripts/audit_mindef_public_surfaces.py` reports zero rows).
 - `scripts/validate_output.py` on the deployed `output/`: 10 governed warnings is
   the documented baseline; any new warning is investigated, not suppressed.
+  Pre-merge evidence: the tracked `output/` gives 10 warnings; a render from the
+  migrated disposable DB copy laid over a copy of `output/` gives 7, none new.
 
 ## 8. Rollback
 
