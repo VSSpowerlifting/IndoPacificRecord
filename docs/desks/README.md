@@ -22,7 +22,8 @@ restrictions and human editorial approvals remain authoritative in their scope.
 **Source-use evaluation:** [the canonical research-first standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
 recognizes use-specific legal bases, including applicable exceptions, without
 a universal publisher-letter prerequisite. It does not change existing source
-holds, components, activation or MINDEF's specific written-grant decision.
+holds, components, activation or MINDEF's distinct original-text, media,
+model and public-data restrictions; outbound-link grants are not corpus rights.
 
 **Adoption is not migration.** This documentation change does not consolidate
 the running code, qualify a revision, grant source rights, activate a collector,

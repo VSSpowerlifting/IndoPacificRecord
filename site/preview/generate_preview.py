@@ -666,7 +666,7 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
-        # Exact written permission for two MINDEF hyperlinks, not source-text reuse.
+        # Official-host outbound-link safety check, not source-text reuse.
         # Derived presentation field; never changes raw corpus custody or fingerprint.
         rec["mindef_link_allowed"] = source_link_approved(rec["source_slug"], rec["url"])
         if rec["id"] in vietnam:

@@ -1159,5 +1159,140 @@
     "built_with": {
       "pillow": "13.0.0"
     }
+  },
+  {
+    "id": "liaoning-j15-20220506-cover",
+    "file": "liaoning-j15-20220506-cover.jpg",
+    "sha256": "08b425ca9680ed5aeb99e5b2cdf7762feee72b6eacd313441e1da81c3c90870b",
+    "alt": "A J-15 fighter approaches the stern of the aircraft carrier Liaoning at sea.",
+    "caption": "The Chinese aircraft carrier Liaoning and an approaching J-15 fighter during operations on May 5, 2022, photographed by Japan’s Joint Staff. Archival image; does not depict the November 2026 deployment.",
+    "date_note": "Japan Joint Staff notice published May 6, 2022; reports May 5 activity.",
+    "creator": "Japan Ministry of Defense, Joint Staff",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "credit": "Japan Ministry of Defense, Joint Staff · CC BY 4.0 · via Wikimedia Commons",
+    "source_page": "https://commons.wikimedia.org/wiki/File:A_PLAN_Shenyang_J-15_carrier-based_fighter_aircraft_is_preparing_to_land_on_Chinese_aircraft_carrier_PLANS_Liaoning_(CV-16)_20220506.jpg",
+    "source_label": "Wikimedia Commons",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "china-western-pacific-deployment-coordination-2026"
+      ],
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": []
+    },
+    "focal": "50% 50%",
+    "notice": "",
+    "original_url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/A_PLAN_Shenyang_J-15_carrier-based_fighter_aircraft_is_preparing_to_land_on_Chinese_aircraft_carrier_PLANS_Liaoning_%28CV-16%29_20220506.jpg",
+    "origin_reference": "https://www.mod.go.jp/js/pdf/2022/p20220506_02.pdf",
+    "license_basis": "Japan MOD PDL 1.0 and Commons CC BY 4.0; see docs/evidence/brief-b-cover-2026-11-07/README.md",
+    "retrieval": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/A_PLAN_Shenyang_J-15_carrier-based_fighter_aircraft_is_preparing_to_land_on_Chinese_aircraft_carrier_PLANS_Liaoning_%28CV-16%29_20220506.jpg",
+      "retrieved_at": "2026-11-07T20:42:44Z",
+      "status": 200,
+      "bytes": 393520,
+      "etag": "247a22a59b6849fa17b7a314836bc975",
+      "user_agent": "curl/8.7.1"
+    },
+    "derivatives": [
+      {
+        "file": "derivatives/liaoning-j15-20220506-cover-1600.jpg",
+        "width": 1498,
+        "height": 999,
+        "sha256": "a170af49011e1ec07c30c7546a43e62e30c0a63da017c2be3aee859987839c92"
+      },
+      {
+        "file": "derivatives/liaoning-j15-20220506-cover-800.webp",
+        "width": 800,
+        "height": 534,
+        "sha256": "e65bafd429cfa8942e9ea4f8ba1834fd8971f72e826ea49c27969085be5c97de"
+      },
+      {
+        "file": "derivatives/liaoning-j15-20220506-cover-1600.webp",
+        "width": 1498,
+        "height": 999,
+        "sha256": "a36c5fa1596f45e5282f024c1d96e26a7921059e06aa7ae63aab97199d5070cf"
+      }
+    ],
+    "built_with": {
+      "pillow": "11.3.0"
+    }
+  },
+  {
+    "id": "patkor-indopura-context-2025",
+    "file": "patkor-indopura-context-2025.jpg",
+    "sha256": "0178cc48b180125e5d9e59248b0e67e6601d46189c70927b8b8ab6f65184afe4",
+    "alt": "Two Indonesian Air Force F-16 fighters fly above the clouds, seen past the wing of a U.S. Air Force tanker aircraft.",
+    "caption": "Two Indonesian Air Force F-16 fighters during a separate air-refuelling training mission over Indonesia, 19 February 2025. Context image; does not depict the November 2026 joint patrol.",
+    "date_note": "Photographed 19 February 2025; historical context.",
+    "creator": "Master Sgt. Mysti Bicoy, U.S. Air National Guard",
+    "license": "Public domain",
+    "license_url": "https://www.dvidshub.net/about/copyright",
+    "credit": "Master Sgt. Mysti Bicoy, U.S. Air National Guard · Public domain · via DVIDS",
+    "source_page": "https://www.dvidshub.net/image/8879603/hiang-conducts-aar-with-idaf",
+    "source_label": "DVIDS",
+    "dod_id": "250219-Z-RV808-7846",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "singapore-indonesia-first-joint-fighter-patrol"
+      ],
+      "article_urls": [],
+      "categories": [],
+      "threads": [],
+      "editions": [],
+      "routes": []
+    },
+    "focal": "50% 50%",
+    "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+    "original_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/HIANG_conducts_AAR_with_IDAF_%288879603%29.jpg",
+    "origin_reference": "https://www.dvidshub.net/image/8879603/hiang-conducts-aar-with-idaf",
+    "license_basis": "DVIDS public-domain marking and terms with non-endorsement notice; see docs/evidence/brief-cover-patkor-2026-11-07/README.md",
+    "retrieval": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/HIANG_conducts_AAR_with_IDAF_%288879603%29.jpg",
+      "retrieved_at": "2026-11-07T20:50:23Z",
+      "status": 200,
+      "bytes": 9623082,
+      "etag": "1a143d1530e74ba972bd3ff8f16f3e27",
+      "user_agent": "IPR-editorial-review/1.0"
+    },
+    "derivatives": [
+      {
+        "file": "derivatives/patkor-indopura-context-2025-1600.jpg",
+        "width": 1600,
+        "height": 1067,
+        "sha256": "f8a45a411686e726291fdd3003bff63c0447bb9005da40acc9d65e199eee4332"
+      },
+      {
+        "file": "derivatives/patkor-indopura-context-2025-800.webp",
+        "width": 800,
+        "height": 533,
+        "sha256": "834ceb443db22f28d6ca935f0eea488148052c254188c56cef7388e9a08c01c5"
+      },
+      {
+        "file": "derivatives/patkor-indopura-context-2025-1600.webp",
+        "width": 1600,
+        "height": 1067,
+        "sha256": "f9f5753f3727846dd615b1f5dc2ef10e9014f6c0d80ae720288f2bc79b563d13"
+      }
+    ],
+    "built_with": {
+      "pillow": "11.3.0"
+    }
   }
 ]

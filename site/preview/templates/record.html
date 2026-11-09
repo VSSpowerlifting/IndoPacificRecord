@@ -138,16 +138,15 @@
     <section class="record-section" aria-labelledby="record-text">
       <div class="layer-head"><h2 id="record-text">Source-use limits</h2>
         <span class="evidence evidence--record">Source record</span></div>
-      {# The MINDEF email of 2026-10-29 grants hyperlink permission only for two
-         specified URLs. A capture in the database does not grant public text
-         reproduction; retain private custody and metadata, not the public body. #}
+      {# Linking never grants public text reproduction; preserve private custody
+         and metadata separately from restricted original material. #}
       <p>MINDEF's original article text and media are not reproduced here.
-      Written permission covers hyperlinks to two specified releases only;
-      it does not grant permission to reproduce or distribute article text.</p>
+      Outbound links lead to the official publisher site;
+      linking does not grant permission to reproduce or distribute article text.</p>
       {% if record.mindef_link_allowed %}
-      <p><a href="{{ record.url }}" rel="noopener nofollow">Read the authorized official source page</a>.</p>
+      <p><a href="{{ record.url }}" rel="noopener nofollow">Read the official source page</a>.</p>
       {% else %}
-      <p>The original URL is recorded in provenance but is not an authorized hyperlink.</p>
+      <p>The original URL is recorded in provenance but did not pass the official-host URL check.</p>
       {% endif %}
     </section>
     {% else %}
@@ -208,7 +207,7 @@
           <tr><th scope="row">Source outlet</th><td class="prov-value"><a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a> <span class="meta">({{ record.source_slug }})</span></td></tr>
           <tr><th scope="row">Source language</th><td class="prov-value">{{ record.language_tag or '—' }} <span class="meta">— an attribute of the source, not of this record</span></td></tr>
           <tr><th scope="row">Source-stated publication date</th><td class="prov-value">{{ record.published_date }}</td></tr>
-          <tr><th scope="row">Original URL</th><td class="prov-value">{% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>{% else %}{{ record.url }} <span class="meta">— link not permitted</span>{% endif %}</td></tr>
+          <tr><th scope="row">Original URL</th><td class="prov-value">{% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>{% else %}{{ record.url }} <span class="meta">— link failed safety validation</span>{% endif %}</td></tr>
           <tr><th scope="row">Collected at</th><td class="prov-value">{{ record.scraped_at }} <span class="meta">— collection metadata, not a publication time</span></td></tr>
           <tr><th scope="row">Content fingerprint</th><td class="prov-value"><span class="token">{{ record.content_hash }}</span> <span class="meta">— taken when the record was captured, over the stored original title and text{% if record.source_slug == 'sg_mindef_releases' %}, which are held privately and not published{% endif %}</span></td></tr>
           {% if record.scrape_run_id is not none %}
@@ -322,7 +321,7 @@
       {% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}
       <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>
       {% else %}
-      <p class="meta">This MINDEF page is not within IPR's approved hyperlink scope.</p>
+      <p class="meta">This MINDEF URL did not pass the official-host URL check.</p>
       {% endif %}
     </div>
     {% if dossier_records is defined and dossier_records[record.id] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}

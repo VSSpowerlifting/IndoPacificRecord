@@ -876,9 +876,15 @@ def reconcile(base_path, origin_path, local_path, out_path):
                 if tuple(existing) != tuple(row):
                     raise ValueError("daily_machine_record_version_conflict")
                 continue
-            parent = con.execute("SELECT metadata_version_sha256 FROM regional_official_source_links "
-                                 "WHERE source_family=? AND source_identity=?",
-                                 (row["source_family"], row["source_identity"])).fetchone()
+            from core.daily_sources import source_for
+            source = source_for(row["source_family"])
+            if source is not None and source.parent:
+                link = source.parent_link(con, row["source_identity"])
+                parent = link and (link["metadata_version_sha256"],)
+            else:
+                parent = con.execute("SELECT metadata_version_sha256 FROM regional_official_source_links "
+                                     "WHERE source_family=? AND source_identity=?",
+                                     (row["source_family"], row["source_identity"])).fetchone()
             if parent is None or parent[0] != row["metadata_version_sha256"]:
                 raise ValueError("daily_machine_record_parent_version_conflict")
             con.execute("INSERT INTO daily_machine_records VALUES (" + ",".join("?" for _ in machine_cols) + ")", tuple(row))

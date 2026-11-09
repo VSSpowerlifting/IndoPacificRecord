@@ -144,7 +144,9 @@ class CommittedCoverTests(unittest.TestCase):
         self.assertEqual(set(named), {ENTRY_ID, 'laos-vientiane-museum-plane',
                                       'japan-f15dj-east-china-sea-2023',
                                       'hms-tamar-puerto-princesa-2022',
-                                      'amraam-training-2025', 'jintsu-de230'})
+                                      'amraam-training-2025', 'jintsu-de230',
+                                      'liaoning-j15-20220506-cover',
+                                      'patkor-indopura-context-2025'})
         self.assertIsNotNone(bcv.brief_cover('what-is-being-built-in-laos', ROOT))
         self.assertIsNotNone(bcv.brief_cover(SLUG, ROOT))
 

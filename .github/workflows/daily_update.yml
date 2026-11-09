@@ -215,7 +215,7 @@ jobs:
       - name: Run offline test suite
         id: offline
         if: steps.timecheck.outputs.should_run == 'true' && steps.qualification.outputs.reused != 'true'
-        run: python -m unittest discover -s tests -t . -v
+        run: python -m scripts.parallel_unittest -s tests -t . -v
 
       # Measures exactly one phase: the offline suite. Placed immediately after
       # it and BEFORE the reconciliation re-run, the pipeline and every commit

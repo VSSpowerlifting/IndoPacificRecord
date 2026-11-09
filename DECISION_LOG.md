@@ -1,8 +1,154 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-07 — Brief No. 24 editing and analysis credit
+
+After Brief No. 24 went live, Benjamin Yang, Founder & Executive Director,
+directed and authorized a role-specific **Editing** and **Research and analysis**
+credit for Benjamin Yang on this article. Dylan Tanzi remains the **sole
+bylined author**; Benjamin Yang is not added as a co-author. These are two
+existing non-author credit roles, not a new publication role or author identity.
+
+The correction changes only the `editorial_credits` field, which the existing
+Brief renderer displays as "Edited by Benjamin Yang" and "Research and analysis
+by Benjamin Yang". The headline, article body, paragraph support, all six
+publisher references, source-use terms, issue identity, cover, catalogue photo,
+author biography and sole-author citation are unchanged.
+
+Because the canonical editorial fingerprint includes credit fields, the earlier
+fingerprint `3b38dbf6…` is superseded by
+`3743f5ad02dbf30a5f0f6f8284de48ff917342a726dcc00932334fde211c2453`.
+The presentation sections and excerpts are unchanged; only their manuscript
+binding changes, yielding digest
+`a7c41b95e80011e00d409c56345ff4a1bac051f998fa06efaa4f14c5e3b34bf8`.
+
+The founder's new instruction authorizes the added credit, **not a new review
+of the underlying official sources or a new inspection of the revised rendered
+page**. The prior source, policy and presentation assessment remains applicable
+only because all substantive reporting and image/rights evidence is unchanged.
+The revised render and current-commit release checks must pass, and the public
+credit display must be independently read back after deployment. Do not count
+this correction as a new human fact-check or a second article.
+
+## 2026-11-07 — Brief No. 24 sole authorship: Dylan Tanzi
+
+Benjamin Yang, as Founder, directed and approved on 7 November 2026, in his
+written release instructions to the release agent (not posted publicly), that
+Dylan Tanzi is the sole author of Brief No. 24, "Singapore and Indonesia Fly
+Their First Joint Fighter Patrol". Benjamin Yang is removed from the byline and
+from all public author metadata. The approval is the founder's own; it does not
+come from Dylan Tanzi or anyone else.
+
+- Credit: `author_name` Dylan Tanzi, `author_title` Lead Research Analyst,
+  `author_bio` the canonical `site/preview/staff.json` biography, which Brief
+  No. 20 also uses. The separate co-author `research_contributor` record is
+  removed, including its different biography.
+- Unchanged: headline, dek, all nine paragraphs, including the paragraph 6
+  paraphrase, all six publisher references, `paragraph_support`,
+  `manuscript_sha256`, issue number, cover and caption. A script compared them
+  with the previous revision and found them byte-identical.
+- Fingerprints: the editorial fingerprint binds credit fields, so it changed
+  from `21ab36ab…` to the value now in the sidecar. The presentation digest
+  changed from `d45f371e…` because only its `manuscript_fingerprint` binding
+  changed; headings and excerpts did not. The earlier values are superseded, and
+  the earlier PR #1005 receipt (comment 6715346963) covered the co-authored
+  byline at those digests only.
+- What the rebound `editorial_review` checks rest on:
+  - `original_language`, `claim_support`, `chronology` and `limited_source_use`
+    are carried over from the founder's 7 November review of the unchanged
+    reporting. There was no new source review.
+  - `authorship` rests on this instruction.
+  - `manuscript_fidelity` and `rendered_review` rest on the automated render and
+    `manuscript_html_errors` checks of the final revision. They do not rest on a
+    new human inspection of the page.
+- The `policy_ruling`, presentation approval and publication approval are
+  rebound to this entry on the founder's authority in the same instruction.
+
+This entry does not change the factual conclusions or the source-rights position
+recorded in `docs/PATKOR_BRIEF_RELEASE_2026-11-07.md`.
+
+## 2026-11-07 — Brief No. 24 Patkor Indopura context cover
+
+Benjamin Yang, as Founder, approved DVIDS photograph 8879603 for both Brief
+No. 24 surfaces in his written release instructions of 7 November 2026 (given to
+the release agent, not posted publicly). The image shows Indonesian F-16s on a
+separate 19 February 2025 refuelling mission, not the November 2026 patrol, and
+the caption says so. It uses the centred 3:2 card and the standard CSS gradient.
+His separate visual check of the numbered cover and catalogue card is recorded
+on PR #1005 when he gives it. See the
+[image evidence](docs/evidence/brief-cover-patkor-2026-11-07/README.md) for
+source, rights, retrieval and limits. This decision does not attest the patrol.
+
+## 2026-11-07 — Founder: retire MINDEF two-URL outbound-link limit (adopted)
+
+Adopted 7 November 2026 by Benjamin Yang, Founder & Executive Director (PR
+#1005, comment 6715346963), "based on the permission wording previously
+supplied, with the original later correspondence still unverified". He did not
+personally authenticate the later MINDEF reply, and nobody else has. This ruling
+satisfies the review requirement below on the founder's authority; it is not an
+original-evidence confirmation. Outbound links only; no reproduction rights.
+
+Original candidate text:
+
+Founder supplied text attributed to a new MINDEF response granting all linking
+requests, including future requests, and instructed removal of the internal
+page-by-page link policy. The underlying message, sender and original channel
+have not been independently inspected. Propose replacing the exact two-URL
+allowlist with official-host HTTPS URL validation; this is a source-rights
+change requiring PR review and original-evidence confirmation before adoption.
+No copied correspondence or private contact information is public.
+Preserve text/media, model, collection, public-data, source integrity and cost
+holds. No Brief editorial attestation, issue number, merge, activation, deploy
+or public release is authorized by this policy candidate.
+
+
 Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
+
+## 2026-11-07 — Brief No. 23 archival Liaoning cover
+
+Benjamin Yang approved the Japan Joint Staff May 2022 Liaoning/J-15 image for
+both Brief No. 23 surfaces, the centered 3:2 card, restrained CSS gradient and
+archival caption in [PR #1003 comment 6712855433](https://github.com/VSSpowerlifting/IndoPacificRecord/issues/1003#issuecomment-6712855433).
+The image is context, not the November 2026 deployment. See the
+[image evidence](docs/evidence/brief-b-cover-2026-11-07/README.md) for source,
+rights, retrieval and limits. This decision does not attest deployment.
+
+## 2026-11-07 — Founder: DAPA standing conditional eligibility; disabled integration
+
+**Decided (founder, 7 Nov 2026):** under option A, standing conditional
+eligibility replaces per-release source-use signatures, including for
+`156788018` when its exact version qualifies. A version is eligible only when
+it authenticates the preserved page's Type 0 text mark, the page-to-HWPX
+attachment binding, the sole DAPA issuer and the approved lead/body scope;
+joint, ambiguous, changed or excluded material stays held and public
+originals stay link-only. Page-to-attachment binding does **not** prove licence
+equivalence: this accepts the documented interpretation and does not claim
+equivalence was verified. The DAPA profile is integrated into the shared daily
+lifecycle **disabled by default** (all policy flags false, desk unregistered;
+m0021 is not yet in production; the daily workflow applies it on the first run after merge, and a scratch-copy rehearsal preserved every existing row). **Model pair approved (same day):** `claude-haiku-4-5-20251001` relevance and
+`claude-sonnet-4-6` summary under the 0.35 USD per-run guard; this authorizes no
+call or spend. **Not authorized:** provider terms, private or public processing, activation, merge or deployment. See
+[decision §8–§9](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md#9-shared-pipeline-integration-7-nov-2026-and-activation-proposal).
+
+## 2026-11-04 — Owner decision: Korea DAPA source family, option A (partial)
+
+**Decided (Ben, in chat, 4 Nov 2026): option A** of the
+[decision candidate](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md).
+For DAPA-authored prose in the linked HWPX, the published KOGL Type 0 text
+notice may be relied on **per version**, only when the notice replays from the
+hash-bound preserved page, the issuer is structurally sole, and the candidate's
+screens pass. This permits private inference/translation and independently
+worded, attributed explanations as source uses. Public originals stay
+link-only. Issuer identity rests on the portal statement and HWPX structure,
+and the 28 October capture is distinct from today's terms.
+
+**Still open:** (2) whether public originals stay link-only under the 17 October
+policy (option A assumes they do; not separately confirmed); (3) model input,
+provider and cost; (4) a standing replay-plus-screens rule versus per-version
+sign-off. **Not authorized:** source activation, a DAPA policy entry, publisher
+contact, model spend, merge or deployment. #975 and #976 are superseded as one
+change and are not closed.
 
 ## 2026-11-04 — Founder: research-first source-use reform (review implementation)
 
