@@ -39,11 +39,17 @@ TRANSLATED_LABELS = {"Research": CONCEPTS[r"\bresearch\b"],
                      "Human": CONCEPTS[r"\bhuman[- ]resources?\b"],
                      "Resource": CONCEPTS[r"\bhuman[- ]resources?\b"],
                      # Weekday names are translated, not copied. Lowercase
-                     # "minggu" means "week", so Sunday must match "Minggu".
+                     # "minggu" means "week", so Sunday must match "Minggu"; a
+                     # capitalised "Minggu" that opens a sentence or headline
+                     # can still mean "week" ("Minggu ini", "Minggu depan",
+                     # "Minggu ke-2"), so "hari Minggu" is always Sunday and a
+                     # bare "Minggu" is Sunday only when no week word follows.
                      "Monday": r"\bSenin\b", "Tuesday": r"\bSelasa\b",
                      "Wednesday": r"\bRabu\b", "Thursday": r"\bKamis\b",
                      "Friday": r"\bJum'?at\b", "Saturday": r"\bSabtu\b",
-                     "Sunday": r"(?-i:\bMinggu\b)"}
+                     "Sunday": (r"(?-i:\b[Hh]ari\s+Minggu\b|\bMinggu\b(?!\s+(?:ini|lalu|depan|"
+                                r"kemarin|besok|pertama|kedua|ketiga|keempat|kelima|"
+                                r"terakhir|ke-?\s?\d)\b))")}
 # Ordinary English "development" also renders these exact local phrases. Each
 # pair is accepted only when its own Indonesian phrase is in the cited passage;
 # every other "development" still needs "pengembangan" there.

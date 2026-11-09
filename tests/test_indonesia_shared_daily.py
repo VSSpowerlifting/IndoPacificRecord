@@ -355,9 +355,21 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertEqual(len(d.quality_check(*run('Tuesday'))),64)
         r,reply=run('Sunday','Latihan direncanakan akan berlangsung pada Minggu, 23 Oktober.')
         self.assertEqual(len(d.quality_check(r,reply)),64)
+        # "Hari Minggu" and a bare "Minggu" before a date are Sunday.
+        for source in ('Hari Minggu ini, 23 Oktober, latihan direncanakan.',
+                       'Latihan direncanakan pada hari Minggu, 23 Oktober.',
+                       'Latihan direncanakan pada Minggu (23 Oktober).'):
+            r,reply=run('Sunday',source)
+            with self.subTest(sunday=source):
+                self.assertEqual(len(d.quality_check(r,reply)),64)
+        # A capitalised "Minggu" meaning "week" must not support "Sunday".
         for day,source in (('Wednesday',evidence),
                            ('Tuesday','Latihan direncanakan akan berlangsung pada 23 Oktober.'),
-                           ('Sunday','Latihan satu minggu direncanakan pada 23 Oktober.')):
+                           ('Sunday','Latihan satu minggu direncanakan pada 23 Oktober.'),
+                           ('Sunday','Minggu ini direncanakan latihan pada 23 Oktober.'),
+                           ('Sunday','Minggu depan direncanakan latihan pada 23 Oktober.'),
+                           ('Sunday','Minggu lalu direncanakan latihan pada 23 Oktober.'),
+                           ('Sunday','Minggu pertama direncanakan latihan pada 23 Oktober.')):
             r,reply=run(day,source)
             with self.subTest(day=day,source=source),self.assertRaisesRegex(d.IntakeHold,'daily_name_or_office_unsupported'):
                 d.quality_check(r,reply)
