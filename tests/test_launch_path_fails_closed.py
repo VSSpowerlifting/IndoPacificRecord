@@ -221,8 +221,15 @@ class TestTheLaunchDomainIsCommittedEverywhereItIsNeeded(unittest.TestCase):
         for rel in self.WORKFLOWS:
             text = (ROOT / rel).read_text(encoding="utf-8")
             found = re.findall(r"^\s*cname:\s*(\S+)\s*$", text, re.M)
+            via_helper = bool(re.search(r"scripts/pages_release\.py\b.*--push\b", text))
             with self.subTest(file=rel):
-                self.assertEqual(found, [LAUNCH_DOMAIN])
+                if via_helper:
+                    # The helper publishes the committed main:output tree and
+                    # refuses one without CNAME, so the domain is the committed
+                    # file pinned above. A stray cname input could only disagree.
+                    self.assertEqual(found, [])
+                else:
+                    self.assertEqual(found, [LAUNCH_DOMAIN])
 
     def test_no_deploy_workflow_still_claims_the_predecessor_domain(self):
         """

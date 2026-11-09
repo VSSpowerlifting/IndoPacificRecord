@@ -12,22 +12,27 @@ The publish primitives mirror the release mechanics in this repository:
   gh-pages, copy one file, require ``origin/gh-pages`` to be unchanged, then
   push without force.
 
-Tests named ``test_current_*`` CHARACTERIZE today's behaviour, including the
-unsafe outcomes. They pass because the hazard is real, not because it is
-fixed. ``ReferenceFence`` is a test-only sketch of the recommended fix; no
-workflow uses it.
+Tests named ``test_current_*`` CHARACTERIZE the legacy writers that have NOT
+been migrated (peaceiris full-tree, file-only, overlay, out-of-band pushes),
+including their unsafe outcomes. They pass because the hazard is real.
+
+``HelperProtocol`` drives the real ``scripts/pages_release.py`` through its
+CLI against the same sandbox and asserts that each hazard is refused or
+recovered. Provenance is the ``Source-SHA`` trailer on the gh-pages commit.
 """
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-MANIFEST = ".ipr-release.json"
+REPO = Path(__file__).resolve().parents[1]
+HELPER = REPO / "scripts" / "pages_release.py"
+TRAILER = "Source-SHA"
 
 
 class StaleRefused(Exception):
@@ -164,63 +169,14 @@ class GitSandbox:
             dest.write_text(body, encoding="utf-8")
 
 
-class ReferenceFence:
-    """Test-only reference design. NOT used by any workflow.
-
-    Content and a release manifest land in ONE gh-pages commit. A publish
-    states the generation it expects; a forward publish must descend from
-    the deployed source; a rollback must name both the expected current
-    source and its target. Push stays non-force so the parent CAS also holds.
-    """
-
-    def __init__(self, box: GitSandbox):
-        self.box = box
-
-    def current(self):
-        raw = self.box.pages(MANIFEST)
-        return json.loads(raw) if raw else {"generation": 0, "source_sha": None}
-
-    def publish(self, src_checkout, writer, expected_generation, rollback=None, files=None):
-        box = self.box
-        source_sha = box.git(src_checkout, "rev-parse", "HEAD")
-        cur = self.current()
-        if cur["generation"] != expected_generation:
-            raise StaleRefused("generation %s != expected %s"
-                               % (cur["generation"], expected_generation))
-        if rollback is None:
-            if cur["source_sha"]:
-                box.git(src_checkout, "fetch", "-q", "origin", "main")
-                ok = subprocess.run(
-                    ["git", "merge-base", "--is-ancestor", cur["source_sha"], source_sha],
-                    cwd=src_checkout, env=box.env).returncode == 0
-                if not ok:
-                    raise StaleRefused("source is not a descendant of the deployed source")
-        elif (rollback.get("expected_current") != cur["source_sha"]
-              or rollback.get("target") != source_sha):
-            raise StaleRefused("rollback authorization does not match deployed state")
-        manifest = {"generation": cur["generation"] + 1, "source_sha": source_sha,
-                    "writer": writer, "rollback": bool(rollback)}
-        extra = {MANIFEST: json.dumps(manifest, sort_keys=True)}
-        if files is None:
-            box.full_tree(src_checkout / "output", message="Deploy %s" % source_sha[:12],
-                          extra=extra)
-        else:
-            for name in files:
-                extra[name] = (src_checkout / "output" / name).read_text(encoding="utf-8")
-            empty = box.root / ("overlay-src-%s" % source_sha[:8])
-            empty.mkdir(exist_ok=True)
-            box.full_tree(empty, keep_files=True, extra=extra,
-                          message="Overlay %s" % source_sha[:12])
-        return manifest
-
-
 class RaceCase(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, True)
         self.box = GitSandbox(self.tmp)
         self.box.seed({"index.html": "home v1", "korea.html": "korea v1",
-                       "desks.html": "desks v1"})
+                       "desks.html": "desks v1", "CNAME": "example.invalid\n",
+                       ".nojekyll": ""})
 
 
 class CurrentProtocol(RaceCase):
@@ -326,71 +282,137 @@ class CurrentProtocol(RaceCase):
         # Crash here: Step 8 never writes .github/state/last_daily_run_date.txt.
         message = box.pages_message()
         self.assertNotIn(box.main_sha()[:7], message)
-        self.assertIsNone(box.pages(MANIFEST))
+        self.assertNotIn(TRAILER, box.git(box.origin, "log", "-1", "--format=%B", "gh-pages"))
 
 
-class FencedProtocol(RaceCase):
-    def setUp(self):
-        super().setUp()
-        self.fence = ReferenceFence(self.box)
-        self.fence.publish(self.box.checkout_main("gen1"), "daily", expected_generation=0)
+class HelperProtocol(RaceCase):
+    """The real release helper against the same hazards."""
 
-    def test_fence_refuses_stale_full_tree_and_preserves_newer_page(self):
-        box, fence = self.box, self.fence
-        a = box.checkout_main("A-stale")
-        b = box.commit_main({"korea.html": "korea v2"}, "B")
-        fence.publish(b, "korea-file-only", expected_generation=1, files=["korea.html"])
-        with self.assertRaises(StaleRefused):
-            fence.publish(a, "daily", expected_generation=1)   # stale generation
-        with self.assertRaises(StaleRefused):
-            fence.publish(a, "daily", expected_generation=2)   # not a descendant
+    def release(self, checkout, push=True, writer="test"):
+        """Run the CLI from a checkout, releasing that checkout's HEAD."""
+        sha = self.box.git(checkout, "rev-parse", "HEAD")
+        cmd = [sys.executable, str(HELPER), "--repo", str(checkout), "--source", sha,
+               "--writer", writer]
+        if push:
+            cmd.append("--push")
+        done = subprocess.run(cmd, cwd=REPO, env=self.box.env, capture_output=True, text=True)
+        return done, sha
+
+    def pages_trailer(self):
+        body = self.box.git(self.box.origin, "log", "-1", "--format=%B", "gh-pages")
+        for line in body.splitlines():
+            if line.startswith(TRAILER + ":"):
+                return line.split(":", 1)[1].strip()
+        return None
+
+    def pages_tree(self):
+        return self.box.git(self.box.origin, "rev-parse", "gh-pages^{tree}")
+
+    def main_tree(self):
+        return self.box.git(self.box.origin, "rev-parse", "main:output")
+
+    def test_stale_full_tree_cannot_overwrite_a_newer_scoped_release(self):
+        box = self.box
+        a = box.checkout_main("A-daily")                       # job-start snapshot
+        b = box.commit_main({"korea.html": "korea v2"}, "B-korea")
+        box.file_only(b / "output" / "korea.html", "korea.html")   # legacy scoped push
+        done, _ = self.release(a)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(box.pages("korea.html"), "korea v2")  # B survives
+        self.assertIn('"action": "superseded"', done.stdout)
+
+    def test_daily_no_commit_path_cannot_revert_an_out_of_group_writer(self):
+        box = self.box
+        daily = box.checkout_main("daily")
+        korea = box.commit_main({"korea.html": "korea v2"}, "korea-verified")
+        self.assertEqual(self.release(korea)[0].returncode, 0)
+        done, _ = self.release(daily)                          # Step 7 still runs
+        self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(box.pages("korea.html"), "korea v2")
-        # Recovery preserves the other desk: rebuild from current main.
-        a2 = box.checkout_main("A-rebuilt")
-        fence.publish(a2, "daily", expected_generation=2)
-        self.assertEqual(box.pages("korea.html"), "korea v2")
 
-    def test_fence_accepts_only_explicit_matching_rollback(self):
-        box, fence = self.box, self.fence
+    def test_release_after_clone_to_push_window_reevaluates_not_overwrites(self):
+        # The helper decides from freshly fetched refs, so a stale snapshot
+        # that "re-clones a moment later" is still refused.
+        box = self.box
+        stale = box.checkout_main("A")
+        mover = box.commit_main({"desks.html": "desks v2"}, "B")
+        self.assertEqual(self.release(mover)[0].returncode, 0)
+        self.assertEqual(self.release(stale)[0].returncode, 0)
+        self.assertEqual(box.pages("desks.html"), "desks v2")
+
+    def test_pages_only_content_is_held_not_erased(self):
+        box = self.box
+        box.out_of_band({"receipts.html": "reviewed receipt"})
+        tip = box.git(box.origin, "rev-parse", "gh-pages")
+        fresh = box.commit_main({"index.html": "home v2"}, "daily")
+        done, _ = self.release(fresh)
+        self.assertEqual(done.returncode, 3, done.stdout)
+        self.assertEqual(box.pages("receipts.html"), "reviewed receipt")
+        self.assertEqual(box.git(box.origin, "rev-parse", "gh-pages"), tip)
+
+    def test_stale_overlay_is_held_not_compounded(self):
+        box = self.box
+        stale = box.checkout_main("A-desks")
+        newer = box.commit_main({"desks.html": "desks v2", "korea.html": "korea v2"}, "B")
+        self.assertEqual(self.release(newer)[0].returncode, 0)
+        patch = self.tmp / "patch"
+        patch.mkdir()
+        shutil.copyfile(stale / "output" / "desks.html", patch / "desks.html")
+        box.full_tree(patch, keep_files=True)                  # legacy overlay reverts desks
+        self.assertEqual(box.pages("desks.html"), "desks v1")
+        follow = box.commit_main({"index.html": "home v2"}, "C")
+        done, _ = self.release(follow)                         # drift is detected, not hidden
+        self.assertEqual(done.returncode, 3, done.stdout)
+        self.assertEqual(box.pages("desks.html"), "desks v1")
+
+    def test_stale_republish_is_not_a_rollback(self):
+        box = self.box
         v1 = box.checkout_main("v1")
-        v1_sha = box.git(v1, "rev-parse", "HEAD")
         v2 = box.commit_main({"index.html": "home v2"}, "v2")
-        v2_sha = box.git(v2, "rev-parse", "HEAD")
-        fence.publish(v2, "daily", expected_generation=1)
-        with self.assertRaises(StaleRefused):
-            fence.publish(v1, "deploy-output-only", expected_generation=2)
-        m = fence.publish(v1, "owner-rollback", expected_generation=2,
-                          rollback={"expected_current": v2_sha, "target": v1_sha})
-        self.assertTrue(m["rollback"])
+        self.assertEqual(self.release(v2)[0].returncode, 0)
+        done, _ = self.release(v1)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn('"action": "superseded"', done.stdout)
+        self.assertEqual(box.pages("index.html"), "home v2")
+        self.assertEqual(self.pages_trailer(), box.git(v2, "rev-parse", "HEAD"))
+
+    def test_rollback_is_a_new_main_commit_and_publishes_forward(self):
+        box = self.box
+        v2 = box.commit_main({"index.html": "home v2"}, "v2")
+        self.assertEqual(self.release(v2)[0].returncode, 0)
+        revert = box.commit_main({"index.html": "home v1"}, "revert")
+        done, sha = self.release(revert)
+        self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(box.pages("index.html"), "home v1")
-        with self.assertRaises(StaleRefused):                  # authorization is now stale
-            fence.publish(v1, "owner-rollback", expected_generation=3,
-                          rollback={"expected_current": v2_sha, "target": v1_sha})
+        self.assertEqual(self.pages_trailer(), sha)
 
-    def test_fence_accepts_fresh_descendant(self):
-        box, fence = self.box, self.fence
+    def test_fresh_descendant_publishes_exact_tree(self):
+        box = self.box
         v2 = box.commit_main({"desks.html": "desks v2"}, "v2")
-        m = fence.publish(v2, "desks", expected_generation=1)
-        self.assertEqual(m["generation"], 2)
-        self.assertEqual(json.loads(box.pages(MANIFEST))["source_sha"], box.main_sha())
+        done, sha = self.release(v2)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.pages_tree(), self.main_tree())
+        self.assertEqual(self.pages_trailer(), sha)
 
-    def test_fence_lets_crash_recovery_skip_redeploy(self):
-        box, fence = self.box, self.fence
+    def test_crash_recovery_reads_the_trailer_and_does_not_redeploy(self):
+        box = self.box
         daily = box.commit_main({"index.html": "home v2"}, "daily")
-        fence.publish(daily, "daily", expected_generation=1)
-        # Crash before the success marker. Recovery reads the attestation:
-        deployed = json.loads(box.pages(MANIFEST))
-        self.assertEqual(deployed["source_sha"], box.main_sha())  # write marker only
-        box.commit_main({"korea.html": "korea v2"}, "later")
-        self.assertNotEqual(json.loads(box.pages(MANIFEST))["source_sha"], box.main_sha())
+        self.assertEqual(self.release(daily)[0].returncode, 0)
+        tip = box.git(box.origin, "rev-parse", "gh-pages")
+        # Crash before the success marker: a retry is idempotent.
+        done, _ = self.release(daily)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn('"action": "current"', done.stdout)
+        self.assertEqual(box.git(box.origin, "rev-parse", "gh-pages"), tip)
 
-    def test_fence_does_not_cover_writers_that_bypass_it(self):
-        box, fence = self.box, self.fence
-        box.out_of_band({"receipts.html": "reviewed receipt"})   # no manifest bump
-        self.assertEqual(fence.current()["generation"], 1)
-        fresh = box.checkout_main("fresh")
-        fence.publish(fresh, "daily", expected_generation=1)
-        self.assertIsNone(box.pages("receipts.html"))            # still erased
+    def test_dry_run_never_writes(self):
+        box = self.box
+        v2 = box.commit_main({"index.html": "home v2"}, "v2")
+        tip = box.git(box.origin, "rev-parse", "gh-pages")
+        done, _ = self.release(v2, push=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn('"published": false', done.stdout)
+        self.assertEqual(box.git(box.origin, "rev-parse", "gh-pages"), tip)
 
 
 if __name__ == "__main__":

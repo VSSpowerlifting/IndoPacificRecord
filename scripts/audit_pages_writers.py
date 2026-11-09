@@ -81,12 +81,14 @@ REGISTRY = {
     "country_research_render_only_release.yml::release": {
         "class": "full-tree", "locks": (SHARED_LOCK,),
         "guards": ("approved_sha", "main_cas", "main_ref_guard")},
-    # Known hazard: no-commit branch deploys the job-start checkout.
+    # Publishes through scripts/pages_release.py (generation fence); a newer
+    # Pages generation makes it a no-op, so a stale run cannot overwrite it.
     "daily_update.yml::update": {
         "class": "full-tree", "locks": (SHARED_LOCK,), "guards": ("staged_scope",)},
-    # Known hazard: outside daily-update, trigger SHA, no branch guard.
+    # Publishes main's output/ through scripts/pages_release.py. Its own queue is
+    # safe because the helper's fast-forward push is the compare-and-swap.
     "deploy_output_only.yml::deploy": {
-        "class": "full-tree", "locks": ("pages-deploy",), "guards": ()},
+        "class": "full-tree", "locks": ("pages-deploy",), "guards": ("main_ref_guard",)},
     "desks_p4a_render_only_release.yml::release": {
         "class": "overlay", "locks": (SHARED_LOCK, "pages-deploy"),
         "guards": ("approved_sha", "main_cas", "main_ref_guard")},
@@ -134,8 +136,9 @@ REGISTRY = {
         "class": "file-only", "locks": (SHARED_LOCK, "vietnam-ministry-shadow"),
         "guards": ("main_cas", "main_ref_guard", "pages_cas")},
 }
-# Scripts allowed to combine a push with gh-pages. None today.
-SCRIPT_REGISTRY: dict = {}
+# Scripts allowed to combine a push with gh-pages.
+HELPER = "scripts/pages_release.py"
+SCRIPT_REGISTRY: dict = {HELPER: "generation-fenced release helper"}
 
 # Escalation order: a writer may move left (narrower) but never right.
 _CLASS_RANK = {"file-only": 0, "overlay": 1, "full-tree": 2, "orphan": 3, "unknown": 4}
@@ -156,6 +159,7 @@ HAZARDS = {
 
 _PAGES_ACTIONS = ("peaceiris/actions-gh-pages", "actions/deploy-pages",
                   "actions/upload-pages-artifact", "github-pages-deploy-action")
+_HELPER_RE = re.compile(r"scripts/pages_release\.py\b.*--push\b")
 _PUSH_RE = re.compile(r"\bgit(?:\s+-C\s+\S+)?(?:\s+-c\s+\S+)*\s+push\b(.*)")
 _API_WRITE_RE = re.compile(r"\bgh\s+api\b.*(?:-X|--method)\s*(?:PUT|POST|PATCH|DELETE)")
 _GROUP_RE = re.compile(r"^\s*group:\s*(.+?)\s*$")
@@ -335,6 +339,10 @@ def audit_workflow(path):
                     if force:
                         cls = "orphan"
                         details["force_push"] = True
+            if _HELPER_RE.search(line):
+                signals.append("script:pages_release")
+                cls = cls or "full-tree"
+                publish_line = publish_line or (start + offset)
             if _API_WRITE_RE.search(line) and re.search(r"gh-pages|/pages\b|git/refs", line):
                 signals.append("gh-api-write")
                 cls = cls or "unknown"
@@ -353,7 +361,8 @@ def audit_workflow(path):
             "checkout_ref": checkout_ref or "<none>",
             "guards": sorted(guards),
             "fresh_before_publish": fresh,
-            "generation_fence": False,
+            # Fenced only when the helper is the job's sole publish path.
+            "generation_fence": set(signals) == {"script:pages_release"},
             **details,
         })
     return writers, problems
@@ -381,15 +390,18 @@ def audit_scripts(root):
 
 def hazards_for(writer):
     out = []
-    groups = " ".join(writer["concurrency"])
-    if writer["class"] in ("full-tree", "orphan"):
-        out.append("FULL_TREE_REPLACE")
+    # A helper-only writer is fenced: the helper re-reads fresh refs, refuses
+    # stale/diverged/unattributable states and publishes by fast-forward (a
+    # server-side compare-and-swap), so the structural hazards below are closed.
     if not writer["generation_fence"]:
+        groups = " ".join(writer["concurrency"])
+        if writer["class"] in ("full-tree", "orphan"):
+            out.append("FULL_TREE_REPLACE")
         out.append("NO_GENERATION_FENCE")
-    if SHARED_LOCK not in groups:
-        out.append("OUTSIDE_SHARED_LOCK")
-    if writer["class"] != "file-only" and not writer["fresh_before_publish"]:
-        out.append("NO_PREPUBLISH_FRESHNESS")
+        if SHARED_LOCK not in groups:
+            out.append("OUTSIDE_SHARED_LOCK")
+        if writer["class"] != "file-only" and not writer["fresh_before_publish"]:
+            out.append("NO_PREPUBLISH_FRESHNESS")
     if ("workflow_dispatch" in writer["triggers"] and "main_ref_guard" not in writer["guards"]
             and writer["checkout_ref"] != "main"):
         out.append("NO_MAIN_REF_GUARD")
@@ -547,8 +559,9 @@ def _text(report):
             {k: v for k, v in p.items() if k != "kind"}, sort_keys=True)))
     for n in report["notes"]:
         out.append("note %s %s" % (n["kind"], n["where"]))
-    out.append("Writers with a generation fence: %d. Passing this audit does NOT mean "
-               "the stale-deploy race is fixed." % report["summary"]["with_generation_fence"])
+    out.append("Writers with a generation fence: %d of %d. Writers without one remain "
+               "exposed to the stale-deploy race; passing this audit does not close it."
+               % (report["summary"]["with_generation_fence"], report["summary"]["writers"]))
     return "\n".join(out)
 
 

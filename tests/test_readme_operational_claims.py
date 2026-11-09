@@ -151,15 +151,15 @@ class TestReadmeCarriesNoUnresolvedPlaceholder(unittest.TestCase):
 
 class TestReadmePublishedUrlMatchesTheDeployStep(unittest.TestCase):
     """
-    The deploy step sets a CNAME. That domain, not a github.io path, is where
-    the site actually answers.
+    The deploy publishes the committed ``output/CNAME`` (scripts/pages_release.py
+    refuses to release a tree without it). That domain, not a github.io path,
+    is where the site actually answers.
     """
 
     def cname(self):
-        m = re.search(r"^\s*cname:\s*(\S+)",
-                      DAILY_WORKFLOW.read_text(encoding="utf-8"), re.M)
-        self.assertIsNotNone(m, "the deploy step sets no cname")
-        return m.group(1)
+        text = (REPO_ROOT / "output" / "CNAME").read_text(encoding="utf-8").strip()
+        self.assertTrue(text, "output/CNAME is empty; the deploy would publish no domain")
+        return text
 
     def test_readme_names_the_cname_domain(self):
         self.assertIn(self.cname(), readme_text(),

@@ -6,6 +6,10 @@ name: Deploy Rendered Output
 #
 # Use this when output/ has been re-rendered locally (e.g. after a template
 # or design change) and you want it live before the next scheduled daily run.
+#
+# Publication goes through scripts/pages_release.py, which makes gh-pages equal
+# the committed main:output of one main commit and refuses stale, rolled-back,
+# divergent or out-of-band-modified Pages generations (see docs/PAGES_RELEASE.md).
 
 on:
   workflow_dispatch:
@@ -19,11 +23,17 @@ permissions:
 
 jobs:
   deploy:
+    # Only the head of main may be released; a dispatch from another ref or an
+    # older trigger SHA must not publish.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: Check out latest main (full history for the ancestry checks)
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Verify output/ exists
         run: |
@@ -40,14 +50,8 @@ jobs:
       - name: Validate rendered output
         run: python3 scripts/validate_output.py
 
-      # Same deploy step the daily workflow uses, including the CNAME.
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
-          publish_branch: gh-pages
-          cname: indopacificrecord.org
-          user_name: github-actions[bot]
-          user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          commit_message: 'Deploy (output-only): ${{ github.run_id }}'
+      # Releases exactly the commit that was just validated. If gh-pages already
+      # serves a newer generation this is a no-op; if gh-pages was changed
+      # outside a release the step HOLDs (exit 3) instead of overwriting it.
+      - name: Release output/ to GitHub Pages
+        run: python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --writer "deploy_output_only ${{ github.run_id }}"

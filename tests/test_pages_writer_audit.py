@@ -55,12 +55,11 @@ class RepoInventory(unittest.TestCase):
 
     def test_inventory_matches_registry(self):
         self.assertEqual(set(self.by_id), set(audit.REGISTRY))
-        self.assertEqual(self.report["script_writers"], [])
+        self.assertEqual(self.report["script_writers"], [audit.HELPER])
 
     def test_known_writers_outside_shared_lock(self):
         self.assertEqual(self.report["summary"]["outside_shared_lock"], [
             "china_retirement_release.yml::release",
-            "deploy_output_only.yml::deploy",
             "indonesia_verified_official_link_production.yml::publish-indonesia-official-links",
             "korea_original_text_pages_release.yml::release-only-this-korean-original",
             "korea_reviewed_english_release.yml::owner-reviewed-korea-english-release",
@@ -71,21 +70,28 @@ class RepoInventory(unittest.TestCase):
         ])
 
     def test_known_hazards_are_reported_not_hidden(self):
-        dep = self.by_id["deploy_output_only.yml::deploy"]
-        self.assertEqual(dep["checkout_ref"], "<trigger>")
-        for code in ("FULL_TREE_REPLACE", "OUTSIDE_SHARED_LOCK",
-                     "NO_PREPUBLISH_FRESHNESS", "NO_MAIN_REF_GUARD"):
-            self.assertIn(code, dep["hazards"])
-        self.assertIn("NO_PREPUBLISH_FRESHNESS",
-                      self.by_id["daily_update.yml::update"]["hazards"])
+        # The unmigrated peaceiris writers keep every structural hazard visible.
+        china = self.by_id["china_focus_release.yml::release"]
+        for code in ("FULL_TREE_REPLACE", "NO_GENERATION_FENCE", "PROVENANCE_IS_TRIGGER_SHA"):
+            self.assertIn(code, china["hazards"])
         self.assertEqual(self.by_id["desks_p4a_render_only_release.yml::release"]["class"],
                          "overlay")
 
-    def test_no_writer_has_a_generation_fence_yet(self):
-        # Flip this assertion in the PR that implements the fence.
-        self.assertEqual(self.report["summary"]["with_generation_fence"], 0)
-        self.assertTrue(all("NO_GENERATION_FENCE" in w["hazards"]
-                            for w in self.report["writers"]))
+    def test_only_helper_publishers_have_a_generation_fence(self):
+        fenced = sorted(w["id"] for w in self.report["writers"] if w["generation_fence"])
+        self.assertEqual(fenced, ["daily_update.yml::update", "deploy_output_only.yml::deploy"])
+        self.assertEqual(self.report["summary"]["with_generation_fence"], len(fenced))
+        for w in self.report["writers"]:
+            self.assertEqual("NO_GENERATION_FENCE" in w["hazards"], not w["generation_fence"],
+                             w["id"])
+        for wid in fenced:
+            self.assertEqual(self.by_id[wid]["hazards"], [], wid)
+            self.assertEqual(self.by_id[wid]["signals"], ["script:pages_release"], wid)
+
+    def test_deploy_output_only_is_main_only(self):
+        dep = self.by_id["deploy_output_only.yml::deploy"]
+        self.assertEqual(dep["checkout_ref"], "main")
+        self.assertIn("main_ref_guard", dep["guards"])
 
     def test_file_only_writers_keep_pages_cas(self):
         for wid, writer in self.by_id.items():
@@ -257,6 +263,40 @@ jobs:
         self.write("j.yml", text)
         writer = self.run_audit()["writers"][0]
         self.assertEqual(writer["concurrency"], ["daily-update", "pages-deploy"])
+
+    HELPER_JOB = PEACEIRIS_JOB.split("      - name: Deploy")[0] + """\
+      - name: Release
+        run: python scripts/pages_release.py --push --source "$(git rev-parse HEAD)"
+"""
+
+    def test_helper_push_is_a_fenced_full_tree_writer(self):
+        self.write("h.yml", self.HELPER_JOB)
+        report = self.run_audit()
+        self.assertEqual(self.kinds(report), ["UNREGISTERED_WRITER"])
+        writer = report["writers"][0]
+        self.assertEqual((writer["class"], writer["generation_fence"]), ("full-tree", True))
+        self.assertEqual(writer["signals"], ["script:pages_release"])
+        self.assertEqual(writer["hazards"], [])
+
+    def test_helper_dry_run_is_not_a_writer(self):
+        self.write("h.yml", self.HELPER_JOB.replace(" --push", ""))
+        self.assertEqual(self.run_audit()["writers"], [])
+
+    def test_helper_alongside_another_publisher_is_not_fenced(self):
+        self.write("h.yml", self.HELPER_JOB + """\
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_dir: ./output
+""")
+        writer = self.run_audit()["writers"][0]
+        self.assertFalse(writer["generation_fence"])
+        self.assertIn("NO_GENERATION_FENCE", writer["hazards"])
+
+    def test_helper_does_not_hide_scope_or_guard_drift(self):
+        self.write("h.yml", self.HELPER_JOB)
+        reg = {"h.yml::ship": {"class": "file-only", "locks": ("daily-update",),
+                               "guards": ("main_ref_guard",)}}
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["GUARD_DROPPED", "SCOPE_ESCALATION"])
 
     def test_missing_registered_writer_is_note_not_failure(self):
         reg = {"gone.yml::ship": {"class": "full-tree", "locks": (), "guards": ()}}
