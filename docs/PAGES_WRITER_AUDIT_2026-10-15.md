@@ -304,3 +304,105 @@ would have stopped for an unrelated publisher change.
 Open PRs that touch workflows (#679 edits the registered
 `china_retirement_pages_retry`) keep passing unless they remove a registered
 guard or lock.
+
+## 7. Integration-readiness record for the helper (#725)
+
+This section records what the helper does and does not protect while the
+writers in §1 are only partly migrated. Status: implemented and tested
+locally; not merged, deployed or live. It is a risk and sequencing record, not
+a migration.
+
+### 7.1 Helper versus the unmigrated writers
+
+Both publishers share the `pages-deploy` concurrency group in some workflows
+and not in others, so correctness rests on the Pages ref compare-and-swap, not
+on queueing.
+
+| Unmigrated writer type | What it does to Pages | Helper outcome on the next release |
+| --- | --- | --- |
+| Direct `HEAD:gh-pages` file-only (9) | Fast-forwards one file onto the Pages tip. It first commits that file to `main:output`, but it neither checks that Pages equals `main:output` nor writes a `Source-SHA` trailer. | If `main:output` equals Pages plus that file, the tip attributes by legacy tree match and the release proceeds (`publish`, `current` or `superseded`). If `main:output` is **ahead** of Pages (merged but unreleased output), the tip matches no recent `main:output` and the helper **HOLDs** (exit 3). |
+| `peaceiris` full-tree (8) | Re-publishes a snapshot of `main:output`. | The tip matches a recent `main` commit, so the helper attributes it and publishes forward. The stale-rollback defect itself is unchanged until the writer is migrated. |
+| `peaceiris` overlay (`desks_p4a_render_only_release`) | Adds files that are not in `main:output`. | **HOLD** (gh-pages-only content is never erased). |
+
+The helper fails closed and overwrites nothing. A HOLD fails the release step
+only; collection, the database commit and evidence custody are unaffected.
+`tests/test_pages_release.py::UnmigratedWriterInteractionTests` pins each row,
+including the HOLD that repeats on consecutive releases while the tip is
+unchanged, and the manual reconcile that clears it.
+
+**The HOLD is a realistic steady state, not an edge case.** Merged-but-unreleased
+`main:output` is the normal state between a merge and `deploy_output_only`. A
+file-only writer dispatched in that window moves the Pages tip to a tree that
+exists on no `main` commit. The next Daily or `deploy_output_only` run then
+goes red until someone reconciles. No content is lost or rolled back.
+
+### 7.2 Detecting and clearing a HOLD (operator runbook)
+
+Detect, with no push (the helper is a dry run unless `--push` is passed):
+
+```bash
+git fetch origin main gh-pages
+python3 scripts/pages_release.py --source origin/main
+```
+
+`action=` is `current`, `superseded`, `publish` or a HOLD with the reason. A
+HOLD of "no Source-SHA trailer and matches no recent main:output" means a
+legacy writer moved the tip ahead of `main:output`.
+
+Clear it only with explicit authority, and only after confirming the delta is
+expected. The reconcile is a fast-forward commit whose tree is
+`<source>:output` on top of the current tip. It is never forced and never
+rewrites history:
+
+```bash
+SRC=$(git rev-parse origin/main); TIP=$(git rev-parse origin/gh-pages)
+git diff --stat "$TIP" "$SRC:output"   # review: what this reconcile will change on Pages
+NEW=$(git commit-tree "$SRC:output" -p "$TIP" -m "Reconcile Pages to main:output
+
+Source-SHA: $SRC
+Previous-Pages-SHA: $TIP
+Released-By: manual reconcile")
+git push origin "$NEW:refs/heads/gh-pages"   # non-force; rejected if Pages moved
+```
+
+Review the `git diff --stat` first. Any file that exists only on Pages is
+removed by this commit. File-only writers commit to `main:output` first, so for
+them `main:output` is a superset and nothing is lost. For the overlay writer
+the Pages-only files must be reviewed, and the reconcile is not safe until the
+desk owner confirms them.
+
+### 7.3 Remaining release risks
+
+1. Nothing here is merged, deployed or live. The first real Daily or
+   `deploy_output_only` run is the only evidence for the live push path.
+2. The HOLD stranding in §7.1, until the nine file-only writers are migrated or
+   given a parity guard.
+3. A race window: a writer's own "Pages moved" check can go red while its
+   content is already live. It is a false alarm for that writer, not a
+   rollback.
+4. Eighteen writers remain unfenced: nine file-only and nine `peaceiris`.
+5. The overlay writer cannot coexist with the helper until its Pages-only files
+   are moved into `main:output` or removed.
+6. No real GitHub Actions run of the helper has been observed.
+
+### 7.4 Minimum safe sequence for migrating the legacy writers
+
+Each step is a separate, authorized change; none is started here.
+
+1. Merge #725 on explicit authority. Make the first real run a manual
+   `deploy_output_only` dispatch. Verify `action`, the gh-pages tip trailers,
+   and that the Pages tree equals `<source>:output`.
+2. Until step 4, do not dispatch the nine file-only writers while the helper's
+   dry run reports anything other than `current`.
+3. Migrate the eight full-tree `peaceiris` writers first, grouped by desk,
+   because they carry the rollback defect. Move the overlay writer's
+   Pages-only files into `main:output` before migrating it. Each migration
+   flips its registry entry to fenced in the same PR.
+4. Then migrate the nine file-only writers. After their `main` push each calls
+   the helper with that commit as the source. That publishes all of
+   `main:output`, which changes their file-only scope, so agree the change with
+   the desk owners first.
+5. Optionally, before step 4, add a helper adopt/reconcile mode for a legacy
+   delta so a HOLD can be cleared by a reviewed command instead of the manual
+   runbook. This is deliberately not in #725.
+6. Retire the `test_current_*` characterizations once every writer is fenced.

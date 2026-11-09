@@ -9,7 +9,9 @@ name: Deploy Rendered Output
 #
 # Publication goes through scripts/pages_release.py, which makes gh-pages equal
 # the committed main:output of one main commit and refuses stale, rolled-back,
-# divergent or out-of-band-modified Pages generations (see docs/PAGES_RELEASE.md).
+# divergent or out-of-band-modified Pages generations. The release contract is
+# the module docstring of scripts/pages_release.py; the writer inventory and
+# migration criteria are in docs/PAGES_WRITER_AUDIT_2026-10-15.md.
 
 on:
   workflow_dispatch:

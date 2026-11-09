@@ -1708,9 +1708,12 @@ review date, not a qualification threshold. Neither desk is promoted.
   publish through `scripts/pages_release.py`: gh-pages must equal
   `<source>:output`, with a `Source-SHA` commit trailer and a non-force
   fast-forward push; stale sources are `superseded`, unattributable content is
-  a HOLD (exit 3). Next phase: migrate the nine direct file-only writers and
-  nine other `peaceiris` writers. The audit entry below predates this change
-  and its "no writer has a fence" line is superseded.
+  a HOLD (exit 3). Residual risk: a legacy file-only writer dispatched while
+  `main:output` is ahead of Pages leaves the tip unattributable, so the next
+  release HOLDs until a human reconciles (runbook and migration sequence:
+  `docs/PAGES_WRITER_AUDIT_2026-10-15.md` §7). Next phase: migrate the legacy
+  writers in that order. The audit entry below predates this change and its
+  "no writer has a fence" line is superseded.
 * **gh-pages stale-rollback race — audited (#346, 2026-10-15).**
   `scripts/audit_pages_writers.py` inventories 22 Pages writers (10 full-tree,
   1 overlay, 11 file-only; the USCC/Treasury metadata writers were retired

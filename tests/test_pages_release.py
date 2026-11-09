@@ -371,6 +371,102 @@ class ConcurrencyAndRecoveryTests(Base):
         self.assertEqual(self.pages_tree(), self.main_output_tree())
 
 
+class UnmigratedWriterInteractionTests(Base):
+    """What the helper does after a legacy (not yet migrated) writer has run.
+
+    Legacy writers leave a trailer-less gh-pages commit.  These tests pin the
+    observed behavior, including the one situation that strands the helper in
+    HOLD, so a migration plan is made against facts rather than assumptions.
+    """
+
+    def _file_only_writer(self, name, data):
+        """Commit one output file to main, then copy only it onto the Pages tip
+        (the shape of every direct HEAD:gh-pages file-only workflow)."""
+        self.m.write(name, data)
+        main_commit = self.m.commit("file-only writer: " + name)
+        self.push_pages_directly({name: data})
+        return main_commit
+
+    def test_file_only_writer_at_parity_leaves_the_helper_able_to_release(self):
+        writer_commit = self._file_only_writer("korea.html", b"Korea two")
+        self.assertEqual(self.pages_tree(), self.main_output_tree())
+        self.m.write("index.html", b"<h1>two</h1>")
+        self.m.commit("daily")
+        report = self.release(push=False)
+        self.assertEqual(report["action"], "publish")
+        self.assertEqual(report["attribution"], "legacy-tree-match")
+        self.assertEqual(report["previous_source"], writer_commit)
+
+    def test_file_only_writer_over_lagging_pages_strands_the_helper_in_hold(self):
+        # main:output is ahead of Pages (e.g. a merged output change nobody has
+        # released yet).  The writer still copies only its own file, so Pages
+        # becomes "old Pages + file", a tree that no main commit ever had.
+        self.m.write("index.html", b"<h1>merged but unreleased</h1>")
+        self.m.commit("output change merged to main, not yet released")
+        self._file_only_writer("korea.html", b"Korea two")
+        self.assertNotEqual(self.pages_tree(), self.main_output_tree())
+        before = self.pages_tip()
+        for attempt in range(2):  # and it stays held, not just once
+            with self.assertRaisesRegex(pr.Hold, "no Source-SHA trailer"):
+                self.release()
+            self.m.write("about.html", b"later %d" % attempt)
+            self.m.commit("later main commit %d" % attempt)
+        self.assertEqual(self.pages_tip(), before)  # nothing was overwritten
+
+    def test_operator_reconcile_commit_recovers_a_stranded_helper(self):
+        self.m.write("index.html", b"<h1>merged but unreleased</h1>")
+        self.m.commit("output change merged to main, not yet released")
+        self._file_only_writer("korea.html", b"Korea two")
+        with self.assertRaises(pr.Hold):
+            self.release()
+        # The manual recovery documented in the audit doc: after a human has
+        # confirmed every gh-pages-only difference is already in main, commit
+        # main:output on top of the Pages tip with a Source-SHA trailer and
+        # fast-forward (never force).
+        main_tip = git(self.origin, "rev-parse", "refs/heads/main")
+        tip = self.pages_tip()
+        tree = git(self.origin, "rev-parse", main_tip + ":output")
+        msg = "Deploy %s\n\n%s: %s\nPrevious-Pages-SHA: %s\n" % (
+            main_tip[:12], pr.TRAILER, main_tip, tip)
+        with mock.patch.dict(os.environ, ENV):
+            reconcile = git(self.origin, "commit-tree", tree, "-p", tip, "-m", msg)
+        git(self.origin, "update-ref", "refs/heads/gh-pages", reconcile, tip)
+        self.assertEqual(self.release(push=False)["action"], "current")
+        self.m.write("about.html", b"after recovery")
+        self.m.commit("next commit")
+        self.assertEqual(self.release()["action"], "publish")
+        self.assertEqual(self.pages_tree(), self.main_output_tree())
+
+    def test_stale_full_tree_legacy_writer_is_healed_by_the_next_release(self):
+        # A peaceiris-style job snapshots v1, main and Pages move on to v2, then
+        # the stale job deploys v1's tree over the top.  The helper attributes
+        # the tip to the older main commit it equals and releases forward.
+        self.m.write("index.html", b"<h1>two</h1>")
+        v2 = self.m.commit("v2")
+        self.release()
+        stale = self.root / "stale"
+        git(self.root, "clone", "--quiet", str(self.origin), str(stale))
+        tip = self.pages_tip()
+        tree = git(stale, "rev-parse", self.v1 + ":output")
+        with mock.patch.dict(os.environ, ENV):
+            rollback = git(stale, "commit-tree", tree, "-p", tip, "-m", "peaceiris deploy (stale)")
+        git(stale, "push", "origin", rollback + ":refs/heads/gh-pages")
+        self.assertEqual(self.pages_tree(), self.main_output_tree(self.v1))
+        report = self.release()
+        self.assertEqual(report["action"], "publish")
+        self.assertEqual(report["previous_source"], self.v1)
+        self.assertEqual(report["source"], v2)
+        self.assertEqual(self.pages_tree(), self.main_output_tree())
+
+    def test_overlay_writer_adding_files_main_does_not_have_holds(self):
+        self.push_pages_directly({"overlay-only.html": b"not in main"})
+        self.m.write("index.html", b"<h1>two</h1>")
+        self.m.commit("v2")
+        with self.assertRaisesRegex(pr.Hold, "no Source-SHA trailer"):
+            self.release()
+        self.assertEqual(self.pages_file("overlay-only.html"), b"not in main")
+
+
 class CliTests(Base):
     def run_cli(self, *argv):
         out, err = io.StringIO(), io.StringIO()
