@@ -17,8 +17,21 @@ actual scope, jurisdiction and binding terms. Public access, private custody,
 research purpose and an owner signature do not establish a basis by themselves.
 
 This general reform does not clear unresolved uses or change runtime authority.
-Keep source-specific grants, exclusions, holds, allowed public components,
-MINDEF's original-text, media, model, access and public-data holds, budgets and activation intact. Standing outbound-link permission does not clear those other uses.
+Keep source-specific grants, legitimate publisher/access and third-party
+restrictions, component-level holds, budgets and activation controls.
+
+**MINDEF updated founder decision (9 November 2026):** the founder attests
+standing written publisher authorization for eligible MINDEF-owned official
+release original custody, bounded external-model use and independently worded
+public factual explanations, in addition to standing official outbound links.
+Do not reimpose the superseded two-link ceiling or treat the old source-family
+collection/model ban as a newly required per-article publisher request.
+The later publisher original remains unindependently authenticated in this
+repository; do not claim that it explicitly enumerates the above components.
+The existing MINDEF runtime acquisition, model and public-data holds remain
+**technically active until separately implemented, qualified and authorized
+for activation**. Third-party media, original-text republication, privacy,
+provenance, QA and paid/release safeguards are not cleared by this decision.
 Routine eligible records under established standing authority need no new
 publisher request or per-record owner approval. Substantive governance/source-
 rights amendments stop at founder PR review; collection/model activation,

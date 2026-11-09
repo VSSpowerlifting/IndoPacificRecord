@@ -1,5 +1,11 @@
 """Safe official outbound MINDEF hyperlinks. Not a licence to republish MINDEF text or media.
 
+The founder adopted a reported standing outbound-link grant on 2026-11-07;
+PR #1004 merged the safe official-host rule. The original later publisher message
+is not independently authenticated in retained private evidence. The 2026-10-29
+two-URL grant remains historical. The link grant itself permits no inferred
+text/media reuse, collection, model input or machine publication.
+
 This module gates only exact official-host links. Which MINDEF-derived components
 may be public is decided per component elsewhere: an independently written,
 MINDEF-attributed factual explanation bound to an admitted official-link parent

@@ -1,6 +1,6 @@
 # Singapore MINDEF: narrowly scoped hyperlink permission (29 October 2026)
 
-## 7 November 2026 — proposed standing-link policy revision
+## 7 November 2026 — adopted standing outbound-link revision
 
 The founder supplied wording attributed to a later MINDEF contact response granting
 permission for **all linking requests**, including future requests. The original
@@ -10,19 +10,29 @@ page-by-page written-link requests. Verify and retain the underlying message
 privately before treating its provenance and precise scope as authenticated;
 do not place private messages, names or contact details in public Git history.
 
-This review candidate replaces the October two-URL *outbound hyperlink* allowlist
-with an exact HTTPS `www.mindef.gov.sg` host gate. The previous grant below
-remains an accurate historical record, not the proposed continuing code ceiling.
-The change **does not** authorize reproduction, caching, framing, MINDEF text
-or photographs, long excerpts, external model inputs, collection/processing,
-new source-citation Records or release of any Brief. Preserve other holds,
-access, evidence and publisher Terms of Use §§5–6. A broad expression such as
-“anything else” is not a specific copyright or automated-processing licence.
+PR #1004 merged the replacement of the October two-URL *outbound hyperlink*
+allowlist with an exact HTTPS `www.mindef.gov.sg` host gate. The original grant
+below remains accurate historical evidence, not the continuing code ceiling.
+**Scope as originally adopted on 7 November:** that link-rule code change
+alone did not authorize original-text republication, third-party photographs,
+external models, collection or public machine Records. **Later founder
+source-use direction on 9 November (separate decision):** IPR is to proceed
+with eligible MINDEF-owned official-release original custody, bounded external
+model input and independently written factual machine explanations, based on
+the founder's attestation of the standing publisher relationship. Do not
+misattribute a component-specific legal quotation to the publisher: the
+original later correspondence remains unauthenticated here. The standing
+decision does not license unrelated third-party media or require the original
+source body to be republished. The old runtime guards still need a reviewed
+source-specific implementation and release. Preserve source authentication,
+access evidence, publisher Terms §§5–6 and human editorial approvals.
 
-**Status:** adopted 7 November 2026 by founder ruling (PR #1005, comment
-6715346963) on the permission wording previously supplied. The later MINDEF
-correspondence has not been independently verified or authenticated, by the
-founder or anyone else. Outbound hyperlinks only.
+**Status:** adopted in the founder's 7 November 2026 ruling (PR #1005,
+comment 6715346963); implemented and merged in PR #1004. The later message's
+wording was previously supplied by the founder, but the original sender and
+transport evidence have not been independently authenticated. The 7 November adopted code scope was standing outbound hyperlinks; the
+additional founder source-use direction was recorded on 9 November and is
+subject to separate qualified implementation.
 
 ## Evidence and scope
 
