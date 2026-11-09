@@ -79,9 +79,11 @@ class TestRegistration(unittest.TestCase):
 
     def test_every_governed_family_is_a_manual_production_source(self):
         registered = {f for f, s in SOURCES.items() if s.desk_registered}
-        # DAPA is defined but undeclared on the live Korea desk until activation.
-        self.assertEqual(set(SOURCES) - registered, {"kr_policy_dapa_releases"})
-        self.assertNotIn("kr_policy_dapa_releases", pipeline._governed_admissions())
+        # DAPA and MINDEF are defined but not desk-registered until activation.
+        unregistered = {"kr_policy_dapa_releases", "sg_mindef_releases"}
+        self.assertEqual(set(SOURCES) - registered, unregistered)
+        for family in unregistered:
+            self.assertNotIn(family, pipeline._governed_admissions())
         self.assertEqual(registered | {jp.FAMILY} | set(pipeline._US_METADATA_FAMILIES),
                          set(MANUAL_FAMILIES))
         registry = load_registry()

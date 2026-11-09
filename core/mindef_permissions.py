@@ -1,8 +1,13 @@
-"""Safe official outbound MINDEF hyperlinks; NOT a content reuse license.
+"""Safe official outbound MINDEF hyperlinks. Not a licence to republish MINDEF text or media.
 
-Founder-reported standing link permission requires private provenance review
-before this amendment merges. Historic 2026-10-29 two-URL grant is documented
-separately. No right to reproduce text/media or invoke collectors/models follows.
+This module gates only exact official-host links. Which MINDEF-derived components
+may be public is decided per component elsewhere: an independently written,
+MINDEF-attributed factual explanation bound to an admitted official-link parent
+(``core.mindef_public_boundary.permitted_machine_sql``,
+``core.singapore_mindef_links``). Original publisher text, media and any
+production activation remain outside this gate. The founder's standing
+authorization is recorded in ``config/philippines_daily_policy.json`` and
+``docs/desks/MIGRATION.md``; it is not reproduced here.
 """
 import re
 from urllib.parse import urlsplit
