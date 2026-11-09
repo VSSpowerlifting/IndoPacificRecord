@@ -470,6 +470,28 @@ class TestTheScanReadsCodeNotProse(unittest.TestCase):
 
     SAMPLE = 3534
 
+    def test_character_fixture_is_scoped_to_its_keyword(self):
+        for source in (
+            'row(chars=800)',
+            'rows = [row(chars=800), row(analyzed=True)]',
+            'records = [row(chars=800)]',
+            'check(metrics.records, row(chars=800))',
+            'check(records=derived, fixture=row(chars=800))',
+        ):
+            with self.subTest(source=source):
+                self.assertNotIn(800, frozen_total_literals_from(source, '.py'))
+
+    def test_same_value_still_detected_as_a_real_corpus_total(self):
+        for source in (
+            'self.assertEqual(metrics.records, 800)',
+            'assert records == 800',
+            'corpus_size = 800',
+            'check(records=800, fixture=row(chars=800))',
+            'self.assertEqual(metrics.records, 800, msg="count")',
+        ):
+            with self.subTest(source=source):
+                self.assertIn(800, frozen_total_literals_from(source, '.py'))
+
     def scan(self, source):
         return corpus_context_literals(source)
 
