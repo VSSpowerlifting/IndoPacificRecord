@@ -74,7 +74,7 @@ class JCGDailyQualifications(unittest.TestCase):
         self.assertEqual(day, date(2026, 10, 8))
         self.assertEqual(prov, "explicit")
 
-    def test_original_source_is_not_archive_complete_without_pdf(self):
+    def test_html_source_is_independent_of_uncollected_pdf_and_production_activation(self):
         source = (ROOT / "shadow/jp_jcg/manifest.json").read_text(encoding="utf-8")
         self.assertIn("shadow", source)
         self.assertIn("jp_jcg_press_en", source)
