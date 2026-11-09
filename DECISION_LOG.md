@@ -105,6 +105,20 @@ Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
 
+## 2026-11-09 — Founder: Singapore MINDEF standing authorization; disabled integration
+
+**Decided (founder, 9 Nov 2026):** MINDEF runs as one disabled-by-default shared
+`DailySource` (`sg_mindef_releases`) under the founder's standing authorization
+for private original custody, bounded model processing and independently written,
+MINDEF-attributed explanations. The founder's interpretation is recorded as such;
+no private correspondence is reproduced. Original text and third-party media stay
+private, the two excluded speech releases stay excluded, and Briefs/Dossiers stay
+human-controlled. Migration m0022 adds the link-only parent and re-issues the staged
+boundary triggers whose permitted-row predicate had been frozen as `0`. **Not authorized:**
+merge, deployment, collector or schedule activation, paid processing, production
+writes, publication. See
+[decision](docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
+
 ## 2026-11-07 — Brief No. 23 archival Liaoning cover
 
 Benjamin Yang approved the Japan Joint Staff May 2022 Liaoning/J-15 image for

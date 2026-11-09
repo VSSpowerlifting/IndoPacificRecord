@@ -804,13 +804,18 @@ def run(
             continue
 
         if slug == "sg_mindef_releases":
-            # No new source acquisition or external processing is authorized
-            # by the two-link grant. Preserve all historical collection rows.
+            # NAMED COMPATIBILITY SHIM (MINDEF public-pipeline collection skip).
+            # The public pipeline must never fetch MINDEF original text: that
+            # lives only in private versioned custody. Collection runs through
+            # scripts/shadow_collect.py (archive/singapore-mindef) and
+            # processing through the shared Daily lane (core.daily_sources,
+            # sg_mindef_releases). Historical collection rows are preserved.
             from core.collection.contract import SourceRunResult
             source_results.append(SourceRunResult(
                 source_slug=slug, desk_id="singapore",
                 status=collection_status.SKIPPED_DISABLED,
-                error_detail="MINDEF source-use hold; no collection or model processing"))
+                error_detail="MINDEF is collected in private custody and processed "
+                             "by the shared Daily lane, not the public pipeline"))
             continue
 
         from core import china_source_use_hold as china_hold
@@ -1090,6 +1095,8 @@ def run(
         if china_hold.is_held_source(source_slug) or article_id in china_held_ids:
             china_held_count += 1
             return False
+        # NAMED COMPATIBILITY SHIM: historical MINDEF article rows stay out of
+        # the public screening queue; their screening is the shared Daily lane.
         if source_slug == "sg_mindef_releases" or article_id in mindef_article_ids:
             held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
             return False

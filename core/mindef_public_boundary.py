@@ -30,7 +30,11 @@ REVIEWED_TABLES = frozenset({
     "bis_authenticated_official_source_records", "treasury_official_observations",
     "treasury_official_source_records", "uscc_official_observations",
     "uscc_official_source_records", "mindef_private_record_bindings",
+    "singapore_mindef_source_records",
 })
+# Held by source review; mirrors core.singapore_mindef_links.HELD_IDENTITIES.
+HELD_IDENTITIES = ("15aug26-speech", "16sep26-speech")
+PARENT_TABLE = "singapore_mindef_source_records"
 
 
 def quote(name):
@@ -165,7 +169,8 @@ def project(con, *, evidence=None):
             con.execute("DROP TRIGGER IF EXISTS " + quote(name))
             con.execute("CREATE TRIGGER " + quote(name) + " BEFORE " + event +
                 " ON daily_machine_records WHEN NEW.source_family='sg_mindef_releases' "
-                "BEGIN SELECT RAISE(ABORT,'MINDEF machine publication held'); END")
+                "AND NEW.publication_state='released' AND NOT (" + permitted_machine_sql(con) +
+                ") BEGIN SELECT RAISE(ABORT,'MINDEF machine publication held'); END")
     con.execute("""CREATE TRIGGER IF NOT EXISTS mindef_source_identity_no_update
         BEFORE UPDATE OF id,slug ON sources
         WHEN OLD.slug='sg_mindef_releases' AND (NEW.id!=OLD.id OR NEW.slug!=OLD.slug)
@@ -174,6 +179,30 @@ def project(con, *, evidence=None):
         BEFORE DELETE ON sources WHEN OLD.slug='sg_mindef_releases'
         BEGIN SELECT RAISE(ABORT,'MINDEF source identity is preserved'); END""")
     con.commit()
+
+
+def permitted_machine_sql(con, row="NEW"):
+    """SQL predicate: a released Singapore machine row consists only of permitted components.
+
+    Permitted: an independently written, MINDEF-attributed factual explanation
+    bound by hash to an admitted ``official_link_only`` parent for the same
+    release version. Never permitted here: a source-review-held identity, a
+    model-flagged row, or any row without that parent. Original publisher text
+    and media have no column in ``daily_machine_records`` and no admission path.
+    Before the parent table exists (no m0022) nothing is permitted, which keeps
+    the earlier blanket hold on such databases.
+    """
+    if PARENT_TABLE not in tables(con):
+        return "0"
+    held = ",".join("'%s'" % i for i in HELD_IDENTITIES)
+    return (
+        "{r}.source_identity NOT IN ({held}) AND {r}.model_flagged=0 "
+        "AND instr({r}.summary,'MINDEF')>0 AND EXISTS (SELECT 1 FROM {t} p "
+        "WHERE p.source_identity={r}.source_identity AND p.official_issuer='sg_mindef' "
+        "AND p.public_scope='official_link_only' "
+        "AND p.metadata_version_sha256={r}.metadata_version_sha256 "
+        "AND p.content_sha256={r}.content_sha256 AND p.capture_sha256={r}.capture_sha256)"
+    ).format(r=row, held=held, t=PARENT_TABLE)
 
 
 def assert_projected(con):

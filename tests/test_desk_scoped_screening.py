@@ -128,8 +128,10 @@ class TestChinaIsUnchanged(unittest.TestCase):
 class TestSingaporeIsJudgedByItsOwnScope(unittest.TestCase):
 
     def setUp(self):
-        from processing.screening import profile_for_source
-        self.profile = profile_for_source("sg_mindef_releases")
+        # The legacy public-queue Singapore profile. MINDEF's shared-Daily
+        # source family has its own profile (tests.test_singapore_daily_completion).
+        from processing.screening import profile_for_desk
+        self.profile = profile_for_desk("singapore")
 
     def test_the_profile(self):
         self.assertEqual(self.profile.desk_id, "singapore")
