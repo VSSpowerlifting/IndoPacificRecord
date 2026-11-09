@@ -1,5 +1,52 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-09 — Founder: reduce production friction while preserving source trust
+
+Benjamin Yang approved removing unnecessary **internal operating delays** in
+IPR's eight-desk work. This **supersedes the seven-consecutive-scheduled-Daily
+waiting condition** in the 1 November freeze on adding new workflow files.
+It does not authorize new schedules, proliferation of redundant workflows,
+source activation, model spending, production release or deployment.
+
+1. **Routine machine admission:** Standing permitted source/quality/spend/
+   activation authority already allows eligible machine Records to proceed
+   unattended. Do not add per-record founder signatures or blanket publisher-
+   letter prerequisites. Retain real source-specific exceptions.
+2. **Development-test reuse:** Retain the implemented authenticated, exact-
+   environment qualification mechanism and its full-test fallback rather than
+   require a new full suite for every data-only Daily run. Preserve actual
+   snapshot validation, signed handoffs, public delivery and last-good-site gates.
+3. **Proportional input limits:** Existing paragraph caps are engineering
+   heuristics. Test a deterministic separation of substantive release prose
+   from contact metadata and defensible revised processing limits. Retain full
+   exact originals and provenance, source-to-quote alignment, negative tests,
+   bounded models, retries and budgets. Korea's existing draft PR #909 is the
+   queue-skip candidate and must be reused/reviewed, not duplicated. No
+   immediate paid workflow change is authorized.
+4. **Workflow additions:** The prior seven-run waiting period is retired.
+   Require a demonstrated need unmet by the shared Daily/existing workflows,
+   one accountable maintainer, required qualification and review of effects.
+   Formerly held PRs #710/#712/#740/#746 remain independently reviewable;
+   this amendment does not approve or merge them.
+5. **Low-risk merge authority:** Adopt the narrowly limited documentation
+   typo/internal-link and strictly additive offline-test delegation defined
+   in AGENTS.md, conditioned on exact-head checks, clean merge, no unresolved
+   objections and proven absence of main-push production effects. Governance,
+   source, code, workflow, database, editorial and production-impact changes
+   retain separate merge authority.
+
+**Still protected:** publisher terms and real source rights/holds (including
+MINDEF), access restrictions, immutable custody and text hashes, identity,
+citation fidelity, factual QA, prior accepted results, budget/retry records,
+deduplication, atomic admission and rollback, publisher communications and
+human-controlled editorial publication. A reviewed PR is not a completed or
+live-verified desk. This policy change authorizes no immediate model call,
+source activation, production DB write, deployment or external contact.
+
+The 1 November freeze text below remains intact as a historical record;
+its fixed seven-run release condition is superseded by this entry.
+
+
 ## 2026-11-07 — Brief No. 24 editing and analysis credit
 
 After Brief No. 24 went live, Benjamin Yang, Founder & Executive Director,
