@@ -491,7 +491,10 @@ def resume(state, key):
     return state
 
 
-def validate_output(r, family, p):
+def validate_output(r, family, p, *, released=False):
+    """Admission check by default. `released=True` is for reading a record that
+    is already published: only the prompt-version allowlist widens, to that
+    source's own released_prompt_versions; every other check is identical."""
     source = source_for(family)
     need(source is not None and type(r) is dict and set(r) == set(PUBLIC_FIELDS)
          and r["source_family"] == family and r["policy_sha256"] == digest(p),
@@ -510,14 +513,15 @@ def validate_output(r, family, p):
          and type(r["categories"]) is list and r["categories"]
          and all(type(c) is str and c in profile_for_source(family).categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
-         and r["prompt_version"] in allowed_prompt_versions(family), "daily_output_incomplete")
+         and r["prompt_version"] in allowed_prompt_versions(family, released=released),
+         "daily_output_incomplete")
     hold = source.output_hold(r)
     need(hold is None, hold)
     need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
          "daily_explanation_word_limit")
 
 
-def allowed_prompt_versions(family):
+def allowed_prompt_versions(family, *, released=False):
     source = source_for(family)
     need(source is not None, "daily_processing_source_family_mismatch")
-    return source.prompt_versions
+    return source.prompt_versions + source.released_prompt_versions if released else source.prompt_versions

@@ -44,7 +44,7 @@ class DailySource:
     label: str                # short public attribution, e.g. "AFP"
     publisher: str            # public institution name used in attribution
     public_issuer: Optional[str]
-    prompt_versions: Tuple[str, ...]   # every accepted relevance+analysis pair
+    prompt_versions: Tuple[str, ...]   # every pair a NEW output may carry (admission)
     identity_max_length: int  # bound for policy exclusion identifiers
     links: str                # adapter: (repo, commit) -> verified link dicts
     quality: str              # adapter: (record, reading) -> quality digest
@@ -67,6 +67,10 @@ class DailySource:
     # no governed admission and no run-result row. Declaring a source on a live
     # desk changes public source listings, so it is an activation step.
     desk_registered: bool = True
+    # Pairs that stay valid for an already-RELEASED record only: read and
+    # rendered under the pinned policy, never accepted for a newly submitted
+    # output. Distinct from prompt_versions on purpose; empty means none.
+    released_prompt_versions: Tuple[str, ...] = ()
 
     @property
     def key_env(self) -> str:
@@ -282,6 +286,9 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         language="id", label="Kemhan",
         publisher="Kementerian Pertahanan Republik Indonesia", public_issuer=None,
         prompt_versions=("id-relevance-v1+id-analysis-v5",), identity_max_length=2000,
+        # The one published Record (2026-10-23) was released under v4; it stays
+        # readable. No other superseded Indonesia pair was ever released.
+        released_prompt_versions=("id-relevance-v1+id-analysis-v4",),
         first_party=True, reject_credit_line=True,
         links="core.daily_sources:_kemhan_links",
         quality="processing.indonesia_quality:quality_check",

@@ -28,7 +28,7 @@ def load(db_path):
                 continue
             r["categories"] = json.loads(r["categories"])
             r["model_flagged"] = bool(r["model_flagged"])
-            validate_output(r, family, p)
+            validate_output(r, family, p, released=True)  # published record: historical pairs stay readable
             if source.parent:
                 # Source-owned parent (DAPA: Korea official link); same version
                 # by candidate, text and page hashes, else the record is withheld.

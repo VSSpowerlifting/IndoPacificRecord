@@ -522,10 +522,13 @@ class IndonesiaSharedDaily(unittest.TestCase):
         from analysis.indonesia_prompts import analysis_messages, context_dependent
         for text in ('Selain itu, Kemhan membahas rencana latihan.','Ia menyampaikan rencana latihan.',
                      'Dalam kesempatan tersebut dibahas rencana latihan.','Menurutnya, latihan akan dimulai.',
+                     'Menurut dia, latihan akan dimulai.','Menurut beliau, latihan akan dimulai.',
                      'Kegiatan tersebut diikuti dua puluh peserta.','Latihan itu diikuti dua puluh peserta.','Mereka membahas rencana latihan.'):
             with self.subTest(text=text): self.assertTrue(context_dependent(text))
         for text in ('Kementerian Contoh membahas rencana latihan.','Iaido adalah olahraga bela diri.',
-                     'Diah menghadiri kegiatan latihan.','Latihan bersama diikuti dua puluh peserta.'):
+                     'Diah menghadiri kegiatan latihan.','Latihan bersama diikuti dua puluh peserta.',
+                     'Menurut Kementerian Contoh, latihan akan dimulai.','Menurut Menteri Contoh, latihan akan dimulai.',
+                     'Menurut Kemhan, latihan akan dimulai.'):
             with self.subTest(text=text): self.assertFalse(context_dependent(text))
         body='Kementerian Contoh membahas rencana latihan.\n\nSelain itu, rencana pengadaan juga dibahas.'
         message=analysis_messages('SYNTHETIC title alias',body)[0]['content']
@@ -555,6 +558,25 @@ class IndonesiaSharedDaily(unittest.TestCase):
         reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
         with self.assertRaises(d.IntakeHold):
             d.quality_check(r,reply)
+
+    def test_context_dependent_marker_never_excludes_a_passage_that_names_its_actor(self):
+        # Advisory only: the passage still reaches the model, and a fact whose
+        # every name, number and date is in that passage passes the unchanged gate.
+        from analysis.indonesia_prompts import analysis_messages, context_dependent, evidence_passages
+        named='Selain itu, Kementerian Contoh membahas rencana pengadaan bersama.'
+        self.assertTrue(context_dependent(named))
+        r,reply=self.institution_reading()
+        r['body']=r['body'].split('\n\n')[0]+'\n\n'+named
+        reply['facts'][1]=dict(evidence=named,
+            sentence='Kemhan reports that Kementerian Contoh discussed joint procurement plans.',
+            evidence_translation='Additionally, Kementerian Contoh discussed joint procurement plans.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        self.assertEqual(len(d.quality_check(r,reply)),64)
+        payload=json.loads(analysis_messages('SYNTHETIC title',r['body'])[0]['content'].split('\n',1)[1])
+        self.assertEqual([(p['id'],p['text']) for p in payload['passages']],evidence_passages(r['body']))
+        self.assertEqual([p['context_dependent'] for p in payload['passages']],[False,True])
+        # "Menurut <named actor>" is not a back reference; it names its actor.
+        self.assertFalse(context_dependent('Menurut Kementerian Contoh, rencana pengadaan dibahas.'))
 
     def test_generic_translated_nouns_are_not_institution_names(self):
         r,reply=self.institution_reading()
@@ -861,6 +883,111 @@ class IndonesiaSharedDaily(unittest.TestCase):
             d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v4'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='ph-relevance-v1+ph-analysis-v13'),FAMILY,policy()['sources'][FAMILY])
+
+    HISTORICAL='id-relevance-v1+id-analysis-v4'
+
+    def _db_with_link(self, tmp):
+        from migrations.versions.m0015_daily_machine_records import up
+        from core.regional_official_link_release import SCHEMA_SQL
+        from pathlib import Path
+        r=record();db=Path(tmp)/'scratch.db'
+        with sqlite3.connect(db) as conn:
+            conn.executescript(SCHEMA_SQL);up(conn)
+            conn.execute('INSERT INTO regional_official_source_links VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(
+                FAMILY,r['source_identity'],'indonesia',r['canonical_official_url'],
+                r['publisher_posted_date'],None,'id_kemhan',None,'c'*40,'a'*64,
+                '123-1','official_link_only','d'*64,'2026-10-19T00:00:00Z'))
+        return db
+
+    def test_new_output_admission_requires_v5_but_released_v4_remains_valid(self):
+        p=policy()[ 'sources'][FAMILY]
+        out=d.sign_outputs(self.process(),family=FAMILY,policy=policy(),key=KEY)['packet']['records'][0]
+        self.assertEqual(out['prompt_version'],VERSION)
+        d.validate_output(out,FAMILY,p)                                  # valid v5 admission
+        d.validate_output(out,FAMILY,p,released=True)
+        old=dict(out,prompt_version=self.HISTORICAL)
+        with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+            d.validate_output(old,FAMILY,p)                              # new v4 is refused
+        d.validate_output(old,FAMILY,p,released=True)                    # released v4 is readable
+        self.assertEqual(d.allowed_prompt_versions(FAMILY),(VERSION,))
+        self.assertEqual(d.allowed_prompt_versions(FAMILY,released=True),(VERSION,self.HISTORICAL))
+        # The historical allowance is exactly one pair: nothing else widens.
+        for version in ('id-relevance-v1+id-analysis-v1','id-relevance-v1+id-analysis-v2',
+                        'id-relevance-v1+id-analysis-v3','id-relevance-v1+id-analysis-v6',
+                        'ph-relevance-v1+ph-analysis-v12'):
+            with self.subTest(version=version), self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+                d.validate_output(dict(out,prompt_version=version),FAMILY,p,released=True)
+        # Released validation relaxes nothing else: schema, policy, provenance and
+        # output holds still apply to a historical record.
+        for change,message in ((dict(policy_sha256='f'*64),'daily_output_schema_or_policy_invalid'),
+                               (dict(content_sha256='not-a-hash'),'daily_output_provenance_invalid'),
+                               (dict(summary='Too short.'),'daily_output_incomplete'),
+                               (dict(model_flagged=True,flag_reason=None),'daily_output_incomplete'),
+                               (dict(summary=out['summary'].replace('Kemhan','The ministry')),
+                                'daily_indonesia_flag_or_attribution_held')):
+            with self.subTest(change=change), self.assertRaisesRegex(d.IntakeHold,message):
+                d.validate_output(dict(old,**change),FAMILY,p,released=True)
+        excluded=dict(p,excluded_source_identities=[old['source_identity']])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_owner_excluded_source_identity'):
+            d.validate_output(dict(old,policy_sha256=d.digest(excluded)),FAMILY,excluded,released=True)
+        # Source-local QA is untouched: a v4-stamped reading never passes it.
+        with self.assertRaisesRegex(d.IntakeHold,'daily_model_provenance_incomplete'):
+            d.quality_check(record(),dict(reading(),prompt_version=self.HISTORICAL))
+
+    def test_signed_v4_output_is_held_at_admission_and_never_stored(self):
+        import tempfile
+        p=policy();state=self.process()
+        next(iter(state.values()))['output']['prompt_version']=self.HISTORICAL
+        env=d.sign_outputs(state,family=FAMILY,policy=p,key=KEY)
+        with tempfile.TemporaryDirectory() as tmp:
+            db=self._db_with_link(tmp)
+            with sqlite3.connect(db) as conn:
+                result=d.admit(conn,env,family=FAMILY,policy=p,key=KEY)
+                self.assertEqual(result['admitted'],0)
+                self.assertIn('daily_output_incomplete',result['holds'])
+                self.assertEqual(conn.execute('SELECT COUNT(*) FROM daily_machine_records').fetchone()[0],0)
+
+    def test_released_historical_record_renders_with_provenance_and_binding_intact(self):
+        import tempfile
+        import core.daily_machine_records as machine
+        p=policy();state=self.process()
+        env=d.sign_outputs(state,family=FAMILY,policy=p,key=KEY)
+        with tempfile.TemporaryDirectory() as tmp:
+            db=self._db_with_link(tmp)
+            with sqlite3.connect(db) as conn:
+                self.assertEqual(d.admit(conn,env,family=FAMILY,policy=p,key=KEY)['admitted'],1)
+                before=dict(zip([c[1] for c in conn.execute('PRAGMA table_info(daily_machine_records)')],
+                                conn.execute('SELECT * FROM daily_machine_records').fetchone()))
+                # Re-stamp as the already-released record it models, bypassing admission.
+                conn.execute('UPDATE daily_machine_records SET prompt_version=?',(self.HISTORICAL,))
+            with patch.object(machine,'load_policy',return_value=p):
+                rows=machine.load(db)
+                self.assertEqual(len(rows),1)
+                row=rows[0]
+                self.assertEqual(row['prompt_version'],self.HISTORICAL)
+                for key in ('summary','content_sha256','capture_sha256','metadata_version_sha256',
+                            'quality_sha256','policy_sha256','source_git_commit','source_identity'):
+                    self.assertEqual(row[key],before[key],key)
+                self.assertEqual((row['desk_id'],row['source_label'],row['machine_only']),('indonesia','Kemhan',True))
+                self.assertEqual(len(list(machine.archive_rows(rows))),1)
+                # Source binding is still enforced: a changed metadata version withholds it.
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE regional_official_source_links SET metadata_version_sha256=?',('9'*64,))
+                self.assertEqual(machine.load(db),[])
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE regional_official_source_links SET metadata_version_sha256=?',(before['metadata_version_sha256'],))
+                self.assertEqual(len(machine.load(db)),1)
+                # An unlisted prompt version, or a policy change, is still rejected on read.
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE daily_machine_records SET prompt_version=?',('id-relevance-v1+id-analysis-v3',))
+                with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+                    machine.load(db)
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE daily_machine_records SET prompt_version=?',(self.HISTORICAL,))
+                changed=copy.deepcopy(p);changed['sources'][FAMILY]['owner_decision']='changed'
+                with patch.object(machine,'load_policy',return_value=changed):
+                    with self.assertRaisesRegex(d.IntakeHold,'daily_output_schema_or_policy_invalid'):
+                        machine.load(db)
 
 
 if __name__=='__main__':unittest.main()

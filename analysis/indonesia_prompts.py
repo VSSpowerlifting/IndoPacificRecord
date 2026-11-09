@@ -11,11 +11,14 @@ VERSION = "id-relevance-v1+id-analysis-v5"
 # so a fact drawn from it is tempted to borrow the missing actor, unit or
 # identifier from the title or an earlier passage. This is a structural cue
 # only: no entity resolution, no alias list, no source-specific vocabulary.
+# It is advisory and excludes nothing: a flagged passage that names its own
+# actor stays citable. Bare "Menurut X" (according to X) names X, so only a
+# pronoun object ("menurutnya", "menurut dia") counts as a back reference.
 _BACK_REFERENCE = re.compile(
     r"^\W*(?:selain itu|sementara itu|di samping itu|lebih lanjut|selanjutnya|"
     r"kemudian|adapun|sebelumnya|dengan demikian|oleh karena itu|"
     r"(?:dalam|pada) kesempatan (?:tersebut|itu|yang sama)|"
-    r"menurut(?:nya)?|ia|dia|beliau|mereka|"
+    r"menurutnya|menurut (?:dia|ia|beliau|mereka)|ia|dia|beliau|mereka|"
     r"(?:hal|kegiatan|acara|pertemuan|kunjungan|latihan) (?:tersebut|ini|itu))\b",
     re.I)
 
