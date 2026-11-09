@@ -1,5 +1,8 @@
 # Japan Coast Guard official full-text source — live access gate (Oct 8, 2026)
 
+> **Superseded acceptance rule (9 November 2026):** This is a historical access-stage report. The founder now accepts exact, authentic first-party JCG English HTML article text as a complete **HTML text component**, regardless of separately linked PDF contents. PDF/image completeness, fixed Day 7/14/30 human checkpoints and 30-consecutive-day clocks do not gate that HTML component's source-to-reader advancement. Keep factual QA, publisher identity/date/version, PDL1.0 actual text exceptions, recurring delivery and access safeguards. Current shadow/production activation is a separate decision.
+
+
 **Status: independent institutional candidate; not in shadow collection or production.**
 
 ## Why JCG rather than forcing access to MOD
@@ -30,7 +33,7 @@ Success requires readable, compliant robots rules or confirmed robots-file absen
 1. Use a separate PR to implement an English-language JCG adapter to the *existing* SourceAdapter interface; no alternate ingest path.
 2. Persist publisher URL, exact date and title, original English body, capture hashes, capture timestamp and issuer. Test actual document fixtures and zero-navigation extraction. Do not infer date from page number.
 3. Qualify an isolated Japan Coast Guard shadow source using a dedicated, declared scope, independently of the challenged MOD sources. Verify source cadence and coverage over repeated runs.
-4. Run the existing Day 7/14/30 review/owner-promotion process; rehearse a multi-source Japan promoter on a disposable production database with immutable capture binding.
+4. Preserve any historical Day 7/14/30 reviews as evidence, then use the shared desk acceptance checks and exact-version original-to-reader rehearsal without a fresh waiting clock.
 5. Only then admit JCG as a production source under Japan Desk and allow its native source records to reach the weekly AI writer. Describe coverage as *Japan Coast Guard*, not full Japanese defense policymaking.
 
 PR #202's dated, externally labeled AI-source path is temporary and remains independent.
