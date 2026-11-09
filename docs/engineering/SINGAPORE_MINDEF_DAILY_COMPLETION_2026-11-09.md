@@ -54,3 +54,19 @@ follow the shared policy.
    `IPR_PRIVATE_DAILY_ENABLED`, `IPR_DAILY_INTAKE_DIR` for one bounded run.
 5. `processing.daily_runner.private_run` → sign → admit; then read back
    `record/source-<sha24>.html`, the Singapore Desk and Archive/search on the live site.
+
+## Coordination with PR #1014 (unmerged at head `9523b9481b`)
+
+#1014 records the founder's source-use decision and governance wording. This PR
+implements it and does not restate or replace it. Both touch two shared files and
+a trivial textual conflict is expected from whichever merges second:
+
+- `core/mindef_permissions.py` (module docstring only): keep #1014's evidence
+  classification sentences; keep this PR's pointer to the per-component predicate.
+- `site/preview/templates/desk.html` (the Singapore branch of the one-line
+  explanation): keep this PR's two Singapore branches, and add #1014's sentence that
+  official outbound links follow the standing official-host rule to the fallback
+  branch; drop its "model processing … on hold" claim only once activation is
+  separately authorized and live-verified.
+
+`desks/registry.json` and `DECISION_LOG.md` from #1014 merge without conflict.
