@@ -286,6 +286,19 @@ class SingaporeAdmission(unittest.TestCase):
         names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
         self.assertFalse(names & {n for n, _ in m22.BOUNDARY_TRIGGERS})
 
+    def test_m0022_is_idempotent_and_preserves_existing_rows(self):
+        conn = self.connect()
+        def snapshot():
+            return (sorted(conn.execute("SELECT name, sql FROM sqlite_master "
+                                        "WHERE name LIKE '%mindef%' OR name LIKE 'daily_machine%'")),
+                    sorted(conn.execute("SELECT * FROM singapore_mindef_source_records")),
+                    sorted(conn.execute("SELECT * FROM daily_machine_records")))
+        before = snapshot()
+        for _ in range(2):
+            with conn:
+                m22.up(conn)
+        self.assertEqual(before, snapshot())
+
     def test_admission_reaches_the_reader_with_only_permitted_components(self):
         conn = self.connect()
         self.assertEqual(self.admit(conn)["admitted"], 1)
