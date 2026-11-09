@@ -117,6 +117,27 @@ These are different states. Do not substitute merged PRs, documents, test
 counts, successful collectors, or readiness percentages for later states.
 Stop at the assigned phase; no implicit production authorization.
 
+## Founder standing decision — proportional operational controls (9 November 2026)
+
+Reduce unnecessary process without weakening source integrity, QA or release trust:
+
+- **Routine machine records:** Once source use, quality, activation, spending and public-component policy grants standing eligibility, process eligible versions unattended. Do not require a fresh founder signature or publisher letter for each ordinary covered version. Preserve actual exceptions and human editorial approval.
+- **Code-qualification reuse:** Use the existing authenticated, environment-bound qualification instead of running the full development suite for every unchanged data-only Daily. Mismatches and unavailable evidence retain full-test fallback. Current-snapshot, runtime and public-delivery checks remain mandatory.
+- **Source-processing limits:** Fixed paragraph and document-count caps are engineering bounds, not source-rights rules. Improvements may use deterministic document sections and tested, source-specific limits, while retaining exact originals, unambiguous citations, complete substantive coverage, negative tests, and existing model/retry/spend ceilings.
+- **New workflow-file freeze:** The 1 November seven-consecutive-eight-desk-Daily waiting condition is superseded. Reuse or amend existing shared workflows first. A justified new workflow file may be reviewed without waiting seven days, provided it has an identified maintainer, nonduplicative purpose and verified operational side effects. New schedules, secrets, collection, spending and release remain separately controlled.
+
+### Narrow standing merge delegation
+
+An engineering agent may merge **without an additional per-PR founder decision** only when all of the following hold:
+
+1. The entire change consists of spelling, formatting, or broken internal-link fixes in non-governing documentation; or strictly additive offline tests/synthetic fixtures that neither delete, replace, weaken nor rebaseline any existing check. There is no generated or public-content change.
+2. No runtime, application, collector, model, workflow, deployment, DB, migration, governed source, rights, holds, decision, policy, activation, budget, approval, user-facing editorial or other production-relevant file changes. AGENTS.md and CLAUDE.md are expressly excluded, as are stacked PRs and unresolved ownership or review conflicts.
+3. Required checks pass on the exact final head and merge candidate, the branch is current and cleanly mergeable, and main-push side effects have been verified not to dispatch models, publish, deploy, mutate production, or perform another reserved action.
+4. The PR records the exact head, tests and scope. Any uncertainty, conflicting reviewer feedback, failed check or unverified side effect ends the delegation.
+
+For all other changes, retain a reviewable PR and separately authorized merge/release. This standing delegation grants no new publisher use, external contact, paid processing, spending increase, schedule/source activation, production write, deployment, human publication, removal of factual QA, or relaxation of evidence, hash, retry or last-good-site controls.
+
+
 ## Execution and stop rules
 
 - Use an isolated worktree. Read current owner decisions and relevant code/PRs
