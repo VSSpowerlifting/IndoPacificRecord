@@ -21,9 +21,15 @@ restrictions and human editorial approvals remain authoritative in their scope.
 
 **Source-use evaluation:** [the canonical research-first standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
 recognizes use-specific legal bases, including applicable exceptions, without
-a universal publisher-letter prerequisite. It does not change existing source
-holds, components, activation or MINDEF's distinct original-text, media,
-model and public-data restrictions; outbound-link grants are not corpus rights.
+a universal publisher-letter prerequisite. It does not itself activate any
+source or waive legitimate third-party, access, model-spending or public
+component controls. For MINDEF, the founder's 9 November standing-source-use
+decision now accepts eligible official-release custody, bounded external-model
+processing and independent factual explanation as implementation scope,
+**separate from** the 7 November standing-link rule. The old blanket MINDEF
+runtime collection/model/public-data stops are still installed and require
+their own qualified shared-desk replacement; historical raw-original/media
+exclusions and human-controlled publication authority remain.
 
 **Adoption is not migration.** This documentation change does not consolidate
 the running code, qualify a revision, grant source rights, activate a collector,
