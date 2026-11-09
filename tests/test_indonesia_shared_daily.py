@@ -518,6 +518,44 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertEqual([(p['id'],p['institutional_forms']) for p in payload['passages']],
                          [('P1',['Kementerian Contoh']),('P2',['Kemencontoh'])])
 
+    def test_passages_opening_with_a_back_reference_are_marked_context_dependent(self):
+        from analysis.indonesia_prompts import analysis_messages, context_dependent
+        for text in ('Selain itu, Kemhan membahas rencana latihan.','Ia menyampaikan rencana latihan.',
+                     'Dalam kesempatan tersebut dibahas rencana latihan.','Menurutnya, latihan akan dimulai.',
+                     'Kegiatan tersebut diikuti dua puluh peserta.','Latihan itu diikuti dua puluh peserta.','Mereka membahas rencana latihan.'):
+            with self.subTest(text=text): self.assertTrue(context_dependent(text))
+        for text in ('Kementerian Contoh membahas rencana latihan.','Iaido adalah olahraga bela diri.',
+                     'Diah menghadiri kegiatan latihan.','Latihan bersama diikuti dua puluh peserta.'):
+            with self.subTest(text=text): self.assertFalse(context_dependent(text))
+        body='Kementerian Contoh membahas rencana latihan.\n\nSelain itu, rencana pengadaan juga dibahas.'
+        message=analysis_messages('SYNTHETIC title alias',body)[0]['content']
+        payload=json.loads(message.split('\n',1)[1])
+        self.assertEqual([(p['id'],p['context_dependent']) for p in payload['passages']],[('P1',False),('P2',True)])
+        self.assertEqual([p['institutional_forms'] for p in payload['passages']],[['Kementerian Contoh'],[]])
+        self.assertNotIn('title',payload)
+
+    def test_prompt_forbids_borrowing_an_actor_for_a_context_dependent_passage(self):
+        from analysis.indonesia_prompts import analysis_messages
+        text=analysis_messages('SYNTHETIC title','Kementerian Contoh membahas rencana latihan.')[0]['content']
+        self.assertIn('context_dependent true',text)
+        self.assertIn('cite a different passage or omit the detail',text)
+        self.assertIn('never a reason to borrow',text)
+        self.assertNotIn('Retain the actual actor',text)
+
+    def test_context_dependent_marker_does_not_relax_local_support_checks(self):
+        # The marker is a prompt aid only: a fact that borrows an actor from
+        # another passage fails the same source-local gate as before.
+        r,reply=self.institution_reading()
+        r['body']+='\n\nSelain itu, rencana pengadaan Kementerian Contoh juga dibahas.'
+        fact=reply['facts'][1]
+        fact['evidence']='Selain itu, rencana pengadaan juga dibahas.'
+        r['body']=r['body'].replace('Selain itu, rencana pengadaan Kementerian Contoh juga dibahas.',fact['evidence'])
+        fact['sentence']='Kemhan reports that Kementerian Contoh discussed procurement plans.'
+        fact['evidence_translation']='Procurement plans were also discussed.'
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        with self.assertRaises(d.IntakeHold):
+            d.quality_check(r,reply)
+
     def test_generic_translated_nouns_are_not_institution_names(self):
         r,reply=self.institution_reading()
         old=reply['facts'][0]['evidence']
@@ -819,6 +857,8 @@ class IndonesiaSharedDaily(unittest.TestCase):
             d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v2'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v3'),FAMILY,policy()['sources'][FAMILY])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+            d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v4'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='ph-relevance-v1+ph-analysis-v13'),FAMILY,policy()['sources'][FAMILY])
 

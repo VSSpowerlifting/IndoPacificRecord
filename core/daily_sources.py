@@ -281,7 +281,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         family="id_kemhan_news", desk_id="indonesia", custody_ref="archive/indonesia-kemhan",
         language="id", label="Kemhan",
         publisher="Kementerian Pertahanan Republik Indonesia", public_issuer=None,
-        prompt_versions=("id-relevance-v1+id-analysis-v4",), identity_max_length=2000,
+        prompt_versions=("id-relevance-v1+id-analysis-v5",), identity_max_length=2000,
         first_party=True, reject_credit_line=True,
         links="core.daily_sources:_kemhan_links",
         quality="processing.indonesia_quality:quality_check",
