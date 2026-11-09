@@ -55,18 +55,23 @@ follow the shared policy.
 5. `processing.daily_runner.private_run` → sign → admit; then read back
    `record/source-<sha24>.html`, the Singapore Desk and Archive/search on the live site.
 
-## Coordination with PR #1014 (unmerged at head `9523b9481b`)
+## Coordination with PR #1014 (integrated; both PRs still unmerged)
 
-#1014 records the founder's source-use decision and governance wording. This PR
-implements it and does not restate or replace it. Both touch two shared files and
-a trivial textual conflict is expected from whichever merges second:
+#1014 (head `9523b9481b`) records the founder's source-use decision and governance
+wording. #1017 (head `ecee078bf7`) implements it and does not restate or replace it.
+The integration branch merges both onto `main` `8a79605212` and resolves the two
+shared files as follows:
 
-- `core/mindef_permissions.py` (module docstring only): keep #1014's evidence
-  classification sentences; keep this PR's pointer to the per-component predicate.
+- `core/mindef_permissions.py` (module docstring only): #1014's evidence
+  classification sentences are kept, with this PR's pointer to the per-component
+  predicate (`core.mindef_public_boundary.permitted_machine_sql`).
 - `site/preview/templates/desk.html` (the Singapore branch of the one-line
-  explanation): keep this PR's two Singapore branches, and add #1014's sentence that
-  official outbound links follow the standing official-host rule to the fallback
-  branch; drop its "model processing … on hold" claim only once activation is
-  separately authorized and live-verified.
+  explanation): both of this PR's Singapore branches are kept, and #1014's
+  sentence that official outbound links follow the standing official-host rule is
+  added to the fallback branch. The "model processing on hold" claim stays accurate
+  while activation is unauthorized and is to be revised at activation.
 
-`desks/registry.json` and `DECISION_LOG.md` from #1014 merge without conflict.
+`desks/registry.json` and `DECISION_LOG.md` from #1014 merge without conflict. The
+registry's "held" wording is not changed here; see the m0022 release runbook,
+`SINGAPORE_MINDEF_M0022_RELEASE_RUNBOOK_2026-11-09.md`, for the migration release
+sequence and the items to update at activation.
