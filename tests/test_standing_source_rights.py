@@ -173,6 +173,22 @@ class StandingReuseContracts(unittest.TestCase):
         self.assertTrue(receipt["original_text_matches_authenticated_capture"])
         self.assertFalse(receipt["publication_performed"])
 
+    def test_mod_english_html_candidate_uses_original_text_pdl_not_pdf_gate(self):
+        s = original()
+        s["source_family"] = "jp_mod_press_en"
+        s["source_identity"] = "jp-mod-en:fictional-01"
+        s["official_url"] = "https://www.mod.go.jp/en/article/2026/10/example.html"
+        s["language"] = "en"
+        receipt = rights.qualify_standing_text(s, **options(s))
+        self.assertEqual(receipt["scope"], "original_text")
+        self.assertEqual(receipt["license_id"],
+                         "jp-mod-english-first-party-text-pdl1")
+        self.assertFalse(receipt["publication_performed"])
+        changed = dict(s, official_url="https://www.mod.go.jp/en/other.html")
+        with self.assertRaisesRegex(rights.StandingLicenseHold,
+                                    "publisher_outside_standing_policy_scope"):
+            rights.qualify_standing_text(changed, **options(changed))
+
     def test_jcg_first_party_english_html_text_uses_standing_pdl_without_pdf_gate(self):
         s = original()
         s["source_family"] = "jp_jcg_press_en"
