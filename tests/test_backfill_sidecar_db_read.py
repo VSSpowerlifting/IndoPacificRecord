@@ -76,6 +76,22 @@ def scratch_dirs():
             if n.startswith(SCRATCH_PREFIX)}
 
 
+def isolate_tempdir(case):
+    """
+    Give one test a private temp root for the helper's scratch directories.
+
+    The leak assertions diff `dbread-*` entries before and after a read. In
+    the shared system temp directory that diff also sees scratch directories
+    made concurrently by other `read_only` callers in parallel test workers,
+    so each test points `tempfile` at its own empty directory instead.
+    """
+    private = tempfile.mkdtemp(prefix="backfill-tmproot-")
+    case.addCleanup(shutil.rmtree, private, ignore_errors=True)
+    patcher = unittest.mock.patch.object(tempfile, "tempdir", private)
+    patcher.start()
+    case.addCleanup(patcher.stop)
+
+
 @contextlib.contextmanager
 def captured_stdout():
     buf, real = io.StringIO(), sys.stdout
@@ -104,6 +120,7 @@ class FreshCloneCase(unittest.TestCase):
     def setUp(self):
         if not TRACKED.exists():
             self.skipTest("production database not present")
+        isolate_tempdir(self)
         self.tmp = Path(tempfile.mkdtemp(prefix="backfill-freshclone-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.db = self.tmp / "pla_watch.db"
@@ -541,6 +558,7 @@ class TestTheBackfillFailsClosed(unittest.TestCase):
     def setUp(self):
         import scripts.backfill_sidecar_bodies as mod
         self.mod = mod
+        isolate_tempdir(self)
         self.tmp = Path(tempfile.mkdtemp(prefix="backfill-failclosed-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
 
