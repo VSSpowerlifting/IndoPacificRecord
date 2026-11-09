@@ -1703,7 +1703,15 @@ review date, not a qualification threshold. Neither desk is promoted.
 
 ## 6. Known technical debt
 
-* **gh-pages stale-rollback race — audited, NOT fixed (#346, 2026-10-15).**
+* **gh-pages stale-rollback race — Daily and `deploy_output_only` fenced in #725
+  (not merged or live); 18 other writers still unfenced (#346).** Both now
+  publish through `scripts/pages_release.py`: gh-pages must equal
+  `<source>:output`, with a `Source-SHA` commit trailer and a non-force
+  fast-forward push; stale sources are `superseded`, unattributable content is
+  a HOLD (exit 3). Next phase: migrate the nine direct file-only writers and
+  nine other `peaceiris` writers. The audit entry below predates this change
+  and its "no writer has a fence" line is superseded.
+* **gh-pages stale-rollback race — audited (#346, 2026-10-15).**
   `scripts/audit_pages_writers.py` inventories 22 Pages writers (10 full-tree,
   1 overlay, 11 file-only; the USCC/Treasury metadata writers were retired
   into Daily by `24ecca9686`). An unregistered or widened writer fails PR CI and

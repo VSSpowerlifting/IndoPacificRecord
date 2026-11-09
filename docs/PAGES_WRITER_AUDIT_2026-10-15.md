@@ -1,5 +1,12 @@
 # GitHub Pages writer audit and stale-deploy reproduction — 2026-10-15
 
+> **Update (#725, not merged or live).** `scripts/pages_release.py` now
+> publishes Daily and `deploy_output_only` as `gh-pages == <source>:output`
+> with a `Source-SHA` trailer and a non-force fast-forward push. This replaces
+> the manifest-and-generation proposal in §4 and §5, and the statements below
+> that no writer has a fence apply to the other 20 writers only. The remaining
+> `peaceiris` and direct file-only writers are the next phase.
+
 Issue #346 (audit phase only). Audited at `main` `7763663963`; rebased onto
 `c56d9714d0`, then merged with `d55d8e2b8b` (2026-10-16) and `35d1850371`
 (2026-10-22). **The race is not

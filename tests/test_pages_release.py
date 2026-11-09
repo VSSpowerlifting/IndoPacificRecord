@@ -130,6 +130,22 @@ class ReleaseTests(Base):
         self.assertEqual(self.pages_file(".nojekyll"), b"")
         self.assertEqual(self.pages_file("index.html"), b"<h1>two</h1>")
 
+    def test_publishes_on_a_runner_with_no_git_identity(self):
+        """A fresh Actions runner has no user.name/email; the helper supplies one."""
+        self.m.write("index.html", b"<h1>two</h1>")
+        self.m.commit("v2")
+        bare = {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
+                "GIT_CONFIG_NOSYSTEM": "1", "HOME": str(self.root), "EMAIL": ""}
+        with mock.patch.dict(os.environ, bare):
+            for key in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL",
+                        "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):
+                os.environ.pop(key, None)
+            report = pr.release(self.work, push=True, writer="no-identity")
+        self.assertTrue(report["published"])
+        self.assertEqual(self.pages_tree(), self.main_output_tree())
+        self.assertIn("github-actions[bot]",
+                      git(self.origin, "log", "-1", "--format=%an", "gh-pages"))
+
     def test_idempotent_retry_pushes_nothing(self):
         self.m.write("index.html", b"<h1>two</h1>")
         self.m.commit("v2")
