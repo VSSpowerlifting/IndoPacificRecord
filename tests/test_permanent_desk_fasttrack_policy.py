@@ -28,7 +28,7 @@ class PermanentDeskExceptionPolicy(unittest.TestCase):
             "authentic",
             "publisher",
             "founder",
-            "quality",
+            "factual and language QA",
         ):
             self.assertIn(phrase.lower(), normalized.lower())
         # A historic checkpoint must never silently become a current waiting rule.
