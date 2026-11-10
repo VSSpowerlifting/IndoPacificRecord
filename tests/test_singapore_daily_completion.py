@@ -485,7 +485,7 @@ class SingaporeAdmission(unittest.TestCase):
         state_file = Path(self.tmp) / "pilot-ledger.json"
         out_dir = Path(self.tmp) / "pilot-out"
         state_file.write_text(json.dumps(ledger))
-        with patch.dict(os.environ, {"DAILY_OUTPUT_KEY": self.key}), \\
+        with patch.dict(os.environ, {"DAILY_OUTPUT_KEY": self.key}), \
              patch("processing.daily_runner.load_policy", return_value=self.p):
             result = private_run(FAMILY + "," + str(self.repo) + "," + self.head,
                                  public_db=self.db, state_path=state_file,
