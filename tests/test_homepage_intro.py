@@ -252,9 +252,17 @@ class TestEveryWayOut(IntroCase):
                          "skip")
 
     def test_skip_by_pointer_does_not_move_focus_into_the_page(self):
+        # A real click waits for the button to be visible, enabled and stable
+        # before it lands. On a slow runner that wait can outlast the intro's
+        # own 1.75s timeline, so the intro ends itself and detaches the button
+        # mid-click. Freeze the page clock so the intro stays up until the
+        # click lands, then advance it past the skip fade.
         page = self.page()
+        page.clock.install(time=0)
+        page.clock.pause_at(1000)
         self.start(page)
         page.click(".ipr-intro-skip")
+        page.clock.run_for(600)     # the 250ms skip fade, far short of 1.75s
         page.wait_for_function(GONE, timeout=1500)
         self.assertTrue(page.evaluate(FADED))
         self.assert_clean(page)
