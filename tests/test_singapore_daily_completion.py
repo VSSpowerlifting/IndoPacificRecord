@@ -158,8 +158,8 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
         from core.registry import SourceRegistry
         errors = []
         with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \\
-             patch("processing.daily_intake.load_policy", return_value=policy(False)), \\
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+             patch("processing.daily_intake.load_policy", return_value=policy(False)), \
              patch("processing.daily_runner.intake_family", side_effect=AssertionError("unexpected intake")) as intake:
             [result] = pipeline.run_governed_manual_sources(
                 [FAMILY], 7, SourceRegistry(), errors)
@@ -176,8 +176,8 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
         errors = []
         receipt = {"records": 1, "admitted": 1, "holds": []}
         with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \\
-             patch("processing.daily_intake.load_policy", return_value=policy(True)), \\
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+             patch("processing.daily_intake.load_policy", return_value=policy(True)), \
              patch("processing.daily_runner.intake_family", return_value=receipt) as intake:
             results = pipeline.run_governed_manual_sources(
                 [FAMILY], 7, SourceRegistry(), errors)
@@ -196,8 +196,8 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
         from core.registry import SourceRegistry
         errors = []
         with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \\
-             patch("processing.daily_intake.load_policy", return_value=policy(True)), \\
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+             patch("processing.daily_intake.load_policy", return_value=policy(True)), \
              patch("processing.daily_runner.intake_family", return_value=None):
             [result] = pipeline.run_governed_manual_sources(
                 [FAMILY], 7, SourceRegistry(), errors)
