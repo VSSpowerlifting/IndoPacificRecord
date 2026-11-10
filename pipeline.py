@@ -807,7 +807,7 @@ def run(
             # NAMED COMPATIBILITY SHIM (MINDEF public-pipeline collection skip).
             # The public pipeline must never fetch MINDEF original text: that
             # lives only in private versioned custody. Collection runs through
-            # scripts/shadow_collect.py (archive/singapore-mindef) and
+            # scripts/shadow_collect.py (archive/singapore-mindef-daily) and
             # processing through the shared Daily lane (core.daily_sources,
             # sg_mindef_releases). Historical collection rows are preserved.
             from core.collection.contract import SourceRunResult

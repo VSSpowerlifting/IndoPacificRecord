@@ -91,7 +91,7 @@ def build_custody(root, rows=None, *, schema_current=True, remote=REMOTE):
     conn.close()
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
     subprocess.run(git + ["init", "-q"], check=True)
-    subprocess.run(git + ["checkout", "-q", "-b", "archive/singapore-mindef"], check=True)
+    subprocess.run(git + ["checkout", "-q", "-b", "archive/singapore-mindef-daily"], check=True)
     subprocess.run(git + ["add", "state/shadow.db"], check=True)
     subprocess.run(git + ["commit", "-qm", "synthetic"], check=True)
     subprocess.run(git + ["remote", "add", "origin", remote], check=True)
@@ -104,7 +104,7 @@ class SingaporeDefinition(unittest.TestCase):
     def test_family_is_in_the_shared_lane_but_not_activated(self):
         s = SOURCES[FAMILY]
         self.assertEqual((s.desk_id, s.label, s.custody_ref, s.language),
-                         ("singapore", "MINDEF", "archive/singapore-mindef", "en"))
+                         ("singapore", "MINDEF", "archive/singapore-mindef-daily", "en"))
         self.assertFalse(s.desk_registered)
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",))
         p = d.load_policy()["sources"][FAMILY]
@@ -175,12 +175,25 @@ class SingaporeCustody(unittest.TestCase):
         with self.assertRaisesRegex(d.IntakeHold, "daily_source_version_mismatch"):
             d.verified_source(repo, head, FAMILY)
 
+    def test_legacy_custody_is_refused_by_name_at_link_admission_and_processing(self):
+        repo, head = build_custody(self.tmp, schema_current=False)
+        with self.assertRaisesRegex(links.LinkRefused, "singapore_link_custody_schema_legacy"):
+            links.links_from_custody(repo, head)
+        with self.assertRaises(Exception):
+            d.verified_source(repo, head, FAMILY)
+
+    def test_registered_custody_ref_is_the_new_current_schema_ref(self):
+        from core.daily_sources import source_for
+        self.assertEqual(source_for(FAMILY).custody_ref, "archive/singapore-mindef-daily")
+        self.assertEqual(source_for(FAMILY).key_env, "DAILY_SG_MINDEF_RELEASES_KEY")
+
     def test_legacy_custody_schema_is_refused_by_the_collector_guard(self):
         from scripts import shadow_collect
         legacy, _ = build_custody(self.tmp, schema_current=False)
         with self.assertRaises(SystemExit) as ctx:
             shadow_collect.assert_current_schema(legacy / "state/shadow.db")
         self.assertIn("legacy Singapore custody", str(ctx.exception))
+        self.assertIn("archive/singapore-mindef-daily", str(ctx.exception))
         current = Path(self.tmp) / "current"
         current.mkdir()
         modern, _ = build_custody(current)

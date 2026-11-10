@@ -86,7 +86,7 @@ def assert_current_schema(db_path: Path) -> None:
         raise SystemExit(
             "refusing to write to a legacy Singapore custody database without "
             "%s: it is preserved evidence and is never migrated in place. "
-            "Collect into a new custody ref (archive/singapore-mindef)."
+            "Collect into a new custody ref (archive/singapore-mindef-daily)."
             % "/".join(REQUIRED_COLUMNS))
 
 

@@ -331,7 +331,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         desk_registered=False),
     DailySource(
         family="sg_mindef_releases", desk_id="singapore",
-        custody_ref="archive/singapore-mindef", language="en", label="MINDEF",
+        custody_ref="archive/singapore-mindef-daily", language="en", label="MINDEF",
         publisher="Ministry of Defence, Singapore",
         public_issuer="Ministry of Defence, Singapore",
         prompt_versions=("sg-relevance-v2+sg-analysis-v2",),
