@@ -353,10 +353,21 @@ class TestFailureNeverTraps(IntroCase):
         # loop's next requestAnimationFrame.
         page = self.page(extra="""const raf = window.requestAnimationFrame;
             window.requestAnimationFrame = function (f) {
-              if (window.__boom) throw new Error('boom');
+              if (window.__boom) {
+                window.__boomTriggered = true;
+                throw new Error('boom');
+              }
               return raf.call(window, f); };""")
+        # The normal fade starts at 1.75s; under CI load it can win the
+        # race against injecting the failure. Keep that timer frozen while
+        # advancing the animation just enough to exercise the error path.
+        page.clock.install(time=0)
+        page.clock.pause_at(1000)
         self.start(page)
         page.evaluate("window.__boom = true")
+        page.clock.run_for(100)
+        self.assertTrue(page.evaluate("window.__boomTriggered === true"),
+                        "the injected frame error did not execute")
         # Timer polling: Playwright's default polls with the rAF this breaks.
         page.wait_for_function(GONE, timeout=1500, polling=50)
         self.assertFalse(page.evaluate(FADED), "ended by the timeline, not the error")
