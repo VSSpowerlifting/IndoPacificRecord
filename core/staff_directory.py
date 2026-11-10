@@ -31,10 +31,13 @@ def load_staff(path: Path) -> tuple:
         if not isinstance(row["links"], dict):
             raise ValueError("invalid staff links")
         for label, url in row["links"].items():
-            if (not isinstance(label, str) or not label.strip() or
-                    not isinstance(url, str) or urlsplit(url).scheme != "https" or
-                    not urlsplit(url).netloc):
-                raise ValueError("public links must use HTTPS")
+            if not isinstance(label, str) or not label.strip() or not isinstance(url, str):
+                raise ValueError("public staff link is invalid")
+            if label == "Email":
+                if not re.fullmatch(r"mailto:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", url):
+                    raise ValueError("Email links must be valid mailto addresses")
+            elif urlsplit(url).scheme != "https" or not urlsplit(url).netloc:
+                raise ValueError("non-email public links must use HTTPS")
         names.add(row["name"].casefold())
         slugs.add(slug)
         members.append(dict(row, route="authors/" + slug + ".html"))
