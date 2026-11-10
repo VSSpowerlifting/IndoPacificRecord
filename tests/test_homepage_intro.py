@@ -353,19 +353,30 @@ class TestFailureNeverTraps(IntroCase):
         # loop's next requestAnimationFrame.
         page = self.page(extra="""const raf = window.requestAnimationFrame;
             window.requestAnimationFrame = function (f) {
+              // The first frame scheduled after the overlay is inserted is
+              // the intro's guarded frame; preserve it for deterministic
+              // error injection even when Chromium throttles animation frames.
+              if (!window.__introGuardedFrame &&
+                  document.querySelector('div.ipr-intro canvas'))
+                window.__introGuardedFrame = f;
               if (window.__boom) {
                 window.__boomTriggered = true;
                 throw new Error('boom');
               }
               return raf.call(window, f); };""")
-        # The normal fade starts at 1.75s; under CI load it can win the
-        # race against injecting the failure. Keep that timer frozen while
-        # advancing the animation just enough to exercise the error path.
+        # Pause only the normal 1.75s dismissal timer. run_for() does not
+        # guarantee a WebGL animation frame is scheduled under CI load, so
+        # invoke the actual guarded callback captured at intro setup. Its
+        # recursive rAF request then throws *inside* intro.js's guard.
         page.clock.install(time=0)
         page.clock.pause_at(1000)
         self.start(page)
-        page.evaluate("window.__boom = true")
-        page.clock.run_for(100)
+        page.evaluate("""() => {
+          if (!window.__introGuardedFrame)
+            throw new Error('intro did not schedule a guarded frame');
+          window.__boom = true;
+          window.__introGuardedFrame(performance.now());
+        }""")
         self.assertTrue(page.evaluate("window.__boomTriggered === true"),
                         "the injected frame error did not execute")
         # Timer polling: Playwright's default polls with the rAF this breaks.
