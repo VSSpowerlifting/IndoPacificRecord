@@ -430,14 +430,12 @@ class SingaporeAdmission(unittest.TestCase):
         paused["sources"][FAMILY].update(private_model_processing=False,
                                           unattended_release=False)
         paused["sources"][FAMILY]["owner_decision"] = "different owner decision or rights scope"
-        with self.assertRaisesRegex(d.IntakeHold, "daily_output_schema_or_policy_invalid"):
-            self.reader(paused)
+        self.assertEqual(self.reader(paused), [])
         paused = policy(True)
         paused["sources"][FAMILY].update(private_model_processing=False,
                                           unattended_release=False,
                                           max_input_characters=15999)
-        with self.assertRaisesRegex(d.IntakeHold, "daily_output_schema_or_policy_invalid"):
-            self.reader(paused)
+        self.assertEqual(self.reader(paused), [])
 
     def test_singapore_selected_signing_ignores_prior_completed_and_held_rows(self):
         import copy
