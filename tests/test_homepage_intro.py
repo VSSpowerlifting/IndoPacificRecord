@@ -270,7 +270,15 @@ class TestEveryWayOut(IntroCase):
         self.assert_clean(page)
 
     def test_the_page_is_not_reachable_until_it_ends(self):
+        # The intro dismisses itself on a wall-clock timer (~1.75s, hard cap
+        # 5s). Asserting "still covering the page" across several browser
+        # round-trips against that timer is a race a loaded CI runner loses.
+        # Freeze the page's clock so the intro stays mid-play for exactly as
+        # long as the assertions need, then advance it past the cap and prove
+        # the page really does become usable: the guarantee is unchanged.
         page = self.page()
+        page.clock.install(time=0)
+        page.clock.pause_at(1000)
         self.start(page)
         for _ in range(4):
             page.keyboard.press("Tab")
@@ -282,6 +290,12 @@ class TestEveryWayOut(IntroCase):
           const el = document.elementFromPoint(a.x + 4, a.y + 4);
           return !!el.closest('.ipr-intro'); }""")
         self.assertTrue(hit)
+        page.clock.run_for(6000)
+        page.wait_for_function(GONE)
+        self.assert_clean(page)
+        self.assertEqual(page.evaluate(USABLE), {
+            "visible": "visible", "inert": 0, "overflow": "visible",
+            "link": True})
 
 
 class TestADestinationIsNeverDelayed(IntroCase):
