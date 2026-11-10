@@ -470,6 +470,35 @@ class SingaporeAdmission(unittest.TestCase):
         self.assertEqual(self.connect().execute(
             "SELECT count(*) FROM daily_machine_records").fetchone()[0], 0)
 
+    def test_private_pilot_preserves_unselected_ledger_state_and_envelope(self):
+        import copy
+        import json
+        import os
+        from processing.daily_runner import private_run
+        ledger = copy.deepcopy(self.state)
+        previous = copy.deepcopy(ledger[FAMILY + ":" + IDENT])
+        previous["output"]["source_identity"] = "synthetic-previous-release"
+        ledger[FAMILY + ":synthetic-previous-release"] = previous
+        held = {"status": "held", "reason": "source_version_changed"}
+        ledger[FAMILY + ":synthetic-previous-held"] = held
+        before = copy.deepcopy(ledger)
+        state_file = Path(self.tmp) / "pilot-ledger.json"
+        out_dir = Path(self.tmp) / "pilot-out"
+        state_file.write_text(json.dumps(ledger))
+        with patch.dict(os.environ, {"DAILY_OUTPUT_KEY": self.key}), \\
+             patch("processing.daily_runner.load_policy", return_value=self.p):
+            result = private_run(FAMILY + "," + str(self.repo) + "," + self.head,
+                                 public_db=self.db, state_path=state_file,
+                                 out_dir=out_dir, source_identity=IDENT)
+        persisted = json.loads(state_file.read_text())
+        self.assertEqual(result["source_family"], FAMILY)
+        for name in ("synthetic-previous-release", "synthetic-previous-held"):
+            key = FAMILY + ":" + name
+            self.assertEqual(persisted[key], before[key])
+        envelope = json.loads((out_dir / (FAMILY + ".json")).read_text())
+        self.assertEqual([r["source_identity"] for r in envelope["packet"]["records"]], [IDENT])
+        self.assertEqual(envelope["packet"]["held"], [])
+
     def test_private_singapore_run_requires_explicit_identity_before_custody(self):
         from processing.daily_runner import private_run
         from processing.daily_intake import IntakeHold

@@ -53,8 +53,9 @@ follow the shared policy.
 
 The attended private Singapore execution requires a single validated
 `source_identity` before reading custody or invoking a model. Its shared signer
-filters both completed and held ledger rows to that selected identity and verifies
-source commit, run, metadata, content and capture hashes against the pinned
+processes only the selected ledger entry (preserving every other existing
+status/attempt), filters both completed and held output to that identity, and
+verifies source commit, run, metadata, content and capture hashes against the pinned
 selected original. Public admission also rejects a multi-item Singapore envelope.
 Other shared-Daily families retain their established signer behavior.
 

@@ -82,7 +82,18 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         if no_release:
             readings[identity] = reading
 
-    state, usage = process(eligible, state, family=family, policy=policy, reading_observer=observe)
+    if family == "sg_mindef_releases":
+        # A selected one-item pilot must not turn other historical ledger rows
+        # into source_missing_or_metadata_changed holds. Process a temporary
+        # per-identity view, then fold only the chosen entry back into custody.
+        selected_key = family + ":" + source_identity
+        selected_state = {selected_key: state[selected_key]} if selected_key in state else {}
+        selected_state, usage = process(eligible, selected_state, family=family,
+                                        policy=policy, reading_observer=observe)
+        state.update(selected_state)
+    else:
+        state, usage = process(eligible, state, family=family, policy=policy,
+                               reading_observer=observe)
     for identity in preservation_holds:
         state[family + ":" + identity].update(
             status="held", reason="private_reading_preservation_failed")
