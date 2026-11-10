@@ -49,6 +49,25 @@ and `links_from_custody` refuses it by name (`singapore_link_custody_schema_lega
 The model pair, daily cap (0.35 USD) and one-record-per-run limit
 follow the shared policy.
 
+## First-pilot release safeguards (candidate)
+
+The attended private Singapore execution requires a single validated
+`source_identity` before reading custody or invoking a model. Its shared signer
+filters both completed and held ledger rows to that selected identity and verifies
+source commit, run, metadata, content and capture hashes against the pinned
+selected original. Public admission also rejects a multi-item Singapore envelope.
+Other shared-Daily families retain their established signer behavior.
+
+After an authorized first Record is released, **stop new work** by disabling
+`SG_MINDEF_DAILY_ENABLED`, `private_model_processing` and `unattended_release`
+while leaving `public_machine_explanation=true` as the explicit authorization
+to display that already released machine explanation. The reader reconstructs
+the exact signed full-release policy fingerprint for Singapore only, so changes
+to exclusions, owner decision or limits cannot silently inherit visibility.
+Withdrawal of public-display authority, a source/parent hold or original version
+drift still removes the Record from reader surfaces. This post-pilot policy edit
+requires a reviewed change; never blindly turn all three policy flags off.
+
 ## Shortest separately authorized activation sequence
 
 Candidate code: this PR (public) plus the companion private PR that adds the
@@ -70,7 +89,10 @@ Recurrence stays off. Secrets are checked by presence only.
 5. Dispatch the private workflow once with `singapore_identity=<one identity>`
    (cap 0.35 USD, one Record); the next attended Daily fetches the signed envelope.
 6. Read back `record/source-<sha24>.html`, the Singapore Desk and Archive/search
-   live. Afterwards set the variable and booleans back off unless recurrence is authorized.
+   live. Stop recurring processing by disabling the Singapore private-dispatch
+   variable and the two new-processing booleans, while retaining explicit
+   `public_machine_explanation=true` display authority for that released Record.
+   Separately document any later public withdrawal or continued recurrence.
 
 Founder decision needed separately: the public `shadow/singapore-mindef` branch
 holds 105 historical original-body rows (historical-content treatment is not

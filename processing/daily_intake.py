@@ -387,20 +387,41 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
     return result, usage_record or []
 
 
-def sign_outputs(state, *, family, policy, key):
+def sign_outputs(state, *, family, policy, key, selected_record=None):
     p = policy["sources"][family]
     need(p["private_model_processing"] and p["public_machine_explanation"]
          and p["unattended_release"], "daily_output_rights_held")
     need(type(key) is str and len(key) >= 32, "daily_bridge_key_invalid")
+    # The Singapore pilot selects one original in private_run. Do not re-sign
+    # an older completed ledger row or withdraw unrelated held identities.
+    # This selection is an optional boundary for other families and synthetic
+    # direct-sign tests; private_run REQUIRES it for Singapore pilot execution.
+    selected_identity = None
+    if selected_record is not None:
+        need(family == "sg_mindef_releases" and type(selected_record) is dict
+             and selected_record.get("source_family") == family
+             and type(selected_record.get("source_identity")) is str,
+             "daily_singapore_pilot_selection_invalid")
+        selected_identity = selected_record["source_identity"]
     outputs = [v["output"] for k, v in sorted(state.items())
                if k.startswith(family + ":") and v.get("status") == "complete"
+               and (selected_identity is None or k == family + ":" + selected_identity)
                and v["output"]["source_identity"] not in p["excluded_source_identities"]
                and v["output"]["policy_sha256"] == digest(p)]
+    held = [k[len(family)+1:] for k, v in sorted(state.items())
+            if k.startswith(family + ":") and v.get("status") in ("held", "paused")
+            and (selected_identity is None or k == family + ":" + selected_identity)]
+    if selected_record is not None:
+        need(len(outputs) <= 1 and len(held) <= 1,
+             "daily_singapore_pilot_envelope_exceeds_one")
+        expected = ("source_identity", "source_git_commit", "source_run",
+                    "metadata_version_sha256", "content_sha256", "capture_sha256")
+        need(all(out.get(k) == selected_record.get(k) for out in outputs for k in expected),
+             "daily_singapore_pilot_version_mismatch")
     packet = {"schema": "ipr-shared-daily-machine-output/1", "family": family,
               "source_repository": PRIVATE_REPO, "source_ref": REFS[family],
               "processor_commit": git(ROOT, "rev-parse", "HEAD").decode().strip(), "records": outputs,
-              "held": [k[len(family)+1:] for k, v in sorted(state.items())
-                       if k.startswith(family + ":") and v.get("status") in ("held", "paused")]}
+              "held": held}
     raw = canonical(packet)
     need(len(raw) <= 512000, "daily_envelope_too_large")
     return {"packet": packet, "mac": hmac.new(key.encode(), DOMAIN + raw, hashlib.sha256).hexdigest()}
@@ -426,6 +447,13 @@ def admit(conn, envelope, *, family, policy, key):
          and packet["source_ref"] == REFS[family] and type(packet["records"]) is list
          and type(packet["held"]) is list and all(type(s) is str for s in packet["held"]),
          "daily_envelope_source_mismatch")
+    if family == "sg_mindef_releases":
+        # A one-item pilot is limited at public admission too. The MAC alone
+        # authenticates the signer, but cannot compensate for an old multi-row
+        # processor output or a mistakenly re-signed whole ledger.
+        need(len(packet["records"]) <= 1 and len(packet["held"]) <= 1
+             and not (packet["records"] and packet["held"]),
+             "daily_singapore_pilot_envelope_exceeds_one")
     need(type(packet["processor_commit"]) is str and COMMIT.fullmatch(packet["processor_commit"]),
          "daily_processor_pin_invalid")
     need(_is_ancestor(ROOT, packet["processor_commit"], "HEAD"), "daily_processor_not_in_public_history")

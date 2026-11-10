@@ -408,6 +408,79 @@ class SingaporeAdmission(unittest.TestCase):
             summary = links.admit_links(conn, self.records)
         self.assertEqual((summary["admitted"], summary["unchanged"], summary["held"]), ([], [IDENT], []))
 
+    def test_pausing_processing_keeps_only_previously_released_record_visible(self):
+        conn = self.connect()
+        self.assertEqual(self.admit(conn)["admitted"], 1)
+        paused = policy(True)
+        paused["sources"][FAMILY]["private_model_processing"] = False
+        paused["sources"][FAMILY]["unattended_release"] = False
+        self.assertEqual([r["source_identity"] for r in self.reader(paused)], [IDENT])
+        # This is a reader-only contract. Stopped policy cannot sign or admit.
+        with self.assertRaisesRegex(d.IntakeHold, "daily_output_rights_held"):
+            d.sign_outputs(self.state, family=FAMILY, policy=paused, key=self.key)
+        with self.assertRaisesRegex(d.IntakeHold, "daily_output_rights_held"):
+            d.admit(conn, self.envelope, family=FAMILY, policy=paused, key=self.key)
+        paused["sources"][FAMILY]["public_machine_explanation"] = False
+        self.assertEqual(self.reader(paused), [])
+
+    def test_paused_record_disappears_on_owner_decision_or_cap_drift(self):
+        conn = self.connect()
+        self.admit(conn)
+        paused = policy(True)
+        paused["sources"][FAMILY].update(private_model_processing=False,
+                                          unattended_release=False)
+        paused["sources"][FAMILY]["owner_decision"] = "different owner decision or rights scope"
+        with self.assertRaisesRegex(d.IntakeHold, "daily_output_schema_or_policy_invalid"):
+            self.reader(paused)
+        paused = policy(True)
+        paused["sources"][FAMILY].update(private_model_processing=False,
+                                          unattended_release=False,
+                                          max_input_characters=15999)
+        with self.assertRaisesRegex(d.IntakeHold, "daily_output_schema_or_policy_invalid"):
+            self.reader(paused)
+
+    def test_singapore_selected_signing_ignores_prior_completed_and_held_rows(self):
+        import copy
+        old = copy.deepcopy(self.state)
+        other = copy.deepcopy(old[FAMILY + ":" + IDENT])
+        other["output"]["source_identity"] = "synthetic-previous-release"
+        old[FAMILY + ":synthetic-previous-release"] = other
+        old[FAMILY + ":synthetic-previous-held"] = {"status": "held",
+                                                      "reason": "source_version_changed"}
+        # Ordinary family signing includes both completed rows and the held one;
+        # the attended pilot signs only its selected pinned release.
+        signed = d.sign_outputs(old, family=FAMILY, policy=self.p, key=self.key,
+                                selected_record=self.records[0])
+        self.assertEqual([r["source_identity"] for r in signed["packet"]["records"]], [IDENT])
+        self.assertEqual(signed["packet"]["held"], [])
+        wrong_version = dict(self.records[0], capture_sha256="0" * 64)
+        with self.assertRaisesRegex(d.IntakeHold, "daily_singapore_pilot_version_mismatch"):
+            d.sign_outputs(old, family=FAMILY, policy=self.p, key=self.key,
+                           selected_record=wrong_version)
+
+    def test_public_admission_rejects_a_signed_two_record_singapore_packet(self):
+        import copy
+        import hmac
+        packet = copy.deepcopy(self.envelope["packet"])
+        packet["records"].append(dict(packet["records"][0],
+                                      source_identity="synthetic-previous-release"))
+        payload = d.canonical(packet)
+        mac = hmac.new(self.key.encode(), d.DOMAIN + payload, hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(d.IntakeHold, "daily_singapore_pilot_envelope_exceeds_one"):
+            d.admit(self.connect(), {"packet": packet, "mac": mac},
+                    family=FAMILY, policy=self.p, key=self.key)
+        self.assertEqual(self.connect().execute(
+            "SELECT count(*) FROM daily_machine_records").fetchone()[0], 0)
+
+    def test_private_singapore_run_requires_explicit_identity_before_custody(self):
+        from processing.daily_runner import private_run
+        from processing.daily_intake import IntakeHold
+        with self.assertRaisesRegex(IntakeHold, "daily_singapore_pilot_identity_required"):
+            private_run(FAMILY + ",/nonexistent," + "a" * 40,
+                        public_db=self.db,
+                        state_path=Path(self.tmp) / "state.json",
+                        out_dir=Path(self.tmp) / "output", no_analysis=True)
+
     def test_policy_off_means_nothing_is_public(self):
         conn = self.connect()
         self.admit(conn)
