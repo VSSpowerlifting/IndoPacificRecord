@@ -451,6 +451,22 @@ class SingaporeAdmission(unittest.TestCase):
         self.assertEqual(state[FAMILY + ":" + IDENT]["reason"], "model_rights_held")
         factory.assert_not_called()
 
+    def test_committed_singapore_policy_is_one_record_and_capped_at_035(self):
+        import json
+        committed = json.loads(Path("config/philippines_daily_policy.json").read_text())
+        sg = committed["sources"][FAMILY]
+        self.assertEqual((sg["max_records_per_run"], sg["max_estimated_cost_usd_per_run"]), (1, 0.35))
+        self.assertEqual(sorted(sg["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
+        self.assertFalse(any(sg[k] for k in ("private_model_processing",
+                                              "public_machine_explanation", "unattended_release")))
+        over = json.loads(json.dumps(committed))
+        over["sources"][FAMILY]["max_estimated_cost_usd_per_run"] = 0.36
+        tmp = Path(tempfile.mkdtemp()); self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))
+        (tmp / "p.json").write_text(json.dumps(over))
+        with self.assertRaises(d.IntakeHold) as held:
+            d.load_policy(tmp / "p.json")
+        self.assertEqual(str(held.exception), "daily_spend_bound_invalid")
+
     def test_held_speech_never_reaches_the_model(self):
         factory = Mock()
         rec = dict(self.records[0], source_identity=links.HELD_IDENTITIES[0])
