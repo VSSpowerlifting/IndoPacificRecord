@@ -351,7 +351,13 @@ class TestFailureNeverTraps(IntroCase):
     def test_an_error_mid_intro_tears_it_down_at_once(self):
         # The test throws on demand, once the overlay is up, from the frame
         # loop's next requestAnimationFrame.
-        page = self.page(extra="""const raf = window.requestAnimationFrame;
+        page = self.page()
+        # Order matters: Playwright's clock replaces window.requestAnimationFrame
+        # with its own fake in a page init script, so the capturing wrapper must
+        # be registered *after* the clock to wrap it rather than be replaced.
+        page.clock.install(time=0)
+        page.clock.pause_at(1000)
+        page.add_init_script("""const raf = window.requestAnimationFrame;
             window.requestAnimationFrame = function (f) {
               // The first frame scheduled after the overlay is inserted is
               // the intro's guarded frame; preserve it for deterministic
@@ -368,8 +374,6 @@ class TestFailureNeverTraps(IntroCase):
         # guarantee a WebGL animation frame is scheduled under CI load, so
         # invoke the actual guarded callback captured at intro setup. Its
         # recursive rAF request then throws *inside* intro.js's guard.
-        page.clock.install(time=0)
-        page.clock.pause_at(1000)
         self.start(page)
         page.evaluate("""() => {
           if (!window.__introGuardedFrame)
