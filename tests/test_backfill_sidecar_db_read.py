@@ -71,9 +71,34 @@ def sidecars(db: Path):
 
 
 def scratch_dirs():
-    """The helper's scratch directories currently on disk."""
+    """The helper's scratch directories currently on disk, in whichever
+    directory `tempfile` currently resolves to (see `private_tempdir`)."""
     return {n for n in os.listdir(tempfile.gettempdir())
             if n.startswith(SCRATCH_PREFIX)}
+
+
+def private_tempdir(case):
+    """
+    Point `tempfile` at a directory only this test owns, for this test.
+
+    The leak assertions compare `dbread-*` directories before and after a
+    read. In the shared system temp directory that is a race: CI runs test
+    modules in parallel worker processes (scripts/parallel_unittest.py), and
+    any other worker whose code legitimately uses `read_only` — the deploy
+    validator, the reconciler's own gates — has a live `dbread-*` directory
+    there for the duration of its read. Such a directory is not this test's
+    leak, but a snapshot diff cannot tell the difference.
+
+    Giving the process its own temp root removes the other workers from the
+    measurement without weakening it: a directory the code under test fails
+    to remove still lands here and is still counted.
+    """
+    root = tempfile.mkdtemp(prefix="backfill-scratchroot-")
+    case.addCleanup(shutil.rmtree, root, ignore_errors=True)
+    patcher = unittest.mock.patch.object(tempfile, "tempdir", root)
+    patcher.start()
+    case.addCleanup(patcher.stop)
+    return root
 
 
 @contextlib.contextmanager
@@ -98,12 +123,53 @@ def captured_output():
         sys.stdout, sys.stderr = real_out, real_err
 
 
+class TestTheLeakCheckMeasuresOnlyItsOwnScratch(unittest.TestCase):
+    """
+    The leak assertions must neither count another worker's live scratch
+    directory nor go blind to a real leak.
+    """
+
+    def test_a_foreign_workers_scratch_directory_is_not_counted(self):
+        shared = tempfile.gettempdir()
+        foreign = tempfile.mkdtemp(prefix=SCRATCH_PREFIX, dir=shared)
+        self.addCleanup(shutil.rmtree, foreign, ignore_errors=True)
+        private_tempdir(self)
+        self.assertNotIn(os.path.basename(foreign), scratch_dirs())
+
+    def test_a_directory_the_code_under_test_leaks_is_still_counted(self):
+        private_tempdir(self)
+        before = scratch_dirs()
+        leaked = tempfile.mkdtemp(prefix=SCRATCH_PREFIX)
+        self.assertEqual(scratch_dirs() - before, {os.path.basename(leaked)})
+
+    def test_read_only_scratch_lands_in_the_private_root(self):
+        if not TRACKED.exists():
+            self.skipTest("production database not present")
+        root = private_tempdir(self)
+        seen = []
+        real_mkdtemp = tempfile.mkdtemp
+
+        def spy(*args, **kwargs):
+            path = real_mkdtemp(*args, **kwargs)
+            seen.append(path)
+            return path
+
+        with unittest.mock.patch("tempfile.mkdtemp", spy):
+            with read_only(TRACKED) as con:
+                con.execute("SELECT 1").fetchone()
+        scratch = [p for p in seen
+                   if os.path.basename(p).startswith(SCRATCH_PREFIX)]
+        self.assertEqual(len(scratch), 1)
+        self.assertEqual(os.path.dirname(scratch[0]), root)
+
+
 class FreshCloneCase(unittest.TestCase):
     """A copy of the tracked database with no -wal/-shm beside it."""
 
     def setUp(self):
         if not TRACKED.exists():
             self.skipTest("production database not present")
+        private_tempdir(self)
         self.tmp = Path(tempfile.mkdtemp(prefix="backfill-freshclone-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.db = self.tmp / "pla_watch.db"
@@ -541,6 +607,7 @@ class TestTheBackfillFailsClosed(unittest.TestCase):
     def setUp(self):
         import scripts.backfill_sidecar_bodies as mod
         self.mod = mod
+        private_tempdir(self)
         self.tmp = Path(tempfile.mkdtemp(prefix="backfill-failclosed-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
 
