@@ -3085,8 +3085,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                       "jobTitle": member["role"],
                       "worksFor": {"@type": "Organization", "name": title,
                                    "url": profile_origin + "/"}}
-            if member["links"]:
-                schema["sameAs"] = list(member["links"].values())
+            # Person.sameAs describes equivalent profile pages, not emails.
+            public_profiles = [href for href in member["links"].values()
+                               if href.startswith("https://")]
+            if public_profiles:
+                schema["sameAs"] = public_profiles
         route = member["route"]
         (out_dir / route).write_text(profile_template.render(
             page=route, nested=True, member=member,

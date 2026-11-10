@@ -263,9 +263,11 @@
       <p class="brief-author-name">{% set author_member = (team_by_name|default({})).get(brief.author_card_name|default(brief.author_name)) %}{% if author_member %}<a href="../{{ author_member.route }}">{{ brief.author_card_name|default(brief.author_name) }}</a>{% else %}{{ brief.author_card_name|default(brief.author_name) }}{% endif %}</p>
       {% if brief.author_title %}<p class="brief-author-title">{{ brief.author_title }}</p>{% endif %}
       {% if brief.author_bio %}<p class="brief-author-bio">{{ brief.author_bio }}</p>{% endif %}
-      {% if brief.author_links %}
+      {% set author_contact_links = author_member.links if author_member else brief.author_links %}
+      {% if author_contact_links %}
       <ul class="brief-author-links">
-        {% for label, href in brief.author_links.items() %}<li><a href="{{ href }}"{% if href.startswith('http') %} rel="noopener"{% endif %}>{{ label }}</a></li>{% endfor %}
+        {% for label, href in author_contact_links.items() %}<li><a href="{{ href }}"{% if href.startswith('http') %} rel="noopener noreferrer"{% endif %}>{{ label }}</a></li>{% endfor %}
+        {% if author_member %}<li><a href="../index.html">{{ brief.publication_home_label }}</a></li>{% endif %}
       </ul>
       {% endif %}
     </section>
@@ -277,8 +279,12 @@
       <p class="brief-author-title">{{ brief.research_contributor.title }}</p>
       <p class="brief-author-bio">{{ brief.research_contributor.bio }}</p>
       <ul class="brief-author-links">
-        {% if brief.research_contributor.linkedin %}<li><a href="{{ brief.research_contributor.linkedin }}" rel="noopener noreferrer">LinkedIn</a></li>{% endif %}
-        {% if brief.research_contributor.email %}<li><a href="mailto:{{ brief.research_contributor.email }}">Email</a></li>{% endif %}
+        {% if contributor_member %}
+          {% for label, href in contributor_member.links.items() %}<li><a href="{{ href }}"{% if href.startswith('http') %} rel="noopener noreferrer"{% endif %}>{{ label }}</a></li>{% endfor %}
+        {% else %}
+          {% if brief.research_contributor.linkedin %}<li><a href="{{ brief.research_contributor.linkedin }}" rel="noopener noreferrer">LinkedIn</a></li>{% endif %}
+          {% if brief.research_contributor.email %}<li><a href="mailto:{{ brief.research_contributor.email }}">Email</a></li>{% endif %}
+        {% endif %}
       </ul>
     </section>
     {% endif %}
