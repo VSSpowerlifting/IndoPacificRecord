@@ -261,6 +261,33 @@ def _dapa_parent(conn, identity) -> Optional[dict]:
     return dict(zip(keys, row))
 
 
+def _sg_links(repo, commit, source) -> list:
+    """Singapore MINDEF release identities in the pinned private custody checkout.
+
+    ``verified_source`` reconciles every row to the pinned bytes; the link rows
+    carry hashes of the private original, never its text.
+    """
+    from core import singapore_mindef_links
+    return singapore_mindef_links.links_from_custody(repo, commit, source.family)
+
+
+def _sg_known_hold(record) -> bool:
+    """The two speech releases that source review excluded stay held."""
+    from core import singapore_mindef_links
+    return record["source_identity"] in singapore_mindef_links.HELD_IDENTITIES
+
+
+def _sg_output_check(output) -> Optional[str]:
+    ok = not output["model_flagged"] and re.search(r"\bMINDEF\b", output["summary"]) is not None
+    return None if ok else "daily_singapore_flag_or_attribution_held"
+
+
+def _sg_parent(conn, identity) -> Optional[dict]:
+    """The admitted MINDEF official link (link-only scope) in shared field names."""
+    from core import singapore_mindef_links
+    return singapore_mindef_links.read_parent(conn, identity)
+
+
 SOURCES: Dict[str, DailySource] = {s.family: s for s in (
     DailySource(
         family="ph_afp_articles", desk_id="philippines", custody_ref="archive/ph-afp",
@@ -301,6 +328,20 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         approved_input="core.daily_sources:_dapa_approved_input",
         parent="core.daily_sources:_dapa_parent",
         admission_migration="migrations.versions.m0021_dapa_daily_machine_parent:is_already_applied",
+        desk_registered=False),
+    DailySource(
+        family="sg_mindef_releases", desk_id="singapore",
+        custody_ref="archive/singapore-mindef", language="en", label="MINDEF",
+        publisher="Ministry of Defence, Singapore",
+        public_issuer="Ministry of Defence, Singapore",
+        prompt_versions=("sg-relevance-v2+sg-analysis-v2",),
+        identity_max_length=64,
+        links="core.daily_sources:_sg_links",
+        quality="processing.daily_intake:english_official_quality",
+        known_hold="core.daily_sources:_sg_known_hold",
+        output_check="core.daily_sources:_sg_output_check",
+        parent="core.daily_sources:_sg_parent",
+        admission_migration="migrations.versions.m0022_singapore_mindef_source_records:is_already_applied",
         desk_registered=False),
 )}
 

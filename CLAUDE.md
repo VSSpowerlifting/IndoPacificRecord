@@ -7,9 +7,16 @@ adds tool-specific implementation notes rather than duplicating those rules.
 For domain authority, follow the documentation map in `AGENTS.md`.
 For source use, read `CONTENT_AND_DATA_RIGHTS.md` §7: evaluate an evidenced
 use-specific legal basis rather than demanding a publisher letter for every use.
-Preserve actual source restrictions, including MINDEF's original-text, media,
-model, collection and public-data holds. The reported standing link permission
-does not authorize any of those activities or editorial publication.
+Preserve actual publisher/access, third-party content, budget and release
+safeguards. For MINDEF, the founder's **9 November standing-source-use
+direction** (see `AGENTS.md` and `DECISION_LOG.md`) accepts eligible official
+release custody, bounded external-model processing and independent factual
+machine explanations in addition to standing links. Do not resurrect the
+superseded two-link limit. Existing MINDEF collection/model/public-data
+**runtime controls are still deployed** until a separate reviewed engineering
+change; removing an obsolete permission hold from policy text does not
+authorize executing a collector, spending, a public DB mutation or publishing.
+Original media and unrestricted source-body republication remain excluded.
 
 IPR is an independent, source-grounded research publication. Automated
 source records are not human-authored IPR Briefs. *The PLA Watch* and

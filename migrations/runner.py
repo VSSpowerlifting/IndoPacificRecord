@@ -299,13 +299,24 @@ def verify(conn: sqlite3.Connection) -> Dict[str, object]:
     # Count stored rows failing the triggers' own predicates. Before m0021 the
     # m0015 foreign key still applies and foreign_key_check covers it.
     from migrations.versions import m0021_dapa_daily_machine_parent as m21
+    from migrations.versions import m0022_singapore_mindef_source_records as m22
     if table_exists(m21.TABLE) and m21.is_already_applied(conn):
-        for key, missing, parent, family_sql in (
+        checks = [
             ("daily_machine_dapa_without_korea_parent", m21.dapa_parent_missing,
              m21.DAPA_PARENT_TABLE, "m.source_family = '%s'" % m21.DAPA_FAMILY),
             ("daily_machine_without_regional_parent", m21.regional_parent_missing,
              m21.REGIONAL_PARENT_TABLE, "m.source_family <> '%s'" % m21.DAPA_FAMILY),
-        ):
+        ]
+        if m22.is_already_applied(conn):
+            # m0022 moved Singapore to its own link-only parent; the regional
+            # predicate no longer covers that family.
+            checks[1] = ("daily_machine_without_regional_parent", m22.regional_parent_missing,
+                         m21.REGIONAL_PARENT_TABLE,
+                         "m.source_family NOT IN ('%s','%s')" % (m21.DAPA_FAMILY, m22.FAMILY))
+            checks.append(("daily_machine_singapore_without_mindef_parent",
+                           m22.singapore_parent_missing, m22.TABLE,
+                           "m.source_family = '%s'" % m22.FAMILY))
+        for key, missing, parent, family_sql in checks:
             # An absent parent table leaves every row of that kind orphaned.
             where = missing("m") if table_exists(parent) else family_sql
             orphans[key] = scalar(
