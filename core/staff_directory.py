@@ -34,7 +34,7 @@ def load_staff(path: Path) -> tuple:
             if not isinstance(label, str) or not label.strip() or not isinstance(url, str):
                 raise ValueError("public staff link is invalid")
             if label == "Email":
-                if not re.fullmatch(r"mailto:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", url):
+                if not re.fullmatch(r"mailto:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", url):
                     raise ValueError("Email links must be valid mailto addresses")
             elif urlsplit(url).scheme != "https" or not urlsplit(url).netloc:
                 raise ValueError("non-email public links must use HTTPS")
