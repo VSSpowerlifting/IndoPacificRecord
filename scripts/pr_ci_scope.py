@@ -85,6 +85,7 @@ EDITORIAL_TEST_PATTERNS = (
     "tests.test_public_editorial_render_gate",
     "tests.test_public_editorial_research",
     "tests.test_relief_primitives",
+    "tests.test_singapore_daily_completion",
     "tests.test_site_mode_contract",
     "tests.test_sitewide_render_preview",
     "tests.test_timeline_rendering",
