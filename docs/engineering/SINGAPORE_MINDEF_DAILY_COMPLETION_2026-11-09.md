@@ -27,7 +27,7 @@ human-controlled editorial publications (Briefs, Dossiers).
 | Boundary | `core/mindef_public_boundary.py` replaces the blanket machine-record abort with a per-component check (`permitted_machine_sql`): not a held identity, not model-flagged, MINDEF-attributed, and bound to an admitted parent with equal metadata, content and capture hashes. Without m0022 the blanket hold remains. Staged databases carry boundary triggers (`mindef_public_no_machine_insert/update`) whose predicate was frozen as `0` at install; m0022 re-issues them with the permitted-component predicate (and `is_already_applied` refuses to count a stale one), so admission is not silently blocked after migration. |
 | Delivery | `site/preview/generate_preview.py`, `desk.html` and `_machine_explanation.html` list admitted Singapore records on the Singapore Desk, the Archive (`machine_explanation`) and the search index, and the Record page names the Singapore Desk and the English-source note. `SingaporeRenderedDelivery` renders the full chain from a scratch copy of the tracked database and checks that no original title or body reaches any public file. |
 | Audit | `scripts/audit_mindef_public_surfaces.py` still blocks non-permitted machine rows and reports permitted ones separately. |
-| Compatibility shims | The two `pipeline.py` MINDEF branches (collection skip, queue hold) are kept as named shims: the public pipeline never collects MINDEF; private custody and the shared Daily lane do. |
+| Public dispatch | The Singapore production manifest now declares a manual source, and the shared governed Daily dispatcher admits its signed handoff through the same caller as AFP/NSC/Kemhan. The former public collection skip is removed; the separate historical article-queue hold remains. No MINDEF original is fetched by public Daily. |
 
 ## Source-specific exclusions
 
@@ -38,8 +38,9 @@ parent table. A test asserts these lists match `scraper.sources.sg_mindef`.
 ## Left disabled
 
 All three policy booleans in `config/philippines_daily_policy.json` for
-`sg_mindef_releases` are false; the desk manifest registration is unchanged
-(`desk_registered=False`); `.github/workflows/singapore_shadow.yml` stays
+`sg_mindef_releases` are false; Singapore is now registered as a manual Daily source
+(`desk_registered=True`) without a public collection adapter. This is routing,
+not activation. `.github/workflows/singapore_shadow.yml` stays
 disabled because it publishes to a public branch. Current-schema private custody
 `archive/singapore-mindef-daily` is **not yet created**. The older private
 `archive/singapore-mindef` is a *legacy-schema evidence copy* (no `source_identity`

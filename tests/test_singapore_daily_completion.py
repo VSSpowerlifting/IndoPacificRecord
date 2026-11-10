@@ -105,7 +105,7 @@ class SingaporeDefinition(unittest.TestCase):
         s = SOURCES[FAMILY]
         self.assertEqual((s.desk_id, s.label, s.custody_ref, s.language),
                          ("singapore", "MINDEF", "archive/singapore-mindef-daily", "en"))
-        self.assertFalse(s.desk_registered)
+        self.assertTrue(s.desk_registered)
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",))
         p = d.load_policy()["sources"][FAMILY]
         for key in ("private_model_processing", "public_machine_explanation", "unattended_release"):
@@ -137,6 +137,73 @@ class SingaporeDefinition(unittest.TestCase):
         for ident in links.HELD_IDENTITIES:
             self.assertTrue(_sg_known_hold({"source_identity": ident}))
         self.assertFalse(_sg_known_hold({"source_identity": IDENT}))
+
+
+
+class SingaporeGovernedDailyDispatch(unittest.TestCase):
+    """Real manifest and dispatcher, with policy and private handoff mocked."""
+
+    def test_registered_manual_source_never_uses_a_public_adapter(self):
+        import pipeline
+        from core.registry import SourceRegistry
+        reg = SourceRegistry()
+        self.assertEqual(reg.get_source(FAMILY).access_method, "manual")
+        self.assertIsNone(reg.get_source(FAMILY).adapter)
+        self.assertIn(FAMILY, pipeline._governed_admissions())
+
+    def test_committed_policy_holds_the_real_dispatch_before_intake(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        errors = []
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \\
+             patch("processing.daily_intake.load_policy", return_value=policy(False)), \\
+             patch("processing.daily_runner.intake_family", side_effect=AssertionError("unexpected intake")) as intake:
+            [result] = pipeline.run_governed_manual_sources(
+                [FAMILY], 7, SourceRegistry(), errors)
+        self.assertEqual(result.status, st.SKIPPED_DISABLED)
+        self.assertEqual(result.error_detail, "source-use policy withholds unattended release")
+        self.assertEqual(errors, [])
+        intake.assert_not_called()
+
+    def test_eligible_signed_handoff_reaches_one_daily_source_run_result(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        errors = []
+        receipt = {"records": 1, "admitted": 1, "holds": []}
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \\
+             patch("processing.daily_intake.load_policy", return_value=policy(True)), \\
+             patch("processing.daily_runner.intake_family", return_value=receipt) as intake:
+            results = pipeline.run_governed_manual_sources(
+                [FAMILY], 7, SourceRegistry(), errors)
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        self.assertEqual((result.source_slug, result.desk_id, result.status,
+                          result.new_documents),
+                         (FAMILY, "singapore", st.OK, 1))
+        self.assertEqual(errors, [])
+        intake.assert_called_once_with(pipeline.DB_PATH, "/scratch/intake", FAMILY)
+
+    def test_enabled_missing_envelope_is_reported_not_silently_skipped(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        errors = []
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \\
+             patch("processing.daily_intake.load_policy", return_value=policy(True)), \\
+             patch("processing.daily_runner.intake_family", return_value=None):
+            [result] = pipeline.run_governed_manual_sources(
+                [FAMILY], 7, SourceRegistry(), errors)
+        self.assertEqual(result.status, st.FETCH_FAILURE)
+        self.assertIn("no signed envelope delivered", result.error_detail)
+        self.assertEqual(len(errors), 1)
 
 
 class SingaporeCustody(unittest.TestCase):

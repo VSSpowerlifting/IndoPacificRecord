@@ -342,7 +342,9 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         output_check="core.daily_sources:_sg_output_check",
         parent="core.daily_sources:_sg_parent",
         admission_migration="migrations.versions.m0022_singapore_mindef_source_records:is_already_applied",
-        desk_registered=False),
+        # A manifest-registered manual source: public Daily admits signed outputs,
+        # never fetches MINDEF originals. Runtime source-use gates stay off.
+        desk_registered=True),
 )}
 
 
