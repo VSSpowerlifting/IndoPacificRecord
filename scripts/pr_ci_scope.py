@@ -73,6 +73,7 @@ EDITORIAL_TEST_PATTERNS = (
     "tests.test_editorial_staff",
     "tests.test_frontend_production",
     "tests.test_historical_brief_shell",
+    "tests.test_identity_assets",
     "tests.test_home_briefs_band_veil",
     "tests.test_home_paired_records",
     "tests.test_indo_pacific_identity",
