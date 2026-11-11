@@ -1,5 +1,58 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-11 — Founder: minimum operational desks and proportional process controls
+
+**Milestones.** The initial desk objective is one genuinely operational
+original-backed source family for each of eight desks. All sixteen families
+in the original 2 November roster remain the **full-coverage** milestone.
+Neither milestone is satisfied by metadata-only links, mock production,
+unverified PRs, deployment alone, or false completeness claims. One qualifying
+family must have lawful/authentic original retrieval and versioned custody,
+accurate permitted substantive processing and QA, authenticated admission
+through the existing shared Daily, a real deployed Record/desk/Archive/search
+and independent HTTPS readback, and a subsequent genuine unattended cycle
+with honest failure/quiet/hold recovery. Family scope and gaps must be visible
+to readers; family-specific permissions and holds remain in force.
+
+**Remove obsolete operations friction.** Seven-/thirty-day prelaunch waiting
+periods and Day 7/14/30 ceremonial reviews do not govern source promotion.
+The former requirement for seven consecutive eight-desk Daily runs before a
+new workflow file may even be considered is also retired. Reuse existing
+shared workflows before proposing another; new source activation, schedule,
+model/provider use, production change, paid work, deployment and editorial
+publication still require their actual separate authority. Do not create
+parallel engines, recurring per-record founder signatures, repeated publisher
+letters for an already established lawful standing scope, needless full-suite
+replays on unchanged data-only Daily, duplicate cross-desk integration PRs,
+new checklists, or invented qualification streaks. Actual source exception
+review, authentic captures, provenance hashes, factual QA, budget/retry history,
+CI final-head evidence, recovery and the last-good published site remain.
+
+**Processing-cap review, before throughput changes.** The shared private
+intake currently hard-codes exactly one record per run (including an input
+policy validator), rejects title+body beyond 16,000 UTF-8 bytes and checks
+machine explanations against a shared 90-word limit. These are **not**
+universal legal safe harbors, and can strand otherwise eligible originals.
+Challenge them with an evidence-based, tested adaptive throughput design
+under the *existing* total per-run cost/retry/call budget, and complete,
+source-version-aligned processing of longer documents in authorized,
+deterministic sections. Allow sufficient independent explanation to preserve
+substantive facts without unnecessary filler. Preserve source-specific
+binding limits: the attended Singapore pilot was expressly one original
+and remains ended/held; NSC and Kemhan decisions explicitly specify the
+one-record and 90-word bounds; DAPA model rights remain disabled; each
+Vietnam/Korea/China/Japan/USCC policy is evaluated independently. Proposed
+capacity changes are not an immediate authority to spend, increase retries,
+transmit previously excluded text, extend a licence, alter deployed switches,
+or relax evidence coverage and factual QA. Make source-specific decisions
+and negative tests before any corresponding runtime change.
+
+**Governance implementation.** Update canonical instructions, the eight-desk
+plan, retired legacy launch guidance and its truthful tests in a bounded
+reviewable integration. Finish this cleanup phase before a read-only focused
+eight-desk original-to-reader review. The adoption of the initial milestone
+does not itself certify any desk or authorize the cleanup PR's merge/release.
+
 ## 2026-11-11 — Founder: Singapore MINDEF one-original pilot ended at the QA hold
 
 The `6nov26-nr2` pilot ran once (estimated $0.0129 of the $0.35 cap) and stopped
