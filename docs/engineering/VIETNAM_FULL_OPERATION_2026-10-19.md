@@ -262,10 +262,11 @@ cutover/restore, exact human MPS release and two MOIT permissions remain distinc
 
 ## Shared Daily integration (follow-up candidate, 19 October)
 
-The ministry captures above now have a path into the shared Daily, under
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`. Nothing is
-operational: no production run, admission, model call, schedule or publication
-was performed, and the registry keeps Vietnam in shadow.
+The ministry captures above had a candidate path into the shared Daily under
+the [binding shared-desk architecture](../desks/README.md) and its
+[migration map](../desks/MIGRATION.md). At the time of this dated review, no
+production run, admission, model call, schedule or publication was performed;
+the registry then kept Vietnam in shadow. Verify current live status separately.
 
 **Reused, not rebuilt.** The existing collectors, private state branches,
 `vn.prepare`/`vn.authenticate` source and attempt checks, `ScreeningProfile`,
