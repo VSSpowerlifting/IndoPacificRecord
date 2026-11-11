@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -124,6 +125,45 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(envelope, sort_keys=True))
     return result
+
+
+# Collector heartbeat (monitoring only; never an admission input).
+#
+# The signed packet carries no collection time, so a stopped private collector
+# is indistinguishable from a quiet publisher: both leave the same envelope and
+# the same ok_all_duplicates. The fetch step records, beside the envelope, when
+# the family's custody branch last received a collector run. That file is NOT
+# signed and is never read by `admit`: it feeds only `source_run_results.
+# completed_at` and the liveness check, so forging it cannot publish anything.
+_HEARTBEAT_KEY = "collector_last_run_at"
+_HEARTBEAT_FORM = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+
+
+def heartbeat_path(input_dir, family):
+    return Path(input_dir) / (family + ".collection.json")
+
+
+def write_heartbeat(input_dir, family, stamp):
+    """Record the collector's last run (UTC, `YYYY-MM-DDTHH:MM:SSZ`) atomically."""
+    need(isinstance(stamp, str) and _HEARTBEAT_FORM.match(stamp),
+         "daily_heartbeat_malformed")
+    target = heartbeat_path(input_dir, family)
+    temporary = target.with_suffix(".tmp")
+    try:
+        temporary.write_text(json.dumps({_HEARTBEAT_KEY: stamp}), encoding="utf-8")
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def read_heartbeat(input_dir, family):
+    """The recorded collector heartbeat, or None when absent or malformed."""
+    try:
+        data = json.loads(heartbeat_path(input_dir, family).read_text(encoding="utf-8"))
+        stamp = data[_HEARTBEAT_KEY]
+    except (OSError, ValueError, KeyError, TypeError, RecursionError):
+        return None
+    return stamp if isinstance(stamp, str) and _HEARTBEAT_FORM.match(stamp) else None
 
 
 def intake_family(db_path, input_dir, family, *, policy=None):

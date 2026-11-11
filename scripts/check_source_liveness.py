@@ -34,6 +34,21 @@ dictionaries are gone. Expectations are now derived:
 A source whose adapter will not even import is UNHEALTHY, not INERT. That is
 the failure this gate exists for, and it must never be reachable by accident.
 
+Manual shared-Daily families (2026-11-04)
+-----------------------------------------
+A family admitted through a signed envelope never writes `articles` rows of its
+own scraping, and the signed packet carries no collection time. Recency of the
+last admitted article therefore cannot tell a stalled private collector from a
+publisher with nothing new: NSC's last post was months ago and must not read as
+red. For these sources the check instead reads the collector heartbeat recorded
+as `source_run_results.completed_at` by the governed manual dispatch (the
+committer date of the family's private custody branch head, unsigned, never an
+admission input). A fresh heartbeat means "the collector ran, so silence is the
+publisher's"; a stale one is UNHEALTHY. A source with no heartbeat (not
+activated, disabled, or the date could not be read) is judged exactly as before.
+This proves the collector ran, not that it succeeded, and it does not cover a
+stalled processor/signing step; see docs/desks/MIGRATION.md.
+
 Exit codes:
     0  all sources healthy (or only inert ones are quiet)
     1  at least one source is unhealthy
@@ -47,6 +62,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sqlite3
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -62,6 +78,13 @@ from core.registry import get_registry                         # noqa: E402
 from scripts.reconcile_db import read_only                     # noqa: E402
 
 DEFAULT_DB = REPO_ROOT / "pla_watch.db"
+
+#: How old a manual family's collector heartbeat may be. The private collectors
+#: preserve one attempt per day, so three days tolerates a missed cycle and a
+#: weekend without hiding a collector that has stopped. The manifests declare no
+#: cadence for these families, so `silence_threshold_days` is deliberately not
+#: reused: that threshold is about publisher silence, this one about our lane.
+DEFAULT_HEARTBEAT_MAX_DAYS = 3
 
 #: Configuration states in which a source is not expected to produce anything,
 #: and its silence is therefore not a defect. Both are declarations made
@@ -158,15 +181,59 @@ def rows(db_path: Path, today: date):
         ).fetchall()
 
 
+def heartbeats(db_path: Path) -> Dict[str, str]:
+    """Latest recorded collector heartbeat per source slug.
+
+    Only the most recent run row of a source counts, and only when that run was
+    active and recorded a time: a family that was disabled since, or whose
+    heartbeat could not be read, has no heartbeat rather than a stale one. A
+    database without the table (an old snapshot) yields no heartbeats.
+    """
+    with read_only(db_path) as conn:
+        try:
+            found = conn.execute(
+                """
+                SELECT r.source_slug, r.status, r.completed_at
+                  FROM source_run_results r
+                 WHERE r.id = (SELECT MAX(id) FROM source_run_results
+                                WHERE source_slug = r.source_slug)
+                """
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return {}
+    return {slug: stamp for slug, status, stamp in found
+            if stamp and status != st.SKIPPED_DISABLED}
+
+
 def classify(slug: str, total: int, last_seen: str | None,
              today: date, max_silent: int,
-             expectation: Expectation = UNDECLARED):
+             expectation: Expectation = UNDECLARED,
+             heartbeat: str | None = None,
+             heartbeat_max_days: int = DEFAULT_HEARTBEAT_MAX_DAYS):
     """Return (state, days_silent, detail)."""
     if expectation.broken:
         return "UNHEALTHY", None, expectation.reason
 
     if expectation.inert:
         return "INERT", None, expectation.reason
+
+    if expectation.manual and heartbeat:
+        # The collector's own cadence decides, not the publisher's: a quiet
+        # publisher behind a running collector is healthy at any article age.
+        try:
+            beat = datetime.strptime(heartbeat[:10], "%Y-%m-%d").date()
+        except ValueError:
+            beat = None
+        if beat is not None:
+            age = (today - beat).days
+            seen = f"last article {last_seen}" if last_seen else "no article admitted"
+            if age > heartbeat_max_days:
+                return ("UNHEALTHY", age,
+                        f"collector heartbeat last observed {beat} "
+                        f"({age}d ago, threshold {heartbeat_max_days}d); {seen}")
+            return ("HEALTHY", age,
+                    f"collector heartbeat {beat} ({age}d ago, threshold "
+                    f"{heartbeat_max_days}d); {seen}")
 
     if total == 0 or last_seen is None:
         if expectation.manual:
@@ -201,6 +268,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--max-silent-days", type=int, default=7)
+    parser.add_argument("--heartbeat-max-days", type=int,
+                        default=DEFAULT_HEARTBEAT_MAX_DAYS,
+                        help="oldest acceptable collector heartbeat for manual "
+                             "shared-Daily families")
     parser.add_argument(
         "--today", type=lambda s: datetime.strptime(s, "%Y-%m-%d").date(),
         default=date.today(), help="override today's date (testing)",
@@ -211,6 +282,7 @@ def main() -> int:
         sys.exit(f"ERROR: database not found: {args.db}")
 
     expected = expectations()
+    beats = heartbeats(args.db)
     unhealthy: list[tuple[str, str]] = []
     lines: list[str] = []
 
@@ -218,6 +290,8 @@ def main() -> int:
         state, _days, detail = classify(
             slug, total, last_seen, args.today, args.max_silent_days,
             expected.get(slug, UNDECLARED),
+            heartbeat=beats.get(slug),
+            heartbeat_max_days=args.heartbeat_max_days,
         )
         lines.append(f"{state:<10} {name:<28} {total:>5} article(s)  {detail}")
         if state == "UNHEALTHY":
