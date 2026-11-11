@@ -145,7 +145,8 @@ from core.brief_collection import (                                  # noqa: E40
     adjacent_items)
 from core.article_media import native_article_media                  # noqa: E402
 from core.brief_photography import article_cover                    # noqa: E402
-from core.brief_social_card import render_brief_social_card        # noqa: E402
+from core.brief_social_card import (                             # noqa: E402
+    render_brief_social_card, social_preview_granted)
 from core.brief_contract import validate_readiness
 from core.catalogue_media import (                                   # noqa: E402
     load_admissions as load_catalogue_admissions,
@@ -3194,8 +3195,9 @@ def build(out_dir: Path, title: str, db_path: Path,
                 target.write_bytes(asset.read_bytes())
                 written.append(route)
 
-    # Special image overrides retain their individually approved photo receipts.
-    # Every other published Brief gets an IPR-owned text-only social preview.
+    # Preserve all existing Brief cards. No.25 onward may receive an automatic
+    # photographic card when the paired cover also carries an exact-image,
+    # founder-approved grant for the social-link-preview surface.
     social_cards = dict(PAGE_SOCIAL_CARDS)
 
     # ── One page per published brief ─────────────────────────────────────────
@@ -3281,7 +3283,8 @@ def build(out_dir: Path, title: str, db_path: Path,
             # social preview. Never substitute an AI image, an unlicensed
             # source photograph or an unrelated picture.
             if (not brief["synthetic"] and not brief["is_review"]
-                    and brief["route"] not in social_cards and cover):
+                    and brief["route"] not in social_cards and cover
+                    and social_preview_granted(brief["number"], cover["entry"])):
                 card_route = "assets/social/brief-%s.jpg" % slug
                 card_alt = render_brief_social_card(
                     out_dir / card_route, title=brief["title"],
