@@ -16,7 +16,7 @@ owner decisions. Do not duplicate one document's rules inside another.
 | `AGENTS.md` | canonical agent instructions, growth admission, stop/completion rules |
 | `CLAUDE.md` | Claude-specific implementation notes only |
 | `README.md` | public and contributor overview |
-| `PROJECT_STATE.md` | current operational snapshot and immediate handoff |
+| `PROJECT_STATE.md` | retired diary pointer; never an operational snapshot |
 | `docs/PRODUCT_AND_EDITORIAL_DOCTRINE.md` | identity, editorial standard, provenance, publication principles |
 | `docs/desks/README.md` | mandatory all-desk architecture and completion; overrides older generic desk procedures |
 | `docs/desks/MIGRATION.md` | existing integration boundaries and next bounded phase; verify current code |
@@ -26,9 +26,10 @@ owner decisions. Do not duplicate one document's rules inside another.
 | `DECISION_LOG.md` | durable decisions that constrain future work |
 | Git history | superseded state and incident history |
 
-`PROJECT_STATE.md` is a **current snapshot, not a diary**. Update it in place
-and let Git hold the previous version; do not append a new dated section for
-every session.
+The former `PROJECT_STATE.md` session diary was retired on 11 November 2026.
+Do not append to it or mine its old ideas as live tasks. Use current GitHub
+issues/PRs, exact code, Actions and live readback for status. The immutable
+Git history retains genuine historical receipts.
 
 ## 1. Model routing
 
@@ -53,10 +54,9 @@ lightweight model decide design direction, editorial meaning, or
 architecture.
 
 ### Standing rules (any model)
-- Start with current owner rulings and targeted PROJECT_STATE.md sections.
-  Verify operational claims against real source records, latest code, PRs,
-  Actions and site output. Update PROJECT_STATE only for meaningful changes
-  and only when its ownership is coordinated.
+- Start with `AGENTS.md` and current owner rulings, then relevant live code,
+  source records, PRs, Actions and site output. Handoffs belong in the actual
+  issue/PR/commit or specific migration row, not a second session-memory file.
 - Editorial-integrity rules (PRODUCT_AND_EDITORIAL_DOCTRINE §4) bind every
   model at every tier: never invent Chinese text, translations, dates,
   ranks, sources, or claims — in code, copy, tests, or fixtures.
@@ -131,7 +131,7 @@ which Codex reads directly; Claude sees it through the tracked symlink
 
 Ruflo limits: max 4 agents; one owner per template file (`base.html`,
 `pla-watch-base.html`, and `pw_env.py` are single-owner, never concurrent);
-the lead session integrates and is the only writer of PROJECT_STATE.md.
+the lead session integrates and records the exact head and result in its issue/PR.
 
 ## 3. Project agents (`.claude/agents/`)
 
