@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import Image
 
 from core.brief_social_card import (
-    CARD_SIZE, MAX_BYTES, render_brief_social_card,
+    CARD_SIZE, MAX_BYTES, render_brief_social_card, social_preview_granted,
 )
 
 
@@ -40,6 +40,50 @@ class BriefSocialCardTests(unittest.TestCase):
         )
         values.update(replacements)
         return render_brief_social_card(self.out, **values)
+
+    def approved_cover(self):
+        photo = dict(self.provenance)
+        photo["sha256"] = "a" * 64
+        photo["social_preview_approval"] = {
+            "approved_by": "Benjamin Yang",
+            "approved_on": "2026-11-10",
+            "scope": "brief-link-preview",
+            "source_sha256": photo["sha256"],
+            "reference": (
+                "https://github.com/VSSpowerlifting/IndoPacificRecord/"
+                "issues/123#issuecomment-999"
+            ),
+        }
+        return photo
+
+    def test_automatic_preview_begins_at_issue_25_only(self):
+        approved = self.approved_cover()
+        self.assertFalse(social_preview_granted(24, approved))
+        self.assertFalse(social_preview_granted(23, approved))
+        self.assertFalse(social_preview_granted(None, approved))
+        self.assertTrue(social_preview_granted(25, approved))
+        self.assertTrue(social_preview_granted(26, approved))
+
+    def test_each_photo_requires_its_own_social_surface_grant(self):
+        approved = self.approved_cover()
+        self.assertFalse(social_preview_granted(25, self.provenance))
+        for altered in (
+            {"social_preview_approval": None},
+            {"social_preview_approval": {"approved_by": "Benjamin Yang"}},
+            {"social_preview_approval": {
+                **approved["social_preview_approval"], "scope": "article"}},
+            {"social_preview_approval": {
+                **approved["social_preview_approval"], "source_sha256": "b" * 64}},
+            {"social_preview_approval": {
+                **approved["social_preview_approval"], "approved_by": "AI agent"}},
+            {"social_preview_approval": {
+                **approved["social_preview_approval"], "approved_on": "tomorrow"}},
+            {"social_preview_approval": {
+                **approved["social_preview_approval"], "reference": "https://example.com/ok"}},
+            {"sha256": "not-a-hash"},
+        ):
+            with self.subTest(altered=altered):
+                self.assertFalse(social_preview_granted(25, {**approved, **altered}))
 
     def test_photo_card_size_source_attribution_and_budget(self):
         alt = self.render()
