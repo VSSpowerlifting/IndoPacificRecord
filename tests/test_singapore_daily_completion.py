@@ -91,7 +91,7 @@ def build_custody(root, rows=None, *, schema_current=True, remote=REMOTE):
     conn.close()
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
     subprocess.run(git + ["init", "-q"], check=True)
-    subprocess.run(git + ["checkout", "-q", "-b", "archive/singapore-mindef"], check=True)
+    subprocess.run(git + ["checkout", "-q", "-b", "archive/singapore-mindef-daily"], check=True)
     subprocess.run(git + ["add", "state/shadow.db"], check=True)
     subprocess.run(git + ["commit", "-qm", "synthetic"], check=True)
     subprocess.run(git + ["remote", "add", "origin", remote], check=True)
@@ -104,8 +104,8 @@ class SingaporeDefinition(unittest.TestCase):
     def test_family_is_in_the_shared_lane_but_not_activated(self):
         s = SOURCES[FAMILY]
         self.assertEqual((s.desk_id, s.label, s.custody_ref, s.language),
-                         ("singapore", "MINDEF", "archive/singapore-mindef", "en"))
-        self.assertFalse(s.desk_registered)
+                         ("singapore", "MINDEF", "archive/singapore-mindef-daily", "en"))
+        self.assertTrue(s.desk_registered)
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",))
         p = d.load_policy()["sources"][FAMILY]
         for key in ("private_model_processing", "public_machine_explanation", "unattended_release"):
@@ -137,6 +137,73 @@ class SingaporeDefinition(unittest.TestCase):
         for ident in links.HELD_IDENTITIES:
             self.assertTrue(_sg_known_hold({"source_identity": ident}))
         self.assertFalse(_sg_known_hold({"source_identity": IDENT}))
+
+
+
+class SingaporeGovernedDailyDispatch(unittest.TestCase):
+    """Real manifest and dispatcher, with policy and private handoff mocked."""
+
+    def test_registered_manual_source_never_uses_a_public_adapter(self):
+        import pipeline
+        from core.registry import SourceRegistry
+        reg = SourceRegistry()
+        self.assertEqual(reg.get_source(FAMILY).access_method, "manual")
+        self.assertIsNone(reg.get_source(FAMILY).adapter)
+        self.assertIn(FAMILY, pipeline._governed_admissions())
+
+    def test_committed_policy_holds_the_real_dispatch_before_intake(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        errors = []
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+             patch("processing.daily_intake.load_policy", return_value=policy(False)), \
+             patch("processing.daily_runner.intake_family", side_effect=AssertionError("unexpected intake")) as intake:
+            [result] = pipeline.run_governed_manual_sources(
+                [FAMILY], 7, SourceRegistry(), errors)
+        self.assertEqual(result.status, st.SKIPPED_DISABLED)
+        self.assertEqual(result.error_detail, "source-use policy withholds unattended release")
+        self.assertEqual(errors, [])
+        intake.assert_not_called()
+
+    def test_eligible_signed_handoff_reaches_one_daily_source_run_result(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        errors = []
+        receipt = {"records": 1, "admitted": 1, "holds": []}
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+             patch("processing.daily_intake.load_policy", return_value=policy(True)), \
+             patch("processing.daily_runner.intake_family", return_value=receipt) as intake:
+            results = pipeline.run_governed_manual_sources(
+                [FAMILY], 7, SourceRegistry(), errors)
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        self.assertEqual((result.source_slug, result.desk_id, result.status,
+                          result.new_documents),
+                         (FAMILY, "singapore", st.OK, 1))
+        self.assertEqual(errors, [])
+        intake.assert_called_once_with(pipeline.DB_PATH, "/scratch/intake", FAMILY)
+
+    def test_enabled_missing_envelope_is_reported_not_silently_skipped(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        errors = []
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+             patch("processing.daily_intake.load_policy", return_value=policy(True)), \
+             patch("processing.daily_runner.intake_family", return_value=None):
+            [result] = pipeline.run_governed_manual_sources(
+                [FAMILY], 7, SourceRegistry(), errors)
+        self.assertEqual(result.status, st.FETCH_FAILURE)
+        self.assertIn("no signed envelope delivered", result.error_detail)
+        self.assertEqual(len(errors), 1)
 
 
 class SingaporeCustody(unittest.TestCase):
@@ -175,12 +242,25 @@ class SingaporeCustody(unittest.TestCase):
         with self.assertRaisesRegex(d.IntakeHold, "daily_source_version_mismatch"):
             d.verified_source(repo, head, FAMILY)
 
+    def test_legacy_custody_is_refused_by_name_at_link_admission_and_processing(self):
+        repo, head = build_custody(self.tmp, schema_current=False)
+        with self.assertRaisesRegex(links.LinkRefused, "singapore_link_custody_schema_legacy"):
+            links.links_from_custody(repo, head)
+        with self.assertRaises(Exception):
+            d.verified_source(repo, head, FAMILY)
+
+    def test_registered_custody_ref_is_the_new_current_schema_ref(self):
+        from core.daily_sources import source_for
+        self.assertEqual(source_for(FAMILY).custody_ref, "archive/singapore-mindef-daily")
+        self.assertEqual(source_for(FAMILY).key_env, "DAILY_SG_MINDEF_RELEASES_KEY")
+
     def test_legacy_custody_schema_is_refused_by_the_collector_guard(self):
         from scripts import shadow_collect
         legacy, _ = build_custody(self.tmp, schema_current=False)
         with self.assertRaises(SystemExit) as ctx:
             shadow_collect.assert_current_schema(legacy / "state/shadow.db")
         self.assertIn("legacy Singapore custody", str(ctx.exception))
+        self.assertIn("archive/singapore-mindef-daily", str(ctx.exception))
         current = Path(self.tmp) / "current"
         current.mkdir()
         modern, _ = build_custody(current)
@@ -328,6 +408,106 @@ class SingaporeAdmission(unittest.TestCase):
             summary = links.admit_links(conn, self.records)
         self.assertEqual((summary["admitted"], summary["unchanged"], summary["held"]), ([], [IDENT], []))
 
+    def test_pausing_processing_keeps_only_previously_released_record_visible(self):
+        conn = self.connect()
+        self.assertEqual(self.admit(conn)["admitted"], 1)
+        paused = policy(True)
+        paused["sources"][FAMILY]["private_model_processing"] = False
+        paused["sources"][FAMILY]["unattended_release"] = False
+        self.assertEqual([r["source_identity"] for r in self.reader(paused)], [IDENT])
+        # This is a reader-only contract. Stopped policy cannot sign or admit.
+        with self.assertRaisesRegex(d.IntakeHold, "daily_output_rights_held"):
+            d.sign_outputs(self.state, family=FAMILY, policy=paused, key=self.key)
+        with self.assertRaisesRegex(d.IntakeHold, "daily_output_rights_held"):
+            d.admit(conn, self.envelope, family=FAMILY, policy=paused, key=self.key)
+        paused["sources"][FAMILY]["public_machine_explanation"] = False
+        self.assertEqual(self.reader(paused), [])
+
+    def test_paused_record_disappears_on_owner_decision_or_cap_drift(self):
+        conn = self.connect()
+        self.admit(conn)
+        paused = policy(True)
+        paused["sources"][FAMILY].update(private_model_processing=False,
+                                          unattended_release=False)
+        paused["sources"][FAMILY]["owner_decision"] = "different owner decision or rights scope"
+        self.assertEqual(self.reader(paused), [])
+        paused = policy(True)
+        paused["sources"][FAMILY].update(private_model_processing=False,
+                                          unattended_release=False,
+                                          max_input_characters=15999)
+        self.assertEqual(self.reader(paused), [])
+
+    def test_singapore_selected_signing_ignores_prior_completed_and_held_rows(self):
+        import copy
+        old = copy.deepcopy(self.state)
+        other = copy.deepcopy(old[FAMILY + ":" + IDENT])
+        other["output"]["source_identity"] = "synthetic-previous-release"
+        old[FAMILY + ":synthetic-previous-release"] = other
+        old[FAMILY + ":synthetic-previous-held"] = {"status": "held",
+                                                      "reason": "source_version_changed"}
+        # Ordinary family signing includes both completed rows and the held one;
+        # the attended pilot signs only its selected pinned release.
+        signed = d.sign_outputs(old, family=FAMILY, policy=self.p, key=self.key,
+                                selected_record=self.records[0])
+        self.assertEqual([r["source_identity"] for r in signed["packet"]["records"]], [IDENT])
+        self.assertEqual(signed["packet"]["held"], [])
+        wrong_version = dict(self.records[0], capture_sha256="0" * 64)
+        with self.assertRaisesRegex(d.IntakeHold, "daily_singapore_pilot_version_mismatch"):
+            d.sign_outputs(old, family=FAMILY, policy=self.p, key=self.key,
+                           selected_record=wrong_version)
+
+    def test_public_admission_rejects_a_signed_two_record_singapore_packet(self):
+        import copy
+        import hmac
+        packet = copy.deepcopy(self.envelope["packet"])
+        packet["records"].append(dict(packet["records"][0],
+                                      source_identity="synthetic-previous-release"))
+        payload = d.canonical(packet)
+        mac = hmac.new(self.key.encode(), d.DOMAIN + payload, hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(d.IntakeHold, "daily_singapore_pilot_envelope_exceeds_one"):
+            d.admit(self.connect(), {"packet": packet, "mac": mac},
+                    family=FAMILY, policy=self.p, key=self.key)
+        self.assertEqual(self.connect().execute(
+            "SELECT count(*) FROM daily_machine_records").fetchone()[0], 0)
+
+    def test_private_pilot_preserves_unselected_ledger_state_and_envelope(self):
+        import copy
+        import json
+        import os
+        from processing.daily_runner import private_run
+        ledger = copy.deepcopy(self.state)
+        previous = copy.deepcopy(ledger[FAMILY + ":" + IDENT])
+        previous["output"]["source_identity"] = "synthetic-previous-release"
+        ledger[FAMILY + ":synthetic-previous-release"] = previous
+        held = {"status": "held", "reason": "source_version_changed"}
+        ledger[FAMILY + ":synthetic-previous-held"] = held
+        before = copy.deepcopy(ledger)
+        state_file = Path(self.tmp) / "pilot-ledger.json"
+        out_dir = Path(self.tmp) / "pilot-out"
+        state_file.write_text(json.dumps(ledger))
+        with patch.dict(os.environ, {"DAILY_OUTPUT_KEY": self.key}), \
+             patch("processing.daily_runner.load_policy", return_value=self.p):
+            result = private_run(FAMILY + "," + str(self.repo) + "," + self.head,
+                                 public_db=self.db, state_path=state_file,
+                                 out_dir=out_dir, source_identity=IDENT)
+        persisted = json.loads(state_file.read_text())
+        self.assertEqual(result["source_family"], FAMILY)
+        for name in ("synthetic-previous-release", "synthetic-previous-held"):
+            key = FAMILY + ":" + name
+            self.assertEqual(persisted[key], before[key])
+        envelope = json.loads((out_dir / (FAMILY + ".json")).read_text())
+        self.assertEqual([r["source_identity"] for r in envelope["packet"]["records"]], [IDENT])
+        self.assertEqual(envelope["packet"]["held"], [])
+
+    def test_private_singapore_run_requires_explicit_identity_before_custody(self):
+        from processing.daily_runner import private_run
+        from processing.daily_intake import IntakeHold
+        with self.assertRaisesRegex(IntakeHold, "daily_singapore_pilot_identity_required"):
+            private_run(FAMILY + ",/nonexistent," + "a" * 40,
+                        public_db=self.db,
+                        state_path=Path(self.tmp) / "state.json",
+                        out_dir=Path(self.tmp) / "output", no_analysis=True)
+
     def test_policy_off_means_nothing_is_public(self):
         conn = self.connect()
         self.admit(conn)
@@ -437,6 +617,22 @@ class SingaporeAdmission(unittest.TestCase):
         state, _ = d.process(bound, {}, family=FAMILY, policy=policy(False), analyzer_factory=factory)
         self.assertEqual(state[FAMILY + ":" + IDENT]["reason"], "model_rights_held")
         factory.assert_not_called()
+
+    def test_committed_singapore_policy_is_one_record_and_capped_at_035(self):
+        import json
+        committed = json.loads(Path("config/philippines_daily_policy.json").read_text())
+        sg = committed["sources"][FAMILY]
+        self.assertEqual((sg["max_records_per_run"], sg["max_estimated_cost_usd_per_run"]), (1, 0.35))
+        self.assertEqual(sorted(sg["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
+        self.assertFalse(any(sg[k] for k in ("private_model_processing",
+                                              "public_machine_explanation", "unattended_release")))
+        over = json.loads(json.dumps(committed))
+        over["sources"][FAMILY]["max_estimated_cost_usd_per_run"] = 0.36
+        tmp = Path(tempfile.mkdtemp()); self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))
+        (tmp / "p.json").write_text(json.dumps(over))
+        with self.assertRaises(d.IntakeHold) as held:
+            d.load_policy(tmp / "p.json")
+        self.assertEqual(str(held.exception), "daily_spend_bound_invalid")
 
     def test_held_speech_never_reaches_the_model(self):
         factory = Mock()

@@ -803,21 +803,6 @@ def run(
             )
             continue
 
-        if slug == "sg_mindef_releases":
-            # NAMED COMPATIBILITY SHIM (MINDEF public-pipeline collection skip).
-            # The public pipeline must never fetch MINDEF original text: that
-            # lives only in private versioned custody. Collection runs through
-            # scripts/shadow_collect.py (archive/singapore-mindef) and
-            # processing through the shared Daily lane (core.daily_sources,
-            # sg_mindef_releases). Historical collection rows are preserved.
-            from core.collection.contract import SourceRunResult
-            source_results.append(SourceRunResult(
-                source_slug=slug, desk_id="singapore",
-                status=collection_status.SKIPPED_DISABLED,
-                error_detail="MINDEF is collected in private custody and processed "
-                             "by the shared Daily lane, not the public pipeline"))
-            continue
-
         from core import china_source_use_hold as china_hold
         if china_hold.is_held_source(slug):
             # Interim source-use hold (disabled unless IPR_CHINA_SOURCE_USE_HOLD

@@ -558,6 +558,10 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # (DECISION_LOG 2026-10-23); it never reaches a model or another source.
         # Kemhan reuses its existing source-specific bridge secret under the
         # shared Daily MAC domain; this mapping does not enable the source.
+        # DAILY_SG_MINDEF_RELEASES_KEY is the Singapore family's shared Daily
+        # MAC key. It is a presence-only mapping: the fetcher still skips
+        # unless all three sg_mindef_releases policy booleans are true, and
+        # they are false (docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
         # IPR_USCC_SOURCE_CHECKOUT and IPR_US_TREASURY_SOURCE_CHECKOUT name the
         # run-local clones of this repository's preserved listing histories
         # that the governed USCC/Treasury admissions read under the owner's
@@ -582,6 +586,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                          ["ANALYSIS_MODEL", "ANTHROPIC_API_KEY", "CATEGORIZATION_MODEL",
                           "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
+                          "DAILY_SG_MINDEF_RELEASES_KEY",
                           "FALLBACK_MODEL", "GH_TOKEN", "IPR_CHINA_SOURCE_USE_HOLD",
                           "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED", "IPR_USCC_SOURCE_CHECKOUT",
                           "IPR_US_TREASURY_SOURCE_CHECKOUT", "IPR_VIETNAM_HANDOFF_RECEIPT",

@@ -23,7 +23,7 @@ class SourceDefinitions(unittest.TestCase):
         self.assertEqual(d.REFS, {AFP: "archive/ph-afp", NSC: "archive/ph-nsc",
                                   KEMHAN: "archive/indonesia-kemhan",
                                   DAPA: "archive/korea-dapa-policy-briefing",
-                                  MINDEF: "archive/singapore-mindef"})
+                                  MINDEF: "archive/singapore-mindef-daily"})
         self.assertEqual([s.key_env for s in SOURCES.values()],
                          ["DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "DAILY_ID_KEMHAN_NEWS_KEY", "DAILY_KR_POLICY_DAPA_RELEASES_KEY",

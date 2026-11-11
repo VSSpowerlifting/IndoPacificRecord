@@ -86,6 +86,11 @@ def links_from_custody(repo, commit, family=FAMILY) -> List[dict]:
         db = Path(tmp) / "shadow.db"
         db.write_bytes(blob)
         with sqlite3.connect(db.as_uri() + "?mode=ro&immutable=1", uri=True) as conn:
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(shadow_records)")}
+            if not {"source_identity", "metadata_json"} <= cols:
+                # Legacy evidence copy (e.g. archive/singapore-mindef): never read
+                # as shared-Daily custody; refuse by name rather than crash.
+                raise LinkRefused("singapore_link_custody_schema_legacy")
             rows = conn.execute(
                 "SELECT source_identity,url,published_date,first_seen_run,capture_sha256,"
                 "content_sha256,title_original FROM shadow_records WHERE source_slug=? "
