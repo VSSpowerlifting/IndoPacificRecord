@@ -38,7 +38,7 @@ from core.collection import status as st                      # noqa: E402
 from core.shadow_schedule import (                            # noqa: E402
     SOURCE_EXPLICIT, ScheduleError, resolve_target_date)
 from core.collection.contract import CollectionWindow          # noqa: E402
-from scraper.sources.sg_mindef import SGMindefAdapter          # noqa: E402
+from scraper.sources.sg_mindef import SGMindefAdapter, release_slug  # noqa: E402
 
 MANIFEST = REPO_ROOT / "shadow" / "singapore_mindef" / "manifest.json"
 # Deliberately no constant for the production database or output directory.
@@ -48,6 +48,7 @@ MANIFEST = REPO_ROOT / "shadow" / "singapore_mindef" / "manifest.json"
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS shadow_records (
     url              TEXT PRIMARY KEY,
+    source_identity  TEXT NOT NULL,
     source_slug      TEXT NOT NULL,
     title_original   TEXT NOT NULL,
     text_original    TEXT NOT NULL,
@@ -57,10 +58,36 @@ CREATE TABLE IF NOT EXISTS shadow_records (
     content_sha256   TEXT NOT NULL,
     capture_sha256   TEXT,
     retrieved_at     TEXT,
-    first_seen_run   TEXT
+    first_seen_run   TEXT,
+    metadata_json    TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_shadow_published ON shadow_records(published_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_shadow_identity ON shadow_records(source_identity);
 """
+
+# The shared private Daily lane (processing.daily_intake.verified_source) keys
+# custody rows by ``source_identity`` and reads ``metadata_json``. Earlier
+# Singapore custody (the immutable ``archive/singapore-production-*`` refs and
+# the shadow branch) predates both columns. They are evidence: this collector
+# never migrates, rewrites or appends to them, and refuses to run against one.
+REQUIRED_COLUMNS = ("source_identity", "metadata_json")
+
+
+def assert_current_schema(db_path: Path) -> None:
+    """Refuse an existing custody database that predates the shared Daily lane."""
+    if not db_path.exists():
+        return
+    con = sqlite3.connect(db_path.as_uri() + "?mode=ro", uri=True)
+    try:
+        cols = {r[1] for r in con.execute("PRAGMA table_info(shadow_records)")}
+    finally:
+        con.close()
+    if cols and not set(REQUIRED_COLUMNS) <= cols:
+        raise SystemExit(
+            "refusing to write to a legacy Singapore custody database without "
+            "%s: it is preserved evidence and is never migrated in place. "
+            "Collect into a new custody ref (archive/singapore-mindef-daily)."
+            % "/".join(REQUIRED_COLUMNS))
 
 
 class ShadowSource:
@@ -100,6 +127,7 @@ def run(state_dir: Path, target: date, lookback: int, cap: int,
     state_dir.mkdir(parents=True, exist_ok=True)
     (state_dir / "ledger").mkdir(exist_ok=True)
     db_path = state_dir / "shadow.db"
+    assert_current_schema(db_path)
 
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     before_hash = file_sha256(db_path)
@@ -201,16 +229,23 @@ def run(state_dir: Path, target: date, lookback: int, cap: int,
             if row:
                 entry["duplicates"] += 1
                 continue
+            identity = release_slug(doc.url)
+            if not identity:
+                raise ValueError("release has no path identity: %s" % doc.url)
+            metadata = {"publication_kind": doc.extra["publication_kind"]}
+            if doc.extra.get("content_verdict"):
+                metadata["content_verdict"] = doc.extra["content_verdict"]
             conn.execute(
-                "INSERT INTO shadow_records (url, source_slug, title_original,"
-                " text_original, published_date, language_tag,"
+                "INSERT INTO shadow_records (url, source_identity, source_slug,"
+                " title_original, text_original, published_date, language_tag,"
                 " publication_kind, content_sha256, capture_sha256,"
-                " retrieved_at, first_seen_run) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (doc.url, doc.source_slug, doc.title_original,
+                " retrieved_at, first_seen_run, metadata_json)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (doc.url, identity, doc.source_slug, doc.title_original,
                  doc.text_original, doc.published_date, doc.language_tag,
                  doc.extra["publication_kind"], doc.extra["content_sha256"],
                  doc.extra.get("capture_sha256"), doc.extra.get("retrieved_at"),
-                 run_id))
+                 run_id, json.dumps(metadata, sort_keys=True)))
             entry["inserted"] += 1
             entry["content_hashes"].append(doc.extra["content_sha256"])
     conn.commit()

@@ -229,12 +229,19 @@ def record_models(operation):
 
 
 DAPA_FAMILY = "kr_policy_dapa_releases"
+SG_MINDEF_FAMILY = "sg_mindef_releases"
 
 
 def _fact_only(profile) -> bool:
     """Private-original, two-fact English-only contracts (Kemhan, DAPA)."""
     return (profile.desk_id == "indonesia"
             or getattr(profile, "source_family", None) == DAPA_FAMILY)
+
+
+def _evidence_bound(profile) -> bool:
+    """Private-original profiles whose facts cite evidence IDs resolved here."""
+    return (profile.desk_id in ("philippines", "indonesia") or _fact_only(profile)
+            or getattr(profile, "source_family", None) == SG_MINDEF_FAMILY)
 
 
 class Analyzer:
@@ -1020,7 +1027,7 @@ class Analyzer:
             **partial,
             **({"document_facts":fields.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {}),
             **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
-               if profile.desk_id in ("philippines", "indonesia") or _fact_only(profile) else {}),
+               if _evidence_bound(profile) else {}),
             "title_english":          title_en,
             "text_english":           text_en,
             "summary_english":        fields["summary"],
@@ -1044,7 +1051,7 @@ class Analyzer:
         # unchanged original. A model supplies IDs, never authoritative quoted
         # text; the existing private quality gate still checks every claim.
         fact_only = _fact_only(profile)
-        if (profile.desk_id in ("philippines", "indonesia") or fact_only) and isinstance(data, dict):
+        if _evidence_bound(profile) and isinstance(data, dict):
             from analysis.philippines_prompts import evidence_passages
             if profile.desk_id == "indonesia":
                 from analysis.indonesia_prompts import evidence_passages

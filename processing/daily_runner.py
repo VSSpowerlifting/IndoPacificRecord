@@ -24,6 +24,12 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
     from processing.daily_intake import ROOT, digest, git
     family, repo, commit = spec.split(",", 2)
     need(source_for(family) is not None, "daily_source_family_invalid")
+    if family == "sg_mindef_releases":
+        # This execution path is dispatch-only. Refuse an unselected family run
+        # BEFORE reading custody, updating state or invoking the model.
+        from core.singapore_mindef_links import IDENTITY
+        need(type(source_identity) is str and bool(IDENTITY.fullmatch(source_identity)),
+             "daily_singapore_pilot_identity_required")
     policy = load_policy()
     records = verified_source(repo, commit, family)
     with read_only(str(public_db)) as conn:
@@ -76,7 +82,18 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         if no_release:
             readings[identity] = reading
 
-    state, usage = process(eligible, state, family=family, policy=policy, reading_observer=observe)
+    if family == "sg_mindef_releases":
+        # A selected one-item pilot must not turn other historical ledger rows
+        # into source_missing_or_metadata_changed holds. Process a temporary
+        # per-identity view, then fold only the chosen entry back into custody.
+        selected_key = family + ":" + source_identity
+        selected_state = {selected_key: state[selected_key]} if selected_key in state else {}
+        selected_state, usage = process(eligible, selected_state, family=family,
+                                        policy=policy, reading_observer=observe)
+        state.update(selected_state)
+    else:
+        state, usage = process(eligible, state, family=family, policy=policy,
+                               reading_observer=observe)
     for identity in preservation_holds:
         state[family + ":" + identity].update(
             status="held", reason="private_reading_preservation_failed")
@@ -101,7 +118,8 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
                            for identity in preservation_holds}
     if not no_release and policy["sources"][family]["public_machine_explanation"]:
         envelope = sign_outputs(state, family=family, policy=policy,
-                                 key=os.environ.get("DAILY_OUTPUT_KEY", ""))
+                                 key=os.environ.get("DAILY_OUTPUT_KEY", ""),
+                                 selected_record=eligible[0] if family == "sg_mindef_releases" else None)
         target = Path(out_dir) / (family + ".json")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(envelope, sort_keys=True))

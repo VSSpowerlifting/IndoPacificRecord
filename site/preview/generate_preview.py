@@ -3085,8 +3085,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                       "jobTitle": member["role"],
                       "worksFor": {"@type": "Organization", "name": title,
                                    "url": profile_origin + "/"}}
-            if member["links"]:
-                schema["sameAs"] = list(member["links"].values())
+            # Person.sameAs describes equivalent profile pages, not emails.
+            public_profiles = [href for href in member["links"].values()
+                               if href.startswith("https://")]
+            if public_profiles:
+                schema["sameAs"] = public_profiles
         route = member["route"]
         (out_dir / route).write_text(profile_template.render(
             page=route, nested=True, member=member,
@@ -3314,7 +3317,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.daily_machine_records import load as load_daily_machine_records
         daily_machine_records = ([r for r in load_daily_machine_records(db_path)
                                   if r["desk_id"] == desk.slug]
-                                 if desk.slug in ("philippines", "indonesia") else [])
+                                 if desk.slug in ("philippines", "indonesia", "singapore") else [])
         # Reuse the admitted corpus and its ordinary record rows. Private
         # captures and bibliographic references cannot enter this list.
         vietnam_records = sorted((r for r in data["corpus"]

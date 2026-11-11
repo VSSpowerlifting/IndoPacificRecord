@@ -423,6 +423,7 @@ jobs:
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
+          DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
           # Vietnam's two steps above write pla_watch.db before this one; the
           # pipeline reports what they recorded under the same activations.

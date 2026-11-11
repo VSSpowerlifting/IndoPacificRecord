@@ -1,6 +1,6 @@
 <article class="record-page">
   <div class="record-body">
-    <p><span class="evidence evidence--model">Machine explanation</span> · {% set desk = record.desk_id | default('philippines') %}<a href="../{{ desk }}.html">{{ {'indonesia': 'Indonesia', 'korea': 'South Korea'}.get(desk, 'Philippines') }} Desk</a></p>
+    <p><span class="evidence evidence--model">Machine explanation</span> · {% set desk = record.desk_id | default('philippines') %}<a href="../{{ desk }}.html">{{ {'indonesia': 'Indonesia', 'korea': 'South Korea', 'singapore': 'Singapore'}.get(desk, 'Philippines') }} Desk</a></p>
     <h1>{{ record.source_label }} official source — machine explanation</h1>
     <p class="record-source-line">Publisher: {{ record.source_label }} · Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date }}</time></p>
     <p><a href="{{ record.url }}" rel="noopener nofollow">Read the official publication</a></p>

@@ -803,16 +803,6 @@ def run(
             )
             continue
 
-        if slug == "sg_mindef_releases":
-            # No new source acquisition or external processing is authorized
-            # by the two-link grant. Preserve all historical collection rows.
-            from core.collection.contract import SourceRunResult
-            source_results.append(SourceRunResult(
-                source_slug=slug, desk_id="singapore",
-                status=collection_status.SKIPPED_DISABLED,
-                error_detail="MINDEF source-use hold; no collection or model processing"))
-            continue
-
         from core import china_source_use_hold as china_hold
         if china_hold.is_held_source(slug):
             # Interim source-use hold (disabled unless IPR_CHINA_SOURCE_USE_HOLD
@@ -1090,6 +1080,8 @@ def run(
         if china_hold.is_held_source(source_slug) or article_id in china_held_ids:
             china_held_count += 1
             return False
+        # NAMED COMPATIBILITY SHIM: historical MINDEF article rows stay out of
+        # the public screening queue; their screening is the shared Daily lane.
         if source_slug == "sg_mindef_releases" or article_id in mindef_article_ids:
             held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
             return False

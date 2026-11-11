@@ -1,5 +1,39 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-09 — Founder: Singapore MINDEF standing substantive source-use decision
+
+The founder confirms he has an established written MINDEF media-relations
+relationship, including direct contact, and affirms a later standing publisher
+reply granting all future linking requests and broader assistance. In IPR's
+source-use decision, he expressly accepts **eligible MINDEF-owned official
+release original custody**, **bounded external AI processing** and
+**independently written, attributed public factual explanations**, in addition
+to official outbound links. This supersedes the old assumption that MINDEF
+must remain link-only or obtain article-by-article publisher permission.
+No contact details, private correspondence or phone number are copied here.
+
+**Evidence classification:** the founder supplies/attests the later wording,
+but this public repository has not independently inspected the original
+publisher transport or authenticated the later message's complete context.
+Do not claim MINDEF enumerated or separately signed off each technical use;
+this entry records the founder's source-specific interpretation and decision.
+The October 29 two-link reply remains preserved as a historical narrower
+grant, while the November 7 standing-link decision is already merged as #1004.
+
+**Implementation scope:** retire the obsolete categorical MINDEF acquisition,
+model and machine-Record exclusions and replace them with authenticated
+permitted-component processing in the existing shared Daily system. Protect
+original text and third-party media from public republication, preserve
+damaged-source holds, original identity/version custody, publisher access,
+factual QA, cost/retry constraints and governed publication.
+
+**Authority boundary:** this decision authorizes scoped policy/engineering
+implementation and review, **not** a new paid model call, production collection
+activation, source-hold reset, historical database or Pages mutation, merge,
+deployment or human Brief publication. Those operational changes remain
+separately authorized and live-verified.
+
+
 ## 2026-11-07 — Brief No. 24 editing and analysis credit
 
 After Brief No. 24 went live, Benjamin Yang, Founder & Executive Director,
@@ -104,6 +138,20 @@ or public release is authorized by this policy candidate.
 Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
+
+## 2026-11-09 — Founder: Singapore MINDEF standing authorization; disabled integration
+
+**Decided (founder, 9 Nov 2026):** MINDEF runs as one disabled-by-default shared
+`DailySource` (`sg_mindef_releases`) under the founder's standing authorization
+for private original custody, bounded model processing and independently written,
+MINDEF-attributed explanations. The founder's interpretation is recorded as such;
+no private correspondence is reproduced. Original text and third-party media stay
+private, the two excluded speech releases stay excluded, and Briefs/Dossiers stay
+human-controlled. Migration m0022 adds the link-only parent and re-issues the staged
+boundary triggers whose permitted-row predicate had been frozen as `0`. **Not authorized:**
+merge, deployment, collector or schedule activation, paid processing, production
+writes, publication. See
+[decision](docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
 
 ## 2026-11-07 — Brief No. 23 archival Liaoning cover
 
