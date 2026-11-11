@@ -30,5 +30,6 @@ governed warnings) → Playwright full-page screenshots at 1280 and 375 for
 changed routes → fix and repeat.
 
 Report: files changed, what changed, validation result, screenshot paths,
-acceptance-criteria checklist with pass/fail. Do not commit or update
-PROJECT_STATE.md unless the lead session asks.
+acceptance-criteria checklist with pass/fail. Commit only under the task's
+actual engineering authority. Keep the handoff in the relevant issue/PR;
+never revive the retired `PROJECT_STATE.md` session diary.
