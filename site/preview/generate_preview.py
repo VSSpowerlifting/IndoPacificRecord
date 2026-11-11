@@ -145,6 +145,7 @@ from core.brief_collection import (                                  # noqa: E40
     adjacent_items)
 from core.article_media import native_article_media                  # noqa: E402
 from core.brief_photography import article_cover                    # noqa: E402
+from core.brief_social_card import render_brief_social_card        # noqa: E402
 from core.brief_contract import validate_readiness
 from core.catalogue_media import (                                   # noqa: E402
     load_admissions as load_catalogue_admissions,
@@ -3193,6 +3194,10 @@ def build(out_dir: Path, title: str, db_path: Path,
                 target.write_bytes(asset.read_bytes())
                 written.append(route)
 
+    # Special image overrides retain their individually approved photo receipts.
+    # Every other published Brief gets an IPR-owned text-only social preview.
+    social_cards = dict(PAGE_SOCIAL_CARDS)
+
     # ── One page per published brief ─────────────────────────────────────────
     # `briefs/<slug>.html`, one level down, in the site's own shell: the
     # Analysis page is the collection's landing page and stays the current
@@ -3272,6 +3277,13 @@ def build(out_dir: Path, title: str, db_path: Path,
                     raise ValueError("rendered manuscript: " + "; ".join(errors))
             (out_dir / brief["route"]).write_text(html, encoding="utf-8")
             written.append(brief["route"])
+            if not brief["synthetic"] and not brief["is_review"] and brief["route"] not in social_cards:
+                card_route = "assets/social/brief-%s.png" % slug
+                card_alt = render_brief_social_card(
+                    out_dir / card_route, title=brief["title"],
+                    issue=brief["number"], week_ending=brief["week_ending"])
+                social_cards[brief["route"]] = {"route": card_route, "alt": card_alt}
+                written.append(card_route)
         (out_dir / "briefs.css").write_text(
             (Path(__file__).parent / "briefs.css").read_text(encoding="utf-8"),
             encoding="utf-8")
@@ -3908,7 +3920,7 @@ def build(out_dir: Path, title: str, db_path: Path,
             # inventing a sentence about a document the renderer has not read,
             # which is the same rule that governs og:description.
             safe_origin = _html.escape(origin, True)
-            page_card = PAGE_SOCIAL_CARDS.get(rel)
+            page_card = social_cards.get(rel)
             if page_card:
                 card = "%s/%s" % (safe_origin, page_card["route"])
                 card_alt = page_card["alt"]
