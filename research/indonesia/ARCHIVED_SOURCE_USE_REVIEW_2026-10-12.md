@@ -78,7 +78,7 @@ The current Kemhan pages carry `Hak Cipta © Kementerian Pertahanan Republik Ind
 
 **Siaran Pers is separate:** [August 23 SP/17/VIII/2026/ROINFOHAN](https://www.kemhan.go.id/2026/08/23/kemhan-tegaskan-tidak-ada-larangan-penggunaan-hijab-bagi-kadet-universitas-pertahanan.html) and [March 23 SP/10/III/2026/ROINFOHAN](https://www.kemhan.go.id/2026/03/23/kemhan-dan-tni-siapkan-langkah-efisiensi-bbm-secara-terukur-operasional-pertahanan-tetap-menjadi-prioritas.html) are numbered original press pages already linked publicly; they have **no registered press shadow collector** and **no archived-original Day7 clock**. One alternative old `/2026/09/09/...` link currently **redirects** to the August 23 original; avoid a false second press entry. The August statement describes limited training-related hijab restrictions and future uniform-rule adaptation; the March statement describes measures being **prepared**, not an enacted universal four-day TNI workweek.
 
-Official [PPID inquiry draft](KEMHAN_REUSE_PERMISSION_INQUIRY_DRAFT_2026-10-11.md) is **unsent**. No inferred reply, blanket licence, photo permission, or legally binding signoff.
+Official [PPID inquiry draft, retained in Git history](https://github.com/VSSpowerlifting/IndoPacificRecord/blob/baf9c09e3a55fbc0500d6ebf7c45515bc80a8058/research/indonesia/KEMHAN_REUSE_PERMISSION_INQUIRY_DRAFT_2026-10-11.md) is **unsent**. No inferred reply, blanket licence, photo permission, or legally binding signoff.
 
 ## October 12 fresh publisher baseline — **outside** the pinned Oct 11 archive
 
