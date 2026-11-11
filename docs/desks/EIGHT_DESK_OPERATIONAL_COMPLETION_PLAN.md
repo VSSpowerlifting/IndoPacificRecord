@@ -30,9 +30,14 @@ If this document conflicts with verified publisher access, actual source-use res
 
 ## 2. Mission and non-negotiable definition of done
 
-**Goal:** eight independently source-grounded, genuinely maintained IPR desks, each within its specifically approved family scope; original evidence must reach a real reader through an authorized pathway. Links, schedules, PR merges and tests alone do not establish a complete desk.
+**Goal (11 November 2026 founder amendment):** qualify eight **minimum operational**
+desks, each with one authentic, permitted, substantive original-source-to-reader
+family, and separately complete all sixteen previously selected source families.
+The full-coverage milestone remains binding research scope but is **not** a
+precondition for the first milestone. Links, schedules, PR merges and tests
+alone do not establish an operational desk.
 
-Every **required source family** must independently demonstrate:
+Each **family offered as operational**, for either milestone, must independently demonstrate:
 
 1. **Authentic permitted collection.** Direct source/publisher evidence and compliant retrieval under a documented access contract; accurate issuer vs publisher and date distinctions; no evasion of 403, robots, challenges or restrictions. An upstream quiet day is distinguished from a missed or failed run.
 2. **Versioned permitted custody.** Retained complete eligible original text/document when permitted, official canonical identity, content hashes and authenticated, independently recoverable source/version binding. A metadata lead does not count as an original. Hold partial, damaged, ambiguous or rights-restricted evidence.
@@ -41,13 +46,43 @@ Every **required source family** must independently demonstrate:
 5. **Actual deployed delivery.** Applicable exact-final-head qualification; committed final DB, rendered output and `gh-pages`; independent external HTTPS readback matching the exact admitted source identity, version and permitted content. Preserve last-good site on bad candidate.
 6. **Reliable unattended recurrence and recovery.** A subsequent genuine scheduled cycle with new/duplicate/quiet/error/hold accurately reported, plus real or controlled idempotent failure recovery; preserved captures, audit trails, spending/accounting, alerts and an operator path. A genuine previously captured source may establish an initial real end-to-end path, but is **not** proof of a later automatic arrival.
 
-A desk is **fully operational only after every required family independently passes all applicable gates**. Source-family progress may be reported without promoting the desk. No invented seven- or 30-day prelaunch requirement; the separate seven-successful-shared-Daily-run rule below controls the **new workflow-file freeze** only. Genuine historical failures remain recorded.
+A desk meets the **initial minimum-operational milestone** when at least one
+qualifying family independently passes all six gates, with the public claim
+naming that family and remaining incomplete coverage. A desk reaches
+**full-scope operational completion** only when every November 2 family in
+its roster passes. No invented seven- or thirty-day prelaunch clock, separate
+country-review ceremony, or seven-run workflow-file freeze applies. Genuine
+historical failures remain recorded.
 
 **State vocabulary:** scope decided; rights verified; designed; implemented; tested at SHA; PR open; merged; activated; deployed; live-readback verified; subsequently scheduled verified; desk certified. Do not collapse stages or infer one from another.
 
-## 3. Founder-approved eight-desk scope (final decisions, 2 November 2026)
+## 3. Minimum operational milestone (11 November 2026) and retained full scope
 
-| Desk | Mandatory qualifying source family/families | Explicitly outside initial certification | Principal boundary |
+**Initial milestone — one genuine source family per desk, not comprehensive
+country coverage.** These are priority candidates, not a permission, model
+authorization, activation or deployment. Where access/rights prevent a
+candidate from qualifying, the founder selects a specific alternative after
+a source-use review.
+
+| Desk | Initial candidate family | Additional full-scope families retained |
+|---|---|---|
+| Indonesia | Kemhan Berita | None |
+| Philippines | AFP | NSC |
+| Vietnam | MPS Foreign Affairs | VPCP |
+| South Korea | MND via Korea Policy Briefing | DAPA |
+| China | One eligible source from the existing five **after its source-specific rights are decided**; none is presumed cleared | The other four, plus any existing source-rights remediation |
+| Japan | JCG English official HTML | MOD accessible news originals; any broader HTML scope still needs its separate approved decision |
+| Singapore | MINDEF official releases | None |
+| U.S. reference | USCC Commission-authored releases first, if qualified | No second family required |
+
+**Full-coverage milestone — original November 2 roster preserved.** The
+following table and §§3.1–3.8 retain the scope and source-level safeguards
+for all sixteen families. Statements there that a desk is incomplete until
+both or all families pass mean **full-scope completion**, not the initial
+single-family milestone. Rights and technical holds remain effective.
+
+
+| Desk | Full-coverage source family/families | Explicitly outside initial certification | Principal boundary |
 |---|---|---|---|
 | **Indonesia** | **Kemhan Berita** (`id_kemhan_news`) only | Kemhan Siaran Pers; other Indonesian agencies | Recurring, private original-backed Indonesian-to-English processing; exact source holds |
 | **Philippines** | **Armed Forces of the Philippines (AFP)** **and** **National Security Council (NSC)** independently | Additional Philippine agencies | Both separate source rights, identities, QA and source-to-reader recurrence |
@@ -58,7 +93,10 @@ A desk is **fully operational only after every required family independently pas
 | **Singapore** | **Singapore MINDEF official releases only** | Substitute Singapore publishers; wider ministry or military content | Narrow written source-use permission is prerequisite; **do not contact MINDEF yet** |
 | **U.S. Indo-Pacific Reference Desk** | **At least one original-backed, permitted U.S. institutional source family; investigate USCC Commission-authored press releases first** | Obligation to make Treasury/BIS full-text; PACOM and DVIDS while restricted | Source-specific original custody and authorized substantive output; reference-desk scope |
 
-No alternative source counts for a mandatory family without a *new explicit founder scope decision* and applicable source-rights review. The U.S. desk's one-family threshold allows choosing a qualifying alternative if USCC cannot be authorized, but does not authorize that selection in advance.
+Full-coverage family substitutions still require a new explicit founder
+scope decision and source-rights review. Initial candidates must also be
+specifically selected, not inferred from convenience; the U.S. one-family
+threshold permits proposing a grounded alternative if USCC fails.
 
 ### 3.1 Indonesia — Kemhan Berita
 
@@ -131,7 +169,7 @@ Other lawful, source-grounded engineering can continue while these approvals are
 
 ### P4 — Per-family integration, released live proof and certification
 
-For the later DAPA/Japan/USCC/MINDEF lanes, after rights decisions: integrate existing adapters/custody/profiles into the mandatory common lifecycle; verify with appropriate isolated tests and exact-final-head CI; obtain separately applicable release authority; inspect authenticated production DB/`gh-pages`/HTTPS and genuine follow-up scheduled run; test recovery and record limitations. Certify a desk **only when every mandatory family passes**.
+For the later DAPA/Japan/USCC/MINDEF lanes, after rights decisions: integrate existing adapters/custody/profiles into the mandatory common lifecycle; verify with appropriate isolated tests and exact-final-head CI; obtain separately applicable release authority; inspect authenticated production DB/`gh-pages`/HTTPS and genuine follow-up scheduled run; test recovery and record limitations. Certify **full-scope completion** only when every retained family passes; initial minimum operation needs one independently qualified family.
 
 ## 5. Workstream ownership and coding-agent stop conditions
 
@@ -141,11 +179,19 @@ For the later DAPA/Japan/USCC/MINDEF lanes, after rights decisions: integrate ex
 
 Each agent session gets one objective, existing repository state and exact PR dependencies, a clear file/owner boundary, verification on final head, and a **stop at reviewed engineering candidate** unless the task explicitly and validly authorizes further action. Follow `AGENTS.md`, `CLAUDE.md`, `docs/desks/README.md`, the relevant decision and actual source rights; use the existing migration map/PR to hand off. Do not extend a session into unrelated cleanup, deployment, another desk or an extra PR.
 
-**Workflow freeze:** owner decision of 1 November 2026 prohibits *new* `.github/workflows/` files until seven consecutive successful scheduled shared Daily runs with `source_run_results` from all eight desks, or a new owner waiver. Existing-workflow repairs under existing rights remain allowed. This is **not** a seven-day desk certification prerequisite.
+**Workflow rule (11 November 2026):** the seven-successful-eight-desk-Daily
+waiting prerequisite for adding a workflow file is retired. Reuse or repair
+existing shared workflows first. Any new file still needs an actual unmet
+need, a maintainer, exact-head checks and any separately applicable approval
+for new schedules, collection, spending, activation or deployment.
 
 ## 6. Evidence and decisions still open
 
-**Settled:** the eight required source-family scopes, explicit exclusions and common test of full-operation; Singapore MINDEF-only with outreach held; USCC-first research direction. The founder does **not** need another broad scope interview.
+**Settled:** the 11 November initial single-family-per-desk milestone,
+retained sixteen-family full-coverage roster, explicit exclusions and one
+genuine original-to-reader acceptance test. Singapore's current November 9–11
+source-use decision and technical holds supersede the historical two-link
+description in the earlier scope. No new broad scope interview is required.
 
 **Unsettled and requiring source evidence/owner action:** Singapore MINDEF contact and scoped written grant; DAPA/Japan/USCC use-specific legal-basis findings and any separately required operational decisions; any new cost or source activation; exceptional rights remediation; actual merge/release authority beyond task/standing rules. A new publisher letter is not universally required for those findings.
 
