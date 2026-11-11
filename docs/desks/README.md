@@ -1,9 +1,9 @@
 # Shared desk system — mandatory architecture
 
-**Founder-approved source-family scopes and full-operation acceptance (2 November 2026):**
+**Founder scope: initial one-family operational milestone (11 November 2026), full sixteen-family coverage retained from 2 November:**
 Read [`EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md`](EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
-for the eight fixed scope decisions and the original-to-reader certification
-standard before consequential desk planning or coding. The present file remains
+for the two milestone scopes and their unchanged genuine original-to-reader
+certification standard before consequential desk planning or coding. The present file remains
 the binding *engineering architecture*; the scope plan does not grant source
 rights, activate lanes, merge code or prove live service. Current source/CI/
 release evidence remains in its existing authoritative locations.
