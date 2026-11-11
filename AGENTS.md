@@ -85,6 +85,25 @@ activation, external provider, spend, public-writer or editorial authority
 is created by this decision. Governance changes themselves still require
 a separately authorized merge.
 
+### Narrow standing merge delegation (founder approval 9 November; reaffirmed 11 November)
+
+Without seeking an additional per-PR founder decision, an agent may merge
+only *wholly* non-governing documentation spelling/formatting/internal-link
+repairs, or strictly additive offline synthetic tests/fixtures that do not
+change, delete, weaken or rebaseline an existing check, after normal required
+review and exact-final-head checks. The agent must verify clean mergeability,
+no outstanding reviewer objection or ownership conflict, and that the resulting
+main-push workflows cannot dispatch models, publish, deploy, spend, activate a
+source or mutate production. Record exact head and verification in the PR.
+
+**Excluded:** AGENTS.md, CLAUDE.md, decision/governance documents, source rights
+and policies, budgets, private evidence, collector/processing/application code,
+workflows, DB/migrations, generated content, editorial work, all other
+production-impacting changes, and stacked/conflicted PRs. If uncertain, stop
+at a reviewed PR. The delegation never authorizes external contact,
+source/model activation, expenditure, deployment or public release.
+This governance cleanup PR is itself outside the delegation.
+
 ## Standing owner decision — 30 October 2026
 
 Applies to China, Singapore, Korea, Philippines, Indonesia, Vietnam, Japan, the
