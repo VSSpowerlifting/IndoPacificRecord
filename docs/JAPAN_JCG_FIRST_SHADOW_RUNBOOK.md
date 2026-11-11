@@ -43,6 +43,6 @@ Compare each exported English original to the live publisher HTML and capture by
 
 ## 3. Shadow qualification and future promotion
 
-The Day 7/14/30 checks and 30 consecutive collecting days remain mandatory under `docs/DESK_STRENGTH_CRITERIA.md`. This narrow source is Japan **Coast Guard** coverage, not comprehensive MOD/JCS defense coverage. A daily schedule, additional publisher sources, official-capture archiving, production manifest, existing-db migration, registry promotion or automatic weekly-writer inclusion all require separate review and approval.
+**Current source acceptance (9 November supersession):** Day 7/14/30 and 30-consecutive-day launch clocks are no longer mandatory. Historical receipts remain useful for source reliability, but the current shared-desk contract requires actual authenticated JCG English HTML originals, truthful text-only scope, standing-use and item exception evidence, valid ongoing scheduled behavior, source-to-reader qualification, and separately authorized release/readback. Linked PDFs/media do not gate the independently qualified HTML component. This narrow source is **Japan Coast Guard**, not comprehensive MOD/Joint Staff coverage. New schedule activation, production admission, registry changes, spending and deployment still require their applicable approvals.
 
 The temporary Japan editorial-source bridge (#202) is independent. It should be retired only after native, full-text production records have proven normal weekly-writer selection and citation behavior.

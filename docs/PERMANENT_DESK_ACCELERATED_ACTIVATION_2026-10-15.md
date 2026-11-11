@@ -1,4 +1,18 @@
-# Permanent source activation — exceptional seven-day evidence path
+# Historical policy: permanent source activation — exceptional seven-day evidence path
+
+> **RETIRED AS AN OPERATING LAUNCH RULE — 9 November 2026.** This October 15
+> decision is preserved to document the old seven-day exception to an older
+> thirty-day production-promotion standard. Both fixed waiting periods and
+> prospective Day 7/14/30 launch requirements were superseded by the 30 October
+> mandatory shared-desk architecture and the 2 November eight-desk acceptance
+> contract, reaffirmed by the founder on 9 November. The live standard is
+> [the eight-desk completion contract](desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
+> and [current C13](DESK_STRENGTH_CRITERIA.md#c13--source-to-reader-acceptance-without-artificial-launch-clocks):
+> authentic permitted originals, QA, signed admission, controlled release,
+> real subsequent unattended cycles and independent public readback.
+> **The dated procedures below are historical, not instructions to wait,
+> waive, activate, merge or publish today.** Source/version holds, actual
+> access/rights limits, budgets and founder publication approvals remain intact.
 
 > **Desk architecture/process supersession — 30 October 2026:** the
 > [mandatory shared desk standard](desks/README.md) governs every current and future

@@ -1,4 +1,4 @@
-"""Offline safety tests for owner-specific permanent seven-day desk exception."""
+"""Offline guard: legacy seven/thirty-day launch rules are historical, not active."""
 import json
 import unittest
 from pathlib import Path
@@ -14,24 +14,29 @@ class PermanentDeskExceptionPolicy(unittest.TestCase):
         cls.registry = {d["slug"]: d for d in
                         json.loads((ROOT / "desks/registry.json").read_text())["desks"]}
 
-    def test_exact_accelerated_source_path_and_remaining_regular_standard(self):
-        section = self.criteria.split("### C13 — No promotion on elapsed days alone", 1)[1].split("\n---", 1)[0]
+    def test_current_acceptance_does_not_require_obsolete_launch_clocks(self):
+        section = self.criteria.split(
+            "### C13 — Source-to-reader acceptance without artificial launch clocks",
+            1)[1].split("\n---", 1)[0]
+        normalized = " ".join(section.split())
         for phrase in (
-            "Thirty consecutive genuine collecting days",
-            "normal",
-            "at least seven",
-            "consecutive successful scheduled logical collecting days",
-            "C1–C12",
-            "Actions run/attempt/job census",
-            "every record selected for",
-            "reuse rights",
-            "source-state SHA",
-            "Day 14 and Day 30",
-            "DECISION_LOG.md",
+            "no mandatory seven-day or thirty-day prelaunch clock",
+            "source-specific use and component scope",
+            "the existing shared processing/admission path",
+            "controlled deployment/readback",
+            "subsequent unattended collection/processing cycle",
+            "authentic",
+            "publisher",
+            "founder",
+            "factual and language QA",
         ):
-            self.assertIn(phrase, section)
-        self.assertNotIn("automatically when this policy is updated", self.criteria[:self.criteria.index("### C13")])
-        self.assertIn("No source, desk status, production database, render,", section)
+            self.assertIn(phrase.lower(), normalized.lower())
+        # A historic checkpoint must never silently become a current waiting rule.
+        self.assertNotIn("Thirty consecutive genuine collecting days", section)
+        self.assertNotIn("at least seven consecutive", section)
+        self.assertNotIn("all three human reviews completed", section)
+        self.assertIn("RETIRED AS AN OPERATING LAUNCH RULE", self.record)
+        self.assertIn("The dated procedures below are historical", self.record)
 
     def test_exception_is_not_unverified_source_or_rights_approval(self):
         for phrase in (
@@ -63,7 +68,7 @@ class PermanentDeskExceptionPolicy(unittest.TestCase):
             self.assertEqual(self.registry[name]["status"], "live")
             self.assertTrue(self.registry[name]["has_production_records"])
 
-    def test_policy_requires_real_postlaunch_day14_and_day30_observation(self):
+    def test_historical_postlaunch_evidence_cannot_be_backdated(self):
         for phrase in (
             "after those dates occur",
             "without backdating",
