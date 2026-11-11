@@ -139,11 +139,23 @@ def intake_family(db_path, input_dir, family, *, policy=None):
     import sqlite3
     source = source_for(family)
     need(source is not None, "daily_source_family_invalid")
+    from core.daily_sources import attended_pilot_gate
+    gated, pilot = attended_pilot_gate(family)
+    need(not gated or pilot is not None, "daily_attended_pilot_gate_closed")
     path = Path(input_dir) / (family + ".json")
     if not path.exists():
         return None
     need(path.stat().st_size <= 512000, "daily_envelope_too_large")
     envelope = json.loads(path.read_text())
+    if gated:
+        # Attended pilot: only the one named identity, in records or holds.
+        packet = envelope.get("packet") if isinstance(envelope, dict) else None
+        need(isinstance(packet, dict) and isinstance(packet.get("records"), list)
+             and isinstance(packet.get("held"), list)
+             and all(isinstance(r, dict) and r.get("source_identity") == pilot
+                     for r in packet["records"])
+             and all(h == pilot for h in packet["held"]),
+             "daily_attended_pilot_identity_mismatch")
     policy = policy or load_policy()
     with sqlite3.connect(str(db_path), timeout=30) as conn:
         conn.execute("PRAGMA foreign_keys=ON")

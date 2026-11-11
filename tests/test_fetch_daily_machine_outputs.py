@@ -79,6 +79,46 @@ class FetchOutputs(unittest.TestCase):
         self.assertEqual(call.call_count, 2)
         self.assertEqual((root / 'outputs').read_text(), 'failed_families=0\n')
 
+    def sg_policy(self):
+        p = copy.deepcopy(_committed_policy())
+        p['sources']['sg_mindef_releases'].update(
+            private_model_processing=True, public_machine_explanation=True, unattended_release=True)
+        return p
+
+    def run_gated(self, event, identity, outcomes):
+        root = Path(self.tmp.name)
+        for family in fetch.SOURCES:
+            (root / (family + '.json')).write_text('old envelope')
+        env = {'IPR_PRIVATE_DAILY_ENABLED': 'true', 'IPR_DAILY_INTAKE_DIR': str(root),
+               'GITHUB_OUTPUT': str(root / 'outputs'), 'GITHUB_STEP_SUMMARY': str(root / 'summary'),
+               'GITHUB_EVENT_NAME': event, 'IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY': identity}
+        with patch.dict(os.environ, env), patch.object(fetch, 'load_policy', return_value=self.sg_policy()), \
+                patch.object(fetch.subprocess, 'run', side_effect=outcomes) as call:
+            result = fetch.main()
+        return root, result, call
+
+    def test_closed_pilot_gate_skips_singapore_cleanly_even_with_all_flags_true(self):
+        for event, identity in [('schedule', ''), ('schedule', '6nov26-nr2'), ('workflow_dispatch', '')]:
+            with self.subTest(event=event, identity=identity):
+                others = [f for f in fetch.SOURCES if f != 'sg_mindef_releases']
+                root, result, call = self.run_gated(
+                    event, identity, [self.response() for _ in others])
+                self.assertEqual(result['sg_mindef_releases'], 'pilot_gate_closed')
+                self.assertFalse((root / 'sg_mindef_releases.json').exists())
+                self.assertEqual(call.call_count, len(others) - 1)  # DAPA is policy-disabled
+                for call_args in call.call_args_list:
+                    self.assertNotIn('sg_mindef_releases', ' '.join(map(str, call_args.args[0])))
+                self.assertEqual(set((root / 'outputs').read_text().split()), {'failed_families=0'})
+                for family in others:
+                    self.assertEqual(result[family], 'policy_disabled' if family == 'kr_policy_dapa_releases' else 'fetched')
+
+    def test_attended_dispatch_fetches_singapore_only_with_the_named_identity(self):
+        order = list(fetch.SOURCES)
+        outcomes = [self.response() for _ in order]
+        root, result, call = self.run_gated('workflow_dispatch', '6nov26-nr2', outcomes)
+        self.assertEqual(result['sg_mindef_releases'], 'fetched')
+        self.assertTrue((root / 'sg_mindef_releases.json').exists())
+
     def test_annotations_do_not_disclose_response_or_stderr(self):
         from contextlib import redirect_stdout
         from io import StringIO
@@ -103,6 +143,7 @@ class FetchOutputs(unittest.TestCase):
         from tests.test_migrations import build_legacy_db
         from processing import daily_intake as intake
         from processing.daily_runner import intake_family
+        from core.daily_sources import attended_pilot_gate
         from tests.test_philippines_shared_daily import record, reading, fake_analyzer
 
         policy = load_policy()
@@ -115,6 +156,9 @@ class FetchOutputs(unittest.TestCase):
             # others report the same admitted/holds receipt as before.
             result = {}
             for family in fetch.SOURCES:
+                gated, pilot = attended_pilot_gate(family)
+                if gated and pilot is None:
+                    continue  # pipeline._daily_admission skips a closed pilot gate
                 receipt = intake_family(db, root, family, policy=policy)
                 if receipt is not None:
                     result[family] = {k: receipt[k] for k in ('admitted', 'holds')}

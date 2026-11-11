@@ -164,7 +164,9 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
         from core.registry import SourceRegistry
         errors = []
         with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake",
+                                      "GITHUB_EVENT_NAME": "workflow_dispatch",
+                                      "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY": "6nov26-nr2"}), \
              patch("processing.daily_intake.load_policy", return_value=policy(False)), \
              patch("processing.daily_runner.intake_family", side_effect=AssertionError("unexpected intake")) as intake:
             [result] = pipeline.run_governed_manual_sources(
@@ -182,7 +184,9 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
         errors = []
         receipt = {"records": 1, "admitted": 1, "holds": []}
         with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake",
+                                      "GITHUB_EVENT_NAME": "workflow_dispatch",
+                                      "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY": "6nov26-nr2"}), \
              patch("processing.daily_intake.load_policy", return_value=policy(True)), \
              patch("processing.daily_runner.intake_family", return_value=receipt) as intake:
             results = pipeline.run_governed_manual_sources(
@@ -202,7 +206,9 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
         from core.registry import SourceRegistry
         errors = []
         with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+                                      "IPR_DAILY_INTAKE_DIR": "/scratch/intake",
+                                      "GITHUB_EVENT_NAME": "workflow_dispatch",
+                                      "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY": "6nov26-nr2"}), \
              patch("processing.daily_intake.load_policy", return_value=policy(True)), \
              patch("processing.daily_runner.intake_family", return_value=None):
             [result] = pipeline.run_governed_manual_sources(
@@ -272,6 +278,111 @@ class SingaporeCustody(unittest.TestCase):
         modern, _ = build_custody(current)
         shadow_collect.assert_current_schema(modern / "state/shadow.db")  # accepted
         shadow_collect.assert_current_schema(Path(self.tmp) / "absent.db")  # first run
+
+
+class SingaporeAttendedPilotGate(unittest.TestCase):
+    """Singapore runs only on a deliberately dispatched, identity-named pilot."""
+    ENV = "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"
+
+    def run_dispatch(self, env, pol, receipt=None):
+        import os
+        import pipeline
+        from core.registry import SourceRegistry
+        errors = []
+        base = {"IPR_PRIVATE_DAILY_ENABLED": "true", "IPR_DAILY_INTAKE_DIR": "/scratch/intake"}
+        base.update(env)
+        with patch.dict(os.environ, base), \
+             patch("processing.daily_intake.load_policy", return_value=pol), \
+             patch("processing.daily_runner.intake_family", return_value=receipt) as intake:
+            results = pipeline.run_governed_manual_sources([FAMILY], 7, SourceRegistry(), errors)
+        return results, errors, intake
+
+    def clear(self):
+        import os
+        return {k: v for k, v in os.environ.items() if k not in (self.ENV, "GITHUB_EVENT_NAME")}
+
+    def test_gate_helper_is_closed_unless_dispatch_with_valid_identity(self):
+        from core.daily_sources import attended_pilot_gate
+        self.assertEqual(attended_pilot_gate("ph_afp_articles", {}), (False, None))
+        for env in ({}, {self.ENV: ""}, {self.ENV: "6nov26-nr2", "GITHUB_EVENT_NAME": "schedule"},
+                    {self.ENV: "Bad Identity", "GITHUB_EVENT_NAME": "workflow_dispatch"}):
+            with self.subTest(env=env):
+                self.assertEqual(attended_pilot_gate(FAMILY, env), (True, None))
+        self.assertEqual(attended_pilot_gate(
+            FAMILY, {self.ENV: "6nov26-nr2", "GITHUB_EVENT_NAME": "workflow_dispatch"}),
+            (True, "6nov26-nr2"))
+
+    def test_scheduled_and_ordinary_manual_runs_skip_even_with_all_flags_true(self):
+        from core.collection import status as st
+        for env in ({"GITHUB_EVENT_NAME": "schedule"},
+                    {"GITHUB_EVENT_NAME": "schedule", self.ENV: "6nov26-nr2"},
+                    {"GITHUB_EVENT_NAME": "workflow_dispatch", self.ENV: ""}):
+            with self.subTest(env=env):
+                import os
+                with patch.dict(os.environ, {}, clear=False):
+                    os.environ.pop(self.ENV, None)
+                    results, errors, intake = self.run_dispatch(env, policy(True))
+                [result] = results
+                self.assertEqual(result.status, st.SKIPPED_DISABLED)
+                self.assertIn("attended pilot gate closed", result.error_detail)
+                self.assertEqual(errors, [])
+                intake.assert_not_called()
+
+    def test_closed_gate_blocks_direct_intake_before_reading_any_file(self):
+        import os
+        from processing.daily_runner import intake_family
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / (FAMILY + ".json")).write_text("{}")
+            with patch.dict(os.environ, {"GITHUB_EVENT_NAME": "schedule", self.ENV: "6nov26-nr2"}):
+                with self.assertRaisesRegex(d.IntakeHold, "daily_attended_pilot_gate_closed"):
+                    intake_family(":memory:", tmp, FAMILY, policy=policy(True))
+
+    def test_open_gate_admits_only_the_named_identity(self):
+        import os
+        from processing.daily_runner import intake_family
+        env = {"GITHUB_EVENT_NAME": "workflow_dispatch", self.ENV: "6nov26-nr2"}
+        for packet in ({"records": [{"source_identity": "other-release"}], "held": []},
+                       {"records": [], "held": ["15aug26-speech"]},
+                       {"records": [{"source_identity": "6nov26-nr2"}, {"source_identity": "x"}],
+                        "held": []}):
+            with self.subTest(packet=packet), tempfile.TemporaryDirectory() as tmp:
+                (Path(tmp) / (FAMILY + ".json")).write_text(
+                    __import__("json").dumps({"packet": packet, "mac": "m"}))
+                with patch.dict(os.environ, env):
+                    with self.assertRaisesRegex(d.IntakeHold, "daily_attended_pilot_identity_mismatch"):
+                        intake_family(":memory:", tmp, FAMILY, policy=policy(True))
+
+    def test_open_gate_still_enforces_mac_for_the_named_identity(self):
+        import os
+        from processing.daily_runner import intake_family
+        env = {"GITHUB_EVENT_NAME": "workflow_dispatch", self.ENV: "6nov26-nr2",
+               "DAILY_SG_MINDEF_RELEASES_KEY": "synthetic-key"}
+        packet = {"records": [{"source_identity": "6nov26-nr2"}], "held": []}
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / (FAMILY + ".json")).write_text(
+                __import__("json").dumps({"packet": packet, "mac": "forged"}))
+            with patch.dict(os.environ, env):
+                with self.assertRaises(d.IntakeHold) as ctx:
+                    intake_family(":memory:", tmp, FAMILY, policy=policy(True))
+        self.assertNotIn("attended_pilot", str(ctx.exception))
+
+    def test_open_gate_dispatch_reaches_intake_for_the_attended_run(self):
+        from core.collection import status as st
+        results, errors, intake = self.run_dispatch(
+            {"GITHUB_EVENT_NAME": "workflow_dispatch", self.ENV: "6nov26-nr2"},
+            policy(True), receipt={"records": 1, "admitted": 1, "holds": []})
+        self.assertEqual(results[0].status, st.OK)
+        self.assertEqual(errors, [])
+        intake.assert_called_once()
+
+    def test_workflow_threads_the_gate_only_from_the_dispatch_input(self):
+        wf = (ROOT / ".github/workflows/daily_update.yml").read_text()
+        self.assertIn("singapore_attended_pilot_identity:", wf)
+        block = wf.split("singapore_attended_pilot_identity:", 1)[1].split("\n\n", 1)[0]
+        self.assertIn('default: ""', block)
+        line = ("IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == "
+                "'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}")
+        self.assertEqual(wf.count(line), 2)  # shared-Daily fetch step and pipeline step
 
 
 class SingaporeAdmission(unittest.TestCase):
