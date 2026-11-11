@@ -1,11 +1,18 @@
 # Indo-Pacific Record — Eight-Desk Operational Completion Plan
 
-**Version:** 1.1 — research-first evaluation amendment, 4 November 2026
-**Founder scope decisions:** 2 November 2026  
+**Version:** 1.2 — minimum operational milestone and process cleanup, 11 November 2026
+**Founder scope decisions:** 2 November 2026; revised first milestone 11 November 2026  
 **Owner:** Founder & Executive Director, Indo-Pacific Record  
 **Status:** Authoritative *proposed scope and acceptance plan* recording the founder's eight decisions; **not** evidence of source-use permission, engineering implementation, production activation, deployment, or desk certification. Repository governance adoption is subject to review/merge.  
 **Intended repository home:** `docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md`  
 **Review trigger:** An explicit founder change of source scope or certification standard, or discovery of a material inconsistency with higher authority. Do not overwrite this stable plan with transient progress notes.
+
+**11 November scope amendment:** Initial minimum operation now means one
+authentic, permitted substantive source-to-reader family per desk; full
+coverage still requires the original sixteen families. Fixed seven- and
+thirty-day prelaunch clocks, ceremonial Day 7/14/30 reviews and the separate
+seven-run workflow-file wait are superseded. This amendment does not activate
+any source, license, expenditure, merger, deployment or publication.
 
 **4 November source-use amendment:** [the canonical standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
 replaces generalized publisher-permission prerequisites with evidenced,
