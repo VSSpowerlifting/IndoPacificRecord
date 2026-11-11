@@ -37,6 +37,54 @@ publisher request or per-record owner approval. Substantive governance/source-
 rights amendments stop at founder PR review; collection/model activation,
 deployment, historical-content treatment and outside contact remain separate.
 
+## Founder decision — minimum operational desks and removal of redundant gates (11 November 2026)
+
+**First milestone: one genuinely operational source family per desk; second milestone:
+all sixteen previously agreed source families.** The eight-desk completion plan
+defines the two milestones. Do not claim full-scope coverage from a single family
+or call a metadata-only link an original-backed Record. The first milestone
+requires permitted authentic original retrieval and custody, source-appropriate
+factual QA, shared authenticated admission, real Record/desk/Archive/search
+delivery and independent HTTPS readback, followed by a genuine unattended cycle
+and recoverable failures. No fixed seven-/thirty-day clock or country-specific
+review ceremony is a prerequisite.
+
+**Remove process, not controls.** The 1 November waiting period for seven
+consecutive eight-desk Daily runs before even proposing a new workflow file is
+retired. Reuse or repair the shared workflow first; new workflows must have a
+demonstrated nonduplicative need, owner, exact-head verification and separate
+authorization for their operational effects. Older Day 7/14/30 checkpoint
+requirements are historical, not live launch instructions. Retain real missing
+runs, unresolved failures, publisher terms, source rights, quality, custody,
+budgets, model/provider restrictions, final-head CI, production readback and
+last-good-site protections. Do not turn source-specific factual review into
+universal per-record editorial approval. Standing-authority eligible machine
+Records already run automatically; human-controlled Briefs and other articles
+retain their human approvals.
+
+**Proportionate processing limits, challenged rather than blindly removed.**
+The shared private intake presently enforces exactly one processed Record,
+16,000 input characters and 90-word public explanations. These are not universal
+legal safe harbors or evidence of quality. Prefer a tested cost-bounded,
+multiple-eligible-record queue and full-source section-aware processing over
+unnecessary hard rejections; retain intact originals and fact-to-passage
+citation, source-specific rights/word limits, reasonable model context,
+provider limits, per-run spending ceilings, attempt history and safe holds.
+The one-original attended Singapore pilot, DAPA's inactive model authority,
+and source-specific <=90-word decisions cannot be silently broadened by this
+direction. Implementing any capacity change needs its own bounded, source-aware
+engineering verification and separately applicable paid/activation authorization.
+
+**Execution discipline:** consolidate the overlapping review candidates
+rather than opening another parallel engine or conflicting integration lane.
+Reuse existing authenticated CI qualification for unchanged data-only Daily
+runs, with its fail-closed fallback. Do not require publisher correspondence,
+a founder signature per permitted Record or a new independent reviewer when
+the specific standing determination already applies. No broad merge,
+activation, external provider, spend, public-writer or editorial authority
+is created by this decision. Governance changes themselves still require
+a separately authorized merge.
+
 ## Standing owner decision — 30 October 2026
 
 Applies to China, Singapore, Korea, Philippines, Indonesia, Vietnam, Japan, the
