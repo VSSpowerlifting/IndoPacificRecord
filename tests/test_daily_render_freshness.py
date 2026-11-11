@@ -573,6 +573,14 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # direction on #979, docs/desks/MIGRATION.md), never add one.
         self.assertIn(
             "IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}", pipeline)
+        # IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY is the Singapore-only attended
+        # pilot gate. It is empty except on a deliberate workflow_dispatch that
+        # names one identity; scheduled runs always receive "" and skip the
+        # family (docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
+        self.assertIn(
+            "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == "
+            "'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}",
+            pipeline)
         # The two existing Vietnam activation switches and a run-local
         # receipt are passed to the governed dispatcher for reporting only.
         # This does not activate a collector, model, or publication path.
@@ -588,7 +596,8 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "DAILY_SG_MINDEF_RELEASES_KEY",
                           "FALLBACK_MODEL", "GH_TOKEN", "IPR_CHINA_SOURCE_USE_HOLD",
-                          "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED", "IPR_USCC_SOURCE_CHECKOUT",
+                          "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED",
+                          "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY", "IPR_USCC_SOURCE_CHECKOUT",
                           "IPR_US_TREASURY_SOURCE_CHECKOUT", "IPR_VIETNAM_HANDOFF_RECEIPT",
                            "JAPAN_MOD_OFFICIAL_LINKS_ENABLED",
                           "KOREA_DAILY_AUTOMATION_ENABLED",

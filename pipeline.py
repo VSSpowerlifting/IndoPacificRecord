@@ -338,6 +338,10 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
     def inactive_reason():
         if os.environ.get("IPR_PRIVATE_DAILY_ENABLED") != "true":
             return _AWAITING_ACTIVATION
+        from core.daily_sources import attended_pilot_gate
+        gated, pilot = attended_pilot_gate(family)
+        if gated and pilot is None:
+            return "attended pilot gate closed"
         from processing.daily_intake import load_policy
         flags = load_policy()["sources"][family]
         if not all(flags[k] for k in ("private_model_processing",

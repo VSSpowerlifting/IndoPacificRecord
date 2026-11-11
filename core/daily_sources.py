@@ -30,6 +30,29 @@ _PH_PROMPTS = ("ph-relevance-v1+ph-analysis-v10",
 _THIRD_PARTY_CREDIT = re.compile(r"(?im)^\s*(?:sumber|source|credit)\s*:")
 
 
+# Attended-pilot gate. A family listed here is never handled by scheduled or
+# ordinary manual Daily runs, whatever its source-policy flags say. The gate is
+# open only for a deliberately dispatched run that names the one identity; the
+# identity then bounds both the envelope fetch and governed admission.
+ATTENDED_PILOT_ENV = {"sg_mindef_releases": "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}
+_PILOT_IDENTITY = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
+
+
+def attended_pilot_gate(family: str, environ=None) -> Tuple[bool, Optional[str]]:
+    """(gated, identity): gated False means the family is not attended-only;
+    gated True with identity None means the gate is closed."""
+    import os
+    env = os.environ if environ is None else environ
+    name = ATTENDED_PILOT_ENV.get(family)
+    if name is None:
+        return False, None
+    value = env.get(name, "")
+    event = env.get("GITHUB_EVENT_NAME", "workflow_dispatch")
+    if event != "workflow_dispatch" or not _PILOT_IDENTITY.fullmatch(value or ""):
+        return True, None
+    return True, value
+
+
 def _call(ref: str) -> Callable:
     module, _, attr = ref.partition(":")
     return getattr(importlib.import_module(module), attr)
