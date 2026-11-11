@@ -114,7 +114,7 @@ def render_brief_social_card(path: Path, *, title: str, issue: int,
         d.text((108, 540), "By " + byline, font=_font(19), fill=PAPER)
 
     # Essential: keep the archival year and actual creator on the artwork.
-    year = re.search(r"\\b(?:19|20)\\d{2}\\b", str(photo.get("date_note") or ""))
+    year = re.search(r"\b(?:19|20)\d{2}\b", str(photo.get("date_note") or ""))
     if photo["depicts"] == "context":
         archive = "ARCHIVAL PHOTO" + ((" · " + year.group(0)) if year else "")
     else:
