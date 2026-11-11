@@ -3277,11 +3277,17 @@ def build(out_dir: Path, title: str, db_path: Path,
                     raise ValueError("rendered manuscript: " + "; ".join(errors))
             (out_dir / brief["route"]).write_text(html, encoding="utf-8")
             written.append(brief["route"])
-            if not brief["synthetic"] and not brief["is_review"] and brief["route"] not in social_cards:
-                card_route = "assets/social/brief-%s.png" % slug
+            # A separately admitted photo is required for a photographic
+            # social preview. Never substitute an AI image, an unlicensed
+            # source photograph or an unrelated picture.
+            if (not brief["synthetic"] and not brief["is_review"]
+                    and brief["route"] not in social_cards and cover):
+                card_route = "assets/social/brief-%s.jpg" % slug
                 card_alt = render_brief_social_card(
                     out_dir / card_route, title=brief["title"],
-                    issue=brief["number"], week_ending=brief["week_ending"])
+                    issue=brief["number"], week_ending=brief["week_ending"],
+                    photo_file=cover["src"]["file"], photo=cover["entry"],
+                    byline=brief.get("author_name", ""))
                 social_cards[brief["route"]] = {"route": card_route, "alt": card_alt}
                 written.append(card_route)
         (out_dir / "briefs.css").write_text(
