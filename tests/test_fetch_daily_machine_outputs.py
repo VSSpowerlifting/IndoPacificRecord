@@ -10,7 +10,16 @@ import unittest
 from unittest.mock import patch
 
 from scripts import fetch_daily_machine_outputs as fetch
-from processing.daily_intake import load_policy
+from processing.daily_intake import load_policy as _committed_policy
+
+
+def load_policy():
+    """Committed policy with the Singapore pilot flags held off, so these delivery
+    tests do not depend on the one-record pilot state of the repository."""
+    p = _committed_policy()
+    p['sources']['sg_mindef_releases'].update(
+        private_model_processing=False, public_machine_explanation=False, unattended_release=False)
+    return p
 
 
 class FetchOutputs(unittest.TestCase):

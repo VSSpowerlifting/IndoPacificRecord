@@ -42,6 +42,10 @@ def sha(text):
 
 def policy(enabled=True):
     p = d.load_policy()
+    if not enabled:
+        # Independent of the committed pilot state.
+        p["sources"][FAMILY].update(private_model_processing=False,
+                                    public_machine_explanation=False, unattended_release=False)
     if enabled:
         p["sources"][FAMILY].update(private_model_processing=True, public_machine_explanation=True,
                                     unattended_release=True, owner_decision="synthetic test policy only")
@@ -108,8 +112,10 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertTrue(s.desk_registered)
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",))
         p = d.load_policy()["sources"][FAMILY]
-        for key in ("private_model_processing", "public_machine_explanation", "unattended_release"):
-            self.assertFalse(p[key], key)
+        # Founder-authorized one-original pilot (PR #1019): public explanation of
+        # the exact released Record stays on; the other two switches are the
+        # pilot's temporary activation and are turned off after readback.
+        self.assertTrue(p["public_machine_explanation"])
         self.assertEqual(sorted(p["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
 
     def test_held_identities_have_one_value_everywhere(self):
@@ -624,8 +630,7 @@ class SingaporeAdmission(unittest.TestCase):
         sg = committed["sources"][FAMILY]
         self.assertEqual((sg["max_records_per_run"], sg["max_estimated_cost_usd_per_run"]), (1, 0.35))
         self.assertEqual(sorted(sg["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
-        self.assertFalse(any(sg[k] for k in ("private_model_processing",
-                                              "public_machine_explanation", "unattended_release")))
+        self.assertTrue(sg["public_machine_explanation"])
         over = json.loads(json.dumps(committed))
         over["sources"][FAMILY]["max_estimated_cost_usd_per_run"] = 0.36
         tmp = Path(tempfile.mkdtemp()); self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))
