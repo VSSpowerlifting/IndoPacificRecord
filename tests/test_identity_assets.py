@@ -585,22 +585,29 @@ class TestAPageMayCarryItsOwnSocialCard(IdentityBuildCase):
                     'property="og:image:alt" content="%s"'
                     % card["alt"].replace("&", "&amp;"), head)
 
-    def test_verified_cover_briefs_link_to_real_photographic_cards(self):
-        """Check approved-cover previews; historical image gaps stay visible."""
+    def test_existing_brief_previews_unchanged_and_future_cards_valid(self):
+        """Old issues retain OG identity; any future photo is correctly served."""
         from PIL import Image
+        from core.brief_social_card import FIRST_AUTOMATIC_ISSUE
 
         pages = sorted((self.out / "briefs").glob("*.html"))
         self.assertTrue(pages)
-        verified_photos = []
         for page in pages:
             rel = page.relative_to(self.out).as_posix()
-            head = self.head(page.read_text(encoding="utf-8"))
+            html = page.read_text(encoding="utf-8")
+            head = self.head(html)
             match = re.search(r'<meta property="og:image" content="([^"]+)"', head)
             self.assertIsNotNone(match, rel)
             url = match.group(1)
+            issue = re.search(r'No\\.\\s*(\\d+)', html)
+            if issue and int(issue.group(1)) < FIRST_AUTOMATIC_ISSUE:
+                # Existing published issues are outside the feature's scope.
+                self.assertNotIn("/assets/social/brief-", url, rel)
             if "/assets/social/brief-" not in url:
-                continue  # No photo grant: keeps existing publication identity.
+                continue
             with self.subTest(brief=rel):
+                self.assertIsNotNone(issue)
+                self.assertGreaterEqual(int(issue.group(1)), FIRST_AUTOMATIC_ISSUE)
                 self.assertTrue(url.startswith(SITE_ORIGIN + "/"), url)
                 image = self.out / url[len(SITE_ORIGIN) + 1:]
                 self.assertTrue(image.is_file(), str(image))
@@ -613,13 +620,6 @@ class TestAPageMayCarryItsOwnSocialCard(IdentityBuildCase):
                 self.assertIn('property="og:image:alt"', head)
                 self.assertIn("Credit:", head)
                 self.assertEqual(head.count('property="og:image"'), 1)
-                verified_photos.append(rel)
-
-        self.assertIn(
-            "briefs/china-western-pacific-deployment-coordination-2026.html",
-            verified_photos,
-        )
-        self.assertGreaterEqual(len(verified_photos), 3)
 
     def test_every_other_page_keeps_the_publication_card(self):
         for name, html in self.sample().items():
