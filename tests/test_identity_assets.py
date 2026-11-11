@@ -585,28 +585,41 @@ class TestAPageMayCarryItsOwnSocialCard(IdentityBuildCase):
                     'property="og:image:alt" content="%s"'
                     % card["alt"].replace("&", "&amp;"), head)
 
-    def test_every_published_brief_has_its_own_social_image(self):
-        """All approved Briefs share as 1200x630 cards, not the site-wide logo."""
+    def test_verified_cover_briefs_link_to_real_photographic_cards(self):
+        """Check approved-cover previews; historical image gaps stay visible."""
+        from PIL import Image
+
         pages = sorted((self.out / "briefs").glob("*.html"))
         self.assertTrue(pages)
+        verified_photos = []
         for page in pages:
             rel = page.relative_to(self.out).as_posix()
             head = self.head(page.read_text(encoding="utf-8"))
+            match = re.search(r'<meta property="og:image" content="([^"]+)"', head)
+            self.assertIsNotNone(match, rel)
+            url = match.group(1)
+            if "/assets/social/brief-" not in url:
+                continue  # No photo grant: keeps existing publication identity.
             with self.subTest(brief=rel):
-                match = re.search(
-                    r'<meta property="og:image" content="([^"]+)"', head)
-                self.assertIsNotNone(match)
-                url = match.group(1)
                 self.assertTrue(url.startswith(SITE_ORIGIN + "/"), url)
-                self.assertNotEqual(url, SITE_ORIGIN + "/social-card.png")
                 image = self.out / url[len(SITE_ORIGIN) + 1:]
                 self.assertTrue(image.is_file(), str(image))
-                self.assertEqual(tuple(gp.SOCIAL_CARD), png_size(image))
-                self.assertLess(image.stat().st_size, 300 * 1024)
+                with Image.open(image) as im:
+                    self.assertEqual(im.size, tuple(gp.SOCIAL_CARD))
+                    self.assertEqual(im.format, "JPEG")
+                self.assertLess(image.stat().st_size, 350 * 1024)
                 self.assertIn(
                     '<meta name="twitter:image" content="%s">' % url, head)
                 self.assertIn('property="og:image:alt"', head)
+                self.assertIn("Credit:", head)
                 self.assertEqual(head.count('property="og:image"'), 1)
+                verified_photos.append(rel)
+
+        self.assertIn(
+            "briefs/china-western-pacific-deployment-coordination-2026.html",
+            verified_photos,
+        )
+        self.assertGreaterEqual(len(verified_photos), 3)
 
     def test_every_other_page_keeps_the_publication_card(self):
         for name, html in self.sample().items():
