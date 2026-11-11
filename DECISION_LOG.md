@@ -1041,7 +1041,7 @@ prelaunch programs, including the seven-day minimum in the superseded
 rights or editorial decisions, required repository CI, source access controls,
 production write authority, model spending permission or owner approval of a
 new exact-scope public activation. Detailed default and flow:
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+[19 October historical architecture note](https://github.com/VSSpowerlifting/IndoPacificRecord/blob/baf9c09e3a55fbc0500d6ebf7c45515bc80a8058/docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md) (retired as current instruction; shared-desk rules now in `docs/desks/README.md`).
 
 ## 2026-10-19 — Engineering rule (proposed in the Vietnam Daily PR; not an owner ruling): Vietnam joins the shared Daily only through sealed per-family source use
 
@@ -1097,7 +1097,7 @@ machine derivatives, widen DAPA/other source rights, merge code, activate
 workflows, or bypass signed human editorial decisions. Existing AFP link-only
 ruling, unresolved NSC policy/anomaly and all historical source-specific holds
 remain unchanged. Implementation is governed by
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md` and the real evidence/publishing gates.
+[19 October historical architecture note](https://github.com/VSSpowerlifting/IndoPacificRecord/blob/baf9c09e3a55fbc0500d6ebf7c45515bc80a8058/docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md) (retired as current instruction; shared-desk rules now in `docs/desks/README.md`) and the real evidence/publishing gates.
 
 ## 2026-10-19 — Owner: Vietnam local encrypted backup and isolated restore
 

@@ -23,8 +23,10 @@ source-specific limits do not broaden. No shared-engine migration is claimed.
 The private governance companion is based on `a3f6299`; founder-approved public
 policy merges first, private references second. Final PR/head/check evidence
 belongs in the paired PR bodies. Neither merge activates a source or deploys
-behavior. The [project-source replacement package](../engineering/PROJECT_SOURCE_UPDATE_PACKAGE_2026-11-04.md)
-is prepared separately; ChatGPT Project Sources are not installed by Git changes.
+behavior. ChatGPT Project Source installation is separate from Git changes and must be
+verified against actual Project settings and source readback. Use the canonical
+[`CONTENT_AND_DATA_RIGHTS.md` §7](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+and source-specific decisions, not the retired 4 November amendment draft.
 
 ## Current boundaries and required convergence
 

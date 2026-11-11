@@ -69,7 +69,9 @@ accuracy and cost controls, and real
 end-to-end acceptance; exceptions hold. This does **not** authorize new
 machine processing, derivative text or publication today. Human-authored
 IPR Briefs, bylined analysis and approval remain the distinct editorial layer.
-Implementation contract: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+Implementation contract: [mandatory shared-desk architecture](desks/README.md)
+and [live migration boundaries](desks/MIGRATION.md). The superseded October
+2026 shared-Daily proposal remains recoverable in Git history.
 
 **Source-use rule (owner, 4 November 2026):**
 [`CONTENT_AND_DATA_RIGHTS.md` §7](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
