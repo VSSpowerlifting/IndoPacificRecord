@@ -93,8 +93,9 @@ security work and already-authorized research remain in scope.
 ## Maintain this file, do not accumulate it
 
 Update these priorities in place when the owner changes direction.
-Put code boundaries in `docs/desks/MIGRATION.md`, actual operational
-snapshots in `PROJECT_STATE.md` (verified against current evidence),
-durable decisions in `DECISION_LOG.md`, and historic plans in Git
-history. Do not append a dated project diary, additional readiness
+Put code boundaries in `docs/desks/MIGRATION.md`, verify operational
+status from live GitHub code, current PRs/Actions, source receipts and
+independent site readback, retain durable decisions in `DECISION_LOG.md`,
+and recover dated session notes from Git history. `PROJECT_STATE.md` is
+retired as an active snapshot (see PR #1027). Do not append a dated project diary, additional readiness
 program, procedural checklist or CI gate to this roadmap.
