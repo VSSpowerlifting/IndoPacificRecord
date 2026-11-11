@@ -585,6 +585,29 @@ class TestAPageMayCarryItsOwnSocialCard(IdentityBuildCase):
                     'property="og:image:alt" content="%s"'
                     % card["alt"].replace("&", "&amp;"), head)
 
+    def test_every_published_brief_has_its_own_social_image(self):
+        """All approved Briefs share as 1200x630 cards, not the site-wide logo."""
+        pages = sorted((self.out / "briefs").glob("*.html"))
+        self.assertTrue(pages)
+        for page in pages:
+            rel = page.relative_to(self.out).as_posix()
+            head = self.head(page.read_text(encoding="utf-8"))
+            with self.subTest(brief=rel):
+                match = re.search(
+                    r'<meta property="og:image" content="([^"]+)"', head)
+                self.assertIsNotNone(match)
+                url = match.group(1)
+                self.assertTrue(url.startswith(SITE_ORIGIN + "/"), url)
+                self.assertNotEqual(url, SITE_ORIGIN + "/social-card.png")
+                image = self.out / url[len(SITE_ORIGIN) + 1:]
+                self.assertTrue(image.is_file(), str(image))
+                self.assertEqual(tuple(gp.SOCIAL_CARD), png_size(image))
+                self.assertLess(image.stat().st_size, 300 * 1024)
+                self.assertIn(
+                    '<meta name="twitter:image" content="%s">' % url, head)
+                self.assertIn('property="og:image:alt"', head)
+                self.assertEqual(head.count('property="og:image"'), 1)
+
     def test_every_other_page_keeps_the_publication_card(self):
         for name, html in self.sample().items():
             if name in gp.PAGE_SOCIAL_CARDS:
