@@ -1,5 +1,17 @@
 # Roadmap — Indo-Pacific Record
 
+**11 November 2026 execution order (founder):** First retire the
+obsolete seven-/thirty-day gates, overlapping procedures and unsupported
+universal processing caps *as decisions*, preserving source-specific binding
+limits and actual runtime holds. Review and test any capacity changes under
+the existing model spend/retry budgets as separate source-focused engineering.
+Second, perform a read-only, original-to-reader evidence review against the
+single-family-per-desk initial milestone in the
+[eight-desk plan](desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md).
+Third, repair only the measured family blockers and extend to the retained
+sixteen-family full-coverage objective. No parallel infrastructure overhaul,
+unapproved activation or source-rights shortcut.
+
 **Active strategic priorities, approved 30 October 2026.** This is a short
 forward plan—not a second architecture standard, release checklist, or
 historical evidence ledger. Check source/activation state, PRs, Actions and
