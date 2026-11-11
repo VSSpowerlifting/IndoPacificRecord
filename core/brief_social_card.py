@@ -8,6 +8,7 @@ permitted. A cover's social-sharing rights must also be reviewed before release.
 from __future__ import annotations
 
 from datetime import date
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -113,13 +114,12 @@ def render_brief_social_card(path: Path, *, title: str, issue: int,
         d.text((108, 540), "By " + byline, font=_font(19), fill=PAPER)
 
     # Essential: keep the archival year and actual creator on the artwork.
-    archive = "ARCHIVAL CONTEXT" if photo["depicts"] == "context" else "SOURCE PHOTOGRAPH"
-    d.text((730, 542), archive, font=_font(15), fill=PAPER)
-    note = (photo.get("date_note") or "").strip()
-    if note:
-        # The exact date statement remains available on the opened article.
-        # Avoid copying a lengthy notice into a tiny, unreadable photo overlay.
-        d.text((730, 565), _wrap(d, note, _font(13), 425)[0], font=_font(13), fill=PAPER)
+    year = re.search(r"\\b(?:19|20)\\d{2}\\b", str(photo.get("date_note") or ""))
+    if photo["depicts"] == "context":
+        archive = "ARCHIVAL PHOTO" + ((" · " + year.group(0)) if year else "")
+    else:
+        archive = "SOURCE PHOTOGRAPH"
+    d.text((730, 539), archive, font=_font(16), fill=PAPER)
 
     # Attribution is inside the shared image because the social platform
     # normally does not display page captions or licensing metadata.
