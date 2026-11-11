@@ -706,7 +706,6 @@ class TestBrowserBackedTestsActuallyRun(unittest.TestCase):
     """
 
     INSTALL = re.compile(r"\bplaywright\s+install\s+chromium\b")
-    WITH_DEPS = re.compile(r"--with-deps\b")
 
     def setUp(self):
         self.doc = load_workflow()
@@ -730,22 +729,25 @@ class TestBrowserBackedTestsActuallyRun(unittest.TestCase):
     def test_it_installs_chromium(self):
         self.install_body()
 
-    def test_it_installs_the_system_libraries_too(self):
+    def test_pr_browser_install_avoids_package_mirror_without_skipping_launch(self):
         """
-        Without `--with-deps` the download succeeds and the launch still fails
-        on a missing shared library — which is the same silent skip in a new
-        costume.
+        The PR job runs on ubuntu-24.04. The November 11 apt mirror DNS
+        outage blocked testing before it started. Download Chromium without
+        invoking apt, but require the separate actual launch check below so
+        missing system libraries still fail the PR rather than skip tests.
         """
-        self.assertRegex(self.install_body(), self.WITH_DEPS)
+        self.assertEqual(self.install_body().strip(), "playwright install chromium")
+        self.assertNotIn("--with-deps", self.install_body())
+        self.assertIn("chromium.launch()", self.smoke_body())
 
-    def test_the_install_is_the_command_the_daily_run_already_proves(self):
+    def test_daily_remains_separately_guarded_for_system_dependencies(self):
         """
-        Cross-checked against the workflow that has been running these classes
-        on Ubuntu all along, so the two runs cannot drift into two different
-        browser stories.
+        Do not silently alter the governed production Daily install while
+        repairing the read-only PR runner. The PR runner still has its
+        fail-closed launch check before the full browser-backed suite.
         """
         daily = (WORKFLOW_DIR / "daily_update.yml").read_text(encoding="utf-8")
-        self.assertIn(self.install_body().strip(), daily)
+        self.assertIn("playwright install chromium --with-deps", daily)
 
     # ── and it actually starts ────────────────────────────────────────────
     def test_the_smoke_check_launches_a_browser(self):
