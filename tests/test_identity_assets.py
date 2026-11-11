@@ -599,7 +599,7 @@ class TestAPageMayCarryItsOwnSocialCard(IdentityBuildCase):
             match = re.search(r'<meta property="og:image" content="([^"]+)"', head)
             self.assertIsNotNone(match, rel)
             url = match.group(1)
-            issue = re.search(r'No\\.\\s*(\\d+)', html)
+            issue = re.search(r'No\.\s*(\d+)', html)
             if issue and int(issue.group(1)) < FIRST_AUTOMATIC_ISSUE:
                 # Existing published issues are outside the feature's scope.
                 self.assertNotIn("/assets/social/brief-", url, rel)
