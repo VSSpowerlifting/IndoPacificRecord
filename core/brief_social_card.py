@@ -1,7 +1,8 @@
-"""Original text-only social cards for published Indo-Pacific Record Briefs.
+"""Photographic link previews for IPR Briefs, using individually verified covers.
 
-No external images or publisher-derived media are used. Titles, numbers and
-week-ending dates come from the approved Brief's existing publication sidecar.
+The caller must supply a cover already admitted by core.brief_photography.
+No synthetic/AI photographs, web downloads or alternate image lookups are
+permitted. A cover's social-sharing rights must also be reviewed before release.
 """
 
 from __future__ import annotations
@@ -9,85 +10,136 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 CARD_SIZE = (1200, 630)
-MAX_BYTES = 300 * 1024
-INK = (12, 33, 42)
-PAPER = (239, 244, 239)
-MIST = (183, 207, 204)
-ACCENT = (125, 195, 179)
+MAX_BYTES = 950 * 1024
+GROUND = (8, 34, 44)
+PAPER = (245, 243, 235)
+MIST = (188, 209, 211)
+ACCENT = (103, 193, 187)
 
 
-def _font(size: int):
-    """Use Pillow's bundled font, not an OS-dependent font or remote asset."""
+def _font(size: int, *, serif: bool = False):
+    """Prefer ordinary platform faces, with an always-available Pillow fallback."""
+    for name in (("DejaVuSerif.ttf", "LiberationSerif-Regular.ttf")
+                 if serif else ("DejaVuSans.ttf", "LiberationSans-Regular.ttf")):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            pass
     return ImageFont.load_default(size=size)
 
 
 def _wrap(draw, value: str, font, width: int):
-    rows = []
-    line = ""
+    result, line = [], ""
     for word in value.split():
         candidate = (line + " " + word).strip()
         if line and draw.textlength(candidate, font=font) > width:
-            rows.append(line)
+            result.append(line)
             line = word
         else:
             line = candidate
     if line:
-        rows.append(line)
-    return rows
+        result.append(line)
+    return result
+
+
+def _photo_crop(path: Path) -> Image.Image:
+    with Image.open(path) as opened:
+        if opened.format not in ("JPEG", "PNG", "WEBP"):
+            raise ValueError("social photo must be a real approved raster")
+        return ImageOps.fit(opened.convert("RGB"), (735, CARD_SIZE[1]),
+                            method=Image.Resampling.LANCZOS,
+                            centering=(0.5, 0.48))
 
 
 def render_brief_social_card(path: Path, *, title: str, issue: int,
-                             week_ending: str) -> str:
-    """Write an IPR-owned 1200x630 PNG and return factual image alt text."""
+                             week_ending: str, photo_file: Path,
+                             photo: dict, byline: str = "") -> str:
+    """Compose a genuine approved photograph, no simulations or substitutes."""
     if not isinstance(issue, int) or isinstance(issue, bool) or issue <= 0:
         raise ValueError("a published Brief requires a numbered issue")
     title = " ".join(title.split())
-    if not title:
-        raise ValueError("a published Brief requires a title")
+    if not title or not str(photo.get("credit") or "").strip():
+        raise ValueError("a published photo preview requires title and credit")
+    if photo.get("depicts") not in ("event", "context"):
+        raise ValueError("photographic provenance must identify event or context")
+    if photo.get("license") not in ("CC BY 4.0", "Public domain"):
+        raise ValueError("photographic source licence not verified")
+    if not str(photo.get("source_page") or "").startswith("https://"):
+        raise ValueError("photographic source page missing")
     day = date.fromisoformat(week_ending)
-    img = Image.new("RGB", CARD_SIZE, INK)
-    draw = ImageDraw.Draw(img)
+    image = Image.new("RGB", CARD_SIZE, GROUND)
+    photograph = _photo_crop(Path(photo_file))
+    image.paste(photograph, (465, 0))
 
-    # Editorial ground and small geometric accents: no documentary imagery.
-    for y in range(CARD_SIZE[1]):
-        t = y / (CARD_SIZE[1] - 1)
-        draw.line((0, y, CARD_SIZE[0], y), fill=(
-            round(INK[0] + 8 * t), round(INK[1] + 16 * t),
-            round(INK[2] + 15 * t)))
-    draw.rectangle((0, 0, 12, 630), fill=ACCENT)
-    draw.line((80, 112, 1120, 112), fill=(76, 116, 119), width=2)
-    draw.text((82, 45), "ipr", font=_font(35), fill=PAPER)
-    draw.text((157, 50), "Indo-Pacific Record Briefs", font=_font(25), fill=PAPER)
-    date_label = f"{day.strftime('%B')} {day.day}, {day.year}"
-    draw.text((84, 140), f"No. {issue}  ·  Week ending {date_label}",
-              font=_font(24), fill=MIST)
+    # Semi-transparent dark tint helps the image sit behind a steep editorial
+    # diagonal; the photograph remains the actual source photo.
+    ink = Image.new("RGBA", CARD_SIZE, (0, 0, 0, 0))
+    g = ImageDraw.Draw(ink)
+    g.polygon([(0, 0), (830, 0), (585, 630), (0, 630)], fill=(5, 35, 43, 249))
+    g.polygon([(815, 0), (847, 0), (600, 630), (569, 630)], fill=(11, 118, 120, 136))
+    g.rectangle((0, 0, 11, 630), fill=(108, 190, 181, 255))
+    # Dark photograph footrail for factual attribution.
+    g.rectangle((0, 588, 1200, 630), fill=(3, 23, 30, 245))
+    image = Image.alpha_composite(image.convert("RGBA"), ink)
+    d = ImageDraw.Draw(image)
+
+    d.text((63, 53), "ipr", font=_font(43, serif=True), fill=PAPER)
+    d.rectangle((158, 60, 161, 98), fill=ACCENT)
+    d.text((182, 63), "INDO-PACIFIC RECORD", font=_font(22), fill=PAPER)
+    d.text((64, 138), f"BRIEFS    /    NO. {issue}", font=_font(19), fill=ACCENT)
+    readable = f"{day.day} {day.strftime('%B')} {day.year}"
+    d.text((64, 169), f"Week ending {readable}", font=_font(18), fill=MIST)
 
     chosen = None
-    for size in range(68, 35, -2):
-        font = _font(size)
-        lines = _wrap(draw, title, font, 1030)
-        line_height = size + 13
-        if len(lines) <= 4 and len(lines) * line_height <= 300:
-            chosen = (font, lines, line_height)
+    for size in range(59, 33, -2):
+        face = _font(size, serif=True)
+        lines = _wrap(d, title, face, 610)
+        if len(lines) <= 5 and len(lines) * (size + 10) <= 304:
+            chosen = (face, lines, size + 10)
             break
     if chosen is None:
-        raise ValueError("Brief title exceeds card layout")
-    font, lines, line_height = chosen
-    y = 208
+        raise ValueError("Brief title cannot fit photographic preview")
+    face, lines, lh = chosen
+    y = 217
     for line in lines:
-        draw.text((82, y), line, font=font, fill=PAPER)
-        y += line_height
+        d.text((62, y), line, font=face, fill=PAPER)
+        y += lh
 
-    draw.line((82, 547, 1120, 547), fill=(76, 116, 119), width=2)
-    draw.text((84, 565), "indopacificrecord.org", font=_font(23), fill=MIST)
-    draw.text((911, 565), "RESEARCH  /  BRIEFS", font=_font(21), fill=MIST)
+    if byline:
+        d.rectangle((64, 552, 97, 555), fill=ACCENT)
+        d.text((108, 540), "By " + byline, font=_font(19), fill=PAPER)
+
+    # Essential: keep the archival year and actual creator on the artwork.
+    archive = "ARCHIVAL CONTEXT" if photo["depicts"] == "context" else "SOURCE PHOTOGRAPH"
+    d.text((730, 542), archive, font=_font(15), fill=PAPER)
+    note = (photo.get("date_note") or "").strip()
+    if note:
+        # The exact date statement remains available on the opened article.
+        # Avoid copying a lengthy notice into a tiny, unreadable photo overlay.
+        d.text((730, 565), _wrap(d, note, _font(13), 425)[0], font=_font(13), fill=PAPER)
+
+    # Attribution is inside the shared image because the social platform
+    # normally does not display page captions or licensing metadata.
+    credit = str(photo["credit"])
+    if photo["license"] == "CC BY 4.0":
+        credit += " · Cropped / color-treated by IPR"
+    d.text((30, 597), _wrap(d, credit, _font(13), 1110)[0],
+           font=_font(13), fill=PAPER)
+
+    # Full DVIDS non-endorsement notices cannot be silently omitted from a
+    # flattened graphic. Until a dedicated readable treatment is verified,
+    # those images remain held from new social surfaces.
+    if (photo.get("notice") or "").strip():
+        raise ValueError("source requires a notice: social preview held")
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    img.save(path, "PNG", optimize=True, compress_level=9)
+    image.convert("RGB").save(path, "PNG", optimize=True, compress_level=9)
     if path.stat().st_size > MAX_BYTES:
-        path.unlink()
-        raise ValueError("Brief social card exceeds 300 KB budget")
-    return f"Indo-Pacific Record Briefs No. {issue}: {title}. Editorial link preview."
+        path.unlink(missing_ok=True)
+        raise ValueError("photographic social preview exceeds image budget")
+    return (f"Indo-Pacific Record Brief No. {issue}: {title}. "
+            f"Photographic context: {photo.get('alt', '')}. "
+            f"Credit: {credit}.")
