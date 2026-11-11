@@ -112,10 +112,11 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertTrue(s.desk_registered)
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",))
         p = d.load_policy()["sources"][FAMILY]
-        # Founder-authorized one-original pilot (PR #1019): public explanation of
-        # the exact released Record stays on; the other two switches are the
-        # pilot's temporary activation and are turned off after readback.
-        self.assertTrue(p["public_machine_explanation"])
+        # The one-original pilot (PR #1019) ended at the private QA hold with no
+        # released Record, so every Singapore switch is back off. A later
+        # activation needs a new explicit founder authorization.
+        self.assertEqual((p["private_model_processing"], p["public_machine_explanation"],
+                          p["unattended_release"]), (False, False, False))
         self.assertEqual(sorted(p["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
 
     def test_held_identities_have_one_value_everywhere(self):
@@ -741,7 +742,8 @@ class SingaporeAdmission(unittest.TestCase):
         sg = committed["sources"][FAMILY]
         self.assertEqual((sg["max_records_per_run"], sg["max_estimated_cost_usd_per_run"]), (1, 0.35))
         self.assertEqual(sorted(sg["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
-        self.assertTrue(sg["public_machine_explanation"])
+        self.assertEqual((sg["private_model_processing"], sg["public_machine_explanation"],
+                          sg["unattended_release"]), (False, False, False))
         over = json.loads(json.dumps(committed))
         over["sources"][FAMILY]["max_estimated_cost_usd_per_run"] = 0.36
         tmp = Path(tempfile.mkdtemp()); self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))

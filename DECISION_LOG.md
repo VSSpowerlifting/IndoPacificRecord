@@ -1,5 +1,14 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-11 — Founder: Singapore MINDEF one-original pilot ended at the QA hold
+
+The `6nov26-nr2` pilot ran once (estimated $0.0129 of the $0.35 cap) and stopped
+at the private quality hold `daily_quantity_or_date_unsupported`; the signed
+envelope held no records and no Record was released. The founder accepted the
+hold and ended the pilot. All three Singapore policy switches are set false;
+`owner_decision`, the exclusions, the spending limits and other desks are
+unchanged. No retry or activation without a new explicit founder authorization.
+
 ## 2026-11-09 — Founder: Singapore MINDEF standing substantive source-use decision
 
 The founder confirms he has an established written MINDEF media-relations
