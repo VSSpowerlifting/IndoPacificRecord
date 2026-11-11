@@ -19,6 +19,41 @@ GROUND = (8, 34, 44)
 PAPER = (245, 243, 235)
 MIST = (188, 209, 211)
 ACCENT = (103, 193, 187)
+FIRST_AUTOMATIC_ISSUE = 25
+
+
+def social_preview_granted(issue: int, photo: dict) -> bool:
+    """True only for a future Brief and a separately founder-cleared image.
+
+    A paired article/catalogue cover is not a grant to reuse the photograph
+    in a social-sharing graphic. The exact original SHA, bounded surface and
+    review receipt must be part of the existing cover manifest entry. No
+    current cover has this new-surface approval by implication.
+    """
+    if type(issue) is not int or issue < FIRST_AUTOMATIC_ISSUE:
+        return False
+    if not isinstance(photo, dict):
+        return False
+    approval = photo.get("social_preview_approval")
+    if not isinstance(approval, dict):
+        return False
+    receipt = str(approval.get("reference") or "")
+    try:
+        date.fromisoformat(str(approval.get("approved_on") or ""))
+    except ValueError:
+        return False
+    return (
+        approval.get("scope") == "brief-link-preview"
+        and approval.get("approved_by") == "Benjamin Yang"
+        and receipt.startswith(
+            "https://github.com/VSSpowerlifting/IndoPacificRecord/"
+        )
+        and ("#issuecomment-" in receipt or "#discussion_r" in receipt)
+        and bool(re.fullmatch(r"[0-9a-f]{64}", str(photo.get("sha256") or "")))
+        and approval.get("source_sha256") == photo.get("sha256")
+        and photo.get("depicts") in ("event", "context")
+        and photo.get("license") in ("CC BY 4.0", "Public domain")
+    )
 
 
 def _font(size: int, *, serif: bool = False):
