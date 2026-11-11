@@ -13,7 +13,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 CARD_SIZE = (1200, 630)
-MAX_BYTES = 950 * 1024
+MAX_BYTES = 350 * 1024
 GROUND = (8, 34, 44)
 PAPER = (245, 243, 235)
 MIST = (188, 209, 211)
@@ -82,7 +82,7 @@ def render_brief_social_card(path: Path, *, title: str, issue: int,
     g.polygon([(815, 0), (847, 0), (600, 630), (569, 630)], fill=(11, 118, 120, 136))
     g.rectangle((0, 0, 11, 630), fill=(108, 190, 181, 255))
     # Dark photograph footrail for factual attribution.
-    g.rectangle((0, 588, 1200, 630), fill=(3, 23, 30, 245))
+    g.rectangle((0, 566, 1200, 630), fill=(3, 23, 30, 245))
     image = Image.alpha_composite(image.convert("RGBA"), ink)
     d = ImageDraw.Draw(image)
 
@@ -126,20 +126,22 @@ def render_brief_social_card(path: Path, *, title: str, issue: int,
     credit = str(photo["credit"])
     if photo["license"] == "CC BY 4.0":
         credit += " · Cropped / color-treated by IPR"
-    d.text((30, 597), _wrap(d, credit, _font(13), 1110)[0],
-           font=_font(13), fill=PAPER)
-
-    # Full DVIDS non-endorsement notices cannot be silently omitted from a
-    # flattened graphic. Until a dedicated readable treatment is verified,
-    # those images remain held from new social surfaces.
-    if (photo.get("notice") or "").strip():
-        raise ValueError("source requires a notice: social preview held")
+    for label, y in ((credit, 572), ((photo.get("notice") or "").strip(), 600)):
+        if not label:
+            continue
+        for size in range(14, 9, -1):
+            face = _font(size)
+            if d.textlength(label, font=face) <= 1135:
+                d.text((30, y), label, font=face, fill=PAPER)
+                break
+        else:
+            raise ValueError("source credit or required notice too long to display")
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    image.convert("RGB").save(path, "PNG", optimize=True, compress_level=9)
+    image.convert("RGB").save(path, "JPEG", quality=86, optimize=True, subsampling=1)
     if path.stat().st_size > MAX_BYTES:
         path.unlink(missing_ok=True)
-        raise ValueError("photographic social preview exceeds image budget")
+        raise ValueError("photographic JPEG preview exceeds image budget")
     return (f"Indo-Pacific Record Brief No. {issue}: {title}. "
             f"Photographic context: {photo.get('alt', '')}. "
             f"Credit: {credit}.")
