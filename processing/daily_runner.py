@@ -21,7 +21,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
                 source_identity=None, no_release=False):
     """spec is FAMILY,PRIVATE_GIT_CHECKOUT,IMMUTABLE_COMMIT."""
     from scripts.reconcile_db import read_only
-    from processing.daily_intake import ROOT, digest, git
+    from processing.daily_intake import ROOT, digest, git, policy_binding
     family, repo, commit = spec.split(",", 2)
     need(source_for(family) is not None, "daily_source_family_invalid")
     if family == "sg_mindef_releases":
@@ -64,7 +64,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
             **{k: record[k] for k in (
                 "metadata_version_sha256", "content_sha256", "capture_sha256")},
             "processor_commit": processor_commit,
-            "policy_sha256": digest(policy["sources"][family]),
+            "policy_sha256": policy_binding(policy["sources"][family]),
             "attempts_before": prior.get("attempts", 0),
             "prior_disposition": prior, "reading": reading,
         }

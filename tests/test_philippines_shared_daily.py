@@ -199,7 +199,7 @@ class SharedDaily(unittest.TestCase):
                                  policy=policy(), analyzer_factory=fake_analyzer)
             approved = dict(state["ph_afp_articles:afp:1"]["output"])
             approved["source_family"] = family
-            approved["policy_sha256"] = d.digest(p)
+            approved["policy_sha256"] = d.policy_binding(p)
             for version in ("ph-relevance-v1+ph-analysis-v10",
                             "ph-relevance-v1+ph-analysis-v11",
                             "ph-relevance-v1+ph-analysis-v12",
@@ -441,6 +441,17 @@ class SharedDaily(unittest.TestCase):
             "quality_hold": "daily_topic_unsupported"}}
         state, _ = self.budgeted_run(records, max_records=3, state=prior)
         self.assertEqual(state["ph_afp_articles:afp:3"], prior["ph_afp_articles:afp:3"])
+
+    def test_capacity_change_keeps_released_binding_but_other_drift_withdraws(self):
+        base = d.load_policy()["sources"]["ph_afp_articles"]
+        bound = d.policy_binding(base)
+        self.assertEqual(bound, d.digest({**base, "max_records_per_run": 1}))
+        self.assertEqual(d.policy_binding({**base, "max_records_per_run": 6}), bound)
+        for drift in ({"max_estimated_cost_usd_per_run": 0.2}, {"max_input_characters": 8000},
+                      {"owner_decision": base["owner_decision"] + " changed"},
+                      {"excluded_source_identities": base["excluded_source_identities"] + ["afp:9"]},
+                      {"unattended_release": not base["unattended_release"]}):
+            self.assertNotEqual(d.policy_binding({**base, **drift}), bound, drift)
 
     def test_single_record_policy_still_dispatches_exactly_one(self):
         records = [self.numbered(n) for n in range(1, 4)]

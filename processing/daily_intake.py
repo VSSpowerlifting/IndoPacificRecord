@@ -57,6 +57,17 @@ def digest(value):
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+def policy_binding(p):
+    """Hash binding a released Record to the source-use policy it was made under.
+
+    Covers every rights, exclusion, spend and input field. The per-run record
+    count is throughput only (bounded by the validator and the unchanged cost
+    ceiling), so it is hashed at its original value: a capacity decision does
+    not withdraw already-released Records, while any other drift still does.
+    """
+    return digest({**p, "max_records_per_run": 1})
+
+
 def load_policy(path=POLICY_PATH):
     value = json.loads(Path(path).read_text())
     need(set(value) == {"schema", "sources"}
@@ -349,7 +360,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
             result[key] = {**prior, "status": "held", "reason": "source_version_changed"}
             continue
         if prior.get("status") == "complete" and p["private_model_processing"]:
-            prior["output"]["policy_sha256"] = digest(p)
+            prior["output"]["policy_sha256"] = policy_binding(p)
         if prior.get("status") in ("complete", "not_selected", "paused", "held", "terminal"):
             # Rights holds can resume automatically after an actual policy change.
             if not (prior.get("reason") == "model_rights_held" and p["private_model_processing"]):
@@ -406,7 +417,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 # Explanation must pass the same output non-disclosure gate.
                 "flag_reason": reading.get("significance_reasoning") if reading["is_significant"] else None,
                 "model_id": reading["model_id"], "prompt_version": reading["prompt_version"],
-                "quality_sha256": quality, "policy_sha256": digest(p),
+                "quality_sha256": quality, "policy_sha256": policy_binding(p),
             })
         except FatalAPIError:
             entry.update(status="pending", reason="account_blocked")
@@ -460,7 +471,7 @@ def sign_outputs(state, *, family, policy, key, selected_record=None):
                if k.startswith(family + ":") and v.get("status") == "complete"
                and (selected_identity is None or k == family + ":" + selected_identity)
                and v["output"]["source_identity"] not in p["excluded_source_identities"]
-               and v["output"]["policy_sha256"] == digest(p)]
+               and v["output"]["policy_sha256"] == policy_binding(p)]
     held = [k[len(family)+1:] for k, v in sorted(state.items())
             if k.startswith(family + ":") and v.get("status") in ("held", "paused")
             and (selected_identity is None or k == family + ":" + selected_identity)]
@@ -575,7 +586,7 @@ def resume(state, key):
 def validate_output(r, family, p):
     source = source_for(family)
     need(source is not None and type(r) is dict and set(r) == set(PUBLIC_FIELDS)
-         and r["source_family"] == family and r["policy_sha256"] == digest(p),
+         and r["source_family"] == family and r["policy_sha256"] == policy_binding(p),
          "daily_output_schema_or_policy_invalid")
     need(not source.is_held_source(r), "daily_source_semantic_anomaly")
     need(r["source_identity"] not in p["excluded_source_identities"],

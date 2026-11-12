@@ -25,8 +25,11 @@ class ProcessingRecovery(unittest.TestCase):
         state = {key: prior}
         before = copy.deepcopy(state)
         fake = analyzer()
+        # Pin a one-record run so the older retry is the deferred overflow.
+        one = policy()
+        one["sources"][FAMILY]["max_records_per_run"] = 1
         result, _ = intake.process([record(), older], state, family=FAMILY,
-            policy=policy(), analyzer_factory=lambda: fake)
+            policy=one, analyzer_factory=lambda: fake)
         self.assertEqual(result[key], prior)
         self.assertEqual(state, before)
         fake.analyze_record.assert_called_once()
@@ -64,7 +67,7 @@ class ProcessingRecovery(unittest.TestCase):
                 self.assertEqual(snapshot["version"], intake.digest({k: record()[k] for k in (
                     "metadata_version_sha256", "content_sha256", "capture_sha256")}))
                 self.assertEqual(snapshot["source_git_commit"], "c" * 40)
-                self.assertEqual(snapshot["policy_sha256"], intake.digest(policy()["sources"][FAMILY]))
+                self.assertEqual(snapshot["policy_sha256"], intake.policy_binding(policy()["sources"][FAMILY]))
                 self.assertEqual(len(snapshot["processor_commit"]), 40)
             queue = json.loads((root / "queue.json").read_text())
             entry = next(iter(queue.values()))
