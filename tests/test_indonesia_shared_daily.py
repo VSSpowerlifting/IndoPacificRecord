@@ -913,11 +913,22 @@ class IndonesiaSharedDaily(unittest.TestCase):
                 '123-1','official_link_only','d'*64,'2026-10-19T00:00:00Z'))
         return db
 
-    def test_new_output_admission_requires_v5_but_released_v4_remains_valid(self):
+    def test_v6_prompt_ends_with_the_local_name_final_check(self):
+        from analysis import indonesia_prompts as ip
+        self.assertEqual(ip.VERSION,'id-relevance-v1+id-analysis-v6')
+        text=ip.analysis_messages('Judul','Menhan meninjau latihan gabungan di Jakarta pada hari Senin.')[0]['content']
+        check=text.index('FINAL CHECK'); passages=text.index('{"passages"')
+        self.assertLess(text.index('Cite only supplied IDs'),check)
+        self.assertLess(check,passages)
+        for phrase in ('contains the word Kemhan','same spelling in that passage',
+                       "without the holder's personal name"):
+            self.assertIn(phrase,' '.join(text[check:passages].split()))
+
+    def test_new_output_admission_requires_current_version_but_released_v4_remains_valid(self):
         p=policy()[ 'sources'][FAMILY]
         out=d.sign_outputs(self.process(),family=FAMILY,policy=policy(),key=KEY)['packet']['records'][0]
         self.assertEqual(out['prompt_version'],VERSION)
-        d.validate_output(out,FAMILY,p)                                  # valid v5 admission
+        d.validate_output(out,FAMILY,p)                                  # valid current-version admission
         d.validate_output(out,FAMILY,p,released=True)
         old=dict(out,prompt_version=self.HISTORICAL)
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
@@ -927,7 +938,8 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertEqual(d.allowed_prompt_versions(FAMILY,released=True),(VERSION,self.HISTORICAL))
         # The historical allowance is exactly one pair: nothing else widens.
         for version in ('id-relevance-v1+id-analysis-v1','id-relevance-v1+id-analysis-v2',
-                        'id-relevance-v1+id-analysis-v3','id-relevance-v1+id-analysis-v6',
+                        'id-relevance-v1+id-analysis-v3','id-relevance-v1+id-analysis-v5',
+                        'id-relevance-v1+id-analysis-v7',
                         'ph-relevance-v1+ph-analysis-v12'):
             with self.subTest(version=version), self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
                 d.validate_output(dict(out,prompt_version=version),FAMILY,p,released=True)

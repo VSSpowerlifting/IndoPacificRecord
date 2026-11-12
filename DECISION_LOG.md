@@ -1,5 +1,25 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-12 — Indonesia Kemhan: id-analysis-v6 adds a final local-name check; QA unchanged
+
+**Evidence.** Fifteen preserved private Kemhan readings (runs 3–12 November)
+were replayed against the unchanged validator. Nine were routine relevance
+rejections. Of six that passed relevance, none passed QA: four held on
+`daily_name_or_office_unsupported` because a sentence carried a personal name
+or unit designation absent from its one cited passage (the passage gave only
+an office or no unit), one on `daily_institution_form_not_local`, and one on
+both that and a missing Kemhan attribution. Retries of one original repeated
+the same hold three times. These are model outputs breaking a rule the v5
+prompt already states mid-prompt; the validator behaved as designed.
+
+**Decision.** The analysis prompt becomes `id-analysis-v6`: the same rules,
+plus a closing check placed directly before the passages that each sentence
+contains "Kemhan" and that every personal name, unit name, abbreviation and
+identifier is spelled in its cited passage. The validator, model, two-call and
+$0.35 per-run bounds, attempt counts, exclusions and the released v4 Record
+are unchanged. v5 was never released and is no longer admissible. Whether v6
+raises the pass rate is not yet observed.
+
 ## 2026-11-12 — Founder: standing engineering merge and release delegation for the eight-desk program (effective on founder merge)
 
 **Direction.** The founder delegated sustained engineering ownership of the

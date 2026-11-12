@@ -53,7 +53,7 @@ class SourceDefinitions(unittest.TestCase):
         # Indonesia admits only the current pair. Its one already-released pair is
         # a separate, read-only allowance, never merged into the admission tuple.
         self.assertEqual(len(SOURCES[AFP].prompt_versions), 5)
-        self.assertEqual(SOURCES[KEMHAN].prompt_versions, ("id-relevance-v1+id-analysis-v5",))
+        self.assertEqual(SOURCES[KEMHAN].prompt_versions, ("id-relevance-v1+id-analysis-v6",))
         self.assertEqual(SOURCES[KEMHAN].released_prompt_versions, ("id-relevance-v1+id-analysis-v4",))
         for s in SOURCES.values():
             if s.family != KEMHAN:

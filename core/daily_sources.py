@@ -346,7 +346,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         family="id_kemhan_news", desk_id="indonesia", custody_ref="archive/indonesia-kemhan",
         language="id", label="Kemhan",
         publisher="Kementerian Pertahanan Republik Indonesia", public_issuer=None,
-        prompt_versions=("id-relevance-v1+id-analysis-v5",), identity_max_length=2000,
+        prompt_versions=("id-relevance-v1+id-analysis-v6",), identity_max_length=2000,
         # The one published Record (2026-10-23) was released under v4; it stays
         # readable. No other superseded Indonesia pair was ever released.
         released_prompt_versions=("id-relevance-v1+id-analysis-v4",),
