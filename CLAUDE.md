@@ -28,9 +28,10 @@ Never describe IPR as an OSINT tool or intelligence agency.
 1. Read `AGENTS.md`. For any desk task, also read the binding
    `docs/desks/README.md` and relevant live migration boundary in
    `docs/desks/MIGRATION.md`, then the actual source-specific decisions.
-2. Check current repository and PR state; dated `PROJECT_STATE.md`
-   entries may be stale. Read only the governing files needed for this task,
-   using targeted searches rather than full-repository scans.
+2. Check the current repository, live evidence and PR state; the retired
+   `PROJECT_STATE.md` diary is not an active task or status source. Read only
+   the governing files needed for this task, using targeted searches rather
+   than full-repository scans.
 3. Use an isolated worktree, one engineering objective, focused risk-based
    tests and final exact-revision checks. Use the existing issue/PR body for
    any major-growth justification; do not create a new policy packet.

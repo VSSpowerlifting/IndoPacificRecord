@@ -58,9 +58,11 @@ machine packet supplies none. Scheduled continuity, long-term
 extraction reliability, reuse terms and cadence/silence thresholds remain
 unmeasured or unresolved. No promotion or qualification follows from this build.
 
-Full procedure and reusable prompt:
-`docs/INDONESIA_KOREA_DESK_EXECUTION_2026-10-06.md` and
-`docs/INDONESIA_KOREA_DESK_EXECUTION_PROMPT.md`; durable state receipt:
+Historic implementation context:
+`docs/INDONESIA_KOREA_DESK_EXECUTION_2026-10-06.md` (the reused execution
+prompt was retired to Git history on 11 November). For new work follow root
+`AGENTS.md`, the mandatory shared-desk standard and actual current code;
+durable historical state receipt:
 `docs/INDONESIA_KOREA_SHADOW_LAUNCH_2026-10-06.md`. The bounded Actions egress
 and persistence check is in `docs/INDONESIA_KOREA_ACTIONS_VERIFICATION_2026-10-06.md`;
 it establishes one main-hosted run, not future access or periodic reliability.

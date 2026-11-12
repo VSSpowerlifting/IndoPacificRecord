@@ -37,6 +37,13 @@ PUBLIC_FIELDS = (
 )
 
 
+# Hard ceiling for any family's per-run record count. The binding bound is the
+# family's unchanged max_estimated_cost_usd_per_run reservation, not this number.
+MAX_RECORDS_PER_RUN = 8
+# Request framing reserved per call when deciding whether another record fits.
+CALL_FRAMING_BYTES = 8192
+
+
 class IntakeHold(ValueError):
     """Fixed diagnostic only: no originals or model responses in logs."""
 
@@ -48,6 +55,17 @@ def need(ok, reason):
 
 def digest(value):
     return hashlib.sha256(canonical(value)).hexdigest()
+
+
+def policy_binding(p):
+    """Hash binding a released Record to the source-use policy it was made under.
+
+    Covers every rights, exclusion, spend and input field. The per-run record
+    count is throughput only (bounded by the validator and the unchanged cost
+    ceiling), so it is hashed at its original value: a capacity decision does
+    not withdraw already-released Records, while any other drift still does.
+    """
+    return digest({**p, "max_records_per_run": 1})
 
 
 def load_policy(path=POLICY_PATH):
@@ -63,7 +81,8 @@ def load_policy(path=POLICY_PATH):
         need(all(type(p[k]) is bool for k in (
             "private_model_processing", "public_machine_explanation", "unattended_release")),
             "daily_policy_invalid")
-        need(type(p["max_records_per_run"]) is int and p["max_records_per_run"] == 1
+        need(type(p["max_records_per_run"]) is int
+             and 1 <= p["max_records_per_run"] <= MAX_RECORDS_PER_RUN
              and type(p["max_input_characters"]) is int
              and 100 <= p["max_input_characters"] <= 16000, "daily_spend_bound_invalid")
         need(type(p["max_estimated_cost_usd_per_run"]) in (int, float)
@@ -124,31 +143,60 @@ def verified_source(repo, commit, family):
     return sorted(result, key=lambda r: (r["publisher_posted_date"], r["source_identity"]), reverse=True)
 
 
+class PrivateCallBudget:
+    """One run's reservation: two fixed calls per record, one cost ceiling."""
+
+    def __init__(self, remaining, max_records):
+        self.remaining, self.max_records = remaining, max_records
+        self.records, self.calls = 0, 0
+
+    def fits(self, input_bytes):
+        """Whether both calls for another record fit the unreserved budget."""
+        from config import ANALYSIS_MODEL, RELEVANCE_MODEL
+        from analysis.pricing import estimate_usage_cost_usd
+        size = input_bytes + CALL_FRAMING_BYTES
+        costs = [estimate_usage_cost_usd(RELEVANCE_MODEL, 0, 500, size, 0),
+                 estimate_usage_cost_usd(ANALYSIS_MODEL, 0, 2200, size, 0)]
+        return (self.records < self.max_records and None not in costs
+                and sum(costs) <= self.remaining)
+
+    def begin_record(self):
+        need(self.records < self.max_records, "daily_private_call_bound")
+        self.records += 1
+        self.calls = 0
+
+
 def bound_private_calls(analyzer, policy):
-    """Reserve cost before the shared relevance and private reading calls."""
+    """Reserve cost before the shared relevance and private reading calls.
+
+    Each record gets at most the relevance call then the reading call. Every
+    call reserves its worst-case cost from the single per-run ceiling before
+    dispatch, so more records never raise what one run may spend.
+    """
     from config import ANALYSIS_MODEL, RELEVANCE_MODEL, RELEVANCE_TOOL_OUTPUT_ENABLED
     from analysis.pricing import estimate_usage_cost_usd
     need(not RELEVANCE_TOOL_OUTPUT_ENABLED, "daily_private_tool_route_not_authorized")
     call = analyzer._call
-    remaining, calls = policy["max_estimated_cost_usd_per_run"], 0
+    budget = PrivateCallBudget(policy["max_estimated_cost_usd_per_run"],
+                               policy.get("max_records_per_run", 1))
     expected = (("relevance", RELEVANCE_MODEL, 500), ("summary", ANALYSIS_MODEL, 2200))
 
     def guarded(messages, *, model=None, max_tokens=1000, task=None, **kwargs):
-        nonlocal remaining, calls
         used_model = model or (analyzer.task_model(task) if callable(getattr(type(analyzer), "task_model", None)) else ANALYSIS_MODEL)
-        need(calls < 2 and (task, used_model, max_tokens) == expected[calls],
+        need(budget.calls < 2 and (task, used_model, max_tokens) == expected[budget.calls],
              "daily_private_call_bound")
         # UTF-8 bytes bound text tokens; reserve request framing and the more
         # expensive cache-write rate, rather than guessing chars per token.
         size = len(json.dumps([messages, kwargs], ensure_ascii=False).encode()) + 2048
         cost = estimate_usage_cost_usd(used_model, 0, max_tokens, size, 0)
-        need(cost is not None and cost <= remaining, "daily_private_spend_bound")
-        remaining -= cost
-        calls += 1
+        need(cost is not None and cost <= budget.remaining, "daily_private_spend_bound")
+        budget.remaining -= cost
+        budget.calls += 1
         return call(messages, model=model, max_tokens=max_tokens, task=task, **kwargs)
 
     analyzer._call = guarded
     analyzer._client = analyzer._client.with_options(max_retries=0)
+    return budget
 
 
 def quality_check(record, reading):
@@ -292,7 +340,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
          "daily_processing_source_family_mismatch")
     p = policy["sources"][family]
     result = json.loads(json.dumps(state))
-    used, analyzer = 0, None
+    used, analyzer, budget, exhausted = 0, None, None, False
     present = {family + ":" + r["source_identity"] for r in records}
     for key, entry in result.items():
         if key.startswith(family + ":") and key not in present:
@@ -312,7 +360,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
             result[key] = {**prior, "status": "held", "reason": "source_version_changed"}
             continue
         if prior.get("status") == "complete" and p["private_model_processing"]:
-            prior["output"]["policy_sha256"] = digest(p)
+            prior["output"]["policy_sha256"] = policy_binding(p)
         if prior.get("status") in ("complete", "not_selected", "paused", "held", "terminal"):
             # Rights holds can resume automatically after an actual policy change.
             if not (prior.get("reason") == "model_rights_held" and p["private_model_processing"]):
@@ -329,19 +377,30 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
         if not r["body"].strip() or len((r["title"] + r["body"]).encode("utf-8")) > p["max_input_characters"]:
             entry.update(status="held", reason="original_input_bound")
             continue
-        if used >= p["max_records_per_run"]:
+        def defer():
             # Deferral is not a new attempt. Keep the last failure/QA
-            # disposition intact when a newer record takes this run's slot.
+            # disposition intact when another record takes this run's slot.
             if prior.get("status") in ("pending", "retriable"):
                 result[key] = prior
             else:
                 entry.update(status="pending")
+
+        if exhausted or used >= p["max_records_per_run"]:
+            defer()
             continue
         if analyzer is None:
             analyzer = (analyzer_factory or Analyzer)()
             if analyzer_factory is None:
                 # Queue attempts, not hidden SDK retries, govern private spend.
-                bound_private_calls(analyzer, p)
+                budget = bound_private_calls(analyzer, p)
+        if budget is not None:
+            # A later record that no longer fits the run's reservation waits
+            # for the next run. The first record keeps the in-call spend hold.
+            if used and not budget.fits(len((r["title"] + r["body"]).encode("utf-8"))):
+                exhausted = True
+                defer()
+                continue
+            budget.begin_record()
         used += 1
         try:
             reading = analyzer.analyze_record(r["title"], r["body"], profile_for_source(family))
@@ -358,12 +417,17 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 # Explanation must pass the same output non-disclosure gate.
                 "flag_reason": reading.get("significance_reasoning") if reading["is_significant"] else None,
                 "model_id": reading["model_id"], "prompt_version": reading["prompt_version"],
-                "quality_sha256": quality, "policy_sha256": digest(p),
+                "quality_sha256": quality, "policy_sha256": policy_binding(p),
             })
         except FatalAPIError:
             entry.update(status="pending", reason="account_blocked")
             break
         except (AnalysisError, IntakeHold) as exc:
+            if used > 1 and str(exc) == "daily_private_spend_bound":
+                # The run's reservation ran out mid-record: not a QA attempt.
+                exhausted = True
+                defer()
+                continue
             disposition = processing_state.classify(
                 attempts_before=entry["attempts"], has_body=True,
                 failure=processing_state.ANALYSIS_INCOMPLETE)
@@ -407,7 +471,7 @@ def sign_outputs(state, *, family, policy, key, selected_record=None):
                if k.startswith(family + ":") and v.get("status") == "complete"
                and (selected_identity is None or k == family + ":" + selected_identity)
                and v["output"]["source_identity"] not in p["excluded_source_identities"]
-               and v["output"]["policy_sha256"] == digest(p)]
+               and v["output"]["policy_sha256"] == policy_binding(p)]
     held = [k[len(family)+1:] for k, v in sorted(state.items())
             if k.startswith(family + ":") and v.get("status") in ("held", "paused")
             and (selected_identity is None or k == family + ":" + selected_identity)]
@@ -525,7 +589,7 @@ def validate_output(r, family, p, *, released=False):
     source's own released_prompt_versions; every other check is identical."""
     source = source_for(family)
     need(source is not None and type(r) is dict and set(r) == set(PUBLIC_FIELDS)
-         and r["source_family"] == family and r["policy_sha256"] == digest(p),
+         and r["source_family"] == family and r["policy_sha256"] == policy_binding(p),
          "daily_output_schema_or_policy_invalid")
     need(not source.is_held_source(r), "daily_source_semantic_anomaly")
     need(r["source_identity"] not in p["excluded_source_identities"],

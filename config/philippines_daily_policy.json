@@ -51,7 +51,7 @@
       "private_model_processing": false,
       "public_machine_explanation": false,
       "unattended_release": false,
-      "owner_decision": "2026-11-09 founder: standing authorization, under the founder's written relationship with MINDEF Media Relations, for eligible MINDEF-owned official-release private original custody, bounded external AI processing and independently written public factual explanations. Third-party media, original-text republication and human-controlled editorial publication stay outside it. Activation, provider spending and public release are NOT yet authorized.",
+      "owner_decision": "2026-11-09 founder: standing authorization, under the founder's written relationship with MINDEF Media Relations, for eligible MINDEF-owned official-release private original custody, bounded external AI processing and independently written public factual explanations. Third-party media, original-text republication and human-controlled editorial publication stay outside it. 2026-11-10 founder (PR #1019 comment 6787036515): bounded one-original pilot of eligible release 6nov26-nr2 only, maximum $0.35 model spend, source identities 15aug26-speech and 16sep26-speech excluded. No recurrence, additional record or historical backfill is authorized. After successful public readback, private_model_processing and unattended_release are to be set false by a reviewed change leaving every other policy field unchanged; public display of only that exact released Record continues.",
       "max_estimated_cost_usd_per_run": 0.35,
       "excluded_source_identities": [
         "15aug26-speech",

@@ -9,16 +9,18 @@ import os
 from pathlib import Path
 import subprocess
 
-from core.daily_sources import SOURCES
+from core.daily_sources import SOURCES, attended_pilot_gate
 from processing.daily_intake import load_policy
+
+
+_QUIET = ("fetched", "policy_disabled", "pilot_gate_closed")
 
 
 def _report(results):
     """Expose failed delivery without blocking unrelated source admission."""
-    failed = sum(status not in ("fetched", "policy_disabled")
-                 for status in results.values())
+    failed = sum(status not in _QUIET for status in results.values())
     for family, status in results.items():
-        if status not in ("fetched", "policy_disabled"):
+        if status not in _QUIET:
             # Never print API stderr or response bodies: they may be private.
             print("::warning title=Shared Daily handoff unavailable::%s: %s" % (family, status))
     if os.environ.get("GITHUB_OUTPUT"):
@@ -45,6 +47,11 @@ def main():
         # envelope available for this run's public intake. Accepted DB rows
         # remain untouched; absence is not a signed withdrawal.
         path.unlink(missing_ok=True)
+        gated, _identity = attended_pilot_gate(family)
+        if gated and _identity is None:
+            # Scheduled/ordinary runs skip an attended-only family cleanly.
+            results[family] = "pilot_gate_closed"
+            continue
         p = policy["sources"][family]
         if not all(p[k] for k in ("private_model_processing", "public_machine_explanation", "unattended_release")):
             results[family] = "policy_disabled"

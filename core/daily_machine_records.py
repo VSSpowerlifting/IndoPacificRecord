@@ -4,7 +4,7 @@ import json
 
 from scripts.reconcile_db import read_only
 from core.daily_sources import source_for
-from processing.daily_intake import digest, load_policy, validate_output
+from processing.daily_intake import load_policy, policy_binding, validate_output
 
 
 def _released_visibility_policy(family, policy):
@@ -53,7 +53,7 @@ def load(db_path):
             if display_policy is None:
                 continue
             if (family == "sg_mindef_releases" and display_policy is not p
-                    and r["policy_sha256"] != digest(display_policy)):
+                    and r["policy_sha256"] != policy_binding(display_policy)):
                 # A policy change outside the exact processing-pause transition
                 # is a withdrawal from the reader, never a site-render crash.
                 continue

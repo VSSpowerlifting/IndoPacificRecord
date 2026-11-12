@@ -794,10 +794,12 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertEqual(a.analyze_record.call_count,5)
         self.assertEqual(next(iter(state.values()))['status'],'paused')
 
-    def test_one_record_per_run_and_no_other_desk_changes(self):
+    def test_record_bound_defers_overflow_and_no_other_desk_changes(self):
         other={'ph_afp_articles:afp:1':{'status':'held','reason':'owner_exception'}}
         rows=[record(),dict(record(),source_identity='kemhan:/2026/10/19/second.html')]
-        state=self.process(rows,state=other)
+        # The per-run record bound is a policy value; pin it so the overflow is explicit.
+        p=policy();p['sources'][FAMILY]['max_records_per_run']=1
+        state=self.process(rows,state=other,p=p)
         self.assertEqual(state['ph_afp_articles:afp:1'],other['ph_afp_articles:afp:1'])
         self.assertEqual([v['status'] for k,v in state.items() if k.startswith(FAMILY)],['complete','pending'])
         ph,_=d.process([ph_record()],{},family='ph_afp_articles',policy=policy(),analyzer_factory=ph_analyzer)

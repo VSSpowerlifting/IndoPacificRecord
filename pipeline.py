@@ -338,6 +338,10 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
     def inactive_reason():
         if os.environ.get("IPR_PRIVATE_DAILY_ENABLED") != "true":
             return _AWAITING_ACTIVATION
+        from core.daily_sources import attended_pilot_gate
+        gated, pilot = attended_pilot_gate(family)
+        if gated and pilot is None:
+            return "attended pilot gate closed"
         from processing.daily_intake import load_policy
         flags = load_policy()["sources"][family]
         if not all(flags[k] for k in ("private_model_processing",
@@ -1040,6 +1044,9 @@ def run(
     # ── Stages 9–12: LLM analysis ────────────────────────────────────────────
     articles_analyzed      = 0
     passed_relevance_count = 0   # articles that passed relevance this run
+    # Why each "Analysis failed entirely" happened (analysis/analyzer.py
+    # RELEVANCE_FAILURE_*): a returned-but-unusable response, or anything else.
+    relevance_failure_kinds = []
     # Set when the run aborts on an account-level API failure (spend limit,
     # exhausted credit, bad credentials) rather than a per-article one.
     account_blocked: Optional[str] = None
@@ -1301,6 +1308,8 @@ def run(
                 break
 
             if result is None:
+                relevance_failure_kinds.append(
+                    getattr(analyzer, "last_relevance_failure", None))
                 msg = f"Analysis failed entirely for article {aid} ({url})"
                 logger.error(msg)
                 errors.append(msg)
@@ -1423,13 +1432,33 @@ def run(
     # the CI commit are skipped and the day's collection is discarded anyway.
     analysis_attempted = bool(len(queue) > 0 and ANTHROPIC_API_KEY and not no_analysis)
 
-    # Relevance scoring itself failed for every queued article (analyze() returned
-    # None) → likely API/billing outage. Preserved exactly as the original check
-    # so the billing-failure guard behaves the same.
+    # Relevance scoring failed and nothing was analyzed → possibly an API or
+    # billing outage, so the billing marker below stops later paid windows.
+    # That inference is only made when at least one failure is NOT a returned
+    # response. An HTTP 200 whose content was unusable (malformed JSON, a
+    # refusal, truncation) proves the account works; on 2026-11-11 (run
+    # 43103361840) a one-article queue whose only failure was malformed
+    # relevance JSON wrote a false billing marker and stopped render/deploy.
+    # Mixed or unclassified failures stay conservative and keep the marker.
+    from analysis.analyzer import RELEVANCE_FAILURE_INVALID_RESPONSE
+    relevance_failed_on_invalid_responses_only = bool(relevance_failure_kinds) and all(
+        kind == RELEVANCE_FAILURE_INVALID_RESPONSE for kind in relevance_failure_kinds)
     relevance_total_failure = (
         analysis_attempted
         and articles_analyzed == 0
         and any("Analysis failed entirely" in e for e in errors)
+        and not relevance_failed_on_invalid_responses_only
+    )
+    # Nothing analyzed, and every relevance failure was a returned-but-invalid
+    # response. Per-article and already counted by _record_failure (bounded by
+    # core/processing_state.RETRY_BUDGET), so the run is degraded, not failed:
+    # collection is rendered and deployed, and the success marker — not a
+    # false billing marker — keeps later cron windows today from re-paying.
+    invalid_response_only_failure = (
+        analysis_attempted
+        and articles_analyzed == 0
+        and relevance_failed_on_invalid_responses_only
+        and account_blocked is None
     )
     # Relevance scoring worked (≥1 article passed) but translation/summary failed
     # for ALL of them, so the run produced nothing publishable. Previously this
@@ -1485,6 +1514,15 @@ def run(
         run_status = "failed"
     elif account_blocked is not None or korea_blocked is not None:
         run_status = "degraded"
+    elif invalid_response_only_failure:
+        run_status = "degraded"
+        logger.error(
+            "Run marked degraded: nothing analyzed; %d article(s) failed "
+            "relevance on an invalid model response (the API answered, so this "
+            "is not a billing failure — no billing marker). They stay "
+            "retriable within the retry budget.",
+            len(relevance_failure_kinds),
+        )
     elif collection_agg in ("failed", "degraded"):
         run_status = "degraded"
         failed_slugs = [r.source_slug for r in source_results if r.is_failure]

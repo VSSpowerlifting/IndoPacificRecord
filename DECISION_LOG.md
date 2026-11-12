@@ -1,5 +1,67 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-11 — Founder: minimum operational desks and proportional process controls
+
+**Milestones.** The initial desk objective is one genuinely operational
+original-backed source family for each of eight desks. All sixteen families
+in the original 2 November roster remain the **full-coverage** milestone.
+Neither milestone is satisfied by metadata-only links, mock production,
+unverified PRs, deployment alone, or false completeness claims. One qualifying
+family must have lawful/authentic original retrieval and versioned custody,
+accurate permitted substantive processing and QA, authenticated admission
+through the existing shared Daily, a real deployed Record/desk/Archive/search
+and independent HTTPS readback, and a subsequent genuine unattended cycle
+with honest failure/quiet/hold recovery. Family scope and gaps must be visible
+to readers; family-specific permissions and holds remain in force.
+
+**Remove obsolete operations friction.** Seven-/thirty-day prelaunch waiting
+periods and Day 7/14/30 ceremonial reviews do not govern source promotion.
+The former requirement for seven consecutive eight-desk Daily runs before a
+new workflow file may even be considered is also retired. Reuse existing
+shared workflows before proposing another; new source activation, schedule,
+model/provider use, production change, paid work, deployment and editorial
+publication still require their actual separate authority. Do not create
+parallel engines, recurring per-record founder signatures, repeated publisher
+letters for an already established lawful standing scope, needless full-suite
+replays on unchanged data-only Daily, duplicate cross-desk integration PRs,
+new checklists, or invented qualification streaks. Actual source exception
+review, authentic captures, provenance hashes, factual QA, budget/retry history,
+CI final-head evidence, recovery and the last-good published site remain.
+
+**Processing-cap review, before throughput changes.** The shared private
+intake currently hard-codes exactly one record per run (including an input
+policy validator), rejects title+body beyond 16,000 UTF-8 bytes and checks
+machine explanations against a shared 90-word limit. These are **not**
+universal legal safe harbors, and can strand otherwise eligible originals.
+Challenge them with an evidence-based, tested adaptive throughput design
+under the *existing* total per-run cost/retry/call budget, and complete,
+source-version-aligned processing of longer documents in authorized,
+deterministic sections. Allow sufficient independent explanation to preserve
+substantive facts without unnecessary filler. Preserve source-specific
+binding limits: the attended Singapore pilot was expressly one original
+and remains ended/held; NSC and Kemhan decisions explicitly specify the
+one-record and 90-word bounds; DAPA model rights remain disabled; each
+Vietnam/Korea/China/Japan/USCC policy is evaluated independently. Proposed
+capacity changes are not an immediate authority to spend, increase retries,
+transmit previously excluded text, extend a licence, alter deployed switches,
+or relax evidence coverage and factual QA. Make source-specific decisions
+and negative tests before any corresponding runtime change.
+
+**Governance implementation.** Update canonical instructions, the eight-desk
+plan, retired legacy launch guidance and its truthful tests in a bounded
+reviewable integration. Finish this cleanup phase before a read-only focused
+eight-desk original-to-reader review. The adoption of the initial milestone
+does not itself certify any desk or authorize the cleanup PR's merge/release.
+
+## 2026-11-11 — Founder: Singapore MINDEF one-original pilot ended at the QA hold
+
+The `6nov26-nr2` pilot ran once (estimated $0.0129 of the $0.35 cap) and stopped
+at the private quality hold `daily_quantity_or_date_unsupported`; the signed
+envelope held no records and no Record was released. The founder accepted the
+hold and ended the pilot. All three Singapore policy switches are set false;
+`owner_decision`, the exclusions, the spending limits and other desks are
+unchanged. No retry or activation without a new explicit founder authorization.
+
 ## 2026-11-09 — Founder: Singapore MINDEF standing substantive source-use decision
 
 The founder confirms he has an established written MINDEF media-relations
@@ -979,7 +1041,7 @@ prelaunch programs, including the seven-day minimum in the superseded
 rights or editorial decisions, required repository CI, source access controls,
 production write authority, model spending permission or owner approval of a
 new exact-scope public activation. Detailed default and flow:
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+[19 October historical architecture note](https://github.com/VSSpowerlifting/IndoPacificRecord/blob/baf9c09e3a55fbc0500d6ebf7c45515bc80a8058/docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md) (retired as current instruction; shared-desk rules now in `docs/desks/README.md`).
 
 ## 2026-10-19 — Engineering rule (proposed in the Vietnam Daily PR; not an owner ruling): Vietnam joins the shared Daily only through sealed per-family source use
 
@@ -1035,7 +1097,7 @@ machine derivatives, widen DAPA/other source rights, merge code, activate
 workflows, or bypass signed human editorial decisions. Existing AFP link-only
 ruling, unresolved NSC policy/anomaly and all historical source-specific holds
 remain unchanged. Implementation is governed by
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md` and the real evidence/publishing gates.
+[19 October historical architecture note](https://github.com/VSSpowerlifting/IndoPacificRecord/blob/baf9c09e3a55fbc0500d6ebf7c45515bc80a8058/docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md) (retired as current instruction; shared-desk rules now in `docs/desks/README.md`) and the real evidence/publishing gates.
 
 ## 2026-10-19 — Owner: Vietnam local encrypted backup and isolated restore
 
