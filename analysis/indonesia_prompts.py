@@ -4,7 +4,7 @@ import re
 
 from analysis.philippines_prompts import CATEGORIES
 
-VERSION = "id-relevance-v1+id-analysis-v5"
+VERSION = "id-relevance-v1+id-analysis-v6"
 
 # Sentence-initial Indonesian function words that point back to earlier text.
 # A passage that opens with one does not itself say who or what it concerns,
@@ -194,7 +194,16 @@ def analysis_messages(title, body):
         "does not by itself warrant a significance flag. Return only JSON: "
         "flag, flag_reason, flag_evidence_id, categories and facts "
         "(exactly two objects: sentence, evidence_id, evidence_translation). "
-        "Cite only supplied IDs. Each sentence must use only its cited passage.\n" +
+        "Cite only supplied IDs. Each sentence must use only its cited passage. "
+        "FINAL CHECK before returning, for each of the two sentences against "
+        "its ONE cited passage: (1) the sentence contains the word Kemhan; "
+        "(2) every personal name, unit or formation name, abbreviation and "
+        "identifier in the sentence appears with the same spelling in that "
+        "passage. When the passage gives only an office (for example Menhan), "
+        "write the office without the holder's personal name; when it gives no "
+        "unit designation, write none. A name or designation found only in the "
+        "title or another passage fails this check: remove it or cite the "
+        "passage that contains it.\n" +
         json.dumps({"passages": [
             {"id": ref, "text": text, "institutional_forms": institutional_forms(text),
              "context_dependent": context_dependent(text)}
