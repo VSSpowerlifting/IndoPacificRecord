@@ -532,7 +532,17 @@ def admit(conn, envelope, *, family, policy, key):
                          "WHERE source_family=? AND source_identity=? AND publication_state!='held'", (family, ident))
         for r in packet["records"]:
             try:
-                validate_output(r, family, p)
+                # The private signer re-sends every completed output each run.
+                # One already stored here under this same pair is the released
+                # record itself, not a new output: it keeps its historical pair
+                # so its policy binding can still follow the pinned policy.
+                # Nothing is inserted on that path (see `prior` below).
+                stored = conn.execute(
+                    "SELECT 1 FROM daily_machine_records WHERE source_family=? "
+                    "AND source_identity=? AND prompt_version=?",
+                    (family, r.get("source_identity") if type(r) is dict else None,
+                     r.get("prompt_version") if type(r) is dict else None)).fetchone()
+                validate_output(r, family, p, released=stored is not None)
                 if source.parent:
                     link = source.parent_link(conn, r["source_identity"])
                     need(link is not None and link["metadata_version_sha256"] == r["metadata_version_sha256"]

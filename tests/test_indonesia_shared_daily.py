@@ -943,10 +943,50 @@ class IndonesiaSharedDaily(unittest.TestCase):
                 d.validate_output(dict(old,**change),FAMILY,p,released=True)
         excluded=dict(p,excluded_source_identities=[old['source_identity']])
         with self.assertRaisesRegex(d.IntakeHold,'daily_owner_excluded_source_identity'):
-            d.validate_output(dict(old,policy_sha256=d.digest(excluded)),FAMILY,excluded,released=True)
+            d.validate_output(dict(old,policy_sha256=d.policy_binding(excluded)),FAMILY,excluded,released=True)
         # Source-local QA is untouched: a v4-stamped reading never passes it.
         with self.assertRaisesRegex(d.IntakeHold,'daily_model_provenance_incomplete'):
             d.quality_check(record(),dict(reading(),prompt_version=self.HISTORICAL))
+
+    def test_resent_released_v4_record_keeps_its_binding_current_without_a_hold(self):
+        import tempfile
+        import core.daily_machine_records as machine
+        p=policy();state=self.process()
+        with tempfile.TemporaryDirectory() as tmp:
+            db=self._db_with_link(tmp)
+            with sqlite3.connect(db) as conn:
+                self.assertEqual(d.admit(conn,d.sign_outputs(state,family=FAMILY,policy=p,key=KEY),
+                                         family=FAMILY,policy=p,key=KEY)['admitted'],1)
+                # Model the record released under v4, as the private ledger holds it.
+                conn.execute('UPDATE daily_machine_records SET prompt_version=?',(self.HISTORICAL,))
+            entry=next(iter(state.values()));entry['output']['prompt_version']=self.HISTORICAL
+            # The signer re-sends it every run: no hold, no second row.
+            with sqlite3.connect(db) as conn:
+                result=d.admit(conn,d.sign_outputs(state,family=FAMILY,policy=p,key=KEY),
+                               family=FAMILY,policy=p,key=KEY)
+                self.assertEqual(result,{'admitted':0,'holds':[]})
+            # A later policy change re-binds it, so it stays readable.
+            changed=copy.deepcopy(p);changed['sources'][FAMILY]['owner_decision']='changed'
+            entry['output']['policy_sha256']=d.policy_binding(changed['sources'][FAMILY])
+            with sqlite3.connect(db) as conn:
+                result=d.admit(conn,d.sign_outputs(state,family=FAMILY,policy=changed,key=KEY),
+                               family=FAMILY,policy=changed,key=KEY)
+                self.assertEqual(result,{'admitted':0,'holds':[]})
+                self.assertEqual(conn.execute('SELECT COUNT(*),MIN(prompt_version) FROM daily_machine_records').fetchone(),
+                                 (1,self.HISTORICAL))
+            with patch.object(machine,'load_policy',return_value=changed):
+                self.assertEqual(len(machine.load(db)),1)
+            # The allowance is that stored record only: changed text is refused,
+            # and another superseded pair for the same identity is still held.
+            with sqlite3.connect(db) as conn:
+                altered=copy.deepcopy(state)
+                out=next(iter(altered.values()))['output'];out['summary']=out['summary'].replace('.',' today.',1)
+                self.assertEqual(d.admit(conn,d.sign_outputs(altered,family=FAMILY,policy=changed,key=KEY),
+                                         family=FAMILY,policy=changed,key=KEY)['holds'],['daily_released_version_changed'])
+                other=copy.deepcopy(state)
+                next(iter(other.values()))['output']['prompt_version']='id-relevance-v1+id-analysis-v3'
+                self.assertEqual(d.admit(conn,d.sign_outputs(other,family=FAMILY,policy=changed,key=KEY),
+                                         family=FAMILY,policy=changed,key=KEY)['holds'],['daily_output_incomplete'])
 
     def test_signed_v4_output_is_held_at_admission_and_never_stored(self):
         import tempfile
