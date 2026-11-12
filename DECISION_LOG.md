@@ -1,5 +1,58 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-11 — Founder: standing publisher permissions for six source families (proposed record; effective on founder merge)
+
+**Attestation.** In the 11 November eight-desk completion brief the founder
+states that standing publisher permission now exists for six families:
+**Armed Forces of the Philippines (AFP)**, **Philippine National Security
+Council (NSC)**, **Indonesia Kemhan**, **Vietnam MPS**, **Vietnam Government
+Office (VPCP)** and **Global Times**. The stated scope for each is automated
+and recurring collection, archival retention, AI-assisted processing,
+rehosting and future commercial publication. The underlying correspondence is
+held by the founder in restricted custody. It is not in this repository, was
+not examined by the engineering agent that prepared this entry, and must not
+be copied into public files, fixtures, commits or PR text.
+
+**Effect on source-use evaluation.** For these six families the permission is
+an evidenced, source-specific legal basis under `CONTENT_AND_DATA_RIGHTS.md`
+§7. Agents must not open new permission inquiries for them, treat them as
+link-only by default, or cite the earlier "assessment, not publisher licence"
+wording as a continuing rights limit. Earlier decisions for the same families
+remain the record of what was decided then and of the quality, identity and
+exclusion holds they created.
+
+**What this entry does not change.** It is a rights record, not an activation.
+Each of the following still needs its own reviewed engineering change and,
+where money or publication is involved, the applicable founder authorization:
+
+- deployed runtime controls: the 90-word explanation ceilings, private-original
+  boundaries, public title/body/translation/media exclusions, sealed Vietnam
+  source-use policies and the Global Times hold switch;
+- per-run spending ceilings, retry budgets and attempt history;
+- factual-QA, issuer/identity, version and template holds, and existing
+  exclusions (`afp:1418`, the Kemhan Yonif TP 880 item, NSC host-versus-issuer
+  treatment, VPCP document-type and page/coverage checks);
+- third-party material embedded in a publisher page (wire copy, photographs,
+  video, syndicated text), which a publisher's permission does not by itself
+  cover;
+- publisher access controls. The NSC host has answered automated requests with
+  an access challenge since 5 November; permission to use content is not
+  permission to circumvent that, and the remedy is a publisher-side allowance;
+- sources outside the six named families, including Kemhan Siaran Pers, MOIT
+  and other Vietnamese, Philippine and Chinese publishers.
+
+**Open scope questions for the founder (no engineering blocked on them).**
+(1) Whether "Indonesia Kemhan" covers Siaran Pers as well as Berita.
+(2) Whether "Global Times" covers the whole site or the Defense section the
+desk collects. (3) Whether rehosting includes photographs and video credited
+to a third party. Until answered, the narrower reading applies.
+
+**Next bounded engineering uses of this record**, each a separate PR: public
+original text and titles for AFP, NSC, Kemhan Berita and MPS through the
+existing permitted-component projection; VPCP public document text; release
+of the Global Times hold with its historical-exposure note; source-specific
+replacement of the 90-word ceilings.
+
 ## 2026-11-11 — Founder: minimum operational desks and proportional process controls
 
 **Milestones.** The initial desk objective is one genuinely operational
