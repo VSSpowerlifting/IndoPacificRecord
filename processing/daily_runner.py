@@ -10,7 +10,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from core.daily_sources import SOURCES, source_for
+from core.daily_sources import SOURCES, attended_only, source_for
 from processing.daily_intake import (
     admit, bind_admitted_metadata, load_policy, need, process,
     sign_outputs, verified_source,
@@ -24,11 +24,12 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
     from processing.daily_intake import ROOT, digest, git, policy_binding
     family, repo, commit = spec.split(",", 2)
     need(source_for(family) is not None, "daily_source_family_invalid")
-    if family == "sg_mindef_releases":
-        # This execution path is dispatch-only. Refuse an unselected family run
+    pilot = attended_only(family)
+    if pilot:
+        # An attended pilot is dispatch-only. Refuse an unselected family run
         # BEFORE reading custody, updating state or invoking the model.
-        from core.singapore_mindef_links import IDENTITY
-        need(type(source_identity) is str and bool(IDENTITY.fullmatch(source_identity)),
+        from core.daily_sources import _PILOT_IDENTITY
+        need(type(source_identity) is str and bool(_PILOT_IDENTITY.fullmatch(source_identity)),
              "daily_singapore_pilot_identity_required")
     policy = load_policy()
     records = verified_source(repo, commit, family)
@@ -82,7 +83,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         if no_release:
             readings[identity] = reading
 
-    if family == "sg_mindef_releases":
+    if pilot:
         # A selected one-item pilot must not turn other historical ledger rows
         # into source_missing_or_metadata_changed holds. Process a temporary
         # per-identity view, then fold only the chosen entry back into custody.
@@ -119,7 +120,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
     if not no_release and policy["sources"][family]["public_machine_explanation"]:
         envelope = sign_outputs(state, family=family, policy=policy,
                                  key=os.environ.get("DAILY_OUTPUT_KEY", ""),
-                                 selected_record=eligible[0] if family == "sg_mindef_releases" else None)
+                                 selected_record=eligible[0] if pilot else None)
         target = Path(out_dir) / (family + ".json")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(envelope, sort_keys=True))

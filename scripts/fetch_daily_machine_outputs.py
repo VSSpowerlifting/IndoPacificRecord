@@ -16,6 +16,38 @@ from processing.daily_intake import load_policy
 _QUIET = ("fetched", "policy_disabled", "pilot_gate_closed")
 
 
+LINKS_NAME = "sg_mindef_releases.links.json"
+
+
+LINKS_REF = "state/singapore-mindef-links"
+
+
+def _fetch(remote_path, path, ref="state/shared-daily"):
+    """One signed envelope from a private state branch to ``path``; a status."""
+    try:
+        proc = subprocess.run(["gh", "api", "-H", "Accept: application/vnd.github.raw+json",
+            "repos/VSSpowerlifting/ipr-source-evidence-private/contents/" + remote_path +
+            "?ref=" + ref], capture_output=True, timeout=45)
+    except (OSError, subprocess.TimeoutExpired):
+        return "fetch_unavailable"
+    if proc.returncode or len(proc.stdout) > 512000:
+        return "fetch_failed" if proc.returncode else "envelope_too_large"
+    try:
+        envelope = json.loads(proc.stdout)
+        if not isinstance(envelope, dict):
+            raise ValueError("not an envelope object")
+    except (ValueError, UnicodeError, RecursionError):
+        return "envelope_malformed"
+    # Authentication and public-field validation remain in the admitting code.
+    temporary = path.with_suffix(".tmp")
+    try:
+        temporary.write_bytes(proc.stdout)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return "fetched"
+
+
 def _report(results):
     """Expose failed delivery without blocking unrelated source admission."""
     failed = sum(status not in _QUIET for status in results.values())
@@ -56,31 +88,16 @@ def main():
         if not all(p[k] for k in ("private_model_processing", "public_machine_explanation", "unattended_release")):
             results[family] = "policy_disabled"
             continue
-        try:
-            proc = subprocess.run(["gh", "api", "-H", "Accept: application/vnd.github.raw+json",
-                "repos/VSSpowerlifting/ipr-source-evidence-private/contents/envelopes/" + family +
-                ".json?ref=state/shared-daily"], capture_output=True, timeout=45)
-        except (OSError, subprocess.TimeoutExpired):
-            results[family] = "fetch_unavailable"
-            continue
-        if proc.returncode or len(proc.stdout) > 512000:
-            results[family] = "fetch_failed" if proc.returncode else "envelope_too_large"
-            continue
-        try:
-            envelope = json.loads(proc.stdout)
-            if not isinstance(envelope, dict):
-                raise ValueError("not an envelope object")
-        except (ValueError, UnicodeError, RecursionError):
-            results[family] = "envelope_malformed"
-            continue
-        # Authentication and public-field validation remain in admit().
-        temporary = path.with_suffix(".tmp")
-        try:
-            temporary.write_bytes(proc.stdout)
-            temporary.replace(path)
-        finally:
-            temporary.unlink(missing_ok=True)
-        results[family] = "fetched"
+        results[family] = _fetch("envelopes/" + family + ".json", path)
+    # Singapore official-link parents (identity, URL, date and hashes only) are
+    # a separate owner switch from machine output: a parent row is what a later
+    # explanation binds to, and shows nothing to readers by itself.
+    links = target / LINKS_NAME
+    links.unlink(missing_ok=True)
+    if os.environ.get("SG_MINDEF_LINKS_ENABLED") == "true":
+        # Its own branch: the collector that signs links never contends with
+        # the shared-processing writer of state/shared-daily.
+        results[LINKS_NAME] = _fetch(LINKS_NAME, links, LINKS_REF)
     return _report(results)
 
 

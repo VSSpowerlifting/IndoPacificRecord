@@ -54,6 +54,16 @@ def attended_pilot_gate(family: str, environ=None) -> Tuple[bool, Optional[str]]
     return True, value
 
 
+def attended_only(family: str) -> bool:
+    """True while a family may run only as an attended one-item pilot.
+
+    The one-item limits in the private runner, the signer and public admission
+    key on this, so ending a pilot is one reviewed edit to ATTENDED_PILOT_ENV
+    (with the policy switches), not a hunt for family names.
+    """
+    return family in ATTENDED_PILOT_ENV
+
+
 def _call(ref: str) -> Callable:
     module, _, attr = ref.partition(":")
     return getattr(importlib.import_module(module), attr)
