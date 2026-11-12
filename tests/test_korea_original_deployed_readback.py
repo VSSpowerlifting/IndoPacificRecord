@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from scripts.verify_korea_original_deployed_readback import (
-    ReadbackHold, validate_branch_parity, verify_readback,
+    ReadbackHold, main, validate_branch_parity, verify_readback,
 )
 from core.korea_published_originals import read_release_index, render_original_page
 
@@ -177,6 +177,35 @@ class KoreaOriginalReadbackTests(unittest.TestCase):
         self.assertFalse(result["pages_written"])
         self.assertEqual((self.pages / "korea.html").read_bytes(), before)
 
+    def _main(self, *extra):
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = main(["--main-checkout", str(self.main),
+                         "--pages-checkout", str(self.pages), *extra])
+        return code, json.loads(buf.getvalue())
+
+    def test_cli_hold_names_its_fixed_reason_code(self):
+        (self.pages / "korea.html").write_text("No sources", encoding="utf-8")
+        code, out = self._main()
+        self.assertEqual(code, 2)
+        self.assertEqual(out["status"], "HOLD")
+        self.assertEqual(out["reason"], "korea_desk_main_pages_bytes_differ")
+        self.assertFalse(out["public_https_verified"])
+
+    def test_cli_hold_for_an_unexpected_error_emits_only_its_class(self):
+        (self.main / "research/korea_published_original_texts" /
+         (ID + ".txt")).write_bytes(b"\xff\xfe not utf-8 " + RAW)
+        code, out = self._main()
+        self.assertEqual(code, 2)
+        self.assertRegex(out["reason"], r"^(korea_[a-z0-9_]+|unexpected_[A-Za-z]+)$")
+        self.assertNotIn(str(self.root), json.dumps(out))
+
+    def test_cli_success_is_unchanged(self):
+        code, out = self._main()
+        self.assertEqual(code, 0)
+        self.assertNotIn("reason", out)
 
 if __name__ == "__main__":
     unittest.main()
