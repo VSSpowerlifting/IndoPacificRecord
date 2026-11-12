@@ -532,7 +532,17 @@ def admit(conn, envelope, *, family, policy, key):
                          "WHERE source_family=? AND source_identity=? AND publication_state!='held'", (family, ident))
         for r in packet["records"]:
             try:
-                validate_output(r, family, p)
+                # The private signer re-sends every completed output each run.
+                # One already stored here under this same pair is the released
+                # record itself, not a new output: it keeps its historical pair
+                # so its policy binding can still follow the pinned policy.
+                # Nothing is inserted on that path (see `prior` below).
+                stored = conn.execute(
+                    "SELECT 1 FROM daily_machine_records WHERE source_family=? "
+                    "AND source_identity=? AND prompt_version=?",
+                    (family, r.get("source_identity") if type(r) is dict else None,
+                     r.get("prompt_version") if type(r) is dict else None)).fetchone()
+                validate_output(r, family, p, released=stored is not None)
                 if source.parent:
                     link = source.parent_link(conn, r["source_identity"])
                     need(link is not None and link["metadata_version_sha256"] == r["metadata_version_sha256"]
@@ -583,7 +593,10 @@ def resume(state, key):
     return state
 
 
-def validate_output(r, family, p):
+def validate_output(r, family, p, *, released=False):
+    """Admission check by default. `released=True` is for reading a record that
+    is already published: only the prompt-version allowlist widens, to that
+    source's own released_prompt_versions; every other check is identical."""
     source = source_for(family)
     need(source is not None and type(r) is dict and set(r) == set(PUBLIC_FIELDS)
          and r["source_family"] == family and r["policy_sha256"] == policy_binding(p),
@@ -602,14 +615,15 @@ def validate_output(r, family, p):
          and type(r["categories"]) is list and r["categories"]
          and all(type(c) is str and c in profile_for_source(family).categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
-         and r["prompt_version"] in allowed_prompt_versions(family), "daily_output_incomplete")
+         and r["prompt_version"] in allowed_prompt_versions(family, released=released),
+         "daily_output_incomplete")
     hold = source.output_hold(r)
     need(hold is None, hold)
     need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
          "daily_explanation_word_limit")
 
 
-def allowed_prompt_versions(family):
+def allowed_prompt_versions(family, *, released=False):
     source = source_for(family)
     need(source is not None, "daily_processing_source_family_mismatch")
-    return source.prompt_versions
+    return source.prompt_versions + source.released_prompt_versions if released else source.prompt_versions

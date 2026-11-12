@@ -50,9 +50,15 @@ class SourceDefinitions(unittest.TestCase):
             self.assertIn(profile.prompt_version + "+" + profile.analysis_prompt_version,
                           s.prompt_versions)
             self.assertEqual(d.allowed_prompt_versions(s.family), s.prompt_versions)
-        # Historical accepted outputs must stay valid; Indonesia is not widened.
+        # Indonesia admits only the current pair. Its one already-released pair is
+        # a separate, read-only allowance, never merged into the admission tuple.
         self.assertEqual(len(SOURCES[AFP].prompt_versions), 5)
-        self.assertEqual(SOURCES[KEMHAN].prompt_versions, ("id-relevance-v1+id-analysis-v4",))
+        self.assertEqual(SOURCES[KEMHAN].prompt_versions, ("id-relevance-v1+id-analysis-v5",))
+        self.assertEqual(SOURCES[KEMHAN].released_prompt_versions, ("id-relevance-v1+id-analysis-v4",))
+        for s in SOURCES.values():
+            if s.family != KEMHAN:
+                self.assertEqual(s.released_prompt_versions, (), s.family)
+            self.assertFalse(set(s.prompt_versions) & set(s.released_prompt_versions), s.family)
 
     def test_unknown_source_fails_closed_everywhere(self):
         self.assertIsNone(source_for("unknown-source"))

@@ -4,7 +4,28 @@ import re
 
 from analysis.philippines_prompts import CATEGORIES
 
-VERSION = "id-relevance-v1+id-analysis-v4"
+VERSION = "id-relevance-v1+id-analysis-v5"
+
+# Sentence-initial Indonesian function words that point back to earlier text.
+# A passage that opens with one does not itself say who or what it concerns,
+# so a fact drawn from it is tempted to borrow the missing actor, unit or
+# identifier from the title or an earlier passage. This is a structural cue
+# only: no entity resolution, no alias list, no source-specific vocabulary.
+# It is advisory and excludes nothing: a flagged passage that names its own
+# actor stays citable. Bare "Menurut X" (according to X) names X, so only a
+# pronoun object ("menurutnya", "menurut dia") counts as a back reference.
+_BACK_REFERENCE = re.compile(
+    r"^\W*(?:selain itu|sementara itu|di samping itu|lebih lanjut|selanjutnya|"
+    r"kemudian|adapun|sebelumnya|dengan demikian|oleh karena itu|"
+    r"(?:dalam|pada) kesempatan (?:tersebut|itu|yang sama)|"
+    r"menurutnya|menurut (?:dia|ia|beliau|mereka)|ia|dia|beliau|mereka|"
+    r"(?:hal|kegiatan|acara|pertemuan|kunjungan|latihan) (?:tersebut|ini|itu))\b",
+    re.I)
+
+
+def context_dependent(text):
+    """True when a passage opens by pointing back to earlier text."""
+    return bool(_BACK_REFERENCE.match(text))
 
 
 def institutional_forms(text):
@@ -119,8 +140,8 @@ def analysis_messages(title, body):
         "Select exactly TWO complementary facts from the numbered Indonesian "
         "passages. For each, first translate the ONE cited passage faithfully "
         "into private evidence_translation, then independently write a concise "
-        "English sentence attributed explicitly to Kemhan. Retain the actual "
-        "actor and reported status. evidence_translation is private processing "
+        "English sentence attributed explicitly to Kemhan. Retain the actor "
+        "and reported status exactly as the cited passage states them. evidence_translation is private processing "
         "context, never public output. Do not translate the entire article. "
         "Translate the complete cited passage faithfully in the private field, "
         "retaining its names, ranks and credentials. Keep named office abbreviations "
@@ -144,7 +165,14 @@ def analysis_messages(title, body):
         "and named holder in the cited passage; use the form Head of institution, "
         "full personal name, and retain any other substantive role literally. "
         "Never fill in missing names or dates from another passage or from the "
-        "title. Do not add bracketed completions. Avoid "
+        "title. Do not add bracketed completions. A passage marked "
+        "context_dependent true opens by pointing back to earlier text and may "
+        "not name who or what it concerns. Cite it only for a fact in which "
+        "every name, unit, identifier, number and date appears in that passage "
+        "itself, and name the actor only as that passage does; if the fact needs "
+        "an actor, unit or identifier the passage lacks, cite a different "
+        "passage or omit the detail. A missing actor is never a reason to borrow "
+        "one: a less specific supported fact is correct and a completed one is not. Avoid "
         "translating named offices or month names in the public "
         "sentence when that would obscure source matching. Preserve akan, "
         "rencana, belum, tidak, membahas and menjajaki: a plan or discussion "
@@ -157,7 +185,8 @@ def analysis_messages(title, body):
         "The TWO fact sentences together must be at most 90 words. Return no "
         "summary field: code joins the validated sentences without shortening "
         "or dropping claims. Use short facts wholly supported by their own "
-        "single passage, retaining substantive participants and action status. "
+        "single passage, retaining the substantive participants that passage "
+        "itself names and the action status. "
         "Use categories ONLY from: " + ", ".join(CATEGORIES) + ". Use "
         "south_china_sea only when the original names Laut Cina Selatan, "
         "Laut China Selatan or South China Sea. Set flag=false and "
@@ -167,6 +196,7 @@ def analysis_messages(title, body):
         "(exactly two objects: sentence, evidence_id, evidence_translation). "
         "Cite only supplied IDs. Each sentence must use only its cited passage.\n" +
         json.dumps({"passages": [
-            {"id": ref, "text": text, "institutional_forms": institutional_forms(text)}
+            {"id": ref, "text": text, "institutional_forms": institutional_forms(text),
+             "context_dependent": context_dependent(text)}
             for ref, text in evidence_passages(body)
         ]}, ensure_ascii=False))}]
