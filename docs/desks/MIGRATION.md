@@ -140,6 +140,16 @@ activation remain mandatory. The pilot's independent pre-integration CI passed
 8,291 tests, isolated rendering/validation and tracked DB/output preservation;
 pre-integration CI alone is not evidence of a production release or live delivery.
 
+**Shared Daily throughput (11 November 2026 candidate):** `processing/daily_intake.py`
+processes up to the source policy's `max_records_per_run` (validator maximum 8)
+inside one unchanged per-run estimated-cost reservation; a record that does not
+fit waits without a counted attempt. Every committed source value stays 1 until
+a source-specific founder decision raises it. The released-Record policy binding
+hashes that count at its original value, so a capacity decision does not
+withdraw released Records while any other policy drift still does. English
+evidence passages are whole neighbouring sentences (`ph-analysis-v14`,
+`sg-analysis-v3`); factual QA is unchanged and no model call was made.
+
 **Runtime migration 2 (official-link read-path candidate):** the actual
 readers for Japan MOD, Vietnam ministry official links, Philippines AFP/NSC and
 Indonesia Kemhan all request admitted SQLite rows through
