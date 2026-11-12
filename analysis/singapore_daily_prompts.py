@@ -15,7 +15,7 @@ import json
 
 from analysis.philippines_prompts import CATEGORIES, evidence_passages  # noqa: F401  (shared taxonomy and exact-excerpt IDs)
 
-VERSION = "sg-relevance-v2+sg-analysis-v2"
+VERSION = "sg-relevance-v2+sg-analysis-v3"
 RELEVANCE_VERSION, ANALYSIS_VERSION = VERSION.split("+")
 
 

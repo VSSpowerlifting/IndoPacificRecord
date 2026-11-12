@@ -140,11 +140,33 @@ class SharedDaily(unittest.TestCase):
         self.assertTrue(all(20 <= len(span) <= 480 and span in body
                             for _, span in passages))
 
+    def test_long_paragraph_passages_keep_whole_neighbouring_sentences(self):
+        from analysis.philippines_prompts import evidence_passages
+        lead = "6 November 2026 The service inaugurated its Training Command today."
+        officer = ("Maj. Gen. A. B. Synthetic officiated at the ceremony at Example Camp, "
+                   "which senior commanders attended.")
+        filler = "A later synthetic sentence describes training domains and schools. " * 9
+        body = lead + " " + officer + " " + filler.strip()
+        passages = [span for _, span in evidence_passages(body)]
+        # The dateline and the officiating sentence are citable as ONE passage,
+        # and a rank or initial full stop does not split the officer's name.
+        self.assertTrue(passages[0].startswith(lead + " " + officer))
+        self.assertTrue(all(span in body and 20 <= len(span) <= 480 for span in passages))
+        self.assertTrue(all(span[-1] in ".!?" for span in passages))
+        # Consecutive passages share a whole sentence; none starts mid-sentence.
+        for before, after in zip(passages, passages[1:]):
+            self.assertIn(after.split(". ")[0], before)
+        # One sentence beyond the limit is still citable in exact bounded spans.
+        long_sentence = "The synthetic statement lists " + "another named item, " * 40 + "and ends."
+        spans = [span for _, span in evidence_passages(long_sentence)]
+        self.assertGreater(len(spans), 1)
+        self.assertTrue(all(span in long_sentence and len(span) <= 480 for span in spans))
+
     def test_version_thirteen_requests_specific_independent_explanations(self):
         from analysis.philippines_prompts import analysis_messages
         from processing.screening import PHILIPPINES_PROFILE
         prompt = analysis_messages(record()["title"], record()["body"])[0]["content"]
-        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v13")
+        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v14")
         self.assertIn("no fixed per-sentence length", prompt)
         self.assertIn("at most 90 words", prompt)
         self.assertIn("NSC hosting does not establish authorship", prompt)
@@ -157,7 +179,8 @@ class SharedDaily(unittest.TestCase):
         for version in ("ph-relevance-v1+ph-analysis-v10",
                         "ph-relevance-v1+ph-analysis-v11",
                         "ph-relevance-v1+ph-analysis-v12",
-                        "ph-relevance-v1+ph-analysis-v13"):
+                        "ph-relevance-v1+ph-analysis-v13",
+                        "ph-relevance-v1+ph-analysis-v14"):
             good = reading()
             good["prompt_version"] = version
             state, _ = d.process([record()], {}, family="ph_afp_articles",
@@ -180,13 +203,14 @@ class SharedDaily(unittest.TestCase):
             for version in ("ph-relevance-v1+ph-analysis-v10",
                             "ph-relevance-v1+ph-analysis-v11",
                             "ph-relevance-v1+ph-analysis-v12",
-                            "ph-relevance-v1+ph-analysis-v13"):
+                            "ph-relevance-v1+ph-analysis-v13",
+                            "ph-relevance-v1+ph-analysis-v14"):
                 with self.subTest(family=family, version=version):
                     d.validate_output(dict(approved, prompt_version=version), family, p)
             with self.subTest(family=family, version="unapproved"):
                 with self.assertRaisesRegex(d.IntakeHold, "daily_output_incomplete"):
                     d.validate_output(dict(approved,
-                        prompt_version="ph-relevance-v1+ph-analysis-v14"), family, p)
+                        prompt_version="ph-relevance-v1+ph-analysis-v15"), family, p)
 
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError
