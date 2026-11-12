@@ -112,6 +112,21 @@ def suffix_definitions(evidence):
             if "".join(w[0] for w in m.group(2).split()) == m.group(3)}
 
 
+def grouped_thousands(number):
+    """One value for a whole number grouped in threes: "1.718" is "1,718".
+
+    Indonesian groups thousands with a full stop and English with a comma, so
+    the same count is written differently in the passage and its English.
+    Only a complete grouping (one to three digits, then groups of exactly
+    three, one separator throughout) is canonicalised, to its bare digits.
+    Every other number, including "1.5", "12.30" and "1.718,5", stays exact.
+    """
+    match = re.fullmatch(r"([+-]?)(\d{1,3})((?:\.\d{3})+|(?:,\d{3})+)(%?)", number)
+    if not match or match.group(2).startswith("0"):
+        return number
+    return match.group(1) + match.group(2) + re.sub(r"[.,]", "", match.group(3)) + match.group(4)
+
+
 def factual_values(text, definitions=()):
     """Canonical dates, with all remaining numbers kept exact.
 
@@ -140,7 +155,8 @@ def factual_values(text, definitions=()):
         r"(?<!\w)(?P<day>\d{1,2})\s+(?P<month>" + MONTH_PATTERN + r")(?:\s+(?P<year>\d{4}))?(?!\w)",
     ):
         text = re.sub(pattern, replace, text, flags=re.I)
-    values.update(('number', number) for number in re.findall(NUMBER, text))
+    values.update(('number', grouped_thousands(number))
+                  for number in re.findall(NUMBER, text))
     # Identifier extraction only; the returned text keeps the original wording.
     identifiers = text
     for number, words, abbreviation in sorted(definitions):
