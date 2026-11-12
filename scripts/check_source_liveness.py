@@ -91,6 +91,11 @@ class Expectation:
     #: anything there is no collection to be silent; after it has, the source
     #: is judged by its threshold like any other.
     manual: bool = False
+    #: Set when the shared Daily policy has this governed source's recurring
+    #: release switched off. Its silence is then a recorded owner decision, not
+    #: a fault: it is reported as PAUSED on every run and never fails the gate.
+    #: Turning the switch back on restores the ordinary threshold at once.
+    paused: Optional[str] = None
 
 
 #: The expectation for a slug no desk manifest declares. Deliberately not
@@ -100,13 +105,29 @@ class Expectation:
 UNDECLARED = Expectation()
 
 
-def expectations(registry=None) -> Dict[str, Expectation]:
+def paused_by_policy() -> Dict[str, str]:
+    """Governed families whose recurring release the Daily policy has off.
+
+    Read from the policy file, never listed here. An unreadable policy pauses
+    nothing, so a broken file cannot hide a silent source.
+    """
+    try:
+        from processing.daily_intake import POLICY_PATH, load_policy
+        sources = load_policy()["sources"]
+    except Exception:
+        return {}
+    return {family: "recurring release switched off in %s" % Path(POLICY_PATH).name
+            for family, policy in sources.items() if not policy["unattended_release"]}
+
+
+def expectations(registry=None, paused=None) -> Dict[str, Expectation]:
     """Derive per-source expectations from adapters and desk manifests.
 
     Offline: `healthcheck()` is specified to perform no network I/O, which is
     what lets this run inside the test suite and on a fresh clone.
     """
     registry = registry or get_registry()
+    paused = paused_by_policy() if paused is None else paused
     out: Dict[str, Expectation] = {}
     for result in registry.healthcheck_all():
         source = registry.get_source(result.source_slug)
@@ -130,7 +151,9 @@ def expectations(registry=None) -> Dict[str, Expectation]:
         else:
             out[result.source_slug] = Expectation(
                 threshold=threshold,
-                manual=getattr(source, "access_method", None) == "manual")
+                manual=getattr(source, "access_method", None) == "manual",
+                paused=(paused.get(result.source_slug)
+                        if getattr(source, "access_method", None) == "manual" else None))
     return out
 
 
@@ -177,17 +200,22 @@ def classify(slug: str, total: int, last_seen: str | None,
     days = (today - datetime.strptime(last_seen, "%Y-%m-%d").date()).days
     detail = f"last article {last_seen} ({days}d ago, threshold {threshold}d)"
     if days > threshold:
+        if expectation.paused:
+            return "PAUSED", days, "%s; %s" % (detail, expectation.paused)
         return "UNHEALTHY", days, detail
     return "HEALTHY", days, detail
 
 
-def emit_github(unhealthy: list[tuple[str, str]], lines: list[str]) -> None:
+def emit_github(unhealthy: list[tuple[str, str]], lines: list[str],
+                paused: list[tuple[str, str]] = ()) -> None:
     """Annotate the Actions run and write a step summary, when running in CI."""
     if not os.environ.get("GITHUB_ACTIONS"):
         return
 
     for name, detail in unhealthy:
         print(f"::warning title=Source silent::{name}: {detail}")
+    for name, detail in paused:
+        print(f"::notice title=Source paused by owner decision::{name}: {detail}")
 
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:
@@ -212,6 +240,7 @@ def main() -> int:
 
     expected = expectations()
     unhealthy: list[tuple[str, str]] = []
+    paused: list[tuple[str, str]] = []
     lines: list[str] = []
 
     for slug, name, total, last_seen in rows(args.db, args.today):
@@ -222,6 +251,8 @@ def main() -> int:
         lines.append(f"{state:<10} {name:<28} {total:>5} article(s)  {detail}")
         if state == "UNHEALTHY":
             unhealthy.append((name, detail))
+        elif state == "PAUSED":
+            paused.append((name, detail))
 
     print(f"Source liveness — threshold {args.max_silent_days}d, as of {args.today}")
     print("-" * 78)
@@ -229,12 +260,14 @@ def main() -> int:
         print(line)
     print("-" * 78)
 
-    emit_github(unhealthy, lines)
+    emit_github(unhealthy, lines, paused)
 
     if unhealthy:
         print(f"\n{len(unhealthy)} source(s) need attention.")
         return 1
 
+    if paused:
+        print(f"\n{len(paused)} source(s) paused by owner decision; not a fault.")
     print("\nAll non-inert sources are producing.")
     return 0
 
