@@ -54,6 +54,16 @@ def attended_pilot_gate(family: str, environ=None) -> Tuple[bool, Optional[str]]
     return True, value
 
 
+def attended_only(family: str) -> bool:
+    """True while a family may run only as an attended one-item pilot.
+
+    The one-item limits in the private runner, the signer and public admission
+    key on this, so ending a pilot is one reviewed edit to ATTENDED_PILOT_ENV
+    (with the policy switches), not a hunt for family names.
+    """
+    return family in ATTENDED_PILOT_ENV
+
+
 def _call(ref: str) -> Callable:
     module, _, attr = ref.partition(":")
     return getattr(importlib.import_module(module), attr)
@@ -366,7 +376,8 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         publisher="Ministry of Defence, Singapore",
         public_issuer="Ministry of Defence, Singapore",
         prompt_versions=("sg-relevance-v2+sg-analysis-v2",
-                         "sg-relevance-v2+sg-analysis-v3"),
+                         "sg-relevance-v2+sg-analysis-v3",
+                         "sg-relevance-v2+sg-analysis-v4"),
         identity_max_length=64,
         links="core.daily_sources:_sg_links",
         quality="processing.daily_intake:english_official_quality",

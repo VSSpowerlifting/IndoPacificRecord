@@ -17,7 +17,7 @@ from pathlib import Path
 
 from core import processing_state
 from core.crossdesk_official_metadata_candidates import canonical
-from core.daily_sources import SOURCES, source_for
+from core.daily_sources import SOURCES, attended_only, source_for
 from processing.screening import profile_for_source
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -462,7 +462,7 @@ def sign_outputs(state, *, family, policy, key, selected_record=None):
     # direct-sign tests; private_run REQUIRES it for Singapore pilot execution.
     selected_identity = None
     if selected_record is not None:
-        need(family == "sg_mindef_releases" and type(selected_record) is dict
+        need(attended_only(family) and type(selected_record) is dict
              and selected_record.get("source_family") == family
              and type(selected_record.get("source_identity")) is str,
              "daily_singapore_pilot_selection_invalid")
@@ -511,7 +511,7 @@ def admit(conn, envelope, *, family, policy, key):
          and packet["source_ref"] == REFS[family] and type(packet["records"]) is list
          and type(packet["held"]) is list and all(type(s) is str for s in packet["held"]),
          "daily_envelope_source_mismatch")
-    if family == "sg_mindef_releases":
+    if attended_only(family):
         # A one-item pilot is limited at public admission too. The MAC alone
         # authenticates the signer, but cannot compensate for an old multi-row
         # processor output or a mistakenly re-signed whole ledger.

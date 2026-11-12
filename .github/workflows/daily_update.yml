@@ -344,7 +344,27 @@ jobs:
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
           # Singapore attended-pilot gate: empty for scheduled and ordinary manual runs.
           IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
+          SG_MINDEF_LINKS_ENABLED: ${{ vars.SG_MINDEF_LINKS_ENABLED }}
         run: python -m scripts.fetch_daily_machine_outputs
+
+      # Singapore MINDEF official-link parents: the private collector signs
+      # identity, official URL, date and hashes only (no title, text or media).
+      # A parent row is what a later machine explanation binds to; alone it
+      # shows nothing to readers. A refused or missing envelope leaves the
+      # database untouched and never blocks the other desks. Off until the
+      # owner sets SG_MINDEF_LINKS_ENABLED.
+      - name: Admit Singapore MINDEF official-link parents
+        if: >
+          steps.timecheck.outputs.should_run == 'true' &&
+          !inputs.vpcp_metadata_only &&
+          vars.IPR_PRIVATE_DAILY_ENABLED == 'true' &&
+          vars.SG_MINDEF_LINKS_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
+        run: |
+          python scripts/singapore_mindef_links.py admit --database pla_watch.db \
+            --envelope "$RUNNER_TEMP/shared-daily-intake/sg_mindef_releases.links.json"
 
       # Same scheduled Daily, DB and publication writer. Bibliographic fields
       # only; no PDFs, original body, model call, per-record approval or secret.
