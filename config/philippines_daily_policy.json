@@ -10,7 +10,7 @@
       "excluded_source_identities": [
         "afp:1418"
       ],
-      "max_records_per_run": 1,
+      "max_records_per_run": 6,
       "max_input_characters": 16000
     },
     "ph_nsc_official_statements": {
@@ -32,7 +32,7 @@
       "excluded_source_identities": [
         "kemhan:/2026/10/02/kunker-ke-kaltara-menhan-sjafrie-tinjau-yonif-tp-880-banuanta-di-bulungan-tegaskan-kemampuan-tempur-dan-teritorial-pembangunan-untuk-kedaulatan-perbatasan.html"
       ],
-      "max_records_per_run": 1,
+      "max_records_per_run": 6,
       "max_input_characters": 16000
     },
     "kr_policy_dapa_releases": {

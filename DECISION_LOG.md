@@ -53,6 +53,24 @@ reviewable integration. Finish this cleanup phase before a read-only focused
 eight-desk original-to-reader review. The adoption of the initial milestone
 does not itself certify any desk or authorize the cleanup PR's merge/release.
 
+## 2026-11-11 — Founder: AFP and Kemhan Berita Daily capacity (proposed; effective on founder merge)
+
+Under the 11 November processing-cap review, `ph_afp_articles` and
+`id_kemhan_news` may process **up to six records per private run**, two model
+calls per record, inside the **unchanged $0.35 estimated per-run reservation**.
+This supersedes only the words "one record" in the 27 October Kemhan decision
+and the one-record value in the AFP policy. Unchanged: the 16,000-character
+input bound, the 90-word explanation maximum, factual QA, the five-failure
+pause, retry and attempt history, `afp:1418`, the Kemhan Yonif TP 880
+exclusion, private-original custody and every activation switch. A record
+whose worst-case reservation does not fit the remaining run budget waits for
+the next run without a counted attempt, so typical runs complete two to four
+records. NSC, Korea DAPA and Singapore MINDEF stay at one record. The
+`owner_decision` strings in `config/philippines_daily_policy.json` are left
+byte-identical because they are part of the released-Record binding; this
+entry is the authoritative capacity decision. This is not authority to spend
+outside the scheduled private runs, to backfill, or to reset any hold.
+
 ## 2026-11-11 — Founder: Singapore MINDEF one-original pilot ended at the QA hold
 
 The `6nov26-nr2` pilot ran once (estimated $0.0129 of the $0.35 cap) and stopped
