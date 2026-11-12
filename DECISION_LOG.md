@@ -6,9 +6,17 @@
 states that standing publisher permission now exists for six families:
 **Armed Forces of the Philippines (AFP)**, **Philippine National Security
 Council (NSC)**, **Indonesia Kemhan**, **Vietnam MPS**, **Vietnam Government
-Office (VPCP)** and **Global Times**. The stated scope for each is automated
-and recurring collection, archival retention, AI-assisted processing,
-rehosting and future commercial publication. The underlying correspondence is
+Office (VPCP)** and **Global Times**. The founder's requests explicitly named
+automated and recurring collection, archival retention, AI-assisted
+processing, rehosting and future commercial publication, and each institution
+affirmatively accepted them. No further publisher confirmation is required
+for those uses.
+
+**Scope.** Each permission covers eligible material the publisher itself owns
+or controls, across its sources and publications. Kemhan's covers Berita and
+Siaran Pers alike. Global Times' covers its publications generally, not only
+the Defense section. Do not read any of the six narrowly or impose blanket
+restrictions on publisher-owned material. The underlying correspondence is
 held by the founder in restricted custody. It is not in this repository, was
 not examined by the engineering agent that prepared this entry, and must not
 be copied into public files, fixtures, commits or PR text.
@@ -32,20 +40,18 @@ where money or publication is involved, the applicable founder authorization:
 - factual-QA, issuer/identity, version and template holds, and existing
   exclusions (`afp:1418`, the Kemhan Yonif TP 880 item, NSC host-versus-issuer
   treatment, VPCP document-type and page/coverage checks);
-- third-party material embedded in a publisher page (wire copy, photographs,
-  video, syndicated text), which a publisher's permission does not by itself
-  cover;
+- material genuinely owned by a third party and embedded in a publisher page
+  (for example credited wire copy or agency photographs), which a publisher's
+  permission does not by itself cover. This is an exception for identified
+  third-party ownership, not a default restriction on the publisher's own
+  text, images or media;
 - publisher access controls. The NSC host has answered automated requests with
   an access challenge since 5 November; permission to use content is not
   permission to circumvent that, and the remedy is a publisher-side allowance;
-- sources outside the six named families, including Kemhan Siaran Pers, MOIT
-  and other Vietnamese, Philippine and Chinese publishers.
-
-**Open scope questions for the founder (no engineering blocked on them).**
-(1) Whether "Indonesia Kemhan" covers Siaran Pers as well as Berita.
-(2) Whether "Global Times" covers the whole site or the Defense section the
-desk collects. (3) Whether rehosting includes photographs and video credited
-to a third party. Until answered, the narrower reading applies.
+- IPR's approved source roster. Broader permission scope (Kemhan Siaran Pers,
+  other Global Times sections) does not add a family to the roster or
+  authorize production activation; the currently approved families are
+  implemented first. Other publishers, including MOIT, are outside this entry.
 
 **Next bounded engineering uses of this record**, each a separate PR: public
 original text and titles for AFP, NSC, Kemhan Berita and MPS through the
