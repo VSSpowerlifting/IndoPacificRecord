@@ -140,11 +140,33 @@ class SharedDaily(unittest.TestCase):
         self.assertTrue(all(20 <= len(span) <= 480 and span in body
                             for _, span in passages))
 
+    def test_long_paragraph_passages_keep_whole_neighbouring_sentences(self):
+        from analysis.philippines_prompts import evidence_passages
+        lead = "6 November 2026 The service inaugurated its Training Command today."
+        officer = ("Maj. Gen. A. B. Synthetic officiated at the ceremony at Example Camp, "
+                   "which senior commanders attended.")
+        filler = "A later synthetic sentence describes training domains and schools. " * 9
+        body = lead + " " + officer + " " + filler.strip()
+        passages = [span for _, span in evidence_passages(body)]
+        # The dateline and the officiating sentence are citable as ONE passage,
+        # and a rank or initial full stop does not split the officer's name.
+        self.assertTrue(passages[0].startswith(lead + " " + officer))
+        self.assertTrue(all(span in body and 20 <= len(span) <= 480 for span in passages))
+        self.assertTrue(all(span[-1] in ".!?" for span in passages))
+        # Consecutive passages share a whole sentence; none starts mid-sentence.
+        for before, after in zip(passages, passages[1:]):
+            self.assertIn(after.split(". ")[0], before)
+        # One sentence beyond the limit is still citable in exact bounded spans.
+        long_sentence = "The synthetic statement lists " + "another named item, " * 40 + "and ends."
+        spans = [span for _, span in evidence_passages(long_sentence)]
+        self.assertGreater(len(spans), 1)
+        self.assertTrue(all(span in long_sentence and len(span) <= 480 for span in spans))
+
     def test_version_thirteen_requests_specific_independent_explanations(self):
         from analysis.philippines_prompts import analysis_messages
         from processing.screening import PHILIPPINES_PROFILE
         prompt = analysis_messages(record()["title"], record()["body"])[0]["content"]
-        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v13")
+        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v14")
         self.assertIn("no fixed per-sentence length", prompt)
         self.assertIn("at most 90 words", prompt)
         self.assertIn("NSC hosting does not establish authorship", prompt)
@@ -157,7 +179,8 @@ class SharedDaily(unittest.TestCase):
         for version in ("ph-relevance-v1+ph-analysis-v10",
                         "ph-relevance-v1+ph-analysis-v11",
                         "ph-relevance-v1+ph-analysis-v12",
-                        "ph-relevance-v1+ph-analysis-v13"):
+                        "ph-relevance-v1+ph-analysis-v13",
+                        "ph-relevance-v1+ph-analysis-v14"):
             good = reading()
             good["prompt_version"] = version
             state, _ = d.process([record()], {}, family="ph_afp_articles",
@@ -176,17 +199,18 @@ class SharedDaily(unittest.TestCase):
                                  policy=policy(), analyzer_factory=fake_analyzer)
             approved = dict(state["ph_afp_articles:afp:1"]["output"])
             approved["source_family"] = family
-            approved["policy_sha256"] = d.digest(p)
+            approved["policy_sha256"] = d.policy_binding(p)
             for version in ("ph-relevance-v1+ph-analysis-v10",
                             "ph-relevance-v1+ph-analysis-v11",
                             "ph-relevance-v1+ph-analysis-v12",
-                            "ph-relevance-v1+ph-analysis-v13"):
+                            "ph-relevance-v1+ph-analysis-v13",
+                            "ph-relevance-v1+ph-analysis-v14"):
                 with self.subTest(family=family, version=version):
                     d.validate_output(dict(approved, prompt_version=version), family, p)
             with self.subTest(family=family, version="unapproved"):
                 with self.assertRaisesRegex(d.IntakeHold, "daily_output_incomplete"):
                     d.validate_output(dict(approved,
-                        prompt_version="ph-relevance-v1+ph-analysis-v14"), family, p)
+                        prompt_version="ph-relevance-v1+ph-analysis-v15"), family, p)
 
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError
@@ -320,6 +344,121 @@ class SharedDaily(unittest.TestCase):
         self.assertEqual(state["ph_afp_articles:afp:1"]["status"], "retriable")
         self.assertEqual(state["ph_afp_articles:afp:2"]["status"], "complete")
         self.assertEqual(state["ph_afp_articles:afp:3"]["status"], "pending")
+
+    def test_policy_record_count_is_bounded_and_cost_ceiling_is_unchanged(self):
+        base = json.loads(d.POLICY_PATH.read_text())
+        for value, ok in ((1, True), (d.MAX_RECORDS_PER_RUN, True), (0, False),
+                          (d.MAX_RECORDS_PER_RUN + 1, False), (True, False), (2.0, False)):
+            p = copy.deepcopy(base); p["sources"]["ph_afp_articles"]["max_records_per_run"] = value
+            with tempfile.TemporaryDirectory() as tmp, self.subTest(value=value):
+                path = Path(tmp) / "policy.json"; path.write_text(json.dumps(p))
+                if ok:
+                    d.load_policy(path)
+                else:
+                    with self.assertRaisesRegex(d.IntakeHold, "daily_spend_bound_invalid"):
+                        d.load_policy(path)
+        p = copy.deepcopy(base); p["sources"]["ph_afp_articles"]["max_estimated_cost_usd_per_run"] = 0.36
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "policy.json"; path.write_text(json.dumps(p))
+            with self.assertRaisesRegex(d.IntakeHold, "daily_spend_bound_invalid"):
+                d.load_policy(path)
+
+    def test_guard_allows_two_calls_per_record_under_one_run_ceiling(self):
+        from config import RELEVANCE_MODEL
+        p = dict(policy()["sources"]["ph_afp_articles"], max_records_per_run=2)
+        a = Mock(); underlying = a._call
+        budget = d.bound_private_calls(a, p)
+        for _ in range(2):
+            budget.begin_record()
+            a._call([], task="relevance", model=RELEVANCE_MODEL, max_tokens=500)
+            a._call([], task="summary", max_tokens=2200)
+            with self.assertRaisesRegex(d.IntakeHold, "call_bound"):
+                a._call([], task="summary", max_tokens=2200)
+        with self.assertRaisesRegex(d.IntakeHold, "call_bound"):
+            budget.begin_record()
+        self.assertEqual(underlying.call_count, 4)
+        self.assertLess(budget.remaining, p["max_estimated_cost_usd_per_run"])
+        self.assertGreaterEqual(budget.remaining, 0)
+
+    def budgeted_run(self, records, *, max_records, state=None):
+        """Real spend guard around a synthetic analyzer; no client is reached."""
+        from config import RELEVANCE_MODEL
+
+        class Budgeted:
+            def __init__(self):
+                self._client, self.usage = Mock(), Mock()
+                self.usage.rows.return_value = []
+                self.sent = []
+
+            def _call(self, messages, **kwargs):
+                self.sent.append(kwargs["task"])
+
+            def analyze_record(self, title, body, profile):
+                self._call([{"content": title + body}], task="relevance",
+                           model=RELEVANCE_MODEL, max_tokens=500)
+                if title.startswith("Routine"):
+                    return {"passed_relevance": False}
+                self._call([{"content": title + body}], task="summary", max_tokens=2200)
+                return reading()
+
+        made = []
+        def factory():
+            made.append(Budgeted()); return made[-1]
+        p = policy(); p["sources"]["ph_afp_articles"]["max_records_per_run"] = max_records
+        with patch("analysis.analyzer.Analyzer", factory):
+            state, _ = d.process(records, state or {}, family="ph_afp_articles", policy=p)
+        return state, made[0].sent
+
+    def numbered(self, n, *, title="Synthetic source fixture", pad=0):
+        r = record(); r["source_identity"] = "afp:%d" % n; r["title"] = title
+        r["body"] += " " + "x" * pad
+        r["content_sha256"] = hashlib.sha256(r["body"].encode()).hexdigest()
+        return r
+
+    def test_multiple_records_share_one_reservation_and_overflow_waits(self):
+        # Screened-out records reserve only their relevance call, so all four fit.
+        records = [self.numbered(n, title="Routine notice") for n in range(1, 5)]
+        state, sent = self.budgeted_run(records, max_records=4)
+        self.assertEqual(sent, ["relevance"] * 4)
+        self.assertEqual({v["status"] for v in state.values()}, {"not_selected"})
+        # Near-ceiling originals: the reservation, not the count, stops the run.
+        records = [self.numbered(n, pad=15000) for n in range(1, 5)]
+        state, sent = self.budgeted_run(records, max_records=4)
+        self.assertEqual(sent, ["relevance", "summary"] * 2)
+        self.assertEqual([state["ph_afp_articles:afp:%d" % n]["status"] for n in range(1, 5)],
+                         ["complete", "complete", "pending", "pending"])
+        self.assertEqual([state["ph_afp_articles:afp:%d" % n]["attempts"] for n in (3, 4)], [0, 0])
+        # The deferred records are taken by the next run, without a lost attempt.
+        state, sent = self.budgeted_run(records, max_records=4, state=state)
+        self.assertEqual(sent, ["relevance", "summary"] * 2)
+        self.assertEqual({v["status"] for v in state.values()}, {"complete"})
+
+    def test_deferral_keeps_a_prior_quality_disposition(self):
+        records = [self.numbered(n, pad=15000) for n in range(1, 4)]
+        prior = {"ph_afp_articles:afp:3": {"version": d.digest({k: records[2][k] for k in (
+            "metadata_version_sha256", "content_sha256", "capture_sha256")}),
+            "status": "retriable", "attempts": 2, "reason": "analysis_or_quality_failed",
+            "quality_hold": "daily_topic_unsupported"}}
+        state, _ = self.budgeted_run(records, max_records=3, state=prior)
+        self.assertEqual(state["ph_afp_articles:afp:3"], prior["ph_afp_articles:afp:3"])
+
+    def test_capacity_change_keeps_released_binding_but_other_drift_withdraws(self):
+        base = d.load_policy()["sources"]["ph_afp_articles"]
+        bound = d.policy_binding(base)
+        self.assertEqual(bound, d.digest({**base, "max_records_per_run": 1}))
+        self.assertEqual(d.policy_binding({**base, "max_records_per_run": 6}), bound)
+        for drift in ({"max_estimated_cost_usd_per_run": 0.2}, {"max_input_characters": 8000},
+                      {"owner_decision": base["owner_decision"] + " changed"},
+                      {"excluded_source_identities": base["excluded_source_identities"] + ["afp:9"]},
+                      {"unattended_release": not base["unattended_release"]}):
+            self.assertNotEqual(d.policy_binding({**base, **drift}), bound, drift)
+
+    def test_single_record_policy_still_dispatches_exactly_one(self):
+        records = [self.numbered(n) for n in range(1, 4)]
+        state, sent = self.budgeted_run(records, max_records=1)
+        self.assertEqual(sent, ["relevance", "summary"])
+        self.assertEqual([state["ph_afp_articles:afp:%d" % n]["status"] for n in range(1, 4)],
+                         ["complete", "pending", "pending"])
 
     def test_quality_rejects_unsupported_facts_and_incomplete_analysis(self):
         changes = [dict(requires_translation=True), dict(facts=[]), dict(categories=["political_work"])]

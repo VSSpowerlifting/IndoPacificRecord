@@ -110,7 +110,8 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertEqual((s.desk_id, s.label, s.custody_ref, s.language),
                          ("singapore", "MINDEF", "archive/singapore-mindef-daily", "en"))
         self.assertTrue(s.desk_registered)
-        self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",))
+        self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",
+                                             "sg-relevance-v2+sg-analysis-v3"))
         p = d.load_policy()["sources"][FAMILY]
         # The one-original pilot (PR #1019) ended at the private QA hold with no
         # released Record, so every Singapore switch is back off. A later
@@ -131,7 +132,8 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertFalse(SINGAPORE_MINDEF_DAILY_PROFILE.translates)
         self.assertFalse(SINGAPORE_MINDEF_DAILY_PROFILE.daily_queue)
         self.assertFalse(SINGAPORE_MINDEF_DAILY_PROFILE.keyword_prefilter)
-        self.assertEqual(d.allowed_prompt_versions(FAMILY), ("sg-relevance-v2+sg-analysis-v2",))
+        self.assertEqual(d.allowed_prompt_versions(FAMILY), ("sg-relevance-v2+sg-analysis-v2",
+                                                            "sg-relevance-v2+sg-analysis-v3"))
 
     def test_output_check_requires_mindef_attribution_and_no_flag(self):
         self.assertIsNone(_sg_output_check({"model_flagged": False, "summary": "MINDEF says x."}))

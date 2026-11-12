@@ -51,7 +51,7 @@ class SourceDefinitions(unittest.TestCase):
                           s.prompt_versions)
             self.assertEqual(d.allowed_prompt_versions(s.family), s.prompt_versions)
         # Historical accepted outputs must stay valid; Indonesia is not widened.
-        self.assertEqual(len(SOURCES[AFP].prompt_versions), 4)
+        self.assertEqual(len(SOURCES[AFP].prompt_versions), 5)
         self.assertEqual(SOURCES[KEMHAN].prompt_versions, ("id-relevance-v1+id-analysis-v4",))
 
     def test_unknown_source_fails_closed_everywhere(self):

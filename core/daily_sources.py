@@ -26,7 +26,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 _PH_PROMPTS = ("ph-relevance-v1+ph-analysis-v10",
                "ph-relevance-v1+ph-analysis-v11",
                "ph-relevance-v1+ph-analysis-v12",
-               "ph-relevance-v1+ph-analysis-v13")
+               "ph-relevance-v1+ph-analysis-v13",
+               "ph-relevance-v1+ph-analysis-v14")
 _THIRD_PARTY_CREDIT = re.compile(r"(?im)^\s*(?:sumber|source|credit)\s*:")
 
 
@@ -357,7 +358,8 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         custody_ref="archive/singapore-mindef-daily", language="en", label="MINDEF",
         publisher="Ministry of Defence, Singapore",
         public_issuer="Ministry of Defence, Singapore",
-        prompt_versions=("sg-relevance-v2+sg-analysis-v2",),
+        prompt_versions=("sg-relevance-v2+sg-analysis-v2",
+                         "sg-relevance-v2+sg-analysis-v3"),
         identity_max_length=64,
         links="core.daily_sources:_sg_links",
         quality="processing.daily_intake:english_official_quality",
