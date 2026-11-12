@@ -37,6 +37,7 @@ Never describe IPR as an OSINT tool or intelligence agency.
    any major-growth justification; do not create a new policy packet.
 4. Stop at the bounded implementation/verification finish line.
    A verified PR is not automatically merged, deployed, activated or live.
+   The standing merge delegations in `AGENTS.md` are the only exceptions.
    Do not expand into unrelated cleanup, follow-on releases or paid models.
 
 Never hand-edit generated `output/` or published canonical edition sidecars.

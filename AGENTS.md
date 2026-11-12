@@ -134,6 +134,61 @@ These requirements replace older architectural *preferences* and artificial
 system. The standard documents the narrow owner-decided architecture exception;
 normal implementation within the shared design needs no extra approval.
 
+### Standing engineering merge and release delegation — eight-desk program (founder directive 12 November 2026)
+
+**Effective only on the founder's approval and merge of the PR that adds this
+section.** It supplements the narrow delegation above for the eight-desk
+operational program and ends when the founder withdraws it or the sixteen-family
+milestone is accepted.
+
+**Delegated.** Without a per-PR founder decision, the program's engineering
+agent may choose the next desk or blocker and, in this repository and its
+private evidence companion, open, update, review and merge engineering PRs:
+collector, processing, admission, rendering and application code; tests and
+fixtures; repairs to existing workflows and a new workflow file only for a
+source family whose collection is already authorized; monitoring and health
+checks; migrations required by that code; non-governing documentation; and
+factual `DECISION_LOG.md` entries recording what was changed and why. It may
+also run existing workflows for already-activated sources within their existing
+budgets and attempt rules (verification, recovery of missed slots, permitted
+retries), and release verified changes through the existing Daily/Pages release
+contract.
+
+**Conditions for every delegated merge.** Required CI green on the exact final
+head; clean mergeability; merge pinned to that head; no outstanding reviewer
+objection and no conflict with another session's branch or worktree; head,
+checks and intended production effect recorded in the PR; and, where the change
+reaches production, the deployment validator, last-good-site protection and
+independent HTTPS readback confirmed afterwards. A failed post-merge check is
+repaired or reverted before other work continues.
+
+**A check that decides what is published.** A change that lets previously held
+content publish must cite the observed false-hold evidence, leave every
+factual check (numbers, dates, names, attribution, outcome and inflation
+claims, source binding) at least as strict, add tests showing real
+substitutions still hold, and never reset a ledger entry, attempt count or
+spending record. Removing a factual check, or raising a rights or word limit,
+is reserved.
+
+**Reserved to the founder (not delegated).** `AGENTS.md`, `CLAUDE.md` and any
+decision that creates or changes policy; `CONTENT_AND_DATA_RIGHTS.md`, source
+rights and publisher-access determinations; first activation of a source,
+of model processing or of public release for a source family, including the
+policy switches, repository variables and secrets that effect it; budget and
+spending ceilings and any paid operation outside them; the deferred third
+Singapore pilot and DAPA model/output authority; external contact, accounts
+and contractual commitments; human-controlled Briefs and editorial
+publication; and destructive actions (force-push, history rewrite, deletion of
+custody, evidence or attempt records). Access controls are never bypassed and
+evidence is never manufactured under any authority.
+
+**Decisions and reporting.** When a reserved decision is needed the agent
+first advances other desks, then brings the outstanding decisions together.
+Routine detail stays in PRs; the founder is told of substantive breakthroughs,
+reserved decisions and verified operational completion. No desk is reported
+operational without authentic source-to-reader delivery, independent readback
+and a genuine unattended cycle.
+
 ## Authority, work admission and completion — owner decision, 30 October 2026
 
 **Default to improving research, not enlarging software.** IPR is a
@@ -223,6 +278,8 @@ Stop at the assigned phase; no implicit production authorization.
 - Task/standing authority governs edits, commits and review PRs. Do not infer
   merge, new paid operation, production DB mutation, schedule activation,
   publication or outside contact. Reuse authority already given; do not ask again.
+  The two standing delegations above state the only merges and releases an
+  agent may make without a per-PR founder decision.
 - Be explicit: policy adopted, code migrated, tested, merged, deployed and live
   verified are different states. This policy change does not migrate runtime.
 - Keep continuity in code, commits, PRs and the current migration map. Report the
