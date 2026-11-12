@@ -1,5 +1,38 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-12 — Singapore MINDEF pilot retry held; switches off
+
+The authorized single retry of `6nov26-nr2` on `sg-analysis-v3` ran in private
+run 43276741401 (two model calls, estimated $0.015 of the $0.35 cap). The
+earlier `daily_quantity_or_date_unsupported` hold did not recur, but QA held
+the result at `daily_explanation_word_limit` (summary plus flag reason over 90
+words). Nothing was signed or published. The three Singapore policy switches
+and the private `SG_MINDEF_DAILY_ENABLED` variable are false again.
+
+The run also stopped at `daily_bridge_key_invalid`: no
+`DAILY_SG_MINDEF_RELEASES_KEY` secret exists in either repository, so the
+private ledger commit was skipped. The second attempt is preserved only in
+that run's private artifact; the committed ledger still records one attempt.
+A further attempt needs separate founder authorization, the signing secret,
+and a prompt or limit decision for the word-limit hold.
+
+## 2026-11-12 — Founder: one retry of the Singapore MINDEF one-original pilot
+
+The 11 November pilot of `6nov26-nr2` held at `daily_quantity_or_date_unsupported`.
+The cause was the evidence splitter: under `sg-analysis-v2` passages were cut
+mid-sentence, so the model's sentences drew a date and names from neighbouring
+passages. Commit `3daf092eb4` packs whole sentences (`sg-analysis-v3`); that
+version has never run for Singapore.
+
+The founder authorized **one retry of the same original only**, maximum $0.35
+estimated model spend, exclusions `15aug26-speech` and `16sep26-speech`
+unchanged. The earlier attempt stays in the private ledger; it is not reset.
+The three Singapore policy switches are true for this attended run and return
+to false by a reviewed change after public readback or a hold. Singapore
+remains a registered attended pilot: the scheduled Daily's gate stays closed,
+and no recurrence, additional record or backfill is authorized. Factual QA is
+unchanged; a second hold ends the retry.
+
 ## 2026-11-11 — Founder: standing publisher permissions for six source families (adopted by founder merge of PR #1033, 12 November UTC)
 
 **Attestation.** In the 11 November eight-desk completion brief the founder
