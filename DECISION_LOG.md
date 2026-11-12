@@ -1,6 +1,6 @@
 # DECISION_LOG — Indo-Pacific Record
 
-## 2026-11-11 — Founder: standing publisher permissions for six source families (proposed record; effective on founder merge)
+## 2026-11-11 — Founder: standing publisher permissions for six source families (adopted by founder merge of PR #1033, 12 November UTC)
 
 **Attestation.** In the 11 November eight-desk completion brief the founder
 states that standing publisher permission now exists for six families:
@@ -112,7 +112,7 @@ reviewable integration. Finish this cleanup phase before a read-only focused
 eight-desk original-to-reader review. The adoption of the initial milestone
 does not itself certify any desk or authorize the cleanup PR's merge/release.
 
-## 2026-11-11 — Founder: AFP and Kemhan Berita Daily capacity (proposed; effective on founder merge)
+## 2026-11-11 — Founder: AFP and Kemhan Berita Daily capacity (adopted by founder merge of PR #1032, 12 November UTC)
 
 Under the 11 November processing-cap review, `ph_afp_articles` and
 `id_kemhan_news` may process **up to six records per private run**, two model
