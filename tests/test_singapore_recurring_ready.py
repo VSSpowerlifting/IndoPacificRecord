@@ -251,5 +251,27 @@ class PilotLimitsFollowTheGate(Base):
         self.assertEqual(receipt["admitted"], 2)
 
 
+
+
+class PromptLengthBudget(unittest.TestCase):
+    """The 11-12 Nov retry held at the 90-word gate; the gate itself is unchanged."""
+
+    def test_v4_states_per_part_budgets_inside_the_unchanged_gate(self):
+        from analysis import singapore_daily_prompts as p
+        from core.daily_sources import source_for
+        text = p.analysis_messages("Synthetic title", "Synthetic sentence one. Synthetic sentence two.")[0]["content"]
+        self.assertEqual(p.ANALYSIS_VERSION, "sg-analysis-v4")
+        self.assertIn(p.VERSION, source_for("sg_mindef_releases").prompt_versions)
+        self.assertIn("TOGETHER at most 60 words", text)
+        self.assertIn("flag_reason at most 25 words", text)
+        self.assertLessEqual(60 + 25, 90)
+
+    def test_the_quality_gate_still_rejects_more_than_90_words(self):
+        import inspect
+        from processing import daily_intake
+        self.assertIn('<= 90,\n         "daily_explanation_word_limit")',
+                      inspect.getsource(daily_intake))
+
+
 if __name__ == "__main__":
     unittest.main()
