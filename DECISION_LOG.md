@@ -1,5 +1,21 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-12 — Indonesia Kemhan QA: a whole number grouped in threes is one value in both languages
+
+**Evidence.** The first `id-analysis-v6` run (private processing run
+43322968930) produced no name hold. One record held on
+`daily_quantity_or_date_unsupported` only because the cited passage wrote a
+count with the Indonesian thousands separator and the English wrote the same
+count with a comma; the validator compared the two strings exactly. The other
+two holds that run were an institution form and an incomplete analysis.
+
+**Decision.** `processing/indonesia_quality.py` canonicalises a complete
+three-digit grouping with one separator throughout to its digits before
+comparing. Decimals, times, mixed or partial groupings and leading zeros stay
+exact, and a different count still holds. No other check, the prompt, model,
+budget or attempt history changes; the held record is retried on its ordinary
+schedule, not reset.
+
 ## 2026-11-12 — Indonesia Kemhan: id-analysis-v6 adds a final local-name check; QA unchanged
 
 **Evidence.** Fifteen preserved private Kemhan readings (runs 3–12 November)

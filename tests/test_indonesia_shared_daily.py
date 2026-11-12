@@ -913,6 +913,22 @@ class IndonesiaSharedDaily(unittest.TestCase):
                 '123-1','official_link_only','d'*64,'2026-10-19T00:00:00Z'))
         return db
 
+    def test_grouped_thousands_are_one_value_across_languages(self):
+        from processing import indonesia_quality as iq
+        g=iq.grouped_thousands
+        self.assertEqual(g('1.718'),g('1,718'))
+        self.assertEqual(g('12.345.678'),g('12,345,678'))
+        self.assertEqual(iq.factual_values('sebanyak 1.718 personel')[0],
+                         iq.factual_values('a total of 1,718 personnel')[0])
+        # Nothing else is merged: decimals, times, mixed and partial groupings,
+        # leading zeros and different counts all stay distinct.
+        for kept in ('1.5','12.30','1.718,5','1,718.5','1.71','1.7180','0.718','10:30','1718'):
+            self.assertEqual(g(kept),kept)
+        self.assertNotEqual(g('1.718'),g('1.719'))
+        self.assertNotEqual(g('1.718'),g('17.180'))
+        self.assertNotEqual(iq.factual_values('1.718 personel')[0],
+                            iq.factual_values('1.5 personnel')[0])
+
     def test_v6_prompt_ends_with_the_local_name_final_check(self):
         from analysis import indonesia_prompts as ip
         self.assertEqual(ip.VERSION,'id-relevance-v1+id-analysis-v6')
