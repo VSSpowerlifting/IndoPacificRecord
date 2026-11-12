@@ -113,11 +113,11 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",
                                              "sg-relevance-v2+sg-analysis-v3"))
         p = d.load_policy()["sources"][FAMILY]
-        # The one-original pilot (PR #1019) ended at the private QA hold with no
-        # released Record, so every Singapore switch is back off. A later
-        # activation needs a new explicit founder authorization.
+        # Founder-authorized retry (12 November) of the one-original pilot: the
+        # three switches are on together for that attended run only and return
+        # to false after public readback or a hold.
         self.assertEqual((p["private_model_processing"], p["public_machine_explanation"],
-                          p["unattended_release"]), (False, False, False))
+                          p["unattended_release"]), (True, True, True))
         self.assertEqual(sorted(p["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
 
     def test_held_identities_have_one_value_everywhere(self):
@@ -745,7 +745,7 @@ class SingaporeAdmission(unittest.TestCase):
         self.assertEqual((sg["max_records_per_run"], sg["max_estimated_cost_usd_per_run"]), (1, 0.35))
         self.assertEqual(sorted(sg["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
         self.assertEqual((sg["private_model_processing"], sg["public_machine_explanation"],
-                          sg["unattended_release"]), (False, False, False))
+                          sg["unattended_release"]), (True, True, True))
         over = json.loads(json.dumps(committed))
         over["sources"][FAMILY]["max_estimated_cost_usd_per_run"] = 0.36
         tmp = Path(tempfile.mkdtemp()); self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))
