@@ -1,5 +1,21 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-12 — Singapore MINDEF pilot retry held; switches off
+
+The authorized single retry of `6nov26-nr2` on `sg-analysis-v3` ran in private
+run 43276741401 (two model calls, estimated $0.015 of the $0.35 cap). The
+earlier `daily_quantity_or_date_unsupported` hold did not recur, but QA held
+the result at `daily_explanation_word_limit` (summary plus flag reason over 90
+words). Nothing was signed or published. The three Singapore policy switches
+and the private `SG_MINDEF_DAILY_ENABLED` variable are false again.
+
+The run also stopped at `daily_bridge_key_invalid`: no
+`DAILY_SG_MINDEF_RELEASES_KEY` secret exists in either repository, so the
+private ledger commit was skipped. The second attempt is preserved only in
+that run's private artifact; the committed ledger still records one attempt.
+A further attempt needs separate founder authorization, the signing secret,
+and a prompt or limit decision for the word-limit hold.
+
 ## 2026-11-12 — Founder: one retry of the Singapore MINDEF one-original pilot
 
 The 11 November pilot of `6nov26-nr2` held at `daily_quantity_or_date_unsupported`.
