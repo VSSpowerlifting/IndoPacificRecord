@@ -1,5 +1,22 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-12 — Founder: standing engineering merge and release delegation for the eight-desk program (effective on founder merge)
+
+**Direction.** The founder delegated sustained engineering ownership of the
+eight-desk operational milestone: choosing priorities, implementing, and
+merging and releasing routine engineering changes in the public and private
+repositories without a per-PR decision. The founder asked that the delegation
+first be reconciled with existing rules and approved once.
+
+**Decision.** `AGENTS.md` gains "Standing engineering merge and release
+delegation — eight-desk program". It delegates engineering merges under
+exact-head CI, pinned merges, ownership and post-release readback conditions,
+and the running of existing workflows for already-activated sources within
+existing budgets. It does not delegate governance or policy, source rights,
+first activation of a source/model/public release, budgets, the deferred
+Singapore pilot, DAPA authority, external contact, human editorial publication
+or destructive actions. No runtime behaviour changes with this entry.
+
 ## 2026-11-12 — Vietnam Daily: a low-stage flag is withheld, not the record (proposed; adopted by founder merge)
 
 **Evidence.** Private scheduled Vietnam collection missed logical slots 9–11
