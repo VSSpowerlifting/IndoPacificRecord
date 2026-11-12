@@ -50,6 +50,31 @@ TRANSLATED_LABELS = {"Research": CONCEPTS[r"\bresearch\b"],
                      "Sunday": (r"(?-i:\b[Hh]ari\s+Minggu\b|\bMinggu\b(?!\s+(?:ini|lalu|depan|"
                                 r"kemarin|besok|pertama|kedua|ketiga|keempat|kelima|"
                                 r"terakhir|ke-?\s?\d)\b))")}
+# Country names are translated, not copied: Kemhan writes "Jepang", English
+# writes "Japan". Each English form is accepted only when its own Indonesian
+# name is in the cited passage. This is a closed list of states whose
+# Indonesian name differs from the English one, not an alias glossary:
+# institutions, offices and people keep the literal-form rules below, and a
+# demonym of a same-spelling name ("Indonesian") is still not derived.
+COUNTRIES = {
+    r"\bJepang\b": "Japan Japanese",
+    r"\bFilipina\b": "Philippines Philippine",
+    r"\bSingapura\b": "Singapore Singaporean",
+    r"\b(?:Tiongkok|Cina|China)\b": "China Chinese",
+    r"\bAmerika Serikat\b": "United States American",
+    r"\bKorea Selatan\b": "South Korean",
+    r"\bPrancis\b": "France French",
+    r"\bTurki\b": "Turkey Türkiye Turkish",
+    r"\bInggris\b": "Britain British",
+    r"\bBelanda\b": "Netherlands Dutch",
+    r"\bJerman\b": "Germany German",
+    r"\bItalia\b": "Italy Italian",
+    r"\bRusia\b": "Russia Russian",
+    r"\bKamboja\b": "Cambodia Cambodian",
+}
+COUNTRY_LABELS = {english: support for support, names in COUNTRIES.items()
+                  for english in names.split()}
+TRANSLATED_LABELS.update(COUNTRY_LABELS)
 # Ordinary English "development" also renders these exact local phrases. Each
 # pair is accepted only when its own Indonesian phrase is in the cited passage;
 # every other "development" still needs "pengembangan" there.
@@ -62,6 +87,19 @@ DEFINED_HOLDER = re.compile(
     r"(?<![\w(])[A-Z][a-z]+(?:[ \t]+[A-Z][a-z]+)+[ \t]*"
     r"\(([A-Z][A-Za-z]*(?:[ \t]+[A-Z][A-Za-z]*)*)\)[ \t]+"
     r"([A-Z][a-z][A-Za-z'-]*(?:[ \t]+[A-Z][a-z][A-Za-z'-]*)*)")
+# "Full Title (Abbr) Bidang Portfolio, Holder Name," is the same definition
+# with the office's portfolio between the abbreviation and its holder. The
+# portfolio is one capitalised item, or a list that closes with "dan"; the
+# holder is the comma-delimited appositive that follows it in that passage.
+_ITEM = r"[A-Z][A-Za-z]*(?:[ \t]+[A-Z][A-Za-z]*)*"
+DEFINED_PORTFOLIO_HOLDER = re.compile(
+    r"(?<![\w(])[A-Z][a-z]+(?:[ \t]+[A-Z][a-z]+)+[ \t]*"
+    r"\(([A-Z][A-Za-z]*(?:[ \t]+[A-Z][A-Za-z]*)*)\)[ \t]+Bidang[ \t]+"
+    r"(?:" + _ITEM + r"(?:,[ \t]+" + _ITEM + r")*,?[ \t]+dan[ \t]+" + _ITEM + r"|" + _ITEM + r")"
+    r",[ \t]+((?:[A-Z][A-Za-z'-]*[ \t]+)*[A-Z][a-z][A-Za-z'-]*),(?![ \t]+dan\b)")
+ENGLISH_HEAD = re.compile(
+    r"Ministry|Department|Agency|Center|Centre|Hospital|Forces?|Council|"
+    r"University|Institute|Authority|Office")
 # "840/Golok Sakti (GS)" defines the same unit identifier as "840/GS".
 DEFINED_SUFFIX = re.compile(
     r"(?<!\w)(\d+)/((?:[A-Z][a-z]+\s+)*[A-Z][a-z]+)\s*\(([A-Z]{2,})\)")
@@ -118,8 +156,30 @@ def factual_values(text, definitions=()):
 
 def defined_holder_forms(evidence):
     """Literal "Abbr Name" forms that the cited passage itself defines."""
-    return {abbr + " " + name for abbr, name in DEFINED_HOLDER.findall(evidence)
+    return {abbr + " " + name
+            for pattern in (DEFINED_HOLDER, DEFINED_PORTFOLIO_HOLDER)
+            for abbr, name in pattern.findall(evidence)
             if any(sum(c.isupper() for c in part) >= 2 for part in abbr.split())}
+
+
+def leading_forms(local_forms):
+    """A formal English name without the words that follow its head noun.
+
+    "Japan Self-Defense Forces Day Reception" also names "Japan Self-Defense
+    Forces". Only trailing words are dropped, the head noun and everything
+    before it stay, and a head-first name ("Ministry of X") or a dropped
+    "of/for/the" phrase yields nothing: a qualifier is never removed.
+    """
+    forms = set()
+    for form in local_forms:
+        words = form.split()
+        heads = [i for i, word in enumerate(words) if ENGLISH_HEAD.fullmatch(word)]
+        if not heads or heads[-1] == 0:
+            continue
+        for end in range(heads[-1] + 1, len(words)):
+            if words[end - 1][0].isupper() and words[end] not in ("of", "for", "the"):
+                forms.add(" ".join(words[:end]))
+    return forms
 
 
 def without_local_development(evidence, english):
@@ -257,13 +317,17 @@ def quality_check(record, reading):
         # inserting it into this passage's private translation.
         for token in re.findall(r"\b[A-Z][A-Za-z'-]+\b", translation_text):
             if re.search(r"\b" + re.escape(token) + r"\b", source):
-                need(re.search(r"\b" + re.escape(token) + r"\b", evidence) is not None,
+                # A translated state name is local when its Indonesian name is.
+                need(re.search(r"\b" + re.escape(token) + r"\b", evidence) is not None
+                     or (token in COUNTRY_LABELS
+                         and re.search(COUNTRY_LABELS[token], evidence) is not None),
                      "daily_private_translation_name_unsupported")
         # One rule for public facts and private translations. There is no
         # institutional alias glossary; ordinary Head/medical mappings above
         # do not exempt names. Kemhan's fixed public publisher attribution is
         # distinct from the reported institutional actors.
         local_forms = set(institutional_forms(evidence_text)) | defined_holder_forms(evidence_text)
+        local_forms |= leading_forms(local_forms)
         for public, english in ((True, sentence_text), (False, translation_text)):
             mentioned = set(institutional_forms(without_possessive(english)))
             if public:
@@ -301,4 +365,4 @@ def quality_check(record, reading):
          "daily_indonesia_flag_held")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
          and reading.get("prompt_version") == VERSION, "daily_model_provenance_incomplete")
-    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v6"})
+    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v7"})

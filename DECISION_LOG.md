@@ -1,5 +1,64 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-11 — Founder: standing publisher permissions for six source families (adopted by founder merge of PR #1033, 12 November UTC)
+
+**Attestation.** In the 11 November eight-desk completion brief the founder
+states that standing publisher permission now exists for six families:
+**Armed Forces of the Philippines (AFP)**, **Philippine National Security
+Council (NSC)**, **Indonesia Kemhan**, **Vietnam MPS**, **Vietnam Government
+Office (VPCP)** and **Global Times**. The founder's requests explicitly named
+automated and recurring collection, archival retention, AI-assisted
+processing, rehosting and future commercial publication, and each institution
+affirmatively accepted them. No further publisher confirmation is required
+for those uses.
+
+**Scope.** Each permission covers eligible material the publisher itself owns
+or controls, across its sources and publications. Kemhan's covers Berita and
+Siaran Pers alike. Global Times' covers its publications generally, not only
+the Defense section. Do not read any of the six narrowly or impose blanket
+restrictions on publisher-owned material. The underlying correspondence is
+held by the founder in restricted custody. It is not in this repository, was
+not examined by the engineering agent that prepared this entry, and must not
+be copied into public files, fixtures, commits or PR text.
+
+**Effect on source-use evaluation.** For these six families the permission is
+an evidenced, source-specific legal basis under `CONTENT_AND_DATA_RIGHTS.md`
+§7. Agents must not open new permission inquiries for them, treat them as
+link-only by default, or cite the earlier "assessment, not publisher licence"
+wording as a continuing rights limit. Earlier decisions for the same families
+remain the record of what was decided then and of the quality, identity and
+exclusion holds they created.
+
+**What this entry does not change.** It is a rights record, not an activation.
+Each of the following still needs its own reviewed engineering change and,
+where money or publication is involved, the applicable founder authorization:
+
+- deployed runtime controls: the 90-word explanation ceilings, private-original
+  boundaries, public title/body/translation/media exclusions, sealed Vietnam
+  source-use policies and the Global Times hold switch;
+- per-run spending ceilings, retry budgets and attempt history;
+- factual-QA, issuer/identity, version and template holds, and existing
+  exclusions (`afp:1418`, the Kemhan Yonif TP 880 item, NSC host-versus-issuer
+  treatment, VPCP document-type and page/coverage checks);
+- material genuinely owned by a third party and embedded in a publisher page
+  (for example credited wire copy or agency photographs), which a publisher's
+  permission does not by itself cover. This is an exception for identified
+  third-party ownership, not a default restriction on the publisher's own
+  text, images or media;
+- publisher access controls. The NSC host has answered automated requests with
+  an access challenge since 5 November; permission to use content is not
+  permission to circumvent that, and the remedy is a publisher-side allowance;
+- IPR's approved source roster. Broader permission scope (Kemhan Siaran Pers,
+  other Global Times sections) does not add a family to the roster or
+  authorize production activation; the currently approved families are
+  implemented first. Other publishers, including MOIT, are outside this entry.
+
+**Next bounded engineering uses of this record**, each a separate PR: public
+original text and titles for AFP, NSC, Kemhan Berita and MPS through the
+existing permitted-component projection; VPCP public document text; release
+of the Global Times hold with its historical-exposure note; source-specific
+replacement of the 90-word ceilings.
+
 ## 2026-11-11 — Founder: minimum operational desks and proportional process controls
 
 **Milestones.** The initial desk objective is one genuinely operational
@@ -52,6 +111,24 @@ plan, retired legacy launch guidance and its truthful tests in a bounded
 reviewable integration. Finish this cleanup phase before a read-only focused
 eight-desk original-to-reader review. The adoption of the initial milestone
 does not itself certify any desk or authorize the cleanup PR's merge/release.
+
+## 2026-11-11 — Founder: AFP and Kemhan Berita Daily capacity (adopted by founder merge of PR #1032, 12 November UTC)
+
+Under the 11 November processing-cap review, `ph_afp_articles` and
+`id_kemhan_news` may process **up to six records per private run**, two model
+calls per record, inside the **unchanged $0.35 estimated per-run reservation**.
+This supersedes only the words "one record" in the 27 October Kemhan decision
+and the one-record value in the AFP policy. Unchanged: the 16,000-character
+input bound, the 90-word explanation maximum, factual QA, the five-failure
+pause, retry and attempt history, `afp:1418`, the Kemhan Yonif TP 880
+exclusion, private-original custody and every activation switch. A record
+whose worst-case reservation does not fit the remaining run budget waits for
+the next run without a counted attempt, so typical runs complete two to four
+records. NSC, Korea DAPA and Singapore MINDEF stay at one record. The
+`owner_decision` strings in `config/philippines_daily_policy.json` are left
+byte-identical because they are part of the released-Record binding; this
+entry is the authoritative capacity decision. This is not authority to spend
+outside the scheduled private runs, to backfill, or to reset any hold.
 
 ## 2026-11-11 — Founder: Singapore MINDEF one-original pilot ended at the QA hold
 
