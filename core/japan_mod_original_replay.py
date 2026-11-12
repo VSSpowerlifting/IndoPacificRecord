@@ -146,3 +146,87 @@ def replay_private_pdf(repo, commit, source_identity, pdf_path, *, fetch_run):
 def safe_cli_receipt(receipt):
     """Avoid ever serializing the in-memory private source text to stdout."""
     return json.dumps(receipt, ensure_ascii=False, sort_keys=True)
+
+
+def qualify_private_pdf_text(repo, commit, source_identity, pdf_path, *,
+                             fetch_run, now_utc, policy_replay=None,
+                             exception_replay=None):
+    """Connect a privately authenticated PDF to the EXISTING text license gate.
+
+    This is a read-only, same-process bridge. It replays the exact source and
+    PDF before constructing the trusted source-capture callback consumed by
+    standing_source_rights.qualify_standing_text. Neither a caller-provided
+    custody receipt nor a successful text layer can grant reuse.
+
+    Independent trusted publisher-policy and document-exception verifiers are
+    mandatory. If absent, stale, ambiguous, or negative, the shared gate HOLDS.
+    No model, translation, staging, public writer, network fetch beyond the
+    existing read-only source Actions verification, or source copy is invoked.
+    Returns only a publisher-text-free qualification receipt on success.
+    """
+    from core.standing_source_rights import qualify_standing_text
+
+    receipt, private_text = replay_private_pdf(
+        repo, commit, source_identity, pdf_path, fetch_run=fetch_run)
+    require(type(private_text) is str
+            and receipt.get("status") == "PDF_TEXT_LAYER_REPLAYED"
+            and receipt.get("source_family") == gate.FAMILY
+            and receipt.get("source_identity") == source_identity
+            and receipt.get("source_git_commit") == commit
+            and receipt.get("page_count", 0) > 0
+            and receipt.get("pages_with_text") == receipt.get("page_count")
+            and receipt.get("pages_failed") == 0,
+            "japan_qualifier_requires_authenticated_complete_original")
+    require(hashlib.sha256(private_text.encode("utf-8")).hexdigest()
+            == receipt.get("text_sha256"),
+            "japan_qualifier_text_hash_disagreement")
+    require(receipt.get("publisher_license_qualified") is False
+            and receipt.get("external_model_input_authorized") is False
+            and receipt.get("public_original_authorized") is False
+            and receipt.get("machine_explanation_authorized") is False
+            and receipt.get("publication_authorized") is False,
+            "japan_qualifier_must_not_inherit_runtime_permissions")
+    source = {
+        "desk": "japan",
+        "source_family": gate.FAMILY,
+        "source_identity": source_identity,
+        "official_url": receipt["official_url"],
+        "source_git_commit": commit,
+        "source_capture_sha256": receipt["pdf_capture_sha256"],
+        "publisher_posted_date": receipt["rss_pubdate"],
+        "language": "ja",
+    }
+
+    def replay_capture(expected):
+        require(expected == source, "japan_qualifier_source_changed")
+        return {
+            "source_git_commit": commit,
+            "source_capture_sha256": receipt["pdf_capture_sha256"],
+            "entire_clean_original_text_sha256": receipt["text_sha256"],
+            "original_custody_authenticated": True,
+            "source_text_complete": True,
+        }
+
+    qualified = qualify_standing_text(
+        source, kind="original_text", proposed_sha256=receipt["text_sha256"],
+        attribution="Original source: Japan Ministry of Defense ("
+                    + receipt["official_url"] + "); PDL1.0",
+        now_utc=now_utc, source_replay=replay_capture,
+        policy_replay=policy_replay, exception_replay=exception_replay)
+    # A standing text reuse finding is not processing, release or model consent.
+    require(qualified["original_text_matches_authenticated_capture"] is True
+            and qualified["publication_performed"] is False,
+            "japan_qualifier_unexpected_reuse_contract")
+    return {
+        "schema": "ipr-japan-mod-private-text-rights-bridge/1",
+        "status": "STANDING_TEXT_LICENSE_CONDITIONALLY_QUALIFIED",
+        "source_identity": source_identity,
+        "source_git_commit": commit,
+        "pdf_capture_sha256": receipt["pdf_capture_sha256"],
+        "text_sha256": receipt["text_sha256"],
+        "standing_qualification": qualified,
+        "external_model_input_authorized": False,
+        "automated_text_processing_authorized": False,
+        "publication_authorized": False,
+        "source_body_returned": False,
+    }

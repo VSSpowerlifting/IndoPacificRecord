@@ -269,3 +269,137 @@ amendment in the draft PR. If adopted, integrate the qualified text stage with
 the shared lifecycle in a separate bounded task without weakening current
 source/quality protections. Verify actual PDF version and licensing on genuine
 evidence before any substantive publication.
+
+## 7 November 2026 — first authentic PDF through the standing gate: HOLD
+
+This section reports the first real run of the 6 November bridge
+([PR #996](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/996),
+head `9de51d855a`) against a genuine, privately held MOD original. No
+publisher bytes or text entered the repository, logs, PR or any external
+provider. Every probe printed only status codes, counts and hashes.
+
+**Bound evidence**
+
+| Item | Value |
+|---|---|
+| Source identity | `jp_mod_news_ja:/j/press/news/2026/10/23a.pdf` (RSS date 2026-10-23) |
+| Private custody | `ipr-source-evidence-private`, ref `archive/jp-mod-pdf-originals`, blob `1e4322192baa2e046ceab4210439ea558798593a` |
+| PDF SHA-256 | `7069b9baea136b9c96be13948e9628748ba48e45905ea024047189121b83b53d` (4,432,617 bytes) |
+| Archived text SHA-256 | `56c4d16e8aecf054735b6700fc1828db1b173d996f8e9bad1cfa277481d621a1` |
+| `shadow/jp-mod` state commit | `4ac08f6f95e8d8859501ffa567d6bd76a049091b` (run `40433531306-1`; first seen `40047801924-1`) |
+
+**Replay result (passed).** `replay_private_pdf` returned
+`PDF_TEXT_LAYER_REPLAYED`: 5/5 pages carry a text layer, 0 extraction
+failures, PDF and normalized-text hashes both equal the archived capture,
+source lineage authenticated. The extracted text is 1,576 characters.
+
+**Standing qualification result (held).** `qualify_private_pdf_text` reached
+`core.standing_source_rights.qualify_standing_text` and held with
+`trusted_source_policy_and_exception_verifiers_required`. That is the correct
+outcome: neither a trusted MOD `policy_replay` nor an `exception_replay`
+exists. None was fabricated, and the gate was not relaxed.
+
+**Why each open question stays held**
+
+1. *Fresh publisher-policy verification. Blocked by an access control.*
+   `https://www.mod.go.jp/j/info/contents.html`, `/j/` and `/en/` return
+   HTTP 403 with a Cloudflare JavaScript challenge to automated clients on
+   2026-11-07. `robots.txt` disallows only `/a/` and `/sp/j/`, so this is
+   bot detection, not a robots rule. Under `AGENTS.md`, an automated policy
+   replay cannot be built by impersonating a browser, solving the challenge,
+   or substituting an archive or cache copy. The Digital Agency PDL1.0 terms
+   page is reachable (HTTP 200), but it supports the MOD notice rather than
+   replacing it as `official_policy_url`.
+2. *Third-party expression. Unresolved, with a specific risk.* A structural
+   screen found no embedded files, forms or annotations, and page 1 has no
+   images. Pages 2–5 carry **9 raster images totalling 4,212,956 bytes
+   (~95% of the file)**, in repeated size pairs (1517×600 ×2, 1840×477/476 ×3,
+   1459×548 ×2, 1194×453 ×2). Such images commonly hold photographs, maps or
+   figures whose credits and labels are absent from the text layer. A
+   booleans-only Japanese marker screen of the text layer found zero hits for
+   credit, co-issuance, separate-terms, secrecy, personal-data, figure-label
+   and foreign-government-attribution markers. That screen can add holds but
+   **cannot clear anything**, because most of the document is outside the
+   text layer. The government URL, the clean extraction and the general PDL
+   notice prove nothing about third-party content either.
+3. *Separate terms.* No marker was found in the text layer, but whether the
+   images carry their own terms is unknown.
+4. *Privacy or secrecy.* The PDF metadata includes Microsoft MSIP
+   sensitivity-label keys (label name, content bits, tenant/site identifiers).
+   The label values were deliberately not read. What the label means is a
+   human judgment and cannot be inferred automatically.
+5. *Media.* `complete_pdf_visual_content_verified` remains `false`. A
+   text-only release would exclude the images, but `exception_replay` must
+   still certify what the released artifact embeds.
+
+**Extractor-version sensitivity.** The exact replay depends on the pypdf
+version. 6.20.1, 6.21.0, 6.21.2 (the capture run's version) and 6.21.4
+reproduce the archived text hash, and 6.16.2 does not. `requirements.txt`
+allows `pypdf>=6.0.0`. CI currently resolves ≥6.21, so it matches, but a
+lower environment fails closed with `pdf_text_replay_mismatch`. That is a
+safe hold, not silent drift. Any replay of this capture must run under
+pypdf ≥6.20. The shared requirements pin was left unchanged here so it can
+be coordinated separately.
+
+### Hash-bound private review procedure (human, outside Claude and CI)
+
+This procedure binds a reviewer's determination to the exact evidence above.
+It produces a private record. It does not produce an automated verifier.
+
+1. **Policy capture.** In the reviewer's own normal browser session, open
+   `https://www.mod.go.jp/j/info/contents.html` and save the raw response body
+   of the document request from the browser's developer tools (Network panel).
+   Do not use "Save Page As", which can rewrite HTML. Record its SHA-256, the UTC observation time and the browser
+   used. Confirm that the page still (a) applies PDL1.0 to ministry-owned
+   site content, (b) permits reproduction and translation, (c) preserves the
+   third-party, separate-terms and legal exclusions, and (d) is neither
+   withdrawn nor changed in substance. Note the PDL1.0 version it cites.
+   Under the gate's `MAX_POLICY_AGE`, qualification must run **within 7 days**
+   of this observation. The hash binds this reviewer's capture; it is not
+   expected to be reproducible later.
+2. **Document fetch binding.** Retrieve blob
+   `1e4322192baa2e046ceab4210439ea558798593a` from the private evidence
+   repository. Confirm SHA-256 `7069b9ba…b83b53d` before opening it.
+3. **Page-by-page review (all 5 pages, including every image).** For each
+   page, record: any third-party photograph, map, chart or figure and its
+   credit or label; any joint statement or co-issued or quoted foreign text;
+   any separate licence or terms; any personal data beyond named public
+   officials acting officially; any secrecy or handling marking; and whether
+   the text layer fully represents the page's textual content. Open the
+   document properties and record the MSIP label's display name and whether
+   it implies any restriction.
+4. **Record.** Store a JSON record in `ipr-source-evidence-private` (never in
+   this repository) with these fields: reviewer, UTC time, the policy-page
+   SHA-256 and observation time, the PDF SHA-256, text SHA-256 `56c4d16e…`,
+   state commit `4ac08f6f…` and state SHA-256 `76917f9a…`, the per-page findings, and
+   the eight `policy_replay` fields (`policy_id`, `official_policy_url`,
+   `observed_at_utc`, `publisher_policy_sha256`, `text_reproduction_permitted`,
+   `derivatives_permitted`, `third_party_exclusions_preserved`,
+   `policy_changed_or_withdrawn`), and the six `exception_replay`
+   determinations (`first_party_official_text`, `third_party_text_present`,
+   `separate_terms_apply`, `privacy_or_secrecy_exception`,
+   `released_artifact_embeds_media`, `entire_source_text_version_sha256`).
+   Any "unsure" answer is a HOLD.
+5. **No downstream authority.** A favourable record would at most qualify
+   the extracted **text** of this one version. It would not authorize
+   external model input, translation, public text, media reuse, activation,
+   spending or deployment.
+
+### Owner decision required
+
+The standing gate's contract says self-reported booleans or caller-made JSON
+cannot replace a trusted verifier. The Korea precedent
+(`core/korea_text_only_exception_replay.py`) clears its exception replay
+only because each item carries a machine-verifiable per-item KOGL Type 1
+mark. Japan has only the general PDL notice, and image-heavy PDFs like this
+one defeat a text-layer screen. Japan therefore has no automated path to a
+passing `exception_replay` or `policy_replay` for this document class. The
+founder must decide whether a **human-attested, hash-bound private review
+record** (the procedure above) may serve as the trusted verifier for
+individual Japan MOD PDF versions. If not, Japan MOD text remains held and
+the desk stays metadata-only. Operating cost: the gate's 7-day
+`MAX_POLICY_AGE` and the bot challenge together mean that a "yes" requires a
+fresh human policy capture at least weekly, indefinitely, plus a per-version
+human review. That is recurring human work, not unattended routine
+ingestion. No code was added for either branch. That
+decision comes first.
