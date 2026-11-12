@@ -1,5 +1,29 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-12 — Vietnam Daily: a low-stage flag is withheld, not the record (proposed; adopted by founder merge)
+
+**Evidence.** Private scheduled Vietnam collection missed logical slots 9–11
+November because an offline pin-guard test failed after a Singapore
+dependency was added; the guard was fixed on 12 November and the three slots
+were recovered by manual dispatch (private runs 43287107934, 43288000522,
+43288797269), then processed by bridge run 43289878484. Of six new Ministry
+of Public Security items, two were screened out, one awaits a second pass and
+three were held solely on `E_FLAG_LOW_STAGE`. Across the ledger that code
+appears in 13 of 21 MPS holds, and is the only failure in six.
+
+**Cause.** The analysis prompt permits a flag on a meeting or announcement
+"only when they record a specific decision"; the rubric held every such flag
+for a person. The two rules disagreed, and the disagreement withheld factually
+clean summaries.
+
+**Decision.** From rubric `vn-qa-2026-11-12.1` the model's flag on a
+`meeting`, `announcement` or `other` report is not published and its flag
+reason is dropped; the record itself is no longer held for that alone. Every
+factual check (numbers, dates, names, acronyms, inflation, outcome claims,
+attribution) is unchanged, and a flagged result still requires the
+independent second pass. The withheld flag is recorded in the private QA
+detail. Items already held stay held: no ledger entry or attempt is reset.
+
 ## 2026-11-12 — Singapore MINDEF pilot retry held; switches off
 
 The authorized single retry of `6nov26-nr2` on `sg-analysis-v3` ran in private
