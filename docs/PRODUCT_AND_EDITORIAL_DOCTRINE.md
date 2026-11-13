@@ -2,8 +2,7 @@
 
 Durable. Change only by deliberate decision (record in DECISION_LOG.md).
 Design tokens and components live in docs/DESIGN_SYSTEM.md; visual/motion
-specs in docs/VISUAL_AND_MOTION_SYSTEM.md. Current operational state lives in
-PROJECT_STATE.md and is deliberately not restated here.
+specs in docs/VISUAL_AND_MOTION_SYSTEM.md. Current operational state is verified from live source/code/PR/Actions and site evidence; the retired PROJECT_STATE.md diary is not a status source.
 
 ## 1. What this publication is
 
@@ -70,7 +69,9 @@ accuracy and cost controls, and real
 end-to-end acceptance; exceptions hold. This does **not** authorize new
 machine processing, derivative text or publication today. Human-authored
 IPR Briefs, bylined analysis and approval remain the distinct editorial layer.
-Implementation contract: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+Implementation contract: [mandatory shared-desk architecture](desks/README.md)
+and [live migration boundaries](desks/MIGRATION.md). The superseded October
+2026 shared-Daily proposal remains recoverable in Git history.
 
 **Source-use rule (owner, 4 November 2026):**
 [`CONTENT_AND_DATA_RIGHTS.md` §7](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
@@ -355,7 +356,7 @@ page is the collection's landing page (no separate `briefs/index.html`); and
 `briefs/feed.xml` carries briefs only, while the existing issues keep
 `the-pla-watch/feed.xml` and its entry IDs. Drafts remain outside published coverage until their own approval. No. 14
 was reconciled by the owner ruling of 2026-10-03; no new Brief was approved
-by that ruling. Current publication state lives in PROJECT_STATE.md.
+by that ruling. Current publication status is verified from the approved edition data, GitHub release/PR evidence and the deployed site.
 
 **One collection, provenance intact.** *Indo-Pacific Record Briefs* includes the
 existing issues and every future issue. Each existing issue keeps its sidecar,

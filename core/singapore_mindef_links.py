@@ -7,7 +7,7 @@ of one MINDEF release, with the hashes of the private original that the
 explanation was written from. It is link scope only. The original text and any
 media never enter this table; they stay in private custody.
 
-This module does three things and nothing else:
+This module does four things and nothing else:
 
 * ``links_from_custody`` reads the pinned private custody database that
   ``scripts/shadow_collect.py`` writes (the shared lifecycle's
@@ -15,7 +15,11 @@ This module does three things and nothing else:
 * ``admit_links`` writes the parent rows into the public database, idempotently,
   and holds a row whose version drifted instead of replacing it;
 * ``read_parent`` is the lookup ``DailySource.parent_link`` uses, so the
-  lifecycle binds a machine record to the version that was actually admitted.
+  lifecycle binds a machine record to the version that was actually admitted;
+* ``sign_links`` / ``admit_signed_links`` carry those parent rows from private
+  custody to the public database as a MAC-authenticated, link-scope envelope
+  (identity, official URL, date and hashes only), so new releases gain a parent
+  on every scheduled run rather than by a one-off manual admission.
 
 The two speech releases that earlier source review excluded stay excluded here
 by a database CHECK as well as by policy.
@@ -23,6 +27,7 @@ by a database CHECK as well as by policy.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import re
 import sqlite3
@@ -44,6 +49,16 @@ HEX64 = re.compile(r"[0-9a-f]{64}")
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 VERSION_FIELDS = ("source_identity", "canonical_official_url", "publisher_posted_date",
                   "content_sha256", "capture_sha256", "title_sha256")
+LINKS_SCHEMA = "ipr-singapore-mindef-links/1"
+# Domain-separated from the machine-output envelope, which uses the same
+# family key: a MAC for one can never authenticate the other.
+LINKS_DOMAIN = b"ipr-singapore-mindef-links/1\n"
+LINK_FIELDS = ("source_identity", "canonical_official_url", "publisher_posted_date",
+               "metadata_version_sha256", "content_sha256", "capture_sha256",
+               "title_sha256", "source_git_commit", "source_run")
+MAX_LINKS = 400
+MAX_ENVELOPE_BYTES = 512000
+KEY_ENV = "DAILY_SG_MINDEF_RELEASES_KEY"
 PARENT_KEYS = ("canonical_official_url", "publisher_posted_date", "metadata_version_sha256",
                "content_sha256", "capture_sha256", "title_sha256")
 
@@ -86,6 +101,11 @@ def links_from_custody(repo, commit, family=FAMILY) -> List[dict]:
         db = Path(tmp) / "shadow.db"
         db.write_bytes(blob)
         with sqlite3.connect(db.as_uri() + "?mode=ro&immutable=1", uri=True) as conn:
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(shadow_records)")}
+            if not {"source_identity", "metadata_json"} <= cols:
+                # Legacy evidence copy (e.g. archive/singapore-mindef): never read
+                # as shared-Daily custody; refuse by name rather than crash.
+                raise LinkRefused("singapore_link_custody_schema_legacy")
             rows = conn.execute(
                 "SELECT source_identity,url,published_date,first_seen_run,capture_sha256,"
                 "content_sha256,title_original FROM shadow_records WHERE source_slug=? "
@@ -186,3 +206,62 @@ def admit_links(conn, records: Iterable[dict], *, now: Optional[str] = None) -> 
 def with_title_hash(records: Iterable[dict]) -> List[dict]:
     """Add the title hash the parent row binds (records carry the original title)."""
     return [{**r, "title_sha256": sha256_text(r["title"])} for r in records]
+
+
+def _canonical(packet) -> bytes:
+    return json.dumps(packet, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False).encode()
+
+
+def _mac(key: str, raw: bytes) -> str:
+    return hmac.new(key.encode(), LINKS_DOMAIN + raw, hashlib.sha256).hexdigest()
+
+
+def sign_links(records: Iterable[dict], *, key: str) -> dict:
+    """Signed link-scope envelope for verified custody records.
+
+    ``records`` is ``with_title_hash(verified_source(...))``. Only the fields
+    in ``LINK_FIELDS`` leave private custody: no title, no text, no media. A
+    held identity is never sent, and a record that would be refused at public
+    admission stops the signing rather than being dropped silently.
+    """
+    if type(key) is not str or len(key) < 32:
+        raise LinkRefused("singapore_link_key_invalid")
+    links = []
+    for record in sorted(records, key=lambda r: str(r.get("source_identity"))):
+        if record.get("source_identity") in HELD_IDENTITIES:
+            continue
+        _check(record)
+        links.append({k: record[k] for k in LINK_FIELDS})
+    if len(links) > MAX_LINKS:
+        raise LinkRefused("singapore_link_envelope_too_large")
+    packet = {"schema": LINKS_SCHEMA, "family": FAMILY, "links": links}
+    raw = _canonical(packet)
+    if len(raw) > MAX_ENVELOPE_BYTES:
+        raise LinkRefused("singapore_link_envelope_too_large")
+    return {"packet": packet, "mac": _mac(key, raw)}
+
+
+def admit_signed_links(conn, envelope, *, key: str, now: Optional[str] = None) -> dict:
+    """Authenticate a link envelope, then admit its parents with ``admit_links``.
+
+    Nothing is written unless the MAC and the exact packet shape verify. Every
+    link is still re-checked by ``admit_links`` (canonical MINDEF URL, held
+    identities, version hash), so the envelope adds authentication and never
+    relaxes a rule.
+    """
+    if type(key) is not str or len(key) < 32:
+        raise LinkRefused("singapore_link_key_invalid")
+    if type(envelope) is not dict or set(envelope) != {"packet", "mac"} \
+            or type(envelope["packet"]) is not dict or type(envelope["mac"]) is not str:
+        raise LinkRefused("singapore_link_envelope_invalid")
+    packet = envelope["packet"]
+    raw = _canonical(packet)
+    if len(raw) > MAX_ENVELOPE_BYTES or not hmac.compare_digest(_mac(key, raw), envelope["mac"]):
+        raise LinkRefused("singapore_link_envelope_mac_invalid")
+    links = packet.get("links")
+    if set(packet) != {"schema", "family", "links"} or packet["schema"] != LINKS_SCHEMA \
+            or packet["family"] != FAMILY or type(links) is not list or len(links) > MAX_LINKS \
+            or not all(type(link) is dict and set(link) == set(LINK_FIELDS) for link in links):
+        raise LinkRefused("singapore_link_envelope_invalid")
+    return admit_links(conn, links, now=now)

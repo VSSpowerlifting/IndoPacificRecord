@@ -37,6 +37,73 @@ publisher request or per-record owner approval. Substantive governance/source-
 rights amendments stop at founder PR review; collection/model activation,
 deployment, historical-content treatment and outside contact remain separate.
 
+## Founder decision — minimum operational desks and removal of redundant gates (11 November 2026)
+
+**First milestone: one genuinely operational source family per desk; second milestone:
+all sixteen previously agreed source families.** The eight-desk completion plan
+defines the two milestones. Do not claim full-scope coverage from a single family
+or call a metadata-only link an original-backed Record. The first milestone
+requires permitted authentic original retrieval and custody, source-appropriate
+factual QA, shared authenticated admission, real Record/desk/Archive/search
+delivery and independent HTTPS readback, followed by a genuine unattended cycle
+and recoverable failures. No fixed seven-/thirty-day clock or country-specific
+review ceremony is a prerequisite.
+
+**Remove process, not controls.** The 1 November waiting period for seven
+consecutive eight-desk Daily runs before even proposing a new workflow file is
+retired. Reuse or repair the shared workflow first; new workflows must have a
+demonstrated nonduplicative need, owner, exact-head verification and separate
+authorization for their operational effects. Older Day 7/14/30 checkpoint
+requirements are historical, not live launch instructions. Retain real missing
+runs, unresolved failures, publisher terms, source rights, quality, custody,
+budgets, model/provider restrictions, final-head CI, production readback and
+last-good-site protections. Do not turn source-specific factual review into
+universal per-record editorial approval. Standing-authority eligible machine
+Records already run automatically; human-controlled Briefs and other articles
+retain their human approvals.
+
+**Proportionate processing limits, challenged rather than blindly removed.**
+The shared private intake presently enforces exactly one processed Record,
+16,000 input characters and 90-word public explanations. These are not universal
+legal safe harbors or evidence of quality. Prefer a tested cost-bounded,
+multiple-eligible-record queue and full-source section-aware processing over
+unnecessary hard rejections; retain intact originals and fact-to-passage
+citation, source-specific rights/word limits, reasonable model context,
+provider limits, per-run spending ceilings, attempt history and safe holds.
+The one-original attended Singapore pilot, DAPA's inactive model authority,
+and source-specific <=90-word decisions cannot be silently broadened by this
+direction. Implementing any capacity change needs its own bounded, source-aware
+engineering verification and separately applicable paid/activation authorization.
+
+**Execution discipline:** consolidate the overlapping review candidates
+rather than opening another parallel engine or conflicting integration lane.
+Reuse existing authenticated CI qualification for unchanged data-only Daily
+runs, with its fail-closed fallback. Do not require publisher correspondence,
+a founder signature per permitted Record or a new independent reviewer when
+the specific standing determination already applies. No broad merge,
+activation, external provider, spend, public-writer or editorial authority
+is created by this decision. Governance changes themselves still require
+a separately authorized merge.
+
+### Narrow standing merge delegation (founder approval 9 November; reaffirmed 11 November)
+
+Without seeking an additional per-PR founder decision, an agent may merge
+only *wholly* non-governing documentation spelling/formatting/internal-link
+repairs, or strictly additive offline synthetic tests/fixtures that do not
+change, delete, weaken or rebaseline an existing check, after normal required
+review and exact-final-head checks. The agent must verify clean mergeability,
+no outstanding reviewer objection or ownership conflict, and that the resulting
+main-push workflows cannot dispatch models, publish, deploy, spend, activate a
+source or mutate production. Record exact head and verification in the PR.
+
+**Excluded:** AGENTS.md, CLAUDE.md, decision/governance documents, source rights
+and policies, budgets, private evidence, collector/processing/application code,
+workflows, DB/migrations, generated content, editorial work, all other
+production-impacting changes, and stacked/conflicted PRs. If uncertain, stop
+at a reviewed PR. The delegation never authorizes external contact,
+source/model activation, expenditure, deployment or public release.
+This governance cleanup PR is itself outside the delegation.
+
 ## Standing owner decision — 30 October 2026
 
 Applies to China, Singapore, Korea, Philippines, Indonesia, Vietnam, Japan, the
@@ -66,6 +133,61 @@ These requirements replace older architectural *preferences* and artificial
 7/30-day launch programs. Existing dated guidance cannot authorize a competing
 system. The standard documents the narrow owner-decided architecture exception;
 normal implementation within the shared design needs no extra approval.
+
+### Standing engineering merge and release delegation — eight-desk program (founder directive 12 November 2026)
+
+**Effective only on the founder's approval and merge of the PR that adds this
+section.** It supplements the narrow delegation above for the eight-desk
+operational program and ends when the founder withdraws it or the sixteen-family
+milestone is accepted.
+
+**Delegated.** Without a per-PR founder decision, the program's engineering
+agent may choose the next desk or blocker and, in this repository and its
+private evidence companion, open, update, review and merge engineering PRs:
+collector, processing, admission, rendering and application code; tests and
+fixtures; repairs to existing workflows and a new workflow file only for a
+source family whose collection is already authorized; monitoring and health
+checks; migrations required by that code; non-governing documentation; and
+factual `DECISION_LOG.md` entries recording what was changed and why. It may
+also run existing workflows for already-activated sources within their existing
+budgets and attempt rules (verification, recovery of missed slots, permitted
+retries), and release verified changes through the existing Daily/Pages release
+contract.
+
+**Conditions for every delegated merge.** Required CI green on the exact final
+head; clean mergeability; merge pinned to that head; no outstanding reviewer
+objection and no conflict with another session's branch or worktree; head,
+checks and intended production effect recorded in the PR; and, where the change
+reaches production, the deployment validator, last-good-site protection and
+independent HTTPS readback confirmed afterwards. A failed post-merge check is
+repaired or reverted before other work continues.
+
+**A check that decides what is published.** A change that lets previously held
+content publish must cite the observed false-hold evidence, leave every
+factual check (numbers, dates, names, attribution, outcome and inflation
+claims, source binding) at least as strict, add tests showing real
+substitutions still hold, and never reset a ledger entry, attempt count or
+spending record. Removing a factual check, or raising a rights or word limit,
+is reserved.
+
+**Reserved to the founder (not delegated).** `AGENTS.md`, `CLAUDE.md` and any
+decision that creates or changes policy; `CONTENT_AND_DATA_RIGHTS.md`, source
+rights and publisher-access determinations; first activation of a source,
+of model processing or of public release for a source family, including the
+policy switches, repository variables and secrets that effect it; budget and
+spending ceilings and any paid operation outside them; the deferred third
+Singapore pilot and DAPA model/output authority; external contact, accounts
+and contractual commitments; human-controlled Briefs and editorial
+publication; and destructive actions (force-push, history rewrite, deletion of
+custody, evidence or attempt records). Access controls are never bypassed and
+evidence is never manufactured under any authority.
+
+**Decisions and reporting.** When a reserved decision is needed the agent
+first advances other desks, then brings the outstanding decisions together.
+Routine detail stays in PRs; the founder is told of substantive breakthroughs,
+reserved decisions and verified operational completion. No desk is reported
+operational without authentic source-to-reader delivery, independent readback
+and a genuine unattended cycle.
 
 ## Authority, work admission and completion — owner decision, 30 October 2026
 
@@ -156,6 +278,8 @@ Stop at the assigned phase; no implicit production authorization.
 - Task/standing authority governs edits, commits and review PRs. Do not infer
   merge, new paid operation, production DB mutation, schedule activation,
   publication or outside contact. Reuse authority already given; do not ask again.
+  The two standing delegations above state the only merges and releases an
+  agent may make without a per-PR founder decision.
 - Be explicit: policy adopted, code migrated, tested, merged, deployed and live
   verified are different states. This policy change does not migrate runtime.
 - Keep continuity in code, commits, PRs and the current migration map. Report the

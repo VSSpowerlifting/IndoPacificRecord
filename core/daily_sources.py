@@ -26,8 +26,42 @@ from typing import Callable, Dict, List, Optional, Tuple
 _PH_PROMPTS = ("ph-relevance-v1+ph-analysis-v10",
                "ph-relevance-v1+ph-analysis-v11",
                "ph-relevance-v1+ph-analysis-v12",
-               "ph-relevance-v1+ph-analysis-v13")
+               "ph-relevance-v1+ph-analysis-v13",
+               "ph-relevance-v1+ph-analysis-v14")
 _THIRD_PARTY_CREDIT = re.compile(r"(?im)^\s*(?:sumber|source|credit)\s*:")
+
+
+# Attended-pilot gate. A family listed here is never handled by scheduled or
+# ordinary manual Daily runs, whatever its source-policy flags say. The gate is
+# open only for a deliberately dispatched run that names the one identity; the
+# identity then bounds both the envelope fetch and governed admission.
+ATTENDED_PILOT_ENV = {"sg_mindef_releases": "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}
+_PILOT_IDENTITY = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
+
+
+def attended_pilot_gate(family: str, environ=None) -> Tuple[bool, Optional[str]]:
+    """(gated, identity): gated False means the family is not attended-only;
+    gated True with identity None means the gate is closed."""
+    import os
+    env = os.environ if environ is None else environ
+    name = ATTENDED_PILOT_ENV.get(family)
+    if name is None:
+        return False, None
+    value = env.get(name, "")
+    event = env.get("GITHUB_EVENT_NAME", "workflow_dispatch")
+    if event != "workflow_dispatch" or not _PILOT_IDENTITY.fullmatch(value or ""):
+        return True, None
+    return True, value
+
+
+def attended_only(family: str) -> bool:
+    """True while a family may run only as an attended one-item pilot.
+
+    The one-item limits in the private runner, the signer and public admission
+    key on this, so ending a pilot is one reviewed edit to ATTENDED_PILOT_ENV
+    (with the policy switches), not a hunt for family names.
+    """
+    return family in ATTENDED_PILOT_ENV
 
 
 def _call(ref: str) -> Callable:
@@ -44,7 +78,7 @@ class DailySource:
     label: str                # short public attribution, e.g. "AFP"
     publisher: str            # public institution name used in attribution
     public_issuer: Optional[str]
-    prompt_versions: Tuple[str, ...]   # every accepted relevance+analysis pair
+    prompt_versions: Tuple[str, ...]   # every pair a NEW output may carry (admission)
     identity_max_length: int  # bound for policy exclusion identifiers
     links: str                # adapter: (repo, commit) -> verified link dicts
     quality: str              # adapter: (record, reading) -> quality digest
@@ -67,6 +101,10 @@ class DailySource:
     # no governed admission and no run-result row. Declaring a source on a live
     # desk changes public source listings, so it is an activation step.
     desk_registered: bool = True
+    # Pairs that stay valid for an already-RELEASED record only: read and
+    # rendered under the pinned policy, never accepted for a newly submitted
+    # output. Distinct from prompt_versions on purpose; empty means none.
+    released_prompt_versions: Tuple[str, ...] = ()
 
     @property
     def key_env(self) -> str:
@@ -308,7 +346,10 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         family="id_kemhan_news", desk_id="indonesia", custody_ref="archive/indonesia-kemhan",
         language="id", label="Kemhan",
         publisher="Kementerian Pertahanan Republik Indonesia", public_issuer=None,
-        prompt_versions=("id-relevance-v1+id-analysis-v4",), identity_max_length=2000,
+        prompt_versions=("id-relevance-v1+id-analysis-v6",), identity_max_length=2000,
+        # The one published Record (2026-10-23) was released under v4; it stays
+        # readable. No other superseded Indonesia pair was ever released.
+        released_prompt_versions=("id-relevance-v1+id-analysis-v4",),
         first_party=True, reject_credit_line=True,
         links="core.daily_sources:_kemhan_links",
         quality="processing.indonesia_quality:quality_check",
@@ -331,10 +372,12 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         desk_registered=False),
     DailySource(
         family="sg_mindef_releases", desk_id="singapore",
-        custody_ref="archive/singapore-mindef", language="en", label="MINDEF",
+        custody_ref="archive/singapore-mindef-daily", language="en", label="MINDEF",
         publisher="Ministry of Defence, Singapore",
         public_issuer="Ministry of Defence, Singapore",
-        prompt_versions=("sg-relevance-v2+sg-analysis-v2",),
+        prompt_versions=("sg-relevance-v2+sg-analysis-v2",
+                         "sg-relevance-v2+sg-analysis-v3",
+                         "sg-relevance-v2+sg-analysis-v4"),
         identity_max_length=64,
         links="core.daily_sources:_sg_links",
         quality="processing.daily_intake:english_official_quality",
@@ -342,7 +385,9 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         output_check="core.daily_sources:_sg_output_check",
         parent="core.daily_sources:_sg_parent",
         admission_migration="migrations.versions.m0022_singapore_mindef_source_records:is_already_applied",
-        desk_registered=False),
+        # A manifest-registered manual source: public Daily admits signed outputs,
+        # never fetches MINDEF originals. Runtime source-use gates stay off.
+        desk_registered=True),
 )}
 
 

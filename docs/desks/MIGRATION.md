@@ -23,8 +23,10 @@ source-specific limits do not broaden. No shared-engine migration is claimed.
 The private governance companion is based on `a3f6299`; founder-approved public
 policy merges first, private references second. Final PR/head/check evidence
 belongs in the paired PR bodies. Neither merge activates a source or deploys
-behavior. The [project-source replacement package](../engineering/PROJECT_SOURCE_UPDATE_PACKAGE_2026-11-04.md)
-is prepared separately; ChatGPT Project Sources are not installed by Git changes.
+behavior. ChatGPT Project Source installation is separate from Git changes and must be
+verified against actual Project settings and source readback. Use the canonical
+[`CONTENT_AND_DATA_RIGHTS.md` §7](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+and source-specific decisions, not the retired 4 November amendment draft.
 
 ## Current boundaries and required convergence
 
@@ -137,6 +139,16 @@ frozen comparison. Unchanged source-policy bytes, custody, holds, budgets and
 activation remain mandatory. The pilot's independent pre-integration CI passed
 8,291 tests, isolated rendering/validation and tracked DB/output preservation;
 pre-integration CI alone is not evidence of a production release or live delivery.
+
+**Shared Daily throughput (11 November 2026 candidate):** `processing/daily_intake.py`
+processes up to the source policy's `max_records_per_run` (validator maximum 8)
+inside one unchanged per-run estimated-cost reservation; a record that does not
+fit waits without a counted attempt. Every committed source value stays 1 until
+a source-specific founder decision raises it. The released-Record policy binding
+hashes that count at its original value, so a capacity decision does not
+withdraw released Records while any other policy drift still does. English
+evidence passages are whole neighbouring sentences (`ph-analysis-v14`,
+`sg-analysis-v3`); factual QA is unchanged and no model call was made.
 
 **Runtime migration 2 (official-link read-path candidate):** the actual
 readers for Japan MOD, Vietnam ministry official links, Philippines AFP/NSC and

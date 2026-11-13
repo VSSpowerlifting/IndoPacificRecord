@@ -165,14 +165,16 @@ jobs:
 
       # Omit the redundant fast preflight: full CI reran every selected test.
 
-      # The browser binary, with its system libraries. Same command the daily
-      # workflow uses, so the two runs exercise one browser story rather than
-      # two. `--with-deps` shells out to the runner's package manager; it needs
-      # OS privileges on the ephemeral runner, never repository privileges, and
-      # the job token stays read-only.
+      # Install the exact Playwright-managed Chromium binary. Do not invoke
+      # apt here: the Ubuntu mirror DNS failure on November 11 prevented both
+      # cleanup PRs from reaching any tests. ubuntu-24.04 already supplies the
+      # baseline browser runtime libraries; their presence is NOT presumed:
+      # the mandatory launch smoke check immediately below fails closed on
+      # any missing shared library, corrupted download or sandbox failure.
+      # Daily's separately governed install remains unchanged.
       - name: Install Chromium for the browser-backed tests
         if: ${{ steps.scope.outputs.browser == 'true' }}
-        run: playwright install chromium --with-deps
+        run: playwright install chromium
 
       # Launch it. The fixtures downgrade a launch failure to SkipTest, which
       # is precisely the failure this job must not absorb, so the launch is

@@ -23,7 +23,7 @@ class SourceDefinitions(unittest.TestCase):
         self.assertEqual(d.REFS, {AFP: "archive/ph-afp", NSC: "archive/ph-nsc",
                                   KEMHAN: "archive/indonesia-kemhan",
                                   DAPA: "archive/korea-dapa-policy-briefing",
-                                  MINDEF: "archive/singapore-mindef"})
+                                  MINDEF: "archive/singapore-mindef-daily"})
         self.assertEqual([s.key_env for s in SOURCES.values()],
                          ["DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "DAILY_ID_KEMHAN_NEWS_KEY", "DAILY_KR_POLICY_DAPA_RELEASES_KEY",
@@ -50,9 +50,15 @@ class SourceDefinitions(unittest.TestCase):
             self.assertIn(profile.prompt_version + "+" + profile.analysis_prompt_version,
                           s.prompt_versions)
             self.assertEqual(d.allowed_prompt_versions(s.family), s.prompt_versions)
-        # Historical accepted outputs must stay valid; Indonesia is not widened.
-        self.assertEqual(len(SOURCES[AFP].prompt_versions), 4)
-        self.assertEqual(SOURCES[KEMHAN].prompt_versions, ("id-relevance-v1+id-analysis-v4",))
+        # Indonesia admits only the current pair. Its one already-released pair is
+        # a separate, read-only allowance, never merged into the admission tuple.
+        self.assertEqual(len(SOURCES[AFP].prompt_versions), 5)
+        self.assertEqual(SOURCES[KEMHAN].prompt_versions, ("id-relevance-v1+id-analysis-v6",))
+        self.assertEqual(SOURCES[KEMHAN].released_prompt_versions, ("id-relevance-v1+id-analysis-v4",))
+        for s in SOURCES.values():
+            if s.family != KEMHAN:
+                self.assertEqual(s.released_prompt_versions, (), s.family)
+            self.assertFalse(set(s.prompt_versions) & set(s.released_prompt_versions), s.family)
 
     def test_unknown_source_fails_closed_everywhere(self):
         self.assertIsNone(source_for("unknown-source"))
