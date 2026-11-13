@@ -25,6 +25,7 @@ No network. No database. No writes.
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 import unittest
@@ -279,6 +280,10 @@ class TestThisEnablesNothing(unittest.TestCase):
     #: the production corpus". So the allowance is a named file, not a relaxed
     #: assertion, and the production path below is still checked.
     PDF_CALLERS_ALLOWED = {"jp_mod.py"}
+    # Source-specific exact-byte verifier is read-only, manually invoked and
+    # writes neither public originals nor production Records. It is not an
+    # additional collector or permission to import PDF bodies into Daily.
+    PDF_OFFLINE_REPLAY_ALLOWED = {"core/japan_mod_original_replay.py"}
 
     def test_the_pdf_extractor_reaches_no_unexpected_caller(self):
         for path in self.source_files():
@@ -286,9 +291,29 @@ class TestThisEnablesNothing(unittest.TestCase):
                 continue
             if path.name in self.PDF_CALLERS_ALLOWED:
                 continue
+            if path.relative_to(REPO_ROOT).as_posix() in self.PDF_OFFLINE_REPLAY_ALLOWED:
+                continue
             text = path.read_text(encoding="utf-8")
             with self.subTest(file=str(path.relative_to(REPO_ROOT))):
                 self.assertNotIn("pdf_text", text)
+
+    def test_the_offline_original_replay_is_not_a_production_entrypoint(self):
+        module = REPO_ROOT / "core" / "japan_mod_original_replay.py"
+        self.assertTrue(module.is_file())
+        source = module.read_text(encoding="utf-8")
+        self.assertIn("from processing import pdf_text", source)
+        for forbidden in ("from pipeline", "import pipeline", "from analysis",
+                          "from storage", "requests.get", "urlopen(",
+                          "pla_watch.db", "output/"):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, source)
+        for path in (REPO_ROOT / "pipeline.py",
+                     REPO_ROOT / "processing" / "daily_intake.py",
+                     REPO_ROOT / "desks" / "japan" / "manifest.json",
+                     REPO_ROOT / ".github" / "workflows" / "daily_update.yml"):
+            with self.subTest(path=str(path.relative_to(REPO_ROOT))):
+                self.assertNotIn("japan_mod_original_replay",
+                                 path.read_text(encoding="utf-8"))
 
     def test_the_pdf_extractor_stays_off_the_production_collection_path(self):
         """
@@ -321,9 +346,15 @@ class TestThisEnablesNothing(unittest.TestCase):
                     self.assertTrue(
                         manifest.is_file(),
                         "the allowed PDF caller must belong to a shadow source")
-                    self.assertFalse(
-                        (REPO_ROOT / "desks" / "japan").exists(),
-                        "the allowed PDF caller's desk must not be in desks/")
+                    # The production Japan manifest registers a manual source
+                    # for governed link admission. It must never name this
+                    # adapter, or any adapter: nothing in desks/ may fetch it.
+                    production = REPO_ROOT / "desks" / "japan" / "manifest.json"
+                    text = production.read_text(encoding="utf-8")
+                    self.assertNotIn("scraper.sources.jp_mod", text)
+                    self.assertNotIn('"adapter"', text)
+                    for src in json.loads(text)["sources"]:
+                        self.assertEqual(src["access_method"], "manual")
 
     def test_the_view_layer_is_not_on_the_collection_path(self):
         """
@@ -455,7 +486,7 @@ class TestThisEnablesNothing(unittest.TestCase):
         `sync_desk_config()` write a row into the tracked database.
         """
         from core.manifests import load_all_desks
-        self.assertEqual(sorted(load_all_desks()), ["china", "korea", "singapore", "vietnam"])
+        self.assertEqual(sorted(load_all_desks()), ["china", "indonesia", "japan", "korea", "philippines", "singapore", "us-indopacific", "vietnam"])
         self.assertTrue((REPO_ROOT / "desks" / "registry.json").is_file())
         self.assertFalse((REPO_ROOT / "desks" / "registry"
                           / "manifest.json").exists())

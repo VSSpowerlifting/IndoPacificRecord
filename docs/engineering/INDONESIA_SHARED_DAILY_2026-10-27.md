@@ -7,6 +7,171 @@
 > evidence and still-used commands remain valid in their actual scope. This
 > notice does not claim runtime migration, change permissions or activate a source.
 
+## QA integration checkpoint — 7 November 2026, review candidate
+
+One branch integrates #982 (possessive institutional forms) and #998 (locally
+defined unit suffixes, translated weekdays), plus two fixes in
+`processing/indonesia_quality.py` (digest `id-quality-v7`; prompt `VERSION`
+unchanged):
+
+- "Abbr Name" counts as local only when the *same cited passage* has
+  "Full Title (Abbr) Name". Other people, truncated names, undefined
+  abbreviations and definitions found in other passages still hold.
+- English "unit development" or "regional development" no longer counts as an
+  industry/R&D claim when the cited passage has "pembinaan satuan" or
+  "pembangunan daerah". Bare "development", weapons/R&D/defense-industry
+  development and phrases supported only in another passage still hold.
+
+Zero-call offline replay of the four saved private readings, gate names only:
+version `f8ba8672` holds at `daily_quantity_or_date_unsupported` on main and
++#982, at `daily_institution_form_not_local` on +#998, and at
+`daily_name_or_office_unsupported` with both fixes. That last hold is fact 1's
+cross-passage minister name, so it is preserved. The two relevance rejections
+stay unchanged. This replay does not predict future attempts. `f8ba8672` remains
+at 2/5 attempts; ADMM-Plus `b93b8fc9` (4/5 attempts, no saved reading) is
+untouched. Next: owner review, then inspect the next routine reading only. No
+reset, paid call, merge or activation is part of this phase.
+
+## Current checkpoint — 2 November 2026, recovery review candidate
+
+Read-only remote inspection supersedes the older disabled-gate narrative below.
+Both repositories' `IPR_PRIVATE_DAILY_ENABLED`, private `KEMHAN_DAILY_ENABLED`
+and both metadata bridge variables are true. No variable was changed in this
+phase. Private control main is `a3f6299bd783b9624d0754707572dbb89abdd860`;
+public implementation base is `cee4e74459f357a51137c177c29f28a8de3e2470`.
+Public #950 owns registration/dispatch, #954 owns fetch recovery, and #940 owns
+status copy. This repair preserves their owned behavior and changes no workflow.
+Read-only merge previews with #950 and #954 are clean; shared-file import
+placement deliberately accommodates #950's dispatch migration.
+
+### Observed source-to-reader state
+
+**Resumed integration checkpoint, 2 November (ET):** #952 merged the shared
+corpus-guard correction as `002b987db9aef65c9eb50b87b6bceb8dc4f18a3b`.
+Korea retains #966 coordination; its full CI is green and its remaining
+diff from main is additional regressions. Indonesia reuses integrated main
+`d133fc65163b42347800206b68aa8e36cb45d41b`, without copying #966 or changing
+`chars=800`. Current main has no new shared-runner changes to reconcile;
+read-only merge previews with refreshed #950 (`b9aa7836b5`) and #954
+(`fc965dbe6c`) are clean. Their migrations remain outside this PR.
+
+Actual scheduled collector `41548695709` triggered processor `41548931410`.
+At private state `850ca4f3e663e4493e155bce3da660e426abe5cf`, ADMM-Plus retains
+**four** failures and `daily_name_or_office_unsupported`: one attempt remains
+before the existing five-failure pause. Its downloaded private artifact has
+only queue, usage and envelope files, so this pre-repair run supplies no
+parsed reading for a bilingual QA diagnosis. Do not reset or purchase a
+replacement attempt. The medical result and its four prior failures are
+unchanged; queue disposition totals are one complete, two not-selected,
+52 pending and one retriable.
+
+The added synthetic archive round-trip test deletes the local reading,
+recovers its exact bytes from the archive, and verifies source, immutable
+hashes, version and attempt-to-queue binding. Private fields are absent from
+the envelope and rejected by the strict public-output schema. This is local
+code verification, **not** recovery from a genuine post-repair Actions
+artifact. After an authorized merge, observe only the existing triggered
+cycle; download its private `shared-daily-id_kemhan_news-RUN-ATTEMPT` artifact,
+recover `queues/readings/id_kemhan_news/*.json`, and compare its reading with
+the exact original at its stored source commit. Check version hashes and
+`attempts_before` against that artifact's queue/usage before assessing QA.
+Scan the public envelope, admitted fields and deployed output for private
+evidence/translation content. A missing or malformed artifact is an evidence
+hold, never proof of successful preservation or a reason to buy a retry.
+
+The required full check must execute at the final PR head: a draft skip is
+insufficient. Marking #964 ready for review triggers the existing
+`ready_for_review` full check without changing a workflow or granting merge.
+After green checks and explicit merge authority, merge only the reviewed head
+with `gh pr merge 964 --repo VSSpowerlifting/IndoPacificRecord --merge
+--match-head-commit FINAL_REVIEWED_SHA`. No extra dispatch, activation toggle,
+hold reset or historical processing is part of that action. Genuine artifact
+recovery, original-based QA inspection and newly eligible production delivery
+remain unverified until the actual subsequent cycle. If QA fails again, retain
+the resulting pause and name the exact gate; do not adjust the validator merely
+to publish.
+
+The earlier observations below are historical receipts; this resumed checkpoint
+supersedes their queue counts and remaining-attempt estimates.
+
+- Scheduled collector `41350684468` preserved custody pin
+  `666a148c56443e51b13a762d326b4d50474f9c1e` on 1 November. Its triggered
+  processing run `41350848769` verified 57 originals, bound 56 public link
+  versions, and made one real relevance call; no new explanation passed.
+- At private state `2d8f1a0` (2 November), Kemhan's last queue change is
+  `57e6c72`: one complete, two not-selected, 53 pending. Pending does not mean
+  approved backfill or quality eligibility. Three pending entries retain
+  nonzero failure counts: industry (one), Yonif TP 886 (one), ADMM-Plus (three).
+  The complete medical version retains four failures, with no reset.
+- The genuine 23 October medical publication is already public as
+  [record/source-a954d3d19e8f78df8a81ec82.html](https://indopacificrecord.org/record/source-a954d3d19e8f78df8a81ec82.html).
+  Direct HTTPS reads of that record, Indonesia desk and
+  `archive-research-index.json` returned 200; all three contain the unchanged
+  accepted explanation. The record's source commit, capture/content hashes,
+  identity and v4 prompt match retained output. This verifies an existing
+  release, not deployment of this repair. Local Playwright lacks its required
+  Chromium executable; the in-app browser subsequently loaded the live
+  Indonesia-filtered Archive and visibly displayed this explanation.
+
+### Bounded implementation and evidence limit
+
+The shared intake used to overwrite a deferred retriable entry with `pending`,
+dropping its QA reason when a newer record took the one-record allowance.
+ADMM-Plus version `b93b8fc98518ac601bf4dccc6c51bd86c9c64cbf81d007f902c760c17cb268a0`
+had three failures and `daily_name_or_office_unsupported` at state `e0a855f`;
+the November relevance rejection erased that reason from the deferred entry.
+The fix preserves unchanged pending/retriable entries on quota deferral.
+
+Routine private execution also discarded parsed rejected readings: real run
+`41239082119` retained only queue, usage and envelope files. The runner now
+retains each parsed Analyzer result before QA in a unique private file below
+`handoff/queues/readings/FAMILY/`, with source/version hashes, immutable custody
+pin, processor/policy pins and prior attempts/disposition. Existing private
+Actions artifact upload already includes this directory and retains it for
+30 days. No private original, translation or rejected prose enters a public
+queue, envelope, log or PR. Raw SDK responses and parse failures are not captured;
+the older missing readings cannot be reconstructed by this change.
+
+If reading preservation fails, the affected version is held with the fixed
+reason `private_reading_preservation_failed`, paid usage/attempts are retained,
+and it cannot sign or retry automatically. Other accepted outputs remain
+available. This introduces no model, QA, rights, retry-budget, selection-order,
+historical-backfill, activation or publication change.
+
+No-cost genuine replay verified 50 retained originals at source pin
+`97668de31f0c01e8d000ad71518c16caac18f670`, bound 49 admitted versions and retained
+the Yonif TP 880 exclusion. The unchanged accepted canonical output digest is
+`5865a649587c24dafdb8ff3a0c901401c77398f8aab72ef638dce7f770f54e8a`.
+Using a disposable local signing key and scratch DB, shared admission added one
+medical record; replay added zero. This is a plumbing replay of an accepted
+result, not fresh bilingual review or production signing. A separate zero-call
+replay of the genuine October 31 queue preserves its deferred QA disposition.
+
+### Exact next action and stop boundary
+
+Review this public repair and its exact-head required CI; merge requires owner
+authorization. No private code/workflow companion or activation toggle is needed.
+The already enabled collector-triggered workflow checks out public main, so
+after an authorized merge its next invocation uses this repair under the
+unchanged one-record/two-call/$0.35 invocation bound. Do not dispatch an extra
+paid recovery or restore/reset queue entries as part of this phase.
+
+If no newer eligible original arrives, the current newest pending ADMM-Plus
+version has two failures left before the existing five-failure pause. A future
+ordinary attempt must preserve its parsed reading for private source/QA replay;
+do not assume the historical name hold was false. A queue containing pending
+older originals does not authorize a backlog campaign. Inspect only the actual
+next routine outcome. The missing rejected readings block evidence-based QA
+repair today. Recurring new reader delivery is not yet established.
+
+Rollback is to revert these two shared-module changes through review; that
+does not reset queue history, remove captures or regenerate accepted output.
+Existing private captures and artifact custody survive downstream failure;
+public admission, render/validation and deployment gates remain unchanged and
+continue protecting the last verified site. This phase performs no merge,
+paid call, production mutation, activation or deployment.
+
+## Historical implementation and controlled-release record
 
 The owner approved the narrow standing source-use, spending and controlled
 release decision on 27 October 2026; see `DECISION_LOG.md`. Public #891 merged

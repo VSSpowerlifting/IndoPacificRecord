@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   press-parser-offline:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -42,11 +42,17 @@ jobs:
           import json
           from pathlib import Path
           assert "id_kemhan_press" not in DESKS
-          assert "indonesia" not in load_all_desks()
+          # Runtime migration 3 registered the ministry news feed as the desk's
+          # one manual, never-fetched production source; no press collector is
+          # registered, enabled or fetched.
+          sources = load_all_desks()["indonesia"].sources
+          assert [s.slug for s in sources] == ["id_kemhan_news"], [s.slug for s in sources]
+          assert {s.access_method for s in sources} == {"manual"}
           d = next(row for row in json.loads(Path("desks/registry.json").read_text())["desks"]
                    if row["slug"] == "indonesia")
           assert d["public"] is True and d["status"] == "shadow"
-          assert d["has_production_records"] is False and d["manifest"] is None
+          assert d["has_production_records"] is False
+          assert d["manifest"] == "desks/indonesia/manifest.json"
           PY
           sha256sum -c "$RUNNER_TEMP/indonesia-press-db.sha"
           git diff --exit-code -- pla_watch.db output/ shadow/

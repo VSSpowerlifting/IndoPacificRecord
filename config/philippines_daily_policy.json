@@ -10,7 +10,7 @@
       "excluded_source_identities": [
         "afp:1418"
       ],
-      "max_records_per_run": 1,
+      "max_records_per_run": 6,
       "max_input_characters": 16000
     },
     "ph_nsc_official_statements": {
@@ -31,6 +31,31 @@
       "max_estimated_cost_usd_per_run": 0.35,
       "excluded_source_identities": [
         "kemhan:/2026/10/02/kunker-ke-kaltara-menhan-sjafrie-tinjau-yonif-tp-880-banuanta-di-bulungan-tegaskan-kemampuan-tempur-dan-teritorial-pembangunan-untuk-kedaulatan-perbatasan.html"
+      ],
+      "max_records_per_run": 6,
+      "max_input_characters": 16000
+    },
+    "kr_policy_dapa_releases": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": "2026-11-07 founder: standing option A source-use eligibility for exact DAPA versions that authenticate the preserved Type 0 page mark, attachment binding, sole DAPA issuer and approved lead/body scope; page-to-attachment binding does not prove licence equivalence. Model processing, provider, cost and public release NOT authorized.",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [
+        "korea-dapa-policy:156787071"
+      ],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
+    },
+    "sg_mindef_releases": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": "2026-11-09 founder: standing authorization, under the founder's written relationship with MINDEF Media Relations, for eligible MINDEF-owned official-release private original custody, bounded external AI processing and independently written public factual explanations. Third-party media, original-text republication and human-controlled editorial publication stay outside it. 2026-11-10 founder (PR #1019 comment 6787036515): bounded one-original pilot of eligible release 6nov26-nr2 only, maximum $0.35 model spend, source identities 15aug26-speech and 16sep26-speech excluded. No recurrence, additional record or historical backfill is authorized. After successful public readback, private_model_processing and unattended_release are to be set false by a reviewed change leaving every other policy field unchanged; public display of only that exact released Record continues. 2026-11-12 founder: one retry of the same one-original pilot (6nov26-nr2 only) on the corrected sentence-packed evidence prompt sg-analysis-v3, same $0.35 cap and exclusions; the three switches return to false after public readback or a hold. 2026-11-12 result: the retry held at daily_explanation_word_limit (estimated spend $0.015); nothing was published and the three switches are false again.",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [
+        "15aug26-speech",
+        "16sep26-speech"
       ],
       "max_records_per_run": 1,
       "max_input_characters": 16000

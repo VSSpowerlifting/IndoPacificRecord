@@ -355,6 +355,8 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
         item = {"source_identity": identity, "content_sha256": sha}
         document_attempted = False
         manual_correction = False
+        recovery = False
+        recovery_evidence = {}
 
         def done(outcome, failures=(), article_id=None, details=None, qa_json=None,
                  article=None):
@@ -381,6 +383,13 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                     ledger["items"][identity]["manual_correction"] = prior_item["manual_correction"]
                     if prior_item.get("private_document_review"):
                         ledger["items"][identity]["private_document_review"] = prior_item["private_document_review"]
+                if recovery:
+                    from processing.mps_recovery import DECISION
+                    ledger["items"][identity]["recovery_exception"] = dict(
+                        recovery_evidence, decision=DECISION, run_id=run_id,
+                        prior_attempt=prior_item)
+                elif same and prior_item.get("recovery_exception"):
+                    ledger["items"][identity]["recovery_exception"] = prior_item["recovery_exception"]
                 if article is not None:
                     # Only the permitted projection; offered again, never re-analysed.
                     ledger["items"][identity]["article"] = article
@@ -400,7 +409,15 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             if candidate_version is not None:
                 format_draft=retained_format_draft(prior_item,candidate_version)
                 manual_correction=eligible(identity,prior_item,candidate_version)
-        if format_draft is None and not manual_correction and prior_item.get("content_sha256") == sha and prior_item.get("outcome") in (
+        if (prior_item.get("content_sha256") == sha and prior_item.get("recovery_exception")
+                and prior_item.get("outcome") != qa.PUBLISHED):
+            # The owner's one recovery attempt is spent; a new failure stays held.
+            done(SETTLED)
+            continue
+        if prior_item.get("content_sha256") == sha:
+            from processing.mps_recovery import eligible as recovery_eligible
+            recovery = recovery_eligible(family, identity, prior_item)
+        if format_draft is None and not manual_correction and not recovery and prior_item.get("content_sha256") == sha and prior_item.get("outcome") in (
                 qa.SCREENED_OUT, qa.HELD_REVIEW, qa.HELD_ESCALATED):
             # Settled earlier; do not re-spend a model call on the same version.
             done(SETTLED)
@@ -500,6 +517,9 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                         result, document_holds, generation_run_id)
                     continue
         else:
+            if recovery:
+                from processing.mps_recovery import snapshot
+                usage_before = snapshot(getattr(analyzer, "usage", None))
             result = analyzer.analyze_record(title, body, profile)  # FatalAPIError aborts the run
         permissions = source_use.snapshot(identity)
         show_title = permissions["public_title_display"]
@@ -519,6 +539,11 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
                             projection=projection, attempts=attempts,
                             second_pass=second_pass, budget=budget,
                             force_second_pass=family == "vn_vpcp_official_documents_vi")
+        if recovery:
+            from processing.mps_recovery import retain, usage_delta
+            # Private ledger only: the model output, accepted or rejected, and its spend.
+            recovery_evidence.update(retained=retain(result), model_usage=usage_delta(
+                usage_before, getattr(analyzer, "usage", None)))
         if verdict.outcome != qa.PUBLISHED:
             done(verdict.outcome, verdict.failures, details=verdict.details,
                  qa_json=verdict.as_json())
@@ -549,8 +574,8 @@ def _run_family(conn: sqlite3.Connection, state_repo, commit: str, family: str, 
             "text_english": projection["text_english"],
             "summary_english": projection["summary_english"],
             "analyzed_at": processed,
-            "is_significant": 1 if result.get("is_significant") else 0,
-            "significance_reasoning": result.get("significance_reasoning"),
+            "is_significant": 1 if qa.public_flag(result)[0] else 0,
+            "significance_reasoning": qa.public_flag(result)[1],
             "model_id": result["model_id"],
             "prompt_version": result["prompt_version"],
         }

@@ -59,7 +59,9 @@ class JCGSourceContracts(unittest.TestCase):
         self.assertEqual(len(manifest["sources"]), 1)
         self.assertTrue(manifest["sources"][0]["enabled"])
         self.assertEqual(manifest["sources"][0]["slug"], "jp_jcg_press_en")
-        self.assertFalse((root / "desks/japan/manifest.json").exists())
+        production = json.loads((root / "desks/japan/manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
+        self.assertNotIn("jcg", json.dumps(production).lower())
 
     def test_dates_are_publisher_calendar_dates(self):
         self.assertEqual(source_date("06 10 2026"), "2026-10-06")
@@ -202,6 +204,49 @@ class JCGSourceContracts(unittest.TestCase):
         capture.payload_sha256 = digest
         capture.reference = CandidateReference(url, "jp_jcg_press_en", LISTING, "2026-10-07")
         self.assertEqual(self.adapter.extract(capture).status, st.EXTRACTION_FAILURE)
+
+
+    def test_in_scope_first_party_row_outside_archive_family_is_disclosed_not_admitted(self):
+        # Observed on the live English index retrieved 2026-11-02 (publisher
+        # Last-Modified 2026-10-26): the newest row links a standing information
+        # page in a different publisher section, not a topics_archive release.
+        cross_url = "https://www.kaiho.mlit.go.jp/info/topics/rescueforeignvessels.html"
+        cross = ('<dt><p class="topics-date">26 10 2026</p></dt><dd>'
+                 '<a href="' + cross_url + '" target="_blank" rel="noopener noreferrer"'
+                 ' class="arrow-link">Rescue Operations Involving Foreign Vessels in '
+                 'Waters Surrounding Japan\u3000\uff08Update\uff1a October 26, 2026\uff09'
+                 '</a></dd>')
+        html = listing(("20 10 2026", "9519", "Djibouti Coast Guard"),
+                       ("06 10 2026", "9455", "PCG")).replace(
+            '<dl class="topics-list">', '<dl class="topics-list">' + cross)
+        page = self.adapter.parse_listing(html, (LISTING, None), 1)
+        self.assertEqual([x["url"].split("/")[-1] for x in page.items],
+                         ["article9519.html", "article9455.html"])
+        obs = self.adapter.listing_observation
+        self.assertEqual(obs["publisher_index_rows_total"], 3)
+        self.assertEqual(obs["outside_declared_pilot_scope"], 0)
+        self.assertEqual(obs["outside_declared_url_family"], 1)
+        self.assertEqual(obs["outside_declared_url_family_rows"],
+                         [{"url": cross_url, "date": "2026-10-26"}])
+        # The release identity rule itself is unchanged.
+        with self.assertRaises(ValueError):
+            canon(cross_url)
+        # A pre-pilot cross-section row is a pre-scope row, nothing more.
+        older = listing(("20 10 2026", "9519", "Djibouti Coast Guard"),
+                        ("06 10 2026", "9455", "PCG")).replace(
+            "</dl>", cross.replace("26 10 2026", "26 10 2025") + "</dl>")
+        self.adapter.parse_listing(older, (LISTING, None), 1)
+        obs = self.adapter.listing_observation
+        self.assertEqual(obs["outside_declared_pilot_scope"], 1)
+        self.assertEqual(obs["outside_declared_url_family"], 0)
+        # Rows inside the declared archive directory that are not releases, and
+        # any non-https or off-host row, still fail the whole listing.
+        for href in ("/e/topics_archive/articlefoo.html",
+                     "/e/topics_archive/index.html",
+                     "http://www.kaiho.mlit.go.jp/info/topics/rescueforeignvessels.html",
+                     "https://evil.example/info/topics/rescueforeignvessels.html"):
+            with self.subTest(href=href), self.assertRaisesRegex(ValueError, "identity"):
+                self.adapter.parse_listing(html.replace(cross_url, href), (LISTING, None), 1)
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ concurrency:
 jobs:
   backfill:
     if: github.ref == 'refs/heads/main' && inputs.approval == 'APPROVE_JCG_SEPTEMBER_BACKFILL'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: write

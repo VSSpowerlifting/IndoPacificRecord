@@ -1,0 +1,21 @@
+{
+  "file": "brief-21-amraam-final-assembly-social-1200x630.png",
+  "route": "assets/frontend/brief-21-amraam-final-assembly-social-1200x630.png",
+  "width": 1200,
+  "height": 630,
+  "bytes": 770456,
+  "sha256": "a48b90ce8be0a45b34a6c899a033a249efdaae00a3856fe5f34660b540a4b4b8",
+  "brief": "japan-us-amraam-final-assembly-sm3-production",
+  "issue": "No. 21 · Week ending 31 October 2026",
+  "purpose": "Per-page og:image / twitter:image for this Brief only; every other page keeps /social-card.png.",
+  "approval": "Layout approved by owner 2026-11-04 (\"Approve, wire IPR\").",
+  "photo": {
+    "evidence": "docs/evidence/two-briefs-covers-2026-11-01/amraam-training-2025.json",
+    "credit": "Lance Cpl. Bryan Giraldo, U.S. Marine Corps · Public domain · via DVIDS",
+    "source_page": "https://www.dvidshub.net/image/9245688/us-marines-with-marine-attack-squadron-223-prepare-av-8b-harriers-ordnance-training",
+    "dod_id": "250805-M-OV696-1094",
+    "depicts": "context",
+    "note": "AIM-120 AMRAAM missiles at MCAS Cherry Point, 5 August 2025. Historical production and equipment context, not the planned facility in Japan or the October 2026 meeting."
+  },
+  "composition": "Rendered from an HTML layout (Instrument Serif and Inter, navy-paper texture, ivory IPR mark) in headless Chrome at 1x. The layout source is not stored in the repository; this PNG is the reviewed artifact."
+}

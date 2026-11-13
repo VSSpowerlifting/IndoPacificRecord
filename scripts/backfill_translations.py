@@ -43,7 +43,7 @@ logger = logging.getLogger("backfill")
 
 STUCK_QUERY = """
     SELECT a.id, a.title_original, a.text_original,
-           length(a.text_original) AS n, s.desk_id
+           length(a.text_original) AS n, s.desk_id, s.slug AS source_slug
       FROM articles a
       LEFT JOIN sources s ON s.id = a.source_id
      WHERE a.passed_relevance = 1
@@ -61,11 +61,14 @@ def fetch_stuck(limit=None):
     "from Chinese" would overwrite its desk analysis (processing/screening.py).
     """
     from processing.screening import profile_for_desk
+    from core.china_source_use_hold import is_held_source
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
         rows = [r for r in conn.execute(STUCK_QUERY).fetchall()
-                if profile_for_desk(r["desk_id"]).translates]
+                if profile_for_desk(r["desk_id"]).translates
+                # Interim source-use hold: no held-publisher text to a model.
+                and not is_held_source(r["source_slug"])]
     finally:
         conn.close()
     return rows[:limit] if limit else rows

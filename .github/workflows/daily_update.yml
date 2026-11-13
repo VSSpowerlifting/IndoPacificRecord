@@ -24,6 +24,10 @@ on:
         description: "Collect permitted Government Office metadata and render; no other collection or models"
         type: boolean
         default: false
+      singapore_attended_pilot_identity:
+        description: "Attended Singapore MINDEF pilot ONLY: the single source identity to admit. Leave empty for every ordinary run."
+        type: string
+        default: ""
 
 concurrency:
   group: daily-update
@@ -215,7 +219,7 @@ jobs:
       - name: Run offline test suite
         id: offline
         if: steps.timecheck.outputs.should_run == 'true' && steps.qualification.outputs.reused != 'true'
-        run: python -m unittest discover -s tests -t . -v
+        run: python -m scripts.parallel_unittest -s tests -t . -v
 
       # Measures exactly one phase: the offline suite. Placed immediately after
       # it and BEFORE the reconciliation re-run, the pipeline and every commit
@@ -293,8 +297,12 @@ jobs:
           VIETNAM_SOURCE_USE_REVIEW_KEY: ${{ secrets.VIETNAM_SOURCE_USE_REVIEW_KEY }}
           VIETNAM_PRIVATE_PROVENANCE_TOKEN: ${{ secrets.VIETNAM_PRIVATE_PROVENANCE_TOKEN }}
         run: |
+          # The printed receipt is what the pipeline reports as this run's
+          # Vietnam run-result rows; the step itself still never fails Daily.
           status=0
-          python -m core.vietnam_daily_handoff --database pla_watch.db || status=$?
+          python -m core.vietnam_daily_handoff --database pla_watch.db \
+            > "$RUNNER_TEMP/vietnam-handoff.json" || status=$?
+          cat "$RUNNER_TEMP/vietnam-handoff.json"
           if [ "$status" -eq 2 ]; then
             echo "::notice title=Vietnam handoff held::No Vietnam records admitted this run; pla_watch.db unchanged."
           elif [ "$status" -ne 0 ]; then
@@ -328,12 +336,35 @@ jobs:
       # pipeline writes ONLY there, so no tracked file is dirty while the rebase
       # steps below run; step 8b appends that one record to the tracked history.
       - name: Fetch permitted shared Daily machine outputs
+        id: shared_daily_fetch
         if: steps.timecheck.outputs.should_run == 'true' && !inputs.vpcp_metadata_only && vars.IPR_PRIVATE_DAILY_ENABLED == 'true'
         env:
           IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
           GH_TOKEN: ${{ secrets.IPR_DAILY_OUTPUT_READ_TOKEN || secrets.IPR_PRIVATE_VAULT_READ_TOKEN }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          # Singapore attended-pilot gate: empty for scheduled and ordinary manual runs.
+          IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
+          SG_MINDEF_LINKS_ENABLED: ${{ vars.SG_MINDEF_LINKS_ENABLED }}
         run: python -m scripts.fetch_daily_machine_outputs
+
+      # Singapore MINDEF official-link parents: the private collector signs
+      # identity, official URL, date and hashes only (no title, text or media).
+      # A parent row is what a later machine explanation binds to; alone it
+      # shows nothing to readers. A refused or missing envelope leaves the
+      # database untouched and never blocks the other desks. Off until the
+      # owner sets SG_MINDEF_LINKS_ENABLED.
+      - name: Admit Singapore MINDEF official-link parents
+        if: >
+          steps.timecheck.outputs.should_run == 'true' &&
+          !inputs.vpcp_metadata_only &&
+          vars.IPR_PRIVATE_DAILY_ENABLED == 'true' &&
+          vars.SG_MINDEF_LINKS_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
+        run: |
+          python scripts/singapore_mindef_links.py admit --database pla_watch.db \
+            --envelope "$RUNNER_TEMP/shared-daily-intake/sg_mindef_releases.links.json"
 
       # Same scheduled Daily, DB and publication writer. Bibliographic fields
       # only; no PDFs, original body, model call, per-record approval or secret.
@@ -344,20 +375,42 @@ jobs:
         run: |
           python -m scripts.collect_vietnam_government_documents --database pla_watch.db --gate-dir "$RUNNER_TEMP/vpcp-host-gate"
 
-      # Reuse the existing Japan collector and this Daily's SQLite/render/Pages
-      # writer. Both a recorded source policy and explicit owner activation are
-      # required. No model call, source fetch, new schedule or parallel publisher.
-      - name: Admit authorized Japan MOD news official links
+      # Make the existing Japan collector branch available to the pipeline. The
+      # admission itself runs inside "Run pipeline" as the jp_mod_news_ja
+      # governed admission, so its disposition is that source's run-result row
+      # (an unavailable branch is reported there as listing_failure), not this
+      # step's outcome. Both a recorded source policy and explicit owner
+      # activation are required there. No model call, source fetch, new
+      # schedule or parallel publisher.
+      - name: Fetch Japan MOD collector branch for governed admission
         if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
         run: |
           set -euo pipefail
           python -c 'from core.japan_mod_official_links import require_authorization; require_authorization()'
           git fetch --no-tags origin refs/heads/shadow/jp-mod:refs/remotes/origin/shadow/jp-mod
-          python -m scripts.admit_japan_mod_official_links
+
+      # Make the preserved USCC and Treasury official press-release listing
+      # histories available to the pipeline. The admissions themselves run
+      # inside "Run pipeline" as the uscc_press_official_metadata and
+      # us_treasury_press_official_metadata governed admissions under the
+      # owner's standing metadata-only approval of 2026-10-15, so each
+      # disposition is that source's run-result row (a clone that is missing
+      # here is reported there as listing_failure). This step reads two
+      # branches of this repository; nothing is fetched from a publisher.
+      - name: Clone preserved U.S. official-listing histories for governed admission
+        if: steps.timecheck.outputs.should_run == 'true' && !inputs.vpcp_metadata_only
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          remote="https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git"
+          status=0
+          git clone --quiet --single-branch --branch shadow/uscc-press \
+            "$remote" "$RUNNER_TEMP/uscc-preserved-metadata" || status=$?
+          git clone --quiet --single-branch --branch shadow/us-treasury-press \
+            "$remote" "$RUNNER_TEMP/treasury-preserved-metadata" || status=$?
+          exit "$status"
 
       # Korean MND texts come only from the already verified, released source index.
       # Unset KOREA_DAILY_AUTOMATION_ENABLED disables admission and analysis.
@@ -377,13 +430,34 @@ jobs:
           CATEGORIZATION_MODEL: ${{ vars.CATEGORIZATION_MODEL }}
           FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           CHINA_TITLE_TRANSLATION_LIMIT: '20'
+          # Interim source-use hold: only the exact string "true" activates it.
+          IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}
           KOREA_DAILY_AUTOMATION_ENABLED: ${{ vars.KOREA_DAILY_AUTOMATION_ENABLED }}
           KOREA_DAILY_PROCESSING_CAP: ${{ vars.KOREA_DAILY_PROCESSING_CAP || '4' }}
+          # Governed manual admissions run inside the pipeline so every manual
+          # source gets a run-result row. Each activation is a separate owner
+          # act; unset leaves that source reported as awaiting activation.
+          IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          # Singapore attended-pilot gate: empty for scheduled and ordinary manual runs.
+          IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
+          JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
+          GH_TOKEN: ${{ github.token }}
+          # Standing owner approval (2026-10-15): the pipeline admits the
+          # preserved USCC/Treasury listing metadata from these clones; an
+          # absent clone leaves that source reported, never failing the run.
+          IPR_USCC_SOURCE_CHECKOUT: ${{ runner.temp }}/uscc-preserved-metadata
+          IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
+          DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
+          # Vietnam's two steps above write pla_watch.db before this one; the
+          # pipeline reports what they recorded under the same activations.
+          VIETNAM_DAILY_HANDOFF_ENABLED: ${{ vars.VIETNAM_DAILY_HANDOFF_ENABLED }}
+          VIETNAM_VPCP_METADATA_ENABLED: ${{ vars.VIETNAM_VPCP_METADATA_ENABLED }}
+          IPR_VIETNAM_HANDOFF_RECEIPT: ${{ runner.temp }}/vietnam-handoff.json
         run: |
           if [ "$VPCP_METADATA_ONLY" = "true" ]; then
             unset PLA_WATCH_DAILY_RUN_DATE
@@ -758,9 +832,17 @@ jobs:
         if: steps.timecheck.outputs.should_run == 'true'
         env:
           TODAY_NY: ${{ steps.timecheck.outputs.today_ny }}
+          SHARED_DAILY_FETCH_FAILURES: ${{ steps.shared_daily_fetch.outputs.failed_families }}
         run: |
           set -uo pipefail
           PROBLEMS=0
+
+          # Isolate source handoff failures during delivery, then notify here.
+          # Do not suppress the last-good DB/site or misreport a fetch as quiet.
+          if [ "${SHARED_DAILY_FETCH_FAILURES:-0}" != '0' ]; then
+            echo "::error title=Shared Daily handoff failed::${SHARED_DAILY_FETCH_FAILURES} source output fetch(es) failed; see the fetch step summary. Existing records were preserved."
+            PROBLEMS=$((PROBLEMS + 1))
+          fi
 
           # ── Billing: did pipeline.py record an account block today? ────────
           MARKER=".github/state/last_billing_failure_date.txt"

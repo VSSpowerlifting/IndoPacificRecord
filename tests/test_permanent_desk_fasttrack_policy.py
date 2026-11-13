@@ -1,4 +1,4 @@
-"""Offline safety tests for owner-specific permanent seven-day desk exception."""
+"""Offline checks for historical launch-clock retirement and current evidence gates."""
 import json
 import unittest
 from pathlib import Path
@@ -14,24 +14,30 @@ class PermanentDeskExceptionPolicy(unittest.TestCase):
         cls.registry = {d["slug"]: d for d in
                         json.loads((ROOT / "desks/registry.json").read_text())["desks"]}
 
-    def test_exact_accelerated_source_path_and_remaining_regular_standard(self):
-        section = self.criteria.split("### C13 — No promotion on elapsed days alone", 1)[1].split("\n---", 1)[0]
+    def test_current_operational_milestones_have_no_obsolete_waiting_clock(self):
+        section = self.criteria.split(
+            "### C13 — Minimum source-to-reader acceptance without launch clocks", 1
+        )[1].split("\n---", 1)[0]
         for phrase in (
-            "Thirty consecutive genuine collecting days",
-            "normal",
-            "at least seven",
-            "consecutive successful scheduled logical collecting days",
-            "C1–C12",
-            "Actions run/attempt/job census",
-            "every record selected for",
-            "reuse rights",
-            "source-state SHA",
-            "Day 14 and Day 30",
-            "DECISION_LOG.md",
+            "no mandatory seven-day or thirty-day",
+            "authentic permitted original",
+            "authorized custody",
+            "factual and language QA",
+            "shared processing/admission",
+            "independent HTTPS readback",
+            "genuine unattended cycle",
+            "Full-scope milestone",
+            "sixteen-family",
         ):
-            self.assertIn(phrase, section)
-        self.assertNotIn("automatically when this policy is updated", self.criteria[:self.criteria.index("### C13")])
-        self.assertIn("No source, desk status, production database, render,", section)
+            # The final item names the full milestone concept, not a fixed day count.
+            if phrase == "sixteen-family":
+                self.assertIn("sixteen-family original roster", section)
+            else:
+                self.assertIn(phrase.lower(), section.lower())
+        self.assertNotIn("Thirty consecutive genuine collecting days", section)
+        self.assertNotIn("all three human reviews completed", section)
+        self.assertIn("RETIRED AS AN OPERATING LAUNCH RULE", self.record)
+        self.assertIn("The dated procedures below are", self.record)
 
     def test_exception_is_not_unverified_source_or_rights_approval(self):
         for phrase in (

@@ -145,6 +145,8 @@ from core.brief_collection import (                                  # noqa: E40
     adjacent_items)
 from core.article_media import native_article_media                  # noqa: E402
 from core.brief_photography import article_cover                    # noqa: E402
+from core.brief_social_card import (                             # noqa: E402
+    render_brief_social_card, social_preview_granted)
 from core.brief_contract import validate_readiness
 from core.catalogue_media import (                                   # noqa: E402
     load_admissions as load_catalogue_admissions,
@@ -666,7 +668,7 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
-        # Exact written permission for two MINDEF hyperlinks, not source-text reuse.
+        # Official-host outbound-link safety check, not source-text reuse.
         # Derived presentation field; never changes raw corpus custody or fingerprint.
         rec["mindef_link_allowed"] = source_link_approved(rec["source_slug"], rec["url"])
         if rec["id"] in vietnam:
@@ -2473,6 +2475,24 @@ IDENTITY_DIR = Path(__file__).resolve().parent.parent / "assets" / "identity"
 #: `tests/test_identity_assets.py` asserts the emitted numbers match it.
 SOCIAL_CARD = (1200, 630)
 
+#: Pages whose link preview is their own image rather than the publication's
+#: lockup. Keyed by built path; each value is the served route (already
+#: delivered by the `frontend` asset loop below, so nothing is copied twice)
+#: and the alt text, which for these cards describes the image itself.
+#: `site/assets/frontend/<card>.json` records each card's digest and the
+#: provenance of the photograph on it. Every page not listed here keeps
+#: `/social-card.png`, so adding a card is one entry and no behaviour change
+#: anywhere else. The card's pixel size is the same 1200 x 630 as SOCIAL_CARD.
+PAGE_SOCIAL_CARDS = {
+    "briefs/japan-us-amraam-final-assembly-sm3-production.html": {
+        "route": "assets/frontend/brief-21-amraam-final-assembly-social-1200x630.png",
+        "alt": ("Indo-Pacific Record Briefs, No. 21, week ending 31 October "
+                "2026: Japan and the United States Agree to Establish AMRAAM "
+                "Final Assembly in Japan. Two AIM-120 AMRAAM missiles on a "
+                "ground handling rack in front of an AV-8B Harrier II."),
+    },
+}
+
 IDENTITY_ASSETS = {
     "mark.svg": "ipr-compass-mark-small.svg",
     "icon-16.png": "ipr-compass-icon-16.png",
@@ -2721,6 +2741,16 @@ def build(out_dir: Path, title: str, db_path: Path,
         rec["weekday"] = weekday(rec["published_date"])
         rec["language_label"] = (language_label(rec["language_tag"])
                                  if rec["language_tag"] else "")
+    # An approved Brief's official publisher references become Records: an
+    # existing corpus or machine page when the exact URL is already held, a
+    # link-metadata page otherwise. See core/cited_source_records.py.
+    from core.daily_machine_records import load as load_daily_machine_records
+    from core.cited_source_records import resolve as resolve_cited
+    machine_records = load_daily_machine_records(db_path)
+    cited_records, cited_links, _cited_omitted, cited_moved = resolve_cited(
+        public_archive_collection,
+        corpus_by_url={rec["url"]: rec for rec in data["corpus"]},
+        machine_by_url={r["url"]: r for r in machine_records})
 
     # The desk roster, derived. `view` reads the same database the corpus above
     # came from, so a desk figure and a corpus figure cannot describe different
@@ -3057,8 +3087,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                       "jobTitle": member["role"],
                       "worksFor": {"@type": "Organization", "name": title,
                                    "url": profile_origin + "/"}}
-            if member["links"]:
-                schema["sameAs"] = list(member["links"].values())
+            # Person.sameAs describes equivalent profile pages, not emails.
+            public_profiles = [href for href in member["links"].values()
+                               if href.startswith("https://")]
+            if public_profiles:
+                schema["sameAs"] = public_profiles
         route = member["route"]
         (out_dir / route).write_text(profile_template.render(
             page=route, nested=True, member=member,
@@ -3162,6 +3195,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                 target.write_bytes(asset.read_bytes())
                 written.append(route)
 
+    # Preserve all existing Brief cards. No.25 onward may receive an automatic
+    # photographic card when the paired cover also carries an exact-image,
+    # founder-approved grant for the social-link-preview surface.
+    social_cards = dict(PAGE_SOCIAL_CARDS)
+
     # ── One page per published brief ─────────────────────────────────────────
     # `briefs/<slug>.html`, one level down, in the site's own shell: the
     # Analysis page is the collection's landing page and stays the current
@@ -3221,6 +3259,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                                                            media=brief["article_media"])
             brief["presentation_review"] = slug == presentation_slug
             brief["adjacent"] = adjacent_items(collection, slug)
+            brief["reference_records"] = cited_links.get(slug, {})
             # A cited record this site preserves links to its record page; one
             # it does not hold links only to the source.
             for group in brief["trail_groups"]:
@@ -3240,6 +3279,20 @@ def build(out_dir: Path, title: str, db_path: Path,
                     raise ValueError("rendered manuscript: " + "; ".join(errors))
             (out_dir / brief["route"]).write_text(html, encoding="utf-8")
             written.append(brief["route"])
+            # A separately admitted photo is required for a photographic
+            # social preview. Never substitute an AI image, an unlicensed
+            # source photograph or an unrelated picture.
+            if (not brief["synthetic"] and not brief["is_review"]
+                    and brief["route"] not in social_cards and cover
+                    and social_preview_granted(brief["number"], cover["entry"])):
+                card_route = "assets/social/brief-%s.jpg" % slug
+                card_alt = render_brief_social_card(
+                    out_dir / card_route, title=brief["title"],
+                    issue=brief["number"], week_ending=brief["week_ending"],
+                    photo_file=cover["src"]["file"], photo=cover["entry"],
+                    byline=brief.get("author_name", ""))
+                social_cards[brief["route"]] = {"route": card_route, "alt": card_alt}
+                written.append(card_route)
         (out_dir / "briefs.css").write_text(
             (Path(__file__).parent / "briefs.css").read_text(encoding="utf-8"),
             encoding="utf-8")
@@ -3285,7 +3338,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.daily_machine_records import load as load_daily_machine_records
         daily_machine_records = ([r for r in load_daily_machine_records(db_path)
                                   if r["desk_id"] == desk.slug]
-                                 if desk.slug in ("philippines", "indonesia") else [])
+                                 if desk.slug in ("philippines", "indonesia", "singapore") else [])
         # Reuse the admitted corpus and its ordinary record rows. Private
         # captures and bibliographic references cannot enter this list.
         vietnam_records = sorted((r for r in data["corpus"]
@@ -3469,8 +3522,8 @@ def build(out_dir: Path, title: str, db_path: Path,
             encoding="utf-8")
         written.append("record/%d.html" % rec["id"])
 
-    from core.daily_machine_records import load as load_daily_machine_records, archive_rows as machine_archive_rows
-    machine_records = load_daily_machine_records(db_path)
+    from core.daily_machine_records import archive_rows as machine_archive_rows
+    from core.cited_source_records import archive_rows as cited_archive_rows, citation as cited_citation
     machine_paths = {r["record_path"] for r in machine_records}
     for stale in (out_dir / "record").glob("source-*.html"):
         if "record/" + stale.name not in machine_paths:
@@ -3479,6 +3532,18 @@ def build(out_dir: Path, title: str, db_path: Path,
         (out_dir / rec["record_path"]).write_text(
             record_tmpl.render(page="archive.html", record=rec, **ctx), encoding="utf-8")
         written.append(rec["record_path"])
+    for rec in cited_records:
+        (out_dir / rec["record_path"]).write_text(
+            record_tmpl.render(page="archive.html", record=rec,
+                               cite=cited_citation(rec, LIVE_BASE), **ctx),
+            encoding="utf-8")
+        written.append(rec["record_path"])
+    # A cited URL that has since been collected keeps its published route,
+    # which now points at the record holding it.
+    for route, target in sorted(cited_moved.items()):
+        (out_dir / route).write_text(
+            LEGACY_REDIRECT % {"target": Path(target).name}, encoding="utf-8")
+        written.append(route)
 
     # ── Week shards ──────────────────────────────────────────────────────────
     # Ordinary static pages. Every record is reachable from corpus.html through
@@ -3510,7 +3575,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         db_path, index, cite_record=record_citation, processing_notes=CITATION_PROCESSING_NOTES,
         official_groups=archive_official_groups, originals=korea_published_original_rows,
         machine_records=machine_archive_rows(machine_records),
-        english_publications=korea_english_publication_rows, analyses=public_analyses)
+        english_publications=korea_english_publication_rows, analyses=public_analyses,
+        cited=cited_archive_rows(cited_records))
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
@@ -3863,7 +3929,13 @@ def build(out_dir: Path, title: str, db_path: Path,
             # inventing a sentence about a document the renderer has not read,
             # which is the same rule that governs og:description.
             safe_origin = _html.escape(origin, True)
-            card = "%s/social-card.png" % safe_origin
+            page_card = social_cards.get(rel)
+            if page_card:
+                card = "%s/%s" % (safe_origin, page_card["route"])
+                card_alt = page_card["alt"]
+            else:
+                card = "%s/social-card.png" % safe_origin
+                card_alt = title
             head = "\n".join([
                 '<link rel="canonical" href="%s">' % _html.escape(loc, True),
                 '<meta property="og:url" content="%s">' % _html.escape(loc, True),
@@ -3871,10 +3943,10 @@ def build(out_dir: Path, title: str, db_path: Path,
                 '<meta property="og:image:width" content="%d">' % SOCIAL_CARD[0],
                 '<meta property="og:image:height" content="%d">' % SOCIAL_CARD[1],
                 '<meta property="og:image:alt" content="%s">' % _html.escape(
-                    title, True),
+                    card_alt, True),
                 '<meta name="twitter:image" content="%s">' % card,
                 '<meta name="twitter:image:alt" content="%s">' % _html.escape(
-                    title, True),
+                    card_alt, True),
             ])
             path.write_text(page.replace(NOINDEX_TAG, head, 1),
                             encoding="utf-8")
@@ -3894,7 +3966,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         locs, seen = [], set()
         for path in sorted(out_dir.rglob("*.html")):
             rel = path.relative_to(out_dir).as_posix()
-            if rel.startswith("article/"):
+            if rel.startswith("article/") or rel in cited_moved:
                 continue
             loc = "%s/%s" % (origin, canonical_route(rel))
             if loc not in seen:

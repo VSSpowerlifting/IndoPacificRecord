@@ -20,8 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.mindef_permissions import APPROVED_MINDEF_LINKS, MINDEF_SOURCE_SLUG
-from core.mindef_public_boundary import EXTRA_RESTRICTED
+from core.mindef_permissions import MINDEF_SOURCE_SLUG, source_link_approved
+from core.mindef_public_boundary import EXTRA_RESTRICTED, permitted_machine_sql
 from scripts.audit_generated_record_text import CapturedTextParser
 from scripts.reconcile_db import read_only
 
@@ -55,7 +55,7 @@ class OutboundLinks(HTMLParser):
             return
         for key, url in attrs:
             if key == "href" and _is_mindef_url(url):
-                if url in APPROVED_MINDEF_LINKS:
+                if source_link_approved(MINDEF_SOURCE_SLUG, url):
                     self.approved += 1
                 else:
                     self.bad += 1
@@ -87,11 +87,21 @@ def audit(db_path, output_dir):
                     "SELECT count(*) FROM articles WHERE source_id IN "
                     "(SELECT id FROM sources WHERE slug=?) AND " + name + " IS NOT NULL",
                     (MINDEF_SOURCE_SLUG,)).fetchone()[0]
-        machine_rows = 0
+        # Machine rows are judged per component: a released row is permitted only
+        # when it is an attributed explanation bound to an admitted link-only
+        # parent. Only the rest block eligibility.
+        machine_rows = permitted_rows = 0
         if con.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
                        "AND name='daily_machine_records'").fetchone():
-            machine_rows = con.execute("SELECT count(*) FROM daily_machine_records "
-                "WHERE source_family=?", (MINDEF_SOURCE_SLUG,)).fetchone()[0]
+            permitted = permitted_machine_sql(con, "m")
+            machine_rows = con.execute(
+                "SELECT count(*) FROM daily_machine_records m WHERE m.source_family=? "
+                "AND m.publication_state='released' AND NOT (" + permitted + ")",
+                (MINDEF_SOURCE_SLUG,)).fetchone()[0]
+            permitted_rows = con.execute(
+                "SELECT count(*) FROM daily_machine_records m WHERE m.source_family=? "
+                "AND m.publication_state='released' AND (" + permitted + ")",
+                (MINDEF_SOURCE_SLUG,)).fetchone()[0]
     if before != _sha256(db_path):
         raise ValueError("database changed during read-only audit")
 
@@ -145,10 +155,10 @@ def audit(db_path, output_dir):
             elif isinstance(value, list):
                 stack.extend(value)
             elif isinstance(value, str) and "mindef.gov.sg" in value:
-                # A source URL embedded in a citation string is not an exact
-                # authorized hyperlink. Treat it conservatively, without
-                # printing the text. Exact URL fields retain the two grants.
-                if value not in APPROVED_MINDEF_LINKS:
+                # Embedded URLs in sentences are not exact safe source links;
+                # scan them conservatively without printing private text.
+                # Exact URL values use the same official-host validator as HTML.
+                if not source_link_approved(MINDEF_SOURCE_SLUG, value):
                     count += 1
         if count:
             json_url_occurrences += count
@@ -167,6 +177,7 @@ def audit(db_path, output_dir):
         "nonempty_db_fields": nonempty,
         "nonempty_additional_db_fields": additional,
         "blocked_family_machine_rows": machine_rows,
+        "permitted_family_machine_rows": permitted_rows,
         "rendered_source_body_pages": body_pages,
         "missing_record_pages": pages_absent,
         "approved_outbound_link_count": approved_links,

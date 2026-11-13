@@ -23,6 +23,12 @@ from scraper.sources.desk_shadow_http import ListingShadowAdapter, Page
 HOST = "www.kaiho.mlit.go.jp"
 LISTING = "https://" + HOST + "/e/topics_archive/index.html"
 RELEASE = re.compile(r"^/e/topics_archive/article([0-9]+)\.html$")
+# Directory of the declared release family. An index row that links a
+# first-party page *outside* this directory (observed 2026-10-26: an
+# "Update" row for /info/topics/rescueforeignvessels.html) is disclosed as
+# an uncollected non-release row, never admitted or fetched. Anything
+# inside the directory must still be an exact release identity.
+ARCHIVE_DIR = "/e/topics_archive/"
 # Initial bounded pilot scope; older publisher rows are counted as discovery
 # history but are not admitted until their URL/document families are reviewed.
 PILOT_BEGIN = "2026-09-01"
@@ -94,6 +100,7 @@ class JCGEnglishAdapter(ListingShadowAdapter):
         seen = set()
         all_dates = []
         excluded_earlier = 0
+        other_family = []
         for dnode, link in zip(date_nodes, links):
             if dnode.find_parent("dl") is not link.find_parent("dl"):
                 raise ValueError("date paired across different publisher year groups")
@@ -102,7 +109,13 @@ class JCGEnglishAdapter(ListingShadowAdapter):
             if stated < PILOT_BEGIN:
                 excluded_earlier += 1
                 continue
-            url = canon(urljoin(LISTING, link["href"]))
+            linked = urljoin(LISTING, link["href"])
+            parts = urlsplit(linked)
+            if (parts.scheme == "https" and parts.netloc == HOST
+                    and not parts.path.startswith(ARCHIVE_DIR)):
+                other_family.append({"url": linked, "date": stated})
+                continue
+            url = canon(linked)
             title = link.get_text(" ", strip=True)
             if not title or url in seen:
                 raise ValueError("missing title or repeated publisher article identity")
@@ -114,6 +127,8 @@ class JCGEnglishAdapter(ListingShadowAdapter):
             "publisher_index_rows_total": len(all_dates),
             "outside_declared_pilot_scope": excluded_earlier,
             "pilot_source_begin": PILOT_BEGIN,
+            "outside_declared_url_family": len(other_family),
+            "outside_declared_url_family_rows": other_family,
         }
         return Page(items, None)
 

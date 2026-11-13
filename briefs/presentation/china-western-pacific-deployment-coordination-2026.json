@@ -1,0 +1,32 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "china-western-pacific-deployment-coordination-2026",
+  "manuscript_fingerprint": "2e59f8e65f054fbbc892ea3098d9c3f99c89986a7616eb311a96c7a5896a81a5",
+  "status": "approved",
+  "sections": [
+    {
+      "id": "reading-introduction",
+      "start": 1,
+      "end": 1,
+      "heading": "Introduction"
+    },
+    {
+      "id": "reading-analysis",
+      "start": 2,
+      "end": 11,
+      "heading": "Deployment and coordination"
+    }
+  ],
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-07",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1003#issuecomment-6715128152",
+    "fingerprint": "c9455455679b267fb106bc92c2b100762254f3cde145ba10f6b80573589bf18c",
+    "checks": {
+      "headings": true,
+      "excerpts": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
+}

@@ -35,6 +35,7 @@ from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as source_use
 from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
+from processing.mps_recovery import withheld
 
 SCHEMA = "ipr-vietnam-private-daily-articles/1"
 DOMAIN = b"IPR-VIETNAM-PRIVATE-DAILY-ARTICLES-v1\n"
@@ -90,6 +91,8 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
         records = []
         for identity in sorted(o["source_identity"] for o in report["outcomes"]
                                if o["outcome"] == qa.PUBLISHED):
+            if withheld(identity, items[identity]):
+                continue  # an owner recovery waits for its reviewed release
             article = items[identity]["article"]
             cost = len(_canonical(article))
             if size + cost > MAX_BYTES:
@@ -229,13 +232,20 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
     return out
 
 
-def admit(conn, records: List[tuple]) -> dict:
-    """Insert verified records through the bridge's own write path."""
+def admit(conn, records: List[tuple], by_family: Optional[dict] = None) -> dict:
+    """Insert verified records through the bridge's own write path.
+
+    `by_family`, when given, also receives the same tally per source family so
+    each family's run-result row reports its own outcomes, not the aggregate.
+    """
     counts: Dict[str, int] = {}
     for family, record, row, prov in records:
         outcome, _article_id, code = bridge._insert(conn, family, record, row, prov)
         key = outcome if code is None else "%s:%s" % (outcome, code)
         counts[key] = counts.get(key, 0) + 1
+        if by_family is not None:
+            tally = by_family.setdefault(family, {})
+            tally[key] = tally.get(key, 0) + 1
     return counts
 
 
@@ -243,7 +253,7 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def admit_database(db: Path, records: List[tuple]) -> dict:
+def admit_database(db: Path, records: List[tuple], by_family: Optional[dict] = None) -> dict:
     """admit() on a sibling copy that replaces db only after integrity checks."""
     if any(Path(str(db) + s).exists() for s in ("-wal", "-shm", "-journal")):
         raise HandoffError("database_has_active_sidecars")
@@ -262,7 +272,7 @@ def admit_database(db: Path, records: List[tuple]) -> dict:
             if not pending <= {"0017", "0018", "0019"}:
                 raise HandoffError("unrelated_pending_migrations")
             apply_all(conn, sync_config=False)
-            counts = admit(conn, records)
+            counts = admit(conn, records, by_family)
             if (conn.execute("PRAGMA integrity_check").fetchone() != ("ok",)
                     or conn.execute("PRAGMA foreign_key_check").fetchall()):
                 raise HandoffError("vietnam_daily_integrity_failed")
@@ -304,8 +314,13 @@ def main(argv=None) -> int:
             from scripts.attest_vietnam_run_state import GithubRead
             envelope = fetch(GithubRead(token, repository=vn.PRIVATE_REPO))
         records = verify(envelope, bridge_key=bridge_key, review_key=review_key, as_of=as_of)
-        counts = admit_database(db, records) if records else {}
+        # Every family the private runner reported this envelope, even one
+        # with nothing published, so a quiet family is told from a missing one.
+        by_family = {entry["source_family"]: {} for entry in envelope["families"]}
+        counts = admit_database(db, records, by_family) if records else {}
         print(json.dumps({"status": "OK", "run_id": envelope["run_id"], "counts": counts,
+                          "by_family": by_family,
+                          "generated_utc": envelope["generated_utc"],
                           "deferred": envelope["deferred"]}, sort_keys=True))
         return 0
     except (ValueError, RuntimeError, OSError, sqlite3.Error) as exc:

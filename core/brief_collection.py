@@ -77,7 +77,7 @@ from core.brief_contract import (
     BASIS_COMPARISON, BASIS_STATED, STATUS_APPROVED, STATUS_DRAFT,
     UNRECONCILED_ISSUES, assigned_number, check_numbering, validate_brief)
 from core.edition_identity import (
-    COLLECTION_NAME, ERA_HISTORICAL, IdentityError, resolve_identity)
+    AUTHOR_NAME, COLLECTION_NAME, ERA_HISTORICAL, IdentityError, resolve_identity)
 
 #: Public routes, relative to the site root. There is no `briefs/index.html`:
 #: the Analysis page is the collection's landing page, and a second index of
@@ -650,10 +650,13 @@ def brief_view(slug: str, sidecar: Mapping, *, desk_names: Mapping,
                 "paragraphs": paragraphs(sidecar.get("term_to_know_explanation"))}
 
     identity = resolve_identity(sidecar)
-    # The identity default links are written for a page two levels down; a
-    # brief sits one level down, at `briefs/<slug>.html`. Stored links win.
+    # Edition defaults contain the founder's personal contacts. Never attach
+    # those contacts to a different named author when a new Brief omits links.
+    # The site template uses the verified staff roster for known authors.
     links = dict(identity["author_links"])
     if not sidecar.get("author_links"):
+        if identity["author_name"] != AUTHOR_NAME:
+            links.clear()
         links[identity["publication_home_label"]] = "../index.html"
 
     claims = [{
@@ -734,6 +737,7 @@ def brief_view(slug: str, sidecar: Mapping, *, desk_names: Mapping,
         "author_bio": identity["author_bio"],
         "author_links": links,
         "research_contributor": sidecar.get("research_contributor"),
+        "editorial_credits": list(sidecar.get("editorial_credits") or []),
         "publication_home_label": identity["publication_home_label"],
         "veil": veil,
     }

@@ -1,17 +1,26 @@
-"""Narrow written hyperlink approval for two Singapore MINDEF releases.
+"""Safe official outbound MINDEF hyperlinks. Not a licence to republish MINDEF text or media.
 
-MINDEF Media Relations approved a *limited linking request* on 2026-10-29
-for the two URLs below. The correspondence is retained privately in the
-IPR/Source Permissions Gmail label. It is NOT a copyright/republication
-license, approval for other MINDEF URLs, or automated collection authority.
-See https://www.mindef.gov.sg/terms-of-use/ sections 5-6.
+The founder adopted a reported standing outbound-link grant on 2026-11-07;
+PR #1004 merged the safe official-host rule. The original later publisher message
+is not independently authenticated in retained private evidence. The 2026-10-29
+two-URL grant remains historical. The link grant itself permits no inferred
+text/media reuse, collection, model input or machine publication.
+
+This module gates only exact official-host links. Which MINDEF-derived components
+may be public is decided per component elsewhere: an independently written,
+MINDEF-attributed factual explanation bound to an admitted official-link parent
+(``core.mindef_public_boundary.permitted_machine_sql``,
+``core.singapore_mindef_links``). Original publisher text, media and any
+production activation remain outside this gate. The founder's standing
+authorization is recorded in ``config/philippines_daily_policy.json`` and
+``docs/desks/MIGRATION.md``; it is not reproduced here.
 """
+import re
+from urllib.parse import urlsplit
 
 MINDEF_SOURCE_SLUG = "sg_mindef_releases"
-APPROVED_MINDEF_LINKS = frozenset({
-    "https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/",
-    "https://www.mindef.gov.sg/news-and-events/latest-releases/31may25_nr3/",
-})
+MINDEF_LINK_HOST = "www.mindef.gov.sg"
+SAFE_PATH = re.compile(r"/[A-Za-z0-9_./-]*\Z")
 
 
 def is_mindef_source(source_slug):
@@ -19,12 +28,23 @@ def is_mindef_source(source_slug):
 
 
 def source_link_approved(source_slug, url):
-    """Apply the narrow exception; preserve existing handling for other sources."""
+    """Exact official-host HTTPS link gate; preserves other sources' treatment."""
     if not is_mindef_source(source_slug):
         return True
-    return isinstance(url, str) and url in APPROVED_MINDEF_LINKS
+    if not isinstance(url, str) or not url or url != url.strip():
+        return False
+    try:
+        p = urlsplit(url)
+        path = p.path or "/"  # bare host is the official homepage root
+        return (p.scheme == "https" and p.hostname == MINDEF_LINK_HOST
+                and p.username is None and p.password is None and p.port is None
+                and not p.query and not p.fragment and not p.netloc.endswith(".")
+                and SAFE_PATH.fullmatch(path) is not None
+                and not path.startswith("//") and ".." not in path.split("/"))
+    except ValueError:
+        return False
 
 
 def mindef_metadata_label(record_id):
-    """IPR's neutral stand-in for a withheld MINDEF headline. Never a publisher title."""
+    """Neutral label, never a MINDEF publisher title."""
     return "Source metadata — Singapore MINDEF record %s" % record_id

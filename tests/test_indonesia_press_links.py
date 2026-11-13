@@ -108,7 +108,8 @@ class IndonesiaPressLinks(unittest.TestCase):
         from scripts.shadow_collect_desk import DESKS
         from core.manifests import load_all_desks
         self.assertNotIn("id_kemhan_press", DESKS)
-        self.assertNotIn("indonesia", load_all_desks())
+        production = load_all_desks()["indonesia"]
+        self.assertEqual([s.slug for s in production.sources], ["id_kemhan_news"])
 
 
 if __name__ == "__main__":

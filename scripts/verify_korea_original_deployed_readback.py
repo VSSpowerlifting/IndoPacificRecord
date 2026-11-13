@@ -171,9 +171,17 @@ def main(argv=None):
                               require_https=args.require_https_readback,
                               attempts=args.attempts)
     except (ReadbackHold, PublishedKoreaHold, UnicodeError,
-            ValueError, OSError):
+            ValueError, OSError) as exc:
+        # ReadbackHold/PublishedKoreaHold carry only fixed machine codes, so
+        # the code is safe to emit and tells an operator which gate held
+        # (run 43103658025 printed a bare HOLD for a lagging Pages build).
+        # Any other exception may carry paths or bytes: emit its class only.
+        if isinstance(exc, (ReadbackHold, PublishedKoreaHold)):
+            reason = str(exc)
+        else:
+            reason = "unexpected_" + type(exc).__name__
         print(json.dumps({
-            "schema": SCHEMA, "status": "HOLD",
+            "schema": SCHEMA, "status": "HOLD", "reason": reason,
             "public_https_verified": False, "db_changed": False,
             "pages_written": False,
         }, sort_keys=True))

@@ -252,9 +252,17 @@ class TestEveryWayOut(IntroCase):
                          "skip")
 
     def test_skip_by_pointer_does_not_move_focus_into_the_page(self):
+        # A real click waits for the button to be visible, enabled and stable
+        # before it lands. On a slow runner that wait can outlast the intro's
+        # own 1.75s timeline, so the intro ends itself and detaches the button
+        # mid-click. Freeze the page clock so the intro stays up until the
+        # click lands, then advance it past the skip fade.
         page = self.page()
+        page.clock.install(time=0)
+        page.clock.pause_at(1000)
         self.start(page)
         page.click(".ipr-intro-skip")
+        page.clock.run_for(600)     # the 250ms skip fade, far short of 1.75s
         page.wait_for_function(GONE, timeout=1500)
         self.assertTrue(page.evaluate(FADED))
         self.assert_clean(page)
@@ -270,7 +278,15 @@ class TestEveryWayOut(IntroCase):
         self.assert_clean(page)
 
     def test_the_page_is_not_reachable_until_it_ends(self):
+        # The intro dismisses itself on a wall-clock timer (~1.75s, hard cap
+        # 5s). Asserting "still covering the page" across several browser
+        # round-trips against that timer is a race a loaded CI runner loses.
+        # Freeze the page's clock so the intro stays mid-play for exactly as
+        # long as the assertions need, then advance it past the cap and prove
+        # the page really does become usable: the guarantee is unchanged.
         page = self.page()
+        page.clock.install(time=0)
+        page.clock.pause_at(1000)
         self.start(page)
         for _ in range(4):
             page.keyboard.press("Tab")
@@ -282,6 +298,12 @@ class TestEveryWayOut(IntroCase):
           const el = document.elementFromPoint(a.x + 4, a.y + 4);
           return !!el.closest('.ipr-intro'); }""")
         self.assertTrue(hit)
+        page.clock.run_for(6000)
+        page.wait_for_function(GONE)
+        self.assert_clean(page)
+        self.assertEqual(page.evaluate(USABLE), {
+            "visible": "visible", "inert": 0, "overflow": "visible",
+            "link": True})
 
 
 class TestADestinationIsNeverDelayed(IntroCase):
@@ -337,12 +359,38 @@ class TestFailureNeverTraps(IntroCase):
     def test_an_error_mid_intro_tears_it_down_at_once(self):
         # The test throws on demand, once the overlay is up, from the frame
         # loop's next requestAnimationFrame.
-        page = self.page(extra="""const raf = window.requestAnimationFrame;
+        page = self.page()
+        # Order matters: Playwright's clock replaces window.requestAnimationFrame
+        # with its own fake in a page init script, so the capturing wrapper must
+        # be registered *after* the clock to wrap it rather than be replaced.
+        page.clock.install(time=0)
+        page.clock.pause_at(1000)
+        page.add_init_script("""const raf = window.requestAnimationFrame;
             window.requestAnimationFrame = function (f) {
-              if (window.__boom) throw new Error('boom');
+              // The first frame scheduled after the overlay is inserted is
+              // the intro's guarded frame; preserve it for deterministic
+              // error injection even when Chromium throttles animation frames.
+              if (!window.__introGuardedFrame &&
+                  document.querySelector('div.ipr-intro canvas'))
+                window.__introGuardedFrame = f;
+              if (window.__boom) {
+                window.__boomTriggered = true;
+                throw new Error('boom');
+              }
               return raf.call(window, f); };""")
+        # Pause only the normal 1.75s dismissal timer. run_for() does not
+        # guarantee a WebGL animation frame is scheduled under CI load, so
+        # invoke the actual guarded callback captured at intro setup. Its
+        # recursive rAF request then throws *inside* intro.js's guard.
         self.start(page)
-        page.evaluate("window.__boom = true")
+        page.evaluate("""() => {
+          if (!window.__introGuardedFrame)
+            throw new Error('intro did not schedule a guarded frame');
+          window.__boom = true;
+          window.__introGuardedFrame(performance.now());
+        }""")
+        self.assertTrue(page.evaluate("window.__boomTriggered === true"),
+                        "the injected frame error did not execute")
         # Timer polling: Playwright's default polls with the rAF this breaks.
         page.wait_for_function(GONE, timeout=1500, polling=50)
         self.assertFalse(page.evaluate(FADED), "ended by the timeline, not the error")

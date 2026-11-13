@@ -106,6 +106,7 @@ jobs:
       - name: Draft full prose from source bodies and optionally email Dylan
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}
           IPR_EDITOR_TO: ${{ secrets.IPR_EDITOR_TO }}
           IPR_SMTP_USER: ${{ secrets.IPR_SMTP_USER }}
           IPR_SMTP_APP_PASSWORD: ${{ secrets.IPR_SMTP_APP_PASSWORD }}

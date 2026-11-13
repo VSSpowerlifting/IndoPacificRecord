@@ -5,6 +5,18 @@ mission-based work admission, authority, evidence and source safeguards,
 engineering scope, stop conditions and definitions of completion. This file
 adds tool-specific implementation notes rather than duplicating those rules.
 For domain authority, follow the documentation map in `AGENTS.md`.
+For source use, read `CONTENT_AND_DATA_RIGHTS.md` §7: evaluate an evidenced
+use-specific legal basis rather than demanding a publisher letter for every use.
+Preserve actual publisher/access, third-party content, budget and release
+safeguards. For MINDEF, the founder's **9 November standing-source-use
+direction** (see `AGENTS.md` and `DECISION_LOG.md`) accepts eligible official
+release custody, bounded external-model processing and independent factual
+machine explanations in addition to standing links. Do not resurrect the
+superseded two-link limit. Existing MINDEF collection/model/public-data
+**runtime controls are still deployed** until a separate reviewed engineering
+change; removing an obsolete permission hold from policy text does not
+authorize executing a collector, spending, a public DB mutation or publishing.
+Original media and unrestricted source-body republication remain excluded.
 
 IPR is an independent, source-grounded research publication. Automated
 source records are not human-authored IPR Briefs. *The PLA Watch* and
@@ -16,14 +28,16 @@ Never describe IPR as an OSINT tool or intelligence agency.
 1. Read `AGENTS.md`. For any desk task, also read the binding
    `docs/desks/README.md` and relevant live migration boundary in
    `docs/desks/MIGRATION.md`, then the actual source-specific decisions.
-2. Check current repository and PR state; dated `PROJECT_STATE.md`
-   entries may be stale. Read only the governing files needed for this task,
-   using targeted searches rather than full-repository scans.
+2. Check the current repository, live evidence and PR state; the retired
+   `PROJECT_STATE.md` diary is not an active task or status source. Read only
+   the governing files needed for this task, using targeted searches rather
+   than full-repository scans.
 3. Use an isolated worktree, one engineering objective, focused risk-based
    tests and final exact-revision checks. Use the existing issue/PR body for
    any major-growth justification; do not create a new policy packet.
 4. Stop at the bounded implementation/verification finish line.
    A verified PR is not automatically merged, deployed, activated or live.
+   The standing merge delegations in `AGENTS.md` are the only exceptions.
    Do not expand into unrelated cleanup, follow-on releases or paid models.
 
 Never hand-edit generated `output/` or published canonical edition sidecars.
@@ -57,7 +71,7 @@ intelligence operation. Superseded mockups are not permanent authority.
 
 Model/agent routing and the task → capability map (which tracked skill,
 agent, command or optional tool fits each kind of work, with a fallback)
-live in `docs/AGENT_WORKFLOWS.md` §1–§2. Use parallel
+live in `docs/AGENT_WORKFLOWS.md`. Use parallel
 agents only for genuine parallel work and avoid unnecessary deep scans
 or expensive model calls. Schema success, model agreement or fluent
 machine prose is not independent factual review.

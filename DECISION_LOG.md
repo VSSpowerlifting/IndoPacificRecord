@@ -1,8 +1,685 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-12 — Indonesia Kemhan QA: a whole number grouped in threes is one value in both languages
+
+**Evidence.** The first `id-analysis-v6` run (private processing run
+43322968930) produced no name hold. One record held on
+`daily_quantity_or_date_unsupported` only because the cited passage wrote a
+count with the Indonesian thousands separator and the English wrote the same
+count with a comma; the validator compared the two strings exactly. The other
+two holds that run were an institution form and an incomplete analysis.
+
+**Decision.** `processing/indonesia_quality.py` canonicalises a complete
+three-digit grouping with one separator throughout to its digits before
+comparing. Decimals, times, mixed or partial groupings and leading zeros stay
+exact, and a different count still holds. No other check, the prompt, model,
+budget or attempt history changes; the held record is retried on its ordinary
+schedule, not reset.
+
+## 2026-11-12 — Indonesia Kemhan: id-analysis-v6 adds a final local-name check; QA unchanged
+
+**Evidence.** Fifteen preserved private Kemhan readings (runs 3–12 November)
+were replayed against the unchanged validator. Nine were routine relevance
+rejections. Of six that passed relevance, none passed QA: four held on
+`daily_name_or_office_unsupported` because a sentence carried a personal name
+or unit designation absent from its one cited passage (the passage gave only
+an office or no unit), one on `daily_institution_form_not_local`, and one on
+both that and a missing Kemhan attribution. Retries of one original repeated
+the same hold three times. These are model outputs breaking a rule the v5
+prompt already states mid-prompt; the validator behaved as designed.
+
+**Decision.** The analysis prompt becomes `id-analysis-v6`: the same rules,
+plus a closing check placed directly before the passages that each sentence
+contains "Kemhan" and that every personal name, unit name, abbreviation and
+identifier is spelled in its cited passage. The validator, model, two-call and
+$0.35 per-run bounds, attempt counts, exclusions and the released v4 Record
+are unchanged. v5 was never released and is no longer admissible. Whether v6
+raises the pass rate is not yet observed.
+
+## 2026-11-12 — Founder: standing engineering merge and release delegation for the eight-desk program (effective on founder merge)
+
+**Direction.** The founder delegated sustained engineering ownership of the
+eight-desk operational milestone: choosing priorities, implementing, and
+merging and releasing routine engineering changes in the public and private
+repositories without a per-PR decision. The founder asked that the delegation
+first be reconciled with existing rules and approved once.
+
+**Decision.** `AGENTS.md` gains "Standing engineering merge and release
+delegation — eight-desk program". It delegates engineering merges under
+exact-head CI, pinned merges, ownership and post-release readback conditions,
+and the running of existing workflows for already-activated sources within
+existing budgets. It does not delegate governance or policy, source rights,
+first activation of a source/model/public release, budgets, the deferred
+Singapore pilot, DAPA authority, external contact, human editorial publication
+or destructive actions. No runtime behaviour changes with this entry.
+
+## 2026-11-12 — Vietnam Daily: a low-stage flag is withheld, not the record (proposed; adopted by founder merge)
+
+**Evidence.** Private scheduled Vietnam collection missed logical slots 9–11
+November because an offline pin-guard test failed after a Singapore
+dependency was added; the guard was fixed on 12 November and the three slots
+were recovered by manual dispatch (private runs 43287107934, 43288000522,
+43288797269), then processed by bridge run 43289878484. Of six new Ministry
+of Public Security items, two were screened out, one awaits a second pass and
+three were held solely on `E_FLAG_LOW_STAGE`. Across the ledger that code
+appears in 13 of 21 MPS holds, and is the only failure in six.
+
+**Cause.** The analysis prompt permits a flag on a meeting or announcement
+"only when they record a specific decision"; the rubric held every such flag
+for a person. The two rules disagreed, and the disagreement withheld factually
+clean summaries.
+
+**Decision.** From rubric `vn-qa-2026-11-12.1` the model's flag on a
+`meeting`, `announcement` or `other` report is not published and its flag
+reason is dropped; the record itself is no longer held for that alone. Every
+factual check (numbers, dates, names, acronyms, inflation, outcome claims,
+attribution) is unchanged, and a flagged result still requires the
+independent second pass. The withheld flag is recorded in the private QA
+detail. Items already held stay held: no ledger entry or attempt is reset.
+
+## 2026-11-12 — Singapore MINDEF pilot retry held; switches off
+
+The authorized single retry of `6nov26-nr2` on `sg-analysis-v3` ran in private
+run 43276741401 (two model calls, estimated $0.015 of the $0.35 cap). The
+earlier `daily_quantity_or_date_unsupported` hold did not recur, but QA held
+the result at `daily_explanation_word_limit` (summary plus flag reason over 90
+words). Nothing was signed or published. The three Singapore policy switches
+and the private `SG_MINDEF_DAILY_ENABLED` variable are false again.
+
+The run also stopped at `daily_bridge_key_invalid`: no
+`DAILY_SG_MINDEF_RELEASES_KEY` secret exists in either repository, so the
+private ledger commit was skipped. The second attempt is preserved only in
+that run's private artifact; the committed ledger still records one attempt.
+A further attempt needs separate founder authorization, the signing secret,
+and a prompt or limit decision for the word-limit hold.
+
+## 2026-11-12 — Founder: one retry of the Singapore MINDEF one-original pilot
+
+The 11 November pilot of `6nov26-nr2` held at `daily_quantity_or_date_unsupported`.
+The cause was the evidence splitter: under `sg-analysis-v2` passages were cut
+mid-sentence, so the model's sentences drew a date and names from neighbouring
+passages. Commit `3daf092eb4` packs whole sentences (`sg-analysis-v3`); that
+version has never run for Singapore.
+
+The founder authorized **one retry of the same original only**, maximum $0.35
+estimated model spend, exclusions `15aug26-speech` and `16sep26-speech`
+unchanged. The earlier attempt stays in the private ledger; it is not reset.
+The three Singapore policy switches are true for this attended run and return
+to false by a reviewed change after public readback or a hold. Singapore
+remains a registered attended pilot: the scheduled Daily's gate stays closed,
+and no recurrence, additional record or backfill is authorized. Factual QA is
+unchanged; a second hold ends the retry.
+
+## 2026-11-11 — Founder: standing publisher permissions for six source families (adopted by founder merge of PR #1033, 12 November UTC)
+
+**Attestation.** In the 11 November eight-desk completion brief the founder
+states that standing publisher permission now exists for six families:
+**Armed Forces of the Philippines (AFP)**, **Philippine National Security
+Council (NSC)**, **Indonesia Kemhan**, **Vietnam MPS**, **Vietnam Government
+Office (VPCP)** and **Global Times**. The founder's requests explicitly named
+automated and recurring collection, archival retention, AI-assisted
+processing, rehosting and future commercial publication, and each institution
+affirmatively accepted them. No further publisher confirmation is required
+for those uses.
+
+**Scope.** Each permission covers eligible material the publisher itself owns
+or controls, across its sources and publications. Kemhan's covers Berita and
+Siaran Pers alike. Global Times' covers its publications generally, not only
+the Defense section. Do not read any of the six narrowly or impose blanket
+restrictions on publisher-owned material. The underlying correspondence is
+held by the founder in restricted custody. It is not in this repository, was
+not examined by the engineering agent that prepared this entry, and must not
+be copied into public files, fixtures, commits or PR text.
+
+**Effect on source-use evaluation.** For these six families the permission is
+an evidenced, source-specific legal basis under `CONTENT_AND_DATA_RIGHTS.md`
+§7. Agents must not open new permission inquiries for them, treat them as
+link-only by default, or cite the earlier "assessment, not publisher licence"
+wording as a continuing rights limit. Earlier decisions for the same families
+remain the record of what was decided then and of the quality, identity and
+exclusion holds they created.
+
+**What this entry does not change.** It is a rights record, not an activation.
+Each of the following still needs its own reviewed engineering change and,
+where money or publication is involved, the applicable founder authorization:
+
+- deployed runtime controls: the 90-word explanation ceilings, private-original
+  boundaries, public title/body/translation/media exclusions, sealed Vietnam
+  source-use policies and the Global Times hold switch;
+- per-run spending ceilings, retry budgets and attempt history;
+- factual-QA, issuer/identity, version and template holds, and existing
+  exclusions (`afp:1418`, the Kemhan Yonif TP 880 item, NSC host-versus-issuer
+  treatment, VPCP document-type and page/coverage checks);
+- material genuinely owned by a third party and embedded in a publisher page
+  (for example credited wire copy or agency photographs), which a publisher's
+  permission does not by itself cover. This is an exception for identified
+  third-party ownership, not a default restriction on the publisher's own
+  text, images or media;
+- publisher access controls. The NSC host has answered automated requests with
+  an access challenge since 5 November; permission to use content is not
+  permission to circumvent that, and the remedy is a publisher-side allowance;
+- IPR's approved source roster. Broader permission scope (Kemhan Siaran Pers,
+  other Global Times sections) does not add a family to the roster or
+  authorize production activation; the currently approved families are
+  implemented first. Other publishers, including MOIT, are outside this entry.
+
+**Next bounded engineering uses of this record**, each a separate PR: public
+original text and titles for AFP, NSC, Kemhan Berita and MPS through the
+existing permitted-component projection; VPCP public document text; release
+of the Global Times hold with its historical-exposure note; source-specific
+replacement of the 90-word ceilings.
+
+## 2026-11-11 — Founder: minimum operational desks and proportional process controls
+
+**Milestones.** The initial desk objective is one genuinely operational
+original-backed source family for each of eight desks. All sixteen families
+in the original 2 November roster remain the **full-coverage** milestone.
+Neither milestone is satisfied by metadata-only links, mock production,
+unverified PRs, deployment alone, or false completeness claims. One qualifying
+family must have lawful/authentic original retrieval and versioned custody,
+accurate permitted substantive processing and QA, authenticated admission
+through the existing shared Daily, a real deployed Record/desk/Archive/search
+and independent HTTPS readback, and a subsequent genuine unattended cycle
+with honest failure/quiet/hold recovery. Family scope and gaps must be visible
+to readers; family-specific permissions and holds remain in force.
+
+**Remove obsolete operations friction.** Seven-/thirty-day prelaunch waiting
+periods and Day 7/14/30 ceremonial reviews do not govern source promotion.
+The former requirement for seven consecutive eight-desk Daily runs before a
+new workflow file may even be considered is also retired. Reuse existing
+shared workflows before proposing another; new source activation, schedule,
+model/provider use, production change, paid work, deployment and editorial
+publication still require their actual separate authority. Do not create
+parallel engines, recurring per-record founder signatures, repeated publisher
+letters for an already established lawful standing scope, needless full-suite
+replays on unchanged data-only Daily, duplicate cross-desk integration PRs,
+new checklists, or invented qualification streaks. Actual source exception
+review, authentic captures, provenance hashes, factual QA, budget/retry history,
+CI final-head evidence, recovery and the last-good published site remain.
+
+**Processing-cap review, before throughput changes.** The shared private
+intake currently hard-codes exactly one record per run (including an input
+policy validator), rejects title+body beyond 16,000 UTF-8 bytes and checks
+machine explanations against a shared 90-word limit. These are **not**
+universal legal safe harbors, and can strand otherwise eligible originals.
+Challenge them with an evidence-based, tested adaptive throughput design
+under the *existing* total per-run cost/retry/call budget, and complete,
+source-version-aligned processing of longer documents in authorized,
+deterministic sections. Allow sufficient independent explanation to preserve
+substantive facts without unnecessary filler. Preserve source-specific
+binding limits: the attended Singapore pilot was expressly one original
+and remains ended/held; NSC and Kemhan decisions explicitly specify the
+one-record and 90-word bounds; DAPA model rights remain disabled; each
+Vietnam/Korea/China/Japan/USCC policy is evaluated independently. Proposed
+capacity changes are not an immediate authority to spend, increase retries,
+transmit previously excluded text, extend a licence, alter deployed switches,
+or relax evidence coverage and factual QA. Make source-specific decisions
+and negative tests before any corresponding runtime change.
+
+**Governance implementation.** Update canonical instructions, the eight-desk
+plan, retired legacy launch guidance and its truthful tests in a bounded
+reviewable integration. Finish this cleanup phase before a read-only focused
+eight-desk original-to-reader review. The adoption of the initial milestone
+does not itself certify any desk or authorize the cleanup PR's merge/release.
+
+## 2026-11-11 — Founder: AFP and Kemhan Berita Daily capacity (adopted by founder merge of PR #1032, 12 November UTC)
+
+Under the 11 November processing-cap review, `ph_afp_articles` and
+`id_kemhan_news` may process **up to six records per private run**, two model
+calls per record, inside the **unchanged $0.35 estimated per-run reservation**.
+This supersedes only the words "one record" in the 27 October Kemhan decision
+and the one-record value in the AFP policy. Unchanged: the 16,000-character
+input bound, the 90-word explanation maximum, factual QA, the five-failure
+pause, retry and attempt history, `afp:1418`, the Kemhan Yonif TP 880
+exclusion, private-original custody and every activation switch. A record
+whose worst-case reservation does not fit the remaining run budget waits for
+the next run without a counted attempt, so typical runs complete two to four
+records. NSC, Korea DAPA and Singapore MINDEF stay at one record. The
+`owner_decision` strings in `config/philippines_daily_policy.json` are left
+byte-identical because they are part of the released-Record binding; this
+entry is the authoritative capacity decision. This is not authority to spend
+outside the scheduled private runs, to backfill, or to reset any hold.
+
+## 2026-11-11 — Founder: Singapore MINDEF one-original pilot ended at the QA hold
+
+The `6nov26-nr2` pilot ran once (estimated $0.0129 of the $0.35 cap) and stopped
+at the private quality hold `daily_quantity_or_date_unsupported`; the signed
+envelope held no records and no Record was released. The founder accepted the
+hold and ended the pilot. All three Singapore policy switches are set false;
+`owner_decision`, the exclusions, the spending limits and other desks are
+unchanged. No retry or activation without a new explicit founder authorization.
+
+## 2026-11-09 — Founder: Singapore MINDEF standing substantive source-use decision
+
+The founder confirms he has an established written MINDEF media-relations
+relationship, including direct contact, and affirms a later standing publisher
+reply granting all future linking requests and broader assistance. In IPR's
+source-use decision, he expressly accepts **eligible MINDEF-owned official
+release original custody**, **bounded external AI processing** and
+**independently written, attributed public factual explanations**, in addition
+to official outbound links. This supersedes the old assumption that MINDEF
+must remain link-only or obtain article-by-article publisher permission.
+No contact details, private correspondence or phone number are copied here.
+
+**Evidence classification:** the founder supplies/attests the later wording,
+but this public repository has not independently inspected the original
+publisher transport or authenticated the later message's complete context.
+Do not claim MINDEF enumerated or separately signed off each technical use;
+this entry records the founder's source-specific interpretation and decision.
+The October 29 two-link reply remains preserved as a historical narrower
+grant, while the November 7 standing-link decision is already merged as #1004.
+
+**Implementation scope:** retire the obsolete categorical MINDEF acquisition,
+model and machine-Record exclusions and replace them with authenticated
+permitted-component processing in the existing shared Daily system. Protect
+original text and third-party media from public republication, preserve
+damaged-source holds, original identity/version custody, publisher access,
+factual QA, cost/retry constraints and governed publication.
+
+**Authority boundary:** this decision authorizes scoped policy/engineering
+implementation and review, **not** a new paid model call, production collection
+activation, source-hold reset, historical database or Pages mutation, merge,
+deployment or human Brief publication. Those operational changes remain
+separately authorized and live-verified.
+
+
+## 2026-11-07 — Brief No. 24 editing and analysis credit
+
+After Brief No. 24 went live, Benjamin Yang, Founder & Executive Director,
+directed and authorized a role-specific **Editing** and **Research and analysis**
+credit for Benjamin Yang on this article. Dylan Tanzi remains the **sole
+bylined author**; Benjamin Yang is not added as a co-author. These are two
+existing non-author credit roles, not a new publication role or author identity.
+
+The correction changes only the `editorial_credits` field, which the existing
+Brief renderer displays as "Edited by Benjamin Yang" and "Research and analysis
+by Benjamin Yang". The headline, article body, paragraph support, all six
+publisher references, source-use terms, issue identity, cover, catalogue photo,
+author biography and sole-author citation are unchanged.
+
+Because the canonical editorial fingerprint includes credit fields, the earlier
+fingerprint `3b38dbf6…` is superseded by
+`3743f5ad02dbf30a5f0f6f8284de48ff917342a726dcc00932334fde211c2453`.
+The presentation sections and excerpts are unchanged; only their manuscript
+binding changes, yielding digest
+`a7c41b95e80011e00d409c56345ff4a1bac051f998fa06efaa4f14c5e3b34bf8`.
+
+The founder's new instruction authorizes the added credit, **not a new review
+of the underlying official sources or a new inspection of the revised rendered
+page**. The prior source, policy and presentation assessment remains applicable
+only because all substantive reporting and image/rights evidence is unchanged.
+The revised render and current-commit release checks must pass, and the public
+credit display must be independently read back after deployment. Do not count
+this correction as a new human fact-check or a second article.
+
+## 2026-11-07 — Brief No. 24 sole authorship: Dylan Tanzi
+
+Benjamin Yang, as Founder, directed and approved on 7 November 2026, in his
+written release instructions to the release agent (not posted publicly), that
+Dylan Tanzi is the sole author of Brief No. 24, "Singapore and Indonesia Fly
+Their First Joint Fighter Patrol". Benjamin Yang is removed from the byline and
+from all public author metadata. The approval is the founder's own; it does not
+come from Dylan Tanzi or anyone else.
+
+- Credit: `author_name` Dylan Tanzi, `author_title` Lead Research Analyst,
+  `author_bio` the canonical `site/preview/staff.json` biography, which Brief
+  No. 20 also uses. The separate co-author `research_contributor` record is
+  removed, including its different biography.
+- Unchanged: headline, dek, all nine paragraphs, including the paragraph 6
+  paraphrase, all six publisher references, `paragraph_support`,
+  `manuscript_sha256`, issue number, cover and caption. A script compared them
+  with the previous revision and found them byte-identical.
+- Fingerprints: the editorial fingerprint binds credit fields, so it changed
+  from `21ab36ab…` to the value now in the sidecar. The presentation digest
+  changed from `d45f371e…` because only its `manuscript_fingerprint` binding
+  changed; headings and excerpts did not. The earlier values are superseded, and
+  the earlier PR #1005 receipt (comment 6715346963) covered the co-authored
+  byline at those digests only.
+- What the rebound `editorial_review` checks rest on:
+  - `original_language`, `claim_support`, `chronology` and `limited_source_use`
+    are carried over from the founder's 7 November review of the unchanged
+    reporting. There was no new source review.
+  - `authorship` rests on this instruction.
+  - `manuscript_fidelity` and `rendered_review` rest on the automated render and
+    `manuscript_html_errors` checks of the final revision. They do not rest on a
+    new human inspection of the page.
+- The `policy_ruling`, presentation approval and publication approval are
+  rebound to this entry on the founder's authority in the same instruction.
+
+This entry does not change the factual conclusions or the source-rights position
+recorded in `docs/PATKOR_BRIEF_RELEASE_2026-11-07.md`.
+
+## 2026-11-07 — Brief No. 24 Patkor Indopura context cover
+
+Benjamin Yang, as Founder, approved DVIDS photograph 8879603 for both Brief
+No. 24 surfaces in his written release instructions of 7 November 2026 (given to
+the release agent, not posted publicly). The image shows Indonesian F-16s on a
+separate 19 February 2025 refuelling mission, not the November 2026 patrol, and
+the caption says so. It uses the centred 3:2 card and the standard CSS gradient.
+His separate visual check of the numbered cover and catalogue card is recorded
+on PR #1005 when he gives it. See the
+[image evidence](docs/evidence/brief-cover-patkor-2026-11-07/README.md) for
+source, rights, retrieval and limits. This decision does not attest the patrol.
+
+## 2026-11-07 — Founder: retire MINDEF two-URL outbound-link limit (adopted)
+
+Adopted 7 November 2026 by Benjamin Yang, Founder & Executive Director (PR
+#1005, comment 6715346963), "based on the permission wording previously
+supplied, with the original later correspondence still unverified". He did not
+personally authenticate the later MINDEF reply, and nobody else has. This ruling
+satisfies the review requirement below on the founder's authority; it is not an
+original-evidence confirmation. Outbound links only; no reproduction rights.
+
+Original candidate text:
+
+Founder supplied text attributed to a new MINDEF response granting all linking
+requests, including future requests, and instructed removal of the internal
+page-by-page link policy. The underlying message, sender and original channel
+have not been independently inspected. Propose replacing the exact two-URL
+allowlist with official-host HTTPS URL validation; this is a source-rights
+change requiring PR review and original-evidence confirmation before adoption.
+No copied correspondence or private contact information is public.
+Preserve text/media, model, collection, public-data, source integrity and cost
+holds. No Brief editorial attestation, issue number, merge, activation, deploy
+or public release is authorized by this policy candidate.
+
+
 Newest first. Record decisions that constrain future work. Entries below
 2026-08-27 were written under the predecessor name, China Mil Watch, and are
 preserved as written.
+
+## 2026-11-09 — Founder: Singapore MINDEF standing authorization; disabled integration
+
+**Decided (founder, 9 Nov 2026):** MINDEF runs as one disabled-by-default shared
+`DailySource` (`sg_mindef_releases`) under the founder's standing authorization
+for private original custody, bounded model processing and independently written,
+MINDEF-attributed explanations. The founder's interpretation is recorded as such;
+no private correspondence is reproduced. Original text and third-party media stay
+private, the two excluded speech releases stay excluded, and Briefs/Dossiers stay
+human-controlled. Migration m0022 adds the link-only parent and re-issues the staged
+boundary triggers whose permitted-row predicate had been frozen as `0`. **Not authorized:**
+merge, deployment, collector or schedule activation, paid processing, production
+writes, publication. See
+[decision](docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
+
+## 2026-11-07 — Brief No. 23 archival Liaoning cover
+
+Benjamin Yang approved the Japan Joint Staff May 2022 Liaoning/J-15 image for
+both Brief No. 23 surfaces, the centered 3:2 card, restrained CSS gradient and
+archival caption in [PR #1003 comment 6712855433](https://github.com/VSSpowerlifting/IndoPacificRecord/issues/1003#issuecomment-6712855433).
+The image is context, not the November 2026 deployment. See the
+[image evidence](docs/evidence/brief-b-cover-2026-11-07/README.md) for source,
+rights, retrieval and limits. This decision does not attest deployment.
+
+## 2026-11-07 — Founder: DAPA standing conditional eligibility; disabled integration
+
+**Decided (founder, 7 Nov 2026):** under option A, standing conditional
+eligibility replaces per-release source-use signatures, including for
+`156788018` when its exact version qualifies. A version is eligible only when
+it authenticates the preserved page's Type 0 text mark, the page-to-HWPX
+attachment binding, the sole DAPA issuer and the approved lead/body scope;
+joint, ambiguous, changed or excluded material stays held and public
+originals stay link-only. Page-to-attachment binding does **not** prove licence
+equivalence: this accepts the documented interpretation and does not claim
+equivalence was verified. The DAPA profile is integrated into the shared daily
+lifecycle **disabled by default** (all policy flags false, desk unregistered;
+m0021 is not yet in production; the daily workflow applies it on the first run after merge, and a scratch-copy rehearsal preserved every existing row). **Model pair approved (same day):** `claude-haiku-4-5-20251001` relevance and
+`claude-sonnet-4-6` summary under the 0.35 USD per-run guard; this authorizes no
+call or spend. **Not authorized:** provider terms, private or public processing, activation, merge or deployment. See
+[decision §8–§9](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md#9-shared-pipeline-integration-7-nov-2026-and-activation-proposal).
+
+## 2026-11-04 — Owner decision: Korea DAPA source family, option A (partial)
+
+**Decided (Ben, in chat, 4 Nov 2026): option A** of the
+[decision candidate](docs/engineering/KOREA_DAPA_SOURCE_COMPLETION_DECISION_2026-11-04.md).
+For DAPA-authored prose in the linked HWPX, the published KOGL Type 0 text
+notice may be relied on **per version**, only when the notice replays from the
+hash-bound preserved page, the issuer is structurally sole, and the candidate's
+screens pass. This permits private inference/translation and independently
+worded, attributed explanations as source uses. Public originals stay
+link-only. Issuer identity rests on the portal statement and HWPX structure,
+and the 28 October capture is distinct from today's terms.
+
+**Still open:** (2) whether public originals stay link-only under the 17 October
+policy (option A assumes they do; not separately confirmed); (3) model input,
+provider and cost; (4) a standing replay-plus-screens rule versus per-version
+sign-off. **Not authorized:** source activation, a DAPA policy entry, publisher
+contact, model spend, merge or deployment. #975 and #976 are superseded as one
+change and are not closed.
+
+## 2026-11-04 — Founder: research-first source-use reform (review implementation)
+
+The executive mandate establishes the general evaluation direction:
+written publisher permission is not universal where another demonstrated
+lawful basis supports the particular activity. Implemented for founder PR
+review in [CONTENT_AND_DATA_RIGHTS.md §7](CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard),
+with [all eight scopes reconciled](docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md#61-source-use-reconciliation--4-november-2026).
+Applicable public-domain status, licences, actual permission, statutory
+exceptions and other legal authorizations are alternatives to investigate,
+not blanket grants. Separate access, custody, facts, external-provider input,
+independent analysis, quotation/translation, media and every public distribution
+surface. Keep binding terms, jurisdiction and contrary primary evidence visible.
+
+Superseded: general publisher-letter prerequisites, licence-only vocabulary in
+the offline private-synopsis decision, mandatory JCG correspondence/reply and
+obsolete dossier launch signoffs. Retained: actual source grants/restrictions,
+MINDEF's specific scoped written-grant rule/two links, China #978 unresolved
+decisions and merged #980 switch, source-specific licences/assessments and
+exclusions, factual QA, budgets, retries, evidence and accepted paid output.
+The synopsis vocabulary is isolated from Vietnam's runtime basis constant.
+
+This entry records the mandate and candidate implementation, not source-use
+clearance, a founder policy merge approval or operational certification. No
+source configuration, hold activation, model permission, spending, original
+evidence, production DB, generated output or historical decision is changed.
+No contact, merge, deployment, historical republication/removal or source
+activation is authorized. Prior entries remain evidence in their actual scope;
+the new general rule cannot silently erase a specific restriction.
+
+## 2026-11-02 — Owner: Sunday reconciliation by weekend-cycle participation
+
+Benjamin Yang set, in chat on 2 November 2026, which Briefs need a Sunday
+reconciliation receipt (`saturday_sunday_cycle`, checked by
+`core/brief_editorial_cycle.py` in `validate_readiness` and `validate_brief`).
+It replaces the review candidate's blanket rule for every Brief from the week
+ending 7 November 2026 onward. Implemented in PR #963.
+
+1. **Participation decides.** A receipt is required because a Brief took part
+   in the weekend editorial cycle, recorded as `editorial_cycle` provenance
+   naming its cycle Brief identity. Publication date, stated author and Word
+   labels do not decide it.
+2. **One receipt per Brief.** Every cycle-derived Brief, including companions,
+   human rewrites and analyst-reconciled versions, needs its own receipt bound
+   to its exact final manuscript and revised DOCX. A receipt for another
+   version or another Brief does not transfer.
+3. **Independent Briefs are unchanged.** A Brief with neither provenance nor a
+   receipt keeps the existing source, factual, presentation and owner-approval
+   requirements. Shared source URLs alone never establish cycle participation.
+4. **Import fails closed.** `scripts/import_brief_manuscript.py` carries
+   provenance it detects in the DOCX's hidden properties automatically. Without
+   it, the editor must declare `--saturday-packet <packet>` or `--independent`;
+   `--independent` is refused while any cycle signal, hidden or visible, remains.
+5. **The transfer stays manual and explicit.** The import JSON is a snapshot,
+   not the sidecar. The owner copies `editorial_cycle` from it into the
+   canonical `briefs/<slug>.json` with the other imported fields; the Sunday
+   recheck stamps it again on its candidate sidecar.
+
+Disclosed limits stand, and no further authentication is added: someone who
+deliberately deletes both the provenance and the receipt from a sidecar makes it
+look independent, and whether editors other than python-docx keep the hidden
+DOCX properties is untested (if both are lost, import stops and asks for a
+declaration). The fail-closed import and owner approval are the safeguards.
+
+This records policy only. `IPR_WEEKEND_EDITORIAL_ENABLED` stays unset; it creates
+no merge, activation, schedule, email, model spend, deployment or publication
+authority, and it does not lift the 2026-11-01 workflow freeze.
+
+## 2026-11-02 — Owner: eight-desk operational certification scope (planning only)
+
+The founder confirmed the mandatory source-family scopes and real-original-to-reader
+acceptance standard in a sequence of eight explicit decisions on 2 November 2026.
+See [the single stable scope and completion plan](docs/desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md)
+and the existing [eight-desk issue #673](https://github.com/VSSpowerlifting/IndoPacificRecord/issues/673).
+
+- **Indonesia:** Kemhan Berita only; not Siaran Pers.
+- **Philippines:** AFP **and** NSC, independently qualified.
+- **Vietnam:** MPS Foreign Affairs **and** Government Office (VPCP).
+- **South Korea:** MND-labeled Korea Policy Briefing originals **and** DAPA.
+- **China:** all five existing families — PLA Daily, MOD China, Xinhua Military,
+  China Military Online and Global Times Defense — accurately classified.
+- **Japan:** accessible MOD news-feed PDFs **and** JCG English release HTML;
+  exclude challenged MOD HTML, Joint Staff and unapproved media.
+- **Singapore:** MINDEF official releases only. A narrowly bounded additional
+  permission request may be prepared for founder review; **do not contact MINDEF yet**.
+- **U.S. Indo-Pacific reference:** at least one independently qualified,
+  original-backed U.S. institutional family; investigate USCC Commission-authored
+  press releases first. Treasury/BIS metadata remains supplemental; PACOM/DVIDS
+  restrictions remain.
+
+Full qualification requires authentic permitted original retrieval, versioned
+custody, separately authorized and quality-gated substantive processing, safe
+shared admission, actual deployed reader readback, then scheduled recurrence
+and representative recovery for **every required family**. Metadata-only
+references, synthetic tests, PR merges or schedules alone do not qualify a desk.
+No arbitrary consecutive-day launch clock is introduced.
+
+**This records source scope and the success criterion only.** No source-use
+or publisher permission, commercial-model spend, collection or processing
+activation, human publication, external contact, merge, deployment, historical
+cleanup or declaration of operational completion is authorized. Actual
+source-specific grants/holds, the shared-desk standard, the workflow freeze
+and release contracts remain in force.
+
+## 2026-11-02 — Owner: one MPS number-only recovery attempt
+
+Benjamin Yang authorizes, in chat on 2 November 2026, **one** new processing
+attempt for each of the ten MPS Foreign Affairs versions held only for
+`E_NUMBER_MISMATCH` by the date-reading defect fixed in PR #955. This is a
+narrow recovery exception, not a reset or a retry policy. The exact identities,
+content hashes and holding runs are pinned in `processing/mps_recovery.py`.
+
+- Existing models, source-use permissions and per-run spending limits apply.
+  Prior attempts, outcomes and spending remain in the ledger; each new attempt
+  records the prior item, its retained model output and its own token cost.
+- Attempts run only in a manually dispatched first-attempt private
+  daily-bridge run, one reviewed batch at a time: two records, then four,
+  then four. The open batch advances only through a reviewed change, and
+  only after the previous batch's outputs are inspected against the originals
+  (dates, quantities and units, including same-number unit swaps, names,
+  attribution and action status).
+- Any non-published outcome, including a retryable provider failure, settles
+  that version permanently. A systemic defect or unexpected cost stops the
+  phase: no further batch opens. Unexpected cost means more than $0.10 of
+  provider-token cost for any one record, the bound of the configured models'
+  output ceilings on an MPS article.
+- Markers are written only when the run completes and its ledgers are pushed.
+  A dispatch that fails or aborts after starting therefore ends its batch's
+  exception: it is never re-dispatched without the owner, and that run's cost
+  is taken from its log and provider usage rather than the ledger.
+- An accepted recovery is withheld from the signed handoff until a reviewed
+  change names it in `RELEASED`; only then may the scheduled bridge sign it.
+- The seven MPS records with additional QA codes, every VPCP hold and the
+  accepted 29–30 October gaps are unchanged. A recovered record does not
+  validate any missing historical output.
+
+## 2026-11-01 — Official sources cited by Briefs become link-metadata Records
+
+Benjamin Yang's brief "Complete Source Admission and Editorial–Records
+Integration" (2026-11-01) directs that every eligible original-source document
+used in an IPR publication be a discoverable Record. It also covers backfill
+of approved publications. It does not authorize prose or credit changes. The same
+brief delegates this task's engineering and release: merge of the exact head after
+green required CI, and deployment through the existing output workflow.
+Decision: official publisher references in approved, non-review Briefs become
+Records that republish only the Brief's own reference metadata (doctrine §5b).
+This is not corpus admission: no source bytes, DB rows, desk coverage, new
+collector or rights override. Independent references, every MINDEF URL and the
+held Vietnam MPS/MOIT/VPCP families stay external-only. MINDEF's 2026-10-29
+permission covers hyperlinks from a Brief, not a standalone IPR page, so even
+its two approved links get no Record. A Record's route is keyed on the URL with
+scheme/host lowercased and the fragment dropped, so it is stable. When that URL
+is later collected as a corpus or machine Record, the cited route becomes a
+redirect to it. Any metadata conflict for one URL stops the build. A fresh-context
+proposal review returned PROCEED on the core and REJECT on MINDEF admission, and
+those fixes are applied. Every source
+document in the edition, Dossier and Timeline trails is already a corpus Record.
+Edition pages link back now. Dossier and Timeline back-links render only when
+those withheld works do. The China–Singapore Dossier's external references
+x1–x9 stay external. Their 2026-10-26 grant is linked use inside that Dossier
+only, and a Record would extend it. First result: 29 Records from five Briefs.
+4 independent references and 1 Vietnam MPS reference were omitted.
+
+## 2026-11-01 — Vietnam: 29–30 October missed slots accepted, not recovered
+
+Benjamin Yang accepted in chat the missing 29–30 October 2026 Vietnam MPS/VPCP
+Daily slots as a permanent gap. No owner-reviewed `target_date` recovery run
+will be made for them, and no ledger, attempt, hold or retry history is
+changed. A Vietnam `FETCH_FAILURE` row caused by the stale
+handoff envelope (runtime migration 5, PR #953) is the expected report of the
+missed private run, not a defect to suppress.
+
+## 2026-11-01 — Two Briefs: owner source review, presentation and covers
+
+Bylines approved by Benjamin Yang, Founder & Executive Director: **Benjamin
+Yang** is the sole author of "Japan and the United States Agree to Establish
+AMRAAM Final Assembly in Japan" (`japan-us-amraam-final-assembly-sm3-production`); **Benjamin Yang and
+Jophy Lin** (Communications Editor, credited co-author) wrote "Japan and the
+Philippines Narrow Their Destroyer Talks to a First Ship"
+(`japan-philippines-first-destroyer-2026`). Historical authorship is unchanged.
+
+Benjamin stated in chat that he has "completed my original-source review of both
+briefs at commit a6771416" and confirmed `original_language`, `claim_support`,
+`chronology` and `limited_source_use` for both manuscripts. In an earlier
+statement the same day he gave final editorial and presentation approval of both
+briefs at that commit, including the rendered pages, headings, bylines,
+citations and cover images, and approved publication under the source-linked
+evidence policy. The receipts bind editorial fingerprints
+`c2f58de2fb0c6ddfe4581a20454d419ecf4ddad72c3f39e466d7445f5a670eee` (AMRAAM) and
+`2102a7fb69b3a1f26ead62c9a74c2fff119f3d4c219834a88bff96bcc11da612` (destroyer).
+This is his own attestation, not an AI-assisted or inferred review; the agent's
+earlier source comparison is preparation only. The presentation receipts bind
+digests `3030a230d219af8a83032c372f4a7ee8772d2319680a2c61579e0d68bfade0d6` and
+`a7e8fbaebf5edbca7b753748e18c2347e0aeee3f58f299ca5717edbf5b52f616`.
+
+He explicitly accepted the AMRAAM s3 limitation: the official war.gov readout
+returns HTTP 403, and the readout comparison rests on the earlier publisher
+verification in PR 938 and the accessible republication. No new successful
+retrieval of the official page is claimed.
+
+Covers, approved for each Brief's article and catalogue card with the standard
+CSS gradient and retained credit: AMRAAM, DVIDS 9245688 / VIRIN
+250805-M-OV696-1094, Lance Cpl. Bryan Giraldo, U.S. Marine Corps, public domain,
+with the exact DVIDS notice; 5 August 2025 equipment context, **not** the planned
+Japanese facility or the October meeting. The retained file is the public
+1000-pixel preview; no master-image access is claimed. Destroyer, JMSDF
+photograph of JS Jintsu (DE-230) via Wikimedia Commons, CC BY 4.0; class context
+only, not an identified transfer hull, and no event date is asserted. Evidence:
+`docs/TWO_BRIEFS_RELEASE_2026-11-01.md`.
+
+## 2026-11-01 — Owner: freeze on new proof and contract workflows until Daily is stable
+
+Benjamin Yang froze the addition of new proof, contract, rehearsal or desk
+release workflows. main held 241 workflow files at 077b1a8096, after the
+ubuntu-24.04 runner pin (#941). Each new lane adds another schedule, check and
+maintenance owner while the shared Daily path is still being repaired. The
+freeze stops that coordination load from growing until the path is stable.
+
+1. No PR may add a file under `.github/workflows/` without a later owner entry in
+   this log. Four open PRs add one: #710, #712, #740 and #746. They stay open but
+   do not merge until the freeze lifts or the owner exempts them.
+2. Changes to existing workflows remain allowed when they keep a current lane
+   working or apply a standing decision. Examples: runner and dependency pins,
+   fixes to a broken check, the W1 integrator's changes to `daily_update.yml`,
+   and retiring a workflow the owner approved from the W3 triage list. A change
+   must not weaken a check merely to make a run pass.
+3. The freeze lifts when the W1 stop condition is met: 7 consecutive scheduled
+   Daily runs succeed, with `source_run_results` rows from all eight desks on
+   each day. That evidence is recorded in `PROJECT_STATE.md`. The owner may lift
+   or amend the freeze earlier by a new entry.
+
+The freeze closes nothing and pauses no existing schedule. It creates no source
+rights, spend, retry reset, merge, deployment or publication authority. Closing
+workflows, PRs or worktrees still needs owner approval of the W3 list.
 
 ## 2026-10-30 — Owner: mandatory shared desk structure across every desk
 
@@ -551,7 +1228,7 @@ prelaunch programs, including the seven-day minimum in the superseded
 rights or editorial decisions, required repository CI, source access controls,
 production write authority, model spending permission or owner approval of a
 new exact-scope public activation. Detailed default and flow:
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+[19 October historical architecture note](https://github.com/VSSpowerlifting/IndoPacificRecord/blob/baf9c09e3a55fbc0500d6ebf7c45515bc80a8058/docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md) (retired as current instruction; shared-desk rules now in `docs/desks/README.md`).
 
 ## 2026-10-19 — Engineering rule (proposed in the Vietnam Daily PR; not an owner ruling): Vietnam joins the shared Daily only through sealed per-family source use
 
@@ -607,7 +1284,7 @@ machine derivatives, widen DAPA/other source rights, merge code, activate
 workflows, or bypass signed human editorial decisions. Existing AFP link-only
 ruling, unresolved NSC policy/anomaly and all historical source-specific holds
 remain unchanged. Implementation is governed by
-`docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md` and the real evidence/publishing gates.
+[19 October historical architecture note](https://github.com/VSSpowerlifting/IndoPacificRecord/blob/baf9c09e3a55fbc0500d6ebf7c45515bc80a8058/docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md) (retired as current instruction; shared-desk rules now in `docs/desks/README.md`) and the real evidence/publishing gates.
 
 ## 2026-10-19 — Owner: Vietnam local encrypted backup and isolated restore
 

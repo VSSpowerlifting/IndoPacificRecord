@@ -1,5 +1,11 @@
 # Japan Coast Guard official English releases — isolated shadow pilot
 
+**Source-use authority:** evaluate each proposed use under
+[the canonical research-first standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard).
+The linked October rights dossier preserves evidence, not a mandatory publisher
+correspondence route or launch clock. Its unresolved English-PDL applicability,
+attachment, custody and activation limits remain unresolved here.
+
 **Status (October 8, 2026): the owner-dispatched shadow collector has archived
 three official English HTML releases on isolated `shadow/japan-jcg` (Day 0
 commit `81558026117067cbcf54bd7a7859a2d9db168a0c`). A guarded daily
@@ -61,6 +67,34 @@ Every eligible captured record must include the original English title,
 original body, official URL and publisher's article date, plus capture and
 content SHA-256 digests. The schema never uses a repeating headline as identity.
 The source is not a translation of Japanese MOD publications.
+
+### Index cross-section row observed October 26, 2026
+
+The read-only fidelity proof failed on every run from November 1, 2026
+(last pass October 14) with `listing_failure` / "URL is not a JCG English
+release identity". A single bounded diagnostic fetch of the English index on
+November 2, 2026 (HTTP 200, no redirect, no challenge, `robots.txt` still
+absent, publisher `Last-Modified: Mon, 26 Oct 2026 01:46:19 GMT`, capture
+SHA-256 `0637653c82fe9b000423dc5caf8496e558f905de7d16e2f09a9ecfcfb9dbbdc5`)
+showed 164 dated rows. 163 still link relative `article<digits>.html`
+releases. The newest row, dated `26 10 2026`, links the absolute first-party
+URL `https://www.kaiho.mlit.go.jp/info/topics/rescueforeignvessels.html`
+(`target="_blank"`), titled "Rescue Operations Involving Foreign Vessels in
+Waters Surrounding Japan （Update： October 26, 2026）". That is a standing
+information page in a different publisher section, not a dated release in
+the `topics_archive` family.
+
+**Decision:** this is not a release URL-scheme change, not transient and not
+an access block, so the release identity (`article<digits>.html` under
+`/e/topics_archive/`, https, no query or fragment) is unchanged and the page
+is **not** admitted. The listing parser now records an in-pilot-window row
+that links a first-party page *outside* `/e/topics_archive/` as an
+uncollected `outside_declared_url_family` row (exact URL and index date) in
+the listing report, instead of failing the whole index. Rows inside the
+archive directory that are not exact release identities, and any non-https or
+off-host rows, still fail the listing as before. The body of the linked page
+was not fetched; admitting that page family would need its own template,
+scope and rights review.
 
 ## Proofs and next steps
 

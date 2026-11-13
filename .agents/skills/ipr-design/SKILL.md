@@ -25,5 +25,6 @@ imply source diversity, precision or liveness the data lacks.
 
 Rendered `output/` is current truth (never hand-edit it; regenerate with
 `site/render.py`). Verify material UI changes at 1280px and 375px.
-Generic design skills (see `docs/AGENT_WORKFLOWS.md` §2) refine within this
-doctrine; they never override it.
+Generic design skills (see the task → capability map in
+`docs/AGENT_WORKFLOWS.md`) refine within this doctrine; they never
+override it.

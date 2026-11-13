@@ -58,9 +58,11 @@ class EditorialStaffTests(unittest.TestCase):
         self.assertNotIn("Euna", ROSTER.read_text(encoding="utf-8"))
         dylan = next(p for p in people if p["slug"] == "dylan-tanzi")
         self.assertEqual(dylan["links"]["LinkedIn"], "https://www.linkedin.com/in/dylan-tanzi/")
+        self.assertEqual(dylan["links"]["Email"], "mailto:dt822@georgetown.edu")
         self.assertIn("Vietnam Research Desk", dylan["bio"])
         founder = next(p for p in people if p["slug"] == "benjamin-yang")
         self.assertEqual(founder["links"]["LinkedIn"], "https://www.linkedin.com/in/benjamin-w-yang/")
+        self.assertEqual(founder["links"]["Email"], "mailto:ben.yang@gwmail.gwu.edu")
         self.assertIn("Indo-Pacific Record", founder["bio"])
         self.assertIn("primary-source evidence", founder["bio"])
         self.assertIn("As Executive Director", founder["bio"])
@@ -74,12 +76,15 @@ class EditorialStaffTests(unittest.TestCase):
         self.assertEqual(jophy["role"], "Communications Editor")
         self.assertEqual(jophy["bio"], "Jophy Lin studies International Affairs at the George Washington University’s Elliott School of International Affairs, where he is pursuing a Bachelor of Science with a second major in Finance on a pre-law track. As Communications Editor at the Indo-Pacific Record, he oversees the platform’s communications strategy and digital presence, working to make research and reporting on the Indo-Pacific accessible to a broader audience.")
         self.assertEqual(jophy["links"]["LinkedIn"], "https://www.linkedin.com/in/jophyl/")
+        self.assertEqual(jophy["links"]["Email"], "mailto:jophy.lin@gwmail.gwu.edu")
         self.assertFalse(any(p["slug"] == "christin-sawyer" for p in people))
 
     def test_invalid_roster_fails_closed(self):
         cases = [
         [{"slug": "../escape", "name": "A", "role": "Editor", "bio": "Research", "links": {}}],
         [{"slug": "valid", "name": "A", "role": "Editor", "bio": "Research", "links": {"Website": "javascript:alert(1)"}}],
+        [{"slug": "valid", "name": "A", "role": "Editor", "bio": "Research", "links": {"Email": "mailto:invalid"}}],
+        [{"slug": "valid", "name": "A", "role": "Editor", "bio": "Research", "links": {"LinkedIn": "mailto:someone@example.org"}}],
         [{"slug": "same", "name": "A", "role": "Editor", "bio": "Research", "links": {}},
          {"slug": "same", "name": "B", "role": "Editor", "bio": "Research", "links": {}}],
     ]
@@ -140,6 +145,7 @@ class EditorialStaffTests(unittest.TestCase):
         self.assertIn('application/ld+json', page)
         self.assertIn('"name": "Benjamin Yang"', page)
         self.assertIn("LinkedIn", page)
+        self.assertIn('href="mailto:ben.yang@gwmail.gwu.edu"', page)
 
 
 class StaffBuildTests(unittest.TestCase):
@@ -180,12 +186,14 @@ class StaffBuildTests(unittest.TestCase):
                 self.assertEqual(soup.select_one('.prose>p').get_text(), member['bio'])
                 self.assertEqual(soup.html['data-surface'], 'utility')
                 schema = json.loads(soup.select_one('script[type="application/ld+json"]').string)
+                self.assertIn('href="' + member["links"]["Email"] + '"', str(soup))
                 self.assertEqual(schema, {
                     '@context': 'https://schema.org', '@type': 'Person',
                     'name': member['name'], 'url': url, 'jobTitle': member['role'],
                     'worksFor': {'@type': 'Organization', 'name': 'Indo-Pacific Record',
                                  'url': 'https://indopacificrecord.org/'},
-                    'sameAs': list(member['links'].values()),
+                    'sameAs': [url for url in member['links'].values()
+                               if url.startswith('https://')],
                 })
                 for link in soup.select('a[href^="../"]'):
                     from urllib.parse import urlsplit, unquote
@@ -196,6 +204,45 @@ class StaffBuildTests(unittest.TestCase):
         self.assertIn('https://indopacificrecord.org/team.html', locations)
         self.assertEqual(team.select_one('link[rel=canonical]')['href'],
                          'https://indopacificrecord.org/team.html')
+
+    def test_every_published_brief_card_links_to_its_named_person(self):
+        """All rendered author/coauthor cards use matching public roster links."""
+        from bs4 import BeautifulSoup
+        roster = {person["name"]: person for person in load_staff(ROSTER)}
+        checked = 0
+        for page in sorted((self.out / "briefs").glob("*.html")):
+            soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
+            for card in soup.select(".brief-author"):
+                name_node = card.select_one(".brief-author-name")
+                if name_node is None:
+                    continue
+                name = name_node.get_text(" ", strip=True)
+                if name not in roster:
+                    continue
+                with self.subTest(brief=page.name, person=name):
+                    links = {a.get_text(" ", strip=True): a["href"]
+                             for a in card.select(".brief-author-links a")}
+                    person = roster[name]
+                    for label, expected_url in person["links"].items():
+                        self.assertEqual(links.get(label), expected_url)
+                    # No listed staff member may inherit another member's contact.
+                    for other_name, other in roster.items():
+                        if name != other_name:
+                            self.assertNotEqual(links.get("Email"), other["links"]["Email"])
+                            self.assertNotEqual(links.get("LinkedIn"), other["links"]["LinkedIn"])
+                    checked += 1
+        self.assertGreaterEqual(checked, 3)
+
+    def test_nonfounder_brief_without_explicit_links_has_no_founder_fallback(self):
+        from core.brief_collection import brief_view
+        source = json.loads((ROOT / "briefs/singapore-indonesia-first-joint-fighter-patrol.json").read_text())
+        self.assertEqual(source["author_name"], "Dylan Tanzi")
+        self.assertNotIn("author_links", source)
+        view = brief_view("singapore-indonesia-first-joint-fighter-patrol", source,
+                          desk_names={}, state_labels={}, state_order=[],
+                          language_label=str)
+        self.assertNotIn("LinkedIn", view["author_links"])
+        self.assertNotIn("Email", view["author_links"])
 
     def test_founder_title_propagates_to_current_public_surfaces(self):
         from bs4 import BeautifulSoup
@@ -239,7 +286,12 @@ class StaffBuildTests(unittest.TestCase):
         jophy = (self.out / 'authors/jophy-lin.html').read_text()
         self.assertIn('what-is-being-built-in-laos.html', ben)
         self.assertIn('what-is-being-built-in-laos.html', dylan)
-        self.assertNotIn('class="staff-work-list"', jophy)
+        self.assertIn('japan-philippines-first-destroyer-2026.html', jophy)
+        self.assertNotIn('what-is-being-built-in-laos.html', jophy)
+        destroyer = BeautifulSoup((self.out / 'briefs/japan-philippines-first-destroyer-2026.html').read_text(), 'html.parser')
+        self.assertEqual(destroyer.select_one('.brief-byline').get_text(), 'By Benjamin Yang and Jophy Lin')
+        self.assertEqual([a['href'] for a in destroyer.select('.brief-byline a')],
+                         ['../authors/benjamin-yang.html', '../authors/jophy-lin.html'])
         laos = BeautifulSoup((self.out / 'briefs/what-is-being-built-in-laos.html').read_text(), 'html.parser')
         self.assertEqual(laos.select_one('.brief-byline a')['href'], '../authors/benjamin-yang.html')
         contributor = laos.select('[aria-label="Co-author"]')[1]

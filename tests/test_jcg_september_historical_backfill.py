@@ -109,7 +109,9 @@ class JCGBackfillSafety(unittest.TestCase):
             self.assertEqual(set(initial.values()), {"37828199188-1"})
             new = {k:v for k,v in rows if k in {"jcg-en:9424","jcg-en:9399"}}
             self.assertEqual(set(new.values()), {"backfill-test-1"})
-            self.assertFalse((ROOT / "desks/japan/manifest.json").exists())
+            production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
+            self.assertNotIn("jcg", json.dumps(production).lower())
 
     def test_formal_reviewer_excludes_historical_backfill_from_day_coverage(self):
         with tempfile.TemporaryDirectory() as tmp:

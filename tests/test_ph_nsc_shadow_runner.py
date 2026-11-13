@@ -216,7 +216,10 @@ class TestRunner(RunnerCase):
         self.assertFalse(set(imports) & {"config", "storage.db", "pipeline"})
         literals = [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
         self.assertFalse(any(x in literals for x in ("pla_watch.db", "output/", "gh-pages")))
-        self.assertFalse((ROOT / "desks/philippines").exists())
+        production = json.loads((ROOT / "desks/philippines/manifest.json")
+                                .read_text(encoding="utf-8"))
+        self.assertNotIn("shadow_collect_ph_nsc", json.dumps(production))
+        self.assertTrue(all("adapter" not in s for s in production["sources"]))
 
 
 class TestSchedule(RunnerCase):
