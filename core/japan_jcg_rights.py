@@ -369,6 +369,26 @@ def qualify_row(custody: Custody, row: dict, policy, *, now: str,
     return None
 
 
+EVIDENCE_CODE = re.compile(r"[a-z_]{1,40}")
+
+
+def source_evidence(repo, commit) -> dict:
+    """Fixed status codes of the latest custody run: no URL, text or count.
+
+    ``site_terms`` is the latest run's terms-page outcome (``ok``, a fetch,
+    timeout, ``auth_failure`` or ``access_challenged`` refusal, or
+    ``not_reached``); ``listing`` is its listing status. A run that recorded
+    neither reports ``not_recorded``, so the operator can tell the cases apart.
+    """
+    ledgers = Custody(repo, commit).ledgers()
+    latest = ledgers[-1] if ledgers else {}
+    report = latest.get("listing_report")
+    terms = report.get("site_terms") if type(report) is dict else None
+    out = {"site_terms": terms, "listing": latest.get("listing_status")}
+    return {k: v if type(v) is str and EVIDENCE_CODE.fullmatch(v) else "not_recorded"
+            for k, v in out.items()}
+
+
 def qualify_rows(repo, commit, rows: Iterable[dict], *, now: Optional[str] = None
                  ) -> List[Optional[str]]:
     """Hold codes (or None) for each row, in order, against one pinned revision."""

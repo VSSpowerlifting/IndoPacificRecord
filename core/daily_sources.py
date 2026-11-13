@@ -122,6 +122,13 @@ class DailySource:
     # restores them once the hold clears; the signer neither releases nor
     # withdraws the identity meanwhile. Item-specific holds never resume.
     resumable_holds: Tuple[str, ...] = ()
+    # adapter: intake_dir -> (run-result status, fixed detail) | None. Lets a
+    # family report source-wide evidence (a refused terms page) on its own
+    # run-result row when the envelope alone would read as "nothing new".
+    evidence_report: Optional[str] = None
+
+    def evidence_outcome(self, intake_dir) -> Optional[Tuple[str, str]]:
+        return _call(self.evidence_report)(intake_dir) if self.evidence_report else None
 
     def public_switch_on(self, environ=None) -> bool:
         env = os.environ if environ is None else environ
@@ -386,6 +393,36 @@ JCG_RESUMABLE_HOLDS = (
 )
 
 
+def _jcg_evidence_report(intake_dir) -> Optional[Tuple[str, str]]:
+    """The latest JCG run's failed terms evidence, from the signed link envelope.
+
+    Only an authenticated envelope counts; a missing or refused one is
+    reported by the link-admission step itself. Codes only, never content.
+    """
+    import json
+    from pathlib import Path
+    from core import japan_jcg_links
+    from core.collection import status as st
+    path = Path(intake_dir) / (japan_jcg_links.FAMILY + ".links.json")
+    if not path.is_file() or path.stat().st_size > japan_jcg_links.MAX_ENVELOPE_BYTES:
+        return None
+    try:
+        packet = japan_jcg_links.authenticated_packet(
+            json.loads(path.read_text()), key=os.environ.get(japan_jcg_links.KEY_ENV, ""))
+    except (japan_jcg_links.LinkRefused, ValueError):
+        return None
+    evidence = packet.get("source_evidence")
+    if evidence is None or evidence["site_terms"] in (st.OK, "not_recorded"):
+        return None
+    terms = evidence["site_terms"]
+    refused = terms in (st.AUTH_FAILURE, st.ACCESS_CHALLENGED)
+    status = terms if terms in (st.AUTH_FAILURE, st.ACCESS_CHALLENGED, st.TIMEOUT,
+                                st.FETCH_FAILURE) else st.FETCH_FAILURE
+    return status, "%s: site terms %s, listing %s; queued outputs held, public records unchanged" % (
+        "jcg_site_terms_access_refused" if refused else "jcg_site_terms_unavailable",
+        terms, evidence["listing"])
+
+
 def _jcg_output_check(output) -> Optional[str]:
     ok = not output["model_flagged"] and re.search(
         r"\bJCG\b|\bJapan Coast Guard\b", output["summary"]) is not None
@@ -474,6 +511,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         known_hold="core.daily_sources:_jcg_known_hold",
         known_hold_reason="core.daily_sources:_jcg_known_hold_reason",
         resumable_holds=JCG_RESUMABLE_HOLDS,
+        evidence_report="core.daily_sources:_jcg_evidence_report",
         output_check="core.daily_sources:_jcg_output_check",
         parent="core.daily_sources:_jcg_parent",
         admission_migration="migrations.versions.m0023_japan_jcg_source_records:is_already_applied",

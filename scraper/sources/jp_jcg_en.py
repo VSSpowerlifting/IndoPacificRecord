@@ -29,6 +29,8 @@ LISTING = "https://" + HOST + "/e/topics_archive/index.html"
 # collected. Policy evidence only: no release scope is added, and a failed
 # capture refuses the run.
 POLICY_URL = "https://" + HOST + "/questions/post-1.html"
+# listing_report.site_terms when the run failed before requesting the terms.
+TERMS_NOT_REACHED = "not_reached"
 RELEASE = re.compile(r"^/e/topics_archive/article([0-9]+)\.html$")
 # Directory of the declared release family. An index row that links a
 # first-party page *outside* this directory (observed 2026-10-26: an
@@ -170,6 +172,10 @@ class JCGEnglishAdapter(ListingShadowAdapter):
             self.listing_report.update(self.listing_observation)
         if self.terms_status is not None:
             self.listing_report["site_terms"] = self.terms_status
+        elif not outcome.ok:
+            # robots.txt (or the host) failed before the terms were requested:
+            # this run holds no fresh terms evidence either.
+            self.listing_report["site_terms"] = TERMS_NOT_REACHED
         return outcome
 
     def parse_listing(self, text, request, number):

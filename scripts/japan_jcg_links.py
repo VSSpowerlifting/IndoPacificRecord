@@ -35,10 +35,13 @@ def main(argv=None) -> int:
     key = os.environ.get(links.KEY_ENV, "")
     try:
         if args.command == "sign":
-            envelope = links.sign_links(links.with_title_hash(verified_source(
-                args.source_checkout, args.source_commit, links.FAMILY)), key=key)
+            from core import japan_jcg_rights
+            records = links.with_title_hash(verified_source(
+                args.source_checkout, args.source_commit, links.FAMILY))
+            evidence = japan_jcg_rights.source_evidence(args.source_checkout, args.source_commit)
+            envelope = links.sign_links(records, key=key, source_evidence=evidence)
             Path(args.output).write_text(json.dumps(envelope, sort_keys=True))
-            receipt = {"signed_links": len(envelope["packet"]["links"])}
+            receipt = {"signed_links": len(envelope["packet"]["links"]), "source_evidence": evidence}
         else:
             path = Path(args.envelope)
             if not path.exists():
@@ -46,11 +49,13 @@ def main(argv=None) -> int:
                 return 0
             if path.stat().st_size > links.MAX_ENVELOPE_BYTES:
                 raise links.LinkRefused("jcg_link_envelope_too_large")
+            envelope = json.loads(path.read_text())
             with sqlite3.connect(args.database, timeout=30) as conn:
-                summary = links.admit_signed_links(conn, json.loads(path.read_text()), key=key)
+                summary = links.admit_signed_links(conn, envelope, key=key)
             receipt = {"admitted": len(summary["admitted"]),
                        "unchanged": len(summary["unchanged"]),
-                       "held": summary["held"], "refused": summary["refused"]}
+                       "held": summary["held"], "refused": summary["refused"],
+                       "source_evidence": envelope["packet"].get("source_evidence")}
     except (links.LinkRefused, ValueError) as exc:
         # IntakeHold is a ValueError: fixed reason codes only, never content.
         reason = str(exc) if isinstance(exc, links.LinkRefused) or type(exc).__name__ == "IntakeHold" \

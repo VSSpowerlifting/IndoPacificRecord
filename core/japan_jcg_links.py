@@ -278,14 +278,28 @@ def _mac(key: str, raw: bytes) -> str:
     return hmac.new(key.encode(), LINKS_DOMAIN + raw, hashlib.sha256).hexdigest()
 
 
-def sign_links(records: Iterable[dict], *, key: str) -> dict:
+EVIDENCE_KEYS = ("site_terms", "listing")
+EVIDENCE_CODE = re.compile(r"[a-z_]{1,40}")
+
+
+def _evidence_ok(evidence) -> bool:
+    return (type(evidence) is dict and set(evidence) == set(EVIDENCE_KEYS)
+            and all(type(v) is str and EVIDENCE_CODE.fullmatch(v) for v in evidence.values()))
+
+
+def sign_links(records: Iterable[dict], *, key: str,
+               source_evidence: Optional[dict] = None) -> dict:
     """Signed link-scope envelope for verified custody records.
 
     Only the fields in ``LINK_FIELDS`` leave private custody: no title, no
     text. A row outside the standing HTML-text family is not sent; any other
     record that would be refused at public admission stops the signing rather
-    than being dropped silently.
+    than being dropped silently. ``source_evidence`` (fixed status codes from
+    ``japan_jcg_rights.source_evidence``) tells the public operator report
+    whether the latest run reached the publisher's terms.
     """
+    if source_evidence is not None and not _evidence_ok(source_evidence):
+        raise LinkRefused("jcg_link_source_evidence_invalid")
     if type(key) is not str or len(key) < 32:
         raise LinkRefused("jcg_link_key_invalid")
     links = []
@@ -297,6 +311,8 @@ def sign_links(records: Iterable[dict], *, key: str) -> dict:
     if len(links) > MAX_LINKS:
         raise LinkRefused("jcg_link_envelope_too_large")
     packet = {"schema": LINKS_SCHEMA, "family": FAMILY, "links": links}
+    if source_evidence is not None:
+        packet["source_evidence"] = dict(source_evidence)
     raw = _canonical(packet)
     if len(raw) > MAX_ENVELOPE_BYTES:
         raise LinkRefused("jcg_link_envelope_too_large")
@@ -310,6 +326,11 @@ def admit_signed_links(conn, envelope, *, key: str, now: Optional[str] = None) -
     link is still re-checked by ``admit_links``, so the envelope adds
     authentication and never relaxes a rule.
     """
+    return admit_links(conn, authenticated_packet(envelope, key=key)["links"], now=now)
+
+
+def authenticated_packet(envelope, *, key: str) -> dict:
+    """The packet of a link envelope whose MAC and exact shape verify."""
     if type(key) is not str or len(key) < 32:
         raise LinkRefused("jcg_link_key_invalid")
     if type(envelope) is not dict or set(envelope) != {"packet", "mac"} \
@@ -320,8 +341,10 @@ def admit_signed_links(conn, envelope, *, key: str, now: Optional[str] = None) -
     if len(raw) > MAX_ENVELOPE_BYTES or not hmac.compare_digest(_mac(key, raw), envelope["mac"]):
         raise LinkRefused("jcg_link_envelope_mac_invalid")
     links = packet.get("links")
-    if set(packet) != {"schema", "family", "links"} or packet["schema"] != LINKS_SCHEMA \
+    keys = set(packet) - {"source_evidence"}
+    if keys != {"schema", "family", "links"} or packet["schema"] != LINKS_SCHEMA \
             or packet["family"] != FAMILY or type(links) is not list or len(links) > MAX_LINKS \
-            or not all(type(link) is dict and set(link) == set(LINK_FIELDS) for link in links):
+            or not all(type(link) is dict and set(link) == set(LINK_FIELDS) for link in links) \
+            or ("source_evidence" in packet and not _evidence_ok(packet["source_evidence"])):
         raise LinkRefused("jcg_link_envelope_invalid")
-    return admit_links(conn, links, now=now)
+    return packet

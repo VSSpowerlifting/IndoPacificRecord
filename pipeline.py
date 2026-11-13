@@ -371,6 +371,16 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
         unchanged = max(receipt["records"] - admitted, 0)
         logger.info("%s: governed admission — %d records, %d admitted, %d held",
                     family, receipt["records"], admitted, len(receipt["holds"]))
+        from core.daily_sources import source_for
+        source = source_for(family)
+        evidence = source.evidence_outcome(intake_dir) if source is not None else None
+        if evidence is not None:
+            # Source-wide evidence failed upstream (JCG: the terms page). The
+            # envelope then carries nothing new, which must not read as quiet.
+            status, detail = evidence
+            logger.warning("%s: %s", family, detail)
+            return GovernedOutcome(status, new_documents=admitted, duplicates=unchanged,
+                                   error_detail=detail)
         return _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
 
     return GovernedAdmission("daily_intake", inactive_reason, admit,

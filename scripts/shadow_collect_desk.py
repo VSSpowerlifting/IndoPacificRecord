@@ -27,6 +27,11 @@ from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter
 from scraper.sources.kr_dapa_policy_briefing import KoreaDapaPolicyAdapter
 from scraper.sources.jp_jcg_en import JCGEnglishAdapter
 
+# Source-side transport failures of the JCG listing that, together with a failed
+# terms capture, are a transient whole-source outage rather than a defect.
+JCG_OUTAGE_STATUSES = frozenset((st.FETCH_FAILURE, st.TIMEOUT, st.AUTH_FAILURE,
+                                 st.ACCESS_CHALLENGED))
+
 DESKS = {
     "indonesia": ("id_kemhan", KemhanAdapter, "shadow/indonesia-kemhan"),
     "korea": ("kr_policy_briefing", KoreaPolicyAdapter, "shadow/korea-policy-briefing"),
@@ -197,6 +202,16 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
             if not discovery.ok:
                 entry.update(result=discovery.status, error_detail=discovery.error_detail)
                 entry["access_failures"] += discovery.status in (st.AUTH_FAILURE, st.ACCESS_CHALLENGED)
+                terms = entry["listing_report"].get("site_terms")
+                if (desk == "japan_jcg" and not historical_backfill
+                        and discovery.status in JCG_OUTAGE_STATUSES
+                        and terms is not None and terms != st.OK):
+                    # Terms and listing both unreachable. The run stays a
+                    # failure (result, health, no shadow day), but it exits 0
+                    # so the private workflow re-signs from this ledger: the
+                    # failed terms evidence then holds every queued output
+                    # (resumable) instead of leaving the last envelope live.
+                    entry["jcg_source_outage_hold"] = True
             elif historical_backfill and (
                     len(discovery.references) != len(JCG_BACKFILL_EXPECTED) or
                     {r.url: r.hint_published_date for r in discovery.references} != JCG_BACKFILL_EXPECTED):
@@ -333,6 +348,8 @@ def main(argv=None):
         print("collection refused: " + str(exc), file=sys.stderr)
         return 2
     print(json.dumps(entry, ensure_ascii=False, indent=2))
+    if entry.get("jcg_source_outage_hold") is True and args.desk == "japan_jcg":
+        return 0
     return 0 if entry["health"] in ("ok", "skipped") else 1
 
 

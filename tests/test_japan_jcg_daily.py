@@ -905,9 +905,13 @@ class JcgPolicyEvidenceTransitions(unittest.TestCase):
             self.assertEqual(results[links.LINKS_NAME], "fetched")
             self.assertEqual(bridge.main(["admit", "--database", str(self.db), "--envelope",
                                           str(self.public_in / links.LINKS_NAME)]), 0)
-            entry = pipeline._daily_admission(FAMILY)
-            self.assertIsNone(entry.inactive_reason())
-            outcome = entry.admit(1)
+            self.assertIsNone(pipeline._daily_admission(FAMILY).inactive_reason())
+            # The governed dispatcher writes this result as the family's
+            # source_run_results row: the operator report's per-source line.
+            from core.registry import get_registry
+            self.errors = []
+            [outcome] = pipeline.run_governed_manual_sources(
+                [FAMILY], 1, get_registry(), self.errors)
         envelope = json.loads((self.public_in / (FAMILY + ".json")).read_text())
         with sqlite3.connect(str(self.db)) as conn:
             public = [r[0] for r in conn.execute(
@@ -919,6 +923,157 @@ class JcgPolicyEvidenceTransitions(unittest.TestCase):
         self.assertEqual(parents, [IDENT, IDENT2])  # parents stay admitted throughout
         return {"records": len(envelope["packet"]["records"]),
                 "outcome": outcome}, public
+
+    def outage_run(self, run_id, *, failure, terms_only=False):
+        """A real collector run (scripts/shadow_collect_desk.main) into custody.
+
+        ``failure`` is how the publisher fails: "503", "403", "timeout",
+        "host" (robots.txt unreachable, so nothing else is requested) or
+        "listing" (the listing alone returns 503). The
+        terms page and listing both fail unless ``terms_only``. The run's
+        state is committed and the link-bridge step signs, as the private
+        workflow does after the collector step. Returns (exit code, ledger
+        entry, pinned commit).
+        """
+        import contextlib
+        import functools
+        import io
+        import requests as http
+        from scraper.sources.jp_jcg_en import JCGEnglishAdapter, LISTING, POLICY_URL
+        from scripts import shadow_collect_desk as runner
+        from tests.test_japan_jcg_manual_shadow_gate import HOST, MemorySession, Response
+        state = self.repo / "state"
+        with sqlite3.connect(str(state / "shadow.db")) as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS shadow_meta (desk TEXT)")
+            if not conn.execute("SELECT 1 FROM shadow_meta").fetchone():
+                conn.execute("INSERT INTO shadow_meta VALUES ('japan_jcg')")
+        session = MemorySession()
+        failing = {"host": [HOST + "/robots.txt"], "listing": [LISTING]}.get(
+            failure, [POLICY_URL] if terms_only else [POLICY_URL, LISTING])
+        if failure in ("503", "403", "listing"):
+            for url in failing:
+                session.pages[url] = Response(url, b"<html></html>",
+                                              503 if failure == "listing" else int(failure))
+        else:
+            serve = session.request
+            error = http.Timeout("synthetic") if failure == "timeout" else \
+                http.ConnectionError("synthetic")
+
+            def request(method, url, data, headers, **kwargs):
+                if url in failing:
+                    session.calls.append(url)
+                    raise error
+                return serve(method, url, data, headers, **kwargs)
+            session.request = request
+        adapter = functools.partial(JCGEnglishAdapter, session=session, sleeper=lambda _: None)
+        before = set((state / "ledger").iterdir())
+        with patch.dict(runner.DESKS, {"japan_jcg": ("jp_jcg", adapter, "shadow/japan-jcg")}), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = runner.main([
+                "--desk", "japan_jcg", "--state-dir", str(state), "--lookback-days", "9",
+                "--cap", "20", "--run-id", run_id, "--event-name", "workflow_dispatch",
+                "--run-attempt", "1", "--target-date", "2026-11-12"])
+        [ledger] = set((state / "ledger").iterdir()) - before
+        entry = json.loads(ledger.read_text())
+        git = ["git", "-C", str(self.repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+        subprocess.run(git + ["add", "state"], check=True)
+        subprocess.run(git + ["commit", "-qm", "attempt " + run_id], check=True)
+        head = subprocess.run(git + ["rev-parse", "HEAD"], check=True, capture_output=True,
+                              text=True).stdout.strip()
+        if code == 0:  # the workflow signs links only after a successful collector step
+            self.sign_links(head)
+        return code, entry, head
+
+    def test_an_outage_run_holds_the_queued_output_and_valid_evidence_resumes_it(self):
+        one = FAMILY + ":" + IDENT
+        state, queued = self.shared_processing(self.head)
+        self.assertEqual([r["source_identity"] for r in queued["packet"]["records"]], [IDENT])
+        output = state[one]["output"]
+        calls = self.model.analyze_record.call_count
+        # The terms page and listing both return 503. The collector records a
+        # failed run (no shadow day) but exits 0, so the existing handoff runs:
+        # the link bridge signs no new parent and shared processing re-signs.
+        code, entry, lapsed = self.outage_run("89-1", failure="503")
+        self.assertEqual(code, 0)
+        self.assertEqual((entry["result"], entry["health"], entry["listing_report"]["site_terms"],
+                          entry["jcg_source_outage_hold"], entry["inserted"]),
+                         ("fetch_failure", "fail", "fetch_failure", True, 0))
+        self.assertFalse((self.repo / "state/clock.json").exists())
+        bridge = json.loads((self.handoff / links.LINKS_NAME).read_text())
+        self.assertEqual(bridge["packet"]["links"], [])
+        self.assertEqual(bridge["packet"]["source_evidence"],
+                         {"site_terms": "fetch_failure", "listing": "fetch_failure"})
+        state, envelope = self.shared_processing(lapsed)
+        self.assertEqual((state[one]["status"], state[one]["held_from"], state[one]["reason"]),
+                         ("held", "complete", "jcg_rights_policy_capture_failed"))
+        self.assertEqual((envelope["packet"]["records"], envelope["packet"]["held"]), ([], [IDENT2]))
+        self.assertEqual(self.model.analyze_record.call_count, calls)  # no model spend
+        # The public Daily admits nothing from the previously queued envelope,
+        # and the family's run-result row reports the outage, not a quiet day.
+        receipt, public = self.public_daily()
+        self.assertEqual((receipt["records"], public), (0, []))
+        self.assertEqual(receipt["outcome"].status, "fetch_failure")
+        self.assertTrue(receipt["outcome"].error_detail.startswith("jcg_site_terms_unavailable"))
+        self.assertTrue(any("jcg_site_terms_unavailable" in e for e in self.errors))
+        # Valid evidence returns: the unchanged item resumes without a model call.
+        restored = self.collector_run("90-1", terms="ok")
+        state, envelope = self.shared_processing(restored)
+        self.assertEqual((state[one]["status"], state[one]["attempts"]), ("complete", 0))
+        self.assertEqual(state[one]["output"]["summary"], output["summary"])
+        self.assertEqual(self.model.analyze_record.call_count, calls)
+        receipt, public = self.public_daily()
+        self.assertEqual((receipt["records"], public), (1, [IDENT]))
+        self.assertEqual(receipt["outcome"].status, "ok")
+
+    def test_an_outage_keeps_already_public_records_and_reports_each_failure(self):
+        self.shared_processing(self.head)
+        self.assertEqual(self.public_daily()[1], [IDENT])
+        with sqlite3.connect(str(self.db)) as conn:
+            before = conn.execute("SELECT * FROM daily_machine_records").fetchall()
+        for n, (failure, terms, status, refused) in enumerate((
+                ("503", "fetch_failure", "fetch_failure", False),
+                ("timeout", "timeout", "timeout", False),
+                ("403", "auth_failure", "auth_failure", True),
+                ("host", "not_reached", "fetch_failure", False))):
+            with self.subTest(failure):
+                code, entry, head = self.outage_run("8%d-1" % n, failure=failure)
+                self.assertEqual((code, entry["health"], entry["listing_report"]["site_terms"]),
+                                 (0, "fail", terms))
+                _, envelope = self.shared_processing(head)
+                self.assertNotIn(IDENT, envelope["packet"]["held"])  # nothing is withdrawn
+                receipt, public = self.public_daily()
+                self.assertEqual(public, [IDENT])
+                self.assertEqual(receipt["outcome"].status, status)
+                self.assertEqual(receipt["outcome"].error_detail.split(":")[0],
+                                 "jcg_site_terms_access_refused" if refused
+                                 else "jcg_site_terms_unavailable")
+        with sqlite3.connect(str(self.db)) as conn:
+            self.assertEqual(conn.execute("SELECT * FROM daily_machine_records").fetchall(), before)
+
+    def test_a_terms_page_refusal_alone_is_on_the_operator_report(self):
+        one = FAMILY + ":" + IDENT
+        self.shared_processing(self.head)
+        code, entry, head = self.outage_run("89-1", failure="403", terms_only=True)
+        self.assertEqual((code, entry["health"], entry["result"], entry["listing_report"]["site_terms"]),
+                         (0, "ok", "ok_no_publications", "auth_failure"))
+        self.assertNotIn("jcg_source_outage_hold", entry)
+        state, _ = self.shared_processing(head)
+        self.assertEqual(state[one]["reason"], "jcg_rights_policy_capture_failed")
+        receipt, public = self.public_daily()
+        self.assertEqual((public, receipt["outcome"].status), ([], "auth_failure"))
+        self.assertEqual(receipt["outcome"].error_detail,
+                         "jcg_site_terms_access_refused: site terms auth_failure, listing "
+                         "ok_no_publications; queued outputs held, public records unchanged")
+
+    def test_a_listing_failure_with_valid_terms_still_fails_the_collector(self):
+        signed = (self.handoff / links.LINKS_NAME).read_text()
+        # Terms captured, listing 503: not an outage hold. The collector step
+        # fails as before, so the workflow neither signs nor re-processes.
+        code, entry, _ = self.outage_run("89-1", failure="listing")
+        self.assertEqual((code, entry["result"], entry["listing_report"]["site_terms"]),
+                         (1, "fetch_failure", "ok"))
+        self.assertNotIn("jcg_source_outage_hold", entry)
+        self.assertEqual((self.handoff / links.LINKS_NAME).read_text(), signed)
 
     def test_failed_terms_capture_blocks_a_queued_output_and_valid_terms_resume_it(self):
         one, two = FAMILY + ":" + IDENT, FAMILY + ":" + IDENT2
