@@ -1,0 +1,91 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "south-korea-nuclear-submarine-strategy-fuel-2026",
+  "manuscript_fingerprint": "f22cb7df7eb63adc5fca1a9a60c72fc1bd75401309578c9d423d79ac6f1462ad",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 2,
+      "heading": "Approved on Nov. 6"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 3,
+      "end": 5,
+      "heading": "What the committee settled"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 6,
+      "end": 9,
+      "heading": "Fuel runs through Washington"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 10,
+      "end": 11,
+      "heading": "Safeguards at the notice stage"
+    },
+    {
+      "id": "reading-section-5",
+      "start": 12,
+      "end": 13,
+      "heading": "Two tracks, two speeds"
+    }
+  ],
+  "central_finding": {
+    "paragraph": 13,
+    "quote": "South Korea has an approved way to build the submarine and no settled source for what will power it",
+    "sources": [
+      "s8",
+      "s10",
+      "s4"
+    ]
+  },
+  "evidence": {
+    "establishes": [
+      {
+        "paragraph": 1,
+        "quote": "it says only that a cost analysis is under way",
+        "sources": [
+          "s1"
+        ]
+      },
+      {
+        "paragraph": 8,
+        "quote": "one vice-ministerial round involving the foreign ministry has taken place, and no agreement exists",
+        "sources": [
+          "s4"
+        ]
+      },
+      {
+        "paragraph": 11,
+        "quote": "South Korea had formally notified the Secretariat that it intended to begin consultations on an Article 14 arrangement",
+        "sources": [
+          "s8"
+        ]
+      }
+    ],
+    "uncertain": [
+      {
+        "paragraph": 5,
+        "quote": "figures that appear nowhere in DAPA’s release",
+        "sources": [
+          "s2",
+          "s1"
+        ]
+      },
+      {
+        "paragraph": 9,
+        "quote": "The statute gives Congress a narrower lever than that suggests",
+        "sources": [
+          "s10",
+          "s4"
+        ]
+      }
+    ]
+  },
+  "approval": null
+}
