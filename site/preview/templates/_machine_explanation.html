@@ -12,7 +12,7 @@
     {% if record.cited_in %}<section class="record-section" aria-labelledby="cited-in"><h2 id="cited-in">Cited in</h2>
       <ul>
       {% for ref in record.cited_in %}
-        <li><a href="../{{ ref.url }}#{{ ref.anchor }}">{{ ref.title }}</a> <span class="meta">{{ ref.series_name }} No. {{ ref.issue }} · week ending {{ ref.date | reader_date }} · publisher reference</span></li>
+        <li><a href="../{{ ref.url }}#{{ ref.anchor }}">{{ ref.title }}</a> <span class="meta">{{ ref.series_name }} No. {{ ref.issue }} · week ending {{ ref.date }} · publisher reference</span></li>
       {% endfor %}
       </ul>
       <p class="meta">The Brief identifies which of its claims rest on this source. This machine explanation is not the Brief's evidence.</p>
