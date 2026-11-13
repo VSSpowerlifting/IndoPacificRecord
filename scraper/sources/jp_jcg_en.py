@@ -18,7 +18,8 @@ from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup, NavigableString
 
 from core.collection.contract import ExtractedDocument
-from scraper.sources.desk_shadow_http import ListingShadowAdapter, Page
+from core.collection import status as st
+from scraper.sources.desk_shadow_http import ListingShadowAdapter, Page, Refused
 
 HOST = "www.kaiho.mlit.go.jp"
 LISTING = "https://" + HOST + "/e/topics_archive/index.html"
@@ -151,13 +152,24 @@ class JCGEnglishAdapter(ListingShadowAdapter):
     host, listing = HOST, LISTING
 
     def first_request(self, window):
-        self._request(POLICY_URL)
+        # The terms page is rights evidence, not a discovery precondition. A
+        # failed capture is recorded and the run continues, so the shared Daily
+        # re-signs this run's state: the rights replay then holds every row on
+        # the newer failed attempt instead of a stale envelope staying signed.
+        try:
+            self._request(POLICY_URL)
+            self.terms_status = st.OK
+        except Refused as exc:
+            self.terms_status = exc.status
         return self.listing, None
 
     def discover(self, window):
+        self.terms_status = None
         outcome = super().discover(window)
         if outcome.ok and hasattr(self, "listing_observation"):
             self.listing_report.update(self.listing_observation)
+        if self.terms_status is not None:
+            self.listing_report["site_terms"] = self.terms_status
         return outcome
 
     def parse_listing(self, text, request, number):

@@ -104,7 +104,7 @@ class JapanJCGManualShadow(unittest.TestCase):
         self.assertNotIn("pla_watch.db", text)
         self.assertNotIn("/jcg-state/state/", text.split("path:", 1)[-1])
 
-    def test_run_captures_the_site_terms_and_refuses_without_them(self):
+    def test_run_captures_the_site_terms_and_records_a_failed_capture(self):
         config = load_manifest(ROOT / "shadow/jp_jcg/manifest.json")
         with tempfile.TemporaryDirectory() as temp:
             state = Path(temp) / "state"
@@ -116,16 +116,35 @@ class JapanJCGManualShadow(unittest.TestCase):
             terms = [r for r in first["requests"] if r["requested_url"] == POLICY_URL]
             self.assertEqual([(r["http_status"], r["final_url"]) for r in terms],
                              [(200, POLICY_URL)])
+            self.assertEqual(first["listing_report"]["site_terms"], "ok")
             self.assertTrue((state / "captures" / (terms[0]["capture_sha256"] + ".bin")).is_file())
-        with tempfile.TemporaryDirectory() as temp:
-            gone = MemorySession()
-            gone.pages[POLICY_URL] = Response(POLICY_URL, b"<html></html>", 404)
-            a = JCGEnglishAdapter(config.sources[0], session=gone, sleeper=lambda _: None)
-            refused = runner.run("japan_jcg", Path(temp) / "state", date(2026, 10, 8),
-                                 lookback=9, cap=20, adapter=a, run_id="jcg-terms-2")
-            self.assertEqual(refused["health"], "fail")
-            self.assertEqual(refused["inserted"], 0)
-            self.assertNotIn(LISTING, gone.calls)
+        # A failed terms capture is rights evidence, not a discovery failure:
+        # the run completes and records the failure, so the shared Daily
+        # re-signs and the rights replay holds every row on the newer attempt.
+        import requests
+        for label, page, want in (
+                ("404", Response(POLICY_URL, b"<html></html>", 404), "fetch_failure"),
+                ("503", Response(POLICY_URL, b"<html></html>", 503), "fetch_failure"),
+                ("timeout", requests.Timeout("synthetic"), "timeout")):
+            with self.subTest(label), tempfile.TemporaryDirectory() as temp:
+                gone = MemorySession()
+                gone.pages[POLICY_URL] = page
+                if isinstance(page, Exception):
+                    serve = gone.request
+
+                    def failing(method, url, data, headers, **kwargs):
+                        if url == POLICY_URL:
+                            gone.calls.append(url)
+                            raise page
+                        return serve(method, url, data, headers, **kwargs)
+                    gone.request = failing
+                a = JCGEnglishAdapter(config.sources[0], session=gone, sleeper=lambda _: None)
+                entry = runner.run("japan_jcg", Path(temp) / "state", date(2026, 10, 8),
+                                   lookback=9, cap=20, adapter=a, run_id="jcg-terms-2")
+                self.assertEqual(entry["health"], "ok")
+                self.assertEqual(entry["listing_report"]["site_terms"], want)
+                self.assertEqual(gone.calls[:3], [HOST + "/robots.txt", POLICY_URL, LISTING])
+                self.assertEqual(entry["inserted"], 1)
 
     def test_mock_one_run_stores_shadow_only_and_replay_is_idempotent(self):
         config = load_manifest(ROOT / "shadow/jp_jcg/manifest.json")

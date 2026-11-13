@@ -199,14 +199,24 @@ def _policy_text(raw: bytes) -> str:
 
 def verify_policy(custody: Custody) -> dict:
     """The contract's policy receipt from the latest custody capture of the terms."""
-    latest = None
+    from core.collection import status as st
+    latest, failed = None, False
     for entry in custody.ledgers():
+        report = entry.get("listing_report")
+        terms = report.get("site_terms") if type(report) is dict else None
+        if terms is not None and terms != st.OK:
+            # A newer failed attempt, in any run, supersedes every earlier
+            # capture until a later successful run captures the terms again.
+            failed = True
+            continue
         if not _successful(entry):
             continue
         hits = [r for r in entry["requests"]
                 if type(r) is dict and r.get("requested_url") == POLICY_URL]
         if hits:
-            latest = hits[-1]
+            latest, failed = hits[-1], False
+    if failed:
+        raise RightsHold("jcg_rights_policy_capture_failed")
     if latest is None:
         raise RightsHold("jcg_rights_policy_capture_missing")
     if not _html_request(latest, POLICY_URL):

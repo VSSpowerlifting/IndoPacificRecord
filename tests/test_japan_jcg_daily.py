@@ -764,6 +764,264 @@ class JcgAdmission(unittest.TestCase):
         self.assertNotIn(self.key, proc.stdout + proc.stderr)
 
 
+IDENT2 = "jcg-en:90002"
+QUOTED = (FIRST + "\n\n" + SECOND + ' The visiting commandant said "our two services will '
+          'keep training together on every patrol route across the region this year."')
+
+
+def commit_run(repo, run_id, *, terms, raw=None):
+    """Commit a later collector run to custody; returns the new pinned commit.
+
+    ``terms`` is "ok" (a fresh capture of the synthetic terms page) or the
+    failure status the collector records in listing_report["site_terms"]; a
+    failed attempt keeps the publisher's 503 evidence, as _request does (a
+    timeout keeps none); ``raw``
+    replaces the captured terms page. The
+    run itself succeeds and adds no new rows, as a quiet collector day does.
+    """
+    now = datetime.now(timezone.utc)
+    if terms == "ok":
+        raw = raw or policy_page()
+        (repo / "state/captures" / (hashlib.sha256(raw).hexdigest() + ".bin")).write_bytes(raw)
+        attempts = [request(rights.POLICY_URL, raw, now)]
+    elif terms == "timeout":
+        attempts = []  # _request keeps no evidence when no response arrives
+    else:
+        attempts = [dict(request(rights.POLICY_URL, b"<html></html>", now), http_status=503)]
+    (repo / "state/ledger" / (now.strftime("%Y%m%dT%H%M%S%f") + "-" + run_id + ".json")).write_text(
+        json.dumps({"run_id": run_id, "result": "ok_no_publications", "finished_utc": iso(now),
+                    "listing_report": {"site_terms": terms}, "requests": attempts}))
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+    subprocess.run(git + ["add", "state"], check=True)
+    subprocess.run(git + ["commit", "-qm", "run " + run_id], check=True)
+    return subprocess.run(git + ["rev-parse", "HEAD"], check=True, capture_output=True,
+                          text=True).stdout.strip()
+
+
+class JcgPolicyEvidenceTransitions(unittest.TestCase):
+    """Two policy-evidence transitions through the existing handoff and queue.
+
+    Private side: the collector workflow's link-bridge step
+    (scripts/japan_jcg_links.py sign), then processing.daily_runner.private_run,
+    which the shared Daily processing workflow runs with --private-daily-state
+    handoff/queues/F.json and --private-daily-out handoff/envelopes. Public
+    side: scripts/fetch_daily_machine_outputs.py (its private-branch read
+    served from the handoff directory), the link admit CLI, then
+    pipeline._daily_admission. Policy, key and switch values are synthetic;
+    the model is a fake; nothing contacts the publisher or GitHub.
+    """
+
+    def setUp(self):
+        import os
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.db = self.tmp / "public.db"
+        build_legacy_db(self.db)
+        migrate(self.db)
+        meta2 = dict(META, source_identity=IDENT2)
+        self.repo, self.head = build_custody(
+            self.tmp, [(IDENT, TITLE, BODY, DAY, META), (IDENT2, TITLE + " two", QUOTED, DAY, meta2)])
+        self.p = policy()
+        self.key = "synthetic-japan-jcg-key-" * 2
+        records = links.with_title_hash(d.verified_source(self.repo, self.head, FAMILY))
+        holds = {r["source_identity"]: r["jcg_scope_hold"] for r in records}
+        self.assertEqual(holds, {IDENT: None, IDENT2: "jcg_rights_item_third_party_text"})
+        # IDENT2's parent stands in for one admitted before its item-level
+        # replay held it: the case that leaves an item-specific rights hold in
+        # the private queue rather than outside it.
+        with sqlite3.connect(str(self.db)) as conn:
+            conn.execute("PRAGMA foreign_keys=ON")
+            parents = links.admit_links(conn, [dict(r, jcg_scope_hold=None) for r in records],
+                                        now="2026-11-12T00:00:00Z")
+        self.assertEqual(sorted(parents["admitted"]), [IDENT, IDENT2])
+        self.handoff = self.tmp / "handoff"
+        self.queue = self.handoff / "queues" / (FAMILY + ".json")
+        self.envelopes = self.handoff / "envelopes"
+        self.public_in = self.tmp / "public-machine-outputs"
+        self.model = analyzer()
+        self.factory = Mock(return_value=self.model)
+        self.env = patch.dict(os.environ, {"DAILY_OUTPUT_KEY": self.key,
+                                           SOURCES[FAMILY].key_env: self.key,
+                                           "JP_JCG_LINKS_ENABLED": "true"})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.handoff.mkdir()
+        signed = self.sign_links(self.head)
+        self.assertEqual([l["source_identity"] for l in signed["packet"]["links"]], [IDENT])
+
+    def collector_run(self, run_id, *, terms, raw=None):
+        """A later collector run committed to custody, then its link-bridge step."""
+        head = commit_run(self.repo, run_id, terms=terms, raw=raw)
+        self.sign_links(head)
+        return head
+
+    def sign_links(self, head):
+        from scripts import japan_jcg_links as bridge
+        with patch("sys.stdout"):
+            code = bridge.main(["sign", "--source-checkout", str(self.repo), "--source-commit", head,
+                                "--output", str(self.handoff / "jp_jcg_press_en.links.json")])
+        self.assertEqual(code, 0)  # the collector workflow step succeeds
+        return json.loads((self.handoff / "jp_jcg_press_en.links.json").read_text())
+
+    def shared_processing(self, head):
+        """One shared Daily processing run on a pinned custody commit."""
+        from processing import daily_runner
+        with patch.object(daily_runner, "load_policy", return_value=self.p), \
+             patch("analysis.analyzer.Analyzer", self.factory), \
+             patch.object(d, "bound_private_calls", return_value=None), \
+             patch("analysis.usage.build_run_record", return_value=[]):
+            daily_runner.private_run(FAMILY + "," + str(self.repo) + "," + head,
+                                     public_db=self.db, state_path=self.queue,
+                                     out_dir=self.envelopes)
+        state = json.loads(self.queue.read_text())
+        envelope = json.loads((self.envelopes / (FAMILY + ".json")).read_text())
+        return state, envelope
+
+    def public_daily(self):
+        """The public Daily: fetch, admit link parents, then govern admission."""
+        import os
+        import pipeline
+        from processing import daily_runner
+        from scripts import fetch_daily_machine_outputs as fetch
+        from scripts import japan_jcg_links as bridge
+
+        def private_branch(remote_path, path, ref="state/shared-daily"):
+            source = self.handoff / remote_path  # envelopes/F.json or the links file
+            if not source.exists():
+                return "fetch_failed"
+            shutil.copyfile(source, path)
+            return "fetched"
+
+        env = {"IPR_PRIVATE_DAILY_ENABLED": "true", "IPR_DAILY_INTAKE_DIR": str(self.public_in)}
+        with patch.dict(os.environ, env), \
+                patch.object(fetch, "load_policy", return_value=self.p), \
+                patch.object(d, "load_policy", return_value=self.p), \
+                patch.object(daily_runner, "load_policy", return_value=self.p), \
+                patch.object(fetch, "_fetch", side_effect=private_branch), \
+                patch.object(pipeline, "DB_PATH", self.db), patch("sys.stdout"):
+            results = fetch.main()
+            self.assertEqual(results[FAMILY], "fetched")
+            self.assertEqual(results[links.LINKS_NAME], "fetched")
+            self.assertEqual(bridge.main(["admit", "--database", str(self.db), "--envelope",
+                                          str(self.public_in / links.LINKS_NAME)]), 0)
+            entry = pipeline._daily_admission(FAMILY)
+            self.assertIsNone(entry.inactive_reason())
+            outcome = entry.admit(1)
+        envelope = json.loads((self.public_in / (FAMILY + ".json")).read_text())
+        with sqlite3.connect(str(self.db)) as conn:
+            public = [r[0] for r in conn.execute(
+                "SELECT source_identity FROM daily_machine_records WHERE source_family=? "
+                "AND publication_state!='held'", (FAMILY,))]
+            parents = [r[0] for r in conn.execute(
+                "SELECT source_identity FROM " + links.TABLE + " WHERE public_scope="
+                "'official_link_only' ORDER BY source_identity")]
+        self.assertEqual(parents, [IDENT, IDENT2])  # parents stay admitted throughout
+        return {"records": len(envelope["packet"]["records"]),
+                "outcome": outcome}, public
+
+    def test_failed_terms_capture_blocks_a_queued_output_and_valid_terms_resume_it(self):
+        one, two = FAMILY + ":" + IDENT, FAMILY + ":" + IDENT2
+        # The first model attempt fails QA, so the resumed item carries attempts.
+        self.model.analyze_record.side_effect = [reading(summary_english="Too short."), reading()]
+
+        # Run 1: valid terms. IDENT is retriable after one failed attempt;
+        # IDENT2 is held for its own third-party prose and never reaches the model.
+        state, envelope = self.shared_processing(self.head)
+        self.assertEqual((state[one]["status"], state[one]["attempts"]), ("retriable", 1))
+        self.assertEqual(state[two]["reason"], "jcg_rights_item_third_party_text")
+        self.assertEqual(self.model.analyze_record.call_count, 1)
+
+        # Run 2: valid terms; the retry succeeds and a signed output is queued
+        # against the admitted parent. The public Daily has not run yet.
+        state, queued = self.shared_processing(self.head)
+        self.assertEqual((state[one]["status"], state[one]["attempts"]), ("complete", 1))
+        self.assertEqual([r["source_identity"] for r in queued["packet"]["records"]], [IDENT])
+        self.assertEqual(self.model.analyze_record.call_count, 2)
+        output = state[one]["output"]
+
+        # Transition 1: the next collector run fails the terms capture, and
+        # shared processing runs on that pin before the public Daily.
+        lapsed = self.collector_run("89-1", terms="fetch_failure")
+        # The link-bridge step signs an empty set and exits 0, so the collector
+        # workflow concludes success and triggers shared processing.
+        bridge = json.loads((self.handoff / links.LINKS_NAME).read_text())
+        self.assertEqual(bridge["packet"]["links"], [])
+        state, envelope = self.shared_processing(lapsed)
+        self.assertEqual(state[one], {**state[one], "status": "held", "held_from": "complete",
+                                      "reason": "jcg_rights_policy_capture_failed",
+                                      "attempts": 1, "output": output})
+        self.assertEqual(state[two]["reason"], "jcg_rights_item_third_party_text")
+        self.assertNotIn("held_from", state[two])
+        self.assertEqual(envelope["packet"]["records"], [])
+        self.assertEqual(envelope["packet"]["held"], [IDENT2])
+        self.assertEqual(self.model.analyze_record.call_count, 2)
+        # The fetched envelope is the re-signed one: the old output is gone
+        # from it, and the public Daily admits nothing against the parent.
+        receipt, public = self.public_daily()
+        self.assertEqual((receipt["records"], public), (0, []))
+        # The lapse persists while no later run captures valid terms.
+        state, envelope = self.shared_processing(lapsed)
+        self.assertEqual(state[one]["reason"], "jcg_rights_policy_capture_failed")
+        self.assertEqual(self.public_daily()[1], [])
+
+        # Transition 2: a later run captures the unchanged terms again. The
+        # unchanged item resumes as it was: same attempts, same output, no
+        # new model call. IDENT2's item-specific hold is not reopened.
+        restored = self.collector_run("90-1", terms="ok")
+        state, envelope = self.shared_processing(restored)
+        self.assertEqual(state[one]["status"], "complete")
+        self.assertEqual(state[one]["attempts"], 1)
+        self.assertNotIn("held_from", state[one])
+        self.assertNotIn("reason", state[one])
+        self.assertEqual({k: v for k, v in state[one]["output"].items() if k != "policy_sha256"},
+                         {k: v for k, v in output.items() if k != "policy_sha256"})
+        self.assertEqual(self.model.analyze_record.call_count, 2)
+        self.assertEqual(state[two]["reason"], "jcg_rights_item_third_party_text")
+        self.assertEqual([r["source_identity"] for r in envelope["packet"]["records"]], [IDENT])
+        self.assertEqual(envelope["packet"]["held"], [IDENT2])
+        receipt, public = self.public_daily()
+        self.assertEqual((receipt["records"], public), (1, [IDENT]))
+
+    def test_a_retriable_item_resumes_with_its_attempts(self):
+        one = FAMILY + ":" + IDENT
+        # A retriable item with two failed attempts lapses and resumes retriable.
+        self.model.analyze_record.side_effect = [reading(summary_english="Too short.")] * 2 + [reading()]
+        self.shared_processing(self.head)
+        state, _ = self.shared_processing(self.head)
+        self.assertEqual((state[one]["status"], state[one]["attempts"]), ("retriable", 2))
+        calls = self.model.analyze_record.call_count
+        state, envelope = self.shared_processing(self.collector_run("89-1", terms="timeout"))
+        self.assertEqual((state[one]["status"], state[one]["held_from"], state[one]["attempts"]),
+                         ("held", "retriable", 2))
+        self.assertEqual(self.model.analyze_record.call_count, calls)
+        self.assertEqual(envelope["packet"]["records"], [])
+        state, envelope = self.shared_processing(self.collector_run("90-1", terms="ok"))
+        self.assertEqual(self.model.analyze_record.call_count, calls + 1)
+        self.assertEqual((state[one]["status"], state[one]["attempts"]), ("complete", 2))
+
+    def test_a_public_record_stays_public_through_a_lapse(self):
+        self.shared_processing(self.head)
+        self.assertEqual(self.public_daily()[1], [IDENT])
+        _, envelope = self.shared_processing(self.collector_run("89-1", terms="fetch_failure"))
+        self.assertNotIn(IDENT, envelope["packet"]["held"])
+        self.assertEqual(self.public_daily()[1], [IDENT])
+
+    def test_changed_terms_are_not_a_resumable_lapse(self):
+        one = FAMILY + ":" + IDENT
+        self.shared_processing(self.head)
+        changed = self.collector_run("89-1", terms="ok",
+                                     raw=policy_page(rights.POLICY_CLAUSES[1:]))
+        state, envelope = self.shared_processing(changed)
+        self.assertEqual(state[one]["reason"], "jcg_rights_policy_terms_changed_or_incomplete")
+        self.assertNotIn("held_from", state[one])
+        self.assertEqual(envelope["packet"]["held"], [IDENT, IDENT2])
+        # Valid terms later do not resume it: a changed policy needs review.
+        state, envelope = self.shared_processing(self.collector_run("90-1", terms="ok"))
+        self.assertEqual(state[one]["reason"], "jcg_rights_policy_terms_changed_or_incomplete")
+        self.assertEqual(envelope["packet"]["records"], [])
+
+
 class JcgRenderedDelivery(unittest.TestCase):
     """Real build: source -> analysis -> admission -> Record page, Japan Desk, Archive.
 

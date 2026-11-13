@@ -113,6 +113,15 @@ class DailySource:
     # withdraw records that are already public. Unset means the policy alone
     # gates the family.
     public_switch: Optional[str] = None
+    # adapter: record -> the known hold's specific reason. Unset, every known
+    # hold is recorded as a source semantic anomaly, as before.
+    known_hold_reason: Optional[str] = None
+    # Known-hold reasons that come from source-wide evidence, not from the item
+    # (a failed or missing capture of the publisher's terms). The queue keeps
+    # the entry's attempts, output and prior state through such a hold and
+    # restores them once the hold clears; the signer neither releases nor
+    # withdraws the identity meanwhile. Item-specific holds never resume.
+    resumable_holds: Tuple[str, ...] = ()
 
     def public_switch_on(self, environ=None) -> bool:
         env = os.environ if environ is None else environ
@@ -150,6 +159,14 @@ class DailySource:
 
     def is_held_source(self, record) -> bool:
         return bool(self.known_hold and _call(self.known_hold)(record))
+
+    def held_source_reason(self, record) -> Optional[str]:
+        """The known hold's reason, or None when the record is not held."""
+        if not self.is_held_source(record):
+            return None
+        if self.known_hold_reason:
+            return _call(self.known_hold_reason)(record) or "source_semantic_anomaly"
+        return "source_semantic_anomaly"
 
     def output_hold(self, output) -> Optional[str]:
         return _call(self.output_check)(output) if self.output_check else None
@@ -353,6 +370,22 @@ def _jcg_known_hold(record) -> bool:
     return bool(record.get("jcg_scope_hold"))
 
 
+def _jcg_known_hold_reason(record) -> Optional[str]:
+    return record.get("jcg_scope_hold") or None
+
+
+# Source-wide policy-evidence holds from core.japan_jcg_rights. A changed or
+# conflicting policy text is not here: it needs a reviewed decision.
+JCG_RESUMABLE_HOLDS = (
+    "jcg_rights_policy_capture_failed",
+    "jcg_rights_policy_capture_missing",
+    "jcg_rights_policy_capture_not_authenticated",
+    "jcg_rights_policy_capture_hash_mismatch",
+    "jcg_rights_policy_replay_failed",
+    "jcg_rights_standing_license_missing_changed_or_stale",
+)
+
+
 def _jcg_output_check(output) -> Optional[str]:
     ok = not output["model_flagged"] and re.search(
         r"\bJCG\b|\bJapan Coast Guard\b", output["summary"]) is not None
@@ -439,6 +472,8 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         links="core.daily_sources:_jcg_links",
         quality="processing.daily_intake:english_official_quality",
         known_hold="core.daily_sources:_jcg_known_hold",
+        known_hold_reason="core.daily_sources:_jcg_known_hold_reason",
+        resumable_holds=JCG_RESUMABLE_HOLDS,
         output_check="core.daily_sources:_jcg_output_check",
         parent="core.daily_sources:_jcg_parent",
         admission_migration="migrations.versions.m0023_japan_jcg_source_records:is_already_applied",
