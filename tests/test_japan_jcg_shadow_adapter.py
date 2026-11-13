@@ -137,6 +137,33 @@ class JCGSourceContracts(unittest.TestCase):
         self.assertIn("maritime law enforcement", parsed.text_original)
         self.assertNotIn("IGNORE", parsed.text_original)
 
+    def test_substantive_release_headings_survive_without_media_labels(self):
+        # Synthetic shape for the publisher's October 15 structured release.
+        # Headings carry an introductory claim and numbered-section context;
+        # media/link labels are not part of the original narrative.
+        url = "https://www.kaiho.mlit.go.jp/e/topics_archive/article9477.html"
+        html = article("9477", "Quad observer mission", when="15 10 2026",
+                       iso="2026-10-15")
+        html = html.replace(
+            '<div class="topics-article__main tich-text">',
+            '<div class="topics-article__main tich-text">'
+            '<h3>Mission context: four coast guard agencies and two observers</h3>'
+            '<h3>1 Implementation period (Local time)</h3>')
+        html = html.replace(
+            '</p></div></section></article></main>',
+            '</p><h3>Photo\u3000Gallery</h3><h3>Links</h3>'
+            '</div></section></article></main>')
+        doc = self.adapter.parse_article(html, url)
+        body = doc.text_original
+        self.assertIn("Mission context: four coast guard agencies and two observers", body)
+        self.assertIn("1 Implementation period (Local time)", body)
+        self.assertLess(body.index("Mission context:"), body.index("1 Implementation period"))
+        self.assertLess(body.index("1 Implementation period"), body.index("Japan Coast Guard"))
+        self.assertNotIn("Photo Gallery", " ".join(body.split()))
+        self.assertNotIn("\n\nLinks\n\n", "\n\n" + body + "\n\n")
+        self.assertEqual(doc.extra["source_identity"], "jcg-en:9477")
+        self.assertFalse(doc.extra["attachments_collected"])
+
     def test_real_day_zero_pdf_attachment_identities_remain_link_only(self):
         # The three independently reviewed publisher PDFs contain extra mission
         # schedule, personnel and photograph/caption material beyond the HTML
