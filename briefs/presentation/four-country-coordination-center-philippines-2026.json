@@ -1,0 +1,94 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "four-country-coordination-center-philippines-2026",
+  "manuscript_fingerprint": "eb21e0db038580334aab9babd1629b3a2440f4817cad472794e2fdbaf4f745f6",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 2,
+      "heading": "A pledge with a precedent"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 3,
+      "end": 5,
+      "heading": "From bilateral node to exercise hub"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 6,
+      "end": 7,
+      "heading": "Planned, or already operating"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 8,
+      "end": 10,
+      "heading": "What a standing center would change"
+    },
+    {
+      "id": "reading-section-5",
+      "start": 11,
+      "end": 11,
+      "heading": "Exercise-tested, not yet standing"
+    }
+  ],
+  "central_finding": {
+    "paragraph": 11,
+    "quote": "What the ministers have committed to, without yet describing it, is the step from a center that hosts allies during an exercise to one that four governments maintain",
+    "sources": [
+      "s18",
+      "s17",
+      "s1"
+    ]
+  },
+  "evidence": {
+    "establishes": [
+      {
+        "paragraph": 1,
+        "quote": "Neither version says where the center will be, how it will be organized or when it will open",
+        "sources": [
+          "s1",
+          "s2"
+        ]
+      },
+      {
+        "paragraph": 3,
+        "quote": "broke ground on a new combined coordination center at Camp Aguinaldo",
+        "sources": [
+          "s7"
+        ]
+      },
+      {
+        "paragraph": 4,
+        "quote": "alongside military personnel from the United States, Australia, France, Canada, Japan and the Philippines",
+        "sources": [
+          "s17"
+        ]
+      }
+    ],
+    "uncertain": [
+      {
+        "paragraph": 7,
+        "quote": "As of Nov. 13, the statements and remarks reviewed here did not say which",
+        "sources": [
+          "s14",
+          "s15",
+          "s1"
+        ]
+      },
+      {
+        "paragraph": 9,
+        "quote": "The sources reviewed here document no four-country instrument for classified information",
+        "sources": [
+          "s6",
+          "s4",
+          "s12"
+        ]
+      }
+    ]
+  },
+  "approval": null
+}
