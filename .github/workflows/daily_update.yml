@@ -345,6 +345,7 @@ jobs:
           # Singapore attended-pilot gate: empty for scheduled and ordinary manual runs.
           IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
           SG_MINDEF_LINKS_ENABLED: ${{ vars.SG_MINDEF_LINKS_ENABLED }}
+          JP_JCG_LINKS_ENABLED: ${{ vars.JP_JCG_LINKS_ENABLED }}
         run: python -m scripts.fetch_daily_machine_outputs
 
       # Singapore MINDEF official-link parents: the private collector signs
@@ -365,6 +366,23 @@ jobs:
         run: |
           python scripts/singapore_mindef_links.py admit --database pla_watch.db \
             --envelope "$RUNNER_TEMP/shared-daily-intake/sg_mindef_releases.links.json"
+
+      # Japan Coast Guard official-link parents, same link-scope contract:
+      # identity, official article URL, date and hashes only. The database
+      # CHECK admits only /e/topics_archive/article<N>.html pages. Off until
+      # the owner sets JP_JCG_LINKS_ENABLED.
+      - name: Admit Japan Coast Guard official-link parents
+        if: >
+          steps.timecheck.outputs.should_run == 'true' &&
+          !inputs.vpcp_metadata_only &&
+          vars.IPR_PRIVATE_DAILY_ENABLED == 'true' &&
+          vars.JP_JCG_LINKS_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          DAILY_JP_JCG_PRESS_EN_KEY: ${{ secrets.DAILY_JP_JCG_PRESS_EN_KEY }}
+        run: |
+          python scripts/japan_jcg_links.py admit --database pla_watch.db \
+            --envelope "$RUNNER_TEMP/shared-daily-intake/jp_jcg_press_en.links.json"
 
       # Same scheduled Daily, DB and publication writer. Bibliographic fields
       # only; no PDFs, original body, model call, per-record approval or secret.
@@ -452,6 +470,7 @@ jobs:
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
           DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
+          DAILY_JP_JCG_PRESS_EN_KEY: ${{ secrets.DAILY_JP_JCG_PRESS_EN_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
           # Vietnam's two steps above write pla_watch.db before this one; the
           # pipeline reports what they recorded under the same activations.

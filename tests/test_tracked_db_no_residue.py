@@ -125,7 +125,7 @@ class ReadOnlyToolsLeaveNothingBehind(unittest.TestCase):
                         pending = ({m.version for m in discover()}
                                    - applied)
                     self.assertTrue(pending)
-                    self.assertEqual({"0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021", "0022"} - applied, pending,
+                    self.assertEqual({"0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021", "0022", "0023"} - applied, pending,
                                      "an unrecognized migration is pending")
                     self.assertIn("database is 'partially_applied'",
                                   proc.stderr)

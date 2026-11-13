@@ -105,12 +105,12 @@ class FetchOutputs(unittest.TestCase):
                     event, identity, [self.response() for _ in others])
                 self.assertEqual(result['sg_mindef_releases'], 'pilot_gate_closed')
                 self.assertFalse((root / 'sg_mindef_releases.json').exists())
-                self.assertEqual(call.call_count, len(others) - 1)  # DAPA is policy-disabled
+                self.assertEqual(call.call_count, len(others) - 2)  # DAPA and JCG are policy-disabled
                 for call_args in call.call_args_list:
                     self.assertNotIn('sg_mindef_releases', ' '.join(map(str, call_args.args[0])))
                 self.assertEqual(set((root / 'outputs').read_text().split()), {'failed_families=0'})
                 for family in others:
-                    self.assertEqual(result[family], 'policy_disabled' if family == 'kr_policy_dapa_releases' else 'fetched')
+                    self.assertEqual(result[family], 'policy_disabled' if family in ('kr_policy_dapa_releases', 'jp_jcg_press_en') else 'fetched')
 
     def test_attended_dispatch_fetches_singapore_only_with_the_named_identity(self):
         order = list(fetch.SOURCES)

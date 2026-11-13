@@ -59,6 +59,16 @@
       ],
       "max_records_per_run": 1,
       "max_input_characters": 16000
+    },
+    "jp_jcg_press_en": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": "2026-11-09 founder (PR #1015): standing first-party text eligibility for Japan Coast Guard English HTML article prose under /e/topics_archive/article<N>.html, Public Data License 1.0, with source attribution and an edited-content notice; linked PDFs, photographs, other media, logos and third-party content excluded. Model processing, spending and public release NOT authorized until a separate founder activation decision.",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
     }
   }
 }
