@@ -3,32 +3,76 @@ import json
 import re
 
 
+_SENTENCE_END = re.compile(r"[.!?][\"')\]\u201d\u2019]*(\s+)")
+# A full stop after a title, rank or initial does not end a sentence.
+_NOT_AN_END = re.compile(
+    r"(?:\b(?:Mr|Mrs|Ms|Dr|Prof|Gen|Lt|Col|Maj|Capt|Cmdr|Cdr|Adm|Sgt|Cpl|Pvt|Brig|"
+    r"Sec|Usec|Asec|Gov|Rep|Sen|Atty|Engr|Hon|St|No|Nos|vs|Jr|Sr|Ret|ret|Inc|Ltd|Co)"
+    r"|\b(?:[A-Z]\.)*[A-Z])\.$")
+PASSAGE_LIMIT = 480
+
+
+def _windows(text, offset):
+    """Exact overlapping spans of one over-long sentence (the earlier builder)."""
+    spans, start = [], 0
+    while start < len(text):
+        end = min(start + PASSAGE_LIMIT, len(text))
+        if end < len(text):
+            boundary = text.rfind(" ", start + 250, end)
+            if boundary > start + 250:
+                end = boundary
+        spans.append((offset + start, offset + end))
+        if end == len(text):
+            break
+        start = max(end - 80, start + 1)
+    return spans
+
+
 def evidence_passages(body):
     """Number exact excerpts of the original, never model-transcribed citations.
 
-    Original paragraphs shorter than 500 characters remain intact. Longer
-    paragraphs are split into overlapping, exact substrings so a fact near a
-    boundary still has a usable citation. The evidence is kept in private
-    model context; only an ID is requested in the model's reply.
+    A paragraph within the limit stays intact. A longer one is packed into
+    passages of whole consecutive sentences, each new passage repeating the
+    previous passage's last sentence, so a fact and the dateline, name or
+    figure in the neighbouring sentence can be cited together. Only a single
+    sentence beyond the limit is cut, into overlapping exact spans. Evidence
+    stays in private model context; only an ID is requested in the reply.
     """
     passages = []
     for paragraph in re.split(r"\r?\n[ \t]*\r?\n+", body):
         paragraph = paragraph.strip()
         if not paragraph:
             continue
-        start = 0
-        while start < len(paragraph):
-            end = min(start + 480, len(paragraph))
-            if end < len(paragraph):
-                boundary = paragraph.rfind(" ", start + 250, end)
-                if boundary > start + 250:
-                    end = boundary
+        if len(paragraph) <= PASSAGE_LIMIT:
+            spans = [(0, len(paragraph))]
+        else:
+            sentences, start = [], 0
+            for match in _SENTENCE_END.finditer(paragraph):
+                if _NOT_AN_END.search(paragraph[start:match.start(1)]):
+                    continue
+                sentences.append((start, match.start(1)))
+                start = match.end(1)
+            if start < len(paragraph):
+                sentences.append((start, len(paragraph)))
+            spans, i = [], 0
+            while i < len(sentences):
+                first = sentences[i][0]
+                if sentences[i][1] - first > PASSAGE_LIMIT:
+                    spans.extend(_windows(paragraph[first:sentences[i][1]], first))
+                    i += 1
+                    continue
+                j = i
+                while (j + 1 < len(sentences)
+                       and sentences[j + 1][1] - first <= PASSAGE_LIMIT):
+                    j += 1
+                spans.append((first, sentences[j][1]))
+                if j + 1 == len(sentences):
+                    break
+                i = j if j > i else j + 1
+        for start, end in spans:
             excerpt = paragraph[start:end].strip()
             if len(excerpt) >= 20:
                 passages.append(("P" + str(len(passages) + 1), excerpt))
-            if end == len(paragraph):
-                break
-            start = max(end - 80, start + 1)
     return passages
 
 

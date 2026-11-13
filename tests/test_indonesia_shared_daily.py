@@ -530,6 +530,66 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertEqual([(p['id'],p['institutional_forms']) for p in payload['passages']],
                          [('P1',['Kementerian Contoh']),('P2',['Kemencontoh'])])
 
+    def test_passages_opening_with_a_back_reference_are_marked_context_dependent(self):
+        from analysis.indonesia_prompts import analysis_messages, context_dependent
+        for text in ('Selain itu, Kemhan membahas rencana latihan.','Ia menyampaikan rencana latihan.',
+                     'Dalam kesempatan tersebut dibahas rencana latihan.','Menurutnya, latihan akan dimulai.',
+                     'Menurut dia, latihan akan dimulai.','Menurut beliau, latihan akan dimulai.',
+                     'Kegiatan tersebut diikuti dua puluh peserta.','Latihan itu diikuti dua puluh peserta.','Mereka membahas rencana latihan.'):
+            with self.subTest(text=text): self.assertTrue(context_dependent(text))
+        for text in ('Kementerian Contoh membahas rencana latihan.','Iaido adalah olahraga bela diri.',
+                     'Diah menghadiri kegiatan latihan.','Latihan bersama diikuti dua puluh peserta.',
+                     'Menurut Kementerian Contoh, latihan akan dimulai.','Menurut Menteri Contoh, latihan akan dimulai.',
+                     'Menurut Kemhan, latihan akan dimulai.'):
+            with self.subTest(text=text): self.assertFalse(context_dependent(text))
+        body='Kementerian Contoh membahas rencana latihan.\n\nSelain itu, rencana pengadaan juga dibahas.'
+        message=analysis_messages('SYNTHETIC title alias',body)[0]['content']
+        payload=json.loads(message.split('\n',1)[1])
+        self.assertEqual([(p['id'],p['context_dependent']) for p in payload['passages']],[('P1',False),('P2',True)])
+        self.assertEqual([p['institutional_forms'] for p in payload['passages']],[['Kementerian Contoh'],[]])
+        self.assertNotIn('title',payload)
+
+    def test_prompt_forbids_borrowing_an_actor_for_a_context_dependent_passage(self):
+        from analysis.indonesia_prompts import analysis_messages
+        text=analysis_messages('SYNTHETIC title','Kementerian Contoh membahas rencana latihan.')[0]['content']
+        self.assertIn('context_dependent true',text)
+        self.assertIn('cite a different passage or omit the detail',text)
+        self.assertIn('never a reason to borrow',text)
+        self.assertNotIn('Retain the actual actor',text)
+
+    def test_context_dependent_marker_does_not_relax_local_support_checks(self):
+        # The marker is a prompt aid only: a fact that borrows an actor from
+        # another passage fails the same source-local gate as before.
+        r,reply=self.institution_reading()
+        r['body']+='\n\nSelain itu, rencana pengadaan Kementerian Contoh juga dibahas.'
+        fact=reply['facts'][1]
+        fact['evidence']='Selain itu, rencana pengadaan juga dibahas.'
+        r['body']=r['body'].replace('Selain itu, rencana pengadaan Kementerian Contoh juga dibahas.',fact['evidence'])
+        fact['sentence']='Kemhan reports that Kementerian Contoh discussed procurement plans.'
+        fact['evidence_translation']='Procurement plans were also discussed.'
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        with self.assertRaises(d.IntakeHold):
+            d.quality_check(r,reply)
+
+    def test_context_dependent_marker_never_excludes_a_passage_that_names_its_actor(self):
+        # Advisory only: the passage still reaches the model, and a fact whose
+        # every name, number and date is in that passage passes the unchanged gate.
+        from analysis.indonesia_prompts import analysis_messages, context_dependent, evidence_passages
+        named='Selain itu, Kementerian Contoh membahas rencana pengadaan bersama.'
+        self.assertTrue(context_dependent(named))
+        r,reply=self.institution_reading()
+        r['body']=r['body'].split('\n\n')[0]+'\n\n'+named
+        reply['facts'][1]=dict(evidence=named,
+            sentence='Kemhan reports that Kementerian Contoh discussed joint procurement plans.',
+            evidence_translation='Additionally, Kementerian Contoh discussed joint procurement plans.')
+        reply['summary_english']=' '.join(f['sentence'] for f in reply['facts'])
+        self.assertEqual(len(d.quality_check(r,reply)),64)
+        payload=json.loads(analysis_messages('SYNTHETIC title',r['body'])[0]['content'].split('\n',1)[1])
+        self.assertEqual([(p['id'],p['text']) for p in payload['passages']],evidence_passages(r['body']))
+        self.assertEqual([p['context_dependent'] for p in payload['passages']],[False,True])
+        # "Menurut <named actor>" is not a back reference; it names its actor.
+        self.assertFalse(context_dependent('Menurut Kementerian Contoh, rencana pengadaan dibahas.'))
+
     def test_generic_translated_nouns_are_not_institution_names(self):
         r,reply=self.institution_reading()
         old=reply['facts'][0]['evidence']
@@ -734,10 +794,12 @@ class IndonesiaSharedDaily(unittest.TestCase):
         self.assertEqual(a.analyze_record.call_count,5)
         self.assertEqual(next(iter(state.values()))['status'],'paused')
 
-    def test_one_record_per_run_and_no_other_desk_changes(self):
+    def test_record_bound_defers_overflow_and_no_other_desk_changes(self):
         other={'ph_afp_articles:afp:1':{'status':'held','reason':'owner_exception'}}
         rows=[record(),dict(record(),source_identity='kemhan:/2026/10/19/second.html')]
-        state=self.process(rows,state=other)
+        # The per-run record bound is a policy value; pin it so the overflow is explicit.
+        p=policy();p['sources'][FAMILY]['max_records_per_run']=1
+        state=self.process(rows,state=other,p=p)
         self.assertEqual(state['ph_afp_articles:afp:1'],other['ph_afp_articles:afp:1'])
         self.assertEqual([v['status'] for k,v in state.items() if k.startswith(FAMILY)],['complete','pending'])
         ph,_=d.process([ph_record()],{},family='ph_afp_articles',policy=policy(),analyzer_factory=ph_analyzer)
@@ -832,7 +894,182 @@ class IndonesiaSharedDaily(unittest.TestCase):
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v3'),FAMILY,policy()['sources'][FAMILY])
         with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+            d.validate_output(dict(out,prompt_version='id-relevance-v1+id-analysis-v4'),FAMILY,policy()['sources'][FAMILY])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
             d.validate_output(dict(out,prompt_version='ph-relevance-v1+ph-analysis-v13'),FAMILY,policy()['sources'][FAMILY])
+
+    HISTORICAL='id-relevance-v1+id-analysis-v4'
+
+    def _db_with_link(self, tmp):
+        from migrations.versions.m0015_daily_machine_records import up
+        from core.regional_official_link_release import SCHEMA_SQL
+        from pathlib import Path
+        r=record();db=Path(tmp)/'scratch.db'
+        with sqlite3.connect(db) as conn:
+            conn.executescript(SCHEMA_SQL);up(conn)
+            conn.execute('INSERT INTO regional_official_source_links VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(
+                FAMILY,r['source_identity'],'indonesia',r['canonical_official_url'],
+                r['publisher_posted_date'],None,'id_kemhan',None,'c'*40,'a'*64,
+                '123-1','official_link_only','d'*64,'2026-10-19T00:00:00Z'))
+        return db
+
+    def test_grouped_thousands_are_one_value_across_languages(self):
+        from processing import indonesia_quality as iq
+        g=iq.grouped_thousands
+        self.assertEqual(g('1.718'),g('1,718'))
+        self.assertEqual(g('12.345.678'),g('12,345,678'))
+        self.assertEqual(iq.factual_values('sebanyak 1.718 personel')[0],
+                         iq.factual_values('a total of 1,718 personnel')[0])
+        # Nothing else is merged: decimals, times, mixed and partial groupings,
+        # leading zeros and different counts all stay distinct.
+        for kept in ('1.5','12.30','1.718,5','1,718.5','1.71','1.7180','0.718','10:30','1718'):
+            self.assertEqual(g(kept),kept)
+        self.assertNotEqual(g('1.718'),g('1.719'))
+        self.assertNotEqual(g('1.718'),g('17.180'))
+        self.assertNotEqual(iq.factual_values('1.718 personel')[0],
+                            iq.factual_values('1.5 personnel')[0])
+
+    def test_v6_prompt_ends_with_the_local_name_final_check(self):
+        from analysis import indonesia_prompts as ip
+        self.assertEqual(ip.VERSION,'id-relevance-v1+id-analysis-v6')
+        text=ip.analysis_messages('Judul','Menhan meninjau latihan gabungan di Jakarta pada hari Senin.')[0]['content']
+        check=text.index('FINAL CHECK'); passages=text.index('{"passages"')
+        self.assertLess(text.index('Cite only supplied IDs'),check)
+        self.assertLess(check,passages)
+        for phrase in ('contains the word Kemhan','same spelling in that passage',
+                       "without the holder's personal name"):
+            self.assertIn(phrase,' '.join(text[check:passages].split()))
+
+    def test_new_output_admission_requires_current_version_but_released_v4_remains_valid(self):
+        p=policy()[ 'sources'][FAMILY]
+        out=d.sign_outputs(self.process(),family=FAMILY,policy=policy(),key=KEY)['packet']['records'][0]
+        self.assertEqual(out['prompt_version'],VERSION)
+        d.validate_output(out,FAMILY,p)                                  # valid current-version admission
+        d.validate_output(out,FAMILY,p,released=True)
+        old=dict(out,prompt_version=self.HISTORICAL)
+        with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+            d.validate_output(old,FAMILY,p)                              # new v4 is refused
+        d.validate_output(old,FAMILY,p,released=True)                    # released v4 is readable
+        self.assertEqual(d.allowed_prompt_versions(FAMILY),(VERSION,))
+        self.assertEqual(d.allowed_prompt_versions(FAMILY,released=True),(VERSION,self.HISTORICAL))
+        # The historical allowance is exactly one pair: nothing else widens.
+        for version in ('id-relevance-v1+id-analysis-v1','id-relevance-v1+id-analysis-v2',
+                        'id-relevance-v1+id-analysis-v3','id-relevance-v1+id-analysis-v5',
+                        'id-relevance-v1+id-analysis-v7',
+                        'ph-relevance-v1+ph-analysis-v12'):
+            with self.subTest(version=version), self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+                d.validate_output(dict(out,prompt_version=version),FAMILY,p,released=True)
+        # Released validation relaxes nothing else: schema, policy, provenance and
+        # output holds still apply to a historical record.
+        for change,message in ((dict(policy_sha256='f'*64),'daily_output_schema_or_policy_invalid'),
+                               (dict(content_sha256='not-a-hash'),'daily_output_provenance_invalid'),
+                               (dict(summary='Too short.'),'daily_output_incomplete'),
+                               (dict(model_flagged=True,flag_reason=None),'daily_output_incomplete'),
+                               (dict(summary=out['summary'].replace('Kemhan','The ministry')),
+                                'daily_indonesia_flag_or_attribution_held')):
+            with self.subTest(change=change), self.assertRaisesRegex(d.IntakeHold,message):
+                d.validate_output(dict(old,**change),FAMILY,p,released=True)
+        excluded=dict(p,excluded_source_identities=[old['source_identity']])
+        with self.assertRaisesRegex(d.IntakeHold,'daily_owner_excluded_source_identity'):
+            d.validate_output(dict(old,policy_sha256=d.policy_binding(excluded)),FAMILY,excluded,released=True)
+        # Source-local QA is untouched: a v4-stamped reading never passes it.
+        with self.assertRaisesRegex(d.IntakeHold,'daily_model_provenance_incomplete'):
+            d.quality_check(record(),dict(reading(),prompt_version=self.HISTORICAL))
+
+    def test_resent_released_v4_record_keeps_its_binding_current_without_a_hold(self):
+        import tempfile
+        import core.daily_machine_records as machine
+        p=policy();state=self.process()
+        with tempfile.TemporaryDirectory() as tmp:
+            db=self._db_with_link(tmp)
+            with sqlite3.connect(db) as conn:
+                self.assertEqual(d.admit(conn,d.sign_outputs(state,family=FAMILY,policy=p,key=KEY),
+                                         family=FAMILY,policy=p,key=KEY)['admitted'],1)
+                # Model the record released under v4, as the private ledger holds it.
+                conn.execute('UPDATE daily_machine_records SET prompt_version=?',(self.HISTORICAL,))
+            entry=next(iter(state.values()));entry['output']['prompt_version']=self.HISTORICAL
+            # The signer re-sends it every run: no hold, no second row.
+            with sqlite3.connect(db) as conn:
+                result=d.admit(conn,d.sign_outputs(state,family=FAMILY,policy=p,key=KEY),
+                               family=FAMILY,policy=p,key=KEY)
+                self.assertEqual(result,{'admitted':0,'holds':[]})
+            # A later policy change re-binds it, so it stays readable.
+            changed=copy.deepcopy(p);changed['sources'][FAMILY]['owner_decision']='changed'
+            entry['output']['policy_sha256']=d.policy_binding(changed['sources'][FAMILY])
+            with sqlite3.connect(db) as conn:
+                result=d.admit(conn,d.sign_outputs(state,family=FAMILY,policy=changed,key=KEY),
+                               family=FAMILY,policy=changed,key=KEY)
+                self.assertEqual(result,{'admitted':0,'holds':[]})
+                self.assertEqual(conn.execute('SELECT COUNT(*),MIN(prompt_version) FROM daily_machine_records').fetchone(),
+                                 (1,self.HISTORICAL))
+            with patch.object(machine,'load_policy',return_value=changed):
+                self.assertEqual(len(machine.load(db)),1)
+            # The allowance is that stored record only: changed text is refused,
+            # and another superseded pair for the same identity is still held.
+            with sqlite3.connect(db) as conn:
+                altered=copy.deepcopy(state)
+                out=next(iter(altered.values()))['output'];out['summary']=out['summary'].replace('.',' today.',1)
+                self.assertEqual(d.admit(conn,d.sign_outputs(altered,family=FAMILY,policy=changed,key=KEY),
+                                         family=FAMILY,policy=changed,key=KEY)['holds'],['daily_released_version_changed'])
+                other=copy.deepcopy(state)
+                next(iter(other.values()))['output']['prompt_version']='id-relevance-v1+id-analysis-v3'
+                self.assertEqual(d.admit(conn,d.sign_outputs(other,family=FAMILY,policy=changed,key=KEY),
+                                         family=FAMILY,policy=changed,key=KEY)['holds'],['daily_output_incomplete'])
+
+    def test_signed_v4_output_is_held_at_admission_and_never_stored(self):
+        import tempfile
+        p=policy();state=self.process()
+        next(iter(state.values()))['output']['prompt_version']=self.HISTORICAL
+        env=d.sign_outputs(state,family=FAMILY,policy=p,key=KEY)
+        with tempfile.TemporaryDirectory() as tmp:
+            db=self._db_with_link(tmp)
+            with sqlite3.connect(db) as conn:
+                result=d.admit(conn,env,family=FAMILY,policy=p,key=KEY)
+                self.assertEqual(result['admitted'],0)
+                self.assertIn('daily_output_incomplete',result['holds'])
+                self.assertEqual(conn.execute('SELECT COUNT(*) FROM daily_machine_records').fetchone()[0],0)
+
+    def test_released_historical_record_renders_with_provenance_and_binding_intact(self):
+        import tempfile
+        import core.daily_machine_records as machine
+        p=policy();state=self.process()
+        env=d.sign_outputs(state,family=FAMILY,policy=p,key=KEY)
+        with tempfile.TemporaryDirectory() as tmp:
+            db=self._db_with_link(tmp)
+            with sqlite3.connect(db) as conn:
+                self.assertEqual(d.admit(conn,env,family=FAMILY,policy=p,key=KEY)['admitted'],1)
+                before=dict(zip([c[1] for c in conn.execute('PRAGMA table_info(daily_machine_records)')],
+                                conn.execute('SELECT * FROM daily_machine_records').fetchone()))
+                # Re-stamp as the already-released record it models, bypassing admission.
+                conn.execute('UPDATE daily_machine_records SET prompt_version=?',(self.HISTORICAL,))
+            with patch.object(machine,'load_policy',return_value=p):
+                rows=machine.load(db)
+                self.assertEqual(len(rows),1)
+                row=rows[0]
+                self.assertEqual(row['prompt_version'],self.HISTORICAL)
+                for key in ('summary','content_sha256','capture_sha256','metadata_version_sha256',
+                            'quality_sha256','policy_sha256','source_git_commit','source_identity'):
+                    self.assertEqual(row[key],before[key],key)
+                self.assertEqual((row['desk_id'],row['source_label'],row['machine_only']),('indonesia','Kemhan',True))
+                self.assertEqual(len(list(machine.archive_rows(rows))),1)
+                # Source binding is still enforced: a changed metadata version withholds it.
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE regional_official_source_links SET metadata_version_sha256=?',('9'*64,))
+                self.assertEqual(machine.load(db),[])
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE regional_official_source_links SET metadata_version_sha256=?',(before['metadata_version_sha256'],))
+                self.assertEqual(len(machine.load(db)),1)
+                # An unlisted prompt version, or a policy change, is still rejected on read.
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE daily_machine_records SET prompt_version=?',('id-relevance-v1+id-analysis-v3',))
+                with self.assertRaisesRegex(d.IntakeHold,'daily_output_incomplete'):
+                    machine.load(db)
+                with sqlite3.connect(db) as conn:
+                    conn.execute('UPDATE daily_machine_records SET prompt_version=?',(self.HISTORICAL,))
+                changed=copy.deepcopy(p);changed['sources'][FAMILY]['owner_decision']='changed'
+                with patch.object(machine,'load_policy',return_value=changed):
+                    with self.assertRaisesRegex(d.IntakeHold,'daily_output_schema_or_policy_invalid'):
+                        machine.load(db)
 
 
 if __name__=='__main__':unittest.main()

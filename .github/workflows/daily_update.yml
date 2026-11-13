@@ -24,6 +24,10 @@ on:
         description: "Collect permitted Government Office metadata and render; no other collection or models"
         type: boolean
         default: false
+      singapore_attended_pilot_identity:
+        description: "Attended Singapore MINDEF pilot ONLY: the single source identity to admit. Leave empty for every ordinary run."
+        type: string
+        default: ""
 
 concurrency:
   group: daily-update
@@ -338,7 +342,29 @@ jobs:
           IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
           GH_TOKEN: ${{ secrets.IPR_DAILY_OUTPUT_READ_TOKEN || secrets.IPR_PRIVATE_VAULT_READ_TOKEN }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          # Singapore attended-pilot gate: empty for scheduled and ordinary manual runs.
+          IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
+          SG_MINDEF_LINKS_ENABLED: ${{ vars.SG_MINDEF_LINKS_ENABLED }}
         run: python -m scripts.fetch_daily_machine_outputs
+
+      # Singapore MINDEF official-link parents: the private collector signs
+      # identity, official URL, date and hashes only (no title, text or media).
+      # A parent row is what a later machine explanation binds to; alone it
+      # shows nothing to readers. A refused or missing envelope leaves the
+      # database untouched and never blocks the other desks. Off until the
+      # owner sets SG_MINDEF_LINKS_ENABLED.
+      - name: Admit Singapore MINDEF official-link parents
+        if: >
+          steps.timecheck.outputs.should_run == 'true' &&
+          !inputs.vpcp_metadata_only &&
+          vars.IPR_PRIVATE_DAILY_ENABLED == 'true' &&
+          vars.SG_MINDEF_LINKS_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
+        run: |
+          python scripts/singapore_mindef_links.py admit --database pla_watch.db \
+            --envelope "$RUNNER_TEMP/shared-daily-intake/sg_mindef_releases.links.json"
 
       # Same scheduled Daily, DB and publication writer. Bibliographic fields
       # only; no PDFs, original body, model call, per-record approval or secret.
@@ -413,6 +439,8 @@ jobs:
           # act; unset leaves that source reported as awaiting activation.
           IPR_PRIVATE_DAILY_ENABLED: ${{ vars.IPR_PRIVATE_DAILY_ENABLED }}
           IPR_DAILY_INTAKE_DIR: ${{ runner.temp }}/shared-daily-intake
+          # Singapore attended-pilot gate: empty for scheduled and ordinary manual runs.
+          IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
           JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
           GH_TOKEN: ${{ github.token }}
           # Standing owner approval (2026-10-15): the pipeline admits the
@@ -423,6 +451,7 @@ jobs:
           DAILY_PH_AFP_ARTICLES_KEY: ${{ secrets.DAILY_PH_AFP_ARTICLES_KEY }}
           DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY: ${{ secrets.DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY }}
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
+          DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
           # Vietnam's two steps above write pla_watch.db before this one; the
           # pipeline reports what they recorded under the same activations.

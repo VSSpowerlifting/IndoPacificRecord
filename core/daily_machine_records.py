@@ -4,7 +4,32 @@ import json
 
 from scripts.reconcile_db import read_only
 from core.daily_sources import source_for
-from processing.daily_intake import load_policy, validate_output
+from processing.daily_intake import load_policy, policy_binding, validate_output
+
+
+def _released_visibility_policy(family, policy):
+    """Permitted presentation policy for a previously *released* machine Record.
+
+    Singapore's first one-item pilot can stop new model attempts and unattended
+    admission while retaining separately authorized public display. The row
+    must still carry the hash of the EXACT full-release policy: normalize only
+    those two stopped switches and change no owner decision, source exclusion,
+    or limit. Any other policy drift fails the usual digest validation.
+
+    Public explanation permission is always an explicit visibility gate;
+    source integrity, parent holds, and per-identity exclusions still apply.
+    Other desks retain their existing all-three-switch contract.
+    """
+    if not policy["public_machine_explanation"]:
+        return None
+    if policy["private_model_processing"] and policy["unattended_release"]:
+        return policy
+    if (family == "sg_mindef_releases"
+            and not policy["private_model_processing"]
+            and not policy["unattended_release"]):
+        return {**policy, "private_model_processing": True,
+                "unattended_release": True}
+    return None
 
 
 def load(db_path):
@@ -24,11 +49,17 @@ def load(db_path):
             p = policy["sources"][family]
             if r["source_identity"] in p["excluded_source_identities"]:
                 continue
-            if not all(p[k] for k in ("private_model_processing", "public_machine_explanation", "unattended_release")):
+            display_policy = _released_visibility_policy(family, p)
+            if display_policy is None:
+                continue
+            if (family == "sg_mindef_releases" and display_policy is not p
+                    and r["policy_sha256"] != policy_binding(display_policy)):
+                # A policy change outside the exact processing-pause transition
+                # is a withdrawal from the reader, never a site-render crash.
                 continue
             r["categories"] = json.loads(r["categories"])
             r["model_flagged"] = bool(r["model_flagged"])
-            validate_output(r, family, p)
+            validate_output(r, family, display_policy, released=True)  # published record: historical pairs stay readable
             if source.parent:
                 # Source-owned parent (DAPA: Korea official link); same version
                 # by candidate, text and page hashes, else the record is withheld.

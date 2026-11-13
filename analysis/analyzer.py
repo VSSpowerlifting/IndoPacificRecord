@@ -80,6 +80,27 @@ class FatalAPIError(AnalysisError):
     """
 
 
+class InvalidModelResponse(AnalysisError):
+    """
+    The API accepted the request and returned a response, but its content is
+    unusable: malformed or semantically invalid JSON/tool output, a refusal,
+    truncation or empty content. Per-article, and proof the account is NOT
+    blocked: a returned response is the opposite of credit exhaustion.
+
+    Kept a subclass so every existing `except AnalysisError` still catches it.
+    The daily pipeline uses the distinction only to avoid labelling an
+    article-level bad response as a billing/API outage (run 43103361840,
+    2026-11-11: one HTTP 200 with malformed relevance JSON wrote the billing
+    marker and stopped render and deploy).
+    """
+
+
+#: Values of `Analyzer.last_relevance_failure` after analyze()/analyze_desk()
+#: returns None. Anything else (or None) is treated as a possible outage.
+RELEVANCE_FAILURE_INVALID_RESPONSE = "invalid_response"
+RELEVANCE_FAILURE_API_ERROR = "api_error"
+
+
 # Substrings identifying account-level failures in an API error message.
 # Matched case-insensitively against the message body.
 _FATAL_MESSAGE_MARKERS = (
@@ -108,6 +129,13 @@ def _classify_status_error(exc: "anthropic.APIStatusError") -> AnalysisError:
     if any(marker in lowered for marker in _FATAL_MESSAGE_MARKERS):
         return FatalAPIError(detail)
     return AnalysisError(detail)
+
+
+def _relevance_failure_kind(exc: Exception) -> str:
+    """Why relevance returned no score: a bad returned response, or not."""
+    if isinstance(exc, InvalidModelResponse):
+        return RELEVANCE_FAILURE_INVALID_RESPONSE
+    return RELEVANCE_FAILURE_API_ERROR
 
 
 #: The one model whose request shape differs, matched exactly: it has no dated
@@ -229,12 +257,19 @@ def record_models(operation):
 
 
 DAPA_FAMILY = "kr_policy_dapa_releases"
+SG_MINDEF_FAMILY = "sg_mindef_releases"
 
 
 def _fact_only(profile) -> bool:
     """Private-original, two-fact English-only contracts (Kemhan, DAPA)."""
     return (profile.desk_id == "indonesia"
             or getattr(profile, "source_family", None) == DAPA_FAMILY)
+
+
+def _evidence_bound(profile) -> bool:
+    """Private-original profiles whose facts cite evidence IDs resolved here."""
+    return (profile.desk_id in ("philippines", "indonesia") or _fact_only(profile)
+            or getattr(profile, "source_family", None) == SG_MINDEF_FAMILY)
 
 
 class Analyzer:
@@ -384,16 +419,16 @@ class Analyzer:
                                    failed=bool(stopped) or truncated or empty)
 
         if stopped:
-            raise AnalysisError(stopped)
+            raise InvalidModelResponse(stopped)
         if truncated:
-            raise AnalysisError(
+            raise InvalidModelResponse(
                 f"Response truncated at the {max_tokens}-token ceiling "
                 f"(stop_reason=max_tokens, model={used_model}). The output is "
                 f"incomplete, not malformed — raise the ceiling rather than "
                 f"loosening the parser."
             )
         if empty:
-            raise AnalysisError(
+            raise InvalidModelResponse(
                 f"Empty response content (stop_reason={response.stop_reason})"
             )
         return text
@@ -513,20 +548,20 @@ class Analyzer:
             failed=bool(stopped) or truncated or tool_block is None)
 
         if stopped:
-            raise AnalysisError(stopped)
+            raise InvalidModelResponse(stopped)
         if truncated:
-            raise AnalysisError(
+            raise InvalidModelResponse(
                 f"Response truncated at the {max_tokens}-token ceiling "
                 f"(stop_reason=max_tokens). Output is incomplete — raise the ceiling."
             )
         if tool_block is not None:
             if not isinstance(tool_block.input, dict):
                 self.usage.mark_failed(task, used_model)
-                raise AnalysisError(
+                raise InvalidModelResponse(
                     f"Invalid `{tool['name']}` tool input type"
                 )
             return dict(tool_block.input)
-        raise AnalysisError(
+        raise InvalidModelResponse(
             f"Model returned no `{tool['name']}` tool call "
             f"(stop_reason={response.stop_reason})"
         )
@@ -583,7 +618,7 @@ class Analyzer:
             # contain a translated article, prompts, or other content that
             # must not be copied into operational logs. Location and length
             # are enough for diagnostics without leaking the response.
-            raise AnalysisError(
+            raise InvalidModelResponse(
                 "JSON parse failed (invalid model response; "
                 f"line={exc.lineno}, column={exc.colno}, "
                 f"response_chars={len(raw)})"
@@ -643,7 +678,7 @@ class Analyzer:
                 # A response can consume tokens yet fail local validation.
                 # Do not log the payload or write an invented score.
                 self.usage.mark_failed(TASK_RELEVANCE, self.task_model(TASK_RELEVANCE))
-                raise AnalysisError("Invalid relevance tool values (score/reasoning)")
+                raise InvalidModelResponse("Invalid relevance tool values (score/reasoning)")
             self._check_fidelity(TASK_RELEVANCE, title + "\n" + body, reason)
             return float(score), reason
         raw = self._call(messages, max_tokens=500, temperature=0.0,
@@ -662,7 +697,7 @@ class Analyzer:
                 or (isinstance(score, float) and not math.isfinite(score))
                 or not isinstance(reason, str) or not reason.strip()):
             self.usage.mark_failed(TASK_RELEVANCE, self.task_model(TASK_RELEVANCE))
-            raise AnalysisError("Invalid relevance JSON values (score/reasoning)")
+            raise InvalidModelResponse("Invalid relevance JSON values (score/reasoning)")
         # Keep legacy clamping for valid numerical out-of-range scores. Unlike
         # the optional forced-tool path, this is not a new strict-range rule.
         score = float(max(0.0, min(1.0, score)))
@@ -824,12 +859,14 @@ class Analyzer:
         # FatalAPIError propagates out of every stage below: it means the whole
         # account is blocked, so the caller must abort the run rather than
         # advance to the next article.
+        self.last_relevance_failure = None
         try:
             score, reasoning = self.score_relevance(title_zh, body_zh)
         except FatalAPIError:
             raise
         except AnalysisError as exc:
             logger.error("Relevance scoring failed: %s", exc)
+            self.last_relevance_failure = _relevance_failure_kind(exc)
             return None
 
         if score < RELEVANCE_THRESHOLD:
@@ -955,12 +992,14 @@ class Analyzer:
         from `profile.categories`; a failed translation or an event type
         outside the vocabulary leaves only the partial result.
         """
+        self.last_relevance_failure = None
         try:
             score, reasoning = self.score_relevance(title, body, profile=profile)
         except FatalAPIError:
             raise
         except AnalysisError as exc:
             logger.error("Relevance scoring failed: %s", exc)
+            self.last_relevance_failure = _relevance_failure_kind(exc)
             return None
 
         partial = {
@@ -1020,7 +1059,7 @@ class Analyzer:
             **partial,
             **({"document_facts":fields.get("facts")} if profile.source_family == "vn_vpcp_official_documents_vi" else {}),
             **({"facts": fields["facts"], "flag_evidence": fields["flag_evidence"]}
-               if profile.desk_id in ("philippines", "indonesia") or _fact_only(profile) else {}),
+               if _evidence_bound(profile) else {}),
             "title_english":          title_en,
             "text_english":           text_en,
             "summary_english":        fields["summary"],
@@ -1044,7 +1083,7 @@ class Analyzer:
         # unchanged original. A model supplies IDs, never authoritative quoted
         # text; the existing private quality gate still checks every claim.
         fact_only = _fact_only(profile)
-        if (profile.desk_id in ("philippines", "indonesia") or fact_only) and isinstance(data, dict):
+        if _evidence_bound(profile) and isinstance(data, dict):
             from analysis.philippines_prompts import evidence_passages
             if profile.desk_id == "indonesia":
                 from analysis.indonesia_prompts import evidence_passages

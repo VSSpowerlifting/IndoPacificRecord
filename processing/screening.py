@@ -204,7 +204,7 @@ PHILIPPINES_PROFILE = ScreeningProfile(
     prompt_version="ph-relevance-v1", build_system_prompt=system_prompt,
     build_analysis_messages=analysis_messages,
     build_analysis_system_prompt=system_prompt,
-    analysis_prompt_version="ph-analysis-v13", categories=CATEGORIES,
+    analysis_prompt_version="ph-analysis-v14", categories=CATEGORIES,
 )
 
 from analysis import indonesia_prompts as id_prompts
@@ -215,7 +215,7 @@ INDONESIA_PROFILE = ScreeningProfile(
     prompt_version="id-relevance-v1", build_system_prompt=id_prompts.system_prompt,
     build_analysis_messages=id_prompts.analysis_messages,
     build_analysis_system_prompt=id_prompts.system_prompt,
-    analysis_prompt_version="id-analysis-v4", source_language="id",
+    analysis_prompt_version="id-analysis-v6", source_language="id",
     source_family="id_kemhan_news", categories=id_prompts.CATEGORIES,
 )
 
@@ -232,6 +232,23 @@ DAPA_PROFILE = ScreeningProfile(
     build_analysis_system_prompt=dapa_prompts.system_prompt,
     analysis_prompt_version=dapa_prompts.ANALYSIS_VERSION, source_language="ko",
     source_family="kr_policy_dapa_releases", categories=dapa_prompts.CATEGORIES,
+)
+
+from analysis import singapore_daily_prompts as sg_daily_prompts
+
+# MINDEF official releases in the shared Daily lane: a source-level Singapore
+# profile with the English-original, evidence-bound contract. SINGAPORE_PROFILE
+# (the legacy public-queue profile, summary and flag only) is untouched and is
+# never applied to this source family.
+SINGAPORE_MINDEF_DAILY_PROFILE = ScreeningProfile(
+    desk_id="singapore", keyword_prefilter=False, daily_queue=False,
+    build_messages=sg_daily_prompts.relevance_messages,
+    prompt_version=sg_daily_prompts.RELEVANCE_VERSION,
+    build_system_prompt=sg_daily_prompts.system_prompt,
+    build_analysis_messages=sg_daily_prompts.analysis_messages,
+    build_analysis_system_prompt=sg_daily_prompts.system_prompt,
+    analysis_prompt_version=sg_daily_prompts.ANALYSIS_VERSION, source_language="en",
+    source_family="sg_mindef_releases", categories=sg_daily_prompts.CATEGORIES,
 )
 
 _PROFILES: Dict[str, ScreeningProfile] = {
@@ -251,6 +268,8 @@ _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
 for _s in DAILY_SOURCES.values():
     _SOURCE_PROFILES[_s.family] = _PROFILES[_s.desk_id]
 _SOURCE_PROFILES[DAPA_PROFILE.source_family] = DAPA_PROFILE
+# The loop above would hand a Singapore family the legacy daily-queue profile.
+_SOURCE_PROFILES[SINGAPORE_MINDEF_DAILY_PROFILE.source_family] = SINGAPORE_MINDEF_DAILY_PROFILE
 # Government Office is explicitly bibliographic-only. Neither the common
 # public queue nor the ministry bridge may turn a subject line into analysis.
 _SOURCE_PROFILES["vn_vpcp_official_documents_vi"] = ScreeningProfile(

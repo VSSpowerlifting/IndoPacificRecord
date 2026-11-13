@@ -231,6 +231,37 @@ class DeclaredStubsAreStillExempt(unittest.TestCase):
             "manual_mil", 3, "2026-09-05", TODAY, 7, expected)
         self.assertEqual("UNHEALTHY", state)        # 15d > 7d
 
+    def test_a_policy_pause_is_reported_but_never_fails_the_gate(self):
+        source = FakeSource("manual_mil", silence_threshold_days=7)
+        source.access_method = "manual"
+        reg = FakeRegistry([SourceHealthResult("manual_mil", st.OK, None)], [source])
+        paused = liveness.expectations(reg, paused={"manual_mil": "switched off"})["manual_mil"]
+        state, days, detail = liveness.classify(
+            "manual_mil", 3, "2026-09-05", TODAY, 7, paused)
+        self.assertEqual(("PAUSED", 15), (state, days))
+        self.assertIn("switched off", detail)
+        # Recent records are still simply healthy; the pause hides nothing.
+        self.assertEqual("HEALTHY", liveness.classify(
+            "manual_mil", 3, "2026-09-19", TODAY, 7, paused)[0])
+        # Switch on again and the ordinary threshold applies at once.
+        active = liveness.expectations(reg, paused={})["manual_mil"]
+        self.assertEqual("UNHEALTHY", liveness.classify(
+            "manual_mil", 3, "2026-09-05", TODAY, 7, active)[0])
+
+    def test_a_pause_never_covers_a_fetched_or_broken_source(self):
+        fetched = FakeSource("fetched_mil", silence_threshold_days=7)
+        reg = FakeRegistry([SourceHealthResult("fetched_mil", st.OK, None)], [fetched])
+        expected = liveness.expectations(reg, paused={"fetched_mil": "switched off"})
+        self.assertIsNone(expected["fetched_mil"].paused)
+        broken = liveness.Expectation(broken=True, reason="adapter unusable", paused="off")
+        self.assertEqual("UNHEALTHY", liveness.classify(
+            "manual_mil", 3, "2026-09-05", TODAY, 7, broken)[0])
+
+    def test_the_pause_list_is_read_from_the_daily_policy(self):
+        from processing.daily_intake import load_policy
+        off = {f for f, p in load_policy()["sources"].items() if not p["unattended_release"]}
+        self.assertEqual(off, set(liveness.paused_by_policy()))
+
     def test_an_undeclared_slug_is_not_exempt(self):
         """A source configuration has forgotten is still expected to produce."""
         self.assertFalse(liveness.UNDECLARED.inert)
@@ -309,7 +340,7 @@ class TheLiveCorpusAgrees(unittest.TestCase):
                 slug, total, last_seen, date.today(), 7,
                 self.expected.get(slug, liveness.UNDECLARED),
             )
-            self.assertIn(state, {"HEALTHY", "UNHEALTHY", "INERT"})
+            self.assertIn(state, {"HEALTHY", "UNHEALTHY", "INERT", "PAUSED"})
 
     def test_no_moving_corpus_count_is_frozen_in_this_file(self):
         """Guard against pinning a total that grows every day.

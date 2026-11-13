@@ -22,7 +22,7 @@ from typing import Callable, Dict, List, Optional, Sequence
 from analysis.vietnam_prompts import EVENT_TYPES
 from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES, content_sha256
 
-RUBRIC_VERSION = "vn-qa-2026-11-02.1"
+RUBRIC_VERSION = "vn-qa-2026-11-12.1"
 SECOND_PASS_RUBRIC = "vn-qa-second-pass-2026-10-21.1"
 MAX_ATTEMPTS = 3
 
@@ -356,8 +356,6 @@ def output_failures(record: dict, title: str, body: str, result: Optional[dict],
     for word in _INFLATION:
         if re.search(r"\b%s\b" % re.escape(word), low):
             f["E_INFLATION"] = "inflationary word %r" % word
-    if result.get("is_significant") and event in LOW_STAGES:
-        f["E_FLAG_LOW_STAGE"] = "flagged %s" % event
     if _OUTCOME.search(summary + " " + headline) and not any(k in original.lower() for k in _OUTCOME_VI):
         f["E_OUTCOME_CLAIM"] = "summary states a completed outcome the source does not"
     if event in ("completion",) and not any(k in original.lower() for k in _OUTCOME_VI):
@@ -379,6 +377,22 @@ def output_failures(record: dict, title: str, body: str, result: Optional[dict],
     if projection.get("title_original") and not permissions.get("public_title_display"):
         f["E_RIGHTS_PROJECTION"] = "title without public_title_display"
     return f
+
+
+def public_flag(result: Optional[dict]) -> tuple:
+    """(is_significant, reason) as published.
+
+    A meeting, announcement or "other" report is never published as flagged:
+    the model's flag is withheld, not the record. The summary still passes
+    every factual check, and a flagged result still takes the second pass.
+    Before vn-qa-2026-11-12.1 this held the whole record (E_FLAG_LOW_STAGE).
+    """
+    if not result or not result.get("is_significant"):
+        return False, None
+    cats = result.get("categories") or []
+    if len(cats) == 1 and cats[0] in LOW_STAGES:
+        return False, None
+    return True, result.get("significance_reasoning")
 
 
 def needs_second_pass(result: Optional[dict]) -> bool:
@@ -436,6 +450,8 @@ def review(record: dict, version: dict, result: Optional[dict], *, logical_date:
                           permissions=permissions, projection=projection, version=version)
     details.update(out)
     fails = sorted(out)
+    if result and result.get("is_significant") and not public_flag(result)[0]:
+        details["FLAG_WITHHELD_LOW_STAGE"] = "flagged %s" % (result.get("categories") or ["?"])[0]
     verdict = None
     if not fails and (force_second_pass or needs_second_pass(result)):
         if second_pass is None or budget is None or not budget.take():

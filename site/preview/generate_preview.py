@@ -145,6 +145,8 @@ from core.brief_collection import (                                  # noqa: E40
     adjacent_items)
 from core.article_media import native_article_media                  # noqa: E402
 from core.brief_photography import article_cover                    # noqa: E402
+from core.brief_social_card import (                             # noqa: E402
+    render_brief_social_card, social_preview_granted)
 from core.brief_contract import validate_readiness
 from core.catalogue_media import (                                   # noqa: E402
     load_admissions as load_catalogue_admissions,
@@ -3085,8 +3087,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                       "jobTitle": member["role"],
                       "worksFor": {"@type": "Organization", "name": title,
                                    "url": profile_origin + "/"}}
-            if member["links"]:
-                schema["sameAs"] = list(member["links"].values())
+            # Person.sameAs describes equivalent profile pages, not emails.
+            public_profiles = [href for href in member["links"].values()
+                               if href.startswith("https://")]
+            if public_profiles:
+                schema["sameAs"] = public_profiles
         route = member["route"]
         (out_dir / route).write_text(profile_template.render(
             page=route, nested=True, member=member,
@@ -3190,6 +3195,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                 target.write_bytes(asset.read_bytes())
                 written.append(route)
 
+    # Preserve all existing Brief cards. No.25 onward may receive an automatic
+    # photographic card when the paired cover also carries an exact-image,
+    # founder-approved grant for the social-link-preview surface.
+    social_cards = dict(PAGE_SOCIAL_CARDS)
+
     # ── One page per published brief ─────────────────────────────────────────
     # `briefs/<slug>.html`, one level down, in the site's own shell: the
     # Analysis page is the collection's landing page and stays the current
@@ -3269,6 +3279,20 @@ def build(out_dir: Path, title: str, db_path: Path,
                     raise ValueError("rendered manuscript: " + "; ".join(errors))
             (out_dir / brief["route"]).write_text(html, encoding="utf-8")
             written.append(brief["route"])
+            # A separately admitted photo is required for a photographic
+            # social preview. Never substitute an AI image, an unlicensed
+            # source photograph or an unrelated picture.
+            if (not brief["synthetic"] and not brief["is_review"]
+                    and brief["route"] not in social_cards and cover
+                    and social_preview_granted(brief["number"], cover["entry"])):
+                card_route = "assets/social/brief-%s.jpg" % slug
+                card_alt = render_brief_social_card(
+                    out_dir / card_route, title=brief["title"],
+                    issue=brief["number"], week_ending=brief["week_ending"],
+                    photo_file=cover["src"]["file"], photo=cover["entry"],
+                    byline=brief.get("author_name", ""))
+                social_cards[brief["route"]] = {"route": card_route, "alt": card_alt}
+                written.append(card_route)
         (out_dir / "briefs.css").write_text(
             (Path(__file__).parent / "briefs.css").read_text(encoding="utf-8"),
             encoding="utf-8")
@@ -3314,7 +3338,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.daily_machine_records import load as load_daily_machine_records
         daily_machine_records = ([r for r in load_daily_machine_records(db_path)
                                   if r["desk_id"] == desk.slug]
-                                 if desk.slug in ("philippines", "indonesia") else [])
+                                 if desk.slug in ("philippines", "indonesia", "singapore") else [])
         # Reuse the admitted corpus and its ordinary record rows. Private
         # captures and bibliographic references cannot enter this list.
         vietnam_records = sorted((r for r in data["corpus"]
@@ -3905,7 +3929,7 @@ def build(out_dir: Path, title: str, db_path: Path,
             # inventing a sentence about a document the renderer has not read,
             # which is the same rule that governs og:description.
             safe_origin = _html.escape(origin, True)
-            page_card = PAGE_SOCIAL_CARDS.get(rel)
+            page_card = social_cards.get(rel)
             if page_card:
                 card = "%s/%s" % (safe_origin, page_card["route"])
                 card_alt = page_card["alt"]

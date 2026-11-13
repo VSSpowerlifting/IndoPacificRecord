@@ -17,7 +17,7 @@ from pathlib import Path
 
 from core import processing_state
 from core.crossdesk_official_metadata_candidates import canonical
-from core.daily_sources import SOURCES, source_for
+from core.daily_sources import SOURCES, attended_only, source_for
 from processing.screening import profile_for_source
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +37,13 @@ PUBLIC_FIELDS = (
 )
 
 
+# Hard ceiling for any family's per-run record count. The binding bound is the
+# family's unchanged max_estimated_cost_usd_per_run reservation, not this number.
+MAX_RECORDS_PER_RUN = 8
+# Request framing reserved per call when deciding whether another record fits.
+CALL_FRAMING_BYTES = 8192
+
+
 class IntakeHold(ValueError):
     """Fixed diagnostic only: no originals or model responses in logs."""
 
@@ -48,6 +55,17 @@ def need(ok, reason):
 
 def digest(value):
     return hashlib.sha256(canonical(value)).hexdigest()
+
+
+def policy_binding(p):
+    """Hash binding a released Record to the source-use policy it was made under.
+
+    Covers every rights, exclusion, spend and input field. The per-run record
+    count is throughput only (bounded by the validator and the unchanged cost
+    ceiling), so it is hashed at its original value: a capacity decision does
+    not withdraw already-released Records, while any other drift still does.
+    """
+    return digest({**p, "max_records_per_run": 1})
 
 
 def load_policy(path=POLICY_PATH):
@@ -63,7 +81,8 @@ def load_policy(path=POLICY_PATH):
         need(all(type(p[k]) is bool for k in (
             "private_model_processing", "public_machine_explanation", "unattended_release")),
             "daily_policy_invalid")
-        need(type(p["max_records_per_run"]) is int and p["max_records_per_run"] == 1
+        need(type(p["max_records_per_run"]) is int
+             and 1 <= p["max_records_per_run"] <= MAX_RECORDS_PER_RUN
              and type(p["max_input_characters"]) is int
              and 100 <= p["max_input_characters"] <= 16000, "daily_spend_bound_invalid")
         need(type(p["max_estimated_cost_usd_per_run"]) in (int, float)
@@ -124,31 +143,60 @@ def verified_source(repo, commit, family):
     return sorted(result, key=lambda r: (r["publisher_posted_date"], r["source_identity"]), reverse=True)
 
 
+class PrivateCallBudget:
+    """One run's reservation: two fixed calls per record, one cost ceiling."""
+
+    def __init__(self, remaining, max_records):
+        self.remaining, self.max_records = remaining, max_records
+        self.records, self.calls = 0, 0
+
+    def fits(self, input_bytes):
+        """Whether both calls for another record fit the unreserved budget."""
+        from config import ANALYSIS_MODEL, RELEVANCE_MODEL
+        from analysis.pricing import estimate_usage_cost_usd
+        size = input_bytes + CALL_FRAMING_BYTES
+        costs = [estimate_usage_cost_usd(RELEVANCE_MODEL, 0, 500, size, 0),
+                 estimate_usage_cost_usd(ANALYSIS_MODEL, 0, 2200, size, 0)]
+        return (self.records < self.max_records and None not in costs
+                and sum(costs) <= self.remaining)
+
+    def begin_record(self):
+        need(self.records < self.max_records, "daily_private_call_bound")
+        self.records += 1
+        self.calls = 0
+
+
 def bound_private_calls(analyzer, policy):
-    """Reserve cost before the shared relevance and private reading calls."""
+    """Reserve cost before the shared relevance and private reading calls.
+
+    Each record gets at most the relevance call then the reading call. Every
+    call reserves its worst-case cost from the single per-run ceiling before
+    dispatch, so more records never raise what one run may spend.
+    """
     from config import ANALYSIS_MODEL, RELEVANCE_MODEL, RELEVANCE_TOOL_OUTPUT_ENABLED
     from analysis.pricing import estimate_usage_cost_usd
     need(not RELEVANCE_TOOL_OUTPUT_ENABLED, "daily_private_tool_route_not_authorized")
     call = analyzer._call
-    remaining, calls = policy["max_estimated_cost_usd_per_run"], 0
+    budget = PrivateCallBudget(policy["max_estimated_cost_usd_per_run"],
+                               policy.get("max_records_per_run", 1))
     expected = (("relevance", RELEVANCE_MODEL, 500), ("summary", ANALYSIS_MODEL, 2200))
 
     def guarded(messages, *, model=None, max_tokens=1000, task=None, **kwargs):
-        nonlocal remaining, calls
         used_model = model or (analyzer.task_model(task) if callable(getattr(type(analyzer), "task_model", None)) else ANALYSIS_MODEL)
-        need(calls < 2 and (task, used_model, max_tokens) == expected[calls],
+        need(budget.calls < 2 and (task, used_model, max_tokens) == expected[budget.calls],
              "daily_private_call_bound")
         # UTF-8 bytes bound text tokens; reserve request framing and the more
         # expensive cache-write rate, rather than guessing chars per token.
         size = len(json.dumps([messages, kwargs], ensure_ascii=False).encode()) + 2048
         cost = estimate_usage_cost_usd(used_model, 0, max_tokens, size, 0)
-        need(cost is not None and cost <= remaining, "daily_private_spend_bound")
-        remaining -= cost
-        calls += 1
+        need(cost is not None and cost <= budget.remaining, "daily_private_spend_bound")
+        budget.remaining -= cost
+        budget.calls += 1
         return call(messages, model=model, max_tokens=max_tokens, task=task, **kwargs)
 
     analyzer._call = guarded
     analyzer._client = analyzer._client.with_options(max_retries=0)
+    return budget
 
 
 def quality_check(record, reading):
@@ -292,7 +340,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
          "daily_processing_source_family_mismatch")
     p = policy["sources"][family]
     result = json.loads(json.dumps(state))
-    used, analyzer = 0, None
+    used, analyzer, budget, exhausted = 0, None, None, False
     present = {family + ":" + r["source_identity"] for r in records}
     for key, entry in result.items():
         if key.startswith(family + ":") and key not in present:
@@ -312,7 +360,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
             result[key] = {**prior, "status": "held", "reason": "source_version_changed"}
             continue
         if prior.get("status") == "complete" and p["private_model_processing"]:
-            prior["output"]["policy_sha256"] = digest(p)
+            prior["output"]["policy_sha256"] = policy_binding(p)
         if prior.get("status") in ("complete", "not_selected", "paused", "held", "terminal"):
             # Rights holds can resume automatically after an actual policy change.
             if not (prior.get("reason") == "model_rights_held" and p["private_model_processing"]):
@@ -329,19 +377,30 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
         if not r["body"].strip() or len((r["title"] + r["body"]).encode("utf-8")) > p["max_input_characters"]:
             entry.update(status="held", reason="original_input_bound")
             continue
-        if used >= p["max_records_per_run"]:
+        def defer():
             # Deferral is not a new attempt. Keep the last failure/QA
-            # disposition intact when a newer record takes this run's slot.
+            # disposition intact when another record takes this run's slot.
             if prior.get("status") in ("pending", "retriable"):
                 result[key] = prior
             else:
                 entry.update(status="pending")
+
+        if exhausted or used >= p["max_records_per_run"]:
+            defer()
             continue
         if analyzer is None:
             analyzer = (analyzer_factory or Analyzer)()
             if analyzer_factory is None:
                 # Queue attempts, not hidden SDK retries, govern private spend.
-                bound_private_calls(analyzer, p)
+                budget = bound_private_calls(analyzer, p)
+        if budget is not None:
+            # A later record that no longer fits the run's reservation waits
+            # for the next run. The first record keeps the in-call spend hold.
+            if used and not budget.fits(len((r["title"] + r["body"]).encode("utf-8"))):
+                exhausted = True
+                defer()
+                continue
+            budget.begin_record()
         used += 1
         try:
             reading = analyzer.analyze_record(r["title"], r["body"], profile_for_source(family))
@@ -358,12 +417,17 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 # Explanation must pass the same output non-disclosure gate.
                 "flag_reason": reading.get("significance_reasoning") if reading["is_significant"] else None,
                 "model_id": reading["model_id"], "prompt_version": reading["prompt_version"],
-                "quality_sha256": quality, "policy_sha256": digest(p),
+                "quality_sha256": quality, "policy_sha256": policy_binding(p),
             })
         except FatalAPIError:
             entry.update(status="pending", reason="account_blocked")
             break
         except (AnalysisError, IntakeHold) as exc:
+            if used > 1 and str(exc) == "daily_private_spend_bound":
+                # The run's reservation ran out mid-record: not a QA attempt.
+                exhausted = True
+                defer()
+                continue
             disposition = processing_state.classify(
                 attempts_before=entry["attempts"], has_body=True,
                 failure=processing_state.ANALYSIS_INCOMPLETE)
@@ -387,20 +451,41 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
     return result, usage_record or []
 
 
-def sign_outputs(state, *, family, policy, key):
+def sign_outputs(state, *, family, policy, key, selected_record=None):
     p = policy["sources"][family]
     need(p["private_model_processing"] and p["public_machine_explanation"]
          and p["unattended_release"], "daily_output_rights_held")
     need(type(key) is str and len(key) >= 32, "daily_bridge_key_invalid")
+    # The Singapore pilot selects one original in private_run. Do not re-sign
+    # an older completed ledger row or withdraw unrelated held identities.
+    # This selection is an optional boundary for other families and synthetic
+    # direct-sign tests; private_run REQUIRES it for Singapore pilot execution.
+    selected_identity = None
+    if selected_record is not None:
+        need(attended_only(family) and type(selected_record) is dict
+             and selected_record.get("source_family") == family
+             and type(selected_record.get("source_identity")) is str,
+             "daily_singapore_pilot_selection_invalid")
+        selected_identity = selected_record["source_identity"]
     outputs = [v["output"] for k, v in sorted(state.items())
                if k.startswith(family + ":") and v.get("status") == "complete"
+               and (selected_identity is None or k == family + ":" + selected_identity)
                and v["output"]["source_identity"] not in p["excluded_source_identities"]
-               and v["output"]["policy_sha256"] == digest(p)]
+               and v["output"]["policy_sha256"] == policy_binding(p)]
+    held = [k[len(family)+1:] for k, v in sorted(state.items())
+            if k.startswith(family + ":") and v.get("status") in ("held", "paused")
+            and (selected_identity is None or k == family + ":" + selected_identity)]
+    if selected_record is not None:
+        need(len(outputs) <= 1 and len(held) <= 1,
+             "daily_singapore_pilot_envelope_exceeds_one")
+        expected = ("source_identity", "source_git_commit", "source_run",
+                    "metadata_version_sha256", "content_sha256", "capture_sha256")
+        need(all(out.get(k) == selected_record.get(k) for out in outputs for k in expected),
+             "daily_singapore_pilot_version_mismatch")
     packet = {"schema": "ipr-shared-daily-machine-output/1", "family": family,
               "source_repository": PRIVATE_REPO, "source_ref": REFS[family],
               "processor_commit": git(ROOT, "rev-parse", "HEAD").decode().strip(), "records": outputs,
-              "held": [k[len(family)+1:] for k, v in sorted(state.items())
-                       if k.startswith(family + ":") and v.get("status") in ("held", "paused")]}
+              "held": held}
     raw = canonical(packet)
     need(len(raw) <= 512000, "daily_envelope_too_large")
     return {"packet": packet, "mac": hmac.new(key.encode(), DOMAIN + raw, hashlib.sha256).hexdigest()}
@@ -426,6 +511,13 @@ def admit(conn, envelope, *, family, policy, key):
          and packet["source_ref"] == REFS[family] and type(packet["records"]) is list
          and type(packet["held"]) is list and all(type(s) is str for s in packet["held"]),
          "daily_envelope_source_mismatch")
+    if attended_only(family):
+        # A one-item pilot is limited at public admission too. The MAC alone
+        # authenticates the signer, but cannot compensate for an old multi-row
+        # processor output or a mistakenly re-signed whole ledger.
+        need(len(packet["records"]) <= 1 and len(packet["held"]) <= 1
+             and not (packet["records"] and packet["held"]),
+             "daily_singapore_pilot_envelope_exceeds_one")
     need(type(packet["processor_commit"]) is str and COMMIT.fullmatch(packet["processor_commit"]),
          "daily_processor_pin_invalid")
     need(_is_ancestor(ROOT, packet["processor_commit"], "HEAD"), "daily_processor_not_in_public_history")
@@ -440,7 +532,17 @@ def admit(conn, envelope, *, family, policy, key):
                          "WHERE source_family=? AND source_identity=? AND publication_state!='held'", (family, ident))
         for r in packet["records"]:
             try:
-                validate_output(r, family, p)
+                # The private signer re-sends every completed output each run.
+                # One already stored here under this same pair is the released
+                # record itself, not a new output: it keeps its historical pair
+                # so its policy binding can still follow the pinned policy.
+                # Nothing is inserted on that path (see `prior` below).
+                stored = conn.execute(
+                    "SELECT 1 FROM daily_machine_records WHERE source_family=? "
+                    "AND source_identity=? AND prompt_version=?",
+                    (family, r.get("source_identity") if type(r) is dict else None,
+                     r.get("prompt_version") if type(r) is dict else None)).fetchone()
+                validate_output(r, family, p, released=stored is not None)
                 if source.parent:
                     link = source.parent_link(conn, r["source_identity"])
                     need(link is not None and link["metadata_version_sha256"] == r["metadata_version_sha256"]
@@ -491,10 +593,13 @@ def resume(state, key):
     return state
 
 
-def validate_output(r, family, p):
+def validate_output(r, family, p, *, released=False):
+    """Admission check by default. `released=True` is for reading a record that
+    is already published: only the prompt-version allowlist widens, to that
+    source's own released_prompt_versions; every other check is identical."""
     source = source_for(family)
     need(source is not None and type(r) is dict and set(r) == set(PUBLIC_FIELDS)
-         and r["source_family"] == family and r["policy_sha256"] == digest(p),
+         and r["source_family"] == family and r["policy_sha256"] == policy_binding(p),
          "daily_output_schema_or_policy_invalid")
     need(not source.is_held_source(r), "daily_source_semantic_anomaly")
     need(r["source_identity"] not in p["excluded_source_identities"],
@@ -510,14 +615,15 @@ def validate_output(r, family, p):
          and type(r["categories"]) is list and r["categories"]
          and all(type(c) is str and c in profile_for_source(family).categories for c in r["categories"])
          and type(r["model_id"]) is str and bool(r["model_id"])
-         and r["prompt_version"] in allowed_prompt_versions(family), "daily_output_incomplete")
+         and r["prompt_version"] in allowed_prompt_versions(family, released=released),
+         "daily_output_incomplete")
     hold = source.output_hold(r)
     need(hold is None, hold)
     need(len((r["summary"] + " " + (r["flag_reason"] or "")).split()) <= 90,
          "daily_explanation_word_limit")
 
 
-def allowed_prompt_versions(family):
+def allowed_prompt_versions(family, *, released=False):
     source = source_for(family)
     need(source is not None, "daily_processing_source_family_mismatch")
-    return source.prompt_versions
+    return source.prompt_versions + source.released_prompt_versions if released else source.prompt_versions
