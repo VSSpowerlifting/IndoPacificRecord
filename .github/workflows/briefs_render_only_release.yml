@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - name: Install existing render dependencies (no publisher calls)
         run: pip install -r requirements.txt
@@ -110,7 +110,7 @@ jobs:
           }
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - name: Install existing render dependencies (no publisher calls)
         run: pip install -r requirements.txt
@@ -190,7 +190,7 @@ jobs:
           test ! -e pla_watch.db-shm
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - name: Install existing render dependencies (no publisher calls)
         run: pip install -r requirements.txt

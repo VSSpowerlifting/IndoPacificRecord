@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Strict URL, robots, rejection and no-permission contracts; no network
         run: python -m unittest -v tests.test_korea_dapa_native_access_canary
       - name: Production state unchanged
@@ -62,7 +62,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Exactly robots then at most one DAPA-owned press listing GET
         env:
           # Dispatch input is data, never interpolated into shell code.

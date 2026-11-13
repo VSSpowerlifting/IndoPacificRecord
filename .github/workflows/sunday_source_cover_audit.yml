@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Install declared import dependency for read-only writer modules
         run: python -m pip install 'python-dotenv>=1.0.1'
       - name: Run actual default-selection observer using synthetic data only

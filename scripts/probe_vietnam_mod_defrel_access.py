@@ -12,13 +12,13 @@ import json
 import time
 import urllib.error
 import urllib.request
-import urllib.robotparser
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
 from scripts.review_vietnam_mod_portal_links import (
     article_identity, MODCanaryRefused,
 )
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 BASE = "https://mod.gov.vn"
 ROBOTS = BASE + "/robots.txt"
@@ -106,9 +106,7 @@ def validate_robots(data):
         raise ProbeBlocked("robots-is-html")
     if not any(line.lstrip().lower().startswith("user-agent:") for line in content.splitlines()):
         raise ProbeBlocked("robots-missing-user-agent")
-    parser = urllib.robotparser.RobotFileParser()
-    parser.parse(content.splitlines())
-    if not parser.can_fetch(UA, LISTING):
+    if not legacy_can_fetch(content.splitlines(), UA, LISTING):
         raise ProbeBlocked("robots-disallow-listing")
     return True
 

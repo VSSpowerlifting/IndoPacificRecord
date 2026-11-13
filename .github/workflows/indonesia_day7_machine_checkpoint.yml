@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Day 7 evidence, appointment and rights non-approval tests
         run: |
           python -m unittest tests.test_indonesia_day7_machine_checkpoint tests.test_fetch_indonesia_actions_census tests.test_indonesia_actions_attempts -q
@@ -63,7 +63,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Require October 2026 checkpoint, not future annual cron
         shell: bash
         run: |

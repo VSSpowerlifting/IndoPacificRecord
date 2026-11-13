@@ -39,7 +39,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: pip install -r requirements.txt
       - name: Actual bounded site render with corpus checksum
         shell: bash
@@ -96,7 +96,7 @@ jobs:
           persist-credentials: true
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Require exact approved source-only merge
         shell: bash
         run: |

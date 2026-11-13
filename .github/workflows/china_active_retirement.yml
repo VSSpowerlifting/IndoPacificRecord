@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Fingerprint tracked SQLite and publication artifacts
         run: |
           set -euo pipefail
@@ -53,7 +53,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - name: Fingerprint canonical tracked corpus
         run: |

@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install 'jinja2>=3,<4'
       - name: Read-only, source-free SQLite and country page rendering contracts
         shell: bash

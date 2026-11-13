@@ -4,9 +4,9 @@ import collections
 import json
 import re
 import urllib.request
-import urllib.robotparser
 from bs4 import BeautifulSoup
 from scripts.probe_us_navy_first_party_access import AGENT, _fetch, NoRedirect, MAX_ROBOTS_BYTES
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 ROBOTS="https://home.treasury.gov/robots.txt"
 LISTING="https://home.treasury.gov/news/press-releases"
@@ -14,9 +14,7 @@ def main():
     op=urllib.request.build_opener(NoRedirect)
     policy,status=_fetch(op,ROBOTS,MAX_ROBOTS_BYTES)
     if status!="ok": raise RuntimeError("treasury_robots_"+status)
-    rp=urllib.robotparser.RobotFileParser(ROBOTS)
-    rp.parse(policy.decode("utf-8").splitlines())
-    if not rp.can_fetch(AGENT,LISTING):raise RuntimeError("treasury_listing_disallowed")
+    if not legacy_can_fetch(policy.decode("utf-8").splitlines(),AGENT,LISTING):raise RuntimeError("treasury_listing_disallowed")
     body,status=_fetch(op,LISTING,160000)
     if status!="ok":raise RuntimeError("treasury_listing_"+status)
     soup=BeautifulSoup(body,"html.parser")

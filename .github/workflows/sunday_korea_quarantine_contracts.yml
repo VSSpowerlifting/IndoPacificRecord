@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Recheck actual Week-42 non-Korea packet and hostile Korea substitutions
         run: python -m unittest tests.test_sunday_korea_quarantine_gate -v
       - name: Guarantee site and production state unchanged

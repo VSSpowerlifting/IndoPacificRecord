@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Test schedule removal and explicit manual delivery authority
         run: python -m unittest tests.test_friday_editorial_retirement -v
       - name: Assert no tracked database or renderer changes

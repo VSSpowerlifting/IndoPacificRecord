@@ -123,9 +123,9 @@ IndoPacificRecord/
 
 ### Prerequisites
 
-- Python 3.9 — the version every workflow pins. `docs/ARCHITECTURE_AND_PUBLISHING.md`
+- Python 3.13 — the version every workflow pins. `docs/ARCHITECTURE_AND_PUBLISHING.md`
   §4 is the governing statement: keep the validator and the renderers
-  3.9-compatible, or CI cannot run them.
+  3.13-compatible, or CI cannot run them.
 - An [Anthropic API key](https://console.anthropic.com/)
 - A GitHub account
 

@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Prove migration uniqueness, empty initial state and schema guards
         run: python -m unittest tests.test_regional_source_index_migration -v
       - name: Verify tracked production file and output remain untouched

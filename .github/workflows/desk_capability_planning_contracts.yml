@@ -26,10 +26,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Python 3.9
+      - name: Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Plan DAG and real-source binding integrity
         run: python -m scripts.validate_desk_capability_plan --json
       - name: Assert negative contract cases

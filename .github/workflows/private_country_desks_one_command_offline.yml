@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Source snapshots and private browser from six synthetic Git branches
         run: |
           python -m unittest tests.test_private_country_desk_reader -v
