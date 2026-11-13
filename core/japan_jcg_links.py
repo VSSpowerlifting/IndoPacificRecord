@@ -47,6 +47,13 @@ DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 # collector module is not imported here so migrations stay dependency-free.
 FAMILY_BEGIN = "2026-09-01"
 BODY_SCOPE = "published_html_text_only"
+# Mirrors scraper.sources.jp_jcg_en.EXTRACTION_PROFILE (asserted in tests). An
+# earlier profile kept attachment link labels in the text and dropped prose not
+# wrapped in <p>, so its rows are held rather than used as model input.
+EXTRACTION_PROFILE = "jcg-html-article-text/2"
+# Residue of a linked attachment in the text ("... (PDF:390KB)"): the label of
+# an excluded document is not article prose and must never reach the model.
+ATTACHMENT_LABEL = re.compile(r"[(\uff08]\s*PDF\b|\bPDF\s*[:\uff1a]\s*\d", re.I)
 VERSION_FIELDS = ("source_identity", "canonical_official_url", "publisher_posted_date",
                   "content_sha256", "capture_sha256", "title_sha256")
 LINKS_SCHEMA = "ipr-japan-jcg-links/1"
@@ -95,8 +102,12 @@ def version_hash(fields: Dict[str, Optional[str]]) -> str:
     return hashlib.sha256(body.encode()).hexdigest()
 
 
-def scope_hold(metadata_json) -> Optional[str]:
-    """Reason a custody row is outside the standing HTML-text family, or None."""
+def scope_hold(metadata_json, text=None) -> Optional[str]:
+    """Reason a custody row is outside the standing HTML-text family, or None.
+
+    ``text`` is the private original body. It is checked here, in custody,
+    so an excluded attachment's label is held before signing or processing.
+    """
     try:
         meta = json.loads(metadata_json or "{}")
     except ValueError:
@@ -107,11 +118,17 @@ def scope_hold(metadata_json) -> Optional[str]:
         return "jcg_link_body_scope_not_html_text"
     if meta.get("attachments_collected") is not False:
         return "jcg_link_attachment_collected"
+    if meta.get("extraction_profile") != EXTRACTION_PROFILE:
+        return "jcg_link_extraction_profile_superseded"
+    if type(text) is not str or not text.strip():
+        return "jcg_link_body_missing"
+    if ATTACHMENT_LABEL.search(text):
+        return "jcg_link_attachment_label_in_text"
     return None
 
 
 def link_from_row(identity, url, day, run, capture_sha, content_sha, title,
-                  metadata_json=None) -> dict:
+                  metadata_json=None, text=None) -> dict:
     """One link dict in the shared shape; ``verified_source`` revalidates it."""
     fields = {"source_identity": identity, "canonical_official_url": url,
               "publisher_posted_date": day, "content_sha256": content_sha,
@@ -120,7 +137,7 @@ def link_from_row(identity, url, day, run, capture_sha, content_sha, title,
             "publisher_posted_date": day, "official_issuer": ISSUER,
             "official_publisher": None, "official_republisher": None,
             "first_seen_run": run, "metadata_version_sha256": version_hash(fields),
-            "jcg_scope_hold": scope_hold(metadata_json)}
+            "jcg_scope_hold": scope_hold(metadata_json, text)}
 
 
 def links_from_custody(repo, commit, family=FAMILY) -> List[dict]:
@@ -136,7 +153,7 @@ def links_from_custody(repo, commit, family=FAMILY) -> List[dict]:
                 raise LinkRefused("jcg_link_custody_schema_unsupported")
             rows = conn.execute(
                 "SELECT source_identity,url,published_date,first_seen_run,capture_sha256,"
-                "content_sha256,title_original,metadata_json FROM shadow_records "
+                "content_sha256,title_original,metadata_json,text_original FROM shadow_records "
                 "WHERE source_slug=? ORDER BY source_identity", (family,)).fetchall()
     return [link_from_row(*row) for row in rows]
 

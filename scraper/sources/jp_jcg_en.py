@@ -15,7 +15,7 @@ import re
 from datetime import date, datetime
 from urllib.parse import urljoin, urlsplit
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 
 from core.collection.contract import ExtractedDocument
 from scraper.sources.desk_shadow_http import ListingShadowAdapter, Page
@@ -37,6 +37,73 @@ DATE_ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 DATE_DOTTED = re.compile(r"^(\d{4})[./](\d{1,2})[./](\d{1,2})$")
 DATE_ENGLISH = ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y",
                 "%d %B, %Y", "%d %b, %Y")
+
+# Version of the article-text extraction. Custody rows written by an earlier
+# profile (attachment link labels in the text, <p>-only bodies) are held by
+# ``core.japan_jcg_links.scope_hold`` rather than passed to processing.
+EXTRACTION_PROFILE = "jcg-html-article-text/2"
+ATTACHMENT_SUFFIXES = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+                       ".zip", ".jpg", ".jpeg", ".png", ".gif", ".webp")
+MEDIA_TAGS = ("img", "picture", "figure", "video", "audio", "object", "embed")
+MEDIA_HOLDERS = ("p", "li", "td", "th", "dd", "dt", "figure", "blockquote", "caption")
+BLOCKS = frozenset(("p", "li", "blockquote", "div", "td", "th", "tr", "table",
+                    "tbody", "thead", "ul", "ol", "dl", "dd", "dt", "section",
+                    "article", "figure", "figcaption", "caption", "pre",
+                    "h1", "h2", "h3", "h4", "h5", "h6"))
+HEADINGS = frozenset(("h1", "h2", "h3", "h4", "h5", "h6"))
+# ASCII whitespace only: a full-width space is publisher text, not layout.
+SPACE = re.compile(r"[ \t\r\n\f\v]+")
+LABEL_WORDS = 12
+
+
+def article_blocks(body):
+    """Article prose as publisher blocks, in document order.
+
+    Text is split at block elements and at ``<br>``, so releases published as
+    ``<br>``-separated text without paragraphs and releases whose lead or
+    numbered section labels are headings both keep all of their prose. A
+    short heading left with no prose under it (for example "Photo Gallery" or
+    "Links" once media and attachment labels are excluded) is not prose.
+    """
+    blocks, buf = [], []
+
+    def flush(kind="text"):
+        text = SPACE.sub(" ", "".join(buf)).strip()
+        buf.clear()
+        if text:
+            blocks.append((kind, text))
+
+    def walk(node):
+        for child in node.children:
+            name = getattr(child, "name", None)
+            if name is None:
+                if type(child) is NavigableString:  # not a comment or doctype
+                    buf.append(str(child))
+            elif name == "br":
+                # html.parser nests the text after an unclosed <br> inside it.
+                flush()
+                walk(child)
+            elif name in HEADINGS:
+                flush()
+                walk(child)
+                flush("heading")
+            elif name in BLOCKS:
+                flush()
+                walk(child)
+                flush()
+            else:
+                walk(child)
+
+    walk(body)
+    flush()
+    kept = []
+    for i, (kind, text) in enumerate(blocks):
+        following = blocks[i + 1][0] if i + 1 < len(blocks) else None
+        if (kind == "heading" and len(text.split()) <= LABEL_WORDS
+                and following in (None, "heading")):
+            continue
+        kept.append(text)
+    return kept
 
 
 def one(nodes, purpose):
@@ -158,22 +225,37 @@ class JCGEnglishAdapter(ListingShadowAdapter):
                    "official release body")
         for node in body.select("script, style, noscript, nav, form, iframe, svg"):
             node.decompose()
-        paragraphs = [p.get_text(" ", strip=True) for p in body.select("p, li, blockquote")]
-        paragraphs = [p for p in paragraphs if p]
+        # Linked attachments (PDFs, documents, images) are outside the standing
+        # HTML-text family. Their URLs are disclosed as metadata, never fetched,
+        # and their link labels ("... (PDF:390KB)") are not article prose.
+        pdf_links, attachment_labels = [], 0
+        for link in body.select("a[href]"):
+            href = urljoin(url, link["href"])
+            p = urlsplit(href)
+            if p.path.lower().endswith(ATTACHMENT_SUFFIXES):
+                if p.scheme != "https" or p.netloc != HOST:
+                    raise ValueError("release references off-host attachment; requires separate review")
+                pdf_links.append(href)
+                attachment_labels += 1
+                link.decompose()
+        # Photographs and their captions are media, not article prose: the
+        # smallest block holding an image (a captioned paragraph or table cell)
+        # is excluded whole, so a caption is never model input.
+        media_blocks = 0
+        for media in list(body.select(", ".join(MEDIA_TAGS))):
+            if media.decomposed:
+                continue
+            holder = media.find_parent(MEDIA_HOLDERS)
+            if holder is not None and body in holder.parents:
+                holder.decompose()
+            else:
+                media.decompose()
+            media_blocks += 1
+        paragraphs = article_blocks(body)
         if not title or len(" ".join(paragraphs)) < 180:
             raise ValueError("body too short for a substantive original HTML release")
         if not any(len(p) > 70 for p in paragraphs):
             raise ValueError("no substantive paragraph (possibly links-only page)")
-        # If the publisher links an additional PDF, do not pretend to have
-        # captured it or that its text is part of this original HTML body.
-        pdf_links = []
-        for link in body.select("a[href]"):
-            href = urljoin(url, link["href"])
-            p = urlsplit(href)
-            if p.path.lower().endswith(".pdf"):
-                if p.scheme != "https" or p.netloc != HOST:
-                    raise ValueError("release references off-host PDF; requires separate review")
-                pdf_links.append(href)
         prose = "\n\n".join(paragraphs)
         return ExtractedDocument(
             url=url, source_slug=self.slug, title_original=title,
@@ -190,5 +272,8 @@ class JCGEnglishAdapter(ListingShadowAdapter):
                 "body_scope": "published_html_text_only",
                 "attachments_collected": False,
                 "attachment_urls": sorted(set(pdf_links)),
+                "extraction_profile": EXTRACTION_PROFILE,
+                "attachment_link_labels_excluded": attachment_labels,
+                "media_blocks_excluded": media_blocks,
                 "derivation": "first_party_english_original_not_translated",
             })

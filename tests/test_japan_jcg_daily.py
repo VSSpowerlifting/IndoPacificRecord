@@ -39,7 +39,7 @@ RUN = "88-1"
 REMOTE = "https://github.com/" + d.PRIVATE_REPO
 META = {"source_identity": IDENT, "publication_kind": "english_official_press_release",
         "body_scope": "published_html_text_only", "attachments_collected": False,
-        "attachment_urls": []}
+        "attachment_urls": [], "extraction_profile": links.EXTRACTION_PROFILE}
 
 
 def sha(text):
@@ -241,6 +241,43 @@ class JcgCustody(unittest.TestCase):
         self.assertEqual(set(envelope["packet"]["links"][0]), set(links.LINK_FIELDS))
         self.assertNotIn(TITLE, json.dumps(envelope))
         self.assertNotIn(FIRST, json.dumps(envelope))
+
+    def test_superseded_extraction_and_attachment_residue_are_held_in_custody(self):
+        # The three originals preserved before profile 2 carry their PDF link
+        # label in the text; replayed 9465/9477/9519 under profile 2 do not.
+        old = {k: v for k, v in META.items() if k != "extraction_profile"}
+        rows = [(IDENT, TITLE, BODY, DAY, META),
+                ("jcg-en:90005", TITLE, BODY + " five", DAY, old),
+                ("jcg-en:90006", TITLE, BODY + "\n\nSynthetic support summary (PDF:665KB)", DAY, META),
+                ("jcg-en:90007", TITLE, BODY + " Synthetic overview\uff08PDF:269 KB\uff09", DAY, META),
+                ("jcg-en:90008", TITLE, BODY + " Synthetic support (PDF: 390 KB)", DAY, META),
+                ("jcg-en:90009", TITLE, "", DAY, META)]
+        repo, head = build_custody(self.tmp, rows)
+        records = links.with_title_hash(d.verified_source(repo, head, FAMILY))
+        holds = {r["source_identity"]: r["jcg_scope_hold"] for r in records}
+        self.assertEqual(holds, {IDENT: None,
+                                 "jcg-en:90005": "jcg_link_extraction_profile_superseded",
+                                 "jcg-en:90006": "jcg_link_attachment_label_in_text",
+                                 "jcg-en:90007": "jcg_link_attachment_label_in_text",
+                                 "jcg-en:90008": "jcg_link_attachment_label_in_text",
+                                 "jcg-en:90009": "jcg_link_body_missing"})
+        envelope = links.sign_links(records, key="k" * 40)
+        self.assertEqual([l["source_identity"] for l in envelope["packet"]["links"]], [IDENT])
+        factory = Mock()
+        held = [r for r in records if r["source_identity"] != IDENT]
+        state, _ = d.process(held, {}, family=FAMILY, policy=policy(), analyzer_factory=factory)
+        factory.assert_not_called()
+
+    def test_prose_mentioning_pdf_without_a_size_label_is_not_held(self):
+        body = BODY + " The JCG said the agencies would exchange PDF manuals next year."
+        repo, head = build_custody(self.tmp, [(IDENT, TITLE, body, DAY, META)])
+        (record,) = d.verified_source(repo, head, FAMILY)
+        self.assertIsNone(record["jcg_scope_hold"])
+
+    def test_custody_profile_mirrors_the_collector(self):
+        from scraper.sources import jp_jcg_en
+        self.assertEqual(links.EXTRACTION_PROFILE, jp_jcg_en.EXTRACTION_PROFILE)
+        self.assertEqual(links.FAMILY_BEGIN, jp_jcg_en.PILOT_BEGIN)
 
     def test_a_held_scope_row_never_reaches_the_model(self):
         repo, head = build_custody(self.tmp, [
