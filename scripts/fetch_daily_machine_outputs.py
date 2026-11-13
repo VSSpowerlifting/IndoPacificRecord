@@ -98,6 +98,14 @@ def main():
         # Its own branch: the collector that signs links never contends with
         # the shared-processing writer of state/shared-daily.
         results[LINKS_NAME] = _fetch(LINKS_NAME, links, LINKS_REF)
+    # Japan Coast Guard official-link parents: the same link-scope contract,
+    # with its own owner switch and private state branch.
+    from core import japan_jcg_links
+    jcg = target / japan_jcg_links.LINKS_NAME
+    jcg.unlink(missing_ok=True)
+    if os.environ.get("JP_JCG_LINKS_ENABLED") == "true":
+        results[japan_jcg_links.LINKS_NAME] = _fetch(
+            japan_jcg_links.LINKS_NAME, jcg, japan_jcg_links.LINKS_REF)
     return _report(results)
 
 

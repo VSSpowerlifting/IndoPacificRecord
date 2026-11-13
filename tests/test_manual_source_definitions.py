@@ -79,9 +79,10 @@ class TestRegistration(unittest.TestCase):
 
     def test_every_governed_family_is_a_manual_production_source(self):
         registered = {f for f, s in SOURCES.items() if s.desk_registered}
-        # DAPA remains unregistered; Singapore's manual route is registered,
-        # but its model/release policy is still disabled.
-        unregistered = {"kr_policy_dapa_releases"}
+        # DAPA and Japan Coast Guard remain unregistered until their separate
+        # activations; Singapore's manual route is registered, but its
+        # model/release policy is still disabled.
+        unregistered = {"kr_policy_dapa_releases", "jp_jcg_press_en"}
         self.assertEqual(set(SOURCES) - registered, unregistered)
         for family in unregistered:
             self.assertNotIn(family, pipeline._governed_admissions())

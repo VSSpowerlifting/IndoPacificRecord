@@ -326,6 +326,33 @@ def _sg_parent(conn, identity) -> Optional[dict]:
     return singapore_mindef_links.read_parent(conn, identity)
 
 
+def _jcg_links(repo, commit, source) -> list:
+    """JCG English release identities in the pinned private custody checkout.
+
+    Each link carries hashes of the private original, never its text, and a
+    scope hold when the row is not the published HTML text alone.
+    """
+    from core import japan_jcg_links
+    return japan_jcg_links.links_from_custody(repo, commit, source.family)
+
+
+def _jcg_known_hold(record) -> bool:
+    """A row outside the standing HTML-text family is never model input."""
+    return bool(record.get("jcg_scope_hold"))
+
+
+def _jcg_output_check(output) -> Optional[str]:
+    ok = not output["model_flagged"] and re.search(
+        r"\bJCG\b|\bJapan Coast Guard\b", output["summary"]) is not None
+    return None if ok else "daily_japan_jcg_flag_or_attribution_held"
+
+
+def _jcg_parent(conn, identity) -> Optional[dict]:
+    """The admitted JCG official link (link-only scope) in shared field names."""
+    from core import japan_jcg_links
+    return japan_jcg_links.read_parent(conn, identity)
+
+
 SOURCES: Dict[str, DailySource] = {s.family: s for s in (
     DailySource(
         family="ph_afp_articles", desk_id="philippines", custody_ref="archive/ph-afp",
@@ -388,6 +415,24 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         # A manifest-registered manual source: public Daily admits signed outputs,
         # never fetches MINDEF originals. Runtime source-use gates stay off.
         desk_registered=True),
+    DailySource(
+        # Standing first-party text family (PR #1015, Public Data License 1.0):
+        # English HTML article prose only. The private branch continues the
+        # preserved JCG evidence ancestry rather than starting a second copy.
+        family="jp_jcg_press_en", desk_id="japan", custody_ref="archive/japan-jcg",
+        language="en", label="JCG", publisher="Japan Coast Guard",
+        public_issuer="Japan Coast Guard",
+        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v1",),
+        identity_max_length=64,
+        links="core.daily_sources:_jcg_links",
+        quality="processing.daily_intake:english_official_quality",
+        known_hold="core.daily_sources:_jcg_known_hold",
+        output_check="core.daily_sources:_jcg_output_check",
+        parent="core.daily_sources:_jcg_parent",
+        admission_migration="migrations.versions.m0023_japan_jcg_source_records:is_already_applied",
+        # Not yet declared in the Japan desk manifest: declaring it is the
+        # activation step, so no governed admission runs before then.
+        desk_registered=False),
 )}
 
 

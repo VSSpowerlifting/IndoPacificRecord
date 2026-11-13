@@ -144,7 +144,7 @@ class DapaAdapters(unittest.TestCase):
     def test_family_is_not_desk_registered_until_activation(self):
         self.assertFalse(SOURCES[FAMILY].desk_registered)
         self.assertTrue(all(s.desk_registered for f, s in SOURCES.items()
-                            if f not in (FAMILY, "sg_mindef_releases")))
+                            if f not in (FAMILY, "sg_mindef_releases", "jp_jcg_press_en")))
 
 
 class DapaLifecycle(unittest.TestCase):

@@ -3338,7 +3338,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.daily_machine_records import load as load_daily_machine_records
         daily_machine_records = ([r for r in load_daily_machine_records(db_path)
                                   if r["desk_id"] == desk.slug]
-                                 if desk.slug in ("philippines", "indonesia", "singapore") else [])
+                                 if desk.slug in ("philippines", "indonesia", "singapore", "japan") else [])
         # Reuse the admitted corpus and its ordinary record rows. Private
         # captures and bibliographic references cannot enter this list.
         vietnam_records = sorted((r for r in data["corpus"]
