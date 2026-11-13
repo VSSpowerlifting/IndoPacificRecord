@@ -326,7 +326,7 @@ class ApprovedBriefsTests(unittest.TestCase):
 
     def test_a_new_approved_brief_extends_rather_than_breaks_the_check(self):
         shared = next(r for _, r in cited_refs(self.collection)
-                      if r["independence"] == "official")
+                      if r["independence"] == "official" and cited.omission(r) is None)
         new_refs = [dict(shared, id="s1"),
                     ref("s2", "https://www.mod.go.jp/new.html"),
                     ref("s3", "https://www.reuters.com/new", independence="independent"),
