@@ -1,46 +1,47 @@
 {
   "version": "brief-presentation-v1",
   "article": "four-country-coordination-center-philippines-2026",
-  "manuscript_fingerprint": "cf66e767c07fc4872b4f46b0150e9192b009c5d35f43eb40f820c21cd49875e6",
+  "manuscript_fingerprint": "dc03d879dfe517d286ef8ae0a5b07f042423db445a0267bc904ddeda1e18be81",
   "status": "draft",
   "sections": [
     {
       "id": "reading-section-1",
       "start": 1,
       "end": 3,
-      "heading": "A center on a list of four"
+      "heading": "A pledge without particulars"
     },
     {
       "id": "reading-section-2",
       "start": 4,
-      "end": 7,
+      "end": 6,
       "heading": "A name with a bilateral history"
     },
     {
       "id": "reading-section-3",
-      "start": 8,
-      "end": 10,
+      "start": 7,
+      "end": 8,
       "heading": "Planned, or already operating"
     },
     {
       "id": "reading-section-4",
-      "start": 11,
-      "end": 12,
-      "heading": "Coordination, not command"
+      "start": 9,
+      "end": 13,
+      "heading": "What regular participation would change"
     },
     {
       "id": "reading-section-5",
-      "start": 13,
+      "start": 14,
       "end": 14,
-      "heading": "What would settle it"
+      "heading": "A narrower reading"
     }
   ],
   "central_finding": {
     "paragraph": 14,
-    "quote": "Four governments have adopted as a shared goal a name that the United States and the Philippines have used for a bilateral coordination structure since at least 2024.",
+    "quote": "It would give Japan and Australia a standing place in a coordination structure the United States and the Philippines built, reached largely through U.S. networks and U.S. release decisions.",
     "sources": [
-      "s1",
-      "s6"
+      "s8",
+      "s10",
+      "s12"
     ]
   },
   "evidence": {
@@ -54,26 +55,35 @@
         ]
       },
       {
-        "paragraph": 5,
-        "quote": "broke ground on a new combined coordination center at Camp Aguinaldo",
+        "paragraph": 4,
+        "quote": "on a new combined coordination center at Camp Aguinaldo",
         "sources": [
           "s7"
+        ]
+      },
+      {
+        "paragraph": 10,
+        "quote": "That is coordination of parallel national forces, not a multinational command",
+        "sources": [
+          "s8"
         ]
       }
     ],
     "uncertain": [
       {
-        "paragraph": 9,
-        "quote": "As of Nov. 13, no government had said publicly which of these it is.",
+        "paragraph": 8,
+        "quote": "As of Nov. 13, the statements and remarks reviewed here did not say which.",
         "sources": [
           "s14",
-          "s15"
+          "s15",
+          "s1"
         ]
       },
       {
-        "paragraph": 12,
-        "quote": "The public record does not show a four-way framework for classified information",
+        "paragraph": 11,
+        "quote": "The sources reviewed here document no four-country instrument for classified information.",
         "sources": [
+          "s6",
           "s4",
           "s12"
         ]
