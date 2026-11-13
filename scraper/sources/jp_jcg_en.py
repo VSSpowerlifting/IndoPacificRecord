@@ -22,6 +22,12 @@ from scraper.sources.desk_shadow_http import ListingShadowAdapter, Page
 
 HOST = "www.kaiho.mlit.go.jp"
 LISTING = "https://" + HOST + "/e/topics_archive/index.html"
+# The publisher's site-use rules (PDL 1.0 and its exclusions). Captured into
+# custody in every run, before the listing, so the standing-rights replay
+# (core.japan_jcg_rights) verifies the terms in force when the releases were
+# collected. Policy evidence only: no release scope is added, and a failed
+# capture refuses the run.
+POLICY_URL = "https://" + HOST + "/questions/post-1.html"
 RELEASE = re.compile(r"^/e/topics_archive/article([0-9]+)\.html$")
 # Directory of the declared release family. An index row that links a
 # first-party page *outside* this directory (observed 2026-10-26: an
@@ -145,6 +151,7 @@ class JCGEnglishAdapter(ListingShadowAdapter):
     host, listing = HOST, LISTING
 
     def first_request(self, window):
+        self._request(POLICY_URL)
         return self.listing, None
 
     def discover(self, window):

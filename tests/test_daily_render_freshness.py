@@ -563,9 +563,11 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # unless all three sg_mindef_releases policy booleans are true, and
         # they are false (docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
         # DAILY_JP_JCG_PRESS_EN_KEY is the same presence-only mapping for the
-        # Japan Coast Guard family: no such secret exists yet, the three
-        # jp_jcg_press_en policy booleans are false and the family is not
-        # desk-registered, so the fetcher and the governed admission skip it.
+        # Japan Coast Guard family (founder-reserved activation in #1045).
+        # JP_JCG_LINKS_ENABLED is that family's owner rollback switch: unless
+        # it is exactly "true" the governed admission reports the family
+        # inactive and admits no machine output, even against an admitted
+        # parent. It can only stop admission, never add a source or model use.
         # IPR_USCC_SOURCE_CHECKOUT and IPR_US_TREASURY_SOURCE_CHECKOUT name the
         # run-local clones of this repository's preserved listing histories
         # that the governed USCC/Treasury admissions read under the owner's
@@ -592,6 +594,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         self.assertIn("IPR_VIETNAM_HANDOFF_RECEIPT: ${{ runner.temp }}/vietnam-handoff.json", pipeline)
         for key in ("VIETNAM_DAILY_HANDOFF_ENABLED", "VIETNAM_VPCP_METADATA_ENABLED"):
             self.assertIn(key + ": ${{ vars." + key + " }}", pipeline)
+        self.assertIn("JP_JCG_LINKS_ENABLED: ${{ vars.JP_JCG_LINKS_ENABLED }}", pipeline)
         self.assertIn("IPR_USCC_SOURCE_CHECKOUT: ${{ runner.temp }}/uscc-preserved-metadata", pipeline)
         self.assertIn("IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata", pipeline)
         self.assertEqual(sorted(env_keys),
@@ -604,7 +607,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                           "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED",
                           "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY", "IPR_USCC_SOURCE_CHECKOUT",
                           "IPR_US_TREASURY_SOURCE_CHECKOUT", "IPR_VIETNAM_HANDOFF_RECEIPT",
-                           "JAPAN_MOD_OFFICIAL_LINKS_ENABLED",
+                           "JAPAN_MOD_OFFICIAL_LINKS_ENABLED", "JP_JCG_LINKS_ENABLED",
                           "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE", "RELEVANCE_MODEL", "SUMMARY_MODEL",

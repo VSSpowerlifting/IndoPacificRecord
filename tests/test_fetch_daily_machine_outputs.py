@@ -122,6 +122,29 @@ class FetchOutputs(unittest.TestCase):
         self.assertEqual(result['sg_mindef_releases'], 'fetched')
         self.assertTrue((root / 'sg_mindef_releases.json').exists())
 
+    def test_jcg_owner_switch_withholds_its_envelope_even_with_policy_on(self):
+        policy = copy.deepcopy(load_policy())
+        policy['sources']['jp_jcg_press_en'].update(
+            private_model_processing=True, public_machine_explanation=True, unattended_release=True)
+        enabled = [f for f in fetch.SOURCES if f not in ('sg_mindef_releases', 'kr_policy_dapa_releases')]
+        for switch in (None, 'false', 'true'):
+            with self.subTest(switch=switch), patch.dict(os.environ, {}):
+                os.environ.pop('JP_JCG_LINKS_ENABLED', None)
+                if switch:
+                    os.environ['JP_JCG_LINKS_ENABLED'] = switch
+                on = switch == 'true'
+                outcomes = [self.response() for _ in range(len(enabled) + (1 if on else 0))]
+                root, result, call = self.run_fetch(outcomes, policy)
+                urls = ' '.join(' '.join(map(str, c.args[0])) for c in call.call_args_list)
+                self.assertEqual(result['jp_jcg_press_en'], 'fetched' if on else 'public_switch_off')
+                self.assertEqual('envelopes/jp_jcg_press_en.json' in urls, on)
+                self.assertEqual((root / 'jp_jcg_press_en.json').exists(), on)
+                for family in enabled:
+                    if family != 'jp_jcg_press_en':
+                        self.assertEqual(result[family], 'fetched')
+                self.assertTrue((root / 'outputs').read_text().endswith('failed_families=0\n'))
+                (root / 'outputs').unlink()
+
     def test_annotations_do_not_disclose_response_or_stderr(self):
         from contextlib import redirect_stdout
         from io import StringIO

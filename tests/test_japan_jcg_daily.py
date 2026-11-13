@@ -6,6 +6,7 @@ a fake returning a fixed reading. Nothing here spends money, contacts the
 publisher or touches a production database.
 """
 import hashlib
+import html
 import json
 import shutil
 import sqlite3
@@ -13,10 +14,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 from core import japan_jcg_links as links
+from core import japan_jcg_rights as rights
 from core.daily_sources import SOURCES, _jcg_known_hold, _jcg_output_check
 from core.standing_source_rights import POLICIES
 from migrations.versions import m0022_singapore_mindef_source_records as m22
@@ -33,7 +36,8 @@ URL = "https://www.kaiho.mlit.go.jp/e/topics_archive/article90001.html"
 TITLE = "Synthetic coast guard fixture title"
 FIRST = "The JCG announced a routine joint exercise between two coast guard agencies."
 SECOND = "The release describes the schedule for a planned search and rescue drill."
-BODY = FIRST + "\n\n" + SECOND
+THIRD = "Both agencies will review the drill results together after the exercise concludes."
+BODY = FIRST + "\n\n" + SECOND + "\n\n" + THIRD
 DAY = "2026-10-28"
 RUN = "88-1"
 REMOTE = "https://github.com/" + d.PRIVATE_REPO
@@ -75,15 +79,60 @@ def analyzer(reply=None):
     return a
 
 
-def build_custody(root, rows=None, *, remote=REMOTE, branch="archive/japan-jcg"):
+def article_html(title, body, day):
+    """A synthetic JCG release page in the publisher's structure (no JCG text)."""
+    paragraphs = "".join("<p>" + html.escape(p) + "</p>" for p in body.split("\n\n"))
+    return ('<html><head><title>x</title></head><body><main><article class="main-article">'
+            '<section class="topics topics-article"><h1 class="entry-title">' + html.escape(title)
+            + '</h1><time>' + day + '</time><div class="topics-article__main tich-text">'
+            + paragraphs + '</div></section></article></main>'
+            '<footer>Copyright (c) Synthetic footer notice. All rights reserved.</footer>'
+            '</body></html>').encode()
+
+
+def policy_page(clauses=rights.POLICY_CLAUSES, extra=""):
+    """A synthetic terms page carrying the reviewed clause strings only."""
+    return ("<html><body><main>" + "".join("<p>" + c + "</p>" for c in clauses)
+            + extra + "</main></body></html>").encode()
+
+
+def iso(when):
+    return when.isoformat()
+
+
+def request(url, raw, when):
+    return {"requested_url": url, "final_url": url, "method": "GET", "form": None,
+            "http_status": 200, "retrieved_at": iso(when), "capture_sha256": hashlib.sha256(raw).hexdigest(),
+            "content_type": "text/html; charset=UTF-8", "payload_bytes": len(raw)}
+
+
+def build_custody(root, rows=None, *, remote=REMOTE, branch="archive/japan-jcg",
+                  omit_capture=(), corrupt_capture=(), stored_text=None,
+                  policy=b"", policy_at=None, ledger_result="ok"):
     """A synthetic private custody checkout; returns (repo path, pinned commit).
 
     ``rows`` are (identity, title, body, day, metadata) tuples; the URL is the
-    family's canonical article URL unless metadata carries ``_url``.
+    family's canonical article URL unless metadata carries ``_url``. Each row
+    gets a synthetic raw HTML capture and a collector ledger request in its
+    first-seen run, and the run captures the synthetic terms page, as the
+    collector does. Overrides: ``omit_capture`` leaves a row's bytes out,
+    ``corrupt_capture`` alters them after hashing, ``stored_text`` stores a
+    different text than the capture holds, ``policy`` replaces (or with None
+    omits) the terms capture and ``policy_at`` dates it.
     """
     rows = rows if rows is not None else [(IDENT, TITLE, BODY, DAY, META)]
+    stored_text = stored_text or {}
+    now = datetime.now(timezone.utc)
     repo = Path(root) / "custody"
-    (repo / "state").mkdir(parents=True)
+    (repo / "state/captures").mkdir(parents=True)
+    (repo / "state/ledger").mkdir()
+    requests_ = []
+
+    def keep(raw, corrupt=False):
+        digest = hashlib.sha256(raw).hexdigest()
+        (repo / "state/captures" / (digest + ".bin")).write_bytes(raw + b" " if corrupt else raw)
+        return digest
+
     with sqlite3.connect(str(repo / "state/shadow.db")) as conn:
         conn.execute("CREATE TABLE shadow_records (url TEXT PRIMARY KEY, source_slug TEXT,"
                      " title_original TEXT, text_original TEXT, published_date TEXT,"
@@ -93,15 +142,28 @@ def build_custody(root, rows=None, *, remote=REMOTE, branch="archive/japan-jcg")
         for ident, title, body, day, meta in rows:
             meta = dict(meta)
             url = meta.pop("_url", links.canonical_url(ident))
+            raw = article_html(title, body, day)
+            capture = hashlib.sha256(raw).hexdigest()
+            if ident not in omit_capture:
+                keep(raw, corrupt=ident in corrupt_capture)
+            requests_.append(request(url, raw, now))
+            text = stored_text.get(ident, body)
             conn.execute("INSERT INTO shadow_records VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                         (url, FAMILY, title, body, day, "en", "english_official_press_release",
-                          sha(body), sha("capture:" + ident), "2026-11-01T00:00:00Z", RUN,
+                         (url, FAMILY, title, text, day, "en", "english_official_press_release",
+                          sha(text), capture, "2026-11-01T00:00:00Z", RUN,
                           ident, json.dumps(meta)))
     conn.close()
+    if policy is not None:
+        raw = policy_page() if policy == b"" else policy
+        keep(raw)
+        requests_.insert(0, request(rights.POLICY_URL, raw, policy_at or now))
+    (repo / "state/ledger" / ("20261101T000000-" + RUN + ".json")).write_text(json.dumps({
+        "run_id": RUN, "result": ledger_result, "finished_utc": iso(now),
+        "requests": requests_}))
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
     subprocess.run(git + ["init", "-q"], check=True)
     subprocess.run(git + ["checkout", "-q", "-b", branch], check=True)
-    subprocess.run(git + ["add", "state/shadow.db"], check=True)
+    subprocess.run(git + ["add", "state"], check=True)
     subprocess.run(git + ["commit", "-qm", "synthetic"], check=True)
     subprocess.run(git + ["remote", "add", "origin", remote], check=True)
     head = subprocess.run(git + ["rev-parse", "HEAD"], check=True, capture_output=True,
@@ -183,16 +245,21 @@ class JcgDefinition(unittest.TestCase):
             os.environ.pop("SG_MINDEF_LINKS_ENABLED", None)
             call.return_value = "fetched"
             result = fetch.main()
-            # The reading envelope follows the committed policy; the link
-            # envelope still waits for its own owner switch.
-            self.assertEqual(result[FAMILY], "fetched")
+            # With the owner switch off, neither the parent links nor the
+            # machine envelope is fetched, although the committed policy is on.
+            self.assertEqual(result[FAMILY], "public_switch_off")
             self.assertNotIn(links.LINKS_NAME, result)
+            self.assertNotIn("envelopes/" + FAMILY + ".json",
+                             [c.args[0] for c in call.call_args_list])
             os.environ["JP_JCG_LINKS_ENABLED"] = "true"
             try:
                 result = fetch.main()
             finally:
                 os.environ.pop("JP_JCG_LINKS_ENABLED", None)
+            self.assertEqual(result[FAMILY], "fetched")
             self.assertEqual(result[links.LINKS_NAME], "fetched")
+            self.assertIn("envelopes/" + FAMILY + ".json",
+                          [c.args[0] for c in call.call_args_list])
             self.assertEqual(call.call_args.args[2], links.LINKS_REF)
 
 
@@ -300,6 +367,112 @@ class JcgCustody(unittest.TestCase):
         factory.assert_not_called()
 
 
+class JcgRightsQualification(unittest.TestCase):
+    """The standing-rights replay (#1015) blocks signing and model input alike."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = tmp.name
+
+    def held(self, code, rows=None, **custody):
+        repo, head = build_custody(self.tmp, rows, **custody)
+        records = links.with_title_hash(d.verified_source(repo, head, FAMILY))
+        holds = {r["source_identity"]: r["jcg_scope_hold"] for r in records}
+        self.assertEqual(holds[IDENT], code)
+        self.assertTrue(_jcg_known_hold([r for r in records if r["source_identity"] == IDENT][0]))
+        envelope = links.sign_links(records, key="k" * 40)
+        self.assertNotIn(IDENT, [l["source_identity"] for l in envelope["packet"]["links"]])
+        factory = Mock()
+        state, _ = d.process([r for r in records if r["source_identity"] == IDENT], {},
+                             family=FAMILY, policy=policy(), analyzer_factory=factory)
+        factory.assert_not_called()
+        self.assertNotEqual(state.get(FAMILY + ":" + IDENT, {}).get("status"), "complete")
+        return records
+
+    def test_bound_capture_current_terms_and_clean_item_qualify_and_sign(self):
+        repo, head = build_custody(self.tmp)
+        records = links.with_title_hash(d.verified_source(repo, head, FAMILY))
+        self.assertIsNone(records[0]["jcg_scope_hold"])
+        envelope = links.sign_links(records, key="k" * 40)
+        self.assertEqual([l["source_identity"] for l in envelope["packet"]["links"]], [IDENT])
+        factory = Mock(return_value=analyzer())
+        state, _ = d.process(records, {}, family=FAMILY, policy=policy(), analyzer_factory=factory)
+        factory.assert_called()
+
+    def test_missing_capture_blocks(self):
+        self.held("jcg_rights_capture_missing", omit_capture={IDENT})
+
+    def test_capture_bytes_not_matching_their_hash_block(self):
+        self.held("jcg_rights_capture_hash_mismatch", corrupt_capture={IDENT})
+
+    def test_stored_text_not_reproduced_by_the_capture_blocks(self):
+        self.held("jcg_rights_stored_text_not_bound_to_capture",
+                  stored_text={IDENT: BODY + " An inserted sentence the publisher never wrote."})
+
+    def test_capture_without_a_successful_ledger_request_blocks(self):
+        self.held("jcg_rights_capture_not_authenticated", ledger_result="fetch_failure")
+
+    def test_missing_terms_capture_blocks(self):
+        self.held("jcg_rights_policy_capture_missing", policy=None)
+
+    def test_changed_terms_block(self):
+        self.held("jcg_rights_policy_terms_changed_or_incomplete",
+                  policy=policy_page(rights.POLICY_CLAUSES[1:]))
+        shutil.rmtree(Path(self.tmp) / "custody")
+        self.held("jcg_rights_policy_conflicting_restriction",
+                  policy=policy_page(extra="<p>本コンテンツの転載を禁止します。</p>"))
+
+    def test_stale_terms_capture_blocks(self):
+        old = datetime.now(timezone.utc) - timedelta(days=8)
+        self.held("jcg_rights_standing_license_missing_changed_or_stale", policy_at=old)
+
+    def test_quoted_third_party_prose_blocks(self):
+        quote = (FIRST + "\n\n" + SECOND + ' The visiting commandant said "our two services will '
+                 'keep training together on every patrol route across the region this year."')
+        self.held("jcg_rights_item_third_party_text", [(IDENT, TITLE, quote, DAY, META)])
+        shutil.rmtree(Path(self.tmp) / "custody")
+        statement = BODY + " The full text of the statement by the partner agency follows."
+        self.held("jcg_rights_item_third_party_text", [(IDENT, TITLE, statement, DAY, META)])
+
+    def test_short_quoted_names_are_first_party_prose(self):
+        body = BODY + ' Crews boarded the patrol vessel "SYNTHETIC" to realize a "free and open sea".'
+        repo, head = build_custody(self.tmp, [(IDENT, TITLE, body, DAY, META)])
+        (record,) = d.verified_source(repo, head, FAMILY)
+        self.assertIsNone(record["jcg_scope_hold"])
+
+    def test_rights_notation_in_the_body_blocks_but_the_site_footer_does_not(self):
+        # Every synthetic page carries a footer copyright notice (see article_html).
+        body = BODY + " Photo courtesy of a partner agency."
+        self.held("jcg_rights_item_rights_notation", [(IDENT, TITLE, body, DAY, META)])
+
+    def test_privacy_or_secrecy_marker_blocks(self):
+        body = BODY + " Details of the confidential schedule were withheld."
+        self.held("jcg_rights_item_privacy_or_secrecy", [(IDENT, TITLE, body, DAY, META)])
+
+    def test_a_replay_failure_is_a_hold_not_an_exception(self):
+        with patch.object(rights, "_parser", side_effect=ImportError("synthetic")):
+            self.held("jcg_rights_replay_failed")
+
+    def test_qualification_reuses_the_standing_contract(self):
+        from core import standing_source_rights as standing
+        repo, head = build_custody(self.tmp)
+        with patch.object(standing, "qualify_standing_text",
+                          wraps=standing.qualify_standing_text) as contract:
+            d.verified_source(repo, head, FAMILY)
+        (call,) = contract.call_args_list
+        self.assertEqual(call.kwargs["kind"], "original_text")
+        self.assertEqual(call.args[0]["source_family"], FAMILY)
+        self.assertEqual(call.kwargs["proposed_sha256"], sha(BODY))
+        self.assertEqual(POLICIES[FAMILY]["policy_url"], rights.POLICY_URL)
+        self.assertEqual(POLICIES[FAMILY]["policy_id"], rights.POLICY_ID)
+
+    def test_collector_captures_the_terms_page_into_custody(self):
+        from scraper.sources import jp_jcg_en
+        self.assertEqual(jp_jcg_en.POLICY_URL, rights.POLICY_URL)
+        self.assertEqual(links.TERMS_URL, rights.POLICY_URL)
+
+
 class JcgAdmission(unittest.TestCase):
     """Source -> analysis -> authenticated admission -> reader, on a scratch DB."""
 
@@ -347,6 +520,66 @@ class JcgAdmission(unittest.TestCase):
         cols = ["categories_json" if k == "categories" else k for k in row]
         conn.execute("INSERT INTO daily_machine_records (" + ",".join(cols) + ") VALUES ("
                      + ",".join("?" * len(cols)) + ")", list(row.values()))
+
+    def test_rollback_switch_stops_admission_against_an_admitted_parent(self):
+        """JP_JCG_LINKS_ENABLED=false after a parent was admitted: no machine
+        envelope is fetched, a stale one is removed, and the pipeline reports
+        the family inactive without calling intake. Switch on: it admits."""
+        import os
+        import pipeline
+        from core.collection.status import SKIPPED_DISABLED
+        from tests.test_manual_source_definitions import FakeRegistry
+        from scripts import fetch_daily_machine_outputs as fetch
+        conn = self.connect()
+        count = lambda: conn.execute(
+            "SELECT COUNT(*) FROM daily_machine_records WHERE source_family=?", (FAMILY,)).fetchone()[0]
+        self.assertEqual(conn.execute("SELECT public_scope FROM " + links.TABLE
+                                      + " WHERE source_identity=?", (IDENT,)).fetchone()[0],
+                         "official_link_only")
+        intake_dir = Path(self.tmp) / "intake"
+        intake_dir.mkdir()
+        stale = intake_dir / (FAMILY + ".json")
+        env = {"IPR_PRIVATE_DAILY_ENABLED": "true", "IPR_DAILY_INTAKE_DIR": str(intake_dir),
+               SOURCES[FAMILY].key_env: self.key}
+        for switch in (None, "false", "TRUE", "1"):
+            with self.subTest(switch=switch), patch.dict(os.environ, env), \
+                    patch.object(d, "load_policy", return_value=self.p), \
+                    patch.object(fetch, "load_policy", return_value=self.p), \
+                    patch.object(fetch, "_fetch", return_value="fetched") as fetched:
+                os.environ.pop("JP_JCG_LINKS_ENABLED", None)
+                if switch is not None:
+                    os.environ["JP_JCG_LINKS_ENABLED"] = switch
+                stale.write_text(json.dumps(self.envelope))
+                result = fetch.main()
+                self.assertEqual(result[FAMILY], "public_switch_off")
+                self.assertFalse(stale.exists())
+                self.assertNotIn("envelopes/" + FAMILY + ".json",
+                                 [c.args[0] for c in fetched.call_args_list])
+                # Even if a stale envelope survived, the pipeline never reads it.
+                stale.write_text(json.dumps(self.envelope))
+                intake = Mock()
+                entry = pipeline._daily_admission(FAMILY, intake=intake)
+                self.assertEqual(entry.inactive_reason(), "owner public switch is off")
+                with patch.object(pipeline, "_governed_admissions",
+                                  return_value={"jp_jcg_press_en": entry}):
+                    errors = []
+                    rows = pipeline.run_governed_manual_sources(
+                        ["jp_jcg_press_en"], 1, FakeRegistry("japan_jcg"), errors)
+                self.assertEqual(errors, [])
+                self.assertEqual([(r.status, r.error_detail) for r in rows],
+                                 [(SKIPPED_DISABLED, "owner public switch is off")])
+                intake.assert_not_called()
+                self.assertEqual(count(), 0)
+        # Positive control: the same envelope is admitted once the switch is on.
+        from processing import daily_runner
+        with patch.dict(os.environ, {**env, "JP_JCG_LINKS_ENABLED": "true"}), \
+                patch.object(d, "load_policy", return_value=self.p), \
+                patch.object(daily_runner, "load_policy", return_value=self.p), \
+                patch.object(pipeline, "DB_PATH", self.db):
+            entry = pipeline._daily_admission(FAMILY)
+            self.assertIsNone(entry.inactive_reason())
+            entry.admit(1)
+        self.assertEqual(count(), 1)
 
     def test_m0023_applied_and_trigger_requires_the_jcg_parent(self):
         conn = self.connect()

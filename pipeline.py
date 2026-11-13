@@ -348,6 +348,10 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
                                       "public_machine_explanation",
                                       "unattended_release")):
             return "source-use policy withholds unattended release"
+        from core.daily_sources import source_for
+        source = source_for(family)
+        if source is not None and not source.public_switch_on():
+            return "owner public switch is off"
         return None
 
     def admit(run_id):

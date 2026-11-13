@@ -19,6 +19,7 @@ to another desk's profile.
 from __future__ import annotations
 
 import importlib
+import os
 import re
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
@@ -105,6 +106,17 @@ class DailySource:
     # rendered under the pinned policy, never accepted for a newly submitted
     # output. Distinct from prompt_versions on purpose; empty means none.
     released_prompt_versions: Tuple[str, ...] = ()
+    # Owner variable that must equal "true", in addition to the source policy,
+    # before the public Daily fetches or admits this family's machine-output
+    # envelope. Turning it off is a rollback switch: nothing further is
+    # admitted, even against a parent that is already admitted. It does not
+    # withdraw records that are already public. Unset means the policy alone
+    # gates the family.
+    public_switch: Optional[str] = None
+
+    def public_switch_on(self, environ=None) -> bool:
+        env = os.environ if environ is None else environ
+        return self.public_switch is None or env.get(self.public_switch) == "true"
 
     @property
     def key_env(self) -> str:
@@ -430,6 +442,9 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         output_check="core.daily_sources:_jcg_output_check",
         parent="core.daily_sources:_jcg_parent",
         admission_migration="migrations.versions.m0023_japan_jcg_source_records:is_already_applied",
+        # One owner switch for both public halves: official-link parents and
+        # machine outputs. Off stops admission of either.
+        public_switch="JP_JCG_LINKS_ENABLED",
         # A manifest-registered manual source: public Daily admits signed links
         # and outputs, never fetches the Japan Coast Guard site.
         desk_registered=True),

@@ -13,7 +13,7 @@ from core.daily_sources import SOURCES, attended_pilot_gate
 from processing.daily_intake import load_policy
 
 
-_QUIET = ("fetched", "policy_disabled", "pilot_gate_closed")
+_QUIET = ("fetched", "policy_disabled", "pilot_gate_closed", "public_switch_off")
 
 
 LINKS_NAME = "sg_mindef_releases.links.json"
@@ -87,6 +87,12 @@ def main():
         p = policy["sources"][family]
         if not all(p[k] for k in ("private_model_processing", "public_machine_explanation", "unattended_release")):
             results[family] = "policy_disabled"
+            continue
+        if not SOURCES[family].public_switch_on():
+            # The family's owner rollback switch (e.g. JP_JCG_LINKS_ENABLED):
+            # no machine envelope is fetched, so none can be admitted against
+            # an already-admitted parent. The stale copy is already removed.
+            results[family] = "public_switch_off"
             continue
         results[family] = _fetch("envelopes/" + family + ".json", path)
     # Singapore official-link parents (identity, URL, date and hashes only) are

@@ -460,6 +460,9 @@ jobs:
           # Singapore attended-pilot gate: empty for scheduled and ordinary manual runs.
           IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
           JAPAN_MOD_OFFICIAL_LINKS_ENABLED: ${{ vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED }}
+          # JCG rollback switch: off, the pipeline reports the family inactive
+          # and admits no machine output (see DailySource.public_switch).
+          JP_JCG_LINKS_ENABLED: ${{ vars.JP_JCG_LINKS_ENABLED }}
           GH_TOKEN: ${{ github.token }}
           # Standing owner approval (2026-10-15): the pipeline admits the
           # preserved USCC/Treasury listing metadata from these clones; an

@@ -180,7 +180,7 @@ class JCGBackfillSafety(unittest.TestCase):
             self.assertEqual(result["result"], "listing_failure")
             self.assertEqual(result["retrieved"], 0)
             self.assertEqual(result["selected"], 0)
-            self.assertEqual(len(source.calls), 2)  # policy and index only
+            self.assertEqual(len(source.calls), 3)  # robots, site terms and index only
             self.assertEqual((state / "clock.json").read_bytes(), clock)
             with sqlite3.connect(state / "shadow.db") as db:
                 count = db.execute("SELECT count(*) FROM shadow_records").fetchone()[0]

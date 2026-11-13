@@ -155,7 +155,23 @@ def links_from_custody(repo, commit, family=FAMILY) -> List[dict]:
                 "SELECT source_identity,url,published_date,first_seen_run,capture_sha256,"
                 "content_sha256,title_original,metadata_json,text_original FROM shadow_records "
                 "WHERE source_slug=? ORDER BY source_identity", (family,)).fetchall()
-    return [link_from_row(*row) for row in rows]
+    links = [link_from_row(*row) for row in rows]
+    # Standing-rights qualification (#1015): bind the stored text to the
+    # authenticated raw HTML at this pin, verify the captured publisher terms
+    # and screen item exceptions. Rows already outside the scope are not
+    # replayed. Imported lazily so this module (and m0023) stays free of
+    # the collector and bs4.
+    pending = [(link, row) for link, row in zip(links, rows) if not link["jcg_scope_hold"]]
+    if pending:
+        from core import japan_jcg_rights
+        keys = ("source_identity", "url", "published_date", "first_seen_run",
+                "capture_sha256", "content_sha256", "title_original", "metadata_json",
+                "text_original")
+        holds = japan_jcg_rights.qualify_rows(
+            repo, commit, [dict(zip(keys, row)) for _, row in pending])
+        for (link, _), hold in zip(pending, holds):
+            link["jcg_scope_hold"] = hold
+    return links
 
 
 def read_parent(conn, identity) -> Optional[dict]:
