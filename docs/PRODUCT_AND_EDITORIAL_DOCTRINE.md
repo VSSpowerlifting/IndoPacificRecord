@@ -407,22 +407,38 @@ cross-desk provenance requirements above/below remain fully applicable to every
 ordinary Brief. See `core/brief_source_linked.py` and
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`.
 
-**Cited official sources are Records (owner direction, 2026-11-01).** Each
-*official* publisher reference in an approved Brief gets one IPR Record per
-URL (`record/cited-<sha256[:16]>.html`, keyed on the URL with scheme and host
-lowercased and the fragment dropped; path and query stay exact). The Record publishes only what
-the Brief already publishes: original title, issuer, publisher, language,
-source-stated date and the link. It holds no source bytes, excerpt, translation
-or verification notes and adds no desk coverage or database row. The Brief
-keeps its publisher link and adds an "IPR Record" link; the Record links back to
-every citing Brief. A URL already held as a corpus record or released machine
-Record resolves to that page instead, so manual citation and collection share one
-identity; a cited route published before collection becomes a redirect. Independent
-reporting stays an external citation. MINDEF remains omitted from the references-only Record admission rule: authority
-to link is not authority to create a new public Record or expose held material. Vietnam MPS,
-MOIT and VPCP are omitted without a sealed decision. Conflicting metadata for one
-URL stops the build.
-Derived on every render by `core/cited_source_records.py`; nothing is hand-admitted.
+**Cited works in approved Briefs have link-metadata Records (founder direction,
+2026-11-13; extending the 2026-11-01 official-source implementation).** Each
+eligible *official or independent* publisher reference in an approved,
+non-review Brief resolves to one IPR Record per URL
+(`record/cited-<sha256[:16]>.html`, with scheme/host lowercased and fragment
+removed; path and query remain exact). These citation-only pages repeat solely
+the already-approved Brief's publisher reference metadata—original title,
+issuer, publisher, language, source-stated date and publisher link. They publish
+no body, excerpt, summary, translation, private capture, review locator or
+independent verification. Independent publications are explicitly labeled
+independent, never official government sources or IPR-confirmed findings.
+
+Each eligible Record links back to all citing Briefs and is indexed in the
+Archive with its honest publication type, but adds no production DB row, desk
+coverage or new collection. A URL already present as a permitted public corpus
+or machine Record resolves to that Record without duplication, with a
+bidirectional citation when supported. A previously published citation-only
+route redirects to its admitted original-backed Record after convergence.
+Reference metadata conflicts for the same URL halt rendering.
+
+Source-specific controls continue to govern **all** public surfaces. No
+standalone citation Record is minted for MINDEF or for Vietnam MPS/MOIT/VPCP
+works lacking the applicable public-title standing, including any genuine
+subdomains. A held family that already has a separately permitted public
+Record may be linked to that existing page without creating a new one.
+Unclassified, unsafe or incomplete references do not bypass admission.
+A Brief's original publisher hyperlink remains visible when standalone
+Record eligibility is held; the source's existence does not imply it was
+ingested, retained or independently fact-checked. This feature changes no
+source rights, automated model processing, publication approval or original
+document custody. Derived by `core/cited_source_records.py` at render time;
+no independent article importer or collector is introduced.
 
 **The approval of 2026-10-13 applies only to** “What Is Being Built in Laos?”
 with fingerprint
