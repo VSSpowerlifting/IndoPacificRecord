@@ -601,6 +601,56 @@ class TestChallengedPagesAreRecordedNotCollected(unittest.TestCase):
         self.assertFalse(nsc.looks_challenged({"cf-mitigated": "other"}, "<html></html>"))
 
 
+class TestRefusalEvidence(unittest.TestCase):
+    """A refused challenge leaves sanitized, body-free diagnostics."""
+
+    SECRET = "SECRET-BODY-TEXT-7731"
+
+    def _refuse(self, response):
+        rig = Rig(routes({ROBOTS_URL: response}))
+        result = rig.discover(CollectionWindow(date(2026, 10, 1), 22))
+        return rig, result
+
+    def test_each_detector_branch_is_named(self):
+        cases = {
+            nsc.SIGNAL_HEADER: ({"cf-mitigated": "challenge"}, "<html></html>"),
+            nsc.SIGNAL_FORM: ({}, '<html><body><form id="challenge-form"></form></body></html>'),
+            nsc.SIGNAL_SCRIPT: ({}, "<html><script>window._cf_chl_opt = {};</script></html>"),
+            nsc.SIGNAL_PHRASE: ({}, "<html><title>Just a moment...</title></html>"),
+        }
+        for expected, (headers, text) in cases.items():
+            with self.subTest(expected):
+                self.assertEqual(nsc.challenge_signal(headers, text), expected)
+                self.assertTrue(nsc.looks_challenged(headers, text))
+        self.assertIsNone(nsc.challenge_signal({}, "<html>ordinary</html>"))
+
+    def test_robots_challenge_records_status_type_and_header_presence_only(self):
+        body = ("<html><title>Just a moment...</title>%s</html>" % self.SECRET).encode()
+        rig, result = self._refuse(FakeResponse(
+            body, 403, {"Content-Type": "text/html; charset=UTF-8",
+                        "Server": "cloudflare", "CF-RAY": "abc"}))
+        self.assertEqual(result.status, st.ACCESS_CHALLENGED)
+        report = rig.adapter.refusal_report
+        self.assertEqual(report, {
+            "http_status": 403, "content_type": "text/html",
+            "detector": nsc.SIGNAL_PHRASE, "server_header_present": True,
+            "cf_ray_present": True, "body_bytes": len(body)})
+        self.assertNotIn(self.SECRET, json.dumps(report))
+
+    def test_plain_403_robots_is_still_an_auth_failure_without_a_challenge_report(self):
+        rig, result = self._refuse(FakeResponse(b"forbidden", 403, TEXT_PLAIN))
+        self.assertEqual(result.status, st.AUTH_FAILURE)
+        self.assertEqual(rig.adapter.refusal_report, {})
+
+    def test_report_is_reset_on_every_discovery(self):
+        rig, _ = self._refuse(FakeResponse(CHALLENGE, 403))
+        self.assertTrue(rig.adapter.refusal_report)
+        rig.session.routes[ROBOTS_URL] = FakeResponse(ROBOTS_BIN, headers=TEXT_PLAIN)
+        rig.adapter._last_request = None
+        rig.discover(CollectionWindow(date(2026, 10, 1), 22))
+        self.assertEqual(rig.adapter.refusal_report, {})
+
+
 class TestAnomalousPagesAreRefusedWhateverTheyAre(unittest.TestCase):
     """HTTP 200, text/html, plausible bytes: the page itself must be recognised."""
 
