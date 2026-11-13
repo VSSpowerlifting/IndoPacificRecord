@@ -1003,6 +1003,12 @@ class JcgPolicyEvidenceTransitions(unittest.TestCase):
         self.assertEqual(bridge["packet"]["links"], [])
         self.assertEqual(bridge["packet"]["source_evidence"],
                          {"site_terms": "fetch_failure", "listing": "fetch_failure"})
+        # A public Daily between the link bridge and the shared re-sign (or
+        # after a failed re-sign) still fetches the old queued envelope. The
+        # signed link evidence is newer, so nothing is admitted from it.
+        receipt, public = self.public_daily()
+        self.assertEqual((receipt["records"], public), (1, []))
+        self.assertEqual(receipt["outcome"].status, "fetch_failure")
         state, envelope = self.shared_processing(lapsed)
         self.assertEqual((state[one]["status"], state[one]["held_from"], state[one]["reason"]),
                          ("held", "complete", "jcg_rights_policy_capture_failed"))
@@ -1064,6 +1070,12 @@ class JcgPolicyEvidenceTransitions(unittest.TestCase):
         self.assertEqual(receipt["outcome"].error_detail,
                          "jcg_site_terms_access_refused: site terms auth_failure, listing "
                          "ok_no_publications; queued outputs held, public records unchanged")
+        # The run's printed "Collection health" block, built from the same row.
+        from core.collection.health import human_report
+        report = human_report([receipt["outcome"]], run_id=1)
+        self.assertIn("FAIL  jp_jcg_press_en", report)
+        self.assertIn("auth_failure", report)
+        self.assertIn("| jcg_site_terms_access_refused: site terms auth_failure", report)
 
     def test_a_listing_failure_with_valid_terms_still_fails_the_collector(self):
         signed = (self.handoff / links.LINKS_NAME).read_text()

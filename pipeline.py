@@ -359,6 +359,17 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
         if not intake_dir:
             return GovernedOutcome(collection_status.SKIPPED_DISABLED,
                                    error_detail="no shared Daily intake directory configured")
+        from core.daily_sources import source_for
+        source = source_for(family)
+        evidence = source.evidence_outcome(intake_dir) if source is not None else None
+        if evidence is not None:
+            # Source-wide evidence failed upstream (JCG: the terms page). The
+            # machine envelope may predate that run (signed before it, or its
+            # re-sign failed), so nothing is admitted from it; its withdrawals
+            # wait for valid evidence too. Reported, never read as a quiet day.
+            status, detail = evidence
+            logger.warning("%s: %s", family, detail)
+            return GovernedOutcome(status, error_detail=detail)
         from processing.daily_runner import intake_family
         receipt = (intake or intake_family)(DB_PATH, intake_dir, family)
         if receipt is None:
@@ -371,16 +382,6 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
         unchanged = max(receipt["records"] - admitted, 0)
         logger.info("%s: governed admission — %d records, %d admitted, %d held",
                     family, receipt["records"], admitted, len(receipt["holds"]))
-        from core.daily_sources import source_for
-        source = source_for(family)
-        evidence = source.evidence_outcome(intake_dir) if source is not None else None
-        if evidence is not None:
-            # Source-wide evidence failed upstream (JCG: the terms page). The
-            # envelope then carries nothing new, which must not read as quiet.
-            status, detail = evidence
-            logger.warning("%s: %s", family, detail)
-            return GovernedOutcome(status, new_documents=admitted, duplicates=unchanged,
-                                   error_detail=detail)
         return _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
 
     return GovernedAdmission("daily_intake", inactive_reason, admit,
