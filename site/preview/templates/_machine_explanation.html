@@ -9,6 +9,14 @@
       <p class="meta">{% if desk in ('indonesia', 'korea') %}Machine-generated from {{ 'Korean' if desk == 'korea' else 'Indonesian' }} source evidence, with cited passages translated privately for processing; not reviewed by a human. This is not an official translation.{% else %}Machine-generated from the English source; not reviewed by a human. No translation was needed.{% endif %} This is a reading of an institutional account, not independent verification of its claims.</p>
       <p class="meta">{% if record.model_flagged %}Model-flagged for closer reading: {{ record.flag_reason }}{% else %}Not model-flagged for closer reading.{% endif %} A software triage cue, not an editorial judgment.</p>
     </section>
+    {% if record.cited_in %}<section class="record-section" aria-labelledby="cited-in"><h2 id="cited-in">Cited in</h2>
+      <ul>
+      {% for ref in record.cited_in %}
+        <li><a href="../{{ ref.url }}#{{ ref.anchor }}">{{ ref.title }}</a> <span class="meta">{{ ref.series_name }} No. {{ ref.issue }} · week ending {{ ref.date | reader_date }} · publisher reference</span></li>
+      {% endfor %}
+      </ul>
+      <p class="meta">The Brief identifies which of its claims rest on this source. This machine explanation is not the Brief's evidence.</p>
+    </section>{% endif %}
     <section class="record-section"><h2>Source custody and use</h2>
       <p>The original title and body remain in private evidence custody. This page publishes a separately permitted IPR machine explanation and a link to the official source.</p>
       {% if record.source_family == 'jp_jcg_press_en' %}<p data-pdl-attribution>Source: Japan Coast Guard website (<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>). The summary above was created by Indo-Pacific Record by machine-processing and condensing the English text of that page, which the Japan Coast Guard makes available under the <a href="https://www.digital.go.jp/resources/open_data/public_data_license_v1.0" rel="noopener nofollow">Public Data License (Version 1.0)</a>. It is edited content: it was not created by the Government of Japan or the Japan Coast Guard and is not their statement. Linked documents, photographs and other media on that page were not collected or used.</p>{% endif %}
