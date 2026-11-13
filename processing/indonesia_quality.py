@@ -6,9 +6,12 @@ from analysis.indonesia_prompts import CATEGORIES, VERSION, evidence_passages, i
 
 # Conservative lexical gates supplement (not certify) bilingual model reading.
 NUMBER = r"(?<!\w)[+-]?\d+(?:[.,:/-]\d+)*(?:%)?"
+# "diselenggarakan/menyelenggarakan" (organised, held) states the same
+# completed event as "digelar/menggelar". The broader "melakukan/dilakukan"
+# ("do", "carry out") is deliberately not support for "conducted".
 STAGES = {
-    "held": r"\b(?:berlangsung|dilaksanakan|melaksanakan|digelar|menggelar)\b",
-    "conducted": r"\b(?:dilaksanakan|melaksanakan|digelar|menggelar)\b",
+    "held": r"\b(?:berlangsung|dilaksanakan|melaksanakan|digelar|menggelar|diselenggarakan|menyelenggarakan)\b",
+    "conducted": r"\b(?:dilaksanakan|melaksanakan|digelar|menggelar|diselenggarakan|menyelenggarakan)\b",
     "completed": r"\b(?:selesai|menyelesaikan|rampung|tuntas)\b",
     "delivered": r"\b(?:diserahkan|menyerahkan|diterima|menerima)\b",
     "signed": r"\b(?:menandatangani|ditandatangani|penandatanganan)\b",
@@ -79,6 +82,7 @@ TRANSLATED_LABELS.update(COUNTRY_LABELS)
 # pair is accepted only when its own Indonesian phrase is in the cited passage;
 # every other "development" still needs "pengembangan" there.
 LOCAL_DEVELOPMENT = ((r"\bunit[- ]development\b", r"\bpembinaan satuan\b"),
+                     (r"\b(?:exercise|training)[- ]development\b", r"\bpembinaan latihan\b"),
                      (r"\bregional development\b", r"\bpembangunan daerah\b"))
 # "Full Title (Abbr) Holder Name" in one cited passage defines the literal
 # form "Abbr Holder Name". Title, abbreviation and person are all required in
@@ -381,4 +385,4 @@ def quality_check(record, reading):
          "daily_indonesia_flag_held")
     need(type(reading.get("model_id")) is str and bool(reading["model_id"])
          and reading.get("prompt_version") == VERSION, "daily_model_provenance_incomplete")
-    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v7"})
+    return digest({"source": record["content_sha256"], "facts": facts, "version": "id-quality-v8"})

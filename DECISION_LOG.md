@@ -1,5 +1,50 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-13 — Indonesia Kemhan QA: "diselenggarakan" supports held/conducted; "pembinaan latihan" is exercise development
+
+**Evidence.** No Kemhan record has completed since the 23 October Record. The
+signed `envelopes/id_kemhan_news.json` on `state/shared-daily` still carries
+only that record, and the live queue has one `complete` entry. Every preserved
+private reading since 29 October (processing runs 40961161769–43322968930) was
+replayed under current `main` with every QA failure collected, not only the
+first. Two faithful renderings were held:
+
+- English "held" or "conducted" for `diselenggarakan` ("organised, held"):
+  the Japan Self-Defense Forces Day Reception record (run 43156498603) and
+  Latopsfib TA 2026 (run 43322968930), on `daily_completed_action_unsupported`.
+- "exercise development activities" for `pembinaan latihan` in the Latopsfib
+  private translation, on `daily_cross_passage_claim_unsupported`.
+
+**Correction.** The 12 November entry below says Latopsfib held "only
+because" of the thousands separator. QA stops at the first failure. With
+every check collected, that reading also held on the two codes above, so #1043
+alone could not have released it.
+
+**Decision.** `processing/indonesia_quality.py` adds `diselenggarakan` and
+`menyelenggarakan` to the passage-local support verbs for "held" and
+"conducted". They are the same completed-event class as `digelar` and
+`menggelar`. It adds "exercise development" and "training development" ←
+`pembinaan latihan` to the existing exact-phrase `LOCAL_DEVELOPMENT` pairs.
+The quality digest moves to `id-quality-v8`.
+
+Each rule needs its Indonesian wording in the cited passage itself. New tests
+show that the following still hold:
+- a planned event (`akan diselenggarakan`);
+- a held claim without a local event verb, or with the verb only in another
+  passage;
+- every other outcome word;
+- any other "development" claim.
+
+`melakukan`/`dilakukan` ("do", "carry out") is deliberately not support for
+"conducted". So the Magelang record's "conducted an inspection" still holds,
+as do its institution-form holds.
+
+With the change, the replay releases only the 12 November Latopsfib reading
+through QA, the output validator and signing. Every other hold is unchanged.
+The prompt, model, budget, call ceiling, attempt history, ledger and the
+Yonif TP 880 exclusion are unchanged. The next scheduled run makes a fresh
+model reading, so this replay is not a delivery claim.
+
 ## 2026-11-13 — Complete Brief citation-only Archive coverage without expanding source rights
 
 **Founder instruction.** Benjamin Yang requested completion of the outstanding

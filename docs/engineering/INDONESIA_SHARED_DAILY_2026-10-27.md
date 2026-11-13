@@ -11,7 +11,7 @@
 
 One branch integrates #982 (possessive institutional forms) and #998 (locally
 defined unit suffixes, translated weekdays), plus two fixes in
-`processing/indonesia_quality.py` (digest `id-quality-v7`; prompt `VERSION`
+`processing/indonesia_quality.py` (digest `id-quality-v8`; prompt `VERSION`
 unchanged):
 
 - "Abbr Name" counts as local only when the *same cited passage* has

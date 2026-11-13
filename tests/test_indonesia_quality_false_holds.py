@@ -10,6 +10,8 @@ from tests.test_indonesia_shared_daily import record, reading
 
 FORM, NAME = 'daily_institution_form_not_local', 'daily_name_or_office_unsupported'
 TRANSLATION = 'daily_private_translation_name_unsupported'
+STAGE, MODALITY = 'daily_completed_action_unsupported', 'daily_modality_or_contradiction_hold'
+CONCEPT = 'daily_cross_passage_claim_unsupported'
 
 
 def case(passage, sentence, translation, other=None):
@@ -145,6 +147,87 @@ class TranslatedCountryNames(unittest.TestCase):
         self.assertEqual(len(self.run_names(
             passage, 'in Japan, Kementerian Pertahanan Jepang discusses joint exercise plans.',
             'Kementerian Pertahanan Jepang discusses plans for a joint exercise.')), 64)
+
+
+class OrganisedEventVerb(unittest.TestCase):
+    """"diselenggarakan" states a held/conducted event, as "digelar" does."""
+    HELD = 'Resepsi Contoh diselenggarakan di Hotel Contoh.'
+
+    def run_verb(self, passage, sentence, translation, other=None):
+        r, reply = case(passage, sentence, translation, other)
+        return d.quality_check(r, reply)
+
+    def test_held_and_conducted_render_the_organised_event_verb(self):
+        for passage, sentence, translation in (
+                (self.HELD, 'Resepsi Contoh was held at Hotel Contoh.',
+                 'Resepsi Contoh was held at Hotel Contoh.'),
+                ('Latihan Contoh merupakan puncak rangkaian latihan yang diselenggarakan secara bertahap.',
+                 'Latihan Contoh was the culmination of a series of exercises conducted in phases.',
+                 'Latihan Contoh is the culmination of a series of exercises conducted in phases.'),
+                ('Kemhan menyelenggarakan Latihan Contoh di Lapangan Contoh.',
+                 'Kemhan conducted Latihan Contoh at Lapangan Contoh.',
+                 'Kemhan conducted Latihan Contoh at Lapangan Contoh.')):
+            with self.subTest(passage=passage):
+                self.assertEqual(len(self.run_verb(passage, sentence, translation)), 64)
+
+    def test_a_planned_event_is_still_not_a_held_one(self):
+        with self.assertRaises(d.IntakeHold) as held:
+            self.run_verb('Resepsi Contoh akan diselenggarakan di Hotel Contoh.',
+                          'Resepsi Contoh was held at Hotel Contoh.',
+                          'Resepsi Contoh was held at Hotel Contoh.')
+        self.assertIn(str(held.exception), (STAGE, MODALITY))
+
+    def test_held_without_a_local_event_verb_still_holds(self):
+        cases = (
+            ('Resepsi Contoh di Hotel Contoh dihadiri delegasi.', None),
+            # The verb in another passage of the article is not this passage's.
+            ('Resepsi Contoh di Hotel Contoh dihadiri delegasi.', 'Resepsi Lain diselenggarakan di Hotel Lain.'),
+        )
+        for passage, other in cases:
+            with self.subTest(other=other), self.assertRaisesRegex(d.IntakeHold, STAGE):
+                self.run_verb(passage, 'Resepsi Contoh was held at Hotel Contoh.',
+                              'Resepsi Contoh at Hotel Contoh was attended by a delegation.', other)
+
+    def test_the_organised_event_verb_supports_no_other_outcome(self):
+        for word in ('signed', 'completed', 'delivered', 'agreed', 'acquired', 'deployed'):
+            with self.subTest(word=word), self.assertRaisesRegex(d.IntakeHold, STAGE):
+                self.run_verb(self.HELD, 'Resepsi Contoh was held and ' + word + ' at Hotel Contoh.',
+                              'Resepsi Contoh was held at Hotel Contoh.')
+
+    def test_a_generic_do_verb_is_not_support_for_conducted(self):
+        with self.assertRaisesRegex(d.IntakeHold, STAGE):
+            self.run_verb('Menteri Contoh melakukan peninjauan di Lapangan Contoh.',
+                          'Menteri Contoh visited Lapangan Contoh.',
+                          'Menteri Contoh conducted an inspection at Lapangan Contoh.')
+
+
+class ExerciseDevelopmentPhrase(unittest.TestCase):
+    PASSAGE = 'Latihan Contoh merupakan puncak dari rangkaian pembinaan latihan.'
+
+    def run_phrase(self, translation, passage=None, other=None):
+        r, reply = case(passage or self.PASSAGE, 'Latihan Contoh was the culmination of a training series.',
+                        translation, other)
+        return d.quality_check(r, reply)
+
+    def test_exercise_development_renders_the_local_phrase(self):
+        for phrase in ('exercise development', 'training development', 'exercise-development'):
+            with self.subTest(phrase=phrase):
+                self.assertEqual(len(self.run_phrase(
+                    'Latihan Contoh is the culmination of a series of ' + phrase + ' activities.')), 64)
+
+    def test_other_development_claims_still_need_pengembangan(self):
+        cases = (
+            # The phrase elsewhere in the article does not support this passage.
+            ('Latihan Contoh is the culmination of a series of exercise development activities.',
+             'Latihan Contoh merupakan puncak dari rangkaian latihan.', 'Pembinaan latihan berlanjut.'),
+            # The local phrase clears only its own words, not a second claim.
+            ('Latihan Contoh is the culmination of exercise development and weapons development.',
+             None, None),
+            ('Latihan Contoh is the culmination of a series of development activities.', None, None),
+        )
+        for translation, passage, other in cases:
+            with self.subTest(translation=translation), self.assertRaisesRegex(d.IntakeHold, CONCEPT):
+                self.run_phrase(translation, passage, other)
 
 
 if __name__ == '__main__':
