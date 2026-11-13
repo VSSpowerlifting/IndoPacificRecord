@@ -3175,7 +3175,7 @@ class TestTransitionalArchiveIsTruthful(PreviewCase):
         html = self.page("archive.html")
         lede = re.sub(r"\s+", " ", html.split('class="lede"', 1)[1]
                       .split("</p>", 1)[0])
-        self.assertIn("preserved records. Search English and original titles.", lede)
+        self.assertIn("official texts, preserved as published. Search by title in English or the original language.", lede)
         self.assertIn("{:,}".format(self.corpus_size), lede)
         self.assertNotIn("recent sample", html)
         self.assertNotIn("the list is complete", html)

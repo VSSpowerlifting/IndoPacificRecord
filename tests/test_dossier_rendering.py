@@ -408,7 +408,7 @@ class ThematicDossierRendering(unittest.TestCase):
         self.assertIn('>Related Brief<',html)
         self.assertNotIn('<dt>Living Dossier</dt>',html)
         self.assertIn('href="dossiers.html"',self.read('analysis.html'))
-        self.assertIn('>Analysis</a>',self.read('index.html'))
+        self.assertIn('>Briefs</a>',self.read('index.html'))  # nav label renamed 2026-11-13
         self.assertIn('Thematic dossier · Unpublished draft for review',self.read('index.html'))
 
     def test_thematic_page_separates_linked_pages_and_holds_review(self):

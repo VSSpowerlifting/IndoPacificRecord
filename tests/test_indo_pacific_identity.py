@@ -196,12 +196,13 @@ class TestTheMastheadIsTheNewIdentity(IdentityCase):
         nav = self.page("index.html").split('aria-label="Primary"', 1)[1]
         nav = nav.split("</nav>", 1)[0]
         labels = re.findall(r">([A-Za-z ]+)</a>", nav)
-        # Grouped by what a reader is doing (2026-09-27): reading (Records,
-        # Analysis), the collection (Desks, Sources, Coverage) and the method
-        # (Methodology, About). "Records" is the destination formerly labelled
-        # "Atlas"; its address is unchanged.
-        self.assertEqual(labels, ["Records", "Analysis", "Desks", "Sources",
-                                  "Coverage", "Methodology", "Team", "About"])
+        # Simplified 2026-11-13 (reader polish): the two reading destinations
+        # (Records, Briefs), the collection (Desks) and the method
+        # (Methodology, About). Sources and Coverage are reached from
+        # Methodology; Team from About. "Briefs" is the destination formerly
+        # labelled "Analysis"; its address (analysis.html) is unchanged.
+        self.assertEqual(labels, ["Records", "Briefs", "Desks", "Methodology",
+                                  "About"])
 
 
 class TestRetiredNamesStayRetired(IdentityCase):
