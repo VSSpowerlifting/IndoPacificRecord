@@ -348,6 +348,10 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
                                       "public_machine_explanation",
                                       "unattended_release")):
             return "source-use policy withholds unattended release"
+        from core.daily_sources import source_for
+        source = source_for(family)
+        if source is not None and not source.public_switch_on():
+            return "owner public switch is off"
         return None
 
     def admit(run_id):
@@ -355,6 +359,17 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
         if not intake_dir:
             return GovernedOutcome(collection_status.SKIPPED_DISABLED,
                                    error_detail="no shared Daily intake directory configured")
+        from core.daily_sources import source_for
+        source = source_for(family)
+        evidence = source.evidence_outcome(intake_dir) if source is not None else None
+        if evidence is not None:
+            # Source-wide evidence failed upstream (JCG: the terms page). The
+            # machine envelope may predate that run (signed before it, or its
+            # re-sign failed), so nothing is admitted from it; its withdrawals
+            # wait for valid evidence too. Reported, never read as a quiet day.
+            status, detail = evidence
+            logger.warning("%s: %s", family, detail)
+            return GovernedOutcome(status, error_detail=detail)
         from processing.daily_runner import intake_family
         receipt = (intake or intake_family)(DB_PATH, intake_dir, family)
         if receipt is None:

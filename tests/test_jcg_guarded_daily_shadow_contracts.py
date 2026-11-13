@@ -80,8 +80,12 @@ class JCGDailyQualifications(unittest.TestCase):
         self.assertIn("jp_jcg_press_en", source)
         self.assertIn("linked PDFs", source)
         production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-        self.assertNotIn("jcg", json.dumps(production).lower())
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+        # The production declaration is manual: the shared Daily lane admits signed
+        # links and readings; only this shadow runner ever fetches the publisher.
+        jcg = [s for s in production["sources"] if s["slug"] == "jp_jcg_press_en"][0]
+        self.assertEqual(jcg["access_method"], "manual")
+        self.assertNotIn("adapter", jcg)
 
 
 if __name__ == "__main__":

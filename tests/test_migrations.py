@@ -361,8 +361,8 @@ class TestReconcileReversion(MigrationTestCase):
         self.assertTrue(v["ok"])
         # China, Korea, Singapore, Vietnam and the four manual-only desks.
         self.assertEqual(desks, 8)
-        # Nine fetched/bridged sources plus the six manual registrations.
-        self.assertEqual(sources_with_desk, 15)
+        # Nine fetched/bridged sources plus the seven manual registrations.
+        self.assertEqual(sources_with_desk, 16)
 
 
 class TestRollback(MigrationTestCase):

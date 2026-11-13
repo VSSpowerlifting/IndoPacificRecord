@@ -47,6 +47,13 @@ DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 # collector module is not imported here so migrations stay dependency-free.
 FAMILY_BEGIN = "2026-09-01"
 BODY_SCOPE = "published_html_text_only"
+# Mirrors scraper.sources.jp_jcg_en.EXTRACTION_PROFILE (asserted in tests). An
+# earlier profile kept attachment link labels in the text and dropped prose not
+# wrapped in <p>, so its rows are held rather than used as model input.
+EXTRACTION_PROFILE = "jcg-html-article-text/2"
+# Residue of a linked attachment in the text ("... (PDF:390KB)"): the label of
+# an excluded document is not article prose and must never reach the model.
+ATTACHMENT_LABEL = re.compile(r"[(\uff08]\s*PDF\b|\bPDF\s*[:\uff1a]\s*\d", re.I)
 VERSION_FIELDS = ("source_identity", "canonical_official_url", "publisher_posted_date",
                   "content_sha256", "capture_sha256", "title_sha256")
 LINKS_SCHEMA = "ipr-japan-jcg-links/1"
@@ -95,8 +102,12 @@ def version_hash(fields: Dict[str, Optional[str]]) -> str:
     return hashlib.sha256(body.encode()).hexdigest()
 
 
-def scope_hold(metadata_json) -> Optional[str]:
-    """Reason a custody row is outside the standing HTML-text family, or None."""
+def scope_hold(metadata_json, text=None) -> Optional[str]:
+    """Reason a custody row is outside the standing HTML-text family, or None.
+
+    ``text`` is the private original body. It is checked here, in custody,
+    so an excluded attachment's label is held before signing or processing.
+    """
     try:
         meta = json.loads(metadata_json or "{}")
     except ValueError:
@@ -107,11 +118,17 @@ def scope_hold(metadata_json) -> Optional[str]:
         return "jcg_link_body_scope_not_html_text"
     if meta.get("attachments_collected") is not False:
         return "jcg_link_attachment_collected"
+    if meta.get("extraction_profile") != EXTRACTION_PROFILE:
+        return "jcg_link_extraction_profile_superseded"
+    if type(text) is not str or not text.strip():
+        return "jcg_link_body_missing"
+    if ATTACHMENT_LABEL.search(text):
+        return "jcg_link_attachment_label_in_text"
     return None
 
 
 def link_from_row(identity, url, day, run, capture_sha, content_sha, title,
-                  metadata_json=None) -> dict:
+                  metadata_json=None, text=None) -> dict:
     """One link dict in the shared shape; ``verified_source`` revalidates it."""
     fields = {"source_identity": identity, "canonical_official_url": url,
               "publisher_posted_date": day, "content_sha256": content_sha,
@@ -120,7 +137,7 @@ def link_from_row(identity, url, day, run, capture_sha, content_sha, title,
             "publisher_posted_date": day, "official_issuer": ISSUER,
             "official_publisher": None, "official_republisher": None,
             "first_seen_run": run, "metadata_version_sha256": version_hash(fields),
-            "jcg_scope_hold": scope_hold(metadata_json)}
+            "jcg_scope_hold": scope_hold(metadata_json, text)}
 
 
 def links_from_custody(repo, commit, family=FAMILY) -> List[dict]:
@@ -136,9 +153,25 @@ def links_from_custody(repo, commit, family=FAMILY) -> List[dict]:
                 raise LinkRefused("jcg_link_custody_schema_unsupported")
             rows = conn.execute(
                 "SELECT source_identity,url,published_date,first_seen_run,capture_sha256,"
-                "content_sha256,title_original,metadata_json FROM shadow_records "
+                "content_sha256,title_original,metadata_json,text_original FROM shadow_records "
                 "WHERE source_slug=? ORDER BY source_identity", (family,)).fetchall()
-    return [link_from_row(*row) for row in rows]
+    links = [link_from_row(*row) for row in rows]
+    # Standing-rights qualification (#1015): bind the stored text to the
+    # authenticated raw HTML at this pin, verify the captured publisher terms
+    # and screen item exceptions. Rows already outside the scope are not
+    # replayed. Imported lazily so this module (and m0023) stays free of
+    # the collector and bs4.
+    pending = [(link, row) for link, row in zip(links, rows) if not link["jcg_scope_hold"]]
+    if pending:
+        from core import japan_jcg_rights
+        keys = ("source_identity", "url", "published_date", "first_seen_run",
+                "capture_sha256", "content_sha256", "title_original", "metadata_json",
+                "text_original")
+        holds = japan_jcg_rights.qualify_rows(
+            repo, commit, [dict(zip(keys, row)) for _, row in pending])
+        for (link, _), hold in zip(pending, holds):
+            link["jcg_scope_hold"] = hold
+    return links
 
 
 def read_parent(conn, identity) -> Optional[dict]:
@@ -245,14 +278,28 @@ def _mac(key: str, raw: bytes) -> str:
     return hmac.new(key.encode(), LINKS_DOMAIN + raw, hashlib.sha256).hexdigest()
 
 
-def sign_links(records: Iterable[dict], *, key: str) -> dict:
+EVIDENCE_KEYS = ("site_terms", "listing")
+EVIDENCE_CODE = re.compile(r"[a-z_]{1,40}")
+
+
+def _evidence_ok(evidence) -> bool:
+    return (type(evidence) is dict and set(evidence) == set(EVIDENCE_KEYS)
+            and all(type(v) is str and EVIDENCE_CODE.fullmatch(v) for v in evidence.values()))
+
+
+def sign_links(records: Iterable[dict], *, key: str,
+               source_evidence: Optional[dict] = None) -> dict:
     """Signed link-scope envelope for verified custody records.
 
     Only the fields in ``LINK_FIELDS`` leave private custody: no title, no
     text. A row outside the standing HTML-text family is not sent; any other
     record that would be refused at public admission stops the signing rather
-    than being dropped silently.
+    than being dropped silently. ``source_evidence`` (fixed status codes from
+    ``japan_jcg_rights.source_evidence``) tells the public operator report
+    whether the latest run reached the publisher's terms.
     """
+    if source_evidence is not None and not _evidence_ok(source_evidence):
+        raise LinkRefused("jcg_link_source_evidence_invalid")
     if type(key) is not str or len(key) < 32:
         raise LinkRefused("jcg_link_key_invalid")
     links = []
@@ -264,6 +311,8 @@ def sign_links(records: Iterable[dict], *, key: str) -> dict:
     if len(links) > MAX_LINKS:
         raise LinkRefused("jcg_link_envelope_too_large")
     packet = {"schema": LINKS_SCHEMA, "family": FAMILY, "links": links}
+    if source_evidence is not None:
+        packet["source_evidence"] = dict(source_evidence)
     raw = _canonical(packet)
     if len(raw) > MAX_ENVELOPE_BYTES:
         raise LinkRefused("jcg_link_envelope_too_large")
@@ -277,6 +326,11 @@ def admit_signed_links(conn, envelope, *, key: str, now: Optional[str] = None) -
     link is still re-checked by ``admit_links``, so the envelope adds
     authentication and never relaxes a rule.
     """
+    return admit_links(conn, authenticated_packet(envelope, key=key)["links"], now=now)
+
+
+def authenticated_packet(envelope, *, key: str) -> dict:
+    """The packet of a link envelope whose MAC and exact shape verify."""
     if type(key) is not str or len(key) < 32:
         raise LinkRefused("jcg_link_key_invalid")
     if type(envelope) is not dict or set(envelope) != {"packet", "mac"} \
@@ -287,8 +341,10 @@ def admit_signed_links(conn, envelope, *, key: str, now: Optional[str] = None) -
     if len(raw) > MAX_ENVELOPE_BYTES or not hmac.compare_digest(_mac(key, raw), envelope["mac"]):
         raise LinkRefused("jcg_link_envelope_mac_invalid")
     links = packet.get("links")
-    if set(packet) != {"schema", "family", "links"} or packet["schema"] != LINKS_SCHEMA \
+    keys = set(packet) - {"source_evidence"}
+    if keys != {"schema", "family", "links"} or packet["schema"] != LINKS_SCHEMA \
             or packet["family"] != FAMILY or type(links) is not list or len(links) > MAX_LINKS \
-            or not all(type(link) is dict and set(link) == set(LINK_FIELDS) for link in links):
+            or not all(type(link) is dict and set(link) == set(LINK_FIELDS) for link in links) \
+            or ("source_evidence" in packet and not _evidence_ok(packet["source_evidence"])):
         raise LinkRefused("jcg_link_envelope_invalid")
-    return admit_links(conn, links, now=now)
+    return packet

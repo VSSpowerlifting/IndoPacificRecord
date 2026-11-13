@@ -370,10 +370,10 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
         self.assertTrue((self.out / "japan.html").is_file())
         self.assertIn('href="japan.html"', self.page("desks.html"))
 
-    def test_the_japan_page_states_no_production_records_and_one_manual_source(self):
+    def test_the_japan_page_states_no_production_records_and_its_manual_sources(self):
         html = self.page("japan.html")
         self.assertIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("Sources enabled for governed admission</dt><dd>1", html)
+        self.assertIn("Sources enabled for governed admission</dt><dd>2", html)
         self.assertIn("No source is fetched in production.", html)
         self.assertIn("the public pipeline never fetches", html)
         self.assertNotIn("Sources enabled in shadow", html)

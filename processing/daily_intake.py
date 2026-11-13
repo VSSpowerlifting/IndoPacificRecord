@@ -350,12 +350,30 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
         version = digest({k: r[k] for k in ("metadata_version_sha256", "content_sha256",
                                            "capture_sha256")})
         prior = result.get(key, {})
-        if source.is_held_source(r):
-            result[key] = {**prior, "status": "held", "reason": "source_semantic_anomaly"}
+        resumable = source.resumable_holds
+        transient = prior.get("status") == "held" and prior.get("reason") in resumable
+        reason = source.held_source_reason(r)
+        if reason in resumable:
+            # Source-wide evidence lapse: keep attempts, output and the state to
+            # restore. An entry already held for any other reason stays as it is.
+            if prior.get("status") in ("held", "paused", "terminal") and not transient:
+                continue
+            result[key] = {**prior, "status": "held", "reason": reason,
+                           "held_from": prior.get("held_from") if transient else prior.get("status")}
+            continue
+        if reason is not None:
+            result[key] = {**{k: v for k, v in prior.items() if k != "held_from"},
+                           "status": "held", "reason": reason}
             continue
         if r["source_identity"] in p["excluded_source_identities"]:
             result[key] = {**prior, "status": "held", "reason": "owner_excluded_source_identity"}
             continue
+        if transient:
+            # The evidence is valid again: resume exactly where the item was.
+            prior = {k: v for k, v in prior.items() if k not in ("status", "reason", "held_from")}
+            if result[key].get("held_from"):
+                prior["status"] = result[key]["held_from"]
+            result[key] = prior
         if prior.get("version") not in (None, version):
             result[key] = {**prior, "status": "held", "reason": "source_version_changed"}
             continue
@@ -472,8 +490,12 @@ def sign_outputs(state, *, family, policy, key, selected_record=None):
                and (selected_identity is None or k == family + ":" + selected_identity)
                and v["output"]["source_identity"] not in p["excluded_source_identities"]
                and v["output"]["policy_sha256"] == policy_binding(p)]
+    # A resumable source-wide hold neither releases nor withdraws: already
+    # public records stay as they are until the evidence is valid again.
+    resumable = source_for(family).resumable_holds
     held = [k[len(family)+1:] for k, v in sorted(state.items())
             if k.startswith(family + ":") and v.get("status") in ("held", "paused")
+            and v.get("reason") not in resumable
             and (selected_identity is None or k == family + ":" + selected_identity)]
     if selected_record is not None:
         need(len(outputs) <= 1 and len(held) <= 1,

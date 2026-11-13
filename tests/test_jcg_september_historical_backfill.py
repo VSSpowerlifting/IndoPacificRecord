@@ -110,8 +110,12 @@ class JCGBackfillSafety(unittest.TestCase):
             new = {k:v for k,v in rows if k in {"jcg-en:9424","jcg-en:9399"}}
             self.assertEqual(set(new.values()), {"backfill-test-1"})
             production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-            self.assertNotIn("jcg", json.dumps(production).lower())
+            self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+            # The production declaration is manual: the shared Daily lane admits signed
+            # links and readings; only this shadow runner ever fetches the publisher.
+            jcg = [s for s in production["sources"] if s["slug"] == "jp_jcg_press_en"][0]
+            self.assertEqual(jcg["access_method"], "manual")
+            self.assertNotIn("adapter", jcg)
 
     def test_formal_reviewer_excludes_historical_backfill_from_day_coverage(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -176,7 +180,7 @@ class JCGBackfillSafety(unittest.TestCase):
             self.assertEqual(result["result"], "listing_failure")
             self.assertEqual(result["retrieved"], 0)
             self.assertEqual(result["selected"], 0)
-            self.assertEqual(len(source.calls), 2)  # policy and index only
+            self.assertEqual(len(source.calls), 3)  # robots, site terms and index only
             self.assertEqual((state / "clock.json").read_bytes(), clock)
             with sqlite3.connect(state / "shadow.db") as db:
                 count = db.execute("SELECT count(*) FROM shadow_records").fetchone()[0]

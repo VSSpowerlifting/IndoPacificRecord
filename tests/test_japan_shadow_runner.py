@@ -183,9 +183,10 @@ class TestIsolation(RunnerCase):
         self.assertTrue((ROOT / "shadow" / "jp_mod" / "manifest.json").exists())
         production = json.loads((ROOT / "desks" / "japan" / "manifest.json")
                                 .read_text("utf-8"))
-        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-        self.assertEqual(production["sources"][0]["access_method"], "manual")
-        self.assertNotIn("adapter", production["sources"][0])
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+        for source in production["sources"]:
+            self.assertEqual(source["access_method"], "manual")
+            self.assertNotIn("adapter", source)
         self.assertFalse(production["desk"]["active"])
 
     def test_the_japan_source_is_enabled_only_in_shadow(self):

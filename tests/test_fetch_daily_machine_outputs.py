@@ -14,11 +14,14 @@ from processing.daily_intake import load_policy as _committed_policy
 
 
 def load_policy():
-    """Committed policy with the Singapore pilot flags held off, so these delivery
-    tests do not depend on the one-record pilot state of the repository."""
+    """Committed policy with the Singapore pilot and Japan Coast Guard flags held
+    off, so these three-family delivery tests do not depend on the pilot state of
+    the repository. JCG delivery under its committed policy is covered in
+    tests/test_japan_jcg_daily.py."""
     p = _committed_policy()
-    p['sources']['sg_mindef_releases'].update(
-        private_model_processing=False, public_machine_explanation=False, unattended_release=False)
+    for family in ('sg_mindef_releases', 'jp_jcg_press_en'):
+        p['sources'][family].update(
+            private_model_processing=False, public_machine_explanation=False, unattended_release=False)
     return p
 
 
@@ -80,7 +83,7 @@ class FetchOutputs(unittest.TestCase):
         self.assertEqual((root / 'outputs').read_text(), 'failed_families=0\n')
 
     def sg_policy(self):
-        p = copy.deepcopy(_committed_policy())
+        p = copy.deepcopy(load_policy())
         p['sources']['sg_mindef_releases'].update(
             private_model_processing=True, public_machine_explanation=True, unattended_release=True)
         return p
@@ -118,6 +121,29 @@ class FetchOutputs(unittest.TestCase):
         root, result, call = self.run_gated('workflow_dispatch', '6nov26-nr2', outcomes)
         self.assertEqual(result['sg_mindef_releases'], 'fetched')
         self.assertTrue((root / 'sg_mindef_releases.json').exists())
+
+    def test_jcg_owner_switch_withholds_its_envelope_even_with_policy_on(self):
+        policy = copy.deepcopy(load_policy())
+        policy['sources']['jp_jcg_press_en'].update(
+            private_model_processing=True, public_machine_explanation=True, unattended_release=True)
+        enabled = [f for f in fetch.SOURCES if f not in ('sg_mindef_releases', 'kr_policy_dapa_releases')]
+        for switch in (None, 'false', 'true'):
+            with self.subTest(switch=switch), patch.dict(os.environ, {}):
+                os.environ.pop('JP_JCG_LINKS_ENABLED', None)
+                if switch:
+                    os.environ['JP_JCG_LINKS_ENABLED'] = switch
+                on = switch == 'true'
+                outcomes = [self.response() for _ in range(len(enabled) + (1 if on else 0))]
+                root, result, call = self.run_fetch(outcomes, policy)
+                urls = ' '.join(' '.join(map(str, c.args[0])) for c in call.call_args_list)
+                self.assertEqual(result['jp_jcg_press_en'], 'fetched' if on else 'public_switch_off')
+                self.assertEqual('envelopes/jp_jcg_press_en.json' in urls, on)
+                self.assertEqual((root / 'jp_jcg_press_en.json').exists(), on)
+                for family in enabled:
+                    if family != 'jp_jcg_press_en':
+                        self.assertEqual(result[family], 'fetched')
+                self.assertTrue((root / 'outputs').read_text().endswith('failed_families=0\n'))
+                (root / 'outputs').unlink()
 
     def test_annotations_do_not_disclose_response_or_stderr(self):
         from contextlib import redirect_stdout

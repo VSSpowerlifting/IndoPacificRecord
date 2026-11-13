@@ -87,7 +87,7 @@ class TestRegistryDrivesCollection(unittest.TestCase):
         self.assertEqual(
             SourceRegistry().slugs,
             ["china_mil_online", "global_times_mil", "id_kemhan_news",
-             "jp_mod_news_ja", "kr_policy_mnd_releases", "mod_china",
+             "jp_jcg_press_en", "jp_mod_news_ja", "kr_policy_mnd_releases", "mod_china",
              "ph_afp_articles", "ph_nsc_official_statements", "pla_daily",
              "sg_mindef_releases", "us_treasury_press_official_metadata",
              "uscc_press_official_metadata", "vn_mps_foreign_affairs_vi",
@@ -235,11 +235,12 @@ class TestNoSourceStarvesAnother(unittest.TestCase):
             result("ph_nsc_official_statements", st.SKIPPED_DISABLED),
             result("id_kemhan_news", st.SKIPPED_DISABLED),
             result("jp_mod_news_ja", st.SKIPPED_DISABLED),
+            result("jp_jcg_press_en", st.SKIPPED_DISABLED),
             result("uscc_press_official_metadata", st.SKIPPED_DISABLED),
             result("us_treasury_press_official_metadata", st.SKIPPED_DISABLED),
         ]
         report = machine_report(results)
-        self.assertEqual(report["source_count"], 15)
+        self.assertEqual(report["source_count"], 16)
         self.assertEqual(
             sorted(s["source_slug"] for s in report["sources"]),
             SourceRegistry().slugs,
@@ -388,9 +389,9 @@ class TestConfigSyncIsIdempotent(unittest.TestCase):
         desks = conn.execute("SELECT COUNT(*) FROM desks").fetchone()[0]
         insts = conn.execute("SELECT COUNT(*) FROM institutions").fetchone()[0]
         conn.close()
-        self.assertEqual(n, 15)         # 9 fetched + 6 manual registrations (PH x2, ID, JP, US x2)
+        self.assertEqual(n, 16)         # 9 fetched + 7 manual registrations (PH x2, ID, JP x2, US x2)
         self.assertEqual(desks, 8)
-        self.assertEqual(insts, 15)     # Korea adds Policy Briefing and MND; Vietnam the Government Office; PH AFP+NSC, ID Kemhan, JP MOD, US USCC+Treasury
+        self.assertEqual(insts, 16)     # Korea adds Policy Briefing and MND; Vietnam the Government Office; PH AFP+NSC, ID Kemhan, JP MOD+JCG, US USCC+Treasury
 
     def test_sync_populates_authority_and_originality(self):
         conn = connect(self.db_path)
@@ -428,7 +429,7 @@ class TestScrapersSlugView(unittest.TestCase):
 
     def test_iteration_and_len(self):
         self.assertEqual(sorted(self.pipeline.SCRAPERS), SourceRegistry().slugs)
-        self.assertEqual(len(self.pipeline.SCRAPERS), 15)
+        self.assertEqual(len(self.pipeline.SCRAPERS), 16)
 
     def test_subscripting_raises_with_a_pointer_to_the_real_api(self):
         with self.assertRaises(TypeError) as ctx:
@@ -665,7 +666,7 @@ class TestNeutralLanguagePersistence(unittest.TestCase):
         # (desks/us-indopacific) and admitted through the governed dispatcher
         # from preserved history; the Daily run never fetches them.
         manual_registrations = {"ph_afp_articles", "ph_nsc_official_statements",
-                                "id_kemhan_news", "jp_mod_news_ja",
+                                "id_kemhan_news", "jp_mod_news_ja", "jp_jcg_press_en",
                                 "uscc_press_official_metadata",
                                 "us_treasury_press_official_metadata"}
         self.assertLessEqual(fetched, slugs)

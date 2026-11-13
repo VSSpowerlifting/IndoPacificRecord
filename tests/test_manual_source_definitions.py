@@ -56,6 +56,7 @@ MANUAL_FAMILIES = {
     "ph_nsc_official_statements": "philippines",
     "id_kemhan_news": "indonesia",
     "jp_mod_news_ja": "japan",
+    "jp_jcg_press_en": "japan",
     "uscc_press_official_metadata": "us-indopacific",
     "us_treasury_press_official_metadata": "us-indopacific",
 }
@@ -79,10 +80,9 @@ class TestRegistration(unittest.TestCase):
 
     def test_every_governed_family_is_a_manual_production_source(self):
         registered = {f for f, s in SOURCES.items() if s.desk_registered}
-        # DAPA and Japan Coast Guard remain unregistered until their separate
-        # activations; Singapore's manual route is registered, but its
-        # model/release policy is still disabled.
-        unregistered = {"kr_policy_dapa_releases", "jp_jcg_press_en"}
+        # DAPA remains unregistered until its separate activation; Singapore's
+        # manual route is registered, but its model/release policy is still disabled.
+        unregistered = {"kr_policy_dapa_releases"}
         self.assertEqual(set(SOURCES) - registered, unregistered)
         for family in unregistered:
             self.assertNotIn(family, pipeline._governed_admissions())

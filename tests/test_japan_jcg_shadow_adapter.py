@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from core.collection import status as st
 from core.collection.contract import CandidateReference, CaptureResult, CollectionWindow
 from scraper.sources.jp_jcg_en import (
-    JCGEnglishAdapter, LISTING, canon, source_date,
+    EXTRACTION_PROFILE, JCGEnglishAdapter, LISTING, canon, source_date,
 )
 
 
@@ -46,6 +46,20 @@ def article(ident, title, when="06 10 2026", iso="2026-10-06", body=None):
             '<footer>IGNORE FOOTER</footer></html>')
 
 
+def page(inner, ident="9465", when="09 October, 2026"):
+    """A release page around a synthetic body in a genuine JCG body shape."""
+    return ('<html><main><article class="main-article">'
+            '<section class="topics topics-article">'
+            '<h1 class="entry-title"> Synthetic release title </h1>'
+            '<aside class="topics-article__time"><time datetime="2021-3-1">' + when +
+            '</time></aside><div class="topics-article__main tich-text">' + inner +
+            '</div></section></article></main></html>')
+
+
+SENT = ("Synthetic sentence {} describes coast guard capacity-building support "
+        "delivered to a partner maritime law enforcement agency.")
+
+
 class JCGSourceContracts(unittest.TestCase):
     def setUp(self):
         self.adapter = JCGEnglishAdapter(jcg_source())
@@ -60,8 +74,12 @@ class JCGSourceContracts(unittest.TestCase):
         self.assertTrue(manifest["sources"][0]["enabled"])
         self.assertEqual(manifest["sources"][0]["slug"], "jp_jcg_press_en")
         production = json.loads((root / "desks/japan/manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-        self.assertNotIn("jcg", json.dumps(production).lower())
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+        # The production declaration is manual: the shared Daily lane admits signed
+        # links and readings; only this shadow runner ever fetches the publisher.
+        jcg = [s for s in production["sources"] if s["slug"] == "jp_jcg_press_en"][0]
+        self.assertEqual(jcg["access_method"], "manual")
+        self.assertNotIn("adapter", jcg)
 
     def test_dates_are_publisher_calendar_dates(self):
         self.assertEqual(source_date("06 10 2026"), "2026-10-06")
@@ -251,3 +269,80 @@ class JCGSourceContracts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class JCGGenuineBodyShapes(unittest.TestCase):
+    """Body layouts replayed offline from genuine releases 9465, 9477 and 9519
+    (13 November 2026). Only the HTML structure is reproduced; all text is
+    synthetic, and no publisher text, media or capture is committed."""
+
+    def setUp(self):
+        self.adapter = JCGEnglishAdapter(jcg_source())
+
+    def parse(self, inner, ident="9465"):
+        return self.adapter.parse_article(
+            page(inner, ident),
+            "https://www.kaiho.mlit.go.jp/e/topics_archive/article" + ident + ".html")
+
+    def test_br_separated_body_without_paragraphs_keeps_every_segment(self):
+        # 9465: bare text split by unclosed <br>, a PDF link, images in divs.
+        inner = ("\n   " + SENT.format(1) + "<br>" + SENT.format(2) + "<br>" + SENT.format(3) +
+                 "<br/><br/><a href=\"synthetic_eng_1.pdf\">Synthetic support (PDF:271KB)</a>"
+                 "<br/><div><img alt=\"x.jpg\" src=\"x.jpg\"/></div><br/><img src=\"y.jpg\"/>")
+        doc = self.parse(inner)
+        self.assertEqual(doc.text_original.split("\n\n"),
+                         [SENT.format(1), SENT.format(2), SENT.format(3)])
+        self.assertEqual(doc.extra["extraction_profile"], EXTRACTION_PROFILE)
+        self.assertEqual(doc.extra["attachment_urls"],
+                         ["https://www.kaiho.mlit.go.jp/e/topics_archive/synthetic_eng_1.pdf"])
+        self.assertEqual(doc.extra["attachment_link_labels_excluded"], 1)
+        self.assertEqual(doc.extra["media_blocks_excluded"], 2)
+        self.assertFalse(doc.extra["attachments_collected"])
+        self.assertNotIn("PDF", doc.text_original)
+
+    def test_heading_lead_and_numbered_labels_kept_gallery_and_links_excluded(self):
+        # 9477: the lead and numbered section labels are <h3>; list lines are
+        # <br>-nested; a photo gallery paragraph holds images and captions; a
+        # trailing "Links" section holds only the PDF link.
+        inner = ("<div><h3>" + SENT.format("lead") + "</h3></div><div>"
+                 "<h3>1\u3000Implementation period (Local time)</h3>"
+                 "<p>From Friday, September 25, 2026, to Thursday, October 8, 2026 14 days</p>"
+                 "<h3>2\u3000Participation Institutions</h3>"
+                 "<p>Agency One (AO)<br> Agency Two (AT)<br/> Agency Three (AH)</br></br></p>"
+                 "<ul><li>" + SENT.format("summary") + "</li></ul></div>"
+                 "<div><h3>Photo\u3000Gallery</h3><p><img src=\"upload/a.jpg\"><br/>"
+                 "Synthetic caption one<br/><img src=\"upload/b.jpg\"/><br/>Synthetic caption two"
+                 "</img></p></div><div><h3>Links</h3><a href=\"upload/s.pdf\">"
+                 "Synthetic mission (PDF 293KB)</a></div>")
+        doc = self.parse(inner, "9477")
+        self.assertEqual(doc.text_original.split("\n\n"), [
+            SENT.format("lead"), "1\u3000Implementation period (Local time)",
+            "From Friday, September 25, 2026, to Thursday, October 8, 2026 14 days",
+            "2\u3000Participation Institutions", "Agency One (AO)", "Agency Two (AT)",
+            "Agency Three (AH)", SENT.format("summary")])
+        for excluded in ("caption", "Gallery", "Links", "PDF"):
+            self.assertNotIn(excluded, doc.text_original)
+        self.assertEqual(doc.extra["media_blocks_excluded"], 1)
+
+    def test_photo_table_captions_and_inline_style_are_excluded(self):
+        # 9519: an inline <style>, one prose paragraph, an absolute PDF URL
+        # with a doubled slash, and a photo table whose cells carry captions.
+        inner = ("<style><!-- .mct-photo-table td { padding: 0 } --></style>"
+                 "<div style=\"max-width: 760px\"><p>" + SENT.format(1) + " " + SENT.format(2) +
+                 "</p><p><a href=\"https://www.kaiho.mlit.go.jp//e/topics_archive/upload/s.pdf\">"
+                 " Synthetic support (PDF: 390 KB) </a></p><table class=\"mct-photo-table\">"
+                 "<tbody><tr><td><img alt=\"Workshop\" src=\"01.jpg\"><div>Synthetic caption</div>"
+                 "</img></td><td><img src=\"02.jpg\"/><div>Another<br> caption</br></div></td>"
+                 "</tr></tbody></table></div>")
+        doc = self.parse(inner, "9519")
+        self.assertEqual(doc.text_original, SENT.format(1) + " " + SENT.format(2))
+        self.assertEqual(doc.extra["attachment_urls"],
+                         ["https://www.kaiho.mlit.go.jp//e/topics_archive/upload/s.pdf"])
+        self.assertEqual(doc.extra["media_blocks_excluded"], 2)
+
+    def test_off_host_attachment_and_media_only_bodies_are_refused(self):
+        with self.assertRaises(ValueError):
+            self.parse("<p>" + SENT.format(1) * 2 + "</p>"
+                       "<a href=\"https://example.org/file.pdf\">Other (PDF:1KB)</a>")
+        with self.assertRaises(ValueError):
+            self.parse("<p><img src=\"a.jpg\"/>" + SENT.format(1) * 3 + "</p>")
