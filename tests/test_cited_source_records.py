@@ -11,7 +11,6 @@ from core import cited_source_records as cited, vietnam_source_use
 from core.archive_research import with_cited
 from core.brief_collection import load_collection
 from core.desk_registry import load_registry
-from core.mindef_permissions import APPROVED_MINDEF_LINKS
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES = ROOT / "site" / "preview" / "templates"
@@ -61,9 +60,12 @@ class RightsGateTests(unittest.TestCase):
             self.assertEqual(cited.omission(ref("s1", url)), "unsafe_url", url)
 
     def test_mindef_is_never_a_cited_record(self):
-        # The 2026-10-29 permission is for hyperlinks from a Brief, so even
-        # the two approved links stay external rather than gain a page.
-        for url in ("https://www.mindef.gov.sg/news/unapproved",) + tuple(APPROVED_MINDEF_LINKS):
+        # Current MINDEF standing links do not themselves authorize an
+        # independent cited-source Record page. Test actual previously cited
+        # URLs and an unlisted path against the same source-family hold.
+        for url in ("https://www.mindef.gov.sg/news/unapproved",
+                    "https://www.mindef.gov.sg/news-and-events/latest-releases/23oct26-nr2/",
+                    "https://www.mindef.gov.sg/news-and-events/latest-releases/4nov26-nr/"):
             self.assertEqual(cited.omission(ref("s1", url)), "mindef_link_only_permission")
 
     def test_held_vietnam_families_are_omitted(self):
