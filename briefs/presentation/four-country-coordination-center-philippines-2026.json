@@ -1,0 +1,84 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "four-country-coordination-center-philippines-2026",
+  "manuscript_fingerprint": "cf66e767c07fc4872b4f46b0150e9192b009c5d35f43eb40f820c21cd49875e6",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 3,
+      "heading": "A center on a list of four"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 4,
+      "end": 7,
+      "heading": "A name with a bilateral history"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 8,
+      "end": 10,
+      "heading": "Planned, or already operating"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 11,
+      "end": 12,
+      "heading": "Coordination, not command"
+    },
+    {
+      "id": "reading-section-5",
+      "start": 13,
+      "end": 14,
+      "heading": "What would settle it"
+    }
+  ],
+  "central_finding": {
+    "paragraph": 14,
+    "quote": "Four governments have adopted as a shared goal a name that the United States and the Philippines have used for a bilateral coordination structure since at least 2024.",
+    "sources": [
+      "s1",
+      "s6"
+    ]
+  },
+  "evidence": {
+    "establishes": [
+      {
+        "paragraph": 1,
+        "quote": "Neither version says where the center will be, how it will be organized or when it will open.",
+        "sources": [
+          "s1",
+          "s2"
+        ]
+      },
+      {
+        "paragraph": 5,
+        "quote": "broke ground on a new combined coordination center at Camp Aguinaldo",
+        "sources": [
+          "s7"
+        ]
+      }
+    ],
+    "uncertain": [
+      {
+        "paragraph": 9,
+        "quote": "As of Nov. 13, no government had said publicly which of these it is.",
+        "sources": [
+          "s14",
+          "s15"
+        ]
+      },
+      {
+        "paragraph": 12,
+        "quote": "The public record does not show a four-way framework for classified information",
+        "sources": [
+          "s4",
+          "s12"
+        ]
+      }
+    ]
+  },
+  "approval": null
+}
