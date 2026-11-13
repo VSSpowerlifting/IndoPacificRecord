@@ -1,8 +1,8 @@
-"""Official originals cited by approved Briefs, admitted as link-metadata Records.
+"""Works cited by approved Briefs, admitted as link-metadata Records.
 
 An approved Brief already publishes each publisher reference's URL, publisher,
-issuer, date, language and original title. This module turns the *official*
-ones into IPR Records that publish exactly that metadata and nothing more: no
+issuer, date, language and original title. This module turns eligible official
+and independent publisher citations into link-metadata Records, containing no
 source text, no excerpt, no verification notes, no desk coverage. Every
 citing Brief links to the Record and the Record links back to every Brief.
 
@@ -13,11 +13,13 @@ that page instead of a new one, so manual citation and automated collection
 converge on one identity. When that happens to a URL that already had a cited
 page, the old route becomes a redirect rather than a dead citation.
 
-The rights gate fails closed. Independent reporting stays an external
-citation. Singapore MINDEF is omitted entirely: its 2026-10-29 permission
-covers hyperlinks from a Brief, not a standalone page bearing its headline.
-The Vietnam MPS, MOIT and VPCP families are omitted without a sealed
-decision. The Brief's own publisher reference is left exactly as approved.
+The rights gate fails closed. Independent journalism and research are identified
+as independent citations, not official primary evidence or verified IPR findings.
+MINDEF references remain subject to their separately enforced link-only
+Record hold. Vietnam MPS, MOIT and VPCP cannot mint new citation pages
+without sufficient standing authority; already published and permitted
+IPR Records can be linked. Subdomain holds cannot be bypassed.
+The Brief's own approved publisher reference remains unchanged.
 """
 from __future__ import annotations
 
@@ -27,7 +29,7 @@ from urllib.parse import urlsplit, urlunsplit
 from core import vietnam_source_use
 
 ROUTE_DIR = "record"
-FIELDS = ("url", "publisher", "issuer", "date", "lang", "original_title")
+FIELDS = ("url", "publisher", "issuer", "date", "lang", "original_title", "independence")
 
 # Hosts whose family has no public_title_display standing until an owner
 # decision is sealed. Those decisions need a secret the renderer never holds.
@@ -38,6 +40,16 @@ HELD_HOSTS = {
     "datafiles.chinhphu.vn": vietnam_source_use.VPCP,
 }
 MINDEF_HOSTS = {"mindef.gov.sg", "www.mindef.gov.sg"}
+
+
+def _under(host: str, domains):
+    """Identify protected hosts including their genuine subdomains."""
+    if not host:
+        return None
+    for domain in domains:
+        if host == domain or host.endswith("." + domain):
+            return domain
+    return None
 
 
 def url_key(url: str) -> str:
@@ -61,19 +73,24 @@ def cited_path(url: str) -> str:
     return "%s/cited-%s.html" % (ROUTE_DIR, cited_id(url))
 
 
-def omission(ref: dict):
-    """Why a publisher reference cannot become a Record; None when it can."""
-    if ref.get("independence") != "official":
-        return "independent_reference"
+def _link_gate(ref: dict):
+    """Restrictions applying even to links back to existing IPR Records."""
+    if ref.get("independence") not in ("official", "independent"):
+        return "unclassified_reference"
     url = ref.get("url")
     parts = urlsplit(url) if isinstance(url, str) else None
     if (not parts or parts.scheme != "https" or not parts.hostname
             or parts.username or parts.password or url != url.strip()):
         return "unsafe_url"
-    host = parts.hostname.lower()
-    if host in MINDEF_HOSTS:
+    if _under(parts.hostname.lower(), MINDEF_HOSTS):
         return "mindef_link_only_permission"
-    family = HELD_HOSTS.get(host)
+    return None
+
+
+def _new_page_gate(ref: dict):
+    """Do not mint a citation page that circumvents a source-specific hold."""
+    host = urlsplit(ref["url"]).hostname.lower()
+    family = HELD_HOSTS.get(_under(host, HELD_HOSTS))
     if family and not vietnam_source_use.standing(family).allows("public_title_display"):
         return "held_source_family:" + family
     if not all(isinstance(ref.get(k), str) and ref[k].strip()
@@ -82,8 +99,13 @@ def omission(ref: dict):
     return None
 
 
+def omission(ref: dict):
+    """Reason a new citation Record must be omitted, if any."""
+    return _link_gate(ref) or _new_page_gate(ref)
+
+
 def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
-    """Admit approved Briefs' official citations.
+    """Admit approved Briefs' eligible official and independent citations.
 
     Returns `(records, brief_links, omitted, moved)`:
 
@@ -109,7 +131,7 @@ def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
             continue
         links = {}
         for ref in sidecar.get("publisher_references") or []:
-            reason = omission(ref)
+            reason = _link_gate(ref)
             if reason:
                 omitted.append((brief["slug"], ref.get("id"), ref.get("url"), reason))
                 continue
@@ -128,7 +150,15 @@ def resolve(collection, *, corpus_by_url=None, machine_by_url=None):
                 links[ref["id"]] = moved[cited_path(url)] = "%s/%d.html" % (ROUTE_DIR, rec["id"])
                 continue
             if key in machine_by_key:
-                links[ref["id"]] = moved[cited_path(url)] = machine_by_key[key]["record_path"]
+                rec = machine_by_key[key]
+                backlinks = rec.setdefault("cited_in", [])
+                if not any(c["slug"] == brief["slug"] for c in backlinks):
+                    backlinks.append(citing)
+                links[ref["id"]] = moved[cited_path(url)] = rec["record_path"]
+                continue
+            reason = _new_page_gate(ref)
+            if reason:
+                omitted.append((brief["slug"], ref["id"], url, reason))
                 continue
             record = by_key.get(key)
             if record is None:
@@ -177,8 +207,11 @@ def archive_rows(records):
             original_title=r["original_title"], date=r["date"],
             date_kind="source-stated publication" if r["date"] else "Undated",
             desks=[], source=r["publisher"], issuer=r["issuer"],
-            record_type="official_link",
-            processing="Official-link metadata cited in " + briefs
-                + "; this Record includes no source text or independent verification",
+            record_type=("official_link" if r["independence"] == "official"
+                         else "independent_link"),
+            processing=("Official-source citation metadata" if r["independence"] == "official"
+                        else "Independent-publication citation metadata")
+                + " cited in " + briefs
+                + "; this Record includes no source text or independent IPR verification",
             ipr_url=ORIGIN + "/" + r["record_path"], source_url=r["url"],
             citation=citation(r, ORIGIN))

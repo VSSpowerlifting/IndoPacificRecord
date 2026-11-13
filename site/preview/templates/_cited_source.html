@@ -1,6 +1,6 @@
 <article class="record-page">
   <div class="record-body">
-    <p><span class="evidence evidence--record">Official source</span> · Cited in IPR analysis · Link only; IPR holds no copy</p>
+    <p><span class="evidence evidence--record">{{ "Official source" if record.independence == "official" else "Independent publication" }}</span> · Cited in IPR analysis · Reference metadata and link only</p>
     <h1 lang="{{ record.lang }}">{{ record.original_title }}</h1>
     <p class="record-source-line">Issuer: {{ record.issuer }} · Publisher: {{ record.publisher }} · {% if record.date %}Source-stated date: <time datetime="{{ record.date }}">{{ record.date }}</time>{% else %}Undated{% endif %}</p>
     <p><a href="{{ record.url }}" rel="noopener nofollow">Read the original on the publisher's site</a></p>
@@ -13,13 +13,13 @@
       <p class="meta">The Brief identifies which of its claims rest on this source.</p>
     </section>
     <section class="record-section"><h2>Source custody and use</h2>
-      <p>IPR holds no copy of this document. This Record publishes the reference metadata that the citing Brief already publishes, with a link to the original. It adds no source text, translation or independent verification.</p>
+      <p>This Record publishes no copy, text or excerpt of the document. It repeats the reference metadata that the citing Brief already publishes, with a link to the original, and adds no translation or independent verification.</p>
       <dl class="provenance">
         <dt>Issuing institution</dt><dd>{{ record.issuer }}</dd>
         <dt>Publisher</dt><dd>{{ record.publisher }}</dd>
         <dt>Original URL</dt><dd>{{ record.url }}</dd>
       </dl>
-      <p class="meta">Publication dates describe when the source published, not necessarily when an event happened. An official account is the issuer's statement, not independent confirmation of it.</p>
+      <p class="meta">Publication dates describe when the source published, not necessarily when an event happened. {% if record.independence == "official" %}An official account is the issuer's statement, not independent confirmation of it.{% else %}This independent publication is cited by IPR; inclusion is not IPR verification or endorsement of its findings.{% endif %}</p>
     </section>
     <section class="record-section" id="record-citation"><h2>Citation</h2><p>{{ cite }}</p></section>
   </div>

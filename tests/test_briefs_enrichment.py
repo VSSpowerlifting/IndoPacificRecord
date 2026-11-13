@@ -62,11 +62,19 @@ class CompleteDelivery(unittest.TestCase):
         from core.cited_source_records import released, resolve
         from core.desk_registry import load_registry
         briefs = load_collection([], load_registry(), briefs_dir=ROOT / 'briefs')
-        # Records cited by Briefs published in this committed snapshot; a
-        # newly approved Brief's Records arrive with its render-only release,
-        # whose fresh render must carry every approved Brief's Records.
-        cited = {Path(r['record_path']).name
-                 for r in released(resolve(briefs)[0], root)}
+        # The *committed* output is a publication snapshot. A newly eligible
+        # reference obtains its cited page only when its Brief is re-rendered
+        # and released. Check the actual IPR Record links on published Brief
+        # pages: every linked cited route must exist, and every committed
+        # cited page must be justified by such a link. In a fresh render,
+        # all eligible references gain their links, enforcing completeness.
+        cited = set()
+        for record in released(resolve(briefs)[0], root):
+            route = '../' + record['record_path']
+            if any(route in (root / citing['url']).read_text('utf-8')
+                   for citing in record['cited_in']
+                   if (root / citing['url']).is_file()):
+                cited.add(Path(record['record_path']).name)
         self.assertEqual({p.name for p in (root / 'record').glob('*.html')},
                          living | machine | cited,
                          "retired, missing or extra record pages would go unchecked")
