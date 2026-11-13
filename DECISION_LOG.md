@@ -1,5 +1,45 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-13 — Complete Brief citation-only Archive coverage without expanding source rights
+
+**Founder instruction.** Benjamin Yang requested completion of the outstanding
+manual-source-to-Archive workflow after reviewing the explicit distinction
+between merged official-source citation Records (#952) and unfinished
+independent-source/held-convergence candidates (#970 and #961). The selected
+scope is publisher references already included in **approved human Briefs**,
+not a standalone intake of arbitrary internet documents.
+
+**Decision for the review candidate.** Eligible official and independent
+publisher references may yield typed, metadata-only citation Records in the
+existing Archive, with Brief ↔ Record backlinks and one URL-keyed identity.
+Independent journalism remains identified as independent reporting, never
+as government primary evidence or an IPR-verified Record. Pages may repeat
+only the citation metadata already published in the approved Brief; they
+contain no copied source body, excerpt, summary, translation, media or
+private verification evidence. The prior 1 November independent-reference
+external-only rule is proposed to be superseded **only for this bounded
+metadata-only publication use** upon adoption of the reviewed implementation.
+This records the founder's product decision; it does **not** itself establish
+a new legal/publisher use right. Exact source-specific law, terms, restrictions
+and applicable releases continue to govern.
+
+**Retained boundaries.** MINDEF standalone citation-page exclusion and
+Vietnam MPS/MOIT/VPCP public-title holds remain; both apply to protected
+subdomains. An already permitted IPR public Record may receive a citation
+backlink rather than be duplicated. Do not treat link metadata as authentic
+original-document custody, automatically completed desk operation, or
+independent source verification. No new model call, collector, independent
+document upload mechanism, database admission, spending, private custody,
+source activation, editorial approval or deployment is authorized.
+
+**Implementation and release boundary.** The fresh integration candidate is
+[#1046](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1046),
+replacing the stale implementation candidates #970/#961. Review its
+source-use change, actual code, held-source negatives, full final-head CI and
+Archive render/readback before any authorized merge and release. The wider
+eight-desk standing engineering release delegation does not itself approve
+this separate editorial/Archive policy change or publish a Brief.
+
 ## 2026-11-12 — Indonesia Kemhan QA: a whole number grouped in threes is one value in both languages
 
 **Evidence.** The first `id-analysis-v6` run (private processing run
