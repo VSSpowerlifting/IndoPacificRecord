@@ -1,5 +1,31 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-13 — Reader polish: five-item navigation, Record page order, plain-language citations (pending review)
+
+Supersedes the navigation order in the 2026-09-27 entry ("Navigation", item
+2) once merged. Every address is unchanged.
+
+1. **Navigation.** Records · Briefs · Desks · Methodology · About. "Briefs" is
+   the destination formerly labelled "Analysis" (`analysis.html`). Sources and
+   Coverage are reached from Methodology (which they mark as current), Team
+   from About. The footer gains "Reusing this material" (`about.html#reuse`)
+   and one line saying source texts remain under their publishers' terms.
+2. **Record page.** Publisher and original source first, then one action row
+   (Open original source · Cite this record · Copy link), then a list of the
+   material available on that page. Machine output gets one explanation where
+   it first appears, linked to `methodology.html#evidence`. Technical
+   provenance stays in one closed disclosure (`#record-provenance`).
+3. **Citations.** The corpus citation reads "Records archive, snapshot of
+   {date}" instead of "Research Atlas corpus"; the as-held citation names the
+   archive snapshot and its record count. The source-text citation is
+   unchanged.
+4. **Home search** submits `scope=all`, so it searches every preserved
+   record, as its caption now says, instead of only the Research focus.
+
+Reuse wording on About restates `CONTENT_AND_DATA_RIGHTS.md` §1–5 and adds no
+right. Whether machine translations and summaries may be reused is not
+decided by current policy; the page stays silent on it.
+
 ## 2026-11-13 — Indonesia Kemhan QA: "diselenggarakan" supports held/conducted; "pembinaan latihan" is exercise development
 
 **Evidence.** No Kemhan record has completed since the 23 October Record. The
