@@ -60,8 +60,12 @@ class JCGSourceContracts(unittest.TestCase):
         self.assertTrue(manifest["sources"][0]["enabled"])
         self.assertEqual(manifest["sources"][0]["slug"], "jp_jcg_press_en")
         production = json.loads((root / "desks/japan/manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-        self.assertNotIn("jcg", json.dumps(production).lower())
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+        # The production declaration is manual: the shared Daily lane admits signed
+        # links and readings; only this shadow runner ever fetches the publisher.
+        jcg = [s for s in production["sources"] if s["slug"] == "jp_jcg_press_en"][0]
+        self.assertEqual(jcg["access_method"], "manual")
+        self.assertNotIn("adapter", jcg)
 
     def test_dates_are_publisher_calendar_dates(self):
         self.assertEqual(source_date("06 10 2026"), "2026-10-06")

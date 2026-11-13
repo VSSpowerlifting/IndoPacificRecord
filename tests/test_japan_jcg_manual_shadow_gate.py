@@ -77,11 +77,15 @@ class JapanJCGManualShadow(unittest.TestCase):
         self.assertEqual(source.desk_id, "japan_jcg")
         self.assertEqual(source.language_tag, "en")
         self.assertNotIn("japan_jcg", load_all_desks())
-        self.assertNotIn("jp_jcg_press_en",
-                         {s.slug for s in load_all_desks()["japan"].sources})
+        self.assertIsNone({s.slug: s for s in load_all_desks()["japan"].sources}
+                          ["jp_jcg_press_en"].adapter)
         production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-        self.assertNotIn("jcg", json.dumps(production).lower())
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+        # The production declaration is manual: the shared Daily lane admits signed
+        # links and readings; only this shadow runner ever fetches the publisher.
+        jcg = [s for s in production["sources"] if s["slug"] == "jp_jcg_press_en"][0]
+        self.assertEqual(jcg["access_method"], "manual")
+        self.assertNotIn("adapter", jcg)
 
     def test_workflow_manual_only_and_no_production_or_artifact_bodies(self):
         text = (ROOT / ".github/workflows/japan_jcg_shadow_manual.yml").read_text()

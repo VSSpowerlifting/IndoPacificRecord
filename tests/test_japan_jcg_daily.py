@@ -110,19 +110,20 @@ def build_custody(root, rows=None, *, remote=REMOTE, branch="archive/japan-jcg")
 
 
 class JcgDefinition(unittest.TestCase):
-    def test_family_is_in_the_shared_lane_but_not_activated(self):
+    def test_family_is_registered_and_activated_within_its_budget(self):
         s = SOURCES[FAMILY]
         self.assertEqual((s.desk_id, s.label, s.publisher, s.custody_ref, s.language),
                          ("japan", "JCG", "Japan Coast Guard", "archive/japan-jcg", "en"))
-        self.assertFalse(s.desk_registered)
+        self.assertTrue(s.desk_registered)
         committed = d.load_policy()["sources"][FAMILY]
         for switch in ("private_model_processing", "public_machine_explanation",
                        "unattended_release"):
-            self.assertIs(committed[switch], False)
+            self.assertIs(committed[switch], True)
+        self.assertEqual(committed["excluded_source_identities"], [])
         self.assertEqual((committed["max_records_per_run"],
                           committed["max_estimated_cost_usd_per_run"]), (1, 0.35))
         import pipeline
-        self.assertNotIn(FAMILY, pipeline._governed_admissions())
+        self.assertIn(FAMILY, pipeline._governed_admissions())
         self.assertEqual(s.key_env, links.KEY_ENV)
 
     def test_family_boundary_is_exactly_the_standing_text_policy(self):
@@ -182,7 +183,9 @@ class JcgDefinition(unittest.TestCase):
             os.environ.pop("SG_MINDEF_LINKS_ENABLED", None)
             call.return_value = "fetched"
             result = fetch.main()
-            self.assertEqual(result[FAMILY], "policy_disabled")
+            # The reading envelope follows the committed policy; the link
+            # envelope still waits for its own owner switch.
+            self.assertEqual(result[FAMILY], "fetched")
             self.assertNotIn(links.LINKS_NAME, result)
             os.environ["JP_JCG_LINKS_ENABLED"] = "true"
             try:
@@ -248,11 +251,14 @@ class JcgCustody(unittest.TestCase):
         factory.assert_not_called()
         self.assertNotEqual(state.get(FAMILY + ":" + IDENT, {}).get("status"), "complete")
 
-    def test_committed_policy_holds_before_any_analyzer(self):
+    def test_disabled_policy_holds_before_any_analyzer(self):
         repo, head = build_custody(self.tmp)
         factory = Mock()
+        off = d.load_policy()
+        off["sources"][FAMILY].update(private_model_processing=False,
+                                      public_machine_explanation=False, unattended_release=False)
         state, _ = d.process(d.verified_source(repo, head, FAMILY), {}, family=FAMILY,
-                             policy=d.load_policy(), analyzer_factory=factory)
+                             policy=off, analyzer_factory=factory)
         self.assertEqual(state[FAMILY + ":" + IDENT]["reason"], "model_rights_held")
         factory.assert_not_called()
 

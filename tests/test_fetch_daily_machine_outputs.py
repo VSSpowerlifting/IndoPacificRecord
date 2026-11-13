@@ -14,11 +14,14 @@ from processing.daily_intake import load_policy as _committed_policy
 
 
 def load_policy():
-    """Committed policy with the Singapore pilot flags held off, so these delivery
-    tests do not depend on the one-record pilot state of the repository."""
+    """Committed policy with the Singapore pilot and Japan Coast Guard flags held
+    off, so these three-family delivery tests do not depend on the pilot state of
+    the repository. JCG delivery under its committed policy is covered in
+    tests/test_japan_jcg_daily.py."""
     p = _committed_policy()
-    p['sources']['sg_mindef_releases'].update(
-        private_model_processing=False, public_machine_explanation=False, unattended_release=False)
+    for family in ('sg_mindef_releases', 'jp_jcg_press_en'):
+        p['sources'][family].update(
+            private_model_processing=False, public_machine_explanation=False, unattended_release=False)
     return p
 
 
@@ -80,7 +83,7 @@ class FetchOutputs(unittest.TestCase):
         self.assertEqual((root / 'outputs').read_text(), 'failed_families=0\n')
 
     def sg_policy(self):
-        p = copy.deepcopy(_committed_policy())
+        p = copy.deepcopy(load_policy())
         p['sources']['sg_mindef_releases'].update(
             private_model_processing=True, public_machine_explanation=True, unattended_release=True)
         return p

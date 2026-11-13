@@ -430,9 +430,9 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         output_check="core.daily_sources:_jcg_output_check",
         parent="core.daily_sources:_jcg_parent",
         admission_migration="migrations.versions.m0023_japan_jcg_source_records:is_already_applied",
-        # Not yet declared in the Japan desk manifest: declaring it is the
-        # activation step, so no governed admission runs before then.
-        desk_registered=False),
+        # A manifest-registered manual source: public Daily admits signed links
+        # and outputs, never fetches the Japan Coast Guard site.
+        desk_registered=True),
 )}
 
 
