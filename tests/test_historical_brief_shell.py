@@ -493,6 +493,10 @@ class HistoricalBriefBrowserTests(unittest.TestCase):
         page.keyboard.press('Tab')
         self.assertEqual(page.evaluate('document.activeElement.className'), 'skip')
         page.keyboard.press('Enter')
+        # The fragment navigation commits asynchronously; wait for it rather
+        # than read the URL in the same tick. A skip link that never moves the
+        # page still fails here, by timeout.
+        page.wait_for_url('**/*#main', timeout=10000)
         self.assertTrue(page.url.endswith('#main'))
         page.keyboard.press('Tab')
         self.assertTrue(page.evaluate('document.activeElement.closest("main")!==null'))
