@@ -871,8 +871,8 @@ individually approved publications.</p>{% endif %}
 {% if desk.record_count is not none %}
 <h2 class="plain">The record, as it actually stands</h2>
 <p class="eyebrow eyebrow--corpus">{{ corpus_eyebrow }}</p>
-<p>{{ desk.record_count|count }} records from {{ desk.configured_source_count }} sources across
-{{ desk.institution_count }} institutions, {{ desk.first_published }} to {{ desk.last_published }}.</p>
+<p>{{ desk.record_count|count }} record{{ '' if desk.record_count == 1 else 's' }} from {{ desk.configured_source_count }} source{{ '' if desk.configured_source_count == 1 else 's' }} across
+{{ desk.institution_count }} institution{{ '' if desk.institution_count == 1 else 's' }}, {{ desk.first_published }} to {{ desk.last_published }}.</p>
 {# "Analyzed" is articles.analyzed_at IS NOT NULL — nothing about
    publication. "Not analyzed" is the complement and is not a queue. #}
 <dl class="stat-rows">
@@ -1064,7 +1064,7 @@ this page leaves a reader unable to tell whether it was solved or abandoned.</p>
 
 {% if desk.slug == 'china' %}
 <h2>China Desk analysis</h2>
-<p>Read the desk's weekly analysis in <a href="analysis.html">{{ collection_name }}</a>.</p>
+<p>Read the desk's Briefs in <a href="analysis.html">{{ collection_name }}</a>.</p>
 {% endif %}
 
 <p class="records-foot"><a href="desks.html">All desks</a></p>

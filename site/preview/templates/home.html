@@ -39,9 +39,9 @@
 <section class="wrap home-finder rl-finder" aria-labelledby="finder-title">
   <div class="home-finder-heading"><h2 id="finder-title">Explore the official record</h2><p>{{ corpus_total | count }} preserved records <span>Snapshot {{ snapshot.date | reader_date }}</span></p></div>
   <form action="archive.html" method="get" class="home-search" role="search">
-    <label for="home-q" class="visually-hidden">Search English or original titles</label><input class="tactile" id="home-q" type="search" name="q" placeholder="Search English or original titles" autocomplete="off"><button class="btn tactile" type="submit">Search records</button>
+    <input type="hidden" name="scope" value="all"><label for="home-q" class="visually-hidden">Search record titles in English or the original language</label><input class="tactile" id="home-q" type="search" name="q" placeholder="Search record titles" autocomplete="off"><button class="btn tactile" type="submit">Search records</button>
   </form>
-  <div class="home-search-caption"><p>Search covers titles. Original texts and provenance are available inside each record.</p><a href="archive.html">Browse all records</a></div>
+  <div class="home-search-caption"><p>Search covers titles. It looks across all {{ corpus_total | count }} records; each record links to its original source.</p><a href="archive.html">Browse all records</a></div>
 </section>
 <section class="wrap home-register" aria-labelledby="latest-title">
   <div class="home-section-head"><div><p class="evidence evidence--record">Source record</p><h2 id="latest-title">As published.</h2></div><a href="archive.html">Latest records</a></div>

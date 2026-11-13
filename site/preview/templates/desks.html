@@ -100,7 +100,7 @@
   <p class="deskmap-seat">{% if m %}Seat: {{ m.seat }}{% else %}Seat not plotted on the map{% endif %}</p>
   <dl class="deskmap-stats">
     <div><dt>{{ 'Corpus records' if d.status == 'shadow' else 'Records' }}</dt><dd>{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'Not admitted' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
-    <div><dt>{{ 'Last corpus collection' if d.status == 'shadow' else 'Last collection' }}</dt><dd>{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'None') }}</dd></div>
+    <div><dt>{{ 'Last corpus collection' if d.status == 'shadow' else 'Last collection' }}</dt><dd>{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'Not recorded') }}</dd></div>
     {% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}
     <div data-korea-directory-mnd-metadata="{{ korea_mnd_live_link_count }}"><dt>Live MND link metadata</dt><dd>{{ korea_mnd_live_link_count }}</dd></div>
     {% endif %}
@@ -151,7 +151,7 @@
       <td data-label="Configured" class="num">{{ d.configured_source_count }}</td>
       <td data-label="Enabled" class="num">{{ d.enabled_source_count }}</td>
       <td data-label="Records" class="num">{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}<span class="meta">none — see status</span>{% endif %}</td>
-      <td data-label="Last corpus collection">{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'None') }}</td>
+      <td data-label="Last corpus collection">{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'Not recorded') }}</td>
     </tr>
   {% endfor %}
   </tbody>

@@ -2478,7 +2478,7 @@ class TestMindefRecordPagesAreMetadataOnly(PreviewCase):
             html = self.page(rec["id"])
             with self.subTest(record=rec["id"]):
                 self.assertIn(gp.mindef_metadata_label(rec["id"]), html)
-                self.assertIn('<h2 id="record-text">Source-use limits</h2>', html)
+                self.assertIn('<h2 id="record-text">Source text</h2>', html)
                 self.assertNotIn('class="original-text"', html)
                 self.assertNotIn("Stored source text", html)
                 self.assertNotIn("The English title and summary held for this record",
@@ -3071,7 +3071,7 @@ class TestRecordSemantics(PreviewCase):
                 elif rec["source_slug"] == MINDEF_SOURCE_SLUG:
                     # Intended rights boundary: no stored text is shown at all.
                     # The exhaustive MINDEF contract is TestMindefRecordPages.
-                    self.assertIn('<h2 id="record-text">Source-use limits</h2>', html)
+                    self.assertIn('<h2 id="record-text">Source text</h2>', html)
                     self.assertNotIn("Stored source text", html)
                 elif rec.get("vietnam", {}).get("original_withheld"):
                     self.assertIn('<h2 id="record-text">Source text</h2>', html)
@@ -3873,7 +3873,7 @@ class TestCorpusBrowserMarkup(PreviewCase):
 
     def test_top_level_navigation_matches_the_regional_information_model(self):
         """
-        Records · Analysis · Desks · Sources · Coverage · Methodology · About.
+        Records · Briefs · Desks · Methodology · About.
 
         Re-ordered and relabelled 2026-09-27 (DECISION_LOG): the two layers a
         reader comes for first, then the collection that produces the record,
@@ -3884,8 +3884,10 @@ class TestCorpusBrowserMarkup(PreviewCase):
         nav = self.page("archive.html").split('aria-label="Primary"', 1)[1]
         nav = nav.split("</nav>", 1)[0]
         labels = re.findall(r">([A-Za-z ]+)</a>", nav)
-        self.assertEqual(labels, ["Records", "Analysis", "Desks", "Sources",
-                                  "Coverage", "Methodology", "Team", "About"])
+        # Simplified 2026-11-13 (reader-polish PR): five destinations;
+        # Sources, Coverage and Team moved to the footer.
+        self.assertEqual(labels, ["Records", "Briefs", "Desks", "Methodology",
+                                  "About"])
         self.assertNotIn("Corpus", labels)
         self.assertNotIn("Archive", labels)
 
@@ -5599,7 +5601,7 @@ class TestSnapshotScopedCitations(PreviewCase):
     def test_the_corpus_citation_is_exact(self):
         self.assertEqual(
             gp.corpus_citation("Test Title", gp.DECLARED_SNAPSHOT),
-            "Test Title. Research Atlas corpus. Snapshot — "
+            "Test Title. Records archive, snapshot of "
             "%s. %s records. Benjamin Yang, Founder & Executive Director."
             % (gp.DECLARED_SNAPSHOT["date"],
                "{:,}".format(gp.DECLARED_SNAPSHOT["expected_records"])))
@@ -5616,7 +5618,7 @@ class TestSnapshotScopedCitations(PreviewCase):
         citation must follow it."""
         other = {"date": "2027-01-02", "expected_records": 4096}
         text = gp.corpus_citation("Work", other)
-        self.assertIn("Snapshot — 2027-01-02", text)
+        self.assertIn("snapshot of 2027-01-02", text)
         self.assertIn("4,096 records", text)
         source = (REPO_ROOT / "site" / "preview"
                   / "generate_preview.py").read_text(encoding="utf-8")
@@ -5730,7 +5732,7 @@ class TestSnapshotScopedCitations(PreviewCase):
                 self.assertNotIn("machine-generated and have not been reviewed", html)
 
     def test_all_record_pages_carry_the_snapshot_date_and_count(self):
-        expected = ("Snapshot — %s (%s records)"
+        expected = ("snapshot of %s (%s records)"
                     % (self.snapshot["date"],
                        "{:,}".format(self.snapshot["expected_records"])))
         missing = [p.name for p in sorted((self.out / "record").glob("*.html"))

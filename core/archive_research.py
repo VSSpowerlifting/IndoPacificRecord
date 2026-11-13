@@ -135,7 +135,7 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
         ipr = ORIGIN + '/record/%d.html' % ident
         # Reuse only the helper's As-held block; its source-text block is NOT a
         # permitted bulk export. Sparse records retain a precise record locator.
-        citation = 'As held. Indo-Pacific Record, Research Atlas corpus, Record %d, Snapshot — %s (%s records).' % (
+        citation = 'As held. Indo-Pacific Record, Record %d, archive snapshot of %s (%s records).' % (
             ident, index['snapshot']['date'], format(index['snapshot']['records'], ','))
         title = english or original or None
         if mindef:
@@ -153,7 +153,7 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
             desks=[desk['code']] if desk.get('code') else [], source=source['label'], issuer=issuer,
             record_type='archive_record', processing=(
                 'Historical processing status: ' + state['label'] + '. MINDEF titles, text, translations and machine '
-                'explanations are withheld under the current source-use policy.' if mindef else
+                'explanations are not published on this site at present.' if mindef else
                 state['label'] + ' · ' + processing_note(title_record, processing_notes)),
             ipr_url=ipr, citation=citation + ' ' + ipr)
     excluded['active_not_in_public_projection'] += len(set(current) - seen)

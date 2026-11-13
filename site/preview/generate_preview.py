@@ -2193,7 +2193,7 @@ def corpus_citation(title: str, snapshot: dict, maintainer=MAINTAINER) -> str:
     count from the corpus as well would create a second source of truth for a
     value that is governed in exactly one place.
     """
-    return ("{title}. Research Atlas corpus. Snapshot — {date}. "
+    return ("{title}. Records archive, snapshot of {date}. "
             "{records:,} records. {name}, {role}.").format(
                 title=title, date=snapshot["date"],
                 records=snapshot["expected_records"],
@@ -2276,14 +2276,14 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
                               "source-stated publication date", subject),
                 url=_require(record.get("url"), "original URL", subject)),
         "as_held":
-            "As held. {work}, Research Atlas corpus, Record {id}, "
-            "Snapshot — {date} ({records:,} records).".format(
+            "As held. {work}, Record {id}, archive snapshot of {date} "
+            "({records:,} records).".format(
                 work=title,
                 id=_require(record.get("id"), "record id", subject),
                 date=snapshot["date"],
                 records=snapshot["expected_records"]),
         "note": ("Historical processing status only. MINDEF titles, source text, translations, "
-                 "summaries and reasoning are withheld under the current source-use policy."
+                 "summaries and reasoning are not published on this site at present."
                  if withheld_mindef_title else
                  processing_note(record, CITATION_PROCESSING_NOTES)),
     }

@@ -6,7 +6,7 @@
 {% block head_scripts %}<link rel="stylesheet" href="relief.css"><link rel="stylesheet" href="archive.css">{% endblock %}
 {% block main_class %} class="archive-page"{% endblock %}
 {% block content %}
-<header class="page-head"><h1>The record.</h1><p class="lede">{{ corpus_total | count }} preserved records. Search English and original titles.</p><p class="finder-note">Start with a smaller <strong>automatically assembled research focus</strong> ({{ focus.china_focus | count }} China records, plus {{ (focus.all_focus - focus.china_focus) | count }} records from other desks). It is not individually fact-checked or editor-approved. All {{ corpus_total | count }} preserved records, their permanent links and publication citations remain available below and through Full preserved record.</p></header>
+<header class="page-head"><h1>The record.</h1><p class="lede">{{ corpus_total | count }} official texts, preserved as published. Search by title in English or the original language.</p><p class="finder-note">Results start in the <strong>Research focus</strong>: {{ focus.all_focus | count }} records selected automatically ({{ focus.china_focus | count }} from the China Desk, {{ (focus.all_focus - focus.china_focus) | count }} from other desks). The selection is not individually fact-checked or editor-approved. Choose Full preserved record to search all {{ corpus_total | count }}.</p></header>
 {# The finder. `#browse` and the form both ship `hidden`; browse.js reveals
    them, so with JavaScript off no control ever appears operative when nothing
    can operate it. The newest records below are rendered on the server and
@@ -25,7 +25,7 @@
   <form id="controls" class="finder rl-finder" role="search" action="archive.html" method="get" hidden>
     <div class="finder-row">
       <div class="finder-field">
-        <label for="f-scope">Browse collection</label>
+        <label for="f-scope">Search in</label>
         <select id="f-scope" name="scope">
           <option value="focus" selected>Research focus ({{ focus.all_focus | count }} records)</option>
           <option value="all">Full preserved record ({{ corpus_total | count }} records)</option>
@@ -62,7 +62,7 @@
         </select>
       </div>
       <div class="finder-field">
-        <label for="f-source">Source outlet</label>
+        <label for="f-source">Source</label>
         <select id="f-source" name="source">
           <option value="">All sources</option>
           {% for s in corpus_facets.source %}<option value="{{ s.key }}">{{ s.label }} ({{ s.count | count }})</option>{% endfor %}
@@ -77,7 +77,7 @@
         </select>
       </div>
       <div class="finder-field">
-        <label for="f-sort">Order</label>
+        <label for="f-sort">Sort by</label>
         <select id="f-sort" name="sort">
           <option value="new">Newest first</option>
           <option value="old">Oldest first</option>
@@ -109,7 +109,7 @@
           </div>
           <div class="finder-field">
             <label for="f-trail"><input id="f-trail" name="trail" type="checkbox" value="1">
-              Only records in an analysis source trail ({{ trail_record_count | count }})</label>
+              Only records cited in IPR analysis ({{ trail_record_count | count }})</label>
           </div>
           <button type="submit" class="btn btn--primary">Apply filters</button>
         </div>
@@ -122,16 +122,20 @@
     </div>
 
     <details class="finder-about">
-      <summary>Search scope and counts</summary>
-    <p id="research-help">Title contains keeps literal title matching. Keywords require every term or quoted phrase. All published material adds public official-link references, registered originals, reviewed English artifacts and human-controlled analysis. Archive dates remain source-stated. IPR publication dates come from public release records; unrecorded dates stay unrecorded. Dates use YYYY-MM-DD. Processing state, institution, original language and source-trail filters apply to archive records. Search counts are documents, not events or independent corroboration.</p>
-    <p class="finder-note">Archive title search covers titles only — the English title where one
-    exists, and the original title always. It does not search machine summaries
-    or stored source text.</p>
-      <p>Source outlets and publishing institutions overlap: one institution can
-      publish through more than one source, so their counts are not mutually
-      exclusive categories. Original language is an attribute of the source, not
-      something asserted independently for each record. Counts are stored,
-      deduplicated records, not an institution's output.</p>
+      <summary>How search and counts work</summary>
+    <p id="research-help"><b>Title contains</b> matches the English title where one
+    exists and the original title always. It does not search machine summaries or stored source text.
+    <b>Keywords</b> must all appear; put a phrase in quotes to match it exactly.
+    Dates use YYYY-MM-DD and are the dates the source stated.</p>
+    <p><b>All published material</b> adds IPR Briefs, registered originals,
+    reviewed English texts and links to official pages. The status, institution,
+    language and analysis filters apply only to source records.</p>
+      <p>Counts are stored, deduplicated documents: not events, not independent
+      corroboration and not an institution's total output. Sources and
+      institutions overlap: one institution can publish through more than one
+      source, so their counts are not mutually exclusive categories. Original
+      language is an attribute of the source, not something asserted
+      independently for each record.</p>
     </details>
   </form>
 </div>
@@ -148,11 +152,11 @@ accessible through the week-by-week browse above.</p>
 
 <details id="research-list" class="archive-research-list" hidden>
   <summary>Research list · <span id="selection-count">0</span><span id="export-cue" hidden> · Exports available</span></summary>
-  <div class="research-list-body"><button type="submit" form="controls">Show citations and keep records</button><p>Selections stay in this browser tab. Each kept record remains listed below.</p>
+  <div class="research-list-body"><button type="submit" form="controls">Show citations and keep records</button><p>Your list is kept in this browser tab only.</p>
     <button type="button" id="export-csv" disabled>Export CSV</button>
     <button type="button" id="export-json" disabled>Export JSON</button>
     <button type="button" id="selection-clear" disabled>Clear list</button>
-    <ul id="selected-list"></ul><p>Each result has a citation. Exports preserve attribution and grant no reuse rights.</p>
+    <ul id="selected-list"></ul><p>Exports keep each record's attribution. They do not grant any right to reuse the source text.</p>
   </div>
 </details>
 <p id="selection-note" class="visually-hidden" data-kept=" kept. Exports are in Research list; citations are beside each result." role="status" aria-live="polite"></p>
@@ -167,7 +171,8 @@ accessible through the week-by-week browse above.</p>
 </div>
 
 <div id="no-results" class="no-results" hidden><p><b>No records match these filters.</b>
-Remove a filter, widen the date range, or try the original-language title.</p></div>
+Remove a filter, widen the dates, search the Full preserved record, or try the
+title in its original language.</p></div>
 
 <nav id="pager" class="pager" aria-label="Result pages">
   <button type="button" id="page-prev" hidden>Previous page</button>
