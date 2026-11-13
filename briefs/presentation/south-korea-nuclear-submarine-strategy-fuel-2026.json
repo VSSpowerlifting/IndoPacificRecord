@@ -1,7 +1,7 @@
 {
   "version": "brief-presentation-v1",
   "article": "south-korea-nuclear-submarine-strategy-fuel-2026",
-  "manuscript_fingerprint": "f22cb7df7eb63adc5fca1a9a60c72fc1bd75401309578c9d423d79ac6f1462ad",
+  "manuscript_fingerprint": "4faba567dcac68830bf2fb5d77f9d9c936f8285ef1771baee878755bb4c73304",
   "status": "draft",
   "sections": [
     {
@@ -25,18 +25,18 @@
     {
       "id": "reading-section-4",
       "start": 10,
-      "end": 11,
+      "end": 10,
       "heading": "Safeguards at the notice stage"
     },
     {
       "id": "reading-section-5",
-      "start": 12,
-      "end": 13,
-      "heading": "Two tracks, two speeds"
+      "start": 11,
+      "end": 12,
+      "heading": "Dates on one track only"
     }
   ],
   "central_finding": {
-    "paragraph": 13,
+    "paragraph": 12,
     "quote": "South Korea has an approved way to build the submarine and no settled source for what will power it",
     "sources": [
       "s8",
@@ -61,8 +61,8 @@
         ]
       },
       {
-        "paragraph": 11,
-        "quote": "South Korea had formally notified the Secretariat that it intended to begin consultations on an Article 14 arrangement",
+        "paragraph": 10,
+        "quote": "South Korea had formally notified the Secretariat that it intended to begin consultations on an arrangement under Article 14 of its comprehensive safeguards agreement",
         "sources": [
           "s8"
         ]
@@ -79,7 +79,7 @@
       },
       {
         "paragraph": 9,
-        "quote": "The statute gives Congress a narrower lever than that suggests",
+        "quote": "Within the review procedure itself, Congress has less leverage than that implies",
         "sources": [
           "s10",
           "s4"

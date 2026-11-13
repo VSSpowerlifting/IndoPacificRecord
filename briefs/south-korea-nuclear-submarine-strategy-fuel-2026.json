@@ -1,7 +1,7 @@
 {
-  "title": "South Korea Approves How to Build a Nuclear-Powered Submarine. The Fuel Is Not in the Plan",
+  "title": "South Korea Approves How to Build a Nuclear-Powered Submarine. The Fuel Agreement Is Not Written Yet",
   "dek": "On Nov. 6 South Korea’s defense acquisition committee approved the basic strategy for Jang Bogo N: domestic development from 2027 and service after the late 2030s, with the cost still under analysis. The fuel those boats need depends on a U.S. agreement that has not been concluded and an IAEA arrangement Seoul has only begun to seek.",
-  "manuscript_sha256": "03c0f50a0447161e3d55954c094ec1bc7ca973a26e8105e5684aa0e9f03f1231",
+  "manuscript_sha256": "8e6062d964113f4da2ee0bfa44ea54901b8e4d473fdf961eb005f071b0bded74",
   "publication": "Indo-Pacific Record",
   "publication_timing": "regular",
   "author_name": "Byline unassigned (founder decision)",
@@ -24,7 +24,7 @@
     ],
     [
       {
-        "text": "Nearly everything else now reported about the decision came from a DAPA official at a background briefing the same day, as Yonhap News Agency relayed it.",
+        "text": "Most of the day’s coverage drew instead on a DAPA official who briefed reporters on background, as Yonhap News Agency relayed the session.",
         "source": "s2"
       },
       {
@@ -37,7 +37,10 @@
     ],
     [
       {
-        "text": "A basic project strategy fixes how a weapon will be acquired: developed at home or bought abroad, on what schedule and in what pieces. For Jang Bogo N, the briefing official said, the work will be split into four projects, all starting in 2027 — the submarine platform, development of the nuclear propulsion system, an integrated combat system and the supporting facilities.",
+        "text": "A basic project strategy fixes how a weapon will be acquired: developed at home or bought abroad, on what schedule and in what pieces."
+      },
+      {
+        "text": " For Jang Bogo N, the briefing official said, the work will be split into four projects, all starting in 2027 — the submarine platform, development of the nuclear propulsion system, an integrated combat system and the supporting facilities.",
         "source": "s3"
       },
       {
@@ -81,7 +84,7 @@
     ],
     [
       {
-        "text": "Washington’s part so far is a political approval. After President Lee Jae-myung’s meeting with President Donald Trump in 2025, the White House said the United States “has given approval for the ROK to build nuclear-powered attack submarines” and would work with Seoul on the project’s requirements, “including avenues to source fuel.”",
+        "text": "Washington’s public commitment so far is political. After President Lee Jae-myung’s meeting with President Donald Trump in 2025, the White House said the United States “has given approval for the ROK to build nuclear-powered attack submarines” and would work with Seoul on the project’s requirements, “including avenues to source fuel.”",
         "source": "s6"
       },
       {
@@ -112,31 +115,22 @@
         "source": "s4"
       },
       {
-        "text": " The statute gives Congress a narrower lever than that suggests. A Section 91c agreement takes effect at the end of the review period unless a joint resolution of disapproval is adopted and enacted — legislation that a President who had negotiated the agreement could veto.",
+        "text": " Within the review procedure itself, Congress has less leverage than that implies. An agreement that meets the statute’s standard terms takes effect at the end of the review period unless a joint resolution of disapproval is adopted and enacted — legislation that a President who had negotiated the agreement could veto. An agreement the President exempts from those terms would need an affirmative resolution of approval instead.",
         "source": "s10"
       },
       {
-        "text": " The harder dependency sits earlier, inside the executive branch: an agreement has to be negotiated and the President’s determination made before any review period begins, and after a single round of talks neither has happened.",
+        "text": " Congress keeps its ordinary power to legislate outside that procedure, but the nearer dependency sits in the executive branch: an agreement has to be negotiated and the President’s determination made before any review period begins, and after a single round of talks neither has happened.",
         "source": "s4"
       }
     ],
     [
       {
-        "text": "The IAEA is the other outside party. Under Article 14 of a comprehensive safeguards agreement, a state that wants to use safeguarded nuclear material in a non-proscribed military activity, such as submarine propulsion, must first conclude an arrangement with the agency covering that material.",
-        "source": "s8"
-      }
-    ],
-    [
-      {
-        "text": "Seoul has opened that process without completing it. In June the agency’s director general welcomed South Korea’s intention to work with the IAEA on safety, security and safeguards measures for the submarines.",
+        "text": "The IAEA is the other outside party, and there Seoul has opened a process without completing it. In June the agency’s director general welcomed South Korea’s intention to work with the IAEA on safety, security and safeguards measures for the submarines.",
         "source": "s7"
       },
       {
-        "text": " By September, he told the Board of Governors, South Korea had formally notified the Secretariat that it intended to begin consultations on an Article 14 arrangement and had already provided the relevant declarations.",
+        "text": " By September, the director general told the Board of Governors, South Korea had formally notified the Secretariat that it intended to begin consultations on an arrangement under Article 14 of its comprehensive safeguards agreement, and had already provided the relevant declarations — a notice of intent to consult, with no terms, draft text or date attached.",
         "source": "s8"
-      },
-      {
-        "text": " Notice of intent to consult is the opening step. Neither statement describes terms, a draft text or a date."
       }
     ],
     [
@@ -145,26 +139,37 @@
         "source": "s2"
       },
       {
-        "text": " None of those steps needs fuel. The reactor does, and its development begins in 2027 as a separate project,",
+        "text": " None of those steps needs fuel; the reactor does, and its development begins in 2027 as a separate project",
         "source": "s3"
       },
       {
-        "text": " resting on a U.S. agreement and an IAEA arrangement for which the White House and IAEA statements give no timetable.",
+        "text": " that rests on a U.S. agreement",
         "source": "s6"
+      },
+      {
+        "text": " and an IAEA arrangement, neither of which the White House or IAEA statements put on a timetable.",
+        "source": "s8"
       }
     ],
     [
       {
-        "text": "The next markers are concrete. Early in 2027 a cost figure is due to go to the budget authorities, and in the first half of the year DAPA’s competition for the platform should open.",
+        "text": "Early in 2027 a cost figure is due to go to the budget authorities,",
         "source": "s4"
       },
       {
-        "text": " On the other track, the signs would be a Section 91c agreement sent to Congress and a concluded Article 14 arrangement reported to the IAEA board.",
+        "text": " and in the first half of the year DAPA is to open the competition for the platform.",
+        "source": "s2"
+      },
+      {
+        "text": " On the other track, the signs would be a Section 91c agreement sent to Congress",
         "source": "s10"
       },
       {
-        "text": " Until those appear, South Korea has an approved way to build the submarine and no settled source for what will power it.",
+        "text": " and a concluded Article 14 arrangement reported to the IAEA board.",
         "source": "s8"
+      },
+      {
+        "text": " Until those appear, South Korea has an approved way to build the submarine and no settled source for what will power it."
       }
     ]
   ],
@@ -384,12 +389,6 @@
       ]
     },
     {
-      "kind": "analysis",
-      "sources": [
-        "s8"
-      ]
-    },
-    {
       "kind": "reporting",
       "sources": [
         "s7",
@@ -401,13 +400,15 @@
       "sources": [
         "s2",
         "s3",
-        "s6"
+        "s6",
+        "s8"
       ]
     },
     {
       "kind": "follow-up",
       "sources": [
         "s4",
+        "s2",
         "s10",
         "s8"
       ]
