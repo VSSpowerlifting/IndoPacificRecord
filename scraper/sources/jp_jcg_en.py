@@ -26,8 +26,9 @@ LISTING = "https://" + HOST + "/e/topics_archive/index.html"
 # The publisher's site-use rules (PDL 1.0 and its exclusions). Captured into
 # custody in every run, before the listing, so the standing-rights replay
 # (core.japan_jcg_rights) verifies the terms in force when the releases were
-# collected. Policy evidence only: no release scope is added, and a failed
-# capture refuses the run.
+# collected. Policy evidence only: no release scope is added. A failed capture
+# is recorded as listing_report.site_terms and holds every row until a later
+# run captures the terms again.
 POLICY_URL = "https://" + HOST + "/questions/post-1.html"
 # listing_report.site_terms when the run failed before requesting the terms.
 TERMS_NOT_REACHED = "not_reached"
