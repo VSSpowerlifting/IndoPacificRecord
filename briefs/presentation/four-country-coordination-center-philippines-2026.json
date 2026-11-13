@@ -1,78 +1,78 @@
 {
   "version": "brief-presentation-v1",
   "article": "four-country-coordination-center-philippines-2026",
-  "manuscript_fingerprint": "dc03d879dfe517d286ef8ae0a5b07f042423db445a0267bc904ddeda1e18be81",
+  "manuscript_fingerprint": "0eb1c1848086a67e16ebbcb4e8dc41bcec2cdadd49dc2ed42670eaa9c13cbac4",
   "status": "draft",
   "sections": [
     {
       "id": "reading-section-1",
       "start": 1,
-      "end": 3,
-      "heading": "A pledge without particulars"
+      "end": 2,
+      "heading": "A pledge with a precedent"
     },
     {
       "id": "reading-section-2",
-      "start": 4,
-      "end": 6,
-      "heading": "A name with a bilateral history"
+      "start": 3,
+      "end": 5,
+      "heading": "From bilateral node to exercise hub"
     },
     {
       "id": "reading-section-3",
-      "start": 7,
-      "end": 8,
+      "start": 6,
+      "end": 7,
       "heading": "Planned, or already operating"
     },
     {
       "id": "reading-section-4",
-      "start": 9,
-      "end": 13,
-      "heading": "What regular participation would change"
+      "start": 8,
+      "end": 10,
+      "heading": "What a standing center would change"
     },
     {
       "id": "reading-section-5",
-      "start": 14,
-      "end": 14,
-      "heading": "A narrower reading"
+      "start": 11,
+      "end": 11,
+      "heading": "Exercise-tested, not yet standing"
     }
   ],
   "central_finding": {
-    "paragraph": 14,
-    "quote": "It would give Japan and Australia a standing place in a coordination structure the United States and the Philippines built, reached largely through U.S. networks and U.S. release decisions.",
+    "paragraph": 11,
+    "quote": "What the ministers have committed to, without yet describing it, is the step from a center that hosts allies during an exercise to one that four governments maintain",
     "sources": [
-      "s8",
-      "s10",
-      "s12"
+      "s18",
+      "s17",
+      "s1"
     ]
   },
   "evidence": {
     "establishes": [
       {
         "paragraph": 1,
-        "quote": "Neither version says where the center will be, how it will be organized or when it will open.",
+        "quote": "Neither version says where the center will be, how it will be organized or when it will open",
         "sources": [
           "s1",
           "s2"
         ]
       },
       {
-        "paragraph": 4,
-        "quote": "on a new combined coordination center at Camp Aguinaldo",
+        "paragraph": 3,
+        "quote": "broke ground on a new combined coordination center at Camp Aguinaldo",
         "sources": [
           "s7"
         ]
       },
       {
-        "paragraph": 10,
-        "quote": "That is coordination of parallel national forces, not a multinational command",
+        "paragraph": 4,
+        "quote": "alongside military personnel from the United States, Australia, France, Canada, Japan and the Philippines",
         "sources": [
-          "s8"
+          "s17"
         ]
       }
     ],
     "uncertain": [
       {
-        "paragraph": 8,
-        "quote": "As of Nov. 13, the statements and remarks reviewed here did not say which.",
+        "paragraph": 7,
+        "quote": "As of Nov. 13, the statements and remarks reviewed here did not say which",
         "sources": [
           "s14",
           "s15",
@@ -80,8 +80,8 @@
         ]
       },
       {
-        "paragraph": 11,
-        "quote": "The sources reviewed here document no four-country instrument for classified information.",
+        "paragraph": 9,
+        "quote": "The sources reviewed here document no four-country instrument for classified information",
         "sources": [
           "s6",
           "s4",
