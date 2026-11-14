@@ -39,10 +39,14 @@ def approve_fixture(sc):
     return sc
 
 
+def fixture_decisions_map(sc):
+    return {'Synthetic fixture source-use decision': {
+        s['record_id']: dict(d.source_binding(s), public_fields=sorted(d.PUBLIC_FIELDS)) for s in sc['sources']}}
+
+
 def fixture_decisions(sc):
     return mock.patch.multiple(dossier_decisions,
-        SOURCE_USES={'Synthetic fixture source-use decision': {
-            s['record_id']: dict(d.source_binding(s), public_fields=sorted(d.PUBLIC_FIELDS)) for s in sc['sources']}},
+        SOURCE_USES=fixture_decisions_map(sc),
         PUBLICATIONS={sc['slug']: dict(content_sha256=dossier_content_digest(sc), approval=sc['approval'])})
 
 
@@ -249,8 +253,16 @@ class DossierSources(unittest.TestCase):
         with fixture_decisions(approved):
             public,_=d.load_dossiers(self.db,related,folder)
             private,_=d.load_dossiers(self.db,related,folder,candidate)
-        # Editorial approval does not widen MINDEF's hyperlink permission.
-        self.assertEqual(public, [])
+        # The exact source-use binding, not the editorial approval, releases the
+        # MINDEF records; the approved canonical stays the public edition.
+        self.assertEqual([v['overview'] for v in public], [approved['overview']])
+        unbound = {ref: {rid: g for rid, g in grants.items() if rid not in (4466, 4472)}
+                   for ref, grants in fixture_decisions_map(approved).items()}
+        with fixture_decisions(approved), mock.patch.object(dossier_decisions, 'SOURCE_USES', unbound):
+            # Editorial approval alone does not widen MINDEF use: still held, and an
+            # approved work with a missing decision fails loudly rather than vanishing.
+            with self.assertRaisesRegex(ValueError, 'publication_validation_failed'):
+                d.load_dossiers(self.db,related,folder)
         self.assertEqual(private[0]['overview'],revision['overview'])
         self.assertTrue(private[0]['is_review'])
         self.assertEqual(len(private),1)
@@ -330,3 +342,100 @@ class ThematicDossierSources(unittest.TestCase):
         self.assertEqual(view['case_study_views'], [case])
         self.assertEqual(case['parent_dossiers'], [view])
         self.assertEqual((case['kind'], case['kind_label']), ('case_study', 'Exercise case study'))
+
+
+class MindefDossierHold(unittest.TestCase):
+    """The dossier-only refinement of the whole-work MINDEF editorial hold.
+
+    False-hold evidence: on main 4f49720ad5 a clean production render omitted both
+    approved Dossiers although every MINDEF record they cite is bound by the
+    owner's exact SOURCE_USES grant and their projection carries no publisher text.
+    """
+    def setUp(self):
+        real = mock.patch.multiple(dossier_decisions, SOURCE_USES=REAL_SOURCE_USES,
+                                   PUBLICATIONS=REAL_PUBLICATIONS)
+        real.start(); self.addCleanup(real.stop)
+        self.case = read_dossier(PILOT)
+        self.thematic = read_dossier(THEMATIC)
+
+    def test_bound_real_dossiers_clear_while_the_shared_hold_still_applies(self):
+        from core.mindef_public_boundary import editorial_hold
+        for sc in (self.case, self.thematic):
+            self.assertTrue(editorial_hold(sc))          # Briefs/Timelines rule unchanged
+            self.assertFalse(d.mindef_dossier_hold(sc))  # exact bindings exist
+
+    def test_unbound_or_drifted_mindef_record_still_holds_the_whole_dossier(self):
+        for mutate in (
+            lambda s: s.update(stored_original_sha256='0' * 64),
+            lambda s: s.update(url=s['url'] + '?x=1'),
+            lambda s: s.update(published_on='2026-09-10'),
+            lambda s: s.update(source_use_decision_ref='DECISION_LOG.md#not-a-decision'),
+            lambda s: s.update(record_id=4911),
+        ):
+            sc = copy.deepcopy(self.thematic)
+            mutate(next(s for s in sc['sources'] if s['source_id'] == 'sg_mindef_releases'))
+            self.assertTrue(d.mindef_dossier_hold(sc))
+        with mock.patch.object(dossier_decisions, 'SOURCE_USES', {}):
+            self.assertTrue(d.mindef_dossier_hold(copy.deepcopy(self.case)))
+
+    def test_narrower_public_field_grant_does_not_clear(self):
+        narrowed = copy.deepcopy(REAL_SOURCE_USES)
+        for grants in narrowed.values():
+            for grant in grants.values():
+                if grant.get('source_id') == 'sg_mindef_releases':
+                    grant['public_fields'] = [f for f in grant['public_fields'] if f != 'record_link']
+        with mock.patch.object(dossier_decisions, 'SOURCE_USES', narrowed):
+            self.assertTrue(d.mindef_dossier_hold(copy.deepcopy(self.case)))
+
+    def test_mindef_reference_outside_bound_sources_still_holds(self):
+        sc = copy.deepcopy(self.thematic)
+        sc['sections'][0]['claims'][0]['limits'] += ' See https://mindef.gov.sg/x/.'
+        self.assertTrue(d.mindef_dossier_hold(sc))
+        sc = copy.deepcopy(self.thematic)
+        sc['external_sources'][0]['url'] = 'https://www.mindef.gov.sg.evil.example/x/'
+        self.assertTrue(d.mindef_dossier_hold(sc))
+        sc = copy.deepcopy(self.thematic)
+        sc['scope']['source_slug'] = 'sg_mindef_releases'
+        self.assertTrue(d.mindef_dossier_hold(sc))
+        sc = copy.deepcopy(self.thematic)
+        sc['sources'].append(dict(sc['sources'][0], source_id='sg_mindef_releases'))
+        self.assertTrue(d.mindef_dossier_hold(sc))
+
+    def test_only_an_approved_mindef_held_brief_is_tolerated_as_related(self):
+        self.assertTrue(d.mindef_held_brief(d.BRIEFS_DIR, 'maritime-cooperation-2026'))
+        self.assertFalse(d.mindef_held_brief(d.BRIEFS_DIR, 'what-is-being-built-in-laos'))
+        self.assertFalse(d.mindef_held_brief(d.BRIEFS_DIR, 'no-such-brief'))
+        self.assertFalse(d.mindef_held_brief(d.BRIEFS_DIR, '../briefs/maritime-cooperation-2026'))
+        self.assertFalse(d.mindef_held_brief(d.BRIEFS_DIR, 'index'))
+        with tempfile.TemporaryDirectory() as tmp:
+            brief = json.loads((d.BRIEFS_DIR / 'maritime-cooperation-2026.json').read_text())
+            brief['editorial_status'] = 'draft'
+            (Path(tmp) / 'held-draft.json').write_text(json.dumps(brief))
+            self.assertFalse(d.mindef_held_brief(tmp, 'held-draft'))
+            brief['editorial_status'] = 'approved'; brief['synthetic'] = True
+            (Path(tmp) / 'synthetic.json').write_text(json.dumps(brief))
+            self.assertFalse(d.mindef_held_brief(tmp, 'synthetic'))
+
+    def test_real_dossiers_load_and_omit_only_the_held_related_brief(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / 'frozen.db'
+            with read_only(ROOT / 'pla_watch.db') as con, sqlite3.connect(db) as target:
+                con.backup(target)
+            from core.timelines import load_timelines
+            timelines, _ = load_timelines(db, {})
+            views, withheld = d.load_dossiers(db, {}, related_timelines={t['slug']: t for t in timelines})
+            self.assertEqual(sorted(v['slug'] for v in views),
+                             ['china-singapore-naval-cooperation', 'maritime-cooperation-2026'])
+            self.assertEqual(withheld, [])
+            for view in views:
+                self.assertEqual(view['related'], [])
+            # Any other unavailable related Brief still fails closed.
+            folder = Path(tmp) / 'dossiers'; folder.mkdir()
+            sc = copy.deepcopy(self.case); sc['related_briefs'] = ['no-such-brief']
+            sc['approval']['content_sha256'] = dossier_content_digest(sc)
+            (folder / (sc['slug'] + '.json')).write_text(json.dumps(sc))
+            pubs = dict(REAL_PUBLICATIONS, **{sc['slug']: dict(content_sha256=dossier_content_digest(sc),
+                                                                approval=sc['approval'])})
+            with mock.patch.object(dossier_decisions, 'PUBLICATIONS', pubs):
+                with self.assertRaisesRegex(ValueError, 'related_brief_not_approved'):
+                    d.load_dossiers(db, {}, folder, related_timelines={t['slug']: t for t in timelines})

@@ -16,9 +16,9 @@ sys.path.insert(0, str(ROOT))
 from core.frontend_budget import measure_page
 
 INDEX_NAMES = ('index.html', 'archive.html', 'analysis.html', 'corpus.html', 'pla-watch.html', 'desks.html')
-# Owner authorization, DECISION_LOG 2026-10-26: individual dossier pages
-# (dossier/<slug>.html only) may deliver up to 200 KB of HTML+CSS.
-DOSSIER_HTML_CSS_CAP = 200000
+# Owner authorization, DECISION_LOG 2026-10-26, raised 2026-11-13: individual
+# dossier pages (dossier/<slug>.html only) may deliver up to 230 KB of HTML+CSS.
+DOSSIER_HTML_CSS_CAP = 230000
 # Owner authorization, DECISION_LOG 2026-11-13: temporary 130 KB HTML+CSS
 # allowance for the root Indonesia desk page only, while its admitted Kemhan
 # link list grows. Every other desk, record and nested route keeps its cap.

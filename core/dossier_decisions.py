@@ -9,7 +9,9 @@ separately approved the narrow five-source public projection recorded here.
 On 26 October 2026 he approved the China–Singapore Naval Cooperation manuscript
 at its reviewed draft digest, extended the Maritime grant to that dossier for
 its five shared records, and approved its eight other records and nine linked
-official pages (x1–x9) for the same narrow projection.
+official pages (x1–x9) for the same narrow projection. On 13 November 2026 he
+approved its revision 2 at draft digest b4f0c920… and the same narrow
+projection for eight further linked official pages (x10–x17).
 
 SOURCE_USES maps a real decision reference to {record_id: source_binding}.
 source_binding is the complete dossier source identity (including body SHA),
@@ -489,6 +491,129 @@ SOURCE_USES = {
             ]
         },
     },
+    # China–Singapore Naval Cooperation revision 2 only: linked official pages x10–x17.
+    "DECISION_LOG.md#2026-11-13--owner-china-singapore-naval-dossier-revision-2-source-use": {
+        "x10": {
+            "id": "x10",
+            "institution_id": "sg_mindef",
+            "publisher": "Singapore Ministry of Defence",
+            "language": "en",
+            "published_on": "2023-05-01",
+            "url": "https://www.mindef.gov.sg/news-and-events/latest-releases/01may23_nr/",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+        "x11": {
+            "id": "x11",
+            "institution_id": "cn_cmc_political_work",
+            "publisher": "China Military Online (PLA Daily)",
+            "language": "en",
+            "published_on": "2023-05-04",
+            "url": "http://eng.chinamil.com.cn/SIDEBAR/WeRecommend/16221803.html",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+        "x12": {
+            "id": "x12",
+            "institution_id": "sg_mindef",
+            "publisher": "PIONEER (Singapore Ministry of Defence)",
+            "language": "en",
+            "published_on": "2024-09-05",
+            "url": "https://defencepioneer.sg/pioneer-articles/05sept24_news1",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+        "x13": {
+            "id": "x13",
+            "institution_id": "cn_mnd",
+            "publisher": "China Ministry of National Defense",
+            "language": "zh-Hans",
+            "published_on": "2025-05-10",
+            "url": "http://www.mod.gov.cn/gfbw/jsxd/ly/16385259.html",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+        "x14": {
+            "id": "x14",
+            "institution_id": "cn_mnd",
+            "publisher": "China Ministry of National Defense",
+            "language": "zh-Hans",
+            "published_on": "2025-05-18",
+            "url": "http://www.mod.gov.cn/gfbw/jsxd/ly/16386800.html",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+        "x15": {
+            "id": "x15",
+            "institution_id": "sg_mindef",
+            "publisher": "Singapore Ministry of Defence",
+            "language": "en",
+            "published_on": "2023-06-01",
+            "url": "https://www.mindef.gov.sg/news-and-events/latest-releases/01jun23_nr/",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+        "x16": {
+            "id": "x16",
+            "institution_id": "sg_mindef",
+            "publisher": "Singapore Ministry of Defence",
+            "language": "en",
+            "published_on": "2022-06-09",
+            "url": "https://www.mindef.gov.sg/news-and-events/latest-releases/09jun22_nr2/",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+        "x17": {
+            "id": "x17",
+            "institution_id": "sg_mindef",
+            "publisher": "Singapore Ministry of Defence",
+            "language": "en",
+            "published_on": "2024-05-30",
+            "url": "https://www.mindef.gov.sg/news-and-events/latest-releases/30may24_nr/",
+            "retrieved_on": "2026-11-13",
+            "public_fields": [
+                "attribution",
+                "ipr_paraphrase",
+                "publication_date",
+                "publisher_link"
+            ]
+        },
+    },
 }
 PUBLICATIONS = {
     "maritime-cooperation-2026": {
@@ -502,12 +627,12 @@ PUBLICATIONS = {
     }
 ,
     "china-singapore-naval-cooperation": {
-        "content_sha256": "9e9471553354ecfb441c387dc12dc958658d10c8b5db04fb060b39d281462a1a",
+        "content_sha256": "27debfde9d3f1f23a8eafba61fac350c94745e062ad44fcc0d2099c41ed347c2",
         "approval": {
             "approved_by": "Benjamin Yang",
-            "approved_on": "2026-10-26",
-            "reference": "DECISION_LOG.md#2026-10-26--owner-china-singapore-naval-dossier-editorial-approval",
-            "content_sha256": "9e9471553354ecfb441c387dc12dc958658d10c8b5db04fb060b39d281462a1a"
+            "approved_on": "2026-11-13",
+            "reference": "DECISION_LOG.md#2026-11-13--owner-china-singapore-naval-dossier-revision-2-editorial-approval",
+            "content_sha256": "27debfde9d3f1f23a8eafba61fac350c94745e062ad44fcc0d2099c41ed347c2"
         }
     }
 }
