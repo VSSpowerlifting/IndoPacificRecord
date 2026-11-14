@@ -1,5 +1,39 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-13 — Owner: temporary 125 KB delivery budget for record/476.html
+
+The owner wrote in this task: "Approve, merge it". That approves PR #1055, which
+asked: "Do you approve a temporary 125 KB HTML+CSS cap for record/476.html only
+(#1055)?"
+
+**Scope.** The allowance covers only the exact route `record/476.html`
+(`RECORD_476_HTML_CSS_CAP` in `html_css_cap`, in
+`scripts/verify_frontend_delivery.py`). Every other record keeps 120 KB,
+including `record/4760.html`, `record/1476.html`, `nested/record/476.html` and
+`record/source-476.html`. Desks, Briefs and week pages keep their caps. Hubs
+keep 300 KB, individual dossiers 200 KB and `indonesia.html` 130 KB. JS caps
+are unchanged. `tests/test_briefs_enrichment.py` checks two things: the
+allowance covers only that route, and the page is still rejected at 125,001
+bytes.
+
+**Why.** Record 476 is the 20 May 2026 China–Russia joint statement. Its
+preserved stored source text is 54,211 bytes, about 75% of the page HTML. Before
+#1053 the route measured 119,344 bytes. #1053 grew `record.css` from 7,869 to
+10,811 bytes. The first full Daily render of that stylesheet (`500ddba0b4`) took
+the committed route to 122,149 bytes. `tests.test_briefs_enrichment` then failed
+on main. That failure would have stopped the 14 Nov Daily at its offline suite,
+because no qualification was reusable. The next-largest record is 101,301
+bytes.
+
+Three alternatives were rejected:
+- Truncating stored source text breaks evidence preservation.
+- Removing dead CSS recovers well under 2 KB.
+- Compacting the shared `styles.css` is a separate site-wide change.
+
+**Temporary, not a precedent.** The allowance leaves about 2.8 KB of headroom.
+If further Record CSS growth would exceed it, reduce shared CSS weight or bring
+the route back to the owner rather than raising this cap.
+
 ## 2026-11-13 — Owner: China-Singapore naval dossier revision 2 editorial approval
 
 Benjamin Yang replied "Approve A–F", in the preparing Claude Code session, to

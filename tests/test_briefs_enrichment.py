@@ -138,6 +138,27 @@ class CompleteDelivery(unittest.TestCase):
             self.assertEqual(limits['dossier/within.html'], (230000, 10000))
             self.assertEqual(limits['dossier/plain.html'], (230000, 10000))
 
+    def test_record_476_allowance_covers_only_that_record(self):
+        # Owner, DECISION_LOG 2026-11-13 (#1055): temporary 125 KB for record/476.html only.
+        for route, cap in (('record/476.html', 125000), ('record/475.html', 120000),
+                           ('record/4760.html', 120000), ('record/1476.html', 120000),
+                           ('nested/record/476.html', 120000), ('476.html', 120000),
+                           ('record/source-476.html', 120000)):
+            self.assertEqual(html_css_cap(route), cap, route)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'record').mkdir()
+            (root / 'record.css').write_text('x' * 50000)
+            link = '<link rel="stylesheet" href="../record.css">'
+            (root / 'record/476.html').write_text(link + 'x' * (125000 - 50000 - len(link)))
+            (root / 'record/477.html').write_text('x' * 120001)
+            values = verify(root)
+            self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
+                             {'record/477.html': 120000})
+            (root / 'record/476.html').write_text(link + 'x' * (125001 - 50000 - len(link)))
+            failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
+            self.assertEqual(failed['record/476.html'], 125001)
+
     def test_indonesia_allowance_covers_only_the_root_desk_page(self):
         # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only.
         for route, cap in (('indonesia.html', 130000), ('philippines.html', 120000),
