@@ -118,10 +118,10 @@ class CompleteDelivery(unittest.TestCase):
             # Linked CSS counts toward the dossier's combined allowance.
             (root / 'dossiers.css').write_text('x' * 50000)
             link = '<link rel="stylesheet" href="../dossiers.css">'
-            (root / 'dossier/within.html').write_text(link + 'x' * (200000 - 50000 - len(link)))
-            (root / 'dossier/over.html').write_text(link + 'x' * (200001 - 50000 - len(link)))
-            (root / 'dossier/plain.html').write_text('x' * 199999)
-            (root / 'dossier/large.html').write_text('x' * 200001)
+            (root / 'dossier/within.html').write_text(link + 'x' * (230000 - 50000 - len(link)))
+            (root / 'dossier/over.html').write_text(link + 'x' * (230001 - 50000 - len(link)))
+            (root / 'dossier/plain.html').write_text('x' * 229999)
+            (root / 'dossier/large.html').write_text('x' * 230001)
             for route in ('dossiers.html', 'dossier/index.html', 'dossier/nested/page.html', 'record/1.html',
                           'briefs/brief.html', 'the-pla-watch/posts/week.html'):
                 (root / route).write_text('x' * 120001)
@@ -130,13 +130,13 @@ class CompleteDelivery(unittest.TestCase):
             values = verify(root)
             failed = {v['route']: v['html_css_limit'] for v in values['failures']}
             self.assertEqual(failed, {'briefs/brief.html': 120000, 'dossier/index.html': 120000,
-                                      'dossier/large.html': 200000, 'dossier/nested/page.html': 120000,
-                                      'dossier/over.html': 200000, 'dossier/scripts.html': 200000,
+                                      'dossier/large.html': 230000, 'dossier/nested/page.html': 120000,
+                                      'dossier/over.html': 230000, 'dossier/scripts.html': 230000,
                                       'dossiers.html': 120000, 'record/1.html': 120000,
                                       'the-pla-watch/posts/week.html': 120000})
             limits = {v['route']: (v['html_css_limit'], v['js_limit']) for v in values['routes']}
-            self.assertEqual(limits['dossier/within.html'], (200000, 10000))
-            self.assertEqual(limits['dossier/plain.html'], (200000, 10000))
+            self.assertEqual(limits['dossier/within.html'], (230000, 10000))
+            self.assertEqual(limits['dossier/plain.html'], (230000, 10000))
 
     def test_record_476_allowance_covers_only_that_record(self):
         # Owner, DECISION_LOG 2026-11-13 (#1055): temporary 125 KB for record/476.html only.

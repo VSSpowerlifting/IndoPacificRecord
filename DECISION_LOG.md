@@ -34,6 +34,61 @@ Three alternatives were rejected:
 If further Record CSS growth would exceed it, reduce shared CSS weight or bring
 the route back to the owner rather than raising this cap.
 
+## 2026-11-13 — Owner: China-Singapore naval dossier revision 2 editorial approval
+
+Benjamin Yang replied "Approve A–F", in the preparing Claude Code session, to
+the approval package posted on PR #1054
+([comment 6871540699](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1054#issuecomment-6871540699)).
+Item A approves revision 2 of the thematic dossier at draft digest
+`b4f0c9208d791b2692a819682f0899d695c3d04f08dfc9199aeacd777241b1ad`. Promotion
+sets him as editor with review date 13 November and adds the x10–x17
+source-use reference. The resulting approved digest is
+`27debfde9d3f1f23a8eafba61fac350c94745e062ad44fcc0d2099c41ed347c2`, recorded in
+`core/dossier_decisions.py`. Claude prepared the draft; an independent
+fresh-context source check preceded approval. The Maritime Cooperation 2026 case
+study is unchanged at revision 2 (`3f774c00…`).
+
+## 2026-11-13 — Owner: China-Singapore naval dossier revision 2 source use
+
+Item B of the same approval covers eight more linked official pages, x10–x17,
+for this dossier only. The projection is the narrow 26 October one: attribution,
+IPR paraphrase, publication date and publisher link, with no titles, text or
+translations. The pages:
+- MINDEF releases of 1 May 2023, 1 June 2023, 9 June 2022 and 30 May 2024;
+- China Military Online (PLA Daily), 4 May 2023;
+- PIONEER, MINDEF's magazine, 5 September 2024, on `defencepioneer.sg`;
+- two China MND pages from May 2025.
+
+The owner expressly accepted two hosts: the `defencepioneer.sg` link, which lies
+outside the `www.mindef.gov.sg` link gate, and the attribution of China Military
+Online to `cn_cmc_political_work`. Source projection digest:
+`a1d0a66c2f26a82e1f156766d057fd4745c709b4dbdb80044f764f9ba1dd1c22`, covering
+13 records and 17 linked pages.
+
+## 2026-11-13 — Owner: dossier-only MINDEF hold refinement, held related Brief, 230 KB dossier budget, release
+
+The same "Approve A–F" reply covers the remaining items.
+
+**C. MINDEF records.** The owner confirms that the 25 and 26 October grants and
+the 9 November MINDEF decision cover records 4452, 4454, 4466, 4472, 4849 and
+4911 in the dossier projection. He also adopts `core.dossiers.mindef_dossier_hold`.
+A MINDEF `sources[]` entry is exempt from the #913 whole-work hold only when its
+exact `SOURCE_USES` binding exists; anything else holds the whole dossier.
+`editorial_hold()` is unchanged for Briefs and Timelines. False-hold evidence:
+on main `4f49720ad5` a clean production render omitted both approved dossiers.
+
+**D. Held related Brief.** Brief No. 15 stays held, because its trail carries
+MINDEF titles, and both dossiers render without a link to it.
+
+**E. Budget.** The individual-dossier HTML+CSS cap rises from 200,000 to 230,000
+bytes (`scripts/verify_frontend_delivery.py`). Revision 2 measured 217,425 bytes.
+Every other route keeps its cap.
+
+**F. Release.** The owner authorizes merging #1054 pinned to a verified exact
+head. Release goes through the existing Daily/Pages path as the single public
+writer, followed by HTTPS readback and a check that both editions survive the
+next normal Daily.
+
 ## 2026-11-13 — Reader polish: five-item navigation, Record page order, plain-language citations (pending review)
 
 Supersedes the navigation order in the 2026-09-27 entry ("Navigation", item

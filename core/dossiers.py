@@ -20,6 +20,8 @@ from core.retired_article_urls import url_sha256
 from core.timelines import TIMELINES_DIR, read_timeline, content_digest
 from scripts.reconcile_db import read_only
 
+BRIEFS_DIR = ROOT / 'briefs'
+
 # Intentionally no publisher original titles, bodies, quotations or model text.
 PUBLIC_FIELDS = frozenset({'attribution', 'publication_date', 'publisher_link',
                            'record_link', 'ipr_paraphrase'})
@@ -217,6 +219,62 @@ def publication_holds(sc):
     return holds
 
 
+def mindef_dossier_hold(sc):
+    """Dossier refinement of the whole-work MINDEF editorial hold.
+
+    ``core.mindef_public_boundary.editorial_hold`` withholds any work that cites a
+    MINDEF corpus record, because Briefs and Timelines can carry publisher titles
+    and other expression. A dossier's projection cannot: its source entries are
+    identity pins, and only attribution, dates, IPR paraphrase and links leave
+    this module. So a dossier ``sources[]`` entry for a MINDEF record is exempt
+    from the whole-work hold only when the founder's exact SOURCE_USES binding
+    for that record (identity, URL, body hash, full narrow public field set)
+    exists. ``reconcile_dossier_sources`` still checks that binding against the
+    private-original body hash. Every other MINDEF reference holds the whole
+    dossier exactly as before: an unbound or drifted record, a MINDEF source
+    slug anywhere else in the manuscript, or a mindef.gov.sg string that fails
+    the official-host link gate.
+    """
+    from core.mindef_permissions import MINDEF_SOURCE_SLUG
+    from core.mindef_public_boundary import editorial_hold
+    if not isinstance(sc, dict) or not isinstance(sc.get('sources'), list):
+        return editorial_hold(sc)
+    rest, exempt = dict(sc), []
+    for source in sc['sources']:
+        if not (isinstance(source, dict) and source.get('source_id') == MINDEF_SOURCE_SLUG):
+            exempt.append(source)
+            continue
+        grant = dossier_decisions.SOURCE_USES.get(
+            source.get('source_use_decision_ref'), {}).get(source.get('record_id'))
+        if grant != dict(source_binding(source), public_fields=sorted(PUBLIC_FIELDS)):
+            return True
+    # Bound MINDEF entries leave the scan; their URLs still meet the link gate.
+    from core.mindef_permissions import source_link_approved
+    if any(not source_link_approved(MINDEF_SOURCE_SLUG, s['url'])
+           for s in sc['sources'] if s.get('source_id') == MINDEF_SOURCE_SLUG):
+        return True
+    rest['sources'] = exempt
+    return editorial_hold(rest)
+
+
+def mindef_held_brief(briefs_dir, slug):
+    """True only for an approved Brief withheld by the MINDEF whole-work hold."""
+    import json
+    from core.brief_collection import RESERVED_SLUGS
+    from core.mindef_public_boundary import editorial_hold
+    if not isinstance(slug, str) or slug in RESERVED_SLUGS or '/' in slug:
+        return False
+    path = Path(briefs_dir) / (slug + '.json')
+    if path.is_symlink() or not path.is_file():
+        return False
+    try:
+        sidecar = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return False
+    return (isinstance(sidecar, dict) and not sidecar.get('synthetic')
+            and sidecar.get('editorial_status') == 'approved' and editorial_hold(sidecar))
+
+
 def reported_windows(sc, chronology):
     """One inclusive day axis, derived from the reconciled manuscript.
 
@@ -325,7 +383,9 @@ def dossier_view(sc, records, related, chronology, holds, is_review=False, exter
                   kind_label='Thematic dossier' if 'case_studies' in sc else 'Living Dossier',
                   case_study_views=[], parent_dossiers=[])
     result.update(reading_view(sc, records, chronology, externals))
-    result['related'] = [related[slug] for slug in sc['related_briefs']]
+    # A related Brief withheld by the MINDEF whole-work hold is omitted, not
+    # linked; load_dossiers has already proved that is the only reason.
+    result['related'] = [related[slug] for slug in sc['related_briefs'] if slug in related]
     result['citation'] = '%s. “%s.” Indo-Pacific Record, %s, revision %s, %s%s.' % (
         sc['author_name'], sc['title'], result['kind_label'], sc['revision'], sc['updated_on'],
         ' (unapproved draft; private review)' if is_review else '')
@@ -335,7 +395,8 @@ def dossier_view(sc, records, related, chronology, holds, is_review=False, exter
 
 
 def load_dossiers(db_path, related, source_dir=DOSSIERS_DIR, review_path=None,
-                  registry=None, timelines_dir=TIMELINES_DIR, related_timelines=None):
+                  registry=None, timelines_dir=TIMELINES_DIR, related_timelines=None,
+                  briefs_dir=BRIEFS_DIR):
     root = Path(source_dir)
     if root.is_symlink():
         _fail('dossier_directory_symlink')
@@ -361,15 +422,16 @@ def load_dossiers(db_path, related, source_dir=DOSSIERS_DIR, review_path=None,
                 _fail('unapproved_revision_would_replace_publication')
             withheld.append(sc['slug'])
             continue
-        from core.mindef_public_boundary import editorial_hold
-        if not selected and editorial_hold(sc):
+        if not selected and mindef_dossier_hold(sc):
             holds = publication_holds(sc)
             if holds:
                 _fail('publication_validation_failed: ' + '; '.join(h['code'] for h in holds))
             withheld.append(sc['slug'])
             continue
         for slug in sc['related_briefs']:
-            if slug not in related or related[slug].get('is_review'):
+            if slug in related and not related[slug].get('is_review'):
+                continue
+            if slug in related or not mindef_held_brief(briefs_dir, slug):
                 _fail('related_brief_not_approved')
         for slug in sc['related_timelines']:
             item = (related_timelines or {}).get(slug)
