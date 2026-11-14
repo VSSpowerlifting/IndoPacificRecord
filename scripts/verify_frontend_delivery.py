@@ -19,9 +19,15 @@ INDEX_NAMES = ('index.html', 'archive.html', 'analysis.html', 'corpus.html', 'pl
 # Owner authorization, DECISION_LOG 2026-10-26: individual dossier pages
 # (dossier/<slug>.html only) may deliver up to 200 KB of HTML+CSS.
 DOSSIER_HTML_CSS_CAP = 200000
+# Owner authorization, DECISION_LOG 2026-11-13: temporary 130 KB HTML+CSS
+# allowance for the root Indonesia desk page only, while its admitted Kemhan
+# link list grows. Every other desk, record and nested route keeps its cap.
+INDONESIA_HTML_CSS_CAP = 130000
 
 
 def html_css_cap(route):
+    if route == 'indonesia.html':
+        return INDONESIA_HTML_CSS_CAP
     parts = route.split('/')
     if parts[0] == 'dossier':
         # Nothing under dossier/ takes the hub allowance; nested or index

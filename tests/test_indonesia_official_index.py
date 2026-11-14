@@ -145,8 +145,9 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
         delivery = measure_page(output / "indonesia.html", output)
         self.assertIn("indonesia-shell.css", delivery["css"])
         self.assertNotIn("support.css", delivery["css"])
-        self.assertEqual(html_css_cap("indonesia.html"), 120000)
-        self.assertLessEqual(delivery["html_css_bytes"], 120000)
+        # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only.
+        self.assertEqual(html_css_cap("indonesia.html"), 130000)
+        self.assertLessEqual(delivery["html_css_bytes"], 130000)
         # The shared stylesheet and other desks keep their existing behavior.
         self.assertEqual((output / "support.css").read_bytes(),
                          (root / "site/preview/support.css").read_bytes())

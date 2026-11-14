@@ -435,7 +435,8 @@ Budgets for all future work:
 - HTML plus all linked local CSS (including recursive imports and inline CSS) per page ≤ 120 KB; ≤ 300 KB for any index or archive
   surface. Re-open archive navigation only if a measurement crosses those.
   Individual dossier pages (`dossier/<slug>.html` only) may reach 200 KB (owner, DECISION_LOG 2026-10-26); the
-  dossier collection and every other route keep the limits above.
+  dossier collection and every other route keep the limits above. The root Indonesia desk page (`indonesia.html`
+  only) has a temporary 130 KB allowance (owner, DECISION_LOG 2026-11-13); other desk pages keep 120 KB.
 - Client JS, including linked modules/imports and inline executable scripts, ≤ 10 KB per page, vanilla only; no frameworks, no chart libs,
   no canvas unless a spec explicitly justifies it.
 - Images: explicit width/height (no CLS), `loading="lazy"` below fold,
