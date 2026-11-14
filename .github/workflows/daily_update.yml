@@ -216,9 +216,15 @@ jobs:
       # Retained fail-closed fallback. Only authenticated full qualification of
       # equivalent inputs/environment can omit this development suite. Runtime
       # schema, preservation, reconciliation and publication gates still run.
+      #
+      # The Pages-writer ratchet (#346) is publication eligibility, not build
+      # health: it is deferred here and enforced at the deploy gate (step 6c),
+      # so an unregistered publisher cannot stop collection or evidence custody.
       - name: Run offline test suite
         id: offline
         if: steps.timecheck.outputs.should_run == 'true' && steps.qualification.outputs.reused != 'true'
+        env:
+          IPR_DEFER_PAGES_WRITER_AUDIT: "1"
         run: python -m scripts.parallel_unittest -s tests -t . -v
 
       # Measures exactly one phase: the offline suite. Placed immediately after
@@ -673,23 +679,28 @@ jobs:
             git push
           fi
 
-      # ── 7. Deploy output/ to gh-pages ─────────────────────────────────────
-      - name: Deploy to GitHub Pages
+      # ── 6c. Pages publication gate: writer audit (#346) ──────────────────
+      # Read-only. Runs after the database and output are committed, so a
+      # failure blocks only the deploy (and, like a deploy failure, the
+      # success record below). It does not fence the stale-deploy race.
+      - name: Pages publication gate (writer audit)
         if: steps.timecheck.outputs.should_run == 'true'
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
-          publish_branch: gh-pages
-          cname: indopacificrecord.org
-          user_name: github-actions[bot]
-          user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          commit_message: 'Deploy: ${{ github.run_id }}'
+        run: python scripts/audit_pages_writers.py
+
+      # ── 7. Deploy output/ to gh-pages ─────────────────────────────────────
+      # Tree-identity release of the commit this run just pushed (never the
+      # job-start tree). A newer Pages generation makes this a no-op
+      # ("superseded"); out-of-band Pages drift HOLDs. Either way collection and
+      # main are already committed, so a hold blocks publication only.
+      - name: Deploy to GitHub Pages
+        id: pages_release
+        if: steps.timecheck.outputs.should_run == 'true'
+        run: python scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --writer "daily-update ${{ github.run_id }}"
 
       # The legacy public Vietnam collector is retired. Keep its readback on
       # the ordinary Daily that now admits and renders private handoffs.
       - name: Reconcile Vietnam SQLite, HTML and Pages
-        if: steps.timecheck.outputs.should_run == 'true' && vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'
+        if: steps.timecheck.outputs.should_run == 'true' && steps.pages_release.outputs.action != 'superseded' && vars.VIETNAM_DAILY_HANDOFF_ENABLED == 'true'
         run: |
           set -euo pipefail
           git fetch --no-tags origin gh-pages
@@ -712,7 +723,7 @@ jobs:
           exit 1
 
       - name: Reconcile Japan SQLite, HTML and Pages
-        if: steps.timecheck.outputs.should_run == 'true' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
+        if: steps.timecheck.outputs.should_run == 'true' && steps.pages_release.outputs.action != 'superseded' && vars.JAPAN_MOD_OFFICIAL_LINKS_ENABLED == 'true'
         run: |
           set -euo pipefail
           git fetch --no-tags origin gh-pages
