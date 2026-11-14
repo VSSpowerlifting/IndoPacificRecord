@@ -23,11 +23,20 @@ DOSSIER_HTML_CSS_CAP = 200000
 # allowance for the root Indonesia desk page only, while its admitted Kemhan
 # link list grows. Every other desk, record and nested route keeps its cap.
 INDONESIA_HTML_CSS_CAP = 130000
+# Proposed owner allowance (pending founder approval; see the PR and the
+# DECISION_LOG entry that must accompany its merge): temporary 125 KB
+# HTML+CSS for record/476.html only. That page carries 54,211 bytes of
+# preserved stored source text (the 20 May 2026 China-Russia joint
+# statement) and sat 656 bytes under 120 KB before the #1053 Record CSS.
+# Every other record keeps 120 KB.
+RECORD_476_HTML_CSS_CAP = 125000
 
 
 def html_css_cap(route):
     if route == 'indonesia.html':
         return INDONESIA_HTML_CSS_CAP
+    if route == 'record/476.html':
+        return RECORD_476_HTML_CSS_CAP
     parts = route.split('/')
     if parts[0] == 'dossier':
         # Nothing under dossier/ takes the hub allowance; nested or index
