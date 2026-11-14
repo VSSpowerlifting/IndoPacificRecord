@@ -120,8 +120,10 @@ class ChinaFocusDiscoveryTest(unittest.TestCase):
         self.assertIn('href="corpus.html"', template)
         self.assertIn("not individually fact-checked or editor-approved", template)
         self.assertIn("data-focus-records", template)
-        self.assertIn('k === "scope" && v === "focus"', js)
-        self.assertIn('get("scope") === "focus"', js)
+        # Focus stays the default scope and is omitted from shared URLs.
+        self.assertIn('DEFAULT = {scope:"focus", sort:"new"}', js)
+        self.assertIn('if (v && v !== DEFAULT[k]) p.set(k, v);', js)
+        self.assertIn('{focus:" research-focus records"', js)
         self.assertIn('crypto.subtle.digest("SHA-256"', js)
         self.assertIn('actual !== expected', js)
         self.assertIn("focus = build_focus(data[\"corpus\"])", generator)

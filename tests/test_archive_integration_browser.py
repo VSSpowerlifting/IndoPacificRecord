@@ -138,6 +138,65 @@ class ArchiveIntegrationBrowser(unittest.TestCase):
         self.assertEqual(page.locator('#f-scope').input_value(),'published')
         self.assertEqual(errors,[])
 
+    def title_matches(self, q, scope):
+        """Python statement of browse.js `matches()` + `inScope()` for a title query."""
+        out = []
+        for r in self.index['records']:
+            m = self.index['display'].get(r['id'])
+            title = ('' if m and not m['english'] else r['title'] or '') + ' ' + (r['original_title'] or '')
+            if q.lower() not in title.lower(): continue
+            if scope == 'published' or m and (scope == 'all' or m['focus']): out.append(r)
+        return out
+
+    def test_home_search_reaches_briefs_and_cited_records_by_keyboard(self):
+        brief = next(r for r in self.index['records'] if r['id'].startswith('analysis:') and r['source'] == 'Indo-Pacific Record Briefs')
+        cited = next(r for r in self.index['records'] if r['id'].startswith('cited:'))
+        for width in (1280, 375):
+            for record in (brief, cited):
+                with self.subTest(width=width, record=record['id']):
+                    page = self.context(viewport={'width': width, 'height': 900}).new_page()
+                    page.goto(self.origin + '/index.html', wait_until='networkidle')
+                    page.locator('#home-q').fill(record['title']); page.keyboard.press('Enter')
+                    page.wait_for_url('**scope=published**'); page.wait_for_load_state('networkidle')
+                    self.assertEqual(page.locator('#f-scope').input_value(), 'published')
+                    self.assertEqual(page.locator('#f-q').input_value(), record['title'])
+                    row = page.locator('#results .record-row').filter(has=page.locator('h3 a[href="%s"]' % record['ipr_url'])).first
+                    self.assertTrue(row.is_visible())
+                    row.locator('summary').focus(); page.keyboard.press('Enter')
+                    self.assertEqual(row.locator('.archive-citation').inner_text(), record['citation'])
+                    self.assertFalse(page.locator('#scope-more').is_visible())
+                    self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'), width)
+
+    def test_narrower_scope_counts_published_matches_and_widens_keeping_the_search(self):
+        cited = next(r for r in self.index['records'] if r['id'].startswith('cited:') and not self.title_matches(r['title'], 'all'))
+        page = self.context().new_page(); self.open(page, dict(q=cited['title']))
+        extra = len(self.title_matches(cited['title'], 'published'))
+        self.assertTrue(page.locator('#no-results').is_visible())
+        self.assertFalse(page.locator('#no-results button[value=clear]').is_visible())
+        more = page.locator('#scope-more button')
+        self.assertEqual(more.inner_text(), 'Search all published material (%d more)' % extra)
+        self.assertEqual(page.locator('#result-live').text_content(), 'No records match. · ' + more.inner_text())
+        more.focus(); page.keyboard.press('Enter'); page.wait_for_url('**scope=published**')
+        self.assertIn('q=', page.url)
+        self.assertEqual(page.locator('#results .record-row').count(), extra)
+        self.assertTrue(page.locator('#f-q').evaluate('e=>e===document.activeElement'))
+        self.assertFalse(page.locator('#scope-more').is_visible())
+        page.go_back(wait_until='networkidle')
+        self.assertEqual(page.locator('#f-scope').input_value(), 'focus')
+        # A non-empty narrower result still says what the wider scope adds.
+        word = next(w for w in ('Laos', 'Taiwan', 'Japan', 'Philippines', 'Navy')
+                    if self.title_matches(w, 'all') and len(self.title_matches(w, 'published')) > len(self.title_matches(w, 'all')))
+        self.open(page, dict(scope='all', q=word))
+        shown, wider = len(self.title_matches(word, 'all')), len(self.title_matches(word, 'published'))
+        self.assertIn(' of %s preserved records' % format(shown, ','), page.locator('#result-range').inner_text())
+        self.assertEqual(page.locator('#scope-more button').inner_text(), 'Search all published material (%d more)' % (wider - shown))
+        # A genuine no-match offers only to clear, and keeps the scope.
+        self.open(page, dict(scope='all', q='zzqxjvk-no-such-title'))
+        self.assertFalse(page.locator('#scope-more').is_visible())
+        clear = page.locator('#no-results button[value=clear]'); self.assertTrue(clear.is_visible())
+        clear.click(); page.wait_for_load_state('networkidle')
+        self.assertEqual(page.locator('#f-q').input_value(), ''); self.assertEqual(page.locator('#f-scope').input_value(), 'all')
+
     def test_mobile_disclosure_focus_overflow_and_clipboard_fallback(self):
         for width in (320,375,768,1280):
             with self.subTest(width=width):

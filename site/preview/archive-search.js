@@ -15,7 +15,7 @@
     if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(q)) throw Error('Control character.');
     q = q.normalize('NFKC');
     if (q.split('"').length % 2 === 0) throw Error('Close quote.');
-    const out = (q.normalize('NFKC').match(/"[^"]*"|[^"\s]+/g) || [])
+    const out = (q.match(/"[^"]*"|[^"\s]+/g) || [])
       .map(s => normalize(s.replace(/^"|"$/g, '').trim())).filter(Boolean);
     const unique = [...new Set(out)];
     if (unique.length > 32) throw Error('Limit: 32 terms.');

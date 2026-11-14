@@ -1,5 +1,33 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-14 — Search reaches All published material from where readers start (pending review)
+
+Once merged, this supersedes items 4 and 5 of the 2026-11-13 reader-polish
+entry. Every address is unchanged.
+
+1. **Home search** submits `scope=published` and still matches titles
+   (`q`). Item 4 widened home search to every preserved record. Since #1046,
+   IPR Briefs and their cited Records exist only in All published material,
+   so `scope=all` returned nothing for them. The caption names the preserved
+   record count separately from the published material it adds. It does not
+   combine the two into one "records" figure.
+2. **Recovery.** A search or filter in the Research focus or the full
+   preserved record counts what All published material adds. It offers one
+   button, "Search all published material (N more)", which keeps the search
+   and returns focus to the search box. The count is also announced in the
+   results status. An empty result offers "Clear the search and filters"
+   only when the wider scope has nothing either. This replaces "Search all
+   2,013 records", which stayed empty for every published-only answer.
+3. **Unchanged:** the default scope (`focus`), the meaning of `q` (literal
+   title substring) and of Keywords, scope labels, row attribution, citations,
+   holds and the index fallback. The Archive JavaScript stays within its
+   9,500/10,000-byte budgets (browse.js 9,480 bytes; 9,866 with shell.js,
+   below the previous 9,877).
+
+Evidence: [before/after research tasks](docs/evidence/archive-search-scope-2026-11-14/README.md).
+Title search still misses multi-word topics and Briefs whose topic appears
+only in the summary; that is recorded there and not decided here.
+
 ## 2026-11-13 — Owner: temporary 125 KB delivery budget for record/476.html
 
 The owner wrote in this task: "Approve, merge it". That approves PR #1055, which

@@ -4,16 +4,16 @@
  const $ = id => document.getElementById(id), root = $("browse"), A = Array.isArray;
  if (!root || !window.fetch || !window.URLSearchParams) return;
  const form = $("controls"), out = $("results"), range = $("result-range"), live = $("result-live"),
-   wait = $("index-state"), fail = $("index-error"), none = $("no-results"),
+   wait = $("index-state"), fail = $("index-error"), none = $("no-results"), more = $("scope-more"),
    prev = $("page-prev"), next = $("page-next"), chips = $("chips"), reset = $("f-reset"),
    list = $("research-list"), note = $("selection-note"), error = $("research-error"), E = ArchiveSearch,
    KEYS = "scope q desk source status sort institution language from to trail keywords record_type issuer".split(" "),
-   FK = KEYS.filter(k => k !== "scope" && k !== "sort"), F = form.elements, PER = 50,
+   DEFAULT = {scope:"focus", sort:"new"}, FK = KEYS.filter(k => !DEFAULT[k]), F = form.elements, PER = 50,
    storage = "ipr/1";
- let research, prepared, pending, view = [], page = 1, selected = new Set();
+ let research, prepared, pending, view = [], page = 1, selected = new Set(), wider = 0;
  function get(k) { return F[k].type === "checkbox" ? (F[k].checked ? "1" : "") : F[k].value.trim(); }
  function put(k, value) {
-  const e = F[k], v = value || (k === "sort" ? "new" : k === "scope" ? "focus" : "");
+  const e = F[k], v = value || DEFAULT[k] || "";
   if (e.type === "checkbox") e.checked = v === "1";
   else {
    if (["issuer", "source"].includes(k) && v && ![...e.options].some(o => o.value === v)) e.add(new Option(v, v));
@@ -26,7 +26,7 @@
  }
  function writeUrl(push) {
   const p = new URLSearchParams();
-  KEYS.forEach(k => { const v = get(k); if (v && !(k === "sort" && v === "new") && !(k === "scope" && v === "focus")) p.set(k, v); });
+  KEYS.forEach(k => { const v = get(k); if (v && v !== DEFAULT[k]) p.set(k, v); });
   if (page > 1) p.set("page", page);
   history[push ? "pushState" : "replaceState"](null, "", location.pathname + (p.size ? "?" + p : ""));
  }
@@ -54,8 +54,7 @@
   check.onchange = () => { check.checked ? selected.add(r.id) : selected.delete(r.id); updateList(); };
   copy.onclick = async () => {
    try { await navigator.clipboard.writeText(r.citation); copy.textContent = "Copied"; }
-   catch (_) { citation.focus(); const rng = document.createRange(); rng.selectNodeContents(citation);
-    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rng); copy.textContent = "Select text to copy"; }
+   catch (_) { citation.focus(); getSelection().selectAllChildren(citation); copy.textContent = "Select text to copy"; }
   };
   return li;
  }
@@ -68,9 +67,10 @@
  function matches(r) {
   const m = research.display[r.id], q = get("q").toLowerCase();
   return (!q || ((m && !m.english ? "" : r.title || "") + " " + (r.original_title || "")).toLowerCase().includes(q)) &&
-   (get("scope") === "published" || m && (get("scope") === "all" || m.focus)) &&
    ["source","status","institution","language"].every(k => !get(k) || get(k) === (m || r)[k]) && (!get("trail") || m && m.trail);
  }
+ // Kept apart from matches(), so go() can count what All published material adds.
+ function inScope(r) { const m = research.display[r.id], s = get("scope"); return s === "published" || m && (s === "all" || m.focus); }
  function render() {
   const total = view.length, pages = Math.ceil(total / PER) || 1; page = Math.min(page, pages);
   const start = (page - 1) * PER, rows = view.slice(start, start + PER), wrap = el("div", "records-days");
@@ -78,10 +78,11 @@
   rows.forEach(r => { if (r.date !== last) { last = r.date; const sec = wrap.appendChild(day(last)); ul = sec.querySelector("ul"); } ul.appendChild(card(r)); });
   out.replaceChildren(wrap);
   const msg = total ? "Showing " + [start + 1, "–", start + rows.length, " of ", total].map(n => n.toLocaleString("en-US")).join("") +
-   (get("scope") === "focus" ? " research-focus records" : get("scope") === "all" ? " preserved records" : " published items") +
+   ({focus:" research-focus records", all:" preserved records"}[get("scope")] || " published items") +
    (filtered() ? " matching filters" : "") : "No records match.";
   range.textContent = total ? msg + (pages > 1 ? " · page " + page + " of " + pages : "") : "";
-  live.textContent = msg; none.hidden = total !== 0; none.dataset.scope = get("scope");
+  more.hidden = !wider; $("more-count").textContent = wider.toLocaleString("en-US");
+  live.textContent = msg + (wider ? " · " + more.textContent : ""); none.hidden = total !== 0;
   prev.hidden = next.hidden = pages < 2; prev.disabled = page <= 1; next.disabled = page >= pages;
  }
  function filtered() { return FK.some(get); }
@@ -124,8 +125,12 @@
   load().then(() => {
    try {
     error.hidden = true;
-    view = E.search(prepared, {q:get("keywords"), desk:get("desk"), issuer:get("issuer"), record_type:get("record_type"),
+    const hits = E.search(prepared, {q:get("keywords"), desk:get("desk"), issuer:get("issuer"), record_type:get("record_type"),
       from:get("from"), to:get("to"), sort:{relevance:"relevance", old:"oldest"}[get("sort")] || "newest"}).map(h => h.record).filter(matches);
+    view = hits.filter(inScope);
+    // A filtered search in the focus or the full preserved record can miss
+    // Briefs and cited references that only All published material holds.
+    wider = filtered() ? hits.length - view.length : 0;
     if (get("scope") !== "published" && get("sort") !== "relevance") {
      view.sort((a,b) => research.display[a.id].order-research.display[b.id].order); if (get("sort") === "old") view.reverse();
     }
@@ -145,15 +150,16 @@
  KEYS.filter(k => F[k].type !== "search").forEach(k => { F[k].onchange = () => go(true, true); });
  form.onsubmit = e => { e.preventDefault(); go(true, true); };
  reset.onclick = () => { KEYS.forEach(k => put(k, "")); go(true, true); F.q.focus(); };
- // The empty state offers one recovery that fits the scope searched: widen
- // the research focus to the full record, or clear the search and filters.
- // Like the other filter controls, it returns focus to the search box.
- none.onclick = e => { const v = e.target.value; if (v) { v === "all" ? put("scope", v) : FK.forEach(k => put(k, "")); go(true, true); F.q.focus(); } };
+ // One recovery that fits what was found: widen to All published material
+ // when it holds more matches (#scope-more, the search is kept), otherwise
+ // clear the search and filters. Like the other filter controls, it returns
+ // focus to the search box.
+ none.onclick = more.onclick = e => { const v = e.target.value; if (v) { v === "clear" ? FK.forEach(k => put(k, "")) : put("scope", v); go(true, true); F.q.focus(); } };
  function turn(d) { page += d; go(true); range.focus(); }
  prev.onclick = () => turn(-1); next.onclick = () => turn(1);
  window.onpopstate = () => { readUrl(); go(false); };
  root.hidden = form.hidden = next.hidden = list.hidden = false;
  list.open = !matchMedia("(max-width:680px)").matches; readUrl();
- if (filtered() || page > 1 || get("scope") !== "focus" || get("sort") !== "new") go(false);
+ if (page > 1 || KEYS.some(k => get(k) !== (DEFAULT[k] || ""))) go(false); // Any non-default control.
  else try { if (JSON.parse(sessionStorage.getItem(storage) || "[]").length) load(); } catch (_) {}
 })();
