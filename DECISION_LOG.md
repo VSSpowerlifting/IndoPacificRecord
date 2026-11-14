@@ -1,5 +1,42 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-13 — Reader polish: five-item navigation, Record page order, plain-language citations (pending review)
+
+Supersedes the navigation order in the 2026-09-27 entry ("Navigation", item
+2) once merged. Every address is unchanged.
+
+1. **Navigation.** Records · Briefs · Desks · Methodology · About. "Briefs" is
+   the destination formerly labelled "Analysis" (`analysis.html`). Sources and
+   Coverage are reached from Methodology (which they mark as current, and
+   whose header links to both), Team from About. The footer gains "Reusing
+   this material" (`about.html#reuse`); it makes no blanket statement about
+   who owns source material.
+2. **Record page.** Publisher and original source first, then one action row
+   (Open original source · Cite this record · Copy link), then a list of the
+   material available on that page. Machine output gets one explanation where
+   it first appears, linked to `methodology.html#evidence`. Technical
+   provenance stays in one closed disclosure (`#record-provenance`).
+3. **Citations.** The corpus citation reads "Records archive, snapshot of
+   {date}" instead of "Research Atlas corpus"; the as-held citation names the
+   archive snapshot and its record count. The source-text citation is
+   unchanged.
+4. **Home search** submits `scope=all`, so it searches every preserved
+   record, as its caption now says, instead of only the Research focus.
+5. **Records, not texts.** Archive entries are called records, because some
+   hold only a publication's details and no source text. When a search finds
+   nothing, the finder offers one recovery that fits its scope: from the
+   Research focus, search the full record; from a wider scope, clear the
+   search and filters (the scope is kept). Either way, focus returns to the
+   search box, as it does after the other filter controls.
+
+Reuse wording on About summarizes `CONTENT_AND_DATA_RIGHTS.md` §1–5 in plain
+language and adds no right. It does not say that publishers own every text,
+quotation or image: source material stays subject to whatever law, licence or
+terms apply. Notices that qualify one source stay beside that source's
+material. Whether machine-generated summaries, translations and explanations
+may be reused is a separate, undecided policy question; the page says only
+that its summary does not cover them.
+
 ## 2026-11-13 — Owner: temporary 130 KB delivery budget for indonesia.html
 
 The owner wrote in this task: “I approve a temporary 130,000-byte HTML/CSS

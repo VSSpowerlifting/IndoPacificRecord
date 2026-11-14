@@ -411,7 +411,8 @@ class TestReviewedHome(HomeCase):
     def test_current_snapshot_and_search_scope(self):
         self.assertIn('{:,} preserved records'.format(gp.snapshot_from_corpus(TRACKED_DB)['expected_records']), self.home)
         self.assertIn('Search covers titles.', self.home)
-        self.assertIn('Original texts and provenance', self.home)
+        self.assertIn('each record links to its original source', self.home)
+        self.assertIn('name="scope" value="all"', self.home)
         self.assertIn('Coverage is selective', self.home)
         self.assertIn('concentrated in Chinese sources', self.home)
 

@@ -48,22 +48,22 @@
            sizes="(max-width:500px) 56px, 72px" width="160" height="{{ 133 if shell_dark else 130 }}" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
       <span class="brand-name">Indo-Pacific<span>Record</span></span>
     </a>
-    {% set nav = [('archive.html','Records'),('analysis.html','Analysis')] %}
+    {# Five destinations, named for what a reader comes to do (2026-11-13):
+       find a Record, read a Brief, follow a desk, check the method, learn who
+       publishes it. Sources, Coverage and Team live in the footer and on the
+       Methodology and About pages. #}
+    {% set nav = [('archive.html','Records'),('analysis.html','Briefs')] %}
     {% if timelines %}{% set nav = nav + [('timelines.html','Timelines')] %}{% endif %}
-    {% set nav = nav + [('desks.html','Desks')] %}
+    {% set nav = nav + [('desks.html','Desks'),('methodology.html','Methodology'),('about.html','About')] %}
     {% set desk_routes = desks | map(attribute='route') | list if desks else [] %}
     {% macro links() %}
-      {% for href, label in nav %}<a href="{{ root }}{{ href }}"{% if (page == href and not timeline_surface | default(false)) or (href == 'archive.html' and page in ['corpus.html','corpus-guide.html']) or (href == 'desks.html' and page in desk_routes) or (href == 'analysis.html' and page == 'pla-watch.html') or (href == 'timelines.html' and timeline_surface | default(false)) %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+      {% for href, label in nav %}<a href="{{ root }}{{ href }}"{% if (page == href and not timeline_surface | default(false)) or (href == 'archive.html' and page in ['corpus.html','corpus-guide.html']) or (href == 'desks.html' and page in desk_routes) or (href == 'analysis.html' and page == 'pla-watch.html') or (href == 'timelines.html' and timeline_surface | default(false)) or (href == 'methodology.html' and page in ['sources.html','coverage.html']) or (href == 'about.html' and (page == 'team.html' or page.startswith('authors/'))) %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
     {% endmacro %}
     <nav class="nav-desktop" aria-label="Primary">
       {{ links() }}
-      <details class="shell-menu nav-more"><summary>About IPR</summary><div>
-        <a href="{{ root }}sources.html"{% if page == 'sources.html' %} aria-current="page"{% endif %}>Sources</a><a href="{{ root }}coverage.html"{% if page == 'coverage.html' %} aria-current="page"{% endif %}>Coverage</a>
-        <a href="{{ root }}methodology.html"{% if page == 'methodology.html' %} aria-current="page"{% endif %}>Methodology</a>{% if team is defined %}<a href="{{ root }}team.html"{% if page == 'team.html' or page.startswith('authors/') %} aria-current="page"{% endif %}>Team</a>{% endif %}<a href="{{ root }}about.html"{% if page == 'about.html' %} aria-current="page"{% endif %}>About</a>
-      </div></details>
     </nav>
     <details class="shell-menu nav-mobile"><summary>Menu <span aria-hidden="true">☰</span></summary>
-      <nav aria-label="Primary">{{ links() }}<a href="{{ root }}sources.html"{% if page == 'sources.html' %} aria-current="page"{% endif %}>Sources</a><a href="{{ root }}coverage.html"{% if page == 'coverage.html' %} aria-current="page"{% endif %}>Coverage</a><a href="{{ root }}methodology.html"{% if page == 'methodology.html' %} aria-current="page"{% endif %}>Methodology</a>{% if team is defined %}<a href="{{ root }}team.html"{% if page == 'team.html' or page.startswith('authors/') %} aria-current="page"{% endif %}>Team</a>{% endif %}<a href="{{ root }}about.html"{% if page == 'about.html' %} aria-current="page"{% endif %}>About</a></nav>
+      <nav aria-label="Primary">{{ links() }}</nav>
     </details>
   </div>
 </header>
@@ -147,8 +147,8 @@
           <li><a href="{{ root }}coverage.html"{% if page == 'coverage.html' %} aria-current="page"{% endif %}>Coverage</a></li>
         </ul>
       </nav>
-      <nav class="footer-col" aria-label="Analysis">
-        <h2>Analysis</h2>
+      <nav class="footer-col" aria-label="Briefs">
+        <h2>Briefs</h2>
         <ul>
           <li><a href="{{ root }}analysis.html">{{ collection_name }}</a></li>
           {# The series glossary lives with the published issues, which this
@@ -165,6 +165,7 @@
           <li><a href="{{ root }}team.html"{% if page == 'team.html' or page.startswith('authors/') %} aria-current="page"{% endif %}>Editorial team</a></li>
 {% endif %}
           <li><a href="{{ root }}corpus-guide.html#citation">Citing a record</a></li>
+          <li><a href="{{ root }}about.html#reuse">Reusing this material</a></li>
         </ul>
       </nav>
     </div>

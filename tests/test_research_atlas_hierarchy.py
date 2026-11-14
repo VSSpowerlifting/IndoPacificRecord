@@ -127,13 +127,13 @@ class ResearchAtlasHierarchy(unittest.TestCase):
 
     def test_public_citations_name_the_multi_desk_corpus(self):
         guide = self.html("corpus-guide.html")
-        self.assertIn("Research Atlas corpus. Snapshot", guide)
+        self.assertIn("Records archive, snapshot of", guide)
         self.assertNotIn("China Desk Corpus", guide)
         singapore = next(row for row in self.index["records"]
                          if self.index["sources"][row[2]]["code"] ==
                          "sg_mindef_releases")
         record = self.html("record/%d.html" % singapore[0])
-        self.assertIn("Research Atlas corpus, Record %d" % singapore[0],
+        self.assertIn("Indo-Pacific Record, Record %d" % singapore[0],
                       record)
         self.assertNotIn("China Desk Corpus", record)
 
@@ -160,7 +160,7 @@ class ResearchAtlasHierarchy(unittest.TestCase):
                       "desks.html", record_route):
             page = self.html(route)
             with self.subTest(route=route):
-                nav = re.search(r'<nav class="reader-contents".*?</nav>',
+                nav = re.search(r'<nav class="reader-contents[" ].*?</nav>',
                                 page, re.S)
                 self.assertIsNotNone(nav)
                 for target in re.findall(r'href="#([^"]+)"', nav.group()):

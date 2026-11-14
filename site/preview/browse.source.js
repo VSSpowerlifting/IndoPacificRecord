@@ -8,7 +8,7 @@
    prev = $("page-prev"), next = $("page-next"), chips = $("chips"), reset = $("f-reset"),
    list = $("research-list"), note = $("selection-note"), error = $("research-error"), E = ArchiveSearch,
    KEYS = "scope q desk source status sort institution language from to trail keywords record_type issuer".split(" "),
-   F = form.elements, PER = 50,
+   FK = KEYS.filter(k => k !== "scope" && k !== "sort"), F = form.elements, PER = 50,
    storage = "ipr/1";
  let research, prepared, pending, view = [], page = 1, selected = new Set();
  function get(k) { return F[k].type === "checkbox" ? (F[k].checked ? "1" : "") : F[k].value.trim(); }
@@ -46,7 +46,7 @@
    if (meta.title_lang) find("h3").lang = meta.title_lang;
    if (find(".original") && meta.lang) find(".original").lang = meta.lang;
    if (meta.desk_route) find(".row-side a").href = meta.desk_route;
-   const state = li.querySelector('[data-text="analyzed"],[data-text="state"]'); state.className = meta.state_class;
+   const state = find('[data-text="analyzed"],[data-text="state"]'); state.className = meta.state_class;
   }
   if (!find(".row-tags").children.length) find(".row-tags").remove();
   const citation = find(".archive-citation"), copy = find("details button"), check = find("input");
@@ -74,20 +74,20 @@
  function render() {
   const total = view.length, pages = Math.ceil(total / PER) || 1; page = Math.min(page, pages);
   const start = (page - 1) * PER, rows = view.slice(start, start + PER), wrap = el("div", "records-days");
-  let last, ul; wrap.setAttribute("data-from-index", "");
+  let last, ul; wrap.dataset.fromIndex = "";
   rows.forEach(r => { if (r.date !== last) { last = r.date; const sec = wrap.appendChild(day(last)); ul = sec.querySelector("ul"); } ul.appendChild(card(r)); });
   out.replaceChildren(wrap);
-  const msg = total ? "Showing " + (start + 1).toLocaleString("en-US") + "–" + (start + rows.length).toLocaleString("en-US") + " of " + total.toLocaleString("en-US") +
+  const msg = total ? "Showing " + [start + 1, "–", start + rows.length, " of ", total].map(n => n.toLocaleString("en-US")).join("") +
    (get("scope") === "focus" ? " research-focus records" : get("scope") === "all" ? " preserved records" : " published items") +
-   (filtered() ? " matching filters" : "") : "No records match these filters.";
+   (filtered() ? " matching filters" : "") : "No records match.";
   range.textContent = total ? msg + (pages > 1 ? " · page " + page + " of " + pages : "") : "";
-  live.textContent = msg; none.hidden = total !== 0;
+  live.textContent = msg; none.hidden = total !== 0; none.dataset.scope = get("scope");
   prev.hidden = next.hidden = pages < 2; prev.disabled = page <= 1; next.disabled = page >= pages;
  }
- function filtered() { return KEYS.some(k => !["scope","sort"].includes(k) && get(k)); }
+ function filtered() { return FK.some(get); }
  function drawChips() {
   chips.replaceChildren(); reset.hidden = !filtered();
-  KEYS.filter(k => !["scope","sort"].includes(k) && get(k)).forEach(k => {
+  FK.filter(get).forEach(k => {
    const e = F[k], label = e.labels[0].textContent.trim() + (e.type === "checkbox" ? "" : ": " + (e.tagName === "SELECT" ? e.selectedOptions[0].text : get(k))),
     b = chips.appendChild(el("li")).appendChild(el("button", "chip", label));
    b.type = "button"; b.setAttribute("aria-label", "Remove filter: " + label);
@@ -125,7 +125,7 @@
    try {
     error.hidden = true;
     view = E.search(prepared, {q:get("keywords"), desk:get("desk"), issuer:get("issuer"), record_type:get("record_type"),
-      from:get("from"), to:get("to"), sort:get("sort") === "relevance" ? "relevance" : get("sort") === "old" ? "oldest" : "newest"}).map(h => h.record).filter(matches);
+      from:get("from"), to:get("to"), sort:{relevance:"relevance", old:"oldest"}[get("sort")] || "newest"}).map(h => h.record).filter(matches);
     if (get("scope") !== "published" && get("sort") !== "relevance") {
      view.sort((a,b) => research.display[a.id].order-research.display[b.id].order); if (get("sort") === "old") view.reverse();
     }
@@ -138,13 +138,17 @@
     url = URL.createObjectURL(new Blob([content], {type:type === "csv" ? "text/csv;charset=utf-8" : "application/json"})), a = el("a");
   a.href = url; a.download = "ipr." + type; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
  };
- list.onchange = () => { render(); list.querySelector("summary").focus(); };
+ list.onchange = () => { render(); list.firstElementChild.focus(); };
  $("selection-clear").onclick = () => { selected.clear(); updateList(); out.querySelectorAll("input").forEach(e => { e.checked = false; }); };
  let timer;
  F.q.onfocus = () => load(); F.q.oninput = F.keywords.oninput = () => { clearTimeout(timer); timer = setTimeout(() => go(false, true), 200); };
- KEYS.filter(k => !["q","keywords"].includes(k)).forEach(k => { F[k].onchange = () => go(true, true); });
+ KEYS.filter(k => F[k].type !== "search").forEach(k => { F[k].onchange = () => go(true, true); });
  form.onsubmit = e => { e.preventDefault(); go(true, true); };
  reset.onclick = () => { KEYS.forEach(k => put(k, "")); go(true, true); F.q.focus(); };
+ // The empty state offers one recovery that fits the scope searched: widen
+ // the research focus to the full record, or clear the search and filters.
+ // Like the other filter controls, it returns focus to the search box.
+ none.onclick = e => { const v = e.target.value; if (v) { v === "all" ? put("scope", v) : FK.forEach(k => put(k, "")); go(true, true); F.q.focus(); } };
  function turn(d) { page += d; go(true); range.focus(); }
  prev.onclick = () => turn(-1); next.onclick = () => turn(1);
  window.onpopstate = () => { readUrl(); go(false); };

@@ -15,22 +15,27 @@
 {% elif record.cited_only | default(false) %}
 {% include '_cited_source.html' %}
 {% else %}
+{% set is_mindef = record.source_slug == 'sg_mindef_releases' %}
+{% set source_link_ok = record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}
+{% set china_review = record.desk_id == 'china' %}
+{% set brief_refs = record.in_trails | selectattr('kind', 'defined') | selectattr('kind', 'equalto', 'brief_reference') | list if record.in_trails else [] %}
 {# "Back to results" appears only when the reader arrived from a search or a
    week list on this site (citation.js reads the referrer). The record's own
    address never carries query parameters, so a copied link stays canonical. #}
 <p class="back-link" id="back-link" hidden><a href="../archive.html">Back to results</a></p>
 <article class="record-page">
-  {# The almanac's date block: the date the institution stated, which is the
-     record's place in time. Collection time is a different calendar and is
-     stated in the custody line and the provenance table. #}
   <div class="record-body">
-    {# The institution and the date are the date block's, beside this. #}
+    {# Who published it, when, and where IPR found it: the three facts a
+       reader needs before anything IPR added. The date column beside this
+       repeats the date as the page's place in time. #}
     <h1{% if not record.title_english %} lang="{{ record.language_tag or 'zh' }}"{% endif %}>{{ display_title }}</h1>
-    <p class="record-source-line">Source-stated date: <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time> · <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a></p>
-    {% if record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}
-    <p class="meta"><span class="evidence evidence--model">Machine-generated headline</span>
-    Independently worded IPR factual headline. Not a translation of the source title.
-    Not reviewed by a human.</p>
+    <p class="record-source-line">{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }} by <b>{{ record.institution or record.source_name }}</b> on <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time>{% if record.institution %} · via <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a>{% endif %}</p>
+    {% if is_mindef %}
+    <p class="meta record-title-note">This heading is an IPR description of the record, not MINDEF's headline.</p>
+    {% elif record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}
+    <p class="meta record-title-note"><span class="evidence evidence--model">Machine-generated headline</span>
+    Independent machine headline; not a translation of the source title.
+    Not reviewed by a human. <a href="../methodology.html#evidence">About machine labels</a></p>
     {% if record.title_original %}<p class="original" lang="vi">{{ record.title_original }}</p>{% endif %}
     {% elif record.title_english and record.title_original and (record.desk_id != 'china' or record.language_tag != 'en') %}
     {# Two distinct machine outputs. The English TITLE is a translation; the
@@ -39,28 +44,46 @@
     <div class="record-title-pair">
       <p class="original" lang="{{ record.language_tag or 'zh' }}">{{ record.title_original }}</p>
       <p class="meta"><span class="evidence evidence--model">Machine translation</span>
-      The heading is a machine translation of the original title above. {% if record.desk_id == 'china' %}Human review is not recorded.{% else %}Not reviewed by a human.{% endif %}</p>
+      The heading is a machine translation of the original title above. {% if china_review %}Human review is not recorded.{% else %}Not reviewed by a human.{% endif %}
+      <a href="../methodology.html#evidence">About machine labels</a></p>
     </div>
     {% endif %}
 
-    {# The custody line: four real stages, in the order they happened. Each is
-       drawn from a stored field; a stage that did not happen says so. #}
-    <div class="record-actions">{% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}<a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Open original source</a>{% endif %}<a href="#record-citation">Cite this record</a></div>
-    <details class="record-history" data-wide-open><summary>Record history</summary>
-    <ol class="custody" aria-label="How this record reached this page">
-      <li><b>{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }}</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
-      <li><b>Collected</b>{{ record.scraped_at }}{% if record.scraped_at | length == 19 %} UTC{% endif %}{% if record.scrape_run_id is not none %}, run {{ record.scrape_run_id }}{% endif %}</li>
-      <li class="{{ 'is-machine' if record.state in ['analyzed', 'not_selected', 'analysis_incomplete'] else 'is-absent' }}"><b>Machine reading</b>{{ record.state_label }}</li>
-      <li class="{{ 'is-analysis' if record.in_trails else 'is-absent' }}"><b>Analysis</b>{% if record.in_trails %}{% for ref in record.in_trails %}{{ ('Cited in ' if ref.kind | default('issue') == 'brief_reference' else 'In the source trail of ') if loop.first or ref.kind | default('issue') != loop.previtem.kind | default('issue') }}{{ ref.series_name }} No. {{ ref.issue }}{{ ', ' if not loop.last }}{% endfor %}{% else %}Not in a published issue's source trail{% endif %}</li>
-    </ol>
-    </details>
+    <div class="record-actions">{% if source_link_ok %}<a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Open original source</a>{% endif %}<a href="#record-citation">Cite this record</a><button type="button" class="link-copy" data-copy-link hidden>Copy link</button>
+      <p class="cite-status link-status" role="status" aria-live="polite"></p></div>
 
-    <nav class="reader-contents" aria-label="On this record page">
-      <span>In this record</span>
-      <ul>{% if record.vietnam and record.vietnam.translation_published %}<li><a href="#record-translation">Translation</a></li>{% endif %}{% if record.summary_english %}<li><a href="#record-summary">Summary</a></li>{% endif %}
-          {% if record.korea_identity and record.text_english %}<li><a href="#record-translation">Machine translation</a></li>{% endif %}
-          <li><a href="#record-text">{{ 'Korean original' if record.korea_identity else 'Source-use limits' if record.source_slug == 'sg_mindef_releases' else 'Stored text' }}</a></li><li><a href="#record-status">Processing</a></li>
-          <li><a href="#record-provenance">Provenance</a></li><li><a href="#record-citation">Citation</a></li></ul>
+    {# What the page holds, layer by layer, each marked with where it came
+       from. Every row is drawn from a stored field the sections below render;
+       nothing here claims material the page does not show. A note appears
+       only when it adds something the link and its label do not already say;
+       the citation is reached from "Cite this record" above. #}
+    <nav class="reader-contents record-layers" aria-label="On this record page">
+      <h2 class="record-layers-title">On this page</h2>
+      <ul>
+        {% if record.summary_english %}
+        <li><a href="#record-summary">Summary</a><span class="evidence evidence--model">Machine summary</span></li>
+        {% endif %}
+        {% if record.vietnam and record.vietnam.translation_published and record.vietnam.text_english %}
+        <li><a href="#record-translation">English translation</a><span class="evidence evidence--model">Machine translation</span><span class="layer-note">Checked by automated QA; not reviewed by a human</span></li>
+        {% elif record.korea_identity and record.text_english %}
+        <li><a href="#record-translation">Full text in English</a><span class="evidence evidence--model">Machine translation</span><span class="layer-note">The Korean original governs</span></li>
+        {% endif %}
+        {% if record.korea_identity %}
+        <li><a href="#record-text">Korean original</a><span class="evidence evidence--record">Source record</span><span class="layer-note">On its own page</span></li>
+        {% elif record.vietnam and record.vietnam.original_withheld %}
+        <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not republished here; read it at the source</span></li>
+        {% elif is_mindef %}
+        <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not published on this site</span></li>
+        {% elif record.has_text %}
+        <li><a href="#record-text">Stored source text</a><span class="evidence evidence--record">Source record</span></li>
+        {% else %}
+        <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not captured; read it at the source</span></li>
+        {% endif %}
+        {% if record.in_trails %}
+        <li><a href="#record-analysis">In IPR analysis</a><span class="evidence evidence--analysis">Analysis</span><span class="layer-note">{{ 'Cited in a Brief' if brief_refs else "Listed in an issue's source trail" }}</span></li>
+        {% endif %}
+        <li><a href="#record-provenance">Provenance and processing</a><span class="layer-note">Collection dates, models and fingerprints</span></li>
+      </ul>
     </nav>
 
     {% if record.summary_english %}
@@ -128,25 +151,28 @@
         <span class="evidence evidence--record">Source record</span></div>
       {# Not a capture failure: the original is preserved privately. The
          source-use decision on record does not let IPR republish it. #}
-      <p>The Vietnamese original is preserved in IPR's private evidence store but
-      is not reproduced here: the source-use decision on record does not grant
-      public storage of the original text. Read it on the
+      <p>IPR keeps a private copy of the Vietnamese original, but it
+      is not reproduced here: the source-use decision for this source does
+      not cover public display of the full text. Read it on the
       <a href="{{ record.url }}" rel="noopener nofollow">official page</a>.</p>
       <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
     </section>
     {% elif record.source_slug == 'sg_mindef_releases' %}
     <section class="record-section" aria-labelledby="record-text">
-      <div class="layer-head"><h2 id="record-text">Source-use limits</h2>
+      <div class="layer-head"><h2 id="record-text">Source text</h2>
         <span class="evidence evidence--record">Source record</span></div>
       {# Linking never grants public text reproduction; preserve private custody
-         and metadata separately from restricted original material. #}
-      <p>MINDEF's original article text and media are not reproduced here.
-      Outbound links lead to the official publisher site;
-      linking does not grant permission to reproduce or distribute article text.</p>
+         and metadata separately from restricted original material. The reason
+         is not restated here: the 9 November source-use direction changed the
+         policy basis while the deployed runtime hold remains in force. #}
+      <p>MINDEF's original article text and media are not reproduced here and
+      are not published on this site at present. A link to MINDEF's page does
+      not grant permission to reproduce its text.</p>
       {% if record.mindef_link_allowed %}
-      <p><a href="{{ record.url }}" rel="noopener nofollow">Read the official source page</a>.</p>
+      <p><a href="{{ record.url }}" rel="noopener nofollow">Read the release on MINDEF's site</a>.</p>
       {% else %}
-      <p>The original URL is recorded in provenance but did not pass the official-host URL check.</p>
+      <p>The original address is listed under provenance, but it did not pass
+      IPR's official-site check, so it is not linked.</p>
       {% endif %}
     </section>
     {% else %}
@@ -169,7 +195,7 @@
       {% else %}
       {# Ruled wording. Deliberately not "permanently unavailable": recovery or
          re-capture remains possible and this page must not foreclose it. #}
-      <p>Original text is unavailable in this stored record.</p>
+      <p>Original text is unavailable in this stored record.{% if source_link_ok %} Read it on the <a href="{{ record.url }}" rel="noopener nofollow">original page</a>.{% endif %}</p>
       {% endif %}
       {% if record.vietnam %}
       <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
@@ -177,14 +203,65 @@
     </section>
     {% endif %}
 
-    <section class="record-section" aria-labelledby="record-status">
-      <h2 id="record-status">Processing status</h2>
+    <section class="record-section record-supports" aria-labelledby="supports-heading">
+      <h2 id="supports-heading">What this record supports</h2>
+      <ul class="supports">
+        <li><span class="evidence evidence--record">Source record</span> This item was published at the URL above on the date the source stated.</li>
+        <li><span class="evidence evidence--claim">Official claim</span> Its contents are that institution's assertions.</li>
+      </ul>
+      <p>It does not establish that the described events occurred, that any capability exists, or that
+      the institution's stated position is its actual policy.</p>
+    </section>
+
+    <section class="record-section" aria-labelledby="record-citation">
+      <h2 id="record-citation">Cite this record</h2>
+      {# Two claims, two blocks: the item as its publisher issued it, and the
+         record as this corpus holds it. Both are plain selectable text; the
+         copy buttons do not exist without JavaScript. #}
+      <p class="meta">Cite the original item. Add the IPR record when you relied
+      on text, translations or labels shown here.</p>
+      <div class="cite-block">
+        <p class="cite-label" id="cite-source-label">The original item</p>
+        <p class="cite-text" id="cite-source-text">{{ cite.source_text }}</p>
+        <button type="button" class="cite-copy" data-copy="cite-source-text" aria-describedby="cite-source-label" hidden>Copy citation</button>
+        <p class="cite-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="cite-block">
+        <p class="cite-label" id="cite-held-label">This record on IPR</p>
+        <p class="cite-text" id="cite-as-held">{{ cite.as_held }}</p>
+        <button type="button" class="cite-copy" data-copy="cite-as-held" aria-describedby="cite-held-label" hidden>Copy citation</button>
+        <p class="cite-status" role="status" aria-live="polite"></p>
+      </div>
+      <p class="meta"><b>Note.</b> {{ cite.note }}</p>
+      <p class="meta">The record number and this record path are locators inside
+      the {{ snapshot.date }} snapshot, not a DOI, accession number, permanent
+      identifier, public permalink, or published route.
+      <a href="../corpus-guide.html#citation">Citation guide</a></p>
+    </section>
+
+    {# Technical provenance, closed until a reader asks for it. Every field
+       stays in the page (and in print); only its prominence changes. The
+       element is not data-wide-open: shell.js would force it open on wide
+       screens. A link to #record-provenance lands on its summary. #}
+    <details class="record-provenance" id="record-provenance">
+      <summary><span class="record-provenance-title">Provenance and processing</span>
+        <span class="layer-note">How this record was collected, processed and fingerprinted</span></summary>
+
+      <h3>Record history</h3>
+      <ol class="custody" aria-label="How this record reached this page">
+        <li><b>{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }}</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
+        <li><b>Collected</b>{{ record.scraped_at }}{% if record.scraped_at | length == 19 %} UTC{% endif %}{% if record.scrape_run_id is not none %}, run {{ record.scrape_run_id }}{% endif %}</li>
+        <li class="{{ 'is-machine' if record.state in ['analyzed', 'not_selected', 'analysis_incomplete'] else 'is-absent' }}"><b>Machine reading</b>{{ record.state_label }}</li>
+        <li class="{{ 'is-analysis' if record.in_trails else 'is-absent' }}"><b>Analysis</b>{% if record.in_trails %}{% for ref in record.in_trails %}{{ ('Cited in ' if ref.kind | default('issue') == 'brief_reference' else 'In the source trail of ') if loop.first or ref.kind | default('issue') != loop.previtem.kind | default('issue') }}{{ ref.series_name }} No. {{ ref.issue }}{{ ', ' if not loop.last }}{% endfor %}{% else %}Not in a published issue's source trail{% endif %}</li>
+      </ol>
+
+      <h3 id="record-status">Processing status</h3>
       <p class="record-state">{{ record.state_label }}</p>
-      {% if record.source_slug == 'sg_mindef_releases' %}
-      <p>This is the historical processing status. Source text, original titles,
-      translations, summaries and reasoning are withheld under the current
-      source-use policy. The heading is an IPR metadata label, not a publisher headline.
-      New collection and model processing are held.</p>
+      {% if is_mindef %}
+      <p>This is the historical processing status. MINDEF's original titles and
+      text, and IPR's translations, summaries and model reasoning for them, are
+      not published on this site at present. IPR is not currently collecting
+      or processing new MINDEF releases.</p>
       {% else %}<p>{{ state_definition }}</p>{% endif %}
       {# "Model-flagged" appears only when the flag is actually true. Both
          outcomes are machine output, so both carry the machine label. #}
@@ -194,10 +271,8 @@
       triage cue, not an editorial judgment.{% else %}Not flagged for closer review.
       This is a software triage result, not an editorial judgment.{% endif %}</p>
       {% endif %}
-    </section>
 
-    <section class="record-section" aria-labelledby="record-provenance">
-      <h2 id="record-provenance">Provenance</h2>
+      <h3>Provenance</h3>
       <div class="table-scroll">
       <table class="provenance">
         <caption>What is known about this record and where each part came from.</caption>
@@ -205,11 +280,11 @@
           <tr><th scope="row">Desk</th><td class="prov-value">{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</td></tr>
           <tr><th scope="row">Publishing institution</th><td class="prov-value">{{ record.institution or '—' }}</td></tr>
           <tr><th scope="row">Source outlet</th><td class="prov-value"><a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a> <span class="meta">({{ record.source_slug }})</span></td></tr>
-          <tr><th scope="row">Source language</th><td class="prov-value">{{ record.language_tag or '—' }} <span class="meta">— an attribute of the source, not of this record</span></td></tr>
+          <tr><th scope="row">Source language</th><td class="prov-value">{% if record.language_tag %}{{ record.language_tag | language_label }} <span class="meta">({{ record.language_tag }})</span>{% else %}—{% endif %} <span class="meta">— an attribute of the source, not of this record</span></td></tr>
           <tr><th scope="row">Source-stated publication date</th><td class="prov-value">{{ record.published_date }}</td></tr>
-          <tr><th scope="row">Original URL</th><td class="prov-value">{% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>{% else %}{{ record.url }} <span class="meta">— link failed safety validation</span>{% endif %}</td></tr>
+          <tr><th scope="row">Original URL</th><td class="prov-value">{% if source_link_ok %}<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>{% else %}{{ record.url }} <span class="meta">— link failed safety validation</span>{% endif %}</td></tr>
           <tr><th scope="row">Collected at</th><td class="prov-value">{{ record.scraped_at }} <span class="meta">— collection metadata, not a publication time</span></td></tr>
-          <tr><th scope="row">Content fingerprint</th><td class="prov-value"><span class="token">{{ record.content_hash }}</span> <span class="meta">— taken when the record was captured, over the stored original title and text{% if record.source_slug == 'sg_mindef_releases' %}, which are held privately and not published{% endif %}</span></td></tr>
+          <tr><th scope="row">Content fingerprint</th><td class="prov-value"><span class="token">{{ record.content_hash }}</span> <span class="meta">— taken when the record was captured, over the stored original title and text{% if is_mindef %}, which are held privately and not published{% endif %}</span></td></tr>
           {% if record.scrape_run_id is not none %}
           <tr><th scope="row">Collection run</th><td class="prov-value">{{ record.scrape_run_id }}</td></tr>
           {% endif %}
@@ -255,44 +330,10 @@
         </tbody>
       </table>
       </div>
-      <p class="meta">Every field above is defined in the
-      <a href="../corpus-guide.html#dictionary">data dictionary</a> — what it means,
-      when it may be absent, and where it stops being reliable.</p>
-    </section>
-
-    <section class="record-section" aria-labelledby="supports-heading">
-      <h2 id="supports-heading">What this record supports</h2>
-      <ul class="supports">
-        <li><span class="evidence evidence--record">Source record</span> This item was published at the URL above on the date the source stated.</li>
-        <li><span class="evidence evidence--claim">Official claim</span> Its contents are that institution's assertions.</li>
-      </ul>
-      <p>It does not establish that the described events occurred, that any capability exists, or that
-      the institution's stated position is its actual policy.</p>
-    </section>
-
-    <section class="record-section" aria-labelledby="record-citation">
-      <h2 id="record-citation">Cite this record</h2>
-      {# Two claims, two blocks: the item as its publisher issued it, and the
-         record as this corpus holds it. Both are plain selectable text; the
-         copy buttons do not exist without JavaScript. #}
-      <p class="meta">Two separate claims, cited separately: the item as its publisher
-      issued it, and the record as this corpus holds it.</p>
-      <div class="cite-block">
-        <p class="cite-text" id="cite-source-text">{{ cite.source_text }}</p>
-        <button type="button" class="cite-copy" data-copy="cite-source-text" hidden>Copy source text</button>
-        <p class="cite-status" role="status" aria-live="polite"></p>
-      </div>
-      <div class="cite-block">
-        <p class="cite-text" id="cite-as-held">{{ cite.as_held }}</p>
-        <button type="button" class="cite-copy" data-copy="cite-as-held" hidden>Copy as held</button>
-        <p class="cite-status" role="status" aria-live="polite"></p>
-      </div>
-      <p class="meta"><b>Processing note.</b> {{ cite.note }}</p>
-      <p class="meta">The record number and this record path are locators inside
-      the {{ snapshot.date }} snapshot. Neither is a DOI, accession number, permanent
-      identifier, public permalink, or published route. See
-      <a href="../corpus-guide.html#citation">identifiers and citation guidance</a>.</p>
-    </section>
+      <p class="meta">Each field is defined in the
+      <a href="../corpus-guide.html#dictionary">data dictionary</a>, including
+      when it may be missing and where it stops being reliable.</p>
+    </details>
   </div>
 
   <div class="record-date">
@@ -300,7 +341,6 @@
       <span class="day-month">{{ months[(record.published_date[5:7] | int) - 1] }} {{ record.published_date[:4] }}</span></time>
     <span class="day-week">{{ record.published_date | weekday }}</span>
     <span class="day-note">Source-stated publication date</span>
-    <p class="record-institution">{{ record.institution or record.source_name }}{% if record.institution %}<br>via <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a>{% endif %}</p>
   </div>
 
   <aside class="record-rail" aria-labelledby="rail-heading">
@@ -308,29 +348,26 @@
       <span class="evidence evidence--record">Source record</span>
     </div>
     <div class="rail-block">
-      <h2 id="rail-heading">This record at a glance</h2>
+      <h2 id="rail-heading">About this record</h2>
       <dl>
-        <div><dt>Publishing institution</dt><dd>{{ record.institution or '—' }}</dd></div>
-        <div><dt>Source outlet</dt><dd><a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a></dd></div>
-        <div><dt>Source-stated date</dt><dd><time datetime="{{ record.published_date }}">{{ record.published_date }}</time></dd></div>
-        <div><dt>Source language</dt><dd>{{ record.language_tag | language_label if record.language_tag else '—' }}</dd></div>
-        <div><dt>Processing state</dt><dd>{{ record.state_label }}</dd></div>
-        <div><dt>Translation</dt><dd>{% if record.korea_identity and record.text_english %}Full machine translation, not reviewed by a human{% elif record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}Independent machine headline; not a translation{% elif record.desk_id == 'china' and record.language_tag == 'en' %}English-language original{% elif record.title_english %}Machine-translated title, {% if record.desk_id == 'china' %}human review not recorded{% else %}not reviewed by a human{% endif %}{% elif (record.language_tag or '').startswith('en') %}Not needed: the source publishes in English{% else %}No English title held{% endif %}</dd></div>
+        <div><dt>Publisher</dt><dd>{{ record.institution or '—' }}</dd></div>
+        <div><dt>Found via</dt><dd><a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a></dd></div>
+        <div><dt>Date stated by the source</dt><dd><time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time></dd></div>
+        <div><dt>Language</dt><dd>{{ record.language_tag | language_label if record.language_tag else '—' }}</dd></div>
         <div><dt>Desk</dt><dd>{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</dd></div>
+        <div><dt>Record</dt><dd>No. {{ record.id }} · {{ record.state_label }}</dd></div>
       </dl>
-      {% if record.source_slug != 'sg_mindef_releases' or record.mindef_link_allowed %}
-      <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Read the original page</a>
+      {% if source_link_ok %}
+      <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Open original source</a>
       {% else %}
-      <p class="meta">This MINDEF URL did not pass the official-host URL check.</p>
+      <p class="meta">This MINDEF address did not pass IPR's official-site check, so it is not linked.</p>
       {% endif %}
     </div>
-    {% if dossier_records is defined and dossier_records[record.id] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}
-    {% if timeline_records is defined and timeline_records[record.id] %}<section class="record-section" aria-labelledby="record-timelines"><h2 id="record-timelines">In Evidence Timelines</h2>{% for item in timeline_records[record.id] %}<p><a href="../{{ item.route }}">{{ item.title }}</a>{% if item.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
     {% if record.in_trails %}
     {# Listed in a published issue's source trail, matched on this record's
        exact stored URL. The issue says which claim rests on it; this does not. #}
-    <div class="rail-block trail-panel">
-      <h2>In analysis</h2>
+    <div class="rail-block trail-panel" id="record-analysis">
+      <h2>In IPR analysis</h2>
       <ul>
       {% for ref in record.in_trails %}
         <li><a href="{{ ('../' if ref.kind | default('issue') in ('brief', 'brief_reference') else '') ~ ref.url }}#{{ ref.anchor | default('source-' ~ ref.position) }}" rel="noopener">{{ ref.title }}</a>
@@ -339,14 +376,8 @@
       </ul>
     </div>
     {% endif %}
-    <div class="rail-block">
-      <h2>Share this record</h2>
-      <div class="cite-actions">
-        <button type="button" class="link-copy" data-copy-link hidden>Copy link</button>
-        <a href="#record-citation">Citation</a>
-      </div>
-      <p class="cite-status link-status" role="status" aria-live="polite"></p>
-    </div>
+    {% if dossier_records is defined and dossier_records[record.id] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}
+    {% if timeline_records is defined and timeline_records[record.id] %}<section class="record-section" aria-labelledby="record-timelines"><h2 id="record-timelines">In Evidence Timelines</h2>{% for item in timeline_records[record.id] %}<p><a href="../{{ item.route }}">{{ item.title }}</a>{% if item.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
   {% set path = [('Records', '../archive.html')] %}
 {% if record_desk %}{% set path = path + [(record_desk.name, '../' ~ record_desk.route)] %}{% endif %}
 {% set path = path + [(record.source_name, '../source/' ~ record.source_slug ~ '.html'), ('Record ' ~ record.id, none)] %}
