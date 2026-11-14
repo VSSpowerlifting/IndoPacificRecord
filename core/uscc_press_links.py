@@ -341,7 +341,8 @@ def _check(record) -> None:
         raise LinkRefused("uscc_link_identity_invalid")
     if record.get("uscc_hold"):
         raise LinkRefused(record["uscc_hold"])
-    from migrations.versions.m0024_uscc_press_source_records import HELD_IDENTITIES
+    # The schema mirrors this set (m0024 CHECK); tests assert they are equal.
+    from core.uscc_offline_input import HELD_IDENTITIES
     if ident in HELD_IDENTITIES:
         raise LinkRefused("uscc_source_specific_hold")
     if record.get("canonical_official_url") != canonical_url(ident):

@@ -691,3 +691,21 @@ of the model. Results:
   activated, registered or published.
 - Template drift, quotation provenance and actual drafting authorship remain
   open (see "Gaps that remain").
+
+**Merge precondition (private repository).** The private Vietnam pin guard
+(`scripts/vietnam_public_pin_check.py`, `OTHER_DESK_PATHS`) traces every
+import, including function-level ones, reachable from `core/daily_sources.py`
+and `processing/screening.py`. This change adds five files to that closure:
+- `analysis/uscc_daily_prompts.py`
+- `core/uscc_offline_input.py`
+- `core/uscc_press_links.py`
+- `scripts/collect_uscc_press_metadata.py`
+- `scripts/probe_us_navy_first_party_access.py`
+
+The private test `test_guard_covers_the_real_collector_import_closure` fails
+against this branch and passes against current public `main`. The private
+allow-list must cover these files before or together with this merge.
+Otherwise private CI fails closed. That allow-list update is separate from any
+activation. The private processing matrix lists families explicitly, so it never
+selects `us_uscc_press_en`, and the Kemhan signer reads `REFS` only by its own
+key.

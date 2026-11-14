@@ -655,7 +655,10 @@ class Lifecycle(unittest.TestCase):
         self.assertEqual(self.lane.reader(), public)
         state, envelope, _ = self.deliver()
         self.assertEqual(state[b]["status"], "complete")
-        self.assertGreaterEqual(state[b]["attempts"], 1)
+        # One failed attempt was recorded and kept; the successful retry neither
+        # resets nor double-counts it (the JCG retriable semantics).
+        self.assertEqual(state[b]["attempts"], 1)
+        self.assertEqual(self.lane.model.analyze_record.call_count, 3)
         self.assertEqual([r["source_identity"] for r in self.lane.reader()],
                          [ident(SLUG_A), ident(SLUG_B)])
         self.assertEqual(self.lane.reader()[0], public[0])
