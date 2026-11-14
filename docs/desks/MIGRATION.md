@@ -308,16 +308,27 @@ for a publisher-side reason unrelated to this branch. Generated
 Daily's migration step inserts the desk/institution/source rows and its render
 republishes.
 
-**USCC narrative eligibility (adoption candidate, 7 November 2026; not merged,
-not wired into Daily):** `core/uscc_offline_input.qualify_admitted` qualifies a
-privately held capture against the admitted `uscc_official_source_records` row
-under the standing-family policy and writes a hash-only receipt to
-`uscc_narrative_eligibility_receipts`. It adds no dispatcher, manifest, registry,
-workflow or renderer change; no public loader reads the receipts, and the
-metadata admission above is unchanged. A runtime caller, model transmission and
-any public note stay separately governed
-(`docs/engineering/USCC_OFFICIAL_METADATA_COLLECTION_2026-10-15.md`,
-"Implementation state").
+**USCC narrative path (review candidate, 14 November 2026; built disabled, not
+activated):** the 7 November qualifier now runs inside the shared Daily lifecycle
+as family `us_uscc_press_en` (`core/daily_sources.py`). It is not a separate
+receipts table, which this candidate retires. The links adapter
+(`core/uscc_press_links.links_from_custody`) re-qualifies each custody row
+against its pinned capture. Eligible rows carry the unquoted narrative
+privately and held rows carry a hold code. Migration m0024 adds the link-only
+parent `uscc_press_source_records`. Admission also requires the same identity,
+URL and date in the existing `uscc_official_source_records` metadata lane,
+which is unchanged. The U.S. desk renders admitted machine records, annotates
+the matching official links, and feeds the Archive and search projection.
+
+Every switch is off:
+- policy flags false;
+- `US_USCC_LINKS_ENABLED` unset;
+- `desk_registered=False`, so no governed admission and no run-result row;
+- no private collector or processing-matrix row.
+
+Activation is a separate founder decision. It covers model provider and spend,
+recurring capture, seeding production custody, the private companion, manifest
+registration, the policy flags and the switch.
 
 **Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
 manifest/registry entry; folding it in needs a dispatcher-side run attestation

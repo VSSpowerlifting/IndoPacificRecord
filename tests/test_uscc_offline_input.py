@@ -9,14 +9,11 @@ which prints and asserts hashes and dispositions only.
 import hashlib
 import json
 import os
-import sqlite3
-import tempfile
 import unittest
 from pathlib import Path
 
 from core import uscc_offline_input as Q
-from core.uscc_offline_input import USCCInputHold, qualify, qualify_admitted
-from core.uscc_official_metadata import create_schema, load_public_links
+from core.uscc_offline_input import USCCInputHold, qualify
 
 SLUG = 'press-release-synthetic-example'
 URL = 'https://www.uscc.gov/press-releases/' + SLUG
@@ -182,95 +179,26 @@ class IndividualHoldTests(unittest.TestCase):
                 self.hold(code, raw=raw, acc=access(raw))
 
 
-class LifecycleReceiptTests(unittest.TestCase):
-    """SYNTHETIC lifecycle binding: receipts beside the existing admitted record."""
+class ReleaseTextTests(unittest.TestCase):
+    """SYNTHETIC: the stored title/body rule custody rows must reproduce."""
 
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.db = Path(self.tmp.name) / 'pla_watch.db'
-        self.con = sqlite3.connect(self.db)
-        create_schema(self.con)
-        self.con.execute("""INSERT INTO uscc_official_source_records VALUES
-            (?,?,?,?,?,?,?,?,?)""", (ID, URL, DAY, 'us_china_economic_security_review_commission',
-            'www.uscc.gov', 'https://www.uscc.gov/press-releases', DAY, 'b' * 40,
-            'official_link_only'))
-        self.con.commit()
+    def test_release_text_is_the_single_article_title_and_body_strings(self):
+        title, body = Q.release_text(page())
+        self.assertEqual(title, 'Invented example')
+        self.assertIn(NARRATIVE, body)
+        self.assertTrue(body.endswith('\n'))
+        m = run()['manifest']
+        self.assertEqual(m['title_sha256'], hashlib.sha256(title.encode()).hexdigest())
+        self.assertEqual(m['content_sha256'], hashlib.sha256(body.encode()).hexdigest())
 
-    def tearDown(self):
-        self.con.close()
-        self.tmp.cleanup()
+    def test_release_text_refuses_ambiguous_structure(self):
+        self.assertIsNone(Q.release_text(b'<html><body><p>No article.</p></body></html>'))
 
-    def admit(self, raw=RAW, ident=ID, supersedes=None, recorded='2026-11-07T00:00:00Z'):
-        return qualify_admitted(self.con, raw, source_identity=ident, access=access(raw),
-                                robots_txt=ROBOTS, custody_commit=COMMIT,
-                                recorded_utc=recorded, supersedes=supersedes)
-
-    def rows(self):
-        return self.con.execute("""SELECT capture_sha256, disposition, hold_code,
-            supersedes_capture_sha256, change_summary_json
-            FROM uscc_narrative_eligibility_receipts ORDER BY rowid""").fetchall()
-
-    def test_unadmitted_identity_holds_without_receipt(self):
-        with self.assertRaisesRegex(USCCInputHold, '^not_admitted_metadata_record$'):
-            self.admit(ident=ID + '-unadmitted')
-        with self.assertRaisesRegex(USCCInputHold, '^custody_commit_invalid$'):
-            qualify_admitted(self.con, RAW, source_identity=ID, access=access(),
-                             robots_txt=ROBOTS, custody_commit='x', recorded_utc='t')
-
-    def test_eligible_receipt_is_idempotent_and_hash_only(self):
-        receipt, potential = self.admit()
-        self.assertEqual(receipt['disposition'], 'eligible')
-        self.assertEqual(potential, run()['potential_input'])
-        self.assertEqual(self.admit()[0]['disposition'], 'eligible')  # same capture
-        self.assertEqual(len(self.rows()), 1)
-        dump = '\n'.join(self.con.iterdump())
-        for prose in (NARRATIVE, QUOTE, BOILER, 'Invented example', 'subtitle'):
-            self.assertNotIn(prose, dump)
-
-    def test_new_version_requires_explicit_supersession_and_records_change(self):
-        first, _ = self.admit()
-        changed = page(body=f'<p>{NARRATIVE}</p><p>Added invented fact.</p><p>{QUOTE}</p>'
-                            f'<p>{BOILER}</p>{SOCIAL}')
-        with self.assertRaisesRegex(USCCInputHold, '^supersession_unexplained$'):
-            self.admit(changed)
-        receipt, potential = self.admit(changed, supersedes=first['capture_sha256'],
-                                        recorded='2026-11-08T00:00:00Z')
-        self.assertEqual(receipt['disposition'], 'eligible')
-        self.assertIn('Added invented fact.', potential['narrative'])
-        self.assertEqual(receipt['change_summary']['paragraphs_before'], 5)
-        self.assertEqual(len(receipt['change_summary']['added_sha256']), 1)
-        self.assertEqual(self.rows()[-1][3], first['capture_sha256'])
-
-    def test_held_version_never_auto_reopens(self):
-        bad = page(body=f'<p>Prepared by Example Contractor.</p><p>{BOILER}</p>{SOCIAL}')
-        receipt, potential = self.admit(bad)
-        self.assertEqual((receipt['disposition'], receipt['hold_code'], potential),
-                         ('held', 'authorship_indicator_present', None))
-        receipt, potential = self.admit(RAW, supersedes=receipt['capture_sha256'])
-        self.assertEqual((receipt['disposition'], receipt['hold_code'], potential),
-                         ('held', 'prior_version_held', None))
-        # Re-qualifying the recorded held capture stays held and adds no row.
-        receipt, potential = self.admit(RAW, supersedes=receipt['capture_sha256'])
-        self.assertEqual((receipt['disposition'], receipt['hold_code'], potential),
-                         ('held', 'prior_version_held', None))
-        self.assertEqual(len(self.rows()), 2)
-
-    def test_url_and_date_come_from_lifecycle_record(self):
-        self.con.execute("UPDATE uscc_official_source_records SET publisher_posted_date='2026-07-25'")
-        receipt, potential = self.admit()
-        self.assertEqual((receipt['hold_code'], potential), ('source_date_mismatch', None))
-
-    def test_public_projection_is_unchanged_by_receipts(self):
-        before = load_public_links(self.db)
-        self.admit()
-        self.con.commit()
-        self.assertEqual(load_public_links(self.db), before)
-        cols = {r[1] for r in self.con.execute(
-            'PRAGMA table_info(uscc_narrative_eligibility_receipts)')}
-        self.assertFalse(cols & {'title', 'narrative', 'body', 'text', 'summary'})
-        with self.assertRaises(sqlite3.IntegrityError):
-            self.con.execute("""UPDATE uscc_narrative_eligibility_receipts
-                SET model_transmission_authorized=1""")
+    def test_retired_receipt_lane_is_gone(self):
+        # The shared Daily lifecycle (core.uscc_press_links + m0024) replaced
+        # the earlier receipts table; no second USCC version store remains.
+        for name in ('qualify_admitted', 'derive_input', 'create_receipt_schema'):
+            self.assertFalse(hasattr(Q, name), name)
 
 
 FIXTURE = json.loads((Path(__file__).resolve().parent / 'fixtures'
@@ -294,13 +222,24 @@ class AcceptedRegressionFixtureTests(unittest.TestCase):
         self.assertNotIn('uscc_accepted_regression_versions', src)
 
 
+def load_ledger(root):
+    """The private qualification ledger: a staged ledger.json or the archive's ledger/*.json."""
+    staged = root / 'ledger.json'
+    if staged.is_file():
+        return json.loads(staged.read_text())
+    found = sorted((root / 'ledger').glob('uscc-qualification-*.json'))
+    if len(found) != 1:
+        raise unittest.SkipTest('private evidence needs exactly one qualification ledger')
+    return json.loads(found[0].read_text())
+
+
 @unittest.skipUnless(EVIDENCE, 'AUTHENTIC replay needs IPR_USCC_PRIVATE_EVIDENCE (private custody)')
 class AuthenticPrivateReplayTests(unittest.TestCase):
     """AUTHENTIC: preserved private captures; asserts hashes and dispositions only."""
 
     def test_accepted_versions_reproduce_and_june_25_holds(self):
         root = Path(EVIDENCE)
-        ledger = json.loads((root / 'ledger.json').read_text())
+        ledger = load_ledger(root)
         robots = (root / 'captures' / (ledger['robots_sha256'] + '.bin')).read_bytes()
         seen = {}
         for r in ledger['releases']:

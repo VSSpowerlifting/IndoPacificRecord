@@ -1,5 +1,36 @@
 # DECISION_LOG — Indo-Pacific Record
 
+## 2026-11-14 — USCC narrative path built into the shared Daily, disabled (engineering record; no activation)
+
+**What changed.** The 7 November qualifier-based adoption candidate (PR #1000)
+now runs inside the shared Daily lifecycle as family `us_uscc_press_en`, and
+its separate receipts table is retired. This PR carries #1000's policy entries
+and supersedes it. Adoption stays founder-reserved and takes effect only on
+founder merge. The standing engineering merge delegation does not cover it.
+
+Two identities are added to the individual holds the 4 November assessment
+already names: the 26 August and 22 September releases, as third-party
+expression ("Components that stay held individually", item 1).
+
+**Engineering judgment on viability.** Proceed, as a sparse source. The path is
+proven end to end on the two accepted July versions, using authentic captures
+and a labelled test-double model. The listing holds 13 releases since April
+2025, and only about five are plain institutional announcements; most
+report-announcement releases are expected to hold as linked works. Whether to
+relax that exclusion is a founder policy question. The code does not decide it.
+
+**Not authorized or done.**
+- model transmission, provider or spend;
+- recurring capture;
+- seeding production custody from the 3 November archive;
+- the private collector and processing-matrix row;
+- manifest registration;
+- setting the policy flags or `US_USCC_LINKS_ENABLED`;
+- any production write or publication.
+
+Details: `docs/engineering/USCC_OFFICIAL_METADATA_COLLECTION_2026-10-15.md`,
+"Implementation state".
+
 ## 2026-11-13 — Owner: temporary 125 KB delivery budget for record/476.html
 
 The owner wrote in this task: "Approve, merge it". That approves PR #1055, which

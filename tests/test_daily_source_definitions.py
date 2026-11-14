@@ -14,22 +14,25 @@ AFP, NSC, KEMHAN = "ph_afp_articles", "ph_nsc_official_statements", "id_kemhan_n
 DAPA = "kr_policy_dapa_releases"
 MINDEF = "sg_mindef_releases"
 JCG = "jp_jcg_press_en"
+USCC = "us_uscc_press_en"
 
 
 class SourceDefinitions(unittest.TestCase):
     def test_registry_matches_policy_and_private_signer_exports(self):
-        self.assertEqual(list(SOURCES), [AFP, NSC, KEMHAN, DAPA, MINDEF, JCG])
+        self.assertEqual(list(SOURCES), [AFP, NSC, KEMHAN, DAPA, MINDEF, JCG, USCC])
         self.assertEqual(set(d.load_policy()["sources"]), set(SOURCES))
         # The private signer reads these module-level names from this module.
         self.assertEqual(d.REFS, {AFP: "archive/ph-afp", NSC: "archive/ph-nsc",
                                   KEMHAN: "archive/indonesia-kemhan",
                                   DAPA: "archive/korea-dapa-policy-briefing",
                                   MINDEF: "archive/singapore-mindef-daily",
-                                  JCG: "archive/japan-jcg"})
+                                  JCG: "archive/japan-jcg",
+                                  USCC: "archive/uscc-press"})
         self.assertEqual([s.key_env for s in SOURCES.values()],
                          ["DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "DAILY_ID_KEMHAN_NEWS_KEY", "DAILY_KR_POLICY_DAPA_RELEASES_KEY",
-                          "DAILY_SG_MINDEF_RELEASES_KEY", "DAILY_JP_JCG_PRESS_EN_KEY"])
+                          "DAILY_SG_MINDEF_RELEASES_KEY", "DAILY_JP_JCG_PRESS_EN_KEY",
+                          "DAILY_US_USCC_PRESS_EN_KEY"])
         self.assertEqual(d.PUBLIC_FIELDS[:3],
                          ("source_family", "source_identity", "metadata_version_sha256"))
 

@@ -583,20 +583,49 @@ shared-file change.
   `unrecognized_release_structure`, links or media in narrative hold) and
   non-narrative forms (testimony, speeches, remarks, op-eds hold).
 - **Output.** Private `potential_input` (title, canonical URL, date, narrative
-  paragraphs only) plus a hash-only manifest (`ipr-uscc-family-potential-input/2`)
+  paragraphs only) plus a hash-only manifest (`ipr-uscc-family-potential-input/3`,
+  which adds the title hash)
   recording every paragraph's index, hash and inclusion or exclusion reason. The
   manifest states `complete_original_input`, `model_transmission_authorized` and
   `publication_authorized` false, `public_scope` `official_link_only` and the
   90-word note cap as an output limit.
-- **Lifecycle integration.** `qualify_admitted(con, raw, …)` reads URL and date
-  from the existing `uscc_official_source_records` row (unadmitted identities
-  hold), and writes one row per capture to `uscc_narrative_eligibility_receipts`
-  (FK to that table, hash-only manifest, custody commit, `public_scope` and
-  `model_transmission_authorized` fixed by CHECK constraints). Re-qualifying the
-  same capture is idempotent; a differing result raises. Any held version keeps
-  the release held (`prior_version_held`); a changed version must name the
-  latest receipt it supersedes and records a paragraph-hash change summary. The
-  caller commits; no public loader or renderer reads this table.
+- **Lifecycle integration (14 November 2026 review candidate).** The
+  qualifier runs inside the shared Daily lifecycle as family
+  `us_uscc_press_en`, replacing the 7 November receipts table
+  (`qualify_admitted`, `derive_input` and `uscc_narrative_eligibility_receipts`
+  are retired; nothing had been merged or written with them). The path:
+  1. **Custody.** `core.uscc_press_links.custody_row` / `write_custody` put a
+     capture into the shared custody layout on branch `archive/uscc-press`:
+     `state/shadow.db`, content-addressed `state/captures`, and the robots
+     capture. The access receipt goes in `metadata_json`, and the title and
+     text come from `release_text`, the qualifier's own rule. Custody is
+     append-only.
+  2. **Qualification at the pin.** `links_from_custody` replays `qualify` for
+     every row on its pinned bytes. Eligible rows carry the narrative only
+     under the private `_narrative` key. Held rows carry a `uscc_<code>` hold
+     and no prose. The source's `approved_input` sends the model the narrative
+     alone. The family profile `US_USCC_DAILY_PROFILE` and prompts
+     `us-uscc-relevance-v1+us-uscc-analysis-v1` attribute every sentence to
+     "USCC".
+  3. **Parents.** `scripts/uscc_press_links.py sign|admit` carries identity,
+     URL, date and hashes only. Admission requires the same identity, URL and
+     listing date in `uscc_official_source_records`. Migration m0024 creates
+     `uscc_press_source_records` with CHECKs for:
+     - the canonical `/press-releases/<slug>` URL;
+     - the issuer;
+     - the three individually held identities.
+
+     It also re-issues the machine-record parent triggers. A changed version
+     holds its parent, which withdraws the record.
+  4. **Processing and admission.** The family reuses the shared Daily
+     processing, QA (`english_official_quality` plus a USCC attribution and
+     flag check), HMAC envelopes, `admit` and `daily_machine_records.load`.
+  5. **Reader surfaces.** The US desk machine section, a "Machine explanation
+     published above" annotation on the matching official link, a USCC
+     exclusion note on the Record page, and the Archive and search projection.
+
+  Off by default: policy flags false, `US_USCC_LINKS_ENABLED` unset, and
+  `desk_registered=False`.
 
 **Demonstrated.** Offline replay of the two preserved accepted captures through
 the family qualifier reproduces their accepted potential-input digests exactly
@@ -606,8 +635,59 @@ all labelled as such, cover positive eligibility, every hold code, changed and
 truncated captures, leakage of excluded components, receipt integrity and
 isolation from public loading.
 
-**Not demonstrated.** No additional authentic routine release was available
-without new acquisition, so general-family success rests on two regression
-positives and one authentic hold. Template drift, quotation provenance and actual
-drafting authorship remain open (see "Gaps that remain"). No note was generated,
-no model called and nothing published.
+**Demonstrated (14 November 2026, `tests/test_uscc_press_daily.py`).**
+Synthetic contracts cover:
+- definition and switches;
+- the m0024 CHECKs and triggers;
+- custody holds: linked work, authorship, no narrative, individually held
+  identity, tampered capture, and unreproduced text;
+- one-per-run delivery;
+- replay without duplication;
+- changed-version withdrawal;
+- MAC refusal;
+- attempt-preserving recovery;
+- leak scans;
+- a production render.
+
+The opt-in authentic replay (`IPR_USCC_PRIVATE_EVIDENCE`) imports the
+preserved 11-03 captures into scratch custody. It binds them to the tracked
+database's real listing rows and runs them through the production lane and
+renderer, with a labelled test double (`synthetic-offline-rehearsal`) in place
+of the model. Results:
+- July 18 and July 25 qualify with their accepted potential-input hashes;
+  June 25 holds (`uscc_source_specific_hold`).
+- Exactly the two narratives reach the test double.
+- Both versions reach the desk, Record pages and Archive/search index.
+- A third cycle is `ok_all_duplicates`.
+- A recaptured July 25 holds its parent and withdraws only that record.
+- No title or body line reaches public files, the database or the handoff.
+
+**Listing reconciliation (14 November 2026).**
+- **Scheduled receipts.** The 23 scheduled metadata receipts from 15 October
+  to 13 November show an identical ten-row listing; the newest release is
+  dated 22 September 2026.
+- **Collector outage.** Runs from 23 to 30 October failed: Python 3.9 setup
+  was unavailable on the runner image. That was a collector failure, fixed by
+  the 30 October Python migration. No identity was missed: the 22 October and
+  30 October listings are identical.
+- **Live listing check.** A bounded check of the live listing with the
+  declared agent, robots-permitted, found page 0 at ten rows and page 1 at
+  three (2026-01-05, 2025-05-14, 2025-04-15); later pages are empty. The
+  family is 13 releases since April 2025. Every listed release link parsed,
+  so this is a quiet publisher, not a parser failure.
+- **Robots.** The robots hash is unchanged since 3 November (`8e8cb58d…`).
+- **Classification by slug.** Five releases are institutional announcements:
+  two July trips and three appointments. Eight announce reports, fact sheets
+  or guides. Three of those eight are held by identity, and the qualifier is
+  expected to hold most of the rest as linked works.
+- **Source yield.** The family can support a sparse, genuine milestone, but
+  its yield is unproven and probably low.
+
+**Not demonstrated.**
+- Only the two July versions are authentic positives. The other ten listed
+  releases have no authorized capture, so their dispositions are inferred
+  from slugs, not qualified.
+- No live model was called, no production custody exists, and nothing was
+  activated, registered or published.
+- Template drift, quotation provenance and actual drafting authorship remain
+  open (see "Gaps that remain").

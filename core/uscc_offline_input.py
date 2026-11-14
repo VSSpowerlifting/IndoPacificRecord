@@ -8,9 +8,13 @@ exact-two adapter; the two 11-03 versions remain regression cases in tests.
 
 No network, model, acquisition, output writer or publication path exists here.
 The caller supplies bytes already in private custody plus the capture-bound
-access receipt recorded at retrieval. `qualify_admitted` binds qualification to
-the existing `uscc_official_source_records` lifecycle row and records a
-hash-only receipt; narrative text is returned in memory only and never stored.
+access receipt recorded at retrieval. The runtime caller is the shared Daily
+links adapter (``core.uscc_press_links.links_from_custody``): it qualifies every
+custody row at the pinned commit, passes eligible narrative only under a private
+``_``-prefixed key that the lifecycle strips before anything is persisted, and
+returns held rows with their fixed code so they never reach a model. Version,
+attempt and hold state live in the shared queue and the link-only parent
+(m0024), not here; this module keeps no state of its own.
 
 Qualification attaches to one exact captured version. The 90-word figure is an
 output size limit on a later note, not a legal basis or an authorization.
@@ -31,9 +35,19 @@ DECISION = ('DECISION_LOG.md#2026-11-04--founder-uscc-standing-family-assessment
 CHECKS = ('first_party_identity', 'official_narrative', 'verifiable_structure',
           'authorship_indicators', 'access_conditions', 'source_specific_exclusions')
 # Check 6: identity-keyed holds. Each stays held individually; never auto-reopened.
+# The June 25 glossary announcement is outside the 11-03 decision. The standing-
+# family assessment names the 2026-08-26 and 2026-09-22 announcements as releases
+# that credit an external author or organization ("Components that stay held
+# individually", item 1); they are held by identity here, not only by pattern.
+_ASSESSMENT = ('docs/engineering/USCC_OFFICIAL_METADATA_COLLECTION_2026-10-15.md'
+               '#components-that-stay-held-individually')
 HELD_IDENTITIES = {
     'uscc-press:press-release-plain-english-guide-ai-tech-stack':
         'DECISION_LOG.md#2026-11-03--owner-exact-two-uscc-narrative-source-use-assessment-accepted',
+    'uscc-press:press-release-dalai-lamas-succession-geopolitical-implications-and-policy':
+        _ASSESSMENT,
+    'uscc-press:press-release-new-report-chinas-gray-zone-threats-trans-pacific-undersea-cables':
+        _ASSESSMENT,
 }
 SOCIAL_HOSTS = frozenset({'x.com', 'twitter.com', 'www.twitter.com', 'instagram.com',
                           'www.instagram.com', 'linkedin.com', 'www.linkedin.com',
@@ -56,8 +70,6 @@ ACCESS_GATE = 'input[type=password],[class*=paywall],[id*=paywall]'
 ACCESS_KEYS = frozenset({'capture_sha256', 'payload_bytes', 'requested_url', 'final_url',
                          'http_status', 'content_type', 'retrieved_utc', 'user_agent',
                          'robots_sha256'})
-HEX64 = re.compile(r'[0-9a-f]{64}\Z')
-HEX40 = re.compile(r'[0-9a-f]{40}\Z')
 
 
 class USCCInputHold(ValueError):
@@ -75,6 +87,26 @@ def _sha(raw):
 
 def _canon_json(value):
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()
+
+
+def release_text(raw):
+    """(title, text) of the one release body in a capture, or None.
+
+    The single derivation shared by custody writing and qualification: the body
+    ``h2`` as ``get_text(' ', strip=True)`` and every body string joined with LF
+    plus a terminal LF, which is the text whose SHA-256 ``qualify`` reports as
+    ``content_sha256`` (the 11-03 archived ``originals/<sha>.txt`` rule). None
+    when the page does not hold exactly one release article, body and title; the
+    qualifier then holds the capture with its own fixed code.
+    """
+    if type(raw) is not bytes:
+        return None
+    articles = BeautifulSoup(raw, 'html.parser').select('article.press-release.full')
+    bodies = articles[0].select('.field--name-body') if len(articles) == 1 else []
+    titles = bodies[0].select('h2') if len(bodies) == 1 else []
+    if len(titles) != 1:
+        return None
+    return titles[0].get_text(' ', strip=True), '\n'.join(bodies[0].stripped_strings) + '\n'
 
 
 def _check_access(raw, url, access, robots_txt):
@@ -187,12 +219,13 @@ def qualify(raw, *, source_identity, canonical_url, publication_date, access, ro
     potential = {'title': title, 'canonical_url': canonical_url,
                  'publication_date': publication_date,
                  'narrative': '\n\n'.join(values[i] for i in included)}
-    manifest = {'schema': 'ipr-uscc-family-potential-input/2', 'policy': POLICY,
+    manifest = {'schema': 'ipr-uscc-family-potential-input/3', 'policy': POLICY,
                 'decision_reference': DECISION, 'checks_passed': list(CHECKS),
                 'source_identity': source_identity, 'canonical_url': canonical_url,
                 'publication_date': publication_date,
                 'capture_sha256': access['capture_sha256'],
                 'content_sha256': _sha((body_text + '\n').encode()),
+                'title_sha256': _sha(title.encode()),
                 'access_receipt_sha256': _sha(_canon_json(access)),
                 'robots_sha256': access['robots_sha256'],
                 'paragraph_text_sha256': hashes,
@@ -204,103 +237,3 @@ def qualify(raw, *, source_identity, canonical_url, publication_date, access, ro
                 'publication_authorized': False, 'public_scope': 'official_link_only',
                 'potential_note_max_words': 90}
     return {'potential_input': potential, 'manifest': manifest}
-
-
-def derive_input(raw, *, source_identity, canonical_url, publication_date, access, robots_txt):
-    """Compatibility name for the retired exact-two entry point; same six checks."""
-    return qualify(raw, source_identity=source_identity, canonical_url=canonical_url,
-                   publication_date=publication_date, access=access, robots_txt=robots_txt)
-
-
-# --- Lifecycle binding: hash-only receipts beside the admitted metadata rows ---
-
-def create_receipt_schema(con):
-    con.execute("""CREATE TABLE IF NOT EXISTS uscc_narrative_eligibility_receipts (
-        source_identity TEXT NOT NULL REFERENCES uscc_official_source_records(source_identity),
-        capture_sha256 TEXT NOT NULL,
-        disposition TEXT NOT NULL CHECK (disposition IN ('eligible','held')),
-        hold_code TEXT,
-        policy TEXT NOT NULL,
-        decision_reference TEXT NOT NULL,
-        custody_commit_sha TEXT NOT NULL,
-        manifest_json TEXT,
-        supersedes_capture_sha256 TEXT,
-        change_summary_json TEXT,
-        recorded_utc TEXT NOT NULL,
-        public_scope TEXT NOT NULL CHECK (public_scope='official_link_only'),
-        model_transmission_authorized INTEGER NOT NULL CHECK (model_transmission_authorized=0),
-        PRIMARY KEY (source_identity, capture_sha256),
-        CHECK ((disposition='eligible') = (hold_code IS NULL)),
-        CHECK ((disposition='eligible') = (manifest_json IS NOT NULL))
-    )""")
-
-
-def qualify_admitted(con, raw, *, source_identity, access, robots_txt, custody_commit,
-                     recorded_utc, supersedes=None):
-    """Qualify a capture of an admitted USCC record and record a hash-only receipt.
-
-    URL and date come from the existing lifecycle row, never from the caller.
-    Returns (receipt, potential_input_or_None). Same capture is idempotent. A new
-    capture of an identity with an eligible version must name the version it
-    supersedes; one with any held version stays held for individual review.
-    """
-    _need(type(custody_commit) is str and HEX40.fullmatch(custody_commit), 'custody_commit_invalid')
-    row = con.execute("""SELECT canonical_official_url, publisher_posted_date
-        FROM uscc_official_source_records WHERE source_identity=?""",
-        (source_identity,)).fetchone() if con.execute("""SELECT 1 FROM sqlite_master
-        WHERE type='table' AND name='uscc_official_source_records'""").fetchone() else None
-    _need(row is not None, 'not_admitted_metadata_record')
-    _need(type(raw) is bytes, 'access_receipt_mismatch')
-    create_receipt_schema(con)
-    url, day = row
-    capture = _sha(raw)
-    prior = con.execute("""SELECT capture_sha256, disposition, manifest_json, hold_code
-        FROM uscc_narrative_eligibility_receipts WHERE source_identity=?
-        ORDER BY rowid""", (source_identity,)).fetchall()
-    hold, result = None, None
-    try:
-        result = qualify(raw, source_identity=source_identity, canonical_url=url,
-                         publication_date=day, access=access, robots_txt=robots_txt)
-    except USCCInputHold as exc:
-        hold = str(exc)
-    manifest = None if hold else result['manifest']  # hashes, indices, reasons only
-    same = [p for p in prior if p[0] == capture]
-    if same:
-        if same[0][1] == 'held':
-            # A recorded hold is final for this capture, whatever it recomputes to.
-            return _receipt(source_identity, capture, same[0][3], None, None, None), None
-        _need(not hold and same[0][2] == json.dumps(manifest, sort_keys=True),
-              'recorded_receipt_changed')
-        return _receipt(source_identity, capture, None, manifest, None, None), (
-            result['potential_input'])
-    change = None
-    if any(p[1] == 'held' for p in prior):
-        hold, manifest = hold or 'prior_version_held', None
-    elif prior:
-        latest = prior[-1]
-        _need(supersedes == latest[0], 'supersession_unexplained')
-        if not hold:
-            old = json.loads(latest[2])['paragraph_text_sha256']
-            new = manifest['paragraph_text_sha256']
-            change = {'paragraphs_before': len(old), 'paragraphs_after': len(new),
-                      'removed_sha256': sorted(set(old) - set(new)),
-                      'added_sha256': sorted(set(new) - set(old))}
-    else:
-        _need(supersedes is None, 'supersession_unexplained')
-    con.execute("""INSERT INTO uscc_narrative_eligibility_receipts VALUES
-        (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (source_identity, capture, 'held' if hold else 'eligible', hold, POLICY, DECISION,
-         custody_commit, None if hold else json.dumps(manifest, sort_keys=True),
-         supersedes if prior and not any(p[1] == 'held' for p in prior) else None,
-         None if change is None else json.dumps(change, sort_keys=True),
-         recorded_utc, 'official_link_only', 0))
-    return _receipt(source_identity, capture, hold, manifest, supersedes, change), (
-        None if hold else result['potential_input'])
-
-
-def _receipt(identity, capture, hold, manifest, supersedes, change):
-    return {'source_identity': identity, 'capture_sha256': capture,
-            'disposition': 'held' if hold else 'eligible', 'hold_code': hold,
-            'policy': POLICY, 'manifest': manifest, 'supersedes_capture_sha256': supersedes,
-            'change_summary': change, 'public_scope': 'official_link_only',
-            'model_transmission_authorized': False}
