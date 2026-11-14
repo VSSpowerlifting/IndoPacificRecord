@@ -54,12 +54,14 @@
 
     {# What the page holds, layer by layer, each marked with where it came
        from. Every row is drawn from a stored field the sections below render;
-       nothing here claims material the page does not show. #}
+       nothing here claims material the page does not show. A note appears
+       only when it adds something the link and its label do not already say;
+       the citation is reached from "Cite this record" above. #}
     <nav class="reader-contents record-layers" aria-label="On this record page">
       <h2 class="record-layers-title">On this page</h2>
       <ul>
         {% if record.summary_english %}
-        <li><a href="#record-summary">Summary</a><span class="evidence evidence--model">Machine summary</span><span class="layer-note">A model's reading of the original text</span></li>
+        <li><a href="#record-summary">Summary</a><span class="evidence evidence--model">Machine summary</span></li>
         {% endif %}
         {% if record.vietnam and record.vietnam.translation_published and record.vietnam.text_english %}
         <li><a href="#record-translation">English translation</a><span class="evidence evidence--model">Machine translation</span><span class="layer-note">Checked by automated QA; not reviewed by a human</span></li>
@@ -67,20 +69,19 @@
         <li><a href="#record-translation">Full text in English</a><span class="evidence evidence--model">Machine translation</span><span class="layer-note">The Korean original governs</span></li>
         {% endif %}
         {% if record.korea_identity %}
-        <li><a href="#record-text">Korean original</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Official text, on its own page</span></li>
+        <li><a href="#record-text">Korean original</a><span class="evidence evidence--record">Source record</span><span class="layer-note">On its own page</span></li>
         {% elif record.vietnam and record.vietnam.original_withheld %}
         <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not republished here; read it at the source</span></li>
         {% elif is_mindef %}
         <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not published on this site</span></li>
         {% elif record.has_text %}
-        <li><a href="#record-text">Stored source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Captured from the source page</span></li>
+        <li><a href="#record-text">Stored source text</a><span class="evidence evidence--record">Source record</span></li>
         {% else %}
         <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not captured; read it at the source</span></li>
         {% endif %}
         {% if record.in_trails %}
-        <li><a href="#record-analysis">IPR analysis</a><span class="evidence evidence--analysis">Analysis</span><span class="layer-note">{{ 'Cited in a Brief' if brief_refs else "Listed in an issue's source trail" }}</span></li>
+        <li><a href="#record-analysis">In IPR analysis</a><span class="evidence evidence--analysis">Analysis</span><span class="layer-note">{{ 'Cited in a Brief' if brief_refs else "Listed in an issue's source trail" }}</span></li>
         {% endif %}
-        <li><a href="#record-citation">Citation</a><span class="layer-note">Ready to copy</span></li>
         <li><a href="#record-provenance">Provenance and processing</a><span class="layer-note">Collection dates, models and fingerprints</span></li>
       </ul>
     </nav>
@@ -217,25 +218,25 @@
       {# Two claims, two blocks: the item as its publisher issued it, and the
          record as this corpus holds it. Both are plain selectable text; the
          copy buttons do not exist without JavaScript. #}
-      <p class="meta">Cite the original item. Add the second citation when you
-      relied on text, translations or labels held on this page.</p>
+      <p class="meta">Cite the original item. Add the IPR record when you relied
+      on text, translations or labels shown here.</p>
       <div class="cite-block">
-        <p class="cite-label">The original item</p>
+        <p class="cite-label" id="cite-source-label">The original item</p>
         <p class="cite-text" id="cite-source-text">{{ cite.source_text }}</p>
-        <button type="button" class="cite-copy" data-copy="cite-source-text" hidden>Copy citation</button>
+        <button type="button" class="cite-copy" data-copy="cite-source-text" aria-describedby="cite-source-label" hidden>Copy citation</button>
         <p class="cite-status" role="status" aria-live="polite"></p>
       </div>
       <div class="cite-block">
-        <p class="cite-label">This record on IPR</p>
+        <p class="cite-label" id="cite-held-label">This record on IPR</p>
         <p class="cite-text" id="cite-as-held">{{ cite.as_held }}</p>
-        <button type="button" class="cite-copy" data-copy="cite-as-held" hidden>Copy citation</button>
+        <button type="button" class="cite-copy" data-copy="cite-as-held" aria-describedby="cite-held-label" hidden>Copy citation</button>
         <p class="cite-status" role="status" aria-live="polite"></p>
       </div>
       <p class="meta"><b>Note.</b> {{ cite.note }}</p>
       <p class="meta">The record number and this record path are locators inside
-      the {{ snapshot.date }} snapshot. Neither is a DOI, accession number, permanent
-      identifier, public permalink, or published route. See the
-      <a href="../corpus-guide.html#citation">citation guide</a>.</p>
+      the {{ snapshot.date }} snapshot, not a DOI, accession number, permanent
+      identifier, public permalink, or published route.
+      <a href="../corpus-guide.html#citation">Citation guide</a></p>
     </section>
 
     {# Technical provenance, closed until a reader asks for it. Every field

@@ -3175,7 +3175,7 @@ class TestTransitionalArchiveIsTruthful(PreviewCase):
         html = self.page("archive.html")
         lede = re.sub(r"\s+", " ", html.split('class="lede"', 1)[1]
                       .split("</p>", 1)[0])
-        self.assertIn("official texts, preserved as published. Search by title in English or the original language.", lede)
+        self.assertIn("records of official publications. Some include the source text; others only describe the publication.", lede)
         self.assertIn("{:,}".format(self.corpus_size), lede)
         self.assertNotIn("recent sample", html)
         self.assertNotIn("the list is complete", html)
@@ -3705,7 +3705,7 @@ class TestCorpusBrowserMarkup(PreviewCase):
         self.assertIn("remain accessible through the week-by-week browse",
                       re.sub(r"\s+", " ", error))
         empty = html.split('id="no-results"', 1)[1].split("</p>", 1)[0]
-        self.assertIn("No records match these filters", empty)
+        self.assertIn("No records match.", empty)
         self.assertNotIn("could not be loaded", empty)
 
     def test_language_codes_render_as_editorial_labels(self):
@@ -4376,7 +4376,7 @@ class TestBrowserRejectsMalformedIndex(PreviewCase):
             self.assertTrue(page.is_visible("#no-results"))
             self.assertEqual(page.inner_text("#result-range").strip(), "")
             self.assertEqual(page.text_content("#result-live"),
-                             "No records match these filters.")
+                             "No records match.")
             self.assertFalse(page.is_visible("#page-next"))
         finally:
             page.close()
@@ -4664,10 +4664,9 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
         # line wrap inside the paragraph cannot break the guard.
         flat = re.sub(r"\s+", " ", authored)
         self.assertIn("The record number and this record path are locators "
-                      "inside the %s snapshot." % self.corpus_edge, flat)
-        self.assertIn("Neither is a DOI, accession number, permanent "
-                      "identifier, public permalink, or published route.",
-                      flat)
+                      "inside the %s snapshot, not a DOI, accession number, "
+                      "permanent identifier, public permalink, or published "
+                      "route." % self.corpus_edge, flat)
 
     def test_shard_and_index_headings_and_captions_stay_guarded(self):
         week = self.corpus["weeks"][0]

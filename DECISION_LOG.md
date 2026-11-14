@@ -7,9 +7,10 @@ Supersedes the navigation order in the 2026-09-27 entry ("Navigation", item
 
 1. **Navigation.** Records · Briefs · Desks · Methodology · About. "Briefs" is
    the destination formerly labelled "Analysis" (`analysis.html`). Sources and
-   Coverage are reached from Methodology (which they mark as current), Team
-   from About. The footer gains "Reusing this material" (`about.html#reuse`)
-   and one line saying source texts remain under their publishers' terms.
+   Coverage are reached from Methodology (which they mark as current, and
+   whose header links to both), Team from About. The footer gains "Reusing
+   this material" (`about.html#reuse`); it makes no blanket statement about
+   who owns source material.
 2. **Record page.** Publisher and original source first, then one action row
    (Open original source · Cite this record · Copy link), then a list of the
    material available on that page. Machine output gets one explanation where
@@ -21,10 +22,20 @@ Supersedes the navigation order in the 2026-09-27 entry ("Navigation", item
    unchanged.
 4. **Home search** submits `scope=all`, so it searches every preserved
    record, as its caption now says, instead of only the Research focus.
+5. **Records, not texts.** Archive entries are called records, because some
+   hold only a publication's details and no source text. When a search finds
+   nothing, the finder offers one recovery that fits its scope: from the
+   Research focus, search the full record; from a wider scope, clear the
+   search and filters (the scope is kept). Either way, focus returns to the
+   search box, as it does after the other filter controls.
 
-Reuse wording on About restates `CONTENT_AND_DATA_RIGHTS.md` §1–5 and adds no
-right. Whether machine translations and summaries may be reused is not
-decided by current policy; the page stays silent on it.
+Reuse wording on About summarizes `CONTENT_AND_DATA_RIGHTS.md` §1–5 in plain
+language and adds no right. It does not say that publishers own every text,
+quotation or image: source material stays subject to whatever law, licence or
+terms apply. Notices that qualify one source stay beside that source's
+material. Whether machine-generated summaries, translations and explanations
+may be reused is a separate, undecided policy question; the page says only
+that its summary does not cover them.
 
 ## 2026-11-13 — Indonesia Kemhan QA: "diselenggarakan" supports held/conducted; "pembinaan latihan" is exercise development
 

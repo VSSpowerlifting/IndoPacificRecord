@@ -6,7 +6,7 @@
 {% block head_scripts %}<link rel="stylesheet" href="relief.css"><link rel="stylesheet" href="archive.css">{% endblock %}
 {% block main_class %} class="archive-page"{% endblock %}
 {% block content %}
-<header class="page-head"><h1>The record.</h1><p class="lede">{{ corpus_total | count }} official texts, preserved as published. Search by title in English or the original language.</p><p class="finder-note">Results start in the <strong>Research focus</strong>: {{ focus.all_focus | count }} records selected automatically ({{ focus.china_focus | count }} from the China Desk, {{ (focus.all_focus - focus.china_focus) | count }} from other desks). The selection is not individually fact-checked or editor-approved. Choose Full preserved record to search all {{ corpus_total | count }}.</p></header>
+<header class="page-head"><h1>The record.</h1><p class="lede">{{ corpus_total | count }} records of official publications. Some include the source text; others only describe the publication.</p><p class="finder-note">Search starts in the <strong>Research focus</strong>: {{ focus.china_focus | count }} records from the China Desk and {{ (focus.all_focus - focus.china_focus) | count }} from other desks, selected automatically. The selection is not individually fact-checked or editor-approved.</p></header>
 {# The finder. `#browse` and the form both ship `hidden`; browse.js reveals
    them, so with JavaScript off no control ever appears operative when nothing
    can operate it. The newest records below are rendered on the server and
@@ -130,7 +130,7 @@
     <p><b>All published material</b> adds IPR Briefs, registered originals,
     reviewed English texts and links to official pages. The status, institution,
     language and analysis filters apply only to source records.</p>
-      <p>Counts are stored, deduplicated documents: not events, not independent
+      <p>Counts are stored, deduplicated records: not events, not independent
       corroboration and not an institution's total output. Sources and
       institutions overlap: one institution can publish through more than one
       source, so their counts are not mutually exclusive categories. Original
@@ -170,9 +170,12 @@ accessible through the week-by-week browse above.</p>
   {{ record_days(archive_first, desk_by_source) }}
 </div>
 
-<div id="no-results" class="no-results" hidden><p><b>No records match these filters.</b>
-Remove a filter, widen the dates, search the Full preserved record, or try the
-title in its original language.</p></div>
+{# One recovery per scope: browse.js sets data-scope and handles the button
+   values ("all" widens the focus; "clear" keeps the scope and clears the
+   rest). archive.css shows only the line that fits. #}
+<div id="no-results" class="no-results" hidden><p><b>No records match.</b></p>
+<p class="no-results-focus"><button type="button" value="all">Search all {{ corpus_total | count }} records</button></p>
+<p class="no-results-wide"><button type="button" value="clear">Clear the search and filters</button></p></div>
 
 <nav id="pager" class="pager" aria-label="Result pages">
   <button type="button" id="page-prev" hidden>Previous page</button>
