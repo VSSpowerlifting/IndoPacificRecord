@@ -3414,17 +3414,36 @@ def build(out_dir: Path, title: str, db_path: Path,
             # The admitted URL/date-only entries are repetitive; keep every
             # source, publisher and date, but compact layout whitespace and
             # omit the per-row "metadata only" refrain already explained above.
-            # The all-route 120 KB budget remains unchanged.
+            # Each row keeps its identity, official URL, rel="noopener
+            # noreferrer", "Kemhan Berita official source" label, publisher
+            # attribution and <time datetime>; it opens in the same tab and
+            # the repeated "Official date" label is stated once above the list.
+            # indonesia.html alone has a temporary 130 KB owner cap
+            # (DECISION_LOG 2026-11-13); every other route keeps its budget.
             pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
             matches = re.findall(pattern, desk_page)
             if len(matches) != len(regional_official_links):
                 raise ValueError("Indonesia admitted-index markup/count mismatch")
+
+            def compact(match):
+                item = (re.sub(r'\s*\n\s*', ' ', match.group(0))
+                        .replace(' · Official-link metadata only', '')
+                        .replace(' target="_blank"', '')
+                        .replace(' · Official date <time', ' · <time'))
+                return re.sub(r'>\s+<', '><', item)
+
+            desk_page = re.sub(pattern, compact, desk_page)
             desk_page = re.sub(
-                pattern,
-                lambda m: re.sub(r'\s*\n\s*', ' ', m.group(0))
-                         .replace(' · Official-link metadata only', ''),
-                desk_page,
-            )
+                r'(</li>)\s+(?=<li data-regional-official-source-id="kemhan:)',
+                r'\1', desk_page)
+            admitted_list = ('<ol class="desk-reference-list" '
+                             'aria-label="Admitted official publisher references">')
+            if desk_page.count(admitted_list) != 1:
+                raise ValueError("Indonesia admitted-index list is not unique")
+            desk_page = desk_page.replace(
+                admitted_list,
+                '<p class="meta">Each date below is the official date.</p>\n  '
+                + admitted_list)
         (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
 

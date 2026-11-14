@@ -37,6 +37,54 @@ material. Whether machine-generated summaries, translations and explanations
 may be reused is a separate, undecided policy question; the page says only
 that its summary does not cover them.
 
+## 2026-11-13 — Owner: temporary 130 KB delivery budget for indonesia.html
+
+The owner wrote in this task: “I approve a temporary 130,000-byte HTML/CSS
+cap for indonesia.html only, with the compaction already on #1052.”
+
+**Scope.** The allowance applies only to the root `indonesia.html` route
+(`scripts/verify_frontend_delivery.py`, `INDONESIA_HTML_CSS_CAP` in
+`html_css_cap`). Every other desk page keeps 120 KB, as do any nested path
+named `indonesia.html`, records, Briefs and week pages. Hubs keep 300 KB,
+individual dossiers keep 200 KB and the JS caps are unchanged.
+`tests/test_briefs_enrichment.py` checks two things: the allowance covers only
+that route, and `indonesia.html` is still rejected at 130,001 bytes.
+
+**Why.** Each verified Kemhan link admitted to the Indonesia desk page adds
+another row, and nightly batches have run from 1 to 6 links. Bot commit
+`dd89e95e24` took the page to 122,109 bytes, which failed the Daily offline
+suite. #1052 compacts each row's markup and keeps, for every link:
+- its source identity;
+- the official URL with `rel="noopener noreferrer"`;
+- the "Kemhan Berita official source" label;
+- the publisher;
+- the `<time datetime>`.
+
+The links now open in the same tab, and the repeated "Official date" label
+appears once, above the list.
+
+**Measured at approval.** The committed route is 119,172 bytes:
+- 72,834 bytes of HTML
+- `styles.css`, 31,620
+- `surfaces.css`, 5,630
+- `indonesia-shell.css`, 3,672
+- `desk-references.css`, 3,561
+- `fonts.css`, 1,855
+
+A fresh preview render measures 118,824 bytes. A new row costs 503 bytes at
+the average URL length and 664 at the longest. A simulation on the committed
+page measured two scenarios:
+- the pending Latopsfib machine card (989 bytes): 120,161;
+- that card plus six longest-URL rows: 124,145, which leaves 5,855 bytes
+  under the cap.
+
+**Temporary, not a precedent.** At the recent mean of 2.4 links a night
+(about 1.2 KB), the headroom left after the card lasts about a week. More
+machine cards, up to the desk's five, would use some of it. The lasting fix
+is to move older admitted links to their own route. That change touches the
+link-production workflow's row check and the readback contracts. Before the
+headroom runs out, return to the owner rather than raising this cap.
+
 ## 2026-11-13 — Indonesia Kemhan QA: "diselenggarakan" supports held/conducted; "pembinaan latihan" is exercise development
 
 **Evidence.** No Kemhan record has completed since the 23 October Record. The

@@ -127,9 +127,14 @@ class TestRosterMatchesConfiguration(DeskCase):
                 if active and access_method != "manual":
                     self.assertIn(desk_id, collecting)
 
+    # The two Japan sources production is authorized to know: the MOD news-feed
+    # registration and the Japan Coast Guard English releases (#1045,
+    # migration m0023). Any other Japan source still fails this contract.
+    AUTHORIZED_JAPAN_SOURCES = frozenset({"jp_mod_news_ja", "jp_jcg_press_en"})
+
     def test_japan_has_no_fetched_source_and_no_articles(self):
-        """The only Japan source production may know is the manual news-feed
-        registration for governed link admission. Nothing fetches it and no
+        """Production may know only the authorized Japan sources, each a manual
+        registration for governed link admission. Nothing fetches them and no
         Japan article row may exist."""
         with self.db() as con:
             japan = con.execute(
@@ -138,7 +143,7 @@ class TestRosterMatchesConfiguration(DeskCase):
             articles = con.execute(
                 "SELECT COUNT(*) FROM articles a JOIN sources s ON s.id = a.source_id "
                 "WHERE s.desk_id IN ('japan', 'philippines', 'indonesia')").fetchone()[0]
-        self.assertLessEqual({slug for slug, _ in japan}, {"jp_mod_news_ja"})
+        self.assertLessEqual({slug for slug, _ in japan}, self.AUTHORIZED_JAPAN_SOURCES)
         self.assertTrue(all(method == "manual" for _, method in japan))
         self.assertEqual(articles, 0)
 
