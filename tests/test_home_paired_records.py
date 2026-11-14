@@ -417,7 +417,9 @@ class TestReviewedHome(HomeCase):
         self.assertIn('name="scope" value="published"', self.home)
         self.assertNotIn('name="scope" value="all"', self.home)
         self.assertIn('Search covers titles across all published material: the {:,} preserved '
-                      'records plus IPR Briefs'.format(expected), self.home)
+                      'records plus everything else the Archive lists, including IPR Briefs'.format(expected), self.home)
+        # Most official links are desk links, not citations: say both.
+        self.assertIn('links to official pages and the sources Briefs cite', self.home)
         self.assertIn('aria-describedby="home-search-scope"', self.home)
         self.assertNotIn('each record links to its original source', self.home)
         self.assertIn('Coverage is selective', self.home)

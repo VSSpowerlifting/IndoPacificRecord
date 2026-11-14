@@ -16,8 +16,10 @@ only recovery cleared the query.
 
 1. **Home search** submits `scope=published` with the same title-contains
    `q`. The scope is a superset: it holds every preserved record plus Briefs,
-   published originals, reviewed English texts and cited sources. The caption
-   says so. The figure shown is still the preserved-record count, and cited
+   Dossiers, published originals and translations, machine explanations,
+   links to official pages (most of them desk links, not citations) and the
+   sources Briefs cite. The caption says so, without claiming the list is
+   complete. The figure shown is still the preserved-record count, and cited
    material is not added into it.
 2. **Empty state.** The scopes nest. When the current scope has no match, the
    finder offers "Search all published material (N matching)" whenever that
