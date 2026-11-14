@@ -3418,7 +3418,8 @@ def build(out_dir: Path, title: str, db_path: Path,
             # noreferrer", "Kemhan Berita official source" label, publisher
             # attribution and <time datetime>; it opens in the same tab and
             # the repeated "Official date" label is stated once above the list.
-            # The all-route 120 KB budget remains unchanged.
+            # indonesia.html alone has a temporary 130 KB owner cap
+            # (DECISION_LOG 2026-11-13); every other route keeps its budget.
             pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
             matches = re.findall(pattern, desk_page)
             if len(matches) != len(regional_official_links):

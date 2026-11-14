@@ -7,7 +7,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from PIL import Image
 from core.frontend_budget import measure_page
-from scripts.verify_frontend_delivery import verify
+from scripts.verify_frontend_delivery import html_css_cap, verify
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -137,3 +137,24 @@ class CompleteDelivery(unittest.TestCase):
             limits = {v['route']: (v['html_css_limit'], v['js_limit']) for v in values['routes']}
             self.assertEqual(limits['dossier/within.html'], (200000, 10000))
             self.assertEqual(limits['dossier/plain.html'], (200000, 10000))
+
+    def test_indonesia_allowance_covers_only_the_root_desk_page(self):
+        # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only.
+        for route, cap in (('indonesia.html', 130000), ('philippines.html', 120000),
+                           ('korea.html', 120000), ('desks/indonesia.html', 120000),
+                           ('record/indonesia.html', 120000), ('desks.html', 300000)):
+            self.assertEqual(html_css_cap(route), cap, route)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'nested').mkdir()
+            (root / 'indonesia-shell.css').write_text('x' * 40000)
+            link = '<link rel="stylesheet" href="indonesia-shell.css">'
+            (root / 'indonesia.html').write_text(link + 'x' * (130000 - 40000 - len(link)))
+            (root / 'philippines.html').write_text('x' * 120001)
+            (root / 'nested/indonesia.html').write_text('x' * 120001)
+            values = verify(root)
+            self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
+                             {'philippines.html': 120000, 'nested/indonesia.html': 120000})
+            (root / 'indonesia.html').write_text(link + 'x' * (130001 - 40000 - len(link)))
+            failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
+            self.assertEqual(failed['indonesia.html'], 130001)
