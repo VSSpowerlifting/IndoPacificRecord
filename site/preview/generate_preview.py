@@ -2824,7 +2824,7 @@ def build(out_dir: Path, title: str, db_path: Path,
     dossiers, dossiers_withheld = load_dossiers(
         db_path, {e["slug"]: e for e in collection.briefs},
         review_path=review_dossier, related_timelines={t["slug"]: t for t in timelines},
-        **dossier_options)
+        briefs_dir=briefs_dir, **dossier_options)
     dossier_records, dossier_briefs = defaultdict(list), defaultdict(list)
     for item in dossiers:
         for rec in item["ledger"]:
