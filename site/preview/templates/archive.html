@@ -170,12 +170,15 @@ accessible through the week-by-week browse above.</p>
   {{ record_days(archive_first, desk_by_source) }}
 </div>
 
-{# One recovery per scope: browse.js sets data-scope and handles the button
-   values ("all" widens the focus; "clear" keeps the scope and clears the
-   rest). archive.css shows only the line that fits. #}
+{# One recovery per search. The scopes nest, so when the current one is empty
+   browse.js asks whether all published material has matches: if it does it
+   sets data-wide="true" and writes their number into #wider-count, and the
+   first button switches to that scope keeping the query; if not, the second
+   keeps the scope and clears the search and filters. archive.css shows only
+   the line that fits. #}
 <div id="no-results" class="no-results" hidden><p><b>No records match.</b></p>
-<p class="no-results-focus"><button type="button" value="all">Search all {{ corpus_total | count }} records</button></p>
-<p class="no-results-wide"><button type="button" value="clear">Clear the search and filters</button></p></div>
+<p class="no-results-wide"><button type="button" value="published">Search all published material (<span id="wider-count"></span> matching)</button></p>
+<p class="no-results-clear"><button type="button" value="clear">Clear the search and filters</button></p></div>
 
 <nav id="pager" class="pager" aria-label="Result pages">
   <button type="button" id="page-prev" hidden>Previous page</button>

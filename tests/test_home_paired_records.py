@@ -409,10 +409,17 @@ class TestReviewedHome(HomeCase):
         self.assertIn('selected-ipr/ipr-ivory-', str(soup.header))
 
     def test_current_snapshot_and_search_scope(self):
-        self.assertIn('{:,} preserved records'.format(gp.snapshot_from_corpus(TRACKED_DB)['expected_records']), self.home)
-        self.assertIn('Search covers titles.', self.home)
-        self.assertIn('each record links to its original source', self.home)
-        self.assertIn('name="scope" value="all"', self.home)
+        expected = gp.snapshot_from_corpus(TRACKED_DB)['expected_records']
+        self.assertIn('{:,} preserved records'.format(expected), self.home)
+        # Home search starts in the widest Archive scope, so a topic reaches
+        # its Briefs and cited sources; the corpus count stays the
+        # preserved-record count and cited material is not added into it.
+        self.assertIn('name="scope" value="published"', self.home)
+        self.assertNotIn('name="scope" value="all"', self.home)
+        self.assertIn('Search covers titles across all published material: the {:,} preserved '
+                      'records plus IPR Briefs'.format(expected), self.home)
+        self.assertIn('aria-describedby="home-search-scope"', self.home)
+        self.assertNotIn('each record links to its original source', self.home)
         self.assertIn('Coverage is selective', self.home)
         self.assertIn('concentrated in Chinese sources', self.home)
 
