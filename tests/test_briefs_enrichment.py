@@ -139,7 +139,7 @@ class CompleteDelivery(unittest.TestCase):
             self.assertEqual(limits['dossier/plain.html'], (200000, 10000))
 
     def test_record_476_allowance_covers_only_that_record(self):
-        # Proposed owner allowance: temporary 125 KB for record/476.html only.
+        # Owner, DECISION_LOG 2026-11-13 (#1055): temporary 125 KB for record/476.html only.
         for route, cap in (('record/476.html', 125000), ('record/475.html', 120000),
                            ('record/4760.html', 120000), ('record/1476.html', 120000),
                            ('nested/record/476.html', 120000), ('476.html', 120000),

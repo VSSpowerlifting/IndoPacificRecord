@@ -23,8 +23,7 @@ DOSSIER_HTML_CSS_CAP = 200000
 # allowance for the root Indonesia desk page only, while its admitted Kemhan
 # link list grows. Every other desk, record and nested route keeps its cap.
 INDONESIA_HTML_CSS_CAP = 130000
-# Proposed owner allowance (pending founder approval; see the PR and the
-# DECISION_LOG entry that must accompany its merge): temporary 125 KB
+# Owner authorization, DECISION_LOG 2026-11-13 (PR #1055): temporary 125 KB
 # HTML+CSS for record/476.html only. That page carries 54,211 bytes of
 # preserved stored source text (the 20 May 2026 China-Russia joint
 # statement) and sat 656 bytes under 120 KB before the #1053 Record CSS.
