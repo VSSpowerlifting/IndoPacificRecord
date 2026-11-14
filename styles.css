@@ -465,7 +465,7 @@ html.js-reveal [data-reveal] { opacity: 1; transform: none; }
 .nav-desktop>a{color:var(--ink);text-decoration:none;position:relative;padding:17px 0}
 .nav-desktop>a[aria-current]::after{content:'';position:absolute;inset:auto 0 9px;height:2px;background:var(--accent)}
 .shell-menu{font:600 14px/1.5 var(--sans)}
-.shell-menu summary{padding:17px 0;cursor:pointer;min-height:44px}
+.shell-menu summary{padding:17px 0;cursor:pointer;min-height:44px;list-style:none}.shell-menu summary::-webkit-details-marker{display:none}
 .nav-more{position:relative}.nav-more>div{position:absolute;right:0;top:54px;width:210px;background:var(--surface);border:1px solid var(--rule);padding:12px 20px}
 .nav-more a{display:block;padding:10px 0;color:var(--ink);text-decoration:none;min-height:44px}
 .nav-mobile{display:none}.nav-mobile>nav{position:absolute;inset:100px 0 auto;background:var(--bg);padding:18px var(--gutter);border-block:1px solid var(--rule)}
