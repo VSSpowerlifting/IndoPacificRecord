@@ -132,6 +132,10 @@ authority. The separately tracked Pages writer race/guard work is not resolved
 or activated by this implementation; assess the then-current deployer before
 an authorized release.
 
+## China–Singapore revision 2
+
+On 13 November 2026 Benjamin Yang approved revision 2 of the thematic dossier (draft digest `b4f0c920…`, approved digest `27debfde…`) and the narrow projection for linked pages x10–x17, and raised the individual-dossier HTML+CSS cap to 230,000 bytes. Receipts are in `DECISION_LOG.md` and `core/dossier_decisions.py`. The case study stays at revision 2.
+
 ## MINDEF citations and the whole-work hold
 
 The MINDEF signed-editorial hold (#913, `core.mindef_public_boundary.editorial_hold`)
