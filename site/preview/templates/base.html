@@ -35,17 +35,17 @@
 <link rel="stylesheet" href="{{ root }}surfaces.css">
 {% block head_scripts %}{% endblock %}
 </head>
-{% set shell_dark = page == 'index.html' or timeline_surface | default(false) %}
 {% block body_open %}<body{% if page == 'index.html' %} class="page-home"{% endif %}>{% endblock %}
 <a class="skip" href="#main">Skip to content</a>
-<div class="publication-status"><span>Independent publication</span>{% if snapshot is defined and corpus_total is defined %}<span>Corpus snapshot: {{ snapshot.date | reader_date }} · {{ corpus_total | count }} records</span>{% endif %}</div>
-<header class="masthead{% if shell_dark %} masthead--dark{% endif %}">
+{# One navy masthead on every page (2026-11-14): the ivory mark, the name on
+   one line, and the dateline that says how current the record is. #}
+<header class="masthead masthead--dark">
+  <div class="publication-status"><span>Independent publication</span>{% if snapshot is defined and corpus_total is defined %}<span>{{ corpus_total | count }} records, as of {{ snapshot.date | reader_date }}</span>{% endif %}</div>
   <div class="wrap header-inner">
-    {% set logo_color = 'ivory' if shell_dark else 'navy' %}
     <a class="brand" href="{{ root }}index.html" aria-label="{{ title }} home">
-      <img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png"
-           srcset="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png 160w, {{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-320.png 320w"
-           sizes="(max-width:500px) 56px, 72px" width="160" height="{{ 133 if shell_dark else 130 }}" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
+      <img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-ivory-160.png"
+           srcset="{{ root }}assets/identity/selected-ipr/ipr-ivory-160.png 160w, {{ root }}assets/identity/selected-ipr/ipr-ivory-320.png 320w"
+           sizes="(max-width:500px) 44px, 52px" width="160" height="133" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
       <span class="brand-name">Indo-Pacific<span>Record</span></span>
     </a>
     {# Five destinations, named for what a reader comes to do (2026-11-13):
@@ -62,7 +62,7 @@
     <nav class="nav-desktop" aria-label="Primary">
       {{ links() }}
     </nav>
-    <details class="shell-menu nav-mobile"><summary>Menu <span aria-hidden="true">☰</span></summary>
+    <details class="shell-menu nav-mobile"><summary>Menu</summary>
       <nav aria-label="Primary">{{ links() }}</nav>
     </details>
   </div>
@@ -85,7 +85,7 @@
 {% block after_content %}{% endblock %}
 </main>
 {% if run_status %}
-<details class="publication-freshness wrap"><summary>Collection and processing dates</summary>
+<details class="publication-freshness wrap"><summary>When this record was last updated</summary>
 <aside class="freshness-bar" aria-label="How current the record is">
   <div class="wrap">
     {# The labels are not shortened: these three dates exist precisely because
@@ -119,12 +119,15 @@
 {% endif %}
 <footer class="site">
   <div class="wrap">
-    {# The colophon opens on the publication's name. A div rather than a
-       heading: the page's outline is complete without it. Nothing here may
-       describe the site as unpublished; PR #32 published it. #}
+    {# The colophon opens on the one qualification every page shares, then the
+       publication's name. A div rather than a heading: the page's outline is
+       complete without it. Nothing here may describe the site as unpublished;
+       PR #32 published it. #}
+    <p class="footer-standing">Coverage is selective. A record shows what an institution published, not whether its
+    claims are true or its capabilities exist.</p>
     <div class="footer-grid">
       <div>
-        <a class="brand brand--footer" href="{{ root }}index.html" aria-label="{{ title }} home"><img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-navy-160.png" width="160" height="130" loading="lazy" alt=""><span class="brand-name">Indo-Pacific<span>Record</span></span></a>
+        <a class="brand brand--footer" href="{{ root }}index.html" aria-label="{{ title }} home"><img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-ivory-160.png" width="160" height="133" loading="lazy" alt=""><span class="brand-name">Indo-Pacific<span>Record</span></span></a>
         <p class="colophon-tagline">{{ tagline }}</p>
 {% if team is defined %}
         <p>{{ title }} is an independent research project founded by {{ maintainer.name }} and produced with its
@@ -133,15 +136,14 @@
         <p>{{ title }} is an independent research project created and edited by
         {{ maintainer.name }} · <a href="mailto:{{ maintainer.email }}">{{ maintainer.email }}</a></p>
 {% endif %}
-        <p>Corrections and questions about any record are welcome at the same
-        address.</p>
+        <p>Send corrections and questions about any record to the same address.</p>
       </div>
       <nav class="footer-col" aria-label="The record">
         <h2>The record</h2>
         <ul>
           <li><a href="{{ root }}archive.html">Records</a></li>
           <li><a href="{{ root }}corpus.html">Records by week</a></li>
-          <li><a href="{{ root }}corpus-guide.html">Corpus Guide</a></li>
+          <li><a href="{{ root }}corpus-guide.html">Guide to the records</a></li>
           <li><a href="{{ root }}desks.html">Desks</a></li>
           <li><a href="{{ root }}sources.html"{% if page == 'sources.html' %} aria-current="page"{% endif %}>Sources</a></li>
           <li><a href="{{ root }}coverage.html"{% if page == 'coverage.html' %} aria-current="page"{% endif %}>Coverage</a></li>
@@ -169,8 +171,6 @@
         </ul>
       </nav>
     </div>
-    <p class="footer-standing">Coverage is selective. Publication records what an institution said, not whether its
-    claims are true or its capabilities exist.</p>
   </div>
 </footer>
 {% block scripts %}{% endblock %}

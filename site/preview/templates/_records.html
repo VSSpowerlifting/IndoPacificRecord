@@ -146,8 +146,14 @@
 </li>
 {%- endmacro %}
 
-{% macro record_days(records, desk_by_source=none, root='') -%}
+{# `key` prints the two column names above a list that holds at least one
+   title pair. The Records page passes key=false and prints its own, because
+   browse.js redraws everything inside its results region. #}
+{% macro record_days(records, desk_by_source=none, root='', key=true) -%}
 {% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
+{% set pair = namespace(found=false) %}
+{% for r in records %}{% if r.title_english and r.title_original and r.title_original.strip() != r.title_english.strip() %}{% set pair.found = true %}{% endif %}{% endfor %}
+{% if key and pair.found %}<p class="records-key" aria-hidden="true"><span>In English</span><span>As published</span></p>{% endif %}
 <div class="records-days">
 {% for date, group in records | groupby('published_date') | reverse %}
   <section class="records-day">

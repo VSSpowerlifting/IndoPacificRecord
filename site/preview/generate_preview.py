@@ -2975,6 +2975,11 @@ def build(out_dir: Path, title: str, db_path: Path,
         # truthful is a fact about the records, and a template that computes it
         # is a template that can be wrong quietly.
         "home_records": home_record_group(data["recent"]),
+        # The newest held record on each desk, for the home page's desk index.
+        # `data["corpus"]` is ordered newest first, so walking it backwards
+        # leaves each desk holding its newest row. Derived, never stored.
+        "desk_latest": {r["desk_id"]: r for r in reversed(data["corpus"])
+                        if r.get("desk_id")},
         "gaps": gaps,
         "source_facets": sorted(by_source.items()),
         "status_prose": STATUS_PROSE,
