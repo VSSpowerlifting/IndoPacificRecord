@@ -82,6 +82,17 @@ linked but not preserved in the corpus. They carry institution, publication date
 and URL only, and are listed separately from corpus records in Evidence and
 methods.
 
+One recorded exception (owner decision, `DECISION_LOG.md`, 14 November 2026):
+the private manuscripts `philippine-coast-guard-97m-patrol-vessels` and
+`escoda-shoal-2024` may also carry attributed press reports as external
+sources, only where the official original was unreachable. The claim names the
+official whose statement is relayed, and any characterisation that is the
+outlet's own is labelled as the outlet's. The outlets are registered as
+`independent_media` institutions with no sources, so nothing is collected from
+them. The two-manuscript limit is the recorded decision, not a code check:
+`reconcile_external_sources` accepts any registered institution. Any other
+dossier that wants press sources needs its own owner decision.
+
 ## Source evidence and exact approval
 
 `core/dossier_contract.py` remains the v1 shape/digest contract. Registered

@@ -108,6 +108,11 @@ INSTITUTION_TYPES = (
     "security_council",
     "state_news_agency",
     "state_linked_media",
+    # A news outlet that is neither a state news agency nor state-linked
+    # media. Registered only as the issuer of attributed press reports
+    # carried as Living Dossier external sources (DECISION_LOG.md,
+    # 2026-11-14); never a collected source.
+    "independent_media",
     "other",
 )
 
