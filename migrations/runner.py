@@ -301,6 +301,7 @@ def verify(conn: sqlite3.Connection) -> Dict[str, object]:
     from migrations.versions import m0021_dapa_daily_machine_parent as m21
     from migrations.versions import m0022_singapore_mindef_source_records as m22
     from migrations.versions import m0023_japan_jcg_source_records as m23
+    from migrations.versions import m0024_uscc_press_source_records as m24
     if table_exists(m21.TABLE) and m21.is_already_applied(conn):
         checks = [
             ("daily_machine_dapa_without_korea_parent", m21.dapa_parent_missing,
@@ -325,6 +326,14 @@ def verify(conn: sqlite3.Connection) -> Dict[str, object]:
             checks.append(("daily_machine_japan_jcg_without_parent",
                            m23.jcg_parent_missing, m23.TABLE,
                            "m.source_family = '%s'" % m23.FAMILY))
+        if m24.is_already_applied(conn):
+            # m0024 gave USCC press releases their own version-bound parent.
+            checks[1] = ("daily_machine_without_regional_parent", m24.regional_parent_missing,
+                         m21.REGIONAL_PARENT_TABLE, "m.source_family NOT IN ('%s','%s','%s','%s')"
+                         % (m21.DAPA_FAMILY, m22.FAMILY, m23.FAMILY, m24.FAMILY))
+            checks.append(("daily_machine_uscc_press_without_parent",
+                           m24.uscc_parent_missing, m24.TABLE,
+                           "m.source_family = '%s'" % m24.FAMILY))
         for key, missing, parent, family_sql in checks:
             # An absent parent table leaves every row of that kind orphaned.
             where = missing("m") if table_exists(parent) else family_sql

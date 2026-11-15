@@ -308,6 +308,28 @@ for a publisher-side reason unrelated to this branch. Generated
 Daily's migration step inserts the desk/institution/source rows and its render
 republishes.
 
+**USCC narrative path (review candidate, 14 November 2026; built disabled, not
+activated):** the 7 November qualifier now runs inside the shared Daily lifecycle
+as family `us_uscc_press_en` (`core/daily_sources.py`). It is not a separate
+receipts table, which this candidate retires. The links adapter
+(`core/uscc_press_links.links_from_custody`) re-qualifies each custody row
+against its pinned capture. Eligible rows carry the unquoted narrative
+privately and held rows carry a hold code. Migration m0024 adds the link-only
+parent `uscc_press_source_records`. Admission also requires the same identity,
+URL and date in the existing `uscc_official_source_records` metadata lane,
+which is unchanged. The U.S. desk renders admitted machine records, annotates
+the matching official links, and feeds the Archive and search projection.
+
+Every switch is off:
+- policy flags false;
+- `US_USCC_LINKS_ENABLED` unset;
+- `desk_registered=False`, so no governed admission and no run-result row;
+- no private collector or processing-matrix row.
+
+Activation is a separate founder decision. It covers model provider and spend,
+recurring capture, seeding production custody, the private companion, manifest
+registration, the policy flags and the switch.
+
 **Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
 manifest/registry entry; folding it in needs a dispatcher-side run attestation
 or an owner decision to drop that binding. The first scheduled Daily run on the

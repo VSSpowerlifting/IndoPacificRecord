@@ -266,6 +266,21 @@ JAPAN_JCG_DAILY_PROFILE = ScreeningProfile(
     source_family="jp_jcg_press_en", categories=jcg_prompts.CATEGORIES,
 )
 
+from analysis import uscc_daily_prompts as uscc_prompts
+
+# USCC institutional press releases in the shared Daily lane (switched off). The
+# U.S. desk has no desk-level profile: this family is its only screened input.
+US_USCC_DAILY_PROFILE = ScreeningProfile(
+    desk_id="us-indopacific", keyword_prefilter=False, daily_queue=False,
+    build_messages=uscc_prompts.relevance_messages,
+    prompt_version=uscc_prompts.RELEVANCE_VERSION,
+    build_system_prompt=uscc_prompts.system_prompt,
+    build_analysis_messages=uscc_prompts.analysis_messages,
+    build_analysis_system_prompt=uscc_prompts.system_prompt,
+    analysis_prompt_version=uscc_prompts.ANALYSIS_VERSION, source_language="en",
+    source_family="us_uscc_press_en", categories=uscc_prompts.CATEGORIES,
+)
+
 _PROFILES: Dict[str, ScreeningProfile] = {
     "china": CHINA_PROFILE,
     "singapore": SINGAPORE_PROFILE,
@@ -280,7 +295,8 @@ _PROFILES: Dict[str, ScreeningProfile] = {
 _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
 # Shared private-source Daily families take their desk's own profile, by their
 # source definition. A family without a definition never inherits one.
-_FAMILY_PROFILES = {p.source_family: p for p in (JAPAN_JCG_DAILY_PROFILE,)}
+_FAMILY_PROFILES = {p.source_family: p for p in (JAPAN_JCG_DAILY_PROFILE,
+                                                          US_USCC_DAILY_PROFILE)}
 for _s in DAILY_SOURCES.values():
     # A family on a desk without a desk-level profile must bring its own.
     _SOURCE_PROFILES[_s.family] = _FAMILY_PROFILES.get(_s.family) or _PROFILES[_s.desk_id]
