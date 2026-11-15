@@ -1,28 +1,28 @@
 {% extends "base.html" %}
 {% from "_atlas.html" import breadcrumb %}
 {% from "_weeks.html" import week_strip %}
-{% block title %}Corpus by week — {{ title }}{% endblock %}
+{% block title %}Records by week — {{ title }}{% endblock %}
 {% block content %}
 {{ breadcrumb([('Records', 'archive.html'), ('Records by week', none)]) }}
 <header class="page-head">
-  <p class="eyebrow eyebrow--corpus">{{ corpus_eyebrow }}</p>
-  <h1 class="page-name">Corpus by publication week</h1>
-  <p class="lede">All {{ corpus_total | count }} records held from collecting desks,
-  grouped by the publication date each source stated. Every record has its own page and
-  is reachable from the week lists below without JavaScript.</p>
+  <h1 class="page-name">Records by week</h1>
+  <p class="lede">All {{ corpus_total | count }} records held, grouped by the publication
+  date each source stated. Every record has its own page, and each week below lists its
+  records without JavaScript.</p>
 </header>
 
 {{ week_strip(weeks, volume_max, heading='h2', title='Publication weeks at a glance', reveal=false) }}
 
-<p>{{ snapshot_label }}. Records are not a measure of institutional output or of collection
-completeness. Some stored records were never screened, and some were screened and not selected
-for analysis; the processing status on each entry says which.</p>
+<p>{{ snapshot_label }}. The number of records is not a measure of what an institution
+published or of how complete this collection is. Some records have not been checked for
+relevance, and some were checked and not selected for analysis; the status on each record
+says which.</p>
 
 <h2>Publication weeks</h2>
 <div class="table-scroll">
 <table class="corpus-weeks">
-  <caption>Newest first. The run-date figure counts UTC calendar dates carrying at least one
-  recorded pipeline run; it is operational context, not a coverage denominator.</caption>
+  <caption>Newest first. Recorded run dates are UTC calendar dates with at least one
+  recorded pipeline run; they are operational context, not a coverage denominator.</caption>
   <thead>
     <tr>
       <th scope="col">Week</th>
@@ -44,10 +44,10 @@ for analysis; the processing status on each entry says which.</p>
 </table>
 </div>
 
-<h2>Processing states in this snapshot</h2>
+<h2>Where each record stands</h2>
 <div class="table-scroll">
 <table class="corpus-states">
-  <caption>Every stored record is in exactly one state. The four sum to the snapshot count.</caption>
+  <caption>Every record is in exactly one state. The four add up to the total above.</caption>
   <thead>
     <tr><th scope="col">State</th><th scope="col" class="num">Records</th><th scope="col">What it means</th></tr>
   </thead>

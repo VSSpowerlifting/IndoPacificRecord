@@ -1,18 +1,14 @@
 {% extends "base.html" %}
 {% set has_source_linked = collection.briefs|selectattr('source_linked')|list|length %}
 {% from "_plate.html" import edition_plate %}
-{% from "_terrain.html" import terrain %}
-{% from "_relief.html" import region_plate with context %}
 {% from "_catalogue_credit.html" import photo_credit %}
 {% block title %}Analysis — {{ title }}{% endblock %}
-{% block body_open %}<body class="page-briefs material-paper">{% endblock %}
+{% block body_open %}<body class="page-briefs">{% endblock %}
 {% block head_scripts %}
-<link rel="stylesheet" href="relief.css">
 <link rel="stylesheet" href="briefs-catalog.css">
-<script src="reveal.js"></script>
 {% if briefs_feed_route %}<link rel="alternate" type="application/atom+xml" title="{{ collection_name }}" href="{{ briefs_feed_route }}">{% endif %}{% endblock %}
 {% block main_class %} class="leads-with-hero"{% endblock %}
-{#- The landing page of Indo-Pacific Record Briefs, the one analysis
+{#- The contents page of Indo-Pacific Record Briefs, the one analysis
     publication. There is deliberately no separate briefs/index.html: it would
     list the same issues a second time, and Analysis is already the navigation
     item every brief page marks as current.
@@ -26,34 +22,27 @@
     and address is the one the issue was published with, and nothing is
     rewritten to look as though it appeared under another name.
 
-    Reading order: masthead and latest Brief, the catalog, how analysis is kept
-    apart from the record, and the operational tables last. -#}
+    Reading order: title and latest Brief, the full list, how analysis is kept
+    apart from the record, and the collection tables last. The page is paper,
+    rules and type: the jade rule and the one "Human-controlled analysis" label
+    mark the whole page as authored, so no row repeats it. A photograph appears
+    only where the catalogue-media decision admits one (core/catalogue_media.py);
+    a Brief without one has no picture. -#}
 
 {% block hero %}
 {% set lead = collection.lead %}
 {% set lead_row = collection.lead_row %}
-<section class="band briefs-head" aria-labelledby="briefs-title">
-  {{ terrain('hero', reveal=true) }}
-  <div class="wrap briefs-head-inner">
-    <div class="briefs-masthead">
-      {% if timelines or dossiers %}{% set analysis_current = 'briefs' %}{% include '_analysis_nav.html' %}{% endif %}
-      <p class="briefs-kicker">Analysis</p>
+<section class="catalog-head" aria-labelledby="briefs-title">
+  <div class="wrap">
+    {% if timelines or dossiers %}{% set analysis_current = 'briefs' %}{% include '_analysis_nav.html' %}{% endif %}
+    <header class="page-head">
+      <p class="evidence evidence--analysis">Human-controlled analysis</p>
       <h1 id="briefs-title" class="page-name">{{ collection_name }}</h1>
-      <p class="briefs-lede">{% if has_source_linked %}Human-controlled analysis with explicit sources and named editors. Briefs distinguish preserved corpus records from source-linked editorial references.{% else %}Human-controlled analysis built from preserved records.
-        Each Brief cites the records it rests on and names its editor.{% endif %}</p>
-      <p class="briefs-browse"><a href="#briefs-published">Browse all Briefs</a>{% if briefs_feed_route %} · <a href="{{ briefs_feed_route }}">Subscribe to the feed</a>{% endif %}</p>
-    </div>
+      <p class="lede">{% if has_source_linked %}Each Brief names its editor and shows its sources: records kept by Indo-Pacific Record, and links to pages on a publisher's own site.{% else %}Each Brief cites the records it rests on and names its editor.{% endif %}</p>
+    </header>
     {% if lead %}
     <article class="briefs-lead" aria-labelledby="briefs-lead-title">
-      <p class="briefs-label">{% if lead.is_review %}Review candidate{% else %}Latest Brief{% endif %}{% if lead.issue is not none %} · No. {{ lead.issue }}{% endif %}{% if lead.date %} · week ending {{ lead.date|reader_date }}{% endif %}</p>
-      <h2 id="briefs-lead-title"><a href="{{ lead.url }}"{% if lead_row.kind == 'issue' %} rel="noopener"{% endif %}>{{ lead.title or lead.slug }}</a></h2>
-      {% if lead.dek %}<p class="briefs-lead-dek">{{ lead.dek }}</p>{% endif %}
-      {% if lead.is_retrospective %}<p class="briefs-lead-note">{{ lead.retrospective_label }}</p>{% endif %}
-      <p class="briefs-lead-byline">{% if lead.author_name %}{{ lead.author_name }}{% else %}{{ maintainer.name }}{% endif %}{% if lead.desks %} · {% for slug in lead.desks %}{% set d = desks.get(slug) %}{{ d.name if d else slug }}{% if not loop.last %}{{ ' and ' if loop.length == 2 else ', ' }}{% endif %}{% endfor %}{% endif %}</p>
-      {% if lead_row.kind == 'issue' %}<p class="briefs-lead-note">Earlier Brief</p>{% endif %}
-      {% if lead.synthetic %}<p class="briefs-lead-note">Synthetic test fixture. Not a published brief.</p>{% endif %}
-      <p><a class="btn btn--primary" href="{{ lead.url }}"{% if lead_row.kind == 'issue' %} rel="noopener"{% endif %}>Read this Brief</a></p>
-      {#- The hero photograph is a catalogue surface too: it shows only what
+      {#- The lead photograph is a catalogue surface too: it shows only what
           the catalogue-media decision admits (core/catalogue_media.py), never
           an article cover by itself. -#}
       {% set lead_media = catalogue_media.get(lead.slug) if catalogue_media else none %}
@@ -64,23 +53,31 @@
         <figcaption>{{ photo_credit(lp) }}</figcaption>
       </figure>
       {% endif %}
-      {#- The issue drawn from its own sidecar, where one exists: one mark per
-          source-trail entry. It sits on paper inside the band, so its colors
-          are the ones it was drawn with. -#}
-      {% set plate = edition_plates.get(lead.slug) if edition_plates and lead_row.kind == 'issue' else none %}
-      {% if plate %}
-      <figure class="plate plate-paper briefs-lead-plate">
-        {{ edition_plate(plate, 'plate-analysis-lead', lead.series_name or predecessor_series) }}
-        <figcaption>One mark per record in this Brief's source trail. The tall marks are model-flagged: a software triage flag, not the editor's judgment.</figcaption>
-      </figure>
-      {% endif %}
+      <div class="catalog-lead-copy">
+        <p class="catalog-label">{% if lead.is_review %}Review candidate{% else %}Latest Brief{% endif %}{% if lead.issue is not none %} · No. {{ lead.issue }}{% endif %}{% if lead.date %} · week ending {{ lead.date|reader_date }}{% endif %}</p>
+        <h2 id="briefs-lead-title"><a href="{{ lead.url }}"{% if lead_row.kind == 'issue' %} rel="noopener"{% endif %}>{{ lead.title or lead.slug }}</a></h2>
+        {% if lead.dek %}<p class="catalog-lead-dek">{{ lead.dek }}</p>{% endif %}
+        <p class="briefs-lead-byline">{% if lead.author_name %}{{ lead.author_name }}{% else %}{{ maintainer.name }}{% endif %}{% if lead.desks %} · {% for slug in lead.desks %}{% set d = desks.get(slug) %}{{ d.name if d else slug }}{% if not loop.last %}{{ ' and ' if loop.length == 2 else ', ' }}{% endif %}{% endfor %}{% endif %}</p>
+        {% if lead.is_retrospective %}<p class="catalog-lead-note">{{ lead.retrospective_label }}</p>{% endif %}
+        {% if lead_row.kind == 'issue' %}<p class="catalog-lead-note">Earlier Brief</p>{% endif %}
+        {% if lead.synthetic %}<p class="catalog-lead-note">Synthetic test fixture. Not a published brief.</p>{% endif %}
+        <p class="catalog-lead-go"><a class="btn btn--primary" href="{{ lead.url }}"{% if lead_row.kind == 'issue' %} rel="noopener"{% endif %}>Read this Brief</a></p>
+        {#- The issue drawn from its own sidecar, where one exists: one mark per
+            source-trail entry. -#}
+        {% set plate = edition_plates.get(lead.slug) if edition_plates and lead_row.kind == 'issue' else none %}
+        {% if plate %}
+        <figure class="plate plate-paper catalog-lead-plate">
+          {{ edition_plate(plate, 'plate-analysis-lead', lead.series_name or predecessor_series) }}
+          <figcaption>One mark per record in this Brief's source trail. The tall marks are model-flagged: a software triage flag, not the editor's judgment.</figcaption>
+        </figure>
+        {% endif %}
+      </div>
     </article>
     {% else %}
-    <section class="briefs-empty" aria-labelledby="briefs-development">
+    <section class="catalog-empty" aria-labelledby="briefs-development">
       <h2 id="briefs-development">Briefs in development</h2>
       <p>{{ collection_name }} is in development, and no Brief has been published yet.
-        Draft Briefs are withheld from the public collection until approved: a draft has
-        no public page or feed entry.</p>
+        A draft has no public page or feed entry until it is approved.</p>
     </section>
     {% endif %}
   </div>
@@ -88,27 +85,21 @@
 {% endblock %}
 
 {% block content %}
-{% if dossiers %}<section class="analysis-dossiers" aria-labelledby="dossier-heading"><h2 id="dossier-heading">Dossiers</h2><p>Dossiers are a separate collection: bounded research questions with inspectable findings and reviewed revisions. <a href="dossiers.html">All dossiers</a></p>{% for d in dossiers if not d.parent_dossiers %}<p><a href="{{ d.route }}">{{ d.title }}</a> · {{ d.kind_label }}{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
 {% if collection.rows %}
-{% set n_rows = collection.rows|length %}
 <section class="briefs-index" aria-labelledby="briefs-published">
-  <h2 id="briefs-published">All Briefs</h2>
-  <p class="section-note">Newest reporting window first.{% if review_mode %} This private preview includes an unapproved candidate.{% endif %}</p>
-  <p class="brief-key"><span class="brief-key-term">Photograph</span> is a credited image, shown as visual context and never as evidence.
-    <span class="brief-key-term">Editorial plate</span> is original IPR map artwork where no source photograph is used.</p>
+  <div class="catalog-index-head">
+    <h2 id="briefs-published">All Briefs</h2>
+    {% if briefs_feed_route %}<a href="{{ briefs_feed_route }}">Subscribe to the feed</a>{% endif %}
+  </div>
+  <p class="catalog-index-note">Newest reporting window first.{% if review_mode %} This private preview includes an unapproved candidate.{% endif %}</p>
   <ol class="brief-cards">
   {% for row in collection.rows %}
   {% set e = row.entry %}
   {% set m = catalogue_media.get(e.slug) %}
     <li>
-      <article class="rl-brief brief-card" data-media="{{ m.kind if m else 'plate' }}">
-        <div class="brief-media" data-catalogue-media{% if m and m.is_photograph and m.photo.cover_treatment %} data-treatment="{{ m.photo.cover_treatment }}"{% endif %}>
-          <div class="rl-print">
-          {%- if m and m.is_photograph %}<img src="{{ m.photo.served }}" width="{{ m.photo.width }}" height="{{ m.photo.height }}" alt="{{ m.photo.alt }}" loading="lazy" decoding="async">
-          {%- else %}{{ region_plate(m.plate_desks if m else ['china']) }}{% if e.issue is not none %}<span class="brief-ghost" aria-hidden="true">{{ '%02d' % e.issue }}</span>{% endif %}{% endif -%}
-          </div>
-          <span class="brief-tag">{% if m and m.is_photograph %}Photograph{% else %}Editorial plate{% endif %}</span>
-        </div>
+      {#- `rl-brief` is a hook the collection tests count rows by; it carries
+          no style now that the relief stylesheet is not loaded here. -#}
+      <article class="rl-brief brief-card" data-media="{{ 'photograph' if m and m.is_photograph else 'none' }}">
         <div class="issue-ledger-meta">
           <span class="issue-no">{% if e.issue is not none %}No. {{ e.issue }}{% else %}Brief{% endif %}</span>
           <span class="visually-hidden">Week ending </span><time datetime="{{ e.date }}">{{ e.date|reader_date }}</time>
@@ -118,57 +109,62 @@
         <div class="issue-ledger-copy">
           <h3><a href="{{ e.url }}"{% if row.kind == 'issue' %} rel="noopener"{% endif %}>{{ e.title or e.slug }}</a></h3>
           {% if e.dek %}<p>{{ e.dek }}</p>{% endif %}
-          {% if e.desks %}<p class="meta">{% for slug in e.desks %}{{ desks.get(slug).name }}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
-          <p class="meta">{% if row.kind == 'issue' %}Earlier Brief{% else %}{{ row.provenance }}{% endif %}{% if e.synthetic %} · Synthetic test fixture{% endif %}</p>
+          <p class="meta">{% if e.desks %}{% for slug in e.desks %}{{ desks.get(slug).name }}{% if not loop.last %} · {% endif %}{% endfor %} · {% endif %}{% if row.kind == 'issue' %}Earlier Brief{% else %}{{ row.provenance }}{% endif %}{% if e.synthetic %} · Synthetic test fixture{% endif %}</p>
         </div>
-        <div class="brief-credit">
         {%- if m and m.is_photograph %}{% set ph = m.photo %}
+        <div class="brief-media" data-catalogue-media{% if ph.cover_treatment %} data-treatment="{{ ph.cover_treatment }}"{% endif %}><img src="{{ ph.served }}" width="{{ ph.width }}" height="{{ ph.height }}" alt="{{ ph.alt }}" loading="lazy" decoding="async"></div>
+        <div class="brief-credit">
           {{ photo_credit(ph) }}
-        {%- else %}
-          <p>No source photograph. Outlines from Natural Earth.</p>
-        {%- endif %}
         </div>
+        {%- endif %}
       </article>
     </li>
   {% endfor %}
   </ol>
-  {% if briefs_feed_route or editions %}<p class="meta">Feeds:
-    {% if briefs_feed_route %}<a href="{{ briefs_feed_route }}">{{ collection_name }}</a>{% endif %}{% if briefs_feed_route and editions %} · {% endif %}{% if editions %}<a href="{{ live_base }}/the-pla-watch/feed.xml" rel="noopener">Earlier edition feed</a>{% endif %}</p>{% endif %}
+  {% if editions %}<p class="meta catalog-index-foot"><a href="{{ live_base }}/the-pla-watch/feed.xml" rel="noopener">Earlier edition feed</a></p>{% endif %}
+</section>
+{% endif %}
+
+{% if dossiers %}
+<section class="analysis-dossiers" aria-labelledby="dossier-heading">
+  <h2 id="dossier-heading">Dossiers</h2>
+  <p>A dossier follows one research question over time, with findings a reader can check and dated revisions. <a href="dossiers.html">All dossiers</a></p>
+  <ul>{% for d in dossiers if not d.parent_dossiers %}<li><a href="{{ d.route }}">{{ d.title }}</a> <span class="meta">{{ d.kind_label }}{% if d.is_review %} · unpublished draft{% endif %}</span></li>{% endfor %}</ul>
 </section>
 {% endif %}
 
 <section class="briefs-method" aria-labelledby="briefs-method">
   <h2 id="briefs-method">How analysis is kept apart from the record</h2>
-  <ul class="layer-key">
-    <li><span class="evidence evidence--record">Source record</span> the item as published, with its
-        original language, canonical link and retrieval time. Not analysis.</li>
-    <li><span class="evidence evidence--claim">Official claim</span> an assertion by the publishing
-        institution, never rendered as established fact.</li>
-    <li><span class="evidence evidence--model">Machine output</span> translated titles,
-        translations and summaries produced by software. They can be wrong; the original text remains authoritative.</li>
-    <li><span class="evidence evidence--model">Model-flagged</span> a software triage cue,
-        separate from the editor's judgment. A flag does not establish the claim's importance or truth.</li>
-    <li><span class="evidence evidence--analysis">Editorial judgment</span> the editor's own reading, attributed and signed. The
-        edition label, Significant or Routine, is one of these, and is deliberately separate from
-        the article-level machine flag beside it.</li>
-  </ul>
-  <p class="meta">The full labeling rules and their limits are on
-  <a href="methodology.html">Methodology</a>.</p>
-  <p class="meta">Draft Briefs are withheld from the public catalog and feed until approved.</p>
+  <dl class="layer-key">
+    <div><dt><span class="evidence evidence--record">Source record</span></dt>
+      <dd>What an institution published, in its original language, with its link and the time it was retrieved. It is not analysis.</dd></div>
+    <div><dt><span class="evidence evidence--claim">Official claim</span></dt>
+      <dd>Something the publishing institution asserts. A Brief reports it as a claim, never as an established fact.</dd></div>
+    <div><dt><span class="evidence evidence--model">Machine output</span></dt>
+      <dd>Translated titles, translations and summaries made by software. They can be wrong; the original text is the authority.</dd></div>
+    <div><dt><span class="evidence evidence--model">Model-flagged</span></dt>
+      <dd>A software cue that a record may deserve a closer look. It does not make a claim important or true, and it is separate from the editor's judgment.</dd></div>
+    <div><dt><span class="evidence evidence--analysis">Editorial judgment</span></dt>
+      <dd>The editor's own reading, attributed and signed. An edition label, Significant or Routine, is one of these, and is separate from the machine flag on a single record.</dd></div>
+  </dl>
+  <p class="meta">The full labeling rules and their limits are on <a href="methodology.html">Methodology</a>. Draft Briefs are withheld from this page and the feed until approved.</p>
 </section>
 {% endblock %}
 
 {% block scripts %}<script src="shell.js" defer></script>{% endblock %}
 
 {% block after_content %}
-{#- Reference, after the catalog and the labeling key. DECISION_LOG 2026-09-23 point 7 keeps the
+{#- Reference, after the list and the labeling key. DECISION_LOG 2026-09-23 point 7 keeps the
     Series table with every desk row and the Collections table beside it; they
     describe how the page is organised rather than analysis to read, so they
-    close the page instead of interrupting it. Desk status itself lives on
-    Desks. -#}
+    close the page, folded, instead of interrupting it. Desk status itself
+    lives on Desks. -#}
 <div class="wrap briefs-reference">
   <section aria-labelledby="collections-and-desks">
   <h2 id="collections-and-desks">Collections and desks</h2>
+  <p class="meta">Briefs are one collection. A desk has a series of its own only once it holds enough records to read.</p>
+  <details class="catalog-tables">
+  <summary>Show the collection and series tables</summary>
   <h3 id="collections">Collections</h3>
   <div class="table-scroll">
   <table class="stacking">
@@ -216,7 +212,8 @@
   <p class="meta">A desk that does not collect publishes no analysis. There is nothing to read, and a
   placeholder would be an editorial claim nobody made. Each desk's collection status is on
   <a href="desks.html">Desks</a>.</p>
-  {% if has_source_linked %}<p class="meta">Source-linked editorial references belong to the Briefs collection. They do not add corpus records or change a desk's collection status.</p>{% endif %}
+  {% if has_source_linked %}<p class="meta">A link to a publisher's page belongs to the Brief that cites it. It adds no record to a desk and does not change what a desk collects.</p>{% endif %}
+  </details>
   </section>
 </div>
 {% endblock %}

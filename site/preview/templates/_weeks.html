@@ -1,9 +1,9 @@
 {# The week strip: stored records per publication week, as a row of links.
 
    It is navigation first — every bar opens that week's records — and a
-   disclosure second: bar height is the number of records this corpus HOLDS for
-   the week, which is collection volume. It is not institutional output, not
-   activity, and not a rate; the caption says so beside the bars, and the exact
+   disclosure second: bar height is the number of records held for the week.
+   It is not institutional output, not activity, and not a rate; the caption
+   says so beside the bars, in a reader's words, and the exact
    figure for every week is in each link's accessible name and in the week
    table the Records page carries.
 
@@ -32,7 +32,7 @@
 <figure class="week-strip"{% if reveal %} data-reveal{% endif %} aria-labelledby="week-strip-title-{{ heading }}">
   <figcaption class="week-strip-head">
     <{{ heading }} id="week-strip-title-{{ heading }}">{{ title }}</{{ heading }}>
-    <p>{{ note or 'Stored records per publication week. Bar height is collection volume — what this record holds — not activity, output or a rate.' }}</p>
+    <p>{{ note or 'Each bar is one publication week and opens that week\'s records. Its height is the number of records held for that week, not a measure of activity or output.' }}</p>
   </figcaption>
   <div class="week-scroll">
   <div class="week-plot">

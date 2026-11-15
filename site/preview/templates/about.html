@@ -5,58 +5,87 @@
 <h1 class="page-name">About</h1>
 <p class="lede">{{ tagline }}</p>
 </header>
-<div class="prose">
-<h2 class="plain">What this project does</h2>
+<nav class="reader-contents" aria-label="On this page">
+  <span>On this page</span>
+  <ul><li><a href="#what">What it is</a></li><li><a href="#who">Who publishes it</a></li>
+      <li><a href="#corrections">Corrections</a></li><li><a href="#reuse">Reuse</a></li>
+      <li><a href="#citing">Citing</a></li></ul>
+</nav>
+
+<section class="doc-section">
+<h2 id="what">What it is</h2>
+<div class="doc-body">
 <p>{{ title }} preserves official defense and security texts, with translations where available, and
 records what collection found, missed, or could not retrieve. Collection gaps are published because
 an archive with invisible gaps cannot support responsible comparison.</p>
+<p><strong>This is not comprehensive Indo-Pacific monitoring.</strong> It is a record of what a
+declared, published, checkable set of institutions said. Coverage is selective.</p>
+<p>An official statement shows what an institution said. It does not by itself establish policy,
+capability, intent, or whether a described event occurred. This project records what an
+institution declared, preserves the source, and keeps that record separate from any
+interpretation of it. <a href="methodology.html">Methodology</a> sets out how.</p>
+</div>
+</section>
+
+<section class="doc-section">
+<h2 id="who">Who publishes it</h2>
+<div class="doc-body">
+<p>{{ title }} was founded by {{ maintainer.name }}. Research, editorial review and communications are supported by its <a href="team.html">editorial team</a>. It is an independent research project.</p>
 <p>Founded in 2026 with a focus on official Chinese military and security publications, the
 project now organizes its records by geographic desk. The China Desk's original record remains
 available alongside newer regional coverage. Additional desks appear only after their sources
 are documented and collection reliability is established.</p>
-<p><strong>This is not comprehensive Indo-Pacific monitoring.</strong> It is a record of what a
-declared, published, checkable set of institutions said, with the gaps in that record shown rather
-than smoothed. Institutional authority is a claim about position, not truthfulness: this project
-records what an institution declared, preserves the source, and keeps that record separate from
-any interpretation of it.</p>
-<p>The project analyzes public institutional discourse. Official statements show what an institution
-said; they do not by themselves establish policy, capability, intent, or whether a described event
-occurred. Coverage is selective.</p>
+</div>
+</section>
 
-<h2>Editorial team</h2>
-<p>{{ title }} was founded by {{ maintainer.name }}. Research, editorial review and communications are supported by its <a href="team.html">editorial team</a>.</p>
-<p class="meta">Corrections and questions: <a href="mailto:{{ maintainer.email }}">{{ maintainer.email }}</a></p>
+<section class="doc-section">
+<h2 id="corrections">Corrections</h2>
+<div class="doc-body">
+<p>Send corrections and questions to
+<a href="mailto:{{ maintainer.email }}">{{ maintainer.email }}</a>.</p>
 <p>Corrections are made in the underlying source record and republished, rather than silently
 patched on the rendered page.</p>
+</div>
+</section>
 
+<section class="doc-section">
 <h2 id="reuse">Reusing this material</h2>
+<div class="doc-body">
 {# A plain summary of CONTENT_AND_DATA_RIGHTS.md §1–5. It describes terms; it
    grants nothing. Notices that apply to one source stay beside that source's
    material, not here. Reuse of machine-generated output is a separate,
    undecided policy question, so this summary does not answer it. #}
-<ul>
-  <li><b>Official source material</b> (texts, quotations, images and attachments) stays
-  subject to whatever law, licence or terms apply to it. IPR grants no right to reuse it.
-  Publication by a government, or on a public web page, does not by itself make material
-  free to reuse, so check the source first.</li>
-  <li><b>IPR Briefs, site text and original imagery</b> are copyright {{ maintainer.name }},
-  all rights reserved, unless an item is marked otherwise.</li>
-  <li><b>Facts</b>, such as that an exercise took place or that an official spoke on a given
-  date, belong to no one.</li>
-  <li><b>Record details</b> (addresses, dates, institutions, fingerprints and collection
-  evidence) are for research, verification and citation. They carry no right to the text
-  they describe.</li>
-  <li><b>The site's software</b> is under the MIT License, which covers the code only.</li>
-</ul>
+<dl class="terms terms--plain">
+  <div><dt>Official source material</dt>
+  <dd>Texts, quotations, images and attachments stay subject to whatever law, licence or terms
+  apply to them. IPR grants no right to reuse them. Publication by a government, or on a public
+  web page, does not by itself make material free to reuse, so check the source first.</dd></div>
+  <div><dt>IPR Briefs, site text and original imagery</dt>
+  <dd>Copyright {{ maintainer.name }}, all rights reserved, unless an item is marked
+  otherwise.</dd></div>
+  <div><dt>Facts</dt>
+  <dd>Facts, such as that an exercise took place or that an official spoke on a given date,
+  belong to no one.</dd></div>
+  <div><dt>Record details</dt>
+  <dd>Addresses, dates, institutions, content hashes and collection evidence are for research,
+  verification and citation. They carry no right to the text they describe.</dd></div>
+  <div><dt>The site's software</dt>
+  <dd>Under the MIT License, which covers the code only.</dd></div>
+</dl>
 <p>This summary does not cover machine output, such as automatic summaries, translations or explanations.</p>
+</div>
+</section>
 
+<section class="doc-section">
 <h2 id="citing">Citing a record</h2>
+<div class="doc-body">
 {% if citation %}
 <p class="cite-line">{{ snapshot_label }}. Cite as: {{ citation }}</p>
 {% endif %}
-<p class="meta">Use the snapshot date rather than a version number; no versioning rule has been
+<p class="meta">Cite the date shown, not a version number; no versioning rule has been
 established.</p>
-<p>Record-level and edition citation formats, the meaning of every stored field, and the corpus
-changelog are in the <a href="corpus-guide.html">Corpus Guide</a>.</p>
+<p>How to cite a single record or an edition, and what every stored field means, is in the
+<a href="corpus-guide.html#citation">Guide to the records</a>.</p>
 </div>
+</section>
 {% endblock %}

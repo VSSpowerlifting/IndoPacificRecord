@@ -1,72 +1,83 @@
 {% extends "base.html" %}
-{% from "_atlas.html" import spine %}
 {% block title %}Sources — {{ title }}{% endblock %}
 {% block content %}
 <header class="page-head">
 <h1 class="page-name">Sources</h1>
-<p class="lede">Which institutions are collected, how they are positioned, and what authority their
-publications carry. Each source is declared in advance with an institution, source type, language
-and collection purpose, and belongs to exactly one desk.</p>
+<p class="lede">The official channels this publication collects from, each named in English and
+as the institution itself writes it.</p>
 <p class="meta">{{ source_views|length }} sources declared across
-{{ desks.declared_count }} desks. A source with no record count has never been part of a
-production run — which is different from a source that ran and stored nothing.</p>
+{{ desks.declared_count }} desks. Each is declared in advance with an institution, a type and a
+language, and belongs to exactly one desk.</p>
 </header>
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
-  <ul>{% if source_contributions %}<li><a href="#contributions-title">Stored record chart</a></li>{% endif %}
-      <li><a href="#source-directory">Source directory</a></li>
-      <li><a href="#authority">Authority and status</a></li></ul>
+  <ul>{% if source_contributions %}<li><a href="#contributions-title">Where the records come from</a></li>{% endif %}
+      <li><a href="#source-directory">Every declared source</a></li>
+      <li><a href="#authority">Reading the list</a></li></ul>
 </nav>
 {% if source_contributions %}
-<figure class="source-contributions" aria-labelledby="contributions-title">
-  <figcaption>
-    <h2 id="contributions-title">Sources in the stored record</h2>
-    <p>{{ snapshot_label }} · {{ corpus_total|count }} stored, deduplicated records.
-    Each bar counts records assigned to that source in the stored corpus.
+<section class="doc-section" aria-labelledby="contributions-title">
+  <h2 id="contributions-title">Where the records come from</h2>
+  <div class="doc-body">
+    <p>{{ corpus_total|count }} stored, deduplicated records as of
+    <time datetime="{{ snapshot.date }}">{{ snapshot.date|reader_date }}</time>.
+    Each line counts the records assigned to that source here.
     It does not measure an institution's output,
     the share of its publications, or completeness of coverage.</p>
-  </figcaption>
   <ol class="contribution-list">
   {% for bar in source_contributions %}
     <li>
-      <span class="bar-label"><a href="{{ bar.source.route }}">{{ bar.source.display_name }}</a>
-        <span class="contribution-value">{{ bar.source.record_count|count }} <small>({{ bar.label }})</small></span></span>
+      <span class="bar-label"><a href="{{ bar.source.route }}">{{ bar.source.display_name }}</a></span>
+      <span class="contribution-value">{{ bar.source.record_count|count }} <small>({{ bar.label }})</small></span>
       <span class="contribution-track" aria-hidden="true"><span class="contribution-fill" style="width: {{ bar.percent }}%"></span></span>
       <a class="contribution-browse" href="archive.html?source={{ bar.source.slug }}">Browse these records</a>
     </li>
   {% endfor %}
   </ol>
-  <p class="meta">The source directory below includes declared sources with no
-  production record count. <a href="archive.html">Search individual records</a> or
-  <a href="corpus-guide.html#scope">read the counting limits</a>.</p>
-</figure>
+  <p class="meta">Sources that hold no records are in the full list below.
+  <a href="archive.html">Search individual records</a> or
+  <a href="corpus-guide.html#scope">read what these counts can and cannot show</a>.</p>
+  </div>
+</section>
 {% endif %}
-<h2 id="source-directory">Declared source directory</h2>
+<section class="doc-section doc-section--wide">
+<h2 id="source-directory">Every declared source</h2>
+<div class="doc-body">
+<p class="meta">A source with no record count has never been collected for the public record,
+which is different from a source that was collected and stored nothing.</p>
 <div class="table-scroll">
-<table class="stacking">
-  <thead><tr><th scope="col">Source</th><th scope="col">Desk</th><th scope="col">Institution</th><th scope="col">Type</th><th scope="col">Authority</th><th scope="col">Language</th><th scope="col" class="num">Records</th></tr></thead>
+<table class="stacking source-list">
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution, in English</th><th scope="col">As published</th><th scope="col">Desk</th><th scope="col">Type</th><th scope="col">Authority</th><th scope="col" class="num">Records</th></tr></thead>
   <tbody>
   {% for s in source_views %}
+    {% set script = s.institution_original|script_lang if s.institution_original else '' %}
+    {% set olang = s.language_tag if s.language_tag and not s.language_tag.startswith('en') and (script or s.institution_original != s.institution) else script %}
     <tr>
-      <td data-label="Source"><a href="source/{{ s.slug }}.html">{{ s.display_name }}</a><br><span class="meta token">{{ s.slug }}</span></td>
+      <td data-label="Source" class="s-name"><a href="source/{{ s.slug }}.html">{{ s.display_name }}</a>{% if s.language_tag %}<span class="meta">Language: {{ s.language_tag }}</span>{% endif %}</td>
+      <td data-label="Institution, in English" class="s-inst">{{ s.institution or '—' }}</td>
+      <td data-label="As published" class="original"{% if s.institution_original and olang %} lang="{{ olang }}"{% endif %}>{{ s.institution_original or '—' }}</td>
       <td data-label="Desk">{% if desks.get(s.desk_slug) %}<a href="{{ desks.get(s.desk_slug).route }}">{{ desks.get(s.desk_slug).name }}</a>{% else %}{{ s.desk_slug or '—' }}{% endif %}</td>
-      <td data-label="Institution">{{ s.institution or '—' }}{% if s.institution_original %}<br><span class="meta"{% if s.institution_original|script_lang %} lang="{{ s.institution_original|script_lang }}"{% endif %}>{{ s.institution_original }}</span>{% endif %}</td>
       <td data-label="Type">{{ s.source_type|source_type_label }}</td>
       <td data-label="Authority">{{ s.authority_tier or '—' }}</td>
-      <td data-label="Language">{{ s.language_tag or '—' }}</td>
       <td data-label="Records" class="num">{% if s.record_count is not none %}{{ s.record_count|count }}{% else %}<span class="meta">none</span>{% endif %}</td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
-<h2 id="authority">Authority tier is a claim about position, not truthfulness</h2>
-<p>A tier-A source is closer to the institution that speaks. It is not more likely to be
-accurate, and nothing here treats it as such. Tier describes who is authorized to say a thing,
-never whether the thing is so.</p>
-<h2>Enabled is not a result</h2>
-<p>A source is <em>enabled</em> when the pipeline is configured to visit it. Whether it
-ran, returned no new items, or could not be reached is a separate fact. Read the
-latest per-source result on <a href="coverage.html">Coverage</a> before interpreting an
-empty count or a quiet day.</p>
+</div>
+</section>
+<section class="doc-section">
+<h2 id="authority">Reading the list</h2>
+<div class="doc-body">
+<h3>Authority describes position, not truthfulness</h3>
+<p>The letter says how close a source sits to the institution that speaks. An A source is
+closer. It is not more likely to be accurate, and nothing here treats it as such. The letter
+describes who is authorized to say a thing, never whether the thing is so.</p>
+<h3>Enabled is not a result</h3>
+<p>A source is <em>enabled</em> when collection is set up to visit it. Whether it was visited,
+returned nothing new, or could not be reached is a separate fact. Read its latest result on
+<a href="coverage.html">Coverage</a> before interpreting an empty count or a quiet day.</p>
+</div>
+</section>
 {% endblock %}
