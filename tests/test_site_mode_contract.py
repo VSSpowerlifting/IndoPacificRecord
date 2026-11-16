@@ -338,7 +338,9 @@ class TestCandidateBuild(unittest.TestCase):
         from bs4 import BeautifulSoup
         home = BeautifulSoup((self.out / "index.html").read_text(encoding="utf-8"), "html.parser")
         from core.desk_registry import load_registry
-        linked = home.select("ul.home-desk-index > li > .home-desk-name > a")
+        # "Newest from each desk" (2026-11-16) gives each desk with public
+        # records one row; every collecting desk holds records today.
+        linked = home.select(".home-newest .desk-cell > a")
         self.assertTrue(linked, "the home page lists no desk")
         self.assertEqual({a.get("href") for a in linked},
                          {d.route for d in load_registry().entries if d.is_collecting})

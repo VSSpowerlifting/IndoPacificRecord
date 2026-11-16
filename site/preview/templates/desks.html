@@ -18,13 +18,10 @@
    editorial research on the desk) are separate facts and are shown as
    separate marks, never one in place of the other. #}
 {% set pubd = editorial_published_desks | default([]) %}
-{# The registry's state label, verbatim (core.desk_registry.status_label). #}
-{% macro state_words(d) -%}
-{{ d.status_label }}
-{%- endmacro %}
 {% set front = {} %}{% for item in home_desks.rows %}{% set _ = front.update({item.desk.slug: item.record}) %}{% endfor %}
 {% macro marks(d) -%}
-<span class="desk-state desk-state--{{ d.status }}">{{ state_words(d) }}</span>{% if d.slug in pubd %} <span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the record.">Research published</span>{% endif %}
+{#- The registry's state label, verbatim (core.desk_registry.status_label). -#}
+<span class="desk-state desk-state--{{ d.status }}">{{ d.status_label }}</span>{% if d.slug in pubd %} <span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the record.">Research published</span>{% endif %}
 {%- endmacro %}
 <header class="page-head desks-head">
 <h1 class="page-name">Desks</h1>
@@ -126,7 +123,7 @@
     <tr><td data-label="State"><span class="desk-state desk-state--live">Live — collecting</span></td>
         <td data-label="Meaning">The desk's sources are in the collection schedule and what they publish is added to the record. Only these desks have record counts.</td></tr>
     <tr><td data-label="State"><span class="desk-state desk-state--shadow">Shadow evaluation — not in corpus</span></td>
-        <td data-label="Meaning">Trial collection. Source material is being evaluated separately and is not part of the public record or its counts. The desk's page may still set out its scope or list approved links to official sources; those links are not IPR records.</td></tr>
+        <td data-label="Meaning">Trial collection. Source material is being evaluated separately and is not part of the public record or its counts. The desk's page may still set out its scope or list approved official-source links; those links are not IPR records.</td></tr>
     <tr><td data-label="State"><span class="desk-state desk-state--access_blocked">Access blocked — not collecting</span></td>
         <td data-label="Meaning">Researched and reachable in principle, but the institution's site does not admit an automated reader that identifies itself honestly. Nothing has been collected.</td></tr>
     <tr><td data-label="State"><span class="desk-state desk-state--research">Researched — not yet collecting</span></td>

@@ -361,7 +361,7 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
         tally = {dt.get_text(" ", strip=True): dd.get_text(strip=True)
                  for dt, dd in zip(*[iter(BeautifulSoup(html, "html.parser")
                                           .select(".desks-tally dt, .desks-tally dd"))] * 2)}
-        self.assertEqual(tally, {"Declared": "8",
+        self.assertEqual(tally, {"Desks": "8",
                                  "Collecting into the record": "4",
                                  "Not collecting": "4"})
         self.assertEqual(
@@ -430,18 +430,19 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.page("index.html"), "html.parser")
         public_desks = [d for d in gp.PublicView(TRACKED_DB).desk_directory() if d.record_count]
-        shown = soup.select("ul.home-desk-index > li > .home-desk-name > a")
+        # One row per desk that holds public records (2026-11-16: "Newest
+        # from each desk"); a desk without records is never given a row.
+        shown = soup.select(".home-newest .desk-cell > a")
         self.assertTrue(shown, "the home page lists no desk")
         self.assertEqual({a.get("href") for a in shown},
                          {d.slug + ".html" for d in public_desks})
         self.assertNotIn("japan.html", {a.get("href") for a in shown})
-        # The home page counts only the desks that hold public records, and
-        # that count is smaller than the number of desks declared: a planned
-        # desk is neither listed nor counted.
-        note = " ".join(soup.select_one(".home-desks-note").get_text(" ").split())
-        self.assertIn("%d desks hold public records so far" % len(public_desks), note)
+        # The desks without public records are named only in the quiet line,
+        # each with its registry state, and never with a record count.
+        empty = soup.select_one(".home-desks-empty")
+        self.assertIsNotNone(empty.select_one('a[href="japan.html"]'))
+        self.assertNotRegex(" ".join(empty.get_text(" ").split()), r"\d+ records?")
         self.assertLess(len(public_desks), len(load_registry().public_entries))
-        self.assertTrue(soup.select('.home-desks-note a[href="coverage.html"]'))
 
     def test_the_volume_rows_still_name_the_joint_staff(self):
         """The row subject moved from the template into the registry so each
@@ -558,32 +559,18 @@ class TestVietnamMpsLiveCoverage(DeskCase):
                  if 'data-desk="vietnam"' in b][0]
         self.assertIn("Records</dt>", block)
         self.assertNotIn("Records</dt><dd>Not admitted", block)
-        self.assertIn("Hanoi", block)
+        # The live state is the registry's own label; the count is the real one.
+        self.assertIn(load_registry().get("vietnam").status_label, block)
+        self.assertRegex(block, r"Records</dt><dd>[1-9][0-9,]*</dd>")
 
-    def test_tablet_directory_uses_all_desk_plates_at_full_width(self):
-        """Phase 4A uses a responsive register rather than side-hung cards.
-
-        Geography still records Vietnam's side-oriented tablet leader, but
-        no mapped plate receives the legacy narrow-width class at 760–1100px.
-        Keeping that class would trigger support.css's old 25% width rule
-        and make the entry unreadable inside the new register.
-        """
-        import json
-        places = json.loads((MANIFESTS / "geography.json")
-                            .read_text(encoding="utf-8"))["desks"]
-        side = {slug for slug, place in places.items()
-                if place["card"]["mid"]["hang"] in ("left", "right")}
-        self.assertEqual(side, {"vietnam"})
+    def test_directory_rows_span_the_full_width(self):
+        """The map's side-hung plates are retired (2026-11-16): every desk is
+        one full-width row of the directory, and no plate carries the legacy
+        narrow-width class."""
         html = self.page("desks.html")
-        narrowed = {slug for cls, slug in re.findall(
-            r'<section class="([^"]*\bdeskmap-plate\b[^"]*)"[^>]*data-desk="([^"]+)"', html)
-            if "is-mid-side" in cls.split()}
-        self.assertFalse(narrowed)
+        self.assertNotIn("is-mid-side", html)
         css = (REPO_ROOT / "site/preview/desk-map.css").read_text(encoding="utf-8")
-        # Every plate sits in one auto-fill register: no plate is hung at a
-        # fractional width, and the print layout falls back to two columns.
-        self.assertIn(".deskmap-register{display:grid;grid-template-columns:repeat(auto-fill,minmax(", css)
-        self.assertIn(".deskmap-register{grid-template-columns:repeat(2", css)
+        self.assertIn(".deskmap-register>.desk{display:grid;", css)
 
 
 class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
@@ -594,8 +581,7 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
         directory = self.page("desks.html")
         self.assertIn('href="philippines.html"', directory)
         self.assertIn('data-desk="philippines"', directory)
-        self.assertIn("Manila", directory)
-        self.assertIn('dm-geo-philippines', directory)
+        self.assertIn('id="desk-philippines"', directory)
 
     def test_shadow_registry_never_claims_production(self):
         entry = load_registry().get("philippines")

@@ -97,10 +97,9 @@ class JapanPublicLinkOnlyDirectory(unittest.TestCase):
             self.assertNotIn(forbidden, self.section)
 
     def test_japan_css_only_addition_other_desks_not_modified(self):
-        self.assertIn(
-            "'vietnam', 'philippines', 'korea', 'indonesia', 'japan'",
-            self.text,
-        )
+        # Every desk page loads desk-references.css (2026-11-16); the
+        # Japan section itself is unchanged.
+        self.assertIn('<link rel="stylesheet" href="desk-references.css">', self.text)
         self.assertIn("desk.slug == 'japan'", self.section)
         self.assertIn('href="https://www.kaiho.mlit.go.jp/questions/post-1.html"', self.section)
         self.assertIn("reproduce", self.section)

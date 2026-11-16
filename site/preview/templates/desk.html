@@ -5,34 +5,6 @@
 {% block title %}{{ desk.name }} — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="desk-references.css">{% if korea_preview | default(false) %}<link rel="stylesheet" href="korea-preview.css">{% endif %}{% endblock %}
 {% block content %}
-{# A desk page, top down (2026-11-15): the desk's name and scope; its state in
-   reader words; its newest records as parallel text; the official links and
-   machine explanations it publishes; the record in numbers; the sources it
-   follows; its limits. Source research and qualification, which a reader does
-   not need in order to read or cite a record, sit in one closed disclosure at
-   the end. Every count, date, title and name is read from the registry or the
-   record; source-specific notices keep their wording where it carries a
-   licence, an attribution or a hold. #}
-{# The registry's state label, verbatim. #}
-{% set state_words = desk.status_label %}
-{% set vn = desk.slug == 'vietnam' and vietnam_records | default([]) %}
-{% set newest = vietnam_records if vn else (desk_newest | default({})).get(desk.slug, []) %}
-{% if not newest and desk.record_count and desk_latest is defined and desk_latest.get(desk.slug) %}{% set newest = [desk_latest[desk.slug]] %}{% endif %}
-{# One row per machine explanation: the official date and publisher, the
-   model's reading, and the two places to check it. #}
-{% macro machine_list(records, short=none) -%}
-<ol class="desk-machine-list" aria-label="Machine explanations">
-  {% for rec in records %}
-  <li {{ 'data-machine-explanation-id' if desk.slug == 'philippines' else 'data-machine-source' }}="{{ rec.source_identity }}">
-    <p class="desk-machine-when"><time datetime="{{ rec.published_date }}">{{ rec.published_date | reader_date }}</time> <span>{{ short or rec.source_label }}</span></p>
-    <div>
-      <p class="desk-machine-text">{{ rec.summary }}</p>
-      <p class="meta">{% if desk.slug == 'philippines' %}{{ rec.publisher }} · {% if rec.model_flagged %}Flagged by the model for closer reading: {{ rec.flag_reason }}{% else %}Not flagged by the model{% endif %} · Topics (machine-assigned): {{ rec.categories | map('replace', '_', ' ') | map('title') | join(', ') }} · {% endif %}<a href="{{ rec.record_path }}">Read the record</a> · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Open original source</a></p>
-    </div>
-  </li>
-  {% endfor %}
-</ol>
-{%- endmacro %}
 {{ breadcrumb([('Desks', 'desks.html'), (desk.name, none)]) }}
 <header class="page-head">
   <h1 class="page-name">{{ desk.name }}</h1>
@@ -40,28 +12,29 @@
   {% if desk.record_count %}<p class="desk-count">{{ desk.record_count|count }} record{{ '' if desk.record_count == 1 else 's' }}{% if desk.first_published and desk.last_published %}, published {{ desk.first_published | reader_date }} to {{ desk.last_published | reader_date }}{% endif %}.</p>{% endif %}
 </header>
 
-{# The desk's state, in reader words, as the page's first fact. A desk that
-   does not collect is a state with its own reason, not an empty version of a
-   desk that does. #}
+{# The status, designed as the page's first fact rather than a footnote. A
+   desk that does not collect is a first-class state with its own reason, not
+   an empty version of a desk that does. #}
 <div class="status-panel status-panel--{{ desk.status }}">
   <span class="status-glyph desk-state desk-state--{{ desk.status }}" aria-hidden="true"></span>
   <div>
-    <h2>{% if desk.slug == 'philippines' %}Official links and machine explanations, published automatically{% elif vn %}Official links and English machine explanations{% elif desk.slug == 'japan' and daily_machine_records | default([]) %}Japan Coast Guard links and machine explanations, published automatically{% elif desk.slug == 'japan' and regional_official_links | default([]) %}Links to Japan Ministry of Defense news, added automatically{% elif desk.slug in ('indonesia', 'vietnam') and regional_official_links | default([]) %}Verified links to official publications{% elif desk.slug == 'korea' and not korea_preview | default(false) and (korea_production_link_count | default(0) > 0 or korea_published_originals | default([])) %}{% if korea_dapa_production_link_count | default(0) > 0 %}Official releases from MND and DAPA{% else %}Official releases from MND; DAPA not yet included{% endif %}{% elif desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}Links to USCC, Treasury and BIS releases; Pacific Command collection blocked{% elif desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}Links to congressional and Treasury releases; Pacific Command collection blocked{% elif desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}Links to congressional commission releases; Pacific Command collection blocked{% elif published_research | default([]) and desk.status == 'shadow' %}IPR research published; official originals linked{% elif desk.slug == 'indonesia' %}Trial collection only; no records in the public record{% elif desk.slug == 'korea' and not korea_preview | default(false) %}Official references available; collection still on trial{% else %}{{ state_words }}{% endif %}</h2>
-    <p>{% if desk.slug == 'singapore' and daily_machine_records | default([]) %}This desk lists short English readings of Ministry of Defence, Singapore releases, written independently of the ministry's wording and each tied to a verified official link. MINDEF titles, article text and media are not republished; historical records keep their original identities and dates.{% elif desk.slug == 'singapore' %}This desk preserves historical source identities and dates. MINDEF titles, article text and media are not republished. Official MINDEF outbound hyperlinks follow IPR's standing official-host link rule; that linking authority does not extend to copying original text or model processing. Official links and independently written explanations appear here only after they pass authenticated admission; none has been admitted yet.{% elif desk.slug == 'philippines' or vn %}{% elif desk.slug == 'japan' and daily_machine_records | default([]) %}This desk lists short English readings of Japan Coast Guard English press releases, written independently of the coast guard's wording, each tied to a verified official link and made from the published page text only. Japan Coast Guard titles, article text, linked documents and media are not republished.{% if regional_official_links | default([]) %} The Ministry of Defense news links below record an address and a date only; Ministry of Defense texts are not in the public record.{% endif %}{% elif desk.slug == 'japan' and regional_official_links | default([]) %}The links below come from the Ministry of Defense news feed and open official PDFs. Only the feed's dates and attribution are recorded. Ministry texts are not in the public record, and other Japanese sources are outside this feed.{% elif desk.slug in ('indonesia', 'vietnam') and regional_official_links | default([]) %}Each link below was checked individually before it was listed. A link gives a publisher's address and date. It does not verify what the publisher reports, and no original article or image is copied.{% elif desk.slug == 'korea' and not korea_preview | default(false) and (korea_production_link_count | default(0) > 0 or korea_published_originals | default([])) %}This desk links to {{ korea_production_link_count | default(0) }} official Korean government pages. It also publishes {{ korea_published_originals | default([]) | length }} releases as licensed Korean text and {{ korea_english_publications | default([]) | length }} editor-approved pairs of English translation and source-grounded analysis. A page that appears in more than one list is counted once. Different kinds of content carry different permissions: original documents and media are not copied automatically; {% if desk.status == 'live' %}editor-approved English assessments need an editor's approval; MND releases whose Korean text is published are machine-translated and summarized automatically, and labeled as unreviewed machine output; {% else %}English assessments need an editor's approval; {% endif %}and DAPA original documents and English assessments need separate review. Collection may be incomplete or interrupted.{% elif desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}This desk lists links, each with its publisher date and issuer, to releases from the U.S.-China Economic and Security Review Commission (congressional), the U.S. Treasury (executive) and the Commerce Department's Bureau of Industry and Security (executive). The links are added automatically. BIS links come only from the short list on its homepage, not its full publication directory. Collection from U.S. Pacific Command itself is blocked and DVIDS is paused. These links are not comprehensive coverage of Indo-Pacific military sources, and no headlines, source texts, translations, photographs or analysis are republished.{% elif desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}This desk lists verified links, each with its date and issuer, to releases from two distinct sources: the U.S.-China Economic and Security Review Commission (congressional) and the U.S. Department of the Treasury (executive). The links are added automatically. Collection from U.S. Pacific Command itself is blocked and DVIDS is paused. This is not full military-source coverage, and no publisher texts, headlines, translations or analysis are republished automatically.{% elif desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}This desk lists verified links, each with its date and issuer, to releases from the U.S.-China Economic and Security Review Commission, a congressional commission. The links are added automatically. Collection from U.S. Pacific Command itself is blocked and DVIDS is paused. Original headlines, article text, photographs and analysis are not republished automatically.{% elif published_research | default([]) and desk.status == 'shadow' %}IPR has published approved research from this desk. The government originals it cites stay on the publishers' own sites. This is not an archive of source texts, and it makes no claim of comprehensive coverage.{% elif desk.slug == 'korea' and not korea_preview | default(false) %}A directory of official sources: five entries with their original headline and date, nine further historical links, and newly verified links when there are any. Original document texts and substantive analysis are not in the public record.{% endif %}</p>
+    <h2>{% if desk.slug == 'philippines' %}Official links and machine explanations, published automatically{% elif desk.slug == 'vietnam' and vietnam_records | default([]) %}Verified official-source links admitted · English machine explanations published{% elif desk.slug == 'japan' and daily_machine_records | default([]) %}Japan Coast Guard official links and machine explanations, published automatically{% elif desk.slug == 'japan' and regional_official_links | default([]) %}Japan MOD news official links admitted automatically{% elif desk.slug in ('indonesia', 'vietnam') and regional_official_links | default([]) %}Verified official-source links admitted — original publisher references{% elif desk.slug == 'korea' and not korea_preview | default(false) and (korea_production_link_count | default(0) > 0 or korea_published_originals | default([])) %}{% if korea_dapa_production_link_count | default(0) > 0 %}MND and DAPA official-source archive{% else %}MND official-source production live — DAPA not yet qualified{% endif %}{% elif desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}Official USCC, Treasury and BIS link metadata feeds live — PACOM collection blocked{% elif desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}Official congressional and Treasury metadata feeds live — PACOM collection blocked{% elif desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}Official congressional metadata feed live — PACOM collection blocked{% elif published_research | default([]) and desk.status == 'shadow' %}IPR research published — official originals linked{% else %}{{ "Shadow evaluation — no public corpus records" if desk.slug == "indonesia" else ('Official references available — collection remains in shadow' if desk.slug == 'korea' and not korea_preview | default(false) else desk.status_label) }}{% endif %}</h2>
+    <p>{% if desk.slug == 'singapore' and daily_machine_records | default([]) %}This desk lists independently written, source-grounded English readings of Ministry of Defence, Singapore releases, each bound to an admitted official link. MINDEF titles, article text and media are not republished; historical records keep their original identities and dates.{% elif desk.slug == 'singapore' %}This desk preserves historical source identities and dates. MINDEF titles, article text and media are not republished. Official MINDEF outbound hyperlinks follow IPR's standing official-host link rule; that linking authority does not extend to copying original text or model processing. Official links and independently written explanations appear here only after they pass authenticated admission; none has been admitted yet.{% elif desk.slug == 'philippines' or (desk.slug == 'vietnam' and vietnam_records | default([])) %}{% elif desk.slug == 'japan' and daily_machine_records | default([]) %}This desk lists independently written, source-grounded English readings of Japan Coast Guard English press releases, each bound to an admitted official link and made from the published page text only. Japan Coast Guard titles, article text, linked documents and media are not republished.{% if regional_official_links | default([]) %} Ministry of Defense news RSS links below are metadata only; the Ministry of Defense original-text corpus remains in shadow.{% endif %}{% elif desk.slug == 'japan' and regional_official_links | default([]) %}The Ministry of Defense news RSS supplies the official PDF links below through the shared Daily system. RSS dates and institutional attribution are metadata only. The original-text corpus remains in shadow, and other Japanese sources are outside this feed.{% elif desk.slug in ('indonesia', 'vietnam') and regional_official_links | default([]) %}These references have been individually admitted to IPR's official-source link index. They identify publisher URLs and dates, not independently verified defense outcomes, and do not include copied original articles or images.{% elif desk.slug == 'korea' and not korea_preview | default(false) and (korea_production_link_count | default(0) > 0 or korea_published_originals | default([])) %}The live Korea government-link database contains {{ korea_production_link_count | default(0) }} separately admitted official-link metadata records, and this desk links to {{ korea_published_originals | default([]) | length }} licensed Korean original-text releases and {{ korea_english_publications | default([]) | length }} editor-approved English translation and source-grounded analysis pairs. Historical references can overlap with production metadata and are counted only once as admitted records. Different content lanes have different permissions: original documents and media are not mirrored automatically, {% if desk.status == 'live' %}editor-approved English assessments require editorial approval, MND releases with published Korean text are machine-translated and summarized automatically under an unreviewed-machine-output label, {% else %}English assessments require editorial approval, {% endif %}and DAPA original documents and English assessments require separate review. Collection may be incomplete or interrupted.{% elif desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}The U.S. Desk displays automatically admitted official URL, publisher date and issuer metadata from the U.S.-China Economic and Security Review Commission (congressional), U.S. Treasury (executive) and Commerce Bureau of Industry and Security (executive). BIS references come only from its bounded first-party homepage teasers, not the full BIS publication directory. Direct PACOM collection remains access-blocked and DVIDS paused; these neutral external links are neither comprehensive Indo-Pacific military-source coverage nor automatic republication of headlines, source bodies, translations, photographs or analysis.{% elif desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}The U.S. Desk now automatically collects verified official URL, date and issuer metadata from two distinct sources: the U.S.-China Economic and Security Review Commission (congressional) and U.S. Department of the Treasury (executive). Direct PACOM collection remains access-blocked and DVIDS paused; this is not full military-source coverage and no publisher bodies, headlines, translations or analysis are automatically republished.{% elif desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}The U.S. Desk now automatically collects verified official URL, date and issuer metadata from the U.S.-China Economic and Security Review Commission, a congressional commission. Direct U.S. Pacific Command collection remains access-blocked and DVIDS remains paused; original publisher headlines, article text, photographs and analysis are not automatically republished.{% elif published_research | default([]) and desk.status == 'shadow' %}IPR's approved original research is publicly available. Its cited government originals remain on the official publishers' sites; this is not a production source-text archive or a claim of comprehensive collecting coverage.{% else %}{% if desk.slug == "korea" and not korea_preview | default(false) %}Public official-source directory: five original headline/date entries, nine additional historical links, and separately admitted new official-link metadata when available. Original document bodies and substantive analysis remain outside the production archive.{% endif %}{% endif %}</p>
     {# The registry's operating notes, verbatim and unedited, for a reader
        who wants how this desk collects; not the page's reader text. #}
     <details class="collection-notes"><summary>Collection notes</summary><p>{{ desk.status_explanation }}</p></details>
   </div>
 </div>
 
+{% set newest = [] if desk.slug == 'vietnam' else (desk_newest | default({})).get(desk.slug, []) %}
+{% if not newest and desk.slug != 'vietnam' and desk.record_count and desk_latest is defined and desk_latest.get(desk.slug) %}{% set newest = [desk_latest[desk.slug]] %}{% endif %}
 {% if newest %}
-<section class="desk-newest" aria-labelledby="{{ 'vn-published-title' if vn else 'desk-newest-title' }}"{% if vn %} data-vietnam-published-records{% endif %}>
+<section class="desk-newest" aria-labelledby="desk-newest-title">
   <div class="desk-sec-head">
-    <div>{% if vn %}<p class="evidence evidence--model">Machine output</p>{% endif %}
-      <h2 id="{{ 'vn-published-title' if vn else 'desk-newest-title' }}">{{ 'Newest machine explanations' if vn else 'Newest record' if newest | length == 1 else 'Newest records' }}</h2></div>
-    <a href="archive.html?desk={{ desk.slug }}{{ '&amp;scope=published' | safe if vn else '' }}">{% if vn %}Browse all published Vietnam records{% else %}All {{ desk.record_count|count }} records{% endif %}</a>
+    <div>
+      <h2 id="desk-newest-title">{{ 'Newest record' if newest | length == 1 else 'Newest records' }}</h2></div>
+    <a href="archive.html?desk={{ desk.slug }}">All {{ desk.record_count|count }} records</a>
   </div>
-  {% if vn %}<p class="desk-sec-note">English explanations written by a model in its own words and attributed to the official source. Each record names the source version and the processing behind it. None is an official translation or independent confirmation of what the publisher says.</p>{% endif %}
   {#- Five newest rows carry their stored-summary sentence. Not on the Korea
       page: its growing official-link lists leave too little of its
       120,000-byte budget (measured 2026-11-16); its record pages carry the
@@ -76,13 +49,13 @@
 {% set ph_nsc = ph_links | selectattr('publisher_label', 'equalto', 'National Security Council') | list %}
 {% set ph_machine = daily_machine_records | default([]) %}
 {% set ph_explained = ph_machine | map(attribute='source_identity') | list %}
-{# Counts come only from published links and released machine records.
-   Privately held originals and trial history are never counted here. #}
+{# Counts come only from admitted production rows and released machine
+   records. Private originals and shadow history are never counted here. #}
 <dl class="stat-rows" data-philippines-lanes>
   <div class="stat-row"><dt>Verified official links</dt><dd>{{ ph_links | length }} <span class="meta">(AFP {{ ph_afp | length }} · NSC {{ ph_nsc | length }})</span></dd></div>
   <div class="stat-row"><dt>Newest official date</dt><dd>{% if ph_afp %}AFP <time datetime="{{ ph_afp[0].publisher_posted_date }}">{{ ph_afp[0].publisher_posted_date }}</time>{% endif %}{% if ph_afp and ph_nsc %} · {% endif %}{% if ph_nsc %}NSC <time datetime="{{ ph_nsc[0].publisher_posted_date }}">{{ ph_nsc[0].publisher_posted_date }}</time>{% endif %}{% if not ph_links %}None yet{% endif %}</dd></div>
   <div class="stat-row"><dt>Machine explanations</dt><dd>{{ ph_machine | length }} <span class="meta">(AFP {{ ph_machine | selectattr('source_label', 'equalto', 'AFP') | list | length }} · NSC {{ ph_machine | selectattr('source_label', 'equalto', 'NSC') | list | length }})</span></dd></div>
-  <div class="stat-row"><dt>Original documents in the public record</dt><dd>None <span class="meta">(IPR keeps the originals privately; they are not counted here)</span></dd></div>
+  <div class="stat-row"><dt>Original documents in the IPR corpus</dt><dd>None <span class="meta">(originals stay in private custody and are not counted here)</span></dd></div>
 </dl>
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
@@ -92,51 +65,111 @@
       <li><a href="#ph-desk-operations-title">How this desk works</a></li></ul>
 </nav>
 {% if ph_machine %}
-<section class="desk-section desk-machine" aria-labelledby="daily-machine-heading" data-philippines-machine-explanations>
-  <p class="evidence evidence--model">Machine output, not reviewed by a person</p>
+<section class="desk-section" aria-labelledby="daily-machine-heading" data-philippines-machine-explanations>
+  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
   <h2 id="daily-machine-heading">Machine explanations of official publications</h2>
   <p>Short readings of AFP and NSC publications, written by a model in its own words and attributed to the publisher. They describe what an institution reports. They do not verify events and are not IPR analysis. Newest official date first.</p>
-  {{ machine_list(ph_machine) }}
-  <p class="meta">Each explanation links to its own record, which shows where the source came from and which model was used. Original titles, texts and images are not republished.</p>
+  <ol class="desk-reference-list" aria-label="Machine explanations">
+    {% for rec in ph_machine %}
+    <li data-machine-explanation-id="{{ rec.source_identity }}">
+      <h3><a href="{{ rec.record_path }}">{{ rec.source_label }} · {{ rec.published_date }} · {{ rec.source_identity }}</a></h3>
+      <p>{{ rec.summary }}</p>
+      <p class="meta"><span class="evidence evidence--model">Machine explanation</span>
+        Publisher: {{ rec.publisher }} · Official date <time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · {% if rec.model_flagged %}Model-flagged for closer reading: {{ rec.flag_reason }}{% else %}Not model-flagged{% endif %} · Topics (machine-assigned): {{ rec.categories | map('replace', '_', ' ') | map('title') | join(', ') }} · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="meta">Each explanation links to its own record with source custody and model details. Original titles, bodies and images are not republished.</p>
 </section>
 {% endif %}
 {% endif -%}
 
-{# Indonesia, Japan and Singapore: the five newest machine explanations. The
-   publisher's own text is not republished on any of the three. #}
-{% set machine_desks = {
-  'indonesia': ('Kemhan', 'publications', 'Kemhan Berita items', "the ministry's", 'The original text and working translations are not published.', 'Indonesia'),
-  'japan': ('Japan Coast Guard', 'releases', 'Japan Coast Guard English press releases', "the coast guard's", 'The original text is not published.', 'Japan'),
-  'singapore': ('MINDEF', 'releases', 'MINDEF releases', "the ministry's", 'The original text is not published.', 'Singapore')} %}
-{% if desk.slug in machine_desks and daily_machine_records | default([]) %}{% set md = machine_desks[desk.slug] %}
-<section class="desk-section desk-machine" aria-labelledby="daily-machine-heading" data-{{ desk.slug }}-machine-explanations>
-  <p class="evidence evidence--model">Machine output, not reviewed by a person</p>
-  <h2 id="daily-machine-heading">Machine explanations of official {{ md[1] }}</h2>
-  <p>The newest short English readings of {{ md[2] }}, written by a model from the source text. They describe {{ md[3] }} account, not independently verified outcomes. {{ md[4] }}</p>
-  {{ machine_list(daily_machine_records[:5], md[0]) }}
-  {% if desk.slug == 'japan' %}<p class="meta" data-pdl-attribution>Source: Japan Coast Guard website, at each linked page (Public Data License, Version 1.0). These summaries were created by Indo-Pacific Record by processing the published page text; they are edited content, not statements made by the Government of Japan.</p>{% endif %}
-  <p><a href="archive.html?desk={{ desk.slug }}&amp;scope=published">Browse all {{ daily_machine_records | length }} {{ md[5] }} machine explanations</a></p>
+{% if desk.slug == 'indonesia' and daily_machine_records | default([]) %}
+<section class="desk-section" aria-labelledby="daily-machine-heading" data-indonesia-machine-explanations>
+  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
+  <h2 id="daily-machine-heading">Machine explanations of official publications</h2>
+  <p>Latest source-grounded English readings of Kemhan Berita. They describe the ministry's account, not independently verified outcomes. Original text and working translations remain private.</p>
+  <ol class="desk-reference-list" aria-label="Machine explanations">
+    {% for rec in daily_machine_records[:5] %}
+    <li data-machine-source="{{ rec.source_identity }}">
+      <p><time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · Kemhan</p>
+      <p>{{ rec.summary }}</p>
+      <p class="meta"><a href="{{ rec.record_path }}">Record and model details</a> · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p><a href="archive.html?desk=indonesia&amp;scope=published">Browse all {{ daily_machine_records | length }} Indonesia machine explanations</a></p>
 </section>
 {% endif -%}
 
-{# Links to official publications: only links that were verified and listed,
-   never trial captures, review files or static publisher directories. #}
+{% if desk.slug == 'japan' and daily_machine_records | default([]) %}
+<section class="desk-section" aria-labelledby="daily-machine-heading" data-japan-machine-explanations>
+  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
+  <h2 id="daily-machine-heading">Machine explanations of official releases</h2>
+  <p>Latest source-grounded English readings of Japan Coast Guard English press releases. They describe the coast guard's account, not independently verified outcomes. Original text stays private.</p>
+  <ol class="desk-reference-list" aria-label="Machine explanations">
+    {% for rec in daily_machine_records[:5] %}
+    <li data-machine-source="{{ rec.source_identity }}">
+      <p><time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · Japan Coast Guard</p>
+      <p>{{ rec.summary }}</p>
+      <p class="meta"><a href="{{ rec.record_path }}">Record and model details</a> · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="meta" data-pdl-attribution>Source: Japan Coast Guard website, at each linked page (Public Data License, Version 1.0). These summaries were created by Indo-Pacific Record by processing the published page text; they are edited content, not statements made by the Government of Japan.</p>
+  <p><a href="archive.html?desk=japan&amp;scope=published">Browse all {{ daily_machine_records | length }} Japan machine explanations</a></p>
+</section>
+{% endif -%}
+
+{% if desk.slug == 'singapore' and daily_machine_records | default([]) %}
+<section class="desk-section" aria-labelledby="daily-machine-heading" data-singapore-machine-explanations>
+  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
+  <h2 id="daily-machine-heading">Machine explanations of official releases</h2>
+  <p>Latest source-grounded English readings of MINDEF releases. They describe the ministry's account, not independently verified outcomes. Original text stays private.</p>
+  <ol class="desk-reference-list" aria-label="Machine explanations">
+    {% for rec in daily_machine_records[:5] %}
+    <li data-machine-source="{{ rec.source_identity }}">
+      <p><time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · MINDEF</p>
+      <p>{{ rec.summary }}</p>
+      <p class="meta"><a href="{{ rec.record_path }}">Record and model details</a> · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p><a href="archive.html?desk=singapore&amp;scope=published">Browse all {{ daily_machine_records | length }} Singapore machine explanations</a></p>
+</section>
+{% endif -%}
+
+{% if desk.slug == 'vietnam' and vietnam_records | default([]) %}
+<section aria-labelledby="vn-published-title" data-vietnam-published-records>
+  <p class="eyebrow">Published records · machine explanations</p>
+  <h2 id="vn-published-title">Latest source-grounded English explanations</h2>
+  <p>Independently worded machine output attributed to its official source.
+    Each record identifies its source version and processing; it is not an
+    official translation or independent confirmation of the publisher's claims.</p>
+  {{ record_days(vietnam_records, lead=5) }}
+  <p><a href="archive.html?desk=vietnam&amp;scope=published">Browse all published Vietnam records</a></p>
+</section>
+{% endif -%}
+
+{# Regional official-link index: only actual production SQLite admission,
+   never shadow captures, the reviewer dossier or static publisher directories. #}
 {% if desk.slug in ('philippines', 'indonesia', 'vietnam') and regional_official_links | default([]) or desk.slug == 'japan' and regional_official_links | default([]) %}
 <section class="desk-references regional-official-live-links"
          data-source-scope="official-link-only"
          aria-labelledby="regional-official-live-links-title">
-  <h2 id="regional-official-live-links-title">Links to official publications</h2>
-  <p>Each link was verified before it was listed. Only the link, its publisher
-  and its date are recorded here, not the text. What a publisher states is not
-  independently verified, and this is not comprehensive national defense coverage.</p>
+  <p class="eyebrow">Verified official sources · publisher links only</p>
+  <h2 id="regional-official-live-links-title">Verified official publisher references</h2>
+  <p>These links come from a guarded production metadata index, not the
+  original-text archive. The publisher's statements are not independently
+  verified claims, and this is not comprehensive national defense coverage.</p>
   {% if desk.slug == 'japan' and regional_official_links %}
-  <p>From the Japan Ministry of Defense news feed: links to official PDFs that
-  could be retrieved, added automatically. Dates are the feed's own publication
-  dates, not independently verified document issue dates. Items that were
-  challenged or could not be verified are left out. Ministry texts are not in
-  the public record, and the Joint Staff, the site-update feed and other
-  Japanese sources are outside this feed. PDF contents, headlines,
-  translations, images and machine explanations are not reproduced.</p>
+  <p>Japan Ministry of Defense news RSS: successfully retrieved official PDF
+  links only, admitted automatically under the standing metadata policy.
+  Dates are RSS pubDate values, not independently verified document issue dates.
+  Challenged and unverified items are excluded. The original-text corpus remains
+  in shadow; Joint Staff, site-update RSS and other Japanese sources are outside
+  this production feed. PDF contents, headlines, translations, images and machine
+  explanations are not reproduced.</p>
   {% endif %}
   {% if desk.slug == 'philippines' %}
   {% for group_id, group_name, group in (('ph-afp-links', 'Armed Forces of the Philippines', ph_afp), ('ph-nsc-links', 'National Security Council', ph_nsc)) if group %}
@@ -146,14 +179,14 @@
     <li data-regional-official-source-id="{{ ref.source_identity }}">
       <p><a href="{{ ref.canonical_official_url }}" target="_blank"
             rel="noopener noreferrer">{{ ref.label }}</a> · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time></p>
-      <p class="meta">Link only{% if ref.source_identity in ph_explained %} · <span class="evidence evidence--model">Machine explanation published above</span>{% endif %}</p>
+      <p class="meta">Official-link metadata only{% if ref.source_identity in ph_explained %} · <span class="evidence evidence--model">Machine explanation published above</span>{% endif %}</p>
     </li>
     {% endfor %}
   </ol>
   {% endfor %}
-  <p class="meta">Original headlines, article texts, photos, documents and
-  translations are not part of this list. Machine explanations are listed
-  separately above. A record that is on hold cannot appear here.</p>
+  <p class="meta">Original headlines, article bodies, photos, documents and
+  translations are excluded from this list. Machine explanations are listed
+  separately above. Held records cannot appear in this index.</p>
   {% else %}
   <ol class="desk-reference-list" aria-label="Admitted official publisher references">
     {% for ref in regional_official_links %}
@@ -168,7 +201,7 @@
       <p><a href="{{ vietnam_explained[ref.source_identity] }}">Read the published English machine explanation</a></p>
       {% endif %}
       {% endif %}
-      <p class="meta">Publisher: {{ ref.publisher_label }} · {{ ref.date_kind | default('Issue date' if ref.document | default(none) else 'Official date') }} <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time> · Link only</p>
+      <p class="meta">Publisher: {{ ref.publisher_label }} · {{ ref.date_kind | default('Issue date' if ref.document | default(none) else 'Official date') }} <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time> · Official-link metadata only</p>
       {% if ref.document | default(none) %}
       <p class="meta">First observed: {{ ref.first_observed_utc }}. Posting date is not established.
         {% if ref.document.effective_date %}Source-stated effective date: {{ ref.document.effective_date }}.{% else %}Effective date is not established.{% endif %}
@@ -177,27 +210,28 @@
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">Article texts, photos, document files, translations and
-  automatic analysis are not included. A formal document's subject line is
-  catalogue information only. A record that is on hold cannot appear here.</p>
+  <p class="meta">Article bodies, photos, document files,
+  translations and automatic analysis are excluded. Formal-document subjects are bibliographic metadata. Held records cannot
+  appear in this index.</p>
   {% endif %}
 </section>
 {% endif %}
-{# Philippines: how the desk operates, derived from published links, released
+{# Philippines: how the desk operates, derived from admitted rows, released
    machine records and the published-research catalog only. #}
 {% if desk.slug == 'philippines' %}
 <section class="desk-operations" data-desk-operations="philippines"
          aria-labelledby="ph-desk-operations-title">
-  <h2 id="ph-desk-operations-title">How this desk works</h2>
+  <p class="eyebrow">How this desk works</p>
+  <h2 id="ph-desk-operations-title">Coverage, update rhythm and what IPR adds</h2>
   <dl class="blockers">
     <dt><strong>Armed Forces of the Philippines</strong></dt>
       <dd>Public-affairs news releases in English. {% if ph_afp %}{{ ph_afp | length }} verified publisher links;
         newest official date <time datetime="{{ ph_afp[0].publisher_posted_date }}">{{ ph_afp[0].publisher_posted_date }}</time>.{% else %}No verified publisher links admitted yet.{% endif %}
-        IPR collects these daily and keeps the originals privately. Verified links are published automatically once a day. Eligible English releases also receive a short machine explanation, attributed to AFP and published without per-record review. Records that fail a source, date, version or quality check are held individually.</dd>
+        Collected daily into private custody. Verified link metadata is admitted and published automatically once a day. Eligible English releases also receive a short machine explanation, attributed to AFP and published without per-record review. Records that fail a source, date, version or quality check are held individually.</dd>
     <dt><strong>National Security Council</strong></dt>
       <dd>Official statements in English. {% if ph_nsc %}{{ ph_nsc | length }} verified publisher {{ 'link' if ph_nsc | length == 1 else 'links' }};
         newest official date <time datetime="{{ ph_nsc[0].publisher_posted_date }}">{{ ph_nsc[0].publisher_posted_date }}</time>.{% else %}No verified publisher links admitted yet.{% endif %}
-        Checked daily; the originals are kept privately. The source posts infrequently, so quiet days are expected. The NSC site hosts statements from several offices, so explanations are attributed to the NSC website or the issuing institution, not assumed to be NSC's own authorship.</dd>
+        Checked daily in private custody under NSC's own source checks. The source posts infrequently, so quiet days are expected. The NSC site hosts statements from several offices, so explanations are attributed to the NSC website or the issuing institution, not assumed to be NSC's own authorship.</dd>
     <dt><strong>Official references vs. IPR analysis</strong></dt>
       <dd>Publisher references on this page are the institutions' own statements, dated by the publisher and not independently verified.
         Machine explanations are labeled as machine output, are not human-reviewed and do not verify the institution's claims. IPR analysis appears only in Briefs that an editor has reviewed and the owner has approved.</dd>
@@ -212,6 +246,7 @@
 {# US: first-party publisher URLs, never collected source originals. #}
 {% if desk.slug == 'us-indopacific' and us_pacom_official_links | default([]) %}
 <section class="desk-references us-pacom-source-links" aria-labelledby="us-pacom-links-heading">
+  <p class="eyebrow">Official-source directory · nine external government links</p>
   <h2 id="us-pacom-links-heading">U.S. Pacific Command — source references</h2>
   <p>Nine official U.S. Pacific Command links identified by command-hosted
   page number and displayed date. These direct readers to the original publisher.
@@ -228,25 +263,33 @@
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">This list is fixed; IPR does not collect from the PACOM site.
-    Whether its robots policy permits access is unresolved. DVIDS is a separate
-    media service whose collection is paused, and it does not stand in for
-    command statements. These links are not counted as records.</p>
+  <p class="meta">This fixed research directory does not operate a PACOM crawler.
+    PACOM's robots-policy access remains unresolved; DVIDS is a separate paused
+    media-service feed, not a proxy for command statements. No U.S. production
+    records are counted from these links.</p>
 </section>
 {% endif %}
 
 {# USCC machine explanations: rows exist only after an owner-activated shared
    Daily admission bound to a version-pinned official-link parent. #}
 {% if desk.slug == 'us-indopacific' and daily_machine_records | default([]) %}
-<section class="desk-section desk-machine" aria-labelledby="daily-machine-heading" data-us-uscc-machine-explanations>
-  <p class="evidence evidence--model">Machine output, not reviewed by a person</p>
+<section class="desk-section" aria-labelledby="daily-machine-heading" data-us-uscc-machine-explanations>
+  <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
   <h2 id="daily-machine-heading">Machine explanations of USCC announcements</h2>
   <p>Latest source-grounded English readings of U.S.-China Economic and Security
     Review Commission institutional press releases. They describe the
     Commission's own account, not U.S. government policy or independently
     verified outcomes. Quotations, linked reports, testimony and attachments were
     excluded before processing. Original text stays private.</p>
-  {{ machine_list(daily_machine_records[:5], 'USCC') }}
+  <ol class="desk-reference-list" aria-label="Machine explanations">
+    {% for rec in daily_machine_records[:5] %}
+    <li data-machine-source="{{ rec.source_identity }}">
+      <p><time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · USCC</p>
+      <p>{{ rec.summary }}</p>
+      <p class="meta"><a href="{{ rec.record_path }}">Record and model details</a> · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
+    </li>
+    {% endfor %}
+  </ol>
   <p><a href="archive.html?desk=us-indopacific&amp;scope=published">Browse all {{ daily_machine_records | length }} U.S. machine explanations</a></p>
 </section>
 {% endif %}
@@ -257,9 +300,11 @@
    admitted production SQLite table, never an unverified HTML scraper output. #}
 {% if desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}
 <section class="desk-references uscc-source-links" aria-labelledby="uscc-official-links-heading">
+  <p class="eyebrow">Automatically collected · official URL and date metadata</p>
   <h2 id="uscc-official-links-heading">U.S.-China Economic and Security Review Commission — official announcements</h2>
   <p>These are verified links to announcements by a U.S. congressional
-    commission, collected from its official press-release listing. They are not U.S. Pacific Command statements,
+    commission, collected from its official press-release listing and admitted
+    into the IPR metadata database. They are not U.S. Pacific Command statements,
     independently verified IPR analysis, or copies of the publisher's original
     material. Direct PACOM collection remains access-blocked. Announcement
     headlines, article text, documents, photographs and translations are
@@ -272,10 +317,11 @@
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">The list covers what the commission's own listing showed when
-    it was read, not its full history. The content stays on the commission's
-    website, and changes or access errors there may interrupt new links. These
-    links are not records and do not add to IPR's record count.</p>
+  <p class="meta">The collecting feed covers its observed first-party listing,
+    not an exhaustive historical archive. Official publisher content remains on
+    the source website; changes or access errors may interrupt new collection.
+    These metadata records are distinct from IPR's article corpus and do not
+    increase its reported article count.</p>
 </section>
 {% endif %}
 
@@ -283,9 +329,10 @@
    Read only from verified production SQLite metadata, not press article bodies. #}
 {% if desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}
 <section class="desk-references us-treasury-source-links" aria-labelledby="us-treasury-official-links-heading">
+  <p class="eyebrow">Automatically collected · official executive-department link metadata</p>
   <h2 id="us-treasury-official-links-heading">U.S. Department of the Treasury — official press releases</h2>
   <p>These outbound references are collected from the U.S. Treasury's first-party press
-    listing and recorded as a verified address, publisher date and issuer only.
+    listing and admitted as verified URL, publisher date and issuer metadata only.
     Treasury is a federal executive department, not the U.S.-China Economic and
     Security Review Commission or U.S. Pacific Command. The listing covers varied
     Treasury subjects; inclusion does not establish Indo-Pacific relevance,
@@ -295,13 +342,14 @@
     {% for ref in us_treasury_official_links %}
     <li data-us-treasury-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
-      <p class="meta">Issuer: U.S. Department of the Treasury · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Link only</p>
+      <p class="meta">Issuer: U.S. Department of the Treasury · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · First-party link metadata only</p>
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">This is not a comprehensive historical archive. New links may
-    stop if access to the publisher or its page layout changes. These links are
-    not counted as records.</p>
+  <p class="meta">This is not a comprehensive historical archive. Observed listing
+    metadata are preserved in a separate production table; new collection may stop
+    if publisher access or page structure changes. These entries are not counted
+    as source-body articles in IPR's main archive.</p>
 </section>
 {% endif %}
 
@@ -310,10 +358,11 @@
    Never count these as original-source article records or curated analysis. #}
 {% if desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}
 <section class="desk-references us-bis-source-links" aria-labelledby="us-bis-official-links-heading">
+  <p class="eyebrow">Automatically collected · first-party official link metadata</p>
   <h2 id="us-bis-official-links-heading">Commerce / Bureau of Industry and Security — press references</h2>
-  <p>These are verified links, each with its publisher date and agency, taken
-    from the dated press-release items on the BIS homepage. The homepage shows
-    only a short current sample, not the agency's full publication history.
+  <p>These links are verified official URL, publisher date and agency metadata
+    from separately dated BIS homepage press-release cards. The homepage shows
+    only a bounded current sample, not the agency's full publication history.
     The list does not establish Indo-Pacific relevance, independently verify
     the publisher's claims, or represent IPR-authored analysis. Original
     release headlines, article bodies, files and photographs are not copied.</p>
@@ -321,13 +370,13 @@
     {% for ref in us_bis_authenticated_links %}
     <li data-us-bis-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
-      <p class="meta">Issuer: U.S. Department of Commerce · Bureau of Industry and Security · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Link only</p>
+      <p class="meta">Issuer: U.S. Department of Commerce · Bureau of Industry and Security · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Outbound official link metadata only</p>
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">These links are not records and add no analysis. Access to BIS
-    may change. Collection from PACOM is blocked, and collection from the DVIDS
-    media service is paused.</p>
+  <p class="meta">These reference links are separate from IPR's original-document
+    corpus and do not add article records or analysis. BIS access may change.
+    PACOM remains access-blocked; the DVIDS media-service feed remains paused.</p>
 </section>
 {% endif %}
 
@@ -336,12 +385,13 @@
    an actual reviewed Brief is recorded, and never exposes publisher originals. #}
 {% if published_research | default([]) %}
 <section class="desk-references" aria-labelledby="ipr-published-research-heading">
-  <p class="evidence evidence--analysis">Human-controlled analysis</p>
+  <p class="eyebrow">IPR original research · published</p>
   <h2 id="ipr-published-research-heading">Research from this desk</h2>
-  <p>Published IPR articles, approved by an editor. Each source opens at its
-  official publisher. IPR keeps the link and its citation details here, not the
-  government's article text or photographs. Where IPR holds a copy of an
-  original, permission to reuse it is reviewed separately.</p>
+  <p>These are approved, published IPR-authored articles. Sources open at their
+  original official publishers; links and bibliographic metadata are retained
+  here, not the government's article bodies or photographs. Where underlying
+  captured originals are retained, their custody and any reuse permissions are
+  reviewed separately.</p>
   <ol class="desk-reference-list" aria-label="Published IPR desk research">
     {% for paper in published_research %}
     <li>
@@ -356,21 +406,22 @@
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">This keeps each citation and IPR's own analysis; it does not
-  republish the source documents. If a publisher removes an original, a link
-  cannot bring it back.{% if desk.status != 'shadow' %} This list is
-  human-reviewed research, not an archive of source texts: records and links
-  from official publishers are listed separately on this page and in Records,
-  each with its own label.{% endif %}</p>
+  <p class="meta">This preserves citation identity and IPR's own analysis, not
+  a public rehost of the source documents. A URL or digest cannot restore an
+  original if its publisher later removes it.{% if desk.status != 'shadow' %}
+  This list is human-reviewed editorial research and is
+  not a production source-text archive: records collected from official
+  publishers, and official-link references, are listed separately on this
+  page and in the Archive, each with its own processing label.{% endif %}</p>
 </section>
 {% endif %}
 
-{# Public Korea renders a fixed list of official links.
+{# Public Korea renders a strictly frozen official-link bibliography only.
    Private source/rights/editorial preview below remains separate: no raw
    source body, media or machine-produced translation enters publication. #}
 {% if desk.slug == 'korea' and not korea_preview | default(false) %}
 <section class="korea-public-bibliography" aria-labelledby="korea-bibliography-title">
-  
+  <p class="eyebrow">Official-source directory · fourteen external government links</p>
   <h2 id="korea-bibliography-title">Ministry of National Defense — official references</h2>
   <p>Five source references from one Korean Ministry of National Defense
   (국방부) release family, republished by Republic of Korea Policy Briefing
@@ -378,8 +429,9 @@
   Korean headlines and release dates. Nine additional exact official URLs
   appear below without unreviewed headlines or analytical descriptions.
   These are <strong>not IPR archived records</strong> or independent
-  confirmation of a statement's claims. The fourteen historical links are fixed as they stood on October 14, 2026;
-  newly collected links are listed separately below.</p>
+  confirmation of a statement's claims. The fourteen historical links are
+  frozen to the October 14, 2026 original-source snapshot; newly collected
+  official-link metadata, when admitted, is listed separately below.</p>
   <p class="meta">Original titles are presented in Korean without an
   IPR translation. Portal posting and original document distribution dates
   are distinct facts.</p>
@@ -392,7 +444,7 @@
       {% if source.publisher_url %}
       <li>
         <strong>{{ 'Defense Acquisition Program Administration (DAPA)' if 'B00008' in source.publisher_url else 'Ministry of National Defense (MND)' }}</strong>
-        {% if 'B00008' in source.publisher_url %}<span class="meta">{% if korea_dapa_production_link_count | default(0) > 0 %}Links listed; originals need a separate rights review{% else %}No links listed yet{% endif %}</span>{% endif %}
+        {% if 'B00008' in source.publisher_url %}<span class="meta">{% if korea_dapa_production_link_count | default(0) > 0 %}Official-link metadata admitted; originals require separate rights review{% else %}No admitted link metadata in this snapshot{% endif %}</span>{% endif %}
         <a href="{{ source.publisher_url }}" rel="noopener noreferrer">Open official publisher index</a>
       </li>
       {% endif %}
@@ -409,13 +461,13 @@
     {% endfor %}
   </ol>
   <section class="korea-additional-official-links" aria-labelledby="korea-additional-links-heading">
-    
+    <p class="eyebrow">Nine additional official-source links · no IPR translations</p>
     <h3 id="korea-additional-links-heading">Further MND publisher references</h3>
-    <p>These nine addresses were checked against the publisher's own article
-    numbers. Their Korean headlines, event claims and document text have not
-    been reviewed and are not reproduced. The list does not establish
-    continuous coverage, verify any military event, or make these pages part
-    of IPR's analysis or records.</p>
+    <p>These nine source URLs have been matched against the frozen official
+    publisher article IDs and recorded response hashes. Their unreviewed
+    Korean headlines, event claims and document text are not reproduced.
+    This list does not establish continuous coverage, military-event
+    verification, or eligibility for IPR's analysis and archive.</p>
     <ol class="korea-public-source-list" aria-label="Nine additional official Korean source links">
       {% for ref in korea_additional_links -%}
       <li data-korea-additional-link="{{ ref.source_identity }}">
@@ -434,22 +486,26 @@
   {% if korea_production_link_count | default(0) > 0 %}
   <p class="meta korea-production-count"
      data-korea-production-admitted-count="{{ korea_production_link_count }}">
-    <strong>{{ korea_production_link_count }}</strong> {% if korea_dapa_production_link_count | default(0) > 0 %}MND and DAPA{% else %}MND{% endif %} official pages are linked from IPR.
-    <span data-korea-mnd-count="{{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}">MND: {{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}</span> · <span data-korea-dapa-count="{{ korea_dapa_production_link_count | default(0) }}">DAPA: {{ korea_dapa_production_link_count | default(0) }}</span>. Some are already in the
-    historical list above and are not repeated in the list of new links. Each
-    is an address, a date and an issuer, not a reproduced document or analysis.
+    <strong>{{ korea_production_link_count }}</strong> {% if korea_dapa_production_link_count | default(0) > 0 %}MND and DAPA{% else %}MND{% endif %} official-link metadata records
+    have entered IPR's production database.
+    <span data-korea-mnd-count="{{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}">MND: {{ korea_production_link_count - korea_dapa_production_link_count | default(0) }}</span> · <span data-korea-dapa-count="{{ korea_dapa_production_link_count | default(0) }}">DAPA: {{ korea_dapa_production_link_count | default(0) }}</span>. The frozen historical bibliography
+    may already link to some of these same official records; duplicates are
+    intentionally not repeated in the new-link list. These are URL, date and
+    issuer records—not automatically reproduced documents or analysis.
   </p>
   {% endif %}
   {% if korea_auto_official_links | default([]) %}
   <section class="korea-automatically-admitted-official-links" aria-labelledby="korea-auto-official-title">
-    
+    <p class="eyebrow">Continuously collected · official government links only</p>
     <h3 id="korea-auto-official-title">New verified {% if korea_dapa_production_link_count | default(0) > 0 %}Korean government{% else %}MND{% endif %} references</h3>
-    <p>These links were collected from the official
-    Korea Policy Briefing republication of {% if korea_dapa_production_link_count | default(0) > 0 %}Ministry of National Defense and Defense Acquisition Program Administration releases,
-    under IPR's separate link-only decisions of October 15 and October 17, 2026{% else %}Ministry of National Defense releases,
-    under IPR's link-only decision of October 15, 2026{% endif %}. No editor has verified
-    the events they report, and the list contains no original headlines,
-    translated text, document texts, photographs or analysis.
+    <p>These additional source references were collected from the official
+    Korea Policy Briefing republication of {% if korea_dapa_production_link_count | default(0) > 0 %}Ministry of National Defense and Defense Acquisition Program Administration releases
+    and admitted to IPR's production metadata database under their separate
+    October 15 and October 17, 2026 standing link-only publication policies{% else %}Ministry of National Defense releases
+    and admitted to IPR's production metadata database under the October 15,
+    2026 standing link-only publication policy{% endif %}. No human editor has verified
+    the underlying event claims, and this list does not contain original
+    headlines, translated text, document bodies, photographs or analysis.
     Collection can be incomplete or interrupted.</p>
     <ol class="korea-public-source-list" aria-label="Automatically admitted official Korean source links">
     {% for ref in korea_auto_official_links -%}
@@ -463,7 +519,7 @@
   {% endif %}
   {% if korea_english_publications | default([]) %}
   <section class="korea-reviewed-english" aria-labelledby="korea-english-published">
-    <p class="evidence evidence--analysis">Reviewed by an editor</p>
+    <p class="eyebrow">Editor-reviewed English · exact Korean source provenance</p>
     <h3 id="korea-english-published">Reviewed translations and source-grounded analysis</h3>
     <p>Each translation is checked against the exact published Korean text.
     Editorial analyses distinguish official statements from independent corroboration
@@ -480,7 +536,7 @@
   {% endif %}
   {% if korea_published_originals | default([]) %}
   <section class="korea-published-originals" aria-labelledby="korea-originals-heading">
-    <p class="evidence evidence--record">As published</p>
+    <p class="eyebrow">Licensed Korean government text · independently source-pinned</p>
     <h3 id="korea-originals-heading">Official originals reproduced as text</h3>
     <p>These Korean-language source texts are reproduced with a link and attribution to
     the Republic of Korea Ministry of National Defense via Korea Policy Briefing.
@@ -603,10 +659,11 @@
 {% endif %}
 
 {# Japan: fixed link-only bibliography from the six verified official
-   source/attachment pairs, October 12. No trial-collection reads, PDF/body
+   source/attachment pairs, October 12. No shadow DB reads, PDF/body
    republication, source admission or automated future additions. #}
 {% if desk.slug == 'japan' %}
 <section class="desk-references" aria-labelledby="japan-official-references-title">
+  <p class="eyebrow">Official-source navigation · six fixed first-party references</p>
   <h2 id="japan-official-references-title">Japan Coast Guard — selected original releases</h2>
   <p>These six original English release pages were individually inspected with
   their publisher-linked PDF companions on October 12, 2026. They are
@@ -615,17 +672,17 @@
   Japan Coast Guard coverage.</p>
   <ol class="desk-reference-list" aria-label="Six official Japan Coast Guard publication links">
     <li><a href="https://www.kaiho.mlit.go.jp/e/topics_archive/article9399.html" rel="noopener noreferrer">PCG vessel towing and damage-control training</a>
-      <p class="meta">Japan Coast Guard · September 7, 2026</p></li>
+      <p class="meta">Japan Coast Guard · September 7, 2026 · Historical source candidate, not in the pinned Day 0 capture (October 8)</p></li>
     <li><a href="https://www.kaiho.mlit.go.jp/e/topics_archive/article9424.html" rel="noopener noreferrer">22nd Heads of Asian Coast Guard Agencies Meeting (HACGAM)</a>
       <p class="meta">Japan Coast Guard · September 18, 2026 · Linked PDF contains a distinct multilateral statement; rights not cleared</p></li>
     <li><a href="https://www.kaiho.mlit.go.jp/e/topics_archive/article9436.html" rel="noopener noreferrer">Indonesia BAKAMLA maritime law-enforcement training</a>
-      <p class="meta">Japan Coast Guard · September 29, 2026</p></li>
+      <p class="meta">Japan Coast Guard · September 29, 2026 · October 8 shadow capture is HTML text only</p></li>
     <li><a href="https://www.kaiho.mlit.go.jp/e/topics_archive/article9453.html" rel="noopener noreferrer">Philippine Coast Guard arrest-techniques instructor training</a>
-      <p class="meta">Japan Coast Guard · October 6, 2026</p></li>
+      <p class="meta">Japan Coast Guard · October 6, 2026 · October 8 shadow capture is HTML text only</p></li>
     <li><a href="https://www.kaiho.mlit.go.jp/e/topics_archive/article9455.html" rel="noopener noreferrer">Philippine Coast Guard environmental-investigation training</a>
       <p class="meta">Japan Coast Guard · October 6, 2026 · Separate official event from the arrest-techniques release</p></li>
     <li><a href="https://www.kaiho.mlit.go.jp/e/topics_archive/article9465.html" rel="noopener noreferrer">Malaysia third-country maritime law-enforcement training</a>
-      <p class="meta">Japan Coast Guard · October 9, 2026</p></li>
+      <p class="meta">Japan Coast Guard · October 9, 2026 · Post-Day-0 source candidate; not a qualifying collecting day</p></li>
   </ol>
   <p class="meta">Only independently linked official pages are shown. Every linked
   PDF provides additional factual detail, photographs or, in the HACGAM case,
@@ -634,16 +691,17 @@
   the English publication pages' copyright footer require a source-version
   review before archiving, translating or model-processing original bodies.
   <a href="https://www.kaiho.mlit.go.jp/questions/post-1.html" rel="noopener noreferrer">JCG official reuse terms</a>.
-  {{ 'Japan original texts remain on hold.' if regional_official_links | default([]) else 'All Japan records remain on hold.' }}</p>
+  {{ 'Japan original-text production records remain held.' if regional_official_links | default([]) else 'All Japan production records remain held.' }}</p>
 </section>
 <section class="desk-references" aria-labelledby="japan-mod-original-pdfs-title">
+  <p class="eyebrow">Official original-document navigation · seven reviewed Japanese PDFs</p>
   <h2 id="japan-mod-original-pdfs-title">Japan Ministry of Defense — reviewed original notices</h2>
   <p>Seven independently inspected original Ministry PDFs, totaling <strong>37
-  pages</strong>, are linked below. Five have a text layer and are held in trial collection;
+  pages</strong>, are linked below. Five are text-bearing shadow source originals;
   the two September notices are <strong>visually reviewed but not captured as
   original machine text</strong> because their PDFs have no extractable text layer. These are <strong>external publisher documents,
-  not IPR records</strong>, and are a narrow historical selection:
-  many other MOD and Joint Staff releases cannot be reached by IPR's collection.</p>
+  not production IPR records</strong>, and are a narrow historical selection:
+  many other MOD/Joint Staff releases remain inaccessible to the collector.</p>
   <ol class="desk-reference-list" aria-label="Seven official Japan Ministry of Defense PDF links">
     <li><a href="https://www.mod.go.jp/j/press/news/2026/08/27b.pdf" rel="noopener noreferrer">August 27 — U.S.–Japan Joint Committee facility matters (11-page Japanese PDF)</a>
       <p class="meta">Ministry of Defense · August 27, 2026 · One notice covering ten annex matters, including planned works, temporary use, and one issuer-reported completion; not ten separately issued documents.</p></li>
@@ -664,15 +722,16 @@
   the original PDFs, maps, photographs and full source text are
   <strong>not reproduced here</strong>. Visual inspection of all 37 pages does
   not prove archived-text extraction parity, current PDF byte identity,
-  picture/diagram permissions, full Ministry coverage, or uninterrupted collection. The two September scan/outlined-text documents are only <strong>human-visually inspected external links</strong>, not machine-extracted records. The oversized October 2 original remains intentionally excluded. The MOD's general reuse policy does not clear each document's
+  picture/diagram permissions, full Ministry coverage, or a healthy collecting-day
+  sequence. The two September scan/outlined-text documents are only <strong>human-visually inspected external links</strong>, not machine-extracted records. The oversized October 2 original remains intentionally excluded. The MOD's general reuse policy does not clear each document's
   third-party material or model processing. <a href="https://www.mod.go.jp/j/info/contents.html"
   rel="noopener noreferrer">MOD official use rules</a>.
-  {{ 'The news-feed links above are separate; original text and model use remain on hold.' if regional_official_links | default([]) else 'Japan remains in trial collection only; no publication or model use is authorized.' }}</p>
+  {{ 'The news-feed official-link metadata service is separate; original-text and model use remain held.' if regional_official_links | default([]) else 'Japan remains shadow-only; no production or model use is authorized.' }}</p>
 </section>
 {% endif %}
 
 {# Indonesia has a first-party publisher *directory* link, not an article
-   citation or inherited reuse permission. No trial-collection originals are exposed. #}
+   citation or inherited reuse permission. No shadow originals are exposed. #}
 {% if desk.slug == 'indonesia' and not indonesia_preview | default(false) %}
 <section class="desk-references" aria-labelledby="indonesia-publisher-heading">
   <h2 id="indonesia-publisher-heading">Official publisher starting point</h2>
@@ -683,9 +742,9 @@
 </section>
 {% if indonesia_official_links | default([]) %}
 <section class="desk-references" aria-labelledby="indonesia-links-heading">
-  
+  <p class="eyebrow">Limited publisher-link directory · October 12, 2026 snapshot</p>
   <h2 id="indonesia-links-heading">Explore official Indonesian defense publications</h2>
-  <p>These fifteen links, as listed on October 12, 2026, open original Berita articles on the Indonesian Ministry of
+  <p>These fifteen links open original Berita articles on the Indonesian Ministry of
   Defense website. They are <strong>publisher references, not independently
   human-reviewed IPR citations</strong>. Publication dates and Indonesian
   headlines are attributed to the ministry; the links do not verify the
@@ -751,16 +810,17 @@
       government, June 2025</a>.</li>
     </ul>
   </div>
-  <p class="meta">This is a fixed selection of fifteen links from one ministry
+  <p class="meta">This is a frozen fifteen-reference selection from one ministry
   news channel, not an automatically updated Indonesian national defense archive.
-  One further item (ID-05) remains withheld over inconsistent geography on its
-  source page. No article text, image, translation or third-party media is
-  reproduced here.</p>
+  Source ID-05 remains withheld over inconsistent geography
+  on its source page. No article body, image, translation or third-party media
+  is reproduced here. Human source review and the Day 7/14/30 collection
+  checkpoints remain separate from the ability to follow these official links.</p>
 </section>
 {% endif %}
 {% if indonesia_press_links | default([]) %}
 <section class="desk-references" aria-labelledby="indonesia-press-heading">
-  
+  <p class="eyebrow">Official press statements · October 12, 2026 publisher snapshot</p>
   <h2 id="indonesia-press-heading">Kemhan press releases (Siaran Pers)</h2>
   <p>Two 2026 releases from the Ministry of Defense's separate
     <a href="https://www.kemhan.go.id/category/siaran-pers"
@@ -780,11 +840,12 @@
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">Unlike the daily Berita stream, this category is updated
-    rarely: as of October 12, 2026 its two latest visible releases were from
-    August and March 2026. IPR does not collect Siaran Pers: it holds no
-    records from it, makes no claim of continuous coverage, has no licence to
-    republish its content, and shows no publisher images.</p>
+  <p class="meta">Unlike the daily institutional Berita stream, this category
+    has published infrequently: as of this snapshot its two latest visible
+    releases are from August and March 2026. The press parser is disabled,
+    with no active Siaran Pers collector, archive records, continuous coverage
+    claim, license to republish content, or publisher images displayed.
+    The Berita shadow-collection checkpoints do not qualify this separate source.</p>
 </section>
 {% endif %}
 {% endif %}
@@ -792,9 +853,10 @@
 {# Reviewed public-source links are not locally archived IPR records. #}
 {% if desk.slug in ('philippines', 'vietnam', 'indonesia') and not indonesia_preview | default(false) and (desk.slug != 'philippines' or public_source_links) %}
 <section class="desk-references" aria-labelledby="desk-references-heading">
-<h2 id="desk-references-heading">Reviewed links to official sources</h2>
-<p>Each link was reviewed before it was listed. The links point to the
-institutions’ own pages, not to IPR records.</p>
+<h2 id="desk-references-heading">Individually reviewed official-source references</h2>
+<p>Source links appear only after publication-specific review. They point to the
+institutions’ own pages, not to IPR archive records; shadow capture and desk
+qualification are separate.</p>
 {% if public_source_links %}
 <div data-reference-browser>
   <div class="desk-reference-filters" data-reference-controls hidden>
@@ -821,49 +883,44 @@ institutions’ own pages, not to IPR records.</p>
   <p class="meta" data-reference-empty hidden>No approved source references match these filters.</p>
 </div>
 {% else %}
-<p class="meta">No link has completed review yet.</p>
+<p class="meta">No individual source references have completed the public-link review. Private research readers and shadow records remain separate.</p>
 {% endif %}
 </section>
 {% endif %}
 
 {% macro korea_production_lanes() %}
-{# Korea publishes links, owner-approved Korean and English pages, and (once
-   collecting) machine-translated MND records. Shown with or without records,
-   so readers never mistake the record count for all Korean output. #}
+{# Korea has a real, separately governed metadata production table and
+   owner-approved Korean/English publications; once live, its article corpus
+   holds only the machine-translated MND lane. Shown with or without corpus
+   records, so readers never mistake the corpus count for all Korean output. #}
 <dl class="stat-rows" data-korea-production-lanes>
-  <div class="stat-row"><dt>MND official pages linked</dt><dd>{{ (korea_production_link_count | default(0)) - (korea_dapa_production_link_count | default(0)) }}</dd></div>
-  {% if korea_dapa_production_link_count | default(0) > 0 %}<div class="stat-row"><dt>DAPA official pages linked</dt><dd>{{ korea_dapa_production_link_count }}</dd></div>{% endif %}
+  <div class="stat-row"><dt>Live MND official-link metadata</dt><dd>{{ (korea_production_link_count | default(0)) - (korea_dapa_production_link_count | default(0)) }}</dd></div>
+  {% if korea_dapa_production_link_count | default(0) > 0 %}<div class="stat-row"><dt>Live DAPA official-link metadata</dt><dd>{{ korea_dapa_production_link_count }}</dd></div>{% endif %}
   <div class="stat-row"><dt>Published Korean originals</dt><dd>{{ korea_published_originals | default([]) | length }}</dd></div>
   <div class="stat-row"><dt>Reviewed English translations and analyses</dt><dd>{{ korea_english_publications | default([]) | length }}</dd></div>
-  <div class="stat-row"><dt>Records</dt><dd>{% if desk.status != 'live' %}None in the public record{% elif desk.record_count %}{{ desk.record_count|count }}{% else %}None yet{% endif %}</dd></div>
-  <div class="stat-row"><dt>DAPA as a source</dt><dd>{% if korea_dapa_production_link_count | default(0) > 0 %}Links listed; not yet a full source{% else %}Not included{% endif %}</dd></div>
+  <div class="stat-row"><dt>Article-corpus records</dt><dd>{% if desk.status != 'live' %}Not admitted{% elif desk.record_count %}{{ desk.record_count|count }}{% else %}None yet{% endif %}</dd></div>
+  <div class="stat-row"><dt>DAPA production source</dt><dd>{% if korea_dapa_production_link_count | default(0) > 0 %}Link metadata admitted; full desk qualification pending{% else %}Not qualified{% endif %}</dd></div>
 </dl>
-{% if desk.status == 'live' %}<p class="meta">A link records only an address, a publisher date and an issuer.
-Separately, each MND release whose licensed Korean text is published becomes one
-record, which is machine-translated and summarized automatically and labeled as
+{% if desk.status == 'live' %}<p class="meta">The MND feed writes official URLs, publisher dates and issuer metadata
+to a separately governed production table. Separately, each MND release whose
+licensed Korean text is published enters the article record once, where it is
+machine-translated and summarized automatically; those records are labeled as
 unreviewed machine output. Editor-approved English translations and analyses
-are separate and human-reviewed.</p>{% else %}<p class="meta">A link records only an address, a publisher date and an issuer;
-it is not a record. Korean original text and English or analytical pages are
-published only with their own rights and editorial approvals. "None in the
-public record" refers to records, <strong>not</strong> to the links or to these
+remain a separate, human-reviewed lane.</p>{% else %}<p class="meta">The MND feed writes official URLs, publisher dates and issuer metadata
+to a separately governed production table, not the article-body corpus.
+The existing article-source manifest is still inactive for this desk.
+Korean original text and English/analytical pages are published only with their
+separate source-rights and editorial approvals. "Not admitted" refers to
+article-corpus records, <strong>not</strong> the live MND metadata or these
 individually approved publications.</p>{% endif %}
 {% endmacro %}
 {% if desk.record_count is not none %}
-<section class="desk-section" aria-labelledby="desk-numbers-title">
-<h2 id="desk-numbers-title">The record in numbers</h2>
+<h2 class="plain">The record, as it actually stands</h2>
+<p class="eyebrow eyebrow--corpus">{{ corpus_eyebrow }}</p>
 <p>{{ desk.record_count|count }} record{{ '' if desk.record_count == 1 else 's' }} from {{ desk.configured_source_count }} source{{ '' if desk.configured_source_count == 1 else 's' }} across
-{{ desk.institution_count }} institution{{ '' if desk.institution_count == 1 else 's' }}.
-Dates are the publication dates the sources state.</p>
-{% set dweeks = desk_weeks.get(desk.slug) if desk_weeks else none %}
-{% if dweeks %}
-{# This desk's own weeks, on this desk's own scale: the tallest bar is this
-   desk's busiest week in the record, not the whole record's. #}
-{{ week_strip(dweeks, dweeks | map(attribute='count') | max, heading='h3', title=desk.name ~ ' by publication week', note="Records held per publication week, from the week of this desk's first record. A short bar is a small week in this record, which can mean a quiet source or a gap in collection; it does not measure activity. Each bar opens that week's page, which lists every desk's records.") }}
-{% endif %}
+{{ desk.institution_count }} institution{{ '' if desk.institution_count == 1 else 's' }}, {{ desk.first_published }} to {{ desk.last_published }}.</p>
 {# "Analyzed" is articles.analyzed_at IS NOT NULL — nothing about
    publication. "Not analyzed" is the complement and is not a queue. #}
-<details class="desk-more">
-<summary>Counts and dates</summary>
 <dl class="stat-rows">
   <div class="stat-row"><dt>Source records</dt><dd>{{ desk.record_count|count }}</dd></div>
   <div class="stat-row"><dt>Analyzed records</dt><dd>{{ desk.analyzed_count|count }}</dd></div>
@@ -871,66 +928,68 @@ Dates are the publication dates the sources state.</p>
   <div class="stat-row"><dt>Earliest item</dt><dd>{{ desk.first_published or '—' }}</dd></div>
   <div class="stat-row"><dt>Latest item</dt><dd>{{ desk.last_published or '—' }}</dd></div>
   <div class="stat-row"><dt>Last successful collection</dt><dd>{{ desk.last_successful_run or 'None' }}</dd></div>
-  <div class="stat-row"><dt>Sources declared</dt><dd>{{ desk.configured_source_count }}</dd></div>
-  <div class="stat-row"><dt>Sources in the collection schedule</dt><dd>{{ desk.enabled_source_count }}</dd></div>
+  <div class="stat-row"><dt>Sources configured</dt><dd>{{ desk.configured_source_count }}</dd></div>
+  <div class="stat-row"><dt>Sources enabled</dt><dd>{{ desk.enabled_source_count }}</dd></div>
 </dl>
-<p class="meta">Counts are as of {{ snapshot.date | reader_date }}. "Analyzed" means a model
-has finished reading the record; it says nothing about whether anything was published
-from it. "Not analyzed" covers every other record, whatever the reason, and is not
-a queue. <a href="corpus-guide.html#states">Read the four processing states</a>.</p>
-</details>
+<p class="meta">Counts reflect the stored corpus at this snapshot. "Analyzed" means a model
+completed a reading of the record — it says nothing about publication. "Not analyzed"
+includes records awaiting screening, screened out, and incomplete analysis;
+it is not an analysis queue. <a href="corpus-guide.html#states">Read the four processing states</a>.</p>
 <p><a class="btn btn--primary" href="archive.html?desk={{ desk.slug }}">Browse the {{ desk.name }}'s {{ desk.record_count|count }} records</a></p>
 {% if desk.slug == 'korea' and not korea_preview | default(false) %}{{ korea_production_lanes() }}{% endif %}
-</section>
-{% elif desk.slug == 'philippines' %}
-{# Counts are shown in the Philippines summary above; the generic rows do not apply. #}
+
+{% set dweeks = desk_weeks.get(desk.slug) if desk_weeks else none %}
+{% if dweeks %}
+{# This desk's own weeks, on this desk's own scale: the tallest bar is this
+   desk's busiest week in the record, not the corpus's. #}
+{{ week_strip(dweeks, dweeks | map(attribute='count') | max, heading='h2', title=desk.name ~ ' by publication week', note="Records this desk holds per publication week, from the week of its first record. Collection volume, not activity or output; a short bar is a small week in this record, which can mean a quiet source or a collection gap. Each bar opens that week's page, which lists every desk's records.") }}
+{% endif %}
 {% else %}
-<section class="desk-section" aria-labelledby="desk-numbers-title">
-<h2 id="desk-numbers-title">What the public record holds</h2>
-{% if desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}
+{% if desk.slug == 'philippines' %}
+{# Counts are shown in the Philippines summary above; the generic shadow-era rows do not apply. #}
+{% elif desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}
 <dl class="stat-rows">
-  <div class="stat-row"><dt>Links to congressional commission releases</dt><dd>{{ uscc_official_links|length }}</dd></div>
+  <div class="stat-row"><dt>Collected official congressional metadata links</dt><dd>{{ uscc_official_links|length }}</dd></div>
   {% if us_treasury_official_links | default([]) %}
-  <div class="stat-row"><dt>Links to Treasury releases</dt><dd>{{ us_treasury_official_links|length }}</dd></div>
+  <div class="stat-row"><dt>Collected official Treasury metadata links</dt><dd>{{ us_treasury_official_links|length }}</dd></div>
   {% endif %}
-  <div class="stat-row"><dt>Collection from Pacific Command</dt><dd>Access blocked</dd></div>
-  <div class="stat-row"><dt>Collection from DVIDS</dt><dd>Paused</dd></div>
-  <div class="stat-row"><dt>U.S. source records</dt><dd>None</dd></div>
+  <div class="stat-row"><dt>Direct PACOM command collection</dt><dd>Access blocked</dd></div>
+  <div class="stat-row"><dt>DVIDS media collection</dt><dd>Paused</dd></div>
+  <div class="stat-row"><dt>Admitted U.S. source-body articles</dt><dd>None</dd></div>
 </dl>
-<p class="meta">Links are not records and do not add to IPR's record count. The
-congressional feed is working, but no Pacific Command statement has been
-collected through it.</p>
+<p class="meta">These automatically admitted USCC metadata rows are held in the production
+SQLite database separately from the source-body article corpus. They do not
+inflate the archive's article count. The congressional feed is live, but no
+PACOM military statement has been collected through it.</p>
 {% elif desk.slug == 'korea' and not korea_preview | default(false) %}
 {{ korea_production_lanes() }}
 {% else %}
-<p>This desk has no records in the public record. Originals gathered in trial
-collection are kept separate, and no number on this page counts them.</p>
 <dl class="stat-rows">
-  <div class="stat-row"><dt>Records</dt><dd>{{ 'None in the public record' if desk.status == 'shadow' else 'None collected' }}</dd></div>
-  <div class="stat-row"><dt>{{ 'Sources declared for the public record' if desk.status == 'shadow' and not desk.sources else 'Sources declared' }}</dt><dd>{{ desk.configured_source_count }}</dd></div>
-  <div class="stat-row"><dt>{{ 'Sources in the public collection schedule' if desk.status == 'shadow' and not desk.sources else 'Sources publishing links or machine output' if desk.status == 'shadow' else 'Sources in the collection schedule' }}</dt><dd>{{ desk.enabled_source_count }}</dd></div>
+  <div class="stat-row"><dt>{{ 'Corpus records' if desk.status == 'shadow' else 'Records' }}</dt><dd>{{ 'Not admitted' if desk.status == 'shadow' else 'None collected' }}</dd></div>
+  <div class="stat-row"><dt>Sources configured{{ ' in production' if desk.status == 'shadow' and not desk.sources else '' }}</dt><dd>{{ desk.configured_source_count }}</dd></div>
+  <div class="stat-row"><dt>{{ 'Sources enabled in production' if desk.status == 'shadow' and not desk.sources else 'Sources enabled for governed admission' if desk.status == 'shadow' else 'Sources enabled' }}</dt><dd>{{ desk.enabled_source_count }}</dd></div>
 </dl>
+<p class="meta">This desk has no admitted records in the public IPR corpus. Any independently collected shadow originals remain separate, and no number on this page counts them.</p>
 {% if desk.status == 'shadow' and not desk.sources %}
-<p class="meta">The zeros above describe the public record only. Sources in trial collection are described under source research below.</p>
+<p class="meta">The zero source-configuration figures above describe production only. Active shadow families are documented in the institutional research inventory below.</p>
 {% endif %}
 {% endif %}
-</section>
 {% endif %}
 
 {% if desk.sources %}
-<section class="desk-section" aria-labelledby="desk-sources-title">
-<h2 id="desk-sources-title">Sources</h2>
+<h2>Sources</h2>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>Each source this desk follows, whether it is in the collection
-  schedule, and how many records it has contributed.</caption>
-  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">In the schedule</th><th scope="col" class="num">Records</th></tr></thead>
+  <caption>Every source declared for this desk, whether it is enabled, and how
+  much of the record it accounts for.</caption>
+  <thead><tr><th scope="col">Source</th><th scope="col">Institution</th><th scope="col">Authority</th><th scope="col">Enabled</th><th scope="col" class="num">Records</th></tr></thead>
   <tbody>
   {% for s in desk.sources %}
     <tr>
       <td data-label="Source"><a href="source/{{ s.slug }}.html">{{ s.display_name }}</a></td>
       <td data-label="Institution">{{ s.institution or '—' }}</td>
-      <td data-label="In the schedule">{{ 'Yes' if s.enabled else 'No' }}</td>
+      <td data-label="Authority">{{ s.authority_tier or '—' }}</td>
+      <td data-label="Enabled">{{ 'Yes' if s.enabled else 'No' }}</td>
       <td data-label="Records" class="num">{% if s.record_count is not none %}<a href="archive.html?source={{ s.slug }}">{{ s.record_count|count }}</a>{% else %}<span class="meta">none</span>{% endif %}</td>
     </tr>
   {% endfor %}
@@ -938,54 +997,45 @@ collection are kept separate, and no number on this page counts them.</p>
 </table>
 </div>
 {% if desk.status == 'shadow' %}
-<p class="meta">IPR does not collect these sources into the public record. Each is
-listed because verified links or labeled machine output from it can be published
-under a standing decision by the owner. No original document enters the public
-record this way, and trial collection is kept separate from these rows.</p>
+<p class="meta">These are registered production source definitions that the public pipeline never fetches.
+Each is enabled only for its governed admission path, which registers verified link metadata or
+signed machine output under a standing owner decision. No original document enters the public record
+through it, and any isolated shadow collection remains separate from these rows.</p>
 {% else %}
-<p class="meta">A source in the schedule is one IPR is set up to visit. That is not a
-promise that every visit works: <a href="coverage.html">Coverage</a> records what each
-source returned, every time.</p>
+<p class="meta">An enabled source is one the pipeline is configured to visit. It is not a promise
+that a working collector exists for it — see <a href="coverage.html">Coverage</a>, where each
+source's own outcome is recorded every run.</p>
 {% endif %}
-</section>
 {% endif %}
 
-{% if display_limits %}
-<section class="desk-section" aria-labelledby="desk-limits-title">
-<h2 id="desk-limits-title">Limits</h2>
-<ul class="desk-limits">
-{% if desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}
-  <li>Automatic collection currently covers the official USCC press listing only, not the entire U.S. military or government.</li>
-  <li>Direct access to the Pacific Command site is blocked; Navy fleet sites also returned access restrictions. DVIDS is a distinct media service and collection from it is paused.</li>
-  <li>A USCC entry records the publisher's address, publication date and issuer, not original documents, photographs, summaries or IPR analysis.</li>
-  <li>A government statement is an attributable source, not independent verification of the statement's claims.</li>
+{% if desk.qualification %}
+<h2>What qualification requires</h2>
+<p>{{ desk.qualification.explanation }}</p>
+<dl class="stat-rows">
+  <div class="stat-row"><dt>Consecutive days required</dt><dd>{{ desk.qualification.required_consecutive_days }}</dd></div>
+  <div class="stat-row"><dt>Governed checkpoint reviews</dt><dd>{{ desk.qualification.checkpoints }}</dd></div>
+</dl>
+{% if desk.is_collecting %}
+<p class="meta">This desk is live. The record above is retained as historical
+qualification evidence, not a current gate.</p>
 {% else %}
-{% for limit in display_limits %}
-  <li>{{ limit }}</li>
-{% endfor %}
+<p class="meta">No review has been completed and no verdict has been reached.</p>
 {% endif %}
-</ul>
-<p class="meta">Read these before citing the desk. <a href="coverage.html">Coverage</a>
-shows what each collection actually returned.</p>
-</section>
 {% endif %}
 
-{% if desk.research or desk.qualification %}
-<details class="desk-more desk-more--end">
-<summary>{{ 'Source research and open problems' if desk.research else 'How this desk qualified' if desk.is_collecting else 'What this desk must show before it collects' }}</summary>
 {% if desk.research %}
 {% if desk.slug == 'philippines' %}
-<h2 class="plain">Source scope</h2>
-<p>Two institutions are in scope. This is not countrywide coverage, and an original that IPR keeps privately is not a record in the public record.</p>
+<h2>Source scope</h2>
+<p>Two institutions are in scope. This is not countrywide coverage, and private preservation of an original does not make it a public corpus record.</p>
 {% else %}
-<h2 class="plain">Sources researched</h2>
-<p>These are the institutions this desk has researched. The list records research; it is not coverage: some are in trial collection, others are only researched or blocked, and nothing from a trial enters the public record until its source is admitted.</p>
+<h2>Pre-registered source universe</h2>
+<p>The declared source universe distinguishes isolated active shadow families from merely researched or blocked institutions. It is not coverage. Shadow preservation does not enter the public corpus before independent source admission.</p>
 {% endif %}
 
 <h3>Sources identified</h3>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>The sources this desk has identified and, where verified, a link to each publisher's own index. These are the institutions' pages, not publications IPR has reviewed and not IPR records.</caption>
+  <caption>Declared source families and, where verified, official publisher entrypoints. These are external institution pages, not IPR-reviewed individual publications or admitted archive records.</caption>
   <thead><tr><th scope="col">Source</th><th scope="col">Item format</th><th scope="col">Note</th></tr></thead>
   <tbody>
   {% for s in desk.research.source_families %}
@@ -1019,7 +1069,7 @@ shows what each collection actually returned.</p>
 <p class="meta">{{ desk.research.volume_caveat }}</p>
 {% endif %}
 
-<h3>{{ 'Conditions and limits that still apply' if desk.slug == 'philippines' else 'What has to be solved before these sources enter the public record' if desk.status == 'shadow' else 'What has to be solved before this desk can collect' }}</h3>
+<h3>{{ 'Conditions and limits that still apply' if desk.slug == 'philippines' else 'Remaining barriers to source admission' if desk.status == 'shadow' else 'What has to be solved before this desk can collect' }}</h3>
 <dl class="blockers">
 {% for head, body in desk.research.blockers %}
   <dt><strong>{{ head }}</strong></dt>
@@ -1029,7 +1079,8 @@ shows what each collection actually returned.</p>
 
 {% if desk.research.resolved %}
 <h3>What has already been solved</h3>
-<p class="meta">Kept here so a reader can tell a problem that was solved from one that was abandoned.</p>
+<p class="meta">Recorded rather than deleted. A blocker that quietly disappears from
+this page leaves a reader unable to tell whether it was solved or abandoned.</p>
 <dl class="blockers">
 {% for head, body in desk.research.resolved %}
   <dt><strong>{{ head }}</strong></dt>
@@ -1039,23 +1090,29 @@ shows what each collection actually returned.</p>
 {% endif %}
 {% endif %}
 
-{% if desk.qualification %}
-<h2{{ ' class="plain"' | safe if not desk.research else '' }}>What qualification requires</h2>
-<p>{{ desk.qualification.explanation }}</p>
-<dl class="stat-rows">
-  <div class="stat-row"><dt>Consecutive days required</dt><dd>{{ desk.qualification.required_consecutive_days }}</dd></div>
-  <div class="stat-row"><dt>Checkpoint reviews</dt><dd>{{ desk.qualification.checkpoints }}</dd></div>
-</dl>
-{% if desk.is_collecting %}
-<p class="meta">This desk is collecting. The requirements above are kept as historical
-qualification evidence, not a current gate.</p>
+{% if display_limits %}
+<h2>Limits of this desk, stated plainly</h2>
+<ul>
+{% if desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}
+  <li>Automatic collection currently covers the official USCC press listing only, not the entire U.S. military or government.</li>
+  <li>Direct PACOM site access is blocked; Navy fleet sites also returned access restrictions. DVIDS is a distinct media service and its collector is paused.</li>
+  <li>Admitted USCC entries preserve publisher URL, publication date and issuer metadata, not original documents, photographs, summaries or IPR analysis.</li>
+  <li>A government statement is an attributable source, not independent verification of the statement's claims.</li>
 {% else %}
-<p class="meta">No review has been completed and no verdict has been reached.</p>
+{% for limit in display_limits %}
+  <li>{{ limit }}</li>
+{% endfor %}
 {% endif %}
-{% endif %}
-</details>
+</ul>
+<p class="meta">These are properties of the desk a reader needs before citing it — see
+<a href="coverage.html">Coverage</a> for what each collection run actually returned.</p>
 {% endif %}
 
-<p class="records-foot">{% if desk.slug == 'china' %}<a href="analysis.html">Briefs from the China Desk, in {{ collection_name }}</a>{% endif %}<a href="desks.html">All desks</a></p>
+{% if desk.slug == 'china' %}
+<h2>China Desk analysis</h2>
+<p>Read the desk's Briefs in <a href="analysis.html">{{ collection_name }}</a>.</p>
+{% endif %}
+
+<p class="records-foot"><a href="desks.html">All desks</a></p>
 {% endblock %}
 {% block scripts %}{% if desk.slug in ('vietnam', 'philippines', 'indonesia') and not indonesia_preview | default(false) %}<script src="desk-references.js" defer></script>{% endif %}{% endblock %}

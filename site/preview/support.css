@@ -42,6 +42,7 @@ table.stacking tr { padding: .6rem 0; border-bottom: 1px solid var(--rule); }
 table.stacking td { border: 0; padding: .15rem 0; }
 table.stacking td[data-label]::before { content: attr(data-label); display: block; font-size: .75rem; color: var(--muted); }
 table.stacking td.num { text-align: left; padding-left: 0; }
+table.stacking caption { display: block; }
 }
 .processing-plate {
   margin: 1.4rem 0 2rem; background: var(--surface); border: 1px solid var(--rule); border-top: 2px solid var(--rule-hard);

@@ -162,7 +162,8 @@ class PhilippinesPublicPages(DeskCase):
         self.assertNotIn("Shadow evaluation", plate)
         self.assertIn("<dt>Verified official links</dt><dd>%d</dd>" % len(links), plate)
         self.assertIn("<dt>Machine explanations</dt><dd>%d</dd>" % len(machine), plate)
-        self.assertIn("<dt>Corpus records</dt><dd>Not admitted</dd>", plate)
+        # Reader wording (2026-11-16); still no count and no zero.
+        self.assertIn("<dt>Records</dt><dd>None in the public record</dd>", plate)
         scope = desks.split('id="desk-scopes"', 1)[1]
         self.assertIn('data-philippines-directory-scope-count="%d"' % len(links), scope)
         for other in ("china", "singapore", "japan", "korea", "vietnam", "us-indopacific"):
