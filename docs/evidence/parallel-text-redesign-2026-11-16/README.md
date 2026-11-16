@@ -9,7 +9,8 @@ render, not the deployed site; nothing here is merged, deployed or live.
 
 | Page | Route | Desktop | Mobile |
 | --- | --- | --- | --- |
-| Home | `index.html` | `home-desktop.webp` | `home-mobile.webp` |
+| Home, photographic opening (current) | `index.html` | `home-photo-desktop.webp` | `home-photo-mobile.webp` |
+| Home, text-only opening (superseded, for comparison) | `index.html` at `11e3832784` | `home-text-only-desktop.webp` | `home-text-only-mobile.webp` |
 | Records (archive) | `archive.html` | `archive-desktop.webp` | `archive-mobile.webp` |
 | A full record | `record/476.html` | `record-476-full-desktop.webp` | `record-476-full-mobile.webp` |
 | A sparse, metadata-only record (MINDEF) | `record/5834.html` | `record-5834-metadata-desktop.webp` | `record-5834-metadata-mobile.webp` |
@@ -19,6 +20,12 @@ render, not the deployed site; nothing here is merged, deployed or live.
 | Briefs catalogue | `analysis.html` | `briefs-catalogue-desktop.webp` | `briefs-catalogue-mobile.webp` |
 | A Brief | `briefs/south-korea-nuclear-submarine-strategy-fuel-2026.html` | `brief-desktop.webp` | `brief-mobile.webp` |
 | A dossier | `dossier/china-singapore-naval-cooperation.html` | `dossier-desktop.webp` | `dossier-mobile.webp` |
+| Korea reviewed translation | `korea-translations/156784297.html` | `korea-translation-desktop.webp` | `korea-translation-mobile.webp` |
+
+The photographic home and Korea translation captures are from head
+`b8e7692523`. The rest are from `11e3832784`; later commits change those pages
+only in the home opening, the Briefs card on the home page (which no longer
+repeats the hero photograph) and the Korea translation mark.
 
 At capture, every page had `document.documentElement.scrollWidth` equal to the
 viewport (no horizontal scroll at 375px) and logged no console errors.
