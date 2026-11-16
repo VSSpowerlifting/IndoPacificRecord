@@ -1,12 +1,18 @@
-"""Generate actual Phase 4A Desks screenshots and DOM receipts, off production.
+"""Generate actual Desks directory screenshots and DOM receipts, off production.
 
 Run on a PR head after Playwright Chromium is installed. The candidate builder
 writes only to a fresh disposable directory, preserving output/ and the DB.
+
+The geographic desk map was retired on 2026-11-16 (parallel text redesign);
+Desks is a directory. The receipt keeps what the map's receipt protected that
+still applies: all eight registry desks are listed with their registry state,
+nothing overflows at any width, the page raises no errors, a reader without
+JavaScript reaches every desk, and the state text stays visible in forced
+colours.
 """
 from __future__ import annotations
 
 import json
-import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -14,16 +20,20 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "site" / "preview"))
 
 import generate_preview as gp  # noqa: E402
-from tests.test_desks_phase4_browser import PROBE, WIDTHS
+from core.desk_registry import load_registry  # noqa: E402
+from tests.test_desks_phase4_browser import PROBE, WIDTHS  # noqa: E402
 
 OUT = ROOT / "phase4a-visual-receipt"
+REGISTER = ".deskmap-register"
 
 
 def main() -> int:
     OUT.mkdir(exist_ok=True)
+    registry = {e.slug: e for e in load_registry().public_entries}
     failures = []
     receipts = []
     with tempfile.TemporaryDirectory(prefix="ipr-p4a-visual-") as temp:
@@ -45,37 +55,26 @@ def main() -> int:
                     errors = []
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto((destination / "desks.html").as_uri(), wait_until="load")
-                    result = page.evaluate(PROBE)
-                    result["page_errors"] = errors
-                    result["flag_images"] = page.locator(".deskmap-plate .deskmap-flag-tab img").evaluate_all(
-                        "(nodes) => nodes.map(n => ({src:n.getAttribute('src'), "
-                        "complete:n.complete, naturalWidth:n.naturalWidth}))"
-                    )
-                    if len(result["flag_images"]) != 8 or any(
-                        not im["complete"] or im["naturalWidth"] == 0
-                        for im in result["flag_images"]
-                    ):
-                        failures.append(f"{width}: missing or broken public flag SVG")
+                    rows = page.evaluate(PROBE)
+                    doc_width = page.evaluate("document.documentElement.scrollWidth")
+                    result = {"width": width, "rows": rows, "docWidth": doc_width,
+                              "page_errors": errors}
                     receipts.append(result)
-                    if result["cards"] != 8 or result["unplaced"] != 1:
-                        failures.append(f"{width}: incomplete eight-desk register")
-                    if result["panelOverMap"]:
-                        failures.append(f"{width}: panel overlaps the map")
-                    if result["unevenRows"]:
-                        failures.append(f"{width}: desk summaries differ in height within a row")
-                    for key in ("overlaps", "labelHits", "outside", "page_errors"):
-                        if result[key]:
-                            failures.append(f"{width}: {key}: {result[key]}")
-                    if result["docWidth"] > width + 1:
-                        failures.append(f"{width}: horizontal overflow {result['docWidth']}")
-                    if width in (375, 900, 1280, 1600):
-                        page.locator(".deskmap").screenshot(
+                    if len(rows) != len(registry) or {r["slug"] for r in rows} != set(registry):
+                        failures.append(f"{width}: incomplete desk register")
+                    for row in rows:
+                        entry = registry.get(row["slug"])
+                        if entry and row["state"] != entry.status_label:
+                            failures.append(f"{width}: {row['slug']} state is not the registry label")
+                        if row["right"] > width + 1:
+                            failures.append(f"{width}: {row['slug']} overflows")
+                    if errors:
+                        failures.append(f"{width}: page_errors: {errors}")
+                    if doc_width > width + 1:
+                        failures.append(f"{width}: horizontal overflow {doc_width}")
+                    if width in (375, 768, 1280, 1600):
+                        page.locator(REGISTER).screenshot(
                             path=str(OUT / f"desks-{width}.png")
-                        )
-                    if width == 1600:
-                        page.locator('a[data-pick][data-desk="singapore"]').click()
-                        page.locator(".deskmap").screenshot(
-                            path=str(OUT / "desks-singapore-selected-1600.png")
                         )
                     page.close()
 
@@ -86,13 +85,11 @@ def main() -> int:
                 )
                 nojs = context.new_page()
                 nojs.goto((destination / "desks.html").as_uri(), wait_until="load")
-                count = nojs.locator(".deskmap-plate").count()
-                receipts.append({"mode": "no-js", "plate_count": count})
-                nojs.locator(".deskmap").screenshot(
-                    path=str(OUT / "desks-nojs-375.png")
-                )
-                if count != 8:
-                    failures.append("no-JS mode failed eight-desk fallback")
+                count = nojs.locator(REGISTER + " section.desk").count()
+                receipts.append({"mode": "no-js", "desk_count": count})
+                nojs.locator(REGISTER).screenshot(path=str(OUT / "desks-nojs-375.png"))
+                if count != len(registry):
+                    failures.append("no-JS mode does not list every desk")
                 context.close()
 
                 forced = browser.new_page(
@@ -102,32 +99,17 @@ def main() -> int:
                 )
                 forced.goto((destination / "desks.html").as_uri(), wait_until="load")
                 sample = forced.evaluate("""() => {
-                    const fill = sel => getComputedStyle(document.querySelector(sel)).fill;
-                    const reset = getComputedStyle(document.querySelector('.deskmap-picks a'));
-                    return {
-                        canvas:fill('.dm-sea'),
-                        live:fill('.dm-country.is-live use'),
-                        quiet:fill('.dm-country.is-quiet use'),
-                        buttonText:reset.color,
-                        buttonBackground:reset.backgroundColor,
-                        hitFill: getComputedStyle(document.querySelector('.dm-hit')).fill,
-                        hitAdjust: getComputedStyle(document.querySelector('.dm-hit')).forcedColorAdjust
-                    };
+                    const state = getComputedStyle(document.querySelector('.desk-state'));
+                    const link = getComputedStyle(document.querySelector('.deskmap-register h3 a'));
+                    return {stateText: state.color, stateBackground: state.backgroundColor,
+                            linkText: link.color, linkBackground: link.backgroundColor};
                 }""")
-                receipts.append({"mode":"forced-colors", "sample":sample})
-                if sample["canvas"] != sample["live"] or sample["canvas"] != sample["quiet"]:
-                    failures.append("forced colours: country fills obscure the map")
-                if sample["buttonText"] == sample["buttonBackground"]:
-                    failures.append("forced colours: desk index link text invisible")
-                if (sample["hitAdjust"] != "none" or not (
-                    sample["hitFill"] in ("transparent", "none")
-                    or sample["hitFill"].startswith("rgba(")
-                    and sample["hitFill"].endswith(", 0)")
-                )):
-                    failures.append("forced colours: invisible map hit targets become visible")
-                forced.locator(".deskmap").screenshot(
-                    path=str(OUT / "desks-forced-colors-375.png")
-                )
+                receipts.append({"mode": "forced-colors", "sample": sample})
+                if sample["stateText"] == sample["stateBackground"]:
+                    failures.append("forced colours: desk state text invisible")
+                if sample["linkText"] == sample["linkBackground"]:
+                    failures.append("forced colours: desk link text invisible")
+                forced.locator(REGISTER).screenshot(path=str(OUT / "desks-forced-colors-375.png"))
                 forced.close()
             finally:
                 browser.close()

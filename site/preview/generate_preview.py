@@ -2159,25 +2159,9 @@ def changelog_entries(stats: dict) -> list:
 # permanent identifier, a DOI, an accession number or a public permalink, and
 # the private preview route never appears in a citation.
 
-MONTHS = ("January", "February", "March", "April", "May", "June", "July",
-          "August", "September", "October", "November", "December")
-
-
-def reader_date(iso: str) -> str:
-    """`2026-08-08` -> `8 August 2026`.
-
-    Day–month–year, per the standing reader-facing date convention
-    (`DECISION_LOG.md` 2026-07-09): week-ending labels read "4 July 2026", and
-    ISO `YYYY-MM-DD` is kept for tabular and metadata contexts. The convention
-    governs date FORM; the American-English ruling of 2026-08-16 governs
-    spelling, and does not reach it.
-
-    An explicit month table rather than `strftime`, so the rendered string is
-    identical on every machine regardless of locale — determinism is a tested
-    property of this build.
-    """
-    year, month, day = (int(part) for part in iso.split("-"))
-    return "%d %s %d" % (day, MONTHS[month - 1], year)
+# Reader date and count formats live in core.reader_format (standard library
+# only) so bare-Jinja contract tests use the same functions.
+from core.reader_format import MONTHS, reader_date, count as reader_count  # noqa: E402,F401
 
 
 def script_lang(text) -> str:
@@ -2755,8 +2739,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         or (v.replace("_", " ").capitalize() if v else "—"))
     # Thousands separators for reader-facing counts. Never applied to ids,
     # dates, hashes, run numbers or source codes.
-    env.filters["count"] = (
-        lambda n: "{:,}".format(n) if isinstance(n, int) else n)
+    env.filters["count"] = reader_count
     env.filters["reader_date"] = reader_date
     import calendar
     env.filters["month_name"] = lambda n: calendar.month_name[n]
