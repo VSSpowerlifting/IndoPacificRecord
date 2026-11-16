@@ -39,7 +39,7 @@ h1 { font-size: clamp(1.9rem, 8vw, 2.3rem); }
 @media print {
 @page { margin: 18mm 16mm; }
 body { background: #fff; color: #000; font-size: 11pt; }
-.skip, .veil, .pager, .cite-copy, .link-copy, .chips, .back-link { display: none !important; }
+.skip, .pager, .cite-copy, .link-copy, .chips, .back-link { display: none !important; }
 .freshness-bar, .site { background: #fff; border-color: #999; }
 main a[href^="http"]::after { content: " <" attr(href) ">"; font-family: var(--mono); font-size: 8pt; color: #333; overflow-wrap: anywhere; }
 a[href^="#"]::after, a[href^="mailto:"]::after { content: ""; }

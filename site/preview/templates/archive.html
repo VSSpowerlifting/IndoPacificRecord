@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_records.html" import record_days %}
+{% from "_records.html" import record_days, records_key %}
 {% from "_weeks.html" import week_strip %}
 {% from "_atlas.html" import spine %}
 {% block title %}The record — {{ title }}{% endblock %}
@@ -50,8 +50,8 @@
         <div class="finder-field finder-field--scope">
           <label for="f-scope">Search in</label>
           <select id="f-scope" name="scope">
-            <option value="focus" selected>Research focus ({{ focus.all_focus | count }} records)</option>
-            <option value="all">Full preserved record ({{ corpus_total | count }} records)</option>
+            <option value="focus" selected>Selected records ({{ focus.all_focus | count }})</option>
+            <option value="all">Every record ({{ corpus_total | count }})</option>
             <option value="published">All published material</option>
           </select>
         </div>
@@ -156,14 +156,14 @@ accessible through the week-by-week browse above.</p>
 <h2 id="results-heading" class="visually-hidden">Records</h2>
 {# tabindex="-1": a page turn moves focus here (browse.js `turn`), because
    the button pressed may have become disabled. #}
-<p class="result-range" id="result-range" tabindex="-1">The newest {{ archive_first | length }} of {{ focus.all_focus | count }} research-focus records. <a href="corpus.html">All {{ corpus_total | count }} preserved records by week</a>.</p>
+<p class="result-range" id="result-range" tabindex="-1">The newest {{ archive_first | length }} of {{ focus.all_focus | count }} selected records.</p>
 <p class="visually-hidden" id="result-live" role="status" aria-live="polite"></p>
 {# What the first list is. Always visible: it qualifies the rows a reader sees
    on arrival, with or without JavaScript. #}
-<p class="focus-note">Search starts in the <strong>Research focus</strong>, a smaller set selected automatically: {{ focus.china_focus | count }} records from the China Desk and {{ (focus.all_focus - focus.china_focus) | count }} from other desks. It is not individually fact-checked or editor-approved.</p>
+<p class="focus-note">The list starts with {{ focus.all_focus | count }} selected records: every record from the other desks, and {{ focus.china_focus | count }} China Desk records picked by software to spread across its sources and months, without repeated titles. The selection is automatic, not fact-checked or editor-approved. <a href="archive.html?scope=all">Search all {{ corpus_total | count }} records</a></p>
 {# The column names are printed once here, not by `record_days`: browse.js
    replaces everything inside `#results` when it redraws. #}
-<p class="records-key" aria-hidden="true"><span>In English</span><span>As published</span></p>
+{{ records_key(archive_first) }}
 <div id="results">
   {{ record_days(archive_first, desk_by_source, key=false) }}
 </div>

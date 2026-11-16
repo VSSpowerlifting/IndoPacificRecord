@@ -363,8 +363,13 @@ def display_records(compact, records):
             state=state['label'] if state['code'] != 'analyzed' else None,
             state_class='state state--' + state['code'],
             trail_label='In an analysis source trail' if ident in compact['trail_ids'] else None)
-        if desk.get('code') == 'china' and english and lang.get('code') != 'en':
-            result[r['id']]['title_note'] = 'Machine-translated title · human review not recorded'
+        # The Records page states once, above the list, that English titles
+        # are machine translations; only rows whose English is something
+        # else carry a mark (generate_preview.title_kind uses the same rule).
+        if english and lang.get('code') == 'en' and source['code'] != 'sg_mindef_releases':
+            result[r['id']]['title_note'] = 'Title published in English'
+        elif english and source['code'].startswith('vn_'):
+            result[r['id']]['title_note'] = 'Machine-written headline, not a translation'
     return result
 
 

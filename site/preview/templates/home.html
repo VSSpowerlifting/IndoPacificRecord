@@ -41,7 +41,7 @@
       <h2 class="specimen-original as-published" id="specimen-title"{% if not s.title_english and s.language_tag %} lang="{{ s.language_tag }}"{% endif %}><a href="record/{{ s.id }}.html">{{ s.title_english or s.title_original }}</a></h2>
       {% endif %}
       {% if s.summary_lead %}<p class="specimen-summary"><span class="evidence evidence--model">Machine summary, first sentence</span> {{ s.summary_lead }}</p>{% endif %}
-      <p class="specimen-links"><a href="record/{{ s.id }}.html">Read this record and its source</a>{% if s_desk %}<a href="{{ s_desk.route }}">{{ s_desk.name }}</a>{% endif %}</p>
+      <p class="specimen-links"><a href="record/{{ s.id }}.html">Read the record</a>{% if s_desk %}<a href="{{ s_desk.route }}">{{ s_desk.name }}</a>{% endif %}</p>
     </article>
     {% endif %}
   </div>

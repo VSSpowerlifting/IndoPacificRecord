@@ -107,12 +107,15 @@
         <div class="issue-ledger-copy">
           <h3><a href="{{ e.url }}"{% if row.kind == 'issue' %} rel="noopener"{% endif %}>{{ e.title or e.slug }}</a></h3>
           {% if e.dek %}<p>{{ e.dek }}</p>{% endif %}
-          <p class="meta">{% if e.desks %}{% for slug in e.desks %}{{ desks.get(slug).name }}{% if not loop.last %} · {% endif %}{% endfor %} · {% endif %}{% if row.kind == 'issue' %}Earlier Brief{% else %}{{ row.provenance }}{% endif %}{% if e.synthetic %} · Synthetic test fixture{% endif %}</p>
+          {#- The page heading already says every row is a source-linked IPR Brief;
+              a row names only what differs: its desks, an earlier series. -#}
+          {% set row_meta = [] %}{% for slug in e.desks or [] %}{% set _ = row_meta.append(desks.get(slug).name) %}{% endfor %}{% if row.kind == 'issue' %}{% set _ = row_meta.append('Earlier Brief') %}{% endif %}{% if e.synthetic %}{% set _ = row_meta.append('Synthetic test fixture') %}{% endif %}
+          {% if row_meta %}<p class="meta">{{ row_meta | join(' · ') }}</p>{% endif %}
         </div>
         {%- if m and m.is_photograph %}{% set ph = m.photo %}
         <div class="brief-media" data-catalogue-media{% if ph.cover_treatment %} data-treatment="{{ ph.cover_treatment }}"{% endif %}><img src="{{ ph.served }}" width="{{ ph.width }}" height="{{ ph.height }}" alt="{{ ph.alt }}" loading="lazy" decoding="async"></div>
         <div class="brief-credit">
-          {{ photo_credit(ph) }}
+          {{ photo_credit(ph, caption=false) }}
         </div>
         {%- endif %}
       </article>

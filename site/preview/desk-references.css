@@ -8,6 +8,9 @@
 [data-surface=desk] .status-panel>div{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:.5rem 2.5rem;align-items:start}
 [data-surface=desk] .status-panel h2{font:600 clamp(1.1875rem,1.05rem + .5vw,1.4375rem)/1.3 var(--serif);margin:0;padding:0;border:0;max-width:24ch}
 [data-surface=desk] .status-panel p{margin:0;color:var(--ink-2);max-width:66ch}
+[data-surface=desk] .status-panel p:empty{display:none}
+[data-surface=desk] .collection-notes{grid-column:-2/-1;font-size:.875rem;color:var(--ink-2)}
+[data-surface=desk] .collection-notes summary{min-height:40px;padding-top:.5rem;font-weight:600;cursor:pointer}
 [data-surface=desk] main :is(section,details)>h2{margin:0 0 .8rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display);letter-spacing:-.01em}
 [data-surface=desk] main section{margin:3rem 0 0}
 [data-surface=desk] main section section{margin-top:2rem}

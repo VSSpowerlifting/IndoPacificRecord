@@ -57,7 +57,7 @@
   {% set notes = ordered | map(attribute='annotation') | list %}
   <p class="week-key"><span><i aria-hidden="true"></i>Records held that week</span>
     {% if 'Known collection interruption' in notes %}<span><i class="k-outage" aria-hidden="true"></i>Known collection interruption</span>{% endif %}
-    {% if 'Snapshot boundary' in notes %}<span><i class="k-edge" aria-hidden="true"></i>Snapshot boundary</span>{% endif %}</p>
+    {% if 'Snapshot boundary' in notes %}<span><i class="k-edge" aria-hidden="true"></i>Part week, at either end of the record</span>{% endif %}</p>
   {% endif %}
 </figure>
 {%- endmacro %}

@@ -8,7 +8,6 @@
 [data-surface] .page-head>p{max-width:64ch}
 [data-surface] .reader-contents{background:none;padding:.7rem 0;border-block:1px solid var(--rule)}
 [data-surface] .table-scroll{background:var(--surface);padding:8px 18px;margin-block:20px;border-top:1px solid var(--rule-hard)}
-[data-surface] :is(.source-contributions figcaption,.extraction-figure figcaption){background:var(--surface-inset)}
 [data-surface] .status-panel{border:0;border-top:2px solid var(--rule-hard);background:var(--surface);padding:22px 24px}
 [data-surface] :is(.btn,button,summary){touch-action:manipulation}
 [data-surface] summary{min-height:44px}
@@ -25,5 +24,4 @@
   [data-surface] .page-head h1{font-size:clamp(40px,11vw,56px)}
   [data-surface] .table-scroll{padding:4px 12px}
 }
-html.no-anim *,html.no-anim *::before,html.no-anim *::after{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){[data-surface] *,[data-surface] *::before,[data-surface] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
