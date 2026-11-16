@@ -57,9 +57,13 @@ class SharedDaily(unittest.TestCase):
         dateline = "CAMP EXAMPLE, District One - "
         item["body"] = dateline + item["body"]
         first["evidence"] = dateline + first["evidence"]
-        for place, hold in (("Camp Example", None),
-                            ("Camp Other", "daily_name_or_office_unsupported"),
-                            ("Example Camp", "daily_name_or_office_unsupported")):
+        for place, hold in (
+            ("Camp Example", None),
+            ("Camp Other", "daily_name_or_office_unsupported"),
+            ("Example Camp", "daily_name_or_office_unsupported"),
+            ("Example Camp near Camp Example", "daily_name_or_office_unsupported"),
+            ("Camp Example-based facilities", "daily_name_or_office_unsupported"),
+        ):
             with self.subTest(place=place):
                 first["sentence"] = "AFP reports an exercise planned at " + place + " for 23 October."
                 result["summary_english"] = " ".join(fact["sentence"] for fact in result["facts"])

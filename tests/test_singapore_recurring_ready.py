@@ -254,17 +254,17 @@ class PilotLimitsFollowTheGate(Base):
 
 
 class PromptLengthBudget(unittest.TestCase):
-    """The 11-12 Nov retry held at the 90-word gate; the gate itself is unchanged."""
+    """The MINDEF prompt must agree with admission and require local evidence."""
 
-    def test_v4_states_per_part_budgets_inside_the_unchanged_gate(self):
+    def test_prompt_requests_compact_unflagged_facts_with_local_numeric_evidence(self):
         from analysis import singapore_daily_prompts as p
         from core.daily_sources import source_for
         text = p.analysis_messages("Synthetic title", "Synthetic sentence one. Synthetic sentence two.")[0]["content"]
-        self.assertEqual(p.ANALYSIS_VERSION, "sg-analysis-v4")
+        self.assertEqual(p.ANALYSIS_VERSION, "sg-analysis-v5")
         self.assertIn(p.VERSION, source_for("sg_mindef_releases").prompt_versions)
-        self.assertIn("TOGETHER at most 60 words", text)
-        self.assertIn("flag_reason at most 25 words", text)
-        self.assertLessEqual(60 + 25, 90)
+        self.assertIn("together at most 60 words", text)
+        self.assertIn("flag (false), flag_reason (null), flag_evidence_id (null)", text)
+        self.assertIn("date against that passage alone", text)
 
     def test_the_quality_gate_still_rejects_more_than_90_words(self):
         import inspect
