@@ -25,13 +25,13 @@ not edited here.
 search), one section, "Newest from each desk", shows the first row of each
 public-record desk's own page (China, Singapore, South Korea, Vietnam, read
 from data), the desk name where a dated list puts the day, a line saying how
-many desks hold public records and (computed from the counts) that most come
-from Chinese sources, with a link to Coverage, then one quiet line naming the
+many desks hold public records and (computed from the counts) that most of
+the records come from Chinese sources, with a link to Coverage, then one quiet line naming the
 desks with no public records and their registry state. The
 separate home Desks section is removed. The rule is deterministic
 (`desk_front_rows`), not editorial selection. On today's data the opening
 record and the China row are the same record; that is the rule working, not
-a choice. The mobile home page is about 1,700px shorter.
+a choice.
 
 **Stored-summary sentence.** The home opening, the home rows and the five
 newest rows on each desk page show the first complete sentence of the
@@ -42,8 +42,9 @@ It reads the shaped record after source holds apply, so MINDEF (summary
 withheld) never carries one. Korea MND and Vietnam records already publish
 these summaries on their record pages. Not on the Records page, week pages or
 the search index. **Korea page headroom:** the Korea desk page carries no
-summary lines; with them it kept about 415 bytes of its 120,000-byte budget
-while its link lists grow daily (measured 118,111 bytes without them).
+summary lines. Its delivery budget (HTML plus CSS, 120,000 bytes) left about
+415 bytes with them while its link lists grow daily; without them this build
+measures 118,586 bytes (`verify_frontend_delivery`).
 
 **Scaffolding language.** Lists state once, at the head of the English
 column, that English titles are machine translations with human review not

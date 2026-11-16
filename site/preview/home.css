@@ -57,7 +57,7 @@ h2.specimen-original[lang^=zh]{font-family:var(--zh-serif)}h2.specimen-original[
 /* Newest from each desk: the desk's name stands where a dated list puts the
    day numeral; the date moves into the row's meta line. */
 .records-desks .desk-cell{padding-top:1.05rem}
-.records-desks .desk-cell a{display:block;font:400 1.75rem/1.05 var(--display);letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+.records-desks .desk-cell a{display:block;min-height:40px;font:400 1.75rem/1.05 var(--display);letter-spacing:-.01em;color:var(--ink);text-decoration:none}
 .records-desks .desk-cell a:hover{text-decoration:underline;text-decoration-thickness:1px}
 .records-desks .desk-cell span{display:block;margin-top:.45rem;font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
 .records-desks .row-side time{color:var(--ink-2)}

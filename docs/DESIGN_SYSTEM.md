@@ -81,7 +81,7 @@ recorded". Singapore metadata-only rows are set quieter (`record-row--metadata`)
 text), then "Newest from each desk": the first row of each public-record
 desk's own page (`desk_front_rows`), the desk name in the left column and the
 date in the meta line; a line saying how many desks hold public records and,
-measured from the counts, that most come from Chinese sources, with a link to
+measured from the counts, that most of the records come from Chinese sources, with a link to
 Coverage; one line naming the desks with no public records and their registry
 state; then Briefs and the three kinds of text.
 

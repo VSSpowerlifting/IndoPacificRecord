@@ -91,7 +91,7 @@ class ResearchAtlasHierarchy(unittest.TestCase):
         self.assertIn("Coverage is selective.",
                       " ".join(soup.select_one("footer.site .footer-standing").get_text(" ").split()))
         note = " ".join(home.select_one(".home-desks-note").get_text(" ").split())
-        self.assertIn("most of them from Chinese sources", note)
+        self.assertIn("most of the records come from Chinese sources", note)
         shown = home.select(".records-desks > .records-day")
         public_desks = [d for d in gp.PublicView(gp.TRACKED_DB).desk_directory() if d.record_count]
         self.assertEqual([li.select_one(".desk-cell > a").get("href") for li in shown],

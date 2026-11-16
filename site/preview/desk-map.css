@@ -12,7 +12,7 @@
 .desks-group span{font:600 var(--step-meta)/1 var(--sans);color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
 .deskmap-register>.desk{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
 .deskmap-register .desk h3{margin:0;padding:0;border:0;font:400 2rem/1.05 var(--display)}
-.deskmap-register .desk h3 a{color:var(--ink);text-decoration:none}
+.deskmap-register .desk h3 a{display:inline-flex;align-items:center;min-height:40px;color:var(--ink);text-decoration:none}
 .deskmap-register .desk h3 a:hover{text-decoration:underline;text-decoration-thickness:1px}
 .deskmap-marks{display:flex;flex-wrap:wrap;gap:.2rem .9rem;margin:.5rem 0 0;font-size:var(--step-meta)}
 .desk-pub{color:var(--editorial-ink);font-weight:600}

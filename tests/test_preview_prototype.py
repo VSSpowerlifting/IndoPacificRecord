@@ -523,8 +523,8 @@ class TestNoFabricatedCoverage(PreviewCase):
         # measured here rather than taken on trust.
         note = soup.select_one('.home-desks-note')
         self.assertIn(
-            '%d desks hold public records so far, most of them from Chinese '
-            'sources.' % len(held), ' '.join(note.get_text().split()))
+            '%d desks hold public records so far; most of the records come '
+            'from Chinese sources.' % len(held), ' '.join(note.get_text().split()))
         self.assertEqual(note.a['href'], 'coverage.html')
         self.assertGreater(desks.get('china').record_count * 2,
                            sum(d.record_count for d in held))

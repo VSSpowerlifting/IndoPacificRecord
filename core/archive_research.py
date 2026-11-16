@@ -296,8 +296,11 @@ def with_cited(records, cited):
 
 def build_index(db_path, compact, *, cite_record, processing_notes,
                 official_groups=(), originals=(), english_publications=(), analyses=(),
-                machine_records=(), cited=()):
+                machine_records=(), cited=(), title_kinds=None):
     """One build's selected DB + current public projection/loaders, fail closed.
+
+    `title_kinds` maps a corpus record id to generate_preview.title_kind(), so
+    the Records page marks a row's English exactly as every other list does.
 
     Source URLs are read solely for retirement checks on archive rows, never
     serialized for them. Counts and digests describe public data only.
@@ -326,14 +329,14 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
             raise ValueError('archive_bulk_text_prohibited')
     return {'schema': SCHEMA, 'snapshot': compact['snapshot'],
             'archive_sha256': digest(encoded(compact)), 'digest': digest(encoded(records)),
-            'records': records, 'holds': {r['id']: holds[r['id']] for r in records if r['id'] in holds}, 'display': display_records(compact, records),
+            'records': records, 'holds': {r['id']: holds[r['id']] for r in records if r['id'] in holds}, 'display': display_records(compact, records, title_kinds),
             'days': {day: [int(day[8:10]), calendar.month_name[int(day[5:7])] + ' ' + day[:4],
                            calendar.day_name[date.fromisoformat(day).weekday()]]
                      for day in sorted({r['date'] for r in records if r['date']})}, 'retirement_ledger_entries': count,
             'excluded': dict(sorted(excluded.items()))}
 
 
-def display_records(compact, records):
+def display_records(compact, records, title_kinds=None):
     """Reader labels and closed facets from the same six-field public projection.
 
     Kept outside the export records. This avoids a second set of browser-side
@@ -365,10 +368,15 @@ def display_records(compact, records):
             trail_label='In an analysis source trail' if ident in compact['trail_ids'] else None)
         # The Records page states once, above the list, that English titles
         # are machine translations; only rows whose English is something
-        # else carry a mark (generate_preview.title_kind uses the same rule).
-        if english and lang.get('code') == 'en' and source['code'] != 'sg_mindef_releases':
+        # else carry a mark. The kind comes from generate_preview.title_kind(),
+        # the rule every other list uses; without it, the stored language
+        # alone decides, and no Vietnam row is called a headline unverified.
+        kind = (title_kinds or {}).get(ident)
+        if kind is None and english and lang.get('code') == 'en' and source['code'] != 'sg_mindef_releases':
+            kind = 'published_english'
+        if kind == 'published_english':
             result[r['id']]['title_note'] = 'Title published in English'
-        elif english and source['code'].startswith('vn_'):
+        elif kind == 'machine_headline':
             result[r['id']]['title_note'] = 'Machine-written headline, not a translation'
     return result
 

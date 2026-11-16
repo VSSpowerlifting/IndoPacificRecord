@@ -3630,7 +3630,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         official_groups=archive_official_groups, originals=korea_published_original_rows,
         machine_records=machine_archive_rows(machine_records),
         english_publications=korea_english_publication_rows, analyses=public_analyses,
-        cited=cited_archive_rows(cited_records))
+        cited=cited_archive_rows(cited_records),
+        title_kinds={rec["id"]: rec["title_kind"] for rec in data["corpus"]})
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
