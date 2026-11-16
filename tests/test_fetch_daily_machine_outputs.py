@@ -108,12 +108,12 @@ class FetchOutputs(unittest.TestCase):
                     event, identity, [self.response() for _ in others])
                 self.assertEqual(result['sg_mindef_releases'], 'pilot_gate_closed')
                 self.assertFalse((root / 'sg_mindef_releases.json').exists())
-                self.assertEqual(call.call_count, len(others) - 2)  # DAPA and JCG are policy-disabled
+                self.assertEqual(call.call_count, len(others) - 3)  # DAPA, JCG and USCC are policy-disabled
                 for call_args in call.call_args_list:
                     self.assertNotIn('sg_mindef_releases', ' '.join(map(str, call_args.args[0])))
                 self.assertEqual(set((root / 'outputs').read_text().split()), {'failed_families=0'})
                 for family in others:
-                    self.assertEqual(result[family], 'policy_disabled' if family in ('kr_policy_dapa_releases', 'jp_jcg_press_en') else 'fetched')
+                    self.assertEqual(result[family], 'policy_disabled' if family in ('kr_policy_dapa_releases', 'jp_jcg_press_en', 'us_uscc_press_en') else 'fetched')
 
     def test_attended_dispatch_fetches_singapore_only_with_the_named_identity(self):
         order = list(fetch.SOURCES)
@@ -126,7 +126,7 @@ class FetchOutputs(unittest.TestCase):
         policy = copy.deepcopy(load_policy())
         policy['sources']['jp_jcg_press_en'].update(
             private_model_processing=True, public_machine_explanation=True, unattended_release=True)
-        enabled = [f for f in fetch.SOURCES if f not in ('sg_mindef_releases', 'kr_policy_dapa_releases')]
+        enabled = [f for f in fetch.SOURCES if f not in ('sg_mindef_releases', 'kr_policy_dapa_releases', 'us_uscc_press_en')]
         for switch in (None, 'false', 'true'):
             with self.subTest(switch=switch), patch.dict(os.environ, {}):
                 os.environ.pop('JP_JCG_LINKS_ENABLED', None)

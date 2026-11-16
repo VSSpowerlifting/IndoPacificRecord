@@ -227,6 +227,23 @@
 </section>
 {% endif %}
 
+{# USCC machine explanations: rows exist only after an owner-activated shared
+   Daily admission bound to a version-pinned official-link parent. #}
+{% if desk.slug == 'us-indopacific' and daily_machine_records | default([]) %}
+<section class="desk-section desk-machine" aria-labelledby="daily-machine-heading" data-us-uscc-machine-explanations>
+  <p class="evidence evidence--model">Machine output, not reviewed by a person</p>
+  <h2 id="daily-machine-heading">Machine explanations of USCC announcements</h2>
+  <p>Latest source-grounded English readings of U.S.-China Economic and Security
+    Review Commission institutional press releases. They describe the
+    Commission's own account, not U.S. government policy or independently
+    verified outcomes. Quotations, linked reports, testimony and attachments were
+    excluded before processing. Original text stays private.</p>
+  {{ machine_list(daily_machine_records[:5], 'USCC') }}
+  <p><a href="archive.html?desk=us-indopacific&amp;scope=published">Browse all {{ daily_machine_records | length }} U.S. machine explanations</a></p>
+</section>
+{% endif %}
+{% set uscc_explained = daily_machine_records | default([]) | map(attribute='source_identity') | list %}
+
 {# The first genuine recurring U.S. metadata source is a congressional commission,
    NOT PACOM, DVIDS or an IPR-authored article. These rows come from a typed
    admitted production SQLite table, never an unverified HTML scraper output. #}
@@ -243,7 +260,7 @@
     {% for ref in uscc_official_links %}
     <li data-uscc-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
-      <p class="meta">Issuer: U.S.-China Economic and Security Review Commission · Official publication date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Link only</p>
+      <p class="meta">Issuer: U.S.-China Economic and Security Review Commission · Official publication date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Official link metadata only{% if desk.slug == 'us-indopacific' and ref.source_identity in uscc_explained %} · <span class="evidence evidence--model">Machine explanation published above</span>{% endif %}</p>
     </li>
     {% endfor %}
   </ol>

@@ -259,6 +259,7 @@ def record_models(operation):
 DAPA_FAMILY = "kr_policy_dapa_releases"
 SG_MINDEF_FAMILY = "sg_mindef_releases"
 JP_JCG_FAMILY = "jp_jcg_press_en"
+US_USCC_FAMILY = "us_uscc_press_en"
 
 
 def _fact_only(profile) -> bool:
@@ -270,7 +271,8 @@ def _fact_only(profile) -> bool:
 def _evidence_bound(profile) -> bool:
     """Private-original profiles whose facts cite evidence IDs resolved here."""
     return (profile.desk_id in ("philippines", "indonesia") or _fact_only(profile)
-            or getattr(profile, "source_family", None) in (SG_MINDEF_FAMILY, JP_JCG_FAMILY))
+            or getattr(profile, "source_family", None) in (SG_MINDEF_FAMILY, JP_JCG_FAMILY,
+                                                                US_USCC_FAMILY))
 
 
 class Analyzer:

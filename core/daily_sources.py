@@ -435,6 +435,46 @@ def _jcg_parent(conn, identity) -> Optional[dict]:
     return japan_jcg_links.read_parent(conn, identity)
 
 
+
+def _uscc_links(repo, commit, source) -> list:
+    """USCC press-release identities in the pinned private custody checkout.
+
+    Every row is re-qualified against its own pinned capture under the
+    standing-family assessment; eligible rows carry the unquoted Commission
+    narrative privately, held rows a hold code and no prose.
+    """
+    from core import uscc_press_links
+    return uscc_press_links.links_from_custody(repo, commit, source.family)
+
+
+def _uscc_approved_input(private, row) -> str:
+    # Only the qualifier's included narrative paragraphs: never the stored
+    # body, whose quotations, boilerplate and linked-work notices are excluded.
+    return private.get("_narrative") or ""
+
+
+def _uscc_known_hold(record) -> bool:
+    from core.uscc_offline_input import HELD_IDENTITIES
+    return bool(record.get("uscc_hold")) or record["source_identity"] in HELD_IDENTITIES
+
+
+def _uscc_known_hold_reason(record) -> Optional[str]:
+    from core.uscc_offline_input import HELD_IDENTITIES
+    if record.get("uscc_hold"):
+        return record["uscc_hold"]
+    return "uscc_identity_held_individually" if record["source_identity"] in HELD_IDENTITIES else None
+
+
+def _uscc_output_check(output) -> Optional[str]:
+    ok = not output["model_flagged"] and re.search(r"\bUSCC\b", output["summary"]) is not None
+    return None if ok else "daily_us_uscc_flag_or_attribution_held"
+
+
+def _uscc_parent(conn, identity) -> Optional[dict]:
+    """The admitted USCC official press-release link (link-only scope)."""
+    from core import uscc_press_links
+    return uscc_press_links.read_parent(conn, identity)
+
 SOURCES: Dict[str, DailySource] = {s.family: s for s in (
     DailySource(
         family="ph_afp_articles", desk_id="philippines", custody_ref="archive/ph-afp",
@@ -521,6 +561,30 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         # A manifest-registered manual source: public Daily admits signed links
         # and outputs, never fetches the Japan Coast Guard site.
         desk_registered=True),
+    DailySource(
+        # Commission-authored institutional press releases under the founder's
+        # standing-family assessment (DECISION_LOG 2026-11-03/04/07): only the
+        # unquoted narrative the qualifier includes reaches a model. Quotations,
+        # linked reports, testimony, attachments and media never do.
+        family="us_uscc_press_en", desk_id="us-indopacific", custody_ref="archive/uscc-press",
+        language="en", label="USCC",
+        publisher="U.S.-China Economic and Security Review Commission",
+        public_issuer="U.S.-China Economic and Security Review Commission",
+        prompt_versions=("us-uscc-relevance-v1+us-uscc-analysis-v1",),
+        identity_max_length=140,
+        links="core.daily_sources:_uscc_links",
+        approved_input="core.daily_sources:_uscc_approved_input",
+        quality="processing.daily_intake:english_official_quality",
+        known_hold="core.daily_sources:_uscc_known_hold",
+        known_hold_reason="core.daily_sources:_uscc_known_hold_reason",
+        output_check="core.daily_sources:_uscc_output_check",
+        parent="core.daily_sources:_uscc_parent",
+        admission_migration="migrations.versions.m0024_uscc_press_source_records:is_already_applied",
+        # One owner switch for both public halves, off by default.
+        public_switch="US_USCC_LINKS_ENABLED",
+        # Not registered: the U.S. desk has no governed Daily admission or
+        # run-result row until a founder activation decision registers it.
+        desk_registered=False),
 )}
 
 

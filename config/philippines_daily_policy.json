@@ -69,6 +69,16 @@
       "excluded_source_identities": [],
       "max_records_per_run": 1,
       "max_input_characters": 16000
+    },
+    "us_uscc_press_en": {
+      "private_model_processing": false,
+      "public_machine_explanation": false,
+      "unattended_release": false,
+      "owner_decision": "2026-11-03 founder: exact July 18 and July 25 2026 USCC unquoted institutional narratives accepted as potential input for an independently worded, USCC-attributed machine note of at most 90 words. 2026-11-04 founder: rebuttable standing-family assessment text for unsigned Commission-issued releases passing the six qualifier checks; 2026-11-07 founder: adopt with its qualifier as one review candidate, effective only on merge. External model transmission, provider handling, spending, recurring capture, activation and public release are NOT authorized; every flag stays false until a separate founder decision.",
+      "max_estimated_cost_usd_per_run": 0.35,
+      "excluded_source_identities": [],
+      "max_records_per_run": 1,
+      "max_input_characters": 16000
     }
   }
 }

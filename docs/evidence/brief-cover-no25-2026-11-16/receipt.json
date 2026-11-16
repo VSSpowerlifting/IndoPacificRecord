@@ -1,0 +1,25 @@
+{
+  "source_page": "https://www.dvidshub.net/image/9009505/balikatan-25-working-inside-combined-coordination-center",
+  "license": "Public domain",
+  "license_url": "https://www.dvidshub.net/about/copyright",
+  "license_basis": "DVIDS publication marks the image public domain. Used for news/editorial context with credit and the non-endorsement notice. Retained bytes are the openly linked DVIDS preview JPEG.",
+  "creator": "Airman 1st Class Carson Jeney, U.S. Air Force",
+  "dvids_image_id": "9009505",
+  "dod_id": "250430-F-CJ259-1001",
+  "retrieval": {
+    "url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2505/9009505/2000w_q95.jpg",
+    "status": 200,
+    "bytes": 1213393,
+    "etag": "\"994118dcecad5adc2b82a983f5e11471\"",
+    "retrieved_at": "2026-11-16T05:33:11.560887+00:00",
+    "user_agent": "Indo-Pacific Record editorial review"
+  },
+  "retained_sha256": "384f0e1c47798826333405c66e3f02da48862085d122132d7128e2ee885e0111",
+  "caption": "Philippine and U.S. officers at the Combined Coordination Center during Balikatan 25 at Camp Aguinaldo on April 30, 2025. The photo shows the exercise center.",
+  "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+  "surfaces": [
+    "article",
+    "catalogue"
+  ],
+  "owner_authorization": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1049#issuecomment-6908194818"
+}

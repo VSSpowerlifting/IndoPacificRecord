@@ -1,0 +1,44 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "south-korea-nuclear-submarine-strategy-fuel-2026",
+  "manuscript_fingerprint": "dcebc5efeaa1d22ea5979cf57fc6398e14f1b9d3a2d2f4f9e0794b1b76e0d9ce",
+  "status": "approved",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 2,
+      "heading": "South Korea establishes a development timetable"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 3,
+      "end": 4,
+      "heading": "The first design contracts take shape"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 5,
+      "end": 7,
+      "heading": "Washington’s separate decision on reactor fuel"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 8,
+      "end": 10,
+      "heading": "Seoul opens a parallel dialogue with the IAEA"
+    }
+  ],
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-16",
+    "reference": "Benjamin Yang's 2026-11-16 review of both exact rendered presentations and acceptance of the documented source-access limits in the IPR two-Brief publication chat. Final review packet for PR #1061.",
+    "fingerprint": "aa0b70d5ef2fd633541de3a87f0ae7d8410ed51a12839d490b1926a9a8e027fc",
+    "checks": {
+      "excerpts": true,
+      "headings": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
+}

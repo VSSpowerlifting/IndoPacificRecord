@@ -61,6 +61,8 @@ EXPECTED = {
     22: am.PHOTOGRAPH,   # owner-approved JS Jintsu Abukuma-class context photograph
     23: am.PHOTOGRAPH,   # owner-approved 2022 Liaoning archival context
     24: am.PHOTOGRAPH,   # owner-approved 2025 Indonesian F-16 refuelling context
+    25: am.PHOTOGRAPH,   # Balikatan 25 exercise coordination center
+    26: am.PHOTOGRAPH,   # conventional ROKS Ahn Jung-Geun
 }
 
 #: Han, kana and CJK punctuation: script that needs a declared language.
@@ -513,7 +515,12 @@ class ArticleMediaPagesTests(unittest.TestCase):
         self.assertEqual(next22["href"], self.native_auth[23][0]["slug"] + ".html")
         next23 = self.native_auth[23][2].select_one("nav.brief-issue-nav a[rel=next]")
         self.assertEqual(next23["href"], self.native_auth[24][0]["slug"] + ".html")
-        self.assertIsNone(self.native_auth[24][2].select_one("nav.brief-issue-nav a[rel=next]"))
+        for previous, current in ((24, 25), (25, 26)):
+            next_link = self.native_auth[previous][2].select_one("nav.brief-issue-nav a[rel=next]")
+            self.assertEqual(next_link["href"], self.native_auth[current][0]["slug"] + ".html")
+            prev_link = self.native_auth[current][2].select_one("nav.brief-issue-nav a[rel=prev]")
+            self.assertEqual(prev_link["href"], self.native_auth[previous][0]["slug"] + ".html")
+        self.assertIsNone(self.native_auth[26][2].select_one("nav.brief-issue-nav a[rel=next]"))
 
 
     def test_historical_pages_load_the_shared_nav_and_media_rules(self):

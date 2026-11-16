@@ -346,6 +346,7 @@ jobs:
           IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}
           SG_MINDEF_LINKS_ENABLED: ${{ vars.SG_MINDEF_LINKS_ENABLED }}
           JP_JCG_LINKS_ENABLED: ${{ vars.JP_JCG_LINKS_ENABLED }}
+          US_USCC_LINKS_ENABLED: ${{ vars.US_USCC_LINKS_ENABLED }}
         run: python -m scripts.fetch_daily_machine_outputs
 
       # Singapore MINDEF official-link parents: the private collector signs
@@ -383,6 +384,23 @@ jobs:
         run: |
           python scripts/japan_jcg_links.py admit --database pla_watch.db \
             --envelope "$RUNNER_TEMP/shared-daily-intake/jp_jcg_press_en.links.json"
+
+      # USCC press-release official-link parents, same link-scope contract:
+      # identity, canonical /press-releases/ URL, listing date and hashes only.
+      # Admission also requires the same identity, URL and date in the existing
+      # USCC listing-metadata lane. Off until the owner sets US_USCC_LINKS_ENABLED.
+      - name: Admit USCC press-release official-link parents
+        if: >
+          steps.timecheck.outputs.should_run == 'true' &&
+          !inputs.vpcp_metadata_only &&
+          vars.IPR_PRIVATE_DAILY_ENABLED == 'true' &&
+          vars.US_USCC_LINKS_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          DAILY_US_USCC_PRESS_EN_KEY: ${{ secrets.DAILY_US_USCC_PRESS_EN_KEY }}
+        run: |
+          python scripts/uscc_press_links.py admit --database pla_watch.db \
+            --envelope "$RUNNER_TEMP/shared-daily-intake/us_uscc_press_en.links.json"
 
       # Same scheduled Daily, DB and publication writer. Bibliographic fields
       # only; no PDFs, original body, model call, per-record approval or secret.
@@ -463,6 +481,8 @@ jobs:
           # JCG rollback switch: off, the pipeline reports the family inactive
           # and admits no machine output (see DailySource.public_switch).
           JP_JCG_LINKS_ENABLED: ${{ vars.JP_JCG_LINKS_ENABLED }}
+          # USCC rollback switch, same contract (off by default).
+          US_USCC_LINKS_ENABLED: ${{ vars.US_USCC_LINKS_ENABLED }}
           GH_TOKEN: ${{ github.token }}
           # Standing owner approval (2026-10-15): the pipeline admits the
           # preserved USCC/Treasury listing metadata from these clones; an
@@ -474,6 +494,7 @@ jobs:
           DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}
           DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
           DAILY_JP_JCG_PRESS_EN_KEY: ${{ secrets.DAILY_JP_JCG_PRESS_EN_KEY }}
+          DAILY_US_USCC_PRESS_EN_KEY: ${{ secrets.DAILY_US_USCC_PRESS_EN_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
           # Vietnam's two steps above write pla_watch.db before this one; the
           # pipeline reports what they recorded under the same activations.

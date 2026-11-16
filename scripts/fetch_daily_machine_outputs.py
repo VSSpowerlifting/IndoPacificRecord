@@ -112,6 +112,13 @@ def main():
     if os.environ.get("JP_JCG_LINKS_ENABLED") == "true":
         results[japan_jcg_links.LINKS_NAME] = _fetch(
             japan_jcg_links.LINKS_NAME, jcg, japan_jcg_links.LINKS_REF)
+    # USCC press-release official-link parents: same contract, own owner switch.
+    from core import uscc_press_links
+    uscc = target / uscc_press_links.LINKS_NAME
+    uscc.unlink(missing_ok=True)
+    if os.environ.get("US_USCC_LINKS_ENABLED") == "true":
+        results[uscc_press_links.LINKS_NAME] = _fetch(
+            uscc_press_links.LINKS_NAME, uscc, uscc_press_links.LINKS_REF)
     return _report(results)
 
 

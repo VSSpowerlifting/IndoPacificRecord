@@ -602,7 +602,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                           "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_JP_JCG_PRESS_EN_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
-                          "DAILY_SG_MINDEF_RELEASES_KEY",
+                          "DAILY_SG_MINDEF_RELEASES_KEY", "DAILY_US_USCC_PRESS_EN_KEY",
                           "FALLBACK_MODEL", "GH_TOKEN", "IPR_CHINA_SOURCE_USE_HOLD",
                           "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED",
                           "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY", "IPR_USCC_SOURCE_CHECKOUT",
@@ -611,7 +611,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
                           "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE", "RELEVANCE_MODEL", "SUMMARY_MODEL",
-                          "TRANSLATION_MODEL", "VIETNAM_DAILY_HANDOFF_ENABLED",
+                          "TRANSLATION_MODEL", "US_USCC_LINKS_ENABLED", "VIETNAM_DAILY_HANDOFF_ENABLED",
                            "VIETNAM_VPCP_METADATA_ENABLED", "VPCP_METADATA_ONLY"])
         # Every new model input is deliberately mapped, with incumbent defaults
         # or an empty override. Keep the exact-key assertion above so future

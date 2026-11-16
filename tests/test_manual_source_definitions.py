@@ -82,7 +82,7 @@ class TestRegistration(unittest.TestCase):
         registered = {f for f, s in SOURCES.items() if s.desk_registered}
         # DAPA remains unregistered until its separate activation; Singapore's
         # manual route is registered, but its model/release policy is still disabled.
-        unregistered = {"kr_policy_dapa_releases"}
+        unregistered = {"kr_policy_dapa_releases", "us_uscc_press_en"}
         self.assertEqual(set(SOURCES) - registered, unregistered)
         for family in unregistered:
             self.assertNotIn(family, pipeline._governed_admissions())
