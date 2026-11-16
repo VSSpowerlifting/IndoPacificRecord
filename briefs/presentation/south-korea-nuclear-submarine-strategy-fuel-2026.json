@@ -1,0 +1,33 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "south-korea-nuclear-submarine-strategy-fuel-2026",
+  "manuscript_fingerprint": "cd612ad8115dec229e4b8990b6e2ae8e1f8bb83dd202b20b238d6b9b7298a57a",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 2,
+      "heading": "South Korea establishes a development timetable"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 3,
+      "end": 4,
+      "heading": "The first design contracts take shape"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 5,
+      "end": 7,
+      "heading": "Washington’s separate decision on reactor fuel"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 8,
+      "end": 10,
+      "heading": "Seoul opens a parallel dialogue with the IAEA"
+    }
+  ],
+  "approval": null
+}
