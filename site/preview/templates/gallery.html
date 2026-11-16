@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% from "_records.html" import record_days, trail_tag %}
 {% from "_weeks.html" import week_strip %}
-{% from "_plate.html" import edition_plate %}
 {% from "_atlas.html" import spine %}
 {# The component and state gallery. A maintenance page, never published:
    `generate_preview.py --gallery` renders it into a disposable build, and a
@@ -26,7 +25,7 @@
   <ul><li><a href="#g-colour">Colour</a></li><li><a href="#g-type">Type</a></li><li><a href="#g-layers">Layers</a></li>
       <li><a href="#g-records">Record rows</a></li><li><a href="#g-weeks">Week strip</a></li><li><a href="#g-finder">Finder states</a></li>
       <li><a href="#g-controls">Controls</a></li><li><a href="#g-status">Status</a></li><li><a href="#g-record-page">Record page parts</a></li>
-      <li><a href="#g-plate">Edition plate</a></li><li><a href="{{ root_path | default('') }}gallery-relief.html">Relief (own page)</a></li></ul>
+</ul>
 </nav>
 
 <h2 id="g-colour">Colour</h2>
@@ -112,11 +111,6 @@
 {% set summarised = specimen_records | selectattr('summary_english') | first %}
 {% if summarised %}<div class="interpretation"><p>{{ summarised.summary_english }}</p></div>{% endif %}
 
-<h2 id="g-plate">Edition plate</h2>
-<div class="g-plates">
-  <figure class="plate plate-paper">{{ edition_plate(plate_a, 'g-plate-a', 'The PLA Watch') }}<figcaption>On paper (Analysis page).</figcaption></figure>
-  <div class="band g-band"><figure class="plate">{{ edition_plate(plate_b, 'g-plate-b', 'The PLA Watch') }}<figcaption>On the band (home page).</figcaption></figure></div>
-</div>
 {% endblock %}
 {% block scripts %}<style>
 /* Gallery-only layout. Never shipped: this page is not part of a build. */
@@ -129,7 +123,5 @@
 .g-t2 { font-family: var(--serif); font-size: var(--step-section); }
 .g-t1 { font-family: var(--serif); font-size: var(--step-deck); font-weight: 600; }
 .g-row { display: flex; flex-wrap: wrap; gap: .6rem; }
-.g-plates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.6rem; align-items: start; }
 .g-band { padding: 1rem; }
-@media (max-width: 760px) { .g-plates { grid-template-columns: minmax(0, 1fr); } }
 </style>{% endblock %}

@@ -79,20 +79,15 @@ from jinja2 import Environment, FileSystemLoader                    # noqa: E402
 from core.viewmodel import PublicView                               # noqa: E402
 from core.title_translation import english_title, receipts, processing_note  # noqa: E402
 from core.china_discovery import build_focus                        # noqa: E402
-from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
 from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
 from core.mindef_permissions import mindef_metadata_label, source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
-from scripts.desk_map import layout as desk_map_layout              # noqa: E402
 
 TEMPLATES = Path(__file__).parent / "templates"
 DEFAULT_OUT = REPO_ROOT / "preview"
 PRODUCTION_OUT = (REPO_ROOT / "output").resolve()
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
-# The relief assets the homepage references (home.html, via _relief.html),
-# delivered by name. relief.css travels with the stylesheets.
-RELIEF_PRODUCTION_ASSETS = ("assets/geo/emblems.svg", "assets/geo/strait.svg")
 # Phase 4A: the public Desks chart uses the licensed country flags as paper
 # tabs. Publish only the eight mapped/declared desk flags plus the MIT notice,
 # never a whole asset folder or gallery-only sprite.
@@ -1573,92 +1568,6 @@ def home_atmosphere(repo_root: Path):
     }
 
 
-#: The Ocean Signal Veil's manifest placement, and where its two derivatives
-#: are published. Routes are fixed because the STYLESHEET references them: the
-#: stylesheet cannot carry an inline background —
-#: `tests/test_palette_and_accessibility.py` forbids `style="...background..."`
-#: on any built page, and it is right to. An inline paint is a colour nobody
-#: measured and nobody can retune.
-VEIL_PLACEMENT = "homepage-veil"
-VEIL_ROUTES = {
-    "webp": "atmosphere/veil-ocean.webp",
-    "jpg": "atmosphere/veil-ocean.jpg",
-}
-
-#: Where the credit's link points, and what the link is called. The source is
-#: public domain, so nothing compels attribution; the publication credits a
-#: photograph it shows anyway.
-VEIL_REPOSITORY_LABEL = "COMMONS"
-
-
-def home_veil(repo_root: Path):
-    """
-    The homepage Ocean Signal Veil, with the provenance that makes it usable.
-
-    Rights basis: a U.S. Navy photograph by MC3 Nathan Burke, prepared in the
-    course of official duties and therefore not subject to copyright in the
-    United States (17 U.S.C. § 105, tagged {{PD-USGov-Military}} on its
-    Commons file page). Public domain carries no attribution condition, and
-    the credit is rendered visibly regardless — a publication that shows a
-    photograph says whose it is.
-
-    Nothing is generated and nothing is sourced afresh: this returns the
-    derivatives already in the repository, or nothing at all. A missing file
-    renders no veil rather than a broken frame, which is also why the template
-    gates both the layer and the credit on this being truthy — an attribution
-    for an image the page does not show would be a claim about a page that
-    does not exist.
-
-    This does NOT replace `home_atmosphere`. That entry, its asset, its
-    derivative and its published licence record stay exactly as they are; the
-    J-20 veil was withdrawn from the homepage on contrast grounds and "do not
-    render it" was never "delete it".
-    """
-    manifest_path = repo_root / "site" / "assets" / "editorial" / "manifest.json"
-    if not manifest_path.is_file():
-        return None
-    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
-    entries = raw if isinstance(raw, list) else (
-        raw.get("assets") or raw.get("images") or [])
-    if isinstance(entries, dict):
-        entries = list(entries.values())
-    entry = next((e for e in entries
-                  if e.get("placement") == VEIL_PLACEMENT), None)
-    if not entry:
-        return None
-
-    deriv_dir = repo_root / "site" / "assets" / "editorial" / "derivatives"
-    files = {}
-    for kind, route in VEIL_ROUTES.items():
-        path = deriv_dir / Path(route).name
-        if not path.is_file():
-            return None
-        files[kind] = path
-
-    return {
-        "id": entry.get("id"),
-        "files": files,
-        "routes": dict(VEIL_ROUTES),
-        "sha256": {k: hashlib.sha256(v.read_bytes()).hexdigest()
-                   for k, v in files.items()},
-        "bytes": {k: v.stat().st_size for k, v in files.items()},
-        "credit": entry.get("credit", ""),
-        "creator": entry.get("creator", ""),
-        "license": entry.get("license", ""),
-        "license_url": entry.get("license_url", ""),
-        "license_basis": entry.get("license_basis", ""),
-        "source_page": entry.get("source_page", ""),
-        "original_url": entry.get("original_url", ""),
-        "downloaded_at": entry.get("downloaded_at", ""),
-        # The mono micro-label that names the photograph beside it, from the
-        # manifest rather than written into the template.
-        "source_id": entry.get("source_id", ""),
-        "subject": entry.get("subject", ""),
-        "repository_label": VEIL_REPOSITORY_LABEL,
-        "note": entry.get("note", ""),
-    }
-
-
 def extraction_bars(results) -> list:
     """
     Per-source extraction completeness for the Coverage bar chart.
@@ -2836,7 +2745,6 @@ def build(out_dir: Path, title: str, db_path: Path,
     assert_snapshot(data["corpus"], snapshot)
     env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
                       autoescape=True, trim_blocks=True, lstrip_blocks=True)
-    env.globals["topography_style"] = topography_style
     env.filters["status_label"] = lambda s: STATUS_PROSE.get(s, (s, ""))[0]
     env.filters["status_prose"] = lambda s: STATUS_PROSE.get(s, ("", s))[1]
     # An unmapped type is shown as its own stored words, spaced and
@@ -2866,7 +2774,6 @@ def build(out_dir: Path, title: str, db_path: Path,
     # Freeze the approved collection before any private review can add a draft.
     public_archive_collection = collection
     atmosphere = home_atmosphere(REPO_ROOT)
-    veil = home_veil(REPO_ROOT)
 
     # Record <-> analysis, both ways, on the exact stored URL only. A record
     # page names the issues whose source trail lists it; the Records search can
@@ -3072,8 +2979,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         "briefs_feed_route": BRIEFS_FEED_ROUTE if briefs_feed else None,
         "desks": desks,
         "editorial_published_desks": editorial_published_desks,
-        # Where each desk's plate hangs on the Desks-page map; geography only.
-        "desk_map": desk_map_layout(desks),
         "live_desk_count": desks.collecting_count,
         "developing_desk_count": desks.not_collecting_count,
         "metrics": metrics,
@@ -3131,7 +3036,6 @@ def build(out_dir: Path, title: str, db_path: Path,
              "anchor": "cite-edition-%s" % edition["slug"]}
             for edition in editions],
         "atmosphere": atmosphere,
-        "veil": veil,
         "live_base": LIVE_BASE,
         "snapshot": snapshot,
         # Sources actually enabled for collection, summed from the desk
@@ -3176,10 +3080,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         # from that issue's own sidecar; replaces the cover photograph in page.
         "edition_plates": {e["slug"]: edition_plate(e, trail_marks.get(e["slug"]))
                            for e in editions},
-        # Symbol viewBoxes for the relief macros (_relief.html), from the geo
-        # builder's receipt. Read by home.html and gallery-relief.html.
-        "relief_boxes": json.loads((REPO_ROOT / "site/assets/geo/geo.receipt.json")
-                                   .read_text(encoding="utf-8"))["symbols"],
     }
 
     pages = {
@@ -3317,26 +3217,12 @@ def build(out_dir: Path, title: str, db_path: Path,
                 states=data["state_counts"],
                 desk_statuses=[(code, DESK_STATUS_LABELS[code])
                                for code in DESK_STATUSES],
-                plate_a=ctx["edition_plates"].get(slugs[0]) if slugs else None,
-                plate_b=ctx["edition_plates"].get(slugs[1]) if len(slugs) > 1 else None,
                 **ctx),
             encoding="utf-8")
         written.append("gallery.html")
-        # The relief primitives get a page of their own, so the component
-        # gallery stays inside its delivery budget. The specimen-only assets
-        # travel with the gallery and nowhere else; relief.css and the two
-        # sprites the homepage uses are delivered below with production.
-        (out_dir / "gallery-relief.html").write_text(
-            env.get_template("gallery-relief.html").render(
-                page="gallery-relief.html",
-                specimen_records=specimens,
-                **ctx),
-            encoding="utf-8")
-        written.append("gallery-relief.html")
         for folder in ("geo", "flags", "glyphs"):
             for asset in sorted((REPO_ROOT / "site/assets" / folder).iterdir()):
                 if (not asset.is_file() or asset.name.endswith(".receipt.json")
-                        or "assets/%s/%s" % (folder, asset.name) in RELIEF_PRODUCTION_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in DESKS_PUBLIC_FLAG_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in CATALOGUE_STATIC_ASSETS):
                     continue
@@ -3779,12 +3665,12 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
-    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
+    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
-    # Explicit named assets only: homepage relief sprites and Phase 4A Desks
-    # flag tabs (including the MIT notice). No unrelated glyphs or gallery art.
-    for route in RELIEF_PRODUCTION_ASSETS + DESKS_PUBLIC_FLAG_ASSETS:
+    # Explicit named assets only: the Desks flag tabs (including the MIT
+    # notice). No unrelated glyphs or gallery art.
+    for route in DESKS_PUBLIC_FLAG_ASSETS:
         target = out_dir / route
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
@@ -3804,13 +3690,6 @@ def build(out_dir: Path, title: str, db_path: Path,
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
             written.append(route)
-    # The full-color JPEG fallback must travel in fresh trees too; production
-    # carry-forward is not a source dependency for the home picture.
-    route = "assets/editorial/reagan-jmsdf-2015.jpg"
-    target = out_dir / route
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes((REPO_ROOT / "site/assets/editorial/reagan-jmsdf-2015.jpg").read_bytes())
-    written.append(route)
     for folder in ("fonts", "identity/selected-ipr", "frontend"):
         source = REPO_ROOT / "site/assets" / folder
         for asset in sorted(source.iterdir()):
@@ -3829,10 +3708,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((REPO_ROOT / "site/assets/material" / name).read_bytes())
         written.append(route)
-    (out_dir / "topography.css").write_text(
-        (Path(__file__).parent / "topography.css").read_text(encoding="utf-8"),
-        encoding="utf-8")
-    written.append("topography.css")
 
     # ── Identity assets ──────────────────────────────────────────────────
     # All derived from one owner-supplied compass, and copied rather than
@@ -3892,51 +3767,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         written.append("cover/*.png")
         written.append("covers.json")
 
-    # ── Homepage Ocean Signal Veil ───────────────────────────────────────
-    # Published under `atmosphere/` beside the withdrawn J-20 derivative,
-    # because that is what the directory is for. Both derivatives are written:
-    # the stylesheet offers them through `image-set()`, so the browser takes
-    # the WebP where it can and the JPEG where it cannot, and exactly one is
-    # fetched. Neither is fetched below 901px — the `background-image` property
-    # is not declared at all under that width, which is stronger than
-    # `display: none` on a declared image.
-    if veil:
-        (out_dir / "atmosphere").mkdir(parents=True, exist_ok=True)
-        for kind, route in veil["routes"].items():
-            (out_dir / route).write_bytes(veil["files"][kind].read_bytes())
-            written.append(route)
-        # The licence record travels with the asset, as `atmosphere.json` does
-        # for the J-20. Public domain needs no permission trail, but a reader
-        # who wants to know where a photograph on a research publication came
-        # from should not have to read a stylesheet to find out.
-        (out_dir / "veil.json").write_text(json.dumps({
-            "_comment": ("The homepage Ocean Signal Veil. A duotone derivative "
-                         "of a public-domain U.S. Navy photograph, shown as a "
-                         "masked layer rather than as an image card. It "
-                         "illustrates no record and is not evidence of "
-                         "anything; the page says so beside it."),
-            "routes": {k: "/" + v for k, v in veil["routes"].items()},
-            "editorial_id": veil["id"],
-            "sha256": veil["sha256"],
-            "bytes": veil["bytes"],
-            "credit": veil["credit"],
-            "creator": veil["creator"],
-            "license": veil["license"],
-            "license_url": veil["license_url"],
-            "license_basis": veil["license_basis"],
-            "source_page": veil["source_page"],
-            "original_url": veil["original_url"],
-            "acquired_at": veil["downloaded_at"],
-            "derivative": ("cropped, resampled and duotoned against the paper "
-                           "ground by scripts/make_veil.py, whose effective "
-                           "crop is recorded in "
-                           "site/assets/editorial/derivatives/veil-ocean.json. "
-                           "The source is public domain, so the derivative "
-                           "carries no onward licence condition."),
-            "origin": "site/assets/editorial/derivatives/veil-ocean.{webp,jpg}",
-            "note": veil["note"],
-        }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        written.append("veil.json")
 
     # ── Homepage atmosphere ──────────────────────────────────────────────
     # Copied in with a recorded digest and a provenance manifest of its own.
@@ -4184,7 +4014,7 @@ def main(argv=None):
                     help="serve the result on localhost:8770")
     ap.add_argument("--gallery", action="store_true",
                     help="also render the component and state gallery "
-                         "(gallery.html, gallery-relief.html). Maintenance only; "
+                         "(gallery.html). Maintenance only; "
                          "never published.")
     args = ap.parse_args(argv)
 

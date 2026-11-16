@@ -67,15 +67,7 @@
     </details>
   </div>
 </header>
-{# A decorative profile follows the actual address, including nested pages.
-   It never represents geography, collection volume or analytical meaning. #}
-{% if timeline is defined %}{% set terrain_key = timeline.route %}
-{% elif brief is defined %}{% set terrain_key = brief.route %}
-{% elif source is defined %}{% set terrain_key = source.route %}
-{% elif record is defined %}{% set terrain_key = 'record/' ~ record.id %}
-{% elif week is defined %}{% set terrain_key = week.path ~ '-' ~ (page_no | default(1)) %}
-{% else %}{% set terrain_key = page %}{% endif %}
-<main id="main"{% if topography_style is defined %} style="{{ topography_style(terrain_key) }}"{% endif %}{% block main_class %}{% endblock %}>
+<main id="main"{% block main_class %}{% endblock %}>
 
 {% if review_mode %}<p class="wrap review-banner" role="note">Private editorial preview · draft content is unapproved and unpublished.</p>{% endif %}
 {% block hero %}{% endblock %}
