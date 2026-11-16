@@ -1,4 +1,31 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-16 — Briefs Nos. 25 and 26 source rulings and context covers
+
+Benjamin Yang approved publication, credits, and both photographs for the
+article and catalogue in [PR #1049](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1049#issuecomment-6908194818)
+and [PR #1051](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1051#issuecomment-6908195484).
+He subsequently reviewed both exact rendered presentations and accepted the
+source-access limits in the final review packet for
+[PR #1061](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1061).
+Dylan Tanzi's manuscript and source reviews were relayed by Benjamin Yang in
+the same publication conversation. The Briefs' receipts bind each review and
+ruling to the corresponding exact version.
+
+- **No. 25.** Use DVIDS image 9009505 with the standard Brief gradient and the
+  reviewed 3:2 catalogue crop. It shows the Balikatan 25 exercise coordination
+  center in April 2025. Direct source retrieval was limited for s5–s7, s10,
+  s12–s13, s16 and s18. The ruling accepts the packet's documented evidence
+  limits. [Cover receipt](docs/evidence/brief-cover-no25-2026-11-16/receipt.json)
+- **No. 26.** Use DVIDS image 8834151 with the standard Brief gradient and the
+  reviewed 3:2 catalogue crop. It shows the conventional submarine ROKS Ahn
+  Jung-Geun in November 2024. The official IAEA agreement was available as an
+  indexed original, with direct retrieval returning HTTP 403. The ruling
+  accepts that access limit. [Cover receipt](docs/evidence/brief-cover-no26-2026-11-16/receipt.json)
+
+Both image pages mark the photographs public domain. Both surfaces preserve
+the photographer's credit, context caption and DVIDS non-endorsement notice.
+The reviewed source use is limited to the independently worded reporting,
+analysis and citations in these two manuscripts.
 
 ## 2026-11-14 — USCC narrative path built into the shared Daily, disabled (engineering record; no activation)
 
