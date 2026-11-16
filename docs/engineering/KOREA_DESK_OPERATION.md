@@ -512,12 +512,16 @@ Manual source recovery does not rewrite historical scheduled failures.
    its execution. Never interpret absent receipts as a quiet publisher day.
 2. `ok_no_publications` requires robots and a complete filtered listing.
    `ok_all_duplicates` can also be healthy. Neither should manufacture a signed
-   packet or dispatch a publication. Failed/partial retrieval remains failed.
+   packet or dispatch a publication. Failed/partial retrieval remains failed,
+   with one named MND exception: see "MND attachment size hold" below.
 3. The MND repair permits one additional transient request TOTAL across
    listing/article/HWPX per collection, after the existing crawl delay. Its
    separate single robots-timeout retry remains. Denials/challenges, redirects,
    TLS failures and malformed responses gain no retries. Incomplete batches
-   still preserve the prior database and must not publish.
+   still preserve the prior database and must not publish. An MND attachment
+   size hold alone does not make the batch incomplete: with no other failure
+   and at least one new release the run stores its complete releases; with no
+   new release it fails without a corpus write.
 4. For MND recovery, compare preserved identities before fetching originals
    again. Use the existing bounded explicit-date manual recovery only within
    approved source-access policy. Do not rerun a historical event and guess its
@@ -531,6 +535,78 @@ Manual source recovery does not rewrite historical scheduled failures.
    guards and retry the established publisher. Independently compare current
    SQLite identities, generated Korea HTML, Pages bytes and HTTPS. A successful
    main commit alone proves no deployment. Preserve concurrent main changes.
+
+### MND attachment size hold
+
+One refusal does not fail the whole MND batch. When the collector's own
+2,000,000-byte cap refuses a release's single HWPX attachment, the runner holds
+that one release out of custody and stores the complete releases of the same
+run. The 12–15 November 2026 scheduled runs each lost every complete release to
+one or two such attachments (`DECISION_LOG.md`, 16 November 2026 entry).
+
+Scope:
+
+- Desk `korea` only, matched by exact name. DAPA shares the adapter class and
+  stays all-or-nothing, as do Indonesia and JCG.
+- Only an HTTP 200 document response over the cap, after the release page was
+  captured and agreed with the listing. An oversized robots file, listing or
+  release page, an oversized error or non-document body, and every other
+  failure still fail the whole batch.
+- A hold never rescues a batch. If any release in the run fails for another
+  reason, the run fails and nothing is written, as before.
+- A release already in custody is never held. Failing to re-verify a stored
+  record stays a batch failure.
+
+What a hold records and does not do:
+
+- The held release is not stored as a record, so nothing downstream can sign
+  or publish it. Its release-page capture and request row are kept as attempt
+  evidence on every run that requests it, as for any attempt. The refused
+  attachment response is discarded unread: no capture file and no request
+  row. The ledger lists the release under `attachment_holds` and
+  `attachment_hold_items`, with the captured release-page hash and the refused
+  response's HTTP status, content type and declared length.
+- A hold is neither `retrieved` nor a failure. On a run with no failures,
+  `selected == retrieved + attachment_holds`.
+- For this desk `health: ok` means "no failures". It no longer means every
+  listed release is in custody; read `attachment_holds`.
+- A run with holds is `ok` only when it stored at least one new release. With
+  nothing new to store it ends failed with `oversized_response`, and the
+  database and clock stay byte-identical. It is never `ok_all_duplicates`.
+- The complete releases of a held run are ordinary custody, read by two
+  separate scheduled public publishers. The Daily link admission
+  (`core/korea_official_metadata_admission.py`) admits every verified
+  non-exception row under the existing approval and has no numeric cap.
+  `korea_standing_original_text_production.yml` (21:17 UTC,
+  `scripts/admit_korea_standing_original_texts.py`) publishes eligible
+  KOGL Type 1 verbatim original text, at most four new per run and fifty in
+  total; it reads `archive/korea-policy-briefing` directly and does not
+  consult the run ledger or its health. The held release is absent from both,
+  with no public marker.
+
+Monitoring and recovery:
+
+- The slot watchdog fails under `--fail-current-gap` while the latest mature
+  scheduled slot has holds. It warns whenever any ledger whose target date is
+  a mature slot in its window records a hold, whatever the run's origin (scheduled, explicit
+  recovery or manual date) and whether the run itself failed. Ledgers cannot
+  show that a held release later reached custody, so a clean slot or clean
+  recovery for the same date neither clears the hold nor makes the date
+  "recovered". It prints counts and dates only, never a release identity. The
+  private run itself is green on a held `ok` run, so the watchdog is the alarm.
+- Until a held release ages out of the six-day listing window, every run
+  requests it again: the release page, then up to the cap of its attachment,
+  which is discarded. While it is outstanding and nothing new is published,
+  the scheduled run fails each day.
+- The cap is unchanged, so a held release stays out of custody. Collecting it
+  needs a separate decision on the cap, then the existing explicit-date
+  recovery within publication date plus six days. A larger cap can also meet
+  the 10 MB expanded-archive limit in `hwpx_text`, an extraction failure this
+  hold does not cover.
+- The Philippines runner records `partial` and exits non-zero for the same
+  situation. That is not available here: the private Korea commit step refuses
+  any database change on a non-zero exit, so a partial write persists only as
+  `ok` with the holds listed.
 
 ## Editorial action
 

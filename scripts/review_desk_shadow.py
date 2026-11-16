@@ -105,6 +105,9 @@ def review(state, desk, out, as_of, commit=None, tree=None):
             ledgers.append(ledger)
         if ledger["health"] != "ok":
             findings.append("Failed/skipped attempt: " + ledger["run_id"])
+        if ledger.get("attachment_holds"):
+            # A healthy attempt can still have left releases out of custody.
+            findings.append("Size-held releases not in custody in attempt: " + ledger["run_id"])
         for request in ledger["requests"]:
             digest = request["capture_sha256"]
             if before.get("state/captures/" + digest + ".bin") != digest:
