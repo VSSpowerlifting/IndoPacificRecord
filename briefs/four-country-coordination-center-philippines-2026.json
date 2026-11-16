@@ -536,7 +536,7 @@
   ],
   "publication": "Indo-Pacific Record",
   "publication_timing": "regular",
-  "author_name": "Byline unassigned (founder decision)",
+  "author_name": "Benjamin Yang",
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
@@ -653,5 +653,19 @@
         "s12"
       ]
     }
-  ]
+  ],
+  "editorial_credits": [
+    {
+      "role": "Editing",
+      "name": "Dylan Tanzi"
+    }
+  ],
+  "research_contributor": {
+    "name": "Peter Nguyen",
+    "title": "Contributing Author, Indo-Pacific Record",
+    "bio": "Peter Nguyen contributes research and analysis on Indo-Pacific defense cooperation, including multinational security coordination in the Philippines.",
+    "linkedin": "https://www.linkedin.com/in/peter-nguyen-639681371/",
+    "email": "pn312@gwmail.gwu.edu",
+    "credit_role": "co-author"
+  }
 }
