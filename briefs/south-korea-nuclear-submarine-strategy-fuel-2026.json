@@ -1,7 +1,7 @@
 {
-  "title": "South Korea Approves How to Build a Nuclear-Powered Submarine. The Fuel Agreement Is Not Written Yet",
-  "dek": "On Nov. 6 South Korea’s defense acquisition committee approved the basic strategy for Jang Bogo N: domestic development from 2027 and service after the late 2030s, with the cost still under analysis. The fuel those boats need depends on a U.S. agreement that has not been concluded and an IAEA arrangement Seoul has only begun to seek.",
-  "manuscript_sha256": "8e6062d964113f4da2ee0bfa44ea54901b8e4d473fdf961eb005f071b0bded74",
+  "title": "South Korea Sets Its Nuclear-Powered Submarine Timetable as Fuel Talks Continue",
+  "dek": "Following the November procurement decision, South Korea is preparing to begin domestic development of its first nuclear-powered submarines in 2027, even as the proposed startup budget awaits parliamentary consideration and the arrangements for obtaining U.S. reactor fuel proceed through a separate diplomatic process.",
+  "manuscript_sha256": "b84dbac7a0ab7ce5c33483758e76859791e761cbc7071d196760536009b06e04",
   "publication": "Indo-Pacific Record",
   "publication_timing": "regular",
   "author_name": "Benjamin Yang",
@@ -18,158 +18,234 @@
   "body_paragraphs": [
     [
       {
-        "text": "When South Korea’s Defense Project Promotion Committee met at the Ministry of National Defense on the afternoon of Nov. 6, the first item on its agenda was Jang Bogo N, the program to build the country’s first nuclear-powered submarines. The committee approved the program’s basic project strategy, according to the release the Defense Acquisition Program Administration (DAPA) issued afterward and posted to the government’s Policy Briefing site on Nov. 9. On the submarine itself the release says little. It describes a domestic research-and-development program for a boat that can stay submerged longer and maneuver better than South Korea’s existing submarines, starts the work in 2027 and puts fielding sometime after the late 2030s. Where the total program cost would go, it says only that a cost analysis is under way.",
-        "source": "s1"
-      }
-    ],
-    [
-      {
-        "text": "Most of the day’s coverage drew instead on a DAPA official who briefed reporters on background, as Yonhap News Agency relayed the session.",
-        "source": "s2"
+        "text": "With its Nov. 6 approval of a basic acquisition strategy for Jang Bogo N, South Korea’s Defense Project Promotion Committee set a more definite course for the country’s first nuclear-powered submarine program, which the Defense Acquisition Program Administration (DAPA) described in a release published through the government’s Policy Briefing service three days later. Under the timetable presented by DAPA, domestic development would begin in 2027, and the navy would receive the submarines from the late 2030s onward, while the program’s total cost remains under analysis and the arrangements for supplying reactor fuel are proceeding on a separate track. The committee’s decision therefore establishes the sequence for pursuing the submarines at home, with the financial and international agreements needed to carry that sequence through still taking shape. ["
       },
       {
-        "text": " The release itself does not mention the reactor, the fuel, the United States, the International Atomic Energy Agency (IAEA) or a shipbuilder.",
+        "text": "DAPA release",
         "source": "s1"
       },
       {
-        "text": " Those omissions are, for the most part, the questions DAPA cannot settle on its own."
-      }
-    ],
-    [
-      {
-        "text": "A basic project strategy fixes how a weapon will be acquired: developed at home or bought abroad, on what schedule and in what pieces."
+        "text": " · "
       },
       {
-        "text": " For Jang Bogo N, the briefing official said, the work will be split into four projects, all starting in 2027 — the submarine platform, development of the nuclear propulsion system, an integrated combat system and the supporting facilities.",
-        "source": "s3"
-      },
-      {
-        "text": " The platform will be competed. DAPA plans to choose a builder through open bidding in the first half of 2027 and sign a contract by the end of that year, while the government procures the reactor directly rather than through the shipyard.",
+        "text": "Yonhap",
         "source": "s2"
-      }
-    ],
-    [
-      {
-        "text": "Some of the groundwork was laid earlier. In August, at DAPA’s request and on security grounds, the budget ministry exempted the program from a feasibility review, as it had the F-35A upgrade.",
-        "source": "s3"
       },
       {
-        "text": " The schedule dates to May 26, when the Ministry of National Defense published its master plan for nuclear-powered submarine development, named the program and set out to launch the first boat in the mid-2030s and field it after the late 2030s.",
-        "source": "s5"
+        "text": "]"
       }
     ],
     [
       {
-        "text": "What the strategy leaves open is the price and the size of the fleet. A detailed cost review is under way, DAPA officials told the Korea Times, and the price will be taken up with budget authorities early next year.",
+        "text": "Alongside the decisions on designing and building the boats, Seoul faces a separate negotiation over the material that will power its reactors, with a South Korean defense acquisition official telling The Korea Times that the government intends to pursue a military nuclear cooperation agreement with Washington along the legal route used for Australia’s nuclear-powered submarines under AUKUS. As that agreement works its way through preliminary discussions, South Korea is advancing its domestic procurement preparations, leaving the emerging shipbuilding timetable dependent on a future understanding over the terms, source and transfer of reactor fuel. ["
+      },
+      {
+        "text": "The Korea Times",
         "source": "s4"
       },
       {
-        "text": " Media reports have put the program at three or more 8,000-ton boats and 28.9 trillion won (about $21.3 billion),",
+        "text": "]"
+      }
+    ],
+    [
+      {
+        "text": "According to reporters who attended DAPA’s background briefing, the work scheduled to begin in 2027 spans four related areas—the submarine platform, its nuclear propulsion system, its combat system and the supporting facilities—with Yonhap reporting that the agency intends to select a shipbuilder through open competition in the first half of that year before signing a contract by year’s end. The government also plans to purchase the reactors directly, an arrangement that places their procurement under its own responsibility, while the detailed work packages and proposed contracting dates come from the journalists’ accounts of the briefing rather than the shorter public DAPA announcement. ["
+      },
+      {
+        "text": "Yonhap",
         "source": "s2"
       },
       {
-        "text": " figures that appear nowhere in DAPA’s release.",
+        "text": " · "
+      },
+      {
+        "text": "Herald Business",
+        "source": "s3"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "DAPA release",
         "source": "s1"
       },
       {
-        "text": " Nor does the approval reach past the first effort: follow-on submarines will need decisions of their own.",
-        "source": "s4"
+        "text": "]"
       }
     ],
     [
       {
-        "text": "Jang Bogo N is a program for nuclear propulsion, not nuclear arms. In the master plan South Korea states that it will neither possess nor develop nuclear weapons of any kind, and it commits the reactor to low-enriched uranium fuel, designed for long operation with as few refuelings as possible. The same document promises that Seoul will meet its nonproliferation obligations throughout the process of obtaining and managing that fuel, in close communication with the United States.",
+        "text": "Having outlined a broader plan in May that envisaged launching the first submarine in the mid-2030s and then carrying it through trials and acceptance before entering service later in the decade or beyond, South Korea’s Ministry of National Defense has now seen that schedule acquire a more specific procurement pathway through the November committee decision. In a Nov. 13 report citing the National Assembly Defense Committee’s budget review, Herald Business said the proposed 2027 government budget included 96.6 billion won for the program’s initial work, comprising, among other items, 44 billion won for platform design and 41.33 billion won for propulsion-system development; those amounts remained subject to parliamentary consideration while overseas consultations and the assessment of the full program cost continued. The approval addresses the initial acquisition effort, with any subsequent submarines requiring further decisions of their own. ["
+      },
+      {
+        "text": "MND May plan",
         "source": "s5"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "Herald Business, Nov. 13",
+        "source": "s11"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "The Korea Times",
+        "source": "s4"
+      },
+      {
+        "text": "]"
       }
     ],
     [
       {
-        "text": "Washington’s public commitment so far is political. After President Lee Jae-myung’s meeting with President Donald Trump in 2025, the White House said the United States “has given approval for the ROK to build nuclear-powered attack submarines” and would work with Seoul on the project’s requirements, “including avenues to source fuel.”",
+        "text": "Although designed to carry conventional weapons, the Jang Bogo N submarines would draw their propulsion from nuclear reactors, for which South Korea’s May defense plan specifies low-enriched uranium and seeks extended operating intervals between refuelings. In November 2025, a White House fact sheet said Washington had approved South Korea’s construction of nuclear-powered attack submarines and would work with Seoul to explore ways of obtaining fuel, establishing a political basis for talks whose practical terms—the fuel source, the conditions of transfer and the delivery timetable—remain to be determined in an agreement separate from DAPA’s latest acquisition decision. ["
+      },
+      {
+        "text": "MND May plan",
+        "source": "s5"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "White House fact sheet",
         "source": "s6"
       },
       {
-        "text": " The wording authorizes construction and promises help in finding fuel. It does not supply any."
+        "text": " · "
+      },
+      {
+        "text": "DAPA release",
+        "source": "s1"
+      },
+      {
+        "text": "]"
       }
     ],
     [
       {
-        "text": "For the fuel itself, DAPA officials have pointed to Section 91 of the U.S. Atomic Energy Act rather than a revision of South Korea’s civil nuclear cooperation agreement with Washington, citing AUKUS, the arrangement through which Australia is acquiring nuclear-powered submarines, as precedent.",
-        "source": "s4"
+        "text": "Because supplying nuclear material for naval propulsion falls under a distinct part of American law, any military cooperation agreement of the kind Seoul is pursuing would follow "
       },
       {
-        "text": " Subsection 91c lets the President authorize the transfer of special nuclear material to an allied government for use in military reactors, on a presidential determination that it will promote the common defense and security — but only under an agreement for cooperation made under Section 123 of the same law.",
+        "text": "Section 91(c)",
         "source": "s9"
       },
       {
-        "text": " Such an agreement must lie before Congress for 60 days of continuous session, referred to the foreign affairs and armed services committees of both chambers.",
+        "text": " of the U.S. Atomic Energy Act, codified at 42 U.S.C. § 2121(c), together with the requirement for a Section 123 agreement and the applicable presidential determination concerning the common defense and security. Under Section 123(d), an agreement of this kind would then be submitted to Congress for 60 days of continuous session, with the foreign affairs and armed services committees of both chambers participating in review after the agreement and required supporting materials, including the applicable nonproliferation assessment, had been provided. The White House’s 2025 announcement thus precedes a negotiated legal instrument and a further stage of congressional scrutiny, each with requirements beyond the initial political commitment. ["
+      },
+      {
+        "text": "42 U.S.C. §§ 2121(c), 2153(a), 2153(d)",
         "source": "s10"
       },
       {
-        "text": " So far, one vice-ministerial round involving the foreign ministry has taken place, and no agreement exists.",
-        "source": "s4"
-      }
-    ],
-    [
-      {
-        "text": "Last week’s U.S. midterm elections, in which Democrats won both chambers, appear in the Korea Times account as one of the program’s new hurdles.",
-        "source": "s4"
+        "text": " · "
       },
       {
-        "text": " Within the review procedure itself, Congress has less leverage than that implies. An agreement that meets the statute’s standard terms takes effect at the end of the review period unless a joint resolution of disapproval is adopted and enacted — legislation that a President who had negotiated the agreement could veto. An agreement the President exempts from those terms would need an affirmative resolution of approval instead.",
-        "source": "s10"
-      },
-      {
-        "text": " Congress keeps its ordinary power to legislate outside that procedure, but the nearer dependency sits in the executive branch: an agreement has to be negotiated and the President’s determination made before any review period begins, and after a single round of talks neither has happened.",
-        "source": "s4"
-      }
-    ],
-    [
-      {
-        "text": "The IAEA is the other outside party, and there Seoul has opened a process without completing it. In June the agency’s director general welcomed South Korea’s intention to work with the IAEA on safety, security and safeguards measures for the submarines.",
-        "source": "s7"
-      },
-      {
-        "text": " By September, the director general told the Board of Governors, South Korea had formally notified the Secretariat that it intended to begin consultations on an arrangement under Article 14 of its comprehensive safeguards agreement, and had already provided the relevant declarations — a notice of intent to consult, with no terms, draft text or date attached.",
-        "source": "s8"
-      }
-    ],
-    [
-      {
-        "text": "Set side by side, the two tracks run at different speeds. The domestic one now has dates: a builder chosen in the first half of 2027, a platform contract by the end of that year and a first boat launched in the mid-2030s.",
-        "source": "s2"
-      },
-      {
-        "text": " None of those steps needs fuel; the reactor does, and its development begins in 2027 as a separate project",
-        "source": "s3"
-      },
-      {
-        "text": " that rests on a U.S. agreement",
+        "text": "White House fact sheet",
         "source": "s6"
       },
       {
-        "text": " and an IAEA arrangement, neither of which the White House or IAEA statements put on a timetable.",
-        "source": "s8"
+        "text": "]"
       }
     ],
     [
       {
-        "text": "Early in 2027 a cost figure is due to go to the budget authorities,",
-        "source": "s4"
+        "text": "Once the governments reached an agreement, Congress would be able to examine its terms and, under the ordinary Section 91(c) procedure, block it through an enacted joint resolution of disapproval during the statutory review period, whereas Section 123(a)’s separate presidential-exemption mechanism applies to categories of cooperation outside Section 91(c). For the moment, the negotiation itself remains the immediate obstacle: The Korea Times reported one vice-ministerial consultation by Nov. 8, with Herald Business dating that meeting to June 2–3, and the latter publication said on Nov. 13, citing a parliamentary review and a senior presidential official, that the fuel discussions had remained at their June stage while scheduling for another round was pending. Reaching an agreed text would therefore be the next substantive development before the statutory congressional process could begin. ["
       },
       {
-        "text": " and in the first half of the year DAPA is to open the competition for the platform.",
-        "source": "s2"
-      },
-      {
-        "text": " On the other track, the signs would be a Section 91c agreement sent to Congress",
+        "text": "42 U.S.C. § 2153(a), (d)",
         "source": "s10"
       },
       {
-        "text": " and a concluded Article 14 arrangement reported to the IAEA board.",
+        "text": " · "
+      },
+      {
+        "text": "The Korea Times",
+        "source": "s4"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "Herald Business, Nov. 13",
+        "source": "s11"
+      },
+      {
+        "text": "]"
+      }
+    ],
+    [
+      {
+        "text": "As Seoul advances the submarine project and its fuel negotiations, it is also consulting with the International Atomic Energy Agency (IAEA) over the safeguards procedures that would apply to nuclear material used for naval propulsion, a process Director General Rafael Mariano Grossi described in his Sept. 7 statement to the Board of Governors after South Korea formally notified the agency of its intention to begin Article 14 consultations and submitted the relevant declarations. At a Nov. 9 meeting in Vienna, South Korean Vice Minister for Strategy and Intelligence Jeong Yeon-doo called for continued transparent consultation on these safeguards questions, while Grossi proposed keeping technical discussions open, according to South Korea’s foreign ministry. The September notification and November exchange established the course of those consultations, with the specific arrangements governing the fuel still to be settled. ["
+      },
+      {
+        "text": "South Korean Foreign Ministry, Nov. 10",
+        "source": "s12"
+      },
+      {
+        "text": "] ["
+      },
+      {
+        "text": "IAEA director general’s Sept. 7 statement",
         "source": "s8"
       },
       {
-        "text": " Until those appear, South Korea has an approved way to build the submarine and no settled source for what will power it."
+        "text": "]"
+      }
+    ],
+    [
+      {
+        "text": "Under Article 14 of South Korea’s comprehensive safeguards agreement, the country and the IAEA may agree on procedures for nuclear material entering a permitted, non-explosive military activity, including a defined period during which ordinary safeguards would be suspended for that use while the agency continued receiving information about the material’s quantity and composition. Once such material returned to peaceful purposes, the ordinary safeguards would resume, making the scope, duration and procedures of any future arrangement matters for negotiation between Seoul and the agency, as reflected in the September and November accounts of their ongoing consultations. ["
+      },
+      {
+        "text": "ROK–IAEA comprehensive safeguards agreement, INFCIRC/236, Article 14",
+        "source": "s13"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "IAEA statement",
+        "source": "s8"
+      },
+      {
+        "text": "]"
+      }
+    ],
+    [
+      {
+        "text": "With the procurement strategy now approved, the coming year is expected to bring parliamentary consideration of the proposed startup budget, a competition to select a shipbuilder and further work toward a full estimate of the program’s cost, while the negotiations over U.S. reactor fuel and the consultations with the IAEA follow their own diplomatic and legal procedures. Each track bears on the eventual viability of the submarine program, but the timetable now published by DAPA establishes chiefly when Seoul intends to begin domestic development, whereas the timing of fuel delivery will depend on the agreements still being pursued. ["
+      },
+      {
+        "text": "Herald Business, Nov. 13",
+        "source": "s11"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "Yonhap",
+        "source": "s2"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "The Korea Times",
+        "source": "s4"
+      },
+      {
+        "text": " · "
+      },
+      {
+        "text": "42 U.S.C. § 2153(d)",
+        "source": "s10"
+      },
+      {
+        "text": "]"
       }
     ]
   ],
@@ -211,7 +287,7 @@
       "issuer": "Herald Business, citing Yonhap",
       "date": "2026-11-06",
       "lang": "ko",
-      "original_title": "",
+      "original_title": "핵추진잠수함 ‘장보고 N’ 사업 본격 시동…2027년 착수",
       "independence": "independent",
       "temporal_role": "background",
       "verification": {
@@ -226,7 +302,7 @@
       "issuer": "The Korea Times (Bahk Eun-ji)",
       "date": "2026-11-08",
       "lang": "en",
-      "original_title": "",
+      "original_title": "Korea's nuclear submarine project faces hurdles despite key approval",
       "independence": "independent",
       "temporal_role": "in-window",
       "verification": {
@@ -262,21 +338,6 @@
       "verification": {
         "method": "publisher",
         "locator": "Fact sheet dated 13 Nov 2025: 'The United States has given approval for the ROK to build nuclear-powered attack submarines' and will work with the ROK on requirements 'including avenues to source fuel.' No enrichment level stated."
-      }
-    },
-    {
-      "id": "s7",
-      "url": "https://www.iaea.org/newscenter/statements/iaea-director-generals-introductory-statement-to-the-board-of-governors-8-june-2026",
-      "publisher": "International Atomic Energy Agency",
-      "issuer": "IAEA Director General",
-      "date": "2026-06-08",
-      "lang": "en",
-      "original_title": "IAEA Director General’s Introductory Statement to the Board of Governors (8 June 2026)",
-      "independence": "official",
-      "temporal_role": "background",
-      "verification": {
-        "method": "publisher",
-        "locator": "Statement of 8 June 2026: notes ROK announcement of 26 May 2026; welcomes intention to work with the Agency on safety, security and safeguards measures applicable to nuclear-powered submarines."
       }
     },
     {
@@ -323,94 +384,128 @@
         "method": "indexed-original",
         "locator": "Subsection (d): agreements arranged pursuant to 2121(c) submitted with the President's approval and determination for sixty days of continuous session, referred to House Foreign Affairs, Senate Foreign Relations and both Armed Services committees; not effective if Congress adopts, and there is enacted, a joint resolution of disapproval. Read 13 Nov 2026."
       }
+    },
+    {
+      "id": "s11",
+      "url": "https://biz.heraldcorp.com/article/10936439",
+      "publisher": "Herald Business",
+      "issuer": "Herald Business (Jeon Hyeon-geon)",
+      "date": "2026-11-13",
+      "lang": "ko",
+      "original_title": "핵잠 첫 예산 966억…한미 핵잠 협상은 ‘입구’도 못 들어서",
+      "independence": "independent",
+      "temporal_role": "in-window",
+      "verification": {
+        "method": "publisher",
+        "locator": "Published 2026-11-13; budget committee review and June fuel talks"
+      }
+    },
+    {
+      "id": "s12",
+      "url": "https://www.mofa.go.kr/www/brd/m_4080/view.do?page=1&pitem=10&seq=377741",
+      "publisher": "Republic of Korea Ministry of Foreign Affairs",
+      "issuer": "Ministry of Foreign Affairs, Republic of Korea",
+      "date": "2026-11-10",
+      "lang": "ko",
+      "original_title": "외교전략정보본부장, 국제원자력기구(IAEA) 사무총장 면담(11.9.)",
+      "independence": "official",
+      "temporal_role": "in-window",
+      "verification": {
+        "method": "publisher",
+        "locator": "2026-11-10 MOFA press release, Nov. 9 Vienna meeting with IAEA DG"
+      }
+    },
+    {
+      "id": "s13",
+      "url": "https://www.iaea.org/sites/default/files/publications/documents/infcircs/1976/infcirc236.pdf",
+      "publisher": "International Atomic Energy Agency",
+      "issuer": "International Atomic Energy Agency",
+      "date": "1976-06-16",
+      "lang": "en",
+      "original_title": "INFCIRC/236",
+      "independence": "official",
+      "temporal_role": "background",
+      "verification": {
+        "method": "indexed-original",
+        "locator": "IAEA information circular INFCIRC/236 (16 June 1976), Article 14; indexed original text and document identifier"
+      }
     }
   ],
   "paragraph_support": [
     {
       "kind": "reporting",
       "sources": [
-        "s1"
-      ]
-    },
-    {
-      "kind": "reporting",
-      "sources": [
-        "s2",
-        "s1"
-      ]
-    },
-    {
-      "kind": "reporting",
-      "sources": [
-        "s3",
+        "s1",
         "s2"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
-        "s3",
-        "s5"
+        "s4"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
-        "s4",
         "s2",
+        "s3",
         "s1"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
-        "s5"
+        "s5",
+        "s11",
+        "s4"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
+        "s5",
+        "s6",
+        "s1"
+      ]
+    },
+    {
+      "kind": "reporting",
+      "sources": [
+        "s9",
+        "s10",
         "s6"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
+        "s10",
         "s4",
-        "s9",
-        "s10"
-      ]
-    },
-    {
-      "kind": "analysis",
-      "sources": [
-        "s4",
-        "s10"
+        "s11"
       ]
     },
     {
       "kind": "reporting",
       "sources": [
-        "s7",
+        "s12",
+        "s8"
+      ]
+    },
+    {
+      "kind": "reporting",
+      "sources": [
+        "s13",
         "s8"
       ]
     },
     {
       "kind": "analysis",
       "sources": [
+        "s11",
         "s2",
-        "s3",
-        "s6",
-        "s8"
-      ]
-    },
-    {
-      "kind": "follow-up",
-      "sources": [
         "s4",
-        "s2",
-        "s10",
-        "s8"
+        "s10"
       ]
     }
   ],
