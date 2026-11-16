@@ -66,7 +66,6 @@ def render_private(out_dir: Path, candidate_path=None):
         loader=FileSystemLoader(str(ROOT / "site" / "preview" / "templates")),
         autoescape=True, trim_blocks=True, lstrip_blocks=True,
     )
-    env.globals["topography_style"] = presentation.topography_style
     env.filters["count"] = lambda n: "{:,}".format(n) if isinstance(n, int) else n
     env.filters["reader_date"] = presentation.reader_date
     env.filters["language_label"] = presentation.language_label

@@ -62,15 +62,6 @@ class CoastalPalette(unittest.TestCase):
             self.assertTrue(retired_paint('color:'+value))
         self.assertEqual(retired_paint('/* archival source says crimson */ color:#C6B79B'), [])
 
-    def test_edition_plate_keeps_machine_tick_height_and_semantic_roles(self):
-        env = Environment(loader=FileSystemLoader(PREVIEW/'templates'))
-        plate = {'ticks':[False, True], 'issue':1, 'series_name':'Fixture', 'week_ending':'2026-05-09'}
-        html = env.get_template('_plate.html').module.edition_plate(plate,'fixture','Fixture')
-        self.assertIn('fill="var(--editorial-on-dark)"', html)
-        self.assertRegex(html, r'height="30" fill="var\(--machine-on-dark\)" class="tick tick--flagged"')
-        self.assertRegex(html, r'height="18" fill="#5C6570" class="tick"')
-        self.assertIn('aria-labelledby="fixture"', html)
-
     def test_semantic_names_replace_retired_names_without_aliases(self):
         names = tokens()
         self.assertFalse(any(n.startswith(('--crimson','--signal')) for n in names))

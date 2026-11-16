@@ -105,7 +105,8 @@ class VietnamAdmission(unittest.TestCase):
         # Exercise the shared independent HTML readback with this desk's rows.
         from jinja2 import Environment, select_autoescape
         from types import SimpleNamespace
-        env = Environment(autoescape=select_autoescape(default_for_string=True))
+        from tests.preview_filters import with_filters
+        env = with_filters(Environment(autoescape=select_autoescape(default_for_string=True)))
         source = Path("site/preview/templates/desk.html").read_text()
         start = source.index("{% if desk.slug in ('philippines', 'indonesia', 'vietnam')", source.index("{# Regional official-link index:"))
         end = source.index("{# US: first-party publisher URLs", start)

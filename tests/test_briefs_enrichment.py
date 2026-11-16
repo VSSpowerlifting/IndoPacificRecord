@@ -31,15 +31,13 @@ class MaterialIntegrity(unittest.TestCase):
         self.assertLess((directory / 'chart-paper.png').stat().st_size, 60000)
 
     def test_curves_are_original_and_no_operational_marks_are_added(self):
-        from urllib.parse import unquote
-        original = unquote((ROOT / 'site/preview/topography.css').read_text())
+        # topography.css, which once embedded these curves, is retired
+        # (2026-11-16); the committed SVGs keep their pinned structure.
         for name in ('hero', 'paper'):
             svg = ET.parse(ROOT / ('site/assets/material/contours-%s.svg' % name))
             paths = list(svg.getroot().iter('{http://www.w3.org/2000/svg}path'))
             self.assertEqual(len(paths), 36)
             self.assertEqual(len(set(path.attrib['d'] for path in paths)), 12)
-            for path in paths:
-                self.assertIn(path.attrib['d'], original)
             self.assertEqual(set(e.tag.split('}')[-1] for e in svg.getroot().iter()), {'svg', 'g', 'path'})
 
 
