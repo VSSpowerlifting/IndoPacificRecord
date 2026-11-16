@@ -439,8 +439,9 @@ class UnmigratedWriterInteractionTests(Base):
 
     def test_stale_full_tree_legacy_writer_is_healed_by_the_next_release(self):
         # A peaceiris-style job snapshots v1, main and Pages move on to v2, then
-        # the stale job deploys v1's tree over the top.  The helper attributes
-        # the tip to the older main commit it equals and releases forward.
+        # the stale job deploys v1's tree over the top.  The helper keeps the
+        # last attested base (v2), never re-basing on the stale v1, and
+        # restores it.
         self.m.write("index.html", b"<h1>two</h1>")
         v2 = self.m.commit("v2")
         self.release()
@@ -454,7 +455,8 @@ class UnmigratedWriterInteractionTests(Base):
         self.assertEqual(self.pages_tree(), self.main_output_tree(self.v1))
         report = self.release()
         self.assertEqual(report["action"], "publish")
-        self.assertEqual(report["previous_source"], self.v1)
+        self.assertEqual(report["previous_source"], v2)
+        self.assertEqual(report["attribution"], "stale-legacy-over-attested")
         self.assertEqual(report["source"], v2)
         self.assertEqual(self.pages_tree(), self.main_output_tree())
 

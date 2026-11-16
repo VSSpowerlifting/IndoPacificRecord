@@ -499,6 +499,9 @@ next automated release HOLD instead of being silently overwritten (§8.4).
 - An out-of-band change holds. Reconcile requires the exact tip and releases
   only the main tip.
 - A tampered state claim (copied trailers on a different tree) holds.
+- An unattested push of an older generation after attested releases began
+  cannot reset the base. Full and overlay releases restore the attested state,
+  including newer overlays. A newer unattested generation is still attributed.
 - A source not on main holds.
 - A wrong CNAME holds.
 
@@ -515,9 +518,26 @@ next automated release HOLD instead of being silently overwritten (§8.4).
   residual.
 - **Branch protection is absent.** The helper detects out-of-band writes; it
   cannot prevent them.
-- **In-flight runs.** A run that started on old workflow text keeps that text.
-  Its legacy push lands as an unattested tip. The next helper release then
-  either attributes it by tree match or HOLDs.
+- **In-flight runs.** A run that started on old workflow text keeps that text,
+  so its legacy push lands as an unattested tip.
+  - Before the first attested release, it is the bootstrap base when its tree
+    equals a recent `main:output`.
+  - After attested releases exist, a tree match counts only if that commit
+    descends from the last attested base and from every recorded overlay
+    source.
+  - An older generation (an in-flight peaceiris run, say) never resets the
+    high-water mark. The last attested state is verified and kept, and the
+    next release of any kind restores it over the stale push, so no unique
+    content is lost.
+  - A file-only legacy push matches no `main:output` and HOLDs until it is
+    reconciled.
+- **Known false red.** If main moves between a file-only writer's own main-tip
+  check and the helper's fetch, the release can be `superseded`. Pages then
+  holds newer bytes, and that writer's post-release `cmp` fails. This is a
+  red job with nothing rolled back, the same as #725 §7.3(3).
+- **`PAGES_RELEASE_TOKEN`** is used only by `china_retirement_pages_retry`.
+  Its first real run is the only live evidence. Never set it together with a
+  checkout that persists credentials.
 
 ### 8.5 Deployment consequences of merging
 

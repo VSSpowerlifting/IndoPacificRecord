@@ -258,6 +258,28 @@ def parse_state(message):
     return (bases[-1] if bases else None), overlays
 
 
+ATTESTED_SEARCH_DEPTH = 500
+
+
+def _attested_floor(repo, pages_tip):
+    """Newest attested release under a trailer-less tip: ``(sha, base, overlays)``.
+
+    ``None`` before the first attested release (bootstrap: any legacy tree
+    match is accepted as the base).
+    """
+    log = _out(repo, "log", "--first-parent", "-n", str(ATTESTED_SEARCH_DEPTH),
+               "--format=%H%x1f%B%x1e", pages_tip)
+    for record in log.split("\x1e"):
+        if "\x1f" not in record:
+            continue
+        sha, message = record.strip("\n").split("\x1f", 1)
+        if re.search(r"(?m)^Release-Kind: ", message):
+            base, overlays = parse_state(message)
+            if base:
+                return sha, base, overlays
+    return None
+
+
 def attribute(repo, trees, pages_tip, main_tip):
     """Return ``(base, overlays, how)`` for the current Pages tip, or raise Hold."""
     pages_tree = _tree_of(repo, pages_tip)
@@ -279,13 +301,27 @@ def attribute(repo, trees, pages_tip, main_tip):
                        % (pages_tip[:12], pages_tip))
         return base, overlays, "attested"
     # Legacy tip: attribute it to the newest main commit with an identical output tree.
+    floor = _attested_floor(repo, pages_tip)
     commits = _out(repo, "rev-list", "-n", str(LEGACY_SEARCH_DEPTH), main_tip).split()
     probe = "".join("%s:output\n" % c for c in commits).encode()
     checked = _git(repo, "cat-file", "--batch-check", input_bytes=probe).stdout.decode().splitlines()
     for commit, line in zip(commits, checked):
         parts = line.split()
         if len(parts) >= 2 and parts[1] == "tree" and parts[0] == pages_tree:
-            return commit, [], "legacy-tree-match"
+            if floor is None or all(_is_ancestor(repo, sha, commit)
+                                    for sha in [floor[1]] + [o for o, _ in floor[2]]):
+                return commit, [], "legacy-tree-match"
+            # A trailer-less push of an OLDER generation after attested
+            # releases began (e.g. a legacy run still in flight at cutover).
+            # Accepting it would reset the attested high-water mark and
+            # re-enable a rollback or the erasure of a newer file-only
+            # release. Keep the last attested state; the next release
+            # restores it over the stale push (no unique content is lost:
+            # the push equals an older committed main:output).
+            floor_sha, base, overlays = floor
+            if trees.build(assemble(trees, base, overlays)) != _tree_of(repo, floor_sha):
+                raise Hold("attested gh-pages commit %s does not equal its state" % floor_sha[:12])
+            return base, overlays, "stale-legacy-over-attested"
     raise Hold("gh-pages tip %s has no Source-SHA trailer and matches no recent main:output; "
                "review, then reconcile with --reconcile --expect-pages %s"
                % (pages_tip[:12], pages_tip))
@@ -393,6 +429,11 @@ def evaluate(repo, remote, main_branch, pages_branch, source=None, overlay=None,
             new_state, why = _plan_overlay(repo, src, paths, base, overlays)
         else:
             new_state, why = _plan_full(repo, src, base, overlays)
+        if how == "stale-legacy-over-attested" and (new_state is None
+                                                    or new_state == (base, overlays)):
+            # Pages serves a stale unattested generation: restore the last
+            # attested state instead of reporting success over a rollback.
+            new_state, why = (base, overlays), None
         if new_state is None:
             action = "superseded"
             if paths:
@@ -403,7 +444,7 @@ def evaluate(repo, remote, main_branch, pages_branch, source=None, overlay=None,
                     action, why = "current", "Pages already serves these files"
             plan.update(action=action, detail=why, tree=pages_tree)
             return plan
-        if new_state == (base, overlays):
+        if new_state == (base, overlays) and how != "stale-legacy-over-attested":
             plan.update(action="current", detail="Pages already serves this attested state",
                         tree=pages_tree)
             return plan

@@ -313,6 +313,52 @@ class OutOfBandTests(ConvergenceBase):
         self.assertEqual(self.pages_tree(), self.main_output_tree())
         self.assertEqual(self.overlay(self.work, ["korea.html"])["action"], "current")
 
+    def _legacy_push(self, commit):
+        """An in-flight old-text writer: push ``commit:output`` with no trailers."""
+        tree = git(self.work, "rev-parse", commit + ":output")
+        git(self.work, "fetch", "-q", "origin", "gh-pages")
+        c = git(self.work, "commit-tree", tree, "-p", "origin/gh-pages", "-m", "peaceiris deploy")
+        git(self.work, "push", "origin", c + ":refs/heads/gh-pages")
+
+    def _stale_legacy_over_newer_overlay(self):
+        korea = self.other("korea")
+        korea.write("korea.html", b"Korea K")
+        k = korea.commit("K")
+        self.overlay(korea.path, ["korea.html"], source=k)
+        attested = self.pages_tree()
+        self._legacy_push(self.v1)  # e.g. an old-text run still in flight at merge
+        self.assertEqual(self.pages_file("korea.html"), b"Korea one")  # rolled back live
+        return k, attested
+
+    def test_stale_unattested_push_cannot_reset_the_base_full_release_restores(self):
+        k, attested = self._stale_legacy_over_newer_overlay()
+        # An older full release is NOT reported superseded/current over the
+        # rollback, and the high-water mark is not reset to v1: the attested
+        # state (base + Korea overlay) is restored.
+        report = self.release(source=self.v1)
+        self.assertEqual(report["attribution"], "stale-legacy-over-attested")
+        self.assertEqual(report["action"], "publish")
+        self.assertEqual(self.pages_tree(), attested)
+        self.assertEqual(self.pages_file("korea.html"), b"Korea K")
+        self.assertEqual(report["state"]["overlays"], [(k, "korea.html")])
+        # A later stale full release from v1 is superseded again.
+        self.assertEqual(self.release(source=self.v1)["action"], "superseded")
+
+    def test_stale_unattested_push_overlay_release_keeps_attested_state(self):
+        k, attested = self._stale_legacy_over_newer_overlay()
+        report = self.overlay(self.work, ["indonesia.html"])  # unrelated desk
+        self.assertEqual(report["attribution"], "stale-legacy-over-attested")
+        self.assertEqual(self.pages_file("korea.html"), b"Korea K")
+        self.assertEqual(self.pages_file("index.html"), b"<h1>one</h1>")
+
+    def test_unattested_push_of_a_newer_generation_is_still_attributed(self):
+        self.m.write("index.html", b"<h1>newer</h1>")
+        newer = self.m.commit("newer")
+        self._legacy_push(newer)
+        report = self.release(source=newer)
+        self.assertEqual(report["attribution"], "legacy-tree-match")
+        self.assertEqual(report["action"], "current")
+
     def test_reconcile_releases_only_the_main_tip(self):
         self.push_pages_directly({"x.html": b"x"})
         with self.assertRaisesRegex(pr.Hold, "only the current main tip"):
