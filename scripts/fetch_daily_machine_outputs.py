@@ -7,6 +7,7 @@ the current source-specific public policy, not the downloader's assertions.
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 
 from core.daily_sources import SOURCES, attended_pilot_gate
@@ -30,8 +31,14 @@ def _fetch(remote_path, path, ref="state/shared-daily"):
             "?ref=" + ref], capture_output=True, timeout=45)
     except (OSError, subprocess.TimeoutExpired):
         return "fetch_unavailable"
-    if proc.returncode or len(proc.stdout) > 512000:
-        return "fetch_failed" if proc.returncode else "envelope_too_large"
+    if proc.returncode:
+        # GitHub CLI ends HTTP failures with "gh: <message> (HTTP <status>)".
+        # Read only that numeric status. The message and body stay private.
+        status = re.search(rb"(?:^|\n)gh: [^\r\n]* \(HTTP ([45][0-9]{2})\)\s*\Z",
+                           proc.stderr or b"")
+        return "fetch_http_" + status.group(1).decode("ascii") if status else "fetch_failed"
+    if len(proc.stdout) > 512000:
+        return "envelope_too_large"
     try:
         envelope = json.loads(proc.stdout)
         if not isinstance(envelope, dict):
