@@ -50,6 +50,29 @@ def fake_analyzer(reply=None):
 
 
 class SharedDaily(unittest.TestCase):
+    def test_afp_place_normalization_requires_the_full_cited_dateline(self):
+        item = record()
+        result = reading()
+        first = result["facts"][0]
+        dateline = "CAMP EXAMPLE, District One - "
+        item["body"] = dateline + item["body"]
+        first["evidence"] = dateline + first["evidence"]
+        for place, hold in (
+            ("Camp Example", None),
+            ("Camp Other", "daily_name_or_office_unsupported"),
+            ("Example Camp", "daily_name_or_office_unsupported"),
+            ("Example Camp near Camp Example", "daily_name_or_office_unsupported"),
+            ("Camp Example-based facilities", "daily_name_or_office_unsupported"),
+        ):
+            with self.subTest(place=place):
+                first["sentence"] = "AFP reports an exercise planned at " + place + " for 23 October."
+                result["summary_english"] = " ".join(fact["sentence"] for fact in result["facts"])
+                if hold:
+                    with self.assertRaisesRegex(d.IntakeHold, hold):
+                        d.quality_check(item, result)
+                else:
+                    d.quality_check(item, result)
+
     def test_geographic_topic_requires_explicit_source_support(self):
         r = record()
         reading = fake_analyzer().analyze_record(r["title"], r["body"], None)
