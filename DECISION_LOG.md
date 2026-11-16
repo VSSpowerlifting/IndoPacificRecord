@@ -27,12 +27,13 @@ the photographer's credit, context caption and DVIDS non-endorsement notice.
 The reviewed source use is limited to the independently worded reporting,
 analysis and citations in these two manuscripts.
 
-## 2026-11-15 — Korea MND: an oversized attachment holds one release, not the batch (proposed; adopted by founder merge)
+## 2026-11-16 — Korea MND: an oversized attachment holds one release, not the batch (engineering record of the founder's 15 November direction)
 
 **Evidence.** Private scheduled runs 43323731703-1 (12 Nov), 43522842740-1
-(13 Nov) and 43644113227-1 (14 Nov) each ended `oversized_response` with no
-corpus write. The collector's own 2,000,000-byte cap refused one HWPX
-attachment on 12 Nov (4 selected, 3 retrieved) and two on 13 and 14 Nov
+(13 Nov), 43644113227-1 (14 Nov) and 43767278137-1 (15 Nov) each ended
+`oversized_response` with no corpus write (ledgers on
+`archive/korea-policy-briefing`, rechecked 16 Nov). The collector's own 2,000,000-byte cap refused one HWPX
+attachment on 12 Nov (4 selected, 3 retrieved) and two on 13, 14 and 15 Nov
 (6 selected, 4 retrieved). Each run discarded the releases it had retrieved in
 full. The last successful run is 43121868448-1 (11 Nov, `ok_all_duplicates`,
 44 stored). The source refused nothing; no access, rights or factual check
@@ -57,21 +58,30 @@ entry, which is otherwise unchanged and is not edited.
 - Unchanged: the byte cap; DAPA, Indonesia and JCG; every other failure, which
   still fails the whole batch, including alongside a hold; every access, rights
   and factual check.
-- A held release is never stored, signed or published. It is listed in the
+- A held release is never stored as a record, signed or published; its
+  release-page capture is kept as attempt evidence. It is listed in the
   run ledger (`attachment_holds`, `attachment_hold_items`). Under the standing
   rule that partial degradation "must be recorded in a place that survives the
   runner, and must be loud", the public slot watchdog fails while the latest
-  mature slot has holds, and a run with holds and nothing new to store is
-  recorded as failed.
+  mature scheduled slot has holds and warns on a hold in any in-window ledger
+  of any origin, failed runs included; a clean later run never clears it. A
+  run with holds and nothing new to store is recorded as failed.
 - No ledger entry, attempt or clock is reset. The 12–14 November runs stay
   failed.
 - Not decided or done: any change to the cap; collection of the releases held
   so far; any workflow dispatch or recovery run.
 
-**Effect of merge.** The private collector checks out public `main` unpinned,
-so merging is activation at the next scheduled 17:47 UTC run. Releases stored
-by a held run then reach the existing scheduled link publication within its
-existing caps.
+**Authority and effect of merge.** The founder directed the fix on 15 November
+and, in the 16 November eight-desk program brief, its exact-head review and
+release; merge is under the 12 November engineering delegation (collector code
+for an already-activated source). The private collector checks out public
+`main` unpinned, so merging takes effect at the next scheduled 17:47 UTC run.
+Releases stored by a held run then reach two existing scheduled publishers:
+the Daily link admission (no numeric cap) and
+`korea_standing_original_text_production.yml` (eligible KOGL Type 1 original
+text, at most four new per run and fifty in total), which reads the private
+archive without a ledger or health gate. No factual, rights or access check
+changed, and no ledger entry, attempt or clock was reset.
 
 Details: `docs/engineering/KOREA_DESK_OPERATION.md`, "MND attachment size hold".
 

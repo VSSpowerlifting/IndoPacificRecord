@@ -6,10 +6,14 @@ publisher completeness, the Actions attempt census, correct HWPX semantics or
 attachment rights. Recovery of source coverage must never be mistaken for a
 successful scheduled collection.
 
-A successful MND run may record attachment holds: releases whose HWPX the
-collector's own byte cap refused, left out of custody. Those are reported here
-as counts and dates only, and fail the check while the latest mature slot has
-any. A later clean slot never proves a held release was collected.
+An MND run of any origin may record attachment holds: releases whose HWPX the
+collector's own byte cap refused, left out of custody. A run that held releases
+and stored nothing new is recorded as failed, so holds are read from every
+attempt before any health filter. They are reported here as counts and dates
+only, warned whenever any ledger in the evaluated window has one, and fail the
+check while the latest mature scheduled slot has any. A later clean slot or
+clean recovery never proves a held release was collected, so a held date is
+never reported as recovered and is never subtracted from the hold report.
 """
 from __future__ import annotations
 
@@ -94,6 +98,11 @@ def matured_slot(as_of):
     return candidate
 
 
+def first_window_day(as_of):
+    """First target date of the evaluated scheduled window."""
+    return max(FIRST_SLOT, matured_slot(as_of) - timedelta(days=MAX_DAYS - 1))
+
+
 def summarize(ledgers, clock, *, commit, as_of):
     """Distinguish scheduled-run continuity from explicitly recovered coverage."""
     require(isinstance(commit, str) and SHA.fullmatch(commit) is not None,
@@ -105,8 +114,9 @@ def summarize(ledgers, clock, *, commit, as_of):
     require(type(ledgers) is list and bool(ledgers) and len(ledgers) <= 70,
             "absent or excessive Korea ledger entries")
     scheduled, recovered = set(), set()
-    held_scheduled, held_recoveries, held_identities = {}, set(), set()
-    seen = set()
+    held_scheduled, held_unscheduled = {}, {}
+    held_identities, window_identities = set(), set()
+    seen, heldby = set(), {}
     for receipt in ledgers:
         require(type(receipt) is dict and receipt.get("desk") == "korea"
                 and type(receipt.get("run_id")) is str
@@ -124,30 +134,41 @@ def summarize(ledgers, clock, *, commit, as_of):
         origin = receipt.get("target_date_source")
         require(origin in (SOURCE_SCHEDULE, SOURCE_EXPLICIT, "manual-utc-date"),
                 "unknown logical target-date provenance")
-        # Read holds from every attempt, failed ones included: a run that held
-        # releases and stored nothing new is recorded as failed.
+        # Read holds from every attempt and every origin, failed ones
+        # included, before the health filter: a run that held releases and
+        # stored nothing new is recorded as failed, and an operator-dispatched
+        # explicit or manual-date run is no less a hold than a scheduled one.
         held, identities = attachment_holds(receipt)
         held_identities |= identities
-        if held and origin == SOURCE_SCHEDULE:
-            held_scheduled[target] = max(held_scheduled.get(target, 0), held)
+        if held:
+            book = held_scheduled if origin == SOURCE_SCHEDULE else held_unscheduled
+            book[target] = max(book.get(target, 0), held)
+            heldby.setdefault(target, set()).update(identities)
         if receipt.get("health") != "ok" or receipt.get("result") not in SUCCESS:
             continue
         if origin == SOURCE_SCHEDULE:
             require(RUN_ID.fullmatch(ident) is not None,
                     "scheduled success must be a distinct first-attempt Actions ID")
             scheduled.add(target)
-        elif origin == SOURCE_EXPLICIT:
+        elif origin == SOURCE_EXPLICIT and not held:
             # A recovery that itself left releases out of custody did not
             # recover the source date.
-            (held_recoveries if held else recovered).add(target)
+            recovered.add(target)
 
     latest = matured_slot(now)
-    first = max(FIRST_SLOT, latest - timedelta(days=MAX_DAYS - 1))
+    first = first_window_day(now)
     due = [first + timedelta(days=n)
            for n in range(max(0, (latest - first).days + 1))]
     missing = [d for d in due if d not in scheduled]
-    recovered_only = [d for d in missing if d in recovered]
-    uncovered = [d for d in missing if d not in recovered]
+    # Ledgers alone cannot show that a held release later reached custody, so
+    # any hold recorded for a date keeps that date out of "recovered",
+    # whichever order the held and the clean attempts ran in.
+    held_any = set(held_scheduled) | set(held_unscheduled)
+    recovered_only = [d for d in missing if d in recovered and d not in held_any]
+    uncovered = [d for d in missing if d not in recovered or d in held_any]
+    for target, identities in heldby.items():
+        if first_window_day(now) <= target:
+            window_identities |= identities
     current_missing = latest >= FIRST_SLOT and latest not in scheduled
 
     # The first October 7–13 Day-7 checkpoint remains historically failed;
@@ -194,9 +215,12 @@ def summarize(ledgers, clock, *, commit, as_of):
         "scheduled_dates_with_attachment_holds": [d.isoformat() for d in held_dates],
         "rolling_seven_dates_with_attachment_holds": [
             d.isoformat() for d in recent_held],
-        "explicit_recovery_dates_with_attachment_holds": sorted(
-            d.isoformat() for d in held_recoveries - recovered),
+        # Explicit-recovery and manual-date attempts, failed or not. Never
+        # reduced by a clean attempt for the same date.
+        "unscheduled_dates_with_attachment_holds": sorted(
+            d.isoformat() for d in held_unscheduled if d >= first),
         "distinct_attachment_hold_identities_in_ledgers": len(held_identities),
+        "distinct_attachment_hold_identities_in_window": len(window_identities),
         "attachment_hold_custody_resolution_verified": False,
         "october_12_scheduled_gap_still_unrepaired": (
             latest >= date(2026, 10, 12) and
@@ -260,12 +284,14 @@ def main(argv=None):
     if report["missing_scheduled_dates"]:
         print("::warning::Korea has historical scheduled-run gaps; "
               "manual recovery never retroactively qualifies those slots.")
-    if (report["scheduled_dates_with_attachment_holds"]
-            or report["explicit_recovery_dates_with_attachment_holds"]):
+    if report["distinct_attachment_hold_identities_in_window"]:
         print("::warning::Korea ledgers in the evaluated window record "
-              "attachment holds (%d distinct release(s) across all ledgers). A "
-              "later clean slot does not show those releases were collected."
-              % report["distinct_attachment_hold_identities_in_ledgers"])
+              "attachment holds (%d distinct release(s); scheduled dates %s; "
+              "explicit or manual-date dates %s). A later clean slot or "
+              "recovery does not show those releases were collected."
+              % (report["distinct_attachment_hold_identities_in_window"],
+                 ",".join(report["scheduled_dates_with_attachment_holds"]) or "none",
+                 ",".join(report["unscheduled_dates_with_attachment_holds"]) or "none"))
     return code
 
 

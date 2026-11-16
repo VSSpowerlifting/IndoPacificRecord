@@ -798,6 +798,119 @@ class Runner(Case):
         self.assertEqual(report["findings"],
                          ["Size-held releases not in custody in attempt: hold-1"])
 
+    def test_reviewer_reports_holds_on_a_failed_attempt_too(self):
+        # The accepted "held, nothing new" day is a failed attempt; it must
+        # still be reported (Fable review T5).
+        (_, _, _), (_, held_document, _) = korea_pair()
+        self.korea("hold-1", {held_document: oversized(held_document)})
+        failed, _ = self.korea("hold-2", {held_document: oversized(held_document)})
+        self.assertEqual((failed["health"], failed["attachment_holds"]), ("fail", 1))
+        report = reviewer.review(self.state, "korea", Path(self.tmp.name) / "packet", TARGET)
+        self.assertIn("Size-held releases not in custody in attempt: hold-2",
+                      report["findings"])
+
+    def run_main_korea(self, run_id, mutations):
+        """Drive runner.main() as the private workflow does, adapter patched."""
+        from contextlib import redirect_stderr, redirect_stdout
+        original = runner.run
+        a, _ = adapter("korea", dict({KR_LISTING: two_release_listing()}, **mutations))
+
+        def patched(*args, **kwargs):
+            return original(*args, adapter=a, **kwargs)
+        with mock.patch.object(runner, "run", side_effect=patched), \
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            return runner.main(["--desk", "korea", "--state-dir", str(self.state),
+                                "--target-date", TARGET.isoformat(), "--lookback-days", "4",
+                                "--run-id", run_id, "--commit", "collector-sha",
+                                "--event-name", "workflow_dispatch"])
+
+    def test_mnd_hold_exit_codes_match_recorded_health(self):
+        # The private commit step asserts (health == "ok") == (exit == 0);
+        # pin it for every hold outcome through main() (Fable review T12).
+        (_, first_document, _), (_, held_document, _) = korea_pair()
+        hold = {held_document: oversized(held_document)}
+        self.assertEqual(self.run_main_korea("hold-1", hold), 0)
+        before = {n: (self.state / n).read_bytes() for n in ("shadow.db", "clock.json")}
+        self.assertEqual(self.run_main_korea("hold-2", hold), 1)
+        for name, body in before.items():
+            self.assertEqual((self.state / name).read_bytes(), body)
+        with tempfile.TemporaryDirectory() as folder:
+            self.state = Path(folder) / "state"
+            both = {first_document: oversized(first_document),
+                    held_document: oversized(held_document)}
+            self.assertEqual(self.run_main_korea("hold-3", both), 1)
+            self.assertFalse((self.state / "shadow.db").exists())
+            self.assertFalse((self.state / "clock.json").exists())
+        healths = []
+        for ledger in sorted((Path(self.tmp.name) / "state" / "ledger").glob("*.json")):
+            data = json.loads(ledger.read_text())
+            healths.append((data["run_id"], data["health"]))
+        self.assertEqual(sorted(healths), [("hold-1", "ok"), ("hold-2", "fail")])
+
+    def test_mnd_hold_predicate_edges(self):
+        # Fable review T2/T3/T4: only an HTTP 200 document response is held,
+        # whatever the case of its type and whether or not it declares a length.
+        (kept, _, _), (held, held_document, _) = korea_pair()
+
+        def response(status=200, ctype="application/x-download", length="keep"):
+            r = oversized(held_document, ctype, status)
+            if ctype is None:
+                del r.headers["Content-Type"]
+            if length is None:
+                del r.headers["Content-Length"]
+            elif length != "keep":
+                r.headers["Content-Length"] = length
+            return r
+
+        for label, r, is_held in (
+            ("206 partial content", response(206), False),
+            ("302 redirect body", response(302), False),
+            ("no content type", response(ctype=None), False),
+            ("upper-case document type", response(ctype="Application/ZIP"), True),
+            ("no declared length", response(length=None), True),
+            ("non-numeric declared length", response(length="abc"), True),
+        ):
+            with self.subTest(label), tempfile.TemporaryDirectory() as folder:
+                self.state = Path(folder) / "state"
+                entry, _ = self.korea("edge", {held_document: r})
+                if is_held:
+                    self.assertEqual((entry["result"], entry["health"]), (st.OK, "ok"))
+                    item, = entry["attachment_hold_items"]
+                    self.assertEqual(item["url"], held)
+                    if label.startswith("no declared") or label.startswith("non-numeric"):
+                        self.assertIsNone(item["refused_declared_content_length"])
+                    self.assertEqual(self.stored_urls(), [kept])
+                else:
+                    self.assertEqual(entry["health"], "fail")
+                    self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                    self.assertEqual(entry["attachment_holds"], 0)
+                    self.assertEqual(len(entry["failures"]), 1)
+                    self.assertFalse((self.state / "shadow.db").exists())
+
+    def test_mnd_hold_requires_an_oversized_capture_status(self):
+        # Fable review T1: a matching refusal record cannot turn another
+        # capture failure into a hold.
+        url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=1"
+
+        class Stub:
+            robots_status, listing_report, evidence = "read", {}, []
+            attachment_refusals = {url: {"status": st.EXTRACTION_FAILURE, "http_status": 200,
+                                         "content_type": "application/zip",
+                                         "declared_content_length": 10}}
+
+            def discover(self, window):
+                return DiscoveryResult("stub", st.OK, [CandidateReference(
+                    url, "stub", None, window.target_date.isoformat())])
+
+            def fetch(self, reference):
+                return CaptureResult(reference, st.EXTRACTION_FAILURE, reference.url,
+                                     payload_sha256="0" * 64, error_detail="bad archive")
+
+        entry = runner.run("korea", self.state, TARGET, 0, 4, adapter=Stub())
+        self.assertEqual((entry["attachment_holds"], entry["health"]), (0, "fail"))
+        self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+        self.assertFalse((self.state / "shadow.db").exists())
+
     def test_ambiguous_rerun_is_refused_before_state_creation(self):
         from contextlib import redirect_stderr
         with redirect_stderr(io.StringIO()):

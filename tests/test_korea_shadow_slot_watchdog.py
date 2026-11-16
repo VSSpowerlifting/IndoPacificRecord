@@ -107,7 +107,8 @@ class KoreaWatchTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertNotIn("::error::", out)
         self.assertEqual(out.count("::warning::"), 1)
-        self.assertIn("A later clean slot does not show those releases were collected", out)
+        self.assertIn("A later clean slot or recovery does not show those releases "
+                      "were collected", out)
         self.assertNotIn("newsId", out)
 
     def test_failed_scheduled_run_with_holds_is_both_missing_and_held(self):
@@ -137,16 +138,99 @@ class KoreaWatchTests(unittest.TestCase):
         self.assertEqual(
             report["source_dates_without_successful_scheduled_or_explicit_recovery"],
             ["2026-10-12"])
-        self.assertEqual(report["explicit_recovery_dates_with_attachment_holds"],
+        self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
                          ["2026-10-12"])
         self.assertEqual(report["scheduled_dates_with_attachment_holds"], [])
-        # A second, clean recovery of the same date does recover it.
-        data.append(receipt("2026-10-12", run="9992-1", origin="explicit", result="ok"))
-        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
-        self.assertEqual(report["source_dates_recovered_explicitly_but_not_scheduled"],
-                         ["2026-10-12"])
-        self.assertEqual(report["explicit_recovery_dates_with_attachment_holds"], [])
+        # A second, clean recovery of the same date cannot show the held
+        # release reached custody (ledgers carry no stored identities), so in
+        # either order the date stays held and is never reported recovered.
+        clean = receipt("2026-10-12", run="9992-1", origin="explicit", result="ok")
+        for ordered in (data + [clean], originals() + [clean, data[-1]]):
+            with self.subTest(first=ordered[-2]["run_id"]):
+                report = watch.summarize(ordered, CLOCK, commit=SHA,
+                                         as_of="2026-10-13T01:30:00Z")
+                self.assertEqual(
+                    report["source_dates_recovered_explicitly_but_not_scheduled"], [])
+                self.assertEqual(
+                    report["source_dates_without_successful_scheduled_or_explicit_recovery"],
+                    ["2026-10-12"])
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 ["2026-10-12"])
+                self.assertEqual(report["distinct_attachment_hold_identities_in_ledgers"], 1)
+                code, out = self.run_main(ordered, "2026-10-13T01:30:00Z")
+                self.assertEqual(code, 0)
+                self.assertIn("::warning::Korea ledgers in the evaluated window record "
+                              "attachment holds (1 distinct release(s)", out)
+
+    def test_unscheduled_holds_from_failed_or_manual_runs_are_never_silent(self):
+        # Fable review W1/F1/T9: a failed explicit recovery holding a release
+        # (the documented "held, nothing new" outcome) and manual-utc-date runs,
+        # failed or not, used to reach no date list and no annotation.
+        base = through_october_thirteen()
+        cases = {
+            "failed-explicit": held("2026-10-10", run="9993-1", origin="explicit",
+                                    health="fail", result="oversized_response"),
+            "failed-manual": held("2026-10-11", run="9994-1", origin="manual-utc-date",
+                                  health="fail", result="oversized_response"),
+            "ok-manual": held("2026-10-11", run="9995-1", origin="manual-utc-date",
+                              count=3, result="ok"),
+        }
+        for name, extra in cases.items():
+            with self.subTest(case=name):
+                data = base + [extra]
+                report = watch.summarize(data, CLOCK, commit=SHA,
+                                         as_of="2026-10-14T01:30:00Z")
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 [extra["target_date"]])
+                self.assertEqual(report["scheduled_dates_with_attachment_holds"], [])
+                self.assertEqual(report["distinct_attachment_hold_identities_in_window"],
+                                 extra["attachment_holds"])
+                # Scheduled continuity, not an operator run, decides the slot.
+                self.assertEqual(report["status"], "LEDGER_SCHEDULED_SLOTS_OBSERVED")
+                code, out = self.run_main(data, "2026-10-14T01:30:00Z",
+                                          "--fail-current-gap")
+                self.assertEqual(code, 0)
+                self.assertNotIn("::error::", out)
+                self.assertEqual(out.count("::warning::"), 1)
+                self.assertIn("(%d distinct release(s); scheduled dates none; "
+                              "explicit or manual-date dates %s)"
+                              % (extra["attachment_holds"], extra["target_date"]), out)
+                self.assertNotIn("newsId", out)
+                self.assertNotIn("korea.kr", out)
+
+    def test_holds_outside_the_evaluated_window_do_not_warn(self):
+        old = held("2026-10-08", run="9996-1", origin="explicit", result="ok")
+        data = through_october_thirteen() + [old]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-11-20T01:30:00Z")
         self.assertEqual(report["distinct_attachment_hold_identities_in_ledgers"], 1)
+        self.assertEqual(report["distinct_attachment_hold_identities_in_window"], 0)
+        self.assertEqual(report["unscheduled_dates_with_attachment_holds"], [])
+
+    def test_several_scheduled_receipts_for_one_date_report_the_largest_hold(self):
+        for counts in ((3, 1), (1, 3)):
+            with self.subTest(counts=counts):
+                data = originals() + [
+                    held("2026-10-12", run="38323793488-1", count=counts[0],
+                         health="fail", result="oversized_response"),
+                    dict(held("2026-10-12", run="38323793499-1", count=counts[1],
+                              result="ok"),
+                         attachment_hold_items=[
+                             {"url": "https://www.korea.kr/x?newsId=%d" % (8000 + n)}
+                             for n in range(counts[1])])]
+                report = watch.summarize(data, CLOCK, commit=SHA,
+                                         as_of="2026-10-13T01:30:00Z")
+                self.assertEqual(report["attachment_holds_latest_mature_slot"], 3)
+                code, out = self.run_main(data, "2026-10-13T01:30:00Z",
+                                          "--fail-current-gap")
+                self.assertIn("left 3 release(s) out of custody", out)
+                self.assertIn("(4 distinct release(s);", out)
+
+    def test_current_hold_outranks_historical_gaps_in_status(self):
+        data = [r for r in originals() if r["target_date"] != "2026-10-09"] + [
+            held("2026-10-12", run="38323793488-1", result="ok")]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
+        self.assertEqual(report["missing_scheduled_dates"], ["2026-10-09"])
+        self.assertEqual(report["status"], "CURRENT_SCHEDULED_SLOT_HAS_ATTACHMENT_HOLDS")
 
     def test_malformed_attachment_hold_evidence_fails_closed(self):
         url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=9000"
@@ -158,6 +242,8 @@ class KoreaWatchTests(unittest.TestCase):
                     {"attachment_holds": 1, "attachment_hold_items": {"url": url}},
                     {"attachment_holds": 1, "attachment_hold_items": [url]},
                     {"attachment_holds": 1, "attachment_hold_items": [{"url": ""}]},
+                    {"attachment_holds": 1, "attachment_hold_items": [{"url": 123}]},
+                    {"attachment_holds": 1, "attachment_hold_items": [{"url": ["x"]}]},
                     {"attachment_holds": 2, "attachment_hold_items": [{"url": url}] * 2},
                     {"attachment_holds": 1, "attachment_hold_items": [{"url": url}] * 2},
                     {"attachment_holds": 41, "attachment_hold_items": [

@@ -518,8 +518,10 @@ Manual source recovery does not rewrite historical scheduled failures.
    listing/article/HWPX per collection, after the existing crawl delay. Its
    separate single robots-timeout retry remains. Denials/challenges, redirects,
    TLS failures and malformed responses gain no retries. Incomplete batches
-   still preserve the prior database and must not publish. A run with an MND
-   attachment size hold and no other failure is not an incomplete batch.
+   still preserve the prior database and must not publish. An MND attachment
+   size hold alone does not make the batch incomplete: with no other failure
+   and at least one new release the run stores its complete releases; with no
+   new release it fails without a corpus write.
 4. For MND recovery, compare preserved identities before fetching originals
    again. Use the existing bounded explicit-date manual recovery only within
    approved source-access policy. Do not rerun a historical event and guess its
@@ -539,7 +541,7 @@ Manual source recovery does not rewrite historical scheduled failures.
 One refusal does not fail the whole MND batch. When the collector's own
 2,000,000-byte cap refuses a release's single HWPX attachment, the runner holds
 that one release out of custody and stores the complete releases of the same
-run. The 12–14 November 2026 scheduled runs each lost every complete release to
+run. The 12–15 November 2026 scheduled runs each lost every complete release to
 one or two such attachments (`DECISION_LOG.md`, 15 November 2026).
 
 Scope:
@@ -557,8 +559,10 @@ Scope:
 
 What a hold records and does not do:
 
-- The held release is not stored, so nothing downstream can sign or publish
-  it. The refused response is discarded unread: no capture file and no request
+- The held release is not stored as a record, so nothing downstream can sign
+  or publish it. Its release-page capture and request row are kept as attempt
+  evidence on every run that requests it, as for any attempt. The refused
+  attachment response is discarded unread: no capture file and no request
   row. The ledger lists the release under `attachment_holds` and
   `attachment_hold_items`, with the captured release-page hash and the refused
   response's HTTP status, content type and declared length.
@@ -569,15 +573,26 @@ What a hold records and does not do:
 - A run with holds is `ok` only when it stored at least one new release. With
   nothing new to store it ends failed with `oversized_response`, and the
   database and clock stay byte-identical. It is never `ok_all_duplicates`.
-- The complete releases of a held run are ordinary custody. The next scheduled
-  link publication admits them under the existing approval. The held release
-  is absent from the public page, with no public marker.
+- The complete releases of a held run are ordinary custody, read by two
+  separate scheduled public publishers. The Daily link admission
+  (`core/korea_official_metadata_admission.py`) admits every verified
+  non-exception row under the existing approval and has no numeric cap.
+  `korea_standing_original_text_production.yml` (21:17 UTC,
+  `scripts/admit_korea_standing_original_texts.py`) publishes eligible
+  KOGL Type 1 verbatim original text, at most four new per run and fifty in
+  total; it reads `archive/korea-policy-briefing` directly and does not
+  consult the run ledger or its health. The held release is absent from both,
+  with no public marker.
 
 Monitoring and recovery:
 
 - The slot watchdog fails under `--fail-current-gap` while the latest mature
-  slot has holds, and warns while any slot in its window or any explicit
-  recovery has. It prints counts and dates only, never a release identity. The
+  scheduled slot has holds. It warns whenever any ledger whose target date is
+  in its window records a hold, whatever the run's origin (scheduled, explicit
+  recovery or manual date) and whether the run itself failed. Ledgers cannot
+  show that a held release later reached custody, so a clean slot or clean
+  recovery for the same date neither clears the hold nor makes the date
+  "recovered". It prints counts and dates only, never a release identity. The
   private run itself is green on a held `ok` run, so the watchdog is the alarm.
 - Until a held release ages out of the six-day listing window, every run
   requests it again: the release page, then up to the cap of its attachment,

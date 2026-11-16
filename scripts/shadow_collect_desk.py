@@ -123,8 +123,9 @@ def in_custody(db_path, url):
 def attachment_hold(desk, adapter, db_path, ref, capture):
     """Return a ledger hold item, or None when this refusal fails the batch.
 
-    A hold leaves one release out of custody and says so; it stores nothing
-    for that release. A release already in custody is never held: failing to
+    A hold leaves one release out of custody and says so; it stores no record
+    for that release. Its release-page capture and request row are kept as
+    attempt evidence, like any other attempt's. A release already in custody is never held: failing to
     re-verify a stored record stays a batch failure, as before.
     """
     if desk not in ATTACHMENT_HOLD_DESKS or capture.status not in ATTACHMENT_HOLD_STATUSES:
