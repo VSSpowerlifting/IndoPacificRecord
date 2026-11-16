@@ -206,6 +206,52 @@ class KoreaWatchTests(unittest.TestCase):
         self.assertEqual(report["distinct_attachment_hold_identities_in_window"], 0)
         self.assertEqual(report["unscheduled_dates_with_attachment_holds"], [])
 
+    def test_unscheduled_hold_on_the_latest_slot_warns_but_never_fails(self):
+        # Only the scheduled slot decides --fail-current-gap (review of 4839e21).
+        for origin in ("explicit", "manual-utc-date"):
+            with self.subTest(origin=origin):
+                data = through_october_thirteen() + [
+                    held("2026-10-13", run="9997-1", origin=origin, result="ok")]
+                report = watch.summarize(data, CLOCK, commit=SHA,
+                                         as_of="2026-10-14T01:30:00Z")
+                self.assertEqual(report["attachment_holds_latest_mature_slot"], 0)
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 ["2026-10-13"])
+                code, out = self.run_main(data, "2026-10-14T01:30:00Z",
+                                          "--fail-current-gap")
+                self.assertEqual((code, out.count("::error::"),
+                                  out.count("::warning::")), (0, 0, 1))
+
+    def test_scheduled_hold_then_clean_recovery_is_not_recovered(self):
+        data = originals() + [
+            held("2026-10-12", run="38323793488-1", health="fail",
+                 result="oversized_response"),
+            receipt("2026-10-12", run="9998-1", origin="explicit", result="ok")]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
+        self.assertEqual(report["source_dates_recovered_explicitly_but_not_scheduled"], [])
+        self.assertEqual(
+            report["source_dates_without_successful_scheduled_or_explicit_recovery"],
+            ["2026-10-12"])
+
+    def test_hold_window_is_exactly_the_mature_slots(self):
+        # as-of 2026-11-06T22:00Z: 16:00Z after the six-hour grace, before
+        # 17:47, so the latest mature slot is 2026-11-05 and 2026-11-06 (whose
+        # run has finished) is not yet mature; first window day is 2026-11-05
+        # minus 29 days = 2026-10-07.
+        as_of = "2026-11-06T22:00:00Z"
+        self.assertEqual(watch.first_window_day(as_of).isoformat(), "2026-10-07")
+        self.assertEqual(watch.matured_slot(as_of).isoformat(), "2026-11-05")
+        for target, inside in (("2026-10-06", False), ("2026-10-07", True),
+                               ("2026-11-05", True), ("2026-11-06", False)):
+            with self.subTest(target=target):
+                data = through_october_thirteen() + [
+                    held(target, run="9999-1", origin="manual-utc-date", result="ok")]
+                report = watch.summarize(data, CLOCK, commit=SHA, as_of=as_of)
+                self.assertEqual(report["distinct_attachment_hold_identities_in_window"],
+                                 int(inside))
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 [target] if inside else [])
+
     def test_several_scheduled_receipts_for_one_date_report_the_largest_hold(self):
         for counts in ((3, 1), (1, 3)):
             with self.subTest(counts=counts):

@@ -542,7 +542,7 @@ One refusal does not fail the whole MND batch. When the collector's own
 2,000,000-byte cap refuses a release's single HWPX attachment, the runner holds
 that one release out of custody and stores the complete releases of the same
 run. The 12–15 November 2026 scheduled runs each lost every complete release to
-one or two such attachments (`DECISION_LOG.md`, 15 November 2026).
+one or two such attachments (`DECISION_LOG.md`, 16 November 2026 entry).
 
 Scope:
 
@@ -588,7 +588,7 @@ Monitoring and recovery:
 
 - The slot watchdog fails under `--fail-current-gap` while the latest mature
   scheduled slot has holds. It warns whenever any ledger whose target date is
-  in its window records a hold, whatever the run's origin (scheduled, explicit
+  a mature slot in its window records a hold, whatever the run's origin (scheduled, explicit
   recovery or manual date) and whether the run itself failed. Ledgers cannot
   show that a held release later reached custody, so a clean slot or clean
   recovery for the same date neither clears the hold nor makes the date

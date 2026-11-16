@@ -66,7 +66,7 @@ entry, which is otherwise unchanged and is not edited.
   mature scheduled slot has holds and warns on a hold in any in-window ledger
   of any origin, failed runs included; a clean later run never clears it. A
   run with holds and nothing new to store is recorded as failed.
-- No ledger entry, attempt or clock is reset. The 12–14 November runs stay
+- No ledger entry, attempt or clock is reset. The 12–15 November runs stay
   failed.
 - Not decided or done: any change to the cap; collection of the releases held
   so far; any workflow dispatch or recovery run.

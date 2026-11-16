@@ -150,9 +150,8 @@ def summarize(ledgers, clock, *, commit, as_of):
             require(RUN_ID.fullmatch(ident) is not None,
                     "scheduled success must be a distinct first-attempt Actions ID")
             scheduled.add(target)
-        elif origin == SOURCE_EXPLICIT and not held:
-            # A recovery that itself left releases out of custody did not
-            # recover the source date.
+        elif origin == SOURCE_EXPLICIT:
+            # Dates with any recorded hold are kept out of "recovered" below.
             recovered.add(target)
 
     latest = matured_slot(now)
@@ -166,8 +165,10 @@ def summarize(ledgers, clock, *, commit, as_of):
     held_any = set(held_scheduled) | set(held_unscheduled)
     recovered_only = [d for d in missing if d in recovered and d not in held_any]
     uncovered = [d for d in missing if d not in recovered or d in held_any]
+    # The evaluated window is the mature scheduled slots, first..latest. A
+    # hold on a not-yet-mature date is reported once that date matures.
     for target, identities in heldby.items():
-        if first_window_day(now) <= target:
+        if first <= target <= latest:
             window_identities |= identities
     current_missing = latest >= FIRST_SLOT and latest not in scheduled
 
@@ -218,7 +219,7 @@ def summarize(ledgers, clock, *, commit, as_of):
         # Explicit-recovery and manual-date attempts, failed or not. Never
         # reduced by a clean attempt for the same date.
         "unscheduled_dates_with_attachment_holds": sorted(
-            d.isoformat() for d in held_unscheduled if d >= first),
+            d.isoformat() for d in held_unscheduled if first <= d <= latest),
         "distinct_attachment_hold_identities_in_ledgers": len(held_identities),
         "distinct_attachment_hold_identities_in_window": len(window_identities),
         "attachment_hold_custody_resolution_verified": False,
