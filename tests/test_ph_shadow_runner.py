@@ -310,7 +310,10 @@ class TestIsolation(StateCase):
                     self.assertIn("permissions:\n  contents: read", text)
                     self.assertIn("python -m scripts.admit_ph_afp_official_links admit", text)
                     self.assertIn("git add -- pla_watch.db output/philippines.html", text)
-                    self.assertIn("git add -- philippines.html", text)
+                    # Pages: one attested file-only release of philippines.html (#346).
+                    self.assertIn("--overlay philippines.html --subject", text)
+                    self.assertEqual(text.count(" --overlay "), 1)
+                    self.assertNotIn("HEAD:gh-pages", text)
                     self.assertNotRegex(text, r"(?m)^\s*pull_request_target:")
                     for forbidden in (
                             "scripts.shadow_collect_ph", "scripts/shadow_collect_ph",

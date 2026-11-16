@@ -236,5 +236,10 @@ class PrivateWorkflowBoundary(unittest.TestCase):
         for required in ('vars.VIETNAM_MPS_RELEASE_ENABLED', 'VIETNAM_LINK_REVIEW_KEY',
             'VIETNAM_PRIVATE_BRIDGE_KEY','VIETNAM_PRIVATE_PROVENANCE_TOKEN','--private-projection',
             'verify_private_projection_head','group: daily-update','scripts/validate_output.py',
-            'refs/heads/main','refs/heads/gh-pages','--vietnam-https'):
+            'refs/heads/main','--vietnam-https',
+            # Pages: one attested file-only release of vietnam.html (#346).
+            'scripts/pages_release.py --push','--overlay vietnam.html --subject',
+            'git show HEAD:output/vietnam.html | cmp - output/vietnam.html'):
             self.assertIn(required,release)
+        self.assertNotIn('HEAD:refs/heads/gh-pages',release)
+        self.assertEqual(release.count(' --overlay '),1)
