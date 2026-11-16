@@ -755,7 +755,7 @@ class TestSiteBuild(unittest.TestCase):
                 self.assertIn(e["title"], catalog.replace("&#39;", "'"))
         # One list: a single ordered list of every row, no second ledger.
         self.assertEqual(catalog.count("<ol "), 1)
-        self.assertEqual(catalog.count('class="rl-brief brief-card"'),
+        self.assertEqual(catalog.count('class="brief-card"'),
                          len(editions))
         self.assertIn("Newest reporting window first.",
                       self.flat(catalog))
@@ -831,7 +831,7 @@ class TestSiteBuild(unittest.TestCase):
         editions = gp.load_editions(REPO_ROOT)
         for e in editions:
             self.assertEqual(catalog.count('href="%s"' % e["url"]), 1)
-        self.assertEqual(catalog.count('class="rl-brief brief-card"'),
+        self.assertEqual(catalog.count('class="brief-card"'),
                          len(editions) + 1)
         head = html[html.index('class="catalog-head"'):
                     html.index('id="briefs-published"')]

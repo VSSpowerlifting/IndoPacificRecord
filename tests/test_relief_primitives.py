@@ -14,6 +14,13 @@ publishes its eight local flag SVGs with the MIT notice, but no glyph sprite.
 links `relief.css` any longer. The primitives, their builder and the gallery
 are still checked below; the production checks now hold that the home page,
 the Records page, the Briefs catalogue and the Desks page stay clear of them.
+
+2026-11-16: the primitives themselves are retired (`relief.css`,
+`_relief.html`, the emblem and strait sprites, `gallery-relief.html`) along
+with the last two `rl-` hooks. What these checks still hold: no stylesheet
+casts a shadow, nothing retired comes back into a template or a build, the
+geography the Briefs catalogue draws is still built deterministically, and
+the Desks flags still travel with their MIT notice.
 """
 
 from __future__ import annotations
@@ -36,12 +43,12 @@ from scripts import build_geo_assets as geo  # noqa: E402
 
 PREVIEW = REPO_ROOT / "site" / "preview"
 TEMPLATES = PREVIEW / "templates"
-RELIEF_CSS = PREVIEW / "relief.css"
+RETIRED = ("relief.css", "templates/_relief.html", "templates/gallery-relief.html",
+           "templates/_terrain.html", "templates/_plate.html", "templates/_desk_map_geo.svg",
+           "topography.css", "desk-map.js")
 ASSETS = REPO_ROOT / "site" / "assets"
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
 
-SURFACES = ("rl-finder", "rl-card", "rl-analysis", "rl-brief", "rl-plate", "rl-scope")
-LIFTS = ("none", "var(--lift-1)", "var(--lift-2)", "var(--lift-3)")
 # flag-icons 7.3.2 (MIT), byte-identical to the release files.
 FLAGS = ("cn", "id", "jp", "kr", "ph", "sg", "us", "vn")
 GLYPHS = ("newspaper", "ministry", "agency", "journal", "portal", "feed")
@@ -177,7 +184,7 @@ class ShadowAuditTests(unittest.TestCase):
 
     def test_no_other_preview_stylesheet_or_template_casts_a_shadow(self):
         for path in sorted(PREVIEW.rglob("*")):
-            if path.suffix not in (".css", ".html") or path == RELIEF_CSS:
+            if path.suffix not in (".css", ".html"):
                 continue
             text = path.read_text(encoding="utf-8")
             if path == PREVIEW / "timelines.css":
@@ -215,73 +222,22 @@ class ShadowAuditTests(unittest.TestCase):
                         self.test_no_other_preview_stylesheet_or_template_casts_a_shadow()
                     other.unlink()
 
-    def test_relief_css_uses_only_the_three_lifts_on_the_six_surfaces(self):
-        css = RELIEF_CSS.read_text(encoding="utf-8")
-        tokens = dict(re.findall(r"(--lift-[123]):([^;}]+)", css))
-        self.assertEqual(sorted(tokens), ["--lift-1", "--lift-2", "--lift-3"])
-        # Pressed controls darken; nothing casts an inner shadow.
-        self.assertFalse(any("inset" in v for v in tokens.values()))
-        seen = set()
-        for selector, body in _css_rules(css):
-            for value in re.findall(r"box-shadow\s*:\s*([^;]+)", body):
-                value = value.strip()
-                self.assertIn(value, LIFTS, selector)
-                seen.add(value)
-                classes = set(re.findall(r"\.(rl-[a-z]+)", selector))
-                self.assertTrue(classes and classes <= set(SURFACES),
-                                "shadow on %r" % selector.strip())
-        self.assertTrue({"var(--lift-1)", "var(--lift-2)", "var(--lift-3)"} <= seen)
-
-    def test_the_stylesheet_stays_inside_its_budget(self):
-        self.assertLessEqual(RELIEF_CSS.stat().st_size, 4096)
 
 
-class MotionAndModeTests(unittest.TestCase):
-    """Motion is opt-in; forced colours and print lose every lift."""
+class RetiredPrimitivesTests(unittest.TestCase):
+    """The retired relief, terrain, plate and desk-map files stay retired."""
 
-    css = RELIEF_CSS.read_text(encoding="utf-8")
+    def test_retired_files_are_gone(self):
+        for name in RETIRED:
+            self.assertFalse((PREVIEW / name).exists(), name)
 
-    def test_scroll_motion_is_gated_three_ways(self):
-        gate = ("@media(prefers-reduced-motion:no-preference) and (scripting:enabled)"
-                "{@supports(animation-timeline:view()){")
-        self.assertIn(gate, self.css)
-        start = self.css.index(gate)
-        for match in re.finditer(r"animation(-name)?\s*:", self.css):
-            self.assertGreater(match.start(), start, "ungated animation")
-        gated = self.css[start:]
-        self.assertIn("html:not(.no-anim)", gated)
-
-    def test_transforms_wait_for_no_motion_preference(self):
-        rm = self.css.index("@media(prefers-reduced-motion:no-preference)")
-        for match in re.finditer(r"transform\s*:\s*(?!none)", self.css):
-            self.assertGreater(match.start(), rm, "transform outside the motion query")
-
-    def test_forced_colours_and_print_drop_lifts(self):
-        for query in ("@media(forced-colors:active)", "@media print"):
-            block = self.css[self.css.index(query):]
-            block = block[:block.index("}}") + 2]
-            self.assertIn("box-shadow:none", block, query)
-            self.assertIn("::after", block, query)
-
-
-class MacroTests(unittest.TestCase):
-    """Every illustration is decoration beside text that names it."""
-
-    src = (TEMPLATES / "_relief.html").read_text(encoding="utf-8")
-
-    def test_every_svg_and_flag_is_hidden_from_assistive_technology(self):
-        svgs = re.findall(r"<svg\b[^>]*>", self.src)
-        self.assertGreaterEqual(len(svgs), 4)
-        for tag in svgs:
-            self.assertIn('aria-hidden="true"', tag)
-            self.assertIn('focusable="false"', tag)
-        for tag in re.findall(r"<img\b[^>]*>", self.src):
-            self.assertIn('alt=""', tag)
-
-    def test_art_is_referenced_not_inlined(self):
-        self.assertNotRegex(self.src, r"<path\b|<polygon\b|<rect\b")
-        for href in re.findall(r'(?:href|src)="([^"]+)"', self.src):
-            self.assertRegex(href, r"assets/(geo|flags|glyphs)/")
+    def test_no_template_or_script_names_them(self):
+        names = [Path(n).name for n in RETIRED]
+        for path in sorted(list(TEMPLATES.glob("*.html")) + list(PREVIEW.glob("*.py"))
+                           + list(PREVIEW.glob("*.css")) + list(PREVIEW.glob("*.js"))):
+            text = path.read_text(encoding="utf-8")
+            for name in names:
+                self.assertNotIn(name, text, "%s names %s" % (path.name, name))
 
 
 class ProductionIsolationTests(unittest.TestCase):
@@ -289,28 +245,25 @@ class ProductionIsolationTests(unittest.TestCase):
 
     The home page drew emblems and the Singapore Strait, and four page families
     linked relief.css, until the parallel-text identity retired drawn scenery.
-    What is left is two class names kept as unstyled hooks: `rl-finder` on the
-    Records page's search form and `rl-brief` on the Briefs catalogue's rows.
-    Everything else matching the pattern belongs to the gallery alone.
+    The last two unstyled hooks (`rl-finder`, `rl-brief`) are retired too
+    (2026-11-16), so no template may match the pattern at all.
     """
 
     PATTERN = re.compile(r"relief\.css|_relief\.html|assets/(geo|flags|glyphs)/[\w.-]*|\brl-[a-z]+")
-    ALLOWED = {"archive.html": {"rl-finder"}, "analysis.html": {"rl-brief"}}
 
     def test_no_production_template_reaches_the_relief_primitives(self):
         for path in sorted(TEMPLATES.glob("*.html")):
-            if path.name in ("gallery-relief.html", "_relief.html"):
-                continue
             found = {m.group(0) for m in self.PATTERN.finditer(path.read_text(encoding="utf-8"))}
-            self.assertEqual(found - self.ALLOWED.get(path.name, set()), set(), path.name)
+            # The Desks page's own flag tabs are the one admitted asset family.
+            found = {f for f in found if not f.startswith("assets/flags/")}
+            self.assertEqual(found, set(), path.name)
         home = (TEMPLATES / "home.html").read_text(encoding="utf-8")
         self.assertIsNone(self.PATTERN.search(home))
         self.assertEqual(re.findall(r"relief\.(\w+)\(", home), [])
 
     def test_stylesheets_and_base_templates_stay_out(self):
         for path in sorted(PREVIEW.glob("*.css")):
-            if path != RELIEF_CSS:
-                self.assertNotRegex(path.read_text(encoding="utf-8"), r"relief\.css|--lift-")
+            self.assertNotRegex(path.read_text(encoding="utf-8"), r"relief\.css|--lift-")
         for path in (REPO_ROOT / "site/templates/base.html",
                      REPO_ROOT / "site/templates/pla-watch-base.html",
                      TEMPLATES / "base.html"):
@@ -367,19 +320,19 @@ class ProductionAssetTests(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def test_approved_relief_and_country_flag_assets_are_byte_identical(self):
-        self.assertEqual(self.gp.RELIEF_PRODUCTION_ASSETS,
-                         ("assets/geo/emblems.svg", "assets/geo/strait.svg"))
-        self.assertEqual((self.out / "relief.css").read_bytes(), RELIEF_CSS.read_bytes())
-        for route in self.gp.RELIEF_PRODUCTION_ASSETS:
-            self.assertEqual((self.out / route).read_bytes(),
-                             (REPO_ROOT / "site" / route).read_bytes(), route)
+    def test_only_the_catalogue_region_art_and_country_flags_are_published(self):
+        self.assertFalse(hasattr(self.gp, "RELIEF_PRODUCTION_ASSETS"))
+        for retired in ("relief.css", "topography.css", "desk-map.js",
+                        "veil.json", "atmosphere/veil-ocean.webp",
+                        "atmosphere/veil-ocean.jpg",
+                        "assets/editorial/reagan-jmsdf-2015.jpg"):
+            self.assertFalse((self.out / retired).exists(), retired)
         # The Briefs catalogue adds the region art its Editorial plates draw.
         self.assertEqual(self.gp.CATALOGUE_STATIC_ASSETS, ("assets/geo/region.svg",))
         self.assertEqual((self.out / "assets/geo/region.svg").read_bytes(),
                          (REPO_ROOT / "site/assets/geo/region.svg").read_bytes())
         self.assertEqual(sorted(p.name for p in (self.out / "assets/geo").iterdir()),
-                         ["emblems.svg", "region.svg", "strait.svg"])
+                         ["region.svg"])
         # A public Desk flag is an explicitly referenced asset and the MIT
         # notice travels with it; gallery-only glyphs must still stay private.
         expected = {"%s.svg" % iso for iso in FLAGS} | {"LICENSE"}
@@ -424,7 +377,7 @@ class ProductionAssetTests(unittest.TestCase):
 
 
 class GalleryBuildTests(unittest.TestCase):
-    """The relief gallery's every reference resolves in the tree it is built into."""
+    """The maintenance gallery builds without the retired relief page."""
 
     @classmethod
     def setUpClass(cls):
@@ -437,38 +390,15 @@ class GalleryBuildTests(unittest.TestCase):
         gp.build(cls.out, gp.PUBLIC_TITLE, TRACKED_DB,
                  snapshot=gp.snapshot_from_corpus(TRACKED_DB),
                  legacy_routes=True, gallery=True)
-        cls.html = (cls.out / "gallery-relief.html").read_text(encoding="utf-8")
         cls.gallery = (cls.out / "gallery.html").read_text(encoding="utf-8")
 
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def test_relief_stylesheet_is_linked_and_copied(self):
-        self.assertIn('href="relief.css"', self.html)
-        self.assertEqual((self.out / "relief.css").read_bytes(), RELIEF_CSS.read_bytes())
-
-    def test_component_gallery_only_points_to_it(self):
-        # Kept apart so the component gallery stays inside its delivery budget.
+    def test_component_gallery_has_no_relief(self):
+        self.assertFalse((self.out / "gallery-relief.html").exists())
         self.assertNotIn("relief.css", self.gallery)
-        self.assertNotRegex(self.gallery, r"assets/(geo|flags|glyphs)/|\brl-")
-        self.assertIn('href="gallery-relief.html"', self.gallery)
-
-    def test_every_use_and_flag_resolves(self):
-        ids = {}
-        uses = re.findall(r'<use href="(assets/[^"#]+)#([^"]+)"', self.html)
-        self.assertTrue(uses)
-        for path, symbol in uses:
-            if path not in ids:
-                doc = xml.dom.minidom.parse(str(self.out / path))
-                ids[path] = {s.getAttribute("id") for s in doc.getElementsByTagName("symbol")}
-            self.assertIn(symbol, ids[path], "%s#%s" % (path, symbol))
-        flags = re.findall(r'<img class="rl-flag" src="([^"]+)"', self.html)
-        self.assertTrue(flags)
-        for src in flags:
-            self.assertTrue((self.out / src).is_file(), src)
+        self.assertNotIn("gallery-relief.html", self.gallery)
+        self.assertNotRegex(self.gallery, r"\brl-")
         self.assertFalse(any(self.out.glob("assets/*/*.receipt.json")))
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -95,9 +95,7 @@
   {% set e = row.entry %}
   {% set m = catalogue_media.get(e.slug) %}
     <li>
-      {#- `rl-brief` is a hook the collection tests count rows by; it carries
-          no style now that the relief stylesheet is not loaded here. -#}
-      <article class="rl-brief brief-card" data-media="{{ 'photograph' if m and m.is_photograph else 'none' }}">
+      <article class="brief-card" data-media="{{ 'photograph' if m and m.is_photograph else 'none' }}">
         <div class="issue-ledger-meta">
           <span class="issue-no">{% if e.issue is not none %}No. {{ e.issue }}{% else %}Brief{% endif %}</span>
           <span class="visually-hidden">Week ending </span><time datetime="{{ e.date }}">{{ e.date|reader_date }}</time>
