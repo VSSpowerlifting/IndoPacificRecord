@@ -58,7 +58,7 @@
     <a href="archive.html?desk={{ desk.slug }}{{ '&amp;scope=published' | safe if vn else '' }}">{% if vn %}Browse all published Vietnam records{% else %}All {{ desk.record_count|count }} records{% endif %}</a>
   </div>
   {% if vn %}<p class="desk-sec-note">English explanations written by a model in its own words and attributed to the official source. Each record names the source version and the processing behind it. None is an official translation or independent confirmation of what the publisher says.</p>{% endif %}
-  {{ record_days(newest) }}
+  {{ record_days(newest, lead=5) }}
 </section>
 {% endif %}
 

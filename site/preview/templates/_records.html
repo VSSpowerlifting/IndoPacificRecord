@@ -155,10 +155,13 @@
 </li>
 {%- endmacro %}
 
-{# `key` prints the two column names above a list that holds at least one
+{# `lead` is how many leading rows carry their stored-summary sentence (the
+   desk pages' five newest; never the Records page or week pages).
+   `key` prints the two column names above a list that holds at least one
    title pair. The Records page passes key=false and prints its own, because
    browse.js redraws everything inside its results region. #}
-{% macro record_days(records, desk_by_source=none, root='', key=true) -%}
+{% macro record_days(records, desk_by_source=none, root='', key=true, lead=0) -%}
+{% set led = namespace(n=0) %}
 {% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
 {% set pair = namespace(found=false) %}
 {% for r in records %}{% if r.title_english and r.title_original and r.title_original.strip() != r.title_english.strip() %}{% set pair.found = true %}{% endif %}{% endfor %}
@@ -172,7 +175,7 @@
       <span class="day-week">{{ group[0].weekday }}</span>{% endif %}</time></p>
     <ul class="record-list">
     {% for r in group | sort(attribute='id', reverse=true) %}
-      {{ record_row(r, desk_by_source, root) }}
+      {{ record_row(r, desk_by_source, root, lead=led.n < lead) }}{% set led.n = led.n + 1 %}
     {% endfor %}
     </ul>
   </section>

@@ -24,6 +24,9 @@ h2.specimen-original[lang^=zh]{font-family:var(--zh-serif)}h2.specimen-original[
 .specimen-english{margin:0 0 1.6rem;padding:0;border:0;font:400 clamp(1.1875rem,1rem + .55vw,1.4375rem)/1.4 var(--serif);color:var(--band-dek);max-width:30em;text-wrap:pretty}
 .specimen :is(h2) a{color:inherit;text-decoration:none}
 .specimen :is(h2) a:hover{text-decoration:underline;text-decoration-thickness:1px}
+.specimen-summary{margin:-.4rem 0 1.6rem;font:400 1rem/1.6 var(--serif);color:var(--band-dek);max-width:34em}
+.specimen-summary .evidence{display:flex;margin:0 0 .3rem;font:600 .75rem/1.4 var(--sans);color:var(--band-muted)}
+.specimen-summary .evidence::before{border-top-color:var(--band-muted)}
 .specimen-links{display:flex;flex-wrap:wrap;gap:.3rem 1.6rem;margin:0;font-size:.875rem;font-weight:600;max-width:none}
 .specimen-links a{display:inline-flex;align-items:center;min-height:40px}
 
