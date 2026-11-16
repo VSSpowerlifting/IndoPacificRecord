@@ -16,3 +16,8 @@
 .korea-pair p{margin:0;max-width:none;font:400 1.0625rem/1.6 var(--serif)}
 .korea-pair .original{padding-left:1.3rem;border-left:1px solid var(--rule);font-family:var(--ko-serif,var(--serif));line-height:1.75}
 @media(max-width:720px){.korea-pair{grid-template-columns:1fr}.korea-pair-key{display:none}.korea-pair .original{margin-top:.5rem;padding-left:.85rem;border-left-width:2px}}
+/* A machine-assisted translation an editor reviewed for meaning: the machine
+   colour, with a solid rule because a person reviewed it. Not the jade
+   analysis mark, which is reserved for analysis. */
+.evidence--translation{color:var(--machine-ink)}.evidence--translation::before{background:var(--machine-ink)}
+@media(forced-colors:active){.evidence--translation::before{background:CanvasText}}
