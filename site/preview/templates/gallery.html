@@ -66,8 +66,8 @@
 {{ record_days(specimen_records, desk_by_source) }}
 
 <h2 id="g-weeks">Week strip</h2>
-{{ week_strip(weeks, volume_max, heading='h3', title='Records by publication week', reveal=false) }}
-{{ week_strip(weeks, volume_max, current=weeks[3].start, heading='h4', title='With the current week marked (a week page)', reveal=false) }}
+{{ week_strip(weeks, volume_max, heading='h3', title='Records by publication week') }}
+{{ week_strip(weeks, volume_max, current=weeks[3].start, heading='h4', title='With the current week marked (a week page)') }}
 
 <h2 id="g-finder">Finder states</h2>
 <p class="index-state index-state--loading" role="presentation">Loading the search index for {{ corpus_total | count }} records…</p>

@@ -1311,6 +1311,26 @@ def edition_cover(repo_root: Path, slug: str, sidecar: dict):
 HOME_RECORD_COUNT = 6
 
 
+DESK_NEWEST_ROWS = 5
+
+
+def desk_newest_rows(rows, limit=DESK_NEWEST_ROWS):
+    """The first `limit` rows of each desk, in the order the rows arrive.
+
+    A pure grouping of rows that are already rendered and ordered newest
+    first: nothing is selected, ranked or derived here.
+    """
+    newest = {}
+    for row in rows:
+        desk_id = row.get("desk_id")
+        if not desk_id:
+            continue
+        held = newest.setdefault(desk_id, [])
+        if len(held) < limit:
+            held.append(row)
+    return newest
+
+
 def home_record_group(records: list, count: int = HOME_RECORD_COUNT) -> dict:
     """
     The home page's records, and the one provenance question their layout
@@ -2704,8 +2724,12 @@ def build(out_dir: Path, title: str, db_path: Path,
     env.globals["topography_style"] = topography_style
     env.filters["status_label"] = lambda s: STATUS_PROSE.get(s, (s, ""))[0]
     env.filters["status_prose"] = lambda s: STATUS_PROSE.get(s, ("", s))[1]
+    # An unmapped type is shown as its own stored words, spaced and
+    # capitalised ("official_news" -> "Official news"): nothing is renamed or
+    # dropped, and a reader is not handed an identifier.
     env.filters["source_type_label"] = (
-        lambda v: SOURCE_TYPE_LABELS.get(v, v or "—"))
+        lambda v: SOURCE_TYPE_LABELS.get(v)
+        or (v.replace("_", " ").capitalize() if v else "—"))
     # Thousands separators for reader-facing counts. Never applied to ids,
     # dates, hashes, run numbers or source codes.
     env.filters["count"] = (
@@ -3021,6 +3045,9 @@ def build(out_dir: Path, title: str, db_path: Path,
         # The Records page's server-rendered first page: the newest stored
         # records, in the corpus's own order, readable with no script at all.
         "archive_first": focus["rows"][:ARCHIVE_FIRST_PAGE],
+        # Each desk page opens on that desk's own newest records, taken from
+        # the same ordered rows as the Records page so the two never disagree.
+        "desk_newest": desk_newest_rows(focus["rows"]),
         "archive_page_size": ARCHIVE_FIRST_PAGE,
         # Records listed in any published issue's source trail (exact URL).
         "trail_record_count": sum(1 for r in data["corpus"]
@@ -3626,22 +3653,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         encoding="utf-8")
     written.append("citation.js")
 
-    # Reveal-on-scroll. Requested per page through base.html's
-    # `head_scripts` block rather than inherited by all of them, so the week
-    # shards keep their no-script contract and the record pages carry no
-    # bytes for behaviour they do not have. ~2 KB, no dependencies.
-    (out_dir / "reveal.js").write_text(
-        (Path(__file__).parent / "reveal.js").read_text(encoding="utf-8"),
-        encoding="utf-8")
-    written.append("reveal.js")
-
-    # The homepage's opening title. Requested by home.html alone; no other
-    # page carries it.
-    (out_dir / "intro.js").write_text(
-        (Path(__file__).parent / "intro.js").read_text(encoding="utf-8"),
-        encoding="utf-8")
-    written.append("intro.js")
-
     (out_dir / "corpus.html").write_text(
         env.get_template("corpus_weeks.html").render(page="corpus.html", **ctx),
         encoding="utf-8")
@@ -3651,7 +3662,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
-    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
+    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
     # Explicit named assets only: homepage relief sprites and Phase 4A Desks

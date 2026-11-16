@@ -402,8 +402,14 @@ class TestZeroStateOnlyWhenTheCollectionIsEmpty(unittest.TestCase):
         home = self.page("index.html")
         band = home[home.index('id="analysis"'):]
         band = band[:band.index('</section>')]
-        self.assertIn("Briefs in development", band)
+        # The home section states the zero state in one plain sentence: no
+        # Brief is published, and a draft has no public page until approved.
+        self.assertIn("Draft Briefs are withheld until approved. "
+                      "None is published yet.", band)
+        self.assertNotIn("Latest Brief", band)
         self.assertNotIn("Read this Brief", band)
+        self.assertNotIn("briefs/", band)
+        self.assertNotIn("the-pla-watch/posts/", band)
 
 
 class TestProvenance(unittest.TestCase):
@@ -684,7 +690,7 @@ class TestSiteBuild(unittest.TestCase):
         # With no native brief the newest item of the one collection is the
         # newest earlier issue, and it leads: No. 14 is the latest Brief.
         html = self.page("plain", "analysis.html")
-        head = html[html.index('class="band briefs-head"'):
+        head = html[html.index('class="catalog-head"'):
                     html.index('id="briefs-published"')]
         lead = gp.load_editions(REPO_ROOT)[0]
         self.assertIn('id="briefs-lead-title"', head)
@@ -698,6 +704,29 @@ class TestSiteBuild(unittest.TestCase):
         self.assertNotIn("From the former series", head)
         h1 = re.search(r"<h1[^>]*>(.*?)</h1>", head, re.S).group(1)
         self.assertEqual(h1.strip(), "Indo-Pacific Record Briefs")
+
+    def test_an_earlier_issue_leading_has_no_picture_and_states_its_trail_in_text(self):
+        # An admitted photograph with its credit, or no picture: the drawn
+        # edition plate no longer stands in for a cover on the catalogue lead.
+        # What it showed is said in one sentence instead, from the issue's own
+        # sidecar, with the machine flag kept apart from the editor's judgment.
+        html = self.page("plain", "analysis.html")
+        head = html[html.index('class="catalog-head"'):
+                    html.index('id="briefs-published"')]
+        for marker in ("<svg", "<figure", "<img", "<picture", 'class="plate',
+                       "catalog-lead-plate", "plate-analysis-lead"):
+            self.assertNotIn(marker, head)
+        lead = gp.load_editions(REPO_ROOT)[0]
+        sidecar = json.loads((REPO_ROOT / "output" / "the-pla-watch" / "posts"
+                              / (lead["slug"] + ".json")).read_text(encoding="utf-8"))
+        trail = sidecar["source_trail"]
+        flagged = sum(1 for entry in trail if entry.get("is_significant"))
+        self.assertGreater(len(trail), 0)
+        self.assertIn(
+            '<p class="catalog-lead-trail"><span class="evidence evidence--model">'
+            'Model-flagged</span> %d of the %d records in this Brief\'s source trail. '
+            'This is a software triage flag, not the editor\'s judgment.</p>'
+            % (flagged, len(trail)), head)
 
     def test_analysis_has_no_separate_archive_of_the_earlier_issues(self):
         for name in ("plain", "fixture"):
@@ -764,6 +793,7 @@ class TestSiteBuild(unittest.TestCase):
         band = self.home_band(self.page("plain", "index.html"))
         lead = gp.load_editions(REPO_ROOT)[0]
         self.assertNotIn("Briefs in development", band)
+        self.assertNotIn("None is published yet", band)
         self.assertIn("No. %d" % lead["issue"], band)
         self.assertIn('href="%s"' % lead["url"], band)
         self.assertIn("Read this Brief", band)
@@ -781,6 +811,7 @@ class TestSiteBuild(unittest.TestCase):
         self.assertIn(link, band)
         self.assertIn("Read this Brief", band)
         self.assertNotIn("Briefs in development", band)
+        self.assertNotIn("None is published yet", band)
         self.assertNotIn("the-pla-watch/posts/", band)
         self.assertNotIn('class="band-archive"', band)
 
@@ -802,7 +833,7 @@ class TestSiteBuild(unittest.TestCase):
             self.assertEqual(catalog.count('href="%s"' % e["url"]), 1)
         self.assertEqual(catalog.count('class="rl-brief brief-card"'),
                          len(editions) + 1)
-        head = html[html.index('class="band briefs-head"'):
+        head = html[html.index('class="catalog-head"'):
                     html.index('id="briefs-published"')]
         self.assertNotIn("the-pla-watch/posts/", head)
 

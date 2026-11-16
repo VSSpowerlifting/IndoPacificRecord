@@ -26,10 +26,10 @@
    the plot scrolls inside its own frame rather than shrinking its targets.
    `scale` is the largest week's count, so every strip on a page shares one
    scale. #}
-{% macro week_strip(weeks, scale, root='', current=none, heading='h2', title='Records by publication week', note=none, reveal=true, key=true) -%}
+{% macro week_strip(weeks, scale, root='', current=none, heading='h2', title='Records by publication week', note=none, key=true) -%}
 {% set ordered = weeks | list %}
 {% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
-<figure class="week-strip"{% if reveal %} data-reveal{% endif %} aria-labelledby="week-strip-title-{{ heading }}">
+<figure class="week-strip" aria-labelledby="week-strip-title-{{ heading }}">
   <figcaption class="week-strip-head">
     <{{ heading }} id="week-strip-title-{{ heading }}">{{ title }}</{{ heading }}>
     <p>{{ note or 'Each bar is one publication week and opens that week\'s records. Its height is the number of records held for that week, not a measure of activity or output.' }}</p>

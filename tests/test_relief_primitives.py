@@ -9,6 +9,11 @@ and scroll-timeline support. These checks hold those lines. Phase 2 links the
 primitives into the homepage; Phase 2b adds the Archive, which takes only
 `relief.css` and the finder lift (B1 names "the finder"). Phase 4A brings the Desks page into the same named-surface allowlist and
 publishes its eight local flag SVGs with the MIT notice, but no glyph sprite.
+
+2026-11-14, the parallel-text identity: no production page draws relief art or
+links `relief.css` any longer. The primitives, their builder and the gallery
+are still checked below; the production checks now hold that the home page,
+the Records page, the Briefs catalogue and the Desks page stay clear of them.
 """
 
 from __future__ import annotations
@@ -280,42 +285,27 @@ class MacroTests(unittest.TestCase):
 
 
 class ProductionIsolationTests(unittest.TestCase):
-    """Phase 2–4A: Home, Archive, Briefs and Desks are the approved surfaces.
+    """No production template reaches the relief primitives (2026-11-14).
 
-    A positive allowlist per template: home.html may reach relief.css, the
-    _relief.html macros, the two Natural Earth sprites and the rl-* classes;
-    archive.html may reach relief.css and the finder lift (`rl-finder`) and
-    nothing else; analysis.html (the Briefs catalogue) may reach relief.css,
-    the _relief.html macros and the Brief-card lift (`rl-brief`) with its
-    3:2 print frame (`rl-print`), and calls only the `region_plate` macro;
-    desks.html may use only the existing plate lift and licensed flag macro;
-    other production templates stay outside relief, and glyphs remain gallery-only.
+    The home page drew emblems and the Singapore Strait, and four page families
+    linked relief.css, until the parallel-text identity retired drawn scenery.
+    What is left is two class names kept as unstyled hooks: `rl-finder` on the
+    Records page's search form and `rl-brief` on the Briefs catalogue's rows.
+    Everything else matching the pattern belongs to the gallery alone.
     """
 
     PATTERN = re.compile(r"relief\.css|_relief\.html|assets/(geo|flags|glyphs)/[\w.-]*|\brl-[a-z]+")
-    ALLOWED = {"home.html": {"relief.css", "_relief.html", "rl-finder", "rl-card",
-                             "rl-analysis"},
-               "archive.html": {"relief.css", "rl-finder"},
-               "analysis.html": {"relief.css", "_relief.html", "rl-brief", "rl-print"},
-               "desks.html": {"relief.css", "_relief.html", "rl-plate"}}
+    ALLOWED = {"archive.html": {"rl-finder"}, "analysis.html": {"rl-brief"}}
 
-    def test_only_the_homepage_reaches_them_and_only_what_it_uses(self):
+    def test_no_production_template_reaches_the_relief_primitives(self):
         for path in sorted(TEMPLATES.glob("*.html")):
             if path.name in ("gallery-relief.html", "_relief.html"):
                 continue
             found = {m.group(0) for m in self.PATTERN.finditer(path.read_text(encoding="utf-8"))}
             self.assertEqual(found - self.ALLOWED.get(path.name, set()), set(), path.name)
         home = (TEMPLATES / "home.html").read_text(encoding="utf-8")
-        for name in ("relief.css", "_relief.html", "rl-finder", "rl-card", "rl-analysis"):
-            self.assertIn(name, home)
-        # The homepage calls only the emblem and strait macros.
-        self.assertEqual(set(re.findall(r"relief\.(\w+)\(", home)), {"emblem", "strait"})
-        # The catalogue imports the one macro it draws with, and uses the Brief
-        # lift on its cards; no other macro, no finder or card lift.
-        analysis = (TEMPLATES / "analysis.html").read_text(encoding="utf-8")
-        self.assertEqual(set(re.findall(r"import (\w+) with context", analysis)), {"region_plate"})
-        self.assertEqual(set(re.findall(r"\brl-[a-z]+", analysis)), {"rl-brief", "rl-print"})
-        self.assertLess(analysis.index('href="relief.css"'), analysis.index('href="briefs-catalog.css"'))
+        self.assertIsNone(self.PATTERN.search(home))
+        self.assertEqual(re.findall(r"relief\.(\w+)\(", home), [])
 
     def test_stylesheets_and_base_templates_stay_out(self):
         for path in sorted(PREVIEW.glob("*.css")):
@@ -326,10 +316,6 @@ class ProductionIsolationTests(unittest.TestCase):
                      TEMPLATES / "base.html"):
             if path.exists():
                 self.assertNotIn("relief.css", path.read_text(encoding="utf-8"))
-
-    def test_relief_css_is_linked_before_the_home_stylesheet(self):
-        home = (TEMPLATES / "home.html").read_text(encoding="utf-8")
-        self.assertLess(home.index('href="relief.css"'), home.index('href="home.css"'))
 
 
 def _production_build(out, **options):
@@ -407,86 +393,34 @@ class ProductionAssetTests(unittest.TestCase):
             self.assertFalse((self.out / absent).exists(), absent)
         self.assertFalse(any(self.out.glob("assets/**/*.receipt.json")))
 
-    def test_every_homepage_use_resolves(self):
-        uses = re.findall(r'<use href="(assets/[^"#]+)#([^"]+)"', self.index)
-        self.assertTrue(uses)
-        ids = {}
-        for path, symbol in uses:
-            if path not in ids:
-                doc = xml.dom.minidom.parse(str(self.out / path))
-                ids[path] = {s.getAttribute("id") for s in doc.getElementsByTagName("symbol")}
-            self.assertIn(symbol, ids[path], "%s#%s" % (path, symbol))
+    def test_the_homepage_draws_no_relief_art(self):
+        # The pinned fixture Brief lists Singapore: the case that used to draw
+        # the strait and both desks' emblems beside it.
+        self.assertEqual(re.findall(r'<use href="assets/[^"]+"', self.index), [])
+        self.assertNotRegex(self.index, r'\brl-[a-z]+')
+        for retired in ("emblems.svg", "strait.svg", "Singapore Strait",
+                        "not a navigation or boundary chart"):
+            self.assertNotIn(retired, self.index)
 
-    def test_only_the_approved_four_page_families_link_relief_first(self):
-        self.assertLess(self.index.index('href="relief.css"'), self.index.index('href="home.css"'))
-        archive = (self.out / "archive.html").read_text(encoding="utf-8")
-        self.assertLess(archive.index('href="relief.css"'), archive.index('href="archive.css"'))
-        catalogue = (self.out / "analysis.html").read_text(encoding="utf-8")
-        self.assertLess(catalogue.index('href="relief.css"'), catalogue.index('href="briefs-catalog.css"'))
-        desks = (self.out / "desks.html").read_text(encoding="utf-8")
-        self.assertLess(desks.index('href="relief.css"'), desks.index('href="desk-map.css"'))
+    def test_no_built_page_links_the_relief_stylesheet(self):
         for page in self.out.rglob("*.html"):
-            if page.parent != self.out or page.name not in ("index.html", "archive.html", "analysis.html", "desks.html"):
-                self.assertNotIn("relief.css", page.read_text(encoding="utf-8"),
-                                 page.relative_to(self.out))
+            self.assertNotIn("relief.css", page.read_text(encoding="utf-8"),
+                             page.relative_to(self.out))
 
     def test_relief_art_is_decorative(self):
         for tag in re.findall(r"<svg\b[^>]*>", self.index):
             if "rl-" in tag:
                 self.assertIn('aria-hidden="true"', tag)
 
-    def test_timeline_branch_survives_beside_the_strait(self):
-        self.assertIn("Follow the dates.", self.index)
-        self.assertIn("Explore the timeline", self.index)
-        self.assertIn('href="timeline/maritime-cooperation-2026.html"', self.index)
-        # The pinned fixture lists Singapore, so the strait is drawn and captioned.
-        self.assertIn('class="rl-strait', self.index)
-        self.assertIn("Decorative; not a navigation or boundary chart.", self.index)
-
-
-class StraitScopeTests(unittest.TestCase):
-    """The Singapore Strait is drawn only beside a Brief that lists Singapore.
-
-    The test-only fixture lists China and Singapore; this build narrows that
-    entry's desks in memory to China alone (no real sidecar is touched).
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        if not TRACKED_DB.exists():
-            raise unittest.SkipTest("production database not present")
-        sys.path.insert(0, str(PREVIEW))
-        import generate_preview as gp
-        from tests.brief_fixtures import stage
-        original = gp.load_collection
-
-        def china_only(*args, **kwargs):
-            collection = original(*args, **kwargs)
-            if collection.lead is not None:
-                collection.lead["desks"] = ["china"]
-            return collection
-
-        cls.tmp = Path(tempfile.mkdtemp(prefix="relief-strait-"))
-        briefs = stage(cls.tmp)
-        gp.load_collection = china_only
-        try:
-            _production_build(cls.tmp / "build", briefs_dir=briefs,
-                              allow_synthetic_briefs=True)
-        finally:
-            gp.load_collection = original
-        cls.index = (cls.tmp / "build" / "index.html").read_text(encoding="utf-8")
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls.tmp, ignore_errors=True)
-
-    def test_no_strait_without_a_singapore_desk(self):
+    def test_timeline_branch_survives_without_the_strait(self):
+        from bs4 import BeautifulSoup
+        more = BeautifulSoup(self.index, "html.parser").select_one(
+            "#analysis .home-briefs-more article")
+        self.assertEqual(more.select_one(".home-label").get_text(strip=True),
+                         "Evidence timeline")
+        self.assertEqual(more.h3.a["href"], "timeline/maritime-cooperation-2026.html")
+        self.assertTrue(more.h3.a.get_text(strip=True))
         self.assertIn("Read this Brief", self.index)
-        self.assertNotIn("rl-strait", self.index)
-        self.assertNotIn("Singapore Strait", self.index)
-        analysis = self.index[self.index.index('id="analysis"'):self.index.index('home-analysis-second')]
-        self.assertIn("emblems.svg#china", analysis)
-        self.assertNotIn("emblems.svg#singapore", analysis)
 
 
 class GalleryBuildTests(unittest.TestCase):

@@ -1,157 +1,107 @@
 {% extends "base.html" %}
-{% from "_relief.html" import flag with context %}
+{% from "_records.html" import original_line, title_attrs %}
 {% block title %}Desks — {{ title }}{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="relief.css"><link rel="stylesheet" href="desk-map.css">{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="desk-map.css">{% endblock %}
 {% block content %}
-{# Every state, count and date on this page comes from the desk registry and
-   the corpus. `desks/geography.json` says only where an institution sits.
+{# The desk index (2026-11-15). Every state, count, date and title on this page
+   comes from the desk registry and the record.
 
-   Structure: a short overview; a map of institutional seats beside one
-   selection panel; then one consistent summary per desk, collecting desks
-   first. Each summary is still a `section.desk` — the no-fabricated-coverage
-   guards split this page on it to check each desk's block in isolation — and
-   it works without script, as do the markers and the panel's index (anchors
-   that desk-map.js upgrades into a selector). The selected-desk panel is built
-   by the script from the summary and the scope entry below, so scope text is
-   not repeated in the markup.
+   Structure: what a desk is, in one sentence; then one row per desk,
+   collecting desks first — its name, its state in reader words, its record
+   count and its newest record as parallel text; then what each desk reads,
+   a side-by-side table and what each state means. Each row is still a
+   `section.desk` — the no-fabricated-coverage guards split this page on it to
+   check each desk's block in isolation. A desk with no public records says so
+   in its row; it is never drawn as an empty version of a desk that has them.
 
-   Collection state (`d.status_label`, from the registry) and "Research
-   published" (IPR editorial research on the desk) are separate facts and are
-   shown as separate marks, never one in place of the other. #}
-{% set placed = desk_map.desks %}
+   The collection state (from the registry) and "Research published" (IPR
+   editorial research on the desk) are separate facts and are shown as
+   separate marks, never one in place of the other. #}
 {% set pubd = editorial_published_desks | default([]) %}
-{% macro marks(d) -%}
-<span class="desk-state desk-state--{{ d.status }}">{{ d.status_label }}</span>{% if d.slug in pubd %}<span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the source archive.">Research published</span>{% endif %}
+{% macro state_words(d) -%}
+{{ d.status_label | replace('Live — collecting', 'Collecting') | replace('Shadow evaluation', 'Trial collection') | replace(' — not in corpus', ', not in the public record') | replace(' — ', ': ') }}
 {%- endmacro %}
-{% macro short(d) %}{{ d.name|replace(' Desk', '')|replace(' Reference', '') }}{% endmacro %}
+{% macro marks(d) -%}
+<span class="desk-state desk-state--{{ d.status }}">{{ state_words(d) }}</span>{% if d.slug in pubd %} <span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the record.">Research published</span>{% endif %}
+{%- endmacro %}
 <header class="page-head desks-head">
 <h1 class="page-name">Desks</h1>
-<p class="lede">A desk is a declared collection scope: one jurisdiction or institutional family, with its own sources, its own coverage record and its own limits. A desk appears here as soon as its scope is declared.</p>
+<p class="lede">A desk follows the official sources of one country or one group of institutions. Each has its own sources, its own record of what was collected and its own limits.</p>
 <dl class="desks-tally" aria-label="Desk totals">
   <div><dt>Declared</dt><dd>{{ desks.declared_count }}</dd></div>
   <div><dt>Collecting into the record</dt><dd>{{ desks.collecting_count }}</dd></div>
   <div><dt>Not collecting</dt><dd>{{ desks.not_collecting_count }}</dd></div>
 </dl>
-<p class="desks-note">Collecting into the record, publishing IPR research and holding records in the corpus are separate things. Corpus statistics describe admitted government originals only, never editorial articles.
-<span class="desks-snapshot">Snapshot <time datetime="{{ snapshot.date }}">{{ snapshot.date }}</time> · {{ corpus_total|count }} records held · <a href="coverage.html">collection evidence</a></span></p>
+<p class="desk-count">{{ corpus_total|count }} records as of <time datetime="{{ snapshot.date }}">{{ snapshot.date | reader_date }}</time>. Record counts cover official originals only, never IPR's own articles. <a href="coverage.html">What each collection returned</a></p>
 </header>
 
-<div class="deskmap" role="region" aria-labelledby="deskmap-title">
-<h2 id="deskmap-title" class="visually-hidden">Where each desk's publishing institutions are based</h2>
-<div class="deskmap-explorer">
-  <figure class="deskmap-figure">
-    <div class="deskmap-chart">
-    <svg class="deskmap-svg" viewBox="0 0 {{ desk_map.width }} {{ desk_map.height }}" role="group"
-         aria-label="Map of the Indo-Pacific marking where each desk's publishing institutions are based. Each marker links to that desk's summary below."
-         preserveAspectRatio="xMidYMid meet">
-      <clipPath id="dm-frame"><rect width="{{ desk_map.width }}" height="{{ desk_map.height }}"/></clipPath>
-      <g clip-path="url(#dm-frame)">
-      <g aria-hidden="true">
-{% include "_desk_map_geo.svg" %}
-      {# The regional U.S. Indo-Pacific desk is a Hawaii seat, never an America polygon. #}
-      {% for d in desks if d.slug in placed and d.slug != 'us-indopacific' %}
-      <a class="dm-country {{ 'is-live' if d.is_collecting else 'is-quiet' }}" href="#desk-{{ d.slug }}" tabindex="-1" data-desk="{{ d.slug }}"><use href="#dm-geo-{{ d.slug }}"/></a>
-      {% endfor %}
-      <text class="dm-ocean" x="{{ desk_map.width * 0.67 }}" y="{{ desk_map.height * 0.60 }}" text-anchor="middle">Pacific Ocean</text>
-      </g>
-      </g>
-      {# Label sides are presentation only; a desk's marker sits on its verified seat. #}
-      {% set side = {'china': ['end', -34, 10], 'korea': ['middle', 0, 70], 'us-indopacific': ['end', -34, 10]} %}
-      {% for d in desks if d.slug in placed %}{% set m = placed[d.slug] %}{% set s = side.get(d.slug, ['start', 34, 10]) %}
-      <a href="#desk-{{ d.slug }}" class="dm-anchor is-{{ 'live' if d.is_collecting else 'blocked' if d.status == 'access_blocked' else 'quiet' }}" data-desk="{{ d.slug }}" transform="translate({{ m.x }} {{ m.y }})" aria-label="{{ d.name }}, seat {{ m.seat }}. {{ d.status_label }}">
-        <circle class="dm-hit" r="46"/><circle class="dm-ring" r="28"/><circle class="dm-dot" r="12"/>
-        <text class="dm-label" text-anchor="{{ s[0] }}" x="{{ s[1] }}" y="{{ s[2] }}" aria-hidden="true">{{ 'Korea' if d.slug == 'korea' else short(d) }}</text>
-      </a>
-      {% endfor %}
-    </svg>
-    </div>
-    <figcaption class="deskmap-caption">
-      <span class="deskmap-caption-lead">Institutional seats · Miller projection.</span>
-      Each marker shows where a desk's publishing institutions are based. It is not an area of coverage, and a desk's reporting scope is set out in its own declaration. {% for d in desks if d.slug not in placed %}{{ short(d) }}'s seat is not plotted. {% endfor %}Boundaries are Natural Earth 1:50m (public domain), generalized, showing de facto lines; no boundary claim is made.
-    </figcaption>
-  </figure>
-
-  <aside class="deskmap-panel" aria-label="Desk selection">
-   <div class="deskmap-panel-inner">
-    <div class="deskmap-index">
-      {% for group in (true, false) %}
-      <p class="deskmap-group-label"><span class="deskmap-swatch{{ '' if group else ' is-quiet' }}" aria-hidden="true"></span>{{ 'Collecting into the record' if group else 'Declared, not collecting' }}</p>
-      <ul class="deskmap-picks">
-      {% for d in desks if d.is_collecting == group %}<li><a href="#desk-{{ d.slug }}" data-desk="{{ d.slug }}" data-pick="{{ d.slug }}"><span class="deskmap-flag-tab" aria-hidden="true">{{ flag(d.slug) }}</span>{{ short(d) }}</a></li>{% endfor %}
-      </ul>
-      {% endfor %}
-      <p class="deskmap-seatonly"><span class="deskmap-swatch is-seat" aria-hidden="true"></span>Seat only: regional reference, not a country fill</p>
-    </div>
-    <div class="deskmap-detail" role="region" aria-live="polite" aria-label="Selected desk">
-      <p class="deskmap-hint">Select a marker, a country or a name above to read that desk's state, counts and limits.</p>
-    </div>
-   </div>
-  </aside>
-</div>
-
-<h2 class="deskmap-dir-title">All {{ desks.declared_count }} desks</h2>
 <div class="deskmap-register">
-{% for d in (desks|selectattr('is_collecting')|list) + (desks|rejectattr('is_collecting')|list) %}{% set m = placed[d.slug] if d.slug in placed else none %}
-{% if loop.changed(d.is_collecting) %}<p class="deskmap-group-head">{{ 'Collecting into the record' if d.is_collecting else 'Declared, not collecting' }} <span>{{ desks.collecting_count if d.is_collecting else desks.not_collecting_count }}</span></p>{% endif %}
-<section class="desk desk--{{ d.status }} deskmap-plate rl-plate {{ 'is-live' if d.is_collecting else 'is-blocked' if d.status == 'access_blocked' else 'is-quiet' }}{{ ' is-unplaced' if not m }}" id="desk-{{ d.slug }}" data-desk="{{ d.slug }}">
-  <div class="deskmap-plate-head"><span class="deskmap-flag-tab" aria-hidden="true">{{ flag(d.slug) }}</span>
-  <h3 class="plain"><a href="{{ d.route }}">{{ d.name }}</a></h3></div>
-  <p class="card-meta deskmap-marks">{{ marks(d) }}</p>
-  <p class="deskmap-seat">{% if m %}Seat: {{ m.seat }}{% else %}Seat not plotted on the map{% endif %}</p>
-  <dl class="deskmap-stats">
-    <div><dt>{{ 'Corpus records' if d.status == 'shadow' else 'Records' }}</dt><dd>{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'Not admitted' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
-    <div><dt>{{ 'Last corpus collection' if d.status == 'shadow' else 'Last collection' }}</dt><dd>{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'Not recorded') }}</dd></div>
-    {% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}
-    <div data-korea-directory-mnd-metadata="{{ korea_mnd_live_link_count }}"><dt>Live MND link metadata</dt><dd>{{ korea_mnd_live_link_count }}</dd></div>
+{% for d in (desks|selectattr('is_collecting')|list) + (desks|rejectattr('is_collecting')|list) %}{% set r = desk_latest.get(d.slug) if desk_latest is defined and d.record_count else none %}
+{% if loop.changed(d.is_collecting) %}<h2 class="desks-group">{{ 'Collecting into the record' if d.is_collecting else 'Not collecting into the record' }} <span>{{ desks.collecting_count if d.is_collecting else desks.not_collecting_count }}</span></h2>{% endif %}
+<section class="desk desk--{{ d.status }} deskmap-plate" id="desk-{{ d.slug }}" data-desk="{{ d.slug }}">
+  <div class="desks-id">
+    <h3 class="plain"><a href="{{ d.route }}">{{ d.name }}</a></h3>
+    <p class="card-meta deskmap-marks">{{ marks(d) }}</p>
+    <dl class="deskmap-stats">
+      <div><dt>Records</dt><dd>{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'None in the public record' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
+      {% if d.record_count is not none and d.status != 'shadow' and d.last_successful_run %}
+      <div><dt>Last collected</dt><dd>{{ d.last_successful_run[:10] | reader_date }}</dd></div>
+      {% endif %}
+      {% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}
+      <div data-korea-directory-mnd-metadata="{{ korea_mnd_live_link_count }}"><dt>MND official pages linked</dt><dd>{{ korea_mnd_live_link_count }}</dd></div>
+      {% endif %}
+      {% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}
+      <div data-philippines-directory-links="{{ ph_official_link_count }}"><dt>Verified official links</dt><dd>{{ ph_official_link_count }}</dd></div>
+      <div data-philippines-directory-machine="{{ ph_machine_explanation_count | default(0) }}"><dt>Machine explanations</dt><dd>{{ ph_machine_explanation_count | default(0) }}</dd></div>
+      {% endif %}
+    </dl>
+  </div>
+  <div class="desks-latest">
+    {% if r %}
+    <p class="desks-label">Newest record{% if r.published_date %}, <time datetime="{{ r.published_date }}">{{ r.published_date | reader_date }}</time>{% endif %}</p>
+    <p class="desks-title"{{ title_attrs(r) }}><a href="record/{{ r.id }}.html">{{ r.title_english or r.title_original }}</a></p>
+    {{- original_line(r) }}
+    {% else %}
+    <p class="desks-none"><a href="#scope-{{ d.slug }}">What this desk reads, and why it does not collect into the record</a></p>
     {% endif %}
-    {% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}
-    <div data-philippines-directory-links="{{ ph_official_link_count }}"><dt>Verified official links</dt><dd>{{ ph_official_link_count }}</dd></div>
-    <div data-philippines-directory-machine="{{ ph_machine_explanation_count | default(0) }}"><dt>Machine explanations</dt><dd>{{ ph_machine_explanation_count | default(0) }}</dd></div>
-    {% endif %}
-  </dl>
-  <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Enter the {{ d.name }}">Enter desk <span aria-hidden="true">→</span></a></p>
+    <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Open the {{ d.name }}">Open desk</a></p>
+  </div>
 </section>
 {% endfor %}
 </div>
-</div>
 
-<nav class="reader-contents" aria-label="On this page">
-  <span>On this page</span>
-  <ul><li><a href="#desk-scopes">What each desk reads</a></li>
-      <li><a href="#desk-comparison">Compare desks</a></li>
-      <li><a href="#desk-statuses">Status meanings</a></li></ul>
-</nav>
-
+<section class="desks-section" aria-labelledby="desk-scopes">
 <h2 id="desk-scopes">What each desk reads</h2>
 <dl class="scope-register">
 {% for d in desks %}
   <div class="scope-entry" id="scope-{{ d.slug }}">
     <dt><a href="{{ d.route }}">{{ d.name }}</a> {{ marks(d) }}</dt>
-    <dd><p>{{ d.scope }}</p><p class="blocking">{{ d.status_explanation }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}">MND: {{ korea_mnd_live_link_count }} verified links. MND and DAPA links are admitted; see Korea Desk for DAPA admissions and reuse limits. This is not a full-country article corpus.</p>{% endif %}{% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}<p class="meta" data-philippines-directory-scope-count="{{ ph_official_link_count }}">{{ ph_official_link_count }} verified official links and {{ ph_machine_explanation_count | default(0) }} machine explanations. AFP and NSC links and attributed machine explanations are published automatically; original documents are not in the corpus. These are separate from corpus records, which stay at none.</p>{% endif %}{% if d.record_count %}<p class="card-foot"><a href="archive.html?desk={{ d.slug }}">Browse its records</a></p>{% endif %}</dd>
+    <dd><p>{{ d.scope }}</p><p class="blocking">{{ d.status_explanation }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}">MND: {{ korea_mnd_live_link_count }} verified links. Links to MND and DAPA pages are listed; see the Korea Desk for DAPA links and reuse limits. This is not full coverage of the country.</p>{% endif %}{% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}<p class="meta" data-philippines-directory-scope-count="{{ ph_official_link_count }}">{{ ph_official_link_count }} verified official links and {{ ph_machine_explanation_count | default(0) }} machine explanations. AFP and NSC links and attributed machine explanations are published automatically; original documents are not in the public record. These are separate from records, which stay at none.</p>{% endif %}{% if d.record_count %}<p class="card-foot"><a href="archive.html?desk={{ d.slug }}">Browse its records</a></p>{% endif %}</dd>
   </div>
 {% endfor %}
 </dl>
+</section>
 
-<details class="desk-compare" id="desk-comparison">
+<details class="desk-more desk-compare" id="desk-comparison">
 <summary>Every desk, side by side</summary>
 <div class="table-scroll">
 <table class="stacking desk-table">
-  <caption>The same {{ desks.declared_count }} desks as the map above. Only a
+  <caption>The same {{ desks.declared_count }} desks as the list above. Only a
   collecting desk has a record count.</caption>
   <thead>
-    <tr><th scope="col">Desk</th><th scope="col">Status</th>
-        <th scope="col" class="num">Configured</th><th scope="col" class="num">Enabled</th>
-        <th scope="col" class="num">Records</th><th scope="col">Last corpus collection</th></tr>
+    <tr><th scope="col">Desk</th><th scope="col">State</th>
+        <th scope="col" class="num">Sources declared</th><th scope="col" class="num">In the schedule</th>
+        <th scope="col" class="num">Records</th><th scope="col">Last collected</th></tr>
   </thead>
   <tbody>
   {% for d in desks %}
     <tr>
       <td data-label="Desk"><a href="{{ d.route }}">{{ d.name }}</a></td>
-      <td data-label="Status">{{ marks(d) }}</td>
-      <td data-label="Configured" class="num">{{ d.configured_source_count }}</td>
-      <td data-label="Enabled" class="num">{{ d.enabled_source_count }}</td>
-      <td data-label="Records" class="num">{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}<span class="meta">none — see status</span>{% endif %}</td>
-      <td data-label="Last corpus collection">{{ 'Not admitted' if d.status == 'shadow' else (d.last_successful_run or 'Not recorded') }}</td>
+      <td data-label="State">{{ marks(d) }}</td>
+      <td data-label="Sources declared" class="num">{{ d.configured_source_count }}</td>
+      <td data-label="In the schedule" class="num">{{ d.enabled_source_count }}</td>
+      <td data-label="Records" class="num">{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}<span class="meta">none — see state</span>{% endif %}</td>
+      <td data-label="Last collected">{{ 'Not in the public record' if d.status == 'shadow' else (d.last_successful_run or 'Not recorded') }}</td>
     </tr>
   {% endfor %}
   </tbody>
@@ -159,31 +109,32 @@
 </div>
 </details>
 
-<h2 id="desk-statuses">What a status means</h2>
+<section class="desks-section" aria-labelledby="desk-statuses">
+<h2 id="desk-statuses">What a state means</h2>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>What each desk status means, and what it implies about the record.</caption>
-  <thead><tr><th scope="col">Status</th><th scope="col">Meaning</th></tr></thead>
+  <caption>What each desk state means, and what it implies about the record.</caption>
+  <thead><tr><th scope="col">State</th><th scope="col">Meaning</th></tr></thead>
   <tbody>
-    <tr><td data-label="Status"><span class="desk-state desk-state--live">Live — collecting</span></td>
-        <td data-label="Meaning">Sources are enabled and a scheduled run collects into the record. Only these desks have record counts.</td></tr>
-    <tr><td data-label="Status"><span class="desk-state desk-state--shadow">Shadow evaluation — not in corpus</span></td>
-        <td data-label="Meaning">Source material is evaluated in isolated shadow state, not admitted to the public IPR corpus or its record counts. A public desk page may separately provide scope information or approved official-source links; those are not archived IPR records.</td></tr>
-    <tr><td data-label="Status"><span class="desk-state desk-state--access_blocked">Access blocked — not collecting</span></td>
-        <td data-label="Meaning">Researched and reachable in principle, but the institution's discovery surface is not available to an honestly identified collector. Nothing has been collected.</td></tr>
-    <tr><td data-label="Status"><span class="desk-state desk-state--research">Researched — not yet collecting</span></td>
-        <td data-label="Meaning">The source universe is documented and no source is enabled. Nothing is collected; where a collector has been built, it has not been launched.</td></tr>
-    <tr><td data-label="Status"><span class="desk-state desk-state--planned">Planned — nothing collected</span></td>
-        <td data-label="Meaning">Scope declared, nothing researched, configured, enabled or collected.</td></tr>
-    <tr><td data-label="Status"><span class="desk-state desk-state--paused">Paused — collection stopped</span></td>
-        <td data-label="Meaning">Configured and deliberately stopped. Its existing records stay in the record; nothing new arrives.</td></tr>
-    <tr><td data-label="Status"><span class="desk-pub">Research published</span></td>
-        <td data-label="Meaning">IPR has published editorial research on this desk. It is shown beside the desk's collection status, never in place of it, and says nothing about records in the corpus.</td></tr>
+    <tr><td data-label="State"><span class="desk-state desk-state--live">Collecting</span></td>
+        <td data-label="Meaning">The desk's sources are in the collection schedule and what they publish is added to the record. Only these desks have record counts.</td></tr>
+    <tr><td data-label="State"><span class="desk-state desk-state--shadow">Trial collection, not in the public record</span></td>
+        <td data-label="Meaning">Source material is being evaluated separately. It is not part of the public record or its counts. The desk's page may still set out its scope or list approved links to official sources; those links are not IPR records.</td></tr>
+    <tr><td data-label="State"><span class="desk-state desk-state--access_blocked">Access blocked: not collecting</span></td>
+        <td data-label="Meaning">Researched and reachable in principle, but the institution's site does not admit an automated reader that identifies itself honestly. Nothing has been collected.</td></tr>
+    <tr><td data-label="State"><span class="desk-state desk-state--research">Researched: not yet collecting</span></td>
+        <td data-label="Meaning">The desk's sources are documented and none is in the collection schedule. Nothing is collected; where the software to collect a source exists, it has not been started.</td></tr>
+    <tr><td data-label="State"><span class="desk-state desk-state--planned">Planned: nothing collected</span></td>
+        <td data-label="Meaning">The scope is declared. Nothing has been researched, set up or collected.</td></tr>
+    <tr><td data-label="State"><span class="desk-state desk-state--paused">Paused: collection stopped</span></td>
+        <td data-label="Meaning">Set up and deliberately stopped. Its existing records stay in the record; nothing new arrives.</td></tr>
+    <tr><td data-label="State"><span class="desk-pub">Research published</span></td>
+        <td data-label="Meaning">IPR has published its own research on this desk. It is shown beside the desk's collection state, never in place of it, and says nothing about how many records the desk holds.</td></tr>
   </tbody>
 </table>
 </div>
-<p class="meta">Only collecting desks show public-corpus record totals. A shadow desk's "Not admitted"
-means its independently preserved material is excluded from those totals and dates; it does not
-mean no private originals were collected.</p>
+<p class="meta">Only collecting desks show record totals. A desk in trial collection may hold
+originals privately; that material is left out of every total and date on this page, which
+does not mean none was collected.</p>
+</section>
 {% endblock %}
-{% block scripts %}<script src="desk-map.js" defer></script>{% endblock %}

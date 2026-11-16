@@ -39,7 +39,7 @@
       {% else %}
       <h2 class="specimen-original as-published" id="specimen-title"{% if not s.title_english and s.language_tag %} lang="{{ s.language_tag }}"{% endif %}><a href="record/{{ s.id }}.html">{{ s.title_english or s.title_original }}</a></h2>
       {% endif %}
-      <p class="specimen-links"><a href="record/{{ s.id }}.html">Read this record and its source</a>{% if s_desk %}<a href="{{ s_desk.route }}">{{ s_desk.name }} desk</a>{% endif %}</p>
+      <p class="specimen-links"><a href="record/{{ s.id }}.html">Read this record and its source</a>{% if s_desk %}<a href="{{ s_desk.route }}">{{ s_desk.name }}</a>{% endif %}</p>
     </article>
     {% endif %}
   </div>
@@ -75,7 +75,7 @@
         <h3><a href="{{ feature.url }}">{{ feature.title }}</a></h3>
         <p class="home-feature-dek">{{ feature.dek }}</p>
         <p class="meta">{{ feature.author_name or maintainer.name }}. Week ending {{ feature.date | reader_date }}{% if feature.is_retrospective %}. {{ feature.retrospective_label }}{% endif %}</p>
-        <p><a class="text-link" href="{{ feature.url }}">Read the Brief</a></p>
+        <p><a class="text-link" href="{{ feature.url }}">Read this Brief</a></p>
       </div>
     </article>
     <div class="home-briefs-more">

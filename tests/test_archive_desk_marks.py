@@ -1,8 +1,9 @@
 """
-Phase 2b: the Archive's finder lift and desk markers stay what the ruling allows.
+Phase 2b: the Archive's finder and desk markers stay what the ruling allows.
 
-The lift is the approved finder token (DECISION_LOG 2026-10-10 B1) reached
-through `rl-finder`, never a new shadow. The marker is a CSS mask over one
+The finder is flat: the lift it once took through `rl-finder` (DECISION_LOG
+2026-10-10 B1) was retired with the parallel-text redesign, and no shadow may
+come back by another route. The marker is a CSS mask over one
 small static outline per country desk, delivered by an explicit allowlist, drawn
 on the link both row renderers already share, so `browse.js` is untouched.
 """
@@ -82,10 +83,16 @@ class MarkAssetTests(unittest.TestCase):
 
 
 class ArchiveStyleTests(unittest.TestCase):
-    def test_the_finder_takes_the_approved_lift_through_rl_finder(self):
-        self.assertRegex(ARCHIVE_HTML, r'id="controls" class="finder rl-finder"')
+    def test_the_finder_casts_no_shadow(self):
+        """
+        The parallel-text Records page is flat paper: the finder lift was
+        retired with the relief sheet, so the page no longer links relief.css
+        and nothing else may reintroduce a shadow for it.
+        """
+        self.assertRegex(ARCHIVE_HTML, r'id="controls" class="finder[ "]')
         head = re.search(r"\{% block head_scripts %\}(.*?)\{% endblock %\}", ARCHIVE_HTML).group(1)
-        self.assertLess(head.index('href="relief.css"'), head.index('href="archive.css"'))
+        self.assertEqual(re.findall(r'href="([^"]+\.css)"', head), ["archive.css"])
+        self.assertNotIn("relief.css", ARCHIVE_HTML)
         # archive.css casts and names no shadow of its own.
         self.assertNotRegex(ARCHIVE_CSS, r"box-shadow\s*:(?!\s*none)|--lift-|drop-shadow|text-shadow")
 
@@ -143,7 +150,8 @@ class ProductionDeliveryTests(unittest.TestCase):
     def test_only_archive_css_references_the_marks_and_only_archive_links_it(self):
         self.assertEqual((self.out / "archive.css").read_bytes(), (PREVIEW / "archive.css").read_bytes())
         html = (self.out / "archive.html").read_text(encoding="utf-8")
-        self.assertIn("rl-finder", html)
+        self.assertIn('id="controls" class="finder', html)
+        self.assertNotIn("relief.css", html)
         for sheet in sorted(self.out.glob("*.css")):
             if sheet.name != "archive.css":
                 self.assertNotIn("desk-marks", sheet.read_text(encoding="utf-8"), sheet.name)

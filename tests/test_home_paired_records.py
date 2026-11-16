@@ -1,7 +1,7 @@
 """Current home evidence contracts; old C1 six-record layout is superseded.
 
 Retain fixture horizon, original-title rejection and fallback macro checks.
-October photograph-led reader layout is measured by verify_frontend_candidate;
+The parallel-text home page (2026-11-14) carries no opening photograph;
 the governed counts, newest records and machine labels are checked below.
 """
 from __future__ import annotations
@@ -395,11 +395,30 @@ if __name__ == "__main__":                                  # pragma: no cover
 
 class TestReviewedHome(HomeCase):
     def test_fresh_tree_contains_pinned_natural_jpeg_fallback(self):
+        # The build still ships this file although no page shows it any more
+        # (the renderer owner retires unused assets separately). While it is
+        # shipped it must be the pinned original, byte for byte.
         import hashlib
         source = REPO_ROOT / "site/assets/editorial/reagan-jmsdf-2015.jpg"
         emitted = self.out / "assets/editorial/reagan-jmsdf-2015.jpg"
+        if not emitted.exists():
+            self.skipTest("the retired opening photograph is no longer shipped")
         self.assertEqual(hashlib.sha256(emitted.read_bytes()).hexdigest(),
                          hashlib.sha256(source.read_bytes()).hexdigest())
+
+    def test_the_home_page_carries_no_scenery_photograph(self):
+        """The opening photograph was retired on 2026-11-14. The only pictures
+        the page may carry are the identity mark and an admitted Brief cover."""
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.home, 'html.parser')
+        self.assertFalse(soup.select('picture, .pacific-photo, .photo-credit'))
+        for img in soup.find_all('img'):
+            self.assertTrue(
+                'brand-mark' in img.get('class', [])
+                or img.find_parent(class_='home-feature-photo') is not None,
+                img.get('src'))
+        self.assertNotIn('assets/editorial/', self.home)
+        self.assertNotIn('assets/frontend/', self.home)
 
     def test_one_reading_h1_and_selected_identity(self):
         from bs4 import BeautifulSoup
@@ -409,18 +428,32 @@ class TestReviewedHome(HomeCase):
         self.assertIn('selected-ipr/ipr-ivory-', str(soup.header))
 
     def test_current_snapshot_and_search_scope(self):
-        self.assertIn('{:,} preserved records'.format(gp.snapshot_from_corpus(TRACKED_DB)['expected_records']), self.home)
-        self.assertIn('Search covers titles.', self.home)
-        self.assertIn('each record links to its original source', self.home)
-        self.assertIn('name="scope" value="all"', self.home)
-        self.assertIn('Coverage is selective', self.home)
-        self.assertIn('concentrated in Chinese sources', self.home)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.home, 'html.parser')
+        snapshot = gp.snapshot_from_corpus(TRACKED_DB)
+        total = '{:,}'.format(snapshot['expected_records'])
+        flat = lambda node: ' '.join(node.get_text(' ').split())
+        # The total, tied to the date it was true on, in the dateline ...
+        self.assertIn('%s records, as of %s' % (total, gp.reader_date(snapshot['date'])),
+                      flat(soup.select_one('.masthead .publication-status')))
+        # ... and again beside the search, with what the search reads.
+        self.assertIn('%s records. Search reads titles only.' % total,
+                      flat(soup.select_one('.home-open-note')))
+        form = soup.select_one('form.home-search')
+        self.assertEqual(form['action'], 'archive.html')
+        self.assertEqual(form.select_one('input[name=scope]')['value'], 'all')
+        self.assertEqual(flat(form.select_one('label[for=home-q]')),
+                         'Search record titles, in English or the original language')
+        self.assertIn('a link to the original', flat(soup.select_one('dl.home-legend')))
+        self.assertIn('Coverage is selective', flat(soup.select_one('.footer-standing')))
+        self.assertIn('most of them from Chinese sources',
+                      flat(soup.select_one('.home-desks-note')))
 
     def test_latest_rows_keep_governed_titles_languages_and_links(self):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.home, 'html.parser')
-        rows = soup.select('.home-recent .record-row')
-        self.assertEqual(len(rows), 4)
+        rows = soup.select('.home-newest .record-row')
+        self.assertEqual(len(rows), HOME_RECORDS)
         by_id = {r['id']: r for r in self.data['corpus']}
         for row in rows:
             link = row.select_one('h3 a')
@@ -440,31 +473,179 @@ class TestReviewedHome(HomeCase):
                 self.assertEqual(row.h3.get('lang'),
                                  (governed['language_tag'] or None)
                                  if not governed['title_english'] else None)
-        # The selected analyzed record exercises the translated title pair
-        # even when all four newest arrivals have only original titles.
-        selected = soup.select_one('.home-selected')
-        governed = by_id[int(Path(selected.select_one('h3 a')['href']).stem)]
-        original = selected.select_one('.home-selected-original')
+            # The date a row stands under is the source-stated one.
+            day = row.find_parent(class_='records-day')
+            self.assertEqual(day.select_one('time')['datetime'], governed['published_date'])
+        # The record the page opens on exercises the translated title pair
+        # even when every newest arrival has only an original title.
+        selected = soup.select_one('.home-open .specimen')
+        link = selected.select_one('h2 a')
+        governed = by_id[int(Path(link['href']).stem)]
+        self.assertEqual(link.get_text(' ', strip=True),
+                         governed['title_english'] or governed['title_original'])
+        head = selected.select_one('.specimen-head')
+        self.assertIn('evidence--record', head.span['class'])
+        self.assertIn(governed['institution'] or governed['source_name'],
+                      head.get_text(' ', strip=True))
+        self.assertEqual(head.select_one('time')['datetime'], governed['published_date'])
+        original = selected.select_one('p.specimen-original')
         # The selected live record may have no machine title. The template
-        # must show an original-title pair only when both titles are present,
+        # must show an original-title pair only when the two titles differ,
         # and must not claim translation for a source-language-only record.
-        paired = bool(governed['title_english'] and governed['title_original'])
+        paired = bool(governed['title_english'] and governed['title_original'].strip()
+                      and governed['title_original'].strip()
+                      != governed['title_english'].strip())
         self.assertEqual(original is not None, paired)
         if paired:
             self.assertEqual(original.get_text(' ', strip=True), governed['title_original'])
-            self.assertEqual(original.get('lang'), governed['language_tag'])
-            self.assertIn('Machine translation', str(selected))
+            self.assertEqual(original.get('lang'), governed['language_tag'] or None)
+            label = selected.select_one('.specimen-head--english')
+            self.assertEqual(label.select_one('.evidence--model').get_text(strip=True),
+                             'Machine translation')
+            self.assertIn(
+                'Human review not recorded'
+                if governed['desk_id'] == 'china' and governed['language_tag'] != 'en'
+                else 'Not reviewed by a person', label.get_text(' ', strip=True))
         else:
             self.assertNotIn('Machine translation', str(selected))
-            self.assertEqual(selected.select_one('h3 a').get('lang'),
-                             governed['language_tag'] or None)
+            self.assertEqual(selected.select_one('h2').get('lang'),
+                             (governed['language_tag'] or None)
+                             if not governed['title_english'] else None)
 
     def test_human_brief_and_machine_record_labels_are_explicit(self):
-        self.assertIn('Human-controlled analysis', self.home)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.home, 'html.parser')
         self.assertIn('Machine translation', self.home)
-        self.assertIn('Latest analysis', self.home)
+        briefs = soup.select_one('section#analysis.home-briefs')
+        self.assertEqual(
+            briefs.select_one('.home-head .evidence--analysis').get_text(strip=True),
+            'Human-controlled analysis')
+        self.assertEqual(briefs.h2.get_text(strip=True), 'Briefs')
+        # This build has no native Brief, so the feature is an earlier issue
+        # and says so; it never borrows the "Latest" label.
+        feature = briefs.select_one('.home-feature')
+        self.assertRegex(feature.select_one('.home-label').get_text(strip=True),
+                         r'^Earlier Brief, No\. \d+$')
+        self.assertEqual(feature.select_one('a.text-link').get_text(strip=True),
+                         'Read this Brief')
+        self.assertEqual(feature.select_one('a.text-link')['href'],
+                         feature.h3.a['href'])
+        # No machine mark inside the human-analysis section.
+        self.assertFalse(briefs.select('.evidence--model'))
 
     def test_self_hosted_faces_and_native_mobile_menu(self):
         self.assertIn('href="fonts.css"', self.home)
         self.assertNotIn('fonts.googleapis.com', self.home)
         self.assertIn('class="shell-menu nav-mobile"', self.home)
+
+
+@unittest.skipUnless(TRACKED_DB.exists(), "production database not present")
+class TestTheHomeBriefCoverIsCredited(unittest.TestCase):
+    """
+    The only photograph the home page may show is the latest Brief's admitted
+    cover (core/catalogue_media.py). When it shows one it must carry the whole
+    credit the Briefs page carries: creator, licence, source, change note and
+    the reminder that the picture is context rather than evidence. When the
+    lead has no admission there is no picture at all.
+
+    The lead below is a non-synthetic copy of the fixture Brief; the resolver
+    is patched to admit it with No. 8's real admitted record, as
+    `tests/test_catalogue_media.py` does for the Briefs page.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import copy
+        import functools
+        from core import catalogue_media as cm
+        from tests import brief_fixtures
+        cls.root = Path(tempfile.mkdtemp(prefix="home-cover-"))
+        slug = brief_fixtures.FIXTURE_SLUG
+        side = copy.deepcopy(json.loads(
+            (brief_fixtures.FIXTURE_DIR / (slug + ".json")).read_text(encoding="utf-8")))
+        side.pop("synthetic", None)
+        side.pop("fixture_note", None)
+        briefs = cls.root / "briefs-src"
+        shutil.copytree(brief_fixtures.FIXTURE_DIR, briefs)
+        (briefs / (slug + ".json")).write_text(json.dumps(side), encoding="utf-8")
+        brief_fixtures.write_synthetic_veil(briefs / "media" / (slug + "-veil.jpg"))
+        real = cm.resolve_catalogue_media(
+            {"entry": {"issue": 8, "date": "2026-06-27", "slug": "s-8"}, "kind": "issue"},
+            cm.load_admissions(repo_root=REPO_ROOT), repo_root=REPO_ROOT)
+        assert real.is_photograph, real.reason
+        cls.photo = real.photo
+        original_resolve = gp.resolve_catalogue_media
+        original_collection = gp.load_collection
+
+        def admit_the_lead(row, admissions, **kw):
+            if row["entry"].get("slug") == slug:
+                return cm.CatalogueMedia(cm.KIND_PHOTOGRAPH, "admitted", 8, (), real.photo)
+            return original_resolve(row, admissions, **kw)
+
+        snap = gp.snapshot_from_corpus(TRACKED_DB)
+        gp.load_collection = functools.partial(original_collection, unreconciled=frozenset())
+        try:
+            for name, resolver in (("default", original_resolve), ("admitted", admit_the_lead)):
+                gp.resolve_catalogue_media = resolver
+                gp.build(cls.root / name, gp.PUBLIC_TITLE, TRACKED_DB, snapshot=snap,
+                         briefs_dir=briefs, dossiers_dir=cls.root / "no-dossiers",
+                         site_origin="https://briefs-review.test", allow_test_origin=True)
+        finally:
+            gp.resolve_catalogue_media = original_resolve
+            gp.load_collection = original_collection
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.root, ignore_errors=True)
+
+    def briefs(self, name):
+        from bs4 import BeautifulSoup
+        html = (self.root / name / "index.html").read_text(encoding="utf-8")
+        return BeautifulSoup(html, "html.parser").select_one("section#analysis.home-briefs")
+
+    def test_a_lead_without_an_admission_shows_no_picture(self):
+        section = self.briefs("default")
+        self.assertIsNotNone(section.select_one(".home-feature"))
+        self.assertEqual(section.select("img, picture, figure, svg"), [])
+        self.assertEqual(
+            section.select_one(".home-feature .home-label").get_text(strip=True)[:12],
+            "Latest Brief")
+
+    def test_an_admitted_cover_carries_the_full_credit(self):
+        section = self.briefs("admitted")
+        figures = section.select("figure.home-feature-photo")
+        self.assertEqual(len(figures), 1)
+        figure, p = figures[0], self.photo
+        img = figure.select_one("img")
+        self.assertEqual(img["src"], p["served"])
+        self.assertEqual(img["alt"], p["alt"])
+        self.assertTrue(img["alt"].strip())
+        self.assertEqual((img["width"], img["height"]), (str(p["width"]), str(p["height"])))
+        # The picture links where the heading links, and nowhere else.
+        self.assertEqual(img.find_parent("a")["href"],
+                         section.select_one(".home-feature h3 a")["href"])
+        caption = figure.select_one("figcaption")
+        flat = " ".join(caption.get_text(" ").split())
+        self.assertIn(p["caption"], flat)
+        if p.get("date_note"):
+            self.assertIn(p["date_note"], flat)
+        self.assertIn("Photo: " + p["creator"], flat)
+        if p.get("creator_native"):
+            native = caption.select_one("span[lang]")
+            self.assertEqual(native["lang"], p["creator_native_lang"])
+            self.assertEqual(native.get_text(strip=True), p["creator_native"])
+        links = {a["href"]: a.get_text(strip=True) for a in caption.select("a")}
+        self.assertEqual(links.get(p["source_page"]), p["source_label"])
+        if p.get("license_url"):
+            self.assertEqual(links.get(p["license_url"]), p["license"])
+        else:
+            self.assertIn(p["license"], flat)
+        self.assertIn(p["change_note"], flat)
+        self.assertIn("Visual context, not evidence.", flat)
+        if p.get("notice"):
+            self.assertIn(p["notice"], flat)
+        # The section stays under the human-analysis mark with the picture in.
+        self.assertEqual(
+            section.select_one(".home-head .evidence--analysis").get_text(strip=True),
+            "Human-controlled analysis")
+

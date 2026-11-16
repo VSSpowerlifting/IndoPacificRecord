@@ -3,6 +3,25 @@
 Durable specification for motion and the flagship visual components.
 Tokens/typography: docs/DESIGN_SYSTEM.md. Tickets: docs/ROADMAP.md.
 
+## Parallel text identity (2026-11-15, pending review)
+
+For the active `site/preview/` renderer, DESIGN_SYSTEM.md "Parallel text
+identity" supersedes two treatments described below:
+
+- **Abstract page terrain (§1).** Active pages no longer paint or animate the
+  contour field. The page ground is plain paper.
+- **Opening title (§1.1).** The homepage no longer loads `intro.js`. The
+  script, its WebGL ocean and `tests/test_homepage_intro.py` are removed. The
+  homepage opens directly on one real record set as parallel text.
+
+Both were owner-approved on 2026-10-05, so their removal is a reversal that
+needs the owner's review with this change, not a standing rule yet. Their
+descriptions below are kept as the record of what was approved. The remaining
+motion on active pages is reader-triggered only: button press, disclosure
+opening and the archive's own result updates, all removed under
+`prefers-reduced-motion`. The week strip (§3.2a) and the Edition Plate rules
+for earlier Briefs are unchanged.
+
 ## Coastal colour representation (2026-10-14)
 
 The owner-directed coastal migration supersedes crimson/rust paint in the

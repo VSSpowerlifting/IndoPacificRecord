@@ -4,7 +4,7 @@
 {% block title %}{{ timeline.title }} — {{ title }}{% endblock %}
 {% block description %}{{ timeline.dek }}{% endblock %}
 {% block og_type %}article{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="../timelines.css"><script src="../reveal.js"></script>{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="../timelines.css">{% endblock %}
 
 {% block main_class %} class="timeline-page"{% endblock %}
 {% block body_open %}<body class="timeline-shell">{% endblock %}
@@ -47,7 +47,7 @@
   </details>
 </aside>
 <div class="tl-reading">
-<section class="tl-narrative{% if timeline.slug == 'maritime-cooperation-2026' %} tl-narrative--maritime{% endif %}" aria-labelledby="tl-narrative-heading">
+<section class="tl-narrative" aria-labelledby="tl-narrative-heading">
   <h2 id="tl-narrative-heading">The chronology</h2>
   <p class="tl-sequence-note">Entries follow the dates the sources give for each event. Every date is one a source states; when that source was published is shown beside it. The order shows sequence, not cause and effect.</p>
   <ol class="tl-spine">

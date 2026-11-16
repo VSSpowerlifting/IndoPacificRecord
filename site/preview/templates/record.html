@@ -5,7 +5,6 @@
    original. Never a placeholder — a record with no English title shows its
    original title as the heading rather than inventing a substitute. #}
 {% set display_title = (record.source_label ~ ' official source — machine explanation') if record.machine_only | default(false) else record.original_title if record.cited_only | default(false) else (record.title_english or record.title_original) %}
-{% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
 {% block title %}{{ display_title }} — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="../record.css">{% endblock %}
 {% block main_class %} class="record-reading"{% endblock %}
@@ -22,232 +21,258 @@
 {# "Back to results" appears only when the reader arrived from a search or a
    week list on this site (citation.js reads the referrer). The record's own
    address never carries query parameters, so a copied link stays canonical. #}
+{% set vn_headline = record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}
+{% set title_pair = not is_mindef and not vn_headline and record.title_english and record.title_original and (record.desk_id != 'china' or record.language_tag != 'en') %}
+{% set beside = title_pair or (vn_headline and record.title_original) %}
+{# "As published" on a lone heading only when the heading IS the publisher's
+   title: an untranslated original, or an English title stored twice. #}
+{% set heading_as_published = not is_mindef and not beside and (not record.title_english or (record.title_original and record.title_original.strip() == record.title_english.strip())) %}
+{% set language_name = record.language_tag | language_label if record.language_tag else '' %}
+{% set path = [('Records', '../archive.html')] %}
+{% if record_desk %}{% set path = path + [(record_desk.name, '../' ~ record_desk.route)] %}{% endif %}
+{% set path = path + [(record.source_name, '../source/' ~ record.source_slug ~ '.html'), ('Record ' ~ record.id, none)] %}
 <p class="back-link" id="back-link" hidden><a href="../archive.html">Back to results</a></p>
 <article class="record-page">
-  <div class="record-body">
-    {# Who published it, when, and where IPR found it: the three facts a
-       reader needs before anything IPR added. The date column beside this
-       repeats the date as the page's place in time. #}
-    <h1{% if not record.title_english %} lang="{{ record.language_tag or 'zh' }}"{% endif %}>{{ display_title }}</h1>
-    <p class="record-source-line">{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }} by <b>{{ record.institution or record.source_name }}</b> on <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time>{% if record.institution %} · via <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a>{% endif %}</p>
+  {# The head is the record's title pair at full scale: English as the
+     heading, the title as published beside it in its own script. The
+     machine mark is stated once, here. #}
+  <header class="page-head record-head{{ ' record-head--pair' if beside }}">
+    {{ breadcrumb(path) }}
+    <h1{% if not record.title_english %} lang="{{ record.language_tag or 'zh' }}"{% endif %}{% if heading_as_published %} class="as-published"{% endif %}>{{ display_title }}</h1>
+    <p class="record-source-line">{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }} by <b>{{ record.institution or record.source_name }}</b> on <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time>{% if record.institution %} · via <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a>{% endif %} <span class="record-date-note">The date is the one the source gives.</span></p>
     {% if is_mindef %}
+    <p class="record-mark record-mark--original"><span class="evidence evidence--record">Source record</span></p>
     <p class="meta record-title-note">This heading is an IPR description of the record, not MINDEF's headline.</p>
-    {% elif record.vietnam and record.title_english and not record.vietnam.translation_prompt_version %}
-    <p class="meta record-title-note"><span class="evidence evidence--model">Machine-generated headline</span>
-    Independent machine headline; not a translation of the source title.
-    Not reviewed by a human. <a href="../methodology.html#evidence">About machine labels</a></p>
-    {% if record.title_original %}<p class="original" lang="vi">{{ record.title_original }}</p>{% endif %}
-    {% elif record.title_english and record.title_original and (record.desk_id != 'china' or record.language_tag != 'en') %}
-    {# Two distinct machine outputs. The English TITLE is a translation; the
-       summary below is a different artifact. Labelling them identically would
-       merge two separate claims about what a model produced. #}
+    {% elif beside %}
+    {# Two distinct machine outputs. The English TITLE is a translation (or,
+       for some Vietnam records, an independent headline); the summary below
+       is a different artifact and carries its own label. #}
     <div class="record-title-pair">
-      <p class="original" lang="{{ record.language_tag or 'zh' }}">{{ record.title_original }}</p>
-      <p class="meta"><span class="evidence evidence--model">Machine translation</span>
-      The heading is a machine translation of the original title above. {% if china_review %}Human review is not recorded.{% else %}Not reviewed by a human.{% endif %}
-      <a href="../methodology.html#evidence">About machine labels</a></p>
+      <p class="record-mark record-mark--original"><span class="evidence evidence--record">As published</span>{% if language_name %} <span>{{ language_name }}</span>{% endif %}</p>
+      <p class="original as-published" lang="{{ 'vi' if vn_headline else (record.language_tag or 'zh') }}">{{ record.title_original }}</p>
+      {% if vn_headline %}
+      <p class="record-mark record-mark--english"><span class="evidence evidence--model">Machine-generated headline</span>
+      <span>Independent machine headline; not a translation of the source title.
+      Not reviewed by a human. <a href="../methodology.html#evidence">About machine labels</a></span></p>
+      {% else %}
+      <p class="record-mark record-mark--english"><span class="evidence evidence--model">Machine translation</span>
+      <span>{% if china_review %}Human review not recorded.{% else %}Not reviewed by a human.{% endif %}
+      <a href="../methodology.html#evidence">About machine labels</a></span></p>
+      {% endif %}
     </div>
+    {% elif vn_headline %}
+    <p class="record-mark record-mark--english"><span class="evidence evidence--model">Machine-generated headline</span>
+    <span>Independent machine headline; not a translation of the source title.
+    Not reviewed by a human. <a href="../methodology.html#evidence">About machine labels</a></span></p>
+    {% elif heading_as_published %}
+    <p class="record-mark record-mark--original"><span class="evidence evidence--record">As published</span>{% if language_name %} <span>{{ language_name }}</span>{% endif %}</p>
+    {% else %}
+    <p class="record-mark record-mark--original"><span class="evidence evidence--record">Source record</span></p>
     {% endif %}
 
     <div class="record-actions">{% if source_link_ok %}<a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Open original source</a>{% endif %}<a href="#record-citation">Cite this record</a><button type="button" class="link-copy" data-copy-link hidden>Copy link</button>
       <p class="cite-status link-status" role="status" aria-live="polite"></p></div>
 
-    {# What the page holds, layer by layer, each marked with where it came
-       from. Every row is drawn from a stored field the sections below render;
-       nothing here claims material the page does not show. A note appears
-       only when it adds something the link and its label do not already say;
-       the citation is reached from "Cite this record" above. #}
+    {# Jump links to the sections this page actually renders; each target
+       exists whenever its link does. #}
     <nav class="reader-contents record-layers" aria-label="On this record page">
-      <h2 class="record-layers-title">On this page</h2>
+      <span>On this page</span>
       <ul>
-        {% if record.summary_english %}
-        <li><a href="#record-summary">Summary</a><span class="evidence evidence--model">Machine summary</span></li>
-        {% endif %}
-        {% if record.vietnam and record.vietnam.translation_published and record.vietnam.text_english %}
-        <li><a href="#record-translation">English translation</a><span class="evidence evidence--model">Machine translation</span><span class="layer-note">Checked by automated QA; not reviewed by a human</span></li>
-        {% elif record.korea_identity and record.text_english %}
-        <li><a href="#record-translation">Full text in English</a><span class="evidence evidence--model">Machine translation</span><span class="layer-note">The Korean original governs</span></li>
-        {% endif %}
-        {% if record.korea_identity %}
-        <li><a href="#record-text">Korean original</a><span class="evidence evidence--record">Source record</span><span class="layer-note">On its own page</span></li>
-        {% elif record.vietnam and record.vietnam.original_withheld %}
-        <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not republished here; read it at the source</span></li>
-        {% elif is_mindef %}
-        <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not published on this site</span></li>
-        {% elif record.has_text %}
-        <li><a href="#record-text">Stored source text</a><span class="evidence evidence--record">Source record</span></li>
-        {% else %}
-        <li><a href="#record-text">Source text</a><span class="evidence evidence--record">Source record</span><span class="layer-note">Not captured; read it at the source</span></li>
-        {% endif %}
-        {% if record.in_trails %}
-        <li><a href="#record-analysis">In IPR analysis</a><span class="evidence evidence--analysis">Analysis</span><span class="layer-note">{{ 'Cited in a Brief' if brief_refs else "Listed in an issue's source trail" }}</span></li>
-        {% endif %}
-        <li><a href="#record-provenance">Provenance and processing</a><span class="layer-note">Collection dates, models and fingerprints</span></li>
+        {% if record.summary_english %}<li><a href="#record-summary">Summary</a></li>{% endif %}
+        {% if record.vietnam and record.vietnam.translation_published and record.vietnam.text_english %}<li><a href="#record-translation">English translation</a></li>
+        {% elif record.korea_identity and record.text_english %}<li><a href="#record-translation">Full text in English</a></li>{% endif %}
+        <li><a href="#record-text">{{ 'Korean original' if record.korea_identity else 'Source text' }}</a></li>
+        {% if record.in_trails %}<li><a href="#record-analysis">In IPR analysis</a></li>{% endif %}
+        <li><a href="#record-provenance">Where this came from</a></li>
       </ul>
     </nav>
+  </header>
 
-    {% if record.summary_english %}
-    <section class="record-section" id="record-summary" aria-labelledby="summary-heading">
-      <div class="layer-head"><h2 id="summary-heading">Summary</h2>
-        <span class="evidence evidence--model">Machine summary</span></div>
-      <div class="interpretation">
-        <p>{{ record.summary_english }}</p>
-      </div>
-      <p class="meta">Machine-generated from the original text{% if record.title_english %}, and distinct from the
-      machine translation of the title{% endif %}. Not reviewed by a human. It is a reading of
-      what was published, not a verification of it.</p>
-    </section>
+  {% if record.summary_english %}
+  <section class="record-section record-section--machine" id="record-summary" aria-labelledby="summary-heading">
+    <div class="layer-head"><span class="evidence evidence--model">Machine summary</span>
+      <h2 id="summary-heading">Summary</h2></div>
+    <div class="interpretation">
+      <p>{{ record.summary_english }}</p>
+    </div>
+    <p class="meta">Machine-generated from the original text{% if record.title_english %}, and distinct from the
+    machine {{ 'headline' if vn_headline else 'translation of the title' }}{% endif %}. Not reviewed by a human. It is a reading of
+    what was published, not a verification of it.</p>
+  </section>
+  {% elif not is_mindef %}
+  {# No machine-output mark here: a record with no machine output carries none. #}
+  <p class="record-absent">No summary is shown for this record.</p>
+  {% endif %}
+
+  {% if record.vietnam and record.vietnam.translation_published and record.vietnam.text_english %}
+  <section class="record-section record-section--machine" id="record-translation" aria-labelledby="translation-heading">
+    <div class="layer-head"><span class="evidence evidence--model">Machine translation</span>
+      <h2 id="translation-heading">English translation</h2></div>
+    <div class="interpretation">
+    {% for para in record.vietnam.text_english.split('\n') %}
+    {% if para.strip() %}<p>{{ para.strip() }}</p>
     {% endif %}
-
-    {% if record.vietnam and record.vietnam.translation_published and record.vietnam.text_english %}
-    <section class="record-section" id="record-translation" aria-labelledby="translation-heading">
-      <div class="layer-head"><h2 id="translation-heading">English translation</h2>
-        <span class="evidence evidence--model">Machine translation</span></div>
-      <div class="interpretation">
-      {% for para in record.vietnam.text_english.split('\n') %}
-      {% if para.strip() %}<p>{{ para.strip() }}</p>
-      {% endif %}
+    {% endfor %}
+    </div>
+    <p class="meta">Machine-translated from the Vietnamese original and checked by
+    automated QA (rubric {{ record.vietnam.qa_rubric_version }}). Not reviewed by a human.
+    The <a href="{{ record.url }}" rel="noopener nofollow">official page</a> is the authority.</p>
+  </section>
+  {% endif %}
+  {# Beside the text on a wide screen, between the summary and the text on a
+     narrow one: where IPR's own analysis uses this record, and what a record
+     can and cannot show. #}
+  <aside class="record-rail" aria-label="About this record">
+    {% if record.in_trails %}
+    {# Listed in a published issue's source trail, matched on this record's
+       exact stored URL. The issue says which claim rests on it; this does not. #}
+    <div class="rail-block trail-panel" id="record-analysis">
+      <h2><span class="evidence evidence--analysis">Human-controlled analysis</span> In IPR analysis</h2>
+      <ul>
+      {% for ref in record.in_trails %}
+        <li><a href="{{ ('../' if ref.kind | default('issue') in ('brief', 'brief_reference') else '') ~ ref.url }}#{{ ref.anchor | default('source-' ~ ref.position) }}" rel="noopener">{{ ref.title }}</a>
+          <span class="meta">{{ ref.series_name }} No. {{ ref.issue }} · week ending {{ ref.date | reader_date }} · {{ 'publisher reference' if ref.kind | default('issue') == 'brief_reference' else 'source-trail entry %s' % ref.position }}</span></li>
       {% endfor %}
-      </div>
-      <p class="meta">Machine-translated from the Vietnamese original and checked by
-      automated QA (rubric {{ record.vietnam.qa_rubric_version }}). Not reviewed by a human.
-      The <a href="{{ record.url }}" rel="noopener nofollow">official page</a> is the authority.</p>
-    </section>
+      </ul>
+    </div>
     {% endif %}
-    {% if record.korea_identity %}
-    {# A gated Korean MND release (core/korea_corpus_bridge.publication_gate).
-       The licensed original is shown once, on its own exhibit page; this
-       record links to it rather than reproducing it a second time. #}
-    {% if record.text_english %}
-    <section class="record-section" id="record-translation-section" aria-labelledby="record-translation">
-      <div class="layer-head"><h2 id="record-translation">Full text in English</h2>
-        <span class="evidence evidence--model">Machine translation</span></div>
-      <p class="meta">A machine translation of the Korean original, line by line. Not reviewed by a
-      human. The statements are the Ministry of National Defense's official claims, translated;
-      they are not IPR findings and are not independently verified. Where wording matters,
-      the <a href="../korea-originals/{{ record.korea_news_id }}.html">Korean original</a> governs.</p>
-      <div class="machine-translation" lang="en">
-      {% for line in record.text_english.split('\n') %}
-      {% if line.strip() %}<p>{{ line.strip() }}</p>
-      {% endif %}
-      {% endfor %}
-      </div>
-    </section>
-    {% endif %}
-
-    <section class="record-section" aria-labelledby="record-text">
-      <div class="layer-head"><h2 id="record-text">Korean original</h2>
-        <span class="evidence evidence--record">Source record</span></div>
-      <p><a href="../korea-originals/{{ record.korea_news_id }}.html">Read the verbatim Korean original — release {{ record.korea_news_id }}</a></p>
-      <p class="meta"><strong>Official Korean government source text</strong> — not an IPR fact-check or independent endorsement of the claims.
-      Issuer: Republic of Korea Ministry of National Defense; republication: Republic of Korea Policy Briefing.
-      Text reproduced with attribution under the article-specific
-      <a href="https://www.korea.kr/guide/copyRight.do">KOGL Type 1 text-use notice and publisher terms</a>.
-      Photographs, HWPX attachments and other media are not included.</p>
-    </section>
-    {% elif record.vietnam and record.vietnam.original_withheld %}
-    <section class="record-section" aria-labelledby="record-text">
-      <div class="layer-head"><h2 id="record-text">Source text</h2>
-        <span class="evidence evidence--record">Source record</span></div>
-      {# Not a capture failure: the original is preserved privately. The
-         source-use decision on record does not let IPR republish it. #}
-      <p>IPR keeps a private copy of the Vietnamese original, but it
-      is not reproduced here: the source-use decision for this source does
-      not cover public display of the full text. Read it on the
-      <a href="{{ record.url }}" rel="noopener nofollow">official page</a>.</p>
-      <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
-    </section>
-    {% elif record.source_slug == 'sg_mindef_releases' %}
-    <section class="record-section" aria-labelledby="record-text">
-      <div class="layer-head"><h2 id="record-text">Source text</h2>
-        <span class="evidence evidence--record">Source record</span></div>
-      {# Linking never grants public text reproduction; preserve private custody
-         and metadata separately from restricted original material. The reason
-         is not restated here: the 9 November source-use direction changed the
-         policy basis while the deployed runtime hold remains in force. #}
-      <p>MINDEF's original article text and media are not reproduced here and
-      are not published on this site at present. A link to MINDEF's page does
-      not grant permission to reproduce its text.</p>
-      {% if record.mindef_link_allowed %}
-      <p><a href="{{ record.url }}" rel="noopener nofollow">Read the release on MINDEF's site</a>.</p>
-      {% else %}
-      <p>The original address is listed under provenance, but it did not pass
-      IPR's official-site check, so it is not linked.</p>
-      {% endif %}
-    </section>
-    {% else %}
-    <section class="record-section" aria-labelledby="record-text">
-      <div class="layer-head"><h2 id="record-text">Stored source text</h2>
-        <span class="evidence evidence--record">Source record</span></div>
-      {# "Original text" claimed a fidelity the capture does not have:
-         extraction can drop material and pull in page furniture. The stored
-         bytes are never cleaned to match the claim; the claim is corrected. #}
-      <p class="meta">Text captured from the source page. Extraction may omit material
-      or include unrelated page elements; consult the original URL when exact wording
-      or completeness matters.</p>
-      {% if record.has_text %}
-      <div class="original-text" lang="{{ record.language_tag or 'zh' }}">
-      {% for para in record.text_original.split('\n') %}
-      {% if para.strip() %}<p>{{ para.strip() }}</p>
-      {% endif %}
-      {% endfor %}
-      </div>
-      {% else %}
-      {# Ruled wording. Deliberately not "permanently unavailable": recovery or
-         re-capture remains possible and this page must not foreclose it. #}
-      <p>Original text is unavailable in this stored record.{% if source_link_ok %} Read it on the <a href="{{ record.url }}" rel="noopener nofollow">original page</a>.{% endif %}</p>
-      {% endif %}
-      {% if record.vietnam %}
-      <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
-      {% endif %}
-    </section>
-    {% endif %}
-
-    <section class="record-section record-supports" aria-labelledby="supports-heading">
+    {% if dossier_records is defined and dossier_records[record.id] %}<div class="rail-block trail-panel" role="group" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</div>{% endif %}
+    {% if timeline_records is defined and timeline_records[record.id] %}<div class="rail-block trail-panel" role="group" aria-labelledby="record-timelines"><h2 id="record-timelines">In Evidence Timelines</h2>{% for item in timeline_records[record.id] %}<p><a href="../{{ item.route }}">{{ item.title }}</a>{% if item.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</div>{% endif %}
+    <div class="rail-block record-supports">
       <h2 id="supports-heading">What this record supports</h2>
       <ul class="supports">
-        <li><span class="evidence evidence--record">Source record</span> This item was published at the URL above on the date the source stated.</li>
+        <li><span class="evidence evidence--record">Source record</span> This item was published at the source address on the date the source stated.</li>
         <li><span class="evidence evidence--claim">Official claim</span> Its contents are that institution's assertions.</li>
       </ul>
       <p>It does not establish that the described events occurred, that any capability exists, or that
       the institution's stated position is its actual policy.</p>
-    </section>
+    </div>
+  </aside>
 
-    <section class="record-section" aria-labelledby="record-citation">
-      <h2 id="record-citation">Cite this record</h2>
-      {# Two claims, two blocks: the item as its publisher issued it, and the
-         record as this corpus holds it. Both are plain selectable text; the
-         copy buttons do not exist without JavaScript. #}
-      <p class="meta">Cite the original item. Add the IPR record when you relied
-      on text, translations or labels shown here.</p>
-      <div class="cite-block">
-        <p class="cite-label" id="cite-source-label">The original item</p>
-        <p class="cite-text" id="cite-source-text">{{ cite.source_text }}</p>
-        <button type="button" class="cite-copy" data-copy="cite-source-text" aria-describedby="cite-source-label" hidden>Copy citation</button>
-        <p class="cite-status" role="status" aria-live="polite"></p>
-      </div>
-      <div class="cite-block">
-        <p class="cite-label" id="cite-held-label">This record on IPR</p>
-        <p class="cite-text" id="cite-as-held">{{ cite.as_held }}</p>
-        <button type="button" class="cite-copy" data-copy="cite-as-held" aria-describedby="cite-held-label" hidden>Copy citation</button>
-        <p class="cite-status" role="status" aria-live="polite"></p>
-      </div>
-      <p class="meta"><b>Note.</b> {{ cite.note }}</p>
-      <p class="meta">The record number and this record path are locators inside
-      the {{ snapshot.date }} snapshot, not a DOI, accession number, permanent
-      identifier, public permalink, or published route.
-      <a href="../corpus-guide.html#citation">Citation guide</a></p>
-    </section>
+  {% if record.korea_identity %}
+  {# A gated Korean MND release (core/korea_corpus_bridge.publication_gate).
+     The licensed original is shown once, on its own exhibit page; this
+     record links to it rather than reproducing it a second time. #}
+  {% if record.text_english %}
+  <section class="record-section record-section--machine" id="record-translation-section" aria-labelledby="record-translation">
+    <div class="layer-head"><span class="evidence evidence--model">Machine translation</span>
+      <h2 id="record-translation">Full text in English</h2></div>
+    <p class="meta">A machine translation of the Korean original, line by line. Not reviewed by a
+    human. The statements are the Ministry of National Defense's official claims, translated;
+    they are not IPR findings and are not independently verified. Where wording matters,
+    the <a href="../korea-originals/{{ record.korea_news_id }}.html">Korean original</a> governs.</p>
+    <div class="machine-translation" lang="en">
+    {% for line in record.text_english.split('\n') %}
+    {% if line.strip() %}<p>{{ line.strip() }}</p>
+    {% endif %}
+    {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
-    {# Technical provenance, closed until a reader asks for it. Every field
-       stays in the page (and in print); only its prominence changes. The
-       element is not data-wide-open: shell.js would force it open on wide
-       screens. A link to #record-provenance lands on its summary. #}
-    <details class="record-provenance" id="record-provenance">
-      <summary><span class="record-provenance-title">Provenance and processing</span>
-        <span class="layer-note">How this record was collected, processed and fingerprinted</span></summary>
+  <section class="record-section" aria-labelledby="record-text">
+    <div class="layer-head"><span class="evidence evidence--record">Source record</span>
+      <h2 id="record-text">Korean original</h2></div>
+    <p class="record-lead"><a href="../korea-originals/{{ record.korea_news_id }}.html">Read the verbatim Korean original — release {{ record.korea_news_id }}</a></p>
+    <p class="meta"><strong>Official Korean government source text</strong> — not an IPR fact-check or independent endorsement of the claims.
+    Issuer: Republic of Korea Ministry of National Defense; republication: Republic of Korea Policy Briefing.
+    Text reproduced with attribution under the article-specific
+    <a href="https://www.korea.kr/guide/copyRight.do">KOGL Type 1 text-use notice and publisher terms</a>.
+    Photographs, HWPX attachments and other media are not included.</p>
+  </section>
+  {% elif record.vietnam and record.vietnam.original_withheld %}
+  <section class="record-section" aria-labelledby="record-text">
+    <div class="layer-head"><span class="evidence evidence--record">Source record</span>
+      <h2 id="record-text">Source text</h2></div>
+    {# Not a capture failure: the original is preserved privately. The
+       source-use decision on record does not let IPR republish it. #}
+    <p class="record-lead">IPR keeps a private copy of the Vietnamese original, but it
+    is not reproduced here: the source-use decision for this source does
+    not cover public display of the full text. Read it on the
+    <a href="{{ record.url }}" rel="noopener nofollow">official page</a>.</p>
+    <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
+  </section>
+  {% elif record.source_slug == 'sg_mindef_releases' %}
+  <section class="record-section" aria-labelledby="record-text">
+    <div class="layer-head"><span class="evidence evidence--record">Source record</span>
+      <h2 id="record-text">Source text</h2></div>
+    {# Linking never grants public text reproduction; preserve private custody
+       and metadata separately from restricted original material. The reason
+       is not restated here: the 9 November source-use direction changed the
+       policy basis while the deployed runtime hold remains in force. #}
+    <p class="record-lead">MINDEF's original article text and media are not reproduced here and
+    are not published on this site at present. A link to MINDEF's page does
+    not grant permission to reproduce its text.</p>
+    {% if record.mindef_link_allowed %}
+    <p class="record-lead"><a href="{{ record.url }}" rel="noopener nofollow">Read the release on MINDEF's site</a>.</p>
+    {% else %}
+    <p class="record-lead">The original address is listed under “Where this came from”, but it did not pass
+    IPR's official-site check, so it is not linked.</p>
+    {% endif %}
+  </section>
+  {% else %}
+  <section class="record-section" aria-labelledby="record-text">
+    <div class="layer-head"><span class="evidence evidence--record">Source record</span>
+      <h2 id="record-text">Stored source text</h2></div>
+    {# "Original text" claimed a fidelity the capture does not have:
+       extraction can drop material and pull in page furniture. The stored
+       bytes are never cleaned to match the claim; the claim is corrected. #}
+    <p class="meta">Text captured from the source page. Extraction may omit material
+    or include unrelated page elements; consult the original URL when exact wording
+    or completeness matters.</p>
+    {% if record.has_text %}
+    <div class="original-text" lang="{{ record.language_tag or 'zh' }}">
+    {% for para in record.text_original.split('\n') %}
+    {% if para.strip() %}<p>{{ para.strip() }}</p>
+    {% endif %}
+    {% endfor %}
+    </div>
+    {% else %}
+    {# Ruled wording. Deliberately not "permanently unavailable": recovery or
+       re-capture remains possible and this page must not foreclose it. #}
+    <p class="record-lead">Original text is unavailable in this stored record.{% if source_link_ok %} Read it on the <a href="{{ record.url }}" rel="noopener nofollow">original page</a>.{% endif %}</p>
+    {% endif %}
+    {% if record.vietnam %}
+    <p class="meta">{{ record.vietnam.attribution_text }}{% if record.vietnam.license_terms %} — {{ record.vietnam.license_terms }}{% endif %}</p>
+    {% endif %}
+  </section>
+  {% endif %}
 
-      <h3>Record history</h3>
+  <section class="record-section" aria-labelledby="record-citation">
+    <div class="layer-head"><h2 id="record-citation">How to cite</h2></div>
+    {# Two claims, two blocks: the item as its publisher issued it, and the
+       record as this corpus holds it. Both are plain selectable text; the
+       copy buttons do not exist without JavaScript. #}
+    <p class="meta">Cite the original item. Add the IPR record when you relied
+    on text, translations or labels shown here.</p>
+    <div class="cite-block">
+      <p class="cite-label" id="cite-source-label">The original item</p>
+      <p class="cite-text" id="cite-source-text">{{ cite.source_text }}</p>
+      <button type="button" class="cite-copy" data-copy="cite-source-text" aria-describedby="cite-source-label" hidden>Copy citation</button>
+      <p class="cite-status" role="status" aria-live="polite"></p>
+    </div>
+    <div class="cite-block">
+      <p class="cite-label" id="cite-held-label">This record on IPR</p>
+      <p class="cite-text" id="cite-as-held">{{ cite.as_held }}</p>
+      <button type="button" class="cite-copy" data-copy="cite-as-held" aria-describedby="cite-held-label" hidden>Copy citation</button>
+      <p class="cite-status" role="status" aria-live="polite"></p>
+    </div>
+    <p class="meta"><b>Note.</b> {{ cite.note }}</p>
+    <p class="meta">The record number and this record path are locators inside
+    the {{ snapshot.date }} snapshot, not a DOI, accession number, permanent
+    identifier, public permalink, or published route.
+    <a href="../corpus-guide.html#citation">Citation guide</a></p>
+  </section>
+
+  {# Collection and processing detail, closed until a reader asks for it.
+     Every field stays in the page (and in print); only its prominence
+     changes. The element is not data-wide-open: shell.js would force it open
+     on wide screens. A link to #record-provenance lands on its summary. #}
+  <details class="record-provenance" id="record-provenance">
+    <summary><span class="record-provenance-title">Where this came from</span>
+      <span class="layer-note">When it was collected, what software did with it, and every stored field</span></summary>
+
+      <h3>How it reached this page</h3>
       <ol class="custody" aria-label="How this record reached this page">
         <li><b>{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }}</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
         <li><b>Collected</b>{{ record.scraped_at }}{% if record.scraped_at | length == 19 %} UTC{% endif %}{% if record.scrape_run_id is not none %}, run {{ record.scrape_run_id }}{% endif %}</li>
@@ -272,7 +297,7 @@
       This is a software triage result, not an editorial judgment.{% endif %}</p>
       {% endif %}
 
-      <h3>Provenance</h3>
+      <h3>Record fields</h3>
       <div class="table-scroll">
       <table class="provenance">
         <caption>What is known about this record and where each part came from.</caption>
@@ -333,57 +358,7 @@
       <p class="meta">Each field is defined in the
       <a href="../corpus-guide.html#dictionary">data dictionary</a>, including
       when it may be missing and where it stops being reliable.</p>
-    </details>
-  </div>
-
-  <div class="record-date">
-    <time datetime="{{ record.published_date }}"><span class="day-num">{{ record.published_date[8:10] | int }}</span>
-      <span class="day-month">{{ months[(record.published_date[5:7] | int) - 1] }} {{ record.published_date[:4] }}</span></time>
-    <span class="day-week">{{ record.published_date | weekday }}</span>
-    <span class="day-note">Source-stated publication date</span>
-  </div>
-
-  <aside class="record-rail" aria-labelledby="rail-heading">
-    <div class="record-head">
-      <span class="evidence evidence--record">Source record</span>
-    </div>
-    <div class="rail-block">
-      <h2 id="rail-heading">About this record</h2>
-      <dl>
-        <div><dt>Publisher</dt><dd>{{ record.institution or '—' }}</dd></div>
-        <div><dt>Found via</dt><dd><a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a></dd></div>
-        <div><dt>Date stated by the source</dt><dd><time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time></dd></div>
-        <div><dt>Language</dt><dd>{{ record.language_tag | language_label if record.language_tag else '—' }}</dd></div>
-        <div><dt>Desk</dt><dd>{% if record_desk %}<a href="../{{ record_desk.route }}">{{ record_desk.name }}</a>{% else %}—{% endif %}</dd></div>
-        <div><dt>Record</dt><dd>No. {{ record.id }} · {{ record.state_label }}</dd></div>
-      </dl>
-      {% if source_link_ok %}
-      <a class="original-link" href="{{ record.url }}" rel="noopener nofollow">Open original source</a>
-      {% else %}
-      <p class="meta">This MINDEF address did not pass IPR's official-site check, so it is not linked.</p>
-      {% endif %}
-    </div>
-    {% if record.in_trails %}
-    {# Listed in a published issue's source trail, matched on this record's
-       exact stored URL. The issue says which claim rests on it; this does not. #}
-    <div class="rail-block trail-panel" id="record-analysis">
-      <h2>In IPR analysis</h2>
-      <ul>
-      {% for ref in record.in_trails %}
-        <li><a href="{{ ('../' if ref.kind | default('issue') in ('brief', 'brief_reference') else '') ~ ref.url }}#{{ ref.anchor | default('source-' ~ ref.position) }}" rel="noopener">{{ ref.title }}</a>
-          <span class="meta">{{ ref.series_name }} No. {{ ref.issue }} · week ending {{ ref.date | reader_date }} · {{ 'publisher reference' if ref.kind | default('issue') == 'brief_reference' else 'source-trail entry %s' % ref.position }}</span></li>
-      {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-    {% if dossier_records is defined and dossier_records[record.id] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_records[record.id] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}
-    {% if timeline_records is defined and timeline_records[record.id] %}<section class="record-section" aria-labelledby="record-timelines"><h2 id="record-timelines">In Evidence Timelines</h2>{% for item in timeline_records[record.id] %}<p><a href="../{{ item.route }}">{{ item.title }}</a>{% if item.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</section>{% endif %}
-  {% set path = [('Records', '../archive.html')] %}
-{% if record_desk %}{% set path = path + [(record_desk.name, '../' ~ record_desk.route)] %}{% endif %}
-{% set path = path + [(record.source_name, '../source/' ~ record.source_slug ~ '.html'), ('Record ' ~ record.id, none)] %}
-{{ breadcrumb(path) }}
-
-</aside>
+  </details>
 </article>
 {% endif %}
 {% endblock %}

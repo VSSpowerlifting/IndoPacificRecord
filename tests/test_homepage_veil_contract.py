@@ -1,7 +1,9 @@
-"""Photograph-led opening contrast at actual glyph pixels.
+"""Home opening contrast at actual glyph pixels.
 
-October refinement replaces the retired Ocean Signal lobe geometry. Preserve
-the existing screenshot-difference method and WCAG floors for the new photo.
+The photograph and its veil were retired with the parallel-text identity
+(2026-11-14): the opening is a flat navy band that continues the masthead.
+The screenshot-difference method and the WCAG floors are kept and now measure
+the text that band carries; one test holds that no picture returns behind it.
 """
 from __future__ import annotations
 import json
@@ -20,8 +22,6 @@ sys.path.insert(0, str(REPO_ROOT / "site" / "preview"))
 import generate_preview as gp                                    # noqa: E402
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
 CSS = REPO_ROOT / "site" / "preview" / "home.css"
-DERIV = REPO_ROOT / "site" / "assets" / "editorial" / "derivatives"
-NARROWEST_VEIL_BOX_ASPECT = 2.442
 AA_BODY = 4.5
 AA_LARGE = 3.0
 def _luminance(rgb) -> float:
@@ -77,14 +77,18 @@ class VeilCase(unittest.TestCase):
         return "http://127.0.0.1:%d/index.html" % self.port
 class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
     """
-    The measurement that nearly did not happen. Every run below sits over the
-    photograph at one width or the other.
+    The measurement that nearly did not happen. Every run below sits on the
+    navy band: the masthead, or the opening that continues it.
     """
 
-    #: selector -> the floor it must clear. `.claim` is display type and takes
-    #: the large-text floor; everything else takes body.
-    RUNS = {".claim": AA_LARGE, ".pacific-dek": AA_BODY,
-            ".pacific-intro": AA_BODY, ".photo-credit": AA_BODY,
+    #: selector -> the floor it must clear. `.claim` and the title as published
+    #: are display type and take the large-text floor; everything else takes
+    #: body.
+    RUNS = {".claim": AA_LARGE, ".home-dek": AA_BODY,
+            ".home-search label": AA_BODY, ".home-open-note": AA_BODY,
+            ".specimen-head": AA_BODY, ".specimen-original": AA_LARGE,
+            ".specimen-links a": AA_BODY,
+            ".publication-status span:last-child": AA_BODY,
             ".nav-desktop>a": AA_BODY}
 
     #: Below this many differing pixels the mask did not find a glyph, which
@@ -163,11 +167,33 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                             % (selector, result["pixels"]))
                         self.assertGreaterEqual(
                             result["worst"], floor,
-                            "%s at %d measures %.2f:1 over the source photo "
+                            "%s at %d measures %.2f:1 on its ground "
                             "(floor %.1f, %d glyph pixels)."
                             % (selector, width, result["worst"], floor,
                                result["pixels"]))
             finally:
                 context.close()
+
+    def test_no_picture_or_veil_sits_behind_the_opening(self):
+        """The retired component stays retired: flat colour, no image layer."""
+        context = self.browser.new_context(viewport={"width": 1280, "height": 900})
+        page = context.new_page()
+        try:
+            page.goto(self.url, wait_until="networkidle")
+            found = page.evaluate(
+                "() => ({"
+                " layers: [...document.querySelectorAll("
+                "'.masthead, .home-open, .home-open *, #analysis, #analysis *')]"
+                ".filter(e => getComputedStyle(e).backgroundImage !== 'none'"
+                " || getComputedStyle(e, '::before').backgroundImage !== 'none'"
+                " || getComputedStyle(e, '::after').backgroundImage !== 'none')"
+                ".map(e => e.className || e.tagName),"
+                " pictures: document.querySelectorAll("
+                "'.home-open img, .home-open picture, .home-open canvas, "
+                ".home-open svg, .pacific-photo, .home-coast-band').length })")
+            self.assertEqual(found["layers"], [])
+            self.assertEqual(found["pictures"], 0)
+        finally:
+            context.close()
 if __name__ == "__main__":
     unittest.main()

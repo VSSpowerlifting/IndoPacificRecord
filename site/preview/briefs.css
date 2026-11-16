@@ -13,7 +13,7 @@
 .brief-heading>.evidence{display:flex;margin:0 0 .4rem}
 .brief-fixture{margin:0 0 1rem;padding:.6rem 0;border-block:1px dashed var(--rule-hard);max-width:none;font:400 .875rem/1.55 var(--sans);color:var(--ink)}
 .brief-eyebrow,.brief-edition{display:inline;margin:0;font:400 .875rem/1.6 var(--sans);color:var(--muted);font-variant-numeric:lining-nums}
-.brief-eyebrow a{display:inline-block;padding-block:.55rem;font-weight:600;color:var(--ink);text-decoration:none}
+.brief-eyebrow a{display:inline-block;padding-block:.6rem;font-weight:600;color:var(--ink);text-decoration:none}
 .brief-eyebrow a:hover{text-decoration:underline;text-decoration-thickness:1px}
 .brief-eyebrow::after{content:" · "}
 .ed-no{font-weight:600;color:var(--ink)}
@@ -24,10 +24,10 @@
 .brief-dek{margin:0;max-width:34em;font:400 clamp(1.1875rem,1.05rem + .5vw,1.4375rem)/1.5 var(--serif);color:var(--ink-2)}
 .brief-byline{margin:1.2rem 0 0;font:400 .9375rem/1.5 var(--sans);color:var(--ink)}
 .byline-name{font-weight:600}
-.byline-name a{display:inline-block;padding-block:.55rem;color:inherit}
+.byline-name a{display:inline-block;padding-block:.7rem;color:inherit}
 .brief-meta{list-style:none;margin:.7rem 0 0;padding:.8rem 0 0;border-top:1px solid var(--rule);font:400 .8125rem/1.6 var(--sans);color:var(--muted);font-variant-numeric:lining-nums}
 .brief-meta li{margin:0;max-width:none}
-.brief-meta a{display:inline-block;padding-block:.5rem;color:inherit}
+.brief-meta a{display:inline-block;padding-block:.625rem;color:inherit}
 .historical-provenance{margin:.8rem 0 0;max-width:60ch;font:400 .8125rem/1.6 var(--sans);color:var(--muted)}
 
 /* Photograph and credit. IPR draws the gradient its credits record ("IPR
@@ -79,7 +79,7 @@
 .brief-reading-finding{border-top:2px solid var(--accent);border-bottom:1px solid var(--rule);margin:0 0 var(--brief-space);padding:1.1rem 0 1.2rem}
 .brief-reading-finding blockquote,.brief-reading-evidence blockquote{margin:0;padding:0;border:0}
 .brief-excerpt-trace{margin:.6rem 0 0;max-width:none;font:400 .8125rem/1.6 var(--sans);color:var(--muted)}
-.brief-excerpt-trace a{display:inline-block;padding-block:.55rem}
+.brief-excerpt-trace a{display:inline-block;padding-block:.7rem}
 
 /* Sources. A solid ink rule opens each list; the title as published sits on
    the left of a hairline, or beside its English title when there is one. */
@@ -94,7 +94,7 @@
 .brief-record,.historical-source-list li{margin:0;max-width:none;padding:1rem 0 1.05rem;border-bottom:1px solid var(--rule);overflow-wrap:anywhere;scroll-margin-top:112px}
 .brief-record-english{min-width:0}
 .brief-record-english .evidence{display:flex;margin:0 0 .3rem}
-.brief-record-title{font:600 1.125rem/1.34 var(--serif);color:var(--ink);text-decoration:none}
+.brief-record-title{padding-block:.5rem;font:600 1.125rem/1.34 var(--serif);color:var(--ink);text-decoration:none}
 .brief-record-title:hover{text-decoration:underline;text-decoration-thickness:1px}
 .brief-record-title[lang^=zh]{font-family:var(--zh-serif)}
 .brief-record-title[lang^=ja]{font-family:var(--ja-serif)}
@@ -106,7 +106,7 @@
 .brief-record--parallel .brief-record-meta,.brief-record>p,.brief-section .historical-source-meta{grid-column:1/-1;margin:.2rem 0 0;padding:0;border:0;max-width:none}
 .brief-record>p:not(.meta){font:400 1rem/1.6 var(--serif);color:var(--ink-2)}
 .brief-record-meta>a{display:flex;align-items:center;width:fit-content;min-height:40px}
-.historical-source-meta a{display:inline-block;padding-block:.5rem}
+.historical-source-meta a{display:inline-block;padding-block:.625rem}
 .historical-source-meta .evidence{font-size:inherit}
 .brief-record:target{outline:2px solid var(--accent);outline-offset:6px}
 
@@ -119,7 +119,7 @@
 .brief-claim-basis,.brief-section>.brief-cites{margin:0 0 .8rem;max-width:none;font:400 .8125rem/1.6 var(--sans);color:var(--ink-2)}
 .brief-claim-basis,.brief-cites-label{font-weight:600}
 .brief-cites-label{margin-right:.6rem}
-.brief-cites a{display:inline-block;padding-block:.55rem}
+.brief-cites a{display:inline-block;padding-block:.7rem}
 .brief-coverage th,.brief-coverage td{font:400 .8125rem/1.6 var(--sans)}
 .brief-section .brief-term-word,.brief-section .term-word{margin:0 0 .8rem;font:400 1.875rem/1.3 var(--zh-serif);letter-spacing:0}
 
@@ -136,7 +136,7 @@
 .brief-author p{margin:0;max-width:var(--brief-measure)}
 .brief-author .brief-author-label{font-size:.8125rem;font-weight:600;color:var(--muted)}
 .brief-author .brief-author-name,.historical-author .author-block-name{margin:.2rem 0 0;font:400 1.75rem/1.2 var(--display)}
-.brief-author-name a{color:var(--ink);text-decoration:none}
+.brief-author-name a{padding-block:.2rem;color:var(--ink);text-decoration:none}
 .brief-author-name a:hover{text-decoration:underline;text-decoration-thickness:1px}
 .brief-author .brief-author-title{margin:.1rem 0 .7rem;color:var(--ink-2)}
 .brief-author .brief-author-bio{font:400 1rem/1.6 var(--serif);color:var(--ink-2)}

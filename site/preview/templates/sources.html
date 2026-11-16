@@ -53,7 +53,7 @@ which is different from a source that was collected and stored nothing.</p>
     {% set script = s.institution_original|script_lang if s.institution_original else '' %}
     {% set olang = s.language_tag if s.language_tag and not s.language_tag.startswith('en') and (script or s.institution_original != s.institution) else script %}
     <tr>
-      <td data-label="Source" class="s-name"><a href="source/{{ s.slug }}.html">{{ s.display_name }}</a>{% if s.language_tag %}<span class="meta">Language: {{ s.language_tag }}</span>{% endif %}</td>
+      <td data-label="Source" class="s-name"><a href="source/{{ s.slug }}.html">{{ s.display_name }}</a>{% if s.language_tag %}<span class="meta">{{ s.language_tag | language_label }}</span>{% endif %}</td>
       <td data-label="Institution, in English" class="s-inst">{{ s.institution or '—' }}</td>
       <td data-label="As published" class="original"{% if s.institution_original and olang %} lang="{{ olang }}"{% endif %}>{{ s.institution_original or '—' }}</td>
       <td data-label="Desk">{% if desks.get(s.desk_slug) %}<a href="{{ desks.get(s.desk_slug).route }}">{{ desks.get(s.desk_slug).name }}</a>{% else %}{{ s.desk_slug or '—' }}{% endif %}</td>

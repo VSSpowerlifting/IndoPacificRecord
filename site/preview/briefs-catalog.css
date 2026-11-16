@@ -25,8 +25,8 @@
 .briefs-lead-byline{margin:1rem 0 0;font-size:.875rem;font-weight:600;color:var(--ink)}
 .catalog-lead-note{margin:.3rem 0 0;font-size:.8125rem;color:var(--muted)}
 .catalog-lead-go{margin:1.4rem 0 0}
-.catalog-lead-plate{margin:1.8rem 0 0;padding-top:1rem;border-top:1px solid var(--rule);max-width:34rem}
-.catalog-lead-plate figcaption{margin-top:.6rem;font-size:.75rem;line-height:1.5;color:var(--muted)}
+.catalog-lead-trail{margin:1.6rem 0 0;padding-top:.9rem;border-top:1px solid var(--rule);max-width:34rem;font:400 .8125rem/1.55 var(--sans);color:var(--ink-2)}
+.catalog-lead-trail .evidence{margin-right:.3em;font-size:inherit;line-height:inherit;vertical-align:baseline}
 .catalog-empty{padding-top:1.6rem;max-width:46rem}
 .catalog-empty h2{margin:0 0 .6rem;padding:0;border:0;font:400 clamp(2rem,1.5rem + 1.6vw,2.875rem)/1.05 var(--display)}
 .catalog-empty p{margin:0;font:400 1.0625rem/1.6 var(--serif);color:var(--ink-2)}
@@ -72,14 +72,14 @@
 .term-entry-word[lang]{font-family:var(--zh-serif);font-size:1.625rem}
 .term-entry-expl p{margin:0 0 .7rem;max-width:64ch;font:400 1.0625rem/1.6 var(--serif)}
 .term-entry-src{margin:0;font-size:.8125rem;color:var(--muted)}
-.term-entry-src a{display:inline-block;padding-block:.55rem}
+.term-entry-src a{display:inline-block;padding-block:.625rem}
 .terms-note{margin:1.2rem 0 0;max-width:70ch;font-size:.875rem;color:var(--ink-2)}
 
 /* Dossiers pointer. */
 .analysis-dossiers p{margin:.7rem 0 0;max-width:38em;font:400 1.0625rem/1.6 var(--serif);color:var(--ink-2)}
 .analysis-dossiers ul{list-style:none;margin:1rem 0 0;padding:0;border-top:2px solid var(--rule-hard)}
-.analysis-dossiers li{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem 1rem;max-width:none;margin:0;padding:.75rem 0;border-bottom:1px solid var(--rule)}
-.analysis-dossiers li a{font:600 1.125rem/1.34 var(--serif);color:var(--ink);text-decoration:none}
+.analysis-dossiers li{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem 1rem;max-width:none;margin:0;padding:.3rem 0;border-bottom:1px solid var(--rule)}
+.analysis-dossiers li a{display:inline-flex;align-items:center;min-height:40px;font:600 1.125rem/1.34 var(--serif);color:var(--ink);text-decoration:none}
 .analysis-dossiers li a:hover{text-decoration:underline;text-decoration-thickness:1px}
 
 /* How the layers are labelled. */
@@ -117,3 +117,6 @@
   .catalog-tables>summary{display:none}
   [data-treatment=gradient]>a::after,.brief-media[data-treatment=gradient]::after{display:none}
 }
+/* 40px targets without moving a line: inline padding widens the hit area only. */
+.brief-card .issue-ledger-copy :is(h2,h3) a{padding-block:.45rem}
+.catalog-tables td a{padding-block:.66rem}

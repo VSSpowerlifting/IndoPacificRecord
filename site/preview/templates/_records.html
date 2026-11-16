@@ -56,7 +56,7 @@
 {# The newest analyzed record, directly under the opening: the page's first
    content and the thing the publication is. A date block, the headline, the
    original beneath it, and the standing note about which part a machine made. #}
-<article class="lead-record" aria-labelledby="lead-record-title" data-reveal>
+<article class="lead-record" aria-labelledby="lead-record-title">
   {# No custom filter here: the tests render this macro in a bare environment. #}
   {% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
   <p class="lead-date" aria-hidden="true"><span class="day-num">{{ record.published_date[8:10] | int }}</span>
@@ -81,7 +81,7 @@
 <ul class="register">
 {% for a in records %}
   {% set desk = desk_by_source.get(a.source_slug) if desk_by_source else none %}
-  <li class="register-item" data-reveal style="--ri: {{ loop.index0 }}">
+  <li class="register-item" style="--ri: {{ loop.index0 }}">
     <h3{{ title_attrs(a) }}><a href="record/{{ a.id }}.html">{{ a.title_english or a.title_original }}</a></h3>
     {{- original_line(a) }}
     {% if desk %}<p class="register-desk meta"><a href="{{ desk.route }}">{{ desk.name }}</a></p>{% endif %}

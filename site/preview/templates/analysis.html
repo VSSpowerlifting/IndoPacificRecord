@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% set has_source_linked = collection.briefs|selectattr('source_linked')|list|length %}
-{% from "_plate.html" import edition_plate %}
 {% from "_catalogue_credit.html" import photo_credit %}
 {% block title %}Analysis — {{ title }}{% endblock %}
 {% block body_open %}<body class="page-briefs">{% endblock %}
@@ -62,14 +61,13 @@
         {% if lead_row.kind == 'issue' %}<p class="catalog-lead-note">Earlier Brief</p>{% endif %}
         {% if lead.synthetic %}<p class="catalog-lead-note">Synthetic test fixture. Not a published brief.</p>{% endif %}
         <p class="catalog-lead-go"><a class="btn btn--primary" href="{{ lead.url }}"{% if lead_row.kind == 'issue' %} rel="noopener"{% endif %}>Read this Brief</a></p>
-        {#- The issue drawn from its own sidecar, where one exists: one mark per
-            source-trail entry. -#}
-        {% set plate = edition_plates.get(lead.slug) if edition_plates and lead_row.kind == 'issue' else none %}
-        {% if plate %}
-        <figure class="plate plate-paper catalog-lead-plate">
-          {{ edition_plate(plate, 'plate-analysis-lead', lead.series_name or predecessor_series) }}
-          <figcaption>One mark per record in this Brief's source trail. The tall marks are model-flagged: a software triage flag, not the editor's judgment.</figcaption>
-        </figure>
+        {#- What the issue's own sidecar says about its source trail, as one
+            sentence. The drawn edition plate that stood here in place of a
+            cover photograph is not shown: an admitted photograph with its
+            credit, or no picture. The counts are the sidecar's, never inferred. -#}
+        {% set trail = edition_plates.get(lead.slug) if edition_plates and lead_row.kind == 'issue' else none %}
+        {% if trail and trail.ticks %}
+        <p class="catalog-lead-trail"><span class="evidence evidence--model">Model-flagged</span> {{ trail.flagged }} of the {{ trail.ticks|length }} record{{ '' if trail.ticks|length == 1 else 's' }} in this Brief's source trail. This is a software triage flag, not the editor's judgment.</p>
         {% endif %}
       </div>
     </article>

@@ -164,17 +164,49 @@ class TestContrastIsMeasuredNotAssumed(unittest.TestCase):
     def test_the_band_ring_is_scoped_to_the_band_and_the_skip_chip(self):
         """
         Item 24 of the implementation map. Measured at 1.71:1 across 71 cells
-        when it was applied to the light masthead.
+        when it was applied to a light masthead.
+
+        The parallel-text shell makes the masthead and the colophon navy on
+        every route, so they now take the band ring as well. The scope is
+        still a closed list of dark surfaces, and each surface named here has
+        to be painted with --band by the same stylesheet: a masthead or
+        colophon that went back to paper would fail this test rather than
+        keep a ring that cannot be seen.
         """
         css = CSS.read_text(encoding="utf-8")
-        for selector in re.findall(
-                r"([^{}\n]*)\{[^{}]*outline-color:\s*var\(--focus-band\)", css):
+        dark_surfaces = {".band": ".band", ".masthead": ".masthead",
+                         "footer.site": "footer.site"}
+        selectors = re.findall(
+            r"([^{}\n]*)\{[^{}]*outline-color:\s*var\(--focus-band\)", css)
+        self.assertTrue(selectors, "no rule applies the band focus ring")
+        for selector in selectors:
             flat = " ".join(selector.split())
             with self.subTest(selector=flat):
-                self.assertTrue(
-                    any(scope in flat for scope in (".band", ".skip", ".masthead--dark")),
-                    "the band focus ring is applied outside its dark surface / skip: %s"
-                    % flat)
+                for part in flat.split(","):
+                    self.assertRegex(
+                        part.strip(),
+                        r"^(?:%s)(?![\w-])" % "|".join(
+                            re.escape(name) for name in dark_surfaces),
+                        "the band focus ring is applied outside a dark "
+                        "surface: %s" % flat)
+        for surface in dark_surfaces.values():
+            with self.subTest(surface=surface):
+                self.assertRegex(
+                    css,
+                    r"(?m)^%s\{[^{}]*background:\s*var\(--band\)"
+                    % re.escape(surface),
+                    "%s takes the band ring but is not painted with --band"
+                    % surface)
+        # The skip chip is the one control outside those surfaces; it sits on
+        # its own dark chip and draws the ring directly.
+        self.assertRegex(
+            css, r"\.skip:focus-visible\s*\{[^{}]*var\(--focus-band\)")
+        chip = re.search(
+            r"(?s)\.skip\s*\{[^{}]*background:\s*var\(--([a-z0-9-]+)\)", css)
+        self.assertIsNotNone(chip, "the skip chip declares no token ground")
+        self.assertGreaterEqual(
+            contrast(self.colour("focus-band"), self.colour(chip.group(1))),
+            AA_LARGE, "--focus-band on the skip chip's --%s" % chip.group(1))
 
     def test_editorial_and_machine_have_separate_light_and_dark_tones(self):
         for role in ('editorial', 'machine'):

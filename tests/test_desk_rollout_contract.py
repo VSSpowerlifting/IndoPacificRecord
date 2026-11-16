@@ -430,11 +430,18 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.page("index.html"), "html.parser")
         public_desks = [d for d in gp.PublicView(TRACKED_DB).desk_directory() if d.record_count]
-        shown = soup.select(".home-desk-list a")
+        shown = soup.select("ul.home-desk-index > li > .home-desk-name > a")
+        self.assertTrue(shown, "the home page lists no desk")
         self.assertEqual({a.get("href") for a in shown},
                          {d.slug + ".html" for d in public_desks})
         self.assertNotIn("japan.html", {a.get("href") for a in shown})
-        self.assertIn("Other desks contribute no public records", soup.main.get_text(" "))
+        # The home page counts only the desks that hold public records, and
+        # that count is smaller than the number of desks declared: a planned
+        # desk is neither listed nor counted.
+        note = " ".join(soup.select_one(".home-desks-note").get_text(" ").split())
+        self.assertIn("%d desks hold public records so far" % len(public_desks), note)
+        self.assertLess(len(public_desks), len(load_registry().public_entries))
+        self.assertTrue(soup.select('.home-desks-note a[href="coverage.html"]'))
 
     def test_the_volume_rows_still_name_the_joint_staff(self):
         """The row subject moved from the template into the registry so each

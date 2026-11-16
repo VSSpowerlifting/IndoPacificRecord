@@ -8,6 +8,72 @@ direction and source/route verification remain in
 `docs/FRONTEND_PRODUCTION_2026-10-09.md`.
 Motion and flagship visual components: docs/VISUAL_AND_MOTION_SYSTEM.md.
 
+## Parallel text identity — 15 November 2026 (pending review)
+
+This section governs the active `site/preview/` renderer. Where it conflicts
+with the October implementation candidate, the Brief journal candidate, §2, §5,
+§6 or §6a below, this section wins for active pages; those sections stay as
+history and as the description of the rollback renderer. The coastal colour
+tokens and their meanings in §3 are unchanged, and so are the accessibility
+standards in §7 and the byte budgets in §8.
+
+**The idea.** The publication's one ornament is the record itself. A record
+is set as parallel text: the English heading on the left, the title as the
+institution published it on the right, at the same size, in a serif of its own
+script, with a hairline between them. A record with only one title spans both
+columns. Nothing invents an English title, and the original is never reduced
+to a caption. On a narrow screen the original sits under the English behind a
+2px rule.
+
+**What a reader can tell at a glance.** Three kinds of text carry three marks,
+and the marks survive grayscale and print:
+
+| Kind | Mark | Token |
+|---|---|---|
+| Source record (what an institution published) | solid ink rule | `.evidence--record` |
+| Machine output (translation, summary, classification) | dotted slate rule | `.evidence--model`, `.state--analyzed`, `--machine-ink` |
+| Human-controlled analysis (Briefs, dossiers, timelines) | solid jade rule | `.evidence--analysis`, `--editorial-ink` |
+
+**Shell.** One navy masthead (`--band`) and one navy colophon on every page,
+including earlier Briefs, with plain paper between them. The masthead carries
+the ivory mark, the name on one line and a dateline that states the record
+count and the snapshot date. The colophon opens on the standing qualification:
+coverage is selective, and a record shows what an institution published, not
+whether its claims are true. Navigation is Records, Briefs, Timelines (when
+any exist), Desks, Methodology, About.
+
+**Type.** Instrument Serif for display (page titles, section heads, desk
+names), Source Serif 4 for reading text and record headings (600 for English
+headings, 400 for titles in their own script), Inter for interface text and
+labels. Original-language titles use `--zh-serif`, `--ja-serif` and
+`--ko-serif`, which are system font stacks; no font is downloaded for them.
+Labels are sentence case with no tracking. Monospace is for hashes and
+identifiers only.
+
+**Surface.** Paper, rules and type. Corner radius is 0. There are no pills,
+cards with shadows, gradients, textures, contour fields, relief scenes or
+drawn scenery on active pages. `surfaces.css` holds the shared page head
+(`.page-head`), which is a display title, an optional lede and a 2px rule.
+
+**Pictures.** A photograph appears only where `core/catalogue_media.py`
+admits one for a Brief, with its credit. No page uses a photograph, generated
+image or illustration as atmosphere. Records never carry source media.
+
+**Motion.** Only motion that answers the reader: a button press, a disclosure
+opening, the archive updating its results. Nothing moves on its own, and
+`prefers-reduced-motion` removes what is left. The homepage opening title and
+the animated page terrain are retired from active pages; see
+VISUAL_AND_MOTION_SYSTEM.md.
+
+**Wording.** Pages name things by what a reader does with them: Records,
+Briefs, Desks, "How to cite", "Where this came from". Governed labels that
+tests and release gates depend on are kept verbatim, including "Research
+focus", "Full preserved record", "Machine-translated title · human review not
+recorded" and "Human-controlled analysis". Qualifications stay where they
+change a reader's decision: machine output is unreviewed, coverage is
+selective, and source-specific notices (MINDEF, KOGL, withheld text) stay
+beside the material they govern.
+
 ## October implementation candidate
 
 The owner's production request adopts design checkpoint `8cb2f23f` as the
