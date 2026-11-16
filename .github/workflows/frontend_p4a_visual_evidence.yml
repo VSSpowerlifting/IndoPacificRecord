@@ -14,7 +14,6 @@ on:
       - 'site/preview/desk-map.css'
       - 'site/preview/generate_preview.py'
       - 'desks/registry.json'
-      - 'core/desk_registry.py'
 
 permissions:
   contents: read

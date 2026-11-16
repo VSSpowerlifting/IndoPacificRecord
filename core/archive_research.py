@@ -374,8 +374,11 @@ def display_records(compact, records, title_kinds=None):
         kind = (title_kinds or {}).get(ident)
         if kind is None and english and lang.get('code') == 'en' and source['code'] != 'sg_mindef_releases':
             kind = 'published_english'
+        # Separate keys because the two marks are styled apart, as
+        # `_records.html` renders them: a title the institution published in
+        # English is not machine output (`title-mark`), a headline is.
         if kind == 'published_english':
-            result[r['id']]['title_note'] = 'Title published in English'
+            result[r['id']]['title_published'] = 'Title published in English'
         elif kind == 'machine_headline':
             result[r['id']]['title_note'] = 'Machine-written headline, not a translation'
     return result
