@@ -29,8 +29,11 @@ retired with this change: scroll-reveal (`reveal.js`), the desk map
 (`_plate.html`) and the homepage Ocean Signal Veil emission (its source
 assets and manifest entry are kept). Photographs appear as admitted Brief covers
 and, since 16 November, as the home opening, which is set on the latest
-Brief's admitted cover photograph with its full credit beneath (§2 still
-governs their rights; see DESIGN_SYSTEM.md "Pictures").
+Brief's admitted cover photograph (its article files, under a heavier
+CSS-only gradient) with its full credit beneath. §2 still governs their
+rights, and it grants Brief covers the article and catalogue surfaces only;
+the home use rests on the founder's direction recorded in DECISION_LOG
+pending an owner grant (see DESIGN_SYSTEM.md "Pictures").
 
 ## Coastal colour representation (2026-10-14)
 

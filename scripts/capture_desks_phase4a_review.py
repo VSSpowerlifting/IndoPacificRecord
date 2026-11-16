@@ -98,17 +98,32 @@ def main() -> int:
                     reduced_motion="reduce",
                 )
                 forced.goto((destination / "desks.html").as_uri(), wait_until="load")
+                # Text is legible in forced colours when the page leaves the
+                # system colours in charge (forced-color-adjust is not "none")
+                # and the text colour differs from the background it actually
+                # sits on: the nearest ancestor with an opaque background, or
+                # the Canvas the browser paints behind the page.
                 sample = forced.evaluate("""() => {
-                    const state = getComputedStyle(document.querySelector('.desk-state'));
-                    const link = getComputedStyle(document.querySelector('.deskmap-register h3 a'));
-                    return {stateText: state.color, stateBackground: state.backgroundColor,
-                            linkText: link.color, linkBackground: link.backgroundColor};
+                    const ground = el => {
+                        for (let n = el; n; n = n.parentElement) {
+                            const b = getComputedStyle(n).backgroundColor;
+                            if (b && b !== 'transparent' && !/,\\s*0\\)$/.test(b)) return b;
+                        }
+                        return getComputedStyle(document.documentElement).color === 'rgb(255, 255, 255)'
+                            ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)';
+                    };
+                    const probe = sel => {
+                        const el = document.querySelector(sel), s = getComputedStyle(el);
+                        return {text: s.color, ground: ground(el), adjust: s.forcedColorAdjust};
+                    };
+                    return {state: probe('.desk-state'), link: probe('.deskmap-register h3 a')};
                 }""")
                 receipts.append({"mode": "forced-colors", "sample": sample})
-                if sample["stateText"] == sample["stateBackground"]:
-                    failures.append("forced colours: desk state text invisible")
-                if sample["linkText"] == sample["linkBackground"]:
-                    failures.append("forced colours: desk link text invisible")
+                for name, probe in sample.items():
+                    if probe["adjust"] == "none":
+                        failures.append(f"forced colours: desk {name} opts out of system colours")
+                    if probe["text"] == probe["ground"]:
+                        failures.append(f"forced colours: desk {name} text matches its background")
                 forced.locator(REGISTER).screenshot(path=str(OUT / "desks-forced-colors-375.png"))
                 forced.close()
             finally:

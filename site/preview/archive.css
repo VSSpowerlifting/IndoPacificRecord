@@ -63,6 +63,9 @@
 .result-range a{font-weight:400}
 .focus-note{margin:.25rem 0 1.6rem;max-width:88ch;font-size:.8125rem;line-height:1.55;color:var(--muted)}
 .focus-note strong{font-weight:600;color:var(--ink-2)}
+/* The note qualifies the selected list only: once a reader switches the
+   scope to every record or all published material, it no longer applies. */
+body:has(#f-scope option[value="focus"]:not(:checked)) .focus-note{display:none}
 /* The column names stand only over a list that has a second column. */
 .archive-page .records-key:not(:has(+ #results .original)){display:none}
 

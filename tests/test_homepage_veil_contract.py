@@ -35,6 +35,9 @@ def _luminance(rgb) -> float:
 def contrast(a, b) -> float:
     high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
     return (high + 0.05) / (low + 0.05)
+WIDTHS = (320, 375, 700, 701, 768, 820, 900, 1024, 1100, 1280, 1600, 1920)
+
+
 class VeilCase(unittest.TestCase):
     """One build, served over loopback, shared by every measurement."""
 
@@ -143,7 +146,10 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                 "weight": info["weight"]}
 
     def test_every_text_run_over_the_veil_clears_its_floor_at_its_glyphs(self):
-        for width in (375, 1280, 1920):
+        # The gradient changes shape at 700px and between 701 and 1100px,
+        # and the copy column moves against the photograph at every width, so
+        # the sweep covers each band and its edges, not just phone and desktop.
+        for width in WIDTHS:
             context = self.browser.new_context(
                 viewport={"width": width, "height": 900},
                 device_scale_factor=2)
@@ -154,7 +160,7 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                     "() => document.documentElement.classList.add('no-anim')")
                 page.wait_for_timeout(120)
                 for selector, floor in sorted(self.RUNS.items()):
-                    if selector.startswith(".nav-desktop") and width < 900: continue
+                    if selector.startswith(".nav-desktop") and width <= 900: continue
                     result = self.glyph_contrast(page, selector)
                     with self.subTest(width=width, run=selector):
                         self.assertIsNotNone(
@@ -171,6 +177,27 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                             "(floor %.1f, %d glyph pixels)."
                             % (selector, width, result["worst"], floor,
                                result["pixels"]))
+            finally:
+                context.close()
+
+    def test_the_title_search_is_in_the_first_screen_on_a_phone(self):
+        """The photograph must not push the search off a small phone's first
+        screen: the input and its button sit wholly inside the viewport."""
+        for width, height in ((320, 568), (360, 640), (375, 667), (375, 812), (414, 736)):
+            context = self.browser.new_context(viewport={"width": width, "height": height})
+            page = context.new_page()
+            try:
+                page.goto(self.url, wait_until="networkidle")
+                boxes = page.evaluate(
+                    "() => ['#home-q', '.home-search button'].map(s => {"
+                    " const r = document.querySelector(s).getBoundingClientRect();"
+                    " return {sel: s, top: r.top, bottom: r.bottom}; })")
+                for box in boxes:
+                    with self.subTest(viewport=(width, height), control=box["sel"]):
+                        self.assertGreaterEqual(box["top"], 0)
+                        self.assertLessEqual(box["bottom"], height,
+                                             "%s ends at %.1f in a %dpx-tall screen"
+                                             % (box["sel"], box["bottom"], height))
             finally:
                 context.close()
 

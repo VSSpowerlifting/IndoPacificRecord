@@ -92,6 +92,7 @@ class ChinaFocusRealBrowser(unittest.TestCase):
                         page.locator("#f-scope").input_value(), "focus")
                     self.assertIn("not fact-checked or editor-approved",
                                   page.locator("body").inner_text())
+                    self.assertTrue(page.locator(".focus-note").is_visible())
                     self.assertIn(
                         "selected records",
                         page.locator("#result-range").inner_text())
@@ -104,6 +105,8 @@ class ChinaFocusRealBrowser(unittest.TestCase):
                     self.assertEqual(
                         page.locator("#f-scope").input_value(), "all")
                     self.assertIn("scope=all", page.url)
+                    # The selection note qualifies the selected list only.
+                    self.assertFalse(page.locator(".focus-note").is_visible())
                     self.assertEqual(page.locator("#index-error:visible").count(), 0)
                     # Previously downranked Chinese ministry report remains
                     # available through ordinary full-archive title searching.
@@ -118,6 +121,7 @@ class ChinaFocusRealBrowser(unittest.TestCase):
                     page.goto(self.origin + "/archive.html?scope=all",
                               wait_until="networkidle")
                     self.assertEqual(page.locator("#f-scope").input_value(), "all")
+                    self.assertFalse(page.locator(".focus-note").is_visible())
                     page.wait_for_function(
                         """() => document.querySelector('#result-range')
                           .textContent.includes('preserved records')""")

@@ -16,18 +16,26 @@ radius 0, no pills or cards; Instrument Serif, Source Serif 4 and Inter only.
 
 **Photographic home opening (founder direction, 16 November).** The founder
 directed the home page to open on the current credited Navy photograph (DVIDS
-8834151, the cover of Brief No. 26) as a large hero. It is granted as that
-Brief's cover is (catalogue admission plus cover pairing), sits behind the
-claim and title search under the IPR gradient its credit names, and is
-credited in full beneath as "Illustrative photograph, not a record", linked
-to the Brief. Its manifest grants the `article` and `catalogue` surfaces; the
-home hero is treated as the latest Brief's catalogue surface, as `main`'s
-home Brief card was. If the owner wants the home page named as its own
-surface in `site/assets/editorial/manifest.json`, that is a separate rights
-record change. The opening record that used to stand beside the claim now
-appears once, in its desk row. Elsewhere pictures stay on Briefs; records
-never carry source media. This supersedes the text-only proposal first made
-in this PR.
+8834151, the cover of Brief No. 26) as a large hero. It appears only while
+the latest Brief's catalogue admission (`core/catalogue_media.py`) and cover
+pairing (`core/brief_photography.article_cover`) both hold and its recorded
+treatment is the gradient. It serves that Brief's article cover files (the
+800px and 1,600px derivatives) behind the claim and title search, under a
+CSS-only IPR gradient. That gradient is darker than the Brief cover gradient,
+so that the claim, dek and search clear WCAG AA at every width. The recorded
+change note ("Cropped and resized by IPR; IPR gradient overlaid.") discloses
+it. The full credit runs beneath it, labelled "Illustrative photograph, not a
+record" and linked to the Brief.
+
+The photograph's manifest entry grants only the `article` and `catalogue`
+surfaces, and `core/brief_cover.py` and `docs/BRIEF_PHOTOGRAPHY_CONTRACT.md`
+name only those two. This PR does not edit them. Until the owner records a
+home surface grant there, or reverses the direction, the home use rests on
+this direction alone.
+
+The opening record that used to stand beside the claim now appears once, in
+its desk row. Elsewhere pictures stay on Briefs, and records never carry
+source media. This supersedes the text-only proposal first made in this PR.
 
 **Home page.** After the photographic opening (claim, title search, the
 photograph's credit), one section, "Newest from each desk", shows the first row of each
