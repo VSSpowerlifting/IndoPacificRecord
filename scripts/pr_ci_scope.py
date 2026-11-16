@@ -78,6 +78,7 @@ EDITORIAL_TEST_PATTERNS = (
     "tests.test_identity_assets",
     "tests.test_home_briefs_band_veil",
     "tests.test_home_paired_records",
+    "tests.test_homepage_veil_contract",
     "tests.test_indo_pacific_identity",
     "tests.test_japan_jcg_daily",
     "tests.test_korea_output_release_scope",
