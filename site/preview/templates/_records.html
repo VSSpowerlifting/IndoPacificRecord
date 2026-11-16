@@ -47,8 +47,10 @@
    is something else carry their own mark (original_line above). Readable by
    screen readers before the rows; on a narrow screen the two columns stack and
    only the English statement remains. #}
-{% macro records_key(records) -%}
-{%- set machine = records | selectattr('title_kind', 'equalto', 'machine_translation') | list -%}
+{% macro records_key(records, searchable=false) -%}
+{#- A searchable list (the archive) can show any record, so its key states
+    the machine translation whatever the first page happens to hold. -#}
+{%- set machine = searchable or records | selectattr('title_kind', 'equalto', 'machine_translation') | list -%}
 <p class="records-key"><span>In English{% if machine %}<span class="key-note">Machine translations of the published titles. Human review is not recorded.</span>{% endif %}</span><span>As published</span></p>
 {%- endmacro %}
 

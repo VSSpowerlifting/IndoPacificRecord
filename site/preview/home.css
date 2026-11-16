@@ -61,8 +61,9 @@ h2.specimen-original[lang^=zh]{font-family:var(--zh-serif)}h2.specimen-original[
 .records-desks .desk-cell a:hover{text-decoration:underline;text-decoration-thickness:1px}
 .records-desks .desk-cell span{display:block;margin-top:.45rem;font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
 .records-desks .row-side time{color:var(--ink-2)}
-.home-desks-empty{margin:1rem 0 0;font-size:.875rem;line-height:1.6;color:var(--muted);max-width:none}
-.home-desks-empty a{color:var(--ink-2)}
+.home-desks-note,.home-desks-empty{margin:1rem 0 0;font-size:.875rem;line-height:1.6;color:var(--muted);max-width:none}
+.home-desks-note a,.home-desks-empty a{color:var(--ink-2)}
+.home-desks-note+.home-desks-empty{margin-top:.2rem}
 .home-desks-empty span{color:var(--muted)}
 .home-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,44px);margin:0;padding-top:1.4rem;border-top:2px solid var(--rule-hard)}
 .home-legend dt{margin:0 0 .55rem}

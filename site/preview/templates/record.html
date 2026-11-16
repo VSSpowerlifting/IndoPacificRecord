@@ -56,7 +56,7 @@
       Not reviewed by a human. <a href="../methodology.html#evidence">About machine labels</a></span></p>
       {% else %}
       <p class="record-mark record-mark--english"><span class="evidence evidence--model">Machine translation</span>
-      <span>{% if china_review %}Human review not recorded.{% else %}Not reviewed by a human.{% endif %}
+      <span>The English heading is a machine translation of the title as published. {% if china_review %}Human review is not recorded.{% else %}Not reviewed by a human.{% endif %}
       <a href="../methodology.html#evidence">About machine labels</a></span></p>
       {% endif %}
     </div>
@@ -211,7 +211,7 @@
     {% endif %}
   </section>
   {% else %}
-  <section class="record-section" aria-labelledby="record-text">
+    <section class="record-section" aria-labelledby="record-text">
     <div class="layer-head"><span class="evidence evidence--record">Source record</span>
       <h2 id="record-text">Stored source text</h2></div>
     {# "Original text" claimed a fidelity the capture does not have:

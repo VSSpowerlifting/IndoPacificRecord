@@ -486,8 +486,11 @@ class TestNoFabricatedCoverage(PreviewCase):
                     block, r"\b\d[\d,]*\s+(records|runs|articles)\b",
                     "%s must not show a public corpus count" % entry.name)
                 if entry.status == "shadow":
-                    self.assertIn("Corpus records</dt><dd>Not admitted", block)
-                    self.assertIn("Last corpus collection</dt><dd>Not admitted", block)
+                    # A shadow desk says it holds nothing in the public record
+                    # and shows no collection date at all.
+                    self.assertIn("<dt>Records</dt><dd>None in the public record", block)
+                    self.assertNotIn("Last collected", block)
+                    self.assertNotRegex(block, r"<time\b")
                 else:
                     self.assertIn("Records</dt><dd>None collected", block)
                 self.assertIn(entry.status_label, block)
@@ -497,17 +500,19 @@ class TestNoFabricatedCoverage(PreviewCase):
         from core.viewmodel import PublicView
         desks = PublicView(TRACKED_DB).desk_directory()
         soup = BeautifulSoup(self.page('index.html'), 'html.parser')
-        shown = soup.select('ul.home-desk-index > li')
+        # One row per desk in the home page's newest section, the desk name
+        # and count where a dated list puts the day.
+        shown = soup.select('.home-newest .records-desks > .records-day')
         self.assertTrue(shown)
         # Exactly the desks that hold public records, in directory order, each
         # under its own name and its own stored count. A desk with nothing to
         # show is absent rather than listed with a zero.
         held = [d for d in desks if d.record_count]
         self.assertEqual(
-            [li.select_one('.home-desk-name a')['href'] for li in shown],
+            [li.select_one('.desk-cell a')['href'] for li in shown],
             [d.route for d in held])
         for item, desk in zip(shown, held):
-            name = item.select_one('.home-desk-name')
+            name = item.select_one('.desk-cell')
             self.assertEqual(name.a.get_text(strip=True), desk.name)
             self.assertEqual(
                 name.span.get_text(strip=True),
@@ -536,8 +541,10 @@ class TestNoFabricatedCoverage(PreviewCase):
         desk it governs.
         """
         desks = self.page("desks.html")
-        self.assertIn("Corpus records</dt><dd>Not admitted", desks)
-        self.assertIn("Only collecting desks show public-corpus record totals", desks)
+        self.assertIn("<dt>Records</dt><dd>None in the public record", desks)
+        self.assertIn("Only collecting desks show record totals. A desk in trial "
+                      "collection may hold originals privately",
+                      " ".join(desks.split()))
         self.assertIn("Consecutive days required</dt><dd>30",
                       self.page("singapore.html"))
         self.assertIn("Desks", self.page("index.html"))
@@ -1538,15 +1545,17 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         html = self.page('index.html')
         # The search now sits in the opening beside the claim (2026-11-14);
         # the order a reader meets is otherwise the one this test always held.
+        # Since the parallel-text redesign (2026-11-16) the desks are the
+        # newest-records section itself: one row per desk, then the desk note.
         markers = ('id="home-title"', 'id="home-q"', 'id="latest-title"',
-                   'id="latest-analysis"', 'id="home-desks-title"', 'id="home-method-title"')
+                   'class="home-desks-note"', 'id="latest-analysis"', 'id="home-method-title"')
         positions = [html.index(marker) for marker in markers]
         self.assertEqual(positions, sorted(positions))
 
     def test_the_lead_record_opening_does_not_reorder_desks_and_analysis(self):
         html = self.page('index.html')
-        self.assertLess(html.index('id="latest-title"'), html.index('id="latest-analysis"'))
-        self.assertLess(html.index('id="latest-analysis"'), html.index('id="home-desks-title"'))
+        self.assertLess(html.index('id="latest-title"'), html.index('class="home-desks-note"'))
+        self.assertLess(html.index('class="home-desks-note"'), html.index('id="latest-analysis"'))
         self.assertNotIn('class="section-index"', html)
         self.assertNotRegex(html, r'<p[^>]*aria-hidden="true"[^>]*>\s*0\d\s*</p>')
 
@@ -1688,19 +1697,28 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         newest = BeautifulSoup(html, 'html.parser').select_one('.home-newest')
         # The list names its two columns: the English beside the title as the
         # institution published it. Neither is presented as the other.
+        key = newest.select('.records-key > span')
         self.assertEqual(
-            [s.get_text(strip=True) for s in newest.select('.records-key span')],
+            [k.find(string=True, recursive=False).strip() for k in key],
             ['In English', 'As published'])
         self.assertTrue(newest.select('.record-row p.original[lang]'))
-        # The translation disclosure sits on exactly the rows it is true of.
+        # The translation disclosure is stated once, at the head of the English
+        # column, whenever a listed row is a machine translation; since the
+        # parallel-text redesign no row repeats it.
         by_id = {r['id']: r for r in gp.load_corpus(TRACKED_DB)['corpus']}
+        machine = []
         for row in newest.select('.record-row'):
             record = by_id[int(row.select_one('h3 a')['href'].split('/')[1].split('.')[0])]
-            disclosed = ('Machine-translated title · human review not recorded'
-                         in row.get_text())
-            self.assertEqual(disclosed, bool(
-                record['desk_id'] == 'china' and record['title_english']
-                and record['language_tag'] != 'en'), record['id'])
+            self.assertNotIn('Machine-translated title', row.get_text(), record['id'])
+            if (record['desk_id'] == 'china' and record['title_english']
+                    and record['language_tag'] != 'en'):
+                machine.append(record['id'])
+        self.assertTrue(machine)
+        note = newest.select_one('.records-key .key-note')
+        self.assertIsNotNone(note)
+        self.assertEqual(' '.join(note.get_text().split()),
+                         'Machine translations of the published titles. '
+                         'Human review is not recorded.')
         self.assertIn('Machine translation', html)
         self.assertNotIn('in the language they were published in', html)
 
@@ -1724,13 +1742,21 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         for row in data["corpus"]:
             row["in_trails"] = trails.get(row["url"], [])
         focused = gp.build_focus(data["corpus"])["rows"]
-        # The six newest rows of the discovery focus, set out as the day list
-        # sets out every list: newest publication date first, then record id.
-        expected = sorted(
-            focused[:6], key=lambda r: (r["published_date"], r["id"]),
-            reverse=True)
-        self.assertEqual(len(recent), 6)
-        self.assertEqual(recent, [r["id"] for r in expected])
+        # One row per desk holding public records, in directory order: the
+        # first row that desk's own page lists, which is the desk's first row
+        # of the discovery focus (Vietnam lists its QA-published rows).
+        from core.viewmodel import PublicView
+        held = [d for d in PublicView(TRACKED_DB).desk_directory() if d.record_count]
+        vietnam = gp.vietnam_published_rows(data["corpus"])
+        expected = []
+        for desk in held:
+            if desk.slug == "vietnam" and vietnam:
+                expected.append(vietnam[0]["id"])
+            else:
+                expected.append(next(r["id"] for r in focused
+                                     if r.get("desk_id") == desk.slug))
+        self.assertEqual(len(recent), len(held))
+        self.assertEqual(recent, expected)
         by_id = {r['id']: r for r in data['corpus']}
         for card, rid in zip(cards, recent):
             badges = card.select('.state')
@@ -2010,8 +2036,13 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
         html = self.page("desks.html")
         entry = load_registry().get("japan")
         # The directory entry is the registry's own words, not a second copy.
+        # The registry's operating note moved, verbatim, to the desk page's
+        # closed Collection notes (2026-11-16); the directory no longer carries it.
         self.assertIn(entry.scope, html)
-        self.assertIn(entry.status_explanation, html)
+        self.assertNotIn(entry.status_explanation, html)
+        desk_page = self.page("japan.html")
+        notes = desk_page.split('<details class="collection-notes">', 1)[1].split("</details>", 1)[0]
+        self.assertIn(str(markupsafe.escape(entry.status_explanation)), notes)
         # The map's accessible label and selected-scope preview also name
         # Japan. Inspect its actual registry entry rather than the first name.
         japan = html.split('id="desk-japan"', 1)[1].split("</section>", 1)[0]
@@ -2426,7 +2457,9 @@ class TestRecordPages(PreviewCase):
         """
         rec = next(r for r in self.data["corpus"] if not r["title_english"])
         html = self.record(rec["id"])
-        self.assertIn('<h1 lang="%s">' % (rec["language_tag"] or "zh"), html)
+        # The heading falls back to the title as published and says so in
+        # its own language attribute (a styling class may follow it).
+        self.assertRegex(html, r'<h1 lang="%s"[ >]' % re.escape(rec["language_tag"] or "zh"))
         self.assertIn(str(markupsafe.escape(rec["title_original"][:20])), html)
 
     def test_exactly_one_h1_per_record_page(self):
@@ -3270,7 +3303,8 @@ class TestTransitionalArchiveIsTruthful(PreviewCase):
 
     def test_completeness_is_backed_by_a_reachable_complete_path(self):
         html = re.sub(r"\s+", " ", self.page("archive.html"))
-        self.assertIn("{:,} preserved records".format(self.corpus_size), html)
+        self.assertIn("Every record ({:,})".format(self.corpus_size), html)
+        self.assertIn("Search all {:,} records".format(self.corpus_size), html)
         self.assertIn("Every record is also reachable by publication week",
                       html)
 
@@ -4685,8 +4719,8 @@ class TestAuthoredProseStaysGuarded(PreviewCase):
             r"\s+", " ",
             self.authored("record/%d.html" % self.analyzed["id"]))
         self.assertIn("Machine translation", text)
-        self.assertIn("The heading is a machine translation of the original "
-                      "title above. Human review is not recorded.", text)
+        self.assertIn("The English heading is a machine translation of the "
+                      "title as published. Human review is not recorded.", text)
 
     def test_source_record_label_stays_guarded(self):
         self.assertIn("Source record",
@@ -6744,7 +6778,7 @@ class TestShardLedeGrammar(PreviewCase):
 
     def _page_count(self, path: Path) -> int:
         html = path.read_text(encoding="utf-8")
-        return len(re.findall(r'<li class="record-row"', html))
+        return len(re.findall(r'<li class="record-row[" ]', html))
 
     def test_every_shard_lede_is_exactly_the_authored_sentence(self):
         """Every shard, reconstructed from its own real page count."""
@@ -7009,19 +7043,19 @@ class TestStop4RoutesAreIntact(PreviewCase):
                          + registered_korean_originals + reviewed_english_pages
                          + len(machine_paths)
                          + len([q for q in (self.out / "assets").rglob("*") if q.is_file()]))
-        # Three declared files since 2026-09-15: the withdrawn J-20 derivative,
+        # One declared file since 2026-11-16: the withdrawn J-20 derivative,
         # which stays published with its licence record because "do not render
-        # it" is not "delete it", and the Ocean Signal Veil's two encodings,
-        # offered through `image-set()` so exactly one is ever fetched. Their
-        # names are checked, not just their count — an extra image here would
-        # be an undeclared addition to the page.
+        # it" is not "delete it". The Ocean Signal Veil's two encodings left the
+        # build with the home veil (parallel-text redesign; source assets and
+        # manifest entry kept). Names are checked, not just the count — an
+        # extra image here would be an undeclared addition to the page.
         self.assertEqual(
             sorted(q.name for q in atmosphere),
-            ["chengdu-j20-duo-paper.jpg", "veil-ocean.jpg", "veil-ocean.webp"],
+            ["chengdu-j20-duo-paper.jpg"],
             "an undeclared image joined atmosphere/")
-        self.assertLessEqual(len(atmosphere), 3,
-                             "the veil is one asset; a second image here would "
-                             "be an undeclared addition to the page")
+        self.assertLessEqual(len(atmosphere), 1,
+                             "nothing paints an atmosphere image; a second "
+                             "file here would be an undeclared addition")
         self.assertEqual(len(covers), len(gp.load_editions(REPO_ROOT)))
         self.assertEqual(len(sources), self.source_count)
         self.assertEqual(

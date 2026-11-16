@@ -90,10 +90,10 @@ class ChinaFocusRealBrowser(unittest.TestCase):
                     self.assertEqual(response.status, 200)
                     self.assertEqual(
                         page.locator("#f-scope").input_value(), "focus")
-                    self.assertIn("not individually fact-checked or editor-approved",
+                    self.assertIn("not fact-checked or editor-approved",
                                   page.locator("body").inner_text())
                     self.assertIn(
-                        "research-focus records",
+                        "selected records",
                         page.locator("#result-range").inner_text())
                     page.locator("#f-scope").select_option("all")
                     page.wait_for_function(
@@ -134,7 +134,7 @@ class ChinaFocusRealBrowser(unittest.TestCase):
             p = ctx.new_page()
             resp = p.goto(self.origin + "/archive.html")
             self.assertEqual(resp.status, 200)
-            self.assertIn("research focus", p.locator("body").inner_text().lower())
+            self.assertIn("selected records", p.locator("body").inner_text().lower())
             self.assertEqual(p.locator("li.record-row").count(), 50)
             p.locator('a[href="corpus.html"]').first.click()
             self.assertTrue(p.url.endswith("corpus.html"))

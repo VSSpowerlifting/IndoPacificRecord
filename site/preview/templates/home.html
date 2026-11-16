@@ -52,6 +52,8 @@
 <section class="wrap home-section home-newest" aria-labelledby="latest-title">
   <div class="home-head"><h2 id="latest-title">Newest from each desk</h2><a href="archive.html">All {{ corpus_total | count }} records</a></div>
   {{ desk_front(home_desks.rows, lead=true) }}
+  {% set china_front = home_desks.rows | selectattr('desk.slug', 'equalto', 'china') | first | default(none) %}
+  <p class="home-desks-note">{{ home_desks.rows | length }} desks hold public records so far{% if china_front and china_front.desk.record_count * 2 > corpus_total %}, most of them from Chinese sources{% endif %}. Coverage is selective: <a href="coverage.html">scope and coverage</a>.</p>
   {% if home_desks.empty %}
   <p class="home-desks-empty">No public records yet: {% for d in home_desks.empty %}<a href="{{ d.route }}">{{ d.name }}</a> <span>({{ d.status_label }})</span>{{ ', ' if not loop.last else '.' }}{% endfor %} <a href="desks.html">All desks</a></p>
   {% endif %}

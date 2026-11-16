@@ -163,7 +163,7 @@ accessible through the week-by-week browse above.</p>
 <p class="focus-note">The list starts with {{ focus.all_focus | count }} selected records: every record from the other desks, and {{ focus.china_focus | count }} China Desk records picked by software to spread across its sources and months, without repeated titles. The selection is automatic, not fact-checked or editor-approved. <a href="archive.html?scope=all">Search all {{ corpus_total | count }} records</a></p>
 {# The column names are printed once here, not by `record_days`: browse.js
    replaces everything inside `#results` when it redraws. #}
-{{ records_key(archive_first) }}
+{{ records_key(archive_first, searchable=true) }}
 <div id="results">
   {{ record_days(archive_first, desk_by_source, key=false) }}
 </div>
