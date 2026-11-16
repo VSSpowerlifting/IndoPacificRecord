@@ -36,7 +36,7 @@
   {# The head is the record's title pair at full scale: English as the
      heading, the title as published beside it in its own script. The
      machine mark is stated once, here. #}
-  <header class="page-head record-head{{ ' record-head--pair' if beside }}">
+  <header class="page-head record-head{{ ' record-head--pair' if beside }}{{ ' record-head--metadata' if is_mindef }}">
     {{ breadcrumb(path) }}
     <h1{% if not record.title_english %} lang="{{ record.language_tag or 'zh' }}"{% endif %}{% if heading_as_published %} class="as-published"{% endif %}>{{ display_title }}</h1>
     <p class="record-source-line">{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }} by <b>{{ record.institution or record.source_name }}</b> on <time datetime="{{ record.published_date }}">{{ record.published_date | reader_date }}</time>{% if record.institution %} · via <a href="../source/{{ record.source_slug }}.html">{{ record.source_name }}</a>{% endif %} <span class="record-date-note">The date is the one the source gives.</span></p>

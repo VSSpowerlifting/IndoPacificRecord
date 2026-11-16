@@ -21,6 +21,9 @@
 .record-mark{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .8rem;margin:0 0 .7rem;font:13px/1.55 var(--sans);color:var(--muted);max-width:none}
 .record-mark--original{grid-area:mor}.record-mark--english{grid-area:men}
 .record-title-note{grid-area:note;margin:.7rem 0 0}
+/* A metadata-only record (Singapore MINDEF): the heading is a governed label,
+   not a title, so it is set as a label, not a headline. */
+[data-surface] .record-head--metadata h1{font:400 1.375rem/1.35 var(--sans);letter-spacing:0;color:var(--ink-2)}
 [data-surface] .record-head>:is(.record-source-line,.record-mark){max-width:none}
 .record-source-line{grid-area:src;font:15px/1.7 var(--sans);color:var(--ink-2);margin:1.5rem 0 0;padding-top:1rem;border-top:1px solid var(--rule)}
 .record-source-line b{color:var(--ink)}
@@ -46,8 +49,11 @@
 .interpretation p{font:19px/1.7 var(--serif);margin:0 0 14px}
 .machine-translation p{font:17px/1.75 var(--serif);margin:0 0 14px}
 .original-text{border-left:2px solid var(--ink);padding-left:20px}
-.original-text p{font:17px/1.75 var(--serif);margin:0 0 16px;max-width:40em}
-.original-text:is(:lang(zh),:lang(ja),:lang(ko)) p{line-height:1.95}
+.original-text p{font:17px/1.75 var(--serif);margin:0 0 1.1em;max-width:36em}
+/* CJK: a slightly larger size, about 36 characters a line; Hangul keeps
+   words whole. Nothing is reflowed: each stored line stays one paragraph. */
+.original-text:is(:lang(zh),:lang(ja)) p{font-size:18px;line-height:1.9}
+.original-text:lang(ko) p{font-size:18px;line-height:1.85;word-break:keep-all}
 .original-text:lang(zh){font-family:var(--zh-serif)}.original-text:lang(zh) p{font-family:inherit}
 .original-text:lang(ja) p{font-family:var(--ja-serif)}.original-text:lang(ko) p{font-family:var(--ko-serif)}
 :is(.interpretation,.machine-translation,.original-text)>:last-child{margin-bottom:0}
