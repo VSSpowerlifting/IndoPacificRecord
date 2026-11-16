@@ -49,6 +49,12 @@ Processing/institution/language/trail filters apply only to archive records.
 Dates are inclusive; missing publication dates stay missing. IPR publication dates
 come from public release records, never coverage weeks or approval dates.
 
+The homepage box submits `scope=published&q=…`. When a filtered search in
+`focus` or `all` leaves additional matches in `published`, the Archive shows
+that count with a button that sets `scope=published`, keeps the search and
+filters, and returns to page 1. It is not a new URL parameter. See the
+[2026-11-14 scope evidence](evidence/archive-search-scope-2026-11-14/README.md).
+
 Selections use `sessionStorage`, are revalidated on reload and never uploaded.
 CSV/JSON retain reviewed attribution, formula protection and stable identities.
 First selection does not expand the mobile disclosure or move focus/scroll.

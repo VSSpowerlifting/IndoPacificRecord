@@ -166,16 +166,19 @@ accessible through the week-by-week browse above.</p>
    the button pressed may have become disabled. #}
 <p class="result-range" id="result-range" tabindex="-1">The newest {{ archive_first | length }} of {{ focus.all_focus | count }} research-focus records. <a href="corpus.html">All {{ corpus_total | count }} preserved records by week</a>.</p>
 <p class="visually-hidden" id="result-live" role="status" aria-live="polite"></p>
+{# One recovery that fits what the search found. When a search in the
+   Research focus or the full preserved record leaves matches in All
+   published material (Briefs, cited references, published originals),
+   browse.js counts them in #scope-more and its button widens the scope,
+   keeping the search; archive.css then hides "Clear". Otherwise the empty
+   state offers to clear the search and filters (the scope is kept). Both
+   return focus to the search box. #}
+<div id="no-results" class="no-results" hidden><p><b>No records match.</b></p>
+<p class="no-results-wide"><button type="button" value="clear">Clear the search and filters</button></p></div>
+<p id="scope-more" class="scope-more" hidden><button type="button" value="published">Search all published material (<span id="more-count"></span> more)</button></p>
 <div id="results">
   {{ record_days(archive_first, desk_by_source) }}
 </div>
-
-{# One recovery per scope: browse.js sets data-scope and handles the button
-   values ("all" widens the focus; "clear" keeps the scope and clears the
-   rest). archive.css shows only the line that fits. #}
-<div id="no-results" class="no-results" hidden><p><b>No records match.</b></p>
-<p class="no-results-focus"><button type="button" value="all">Search all {{ corpus_total | count }} records</button></p>
-<p class="no-results-wide"><button type="button" value="clear">Clear the search and filters</button></p></div>
 
 <nav id="pager" class="pager" aria-label="Result pages">
   <button type="button" id="page-prev" hidden>Previous page</button>
