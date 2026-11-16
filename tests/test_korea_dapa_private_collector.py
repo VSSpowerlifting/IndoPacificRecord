@@ -17,6 +17,7 @@ from core.manifests import load_manifest
 from scraper.sources.kr_dapa_policy_briefing import (
     KoreaDapaPolicyAdapter, IDENTITY_PREFIX, observed_text_notice,
 )
+from scraper.sources.desk_shadow_http import MAX_BYTES
 from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter
 from scripts import shadow_collect_desk as runner
 
@@ -182,6 +183,25 @@ class DapaPrivateCollection(unittest.TestCase):
         self.assertEqual(again["result"], st.OK_ALL_DUPLICATES, again)
         self.assertEqual(again["inserted"], 0)
         self.assertEqual(again["duplicates"], 1)
+
+    def test_oversized_dapa_attachment_still_fails_the_whole_batch(self):
+        # The MND size hold is scoped by exact desk name; DAPA shares the
+        # adapter class and must stay all-or-nothing.
+        adapter, session = instance(hwpx=b"x" * (MAX_BYTES + 1))
+        result = runner.run(
+            "korea_dapa", self.state, date(2026, 10, 8), lookback=0,
+            cap=4, run_id="dapa-oversized", commit="synthetic",
+            adapter=adapter, dapa_original_access_authorized=True)
+        self.assertEqual((result["result"], result["health"]),
+                         (st.OVERSIZED_RESPONSE, "fail"))
+        self.assertEqual(result["error_detail"], "incomplete batch; no corpus write")
+        self.assertEqual((result["selected"], result["retrieved"],
+                          result["fetch_failures"], len(result["failures"])), (1, 0, 1, 1))
+        self.assertNotIn("attachment_holds", result)
+        self.assertNotIn("attachment_hold_items", result)
+        self.assertEqual([url for _, url in session.calls].count(DOC), 1)
+        self.assertFalse((self.state / "shadow.db").exists())
+        self.assertFalse((self.state / "clock.json").exists())
 
     def test_direct_source_collector_cannot_bypass_five_or_one_day(self):
         for cap, lookback in ((6, 0), (40, 0), (1, 1), (5, 7)):

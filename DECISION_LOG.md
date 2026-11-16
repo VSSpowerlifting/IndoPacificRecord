@@ -27,6 +27,54 @@ the photographer's credit, context caption and DVIDS non-endorsement notice.
 The reviewed source use is limited to the independently worded reporting,
 analysis and citations in these two manuscripts.
 
+## 2026-11-15 — Korea MND: an oversized attachment holds one release, not the batch (proposed; adopted by founder merge)
+
+**Evidence.** Private scheduled runs 43323731703-1 (12 Nov), 43522842740-1
+(13 Nov) and 43644113227-1 (14 Nov) each ended `oversized_response` with no
+corpus write. The collector's own 2,000,000-byte cap refused one HWPX
+attachment on 12 Nov (4 selected, 3 retrieved) and two on 13 and 14 Nov
+(6 selected, 4 retrieved). Each run discarded the releases it had retrieved in
+full. The last successful run is 43121868448-1 (11 Nov, `ok_all_duplicates`,
+44 stored). The source refused nothing; no access, rights or factual check
+failed.
+
+**Cause.** Any single failure fails the whole run: "success-only atomic
+collection" in the 6 October 2026 cadence entry. The byte cap is an engineering
+default with no decision record. A release whose attachment is over the cap
+therefore blocks every other MND release for as long as it stays in the
+six-day window.
+
+**Decision.** The founder directed this fix in the engineering session of
+15 November ("Yes, fix Korea", answering "Fix the Korea collector's
+all-or-nothing batch rule now, as a draft PR?"). For desk `korea` only, and for
+one case only (the collector's own cap refusing a release's single HWPX
+attachment, on an HTTP 200 document response, after the release page was
+captured and agreed with the listing, for a release not yet in custody), the
+runner holds that release and stores the run's complete releases. For that case
+this supersedes the "success-only atomic collection" clause of the 6 October
+entry, which is otherwise unchanged and is not edited.
+
+- Unchanged: the byte cap; DAPA, Indonesia and JCG; every other failure, which
+  still fails the whole batch, including alongside a hold; every access, rights
+  and factual check.
+- A held release is never stored, signed or published. It is listed in the
+  run ledger (`attachment_holds`, `attachment_hold_items`). Under the standing
+  rule that partial degradation "must be recorded in a place that survives the
+  runner, and must be loud", the public slot watchdog fails while the latest
+  mature slot has holds, and a run with holds and nothing new to store is
+  recorded as failed.
+- No ledger entry, attempt or clock is reset. The 12–14 November runs stay
+  failed.
+- Not decided or done: any change to the cap; collection of the releases held
+  so far; any workflow dispatch or recovery run.
+
+**Effect of merge.** The private collector checks out public `main` unpinned,
+so merging is activation at the next scheduled 17:47 UTC run. Releases stored
+by a held run then reach the existing scheduled link publication within its
+existing caps.
+
+Details: `docs/engineering/KOREA_DESK_OPERATION.md`, "MND attachment size hold".
+
 ## 2026-11-14 — USCC narrative path built into the shared Daily, disabled (engineering record; no activation)
 
 **What changed.** The 7 November qualifier-based adoption candidate (PR #1000)
