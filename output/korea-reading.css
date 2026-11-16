@@ -1,0 +1,18 @@
+/* Reviewed Korean analysis and translation pages. */
+[data-surface] :is(.korea-reviewed-analysis,.korea-reviewed-translation) .page-head h1{font-size:clamp(2rem,1.3rem + 2.6vw,3.25rem);max-width:26ch}
+.korea-page-note{max-width:68ch;color:var(--ink-2)}
+:is(.korea-reviewed-analysis,.korea-reviewed-translation) code{overflow-wrap:anywhere;font-size:.8125rem}
+.korea-claim{max-width:46rem;margin:2.2rem 0 0}
+.korea-claim h2{margin:0 0 .6rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:600 1.375rem/1.3 var(--serif)}
+.korea-claim details{margin:.8rem 0 0;border-block:1px solid var(--rule)}
+.korea-claim summary{cursor:pointer;padding:.7rem 0;font:600 .9375rem/1.4 var(--sans)}
+.korea-claim blockquote{margin:.4rem 0 1rem;padding-left:1rem;border-left:2px solid var(--ink);font:400 1.0625rem/1.75 var(--ko-serif,var(--serif))}
+.korea-pair-key,.korea-pair{display:grid;grid-template-columns:5.5rem minmax(0,1fr) minmax(0,1fr);gap:.3rem 1.6rem}
+.korea-pair-key{margin:2rem 0 0;padding-bottom:.5rem;border-bottom:2px solid var(--rule-hard);font-size:.8125rem;font-weight:600;color:var(--muted);max-width:none}
+.korea-pair-key span:first-child{grid-column:2}
+.korea-pair-key span+span{padding-left:calc(1.3rem + 1px)}
+.korea-pair{margin:0;padding:1.2rem 0;border-bottom:1px solid var(--rule)}
+.korea-pair h2{margin:0;padding:.25rem 0 0;border:0;font:600 .8125rem/1.4 var(--sans);color:var(--muted)}
+.korea-pair p{margin:0;max-width:none;font:400 1.0625rem/1.6 var(--serif)}
+.korea-pair .original{padding-left:1.3rem;border-left:1px solid var(--rule);font-family:var(--ko-serif,var(--serif));line-height:1.75}
+@media(max-width:720px){.korea-pair{grid-template-columns:1fr}.korea-pair-key{display:none}.korea-pair .original{margin-top:.5rem;padding-left:.85rem;border-left-width:2px}}
