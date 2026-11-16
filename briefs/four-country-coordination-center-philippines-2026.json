@@ -575,8 +575,8 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
-  "issue_number": null,
+  "editorial_status": "approved",
+  "issue_number": 25,
   "week_start": "2026-11-08",
   "week_ending": "2026-11-14",
   "desks": [],
@@ -686,5 +686,31 @@
     "linkedin": "https://www.linkedin.com/in/peter-nguyen-639681371/",
     "email": "pn312@gwmail.gwu.edu",
     "credit_role": "co-author"
+  },
+  "editorial_review": {
+    "reviewed_by": "Dylan Tanzi",
+    "reviewed_on": "2026-11-16",
+    "reference": "Dylan Tanzi's 2026-11-16 editorial and source sign-off on both final manuscripts in the IPR two-Brief publication chat, relayed by Benjamin Yang. Final review packet for PR #1061.",
+    "fingerprint": "5d8561ae3e4dc234727e131485dbcf1cd4264b9065a848e079411e796e93b59d",
+    "checks": {
+      "authorship": true,
+      "chronology": true,
+      "claim_support": true,
+      "limited_source_use": true,
+      "manuscript_fidelity": true,
+      "original_language": true,
+      "rendered_review": true
+    }
+  },
+  "policy_ruling": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-16",
+    "reference": "Benjamin Yang's 2026-11-16 review of both exact rendered presentations and acceptance of the documented source-access limits in the IPR two-Brief publication chat. Final review packet for PR #1061. Direct retrieval returned redirects, blocks or empty results for s5–s7, s10, s12–s13, s16 and s18. The ruling accepts the evidence limits documented in the final packet.",
+    "fingerprint": "5d8561ae3e4dc234727e131485dbcf1cd4264b9065a848e079411e796e93b59d"
+  },
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-11-16",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1049#issuecomment-6908194818; Benjamin Yang reaffirmed publication for the final review packet in the IPR two-Brief publication chat."
   }
 }

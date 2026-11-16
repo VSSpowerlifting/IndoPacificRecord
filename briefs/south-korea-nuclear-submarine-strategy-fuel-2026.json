@@ -8,8 +8,8 @@
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
-  "editorial_status": "draft",
-  "issue_number": null,
+  "editorial_status": "approved",
+  "issue_number": 26,
   "week_start": "2026-11-08",
   "week_ending": "2026-11-14",
   "desks": [],
@@ -514,5 +514,31 @@
       "role": "Editing",
       "name": "Dylan Tanzi"
     }
-  ]
+  ],
+  "editorial_review": {
+    "reviewed_by": "Dylan Tanzi",
+    "reviewed_on": "2026-11-16",
+    "reference": "Dylan Tanzi's 2026-11-16 editorial and source sign-off on both final manuscripts in the IPR two-Brief publication chat, relayed by Benjamin Yang. Final review packet for PR #1061.",
+    "fingerprint": "dcebc5efeaa1d22ea5979cf57fc6398e14f1b9d3a2d2f4f9e0794b1b76e0d9ce",
+    "checks": {
+      "authorship": true,
+      "chronology": true,
+      "claim_support": true,
+      "limited_source_use": true,
+      "manuscript_fidelity": true,
+      "original_language": true,
+      "rendered_review": true
+    }
+  },
+  "policy_ruling": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-16",
+    "reference": "Benjamin Yang's 2026-11-16 review of both exact rendered presentations and acceptance of the documented source-access limits in the IPR two-Brief publication chat. Final review packet for PR #1061. The official IAEA INFCIRC/236 PDF was available as an indexed original. Direct retrieval returned HTTP 403. The ruling accepts that access limit.",
+    "fingerprint": "dcebc5efeaa1d22ea5979cf57fc6398e14f1b9d3a2d2f4f9e0794b1b76e0d9ce"
+  },
+  "approval": {
+    "approved_by": "Benjamin Yang",
+    "approved_on": "2026-11-16",
+    "reference": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1051#issuecomment-6908195484; Benjamin Yang reaffirmed publication for the final review packet in the IPR two-Brief publication chat."
+  }
 }

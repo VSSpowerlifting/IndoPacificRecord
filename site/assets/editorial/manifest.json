@@ -1294,5 +1294,127 @@
     "built_with": {
       "pillow": "11.3.0"
     }
+  },
+  {
+    "id": "dvids-9009505",
+    "file": "dvids-9009505.jpg",
+    "sha256": "384f0e1c47798826333405c66e3f02da48862085d122132d7128e2ee885e0111",
+    "alt": "Philippine Navy Lt. Jose Federico and U.S. Marine Corps Maj. Sean Alexander talk inside the Balikatan 25 coordination center.",
+    "caption": "Philippine and U.S. officers at the Combined Coordination Center during Balikatan 25 at Camp Aguinaldo on April 30, 2025. The photo shows the exercise center.",
+    "creator": "Airman 1st Class Carson Jeney, U.S. Air Force",
+    "credit": "Airman 1st Class Carson Jeney, U.S. Air Force · Public domain · via DVIDS",
+    "license": "Public domain",
+    "license_url": "https://www.dvidshub.net/about/copyright",
+    "license_basis": "DVIDS publication marks the image public domain. Used for news/editorial context with credit and the non-endorsement notice. Retained bytes are the openly linked DVIDS preview JPEG.",
+    "source_page": "https://www.dvidshub.net/image/9009505/balikatan-25-working-inside-combined-coordination-center",
+    "source_label": "DVIDS",
+    "original_url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2505/9009505/2000w_q95.jpg",
+    "retrieval": {
+      "url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2505/9009505/2000w_q95.jpg",
+      "status": 200,
+      "bytes": 1213393,
+      "etag": "\"994118dcecad5adc2b82a983f5e11471\"",
+      "retrieved_at": "2026-11-16T05:33:11.560887+00:00",
+      "user_agent": "Indo-Pacific Record editorial review"
+    },
+    "dod_id": "250430-F-CJ259-1001",
+    "date_note": "Photographed April 30, 2025; historical context.",
+    "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "four-country-coordination-center-philippines-2026"
+      ]
+    },
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivatives": [
+      {
+        "file": "derivatives/dvids-9009505-1600.jpg",
+        "width": 1600,
+        "height": 1261,
+        "sha256": "8c6264f4b1990d116e54df366732b8185c032d4c58ffc2f4876bdcd5b9f64559"
+      },
+      {
+        "file": "derivatives/dvids-9009505-800.webp",
+        "width": 800,
+        "height": 630,
+        "sha256": "1fc5ed00003002aa2ce99144498f553442daceb39aa976706d1974325b891738"
+      },
+      {
+        "file": "derivatives/dvids-9009505-1600.webp",
+        "width": 1600,
+        "height": 1261,
+        "sha256": "f0f852e5ebff095891c67fd9486da60dd3373923a0ca6053941ce2b778d2a25f"
+      }
+    ],
+    "built_with": {
+      "pillow": "13.0.0"
+    }
+  },
+  {
+    "id": "dvids-8834151",
+    "file": "dvids-8834151.jpg",
+    "sha256": "115602759aa92e32a4c51578b68b17bb25c19bf74ff431b48373ab556d0a739f",
+    "alt": "The South Korean submarine ROKS Ahn Jung-Geun lies alongside USS Emory S. Land in Busan.",
+    "caption": "The conventionally powered ROKS Ahn Jung-Geun alongside USS Emory S. Land at Busan on November 15, 2024. The photo illustrates South Korea’s existing submarine fleet.",
+    "creator": "Mass Communication Specialist Seaman Apprentice Ethan Lambert, U.S. Navy",
+    "credit": "Mass Communication Specialist Seaman Apprentice Ethan Lambert, U.S. Navy · Public domain · via DVIDS",
+    "license": "Public domain",
+    "license_url": "https://www.dvidshub.net/about/copyright",
+    "license_basis": "DVIDS publication marks the image public domain. Used for news/editorial context with credit and the non-endorsement notice. Retained bytes are the openly linked DVIDS preview JPEG.",
+    "source_page": "https://www.dvidshub.net/image/8834151/roks-ahn-jung-geun-moors-alongside-emory-s-land",
+    "source_label": "DVIDS",
+    "original_url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2501/8834151/2000w_q95.jpg",
+    "retrieval": {
+      "url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2501/8834151/2000w_q95.jpg",
+      "status": 200,
+      "bytes": 916784,
+      "etag": "\"f9fddc24a83454dc3670ac7d7471cb81\"",
+      "retrieved_at": "2026-11-16T05:33:11.544887+00:00",
+      "user_agent": "Indo-Pacific Record editorial review"
+    },
+    "dod_id": "241115-N-EQ708-1083",
+    "date_note": "Photographed November 15, 2024; historical context.",
+    "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+    "depicts": "context",
+    "cover_treatment": "gradient",
+    "derivative_builder": "scripts/build_brief_cover.py",
+    "match": {
+      "briefs": [
+        "south-korea-nuclear-submarine-strategy-fuel-2026"
+      ]
+    },
+    "surfaces": [
+      "article",
+      "catalogue"
+    ],
+    "derivatives": [
+      {
+        "file": "derivatives/dvids-8834151-1600.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "151e28b6d858a91499757b2527ac88a5e5af03314318306da7baf3611e342751"
+      },
+      {
+        "file": "derivatives/dvids-8834151-800.webp",
+        "width": 800,
+        "height": 500,
+        "sha256": "a46712023da4b65cb9bee89fdbc670c10eb5616048ed3d7b2bdaf14973fcc990"
+      },
+      {
+        "file": "derivatives/dvids-8834151-1600.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "b2a83b7add995803f9811697f223ce5a5a87b6a5ae0017131e18a2c24b7ad60d"
+      }
+    ],
+    "built_with": {
+      "pillow": "13.0.0"
+    }
   }
 ]
