@@ -1,8 +1,9 @@
 """Ratchet tests for scripts/audit_pages_writers.py (issue #346).
 
 These pin the current Pages-writer inventory and prove the auditor catches
-new or widened publication paths. Passing them does NOT mean the stale
-deployment race is fixed; see tests/test_pages_stale_deploy_race.py.
+new, widened or unfenced publication paths. Every workflow writer must publish
+only through scripts/pages_release.py; the protocol itself is proven in
+tests/test_pages_release*.py and tests/test_pages_stale_deploy_race.py.
 """
 from __future__ import annotations
 
@@ -58,8 +59,14 @@ class RepoInventory(unittest.TestCase):
         self.assertEqual(self.report["script_writers"], [audit.HELPER])
 
     def test_known_writers_outside_shared_lock(self):
-        self.assertEqual(self.report["summary"]["outside_shared_lock"], [
+        # Fenced writers no longer report this as a hazard: the helper's
+        # fast-forward from the attested tip is the cross-queue serialization.
+        self.assertEqual(self.report["summary"]["outside_shared_lock"], [])
+        outside = sorted(w["id"] for w in self.report["writers"]
+                         if audit.SHARED_LOCK not in " ".join(w["concurrency"]))
+        self.assertEqual(outside, [
             "china_retirement_release.yml::release",
+            "deploy_output_only.yml::deploy",
             "indonesia_verified_official_link_production.yml::publish-indonesia-official-links",
             "korea_original_text_pages_release.yml::release-only-this-korean-original",
             "korea_reviewed_english_release.yml::owner-reviewed-korea-english-release",
@@ -69,17 +76,16 @@ class RepoInventory(unittest.TestCase):
             "ph_nsc_verified_official_link_production.yml::publish-philippines-nsc-links",
         ])
 
-    def test_known_hazards_are_reported_not_hidden(self):
-        # The unmigrated peaceiris writers keep every structural hazard visible.
-        china = self.by_id["china_focus_release.yml::release"]
-        for code in ("FULL_TREE_REPLACE", "NO_GENERATION_FENCE", "PROVENANCE_IS_TRIGGER_SHA"):
-            self.assertIn(code, china["hazards"])
-        self.assertEqual(self.by_id["desks_p4a_render_only_release.yml::release"]["class"],
-                         "overlay")
+    def test_no_writer_keeps_a_legacy_hazard(self):
+        for wid, writer in self.by_id.items():
+            self.assertEqual(writer["hazards"], [], wid)
+        desks = self.by_id["desks_p4a_render_only_release.yml::release"]
+        self.assertEqual((desks["class"], desks["overlay_paths"]),
+                         ("file-only", ["assets/flags", "desk-map.css", "desks.html"]))
 
-    def test_only_helper_publishers_have_a_generation_fence(self):
+    def test_every_writer_publishes_only_through_the_helper(self):
         fenced = sorted(w["id"] for w in self.report["writers"] if w["generation_fence"])
-        self.assertEqual(fenced, ["daily_update.yml::update", "deploy_output_only.yml::deploy"])
+        self.assertEqual(fenced, sorted(audit.REGISTRY))
         self.assertEqual(self.report["summary"]["with_generation_fence"], len(fenced))
         for w in self.report["writers"]:
             self.assertEqual("NO_GENERATION_FENCE" in w["hazards"], not w["generation_fence"],
@@ -93,10 +99,18 @@ class RepoInventory(unittest.TestCase):
         self.assertEqual(dep["checkout_ref"], "main")
         self.assertIn("main_ref_guard", dep["guards"])
 
-    def test_file_only_writers_keep_pages_cas(self):
+    def test_file_only_writers_publish_exactly_their_registered_paths(self):
+        file_only = 0
         for wid, writer in self.by_id.items():
             if writer["class"] == "file-only":
-                self.assertIn("pages_cas", writer["guards"], wid)
+                file_only += 1
+                self.assertTrue(writer["overlay_paths"], wid)
+                self.assertEqual(writer["overlay_paths"],
+                                 sorted(audit.REGISTRY[wid]["overlay"]), wid)
+                self.assertIn("main_cas", writer["guards"], wid)
+            else:
+                self.assertNotIn("overlay_paths", writer, wid)
+        self.assertEqual(file_only, 12)
 
     def test_output_is_deterministic_and_secret_free(self):
         cmd = [sys.executable, str(ROOT / "scripts" / "audit_pages_writers.py"), "--json"]
@@ -134,20 +148,21 @@ class SyntheticWorkflows(unittest.TestCase):
         self.write("overlay.yml", PEACEIRIS_JOB)
         reg = {"overlay.yml::ship": {"class": "overlay", "locks": ("daily-update",),
                                      "guards": ()}}
-        self.assertEqual(self.kinds(self.run_audit(reg)), ["SCOPE_ESCALATION"])
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["SCOPE_ESCALATION", "UNFENCED_WRITER"])
         self.write("overlay.yml", PEACEIRIS_JOB + "          keep_files: true\n")
-        self.assertEqual(self.kinds(self.run_audit(reg)), [])
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["UNFENCED_WRITER"])
 
     def test_force_orphan_is_escalation(self):
         self.write("o.yml", PEACEIRIS_JOB + "          force_orphan: true\n")
         reg = {"o.yml::ship": {"class": "full-tree", "locks": ("daily-update",), "guards": ()}}
-        self.assertEqual(self.kinds(self.run_audit(reg)), ["SCOPE_ESCALATION"])
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["SCOPE_ESCALATION", "UNFENCED_WRITER"])
 
     def test_dropped_lock_and_guard_fail(self):
         self.write("x.yml", PEACEIRIS_JOB.replace("group: daily-update", "group: elsewhere"))
         reg = {"x.yml::ship": {"class": "full-tree", "locks": ("daily-update",),
                                "guards": ("main_cas",)}}
-        self.assertEqual(self.kinds(self.run_audit(reg)), ["GUARD_DROPPED", "LOCK_DROPPED"])
+        self.assertEqual(self.kinds(self.run_audit(reg)),
+                         ["GUARD_DROPPED", "LOCK_DROPPED", "UNFENCED_WRITER"])
 
     def test_branch_push_to_gh_pages_is_file_only_writer(self):
         self.write("f.yml", PEACEIRIS_JOB.split("      - name: Deploy")[0] + """\
@@ -297,6 +312,41 @@ jobs:
         reg = {"h.yml::ship": {"class": "file-only", "locks": ("daily-update",),
                                "guards": ("main_ref_guard",)}}
         self.assertEqual(self.kinds(self.run_audit(reg)), ["GUARD_DROPPED", "SCOPE_ESCALATION"])
+
+    def test_registered_legacy_publisher_is_an_unfenced_violation(self):
+        self.write("p.yml", PEACEIRIS_JOB)
+        reg = {"p.yml::ship": {"class": "full-tree", "locks": ("daily-update",), "guards": ()}}
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["UNFENCED_WRITER"])
+        self.write("p.yml", PEACEIRIS_JOB.split("      - name: Deploy")[0]
+                   + "      - run: git push origin HEAD:gh-pages\n")
+        reg["p.yml::ship"]["class"] = "file-only"
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["UNFENCED_WRITER"])
+
+    def test_helper_overlay_is_a_file_only_writer_with_registered_paths(self):
+        self.write("o.yml", self.HELPER_JOB.replace(
+            '"$(git rev-parse HEAD)"', '"$(git rev-parse HEAD)" --overlay korea.html'))
+        reg = {"o.yml::ship": {"class": "file-only", "locks": ("daily-update",),
+                               "guards": (), "overlay": ("korea.html",)}}
+        report = self.run_audit(reg)
+        self.assertEqual(self.kinds(report), [])
+        self.assertEqual(report["writers"][0]["class"], "file-only")
+        self.assertEqual(report["writers"][0]["overlay_paths"], ["korea.html"])
+
+    def test_widened_or_changed_overlay_paths_fail(self):
+        reg = {"o.yml::ship": {"class": "file-only", "locks": ("daily-update",),
+                               "guards": (), "overlay": ("korea.html",)}}
+        self.write("o.yml", self.HELPER_JOB.replace(
+            '"$(git rev-parse HEAD)"', '"$(git rev-parse HEAD)" --overlay korea.html --overlay index2.html'))
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["OVERLAY_SCOPE_CHANGED"])
+        self.write("o.yml", self.HELPER_JOB)  # dropping --overlay widens to a full release
+        self.assertEqual(self.kinds(self.run_audit(reg)),
+                         ["OVERLAY_SCOPE_CHANGED", "SCOPE_ESCALATION"])
+
+    def test_reconcile_inside_a_workflow_fails(self):
+        self.write("r.yml", self.HELPER_JOB.replace(
+            "--push", "--push --reconcile --expect-pages " + "a" * 40))
+        reg = {"r.yml::ship": {"class": "full-tree", "locks": ("daily-update",), "guards": ()}}
+        self.assertEqual(self.kinds(self.run_audit(reg)), ["RECONCILE_IN_WORKFLOW"])
 
     def test_missing_registered_writer_is_note_not_failure(self):
         reg = {"gone.yml::ship": {"class": "full-tree", "locks": (), "guards": ()}}

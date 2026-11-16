@@ -1,11 +1,11 @@
 # GitHub Pages writer audit and stale-deploy reproduction — 2026-10-15
 
-> **Update (#725, not merged or live).** `scripts/pages_release.py` now
-> publishes Daily and `deploy_output_only` as `gh-pages == <source>:output`
-> with a `Source-SHA` trailer and a non-force fast-forward push. This replaces
-> the manifest-and-generation proposal in §4 and §5, and the statements below
-> that no writer has a fence apply to the other 20 writers only. The remaining
-> `peaceiris` and direct file-only writers are the next phase.
+> **Status (convergence, successor to #725; not merged, deployed or live).**
+> All 22 workflow writers now publish only through `scripts/pages_release.py`:
+> 10 full releases and 12 attested file-only overlays. The auditor fails CI on
+> any other publish path. §8 records the converged design, the inventory as of
+> 16 November and the cutover consequences, and supersedes §7. §1–§6 below are
+> the original audit record, kept for provenance.
 
 Issue #346 (audit phase only). Audited at `main` `7763663963`; rebased onto
 `c56d9714d0`, then merged with `d55d8e2b8b` (2026-10-16) and `35d1850371`
@@ -406,3 +406,129 @@ Each step is a separate, authorized change; none is started here.
    delta so a HOLD can be cleared by a reviewed command instead of the manual
    runbook. This is deliberately not in #725.
 6. Retire the `test_current_*` characterizations once every writer is fenced.
+
+## 8. Converged protocol (successor to #725, 2026-11-16)
+
+Base: `main` `d9611fe3f8`, with #725 head `b2acf117` merged. Nothing here is
+merged, deployed or live.
+
+### 8.1 Inventory at the base
+
+The static scan of 241 workflow files finds the same 22 writer jobs as #725's
+registry. The 14 other workflows that mention gh-pages only read it: deployed
+readbacks, health checks, preflights and contract tests. No script pushes it.
+The repository Pages source is the legacy `gh-pages` branch (`/`) with
+`indopacificrecord.org`. The branch has no protection rule.
+
+Classified by what actually ran (gh-pages history since 15 August):
+
+| Writer | Kind after this change | Activity |
+|---|---|---|
+| `daily_update` | full | 86 deploys; daily |
+| `deploy_output_only` | full (main only) | 27; manual |
+| `korea_verified_official_link_production` | overlay `korea.html` | 42; scheduled + push |
+| `ph_afp_verified_official_link_production` | overlay `philippines.html` | 25; scheduled + push |
+| `indonesia_verified_official_link_production` | overlay `indonesia.html` | 21; scheduled + push |
+| `korea_standing_original_text_production` | overlay `korea.html`, `korea-originals` | 14; scheduled + push |
+| `briefs_render_only_release` | full | 4; reviewed dispatch |
+| `korea_reviewed_english_release` | overlay `korea.html`, `korea-translations`, `korea-analysis` | 3; reviewed dispatch |
+| `ph_nsc_verified_official_link_production` | overlay `philippines.html` | 3; dispatch |
+| `us_bis_verified_official_links_release` | overlay `us-indopacific.html` | 2 |
+| `us_pacom_pages_file_only_release` | overlay `us-indopacific.html` | 2 |
+| `korea_original_text_pages_release` | overlay `korea.html`, `korea-originals` | 1; owner-approved dispatch |
+| `korea_pages_file_only_release` | overlay `korea.html` | 1 |
+| `vietnam_ministry_shadow::reviewed-release` | overlay `vietnam.html` | 1; inert until released |
+| `china_retirement_release`, `china_focus_release`, `country_research_render_only_release`, `indonesia_official_links_release`, `indonesia_press_links_release` | full | one-off releases |
+| `china_retirement_pages_retry` | full | never run in window |
+| `desks_p4a_render_only_release` | overlay `desks.html`, `desk-map.css`, `assets/flags` (was `keep_files`) | none in window |
+| `korea_public_bibliography_release::release` | full | **retired** (`if: false`) |
+
+Writers outside workflow text: **owner-local pushes**. There were 22 in the
+window, the latest on 12 November (social card). These are human-controlled
+editorial releases. They are not fenced by any code, and now they make the
+next automated release HOLD instead of being silently overwritten (§8.4).
+
+### 8.2 Gaps in #725 that this closes
+
+1. **Partial migration.** Before this change, 20 writers bypassed the helper.
+   Every file-only push created a tip that matched no `main:output` whenever
+   main was ahead of Pages, so Daily went red. A stale peaceiris writer could
+   still roll Pages back.
+2. **Erasure of a newer file-only release.** #725's full release made Pages
+   exactly `S:output`. A Korea release that landed after Daily rendered `S`
+   was therefore reverted. Now newer overlays are recorded and re-applied.
+3. **Mixed-generation attribution.** #725 attributed a tip through one
+   `Source-SHA`. A tip composed of a base plus file-only releases could not be
+   represented. Now the full state is in each commit and is checked
+   tree-for-tree.
+4. **Attestation on identical trees.** When `S`'s tree equalled the live tree,
+   #725 pushed nothing. An intermediate older source could then republish
+   reverted content. Now a full release still advances the attested base.
+5. **Domain.** peaceiris's `cname:` input was the only domain guard. Now the
+   helper refuses any tree whose `CNAME` is not `indopacificrecord.org`.
+6. **Reconcile.** The hand-typed `commit-tree` runbook (§7.2) is replaced by
+   `--reconcile --expect-pages <tip>`. It is reviewable as a dry run, records
+   `Reconciled-Pages-SHA`, and is refused inside workflows by the auditor.
+7. **Credentials.** A writer whose checkout does not persist credentials passes
+   `PAGES_RELEASE_TOKEN`. The helper scopes the token to its own fetch/push
+   through `GIT_CONFIG_*` and never writes it to `.git/config`.
+
+### 8.3 Safety properties (each pinned in `tests/test_pages_release_convergence.py` against the real helper)
+
+- A stale manual deploy after Daily is `superseded`; Pages is unchanged.
+- Daily releasing `D` after a newer Korea overlay `K` publishes `D`'s changes
+  and keeps `K`'s file. The next full release from a descendant of `K` drops
+  the overlay.
+- A stale overlay after a newer full release, or after a newer overlay of the
+  same path, is `superseded`.
+- An overlay never publishes other `main:output` changes. Daily's validator
+  hold on a failing tree is therefore preserved.
+- A directory overlay mirrors exactly. A withdrawn or held file is deleted.
+- Concurrent disjoint overlays both land: the loser's fast-forward is rejected,
+  and it re-evaluates.
+- A full release racing a newer overlay re-applies it.
+- An out-of-band push mid-release holds and is never overwritten.
+- A persistent push failure holds with no partial write.
+- A push that landed but reported failure is evaluated as `current` and is
+  not pushed twice.
+- A missing success marker: the rerun is `current` and nothing is redeployed.
+- Unauthorized rollback to an older source, full or overlay, is `superseded`.
+- A legitimate rollback (a revert on main) publishes forward.
+- An attestation-only commit stops an older intermediate source from undoing
+  a revert.
+- An out-of-band change holds. Reconcile requires the exact tip and releases
+  only the main tip.
+- A tampered state claim (copied trailers on a different tree) holds.
+- A source not on main holds.
+- A wrong CNAME holds.
+
+### 8.4 Remaining holds and limits
+
+- **Owner-local pushes.** Any direct push to gh-pages makes all writers HOLD
+  until it is reconciled. Reconcile publishes main's `output/`, so Pages-only
+  content is removed unless it was first committed to `main:output`. Whether
+  scoped owner releases should instead go through `--overlay` is a founder
+  decision (it changes the human editorial release path).
+- **Identical overlays** (same bytes) push no attestation commit. Only a
+  change-and-revert of that exact path, plus a stale job that already passed
+  its own main-tip check, could republish the intermediate bytes. Accepted as
+  residual.
+- **Branch protection is absent.** The helper detects out-of-band writes; it
+  cannot prevent them.
+- **In-flight runs.** A run that started on old workflow text keeps that text.
+  Its legacy push lands as an unattested tip. The next helper release then
+  either attributes it by tree match or HOLDs.
+
+### 8.5 Deployment consequences of merging
+
+Merging changes these workflow files, which match these workflows' own
+push-path filters, so each starts a production run on merge:
+`korea_verified_official_link_production`, `korea_standing_original_text_production`,
+`indonesia_verified_official_link_production`, `ph_afp_verified_official_link_production`,
+`korea_pages_file_only_release`, `indonesia_official_links_release`,
+`indonesia_press_links_release` and `korea_public_bibliography_release` (whose
+release job stays `if: false`). These are the existing idempotent
+reconciliation paths. Under the helper they serialize through the Pages
+compare-and-swap. The first one meets a legacy tip: today
+`gh-pages == main:output` exactly, so it attributes by tree match. If Pages
+has drifted by then, each run HOLDs (red, publication only) until reconciled.

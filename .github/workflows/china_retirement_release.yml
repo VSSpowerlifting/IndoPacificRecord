@@ -230,17 +230,13 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Archive: retire 4400 China records with permanent URL tombstones'
           git push origin HEAD:main
+      # Attested release (scripts/pages_release.py, #346): Pages becomes this
+      # commit's main:output plus any newer file-only releases; a stale source
+      # is a no-op and an out-of-band Pages state HOLDs (never overwritten).
       - name: Deploy full surviving archive and preserved editorial pages
         if: inputs.publish
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
-          publish_branch: gh-pages
-          cname: indopacificrecord.org
-          user_name: github-actions[bot]
-          user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          commit_message: 'Release China active archive retirement ${{ github.run_id }}'
+        run: |
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --subject "Release China active archive retirement ${{ github.run_id }}" --writer "china_retirement_release ${{ github.run_id }}"
       - name: Authenticate deployed Pages branch by full Git byte readback
         if: inputs.publish
         run: |

@@ -194,29 +194,27 @@ jobs:
           path: bis-existing-pages
           fetch-depth: 0
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish ONLY U.S. Desk HTML with exact Git readback
         shell: bash
         run: |
           set -euo pipefail
           sha256sum -c "$RUNNER_TEMP/bis-page.sha"
-          git fetch --quiet origin main
-          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)"
-          cd bis-existing-pages
-          test -z "$(git status --porcelain --untracked-files=all)"
-          before="$(git rev-parse HEAD)"
-          cp ../output/us-indopacific.html us-indopacific.html
-          cmp ../output/us-indopacific.html us-indopacific.html
-          git add -- us-indopacific.html
-          changed="$(git diff --cached --name-only)"
-          test -z "$changed" || test "$changed" = "us-indopacific.html"
-          if test -n "$changed"; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m "BIS: publish verified U.S. Desk official references only"
-          fi
-          git fetch --quiet origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$before"
-          if test -n "$changed"; then git push origin HEAD:refs/heads/gh-pages; fi
-          cmp ../output/us-indopacific.html us-indopacific.html
-          test "$(git show HEAD:us-indopacific.html | sha256sum | cut -d' ' -f1)" = \
-               "$(sha256sum ../output/us-indopacific.html | cut -d' ' -f1)"
+          # Always reconcile Pages, even if an earlier attempt pushed main and
+          # then failed before gh-pages: this is the unattended retry path.
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" || {
+            echo "::error::Main changed since this U.S. Desk page was rendered"
+            exit 1
+          }
+          # The helper publishes the committed blob: it must be the validated file.
+          git show HEAD:output/us-indopacific.html | cmp - output/us-indopacific.html
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay us-indopacific.html --subject "BIS: publish verified U.S. Desk official references only" --writer "us_bis_verified_official_links_release ${{ github.run_id }}"
+          # Read back the attested Pages tip into the existing Pages checkout.
+          git -C bis-existing-pages fetch --quiet origin gh-pages
+          git -C bis-existing-pages checkout --quiet --detach FETCH_HEAD
+          cmp output/us-indopacific.html bis-existing-pages/us-indopacific.html
+          test "$(git -C bis-existing-pages show HEAD:us-indopacific.html | sha256sum | cut -d' ' -f1)" = \
+               "$(sha256sum output/us-indopacific.html | cut -d' ' -f1)"

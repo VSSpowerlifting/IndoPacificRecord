@@ -210,6 +210,9 @@ jobs:
           path: philippines-existing-pages
           fetch-depth: 0
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish only Philippines HTML to existing Pages branch
         shell: bash
         run: |
@@ -222,28 +225,13 @@ jobs:
             echo "::error::Main changed since this Philippines page was rendered"
             exit 1
           }
+          # The helper publishes the committed blob: it must be the validated file.
           git show HEAD:output/philippines.html | cmp - output/philippines.html
-          cd philippines-existing-pages
-          test -z "$(git status --porcelain --untracked-files=all)"
-          pages_old="$(git rev-parse HEAD)"
-          cp ../output/philippines.html philippines.html
-          git add -- philippines.html
-          staged="$(git diff --cached --name-only)"
-          test -z "$staged" || test "$staged" = "philippines.html"
-          if [ -n "$staged" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "Philippines: publish verified AFP outbound links only"
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$pages_old" || {
-            echo "::error::Pages moved; never overwrite a concurrent release"
-            exit 1
-          }
-          if [ -n "$staged" ]; then
-            git push origin HEAD:gh-pages
-          fi
-          test -z "$(git status --porcelain --untracked-files=all)"
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay philippines.html --subject "Philippines: publish verified AFP outbound links only" --writer "ph_afp_verified_official_link_production ${{ github.run_id }}"
+          # Read back the attested Pages tip into the existing Pages checkout.
+          git -C philippines-existing-pages fetch --quiet origin gh-pages
+          git -C philippines-existing-pages checkout --quiet --detach FETCH_HEAD
+          cmp output/philippines.html philippines-existing-pages/philippines.html
       - name: Independent readback of committed and deployed bytes
         shell: bash
         run: |

@@ -150,34 +150,20 @@ jobs:
           path: korea-existing-pages
           fetch-depth: 0
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish only the verified Korea HTML, preserving all other Pages files
         shell: bash
         run: |
           set -euo pipefail
           sha256sum -c "$RUNNER_TEMP/korea-output-page.sha"
-          cd korea-existing-pages
-          test -z "$(git status --porcelain --untracked-files=all)"
-          pages_old="$(git rev-parse HEAD)"
-          cp ../output/korea.html korea.html
-          cmp -s ../output/korea.html korea.html
-          git add -- korea.html
-          staged="$(git diff --cached --name-only)"
-          test -z "$staged" || test "$staged" = "korea.html" || {
-            echo "::error::Attempted to stage another Pages file"; exit 1;
-          }
-          if [ -n "$staged" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "Korea: add nine official MND outbound links only"
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$pages_old" || {
-            echo "::error::Pages moved; refuse a stale or broader overwrite"; exit 1;
-          }
-          if [ -n "$staged" ]; then
-            git push origin HEAD:gh-pages
-          fi
-          test -z "$(git status --porcelain --untracked-files=all)"
-          echo "Korea file-only Pages branch publication complete."
+          # The helper publishes the committed blob: it must be the validated file.
+          git show HEAD:output/korea.html | cmp - output/korea.html
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay korea.html --subject "Korea: add nine official MND outbound links only" --writer "korea_pages_file_only_release ${{ github.run_id }}"
+          # Read back the attested Pages tip into the existing Pages checkout.
+          git -C korea-existing-pages fetch --quiet origin gh-pages
+          git -C korea-existing-pages checkout --quiet --detach FETCH_HEAD
+          cmp output/korea.html korea-existing-pages/korea.html
 # Never run the full-tree peaceiris publish_dir upload, force-push, rewrite
 # historical source evidence, fetch a Korean publisher or admit production.

@@ -56,4 +56,5 @@ jobs:
       # serves a newer generation this is a no-op; if gh-pages was changed
       # outside a release the step HOLDs (exit 3) instead of overwriting it.
       - name: Release output/ to GitHub Pages
-        run: python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --writer "deploy_output_only ${{ github.run_id }}"
+        run: |
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --writer "deploy_output_only ${{ github.run_id }}"

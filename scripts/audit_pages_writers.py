@@ -1,7 +1,7 @@
 """Read-only inventory and ratchet for every GitHub Pages (gh-pages) writer.
 
-Issue #346. This is an AUDIT, not a fix: it never fetches, pushes, renders or
-edits anything. It parses workflow YAML text (standard library only, so it
+Issue #346. It never fetches, pushes, renders or edits anything. The fix is
+``scripts/pages_release.py``; this ratchet keeps every writer on it. It parses workflow YAML text (standard library only, so it
 runs on the CI runner's Python 3.9 without PyYAML) and, in the optional
 ``--git-evidence`` mode, reads local refs that the caller already fetched.
 
@@ -14,14 +14,16 @@ What it does
   its concurrency groups (workflow and job level both apply), its checkout ref,
   and which freshness guards appear (main CAS, approved SHA, Pages CAS,
   staged-path scope, main-branch guard).
-* Compares the observations with ``REGISTRY``. It fails (exit 1) only on:
+* Compares the observations with ``REGISTRY``. It fails (exit 1) on:
   an unregistered writer, a push whose target cannot be resolved, a scope
   escalation (file-only -> overlay -> full-tree, force, orphan), a dropped
-  concurrency lock or a dropped guard. Other differences are reported, not
-  failed, so desk teams can keep editing their own workflows.
-* Reports structural hazards (``HAZARDS``). Those are findings for the
-  handoff. They are deliberately NOT failures: the race is not fixed, and
-  this tool must not pretend otherwise.
+  concurrency lock or guard, any writer that publishes other than through
+  ``scripts/pages_release.py --push`` (``UNFENCED_WRITER``), a file-only
+  writer whose ``--overlay`` paths differ from its registered set
+  (``OVERLAY_SCOPE_CHANGED``), and ``--reconcile`` in a workflow (an operator
+  action only). Other differences are reported, not failed.
+* Reports structural hazards (``HAZARDS``) for any unfenced writer. Owner-local
+  and web pushes are invisible to workflow text; the helper HOLDs on them.
 
 Where it blocks
 ---------------
@@ -62,7 +64,10 @@ DEFER_ENV = "IPR_DEFER_PAGES_WRITER_AUDIT"
 # id = "<workflow file>::<job id>". ``locks`` are concurrency-group literals
 # that must remain present (workflow- or job-level). ``guards`` must remain
 # present. Adding a writer means adding an entry here in a reviewed PR.
-_FC = ("main_cas", "pages_cas", "staged_scope")  # file-only compare-and-swap set
+# File-only writers no longer carry their own gh-pages CAS: the helper's
+# fast-forward push from the attested tip is the compare-and-swap, so
+# ``pages_cas`` left their registered guards when they migrated (#346).
+_FC = ("main_cas", "staged_scope")
 REGISTRY = {
     "briefs_render_only_release.yml::publish": {
         "class": "full-tree", "locks": (SHARED_LOCK,),
@@ -90,8 +95,9 @@ REGISTRY = {
     "deploy_output_only.yml::deploy": {
         "class": "full-tree", "locks": ("pages-deploy",), "guards": ("main_ref_guard",)},
     "desks_p4a_render_only_release.yml::release": {
-        "class": "overlay", "locks": (SHARED_LOCK, "pages-deploy"),
-        "guards": ("approved_sha", "main_cas", "main_ref_guard")},
+        "class": "file-only", "locks": (SHARED_LOCK, "pages-deploy"),
+        "guards": ("approved_sha", "main_cas", "main_ref_guard"),
+        "overlay": ("assets/flags", "desk-map.css", "desks.html")},
     "indonesia_official_links_release.yml::publish": {
         "class": "full-tree", "locks": (SHARED_LOCK,),
         "guards": ("main_cas", "main_ref_guard")},
@@ -101,40 +107,43 @@ REGISTRY = {
     # Own queue so a shared daily-update pending slot cannot replace it.
     "indonesia_verified_official_link_production.yml::publish-indonesia-official-links": {
         "class": "file-only", "locks": ("indonesia-verified-official-link-production",),
-        "guards": _FC + ("main_ref_guard",)},
+        "guards": _FC + ("main_ref_guard",), "overlay": ("indonesia.html",)},
     "korea_original_text_pages_release.yml::release-only-this-korean-original": {
         "class": "file-only", "locks": ("korea-verified-official-link-production",),
-        "guards": ("main_cas", "pages_cas", "main_ref_guard")},
+        "guards": ("main_cas", "main_ref_guard"), "overlay": ("korea-originals", "korea.html")},
     "korea_reviewed_english_release.yml::owner-reviewed-korea-english-release": {
         "class": "file-only", "locks": ("korea-verified-official-link-production",),
-        "guards": ("main_cas", "pages_cas", "main_ref_guard")},
+        "guards": ("main_cas", "main_ref_guard"),
+        "overlay": ("korea-analysis", "korea-translations", "korea.html")},
     "korea_standing_original_text_production.yml::publish-future-original-korean-text": {
         "class": "file-only", "locks": ("korea-verified-official-link-production",),
-        "guards": ("main_cas", "pages_cas", "main_ref_guard")},
+        "guards": ("main_cas", "main_ref_guard"), "overlay": ("korea-originals", "korea.html")},
     "korea_pages_file_only_release.yml::korea-pages-file-only-release": {
-        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC},
+        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC, "overlay": ("korea.html",)},
     "korea_public_bibliography_release.yml::release": {
         "class": "full-tree", "locks": (SHARED_LOCK,),
         "guards": ("main_cas", "staged_scope")},
     # Intentionally outside daily-update (tests/test_korea_release_concurrency).
     "korea_verified_official_link_production.yml::publish-korea-official-links": {
         "class": "file-only", "locks": ("korea-verified-official-link-production",),
-        "guards": _FC + ("main_ref_guard",)},
+        "guards": _FC + ("main_ref_guard",), "overlay": ("korea.html",)},
     # AFP and NSC share one Philippines queue, outside daily-update.
     "ph_afp_verified_official_link_production.yml::publish-philippines-official-links": {
         "class": "file-only", "locks": ("philippines-verified-official-link-production",),
-        "guards": _FC + ("main_ref_guard",)},
+        "guards": _FC + ("main_ref_guard",), "overlay": ("philippines.html",)},
     "ph_nsc_verified_official_link_production.yml::publish-philippines-nsc-links": {
         "class": "file-only", "locks": ("philippines-verified-official-link-production",),
-        "guards": _FC + ("main_ref_guard",)},
+        "guards": _FC + ("main_ref_guard",), "overlay": ("philippines.html",)},
     "us_bis_verified_official_links_release.yml::genuine-scheduled-source-only": {
-        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC},
+        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC,
+        "overlay": ("us-indopacific.html",)},
     "us_pacom_pages_file_only_release.yml::us-pacom-pages-file-only-release": {
-        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC},
+        "class": "file-only", "locks": (SHARED_LOCK,), "guards": _FC,
+        "overlay": ("us-indopacific.html",)},
     # Inert until owner release; its sibling shadow job pushes only shadow/ state.
     "vietnam_ministry_shadow.yml::reviewed-release": {
         "class": "file-only", "locks": (SHARED_LOCK, "vietnam-ministry-shadow"),
-        "guards": ("main_cas", "main_ref_guard", "pages_cas")},
+        "guards": ("main_cas", "main_ref_guard"), "overlay": ("vietnam.html",)},
 }
 # Scripts allowed to combine a push with gh-pages.
 HELPER = "scripts/pages_release.py"
@@ -341,7 +350,19 @@ def audit_workflow(path):
                         details["force_push"] = True
             if _HELPER_RE.search(line):
                 signals.append("script:pages_release")
-                cls = cls or "full-tree"
+                try:
+                    words = shlex.split(line.strip())
+                except ValueError:
+                    words = []
+                paths = [words[k + 1] for k, w in enumerate(words[:-1]) if w == "--overlay"]
+                if "--reconcile" in words or "--expect-pages" in words:
+                    problems.append({"kind": "RECONCILE_IN_WORKFLOW",
+                                     "where": "%s:%d" % (name, lineno), "job": job})
+                if paths:
+                    details.setdefault("overlay_paths", []).extend(paths)
+                helper_cls = "file-only" if paths else "full-tree"
+                if cls is None or _CLASS_RANK[helper_cls] > _CLASS_RANK[cls]:
+                    cls = helper_cls
                 publish_line = publish_line or (start + offset)
             if _API_WRITE_RE.search(line) and re.search(r"gh-pages|/pages\b|git/refs", line):
                 signals.append("gh-api-write")
@@ -349,6 +370,8 @@ def audit_workflow(path):
                 publish_line = publish_line or (start + offset)
         if not signals:
             continue
+        if "overlay_paths" in details:
+            details["overlay_paths"] = sorted(set(details["overlay_paths"]))
         guards = _guards(job_lines)
         before = [l for l in lines[start:publish_line]] if publish_line else []
         fresh = bool(_guards([_code(l) for l in before]) & {"main_cas", "approved_sha"})
@@ -430,6 +453,15 @@ def compare(writers, registry):
         for guard in entry["guards"]:
             if guard not in writer["guards"]:
                 problems.append({"kind": "GUARD_DROPPED", "where": wid, "guard": guard})
+        # Every writer must publish only through the attested helper (#346).
+        if not writer["generation_fence"]:
+            problems.append({"kind": "UNFENCED_WRITER", "where": wid,
+                             "signals": writer["signals"]})
+        observed = tuple(writer.get("overlay_paths", ()))
+        if observed != tuple(sorted(entry.get("overlay", ()))):
+            problems.append({"kind": "OVERLAY_SCOPE_CHANGED", "where": wid,
+                             "registered": sorted(entry.get("overlay", ())),
+                             "observed": list(observed)})
     for wid in sorted(set(registry) - set(seen)):
         notes.append({"kind": "REGISTERED_WRITER_NOT_FOUND", "where": wid})
     return problems, notes
@@ -559,8 +591,9 @@ def _text(report):
             {k: v for k, v in p.items() if k != "kind"}, sort_keys=True)))
     for n in report["notes"]:
         out.append("note %s %s" % (n["kind"], n["where"]))
-    out.append("Writers with a generation fence: %d of %d. Writers without one remain "
-               "exposed to the stale-deploy race; passing this audit does not close it."
+    out.append("Writers publishing only through scripts/pages_release.py: %d of %d. "
+               "Out-of-band pushes (owner-local, web) are outside workflow text; the "
+               "helper HOLDs on them rather than overwriting."
                % (report["summary"]["with_generation_fence"], report["summary"]["writers"]))
     return "\n".join(out)
 

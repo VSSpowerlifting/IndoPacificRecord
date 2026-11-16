@@ -225,41 +225,28 @@ jobs:
           path: korea-existing-pages
           fetch-depth: 0
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish only Korea HTML to existing Pages branch
         shell: bash
         run: |
           set -euo pipefail
           sha256sum -c "$RUNNER_TEMP/korea-prod-page-sha"
-          # Always reconcile Pages, even if an earlier attempt committed the
-          # DB/page to main then failed BEFORE updating gh-pages. This is the
-          # essential retry/recovery guarantee for an unattended release.
+          # Always reconcile Pages, even if an earlier attempt pushed main and
+          # then failed before gh-pages: this is the unattended retry path.
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" || {
             echo "::error::Main changed since this Korea page was rendered"
             exit 1
           }
-          cd korea-existing-pages
-          test -z "$(git status --porcelain --untracked-files=all)"
-          pages_old="$(git rev-parse HEAD)"
-          cp ../output/korea.html korea.html
-          cmp ../output/korea.html korea.html
-          git add -- korea.html
-          staged="$(git diff --cached --name-only)"
-          test -z "$staged" || test "$staged" = "korea.html"
-          if [ -n "$staged" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "Korea: publish newly verified MND outbound links only"
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$pages_old" || {
-            echo "::error::Pages moved; never overwrite a concurrent release"
-            exit 1
-          }
-          if [ -n "$staged" ]; then
-            git push origin HEAD:gh-pages
-          fi
-          test -z "$(git status --porcelain --untracked-files=all)"
+          # The helper publishes the committed blob: it must be the validated file.
+          git show HEAD:output/korea.html | cmp - output/korea.html
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay korea.html --subject "Korea: publish newly verified MND outbound links only" --writer "korea_verified_official_link_production ${{ github.run_id }}"
+          # Read back the attested Pages tip into the existing Pages checkout.
+          git -C korea-existing-pages fetch --quiet origin gh-pages
+          git -C korea-existing-pages checkout --quiet --detach FETCH_HEAD
+          cmp output/korea.html korea-existing-pages/korea.html
 
 # Original bytes remain in their independently preserved source branch and
 # owner-controlled custody. No source artifact upload, bulk site push,

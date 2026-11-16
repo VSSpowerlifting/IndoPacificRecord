@@ -300,8 +300,8 @@ class ConcurrencyAndRecoveryTests(Base):
         real = pr._commit
         fired = []
 
-        def commit_then_race(repo, plan, writer):
-            commit = real(repo, plan, writer)
+        def commit_then_race(repo, plan, writer, subject=None):
+            commit = real(repo, plan, writer, subject)
             if not fired:
                 fired.append(True)
                 with mock.patch.dict(os.environ, ENV):
@@ -508,13 +508,15 @@ class CliTests(Base):
         with mock.patch.dict(os.environ, {"GITHUB_OUTPUT": str(gh_out)}):
             self.assertEqual(self.run_cli("--push")[0], 0)
             self.assertEqual(self.run_cli("--push")[0], 0)   # now current
-        self.assertEqual(gh_out.read_text().split(), ["action=publish", "action=current"])
+        actions = [l for l in gh_out.read_text().split() if l.startswith("action=")]
+        self.assertEqual(actions, ["action=publish", "action=current"])
         self.push_pages_directly({"x.html": b"x"})
         self.m.write("index.html", b"<h1>three</h1>")
         self.m.commit("v3")
         with mock.patch.dict(os.environ, {"GITHUB_OUTPUT": str(gh_out)}):
             self.assertEqual(self.run_cli("--push")[0], 3)
-        self.assertEqual(gh_out.read_text().split()[-1], "action=hold")
+        actions = [l for l in gh_out.read_text().split() if l.startswith("action=")]
+        self.assertEqual(actions[-1], "action=hold")
 
 
 if __name__ == "__main__":

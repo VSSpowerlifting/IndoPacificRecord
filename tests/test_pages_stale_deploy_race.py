@@ -175,7 +175,7 @@ class RaceCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, True)
         self.box = GitSandbox(self.tmp)
         self.box.seed({"index.html": "home v1", "korea.html": "korea v1",
-                       "desks.html": "desks v1", "CNAME": "example.invalid\n",
+                       "desks.html": "desks v1", "CNAME": "indopacificrecord.org\n",
                        ".nojekyll": ""})
 
 

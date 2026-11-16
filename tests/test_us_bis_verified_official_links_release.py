@@ -43,9 +43,11 @@ class VerifiedBISPublicationContracts(unittest.TestCase):
     def test_only_us_desk_and_live_sqlite_published(self):
         self.assertIn("group: daily-update",self.wf)
         self.assertIn("git add -- pla_watch.db output/us-indopacific.html",self.wf)
-        self.assertIn("cp ../output/us-indopacific.html us-indopacific.html",self.wf)
-        self.assertIn("test \"$changed\" = \"us-indopacific.html\"",self.wf)
-        self.assertIn("git push origin HEAD:refs/heads/gh-pages",self.wf)
+        # Pages: one attested file-only release of the U.S. Desk page (#346).
+        self.assertIn("--overlay us-indopacific.html --subject",self.wf)
+        self.assertEqual(self.wf.count(" --overlay "),1)
+        self.assertIn("git show HEAD:output/us-indopacific.html | cmp - output/us-indopacific.html",self.wf)
+        self.assertNotIn("refs/heads/gh-pages",self.wf)
         self.assertIn("source-free-release-contracts:",self.wf)
         self.assertIn("genuine-scheduled-source-only:",self.wf)
         self.assertNotIn("deploy_output_only",self.wf)
@@ -72,8 +74,10 @@ class VerifiedBISPublicationContracts(unittest.TestCase):
         self.assertLess(
             self.wf.index("git fetch --quiet origin main"),
             self.wf.index("git push origin HEAD:refs/heads/main"))
-        self.assertIn("git fetch --quiet origin gh-pages",self.wf)
-        self.assertIn("test \"$(git rev-parse origin/gh-pages)\" = \"$before\"",self.wf)
+        # The Pages compare-and-swap is the helper's fast-forward, after main.
+        self.assertLess(
+            self.wf.index("git push origin HEAD:refs/heads/main"),
+            self.wf.index("scripts/pages_release.py --push"))
 
     def test_site_renderer_only_reads_authenticated_bis(self):
         generator=(ROOT/"site/preview/generate_preview.py").read_text(encoding="utf-8")
