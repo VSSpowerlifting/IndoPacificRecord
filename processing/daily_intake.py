@@ -251,8 +251,17 @@ def english_official_quality(record, reading):
             need(number in source_numbers, "daily_quantity_or_date_unsupported")
         # Exact proper-name/office/rank components must occur in source evidence.
         institutional_words = set(daily.publisher.split())
+        dateline_words = set()
+        # AFP sometimes prints a place in all caps at the start of a dateline.
+        # Allow title case only when the full place occurs in the cited span.
+        if daily.family == "ph_afp_articles":
+            dateline = re.match(r"[A-Z]+(?: [A-Z]+)+(?=,)", evidence)
+            if dateline:
+                place = dateline.group().title()
+                if re.search(r"\b" + re.escape(place) + r"\b", sentence):
+                    dateline_words.update(place.split())
         for token in re.findall(r"\b[A-Z][A-Za-z'-]+\b", sentence):
-            if token not in {"The", "According", "It", "This", attribution} | institutional_words:
+            if token not in {"The", "According", "It", "This", attribution} | institutional_words | dateline_words:
                 need(token in evidence, "daily_name_or_office_unsupported")
         for word in ("completed", "delivered", "signed", "acquired", "agreed", "deployed"):
             if re.search(r"\b" + word + r"\b", sentence, re.I):
