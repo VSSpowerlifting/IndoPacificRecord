@@ -4,7 +4,7 @@
   "manuscript_sha256": "8e6062d964113f4da2ee0bfa44ea54901b8e4d473fdf961eb005f071b0bded74",
   "publication": "Indo-Pacific Record",
   "publication_timing": "regular",
-  "author_name": "Byline unassigned (founder decision)",
+  "author_name": "Benjamin Yang",
   "collection": "Indo-Pacific Record Briefs",
   "brief_schema": 1,
   "evidence_type": "source-linked-editorial-v1",
@@ -412,6 +412,12 @@
         "s10",
         "s8"
       ]
+    }
+  ],
+  "editorial_credits": [
+    {
+      "role": "Editing",
+      "name": "Dylan Tanzi"
     }
   ]
 }
