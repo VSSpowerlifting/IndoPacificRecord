@@ -18,7 +18,7 @@
 <section class="home-open{% if hero %} home-open--photo{% endif %}" aria-labelledby="home-title">
   <div class="home-stage">
   {% if hero %}{% set ph = hero.photo %}
-  <div class="home-photo" data-treatment="{{ ph.cover_treatment or 'gradient' }}">
+  <div class="home-photo" data-treatment="{{ ph.cover_treatment }}">
     <picture>
       <source type="image/webp" srcset="{% for v in hero.webp %}{{ v.route }} {{ v.width }}w{{ ', ' if not loop.last }}{% endfor %}" sizes="100vw">
       <img src="{{ hero.src.route }}" width="{{ hero.src.width }}" height="{{ hero.src.height }}" alt="{{ ph.alt }}" aria-describedby="home-photo-credit" fetchpriority="high" decoding="async"{% if ph.focal %} style="object-position:{{ ph.focal }}"{% endif %}>

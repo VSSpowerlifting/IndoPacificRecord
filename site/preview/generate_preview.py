@@ -1438,6 +1438,12 @@ def home_hero(collection, catalogue_media, admissions, repo_root=None):
     media = catalogue_media.get(entry.get("slug"))
     if not media or not media.is_photograph:
         return None
+    # The opening needs the gradient for the claim and search to stay legible,
+    # and the credit must name every change IPR made. Only a photograph whose
+    # recorded treatment IS the gradient (and so whose credit discloses it) can
+    # open the page; any other treatment falls back to plain navy.
+    if (media.photo or {}).get("cover_treatment") != "gradient":
+        return None
     cover = article_cover(entry, repo_root or REPO_ROOT, admissions=admissions)
     if not cover:
         return None
