@@ -446,14 +446,29 @@ class TestReviewedHome(HomeCase):
                          'Search record titles, in English or the original language')
         self.assertIn('a link to the original', flat(soup.select_one('dl.home-legend')))
         self.assertIn('Coverage is selective', flat(soup.select_one('.footer-standing')))
-        self.assertIn('most of them from Chinese sources',
-                      flat(soup.select_one('.home-desks-note')))
+        # Desks with no public records are named once, each with its
+        # registry state verbatim, never drawn as an empty row.
+        empty = soup.select_one('.home-desks-empty')
+        from core.desk_registry import load_registry
+        for entry in load_registry().public_entries:
+            held = any(r.get('desk_id') == entry.slug for r in self.data['corpus'])
+            with self.subTest(desk=entry.slug):
+                if held:
+                    self.assertNotIn(entry.name, flat(empty))
+                else:
+                    self.assertIn('%s (%s)' % (entry.name, entry.status_label), flat(empty))
+                    self.assertIsNotNone(empty.select_one('a[href="%s"]' % entry.route))
 
     def test_latest_rows_keep_governed_titles_languages_and_links(self):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.home, 'html.parser')
+        # One row per desk that holds public records, in registry order:
+        # the first row of that desk's own page (desk_front_rows).
         rows = soup.select('.home-newest .record-row')
-        self.assertEqual(len(rows), HOME_RECORDS)
+        held = [d for d in self.view.desk_directory() if d.record_count]
+        self.assertEqual(len(rows), len(held))
+        self.assertEqual([c.a.get_text(strip=True) for c in soup.select('.home-newest .desk-cell')],
+                         [d.name for d in held])
         by_id = {r['id']: r for r in self.data['corpus']}
         for row in rows:
             link = row.select_one('h3 a')
@@ -463,7 +478,10 @@ class TestReviewedHome(HomeCase):
             self.assertEqual(link.get_text(' ', strip=True),
                              governed['title_english'] or governed['title_original'])
             original = row.select_one('.original')
-            paired = bool(governed['title_english'] and governed['title_original'].strip()
+            # Vietnam records publish no original title (public_title_display
+            # is false), so a missing original is never paired.
+            paired = bool(governed['title_english'] and governed['title_original']
+                          and governed['title_original'].strip()
                           != governed['title_english'].strip())
             self.assertEqual(original is not None, paired)
             if paired:
@@ -473,9 +491,9 @@ class TestReviewedHome(HomeCase):
                 self.assertEqual(row.h3.get('lang'),
                                  (governed['language_tag'] or None)
                                  if not governed['title_english'] else None)
-            # The date a row stands under is the source-stated one.
-            day = row.find_parent(class_='records-day')
-            self.assertEqual(day.select_one('time')['datetime'], governed['published_date'])
+            # The date in the row's meta line is the source-stated one.
+            self.assertEqual(row.select_one('.row-side time')['datetime'],
+                             governed['published_date'])
         # The record the page opens on exercises the translated title pair
         # even when every newest arrival has only an original title.
         selected = soup.select_one('.home-open .specimen')
