@@ -9,7 +9,9 @@ For the active `site/preview/` renderer, DESIGN_SYSTEM.md "Parallel text
 identity" supersedes two treatments described below:
 
 - **Abstract page terrain (§1).** Active pages no longer paint or animate the
-  contour field. The page ground is plain paper.
+  contour field, and `<main>` no longer carries the `--topo-*` inline style;
+  `topography.css` and `_terrain.html` are retired. The page ground is plain
+  paper. (`core/topography.py` stays for the historical renderers.)
 - **Opening title (§1.1).** The homepage no longer loads `intro.js`. The
   script, its WebGL ocean and `tests/test_homepage_intro.py` are removed. The
   homepage opens directly on one real record set as parallel text.
@@ -19,8 +21,14 @@ needs the owner's review with this change, not a standing rule yet. Their
 descriptions below are kept as the record of what was approved. The remaining
 motion on active pages is reader-triggered only: button press, disclosure
 opening and the archive's own result updates, all removed under
-`prefers-reduced-motion`. The week strip (§3.2a) and the Edition Plate rules
-for earlier Briefs are unchanged.
+`prefers-reduced-motion`. The week strip (§3.2a) is unchanged except that
+its key names the edge weeks "Part week, at either end of the record". Also
+retired with this change: scroll-reveal (`reveal.js`), the desk map
+(`desk-map.js`, `_desk_map_geo.svg`), the relief primitives (`relief.css`,
+`_relief.html`, their sprites and gallery page), the Edition Plate partial
+(`_plate.html`) and the homepage Ocean Signal Veil emission (its source
+assets and manifest entry are kept). Imagery is text-led: photographs appear
+only as admitted Brief covers (§2 still governs their rights).
 
 ## Coastal colour representation (2026-10-14)
 

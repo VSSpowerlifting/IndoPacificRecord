@@ -8,7 +8,7 @@ direction and source/route verification remain in
 `docs/FRONTEND_PRODUCTION_2026-10-09.md`.
 Motion and flagship visual components: docs/VISUAL_AND_MOTION_SYSTEM.md.
 
-## Parallel text identity — 15 November 2026 (pending review)
+## Parallel text identity — 15–16 November 2026 (pending review)
 
 This section governs the active `site/preview/` renderer. Where it conflicts
 with the October implementation candidate, the Brief journal candidate, §2, §5,
@@ -55,9 +55,12 @@ cards with shadows, gradients, textures, contour fields, relief scenes or
 drawn scenery on active pages. `surfaces.css` holds the shared page head
 (`.page-head`), which is a display title, an optional lede and a 2px rule.
 
-**Pictures.** A photograph appears only where `core/catalogue_media.py`
-admits one for a Brief, with its credit. No page uses a photograph, generated
-image or illustration as atmosphere. Records never carry source media.
+**Pictures: text-led.** The paired title is the picture. A photograph
+appears only where `core/catalogue_media.py` admits one for a Brief, with its
+credit. No page uses a photograph, generated image or illustration as
+atmosphere, and records never carry source media. This replaces the
+"photography-led journal feel" in CLAUDE.md for active pages and needs the
+owner's acceptance (DECISION_LOG 2026-11-16).
 
 **Motion.** Only motion that answers the reader: a button press, a disclosure
 opening, the archive updating its results. Nothing moves on its own, and
@@ -65,14 +68,51 @@ opening, the archive updating its results. Nothing moves on its own, and
 the animated page terrain are retired from active pages; see
 VISUAL_AND_MOTION_SYSTEM.md.
 
-**Wording.** Pages name things by what a reader does with them: Records,
-Briefs, Desks, "How to cite", "Where this came from". Governed labels that
-tests and release gates depend on are kept verbatim, including "Research
-focus", "Full preserved record", "Machine-translated title · human review not
-recorded" and "Human-controlled analysis". Qualifications stay where they
-change a reader's decision: machine output is unreviewed, coverage is
-selective, and source-specific notices (MINDEF, KOGL, withheld text) stay
-beside the material they govern.
+**Lists.** Every list of records uses `_records.html`. A list states once,
+at the head of its English column, that English titles are machine
+translations and human review is not recorded (`records_key`, readable by
+screen readers, visible at every width); only rows whose English is
+something else carry a mark: "Title published in English" or "Machine-written
+headline, not a translation" (`title_kind`). Rows shown outside a list with a
+column head (the Desks page) keep "Machine-translated title · human review not
+recorded". Singapore metadata-only rows are set quieter (`record-row--metadata`).
+
+**Home.** The opening (claim, title search, one real record as parallel
+text), then "Newest from each desk": the first row of each public-record
+desk's own page (`desk_front_rows`), the desk name in the left column and the
+date in the meta line; a line saying how many desks hold public records and,
+measured from the counts, that most come from Chinese sources, with a link to
+Coverage; one line naming the desks with no public records and their registry
+state; then Briefs and the three kinds of text.
+
+**Stored-summary sentence.** On the home opening, the home desk rows and the
+five newest rows on each desk page except Korea, a row carries the first
+complete sentence of the record's stored machine summary, verbatim, under
+the dotted mark (`summary_lead`: an exact prefix or nothing; ambiguous
+boundaries and sentences over 400 characters get no line). Never on the
+Records page, week pages or in the search index.
+
+**Desk pages.** Name and scope; the registry `status_label` verbatim and any
+source-specific notice; a closed "Collection notes" disclosure holding the
+registry's operating notes verbatim; the newest records; then links,
+explanations, numbers, sources and limits. The desk map is retired.
+
+**Record page.** Title pair, actions (Open original source, Cite this record,
+Copy link), summary, "What this record supports" (before the source text on
+narrow screens), source text (one paragraph per stored line; Latin 36em,
+CJK 18px with about 36 characters a line, Hangul `keep-all`), citation,
+provenance. Metadata-only records get a quieter label-style heading.
+
+**Wording.** Pages name things by what a reader does with them. One path back
+to the source everywhere: "Read the record", "Open original source", "Cite
+this record". The Records page's default set is "Selected records", with one
+sentence saying it is chosen automatically and is not fact-checked or
+editor-approved, and a one-step link to every record. Governed labels stay
+verbatim: the registry state labels, "Human-controlled analysis", the
+guarded record caveat and owner-approved captions. Qualifications stay where
+they change a reader's decision: machine output is unreviewed, coverage is
+selective, and source-specific notices (MINDEF, KOGL, withheld text, PDL,
+image credits and disclaimers) stay beside the material they govern.
 
 ## October implementation candidate
 
