@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% from "_records.html" import record_days %}
+{% from "_records.html" import desk_front %}
 {% from "_catalogue_credit.html" import photo_credit %}
 {# The home page (2026-11-14). It opens on the thing the publication is: one
    real record, its title as the institution published it set large in its own
    script, the English beside it and marked as a machine translation. Below it:
-   the newest records, the latest Brief, each desk's newest record, and the
-   three kinds of text a reader will meet. Every title, date and name here is
+   each public-record desk's newest record (the first row of that desk's own
+   page, never a selection), the latest Brief, and the three kinds of text a
+   reader will meet. Every title, date and name here is
    read from the record; nothing is written for the page. #}
 {% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
 {% macro pair_differs(r) -%}
@@ -48,8 +49,11 @@
 {% block content %}{% endblock %}
 {% block after_content %}
 <section class="wrap home-section home-newest" aria-labelledby="latest-title">
-  <div class="home-head"><h2 id="latest-title">Newest in the record</h2><a href="archive.html">All {{ corpus_total | count }} records</a></div>
-  {{ record_days(archive_first[:6], desk_by_source) }}
+  <div class="home-head"><h2 id="latest-title">Newest from each desk</h2><a href="archive.html">All {{ corpus_total | count }} records</a></div>
+  {{ desk_front(home_desks.rows) }}
+  {% if home_desks.empty %}
+  <p class="home-desks-empty">No public records yet: {% for d in home_desks.empty %}<a href="{{ d.route }}">{{ d.name }}</a> <span>({{ d.status_label }})</span>{{ ', ' if not loop.last else '.' }}{% endfor %} <a href="desks.html">All desks</a></p>
+  {% endif %}
 </section>
 {% set lead = collection.lead if collection else none %}
 {% set lead_row = collection.lead_row if collection else none %}
@@ -99,24 +103,6 @@
   {% else %}
   <p class="home-briefs-about">Draft Briefs are withheld until approved. None is published yet.</p>
   {% endif %}
-</section>
-<section class="wrap home-section home-desks" aria-labelledby="home-desks-title">
-  <div class="home-head"><h2 id="home-desks-title">Desks</h2><a href="desks.html">All desks</a></div>
-  <p class="home-desks-note">A desk follows one country's official sources. {% set held = desks | selectattr('record_count') | list %}{{ held | length }} {{ 'desk holds' if held | length == 1 else 'desks hold' }} public records so far, most of them from Chinese sources. <a href="coverage.html">What is and is not covered</a></p>
-  <ul class="home-desk-index">
-  {% for d in held %}{% set r = desk_latest.get(d.slug) if desk_latest is defined else none %}
-    <li>
-      <p class="home-desk-name"><a href="{{ d.route }}">{{ d.name }}</a><span>{{ d.record_count | count }} {{ 'record' if d.record_count == 1 else 'records' }}</span></p>
-      {% if r %}
-      <div class="home-desk-latest">
-        <p class="home-label">Newest{% if r.published_date %}, <time datetime="{{ r.published_date }}">{{ r.published_date | reader_date }}</time>{% endif %}</p>
-        <p class="home-desk-title"{% if not r.title_english and r.language_tag %} lang="{{ r.language_tag }}"{% endif %}><a href="record/{{ r.id }}.html">{{ r.title_english or r.title_original }}</a></p>
-        {% if pair_differs(r) %}<p class="home-desk-original as-published"{% if r.language_tag %} lang="{{ r.language_tag }}"{% endif %}>{{ r.title_original }}</p>{% endif %}
-      </div>
-      {% endif %}
-    </li>
-  {% endfor %}
-  </ul>
 </section>
 <section class="wrap home-section home-method" aria-labelledby="home-method-title">
   <div class="home-head"><h2 id="home-method-title">Three kinds of text, kept apart</h2><a href="methodology.html">How this publication works</a></div>

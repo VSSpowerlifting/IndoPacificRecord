@@ -51,22 +51,16 @@ h2.specimen-original[lang^=zh]{font-family:var(--zh-serif)}h2.specimen-original[
 .home-briefs-about{font:400 .9375rem/1.6 var(--serif)!important;color:var(--ink-2);max-width:34em}
 .brief-fixture{font-size:.8125rem;font-weight:600;color:var(--warning)}
 
-.home-desks-note{margin:0 0 1.2rem;color:var(--ink-2);max-width:62ch}
-.home-desk-index{list-style:none;margin:0;padding:0;border-top:2px solid var(--rule-hard)}
-.home-desk-index>li{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr);gap:.4rem 1.6rem;padding:1.15rem 0 1.25rem;border-bottom:1px solid var(--rule);max-width:none}
-.home-desk-name{margin:0;max-width:none}
-.home-desk-name a{display:block;font:400 2rem/1.05 var(--display);color:var(--ink);text-decoration:none}
-.home-desk-name a:hover{text-decoration:underline;text-decoration-thickness:1px}
-.home-desk-name span{display:block;margin-top:.35rem;font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
-.home-desk-latest{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);column-gap:1.6rem;align-content:start}
-.home-desk-latest .home-label{grid-column:1/-1}
-.home-desk-title{grid-column:1;margin:0;font:600 1.0625rem/1.36 var(--serif);max-width:44ch}
-.home-desk-title[lang]{font-weight:400;font-family:var(--serif)}
-.home-desk-title[lang^=zh]{font-family:var(--zh-serif)}.home-desk-title[lang^=ja]{font-family:var(--ja-serif)}.home-desk-title[lang^=ko]{font-family:var(--ko-serif)}
-.home-desk-title a{color:var(--ink);text-decoration:none}.home-desk-title a:hover{text-decoration:underline;text-decoration-thickness:1px}
-.home-desk-title:only-of-type,.home-desk-title:last-child{grid-column:1/-1}
-.home-desk-original{grid-column:2;margin:0;padding-left:1.3rem;border-left:1px solid var(--rule);font-size:1.0625rem;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
-
+/* Newest from each desk: the desk's name stands where a dated list puts the
+   day numeral; the date moves into the row's meta line. */
+.records-desks .desk-cell{padding-top:1.05rem}
+.records-desks .desk-cell a{display:block;font:400 1.75rem/1.05 var(--display);letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+.records-desks .desk-cell a:hover{text-decoration:underline;text-decoration-thickness:1px}
+.records-desks .desk-cell span{display:block;margin-top:.45rem;font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
+.records-desks .row-side time{color:var(--ink-2)}
+.home-desks-empty{margin:1rem 0 0;font-size:.875rem;line-height:1.6;color:var(--muted);max-width:none}
+.home-desks-empty a{color:var(--ink-2)}
+.home-desks-empty span{color:var(--muted)}
 .home-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,44px);margin:0;padding-top:1.4rem;border-top:2px solid var(--rule-hard)}
 .home-legend dt{margin:0 0 .55rem}
 .home-legend dd{margin:0;font:400 1rem/1.6 var(--serif);color:var(--ink-2);max-width:34ch}
@@ -79,11 +73,8 @@ h2.specimen-original[lang^=zh]{font-family:var(--zh-serif)}h2.specimen-original[
 @media(max-width:700px){
   .claim{max-width:none}
   .home-feature--photo{grid-template-columns:minmax(0,1fr)}
-  .home-desk-index>li{grid-template-columns:minmax(0,1fr)}
-  .home-desk-name{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}
-  .home-desk-name a{font-size:1.75rem}
-  .home-desk-latest{grid-template-columns:minmax(0,1fr)}
-  .home-desk-original{grid-column:1;margin-top:.45rem;padding-left:.85rem;border-left-width:2px}
   .home-legend{grid-template-columns:minmax(0,1fr)}
+  .records-desks .desk-cell{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;padding-top:1rem}
+  .records-desks .desk-cell span{margin:0}
 }
 @media print{.home-search{display:none}.specimen{border:0;padding:0}}

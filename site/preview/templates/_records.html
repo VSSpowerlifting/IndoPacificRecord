@@ -129,17 +129,26 @@
    The row is the same one browse.js `card()` draws, field for field: who
    published it, through which source and in what language, its desk and its
    processing state. `tests/test_preview_prototype.py` holds the two to parity. #}
-{% macro record_row(r, desk_by_source=none, root='') -%}
-{% set desk = desk_by_source.get(r.source_slug) if desk_by_source else none %}
-<li class="record-row">
+{# `lead` adds the first sentence of the record's stored machine summary
+   (`summary_lead`, cut in generate_preview.summary_lead() and never
+   rewritten); `dated` puts the publication date in the meta line, for lists
+   whose left column names the desk instead of the day. Both are opt-in: the
+   Records page and the week pages never carry either. #}
+{% macro record_row(r, desk_by_source=none, root='', lead=false, dated=false) -%}
+{% set desk = desk_by_source.get(r.source_slug) if desk_by_source else none %}{% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] if dated else [] %}
+<li class="record-row{{ ' record-row--metadata' if r.title_kind == 'metadata' }}">
   <div>
     <h3{{ title_attrs(r) }}><a href="{{ root }}record/{{ r.id }}.html">{{ r.title_english or r.title_original }}</a></h3>
     {{- original_line(r) }}
+    {%- if lead and r.summary_lead %}
+    <p class="row-summary"><span class="evidence evidence--model">Machine summary, first sentence</span> {{ r.summary_lead }}</p>
+    {%- endif %}
     {% if r.state == 'analyzed' or r.in_trails %}
     <p class="row-tags">{% if r.state == 'analyzed' %}<span class="state state--analyzed">{{ r.state_label }}</span>{% endif %}{{ trail_tag(r) }}</p>
     {% endif %}
   </div>
-  <p class="row-side"><span class="row-who">{{ r.institution or r.source_name }}</span>
+  <p class="row-side">{% if dated and r.published_date %}<time datetime="{{ r.published_date }}">{{ r.published_date[8:10] | int }} {{ months[(r.published_date[5:7] | int) - 1] }} {{ r.published_date[:4] }}</time>
+    {% endif %}<span class="row-who">{{ r.institution or r.source_name }}</span>
     <span class="row-via">{{ [r.source_name if r.institution else none, r.language_label] | select | join(' · ') }}</span>
     {% if desk %}<a href="{{ root }}{{ desk.route }}">{{ desk.name }}</a>{% endif %}
     {% if r.state != 'analyzed' %}<span class="state state--{{ r.state }}">{{ r.state_label }}</span>{% endif %}</p>
@@ -165,6 +174,29 @@
     {% for r in group | sort(attribute='id', reverse=true) %}
       {{ record_row(r, desk_by_source, root) }}
     {% endfor %}
+    </ul>
+  </section>
+{% endfor %}
+</div>
+{%- endmacro %}
+
+
+{# ── One row per desk ─────────────────────────────────────────────────────
+   The home page's "Newest from each desk": the desk's name stands where the
+   day numeral stands in a dated list, and the date moves into the meta line.
+   `front` comes from generate_preview.desk_front_rows(): each row is the first
+   row of that desk's own page, so the two never disagree. #}
+{% macro desk_front(front, key=true, lead=false) -%}
+{% set pair = namespace(found=false) %}
+{% for item in front %}{% set r = item.record %}{% if r.title_english and r.title_original and r.title_original.strip() != r.title_english.strip() %}{% set pair.found = true %}{% endif %}{% endfor %}
+{% if key and pair.found %}<p class="records-key" aria-hidden="true"><span>In English</span><span>As published</span></p>{% endif %}
+<div class="records-days records-desks">
+{% for item in front %}
+  <section class="records-day" aria-label="{{ item.desk.name }}">
+    <p class="day-date desk-cell"><a href="{{ item.desk.route }}">{{ item.desk.name }}</a>
+      <span>{{ '{:,}'.format(item.desk.record_count) }} {{ 'record' if item.desk.record_count == 1 else 'records' }}</span></p>
+    <ul class="record-list">
+      {{ record_row(item.record, none, "", lead=lead, dated=true) }}
     </ul>
   </section>
 {% endfor %}

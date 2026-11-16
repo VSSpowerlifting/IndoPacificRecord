@@ -404,6 +404,10 @@ td.num, th.num { text-align: right; padding-right: 0; padding-left: .9rem; }
 .record-row .meta { order: 1; margin: .3rem 0 0; font-size: .78125rem; color: var(--machine-ink); max-width: none; }
 .record-row .row-tags { order: 3; display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .45rem 0 0; max-width: none; }
 .record-row .row-tags:empty { display: none; }
+.record-row .row-summary { order: 1; margin: .55rem 0 0; font: 400 .9375rem/1.55 var(--serif); color: var(--ink-2); max-width: 44em; }
+.record-row .row-summary .evidence { display: flex; margin: 0 0 .2rem; font: 600 .75rem/1.4 var(--sans); }
+.record-row--metadata h3, .record-row--metadata h3[lang] { font-weight: 400; font-size: 1rem; color: var(--ink-2); }
+.record-row--metadata h3 a { color: var(--ink-2); }
 .week-annotation { margin: 1rem 0; }
 .records-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.4rem; margin: 1.4rem 0 0; font-size: var(--step-meta); }
 .week-strip { margin: 0 0 1.8rem; }

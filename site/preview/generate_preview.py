@@ -650,6 +650,9 @@ def load_corpus(db_path: Path) -> dict:
                 # without attributing the changed value to the old model run.
                 for key in ("title_translation_model", "title_translation_prompt", "title_translated_at"):
                     rec.pop(key, None)
+            # Read from the shaped record, after every source hold above has
+            # applied, so a withheld summary can never reach a list row.
+            rec["summary_lead"] = summary_lead(rec.get("summary_english"))
 
         # The line-aligned machine translation is read only for gated Korean
         # records; no other desk's record carries or renders this field.
@@ -678,6 +681,7 @@ def load_corpus(db_path: Path) -> dict:
         if rec["korea_identity"]:
             rec["korea_news_id"] = rec["korea_identity"].split(":", 1)[1]
             rec["text_english"] = korea_english.get(rec["id"])
+        rec["title_kind"] = title_kind(rec)
 
     for s in sources:
         s["article_count"] = counts.get(s["slug"], 0)
@@ -1312,6 +1316,117 @@ HOME_RECORD_COUNT = 6
 
 
 DESK_NEWEST_ROWS = 5
+
+#: The longest summary sentence a list row carries. A longer first sentence is
+#: not shortened: the row simply carries no line, and the record page keeps
+#: the whole summary. Measured over the stored summaries on 2026-11-16: about
+#: two thirds of first sentences fit.
+SUMMARY_LEAD_MAX = 400
+
+#: Words that end in a period without ending a sentence. A boundary after one
+#: of them is never guessed: the record gets no line instead.
+_ABBREVIATIONS = frozenset((
+    "u.s", "u.n", "u.k", "lt", "gen", "col", "maj", "capt", "no", "nos", "mr",
+    "mrs", "ms", "dr", "st", "jr", "sr", "rep", "sen", "adm", "cmdr", "sgt",
+    "gov", "prof", "inc", "co", "corp", "ltd", "vs", "etc", "e.g", "i.e",
+    "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct",
+    "nov", "dec", "dept", "vol", "art", "para", "fig", "approx", "est", "p.m",
+    "a.m", "mt", "ft", "rd", "ave", "pres", "v"))
+_SENTENCE_END = re.compile(r'[.!?]["”’)\]]*(?=\s)')
+_TERMINAL = re.compile(r'[.!?]["”’)\]]*$')
+
+
+def summary_lead(summary):
+    """The first complete sentence of a stored machine summary, verbatim.
+
+    Returns an exact prefix of the stripped summary, or None. Nothing is
+    rewritten, normalised or shortened: when the first boundary is ambiguous
+    (an abbreviation, an initial, a figure such as "3.5%." followed by a
+    capital) or the sentence is longer than SUMMARY_LEAD_MAX, there is no
+    line at all rather than a guessed one.
+    """
+    if not summary or not summary.strip():
+        return None
+    text = summary.strip()
+    # With no internal boundary, the whole summary is one sentence — if it
+    # ends like one.
+    lead = text if _TERMINAL.search(text) else None
+    for match in _SENTENCE_END.finditer(text):
+        before = text[:match.start()].split()
+        token = before[-1].lstrip('("“‘[').lower() if before else ""
+        following = text[match.end():].lstrip()[0]
+        abbreviated = (token in _ABBREVIATIONS
+                       or (len(token) == 1 and token.isalpha())
+                       or ("." in token and match.group(0)[0] == "."))
+        if abbreviated and following.islower():
+            continue
+        if abbreviated:
+            return None
+        if not (following.isupper() or following.isdigit()
+                or following in '"“‘('):
+            return None
+        lead = text[:match.end()]
+        break
+    if lead is None or len(lead) > SUMMARY_LEAD_MAX:
+        return None
+    return lead
+
+
+def title_kind(record):
+    """What the English heading of a list row is, so a list can state the
+    common case once and mark only the rows that differ.
+
+    * ``machine_translation`` — a model's translation of the published title.
+    * ``machine_headline`` — a model-written headline that is not a
+      translation (Vietnam records without a translated title).
+    * ``published_english`` — the title as published in English.
+    * ``metadata`` — a governed metadata label standing in for a title that
+      is not republished (Singapore MINDEF).
+    * ``original`` — no English; the heading is the published title.
+    """
+    if record.get("source_slug") == "sg_mindef_releases":
+        return "metadata"
+    if not record.get("title_english"):
+        return "original"
+    if (record.get("language_tag") or "").split("-")[0] == "en":
+        return "published_english"
+    vietnam = record.get("vietnam")
+    if vietnam and not vietnam.get("translation_prompt_version"):
+        return "machine_headline"
+    return "machine_translation"
+
+
+def vietnam_published_rows(corpus):
+    """Vietnam records published after factual QA, newest first: the rows the
+    Vietnam desk page lists and the home page's Vietnam row."""
+    return sorted((r for r in corpus
+                   if r.get("vietnam") and r["state"] == "analyzed"
+                   and r["vietnam"]["qa"]["outcome"] == "published"),
+                  key=lambda r: (r["published_date"], r["id"]), reverse=True)
+
+
+def desk_front_rows(desks, desk_newest, corpus):
+    """Each public-record desk's newest record, as its own desk page lists it
+    first, in registry order; and the desks that hold no public records.
+
+    Deterministic: the first row of the desk page's newest list. Nothing is
+    chosen for interest or importance.
+    """
+    vietnam = vietnam_published_rows(corpus)
+    latest = {r["desk_id"]: r for r in reversed(corpus) if r.get("desk_id")}
+    front, empty = [], []
+    for desk in desks:
+        if not desk.record_count:
+            empty.append(desk)
+            continue
+        if desk.slug == "vietnam" and vietnam:
+            row = vietnam[0]
+        else:
+            rows = desk_newest.get(desk.slug) or []
+            row = rows[0] if rows else latest.get(desk.slug)
+        if row is not None:
+            front.append({"desk": desk, "record": row})
+    return {"rows": front, "empty": empty}
 
 
 def desk_newest_rows(rows, limit=DESK_NEWEST_ROWS):
@@ -3048,6 +3163,10 @@ def build(out_dir: Path, title: str, db_path: Path,
         # Each desk page opens on that desk's own newest records, taken from
         # the same ordered rows as the Records page so the two never disagree.
         "desk_newest": desk_newest_rows(focus["rows"]),
+        # The home page's one row per desk: the first row of each desk page's
+        # newest list, and the desks that hold no public records.
+        "home_desks": desk_front_rows(desks, desk_newest_rows(focus["rows"]),
+                                      data["corpus"]),
         "archive_page_size": ARCHIVE_FIRST_PAGE,
         # Records listed in any published issue's source trail (exact URL).
         "trail_record_count": sum(1 for r in data["corpus"]
@@ -3374,11 +3493,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                                                   "us-indopacific") else [])
         # Reuse the admitted corpus and its ordinary record rows. Private
         # captures and bibliographic references cannot enter this list.
-        vietnam_records = sorted((r for r in data["corpus"]
-            if desk.slug == "vietnam" and r.get("vietnam")
-            and r["state"] == "analyzed"
-            and r["vietnam"]["qa"]["outcome"] == "published"),
-            key=lambda r: (r["published_date"], r["id"]), reverse=True)
+        vietnam_records = (vietnam_published_rows(data["corpus"])
+                           if desk.slug == "vietnam" else [])
         vietnam_explained = {r["vietnam"]["source_identity"]: r["record_path"]
                              for r in vietnam_records}
         regional_official_links = (
