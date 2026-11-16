@@ -1,0 +1,33 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "four-country-coordination-center-philippines-2026",
+  "manuscript_fingerprint": "de5eed1c056db47141f859931c74ce47ee0b4af05137a7aabb0d3a3378881b90",
+  "status": "draft",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 2,
+      "heading": "The four-government pledge"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 3,
+      "end": 5,
+      "heading": "From a bilateral planning room to multinational exercises"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 6,
+      "end": 7,
+      "heading": "Manila’s account of a center already operating"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 8,
+      "end": 11,
+      "heading": "The next test comes between exercises"
+    }
+  ],
+  "approval": null
+}
