@@ -1305,11 +1305,6 @@ def edition_cover(repo_root: Path, slug: str, sidecar: dict):
     }
 
 
-#: How many records the home page publishes: one lead plate and the register
-#: beneath it. Declared once so the template cannot drift from the derivation.
-HOME_RECORD_COUNT = 6
-
-
 DESK_NEWEST_ROWS = 5
 
 #: The longest summary sentence a list row carries. A longer first sentence is
@@ -1424,6 +1419,32 @@ def desk_front_rows(desks, desk_newest, corpus):
     return {"rows": front, "empty": empty}
 
 
+def home_hero(collection, catalogue_media, admissions, repo_root=None):
+    """The home page's photograph: the latest Brief's admitted catalogue
+    photograph at the size its own page serves, or None.
+
+    Granted exactly as the Brief page grants its cover: the catalogue
+    admission must hold (`core.catalogue_media`) and the cover must pair with
+    it (`core.brief_photography.article_cover`). The credit shown beside it is
+    the catalogue credit, which names the same crop and gradient. It is
+    illustrative context for the publication, never a picture of a record.
+    """
+    row = getattr(collection, "lead_row", None) if collection else None
+    if not row or row.get("kind") != "brief":
+        return None
+    entry = row["entry"]
+    if entry.get("synthetic"):
+        return None
+    media = catalogue_media.get(entry.get("slug"))
+    if not media or not media.is_photograph:
+        return None
+    cover = article_cover(entry, repo_root or REPO_ROOT, admissions=admissions)
+    if not cover:
+        return None
+    return {"brief": entry, "photo": media.photo,
+            "src": cover["src"], "webp": cover["webp"]}
+
+
 def desk_newest_rows(rows, limit=DESK_NEWEST_ROWS):
     """The first `limit` rows of each desk, in the order the rows arrive.
 
@@ -1439,52 +1460,6 @@ def desk_newest_rows(rows, limit=DESK_NEWEST_ROWS):
         if len(held) < limit:
             held.append(row)
     return newest
-
-
-def home_record_group(records: list, count: int = HOME_RECORD_COUNT) -> dict:
-    """
-    The home page's records, and the one provenance question their layout
-    turns on: do the non-lead records genuinely share a source and a date?
-
-    The approved design collapses repeated institution/date metadata into a
-    single sentence, because the snapshot it was drawn from held six records
-    from one institution on one day. Production cannot assume that holds. When
-    the register really is homogeneous the sentence is true and the repetition
-    is noise; the moment any source, institution or publication date differs,
-    a summary would attribute one record's provenance to another — so `shared`
-    is None and every row states its own.
-
-    The test is the SOURCE, not the institution. `pla_daily` and
-    `china_mil_online` are two sources of one institution, so an
-    institution-only test would print "all five from CMC Political Work
-    Department" over a register that mixes two outlets. Source attribution is
-    never inferred across records.
-
-    `relevant_date` is the source-stated publication date. It is deliberately
-    not the collection date: they are different calendars and different
-    claims, and the dateline states the collection date separately.
-    """
-    selected = list(records[:count])
-    if not selected:
-        return {"lead": None, "rest": [], "shared": None}
-    rest = selected[1:]
-
-    def provenance(record):
-        return (record.get("source_slug"),
-                record.get("institution") or record.get("source_name"),
-                record.get("published_date"))
-
-    shared = None
-    if rest:
-        marks = {provenance(record) for record in rest}
-        if len(marks) == 1:
-            slug, institution, date = marks.pop()
-            # A summary may only stand in for facts that are all present. A
-            # missing institution or date is stated per row, never smoothed.
-            if institution and date:
-                shared = {"source_slug": slug, "institution": institution,
-                          "date": date, "count": len(rest)}
-    return {"lead": selected[0], "rest": rest, "shared": shared}
 
 
 #: The homepage atmospheric visual. One asset, chosen by the manifest's own
@@ -3001,7 +2976,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         # Derived here rather than in the template: whether a group summary is
         # truthful is a fact about the records, and a template that computes it
         # is a template that can be wrong quietly.
-        "home_records": home_record_group(data["recent"]),
         # The newest held record on each desk, for the home page's desk index.
         # `data["corpus"]` is ordered newest first, so walking it backwards
         # leaves each desk holding its newest row. Derived, never stored.
@@ -3054,6 +3028,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         # newest list, and the desks that hold no public records.
         "home_desks": desk_front_rows(desks, desk_newest_rows(focus["rows"]),
                                       data["corpus"]),
+        # The large home photograph: the latest Brief's admitted photograph.
+        "home_hero": home_hero(collection, catalogue_media, catalogue_admissions),
         "archive_page_size": ARCHIVE_FIRST_PAGE,
         # Records listed in any published issue's source trail (exact URL).
         "trail_record_count": sum(1 for r in data["corpus"]

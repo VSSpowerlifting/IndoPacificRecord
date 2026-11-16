@@ -1763,13 +1763,9 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
             self.assertEqual(len(badges), 1)
             self.assertIn('state--' + by_id[rid]['state'], badges[0].get('class', []))
             self.assertEqual(badges[0].get_text(strip=True), by_id[rid]['state_label'])
-        # The record the page opens on remains drawn from the analyzed-only feed.
-        selected = soup.select_one('.home-open .specimen h2 a')
-        self.assertIsNotNone(selected)
-        if selected:
-            rid = int(selected['href'].split('/')[1].split('.')[0])
-            self.assertIn(rid, by_id)
-            self.assertEqual(by_id[rid]['state'], 'analyzed')
+        # The opening shows no record (founder direction, 2026-11-16): its
+        # photograph is illustrative, and every record on the page is a desk row.
+        self.assertEqual(soup.select('.home-open a[href^="record/"]'), [])
 
     def test_the_layer_explainer_claims_only_what_holds(self):
         flat = ' '.join(re.sub(r'<[^>]+>', ' ', self.page('index.html')).split())

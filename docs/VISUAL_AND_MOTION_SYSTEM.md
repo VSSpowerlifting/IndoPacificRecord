@@ -27,8 +27,10 @@ retired with this change: scroll-reveal (`reveal.js`), the desk map
 (`desk-map.js`, `_desk_map_geo.svg`), the relief primitives (`relief.css`,
 `_relief.html`, their sprites and gallery page), the Edition Plate partial
 (`_plate.html`) and the homepage Ocean Signal Veil emission (its source
-assets and manifest entry are kept). Imagery is text-led: photographs appear
-only as admitted Brief covers (§2 still governs their rights).
+assets and manifest entry are kept). Photographs appear as admitted Brief covers
+and, since 16 November, as the home opening, which is set on the latest
+Brief's admitted cover photograph with its full credit beneath (§2 still
+governs their rights; see DESIGN_SYSTEM.md "Pictures").
 
 ## Coastal colour representation (2026-10-14)
 

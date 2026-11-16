@@ -1,22 +1,30 @@
 {% extends "base.html" %}
 {% from "_records.html" import desk_front %}
 {% from "_catalogue_credit.html" import photo_credit %}
-{# The home page (2026-11-14). It opens on the thing the publication is: one
-   real record, its title as the institution published it set large in its own
-   script, the English beside it and marked as a machine translation. Below it:
-   each public-record desk's newest record (the first row of that desk's own
-   page, never a selection), the latest Brief, and the three kinds of text a
-   reader will meet. Every title, date and name here is
-   read from the record; nothing is written for the page. #}
-{% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
-{% macro pair_differs(r) -%}
-{%- if r.title_english and r.title_original and r.title_original.strip() and r.title_original.strip() != r.title_english.strip() %}1{% endif -%}
-{%- endmacro %}
+{# The home page (2026-11-16). It opens on a photograph: the latest Brief's
+   admitted photograph, set large behind the claim and the title search, and
+   credited beneath as illustrative context (it is not a record and carries no
+   record mark). Below it: each public-record desk's newest record as parallel
+   text (the first row of that desk's own page, never a selection), the latest
+   Brief, and the three kinds of text a reader will meet. Every title, date
+   and name here is read from the record or the credit record; nothing is
+   written for the page. Without an admitted photograph the opening is plain
+   navy, with the same claim and search. #}
 {% block title %}{{ title }} — Official records, as published{% endblock %}
 {% block main_class %} class="leads-with-hero home-page"{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="home.css">{% endblock %}
 {% block hero %}
-<section class="home-open" aria-labelledby="home-title">
+{% set hero = home_hero | default(none) %}
+<section class="home-open{% if hero %} home-open--photo{% endif %}" aria-labelledby="home-title">
+  <div class="home-stage">
+  {% if hero %}{% set ph = hero.photo %}
+  <div class="home-photo" data-treatment="{{ ph.cover_treatment or 'gradient' }}">
+    <picture>
+      <source type="image/webp" srcset="{% for v in hero.webp %}{{ v.route }} {{ v.width }}w{{ ', ' if not loop.last }}{% endfor %}" sizes="100vw">
+      <img src="{{ hero.src.route }}" width="{{ hero.src.width }}" height="{{ hero.src.height }}" alt="{{ ph.alt }}" aria-describedby="home-photo-credit" fetchpriority="high" decoding="async"{% if ph.focal %} style="object-position:{{ ph.focal }}"{% endif %}>
+    </picture>
+  </div>
+  {% endif %}
   <div class="wrap home-open-grid">
     <div class="home-open-copy">
       <h1 class="claim" id="home-title">The region, in its own words.</h1>
@@ -26,25 +34,18 @@
         <label for="home-q">Search record titles, in English or the original language</label>
         <div class="home-search-row"><input id="home-q" type="search" name="q" autocomplete="off"><button class="btn btn--light" type="submit">Search</button></div>
       </form>
-      <p class="home-open-note">{{ corpus_total | count }} records. Search reads titles only. <a href="archive.html">Browse the newest</a></p>
+      <p class="home-open-note">{{ corpus_total | count }} records. Search reads titles only. <a href="#latest-title">Newest from each desk</a> · <a href="archive.html">All records</a></p>
     </div>
-    {% if home_records.lead %}{% set s = home_records.lead %}{% set s_desk = desk_by_source.get(s.source_slug) if desk_by_source else none %}
-    <article class="specimen" aria-labelledby="specimen-title">
-      <p class="specimen-head"><span class="evidence evidence--record">As published</span>
-        <span>{{ s.institution or s.source_name }}{% if s.published_date %}, <time datetime="{{ s.published_date }}">{{ s.published_date | reader_date }}</time>{% endif %}</span></p>
-      {% if pair_differs(s) %}
-      <p class="specimen-original as-published"{% if s.language_tag %} lang="{{ s.language_tag }}"{% endif %}>{{ s.title_original }}</p>
-      <p class="specimen-head specimen-head--english"><span class="evidence evidence--model">Machine translation</span>
-        <span>{% if s.desk_id == 'china' and s.language_tag != 'en' %}Human review not recorded{% else %}Not reviewed by a person{% endif %}</span></p>
-      <h2 class="specimen-english" id="specimen-title"><a href="record/{{ s.id }}.html">{{ s.title_english }}</a></h2>
-      {% else %}
-      <h2 class="specimen-original as-published" id="specimen-title"{% if not s.title_english and s.language_tag %} lang="{{ s.language_tag }}"{% endif %}><a href="record/{{ s.id }}.html">{{ s.title_english or s.title_original }}</a></h2>
-      {% endif %}
-      {% if s.summary_lead %}<p class="specimen-summary"><span class="evidence evidence--model">Machine summary, first sentence</span> {{ s.summary_lead }}</p>{% endif %}
-      <p class="specimen-links"><a href="record/{{ s.id }}.html">Read the record</a>{% if s_desk %}<a href="{{ s_desk.route }}">{{ s_desk.name }}</a>{% endif %}</p>
-    </article>
-    {% endif %}
   </div>
+  </div>
+  {% if hero %}
+  <div class="home-photo-credit" id="home-photo-credit">
+    <div class="wrap">
+      <p class="home-photo-label">Illustrative photograph, not a record. It appears with <a href="{{ hero.brief.url }}">{% if hero.brief.issue %}Brief No. {{ hero.brief.issue }}{% else %}the latest Brief{% endif %}</a>.</p>
+      {{ photo_credit(ph) }}
+    </div>
+  </div>
+  {% endif %}
 </section>
 {% endblock %}
 {% block content %}{% endblock %}
@@ -65,6 +66,9 @@
    as the Briefs page does: an admitted photograph, or no picture at all. #}
 {% set feature_media = catalogue_media.get(lead.slug) if lead and catalogue_media else none %}
 {% set feature_photo = feature_media.photo if lead_row and lead_row.kind == 'brief' and feature_media and feature_media.is_photograph else none %}
+{#- The same photograph already opens the page, credited there; the card does
+    not repeat it. -#}
+{% if home_hero | default(none) %}{% set feature_photo = none %}{% endif %}
 {% set thematic = dossiers | selectattr('kind', 'equalto', 'thematic') | list if dossiers else [] %}
 <section id="analysis" class="wrap home-section home-briefs" aria-labelledby="latest-analysis">
   <div class="home-head"><div><p class="evidence evidence--analysis">Human-controlled analysis</p><h2 id="latest-analysis">Briefs</h2></div><a href="analysis.html">All Briefs</a></div>

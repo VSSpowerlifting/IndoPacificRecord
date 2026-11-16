@@ -14,26 +14,32 @@ output (dotted slate rule, `--machine-ink`), human-controlled analysis (solid
 jade rule, `--editorial-ink`). Navy masthead and colophon, paper between,
 radius 0, no pills or cards; Instrument Serif, Source Serif 4 and Inter only.
 
-**Text-led, not photography-led (for the owner to accept or reverse).**
-CLAUDE.md describes a "photography-led journal feel". The redesign is
-text-led: the paired title is the picture. Photography stays on Briefs, where
-covers are rights-cleared under `core/catalogue_media.py`; no other page uses
-a photograph or illustration as atmosphere. CLAUDE.md is owner-only and is
-not edited here.
+**Photographic home opening (founder direction, 16 November).** The founder
+directed the home page to open on the current credited Navy photograph (DVIDS
+8834151, the cover of Brief No. 26) as a large hero. It is granted as that
+Brief's cover is (catalogue admission plus cover pairing), sits behind the
+claim and title search under the IPR gradient its credit names, and is
+credited in full beneath as "Illustrative photograph, not a record", linked
+to the Brief. Its manifest grants the `article` and `catalogue` surfaces; the
+home hero is treated as the latest Brief's catalogue surface, as `main`'s
+home Brief card was. If the owner wants the home page named as its own
+surface in `site/assets/editorial/manifest.json`, that is a separate rights
+record change. The opening record that used to stand beside the claim now
+appears once, in its desk row. Elsewhere pictures stay on Briefs; records
+never carry source media. This supersedes the text-only proposal first made
+in this PR.
 
-**Home page.** After the opening (one real record as parallel text, title
-search), one section, "Newest from each desk", shows the first row of each
+**Home page.** After the photographic opening (claim, title search, the
+photograph's credit), one section, "Newest from each desk", shows the first row of each
 public-record desk's own page (China, Singapore, South Korea, Vietnam, read
 from data), the desk name where a dated list puts the day, a line saying how
 many desks hold public records and (computed from the counts) that most of
 the records come from Chinese sources, with a link to Coverage, then one quiet line naming the
 desks with no public records and their registry state. The
 separate home Desks section is removed. The rule is deterministic
-(`desk_front_rows`), not editorial selection. On today's data the opening
-record and the China row are the same record; that is the rule working, not
-a choice.
+(`desk_front_rows`), not editorial selection.
 
-**Stored-summary sentence.** The home opening, the home rows and the five
+**Stored-summary sentence.** The home desk rows and the five
 newest rows on each desk page show the first complete sentence of the
 record's stored machine summary, verbatim, under the dotted machine mark.
 `summary_lead()` returns an exact prefix of the stored summary or nothing; an
@@ -61,8 +67,10 @@ catalogue rows drop the cover caption; credit, licence, changes and required
 notices stay beside each image. The row's provenance line stays, because it
 carries the retrospective and source-linked labels a Brief may hold.
 
-Korea's reviewed translation and analysis pages carry the
-"Human-controlled analysis" mark. The record page's guarded caveat now reads
+Korea's reviewed analysis page carries the "Human-controlled analysis"
+mark; its reviewed translation page carries its own "Reviewed translation"
+mark (machine colour, solid rule), since a translation an editor reviewed for
+meaning is not analysis. The record page's guarded caveat now reads
 "The English heading is a machine translation of the title as published.
 Human review is not recorded."
 

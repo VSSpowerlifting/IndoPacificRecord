@@ -1,9 +1,10 @@
 """Home opening contrast at actual glyph pixels.
 
-The photograph and its veil were retired with the parallel-text identity
-(2026-11-14): the opening is a flat navy band that continues the masthead.
-The screenshot-difference method and the WCAG floors are kept and now measure
-the text that band carries; one test holds that no picture returns behind it.
+The opening is set on the latest Brief's admitted photograph under the IPR
+gradient (founder direction, 2026-11-16; the Signal Veil stays retired). The
+screenshot-difference method and the WCAG floors measure every text run the
+opening carries, over the photograph, at the pixels its glyphs cover. One
+test holds that the only picture there is that governed, credited photograph.
 """
 from __future__ import annotations
 import json
@@ -86,8 +87,7 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
     #: body.
     RUNS = {".claim": AA_LARGE, ".home-dek": AA_BODY,
             ".home-search label": AA_BODY, ".home-open-note": AA_BODY,
-            ".specimen-head": AA_BODY, ".specimen-original": AA_LARGE,
-            ".specimen-links a": AA_BODY,
+            ".home-photo-label": AA_BODY, ".home-photo-credit p + p": AA_BODY,
             ".publication-status span:last-child": AA_BODY,
             ".nav-desktop>a": AA_BODY}
 
@@ -174,8 +174,17 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
             finally:
                 context.close()
 
-    def test_no_picture_or_veil_sits_behind_the_opening(self):
-        """The retired component stays retired: flat colour, no image layer."""
+    def test_the_only_picture_is_the_credited_brief_photograph(self):
+        """One image, the latest Brief's admitted cover, its gradient the only
+        layer, its full credit beneath, and no record mark in the opening."""
+        from core.brief_collection import load_collection
+        from core.brief_photography import article_cover
+        from core.catalogue_media import load_admissions
+        collection = load_collection(gp.load_editions(REPO_ROOT), gp.load_registry(),
+                                     briefs_dir=REPO_ROOT / "briefs")
+        cover = article_cover(collection.lead, REPO_ROOT,
+                              admissions=load_admissions(repo_root=REPO_ROOT))
+        self.assertIsNotNone(cover, "the latest Brief has no admitted cover")
         context = self.browser.new_context(viewport={"width": 1280, "height": 900})
         page = context.new_page()
         try:
@@ -188,12 +197,31 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                 " || getComputedStyle(e, '::before').backgroundImage !== 'none'"
                 " || getComputedStyle(e, '::after').backgroundImage !== 'none')"
                 ".map(e => e.className || e.tagName),"
-                " pictures: document.querySelectorAll("
-                "'.home-open img, .home-open picture, .home-open canvas, "
-                ".home-open svg, .pacific-photo, .home-coast-band').length })")
-            self.assertEqual(found["layers"], [])
-            self.assertEqual(found["pictures"], 0)
+                " images: [...document.querySelectorAll('.home-open img')]"
+                ".map(i => ({src: i.getAttribute('src'), loaded: i.complete && i.naturalWidth > 0,"
+                " described: i.getAttribute('aria-describedby')})),"
+                " other: document.querySelectorAll("
+                "'.home-open canvas, .home-open svg, .home-open video, .pacific-photo, "
+                ".home-coast-band, #analysis img').length,"
+                " marks: document.querySelectorAll('.home-open .evidence').length,"
+                " credit: (document.querySelector('#home-photo-credit') || {}).textContent || ''})")
+            self.assertEqual(found["layers"], ["home-photo"])
+            self.assertEqual(found["other"], 0)
+            self.assertEqual(found["marks"], 0)
+            self.assertEqual(len(found["images"]), 1, found["images"])
+            image = found["images"][0]
+            self.assertEqual(image["src"], cover["src"]["route"])
+            self.assertTrue(image["loaded"])
+            self.assertEqual(image["described"], "home-photo-credit")
+            credit = " ".join(found["credit"].split())
+            entry = cover["entry"]
+            for part in ("Illustrative photograph, not a record.",
+                         "Visual context, not evidence.", entry["creator"],
+                         entry["license"], entry["notice"]):
+                self.assertIn(" ".join(part.split()), credit)
         finally:
             context.close()
+
+
 if __name__ == "__main__":
     unittest.main()

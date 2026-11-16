@@ -494,41 +494,17 @@ class TestReviewedHome(HomeCase):
             # The date in the row's meta line is the source-stated one.
             self.assertEqual(row.select_one('.row-side time')['datetime'],
                              governed['published_date'])
-        # The record the page opens on exercises the translated title pair
-        # even when every newest arrival has only an original title.
-        selected = soup.select_one('.home-open .specimen')
-        link = selected.select_one('h2 a')
-        governed = by_id[int(Path(link['href']).stem)]
-        self.assertEqual(link.get_text(' ', strip=True),
-                         governed['title_english'] or governed['title_original'])
-        head = selected.select_one('.specimen-head')
-        self.assertIn('evidence--record', head.span['class'])
-        self.assertIn(governed['institution'] or governed['source_name'],
-                      head.get_text(' ', strip=True))
-        self.assertEqual(head.select_one('time')['datetime'], governed['published_date'])
-        original = selected.select_one('p.specimen-original')
-        # The selected live record may have no machine title. The template
-        # must show an original-title pair only when the two titles differ,
-        # and must not claim translation for a source-language-only record.
-        paired = bool(governed['title_english'] and governed['title_original'].strip()
-                      and governed['title_original'].strip()
-                      != governed['title_english'].strip())
-        self.assertEqual(original is not None, paired)
-        if paired:
-            self.assertEqual(original.get_text(' ', strip=True), governed['title_original'])
-            self.assertEqual(original.get('lang'), governed['language_tag'] or None)
-            label = selected.select_one('.specimen-head--english')
-            self.assertEqual(label.select_one('.evidence--model').get_text(strip=True),
-                             'Machine translation')
-            self.assertIn(
-                'Human review not recorded'
-                if governed['desk_id'] == 'china' and governed['language_tag'] != 'en'
-                else 'Not reviewed by a person', label.get_text(' ', strip=True))
-        else:
-            self.assertNotIn('Machine translation', str(selected))
-            self.assertEqual(selected.select_one('h2').get('lang'),
-                             (governed['language_tag'] or None)
-                             if not governed['title_english'] else None)
+        # The opening carries no record (founder direction, 2026-11-16): the
+        # record that stood beside the claim now appears once, in its desk
+        # row, so no record is shown twice and no record mark sits on the
+        # illustrative photograph.
+        opening = soup.select_one('.home-open')
+        self.assertIsNone(opening.select_one('.specimen'))
+        self.assertEqual(opening.select('a[href^="record/"]'), [])
+        self.assertEqual(opening.select('.evidence'), [])
+        hrefs = [a['href'] for a in soup.select('a[href^="record/"]')
+                 if a.find_parent(class_='record-row') and a.find_parent('h3')]
+        self.assertEqual(len(hrefs), len(set(hrefs)), hrefs)
 
     def test_human_brief_and_machine_record_labels_are_explicit(self):
         from bs4 import BeautifulSoup

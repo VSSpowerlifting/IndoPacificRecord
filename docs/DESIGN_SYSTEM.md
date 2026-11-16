@@ -55,12 +55,21 @@ cards with shadows, gradients, textures, contour fields, relief scenes or
 drawn scenery on active pages. `surfaces.css` holds the shared page head
 (`.page-head`), which is a display title, an optional lede and a 2px rule.
 
-**Pictures: text-led.** The paired title is the picture. A photograph
-appears only where `core/catalogue_media.py` admits one for a Brief, with its
-credit. No page uses a photograph, generated image or illustration as
-atmosphere, and records never carry source media. This replaces the
-"photography-led journal feel" in CLAUDE.md for active pages and needs the
-owner's acceptance (DECISION_LOG 2026-11-16).
+**Pictures.** Two places carry a photograph, and both are credited
+photographs of real scenes, never generated images or illustration:
+- **The home opening** is set on the latest Brief's admitted photograph
+  (`home_hero`), granted exactly as that Brief's cover is: the catalogue
+  admission (`core/catalogue_media.py`) and the cover pairing
+  (`core/brief_photography.article_cover`) must both hold. It sits large
+  behind the claim and the title search under the IPR gradient its credit
+  names, and its full credit (caption, creator, licence, source, change note,
+  "Visual context, not evidence" and any required notice) runs beneath it
+  with the label "Illustrative photograph, not a record" and a link to the
+  Brief. It carries no record mark and no record appears in the opening.
+  Without an admitted photograph the opening is plain navy. The Briefs card
+  below does not repeat the image.
+- **Briefs**: catalogue cards and opened-Brief covers, as before.
+Records never carry source media.
 
 **Motion.** Only motion that answers the reader: a button press, a disclosure
 opening, the archive updating its results. Nothing moves on its own, and
@@ -77,15 +86,15 @@ headline, not a translation" (`title_kind`). Rows shown outside a list with a
 column head (the Desks page) keep "Machine-translated title · human review not
 recorded". Singapore metadata-only rows are set quieter (`record-row--metadata`).
 
-**Home.** The opening (claim, title search, one real record as parallel
-text), then "Newest from each desk": the first row of each public-record
+**Home.** The opening (photograph, claim, title search, then the photograph's
+credit), then "Newest from each desk": the first row of each public-record
 desk's own page (`desk_front_rows`), the desk name in the left column and the
 date in the meta line; a line saying how many desks hold public records and,
 measured from the counts, that most of the records come from Chinese sources, with a link to
 Coverage; one line naming the desks with no public records and their registry
 state; then Briefs and the three kinds of text.
 
-**Stored-summary sentence.** On the home opening, the home desk rows and the
+**Stored-summary sentence.** On the home desk rows and the
 five newest rows on each desk page except Korea, a row carries the first
 complete sentence of the record's stored machine summary, verbatim, under
 the dotted mark (`summary_lead`: an exact prefix or nothing; ambiguous
