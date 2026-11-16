@@ -42,9 +42,9 @@ It reads the shaped record after source holds apply, so MINDEF (summary
 withheld) never carries one. Korea MND and Vietnam records already publish
 these summaries on their record pages. Not on the Records page, week pages or
 the search index. **Korea page headroom:** the Korea desk page carries no
-summary lines. Its delivery budget (HTML plus CSS, 120,000 bytes) left about
-415 bytes with them while its link lists grow daily; without them this build
-measures 118,586 bytes (`verify_frontend_delivery`).
+summary lines. Measured on this build with `verify_frontend_delivery` against
+its 120,000-byte HTML-plus-CSS budget: 118,586 bytes without them, 120,058
+with them (over the cap), and its link lists grow daily.
 
 **Scaffolding language.** Lists state once, at the head of the English
 column, that English titles are machine translations with human review not

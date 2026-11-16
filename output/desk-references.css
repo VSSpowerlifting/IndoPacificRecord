@@ -1,48 +1,66 @@
-/* Metadata-only references: same restrained IPR page surface, no dashboard skin. */
-.desk-references{border-top:1px solid var(--rule);margin-block:32px;padding-top:20px}
+/* The desk page, loaded on every desk after the shared sheets. A hard rule
+   opens a section and hairlines separate its rows; the only marks are the
+   shared evidence labels. Korea-only rules live in korea-shell.css. */
+[data-surface=desk] .page-head{margin-bottom:0}
+.desk-count{font:400 var(--step-meta)/1.5 var(--sans);color:var(--muted);margin:.9rem 0 0}
+[data-surface=desk] .status-panel{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 .7rem;align-items:start;margin:0 0 2.4rem;padding:1.4rem 0 1.6rem;border:0;border-bottom:1px solid var(--rule);background:none}
+[data-surface=desk] .status-panel .status-glyph{font-size:1.05rem;line-height:1.75rem;padding:0}
+[data-surface=desk] .status-panel>div{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:.5rem 2.5rem;align-items:start}
+[data-surface=desk] .status-panel h2{font:600 clamp(1.1875rem,1.05rem + .5vw,1.4375rem)/1.3 var(--serif);margin:0;padding:0;border:0;max-width:24ch}
+[data-surface=desk] .status-panel p{margin:0;color:var(--ink-2);max-width:66ch}
+[data-surface=desk] .status-panel p:empty{display:none}
+[data-surface=desk] .collection-notes{grid-column:-2/-1;font-size:.875rem;color:var(--ink-2)}
+[data-surface=desk] .collection-notes summary{min-height:40px;padding-top:.5rem;font-weight:600;cursor:pointer}
+[data-surface=desk] main :is(section,details)>h2{margin:0 0 .8rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display);letter-spacing:-.01em}
+[data-surface=desk] main section{margin:3rem 0 0}
+[data-surface=desk] main section section{margin-top:2rem}
+[data-surface=desk] main section section>h2,[data-surface=desk] main section h3{font:600 1.1875rem/1.35 var(--serif);letter-spacing:0;margin:1.6rem 0 .5rem;padding:0;border:0}
+[data-surface=desk] main section>p:not(.meta):not(.evidence):not(.records-key),.desk-sec-note{max-width:68ch}
+[data-surface=desk] main .evidence{white-space:normal}
+[data-surface=desk] main section>.evidence{display:flex;max-width:none;margin:0 0 -.35rem;padding-top:1rem;border-top:2px solid var(--rule-hard)}
+[data-surface=desk] main section>.evidence+h2{border-top:0;padding-top:.7rem}
+[data-surface=desk] main section section>.evidence{border-top:0;padding-top:0;margin:0}
+[data-surface=desk] main .desk-newest{margin-top:0}
+/* The shared record rows keep their own grid inside a desk section. */
+[data-surface=desk] main .records-day{margin:0}
+[data-surface=desk] main .record-row h3{margin:0;font-size:1.125rem;line-height:1.34}
+[data-surface=desk] main .record-row h3[lang]{font-weight:400;font-size:1.1875rem;line-height:1.5}
+.desk-sec-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.4rem 2rem;margin:0 0 1rem}
+[data-surface=desk] main .desk-sec-head h2{margin:0;padding:0;border:0;font:400 clamp(1.75rem,1.4rem + 1.3vw,2.5rem)/1.05 var(--display);letter-spacing:-.012em}
+.desk-sec-head .evidence{margin:0 0 .35rem}
+.desk-sec-head>a{display:inline-flex;align-items:center;min-height:40px;font:600 var(--step-meta)/1.3 var(--sans)}
+.desk-sec-note{color:var(--ink-2);margin:0 0 1.1rem}
+.desk-references{border:0;padding:0}
+.desk-limits{max-width:70ch;padding-left:1.15rem;margin:.4rem 0 1rem}
+.desk-limits li{margin:.45rem 0}
+.desk-machine-list{list-style:none;margin:1.1rem 0 1rem;padding:0;border-top:2px dotted var(--machine-ink)}
+.desk-machine-list>li{display:grid;grid-template-columns:var(--gutter-date,7.25rem) minmax(0,1fr);gap:.2rem 1.5rem;max-width:none;padding:1rem 0 1.05rem;border-bottom:1px solid var(--rule)}
+.desk-machine-when{margin:0;font:400 var(--step-meta)/1.45 var(--sans);color:var(--muted)}
+.desk-machine-when span{display:block;color:var(--ink-2);font-weight:600}
+.desk-machine-text{font:400 1.0625rem/1.5 var(--serif);margin:0 0 .4rem;max-width:66ch}
+.desk-machine-list .meta{margin:0;overflow-wrap:anywhere}
+.desk-reference-list{list-style:none;margin:1rem 0;padding:0;border-top:1px solid var(--rule)}
+.desk-reference-list li{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.15rem 1.5rem;max-width:none;border-bottom:1px solid var(--rule);padding:.8rem 0}
+.desk-reference-list li[hidden]{display:none}
+.desk-reference-list li p{margin:0;max-width:68ch}
+.desk-reference-list li a{overflow-wrap:anywhere}
+[data-surface=desk] main .desk-reference-list li h3{margin:0;font-size:1.0625rem}
 .desk-reference-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:20px 0}
 .desk-reference-filters[hidden]{display:none}
 .desk-reference-filters label{display:flex;flex-direction:column;gap:6px;font-size:.88rem}
-.desk-reference-filters input,.desk-reference-filters select{font:inherit;min-width:0;width:100%;padding:10px;background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
+.desk-reference-filters input,.desk-reference-filters select{font:inherit;min-width:0;width:100%;min-height:44px;padding:10px;background:var(--surface);color:var(--ink);border:1px solid var(--rule-strong);border-radius:0}
 .desk-reference-filters input:focus-visible,.desk-reference-filters select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.desk-reference-list{padding-left:1.45rem}
-.desk-reference-list li{border-bottom:1px solid var(--rule);padding:12px 4px}
-.desk-reference-list li[hidden]{display:none}
-.desk-reference-list li p{margin:0 0 5px}
-@media(max-width:520px){.desk-reference-filters{grid-template-columns:1fr}}
-
-
-/* Korea private pre-publication desk: intentional factual constraints. */
-.korea-private-preview{margin-block:2rem 3rem;padding-block:1.5rem;border-top:2px solid currentColor}
-.korea-preview-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-block:1.5rem}
-.korea-preview-metrics>div{border:1px solid var(--line,#bdc8ca);padding:.8rem;display:flex;flex-direction:column;gap:.2rem}
-.korea-preview-metrics strong{font-size:1.7rem;line-height:1.2}
-.korea-preview-metrics span{font-size:.8rem}
-.korea-candidate-list{list-style:none;padding:0;margin:1rem 0}
-.korea-candidate{padding:1rem 0 1.2rem;border-top:1px solid var(--line,#bdc8ca)}
-.korea-candidate h3{font-size:1.08rem;margin:.45rem 0;line-height:1.55}
-.korea-candidate-kicker{font-size:.78rem;letter-spacing:.035em;margin:0}
-.korea-candidate code{overflow-wrap:anywhere;font-size:.77rem}
-@media(max-width:640px){.korea-preview-metrics{grid-template-columns:1fr}.korea-candidate{padding:1.2rem 0}}
-
-/* Private source-scoped English descriptor, not publicly source-admitted. */
-.korea-private-synopsis{font-size:1rem;line-height:1.6;margin:.75rem 0}
-
-/* Limited public Korea official-source bibliography: no copied article body. */
-.korea-public-bibliography{margin-block:2rem 3rem;padding-top:1.4rem;border-top:2px solid currentColor}
-.korea-public-bibliography .eyebrow{letter-spacing:.07em}
-.korea-public-source-list{list-style:none;margin:1.5rem 0 1rem;padding:0}
-.korea-public-source-list li{border-top:1px solid var(--line,#bdc8ca);padding:1.2rem 0}
-.korea-public-source-list h3{font-size:1.12rem;line-height:1.55;margin:0 0 .6rem}
-.korea-public-source-list .meta{margin:.35rem 0}
-
-/* Korea: make current government publisher entrypoints visible next to the
-   frozen bibliography, while remaining clearly separate from admitted records. */
-.korea-publisher-shortcuts{margin:1.35rem 0 2rem;border:1px solid var(--rule);padding:1.1rem 1.25rem}
-.korea-publisher-shortcuts h3{font-size:1.04rem;margin:0 0 .45rem}
-.korea-publisher-shortcuts ul{list-style:none;padding:0;margin:.9rem 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
-.korea-publisher-shortcuts li{border-top:1px solid var(--rule);padding-top:.8rem;display:flex;flex-direction:column;gap:.35rem}
-.korea-publisher-shortcuts li strong{font-size:.95rem;line-height:1.4}
-.korea-publisher-shortcuts li a{align-self:flex-start}
-.korea-publisher-shortcuts li .meta{margin:0}
-@media(max-width:640px){.korea-publisher-shortcuts ul{grid-template-columns:1fr}}
+.desk-more{margin:1.2rem 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.desk-more>summary{cursor:pointer;padding:.75rem 0;font:600 .9375rem/1.4 var(--sans)}
+.desk-more[open]{padding-bottom:1rem}
+.desk-more--end{margin-top:3rem;border-top:2px solid var(--rule-hard)}
+[data-surface=desk] main .desk-more>h2{font:600 1.25rem/1.3 var(--serif);letter-spacing:0;margin:1.6rem 0 .5rem;padding:0;border:0}
+.desk-more>p{max-width:68ch}
+@media(max-width:720px){
+  [data-surface=desk] .status-panel>div{grid-template-columns:1fr}
+  [data-surface=desk] .status-panel{padding:1.1rem 0 1.3rem;margin-bottom:1.8rem}
+  .desk-machine-list>li,.desk-reference-filters{grid-template-columns:1fr}
+  .desk-machine-when span{display:inline}
+  .desk-machine-when span::before{content:"· "}
+  [data-surface=desk] main section{margin-top:2.4rem}
+}
