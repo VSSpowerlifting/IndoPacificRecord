@@ -255,6 +255,33 @@ class Handoff(unittest.TestCase):
         self.assertEqual([f["records"] for f in envelope["families"]], [[], []])
         self.assertEqual(self.verify(envelope, desk=None, decisions=self.tmp / "none"), [])
 
+    def test_verify_accepts_old_and_new_family_entries_and_never_refuses_on_the_block(self):
+        from tests.test_collection_attempts import facts
+        good = facts(family=MPS)
+        for label, block in (("valid", good), ("malformed", {"schema": "junk"}),
+                             ("leaky", dict(good, error_detail="x")), ("null", None)):
+            with self.subTest(label):
+                report, _ = self.run_private(source_use=grant())
+                ledger = json.loads(self.ledger.read_text())
+                envelope = handoff.sign([report], {MPS: ledger}, key=BRIDGE_KEY,
+                                        run_id="simulated-private-run", generated_utc=NOW)
+                old = self.verify(envelope)
+                self.assertEqual(handoff.collection_by_family(envelope), {MPS: None})
+                for entry in envelope["families"]:
+                    entry["collection"] = block
+                body = {k: v for k, v in envelope.items() if k != "mac"}
+                envelope["mac"] = handoff._mac(BRIDGE_KEY, body)
+                self.assertEqual(self.verify(envelope), old)
+                expected = {MPS: good if label == "valid" else None}
+                self.assertEqual(handoff.collection_by_family(envelope), expected)
+
+    def test_verify_still_refuses_unknown_family_entry_keys(self):
+        envelope = self.signed()
+        envelope["families"][0]["extra"] = 1
+        envelope["mac"] = handoff._mac(BRIDGE_KEY, {k: v for k, v in envelope.items() if k != "mac"})
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_family_invalid"):
+            self.verify(envelope)
+
     def test_command_admits_into_a_copy_and_holds_without_touching_the_database(self):
         envelope = self.signed()
         path = self.tmp / "handoff.json"
@@ -290,6 +317,7 @@ class Handoff(unittest.TestCase):
             code, out = run()
             self.assertEqual((code, out["counts"]), (0, {qa.PUBLISHED: 2}))
             self.assertEqual(out["by_family"], {MPS: {qa.PUBLISHED: 2}})
+            self.assertEqual(out["collection_by_family"], {MPS: None})
             self.assertEqual(out["generated_utc"], NOW)
             self.assertNotIn("summary_english", json.dumps(out))
             self.assertEqual(reported(out), ipr_pipeline.GovernedOutcome(st.OK, 2, 0))

@@ -476,3 +476,31 @@ already public in the database and in Git history is untouched by design.
 Nothing here adopts a publisher grant or restriction, activates the hold, or
 changes the live site. Activation, legacy-record treatment and publisher
 correspondence remain separate founder decisions.
+
+## Daily collection attestation (reader first) — 16 November 2026
+
+A fresh signed Daily envelope no longer means a fresh collection: the private
+signer re-signs on every success-gated run, and a failed collector attempt
+still commits a failure ledger (NSC committed one every day from 5 to 16
+November). The public side therefore learns to read signed
+`ipr-collection-attempts/1` facts (`core/collection/attempts.py`) and to
+report a failed, unledgered or stale collection on the family's own run-result
+row, after admission, keeping its counts and `held:` detail.
+
+- Schema `ipr-shared-daily-machine-output/2` carries the 7 existing keys plus
+  one `collection` block, MACed under `DOMAIN_V2`. `/1` and its domain are
+  unchanged; `admit` returns the same `{admitted, holds}` and does not read the
+  block, so a malformed block never blocks records (it reads as not attested).
+  Vietnam family entries may carry the same optional block under the
+  existing, unbumped handoff MAC; the printed receipt adds
+  `collection_by_family`.
+- Order: reader (this change; every live envelope is still `/1`, so every
+  disposition is unchanged) -> shared and Vietnam producers, only after one
+  public Daily has run reader code -> strict flip -> liveness. Cron values are
+  mirrored in `core/daily_sources.py` from the private collector workflows and
+  must be edited together; the attended Singapore pilot never gets a verdict.
+- Strict-flip condition: set `pipeline._REQUIRE_COLLECTION_ATTESTATION` only
+  after a structure-only listing shows `/2` for every enabled, non-attended
+  family with a declared cadence. Until then a missing block is "no verdict".
+- #989 (an unsigned custody-head heartbeat) is superseded: it reads fresh on
+  failure days because failed attempts are committed. Close it unmerged.
