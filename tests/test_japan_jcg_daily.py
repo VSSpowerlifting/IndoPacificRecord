@@ -798,6 +798,39 @@ def commit_run(repo, run_id, *, terms, raw=None):
                           text=True).stdout.strip()
 
 
+class JcgCollectionVerdictOrdering(unittest.TestCase):
+    """The terms-evidence early return still runs before intake, and a clean
+    JCG receipt carrying failed collection facts reports that failure."""
+
+    def run_admit(self, evidence, receipt):
+        import os
+        import pipeline
+        from datetime import datetime, timezone
+        intake = Mock(return_value=receipt)
+        clock = lambda: datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
+        with patch.dict(os.environ, {"IPR_DAILY_INTAKE_DIR": "/scratch/intake"}), \
+                patch("core.daily_sources._jcg_evidence_report", return_value=evidence):
+            out = pipeline._daily_admission(FAMILY, intake=intake, clock=clock).admit(1)
+        return out, intake
+
+    def test_evidence_failure_returns_before_intake_and_ignores_facts(self):
+        out, intake = self.run_admit(("listing_failure", "terms page refused"),
+                                     {"records": 1, "admitted": 1, "holds": []})
+        self.assertEqual((out.status, out.error_detail), ("listing_failure", "terms page refused"))
+        intake.assert_not_called()
+
+    def test_failed_facts_apply_after_intake_only_without_evidence_failure(self):
+        from tests.test_collection_attempts import facts
+        f = facts(family=FAMILY)
+        failed = dict(f, latest=dict(f["latest"], result="timeout", health="fail", healthy=False))
+        out, intake = self.run_admit(None, {"records": 2, "admitted": 0, "holds": [],
+                                            "collection": failed})
+        intake.assert_called_once()
+        self.assertEqual((out.status, out.duplicates), ("timeout", 2))
+        out, _ = self.run_admit(None, {"records": 2, "admitted": 0, "holds": []})
+        self.assertEqual(out.status, "ok_all_duplicates")
+
+
 class JcgPolicyEvidenceTransitions(unittest.TestCase):
     """Two policy-evidence transitions through the existing handoff and queue.
 

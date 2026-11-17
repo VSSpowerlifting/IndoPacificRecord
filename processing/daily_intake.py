@@ -14,6 +14,7 @@ import sqlite3
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 from core import processing_state
 from core.crossdesk_official_metadata_candidates import canonical
@@ -29,6 +30,13 @@ REFS = {family: s.custody_ref for family, s in SOURCES.items()}
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 COMMIT = re.compile(r"[a-f0-9]{40}\Z")
 DOMAIN = b"ipr-shared-daily-machine-output/1\n"
+# Schema /2 adds one signed `collection` block (see core/collection/attempts.py).
+# It is MACed under its own domain so a /2 body can never verify as a /1 one.
+DOMAIN_V2 = b"ipr-shared-daily-machine-output/2\n"
+SCHEMA_V1 = "ipr-shared-daily-machine-output/1"
+SCHEMA_V2 = "ipr-shared-daily-machine-output/2"
+_BASE_KEYS = {"schema", "family", "source_repository", "source_ref", "processor_commit",
+              "records", "held"}
 PUBLIC_FIELDS = (
     "source_family", "source_identity", "metadata_version_sha256",
     "content_sha256", "capture_sha256", "source_git_commit", "source_run",
@@ -530,14 +538,19 @@ def admit(conn, envelope, *, family, policy, key):
     packet = envelope["packet"]
     need(type(packet) is dict, "daily_envelope_invalid")
     raw = canonical(packet)
+    # The schema string selects the MAC domain; any other value keeps the /1
+    # domain and is refused by the shape check below, as before.
+    domain = DOMAIN_V2 if packet.get("schema") == SCHEMA_V2 else DOMAIN
     need(len(raw) <= 512000 and type(envelope["mac"]) is str
-         and hmac.compare_digest(hmac.new(key.encode(), DOMAIN + raw, hashlib.sha256).hexdigest(),
+         and hmac.compare_digest(hmac.new(key.encode(), domain + raw, hashlib.sha256).hexdigest(),
                                  envelope["mac"]), "daily_envelope_mac_invalid")
     p = policy["sources"][family]
     need(p["private_model_processing"] and p["public_machine_explanation"] and p["unattended_release"],
          "daily_output_rights_held")
-    need(set(packet) == {"schema", "family", "source_repository", "source_ref", "processor_commit", "records", "held"}
-         and packet["schema"] == "ipr-shared-daily-machine-output/1"
+    # The `collection` block is deliberately not read here: admission of the
+    # records never depends on it. See collection_facts().
+    need(set(packet) == (_BASE_KEYS | {"collection"} if packet.get("schema") == SCHEMA_V2 else _BASE_KEYS)
+         and packet.get("schema") in (SCHEMA_V1, SCHEMA_V2)
          and packet["family"] == family and packet["source_repository"] == PRIVATE_REPO
          and packet["source_ref"] == REFS[family] and type(packet["records"]) is list
          and type(packet["held"]) is list and all(type(s) is str for s in packet["held"]),
@@ -603,6 +616,22 @@ def admit(conn, envelope, *, family, policy, key):
             except IntakeHold as exc:
                 held.append(str(exc))
     return {"admitted": accepted, "holds": held}
+
+
+def collection_facts(packet) -> Optional[dict]:
+    """The packet's validated collection facts, from an already admitted packet.
+
+    None for a /1 packet (no facts). For /2, the validated block, or a
+    not-attested marker when the signed block is malformed: a defect in the
+    attestation never blocks the records, it is reported instead.
+    """
+    if not (isinstance(packet, dict) and packet.get("schema") == SCHEMA_V2):
+        return None
+    from core.collection import attempts
+    facts = attempts.validate(packet.get("collection"))
+    if facts is None or facts["family"] != packet.get("family"):
+        return {"attested": False, "reason": "collection_attestation_invalid"}
+    return facts
 
 
 def _is_ancestor(repo, older, newer):

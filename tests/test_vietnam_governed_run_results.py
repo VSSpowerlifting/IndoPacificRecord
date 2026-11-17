@@ -169,6 +169,33 @@ class VietnamDispatch(unittest.TestCase):
                        detail="signed handoff (run 41399999999-1) carried no report "
                               "for this family")
 
+    # -- collection attestation ------------------------------------------
+
+    def test_receipts_without_collection_by_family_are_unchanged(self):
+        self.write(ok_receipt({MPS: {"published": 2}}))
+        self.assertRow(self.dispatch(MPS)[0], st.OK, new=2)
+
+    def test_a_replayed_envelope_with_a_stale_collection_is_a_failure_not_a_quiet_day(self):
+        """MPS replay of 14 Nov: signed 23:57Z, collection target 13 Nov, read 15 Nov 13:00Z."""
+        from tests.test_collection_attempts import facts
+        f = facts(family=MPS, latest_healthy_target_date="2026-11-13")
+        receipt = dict(ok_receipt({MPS: {}}, generated_utc="2026-11-14T23:57:00Z"),
+                       collection_by_family={MPS: f})
+        self.write(receipt)
+        now = datetime(2026, 11, 15, 13, 0, tzinfo=timezone.utc)
+        with mock.patch.dict(os.environ, ACTIVE), \
+                mock.patch.object(pipeline, "_governed_admissions", return_value={
+                    MPS: pipeline._vietnam_handoff_admission(MPS, clock=lambda: now)}):
+            errors = []
+            [r] = pipeline.run_governed_manual_sources([MPS], 7, FakeRegistry(), errors)
+        self.assertEqual(r.status, st.FETCH_FAILURE)
+        self.assertEqual(r.error_detail, "collection stale: last healthy target 2026-11-13 "
+                         "(latest run 43949292737-1); expected slot 2026-11-14")
+        self.assertEqual(len(errors), 1)
+        self.write(dict(receipt, collection_by_family={MPS: None}))
+        with mock.patch.dict(os.environ, ACTIVE):
+            self.assertEqual(pipeline._vn_handoff_outcome(MPS, now).status, st.OK_NO_PUBLICATIONS)
+
     # -- VPCP: bibliographic lane and composite ---------------------------
 
     def metadata_only(self):
