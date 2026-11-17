@@ -23,13 +23,17 @@ render, not the deployed site; nothing here is merged, deployed or live.
 | A dossier | `dossier/china-singapore-naval-cooperation.html` | `dossier-desktop.webp` | `dossier-mobile.webp` |
 | Korea reviewed translation | `korea-translations/156784297.html` | `korea-translation-desktop.webp` | `korea-translation-mobile.webp` |
 
-The photographic home, its first-screen captures and the Korea translation
-captures are from the committed `output/` at `e840e402f0`, served as it is
-committed. On the 320x568 first screen the title search ends at 565px. The
-rest are from `11e3832784`; later commits change those pages only in the home
-opening, the Briefs card on the home page (which no longer repeats the hero
-photograph), the Korea translation mark and the selected-records note on the
-Records page, which now hides when another scope is chosen.
+The photographic home and its first-screen captures show the stable homepage
+photograph (the U.S. Navy Reagan CSG and JMSDF formation, founder direction
+of 16 November). They are taken from the committed `output/` at the head that
+adds them, served as committed. On a 320x568 screen the title search ends at
+565px, and on 768x1024 at 892px. The Korea translation captures are from
+`e840e402f0`. The rest are from `11e3832784`. Later commits change those pages
+only in these ways:
+- the home opening;
+- the Korea translation mark;
+- the selected-records note on the Records page, which now hides when another
+  scope is chosen.
 
 At capture, every page had `document.documentElement.scrollWidth` equal to the
 viewport (no horizontal scroll at 375px) and logged no console errors.

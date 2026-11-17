@@ -68,8 +68,9 @@ photographs of real scenes, never generated images or illustration:
   "Illustrative photograph, not a record": caption, creator and DoD ID,
   licence, source, the change note and "Visual context, not evidence". It
   carries no record mark, and no record appears in the opening. On phones
-  the photograph is a band above the claim, short enough that the title
-  search stays on the first screen.
+  and tablets (900px and narrower) the photograph is a band above the claim,
+  seen in full and short enough that the title search stays on the first
+  screen.
 - **Briefs**: catalogue cards and opened-Brief covers, as before.
 Records never carry source media.
 

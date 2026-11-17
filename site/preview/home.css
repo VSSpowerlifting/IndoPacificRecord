@@ -72,18 +72,23 @@
   .home-open-grid{grid-template-columns:minmax(0,1fr)}
   .home-briefs-grid{grid-template-columns:minmax(0,1fr)}
 }
-@media(min-width:701px) and (max-width:1100px){
-  /* The copy column covers most of a tablet-width stage: hold the dark
+@media(min-width:901px) and (max-width:1100px){
+  /* The copy column covers most of a narrow desktop stage: hold the dark
      part of the gradient under all of it. */
   .home-photo::after{background:linear-gradient(90deg,rgba(20,46,56,.95) 0%,rgba(20,46,56,.92) 70%,rgba(20,46,56,.6) 88%,rgba(20,46,56,.3) 100%),linear-gradient(0deg,rgba(20,46,56,.6) 0%,rgba(20,46,56,0) 40%)}
 }
-@media(max-width:700px){
+@media(max-width:900px){
+  /* Phones and tablets: the photograph is a band above the claim, so it is
+     seen in full rather than darkened behind a copy column that fills most
+     of the stage. */
   .home-photo{position:relative;inset:auto;z-index:auto}
   .home-photo img{height:auto;aspect-ratio:16/10}
   .home-photo::after{background:linear-gradient(0deg,var(--band) 0%,rgba(20,46,56,.55) 30%,rgba(20,46,56,0) 62%)}
   .home-open--photo .home-open-grid{min-height:0;margin-top:-3.4rem;position:relative;padding-block:0 2.2rem}
   .home-open--photo .claim{margin-bottom:1rem}
   .home-open--photo .home-dek{margin-bottom:1.5rem}
+}
+@media(max-width:700px){
   .claim{max-width:none}
   .home-feature--photo{grid-template-columns:minmax(0,1fr)}
   .home-legend{grid-template-columns:minmax(0,1fr)}

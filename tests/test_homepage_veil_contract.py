@@ -182,9 +182,10 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                 context.close()
 
     def test_the_title_search_is_in_the_first_screen_on_a_phone(self):
-        """The photograph must not push the search off a small phone's first
-        screen: the input and its button sit wholly inside the viewport."""
-        for width, height in ((320, 568), (360, 640), (375, 667), (375, 812), (414, 736)):
+        """The photograph must not push the search off a phone's or tablet's
+        first screen: the input and its button sit wholly inside the viewport."""
+        for width, height in ((320, 568), (360, 640), (375, 667), (375, 812), (414, 736),
+                              (768, 1024), (820, 1180)):
             context = self.browser.new_context(viewport={"width": width, "height": height})
             page = context.new_page()
             try:
