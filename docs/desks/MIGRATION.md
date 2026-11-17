@@ -504,3 +504,35 @@ row, after admission, keeping its counts and `held:` detail.
   family with a declared cadence. Until then a missing block is "no verdict".
 - #989 (an unsigned custody-head heartbeat) is superseded: it reads fresh on
   failure days because failed attempts are committed. Close it unmerged.
+
+### Collection attestation, signer side (step 2) — 17 November 2026
+
+The shared Daily private signer now emits the `/2` envelope for exactly the
+families with a declared, unattended collection cadence
+(`DailySource.signs_collection()`: AFP, NSC, Kemhan, JCG). The attended
+Singapore pilot, USCC and DAPA have no cadence and keep signing `/1`, byte
+for byte. `private_run` reads the block after the atomic queue write and just
+before signing (`DailySource.collection_attempt` ->
+`attempts.read_custody`), so a reader failure never stops signing or alters
+queue/state writes; it signs `attested: false` with `collection_reader_failed`.
+`sign_outputs(collection=None)` is the unchanged `/1` packet and MAC; a block
+that fails `attempts.validate` (or names another family) is replaced by
+`collection_attestation_invalid`.
+
+- The reader lists the newest 20 `state/ledger/` files at the pinned custody
+  commit and copies only run_id, target_date, target_date_source,
+  finished_utc, result and health (rehearsal ledgers skipped). Ordering is by
+  parsed `finished_utc`. `latest_healthy_target_date` is the maximum over
+  healthy ledgers, so an explicit recovery rerun counts. A non-zero collector
+  receipt (`private_attempts/` for AFP and NSC, `state/private_attempts/` for
+  Kemhan) newer than the latest ledger and without its own ledger is reported
+  as `unledgered_exit`. No ledger reads `no_ledger`; any unreadable, malformed
+  or unexpected-valued ledger or newer receipt reads `ledger_unreadable`
+  (fail closed, never raises). Error text, URLs and request data are never
+  copied.
+- No private workflow change is needed: the signer already runs from the
+  public processor against the pinned custody checkout.
+- Expected effect once the next shared Daily runs: NSC, whose collector has
+  failed every day since 5 November, reports `access_challenged` on its
+  run-result row instead of duplicates. Strict flip
+  (`_REQUIRE_COLLECTION_ATTESTATION`) stays deferred per the condition above.

@@ -118,9 +118,21 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         result["holds"] = {identity: "private_reading_preservation_failed"
                            for identity in preservation_holds}
     if not no_release and policy["sources"][family]["public_machine_explanation"]:
+        collection = None
+        if source_for(family).signs_collection():
+            # Read only after the atomic queue write above; a reader failure
+            # is carried as an unattested block and never stops signing.
+            try:
+                collection = source_for(family).collection_attempt(repo, commit)
+            except Exception:
+                from core.collection import attempts
+                collection = attempts.unattested(family, commit, "collection_reader_failed")
         envelope = sign_outputs(state, family=family, policy=policy,
                                  key=os.environ.get("DAILY_OUTPUT_KEY", ""),
-                                 selected_record=eligible[0] if pilot else None)
+                                 selected_record=eligible[0] if pilot else None,
+                                 collection=collection)
+        if collection is not None:
+            result["collection"] = envelope["packet"]["collection"]
         target = Path(out_dir) / (family + ".json")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(envelope, sort_keys=True))
