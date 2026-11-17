@@ -86,6 +86,20 @@ class RegionalAtlasTest(unittest.TestCase):
         # The edge pointer is not at the former Hawaii seat's latitude.
         self.assertNotAlmostEqual(atlas.OUTSIDE_EDGE_LAT, 21.4, delta=5)
 
+    def test_the_edge_pointer_sits_in_open_sea_at_every_width(self):
+        # Its mark stands at the view's east edge at OUTSIDE_EDGE_LAT; that
+        # point (and a margin west of it) must be sea, never a stand-in seat
+        # on someone's land. No stylesheet may move it off the built latitude.
+        east = atlas.VIEW["lon"][1]
+        for lon in (east, east - 1.5, east - 3.0):
+            self.assertFalse(_contains(self.source["land"],
+                                       *atlas.project(lon, atlas.OUTSIDE_EDGE_LAT)), lon)
+        css = (ROOT / "site" / "preview" / "desk-map.css").read_text(encoding="utf-8")
+        import re
+        for rule in re.findall(r"\.seat--edge\{([^}]*)\}", css):
+            tops = re.findall(r"(?:^|;)\s*top\s*:\s*([^;]+)", rule)
+            self.assertTrue(all(t.strip() == "var(--y)" for t in tops), rule)
+
     def test_every_seated_desk_has_a_locator_and_the_outside_desk_has_none(self):
         for slug, p in self.places.items():
             loc = atlas.locator_view(slug)
@@ -150,7 +164,7 @@ class AtlasOnThePages(unittest.TestCase):
             self.assertIn("%s. %s" % (d.name, d.status_label), head)
         self.assertIn("It is not an area of coverage", head)
         self.assertIn("no boundary claim", head)
-        self.assertIn("United States, outside this map", head)
+        self.assertIn("United States, </span>outside this map", head)
         self.assertNotIn("Hawaii", head)
         self.assertTrue((ROOT / "output" / "assets" / "geo" / "atlas.svg").is_file())
 

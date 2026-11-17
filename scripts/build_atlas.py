@@ -60,7 +60,7 @@ VIEW = {"lon": (94.0, 148.0), "lat": (45.5, -10.5)}
 LOCATOR_SPAN = (26.0, 26.0)   # degrees of longitude, degrees of Miller height
 # Where an outside desk's edge pointer meets the east edge: open ocean, and
 # deliberately not the latitude of any former seat.
-OUTSIDE_EDGE_LAT = 2.5
+OUTSIDE_EDGE_LAT = 6.0
 
 # Waterline offsets from the coast, in units, nearest first, with the share of
 # the line colour mixed into the sea for each.

@@ -27,7 +27,8 @@ visual phase through merge and deployment under repository governance.
 - The US Indo-Pacific Reference Desk is no longer drawn at Hawaii. Its
   registered sources are the USCC and the Treasury; nothing from U.S. Pacific
   Command, the Hawaii institution, is configured. The atlas shows an edge
-  pointer, "United States, outside this map", away from Hawaii's latitude.
+  pointer, "United States, outside this map", in open sea at 6°N, away from
+  Hawaii's latitude (a test keeps it off land at every width).
 - No country fills: a filled country reads as coverage. A point is a seat.
 - `desks/geography.json` loses the retired plate placements and country ids;
   `scripts/desk_map.py` loses the plate layout. `scripts/build_geo_assets.py`

@@ -76,12 +76,10 @@
   .seat--n-left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
   .seat--n-right{flex-direction:row;text-align:left;transform:translate(-20px,-50%)}
   .seat--n-below{flex-direction:column;text-align:center;transform:translate(-50%,-20px)}
-  .seat--edge{top:4.5%}
-  .seat--edge .seat-text b::after{content:" →"}.seat--edge .seat-text::after{content:none}
-  .seat-far{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .seat-place{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .atlas-grat{display:none}
 }
-@media(forced-colors:active){.atlas-map{background:Canvas;forced-color-adjust:none}.seat,.seat-text,.seat-text b{color:CanvasText;text-shadow:none}.seat-mark{color:CanvasText}}
+@media(forced-colors:active){.atlas-map{forced-color-adjust:none}}
 @media print{.atlas-map{border-color:#000}}
 .desks-section{margin:3rem 0 0}
 .desks-section>h2{margin:0 0 .8rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}

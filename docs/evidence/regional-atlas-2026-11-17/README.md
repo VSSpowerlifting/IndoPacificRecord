@@ -22,7 +22,7 @@ Desktop is 1280px wide; mobile is 375px. Both are cut at 1,700px.
   - Each point marks where a desk's publishing institutions are based.
   - No country is filled.
   - Each mark is the desk's registry state glyph, with no colour-only meaning.
-  - The US desk is an edge pointer ("United States, outside this map"), not a Hawaii seat.
+  - The US desk is an edge pointer in open sea at 6°N ("United States, outside this map"; on a narrow map, "outside this map"), not a Hawaii seat.
 - **Directory unchanged.** The rows below the atlas, their counts, states and parallel-text titles are unchanged. Each row gains "Seat: <place>" with a link back to the atlas.
 - **Waterline rule.** Every page head's 2px rule now has two faint hairlines beneath it.
 
