@@ -55,7 +55,30 @@ cards with shadows, decorative gradients, textures, contour fields, relief
 scenes or drawn scenery on active pages. The only gradients are the CSS-only
 legibility gradients over a photograph: the home opening and Brief covers
 (see Pictures). `surfaces.css` holds the shared page head
-(`.page-head`), which is a display title, an optional lede and a 2px rule.
+(`.page-head`), which is a display title, an optional lede and a 2px rule
+echoed by two fainter hairlines in the atlas's waterline colour (the
+*waterline rule*, 2026-11-17). The one drawing of real geography is the
+regional atlas (see Geography).
+
+**Geography (2026-11-17).** One drawing, `site/assets/geo/atlas.svg`, built
+by `scripts/build_atlas.py` from Natural Earth 1:50m (public domain) as the
+retired Desks map generalized it (Miller projection; de facto lines; no
+boundary claim). Its only topographic language is *waterlining*: the real
+coastline repeated in the sea at fixed distances, an engraved-chart
+convention that shows distance from the drawn coast and nothing else. No
+invented contours, relief, depth, terrain, sea names or coverage areas.
+It appears in two places, both cropped from the same asset by CSS:
+- **Desks page atlas.** Beside the page opening; each desk's seat (where its
+  publishing institutions are based, `desks/geography.json`) is an HTML link
+  to its row, marked with the desk's registry state glyph (■ live, ◐ shadow,
+  ▣ access blocked), so state never rests on colour. A desk whose
+  institutions are outside the frame gets an edge pointer naming the place,
+  never a stand-in seat. The caption says a point is not an area of coverage.
+  Label sides are set per desk, with narrow-atlas alternatives applied by a
+  container query.
+- **Desk page locator.** A regional window (never a city-scale zoom) beside
+  the page head, the seat marked, captioned "Seat: <place>" with a link to the
+  atlas. A desk with no seat in the frame has no locator.
 
 **Pictures.** Two places carry a photograph, and both are credited
 photographs of real scenes, never generated images or illustration:
@@ -111,7 +134,9 @@ Records page, week pages or in the search index.
 **Desk pages.** Name and scope; the registry `status_label` verbatim and any
 source-specific notice; a closed "Collection notes" disclosure holding the
 registry's operating notes verbatim; the newest records; then links,
-explanations, numbers, sources and limits. The desk map is retired.
+explanations, numbers, sources and limits. The page head carries the
+desk's locator (see Geography). The retired Desks map's plates, country
+fills and script are not restored.
 
 **Record page.** Title pair, actions (Open original source, Cite this record,
 Copy link), summary, "What this record supports" (before the source text on
