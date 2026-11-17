@@ -90,5 +90,26 @@ class HomeHeroGates(unittest.TestCase):
         self.assertIsNone(gp.home_hero(self.tmp))
 
 
+    def test_a_missing_credit_field_means_plain_navy(self):
+        for field in ("caption", "creator", "license", "license_url", "source_page"):
+            with self.subTest(field=field):
+                self.setUp()
+                self.edit_manifest(lambda entries, entry, f=field: entry.update({f: ""}))
+                self.assertIsNone(gp.home_hero(self.tmp))
+
+    def test_a_licence_other_than_public_domain_means_plain_navy(self):
+        self.edit_manifest(lambda entries, entry: entry.update(license="CC BY-SA 2.0"))
+        self.assertIsNone(gp.home_hero(self.tmp))
+
+    def test_a_source_page_off_commons_means_plain_navy(self):
+        # The credit labels the link "Wikimedia Commons".
+        self.edit_manifest(lambda entries, entry: entry.update(
+            source_page="https://example.org/File:reagan.jpg"))
+        self.assertIsNone(gp.home_hero(self.tmp))
+
+    def test_a_missing_delivery_record_means_plain_navy(self):
+        (self.tmp / FRONTEND / "DELIVERY.json").unlink()
+        self.assertIsNone(gp.home_hero(self.tmp))
+
 if __name__ == "__main__":
     unittest.main()

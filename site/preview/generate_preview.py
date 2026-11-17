@@ -1429,6 +1429,9 @@ HOME_PHOTO_ID = "reagan-jmsdf-2015"
 #: The resized derivatives `scripts/build_frontend_assets.py` builds from that
 #: source and records in DELIVERY.json, with both hashes.
 HOME_PHOTO_DELIVERY = Path("site") / "assets" / "frontend" / "DELIVERY.json"
+#: The only licence the home opening may carry: its credit, change note and
+#: CSS overlay are written for a public-domain photograph.
+HOME_PHOTO_LICENCES = frozenset({"Public domain"})
 
 
 def home_hero(repo_root=None):
@@ -1453,6 +1456,17 @@ def home_hero(repo_root=None):
         entries = list(entries.values())
     entry = next((e for e in entries if e.get("id") == HOME_PHOTO_ID), None)
     if not entry or "home" not in ((entry.get("match") or {}).get("routes") or []):
+        return None
+    # The credit beneath the photograph is read from this entry, and its
+    # source link is labelled "Wikimedia Commons": without every field, a
+    # public-domain basis and a Commons file page, the page would show a
+    # photograph it cannot credit truthfully.
+    if any(not (entry.get(k) or "").strip() for k in
+           ("caption", "creator", "license", "license_url", "source_page")):
+        return None
+    if entry["license"] not in HOME_PHOTO_LICENCES:
+        return None
+    if not entry["source_page"].startswith("https://commons.wikimedia.org/wiki/File:"):
         return None
     source = root / "site" / "assets" / "editorial" / entry.get("file", "")
     if not source.is_file() or not entry.get("sha256") or (

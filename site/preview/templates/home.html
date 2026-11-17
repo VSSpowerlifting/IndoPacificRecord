@@ -65,7 +65,10 @@
 {# The cover follows the catalogue-media decision (core/catalogue_media.py),
    as the Briefs page does: an admitted photograph, or no picture at all. #}
 {% set feature_media = catalogue_media.get(lead.slug) if lead and catalogue_media else none %}
-{% set feature_photo = feature_media.photo if lead_row and lead_row.kind == 'brief' and feature_media and feature_media.is_photograph else none %}
+{#- Brief covers are granted for the Briefs catalogue and the opened Brief
+    only (manifest `surfaces`), so the home card carries no picture; the home
+    page's one photograph is its stable opening. -#}
+{% set feature_photo = none %}
 {% set thematic = dossiers | selectattr('kind', 'equalto', 'thematic') | list if dossiers else [] %}
 <section id="analysis" class="wrap home-section home-briefs" aria-labelledby="latest-analysis">
   <div class="home-head"><div><p class="evidence evidence--analysis">Human-controlled analysis</p><h2 id="latest-analysis">Briefs</h2></div><a href="analysis.html">All Briefs</a></div>

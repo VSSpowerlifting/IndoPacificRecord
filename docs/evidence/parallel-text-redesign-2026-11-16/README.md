@@ -27,7 +27,7 @@ The photographic home and its first-screen captures show the stable homepage
 photograph (the U.S. Navy Reagan CSG and JMSDF formation, founder direction
 of 16 November). They are taken from the committed `output/` at the head that
 adds them, served as committed. On a 320x568 screen the title search ends at
-565px, and on 768x1024 at 892px. The Korea translation captures are from
+565px, and on 768x1024 at 699px. The Korea translation captures are from
 `e840e402f0`. The rest are from `11e3832784`. Later commits change those pages
 only in these ways:
 - the home opening;

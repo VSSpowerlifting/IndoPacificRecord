@@ -550,11 +550,11 @@ class TestReviewedHome(HomeCase):
 @unittest.skipUnless(TRACKED_DB.exists(), "production database not present")
 class TestTheHomeBriefCoverIsCredited(unittest.TestCase):
     """
-    The only photograph the home page may show is the latest Brief's admitted
-    cover (core/catalogue_media.py). When it shows one it must carry the whole
-    credit the Briefs page carries: creator, licence, source, change note and
-    the reminder that the picture is context rather than evidence. When the
-    lead has no admission there is no picture at all.
+    Brief covers are granted for the Briefs catalogue and the opened Brief
+    only (manifest `surfaces`), so the home Briefs card carries no picture,
+    admitted or not: the home page's one photograph is its stable opening
+    (founder direction, 2026-11-16). The card keeps its Latest Brief label
+    and its human-analysis mark either way.
 
     The lead below is a non-synthetic copy of the fixture Brief; the resolver
     is patched to admit it with No. 8's real admitted record, as
@@ -619,40 +619,15 @@ class TestTheHomeBriefCoverIsCredited(unittest.TestCase):
             section.select_one(".home-feature .home-label").get_text(strip=True)[:12],
             "Latest Brief")
 
-    def test_an_admitted_cover_carries_the_full_credit(self):
+    def test_an_admitted_cover_stays_off_the_home_card(self):
         section = self.briefs("admitted")
-        figures = section.select("figure.home-feature-photo")
-        self.assertEqual(len(figures), 1)
-        figure, p = figures[0], self.photo
-        img = figure.select_one("img")
-        self.assertEqual(img["src"], p["served"])
-        self.assertEqual(img["alt"], p["alt"])
-        self.assertTrue(img["alt"].strip())
-        self.assertEqual((img["width"], img["height"]), (str(p["width"]), str(p["height"])))
-        # The picture links where the heading links, and nowhere else.
-        self.assertEqual(img.find_parent("a")["href"],
-                         section.select_one(".home-feature h3 a")["href"])
-        caption = figure.select_one("figcaption")
-        flat = " ".join(caption.get_text(" ").split())
-        self.assertIn(p["caption"], flat)
-        if p.get("date_note"):
-            self.assertIn(p["date_note"], flat)
-        self.assertIn("Photo: " + p["creator"], flat)
-        if p.get("creator_native"):
-            native = caption.select_one("span[lang]")
-            self.assertEqual(native["lang"], p["creator_native_lang"])
-            self.assertEqual(native.get_text(strip=True), p["creator_native"])
-        links = {a["href"]: a.get_text(strip=True) for a in caption.select("a")}
-        self.assertEqual(links.get(p["source_page"]), p["source_label"])
-        if p.get("license_url"):
-            self.assertEqual(links.get(p["license_url"]), p["license"])
-        else:
-            self.assertIn(p["license"], flat)
-        self.assertIn(p["change_note"], flat)
-        self.assertIn("Visual context, not evidence.", flat)
-        if p.get("notice"):
-            self.assertIn(p["notice"], flat)
-        # The section stays under the human-analysis mark with the picture in.
+        self.assertIsNotNone(section.select_one(".home-feature"))
+        self.assertEqual(section.select("img, picture, figure, svg"), [])
+        self.assertNotIn(self.photo["served"], str(section))
+        self.assertEqual(
+            section.select_one(".home-feature .home-label").get_text(strip=True)[:12],
+            "Latest Brief")
+        # The section stays under the human-analysis mark.
         self.assertEqual(
             section.select_one(".home-head .evidence--analysis").get_text(strip=True),
             "Human-controlled analysis")

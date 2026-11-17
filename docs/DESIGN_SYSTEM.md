@@ -51,8 +51,10 @@ Labels are sentence case with no tracking. Monospace is for hashes and
 identifiers only.
 
 **Surface.** Paper, rules and type. Corner radius is 0. There are no pills,
-cards with shadows, gradients, textures, contour fields, relief scenes or
-drawn scenery on active pages. `surfaces.css` holds the shared page head
+cards with shadows, decorative gradients, textures, contour fields, relief
+scenes or drawn scenery on active pages. The only gradients are the CSS-only
+legibility gradients over a photograph: the home opening and Brief covers
+(see Pictures). `surfaces.css` holds the shared page head
 (`.page-head`), which is a display title, an optional lede and a 2px rule.
 
 **Pictures.** Two places carry a photograph, and both are credited
@@ -69,9 +71,11 @@ photographs of real scenes, never generated images or illustration:
   licence, source, the change note and "Visual context, not evidence". It
   carries no record mark, and no record appears in the opening. On phones
   and tablets (900px and narrower) the photograph is a band above the claim,
-  seen in full and short enough that the title search stays on the first
-  screen.
-- **Briefs**: catalogue cards and opened-Brief covers, as before.
+  clear of the copy column (cropped to the band, not shown whole), and short
+  enough that the title search stays on the first screen.
+- **Briefs**: catalogue cards and opened-Brief covers, as before. The home
+  page's Briefs card carries no picture: covers are granted for those two
+  surfaces only.
 Records never carry source media.
 
 **Motion.** Only motion that answers the reader: a button press, a disclosure
