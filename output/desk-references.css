@@ -6,7 +6,7 @@
 .page-head--located{display:grid;grid-template-columns:minmax(0,1fr) 13rem;grid-template-rows:auto auto 1fr;column-gap:3rem}
 .page-head--located>*{grid-column:1}
 .page-head--located>.locator{grid-column:2;grid-row:1/-1;align-self:start;margin:.5rem 0 0}
-.locator-map{position:relative;background:var(--accent-tint) url(assets/geo/atlas.svg) no-repeat;border:1px solid var(--rule)}
+.locator-map{position:relative;background:var(--accent-tint) url(assets/geo/atlas.svg) var(--crop-at)/var(--crop-size) no-repeat;border:1px solid var(--rule)}
 .locator .seat-mark{position:absolute;transform:translate(-50%,-50%);font-size:1rem;line-height:1;color:var(--ink)}
 .locator .seat-mark::before{content:"◐"}
 .locator .seat-mark--live{color:var(--positive)}.locator .seat-mark--live::before{content:"■"}

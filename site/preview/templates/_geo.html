@@ -8,7 +8,7 @@
 {%- set w = atlas.window -%}
 {%- set placed = atlas.seats | map(attribute='desk') | list + atlas.outside | map(attribute='desk') | list -%}
 <figure class="atlas" id="atlas" aria-labelledby="atlas-cap">
-<div class="atlas-map" style="aspect-ratio:{{ w.ratio }};background-size:{{ w.size }};background-position:{{ w.position }}">
+<div class="atlas-map" style="aspect-ratio:{{ w.ratio }};--crop-size:{{ w.size }};--crop-at:{{ w.position }}">
 <ul class="atlas-seats" aria-label="Where each desk's institutions are based">
 {% for s in atlas.seats %}<li><a class="seat seat--{{ s.label }} seat--n-{{ s.label_narrow }}" href="#desk-{{ s.desk.slug }}" style="left:{{ s.x }};top:{{ s.y }}"><span class="seat-mark seat-mark--{{ s.desk.status }}" aria-hidden="true"></span><span class="seat-text"><b>{{ s.short }}</b>{% if s.seat != s.short %} {{ s.seat }}{% endif %}<span class="visually-hidden">: {{ s.desk.name }}. {{ s.desk.status_label }}</span></span></a></li>
 {% endfor %}{% for o in atlas.outside %}<li><a class="seat seat--edge" href="#desk-{{ o.desk.slug }}" style="--y:{{ o.y }}"><span class="seat-text"><b>{{ o.short }}</b> <span class="seat-far">{{ o.place }}, outside this map</span><span class="visually-hidden">: {{ o.desk.name }}. {{ o.desk.status_label }}</span></span><span class="seat-mark seat-mark--{{ o.desk.status }}" aria-hidden="true"></span></a></li>
@@ -23,7 +23,7 @@
 {% macro locator(loc, desk) -%}
 {%- if loc -%}
 <figure class="locator">
-<div class="locator-map" style="aspect-ratio:{{ loc.window.ratio }};background-size:{{ loc.window.size }};background-position:{{ loc.window.position }}" aria-hidden="true"><span class="seat-mark seat-mark--{{ desk.status }}" style="left:{{ loc.x }};top:{{ loc.y }}"></span></div>
+<div class="locator-map" style="aspect-ratio:{{ loc.window.ratio }};--crop-size:{{ loc.window.size }};--crop-at:{{ loc.window.position }}" aria-hidden="true"><span class="seat-mark seat-mark--{{ desk.status }}" style="left:{{ loc.x }};top:{{ loc.y }}"></span></div>
 <figcaption>Seat: {{ loc.seat }}<span class="locator-more">. <a href="desks.html#atlas">Every desk on the map</a></span></figcaption>
 </figure>
 {%- endif -%}
