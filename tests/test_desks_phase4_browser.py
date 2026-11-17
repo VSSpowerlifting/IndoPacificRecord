@@ -134,6 +134,51 @@ class DesksDirectoryBrowser(unittest.TestCase):
                 self.assertEqual(result["count"], len(self.registry))
                 self.assertEqual(result["problems"], [])
 
+    def test_atlas_navigation_pairs_and_responsive_order(self):
+        """The introductory index links to the existing register, with the
+        map using the same desk order, at phone, tablet and desktop widths."""
+        for width in WIDTHS + (1024,):
+            ctx = self.browser.new_context(viewport={"width": width, "height": 900},
+                                           reduced_motion="reduce")
+            page = ctx.new_page()
+            try:
+                page.goto((self.out / "desks.html").as_uri(), wait_until="load")
+                links = page.locator(".desk-jump-list a")
+                maps = page.locator(".atlas-seats a")
+                self.assertEqual(links.count(), len(self.registry))
+                self.assertEqual(maps.count(), links.count())
+                jump_targets = links.evaluate_all(
+                    "(n) => n.map(a => a.getAttribute('href'))")
+                map_targets = maps.evaluate_all(
+                    "(n) => n.map(a => a.getAttribute('href'))")
+                self.assertEqual(jump_targets, map_targets)
+                for slug, target in [(a.removeprefix("#desk-"), a)
+                                     for a in jump_targets]:
+                    self.assertIn(slug, self.registry)
+                    self.assertEqual(page.locator(target).count(), 1)
+                    self.assertIn(self.registry[slug].status_label,
+                                  page.locator('.desk-jump-list a[data-desk="%s"]' % slug).inner_text())
+                atlas = page.locator(".atlas").bounding_box()
+                jump = page.locator(".desk-jump").bounding_box()
+                if width >= 1140:
+                    self.assertLessEqual(jump["x"] + jump["width"],
+                                         atlas["x"] + 2)
+                else:
+                    self.assertGreaterEqual(jump["y"], atlas["y"] + atlas["height"] - 2)
+                self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"),
+                                     width + 1)
+                # The matched highlight is a progressive enhancement: both
+                # lists remain ordinary working links without JavaScript.
+                links.first.hover()
+                decoration = maps.first.locator("b").evaluate(
+                    "(n) => getComputedStyle(n).textDecorationLine")
+                self.assertIn("underline", decoration)
+                maps.first.hover()
+                bg = links.first.evaluate("(n) => getComputedStyle(n).backgroundColor")
+                self.assertNotEqual(bg, "rgba(0, 0, 0, 0)")
+            finally:
+                ctx.close()
+
     def test_no_javascript_still_exposes_every_public_desk(self):
         rows, doc_width = self._rows(viewport={"width": 375, "height": 812},
                                      java_script_enabled=False)
