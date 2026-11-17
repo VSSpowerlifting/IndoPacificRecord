@@ -565,8 +565,13 @@ class TestSelectedIdentityOnRecordSite(unittest.TestCase):
 
     def test_selected_mark_uses_reviewed_sizes_and_natural_aspect(self):
         css = PREVIEW_CSS.read_text(encoding="utf-8")
-        self.assertRegex(css, r"\.brand-mark\s*\{[^}]*width:\s*72px;[^}]*height:\s*auto")
-        self.assertRegex(css, r"\.brand-mark\s*\{[^}]*width:\s*56px")
+        # 52px on the navy band, 48px at phone widths (2026-11-14). 48 is the
+        # measured floor `tests/test_identity_assets.py` holds; the base rule
+        # keeps the natural aspect and no rule may set a smaller width.
+        self.assertRegex(css, r"\.brand-mark\s*\{[^}]*width:\s*52px;[^}]*height:\s*auto")
+        widths = [float(v) for v in re.findall(
+            r"\.brand-mark\s*\{[^}]*?width:\s*([\d.]+)px", css)]
+        self.assertEqual(sorted(widths), [48.0, 52.0])
 
     def test_the_weekly_templates_do_not_style_the_mark(self):
         for path in WEEKLY_TEMPLATES:

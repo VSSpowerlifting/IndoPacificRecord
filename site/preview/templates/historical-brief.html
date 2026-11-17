@@ -3,9 +3,10 @@
 {% from "_article_media.html" import article_figure %}
 {% from "_article_nav.html" import issue_nav %}
 {# Earlier Briefs: current site identity, unchanged historical evidence.
-   The hero image is presented by `core.article_media`: a curated Photograph
-   or a cited-source Signal Veil through `article_figure`; a held image keeps
-   its pre-3C markup below, byte for byte. #}
+   The head sits on paper like every Brief. Its image is presented by
+   `core.article_media`: a curated Photograph or a cited-source Signal Veil
+   through `article_figure`; a held image keeps its pre-3C markup below, byte
+   for byte. The drawn Editorial plate is not shown: such a head is text-led. #}
 {% block title %}{{ display_title }} — Indo-Pacific Record{% endblock %}
 {% block description %}{{ edition.dek }}{% endblock %}
 {% block og_type %}article{% endblock %}
@@ -15,9 +16,10 @@
 {% endblock %}
 {% block main_class %} class="leads-with-hero brief-page"{% endblock %}
 {% block hero %}
-<section class="band brief-hero{% if edition.pw_veil or (edition.cover_media_item and edition.cover_media_item.src) or article_media.kind == 'plate' %} brief-hero--photo{% endif %}" aria-labelledby="brief-title">
+<section class="brief-hero{% if article_media.kind in ('photograph', 'signal-veil') or (article_media.kind == 'preserved' and (edition.pw_veil or (edition.cover_media_item and edition.cover_media_item.src))) %} brief-hero--photo{% endif %}" aria-labelledby="brief-title">
   <div class="wrap brief-hero-inner">
     <div class="brief-heading">
+      <p class="evidence evidence--analysis">Human-controlled analysis</p>
       <p class="brief-eyebrow"><a href="{{ root }}analysis.html">{{ collection_name }}</a></p>
       <p class="brief-edition">{% if edition.issue_number %}<span class="ed-no">No. {{ edition.issue_number }}</span> · {% endif %}Week ending <time datetime="{{ edition.week_ending }}">{{ edition.week_ending|reader_date }}</time>{% if edition.edition_label %} <span class="brief-badge">{{ edition.edition_label }}</span>{% endif %}{% if edition.is_retrospective %} <span class="brief-badge">{{ edition.retrospective_label }}</span>{% endif %}</p>
       <h1 id="brief-title" class="brief-title">{{ display_title }}</h1>
@@ -75,10 +77,11 @@
     <section class="brief-section brief-trail" id="s-sources" aria-labelledby="h-sources">
       <h2 id="h-sources">Source Trail</h2>
       <p>{{ edition.articles|length }} selected record{{ 's' if edition.articles|length != 1 }} used in this analysis. Original sources remain authoritative.</p>
+      <p class="brief-trail-key"><span>In English</span><span>As published</span></p>
       <ol class="historical-source-list">
         {% for item in edition.articles %}<li>
           <a class="source-card-title brief-record-title" href="{{ item.url }}" rel="noopener">{{ item.title }}</a>
-          {% if item.title_zh %}<span class="source-card-original"{% if item.title_zh|has_cjk %} lang="zh-Hans"{% endif %}>{{ item.title_zh }}</span>{% endif %}
+          {% if item.title_zh %}<span class="source-card-original original"{% if item.title_zh|has_cjk %} lang="zh-Hans"{% endif %}>{{ item.title_zh }}</span>{% endif %}
           <p class="historical-source-meta">{{ item.source }}{% if item.date %} · <time datetime="{{ item.date }}">{{ item.date }}</time>{% endif %}{% if item.is_significant %} · <span class="evidence evidence--model">Model-flagged</span>{% endif %}</p>
         </li>{% endfor %}
       </ol>
@@ -99,7 +102,7 @@
       <p class="brief-citation" id="pw-cite">{% if edition.author_name %}{{ edition.author_name }}, {% endif %}“{{ edition.title }},” <em>{{ edition.series_name }}</em>{% if edition.issue_number %} No. {{ edition.issue_number }}{% endif %}, {{ edition.publication }}, {{ edition.week_ending|reader_date }}. {{ edition.page_url }}</p>
     </section>
 {% if adjacent is defined %}{{ issue_nav(adjacent.previous, adjacent.next, 'Adjacent historical issues', 'historical-issue-nav') }}{% endif %}
-    <p><a href="{{ root }}analysis.html">All Indo-Pacific Record Briefs</a></p>
+    <p class="meta brief-back"><a href="{{ root }}analysis.html">← All Briefs</a></p>
   </article>
 </div>
 {% endblock %}

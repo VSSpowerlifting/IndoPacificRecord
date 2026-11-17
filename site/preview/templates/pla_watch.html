@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_atlas.html" import breadcrumb %}
 {% block title %}Earlier Briefs — {{ title }}{% endblock %}
 {% block content %}
 {# A compatibility page, and only that. The PLA Watch's issues are earlier
@@ -10,24 +9,20 @@
    page body, and it lists no issue titles of its own. #}
 {% set historical_editions = editions | selectattr('era', 'equalto', 'historical') | list %}
 {% set current_editions = editions | selectattr('era', 'equalto', 'current') | list %}
-{{ breadcrumb([(collection_name, 'analysis.html'), ('Earlier Briefs', none)]) }}
 <header class="page-head">
-<p class="eyebrow">Archive</p>
 <h1>Earlier Briefs</h1>
 <p class="lede">Earlier China Desk issues are included in <a href="analysis.html">{{ collection_name }}</a>.</p>
 <p><a class="btn btn--primary" href="analysis.html">Read the Briefs</a></p>
 </header>
 
-<div class="notice">
-  <h2 class="plain">Original editions and citations</h2>
-  <p>Each edition retains its original title, byline, date, publication credit and address.
-  The <a href="{{ live_base }}/the-pla-watch/archive.html" rel="noopener">edition archive</a>
-  remains available.</p>
-</div>
+<h2>Original editions and citations</h2>
+<p>Each edition keeps its original title, byline, date, publication credit and address.
+The <a href="{{ live_base }}/the-pla-watch/archive.html" rel="noopener">edition archive</a>
+remains available.</p>
 
 {% if edition_citations %}
 <h2>Citing an earlier Brief</h2>
-<p>Each earlier Brief's citation text, kept at the address it has always had.</p>
+<p>Each earlier Brief's citation, at the address it has always had.</p>
 {# Closed by default so this page stays a bridge. A native <details> opens on
    a fragment link in current browsers and needs no script; only the copy
    buttons inside are enhancement, and they ship hidden. #}

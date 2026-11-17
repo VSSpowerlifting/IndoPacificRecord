@@ -2,152 +2,199 @@
 {% block title %}Methodology — {{ title }}{% endblock %}
 {% block content %}
 <header class="page-head">
-<h1 class="page-name">Methodology and limitations</h1>
-<p class="lede">How a record gets here, and what it can and cannot support.</p>
+<h1 class="page-name">Methodology</h1>
+<p class="lede">How a record gets here, what a machine does to it, what a person adds, and what
+the result can and cannot support.</p>
 {# Sources and Coverage left the primary navigation (2026-11-13); they are the
    two pages this one most often sends a reader to, so they lead from here. #}
-<p class="meta">Read alongside <a href="sources.html">Sources</a> (which institutions are
-collected) and <a href="coverage.html">Coverage</a> (what each source returned).</p>
+<p class="meta">Read with <a href="sources.html">Sources</a> (which institutions are
+collected) and <a href="coverage.html">Coverage</a> (what each source last returned).</p>
 </header>
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
-  <ul><li><a href="#scope">Scope</a></li><li><a href="#collection">Collection</a></li>
-      <li><a href="#freshness">Freshness</a></li><li><a href="#evidence">Evidence labels</a></li>
-      <li><a href="#limitations">Limits</a></li></ul>
+  <ul><li><a href="#collection">Collection</a></li><li><a href="#machine">Machine output</a></li>
+      <li><a href="#analysis">Human analysis</a></li><li><a href="#freshness">Three dates</a></li>
+      <li><a href="#evidence">Labels</a></li><li><a href="#supports">What a record supports</a></li>
+      <li><a href="#scope">Scope</a></li><li><a href="#limitations">Limits</a></li></ul>
 </nav>
 
-<div class="prose">
+<section class="doc-section">
+<h2 id="collection">How a record is collected</h2>
+<div class="doc-body">
+<p>Each source is declared in advance, with its institution, its language, the pages where it
+lists new items and how often it is expected to publish. A scheduled collection visits each of
+those pages, fetches the items, extracts their text, removes duplicates and stores the original
+with its details. Every source gets an explicit result each time, even when it returned nothing;
+those results are on <a href="coverage.html">Coverage</a>.</p>
+<p>Each record keeps the address it was retrieved from, the institution that published it, the
+publication date the source states, the time of retrieval and a content hash computed once, when
+the record is first stored. A record's identifier never changes. Two items with the same title
+stay two records: official institutions reuse titles for distinct events, and merging by title
+would erase the difference.</p>
+<p>Original text, extracted text, machine translation, machine labels and human analysis are
+five separate layers, and they are labeled separately wherever they appear.</p>
+</div>
+</section>
+
+<section class="doc-section">
+<h2 id="machine">What a machine does</h2>
+<div class="doc-body">
+<p>Language models check each record for relevance, translate it and summarize it. The model and
+the prompt version are recorded for each record. A machine translation is always shown as a
+translation beside the original, never in place of it. Machine classifications are labeled
+<span class="evidence evidence--model">Model-flagged</span>, never &ldquo;significant&rdquo;.</p>
+<p>Machine output is not reviewed by a human and can be wrong. The original is always the
+authority for what was published.</p>
+</div>
+</section>
+
+<section class="doc-section">
+<h2 id="analysis">What a person does</h2>
+<div class="doc-body">
+<p>Human-controlled analysis is published as an issue or a Brief, under
+<a href="analysis.html">Briefs</a>. It cites the records it rests on. It is interpretation, and
+it is labeled as such.</p>
+<p><strong>Significant</strong> and <strong>Routine</strong> describe an editor's judgment of a
+weekly edition. They are separate from the machine's record-by-record
+<span class="evidence evidence--model">Model-flagged</span> classifications.</p>
+<p>No analytical judgment here carries a confidence number. No calibration method exists, so
+none is offered.</p>
+</div>
+</section>
+
+<section class="doc-section">
+<h2 id="freshness">How current this is</h2>
+<div class="doc-body">
+<p>The site reports three dates, because they are three different facts and they come apart
+exactly when it matters. When a model provider fails, collection keeps running while analysis
+stops, and a single &ldquo;last updated&rdquo; line would have to pick one story to tell.</p>
+<dl class="terms">
+  <div><dt>Records last collected
+    <small>{{ freshness.records_last_collected or 'not measured' }}</small></dt>
+  <dd>The newest document actually stored. Collection runs daily and is the part least likely
+  to be interrupted.</dd></div>
+
+  <div><dt>Analysis last produced
+    <small>{{ freshness.analysis_last_produced or 'not yet recorded' }}</small></dt>
+  <dd>The newest date on which any record was analyzed. It says when analysis last ran. It does
+  <strong>not</strong> say that every record up to that date has been analyzed. How many are
+  analyzed, and how many are records awaiting screening, is counted in the
+  <a href="corpus-guide.html#states">Guide to the records</a>.</dd></div>
+
+  <div><dt>Last full update
+    <small>{{ freshness.last_full_update or 'not yet recorded' }}</small></dt>
+  <dd>The last time everything finished, publication included. A collection that fails part-way
+  never records one, so this date can sit behind the other two. When it does, the difference is
+  the outage.</dd></div>
+</dl>
+<p>Any of the three may read <em>not measured</em> or <em>not yet recorded</em>. That is a real
+state: older collections did not record it, and it is printed as it is, not filled in with a
+plausible substitute.</p>
+</div>
+</section>
+
+<section class="doc-section">
+<h2 id="evidence">How evidence is labeled</h2>
+<div class="doc-body">
+<p>Every label belongs to one of three layers: the source record, machine output, or
+human-controlled analysis. Every page marks the layer the same way.</p>
+<dl class="terms">
+  <div><dt><span class="evidence evidence--record">Source record</span></dt>
+      <dd>The item as published, with its original language, canonical link and retrieval
+      time.</dd></div>
+  <div><dt><span class="evidence evidence--claim">Official claim</span></dt>
+      <dd>An assertion by the publishing institution. It is never presented as established
+      fact.</dd></div>
+  {# id="model-flagged": the address The PLA Watch pages link to as "How
+     flagging works" (pla-watch-post.html, pla-watch-archive.html). #}
+  <div id="model-flagged"><dt><span class="evidence evidence--model">Model-flagged</span></dt>
+      <dd>A machine classification, always marked as not reviewed by a human.</dd></div>
+  <div><dt><span class="evidence evidence--model">Machine translation</span></dt>
+      <dd>An English rendering of a record's title, or of its full text where the source allows,
+      produced by software and shown beside or linked to the original, never in place of it.
+      Not reviewed by a human.</dd></div>
+  <div><dt><span class="evidence evidence--model">Machine-generated headline</span></dt>
+      <dd>An English headline written by software for some Vietnamese records. It is not a
+      translation of the source title. Not reviewed by a human.</dd></div>
+  <div><dt><span class="evidence evidence--model">Machine summary</span></dt>
+      <dd>A software reading of a record's stored text. It is a separate output from the title's
+      translation and is labeled separately. Not reviewed by a human; a reading of what was
+      published, not a verification of it.</dd></div>
+  <div><dt><span class="evidence evidence--analysis">Human-controlled analysis</span></dt>
+      <dd>An issue or a Brief written under human control, citing the records it rests on. Some
+      pages shorten the label to Analysis.</dd></div>
+</dl>
+</div>
+</section>
+
+<section class="doc-section">
+<h2 id="supports">What a record can support</h2>
+<div class="doc-body">
+<div class="pair">
+  <div>
+    <p class="pair-label">A record supports</p>
+    <ul>
+      <li>That a named institution published a specific item on a specific date.</li>
+      <li>That we retrieved it at a specific time, and what the original text was.</li>
+      <li>Whether a collection reached a configured source, and whether this project stored
+          items from it. It cannot establish everything that source published.</li>
+    </ul>
+  </div>
+  <div>
+    <p class="pair-label">It does not support</p>
+    <ul>
+      <li>That an institution believes what it published.</li>
+      <li>That a described capability exists, or that an announced event occurred.</li>
+      <li>That coverage is comprehensive.</li>
+      <li>That a machine summary or translation is accurate without human review.</li>
+    </ul>
+  </div>
+</div>
+</div>
+</section>
+
+<section class="doc-section">
 <h2 id="scope">Scope</h2>
+<div class="doc-body">
 <p>{{ title }} collects from declared desks, one jurisdiction or institutional family at a time.
 It does <strong>not</strong> monitor the Indo-Pacific comprehensively, and no page here should be
-read as claiming that it does. {{ desks.collecting_count }} of {{ desks.declared_count }} declared
-desks {{ 'collects' if desks.collecting_count == 1 else 'collect' }} today; the remainder are
-labeled on <a href="desks.html">Desks</a> with what specifically blocks each one.</p>
+read as claiming that it does. Coverage is selective, heavily concentrated in one source, and
+regional only in declared scope: most of the region is not collected at all.
+{{ desks.collecting_count }} of {{ desks.declared_count }} declared
+desks {{ 'collects' if desks.collecting_count == 1 else 'collect' }} today;
+<a href="desks.html">Desks</a> says what specifically blocks each of the others.</p>
 <dl class="stat-rows">
   <div class="stat-row"><dt>Records stored</dt><dd>{{ metrics.records|count }}</dd></div>
   <div class="stat-row"><dt>Records with stored original text</dt><dd>{{ metrics.with_original_text|count }}</dd></div>
   <div class="stat-row"><dt>Records with a machine translation of the title</dt><dd>{{ metrics.with_english_title|count }}</dd></div>
   <div class="stat-row"><dt>Records with a machine summary</dt><dd>{{ metrics.with_english_summary|count }}</dd></div>
-  <div class="stat-row"><dt>Collection runs recorded</dt><dd>{{ metrics.runs|count }}</dd></div>
+  <div class="stat-row"><dt>Scheduled collections recorded</dt><dd>{{ metrics.runs|count }}</dd></div>
   <div class="stat-row"><dt>Publishing institutions</dt><dd>{{ metrics.institutions }}</dd></div>
   <div class="stat-row"><dt>Earliest item</dt><dd>{{ metrics.first_published }}</dd></div>
   <div class="stat-row"><dt>Latest item</dt><dd>{{ metrics.last_published }}</dd></div>
 </dl>
-<p class="meta">Every figure above is a count over stored rows, computed at build time. None is an
-estimate, a rate or a projection.</p>
+<p class="meta">Every figure is a count of stored records, computed when the site is built. None
+is an estimate, a rate or a projection.</p>
+</div>
+</section>
 
-<h2 id="collection">Collection</h2>
-<p>Each source is declared in a desk manifest with its institution, language, listing endpoints and
-expected cadence. A scheduled run visits each listing, fetches items, extracts text, removes
-duplicates, and stores the original alongside metadata. Every source produces an explicit
-result each run, even when it produced nothing.</p>
-<h2 id="freshness">How current this is</h2>
-<p>Three dates, because they are three different facts and they come apart
-exactly when it matters. During a provider failure collection keeps running while
-analysis stops, and a single &ldquo;last updated&rdquo; line would have to pick one
-story to tell.</p>
-<dl>
-  <dt><strong>Records last collected</strong>
-    &mdash; {{ freshness.records_last_collected or 'not measured' }}</dt>
-  <dd>The newest document actually stored. Collection runs daily and is the
-  part least likely to be interrupted.</dd>
-
-  <dt><strong>Analysis last produced</strong>
-    &mdash; {{ freshness.analysis_last_produced or 'not yet recorded' }}</dt>
-  <dd>The newest date on which any record was analyzed. It says when analysis
-  last ran. It does <strong>not</strong> say that every record up to that date
-  has been analyzed &mdash; processing states, including records awaiting screening,
-  are counted in the <a href="corpus-guide.html#states">Corpus Guide</a>.</dd>
-
-  <dt><strong>Last full update</strong>
-    &mdash; {{ freshness.last_full_update or 'not yet recorded' }}</dt>
-  <dd>The last run that finished everything, including publication. A run that
-  collects and then fails part-way never records one, so this date can sit behind
-  the other two. When it does, the difference is the outage.</dd>
-</dl>
-<p>Any of the three may read <em>not measured</em> or <em>not yet recorded</em>.
-That is a real state &mdash; older runs did not record it &mdash; and it is
-printed rather than filled in with a plausible substitute.</p>
-
-<h2>Preservation and provenance</h2>
-<p>Each record stores the canonical URL it was retrieved from, the institution that published it,
-the source-stated publication date, the retrieval time, and a content hash computed once at
-insert. Original text, extracted text, machine translation, machine labels and human analysis are
-five separate layers and are labeled separately wherever they appear. A record's identifier never
-changes, and equal titles never collapse into one record — official institutions reuse titles for
-distinct events, and a title-only rule would erase the distinctions.</p>
-
-<h2>Translation and machine layers</h2>
-<p>Records are screened for relevance, translated, and summarized by language models. The model
-and prompt version are recorded per record. A machine translation is always shown as a translation
-beside the original, never in place of it. Machine classifications are labeled
-<span class="evidence evidence--model">Model-flagged</span>, never "significant".</p>
-<h2>What this archive supports</h2>
+<section class="doc-section">
+<h2 id="limitations">Known limits</h2>
+<div class="doc-body">
 <ul>
-  <li>That a named institution published a specific item on a specific date.</li>
-  <li>That we retrieved it at a specific time, and what the original text was.</li>
-  <li>Whether a collection run reached a configured source, and whether this project
-      stored items from it. The run cannot establish everything that source published.</li>
-</ul>
-<h2>What it does not support</h2>
-<ul>
-  <li>That an institution believes what it published.</li>
-  <li>That a described capability exists, or that an announced event occurred.</li>
-  <li>That coverage is comprehensive. It is selective, heavily concentrated in one source, and
-      regional only in declared scope — most of the region is not collected at all.</li>
-  <li>That a machine-generated summary or translation is accurate without human review.</li>
-  <li>Any quantified confidence in an analytical judgment. No calibration method exists, so no
-      number is offered.</li>
-</ul>
-<h2 id="evidence">How evidence is labeled</h2>
-<p>These are the labels a reader will encounter. Each belongs to one of three layers —
-the source record, machine output, or human-controlled analysis — and every page marks the
-layer the same way.</p>
-<ul class="evidence-specimens">
-  <li><span class="evidence-sample"><span class="evidence evidence--record">Source record</span></span>
-      <span class="evidence-definition">the item as published, with its original language,
-      canonical link and retrieval time.</span></li>
-  <li><span class="evidence-sample"><span class="evidence evidence--claim">Official claim</span></span>
-      <span class="evidence-definition">an assertion by the publishing institution — never
-      rendered as established fact.</span></li>
-  {# id="model-flagged": the address The PLA Watch pages link to as "How
-     flagging works" (pla-watch-post.html, pla-watch-archive.html). #}
-  <li id="model-flagged"><span class="evidence-sample"><span class="evidence evidence--model">Model-flagged</span></span>
-      <span class="evidence-definition">a machine classification, always marked as
-      not reviewed by a human.</span></li>
-  <li><span class="evidence-sample"><span class="evidence evidence--model">Machine translation</span></span>
-      <span class="evidence-definition">an English rendering of a record's title, or of its full
-      text where the source allows, produced by software and shown beside or linked to the
-      original, never in place of it. Not reviewed by a human.</span></li>
-  <li><span class="evidence-sample"><span class="evidence evidence--model">Machine-generated headline</span></span>
-      <span class="evidence-definition">an English headline written by software for some Vietnamese
-      records. It is not a translation of the source title.
-      Not reviewed by a human.</span></li>
-  <li><span class="evidence-sample"><span class="evidence evidence--model">Machine summary</span></span>
-      <span class="evidence-definition">a software reading of a record's stored text — a
-      separate output from the title's translation, and labeled separately. Not reviewed by a
-      human; a reading of what was published, not a verification of it.</span></li>
-  <li><span class="evidence-sample"><span class="evidence evidence--analysis">Analysis</span></span>
-      <span class="evidence-definition">a human-controlled issue or brief, citing the records
-      it rests on. It is interpretation, and labeled as such.</span></li>
-  <li><span class="evidence-sample"><strong>Significant</strong> and <strong>Routine</strong></span>
-      <span class="evidence-definition">describe the editor's judgment of a weekly edition.
-      They are separate from article-level <span class="evidence evidence--model">Model-flagged</span>
-      classifications.</span></li>
-</ul>
-
-<h2 id="limitations">Known limitations</h2>
-<ul>
-  <li>Collection gaps are listed on <a href="coverage.html">Coverage</a> and are not smoothed over.</li>
+  <li>Gaps in collection are listed on <a href="coverage.html">Coverage</a> and are not smoothed
+      over.</li>
   <li>Some records are collected but not yet analyzed; they are counted, not hidden.</li>
-  <li>An enabled source can return no new records or fail to collect; each run's
-      per-source results are published on <a href="coverage.html">Coverage</a>.</li>
+  <li>An enabled source can return no new records or fail to collect; the latest result for
+      each source is published on <a href="coverage.html">Coverage</a>.</li>
   <li>Desks that do not collect show no record count. Zero would say the record was checked and
       found empty; the truth is that no record exists to check.</li>
-  <li>Institutional authority is a claim about position, not truthfulness. A tier-A source is
-      closer to the institution that speaks; it is not more likely to be accurate.</li>
+  <li>The letter beside each source on <a href="sources.html#authority">Sources</a> describes its
+      position, not its truthfulness. An A source is closer to the institution that speaks; it
+      is not more likely to be accurate.</li>
 </ul>
-<p>Field-by-field definitions, the identifier and citation rules, and the corpus changelog are in
-the <a href="corpus-guide.html">Corpus Guide</a>.</p>
 </div>
+</section>
+<p class="doc-end">Field-by-field definitions, how to cite a record and the changelog are in the
+<a href="corpus-guide.html">Guide to the records</a>.</p>
 {% endblock %}

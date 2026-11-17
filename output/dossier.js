@@ -6,9 +6,11 @@
   const links = [...rail.querySelectorAll('a[href^="#"]')];
   const sections = [...document.querySelectorAll('[data-ds-section]')];
   const masthead = document.querySelector('.masthead');
+  // A findings section is listed twice: under "Findings" and by its own name.
+  // Above the first section the group link is current; inside one, its name.
   const mark = id => {
-    const target = links.find(link => link.hash === '#' + id)
-      || (id.startsWith('section-') ? links[0] : null);
+    const target = links.filter(link => link.hash === '#' + id).pop()
+      || (!id || id.startsWith('section-') ? links[0] : null);
     links.forEach(link => {
       if (link === target) link.setAttribute('aria-current', 'location');
       else link.removeAttribute('aria-current');
@@ -17,7 +19,7 @@
   const current = () => {
     const top = parseFloat(getComputedStyle(page).getPropertyValue('--ds-sticky-top')) || 24;
     const seen = sections.filter(section => section.getBoundingClientRect().top <= top + 80);
-    mark((seen[seen.length - 1] || sections[0]).id);
+    mark(seen.length ? seen[seen.length - 1].id : '');
   };
   const offset = () => {
     const style = masthead && getComputedStyle(masthead);

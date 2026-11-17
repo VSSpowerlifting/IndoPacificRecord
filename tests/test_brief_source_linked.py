@@ -326,11 +326,26 @@ class SourceLinkedTests(unittest.TestCase):
                     catalogue_media={}, review_mode=True, collection_name="Indo-Pacific Record Briefs")
         row["is_review"] = True
         html = render()
-        self.assertIn("preserved corpus records from source-linked editorial references", html)
+        # With a source-linked Brief in the collection the catalogue says, in
+        # plain words, that a Brief's sources are of two kinds: records IPR
+        # keeps, and links to a publisher's own page. It never says every
+        # Brief rests on kept records.
+        both = ("shows its sources: records kept by Indo-Pacific Record, and "
+                "links to pages on a publisher's own site.")
+        records_only = "Each Brief cites the records it rests on and names its editor."
+        boundary = ("A link to a publisher's page belongs to the Brief that cites it. "
+                    "It adds no record to a desk and does not change what a desk collects.")
+        self.assertIn('<p class="evidence evidence--analysis">Human-controlled analysis</p>', html)
+        self.assertIn(both, html)
+        self.assertIn(boundary, html)
         self.assertIn("0 published · 1 unapproved review candidate", html)
-        self.assertNotIn("built from preserved records", html)
+        self.assertNotIn(records_only, html)
         row["source_linked"] = False
-        self.assertIn("Human-controlled analysis built from preserved records", render())
+        plain = render()
+        self.assertIn('<p class="evidence evidence--analysis">Human-controlled analysis</p>', plain)
+        self.assertIn(records_only, plain)
+        self.assertNotIn(both, plain)
+        self.assertNotIn(boundary, plain)
 
 
 if __name__ == "__main__":

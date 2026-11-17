@@ -1,18 +1,15 @@
 {% extends "base.html" %}
 {% from "_brief_navigation.html" import reading_navigation %}
-{% from "_atlas.html" import breadcrumb %}
 {% from "_article_nav.html" import issue_nav %}
-{% from "_article_media.html" import article_figure, cover_figure %}
+{% from "_article_media.html" import cover_figure %}
 {% from "_brief_reading.html" import reading_article %}
 {#- One Indo-Pacific Record Brief, at briefs/<slug>.html.
 
-    The existing article anatomy — edition head, signal, development, coverage,
-    the standing sections, term, what to watch, source trail, author, citation —
-    in the site's own shell, so a brief is published by Indo-Pacific Record and
-    reads as one. The hero is the sanctioned Night Desk crossover: the dark
-    band, with the brief's photograph when its provenance resolves
-    (`core.brief_collection.brief_photo`) and otherwise the Editorial plate
-    (`core.article_media.editorial_plate`): original artwork, never evidence.
+    A long read on paper: the label and the jade rule that mark authored
+    analysis, the title, dek, author and week, the cover photograph with its
+    full credit when its provenance resolves, the article at a serif measure,
+    and the sources it rests on set as parallel text where a record has both an
+    English and an as-published title. No relief, plate or texture.
 
     Everything shown comes from `brief_view`, which composes nothing. Headings
     are real headings. Nothing here requires JavaScript; `citation.js` only
@@ -34,8 +31,10 @@
 {%- endmacro %}
 
 {% block hero %}
-<section class="band brief-hero{% if brief.photo or (brief.article_media and brief.article_media.kind in ('plate', 'photograph')) %} brief-hero--photo{% endif %}" aria-labelledby="brief-title">
+{% set has_figure = (brief.photo and (brief.article_media is not defined or brief.article_media.kind == 'preserved')) or (brief.article_media and brief.article_media.kind == 'photograph') %}
+<section class="brief-hero{% if has_figure %} brief-hero--photo{% endif %}" aria-labelledby="brief-title">
   <div class="wrap brief-hero-inner">
+    <div class="brief-heading">
     {% if brief.is_review %}<p class="brief-fixture" role="note">Editorial review candidate · unapproved, unnumbered and unpublished.</p>{% endif %}
     {% if brief.presentation_review %}<p class="brief-fixture" role="note">Private presentation review · proposed headings and emphasis await owner approval. Manuscript text, source associations and credits are unchanged.</p>{% endif %}
     {% if brief.synthetic %}
@@ -43,37 +42,36 @@
       published brief: its number, title, records and image are invented to test
       rendering, and it never appears on the public site.</p>
     {% endif %}
-    <div class="brief-heading">    <p class="brief-eyebrow"><a href="../analysis.html">{{ brief.series_name }}</a></p>
+    <p class="evidence evidence--analysis">Human-controlled analysis</p>
+    <p class="brief-eyebrow"><a href="../analysis.html">{{ brief.series_name }}</a></p>
     <p class="brief-edition">{% if brief.number %}<span class="ed-no">No. {{ brief.number }}</span> · {% endif %}<span>Week ending <time datetime="{{ brief.week_ending }}">{{ brief.week_ending|reader_date }}</time></span>{% if brief.edition_type or brief.is_retrospective %} <span class="brief-status">{% if brief.edition_type %}<span class="brief-badge">{{ brief.edition_type }}</span>{% endif %}{% if brief.is_retrospective %} <span class="brief-badge">{{ brief.timing_label }}</span>{% endif %}</span>{% endif %}</p>
     <h1 id="brief-title" class="brief-title">{{ brief.title }}</h1>
-</div>
+    </div>
     {% if brief.photo and (brief.article_media is not defined or brief.article_media.kind == 'preserved') %}
     <figure class="brief-opening-photo"><picture><source type="image/webp" srcset="{{ brief.photo.srcset }}" sizes="(max-width:900px) calc(100vw - 44px), 46vw"><img src="{{ brief.photo.route }}" width="{{ brief.photo.width }}" height="{{ brief.photo.height }}" fetchpriority="high" alt="{{ brief.photo.alt }}" data-editorial-id="{{ brief.photo.id }}" aria-label="{{ brief.photo.alt }}"></picture>
       <figcaption>{{ brief.photo.credit }}. <a href="{{ brief.photo.source_page }}" rel="noopener nofollow">{{ brief.photo.source }}</a> · <a href="#{{ brief.photo.anchor }}">Cited record {{ brief.photo.record_id }}</a>. Context, not evidence.
         <details class="brief-photo-credit-detail"><summary>Full photograph credit</summary><p>{{ brief.photo.credit }}. Image: <a href="{{ brief.photo.source_page }}" rel="noopener nofollow">{{ brief.photo.source }}</a>{% if brief.photo.subject %}, published with “{{ brief.photo.subject }}”{% endif %} (<a href="#{{ brief.photo.anchor }}">cited record {{ brief.photo.record_id }}</a>). Context, not evidence.</p></details>
       </figcaption>
     </figure>
-    {% elif brief.article_media and brief.article_media.kind == 'plate' %}
-{{ article_figure(brief.article_media) }}
     {% elif brief.article_media and brief.article_media.kind == 'photograph' %}
 {{ cover_figure(brief.article_media) }}
     {% endif %}
-    <div class="brief-context">    <p class="brief-dek">{{ brief.dek }}</p>
+    <div class="brief-context">
+    <p class="brief-dek">{{ brief.dek }}</p>
     <p class="brief-byline">By <span class="byline-name">{% set byline_names = [brief.author_card_name, brief.research_contributor.name] if brief.research_contributor and brief.research_contributor.credit_role == 'co-author' else [brief.author_name] %}{% for name in byline_names %}{% set byline_member = (team_by_name|default({})).get(name) %}{% if byline_member %}<a href="../{{ byline_member.route }}">{{ name }}</a>{% else %}{{ name }}{% endif %}{% if not loop.last %} and {% endif %}{% endfor %}</span></p>
     <ul class="brief-meta">
       {% for credit in brief.editorial_credits %}<li>{{ "Edited by" if credit.role == "Editing" else "Research and analysis by" }} {{ credit.name }}</li>{% endfor %}
       <li>Covers <time datetime="{{ brief.week_start }}">{{ brief.week_start|reader_date }}</time> – <time datetime="{{ brief.week_ending }}">{{ brief.week_ending|reader_date }}</time></li>
-      {% if brief.source_linked %}<li>Source-linked editorial analysis</li><li>{{ brief.publisher_references|length }} publisher references</li>{% else %}
+      {% if brief.source_linked %}<li><a href="#s-publishers">{{ brief.publisher_references|length }} publisher references</a></li>{% else %}
       <li>{{ brief.desks | map(attribute='name') | join(' and ') if brief.desks | length < 3 else (brief.desks | length) ~ ' desks' }}</li>
-      <li>{{ brief.trail_count }} cited record{{ 's' if brief.trail_count != 1 }}</li>{% endif %}
+      <li><a href="#s-sources">{{ brief.trail_count }} cited record{{ 's' if brief.trail_count != 1 }}</a></li>{% endif %}
     </ul>
-</div>
+    </div>
   </div>
 </section>
 {% endblock %}
 
 {% block content %}
-{{ breadcrumb([('Analysis', '../analysis.html'), (brief.title, none)]) }}
 <div class="brief-layout{% if brief.presentation %} brief-layout--structured{% endif %}">
   {% call reading_navigation() %}
       {% if brief.source_linked %}
@@ -107,12 +105,13 @@
     {% endif %}
     <section class="brief-section brief-trail" id="s-publishers"{% if brief.presentation %} tabindex="-1"{% endif %} aria-labelledby="h-publishers">
       <h2 id="h-publishers">Publisher references</h2>
-      <p class="section-note">Original editorial analysis with links to publisher-hosted sources. Eligible official and independent publications also have citation-only IPR Records. Rights-held references stay linked here without creating a separate Record. These references do not add to IPR's collected corpus or establish live desk coverage. Official accounts and independent reporting are distinguished below.</p>
+      <p class="section-note">Each link goes to the publisher's own page, and titles are shown as published. Eligible official and independent publications also have an IPR Record that holds the citation only. Rights-held references are linked here without a separate Record. None of these references is part of IPR's collected records, and citing a publisher here does not mean a desk covers it.</p>
+      <p class="brief-trail-key"><span>Title as published</span><span>Who published it</span></p>
       <ol class="brief-trail-list">
       {% for source in brief.publisher_references %}
         <li class="brief-record" id="publisher-{{ source.id }}">
           <a class="brief-record-title" href="{{ source.url }}" rel="noopener noreferrer"{% if source.original_title %} lang="{{ source.lang }}"{% endif %}>{{ source.original_title or source.publisher }}</a>
-          <span class="brief-record-meta">{{ source.publisher }} · {{ source.issuer }} · {% if source.date %}<time datetime="{{ source.date }}">{{ source.date }}</time>{% else %}Undated{% endif %} · {{ 'Official account' if source.independence == 'official' else 'Independent reporting' }} · {{ ('Historical background' if source.date else 'Background reference') if source.temporal_role == 'background' else 'Published during the reporting window' }}{% if brief.reference_records is defined and brief.reference_records[source.id] %} · <a href="../{{ brief.reference_records[source.id] }}">IPR Record</a>{% endif %}</span>
+          <span class="brief-record-meta"><span class="brief-record-kind">{{ 'Official account' if source.independence == 'official' else 'Independent reporting' }}</span> {{ source.publisher }}{% if source.issuer != source.publisher %} · {{ source.issuer }}{% endif %} · {% if source.date %}<time datetime="{{ source.date }}">{{ source.date|reader_date }}</time>{% else %}Undated{% endif %} · {{ ('Historical background' if source.date else 'Background reference') if source.temporal_role == 'background' else 'Published in the week this Brief covers' }}{% if brief.reference_records is defined and brief.reference_records[source.id] %} <a href="../{{ brief.reference_records[source.id] }}">IPR Record</a>{% endif %}</span>
           {% if brief.is_review %}<p class="meta">Verification: {{ source.verification.method }}. Human source and release review pending.</p>{% endif %}
         </li>
       {% endfor %}
@@ -184,7 +183,7 @@
     {% endif %}
     {% if brief.coverage %}
     <details class="brief-evidence">
-      <summary>Collection coverage and screening</summary>
+      <summary>Coverage by desk</summary>
     <section class="brief-section" id="s-coverage" aria-labelledby="h-coverage">
       <h2 id="h-coverage">Coverage by desk</h2>
       <p class="section-note">Counted per desk and never added together: desks differ in
@@ -218,18 +217,19 @@
 
     <section class="brief-section brief-trail" id="s-sources" aria-labelledby="h-sources">
       <h2 id="h-sources">Source trail <span class="brief-count">{{ brief.trail_count }} record{{ 's' if brief.trail_count != 1 }}</span></h2>
-      <p class="section-note">Every record this brief cites, grouped by the desk that collected
-        it. English titles of non-English records are machine translations.
-        Each record keeps its original title and source language; the original is authoritative.</p>
+      <p class="section-note">Every record this Brief cites, by desk. English titles of
+        non-English records are machine translations. Each record keeps its
+        original title and source language; the original is authoritative.</p>
+      <p class="brief-trail-key"><span>In English</span><span>As published</span></p>
       {% for g in brief.trail_groups %}
       <h3 class="brief-trail-desk">{{ g.name }}</h3>
       <ol class="brief-trail-list">
         {% for t in g.entries %}
-        <li id="{{ t.anchor }}" class="brief-record{% if t.model_flagged %} is-flagged{% endif %}">
-          {% if t.original and not t.lang.startswith('en') %}<span class="evidence evidence--model">Machine-translated title</span>{% endif %}
-          <a class="brief-record-title" href="{{ t.url }}" rel="noopener" lang="{{ t.display_lang }}">{{ t.display_title }}</a>
-          {% if t.original %}<span class="brief-record-original" lang="{{ t.lang }}">{{ t.original }}</span>{% endif %}
-          <span class="brief-record-meta">{{ t.source }}{% if t.date %} · <time datetime="{{ t.date }}">{{ t.date }}</time>{% endif %}{% if t.lang_label %} · {{ t.lang_label }}{% endif %}{% if t.screening_label %} · {{ t.screening_label }}{% endif %}{% if t.model_flagged %} <span class="evidence evidence--model">Model-flagged</span>{% endif %}{% if t.record_route %} · <a href="../{{ t.record_route }}">Preserved record</a>{% endif %}</span>
+        <li id="{{ t.anchor }}" class="brief-record brief-record--parallel{% if t.model_flagged %} is-flagged{% endif %}">
+          <span class="brief-record-english">{% if t.original and not t.lang.startswith('en') %}<span class="evidence evidence--model">Machine-translated title</span>{% endif %}
+          <a class="brief-record-title" href="{{ t.url }}" rel="noopener" lang="{{ t.display_lang }}">{{ t.display_title }}</a></span>
+          {% if t.original %}<span class="brief-record-original original" lang="{{ t.lang }}">{{ t.original }}</span>{% endif %}
+          <span class="brief-record-meta">{{ t.source }}{% if t.date %} · <time datetime="{{ t.date }}">{{ t.date }}</time>{% endif %}{% if t.lang_label %} · {{ t.lang_label }}{% endif %}{% if t.screening_label %} · {{ t.screening_label }}{% endif %}{% if t.model_flagged %} <span class="evidence evidence--model">Model-flagged</span>{% endif %}{% if t.record_route %} <a href="../{{ t.record_route }}">Preserved record</a>{% endif %}</span>
         </li>
         {% endfor %}
       </ol>
@@ -239,11 +239,11 @@
     {% if brief.external_evidence %}
     <section class="brief-section brief-trail" id="s-external" aria-labelledby="h-external">
       <h2 id="h-external">Reviewed external official sources <span class="brief-count">{{ brief.external_evidence|length }} publisher link{{ 's' if brief.external_evidence|length != 1 }}</span></h2>
-      <p class="section-note">These sources were reviewed individually by an editor and linked
-        directly to their publishers. Their full texts are not part of IPR's
-        preserved corpus, and they do not count as production-backed desk
-        coverage or as collected record IDs. Original Vietnamese wording remains
+      <p class="section-note">An editor reviewed each of these sources and linked it
+        directly to its publisher. IPR does not hold their full texts, and they
+        are not IPR records or desk coverage. Original Vietnamese wording remains
         authoritative; short English summaries are analyst-authored.</p>
+      <p class="brief-trail-key"><span>Title as published</span><span>Who published it</span></p>
       <ol class="brief-trail-list">
       {% for ext in brief.external_evidence %}
         <li id="{{ ext.anchor }}" class="brief-record">
@@ -301,7 +301,7 @@
     </section>
 
 {% if brief.adjacent is defined %}{{ issue_nav(brief.adjacent.previous, brief.adjacent.next, 'Adjacent Briefs') }}{% endif %}
-    <p class="meta brief-back"><a href="../analysis.html">← All analysis</a></p>
+    <p class="meta brief-back"><a href="../analysis.html">← All Briefs</a></p>
   </article>
 </div>
 {% if dossier_briefs is defined and dossier_briefs[brief.slug] %}<aside class="trail-panel" aria-label="Related Living Dossiers"><h2>Living Dossiers</h2>{% for d in dossier_briefs[brief.slug] %}<p><a href="../{{ d.route }}">{{ d.title }}</a>{% if d.is_review %} · unpublished draft{% endif %}</p>{% endfor %}</aside>{% endif %}

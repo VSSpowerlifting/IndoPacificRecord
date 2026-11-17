@@ -185,15 +185,22 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 marked = [f["data-article-media"]
                           for f in soup.select("figure[data-article-media]")]
                 figures = hero(soup).select("figure")
-                if kind in (am.PHOTOGRAPH, am.SIGNAL_VEIL, am.PLATE):
+                if kind in (am.PHOTOGRAPH, am.SIGNAL_VEIL):
                     self.assertEqual(marked, [kind])
                     self.assertEqual(len(figures), 1)
+                elif kind == am.PLATE:
+                    # No admitted image: the head is text-led. The drawn
+                    # Editorial plate is no longer shown on a reading page.
+                    self.assertEqual(marked, [])
+                    self.assertEqual(figures, [])
+                    self.assertEqual(hero(soup).select("img, svg, picture"), [])
                 else:
                     self.assertEqual(kind, am.PRESERVED)
                     self.assertEqual(marked, [])
                     self.assertEqual(len(figures), 1)
-                # Every opened issue now has an image card in its hero.
-                self.assertIn("brief-hero--photo", hero(soup)["class"])
+                # The head is marked as carrying a picture exactly when it does.
+                self.assertEqual("brief-hero--photo" in hero(soup)["class"],
+                                 bool(figures))
 
     def test_native_briefs_keep_their_recorded_media_treatment(self):
         for number, (entry, page, soup) in self.native_auth.items():
@@ -208,23 +215,18 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 plate = hero(soup).select("figure[data-article-media=plate]")
                 covers = hero(soup).select("figure.brief-cover[data-article-media=photograph]")
                 self.assertEqual(len(photo), 1 if EXPECTED[number] == am.PRESERVED else 0)
-                self.assertEqual(len(plate), 1 if EXPECTED[number] == am.PLATE else 0)
+                # The Editorial plate is no longer drawn: a Brief with no
+                # admitted photograph has no picture at all.
+                self.assertEqual(plate, [])
                 self.assertEqual(len(covers), 1 if EXPECTED[number] == am.PHOTOGRAPH else 0)
                 self.assertEqual(len(soup.select("figure[data-article-media]")),
-                                 len(plate) + len(covers))
-                if EXPECTED[number] == am.NONE:
-                    self.assertEqual(number, 18)
-                    self.assertTrue(entry["source_linked"])
-                    self.assertEqual(desks, [])
-                    self.assertEqual(hero(soup).select("figure"), [])
+                                 len(covers))
+                if EXPECTED[number] in (am.NONE, am.PLATE):
+                    self.assertEqual(hero(soup).select("figure, img, svg, picture"), [])
                     self.assertNotIn("brief-hero--photo", hero(soup)["class"])
                 else:
+                    self.assertEqual(len(hero(soup).select("figure")), 1)
                     self.assertIn("brief-hero--photo", hero(soup)["class"])
-                if plate:
-                    uses = [u["href"] for u in plate[0].select("use")]
-                    self.assertEqual(uses, ["../assets/geo/region.svg#region"] + [
-                        "../assets/geo/region.svg#region-%s" % d
-                        for d in desks if d in am.PLATE_DESKS])
 
     def test_no18_photo_sources_resolve_from_nested_article_route(self):
         # The cover lives in root-level assets, but its HTML is in briefs/.
@@ -242,35 +244,24 @@ class ArticleMediaPagesTests(unittest.TestCase):
                 self.assertTrue(candidate.is_relative_to(self.tmp.resolve()))
                 self.assertTrue(candidate.is_file(), str(candidate))
 
-    def test_every_plate_is_labelled_decorative_original_artwork(self):
-        pages = ([(n, soup) for n, (_, _, _, soup) in self.historical.items()]
-                 + [(n, soup) for n, (_, _, soup) in self.native_auth.items()])
-        plated = []
-        for number, soup in pages:
-            plate = soup.select_one("figure[data-article-media=plate]")
-            if plate is None:
-                continue
-            plated.append(number)
+    def test_no_page_renders_an_editorial_plate(self):
+        # The labelled "decorative original artwork" plate was removed by the
+        # parallel-text redesign: an admitted photograph with its full credit,
+        # or no picture. The adapter still resolves `plate` for an item with no
+        # image; the page shows nothing for it.
+        pages = ([(n, page, soup) for n, (_, _, page, soup) in self.historical.items()]
+                 + [(n, page, soup) for n, (_, page, soup) in self.native_auth.items()]
+                 + [(n, page, soup) for n, (_, page, soup) in self.native.items()])
+        for number, page, soup in pages:
             with self.subTest(item=number):
-                self.assertEqual(plate.select("img, a"), [])
-                self.assertEqual(plate.svg["aria-hidden"], "true")
-                self.assertEqual(plate.svg["viewbox"], am.PLATE_VIEWBOX)
-                self.assertEqual(plate.figcaption.get_text(" ", strip=True).split(" · ", 1)[0],
-                                 "Editorial plate")
-                for text in (am.PLATE_NOTE, am.PLATE_CONTEXT):
-                    self.assertIn(text, plate.figcaption.get_text())
-        self.assertEqual(sorted(plated), [4, 14, 16])
-        # Only the held No. 16 plate is absent from what is actually published.
-        public = [n for n, (_, _, soup) in
-                  {**{k: (None, None, v[3]) for k, v in self.historical.items()},
-                   **self.native}.items()
-                  if soup.select_one("figure[data-article-media=plate]") is not None]
-        self.assertEqual(sorted(public), [4, 14])
-        # A historical plate is the China Desk's, the desk that published them.
-        for number in (4, 14):
-            uses = [u["href"] for u in self.historical[number][3].select("figure[data-article-media=plate] use")]
-            self.assertEqual(uses, ["../../assets/geo/region.svg#region",
-                                    "../../assets/geo/region.svg#region-china"])
+                self.assertEqual(soup.select("figure[data-article-media=plate]"), [])
+                self.assertEqual(soup.select(".article-plate, .article-plate-art"), [])
+                self.assertNotIn("assets/geo/region.svg", page)
+                self.assertNotIn("Editorial plate", page)
+                self.assertNotIn(am.PLATE_NOTE, page)
+        # The three items whose treatment is still recorded as `plate`.
+        self.assertEqual(sorted(n for n, k in EXPECTED.items() if k == am.PLATE),
+                         [4, 14, 16])
 
     def test_plate_art_is_the_receipted_regional_relief(self):
         receipt = json.loads((ROOT / "site/assets/geo/geo.receipt.json").read_text())
@@ -639,23 +630,13 @@ class ArticleMediaAdapterTests(unittest.TestCase):
                 self.assertEqual(entry["credit_native_lang"], "ja")
                 self.assertFalse(CJK.search(credit.replace(native, "")))
 
-    def test_an_editorial_plate_is_decorative_and_labelled(self):
+    def test_an_editorial_plate_renders_nothing_from_the_macro(self):
+        # The adapter still resolves the kind and keeps only desks it knows;
+        # the shared macro draws nothing for it (no figure, no relief, no label).
         plate = am.editorial_plate("../", ("singapore", "unknown", "china"))
+        self.assertEqual(plate["kind"], am.PLATE)
         self.assertEqual(plate["desks"], ("singapore", "china"))
-        figure = BeautifulSoup(figure_html(plate), "html.parser").select_one("figure")
-        self.assertEqual(figure["data-article-media"], "plate")
-        self.assertFalse(figure.has_attr("aria-label"))
-        self.assertFalse(figure.has_attr("data-editorial-id"))
-        self.assertEqual(figure.select("img, a"), [])
-        self.assertEqual(figure.svg["aria-hidden"], "true")
-        self.assertEqual(figure.svg["focusable"], "false")
-        self.assertEqual([u["href"] for u in figure.select("use")],
-                         ["../assets/geo/region.svg#region",
-                          "../assets/geo/region.svg#region-singapore",
-                          "../assets/geo/region.svg#region-china"])
-        caption = figure.figcaption.get_text()
-        for text in ("Editorial plate", am.PLATE_NOTE, am.PLATE_CONTEXT):
-            self.assertIn(text, caption)
+        self.assertEqual(figure_html(plate).strip(), "")
 
     def test_a_plate_never_replaces_an_image(self):
         cover = {"src": "cover.jpg"}

@@ -88,8 +88,8 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
             self.assertIn(
                 'data-korea-directory-scope-count="%d"' % mnd_count,
                 directory)
-            self.assertIn("Live MND link metadata", directory)
-            self.assertIn("not a full-country article corpus", directory)
+            self.assertIn("MND official pages linked", directory)
+            self.assertIn("This is not full coverage of the country", directory)
             korea_card = directory.split('id="desk-korea"', 1)[1].split(
                 '</section>', 1)[0]
             self.assertIn("desk--live", directory.split(

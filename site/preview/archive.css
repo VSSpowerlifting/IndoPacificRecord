@@ -1,33 +1,184 @@
-/* Records finder: search first, native secondary filters, shared record rows. */
-.archive-page{padding-top:0}.archive-page .page-head{padding-block:52px 15px;margin:0}.archive-page h1{font:400 clamp(52px,5.6vw,82px)/1.07 var(--display);max-width:none;margin:0 0 14px}.archive-page .lede{font:15px/1.8 var(--sans);margin:0 0 15px;max-width:70ch}
-.finder{padding:0;margin:0 0 28px;background:transparent;border:0}.finder-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}.finder-field--q{grid-column:1/-1;margin-bottom:8px}.finder-field label{display:block;font:600 14px/1.5 var(--sans);margin-bottom:8px;color:var(--ink-2)}
-.finder-field input:not([type=checkbox]),.finder-field select{width:100%;min-width:0;min-height:46px;font:16px/1.5 var(--sans);background:var(--surface);border:1px solid var(--rule);border-radius:0;padding:10px 13px;color:var(--ink)}
-#f-q{height:62px;font-size:17px;padding:15px 20px;border-color:#8ba5a1}.finder-more{padding:0;margin:0;border:0;min-width:0}.finder-more>summary{cursor:pointer;min-height:46px;width:max-content;padding:12px 16px;border:1px solid var(--rule);background:var(--surface);font:14px/1.5 var(--sans)}
-.finder-more-body{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding-block:20px}.finder-row>.btn{justify-self:end;min-width:160px}.finder-more-body>.btn{align-self:end}.finder-status{margin-top:18px}.chips{display:flex;gap:8px;flex-wrap:wrap;list-style:none;padding:0;margin:0}.chips button,.chip-clear,.no-results button{cursor:pointer;font:13px/1.5 var(--sans);min-height:44px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);padding:8px 12px}.chip-clear{margin-top:12px}.finder-note,.finder-about{font:12px/1.7 var(--sans);color:var(--muted);margin:12px 0 0}.finder-about>summary{cursor:pointer;min-height:44px;padding-block:10px}.finder-about p{max-width:80ch}
-.index-state{font:14px/1.7 var(--sans);padding:16px 0}.index-state--error{color:var(--warning)}.result-range{border-top:1px solid var(--rule);padding-top:22px;margin:28px 0;font:13px/1.7 var(--sans);color:var(--ink-2)}
-.archive-page .records-days{border:0}.archive-page .records-day{grid-template-columns:125px minmax(0,1fr);gap:30px;margin-bottom:45px}.archive-page .day-date{border:0;padding-top:20px}.archive-page .day-num{font:400 59px/1 var(--display)}.archive-page .day-month,.archive-page .day-week{font:12px/1.8 var(--sans)}
-.archive-page .record-row{grid-template-columns:minmax(0,1fr) 240px;gap:40px;padding:26px 0;border-top:1px solid var(--rule);border-bottom:0;background:transparent}.archive-page .record-row h3{font:400 28px/1.16 var(--display);margin:0 0 10px;letter-spacing:0}.archive-page .record-row h3[lang^=zh],.archive-page .record-row h3[lang^=ja]{font:600 20px/1.55 var(--zh)}.archive-page .record-row h3 a{color:var(--ink);text-decoration:none}.archive-page .record-row h3 a:hover{text-decoration:underline;color:var(--accent)}.archive-page .record-row .original{font:14px/1.7 var(--zh);color:var(--ink-2);margin:0}
-.archive-page .row-side{font:12px/1.75 var(--sans);color:var(--muted);display:flex;flex-direction:column;gap:5px}.archive-page .state{font:11px/1.6 var(--sans);border:0;padding:0;background:none}.archive-page .row-trail{font:11px/1.6 var(--sans);letter-spacing:0;text-transform:none}.archive-page .row-side a{margin-right:8px}.no-results{border-block:1px solid var(--rule);padding:24px 0}.no-results p{margin:0}.no-results button{margin-top:12px}.no-results[data-scope=focus] .no-results-wide,.no-results:not([data-scope=focus]) .no-results-focus{display:none}.pager{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:20px;margin-block:24px}.pager button{font:600 14px var(--sans);min-height:44px;padding:12px 18px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer}.pager button:disabled{opacity:.5;cursor:default}.archive-coverage>summary{cursor:pointer;min-height:44px;padding-block:12px}.archive-coverage{margin-block:24px}.archive-page .week-strip{margin-top:32px}.archive-page .atlas-spine{margin-top:16px}
-@media(max-width:900px){.archive-page .records-day{grid-template-columns:85px minmax(0,1fr);gap:20px}.archive-page .record-row{grid-template-columns:1fr;gap:14px}.archive-page .day-num{font-size:47px}.archive-page .record-row h3{font-size:26px}.archive-page .row-side{flex-direction:row;flex-wrap:wrap;gap:4px 12px}.archive-page .row-who{width:100%}.finder-more-body{grid-template-columns:1fr}}
-@media(max-width:600px){.archive-page .page-head{padding-block:52px 8px}.archive-page h1{font-size:50px}.archive-page .lede{font-size:13px}.finder-row{gap:12px}.finder-field--q{margin-bottom:0}#f-q{height:50px}.finder-more>summary{padding:12px 16px}.finder-status:empty{display:none}.finder{margin-bottom:20px}.result-range{margin:20px 0 28px}.archive-page .records-day{grid-template-columns:1fr;gap:0;margin-bottom:30px}.archive-page .day-date{padding-top:0;border-top:2px solid var(--ink);padding-bottom:12px}.archive-page .day-date time{display:flex;align-items:baseline;gap:7px}.archive-page .day-num{font-size:36px}.archive-page .day-week{display:none}.archive-page .record-row{padding-block:21px}.archive-page .record-row h3{font-size:28px}.finder-row>.btn{min-width:145px}.archive-page .row-side{gap:4px 12px}}
-@media print{.finder,.pager{display:none!important}.archive-page .records-day,.archive-page .record-row{display:block}.archive-page h1{font-size:30pt}}
-/* A broad profile is the archive's edge, never a field behind record text. */
-.archive-page>.wrap{position:relative;isolation:isolate}
-.archive-page .page-head{padding-block:35px 105px;margin-bottom:0;min-height:270px;border-bottom:0}
-.archive-page .page-head h1{font-size:clamp(64px,7vw,96px);max-width:14ch}
-.archive-page .page-head::after{width:43%;inset:-20px -30px -170px auto;background-size:auto 700px;background-position:right 55%}
-.archive-page #browse{position:relative;max-width:72%;margin-bottom:34px}
-.archive-page .finder{padding:22px;background:var(--surface);border:1px solid var(--rule)}
-.archive-page .finder-more[open]{position:relative;z-index:3;background:var(--surface)}
-.archive-page #results{background:var(--bg) url('assets/material/chart-paper.png');position:relative;padding-top:14px}
-.archive-page .processing-plate-head{padding-bottom:100px}
-.archive-page .processing-engraving{display:none}
-.archive-page .processing-plate-head::after{content:'';position:absolute;inset:auto 0 0;height:80px;background:url('assets/material/chart-shelf.svg') no-repeat center 50%/700px auto;pointer-events:none}
-@media(max-width:900px){.archive-page #browse{max-width:100%}.archive-page .page-head{min-height:240px;padding-bottom:85px}.archive-page .page-head::after{width:30%;bottom:0}}
-@media(max-width:700px){.archive-page .page-head{min-height:0;padding-block:22px 65px}.archive-page .page-head h1{font-size:56px}.archive-page .page-head::after{width:100%;inset:auto -22px 0;height:44px;background-size:700px auto}.archive-page .finder{padding:15px}}
-.archive-page .page-head{min-height:240px;padding-bottom:75px}
-.archive-page .page-head::after{inset:-1px -22px -180px auto;background-position:right 55%;mask-image:linear-gradient(black 87%,transparent)}
-@media(max-width:700px){.archive-page .page-head{min-height:0;padding-bottom:65px}.archive-page .page-head::after{inset:auto -22px 0;height:44px;mask-image:none}}
+/* Records page. In reading order: one sentence on what is searched, the search
+   box, one row of filters, the count, then the records as parallel text. The
+   list itself is styles.css's `.record-row`; this sheet never re-grids it and
+   only places what browse.js adds to a row. Paper, rules and type: no texture,
+   no drawn scenery, no shadow. */
+.archive-page .page-head{margin-bottom:1.5rem}
+.archive-page .archive-about{margin:.8rem 0 0;font-size:.9375rem;line-height:1.55;color:var(--ink-2)}
+.archive-page .nojs-note{margin:0 0 1.5rem;padding-left:.9rem;border-left:2px solid var(--rule-hard);font-size:.9375rem;color:var(--ink-2);max-width:64ch}
+
+/* The finder: a full-width title box, then one row of the filters most
+   searches need. Everything else waits behind "More filters". */
+.archive-page #browse{margin:0 0 1.5rem}
+.finder-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 .6rem;align-items:end}
+.finder-field{min-width:0}
+.finder-field label{display:block;margin:0 0 .35rem}
+.finder-field :is(input,select){display:block;width:100%;min-width:0}
+.finder #f-q{min-height:54px;padding:.6rem .95rem;font-size:1.0625rem;border-color:var(--ink-2)}
+.finder ::placeholder{color:var(--muted);opacity:1}
+.finder-row>.btn{min-height:54px;min-width:8rem;font-size:.9375rem}
+.finder-filters{display:grid;grid-template-columns:minmax(0,1fr);margin-top:.75rem}
+.finder-quick{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .6rem}
+.finder-quick .finder-field{display:flex;align-items:center;gap:.55rem}
+.finder-quick label{margin:0;white-space:nowrap}
+.finder-quick select{width:auto;max-width:100%;min-height:40px;padding-block:.35rem;font-size:.875rem}
+.finder-quick #f-scope{max-width:19rem}.finder-quick #f-desk{max-width:14rem}.finder-quick #f-sort{max-width:13rem}
+.archive-page :is(.finder-more,.archive-actions details,.archive-research-list,.archive-more)>summary{list-style:none;cursor:pointer}
+.archive-page :is(.finder-more,.archive-actions details,.archive-research-list,.archive-more)>summary::-webkit-details-marker{display:none}
+.archive-page :is(.finder-more,.archive-actions details,.archive-research-list,.archive-more)>summary::before{content:"+";flex:none;width:1ch;text-align:center;font-weight:400}
+.archive-page :is(.finder-more,.archive-actions details,.archive-research-list,.archive-more)[open]>summary::before{content:"\2212"}
+.archive-page .finder-more>summary{display:flex;align-items:center;gap:.45rem;width:max-content;min-height:40px;font-size:.875rem;font-weight:600;color:var(--link)}
+.archive-page .finder-more>summary:hover{text-decoration:underline;text-decoration-thickness:1px}
+.finder-more[open]{border-bottom:1px solid var(--rule)}
+.finder-more-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem 1.4rem;margin-top:.6rem;padding:1.1rem 0 .5rem;border-top:1px solid var(--rule)}
+.finder-field--wide{grid-column:span 2}
+.finder-dates{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.6rem;align-items:end}
+.finder-more-foot{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 1.6rem;font-size:.875rem}
+.finder-check{display:inline-flex;align-items:center;gap:.55rem;min-height:44px;cursor:pointer}
+.finder-check input,.keep-record input{flex:none;width:18px;height:18px;min-height:0;margin:0;accent-color:var(--accent)}
+.finder-more-foot a{display:inline-flex;align-items:center;min-height:40px}
+/* Wide screens: the disclosure sits at the end of the filter row and opens
+   beneath the whole row. It shares the row's grid cell and lets the pointer
+   through everywhere except its own summary and body. */
+@media(min-width:1100px){
+.finder-filters>*{grid-area:1/1}
+.finder-quick{align-self:start;padding-right:9.5rem}
+.finder-more{pointer-events:none}
+.archive-page .finder-more>summary{margin-left:auto}
+.finder-more>summary,.finder-more-body{pointer-events:auto}
+}
+.finder-status{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .9rem}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;list-style:none;margin:.75rem 0 0;padding:0}
+.chips:empty{display:none}
+.chips li{max-width:none}
+.chip{display:inline-flex;align-items:center;gap:.5rem;min-height:40px;padding:.3rem .75rem;font:inherit;font-size:.8125rem;line-height:1.3;text-align:left;color:var(--ink);background:var(--surface);border:1px solid var(--rule-strong);border-radius:0;cursor:pointer}
+.chip::after{content:"\00d7";color:var(--muted)}
+.chip:hover{border-color:var(--ink)}
+.chip-clear{min-height:40px;margin:.75rem 0 0;padding:0;font:inherit;font-size:.8125rem;font-weight:600;color:var(--link);background:none;border:0;text-decoration:underline;text-underline-offset:.15em;cursor:pointer}
+
+/* What the list is: the count in ink, its qualification beneath it. */
+.index-state{margin:0 0 1rem;font-size:.9375rem;color:var(--ink-2);max-width:64ch}
+.index-state--error{padding-left:.9rem;border-left:2px solid var(--warning);color:var(--ink)}
+.result-range{margin:0;max-width:none;font-size:.9375rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums lining-nums}
+.result-range a{font-weight:400}
+.focus-note{margin:.25rem 0 1.6rem;max-width:88ch;font-size:.8125rem;line-height:1.55;color:var(--muted)}
+.focus-note strong{font-weight:600;color:var(--ink-2)}
+/* The note qualifies the selected list only: once a reader switches the
+   scope to every record or all published material, it no longer applies. */
+body:has(#f-scope option[value="focus"]:not(:checked)) .focus-note{display:none}
+/* The column names stand only over a list that has a second column. */
+.archive-page .records-key:not(:has(+ #results .original)){display:none}
+
+/* What browse.js adds to a row: a summary, a source hold, and the citation
+   and keep controls. They follow the title in the English column — or span
+   the row when it has no second title — so a row reads the same whichever
+   renderer drew it. */
+.archive-page .record-row :is(.archive-snippet,.archive-hold,.archive-actions){grid-column:1}
+.archive-page .record-row:not(:has(.original)) :is(.archive-snippet,.archive-hold,.archive-actions){grid-column:1/-1}
+.archive-page .archive-snippet{order:5;margin:.6rem 0 0;font:400 .9375rem/1.55 var(--serif);color:var(--ink-2);max-width:62ch;overflow-wrap:anywhere}
+.archive-page .archive-hold{order:6;margin:.6rem 0 0;padding-left:.8rem;border-left:2px solid var(--rule-hard);font-size:.8125rem;line-height:1.5;color:var(--ink);max-width:62ch;overflow-wrap:anywhere}
+.archive-page .archive-actions{order:7;display:flex;flex-wrap:wrap;align-items:flex-start;gap:0 1.5rem;margin:.3rem 0 0;font-size:.8125rem;line-height:1.5;color:var(--ink-2)}
+.archive-page .archive-actions details{min-width:0}
+.archive-page .archive-actions details[open]{flex:1 1 100%;padding-bottom:.5rem}
+.archive-page .archive-actions summary{display:inline-flex;align-items:center;gap:.4rem;min-height:40px;color:var(--link)}
+.archive-page .archive-actions summary:hover{text-decoration:underline;text-decoration-thickness:1px}
+.archive-page .archive-actions details p{margin:0 0 .45rem;max-width:62ch;overflow-wrap:anywhere}
+.archive-page .archive-actions .archive-citation{margin:.6rem 0 .7rem;padding-left:.8rem;border-left:2px solid var(--rule-hard);font:400 .9375rem/1.55 var(--serif);color:var(--ink)}
+.keep-record{display:inline-flex;align-items:center;gap:.5rem;min-height:40px;font-size:.8125rem;font-weight:400;color:var(--ink-2);cursor:pointer}
+.archive-page :is(.no-results,.pager,.research-list-actions,.archive-actions) button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:.4rem .9rem;font:600 .8125rem/1.2 var(--sans);color:var(--ink);background:transparent;border:1px solid var(--rule-strong);border-radius:0;cursor:pointer}
+.archive-page :is(.no-results,.pager,.research-list-actions,.archive-actions) button:hover{border-color:var(--ink);background:var(--surface)}
+.archive-page :is(.no-results,.pager,.research-list-actions,.archive-actions) button:disabled{opacity:.5;cursor:not-allowed;border-color:var(--rule-strong);background:transparent}
+
+.no-results{padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule)}
+.no-results p{margin:0 0 .6rem}
+.no-results p:last-child{margin:0}
+.no-results[data-scope=focus] .no-results-wide,.no-results:not([data-scope=focus]) .no-results-focus{display:none}
+.archive-page .pager{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin:1.4rem 0 0}
+.archive-page .pager button{min-height:44px;padding-inline:1.15rem;font-size:.875rem}
+.archive-page .pager p{flex-basis:100%;margin:.2rem 0 0;max-width:none;font-size:.875rem;color:var(--muted)}
+
+/* The research list: kept records and their export, after the results. */
+.archive-research-list{margin:1.5rem 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:.875rem}
+.archive-page .archive-research-list>summary,.archive-page .archive-research-list[open]>summary{display:flex;align-items:center;gap:.45rem;min-height:44px;color:var(--ink-2)}
+.research-list-name{font-weight:600;color:var(--ink)}
+.research-list-body{padding:.1rem 0 1rem}
+.research-list-body p{margin:0 0 .75rem;max-width:64ch}
+.research-list-body p:last-child{margin:0}
+.research-list-body .research-list-actions{display:flex;flex-wrap:wrap;gap:.5rem;max-width:none}
+.archive-page #selected-list{list-style:none;margin:0 0 .9rem;padding:0;max-height:15rem;overflow:auto;border-top:1px solid var(--rule-soft)}
+.archive-page #selected-list:empty{display:none}
+.archive-page #selected-list .record-row{display:block;padding:0;border:0;border-bottom:1px solid var(--rule-soft)}
+.archive-page #selected-list .record-row>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 1.2rem}
+.archive-page #selected-list h3{grid-column:1;margin:0;max-width:none;font:600 .9375rem/1.4 var(--serif)}
+.archive-page #selected-list .archive-actions{grid-column:2;margin:0}
+.archive-page #selected-list :is(.original,.meta,.row-tags,.row-side,.archive-hold,.archive-snippet,details){display:none}
+
+/* After the list: the weeks, where each record stands, the two explanations
+   and the week table. Each opens on a hard rule; none is a boxed panel. */
+.archive-page .week-strip{margin:3rem 0 0;padding-top:1.1rem;border-top:2px solid var(--rule-hard)}
+.archive-page :is(.week-strip-head,.states-head) h2,.archive-page .archive-more h2,.archive-page #volume-heading{margin:0;padding:0;border:0;font:400 1.75rem/1.12 var(--display);letter-spacing:-.008em}
+.archive-page .week-strip-head{align-items:flex-end;margin-bottom:.4rem}
+.archive-page .processing-plate{display:block;margin:3rem 0 0;padding:1.1rem 0 0;background:none;border:0;border-top:2px solid var(--rule-hard)}
+.states-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.3rem 2rem;margin:0 0 1.1rem}
+.states-head p{margin:0;max-width:60ch;font-size:.875rem;color:var(--muted)}
+.states-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.states-list li{display:flex;flex-direction:column;align-items:flex-start;max-width:none;padding:1rem 1.3rem 1.1rem 0}
+.states-list li+li{padding-left:1.3rem;border-left:1px solid var(--rule)}
+.states-count{font:400 2.75rem/1 var(--display);font-variant-numeric:lining-nums;color:var(--ink)}
+.states-list a{display:inline-flex;align-items:center;min-height:40px;font-size:.9375rem;font-weight:600;line-height:1.3}
+.states-track{display:block;align-self:stretch;height:4px;margin:.2rem 0 .45rem;background:var(--rule-soft)}
+.states-fill{display:block;height:100%;background:var(--ink)}
+.states-share{font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
+.states-note{margin:.9rem 0 0;max-width:78ch;font-size:.875rem;color:var(--ink-2)}
+.archive-notes{margin:3rem 0 0;border-top:2px solid var(--rule-hard)}
+.archive-more{border-bottom:1px solid var(--rule)}
+.archive-page .archive-more>summary{display:flex;align-items:center;gap:.8rem;min-height:60px;font-size:1.5rem;color:var(--ink-2)}
+.archive-page .archive-more>:not(summary){margin-left:1.75rem}
+.archive-more>p{margin-top:0;margin-bottom:.8rem;max-width:74ch;font-size:.9375rem;line-height:1.6;color:var(--ink-2)}
+.archive-more>p:last-child{margin-bottom:1.3rem}
+.archive-more>p b{color:var(--ink)}
+/* The desk tally under the results; only this page carries it. */
+.atlas-spine {
+  margin: 0 0 1.6rem; padding: .7rem 0; font-size: var(--step-meta); color: var(--ink-2);
+  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.atlas-spine p { margin: 0 0 .35rem; max-width: none; }
+.atlas-spine strong { color: var(--ink); font-weight: 600; }
+.atlas-spine ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem 1.6rem; }
+.atlas-spine li { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .5rem; max-width: none; }
+.atlas-spine-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.archive-more .atlas-spine{margin-top:0;margin-bottom:.9rem;padding-top:0;border-top:0}
+.archive-page #volume-heading{margin-top:3rem;padding-top:1.1rem;border-top:2px solid var(--rule-hard)}
+
+@media(max-width:900px){
+.finder-more-body{grid-template-columns:repeat(2,minmax(0,1fr))}
+.states-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+.states-list li:nth-child(odd){padding-left:0;border-left:0}
+.states-list li:nth-child(n+3){border-top:1px solid var(--rule)}
+}
+@media(max-width:600px){
+.finder-row>.btn{min-width:0;padding-inline:1.1rem}
+.finder-quick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.finder-quick .finder-field--scope{grid-column:1/-1}
+.finder-quick .finder-field:not(.finder-field--scope){display:block}
+.finder-quick .finder-field--scope select{flex:1}
+.finder-quick select,.finder-quick #f-scope,.finder-quick #f-desk,.finder-quick #f-sort{width:100%;max-width:none;min-height:44px;font-size:1rem}
+.finder-more-body{grid-template-columns:minmax(0,1fr)}
+.finder-field--wide{grid-column:auto}
+.finder-more-body :is(input,select){font-size:1rem}
+.focus-note{margin-bottom:1.2rem}
+.archive-page #selected-list .record-row>div{grid-template-columns:minmax(0,1fr)}
+.archive-page #selected-list .archive-actions{grid-column:1}
+.archive-page #selected-list h3{padding-top:.6rem}
+.archive-page .week-strip,.archive-page .processing-plate,.archive-notes,.archive-page #volume-heading{margin-top:2.4rem}
+.states-list li{padding-right:.8rem}.states-list li:nth-child(even){padding-left:.8rem}
+.states-count{font-size:2.25rem}
+.archive-page .archive-more>:not(summary){margin-left:0}
+}
+@media print{
+.archive-research-list,.keep-record,.archive-page .archive-actions button,.no-results,.focus-note{display:none!important}
+.archive-page .archive-actions details{display:block}
+}
 
 /* Desk marker (Phase 2b): the desk country's outline before its link, a mask over a muted fill.
    The server rows and browse.js card() both draw `.row-side a` with the desk route as its href, so one
@@ -40,37 +191,3 @@
 .archive-page .row-side a[href="vietnam.html"]::before{-webkit-mask-image:url(assets/desk-marks/vietnam.svg);mask-image:url(assets/desk-marks/vietnam.svg)}
 @media(forced-colors:active){.archive-page .row-side a::before{display:none!important}}
 @media print{.archive-page .row-side a::before{display:none!important}}
-/* Archive research integration: reading type and native, compact disclosures.
-   The shared shell, fonts and tokens remain the publication's authority. */
-.archive-page .record-row h3{font:400 26px/1.3 var(--serif);max-width:65ch;text-wrap:pretty}
-.archive-page .finder-field label,.archive-page .finder button{font-weight:400}
-.archive-page .archive-actions{font:14px/1.7 var(--sans);margin-top:18px;max-width:70ch;overflow-wrap:anywhere}
-.archive-page .archive-actions summary,.archive-page .keep-record{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer}
-.archive-page .archive-actions summary{display:list-item;padding-block:10px}
-.archive-page .keep-record input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
-.archive-page .archive-citation{font:16px/1.7 var(--serif);color:var(--ink)}
-.archive-page .archive-actions button,.archive-page .research-list-body button{font:400 14px/1.5 var(--sans);min-height:44px;cursor:pointer;padding:9px 14px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);margin:4px 8px 4px 0}
-.archive-page .research-list-body button:disabled{opacity:.55;cursor:default}
-.archive-page .archive-research-list{margin:18px 0 28px;max-width:72%;border-block:1px solid var(--rule);font:14px/1.7 var(--sans)}
-.archive-page .archive-research-list>summary{min-height:46px;padding-block:11px;cursor:pointer}
-.archive-page .research-list-body{padding-bottom:16px}.archive-page .research-list-body p{max-width:70ch}
-.archive-page #research-error{font:14px/1.7 var(--sans);color:var(--warning)}
-.archive-page :is(button,input,select,summary,.archive-citation):focus-visible{outline:2px solid var(--accent);outline-offset:4px}
-@media(max-width:900px){.archive-page .archive-research-list{max-width:100%}}
-@media(max-width:680px){.archive-page .record-row h3{font-size:23px}.archive-page .archive-research-list{margin-block:12px 20px}.archive-page .archive-research-list>summary{font-size:13px}}
-@media print{.archive-page .archive-research-list,.archive-page .keep-record,.archive-page .archive-actions button{display:none!important}}
-.archive-page .record-row>*{min-width:0}.archive-page .record-row h3,.archive-page .row-side{overflow-wrap:anywhere}
-.archive-page .archive-hold{font:14px/1.7 var(--sans);color:var(--ink-2);max-width:70ch;overflow-wrap:anywhere}
-.archive-page .keep-record{font-weight:400}
-@media(max-width:680px){.archive-page .finder-row>.finder-field:first-child{grid-column:1/-1}}
-
-.archive-page input::placeholder{color:var(--muted);opacity:1}
-.archive-page #selected-list{list-style:none;padding:0;margin:8px 0;min-height:52px;max-height:180px;overflow:auto}
-.archive-page #selected-list .record-row{display:block;padding:4px 0;border:0}.archive-page #selected-list .record-row>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px}
-.archive-page #selected-list h3{font:400 17px/1.5 var(--serif);margin:0}.archive-page #selected-list .archive-actions{margin:0}
-.archive-page #selected-list :is(.original,.row-tags,.row-side,.archive-hold,.archive-snippet,details){display:none}
-@media(max-width:680px){.archive-page #selected-list .record-row>div{grid-template-columns:1fr}.archive-page #selected-list .record-row{padding-block:8px}}
-
-.archive-page #selected-list{padding-inline:6px}
-
-.archive-page .archive-snippet{font:16px/1.7 var(--serif);max-width:70ch;overflow-wrap:anywhere}

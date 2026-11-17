@@ -2,7 +2,7 @@
 {% from "_atlas.html" import breadcrumb %}
 {% from "_records.html" import record_days %}
 {% from "_weeks.html" import week_strip %}
-{% block title %}{{ week.start }} to {{ week.end }} — corpus — {{ title }}{% endblock %}
+{% block title %}{{ week.start }} to {{ week.end }} — Records by week — {{ title }}{% endblock %}
 {% block content %}
 {{ breadcrumb([('Records', 'archive.html'), ('Records by week', 'corpus.html'), ('Publication week ' ~ week.start, none)]) }}
 <header class="page-head">
@@ -24,8 +24,8 @@
 {% endif %}
 
 <p class="meta">{{ week.run_dates }} recorded run date{{ '' if week.run_dates == 1 else 's' }} (UTC)
-overlap this week. Run records preserve no target publication date and no source-level outcome,
-so this is operational context, not a measure of coverage.</p>
+overlap this week. The run log does not record which publication dates a run looked for or the
+result at each source, so this is operational context, not a measure of coverage.</p>
 
 {% if paginated %}
 <nav class="pager" aria-label="Pages within this week">
@@ -52,8 +52,8 @@ so this is operational context, not a measure of coverage.</p>
 
 {# The strip is plain links and bars: no script, which the shards promise.
    After the records, so a week's own entries come first for every reader. #}
-{{ week_strip(weeks, volume_max, current=week.start, heading='h2', title='All publication weeks', note='Stored records per publication week; this week is drawn in ink. Hatched and faint weeks are explained on Corpus by week.', reveal=false, key=false) }}
+{{ week_strip(weeks, volume_max, current=week.start, heading='h2', title='All publication weeks', note='Each bar is one publication week; this week is drawn in ink. Hatched and faint weeks are explained on Records by week.', key=false) }}
 
-<p class="records-foot"><a href="corpus.html">All publication weeks, in figures</a>
+<p class="records-foot"><a href="corpus.html">Every week, in figures</a>
   <a href="archive.html">Search the records</a></p>
 {% endblock %}

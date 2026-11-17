@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -71,7 +72,12 @@ def _assert_rendered_contract() -> None:
         assert _sha256(ROOT / "site" / route) == _sha256(out / route), f"No. 23 asset mismatch: {route}"
     brief24_slug = "singapore-indonesia-first-joint-fighter-patrol"
     brief24 = (out / "briefs" / (brief24_slug + ".html")).read_text(encoding="utf-8")
-    assert brief24_slug in analysis and brief24_slug in (out / "index.html").read_text(encoding="utf-8")
+    assert brief24_slug in analysis
+    # The homepage features only the latest Brief (the catalogue's first);
+    # Nos. 25 and 26 have since superseded No. 24 there.
+    latest = re.search(r'href="briefs/([^"#]+)\.html"', analysis).group(1)
+    home_briefs = set(re.findall(r'href="briefs/([^"#]+)\.html"', (out / "index.html").read_text(encoding="utf-8")))
+    assert home_briefs == {latest}, (latest, home_briefs)
     assert brief24_slug in (out / "briefs" / "feed.xml").read_text(encoding="utf-8")
     assert brief24_slug in (out / "sitemap.xml").read_text(encoding="utf-8")
     assert brief24_slug + ".html" in brief23, "No. 23 must link forward to No. 24"
