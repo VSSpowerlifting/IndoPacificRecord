@@ -66,11 +66,50 @@
 .atlas figcaption p{margin:0 0 .35rem}
 .atlas-key{display:flex;flex-wrap:wrap;gap:.2rem 1.4rem;color:var(--ink)}
 .atlas-key .seat-mark{margin-right:.2rem}
-@media(min-width:760px){
-  .desks-head{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:auto auto auto 1fr;column-gap:clamp(1.6rem,4vw,3.2rem)}
+/* One compact navigation rail belongs to the atlas, not to a second data
+   directory. The detailed, citable desk register stays below unchanged. */
+.desk-jump{min-width:0;margin:1.6rem 0 0}
+.desk-jump h2{margin:0 0 .55rem;font:400 clamp(1.5rem,1.25rem + .85vw,1.875rem)/1.15 var(--display)}
+.desk-jump-list{list-style:none;margin:0;padding:0}
+.desk-jump-list li{border-top:1px solid var(--rule)}
+.desk-jump-list li:last-child{border-bottom:1px solid var(--rule)}
+.desk-jump-list a{display:grid;grid-template-columns:1.5rem minmax(0,1fr) 1rem;gap:.65rem;align-items:center;min-height:48px;padding:.42rem .35rem;color:var(--ink);text-decoration:none}
+.desk-jump-list a:hover,.desk-jump-list a:focus-visible{background:var(--accent-tint)}
+.desk-jump-list a:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.desk-jump-mark{width:1.5rem;height:1.5rem}
+.desk-jump-copy{min-width:0}
+.desk-jump-name{display:block;font:600 .9375rem/1.3 var(--sans)}
+.desk-jump-detail{display:block;font:400 .75rem/1.35 var(--sans);color:var(--muted);overflow-wrap:anywhere}
+.desk-jump-arrow{justify-self:end;color:var(--muted);font:400 1rem/1 var(--sans)}
+@media(min-width:1140px){
+  .desks-head{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:clamp(1.6rem,4vw,3.2rem)}
   .desks-head>*{grid-column:1}
-  .desks-head>.atlas{grid-column:2;grid-row:1/span 4;margin:.4rem 0 0}
+  .desks-head>.atlas{grid-column:2;grid-row:1/span 5;margin:.4rem 0 0}
+  .desks-head>.desk-jump{grid-column:1;grid-row:5;align-self:end}
 }
+@media(min-width:680px) and (max-width:1139px){
+  .desk-jump-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1.25rem}
+  .desk-jump-list li:nth-last-child(2){border-bottom:1px solid var(--rule)}
+}
+/* Both navigation surfaces share an order, computed from atlas.seats followed
+   by atlas.outside. CSS-only matching preserves keyboard and no-script use. */
+.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(1) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(1) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(2) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(2) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(3) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(3) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(4) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(4) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(5) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(5) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(6) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(6) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(7) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(7) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.atlas-seats li:nth-child(8) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(8) a{background:var(--accent-tint)}
+
 @container (max-width:540px){
   .seat{font-size:.75rem}.seat-text b{font-size:.8125rem}
   .seat--n-left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
