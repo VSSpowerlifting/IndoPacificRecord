@@ -15,11 +15,6 @@
 .status-panel--shadow { border-left-color: var(--rule-strong); background: var(--bg); }
 .status-panel--access_blocked { border-left-color: var(--warning); background: var(--bg); }
 .status-panel--access_blocked .status-glyph { color: var(--warning); }
-.desk-figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.4rem 0; padding: 1rem 0; border-top: 2px solid var(--rule-hard); border-bottom: 1px solid var(--rule); }
-.desk-figures div { min-width: 0; }
-.desk-figures dt { font-size: .8125rem; color: var(--muted); }
-.desk-figures dd { margin: .15rem 0 0; font-family: var(--serif); font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; line-height: 1.1; }
-.desk-figures dd small { display: block; font-family: var(--sans); font-size: .75rem; font-weight: 400; color: var(--muted); margin-top: .2rem; }
 @media (max-width: 720px) {
 table.stacking thead { position: absolute; left: -9999px; }
 table.stacking, table.stacking tbody, table.stacking tr, table.stacking td { display: block; width: 100%; }
@@ -34,12 +29,10 @@ body { font-size: 1rem; }
 }
 @media (max-width: 760px) {
 :root { --gutter-date: 100%; }
-.desk-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
 :root { --gutter: 22px; }
 h1 { font-size: clamp(1.9rem, 8vw, 2.3rem); }
-.desk-figures dd { font-size: 1.35rem; }
 }
 @media print {
 @page { margin: 18mm 16mm; }
