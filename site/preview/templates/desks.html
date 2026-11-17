@@ -40,6 +40,25 @@
 </dl>
 <p class="desk-count">{{ corpus_total|count }} records as of <time datetime="{{ snapshot.date }}">{{ snapshot.date | reader_date }}</time>. Record counts cover official originals only, never IPR's own articles. <a href="coverage.html">What each collection returned</a></p>
 {{ atlas_figure(atlas) }}
+{# A compact navigator for the register below; rows and atlas locations share
+   the same authoritative geography and registry desk objects. #}
+{% macro jump_link(d, place) -%}
+<li><a href="#desk-{{ d.slug }}" data-desk="{{ d.slug }}">
+  <span class="desk-jump-mark seat-mark seat-mark--{{ d.status }}" aria-hidden="true"></span>
+  <span class="desk-jump-copy">
+    <span class="desk-jump-name">{{ d.name }}</span>
+    <span class="desk-jump-detail">{{ place }} <span aria-hidden="true">·</span> {{ d.status_label }}</span>
+  </span>
+  <span class="desk-jump-arrow" aria-hidden="true">↓</span>
+</a></li>
+{%- endmacro %}
+<nav class="desk-jump" aria-labelledby="desk-jump-title">
+  <h2 id="desk-jump-title">Explore the desks</h2>
+  <ul class="desk-jump-list">
+    {% for s in atlas.seats %}{{ jump_link(s.desk, s.seat) }}{% endfor %}
+    {% for o in atlas.outside %}{{ jump_link(o.desk, o.place ~ ', outside this map') }}{% endfor %}
+  </ul>
+</nav>
 </header>
 
 <nav class="reader-contents" aria-label="On this page">
