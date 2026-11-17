@@ -406,19 +406,33 @@ class TestReviewedHome(HomeCase):
         self.assertEqual(hashlib.sha256(emitted.read_bytes()).hexdigest(),
                          hashlib.sha256(source.read_bytes()).hexdigest())
 
-    def test_the_home_page_carries_no_scenery_photograph(self):
-        """The opening photograph was retired on 2026-11-14. The only pictures
-        the page may carry are the identity mark and an admitted Brief cover."""
+    def test_the_home_page_carries_one_stable_credited_photograph(self):
+        """The retired opening (picture, .pacific-photo, .photo-credit) stays
+        retired. The pictures the page may carry are the identity mark, an
+        admitted Brief cover on the Briefs card, and one homepage photograph
+        in the opening (founder direction, 2026-11-16): the verified U.S. Navy
+        Reagan CSG and JMSDF formation, credited beneath it."""
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.home, 'html.parser')
         self.assertFalse(soup.select('picture, .pacific-photo, .photo-credit'))
+        hero = gp.home_hero()
+        self.assertIsNotNone(hero)
+        opening = soup.select('.home-open img')
+        self.assertEqual(len(opening), 1)
+        self.assertEqual(opening[0]['src'], hero['src']['route'])
+        self.assertEqual({part.split()[0] for part in opening[0]['srcset'].split(',')},
+                         {v['route'] for v in hero['variants']})
+        self.assertIsNotNone(opening[0].find_parent(class_='home-photo'))
         for img in soup.find_all('img'):
             self.assertTrue(
                 'brand-mark' in img.get('class', [])
-                or img.find_parent(class_='home-feature-photo') is not None,
+                or img.find_parent(class_='home-feature-photo') is not None
+                or img is opening[0],
                 img.get('src'))
+        credit = soup.select_one('#home-photo-credit').get_text(' ', strip=True)
+        self.assertIn('Illustrative photograph, not a record.', credit)
+        self.assertIn(hero['caption'], credit)
         self.assertNotIn('assets/editorial/', self.home)
-        self.assertNotIn('assets/frontend/', self.home)
 
     def test_one_reading_h1_and_selected_identity(self):
         from bs4 import BeautifulSoup

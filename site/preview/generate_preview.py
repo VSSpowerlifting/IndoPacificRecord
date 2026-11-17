@@ -1419,36 +1419,72 @@ def desk_front_rows(desks, desk_newest, corpus):
     return {"rows": front, "empty": empty}
 
 
-def home_hero(collection, catalogue_media, admissions, repo_root=None):
-    """The home page's photograph: the latest Brief's admitted catalogue
-    photograph at the size its own page serves, or None.
+#: The home opening's photograph (founder direction, 16 November): one stable
+#: homepage asset, never the latest Brief's cover. The U.S. Navy photograph of
+#: the Ronald Reagan Carrier Strike Group with Japan Maritime Self-Defense
+#: Force ships that IPR's homepage carried before this redesign. Its manifest
+#: entry is the rights anchor (public domain, 17 U.S.C. section 105, read from
+#: the Commons file page), routed to `home`.
+HOME_PHOTO_ID = "reagan-jmsdf-2015"
+#: The resized derivatives `scripts/build_frontend_assets.py` builds from that
+#: source and records in DELIVERY.json, with both hashes.
+HOME_PHOTO_DELIVERY = Path("site") / "assets" / "frontend" / "DELIVERY.json"
 
-    Granted exactly as the Brief page grants its cover: the catalogue
-    admission must hold (`core.catalogue_media`) and the cover must pair with
-    it (`core.brief_photography.article_cover`). The credit shown beside it is
-    the catalogue credit, which names the same crop and gradient. It is
+
+def home_hero(repo_root=None):
+    """The home page's photograph and its credit record, or None.
+
+    Fails closed to a plain navy opening unless every link of the chain
+    holds: the manifest entry exists and is routed to the home page, the
+    committed source file matches the manifest's SHA-256, and each served
+    derivative matches the hash DELIVERY.json records for it, built from that
+    same source. Nothing is fetched, generated or written here. It is
     illustrative context for the publication, never a picture of a record.
     """
-    row = getattr(collection, "lead_row", None) if collection else None
-    if not row or row.get("kind") != "brief":
+    root = Path(repo_root or REPO_ROOT)
+    manifest_path = root / "site" / "assets" / "editorial" / "manifest.json"
+    delivery_path = root / HOME_PHOTO_DELIVERY
+    if not manifest_path.is_file() or not delivery_path.is_file():
         return None
-    entry = row["entry"]
-    if entry.get("synthetic"):
+    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entries = raw if isinstance(raw, list) else (
+        raw.get("assets") or raw.get("images") or [])
+    if isinstance(entries, dict):
+        entries = list(entries.values())
+    entry = next((e for e in entries if e.get("id") == HOME_PHOTO_ID), None)
+    if not entry or "home" not in ((entry.get("match") or {}).get("routes") or []):
         return None
-    media = catalogue_media.get(entry.get("slug"))
-    if not media or not media.is_photograph:
+    source = root / "site" / "assets" / "editorial" / entry.get("file", "")
+    if not source.is_file() or not entry.get("sha256") or (
+            hashlib.sha256(source.read_bytes()).hexdigest() != entry["sha256"]):
         return None
-    # The opening needs the gradient for the claim and search to stay legible,
-    # and the credit must name every change IPR made. Only a photograph whose
-    # recorded treatment IS the gradient (and so whose credit discloses it) can
-    # open the page; any other treatment falls back to plain navy.
-    if (media.photo or {}).get("cover_treatment") != "gradient":
+    source_route = "site/assets/editorial/" + entry["file"]
+    variants = []
+    for image in json.loads(delivery_path.read_text(encoding="utf-8")).get("images", []):
+        if image.get("source") != source_route or image.get("source_sha256") != entry["sha256"]:
+            continue
+        served = root / "site" / "assets" / "frontend" / image["file"]
+        if not served.is_file() or hashlib.sha256(served.read_bytes()).hexdigest() != image.get("sha256"):
+            return None
+        variants.append({"route": "assets/frontend/" + image["file"],
+                         "width": image["width"], "height": image["height"]})
+    if not variants:
         return None
-    cover = article_cover(entry, repo_root or REPO_ROOT, admissions=admissions)
-    if not cover:
-        return None
-    return {"brief": entry, "photo": media.photo,
-            "src": cover["src"], "webp": cover["webp"]}
+    variants.sort(key=lambda v: v["width"])
+    fallback = next((v for v in variants if v["width"] >= 1600), variants[-1])
+    return {
+        "id": entry["id"],
+        "variants": variants,
+        "src": fallback,
+        "alt": entry.get("alt", ""),
+        "caption": entry.get("caption", ""),
+        "creator": entry.get("creator", ""),
+        "institution": entry.get("institution", ""),
+        "license": entry.get("license", ""),
+        "license_url": entry.get("license_url", ""),
+        "source_page": entry.get("source_page", ""),
+        "dod_id": entry.get("dod_id", ""),
+    }
 
 
 def desk_newest_rows(rows, limit=DESK_NEWEST_ROWS):
@@ -3035,7 +3071,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         "home_desks": desk_front_rows(desks, desk_newest_rows(focus["rows"]),
                                       data["corpus"]),
         # The large home photograph: the latest Brief's admitted photograph.
-        "home_hero": home_hero(collection, catalogue_media, catalogue_admissions),
+        "home_hero": home_hero(),
         "archive_page_size": ARCHIVE_FIRST_PAGE,
         # Records listed in any published issue's source trail (exact URL).
         "trail_record_count": sum(1 for r in data["corpus"]

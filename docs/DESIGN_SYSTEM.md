@@ -57,23 +57,19 @@ drawn scenery on active pages. `surfaces.css` holds the shared page head
 
 **Pictures.** Two places carry a photograph, and both are credited
 photographs of real scenes, never generated images or illustration:
-- **The home opening** is set on the latest Brief's admitted photograph
-  (`home_hero`). It needs that Brief's catalogue admission
-  (`core/catalogue_media.py`), its cover pairing
-  (`core/brief_photography.article_cover`) and a recorded `gradient`
-  treatment, and it serves the article cover files. It sits large behind the
-  claim and the title search under a CSS-only IPR gradient, darker than the
-  Brief cover gradient so the text clears WCAG AA at every width, which the
-  change note discloses. Its full credit (caption, creator, licence, source,
-  change note, "Visual context, not evidence" and any required notice) runs
-  beneath it with the label "Illustrative photograph, not a record" and a
-  link to the Brief. It carries no record mark, and no record appears in the
-  opening. On phones the photograph is a band above the claim, short enough
-  that the title search stays on the first screen. Without an admitted
-  photograph the opening is plain navy. The Briefs card below does not repeat
-  the image. The manifest grants this photograph the `article` and
-  `catalogue` surfaces only; the home use rests on the founder's direction
-  (DECISION_LOG, 16 November) until the owner records a home surface.
+- **The home opening** is set on one stable photograph: the U.S. Navy
+  photograph of the Ronald Reagan Carrier Strike Group with Japan Maritime
+  Self-Defense Force ships (manifest `reagan-jmsdf-2015`, public domain,
+  routed to `home`). It never changes with the Briefs. `home_hero` verifies
+  the manifest entry, the source hash and each derivative's hash, and fails
+  closed to plain navy. The photograph sits large behind the claim and the
+  title search under a CSS-only IPR gradient, dark enough for the text to
+  clear WCAG AA at every width. Its credit runs beneath it with the label
+  "Illustrative photograph, not a record": caption, creator and DoD ID,
+  licence, source, the change note and "Visual context, not evidence". It
+  carries no record mark, and no record appears in the opening. On phones
+  the photograph is a band above the claim, short enough that the title
+  search stays on the first screen.
 - **Briefs**: catalogue cards and opened-Brief covers, as before.
 Records never carry source media.
 

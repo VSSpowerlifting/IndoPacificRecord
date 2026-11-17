@@ -1,17 +1,21 @@
-"""The home opening's photograph is granted, never assumed.
+"""The home opening's photograph is one stable, verified asset.
 
-`home_hero()` opens the home page on the latest Brief's admitted photograph
-only when every gate holds: a published (non-fixture) Brief leads, its
-catalogue admission is a photograph, its recorded treatment is the gradient
-the opening draws (so the credit discloses that change), and its cover pairs
-with the admission. Any failure means a plain navy opening.
+`home_hero()` opens the home page on the U.S. Navy photograph of the Ronald
+Reagan Carrier Strike Group with Japan Maritime Self-Defense Force ships
+(founder direction, 16 November), never on whichever Brief is newest. It holds
+only while every link of the chain holds: the manifest entry exists and is
+routed to the home page, the committed source matches the manifest's SHA-256,
+and each served derivative matches the hash DELIVERY.json records for it.
+Any failure means a plain navy opening.
 """
 from __future__ import annotations
 
+import json
+import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -19,66 +23,71 @@ sys.path.insert(0, str(ROOT / "site" / "preview"))
 
 import generate_preview as gp  # noqa: E402
 
-
-class Media(SimpleNamespace):
-    @property
-    def is_photograph(self):
-        return self.kind == "photograph"
-
-
-def collection(entry, kind="brief"):
-    return SimpleNamespace(lead_row={"kind": kind, "entry": entry})
+EDITORIAL = Path("site/assets/editorial")
+FRONTEND = Path("site/assets/frontend")
 
 
 class HomeHeroGates(unittest.TestCase):
-    ENTRY = {"slug": "x-brief", "issue": 9, "url": "briefs/x-brief.html"}
 
-    def media(self, treatment="gradient", kind="photograph"):
-        return {"x-brief": Media(kind=kind, photo={"cover_treatment": treatment})}
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="home-hero-"))
+        self.addCleanup(shutil.rmtree, self.tmp)
+        (self.tmp / EDITORIAL).mkdir(parents=True)
+        (self.tmp / FRONTEND).mkdir(parents=True)
+        shutil.copy(ROOT / EDITORIAL / "manifest.json", self.tmp / EDITORIAL)
+        shutil.copy(ROOT / EDITORIAL / "reagan-jmsdf-2015.jpg", self.tmp / EDITORIAL)
+        shutil.copy(ROOT / FRONTEND / "DELIVERY.json", self.tmp / FRONTEND)
+        for name in ("pacific-fleet-800.webp", "pacific-fleet-1600.webp",
+                     "pacific-fleet-2500.webp"):
+            shutil.copy(ROOT / FRONTEND / name, self.tmp / FRONTEND)
 
-    def test_no_collection_or_no_lead(self):
-        self.assertIsNone(gp.home_hero(None, {}, {}))
-        self.assertIsNone(gp.home_hero(SimpleNamespace(lead_row=None), {}, {}))
+    def edit_manifest(self, change):
+        path = self.tmp / EDITORIAL / "manifest.json"
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        entries = raw if isinstance(raw, list) else (raw.get("assets") or raw.get("images"))
+        entry = next(e for e in entries if e.get("id") == gp.HOME_PHOTO_ID)
+        change(entries, entry)
+        path.write_text(json.dumps(raw), encoding="utf-8")
 
-    def test_an_earlier_issue_never_opens_the_page(self):
-        self.assertIsNone(gp.home_hero(collection(self.ENTRY, kind="issue"),
-                                       self.media(), {}))
-
-    def test_a_fixture_brief_never_opens_the_page(self):
-        entry = dict(self.ENTRY, synthetic=True)
-        self.assertIsNone(gp.home_hero(collection(entry), self.media(), {}))
-
-    def test_no_admitted_photograph_means_plain_navy(self):
-        self.assertIsNone(gp.home_hero(collection(self.ENTRY), {}, {}))
-        self.assertIsNone(gp.home_hero(collection(self.ENTRY),
-                                       self.media(kind="plate"), {}))
-
-    def test_a_treatment_other_than_the_gradient_means_plain_navy(self):
-        # The opening always draws the gradient; a credit that does not name
-        # it would misstate the change, so such a photograph cannot open it.
-        for treatment in (None, "", "none", "duotone"):
-            with self.subTest(treatment=treatment):
-                self.assertIsNone(gp.home_hero(collection(self.ENTRY),
-                                               self.media(treatment), {}))
-
-    def test_the_current_latest_brief_opens_the_page_with_its_cover(self):
-        editions = gp.load_editions(ROOT)
-        col = gp.load_collection(editions, gp.load_registry(),
-                                 briefs_dir=ROOT / "briefs")
-        from core.catalogue_media import load_admissions, resolve_catalogue_media
-        admissions = load_admissions(repo_root=ROOT)
-        media = {row["entry"]["slug"]: resolve_catalogue_media(row, admissions, repo_root=ROOT)
-                 for row in col.rows}
-        hero = gp.home_hero(col, media, admissions)
-        lead = col.lead_row
-        if lead["kind"] != "brief" or not media[lead["entry"]["slug"]].is_photograph:
-            self.skipTest("the latest item has no admitted photograph")
+    def test_the_repository_opens_on_the_reagan_jmsdf_photograph(self):
+        hero = gp.home_hero(ROOT)
         self.assertIsNotNone(hero)
-        self.assertEqual(hero["brief"]["slug"], lead["entry"]["slug"])
-        self.assertEqual(hero["photo"]["cover_treatment"], "gradient")
-        self.assertIn("gradient", hero["photo"]["change_note"].lower())
-        self.assertTrue((ROOT / "site" / hero["src"]["route"]).is_file())
-        self.assertTrue(all((ROOT / "site" / v["route"]).is_file() for v in hero["webp"]))
+        self.assertEqual(hero["id"], "reagan-jmsdf-2015")
+        self.assertEqual([v["width"] for v in hero["variants"]], [800, 1600, 2500])
+        self.assertEqual(hero["src"]["route"], "assets/frontend/pacific-fleet-1600.webp")
+        self.assertEqual(hero["license"], "Public domain")
+        self.assertIn("Nathan Burke", hero["creator"])
+        self.assertIn("commons.wikimedia.org", hero["source_page"])
+        self.assertEqual(hero["dod_id"], "151123-N-OI810-363")
+        for v in hero["variants"]:
+            self.assertTrue((ROOT / "site" / v["route"]).is_file(), v["route"])
+
+    def test_the_photograph_does_not_follow_the_latest_brief(self):
+        # The function takes no collection: nothing about the Briefs can
+        # change which photograph opens the page.
+        self.assertEqual(gp.home_hero(self.tmp)["id"], gp.home_hero(ROOT)["id"])
+
+    def test_a_missing_entry_means_plain_navy(self):
+        self.edit_manifest(lambda entries, entry: entries.remove(entry))
+        self.assertIsNone(gp.home_hero(self.tmp))
+
+    def test_an_entry_not_routed_to_the_home_page_means_plain_navy(self):
+        self.edit_manifest(lambda entries, entry: entry["match"].update(routes=["article"]))
+        self.assertIsNone(gp.home_hero(self.tmp))
+
+    def test_a_changed_source_means_plain_navy(self):
+        with open(self.tmp / EDITORIAL / "reagan-jmsdf-2015.jpg", "ab") as handle:
+            handle.write(b"\0")
+        self.assertIsNone(gp.home_hero(self.tmp))
+
+    def test_a_changed_derivative_means_plain_navy(self):
+        with open(self.tmp / FRONTEND / "pacific-fleet-1600.webp", "ab") as handle:
+            handle.write(b"\0")
+        self.assertIsNone(gp.home_hero(self.tmp))
+
+    def test_a_missing_derivative_means_plain_navy(self):
+        (self.tmp / FRONTEND / "pacific-fleet-800.webp").unlink()
+        self.assertIsNone(gp.home_hero(self.tmp))
 
 
 if __name__ == "__main__":

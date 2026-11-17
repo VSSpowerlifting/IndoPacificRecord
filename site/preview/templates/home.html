@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 {% from "_records.html" import desk_front %}
 {% from "_catalogue_credit.html" import photo_credit %}
-{# The home page (2026-11-16). It opens on a photograph: the latest Brief's
-   admitted photograph, set large behind the claim and the title search, and
-   credited beneath as illustrative context (it is not a record and carries no
-   record mark). Below it: each public-record desk's newest record as parallel
-   text (the first row of that desk's own page, never a selection), the latest
-   Brief, and the three kinds of text a reader will meet. Every title, date
-   and name here is read from the record or the credit record; nothing is
-   written for the page. Without an admitted photograph the opening is plain
-   navy, with the same claim and search. #}
+{# The home page (2026-11-16). It opens on one stable photograph: the U.S.
+   Navy photograph of the Ronald Reagan Carrier Strike Group with Japan
+   Maritime Self-Defense Force ships (`home_hero`, founder direction), set
+   large behind the claim and the title search and credited beneath as
+   illustrative context (it is not a record and carries no record mark).
+   Below it: each public-record desk's newest record as parallel text (the
+   first row of that desk's own page, never a selection), the latest Brief,
+   and the three kinds of text a reader will meet. Every title, date and name
+   here is read from the record or the credit record; nothing is written for
+   the page. Without the verified photograph the opening is plain navy, with
+   the same claim and search. #}
 {% block title %}{{ title }} — Official records, as published{% endblock %}
 {% block main_class %} class="leads-with-hero home-page"{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="home.css">{% endblock %}
@@ -17,12 +19,9 @@
 {% set hero = home_hero | default(none) %}
 <section class="home-open{% if hero %} home-open--photo{% endif %}" aria-labelledby="home-title">
   <div class="home-stage">
-  {% if hero %}{% set ph = hero.photo %}
-  <div class="home-photo" data-treatment="{{ ph.cover_treatment }}">
-    <picture>
-      <source type="image/webp" srcset="{% for v in hero.webp %}{{ v.route }} {{ v.width }}w{{ ', ' if not loop.last }}{% endfor %}" sizes="100vw">
-      <img src="{{ hero.src.route }}" width="{{ hero.src.width }}" height="{{ hero.src.height }}" alt="{{ ph.alt }}" aria-describedby="home-photo-credit" fetchpriority="high" decoding="async"{% if ph.focal %} style="object-position:{{ ph.focal }}"{% endif %}>
-    </picture>
+  {% if hero %}
+  <div class="home-photo">
+    <img src="{{ hero.src.route }}" srcset="{% for v in hero.variants %}{{ v.route }} {{ v.width }}w{{ ', ' if not loop.last }}{% endfor %}" sizes="100vw" width="{{ hero.src.width }}" height="{{ hero.src.height }}" alt="{{ hero.alt }}" fetchpriority="high" decoding="async">
   </div>
   {% endif %}
   <div class="wrap home-open-grid">
@@ -41,8 +40,9 @@
   {% if hero %}
   <div class="home-photo-credit" id="home-photo-credit">
     <div class="wrap">
-      <p class="home-photo-label">Illustrative photograph, not a record. It appears with <a href="{{ hero.brief.url }}">{% if hero.brief.issue %}Brief No. {{ hero.brief.issue }}{% else %}the latest Brief{% endif %}</a>.</p>
-      {{ photo_credit(ph) }}
+      <p class="home-photo-label">Illustrative photograph, not a record.</p>
+      <p>{{ hero.caption }}</p>
+      <p>Photo: {{ hero.creator }}{% if hero.dod_id %} ({{ hero.dod_id }}){% endif %} · <a href="{{ hero.license_url }}">{{ hero.license }}</a> · via <a href="{{ hero.source_page }}">Wikimedia Commons</a>. Cropped and resized by IPR; IPR gradient overlaid. Visual context, not evidence.</p>
     </div>
   </div>
   {% endif %}
@@ -66,9 +66,6 @@
    as the Briefs page does: an admitted photograph, or no picture at all. #}
 {% set feature_media = catalogue_media.get(lead.slug) if lead and catalogue_media else none %}
 {% set feature_photo = feature_media.photo if lead_row and lead_row.kind == 'brief' and feature_media and feature_media.is_photograph else none %}
-{#- The same photograph already opens the page, credited there; the card does
-    not repeat it. -#}
-{% if home_hero | default(none) %}{% set feature_photo = none %}{% endif %}
 {% set thematic = dossiers | selectattr('kind', 'equalto', 'thematic') | list if dossiers else [] %}
 <section id="analysis" class="wrap home-section home-briefs" aria-labelledby="latest-analysis">
   <div class="home-head"><div><p class="evidence evidence--analysis">Human-controlled analysis</p><h2 id="latest-analysis">Briefs</h2></div><a href="analysis.html">All Briefs</a></div>

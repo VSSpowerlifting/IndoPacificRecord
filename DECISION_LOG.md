@@ -42,23 +42,38 @@ jade rule, `--editorial-ink`). Navy masthead and colophon, paper between,
 radius 0, no pills or cards; Instrument Serif, Source Serif 4 and Inter only.
 
 **Photographic home opening (founder direction, 16 November).** The founder
-directed the home page to open on the current credited Navy photograph (DVIDS
-8834151, the cover of Brief No. 26) as a large hero. It appears only while
-the latest Brief's catalogue admission (`core/catalogue_media.py`) and cover
-pairing (`core/brief_photography.article_cover`) both hold and its recorded
-treatment is the gradient. It serves that Brief's article cover files (the
-800px and 1,600px derivatives) behind the claim and title search, under a
-CSS-only IPR gradient. That gradient is darker than the Brief cover gradient,
-so that the claim, dek and search clear WCAG AA at every width. The recorded
-change note ("Cropped and resized by IPR; IPR gradient overlaid.") discloses
-it. The full credit runs beneath it, labelled "Illustrative photograph, not a
-record" and linked to the Brief.
+directed the home page to open on a large photograph, and then to use the
+original U.S. Navy photograph of the Ronald Reagan Carrier Strike Group under
+way with Japan Maritime Self-Defense Force ships (23 November 2015, MC3
+Nathan Burke, DoD 151123-N-OI810-363), which IPR's homepage carried before
+this redesign, as a stable homepage asset. It replaces the first choice in
+this PR, Brief No. 26's cover (DVIDS 8834151), which followed the latest
+Brief and had no home surface grant. Brief covers are back on their own
+surfaces only.
 
-The photograph's manifest entry grants only the `article` and `catalogue`
-surfaces, and `core/brief_cover.py` and `docs/BRIEF_PHOTOGRAPHY_CONTRACT.md`
-name only those two. This PR does not edit them. Until the owner records a
-home surface grant there, or reverses the direction, the home use rests on
-this direction alone.
+- **Rights.** The photograph's manifest entry (`reagan-jmsdf-2015`) routes it
+  to `home` and records the basis: public domain as a work of the U.S.
+  federal government by a service member in official duties (17 U.S.C.
+  § 105). Its Commons file page still carried `{{PD-USGov-Military}}` when
+  checked on 16 November. Public domain places no condition on cropping,
+  resizing or an overlay. The credit stays visible because IPR credits every
+  photograph it shows.
+- **The gate.** `home_hero()` opens on it only while the manifest entry
+  exists and is routed to `home`, the committed source matches the manifest's
+  SHA-256, and every served derivative (`assets/frontend/pacific-fleet-{800,
+  1600,2500}.webp`, built by `scripts/build_frontend_assets.py`) matches the
+  hash `DELIVERY.json` records for it. Otherwise the opening is plain navy.
+  It never changes with the Briefs. `tests/test_home_hero.py` covers each
+  gate.
+- **Treatment.** A full-colour crop sits behind the claim and title search
+  under a CSS-only IPR gradient, dark enough for every text run to clear
+  WCAG AA at twelve widths. The retired Ocean Signal Veil (duotone
+  derivative, `make_veil.py`) is not restored.
+- **Credit.** The credit runs beneath it: "Illustrative photograph, not a
+  record.", the manifest caption, the creator with the DoD ID, "Public
+  domain" (linked to the § 105 text), "via Wikimedia Commons" (linked to the
+  file page), "Cropped and resized by IPR; IPR gradient overlaid." and
+  "Visual context, not evidence."
 
 The opening record that used to stand beside the claim now appears once, in
 its desk row. Elsewhere pictures stay on Briefs, and records never carry

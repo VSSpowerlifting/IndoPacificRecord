@@ -1,7 +1,8 @@
 """Home opening contrast at actual glyph pixels.
 
-The opening is set on the latest Brief's admitted photograph under the IPR
-gradient (founder direction, 2026-11-16; the Signal Veil stays retired). The
+The opening is set on the stable homepage photograph (the U.S. Navy Reagan
+CSG and JMSDF formation) under the IPR gradient (founder direction,
+2026-11-16; the Signal Veil stays retired). The
 screenshot-difference method and the WCAG floors measure every text run the
 opening carries, over the photograph, at the pixels its glyphs cover. One
 test holds that the only picture there is that governed, credited photograph.
@@ -201,17 +202,12 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
             finally:
                 context.close()
 
-    def test_the_only_picture_is_the_credited_brief_photograph(self):
-        """One image, the latest Brief's admitted cover, its gradient the only
-        layer, its full credit beneath, and no record mark in the opening."""
-        from core.brief_collection import load_collection
-        from core.brief_photography import article_cover
-        from core.catalogue_media import load_admissions
-        collection = load_collection(gp.load_editions(REPO_ROOT), gp.load_registry(),
-                                     briefs_dir=REPO_ROOT / "briefs")
-        cover = article_cover(collection.lead, REPO_ROOT,
-                              admissions=load_admissions(repo_root=REPO_ROOT))
-        self.assertIsNotNone(cover, "the latest Brief has no admitted cover")
+    def test_the_only_picture_is_the_credited_homepage_photograph(self):
+        """One image, the stable homepage photograph (founder direction, 16
+        November), its gradient the only layer, its full credit beneath, and
+        no record mark or record link in the opening."""
+        hero = gp.home_hero(REPO_ROOT)
+        self.assertIsNotNone(hero, "the homepage photograph did not verify")
         context = self.browser.new_context(viewport={"width": 1280, "height": 900})
         page = context.new_page()
         try:
@@ -225,30 +221,32 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                 " || getComputedStyle(e, '::after').backgroundImage !== 'none')"
                 ".map(e => e.className || e.tagName),"
                 " images: [...document.querySelectorAll('.home-open img')]"
-                ".map(i => ({src: i.getAttribute('src'), loaded: i.complete && i.naturalWidth > 0,"
-                " described: i.getAttribute('aria-describedby')})),"
+                ".map(i => ({src: i.getAttribute('src'), current: i.currentSrc,"
+                " loaded: i.complete && i.naturalWidth > 0})),"
                 " other: document.querySelectorAll("
                 "'.home-open canvas, .home-open svg, .home-open video, .pacific-photo, "
-                ".home-coast-band, #analysis img').length,"
+                ".home-coast-band').length,"
                 " marks: document.querySelectorAll('.home-open .evidence').length,"
+                " records: document.querySelectorAll('.home-open a[href^=\"record/\"]').length,"
                 " credit: (document.querySelector('#home-photo-credit') || {}).textContent || ''})")
             self.assertEqual(found["layers"], ["home-photo"])
             self.assertEqual(found["other"], 0)
             self.assertEqual(found["marks"], 0)
+            self.assertEqual(found["records"], 0)
             self.assertEqual(len(found["images"]), 1, found["images"])
             image = found["images"][0]
-            self.assertEqual(image["src"], cover["src"]["route"])
+            routes = [v["route"] for v in hero["variants"]]
+            self.assertEqual(image["src"], hero["src"]["route"])
+            self.assertTrue(any(image["current"].endswith(r) for r in routes), image["current"])
             self.assertTrue(image["loaded"])
-            self.assertEqual(image["described"], "home-photo-credit")
             credit = " ".join(found["credit"].split())
-            entry = cover["entry"]
-            for part in ("Illustrative photograph, not a record.",
-                         "Visual context, not evidence.", entry["creator"],
-                         entry["license"], entry["notice"]):
+            for part in ("Illustrative photograph, not a record.", hero["caption"],
+                         hero["creator"], hero["license"], "Wikimedia Commons",
+                         "Cropped and resized by IPR; IPR gradient overlaid.",
+                         "Visual context, not evidence."):
                 self.assertIn(" ".join(part.split()), credit)
         finally:
             context.close()
-
 
 if __name__ == "__main__":
     unittest.main()
