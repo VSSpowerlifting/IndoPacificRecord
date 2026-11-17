@@ -146,7 +146,8 @@ class CommittedCoverTests(unittest.TestCase):
                                       'hms-tamar-puerto-princesa-2022',
                                       'amraam-training-2025', 'jintsu-de230',
                                       'liaoning-j15-20220506-cover',
-                                      'patkor-indopura-context-2025'})
+                                      'patkor-indopura-context-2025',
+                                      'dvids-9009505', 'dvids-8834151'})
         self.assertIsNotNone(bcv.brief_cover('what-is-being-built-in-laos', ROOT))
         self.assertIsNotNone(bcv.brief_cover(SLUG, ROOT))
 

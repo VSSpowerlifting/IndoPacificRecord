@@ -86,10 +86,11 @@ class ChinaTitlePublicTests(unittest.TestCase):
         html=(self.out/'record'/('%s.html'%self.ident)).read_text()
         self.assertIn('<title>Synthetic headline translation fixture',html)
         self.assertIn('Not selected for analysis',html)
-        self.assertIn('The heading is a machine translation',html)
+        self.assertIn('The English heading is a machine translation of the title as published.',html)
         self.assertIn('测试标题',html)
         self.assertNotIn('No translation and no summary',html)
-        self.assertIn('Machine-translated title', (self.out/'archive.html').read_text())
+        # The archive states the machine translation once, in its column key.
+        self.assertIn('Machine translations of the published titles. Human review is not recorded.', (self.out/'archive.html').read_text())
 
     def test_english_original_with_wrong_language_rendering_uses_actual_headline_everywhere(self):
         ident=self.ident+1
@@ -137,7 +138,8 @@ class ChinaTitlePublicTests(unittest.TestCase):
                 page.goto(self.origin+'/archive.html?'+urlencode({'scope':'all','q':'Synthetic headline translation fixture'}),wait_until='networkidle')
                 self.assertFalse(page.locator('#index-error').is_visible())
                 row=page.locator('#results .record-row');self.assertEqual(row.count(),1)
-                self.assertIn('测试标题',row.inner_text());self.assertIn('Machine-translated title',row.inner_text())
+                self.assertIn('测试标题',row.inner_text())
+                self.assertIn('Machine translations of the published titles',page.locator('.records-key').inner_text())
                 self.assertIn('Not selected for analysis',row.inner_text())
                 row.locator('input').check()
                 if page.locator('#research-list').get_attribute('open') is None:

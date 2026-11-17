@@ -203,7 +203,11 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
         desk = load_registry().get("vietnam")
     out, seen = [], set()
     for entry in envelope["families"]:
-        _need(isinstance(entry, dict) and set(entry) == _FAMILY_KEYS
+        # `collection` is an optional signed attestation (the MAC already covers
+        # it). A malformed block is reported as not attested by collection_by_family;
+        # it never refuses the handoff.
+        _need(isinstance(entry, dict)
+              and (set(entry) == _FAMILY_KEYS or set(entry) == _FAMILY_KEYS | {"collection"})
               and entry["source_family"] in SOURCES
               and entry["source_ref"] == vn.private_ref(entry["source_family"])
               and re.fullmatch(r"[0-9a-f]{40}", str(entry["source_git_commit"]))
@@ -229,6 +233,29 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
             _need(record["source_identity"] not in seen, "vietnam_handoff_record_repeated")
             seen.add(record["source_identity"])
             out.append((family, record, article["row"], article["provenance"]))
+    return out
+
+
+def collection_by_family(envelope: dict) -> dict:
+    """{family: validated collection facts | not-attested marker | None} from
+    an already verified handoff.
+
+    None only when no block is present (an older signer). A present but
+    malformed or family-mismatched block becomes the same not-attested marker
+    the Shared Daily reader uses (processing.daily_intake.collection_facts), so
+    a signed defective attestation is reported, never read as a quiet day.
+    """
+    from core.collection import attempts
+    out = {}
+    for entry in envelope["families"]:
+        block = entry.get("collection")
+        if block is None:
+            out[entry["source_family"]] = None
+            continue
+        facts = attempts.validate(block)
+        out[entry["source_family"]] = (
+            facts if facts is not None and facts["family"] == entry["source_family"]
+            else {"attested": False, "reason": "collection_attestation_invalid"})
     return out
 
 
@@ -320,6 +347,7 @@ def main(argv=None) -> int:
         counts = admit_database(db, records, by_family) if records else {}
         print(json.dumps({"status": "OK", "run_id": envelope["run_id"], "counts": counts,
                           "by_family": by_family,
+                          "collection_by_family": collection_by_family(envelope),
                           "generated_utc": envelope["generated_utc"],
                           "deferred": envelope["deferred"]}, sort_keys=True))
         return 0

@@ -1,15 +1,29 @@
 {% macro period(start, end) -%}
 <time datetime="{{ start }}">{{ start|reader_date }}</time>{% if start != end %} – <time datetime="{{ end }}">{{ end|reader_date }}</time>{% endif %}
 {%- endmacro %}
+{#- The date a source gives for an event: the day set large, as record lists
+    set the day of publication, with the month beneath it. -#}
 {% macro date_mark(event) -%}
-{% if event.start[:7] == event.end[:7] %}<span class="tl-date-month">{{ event.start[5:7] | int | month_name }} {{ event.start[:4] }}</span>
-<span class="tl-date-day">{{ event.start[8:]|int }}{% if event.start != event.end %}<span class="tl-date-to">–</span>{{ event.end[8:]|int }}{% endif %}</span>
+{% if event.start[:7] == event.end[:7] %}<span class="tl-date-day">{{ event.start[8:]|int }}{% if event.start != event.end %}<span class="tl-date-to">–</span>{{ event.end[8:]|int }}{% endif %}</span>
+<span class="tl-date-month">{{ event.start[5:7] | int | month_name }} {{ event.start[:4] }}</span>
 {% else %}<span class="tl-date-month">{{ period(event.start, event.end) }}</span>{% endif %}
 {% if event.precision == 'uncertain_interval' %}<span>Uncertain interval</span>{% endif %}
 {%- endmacro %}
+{#- Every entry leads to its sources: the record page where the timeline may
+    link to it, otherwise this page's source ledger. -#}
 {% macro citations(entry, root='../') -%}
-<p class="tl-citations">Evidence {% for ev in entry.evidence %}<a href="{% if timeline.references_only %}#source-{{ ev.record_id }}{% else %}{{ root }}record/{{ ev.record_id }}.html{% endif %}">Record {{ ev.record_id }}</a>{% if not loop.last %}<span aria-hidden="true"> · </span>{% endif %}{% endfor %}</p>
+<p class="tl-citations">Source{{ 's' if entry.evidence|length != 1 }}: {% for ev in entry.evidence %}<span><a href="{% if timeline.references_only %}#source-{{ ev.record_id }}{% else %}{{ root }}record/{{ ev.record_id }}.html{% endif %}">{{ ev.record.source_name }}, published {{ ev.published_on|reader_date }}</a>{% if ev.basis == 'planned' %} (advance announcement){% elif ev.basis == 'retrospective' %} (later report){% endif %}</span>{% endfor %}</p>
 {%- endmacro %}
 {% macro original(record) -%}
 <p class="tl-original" lang="{{ record.lang }}">{{ record.title_original }}</p>
+{%- endmacro %}
+{#- A cited record's title as parallel text: the stored machine translation on
+    the left under the dotted machine mark, the title as published on the
+    right in its own script. A source published in English has one title. -#}
+{% macro titles(record) -%}
+{% set paired = record.title_english and record.lang != 'en' and record.title_english.strip() != record.title_original.strip() %}
+<div class="tl-titles{% if paired %} tl-titles--paired{% endif %}">
+{% if paired %}<div class="tl-translation"><p class="evidence evidence--model">Machine translation{% if record.desk == 'china' %} · human review not recorded{% endif %}</p><p>{{ record.title_english }}</p></div>{% endif %}
+<div><p class="evidence evidence--record">As published</p>{{ original(record) }}</div>
+</div>
 {%- endmacro %}

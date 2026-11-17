@@ -248,7 +248,7 @@ jobs:
           assert 'href="indonesia.html"' in desk_html
           # Desks summary: eight declared desks, four collecting into the
           # record (China, Singapore, South Korea, Vietnam), per desks/registry.json.
-          assert "<dt>Declared</dt><dd>8</dd>" in desk_html
+          assert "<dt>Desks</dt><dd>8</dd>" in desk_html
           assert "<dt>Collecting into the record</dt><dd>4</dd>" in desk_html
           assert (base / "desk-references.js").is_file()
           assert (base / "desk-references.css").is_file()

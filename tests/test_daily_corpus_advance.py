@@ -85,25 +85,37 @@ def drop_records(db: Path, count: int) -> int:
     return remaining
 
 
+#: The pages whose masthead dateline is read for the corpus total.
+TOTAL_PAGES = ("index.html", "methodology.html", "corpus.html")
+
+
 def rendered_totals(out: Path) -> set:
     """
-    Extract numbers ONLY from reader-facing corpus-snapshot labels, whether
-    currently three or four digits. Post-retirement totals such as 833 do not
-    contain comma groups; scanning only comma-grouped numbers makes this
-    test vacuously miss the truthful public value.
+    Extract numbers ONLY from the reader-facing corpus dateline in the
+    masthead ("1,978 records, as of 14 November 2026"), whether currently
+    three or four digits. Post-retirement totals such as 833 do not contain
+    comma groups; scanning only comma-grouped numbers makes this test
+    vacuously miss the truthful public value.
+
+    Every page in TOTAL_PAGES must carry the dateline: a page that stopped
+    stating a total would otherwise let the "does not state the launch total"
+    check pass on an empty set.
     """
     found = set()
-    for name in ("index.html", "methodology.html", "corpus.html"):
-        page = out / name
-        if page.exists():
-            html = page.read_text("utf-8")
-            labels = re.findall(
-                r"Corpus snapshot:\s*[^<\n]{0,80}?[·]\s*"
-                r"(\d{1,3}(?:,\d{3})*)\s+records",
-                html,
-            )
-            for raw in labels:
-                found.add(int(raw.replace(",", "")))
+    for name in TOTAL_PAGES:
+        html = (out / name).read_text("utf-8")
+        status = re.search(
+            r'<div class="publication-status">(.*?)</div>', html, re.S)
+        if status is None:
+            raise AssertionError("%s has no masthead dateline" % name)
+        labels = re.findall(
+            r"<span>(\d{1,3}(?:,\d{3})*)\s+records, as of [^<\n]{4,40}</span>",
+            status.group(1),
+        )
+        if not labels:
+            raise AssertionError("%s states no corpus total" % name)
+        for raw in labels:
+            found.add(int(raw.replace(",", "")))
     return found
 
 

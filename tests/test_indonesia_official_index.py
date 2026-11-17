@@ -159,8 +159,9 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
         korea = measure_page(output / "korea.html", output)
         self.assertIn("korea-shell.css", korea["css"])
         self.assertNotIn("support.css", korea["css"])
-        self.assertEqual(html_css_cap("korea.html"), 120000)
-        self.assertLessEqual(korea["html_css_bytes"], 120000)
+        # Owner, DECISION_LOG 2026-11-16 (#1064): temporary 130 KB for korea.html only.
+        self.assertEqual(html_css_cap("korea.html"), 130000)
+        self.assertLessEqual(korea["html_css_bytes"], 130000)
         self.assertEqual((output / "korea-shell.css").read_bytes(),
                          (root / "site/preview/korea-shell.css").read_bytes())
         targets = soup.select("#indonesia-links-heading ~ ol a")

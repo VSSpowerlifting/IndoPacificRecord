@@ -1,23 +1,49 @@
 {% extends "base.html" %}
-{% from "_atlas.html" import spine %}
-{% block title %}Coverage health — {{ title }}{% endblock %}
+{% block title %}Coverage — {{ title }}{% endblock %}
 {% block content %}
+{# Source names for the reader; the identifier stays in every address and id. #}
+{% set names = {} %}
+{% for s in source_views | default([]) %}{% set _ = names.update({s.slug: s.display_name}) %}{% endfor %}
 <header class="page-head">
 <h1 class="page-name">Coverage</h1>
-<p class="lede">What was collected, what was not, and which kind of "nothing" each source returned.
-This page exists because an empty result has more than one cause, and only one of them is healthy.</p>
-<p class="meta">Only desks that collect appear in a run. A desk that is planned, researched,
-access-blocked or under shadow evaluation contributes no rows here, and its absence is explained on
-<a href="desks.html">Desks</a> rather than shown as a failure.</p>
+<p class="lede">What the latest collection returned from each source, and which kind of
+&ldquo;nothing&rdquo; it was when a source returned none. An empty result has more than one
+cause, and only one of them is healthy.</p>
 </header>
-{{ spine(desks, snapshot, corpus_total) }}
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
-  <ul><li><a href="#recent-run">Latest run</a></li><li><a href="#outcomes">Result meanings</a></li>
-      <li><a href="#collection-gaps">Collection gaps</a></li></ul>
+  <ul><li><a href="#desks">What is covered</a></li><li><a href="#recent-run">Latest collection</a></li>
+      <li><a href="#outcomes">Result meanings</a></li><li><a href="#refusals">Refusals</a></li>
+      <li><a href="#collection-gaps">Gaps</a></li></ul>
 </nav>
 
-<h2 id="recent-run">Most recent run</h2>
+<section class="doc-section">
+<h2 id="desks">What is covered</h2>
+<div class="doc-body">
+<p>Coverage is selective. {{ desks.collecting_count }} of {{ desks.declared_count }} declared
+desks {{ 'collects' if desks.collecting_count == 1 else 'collect' }} today, and most of the
+region is not collected at all. A desk that does not collect has no rows further down this
+page; <a href="desks.html">Desks</a> explains why, and it is not shown as a failure.</p>
+{# The desk line the Records and Coverage pages both carry: the declared state
+   of every desk, and a count only where a record exists to count. #}
+<div role="group" aria-label="Desk collection status">
+<dl class="terms desk-ledger">
+{% for desk in desks %}
+  <div><dt><a href="{{ desk.route }}">{{ desk.name }}</a></dt>
+  <dd><span class="desk-state desk-state--{{ desk.status }}">{{ desk.status_label }}</span>{% if desk.record_count is not none %}
+  <span class="meta">{{ desk.record_count|count }} records</span>{% endif %}</dd></div>
+{% endfor %}
+</dl>
+<p class="meta">{{ corpus_total|count }} records held as of
+<time datetime="{{ snapshot.date }}">{{ snapshot.date|reader_date }}</time>. A desk without a
+count holds no public records; zero would say the record was checked and found empty.</p>
+</div>
+</div>
+</section>
+
+<section class="doc-section">
+<h2 id="recent-run">The latest collection</h2>
+<div class="doc-body">
 {# The aggregate status covers the whole pipeline, not collection alone.
 
    Rendered on its own it read as a contradiction: "aggregate failed" sitting
@@ -33,13 +59,11 @@ access-blocked or under shadow evaluation contributes no rows here, and its abse
    holds no record of which later stage stopped or why, and guessing at one
    would be inventing an operational detail from an absence. The aggregate
    status stays, as the secondary evidence it is. #}
-<p class="meta">Run {{ latest_run.id }} · {{ latest_run.started_at }} → {{ latest_run.completed_at }}</p>
 {% if run_status and latest_run.status == 'failed' and run_status.executed and not run_status.failed %}
-<p class="run-verdict">Collection completed; the pipeline failed after
-  collection. <span class="meta">Recorded run status: <strong>{{ latest_run.status }}</strong>.
-  The stage that failed is not recorded here.</span></p>
+<p class="run-verdict">Collection completed. A later step failed, so the update as a whole is
+recorded as <strong>{{ latest_run.status }}</strong>. Which step failed is not recorded here.</p>
 {% else %}
-<p class="meta">Recorded run status: <strong>{{ latest_run.status }}</strong></p>
+<p class="run-verdict">Recorded status: <strong>{{ latest_run.status }}</strong>.</p>
 {% endif %}
 
 {# The run's four states, in full. These stood in a strip above every page on
@@ -66,6 +90,9 @@ access-blocked or under shadow evaluation contributes no rows here, and its abse
   {% if run_status.desks is not none %}<li><b>{{ run_status.desks }}</b> collecting desk{{ '' if run_status.desks == 1 else 's' }} of <b>{{ desks|length }}</b> declared</li>{% endif %}
 </ul>
 {% endif %}
+<p class="meta">Started {{ latest_run.started_at }} → finished {{ latest_run.completed_at }}. A
+collector is the program that visits one source; an adapter is the part written for that
+source's pages.</p>
 
 {# ── Extraction completeness, per source ───────────────────────────────────
    A bar per source, drawn only from values this run actually recorded: the
@@ -82,19 +109,15 @@ access-blocked or under shadow evaluation contributes no rows here, and its abse
        zero-width bar would report a measurement that was never taken;
      * the table below carries the same numbers, so the graphic is a second
        reading of the evidence and never the only one;
-     * colour is not the signal. Each bar states its own figures beside it.
-   ── #}
-<figure class="extraction-figure" aria-labelledby="extraction-title">
-<figcaption>
-  <h3 class="plain" id="extraction-title">Extraction completeness</h3>
-  <p class="meta">Text read / Parsed, among documents the parser returned for each source in
-  this run. Run {{ latest_run.id }} · {{ latest_run.started_at }} → {{ latest_run.completed_at }}.
-  Select a source to inspect the same figures and its outcome in the table.</p>
-</figcaption>
+     * colour is not the signal. Each bar states its own figures beside it. #}
+<details>
+<summary>How much of each source's text could be read</summary>
+<p class="meta">Text read / Parsed, among the documents returned for each source in this
+collection. The table below carries the same figures; select a source to go to its row.</p>
 <div class="barset" role="list" aria-label="Readable text among parsed documents by source">
 {% for bar in extraction_bars %}
   <div class="bar-row" role="listitem">
-    <span class="bar-label"><a href="#run-source-{{ bar.slug }}">{{ bar.slug }}</a></span>
+    <span class="bar-label"><a href="#run-source-{{ bar.slug }}">{{ (names | default({})).get(bar.slug, bar.slug) }}</a></span>
     {% if bar.measured %}
     <span class="bar-track" aria-hidden="true">
       <span class="bar-fill{% if bar.partial %} is-partial{% endif %}"
@@ -107,19 +130,20 @@ access-blocked or under shadow evaluation contributes no rows here, and its abse
   </div>
 {% endfor %}
 </div>
-<p class="meta">Sources that returned no documents in this run draw no bar:
-there is nothing to express as a proportion, and a zero-length bar would look
-like a measured failure rather than an absent measurement. Their outcome is in
-the table below, per source, with its own reason.</p>
-</figure>
+<p class="meta">A source that returned no documents draws no line: there is nothing to express
+as a proportion, and an empty line would look like a measured failure. Its result is in the
+table, with its own reason.</p>
+</details>
+</div>
+<div class="doc-full">
 <div class="table-scroll">
-<table class="stacking">
+<table class="stacking coverage-results">
   <caption>Every configured source has a result row for this run. A missing row would be a defect. The desk shown is the source's declared desk.</caption>
   <tfoot>
-    <tr><td colspan="9" class="meta"><strong>Parsed</strong> counts pages the parser returned a document for.
+    <tr><td colspan="9" class="meta"><strong>Parsed</strong> counts pages a document was returned for.
     <strong>Text read</strong> counts the documents that actually carried readable text. They differ when a
     page was reachable but unreadable: the item's title, link and date are kept, and its text is not.
-    Runs recorded before this measurement existed read <em>not measured</em> rather than a zero they never
+    Collections recorded before this was measured read <em>not measured</em> rather than a zero they never
     observed.</td></tr>
   </tfoot>
   <thead>
@@ -129,7 +153,7 @@ the table below, per source, with its own reason.</p>
   {% for r in run_results %}
     {% set kind = 'fail' if r.is_failure else ('note' if r.status == 'not_implemented' else ('quiet' if r.new_documents == 0 else 'ok')) %}
     <tr id="run-source-{{ r.source_slug }}">
-      <td data-label="Source"><a href="source/{{ r.source_slug }}.html">{{ r.source_slug }}</a></td>
+      <td data-label="Source"><a href="source/{{ r.source_slug }}.html">{{ names.get(r.source_slug, r.source_slug) }}</a></td>
       <td data-label="Desk">{% if desk_by_source.get(r.source_slug) %}<a href="{{ desk_by_source[r.source_slug].route }}">{{ desk_by_source[r.source_slug].name }}</a>{% else %}—{% endif %}</td>
       <td data-label="Result">
         <span class="status status--{{ kind }}">
@@ -151,14 +175,20 @@ the table below, per source, with its own reason.</p>
   </tbody>
 </table>
 </div>
+</div>
+</section>
 
+<section class="doc-section">
 <h2 id="outcomes">What each result means</h2>
-<p>Every outcome the pipeline can store has a plain-language meaning here. They are translated, not
-merged: two results that both produce zero records can mean opposite things, and the whole point of
-keeping seventeen of them apart is that they are seventeen different facts.</p>
+<div class="doc-body">
+<p>Every result a collection can record has a plain meaning. They are translated, not merged:
+two results that both produce zero records can mean opposite things, which is why seventeen of
+them are kept apart.</p>
+<details>
+<summary>Every result and its meaning</summary>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>What each run result means. An empty return has more than one cause
+  <caption>What each result means. An empty return has more than one cause
   and they are not interchangeable.</caption>
   <thead><tr><th scope="col">Result</th><th scope="col">Meaning</th></tr></thead>
   <tbody>
@@ -169,21 +199,30 @@ keeping seventeen of them apart is that they are seventeen different facts.</p>
   </tbody>
 </table>
 </div>
+</details>
+</div>
+</section>
 
-<h2>Access refusals are respected, not worked around</h2>
-<p>When a source refuses an honestly identified collector — a login wall, a redirect off its own
-domains, or a challenge page served in place of a listing — the refusal is recorded as the outcome
-and collection stops there. No browser impersonation, no challenge solving, no proxying. An
-institution that wants to refuse this collector must be able to recognise it and say so, and
+<section class="doc-section">
+<h2 id="refusals">Refusals are respected</h2>
+<div class="doc-body">
+<p>When a source refuses an honestly identified collector, by a login wall, a redirect off its
+own domains, or a challenge page served in place of a listing, the refusal is recorded as the
+result and collection stops there. No browser impersonation, no challenge solving, no proxying.
+An institution that wants to refuse this collector must be able to recognise it and say so, and
 defeating a refusal would destroy the capability that rule protects.</p>
+</div>
+</section>
 
+<section class="doc-section">
 <h2 id="collection-gaps">Gaps in collection</h2>
+<div class="doc-body">
 {% if gaps %}
-<p>Days with no collection run at all. These are outages, not quiet days —
-no attempt was made, so nothing can be said about what those days held.</p>
+<p>Days on which no collection ran at all. These are outages, not quiet days: no attempt was
+made, so nothing can be said about what those days held.</p>
 <div class="table-scroll">
 <table class="stacking">
-  <caption>Days on which no collection run is recorded. A gap is published as a
+  <caption>Days on which no collection is recorded. A gap is published as a
   gap rather than smoothed over.</caption>
   <thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col" class="num">Days</th></tr></thead>
   <tbody>
@@ -194,12 +233,14 @@ no attempt was made, so nothing can be said about what those days held.</p>
 </table>
 </div>
 <div class="notice">
-  <h3>Why this table is on the site rather than in a changelog</h3>
-  <p>A corpus with undisclosed holes cannot be cited safely. Anyone using this archive to argue
+  <h3>Why the gaps are published</h3>
+  <p>An archive with undisclosed holes cannot be cited safely. Anyone using this archive to argue
   that an institution went quiet during one of these windows would be wrong, and would have no
   way of knowing.</p>
 </div>
 {% else %}
 <p>No multi-day gap in the collection record.</p>
 {% endif %}
+</div>
+</section>
 {% endblock %}

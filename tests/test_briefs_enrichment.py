@@ -31,15 +31,13 @@ class MaterialIntegrity(unittest.TestCase):
         self.assertLess((directory / 'chart-paper.png').stat().st_size, 60000)
 
     def test_curves_are_original_and_no_operational_marks_are_added(self):
-        from urllib.parse import unquote
-        original = unquote((ROOT / 'site/preview/topography.css').read_text())
+        # topography.css, which once embedded these curves, is retired
+        # (2026-11-16); the committed SVGs keep their pinned structure.
         for name in ('hero', 'paper'):
             svg = ET.parse(ROOT / ('site/assets/material/contours-%s.svg' % name))
             paths = list(svg.getroot().iter('{http://www.w3.org/2000/svg}path'))
             self.assertEqual(len(paths), 36)
             self.assertEqual(len(set(path.attrib['d'] for path in paths)), 12)
-            for path in paths:
-                self.assertIn(path.attrib['d'], original)
             self.assertEqual(set(e.tag.split('}')[-1] for e in svg.getroot().iter()), {'svg', 'g', 'path'})
 
 
@@ -159,10 +157,32 @@ class CompleteDelivery(unittest.TestCase):
             failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
             self.assertEqual(failed['record/476.html'], 125001)
 
+    def test_korea_allowance_covers_only_the_root_desk_page(self):
+        # Owner, DECISION_LOG 2026-11-16 (#1064): temporary 130 KB for korea.html only.
+        for route, cap in (('korea.html', 130000), ('vietnam.html', 120000),
+                           ('korea-translations/1.html', 120000),
+                           ('korea-originals/1.html', 120000),
+                           ('korea-analysis/1.html', 120000),
+                           ('desks/korea.html', 120000), ('record/korea.html', 120000)):
+            self.assertEqual(html_css_cap(route), cap, route)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'nested').mkdir()
+            (root / 'korea-shell.css').write_text('x' * 40000)
+            link = '<link rel="stylesheet" href="korea-shell.css">'
+            (root / 'korea.html').write_text(link + 'x' * (130000 - 40000 - len(link)))
+            (root / 'nested/korea.html').write_text('x' * 120001)
+            values = verify(root)
+            self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
+                             {'nested/korea.html': 120000})
+            (root / 'korea.html').write_text(link + 'x' * (130001 - 40000 - len(link)))
+            failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
+            self.assertEqual(failed['korea.html'], 130001)
+
     def test_indonesia_allowance_covers_only_the_root_desk_page(self):
         # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only.
         for route, cap in (('indonesia.html', 130000), ('philippines.html', 120000),
-                           ('korea.html', 120000), ('desks/indonesia.html', 120000),
+                           ('vietnam.html', 120000), ('desks/indonesia.html', 120000),
                            ('record/indonesia.html', 120000), ('desks.html', 300000)):
             self.assertEqual(html_css_cap(route), cap, route)
         with tempfile.TemporaryDirectory() as directory:

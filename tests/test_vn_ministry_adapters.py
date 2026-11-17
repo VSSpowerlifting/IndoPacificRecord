@@ -184,6 +184,47 @@ class MinistryCase(unittest.TestCase):
             self.assertFalse(result.documents)
 
 
+    def test_og_title_whitespace_is_incidental_but_a_different_title_fails(self):
+        # Run 43998961835-1 (17 Nov 2026): a publisher og:title with one
+        # trailing space failed the whole MPS batch as a title conflict.
+        name = "mps-article-concordia.bin"
+        text = (FIX / name).read_text()
+        soup = BeautifulSoup(text, "html.parser")
+        node = soup.find("meta", attrs={"property": "og:title"})
+        self.assertIsNotNone(node)
+        original = node["content"]
+        baseline = adapter(MPS).extract(capture(MPS, name, text))
+        self.assertEqual(baseline.status, st.OK)
+
+        def with_og(value):
+            changed = BeautifulSoup(text, "html.parser")
+            meta_node = changed.find("meta", attrs={"property": "og:title"})
+            if value is None:
+                meta_node.decompose()
+            else:
+                meta_node["content"] = value
+            return str(changed)
+
+        words = original.split()
+        for label, value in (("trailing space", original + " "),
+                             ("leading and doubled space",
+                              "  " + "  ".join(words)),
+                             ("newline and tab", "\n\t".join(words) + "\n")):
+            with self.subTest(label):
+                result = adapter(MPS).extract(capture(MPS, name, with_og(value)))
+                self.assertEqual(result.status, st.OK)
+                self.assertEqual([(d.title_original, d.text_original) for d in result.documents],
+                                 [(d.title_original, d.text_original) for d in baseline.documents])
+        for label, value in (("missing og:title", None),
+                             ("different wording", original + " (cập nhật)"),
+                             ("dropped word", " ".join(words[:-1])),
+                             ("changed diacritic", original.replace("a", "á", 1))):
+            with self.subTest(label):
+                result = adapter(MPS).extract(capture(MPS, name, with_og(value)))
+                self.assertEqual(result.status, st.EXTRACTION_FAILURE)
+                self.assertFalse(result.documents)
+
+
 class MinistryRunnerCase(unittest.TestCase):
     def setUp(self):
         self.network = patch.object(socket.socket, "connect", side_effect=AssertionError("network"))

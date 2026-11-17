@@ -332,7 +332,23 @@ def _korea_admission(bridge=None) -> GovernedAdmission:
 # Shared Daily: independently signed machine-output envelopes from private
 # custody (core/daily_sources.py). Public Daily never fetches these sources.
 
-def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
+# While False, a missing collection block (every schema /1 envelope) is "no
+# verdict". Flip only after every enabled, non-attended family signs /2; see
+# docs/desks/MIGRATION.md.
+_REQUIRE_COLLECTION_ATTESTATION = False
+
+
+def _with_collection(base: GovernedOutcome, verdict) -> GovernedOutcome:
+    """base, or the collection verdict's status over it. Counts and the
+    existing 'held:' detail are kept, as in _combine_lanes."""
+    if verdict is None:
+        return base
+    status, detail = verdict
+    return GovernedOutcome(status, base.new_documents, base.duplicates,
+                           "; ".join(d for d in (detail, base.error_detail) if d))
+
+
+def _daily_admission(family: str, *, intake=None, clock=None) -> GovernedAdmission:
     from processing.daily_intake import IntakeHold
 
     def inactive_reason():
@@ -359,7 +375,7 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
         if not intake_dir:
             return GovernedOutcome(collection_status.SKIPPED_DISABLED,
                                    error_detail="no shared Daily intake directory configured")
-        from core.daily_sources import source_for
+        from core.daily_sources import attended_only, source_for
         source = source_for(family)
         evidence = source.evidence_outcome(intake_dir) if source is not None else None
         if evidence is not None:
@@ -382,7 +398,15 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
         unchanged = max(receipt["records"] - admitted, 0)
         logger.info("%s: governed admission — %d records, %d admitted, %d held",
                     family, receipt["records"], admitted, len(receipt["holds"]))
-        return _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
+        base = _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
+        if attended_only(family):
+            # An operator-run pilot has no scheduled collector to attest.
+            return base
+        from core.collection import attempts
+        cron, grace = source.collection_expectation()
+        return _with_collection(base, attempts.verdict(
+            receipt.get("collection"), now=(clock or _utcnow)(), cron_utc=cron,
+            grace_hours=grace, require_attestation=_REQUIRE_COLLECTION_ATTESTATION))
 
     return GovernedAdmission("daily_intake", inactive_reason, admit,
                              holds=(IntakeHold,))
@@ -509,6 +533,9 @@ _VN_HANDOFF_RECEIPT_ENV = "IPR_VIETNAM_HANDOFF_RECEIPT"
 # The private runner signs a fresh envelope on every scheduled run, including
 # runs that publish nothing. One older than this was re-served after a missed
 # private run: its records are duplicates, not evidence of a quiet source.
+# This is only a backstop. A fresh signed handoff does not show a fresh
+# collection: the per-family `collection` facts (core/collection/attempts.py)
+# report that, and the signer is fresh even when the latest attempt failed.
 _VN_HANDOFF_MAX_AGE = timedelta(hours=36)
 _VN_CODE = re.compile(r"[a-z0-9_]{1,80}")
 _VN_RUN = re.compile(r"[A-Za-z0-9_.-]{1,80}")
@@ -577,7 +604,14 @@ def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
              if k not in (PUBLISHED, DUPLICATE)]
     logger.info("%s: handoff run %s — %d admitted, %d unchanged, %d held",
                 family, run, admitted, unchanged, len(holds))
-    return _receipt_outcome(admitted, unchanged, holds=holds)
+    from core.collection import attempts
+    by_collection = receipt.get("collection_by_family")
+    facts = by_collection.get(family) if isinstance(by_collection, dict) else None
+    # private vietnam_private_first_collector.yml: cron '17 18 * * *'
+    return _with_collection(
+        _receipt_outcome(admitted, unchanged, holds=holds),
+        attempts.verdict(facts, now=now, cron_utc="18:17", grace_hours=14,
+                         require_attestation=_REQUIRE_COLLECTION_ATTESTATION))
 
 
 def _vpcp_metadata_inactive() -> Optional[str]:

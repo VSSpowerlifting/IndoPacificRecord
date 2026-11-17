@@ -21,7 +21,7 @@ from core.collection import status as st
 from core.collection.contract import CollectionWindow
 from core.manifests import load_manifest
 from core.shadow_schedule import resolve_target_date, ScheduleError, SOURCE_EXPLICIT, SOURCE_SCHEDULE
-from scraper.sources.desk_shadow_http import USER_AGENT
+from scraper.sources.desk_shadow_http import DOCUMENT_TYPES, USER_AGENT
 from scraper.sources.id_kemhan import KemhanAdapter
 from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter
 from scraper.sources.kr_dapa_policy_briefing import KoreaDapaPolicyAdapter
@@ -31,6 +31,15 @@ from scraper.sources.jp_jcg_en import JCGEnglishAdapter
 # terms capture, are a transient whole-source outage rather than a defect.
 JCG_OUTAGE_STATUSES = frozenset((st.FETCH_FAILURE, st.TIMEOUT, st.AUTH_FAILURE,
                                  st.ACCESS_CHALLENGED))
+
+# Korea MND only, matched by exact desk name. korea_dapa shares the adapter
+# class but has zero lookback and a completeness-gated bridge, so it stays
+# all-or-nothing, as do Indonesia and JCG. One refusal class only: this
+# client's own byte cap refusing a release's single HWPX attachment after the
+# release page was captured and agreed with the listing. Every other failure
+# still fails the whole batch.
+ATTACHMENT_HOLD_DESKS = frozenset(("korea",))
+ATTACHMENT_HOLD_STATUSES = frozenset((st.OVERSIZED_RESPONSE,))
 
 DESKS = {
     "indonesia": ("id_kemhan", KemhanAdapter, "shadow/indonesia-kemhan"),
@@ -97,6 +106,48 @@ def check_existing(state_dir, desk):
         with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True) as conn:
             if conn.execute("SELECT desk FROM shadow_meta").fetchall() != [(desk,)]:
                 raise ValueError("database belongs to another desk")
+
+
+def in_custody(db_path, url):
+    """Read-only: is this release already a stored record? Never creates state."""
+    if not db_path.exists():
+        return False
+    conn = sqlite3.connect(db_path.as_uri() + "?mode=ro", uri=True)
+    try:
+        return conn.execute("SELECT 1 FROM shadow_records WHERE url=?",
+                            (url,)).fetchone() is not None
+    finally:
+        conn.close()
+
+
+def attachment_hold(desk, adapter, db_path, ref, capture):
+    """Return a ledger hold item, or None when this refusal fails the batch.
+
+    A hold leaves one release out of custody and says so; it stores no record
+    for that release. Its release-page capture and request row are kept as
+    attempt evidence, like any other attempt's. A release already in custody is never held: failing to
+    re-verify a stored record stays a batch failure, as before.
+    """
+    if desk not in ATTACHMENT_HOLD_DESKS or capture.status not in ATTACHMENT_HOLD_STATUSES:
+        return None
+    refusal = getattr(adapter, "attachment_refusals", {}).get(ref.url)
+    if (not refusal or refusal.get("status") != capture.status
+            # Only an ordinary document response that was simply too large. An
+            # oversized error, redirect or non-document body is not this case.
+            or refusal.get("http_status") != 200
+            or not (refusal.get("content_type") or "").lower().startswith(DOCUMENT_TYPES)
+            or not capture.payload_sha256 or in_custody(db_path, ref.url)):
+        return None
+    return {"url": ref.url, "component": "hwpx_attachment",
+            "status": capture.status, "detail": capture.error_detail,
+            "published_date": ref.hint_published_date,
+            "article_capture_sha256": capture.payload_sha256,
+            # The refused response is discarded unread: no capture, no request
+            # row. These are header facts only, not proof of a valid document.
+            "refused_response_recorded": False,
+            "refused_http_status": refusal.get("http_status"),
+            "refused_content_type": refusal.get("content_type"),
+            "refused_declared_content_length": refusal.get("declared_content_length")}
 
 
 def finish(entry, state_dir):
@@ -186,6 +237,8 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
              "inserted": 0, "updated": 0, "duplicates": 0, "fetch_failures": 0,
              "extraction_failures": 0, "access_failures": 0, "failures": [],
              "state_sha256_before": sha(db_path), "result": None, "health": "fail"}
+    if desk in ATTACHMENT_HOLD_DESKS:
+        entry["attachment_holds"], entry["attachment_hold_items"] = 0, []
     if historical_backfill:
         entry["operation"] = "jcg_2026_09_historical_backfill"
         entry["counts_as_qualifying_shadow_day"] = False
@@ -226,6 +279,13 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
                 for ref in discovery.references:
                     capture = adapter.fetch(ref)
                     if capture.status != st.OK:
+                        hold_item = attachment_hold(desk, adapter, db_path, ref, capture)
+                        if hold_item:
+                            # Neither retrieved nor a failure: on a run with no
+                            # failures, selected == retrieved + attachment_holds.
+                            entry["attachment_holds"] += 1
+                            entry["attachment_hold_items"].append(hold_item)
+                            continue
                         key = ("access_failures" if capture.status in (st.AUTH_FAILURE, st.ACCESS_CHALLENGED)
                                else "extraction_failures" if capture.status == st.EXTRACTION_FAILURE
                                else "fetch_failures")
@@ -244,9 +304,14 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
                     else:
                         documents.extend(result.documents)
                 entry["extracted"] = len(documents)
+                held = entry.get("attachment_holds", 0)
                 if entry["failures"]:
                     entry.update(result=entry["failures"][0]["status"],
                                  error_detail="incomplete batch; no corpus write")
+                elif held and not documents:
+                    # Decided before the corpus is opened: nothing is created.
+                    entry.update(result=entry["attachment_hold_items"][0]["status"],
+                                 error_detail="only size-held releases remained; no corpus write")
                 else:
                     conn = sqlite3.connect(str(db_path))
                     conn.executescript(SCHEMA)
@@ -269,10 +334,18 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
                                 json.dumps(extra, ensure_ascii=False, sort_keys=True), extra["content_sha256"],
                                 extra["capture_sha256"], run_id))
                             entry["inserted"] += 1
-                    conn.commit()
-                    entry["stored_total"] = conn.execute("SELECT COUNT(*) FROM shadow_records").fetchone()[0]
-                    entry.update(result=st.OK if entry["inserted"] else st.OK_ALL_DUPLICATES
-                                 if entry["duplicates"] else st.OK_NO_PUBLICATIONS, health="ok")
+                    if held and not entry["inserted"]:
+                        # A hold never rides on "all duplicates": that result
+                        # means everything discovered is stored. With nothing
+                        # new to preserve the run stays failed, unwritten.
+                        conn.rollback()
+                        entry.update(result=entry["attachment_hold_items"][0]["status"],
+                                     error_detail="size-held releases and no new release; no corpus write")
+                    else:
+                        conn.commit()
+                        entry["stored_total"] = conn.execute("SELECT COUNT(*) FROM shadow_records").fetchone()[0]
+                        entry.update(result=st.OK if entry["inserted"] else st.OK_ALL_DUPLICATES
+                                     if entry["duplicates"] else st.OK_NO_PUBLICATIONS, health="ok")
     except Exception as exc:
         if conn:
             conn.rollback()

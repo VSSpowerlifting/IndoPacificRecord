@@ -1,4 +1,251 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-16 — Owner: temporary 130 KB delivery budget for korea.html
+
+In PR #1064 the owner was asked how the Korea desk page should keep room as
+its link list grows. The owner answered: "Raise the Korea cap".
+
+**Scope.** The allowance applies only to the root `korea.html` route
+(`scripts/verify_frontend_delivery.py`, `KOREA_HTML_CSS_CAP` in
+`html_css_cap`). It is 130 KB, the same as the temporary Indonesia allowance,
+which was granted for the same reason. Every other desk page keeps 120 KB, as
+do the Korea originals, translations and analysis pages, any nested path named
+`korea.html`, records, Briefs and week pages. Hubs, dossiers, `indonesia.html`
+and `record/476.html` keep their caps, and the JS caps are unchanged.
+`tests/test_briefs_enrichment.py` checks two things: the allowance covers only
+that route, and `korea.html` is still rejected at 130,001 bytes.
+
+**Why.** Each MND or DAPA official link admitted to the Korea desk page adds
+about 510 bytes. With the parallel text redesign the page measured 119,046
+bytes after the three links admitted on 16 November (`c9fba5e3ef`), which
+left room for about two more. `main` itself had about 4.5 KB. The budget is
+enforced in PR CI (`CompleteDelivery` on the committed tree), so a committed
+Korea page over the cap would fail every later pull request.
+
+**Not chosen.** Two other options were offered. One was a Korea-only desk
+stylesheet without the other desks' reference-list rules, which would change
+the Korea and country-research release-scope guards. The other was fewer
+newest rows on the Korea page.
+
+## 2026-11-16 — Parallel text redesign (pending review)
+
+**Status.** An engineering and design change awaiting the owner's review in
+its pull request. It is not merged, deployed or live, and it creates no
+release authority. Several items below reverse earlier owner approvals; they
+stand only if the owner accepts them.
+
+**Identity.** Every record is shown as a pair: the English heading (Source
+Serif 4, 600) on the left and the title as published on the right in its own
+script, with a hairline between; the pair stacks on narrow screens. Three
+marks keep the kinds of text apart: source record (solid ink rule), machine
+output (dotted slate rule, `--machine-ink`), human-controlled analysis (solid
+jade rule, `--editorial-ink`). Navy masthead and colophon, paper between,
+radius 0, no pills or cards; Instrument Serif, Source Serif 4 and Inter only.
+
+**Photographic home opening (founder direction, 16 November).** The founder
+directed the home page to open on a large photograph, and then to use the
+original U.S. Navy photograph of the Ronald Reagan Carrier Strike Group under
+way with Japan Maritime Self-Defense Force ships (23 November 2015, MC3
+Nathan Burke, DoD 151123-N-OI810-363), which IPR's homepage carried before
+this redesign, as a stable homepage asset. It replaces the first choice in
+this PR, Brief No. 26's cover (DVIDS 8834151), which followed the latest
+Brief and had no home surface grant. Brief covers are back on their own
+surfaces only.
+
+- **Rights.** The photograph's manifest entry (`reagan-jmsdf-2015`) routes it
+  to `home` and records the basis: public domain as a work of the U.S.
+  federal government by a service member in official duties (17 U.S.C.
+  § 105). Its Commons file page still carried `{{PD-USGov-Military}}` when
+  checked on 16 November. Public domain places no condition on cropping,
+  resizing or an overlay. The credit stays visible because IPR credits every
+  photograph it shows.
+- **The gate.** `home_hero()` opens on it only while the manifest entry
+  exists and is routed to `home`, the committed source matches the manifest's
+  SHA-256, and every served derivative (`assets/frontend/pacific-fleet-{800,
+  1600,2500}.webp`, built by `scripts/build_frontend_assets.py`) matches the
+  hash `DELIVERY.json` records for it. Otherwise the opening is plain navy.
+  It never changes with the Briefs. `tests/test_home_hero.py` covers each
+  gate.
+- **Treatment.** A full-colour crop sits behind the claim and title search
+  under a CSS-only IPR gradient, dark enough for every text run to clear
+  WCAG AA at twelve widths. The retired Ocean Signal Veil (duotone
+  derivative, `make_veil.py`) is not restored.
+- **Credit.** The credit runs beneath it: "Illustrative photograph, not a
+  record.", the manifest caption, the creator with the DoD ID, "Public
+  domain" (linked to the § 105 text), "via Wikimedia Commons" (linked to the
+  file page), "Cropped and resized by IPR; IPR gradient overlaid." and
+  "Visual context, not evidence."
+
+The opening record that used to stand beside the claim now appears once, in
+its desk row. Elsewhere pictures stay on Briefs, and records never carry
+source media. This supersedes the text-only proposal first made in this PR.
+
+**Home page.** After the photographic opening (claim, title search, the
+photograph's credit), one section, "Newest from each desk", shows the first row of each
+public-record desk's own page (China, Singapore, South Korea, Vietnam, read
+from data), the desk name where a dated list puts the day, a line saying how
+many desks hold public records and (computed from the counts) that most of
+the records come from Chinese sources, with a link to Coverage, then one quiet line naming the
+desks with no public records and their registry state. The
+separate home Desks section is removed. The rule is deterministic
+(`desk_front_rows`), not editorial selection.
+
+**Stored-summary sentence.** The home desk rows and the five
+newest rows on each desk page show the first complete sentence of the
+record's stored machine summary, verbatim, under the dotted machine mark.
+`summary_lead()` returns an exact prefix of the stored summary or nothing; an
+ambiguous boundary or a first sentence over 400 characters means no line.
+It reads the shaped record after source holds apply, so MINDEF (summary
+withheld) never carries one. Korea MND and Vietnam records already publish
+these summaries on their record pages. Not on the Records page, week pages or
+the search index. **Korea page headroom:** the Korea desk page carries no
+summary lines. Measured on this build with `verify_frontend_delivery` against
+its then 120,000-byte HTML-plus-CSS budget: 118,586 bytes without them,
+120,058 with them (over the cap), and its link lists grow daily. The owner
+has since raised the Korea cap to 130 KB (entry above). That room is kept
+for admitted links, so the page still carries no summary lines; adding them
+would be a separate change.
+
+**Scaffolding language.** Lists state once, at the head of the English
+column, that English titles are machine translations with human review not
+recorded (on the Records page always, since search can surface any record),
+and mark only rows that differ; the Desks page rows, which have no
+column head, keep the per-row label. "Research focus" is named "Selected
+records" with one sentence of qualification and a one-step link to all
+records. Desk state shows the registry `status_label` verbatim. Registry
+operating notes leave `desks.html` and move, verbatim, into a closed
+"Collection notes" disclosure on each desk page (this replaces the earlier
+plan to leave them in place). One vocabulary for the path to the source:
+"Read the record", "Open original source", "Cite this record". Briefs
+catalogue rows drop the cover caption; credit, licence, changes and required
+notices stay beside each image. The row's provenance line stays, because it
+carries the retrospective and source-linked labels a Brief may hold.
+
+Korea's reviewed analysis page carries the "Human-controlled analysis"
+mark; its reviewed translation page carries its own "Reviewed translation"
+mark (machine colour, solid rule), since a translation an editor reviewed for
+meaning is not analysis. The record page's guarded caveat now reads
+"The English heading is a machine translation of the title as published.
+Human review is not recorded."
+
+**Record page.** Order: title pair, actions, summary, "What this record
+supports" (before the source text on narrow screens), source text, citation,
+provenance. Metadata-only records (the governed Singapore label from
+`core/mindef_permissions.py`, unchanged) get a quieter heading. Stored text
+keeps one paragraph per stored line; China texts store no line breaks (record
+476: 18,148 characters, none), so they remain one paragraph rather than gain
+structure the data does not have.
+
+**Desks without the map.** The desk map, its script and geometry are retired;
+`desks.html` is a directory with on-page contents.
+
+**Desk-page lanes kept as deployed.** Below the redesigned head (count line,
+verbatim status label, Collection notes, newest rows), every desk-page lane is
+`main`'s markup unchanged: official-link and reference lists, the Sources
+table with its Authority column, and the comment markers live workflows read
+back (Japan MOD links, Indonesia operational health, US BIS metadata, the
+regional source index). Those lists keep ISO visible dates, because
+`verify_japan_mod_official_links` reads them; `reader_date` applies to the
+redesigned rows only. The China selected-records staging guard
+(`stage_china_focus_output.py`) reads the new archive wording.
+
+**Retired (reversals of earlier owner approvals where noted).** The homepage
+opening title and `intro.js` (approved 2026-10-05); the abstract page terrain
+and every page's `--topo-*` inline style (approved 2026-10-05); the desk map;
+scroll-reveal (`reveal.js`); relief primitives and sprites; the home Ocean
+Signal Veil emission (source assets and manifest entry kept). The withdrawn
+J-20 atmosphere record is kept, per the earlier ruling that withdrawn is not
+deleted.
+
+**Unchanged.** Every page address and anchor, record identities, citations,
+source URLs, rights and source-specific notices (MINDEF, KOGL, Vietnam
+withheld text, PDL attribution, DoW image disclaimers), registry data and
+Brief editorial content.
+
+## 2026-11-16 — Briefs Nos. 25 and 26 source rulings and context covers
+
+Benjamin Yang approved publication, credits, and both photographs for the
+article and catalogue in [PR #1049](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1049#issuecomment-6908194818)
+and [PR #1051](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1051#issuecomment-6908195484).
+He subsequently reviewed both exact rendered presentations and accepted the
+source-access limits in the final review packet for
+[PR #1061](https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1061).
+Dylan Tanzi's manuscript and source reviews were relayed by Benjamin Yang in
+the same publication conversation. The Briefs' receipts bind each review and
+ruling to the corresponding exact version.
+
+- **No. 25.** Use DVIDS image 9009505 with the standard Brief gradient and the
+  reviewed 3:2 catalogue crop. It shows the Balikatan 25 exercise coordination
+  center in April 2025. Direct source retrieval was limited for s5–s7, s10,
+  s12–s13, s16 and s18. The ruling accepts the packet's documented evidence
+  limits. [Cover receipt](docs/evidence/brief-cover-no25-2026-11-16/receipt.json)
+- **No. 26.** Use DVIDS image 8834151 with the standard Brief gradient and the
+  reviewed 3:2 catalogue crop. It shows the conventional submarine ROKS Ahn
+  Jung-Geun in November 2024. The official IAEA agreement was available as an
+  indexed original, with direct retrieval returning HTTP 403. The ruling
+  accepts that access limit. [Cover receipt](docs/evidence/brief-cover-no26-2026-11-16/receipt.json)
+
+Both image pages mark the photographs public domain. Both surfaces preserve
+the photographer's credit, context caption and DVIDS non-endorsement notice.
+The reviewed source use is limited to the independently worded reporting,
+analysis and citations in these two manuscripts.
+
+## 2026-11-16 — Korea MND: an oversized attachment holds one release, not the batch (engineering record of the founder's 15 November direction)
+
+**Evidence.** Private scheduled runs 43323731703-1 (12 Nov), 43522842740-1
+(13 Nov), 43644113227-1 (14 Nov) and 43767278137-1 (15 Nov) each ended
+`oversized_response` with no corpus write (ledgers on
+`archive/korea-policy-briefing`, rechecked 16 Nov). The collector's own 2,000,000-byte cap refused one HWPX
+attachment on 12 Nov (4 selected, 3 retrieved) and two on 13, 14 and 15 Nov
+(6 selected, 4 retrieved). Each run discarded the releases it had retrieved in
+full. The last successful run is 43121868448-1 (11 Nov, `ok_all_duplicates`,
+44 stored). The source refused nothing; no access, rights or factual check
+failed.
+
+**Cause.** Any single failure fails the whole run: "success-only atomic
+collection" in the 6 October 2026 cadence entry. The byte cap is an engineering
+default with no decision record. A release whose attachment is over the cap
+therefore blocks every other MND release for as long as it stays in the
+six-day window.
+
+**Decision.** The founder directed this fix in the engineering session of
+15 November ("Yes, fix Korea", answering "Fix the Korea collector's
+all-or-nothing batch rule now, as a draft PR?"). For desk `korea` only, and for
+one case only (the collector's own cap refusing a release's single HWPX
+attachment, on an HTTP 200 document response, after the release page was
+captured and agreed with the listing, for a release not yet in custody), the
+runner holds that release and stores the run's complete releases. For that case
+this supersedes the "success-only atomic collection" clause of the 6 October
+entry, which is otherwise unchanged and is not edited.
+
+- Unchanged: the byte cap; DAPA, Indonesia and JCG; every other failure, which
+  still fails the whole batch, including alongside a hold; every access, rights
+  and factual check.
+- A held release is never stored as a record, signed or published; its
+  release-page capture is kept as attempt evidence. It is listed in the
+  run ledger (`attachment_holds`, `attachment_hold_items`). Under the standing
+  rule that partial degradation "must be recorded in a place that survives the
+  runner, and must be loud", the public slot watchdog fails while the latest
+  mature scheduled slot has holds and warns on a hold in any in-window ledger
+  of any origin, failed runs included; a clean later run never clears it. A
+  run with holds and nothing new to store is recorded as failed.
+- No ledger entry, attempt or clock is reset. The 12–15 November runs stay
+  failed.
+- Not decided or done: any change to the cap; collection of the releases held
+  so far; any workflow dispatch or recovery run.
+
+**Authority and effect of merge.** The founder directed the fix on 15 November
+and, in the 16 November eight-desk program brief, its exact-head review and
+release; merge is under the 12 November engineering delegation (collector code
+for an already-activated source). The private collector checks out public
+`main` unpinned, so merging takes effect at the next scheduled 17:47 UTC run.
+Releases stored by a held run then reach two existing scheduled publishers:
+the Daily link admission (no numeric cap) and
+`korea_standing_original_text_production.yml` (eligible KOGL Type 1 original
+text, at most four new per run and fifty in total), which reads the private
+archive without a ledger or health gate. No factual, rights or access check
+changed, and no ledger entry, attempt or clock was reset.
+
+Details: `docs/engineering/KOREA_DESK_OPERATION.md`, "MND attachment size hold".
 
 ## 2026-11-14 — Archive search reaches published material from the homepage and from an empty scope (pending review)
 

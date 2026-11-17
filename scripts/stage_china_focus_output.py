@@ -57,8 +57,11 @@ def stage(generated, public, expected_china=600):
     if not set(new["trail_ids"]) <= full:
         raise ValueError("source trail no longer preserved")
     archive = (generated / "archive.html").read_text()
-    for marker in ("Research focus", "Full preserved record", "corpus.html",
-                   "not individually fact-checked or editor-approved",
+    # Reader wording renamed 2026-11-16 (parallel text redesign): the set is
+    # "Selected records"; the qualification and both full-corpus paths stay.
+    for marker in ("Selected records", "Every record (", "corpus.html",
+                   "archive.html?scope=all",
+                   "not fact-checked or editor-approved",
                    "Every record is also reachable by publication week"):
         if marker not in archive:
             raise ValueError("missing research/full-corpus disclosure: " + marker)

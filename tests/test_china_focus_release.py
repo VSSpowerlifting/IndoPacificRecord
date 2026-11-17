@@ -40,8 +40,9 @@ class ChinaFocusOutputReleaseTest(unittest.TestCase):
     def write(directory, index):
         (directory / "corpus-index.json").write_text(json.dumps(index))
         (directory / "archive.html").write_text(
-            'Research focus | Full preserved record | '
-            'not individually fact-checked or editor-approved. '
+            'Selected records (609) | Every record (939) | '
+            'The selection is automatic, not fact-checked or editor-approved. '
+            '<a href="archive.html?scope=all">Search all 939 records</a> '
             'Every record is also reachable by publication week: '
             '<a href="corpus.html">full preserved records</a>')
         (directory / "browse.js").write_text(

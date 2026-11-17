@@ -284,9 +284,13 @@ class HistoricalBriefShellTests(unittest.TestCase):
         by_kind = {}
         for ctx, page, soup in self.posts:
             figure = soup.select_one("figure[data-article-media]")
-            by_kind.setdefault(figure["data-article-media"] if figure else "preserved",
+            # A head with no admitted image is text-led: the drawn Editorial
+            # plate is no longer rendered, so such an issue has no hero figure.
+            held = soup.select_one("section.brief-hero figure")
+            by_kind.setdefault(figure["data-article-media"] if figure
+                               else "preserved" if held else "text-led",
                                (ctx, page))
-        self.assertEqual(set(by_kind), {"photograph", "signal-veil", "plate", "preserved"})
+        self.assertEqual(set(by_kind), {"photograph", "signal-veil", "preserved", "text-led"})
         for kind in ("photograph", "signal-veil"):
             ctx, page = by_kind[kind]
             self.assertFalse(self._guard_fails(ctx, page))

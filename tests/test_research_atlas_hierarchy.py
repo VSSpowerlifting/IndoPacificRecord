@@ -80,14 +80,29 @@ class ResearchAtlasHierarchy(unittest.TestCase):
                 for desk in load_registry().public_entries:
                     self.assertIn(desk.status_label, page)
         from bs4 import BeautifulSoup
-        home = BeautifulSoup(self.html("index.html"), "html.parser").select_one(".home-desks")
-        self.assertIn("Coverage is selective", home.get_text(" "))
-        shown = home.select(".home-desk-list a")
+        soup = BeautifulSoup(self.html("index.html"), "html.parser")
+        # Home shows the region one row per desk: each desk holding public
+        # records names itself with its count beside its newest record, and
+        # a note says where the records are concentrated and links to scope.
+        home = soup.select_one(".home-newest")
+        # The selectivity caveat is the colophon's standing sentence on every
+        # page; the desks section says where the records are concentrated and
+        # links to the full scope.
+        self.assertIn("Coverage is selective.",
+                      " ".join(soup.select_one("footer.site .footer-standing").get_text(" ").split()))
+        note = " ".join(home.select_one(".home-desks-note").get_text(" ").split())
+        self.assertIn("most of the records come from Chinese sources", note)
+        shown = home.select(".records-desks > .records-day")
         public_desks = [d for d in gp.PublicView(gp.TRACKED_DB).desk_directory() if d.record_count]
-        self.assertEqual({a.get("href") for a in shown}, {d.route for d in public_desks})
-        for desk in public_desks:
-            self.assertIn("{:,} public records in this snapshot".format(desk.record_count), home.get_text(" "))
-        self.assertTrue(home.select('a[href="coverage.html"]'))
+        self.assertEqual([li.select_one(".desk-cell > a").get("href") for li in shown],
+                         [d.route for d in public_desks])
+        self.assertIn("%d desks hold public records so far" % len(public_desks), note)
+        for li, desk in zip(shown, public_desks):
+            self.assertEqual(
+                " ".join(li.select_one(".desk-cell").get_text(" ").split()),
+                "{} {:,} {}".format(desk.name, desk.record_count,
+                                    "record" if desk.record_count == 1 else "records"))
+        self.assertTrue(home.select('.home-desks-note a[href="coverage.html"]'))
         self.assertIn("Paused — collection stopped", self.html("desks.html"))
         self.assertIn("Planned — nothing collected", self.html("desks.html"))
 

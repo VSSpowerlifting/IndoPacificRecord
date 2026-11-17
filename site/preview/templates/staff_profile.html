@@ -10,20 +10,22 @@
 <p class="staff-person-role">{{ member.role }}</p>
 </header>
 <div class="staff-person">
-<section class="prose" aria-label="Biography">
+<section class="doc-section" aria-label="Biography">
 <h2 class="plain">About</h2>
+<div class="doc-body prose">
 <p>{{ member.bio }}</p>
 {% if member.links %}<p class="staff-outbound">{% for label, href in member.links.items() %}<a href="{{ href }}" rel="noopener noreferrer">{{ label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+</div>
 </section>
 {% if works.authored %}
-<section class="staff-work" aria-labelledby="staff-authored">
+<section class="doc-section staff-work" aria-labelledby="staff-authored">
 <h2 class="plain" id="staff-authored">Authored Briefs</h2>
 <ol class="staff-work-list">
 {% for item in works.authored %}<li><a href="../{{ item.url }}">{{ item.title }}</a><span>Week ending {{ item.date|reader_date }}</span></li>{% endfor %}
 </ol></section>
 {% endif %}
 {% if works.contributed %}
-<section class="staff-work" aria-labelledby="staff-contributed">
+<section class="doc-section staff-work" aria-labelledby="staff-contributed">
 <h2 class="plain" id="staff-contributed">Research contributions</h2>
 <ol class="staff-work-list">
 {% for item in works.contributed %}<li><a href="../{{ item.url }}">{{ item.title }}</a><span>{{ item.credit_role }} · Week ending {{ item.date|reader_date }}</span></li>{% endfor %}

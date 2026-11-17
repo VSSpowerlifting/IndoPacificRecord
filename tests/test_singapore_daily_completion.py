@@ -112,7 +112,8 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertTrue(s.desk_registered)
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",
                                              "sg-relevance-v2+sg-analysis-v3",
-                                             "sg-relevance-v2+sg-analysis-v4"))
+                                             "sg-relevance-v2+sg-analysis-v4",
+                                             "sg-relevance-v2+sg-analysis-v5"))
         p = d.load_policy()["sources"][FAMILY]
         # Founder-authorized retry (12 November) of the one-original pilot: the
         # three switches are on together for that attended run only and return
@@ -135,7 +136,8 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertFalse(SINGAPORE_MINDEF_DAILY_PROFILE.keyword_prefilter)
         self.assertEqual(d.allowed_prompt_versions(FAMILY), ("sg-relevance-v2+sg-analysis-v2",
                                                             "sg-relevance-v2+sg-analysis-v3",
-                                             "sg-relevance-v2+sg-analysis-v4"))
+                                                            "sg-relevance-v2+sg-analysis-v4",
+                                                            "sg-relevance-v2+sg-analysis-v5"))
 
     def test_output_check_requires_mindef_attribution_and_no_flag(self):
         self.assertIsNone(_sg_output_check({"model_flagged": False, "summary": "MINDEF says x."}))
@@ -221,6 +223,33 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
         self.assertEqual(result.status, st.FETCH_FAILURE)
         self.assertIn("no signed envelope delivered", result.error_detail)
         self.assertEqual(len(errors), 1)
+
+
+class SingaporeNoCollectionVerdict(unittest.TestCase):
+    def test_attended_pilot_gets_no_freshness_verdict_even_with_failed_facts(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        from tests.test_collection_attempts import facts
+        f = facts(family=FAMILY)
+        failed = dict(f, latest=dict(f["latest"], result="timeout", health="fail", healthy=False),
+                      latest_healthy_target_date="2026-01-01")
+        for flag in (False, True):
+            for collection in (failed, None):
+                receipt = {"records": 1, "admitted": 1, "holds": [], "collection": collection}
+                with self.subTest(flag=flag, collection=bool(collection)), \
+                     patch.object(pipeline, "_REQUIRE_COLLECTION_ATTESTATION", flag), \
+                     patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                             "IPR_DAILY_INTAKE_DIR": "/scratch/intake",
+                                             "GITHUB_EVENT_NAME": "workflow_dispatch",
+                                             "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY": "6nov26-nr2"}), \
+                     patch("processing.daily_intake.load_policy", return_value=policy(True)), \
+                     patch("processing.daily_runner.intake_family", return_value=receipt):
+                    [result] = pipeline.run_governed_manual_sources(
+                        [FAMILY], 7, SourceRegistry(), [])
+                self.assertEqual((result.status, result.new_documents), (st.OK, 1))
+                self.assertIsNone(result.error_detail)
 
 
 class SingaporeCustody(unittest.TestCase):

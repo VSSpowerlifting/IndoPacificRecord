@@ -80,7 +80,7 @@
   rows.forEach(r => { if (r.date !== last) { last = r.date; const sec = wrap.appendChild(day(last)); ul = sec.querySelector("ul"); } ul.appendChild(card(r)); });
   out.replaceChildren(wrap);
   const msg = total ? "Showing " + [start + 1, "–", start + rows.length, " of ", total].map(fmt).join("") +
-   (get("scope") === "focus" ? " research-focus records" : get("scope") === "all" ? " preserved records" : " published items") +
+   (get("scope") === "focus" ? " selected records" : get("scope") === "all" ? " preserved records" : " published items") +
    (filtered() ? " matching filters" : "") : "No records match.";
   range.textContent = total ? msg + (pages > 1 ? " · page " + page + " of " + pages : "") : "";
   live.textContent = msg; none.hidden = total !== 0;

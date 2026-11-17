@@ -1,5 +1,7 @@
 """Delivery failures cannot masquerade as fresh signed inputs or stop peers."""
 import copy
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 import os
 from pathlib import Path
@@ -56,6 +58,29 @@ class FetchOutputs(unittest.TestCase):
         self.assertEqual((root / 'outputs').read_text(), 'failed_families=1\n')
         self.assertNotIn('private stderr', (root / 'summary').read_text())
         self.assertFalse(list(root.glob('*.tmp')))
+
+    def test_http_failures_disclose_only_the_status(self):
+        for code in (401, 403, 404, 429, 503):
+            with self.subTest(code=code):
+                failure = subprocess.CompletedProcess(
+                    [], 1, b'private response body',
+                    f'gh: private error message (HTTP {code})\n'.encode())
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    root, result, _ = self.run_fetch([failure, self.response(), self.response()])
+                status = f"fetch_http_{code}"
+                self.assertEqual(result["ph_afp_articles"], status)
+                self.assertEqual(result["id_kemhan_news"], "fetched")
+                self.assertFalse((root / "ph_afp_articles.json").exists())
+                summary = (root / "summary").read_text()
+                self.assertEqual(stdout.getvalue(),
+                                 f"::warning title=Shared Daily handoff unavailable::ph_afp_articles: {status}\n")
+                self.assertEqual((root / "outputs").read_text(), "failed_families=1\n")
+                self.assertIn(status, summary)
+                self.assertNotIn("private error message", summary)
+                self.assertNotIn("private response body", summary)
+                (root / "outputs").unlink()
+                (root / "summary").unlink()
 
     def test_timeout_unavailable_and_oversize_never_leave_old_input(self):
         for failure in [subprocess.TimeoutExpired('gh', 45), OSError('unavailable'), self.response(b'x' * 512001)]:

@@ -665,7 +665,10 @@ class TestNestedRoutesResolve(IdentityBuildCase):
         for name, html in self.nested_sample().items():
             with self.subTest(page=name):
                 self.assertIn('href="../assets/identity/selected-ipr/ipr-accent-32.png"', self.head(html))
-                self.assertIn('src="../assets/identity/selected-ipr/ipr-navy-160.png"',
+                # Ivory since 2026-11-14: every masthead is the navy band.
+                self.assertIn('src="../assets/identity/selected-ipr/ipr-ivory-160.png"',
+                              self.masthead(html))
+                self.assertIn('../assets/identity/selected-ipr/ipr-ivory-320.png 320w',
                               self.masthead(html))
 
 

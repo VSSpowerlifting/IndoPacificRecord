@@ -38,9 +38,10 @@ def desk(slug):
 
 
 def html_for(slug, references):
-    env = Environment(loader=FileSystemLoader(
+    from tests.preview_filters import with_filters
+    env = with_filters(Environment(loader=FileSystemLoader(
         str(ROOT / "site" / "preview" / "templates")),
-        autoescape=True, trim_blocks=True, lstrip_blocks=True)
+        autoescape=True, trim_blocks=True, lstrip_blocks=True))
     return env.get_template("desk.html").render(
         title="Indo-Pacific Record", page=slug + ".html",
         desk=desk(slug),

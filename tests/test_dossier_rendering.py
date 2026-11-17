@@ -409,7 +409,11 @@ class ThematicDossierRendering(unittest.TestCase):
         self.assertNotIn('<dt>Living Dossier</dt>',html)
         self.assertIn('href="dossiers.html"',self.read('analysis.html'))
         self.assertIn('>Briefs</a>',self.read('index.html'))  # nav label renamed 2026-11-13
-        self.assertIn('Thematic dossier · Unpublished draft for review',self.read('index.html'))
+        # The home page names the unapproved dossier as a draft in the label
+        # that sits directly over the link to it.
+        self.assertRegex(self.read('index.html'),
+            r'<p class="home-label">Dossier, unpublished draft for review</p>\s*'
+            r'<h3><a href="dossier/china-singapore-naval-cooperation\.html">')
 
     def test_thematic_page_separates_linked_pages_and_holds_review(self):
         html=self.read('dossier/china-singapore-naval-cooperation.html')

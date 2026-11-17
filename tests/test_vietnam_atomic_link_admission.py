@@ -113,7 +113,8 @@ class AtomicAdmission(unittest.TestCase):
                              source.index('{# Regional official-link index:'))
         end = source.index('{# US: first-party publisher URLs', start)
         with closing(sqlite3.connect(str(self.db))) as conn:
-            data = Environment(autoescape=select_autoescape(default_for_string=True)).from_string(
+            from tests.preview_filters import with_filters
+            data = with_filters(Environment(autoescape=select_autoescape(default_for_string=True))).from_string(
                 source[start:end]).render(desk=SimpleNamespace(slug='vietnam'),
                                          regional_official_links=read_live_links(conn,'vietnam')).encode()
         (site/'vietnam.html').write_bytes(data)

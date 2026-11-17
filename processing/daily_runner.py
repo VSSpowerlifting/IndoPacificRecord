@@ -165,5 +165,9 @@ def intake_family(db_path, input_dir, family, *, policy=None):
     # `admit` validated the packet shape before touching the database, so the
     # record list is well-formed here. Replayed records are neither admitted
     # nor held; the caller reports them as duplicates.
+    # `collection` is read only after `admit` authenticated the MAC and shape;
+    # None for a /1 envelope. It never affects what was admitted.
+    from processing.daily_intake import collection_facts
     return {"records": len(envelope["packet"]["records"]),
-            "admitted": receipt["admitted"], "holds": list(receipt["holds"])}
+            "admitted": receipt["admitted"], "holds": list(receipt["holds"]),
+            "collection": collection_facts(envelope["packet"])}

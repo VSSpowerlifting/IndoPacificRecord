@@ -50,6 +50,29 @@ def fake_analyzer(reply=None):
 
 
 class SharedDaily(unittest.TestCase):
+    def test_afp_place_normalization_requires_the_full_cited_dateline(self):
+        item = record()
+        result = reading()
+        first = result["facts"][0]
+        dateline = "CAMP EXAMPLE, District One - "
+        item["body"] = dateline + item["body"]
+        first["evidence"] = dateline + first["evidence"]
+        for place, hold in (
+            ("Camp Example", None),
+            ("Camp Other", "daily_name_or_office_unsupported"),
+            ("Example Camp", "daily_name_or_office_unsupported"),
+            ("Example Camp near Camp Example", "daily_name_or_office_unsupported"),
+            ("Camp Example-based facilities", "daily_name_or_office_unsupported"),
+        ):
+            with self.subTest(place=place):
+                first["sentence"] = "AFP reports an exercise planned at " + place + " for 23 October."
+                result["summary_english"] = " ".join(fact["sentence"] for fact in result["facts"])
+                if hold:
+                    with self.assertRaisesRegex(d.IntakeHold, hold):
+                        d.quality_check(item, result)
+                else:
+                    d.quality_check(item, result)
+
     def test_geographic_topic_requires_explicit_source_support(self):
         r = record()
         reading = fake_analyzer().analyze_record(r["title"], r["body"], None)
@@ -503,6 +526,118 @@ class SharedDaily(unittest.TestCase):
         d.admit(conn, envelope, family="ph_afp_articles", policy=p, key=key)
         self.assertEqual(conn.execute("SELECT publication_state FROM daily_machine_records").fetchone()[0], "held")
         conn.close()
+
+    # -- schema /2: signed collection attestation --------------------------
+
+    KEY = "synthetic-test-key-" * 3
+
+    def _admission_fixture(self):
+        from migrations.versions.m0015_daily_machine_records import up
+        from core.regional_official_link_release import SCHEMA_SQL
+        p = policy()
+        state, _ = d.process([record()], {}, family="ph_afp_articles", policy=p, analyzer_factory=fake_analyzer)
+        envelope = d.sign_outputs(state, family="ph_afp_articles", policy=p, key=self.KEY)
+        conn = sqlite3.connect(":memory:"); conn.executescript(SCHEMA_SQL); up(conn)
+        r = record()
+        conn.execute("INSERT INTO regional_official_source_links VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+            r["source_family"], r["source_identity"], "philippines", r["canonical_official_url"],
+            r["publisher_posted_date"], "ph_afp", "ph_afp", None, "c"*40, "a"*64, "123-1",
+            "official_link_only", "d"*64, "2026-10-19T00:00:00Z"))
+        conn.commit()
+        return conn, p, envelope
+
+    def _v2(self, envelope, collection, domain=None):
+        import hmac
+        packet = dict(copy.deepcopy(envelope["packet"]), collection=collection,
+                      schema="ipr-shared-daily-machine-output/2")
+        mac = hmac.new(self.KEY.encode(), (domain or d.DOMAIN_V2) + d.canonical(packet),
+                       hashlib.sha256).hexdigest()
+        return {"packet": packet, "mac": mac}
+
+    def _facts(self, **over):
+        from tests.test_collection_attempts import facts
+        return facts(family="ph_afp_articles", **over)
+
+    def test_domains_and_schemas_are_pinned(self):
+        self.assertEqual(d.DOMAIN, b"ipr-shared-daily-machine-output/1\n")
+        self.assertEqual(d.DOMAIN_V2, b"ipr-shared-daily-machine-output/2\n")
+
+    def test_admit_accepts_schema_one_and_two_with_an_unchanged_return(self):
+        for label, make in (("v1", lambda e: e),
+                            ("v2", lambda e: self._v2(e, self._facts()))):
+            with self.subTest(label):
+                conn, p, envelope = self._admission_fixture()
+                out = d.admit(conn, make(envelope), family="ph_afp_articles", policy=p, key=self.KEY)
+                self.assertEqual(out, {"admitted": 1, "holds": []})
+                self.assertEqual(sorted(out), ["admitted", "holds"])
+                conn.close()
+
+    def test_schema_two_under_the_schema_one_domain_is_a_mac_failure(self):
+        conn, p, envelope = self._admission_fixture()
+        wrong = self._v2(envelope, self._facts(), domain=d.DOMAIN)
+        with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_mac_invalid"):
+            d.admit(conn, wrong, family="ph_afp_articles", policy=p, key=self.KEY)
+        # And the reverse: a /1 body MACed under the /2 domain.
+        import hmac
+        swapped = {"packet": envelope["packet"], "mac": hmac.new(
+            self.KEY.encode(), d.DOMAIN_V2 + d.canonical(envelope["packet"]),
+            hashlib.sha256).hexdigest()}
+        with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_mac_invalid"):
+            d.admit(conn, swapped, family="ph_afp_articles", policy=p, key=self.KEY)
+        self.assertEqual(conn.execute("SELECT count(*) FROM daily_machine_records").fetchone()[0], 0)
+
+    def test_extra_or_missing_keys_by_schema_are_a_source_mismatch(self):
+        import hmac
+        conn, p, envelope = self._admission_fixture()
+
+        def signed(packet):
+            domain = d.DOMAIN_V2 if packet["schema"].endswith("/2") else d.DOMAIN
+            return {"packet": packet, "mac": hmac.new(
+                self.KEY.encode(), domain + d.canonical(packet), hashlib.sha256).hexdigest()}
+        cases = [dict(envelope["packet"], collection={}),                      # /1 plus extra
+                 dict(envelope["packet"], schema="ipr-shared-daily-machine-output/2"),  # /2 lacks block
+                 dict(envelope["packet"], schema="ipr-shared-daily-machine-output/3"),
+                 dict(envelope["packet"], collection={}, extra=1,
+                      schema="ipr-shared-daily-machine-output/2")]
+        for packet in cases:
+            with self.subTest(schema=packet["schema"], keys=sorted(packet)):
+                with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_source_mismatch"):
+                    d.admit(conn, signed(packet), family="ph_afp_articles", policy=p, key=self.KEY)
+
+    def test_a_malformed_collection_block_still_admits_and_is_reported_not_attested(self):
+        for block in ({"schema": "junk"}, None, "text", [], dict(self._facts(), error_detail="leak")):
+            with self.subTest(block=block):
+                conn, p, envelope = self._admission_fixture()
+                v2 = self._v2(envelope, block)
+                self.assertEqual(d.admit(conn, v2, family="ph_afp_articles", policy=p, key=self.KEY),
+                                 {"admitted": 1, "holds": []})
+                self.assertEqual(d.collection_facts(v2["packet"]),
+                                 {"attested": False, "reason": "collection_attestation_invalid"})
+                conn.close()
+
+    def test_collection_facts_is_none_for_schema_one_and_the_block_for_valid_two(self):
+        _, _, envelope = self._admission_fixture()
+        self.assertIsNone(d.collection_facts(envelope["packet"]))
+        good = self._facts()
+        self.assertEqual(d.collection_facts(self._v2(envelope, good)["packet"]), good)
+        other = dict(good, family="ph_nsc_official_statements")
+        self.assertFalse(d.collection_facts(self._v2(envelope, other)["packet"])["attested"])
+
+    def test_intake_family_adds_collection_to_its_receipt(self):
+        from processing.daily_runner import intake_family
+        conn, p, envelope = self._admission_fixture()
+        conn.close()
+        for label, env, expected in (("v1", envelope, None),
+                                     ("v2", self._v2(envelope, self._facts()), self._facts())):
+            with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
+                (Path(tmp) / "ph_afp_articles.json").write_text(json.dumps(env))
+                with patch("processing.daily_runner.admit",
+                           return_value={"admitted": 1, "holds": []}) as call, \
+                        patch.dict("os.environ", {"DAILY_PH_AFP_ARTICLES_KEY": self.KEY}):
+                    receipt = intake_family(Path(tmp) / "s.db", tmp, "ph_afp_articles", policy=p)
+                self.assertEqual(receipt, {"records": 1, "admitted": 1, "holds": [],
+                                           "collection": expected})
+                self.assertTrue(call.called)
 
     def test_intake_family_raises_on_bad_envelope_and_is_silent_when_absent(self):
         # Family failures are isolated by the pipeline's governed dispatch, which
