@@ -92,7 +92,8 @@ body:has(#f-scope option[value="focus"]:not(:checked)) .focus-note{display:none}
 .no-results{padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule)}
 .no-results p{margin:0 0 .6rem}
 .no-results p:last-child{margin:0}
-.no-results[data-scope=focus] .no-results-wide,.no-results:not([data-scope=focus]) .no-results-focus{display:none}
+.no-results button span{pointer-events:none}
+.no-results:not([data-wide=true]) .no-results-wide,.no-results[data-wide=true] .no-results-clear{display:none}
 .archive-page .pager{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin:1.4rem 0 0}
 .archive-page .pager button{min-height:44px;padding-inline:1.15rem;font-size:.875rem}
 .archive-page .pager p{flex-basis:100%;margin:.2rem 0 0;max-width:none;font-size:.875rem;color:var(--muted)}

@@ -4,16 +4,17 @@
  const $ = id => document.getElementById(id), root = $("browse"), A = Array.isArray;
  if (!root || !window.fetch || !window.URLSearchParams) return;
  const form = $("controls"), out = $("results"), range = $("result-range"), live = $("result-live"),
-   wait = $("index-state"), fail = $("index-error"), none = $("no-results"),
+   wait = $("index-state"), fail = $("index-error"), none = $("no-results"), wider = $("wider-count"),
    prev = $("page-prev"), next = $("page-next"), chips = $("chips"), reset = $("f-reset"),
    list = $("research-list"), note = $("selection-note"), error = $("research-error"), E = ArchiveSearch,
    KEYS = "scope q desk source status sort institution language from to trail keywords record_type issuer".split(" "),
    FK = KEYS.filter(k => k !== "scope" && k !== "sort"), F = form.elements, PER = 50,
    storage = "ipr/1";
- let research, prepared, pending, view = [], page = 1, selected = new Set();
+ let research, display, prepared, pending, view = [], page = 1, selected = new Set();
+ const saved = () => JSON.parse(sessionStorage.getItem(storage) || "[]");
  function get(k) { return F[k].type === "checkbox" ? (F[k].checked ? "1" : "") : F[k].value.trim(); }
  function put(k, value) {
-  const e = F[k], v = value || (k === "sort" ? "new" : k === "scope" ? "focus" : "");
+  const e = F[k], v = value || {sort:"new", scope:"focus"}[k] || "";
   if (e.type === "checkbox") e.checked = v === "1";
   else {
    if (["issuer", "source"].includes(k) && v && ![...e.options].some(o => o.value === v)) e.add(new Option(v, v));
@@ -33,9 +34,9 @@
  function el(tag, cls, txt) {
   const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e;
  }
- const clone = id => $(id).content.firstElementChild.cloneNode(true);
+ const fmt = n => n.toLocaleString("en-US"), clone = id => $(id).content.firstElementChild.cloneNode(true);
  function card(r) {
-  const li = clone("archive-row"), find = q => li.querySelector(q), meta = research.display[r.id],
+  const li = clone("archive-row"), find = q => li.querySelector(q), meta = display[r.id],
     fields = {...r, hold:research.holds[r.id], ...(meta || {who:r.issuer || r.source, via:r.source, state:r.processing}),
       title:r.title || r.original_title || r.id,
       original:r.title && r.original_title && r.title.trim() !== r.original_title.trim() ? r.original_title : null,
@@ -50,12 +51,12 @@
   }
   if (!find(".row-tags").children.length) find(".row-tags").remove();
   const citation = find(".archive-citation"), copy = find("details button"), check = find("input");
-  check.checked = selected.has(r.id); check.setAttribute("aria-label", "Keep: " + fields.title);
+  check.checked = selected.has(r.id); check.ariaLabel = "Keep: " + fields.title;
   check.onchange = () => { check.checked ? selected.add(r.id) : selected.delete(r.id); updateList(); };
   copy.onclick = async () => {
    try { await navigator.clipboard.writeText(r.citation); copy.textContent = "Copied"; }
    catch (_) { citation.focus(); const rng = document.createRange(); rng.selectNodeContents(citation);
-    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rng); copy.textContent = "Select text to copy"; }
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rng); copy.textContent = "Select text to copy"; }
   };
   return li;
  }
@@ -65,10 +66,11 @@
   else { time.dateTime = date; sec.querySelectorAll("span").forEach((e,i) => { e.textContent = research.days[date][i]; }); }
   return sec;
  }
- function matches(r) {
-  const m = research.display[r.id], q = get("q").toLowerCase();
+ // `s` is a scope: the empty state also asks whether the widest one has matches.
+ function matches(r, s) {
+  const m = display[r.id], q = get("q").toLowerCase();
   return (!q || ((m && !m.english ? "" : r.title || "") + " " + (r.original_title || "")).toLowerCase().includes(q)) &&
-   (get("scope") === "published" || m && (get("scope") === "all" || m.focus)) &&
+   (s === "published" || m && (s === "all" || m.focus)) &&
    ["source","status","institution","language"].every(k => !get(k) || get(k) === (m || r)[k]) && (!get("trail") || m && m.trail);
  }
  function render() {
@@ -77,21 +79,22 @@
   let last, ul; wrap.dataset.fromIndex = "";
   rows.forEach(r => { if (r.date !== last) { last = r.date; const sec = wrap.appendChild(day(last)); ul = sec.querySelector("ul"); } ul.appendChild(card(r)); });
   out.replaceChildren(wrap);
-  const msg = total ? "Showing " + [start + 1, "–", start + rows.length, " of ", total].map(n => n.toLocaleString("en-US")).join("") +
+  const msg = total ? "Showing " + [start + 1, "–", start + rows.length, " of ", total].map(fmt).join("") +
    (get("scope") === "focus" ? " selected records" : get("scope") === "all" ? " preserved records" : " published items") +
    (filtered() ? " matching filters" : "") : "No records match.";
   range.textContent = total ? msg + (pages > 1 ? " · page " + page + " of " + pages : "") : "";
-  live.textContent = msg; none.hidden = total !== 0; none.dataset.scope = get("scope");
+  live.textContent = msg; none.hidden = total !== 0;
   prev.hidden = next.hidden = pages < 2; prev.disabled = page <= 1; next.disabled = page >= pages;
  }
+ function again() { go(true, true); F.q.focus(); }
  function filtered() { return FK.some(get); }
  function drawChips() {
   chips.replaceChildren(); reset.hidden = !filtered();
   FK.filter(get).forEach(k => {
    const e = F[k], label = e.labels[0].textContent.trim() + (e.type === "checkbox" ? "" : ": " + (e.tagName === "SELECT" ? e.selectedOptions[0].text : get(k))),
     b = chips.appendChild(el("li")).appendChild(el("button", "chip", label));
-   b.type = "button"; b.setAttribute("aria-label", "Remove filter: " + label);
-   b.onclick = () => { put(k, ""); go(true, true); F.q.focus(); };
+   b.type = "button"; b.ariaLabel = "Remove filter: " + label;
+   b.onclick = () => { put(k, ""); again(); };
   });
  }
  function updateList() {
@@ -113,8 +116,8 @@
    };
    pending = fetchJson("corpus-index.json", root.dataset.archiveDigest)
     .then(() => fetchJson("archive-research-index.json", root.dataset.researchDigest)).then(r => {
-    research = r; prepared = E.prepare(r.records);
-    try { const ids = JSON.parse(sessionStorage.getItem(storage) || "[]"); if (A(ids)) selected = new Set(ids.filter(id => r.records.some(x => x.id === id))); } catch (_) {}
+    research = r; display = r.display; prepared = E.prepare(r.records);
+    try { const ids = saved(); if (A(ids)) selected = new Set(ids.filter(id => r.records.some(x => x.id === id))); } catch (_) {}
     wait.hidden = true; updateList();
    }); pending.catch(unavailable);
   } return pending;
@@ -124,12 +127,22 @@
   load().then(() => {
    try {
     error.hidden = true;
-    view = E.search(prepared, {q:get("keywords"), desk:get("desk"), issuer:get("issuer"), record_type:get("record_type"),
-      from:get("from"), to:get("to"), sort:{relevance:"relevance", old:"oldest"}[get("sort")] || "newest"}).map(h => h.record).filter(matches);
-    if (get("scope") !== "published" && get("sort") !== "relevance") {
-     view.sort((a,b) => research.display[a.id].order-research.display[b.id].order); if (get("sort") === "old") view.reverse();
+    const scope = get("scope"), hits = E.search(prepared, {q:get("keywords"), desk:get("desk"), issuer:get("issuer"), record_type:get("record_type"),
+      from:get("from"), to:get("to"), sort:{relevance:"relevance", old:"oldest"}[get("sort")] || "newest"}).map(h => h.record),
+     inScope = s => hits.filter(r => matches(r, s));
+    view = inScope(scope);
+    if (scope !== "published" && get("sort") !== "relevance") {
+     view.sort((a,b) => display[a.id].order-display[b.id].order); if (get("sort") === "old") view.reverse();
     }
     drawChips(); render(); writeUrl(push);
+    // Nothing in this scope: the scopes nest (focus within the preserved
+    // record within all published material), so when the widest one has
+    // matches the empty state offers it with their number and announces it;
+    // a recovery never leads to another empty page. Otherwise it offers to
+    // clear the search and filters.
+    const n = !view.length && inScope("published").length;
+    none.dataset.wide = !!n;
+    if (n) { wider.textContent = fmt(n); live.textContent += " " + wider.parentNode.textContent + "."; }
    } catch (e) { error.textContent = e.message; error.hidden = false; }
   }, () => {});
  }
@@ -141,19 +154,19 @@
  list.onchange = () => { render(); list.firstElementChild.focus(); };
  $("selection-clear").onclick = () => { selected.clear(); updateList(); out.querySelectorAll("input").forEach(e => { e.checked = false; }); };
  let timer;
- F.q.onfocus = () => load(); F.q.oninput = F.keywords.oninput = () => { clearTimeout(timer); timer = setTimeout(() => go(false, true), 200); };
+ F.q.onfocus = load; F.q.oninput = F.keywords.oninput = () => { clearTimeout(timer); timer = setTimeout(() => go(false, true), 200); };
  KEYS.filter(k => F[k].type !== "search").forEach(k => { F[k].onchange = () => go(true, true); });
  form.onsubmit = e => { e.preventDefault(); go(true, true); };
- reset.onclick = () => { KEYS.forEach(k => put(k, "")); go(true, true); F.q.focus(); };
- // The empty state offers one recovery that fits the scope searched: widen
- // the research focus to the full record, or clear the search and filters.
+ reset.onclick = () => { KEYS.forEach(k => put(k, "")); again(); };
+ // The empty state offers one recovery that fits the search: all published
+ // material when it has matches (see go), or clearing the search and filters.
  // Like the other filter controls, it returns focus to the search box.
- none.onclick = e => { const v = e.target.value; if (v) { v === "all" ? put("scope", v) : FK.forEach(k => put(k, "")); go(true, true); F.q.focus(); } };
+ none.onclick = e => { const v = e.target.value; if (v) { v === "clear" ? FK.forEach(k => put(k, "")) : put("scope", v); again(); } };
  function turn(d) { page += d; go(true); range.focus(); }
  prev.onclick = () => turn(-1); next.onclick = () => turn(1);
- window.onpopstate = () => { readUrl(); go(false); };
+ onpopstate = () => { readUrl(); go(false); };
  root.hidden = form.hidden = next.hidden = list.hidden = false;
  list.open = !matchMedia("(max-width:680px)").matches; readUrl();
  if (filtered() || page > 1 || get("scope") !== "focus" || get("sort") !== "new") go(false);
- else try { if (JSON.parse(sessionStorage.getItem(storage) || "[]").length) load(); } catch (_) {}
+ else try { if (saved().length) load(); } catch (_) {}
 })();

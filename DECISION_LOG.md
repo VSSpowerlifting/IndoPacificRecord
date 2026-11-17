@@ -287,6 +287,39 @@ changed, and no ledger entry, attempt or clock was reset.
 
 Details: `docs/engineering/KOREA_DESK_OPERATION.md`, "MND attachment size hold".
 
+## 2026-11-14 — Archive search reaches published material from the homepage and from an empty scope (pending review)
+
+Supersedes items 4 and 5 of the 2026-11-13 reader-polish entry once merged.
+Every address, default and index is unchanged.
+
+A measured set of research lookups against the 14 November public index
+showed that the homepage search (`scope=all`) returned nothing for Briefs and
+cited Records, and so did the Archive's Research focus. Examples: Abukuma,
+AMRAAM, Bersama Lima, an exact Brief title, Hegseth, Scarborough, and the held
+Korea reference. Their matches exist only in **All published material**. Both
+empty states then led to a dead end. From the focus, the recovery ("Search
+all 2,018 records") opened a second empty page. From the full record, the
+only recovery cleared the query.
+
+1. **Home search** submits `scope=published` with the same title-contains
+   `q`. The scope is a superset: it holds every preserved record plus Briefs,
+   Dossiers, published originals and translations, machine explanations,
+   links to official pages (most of them desk links, not citations) and the
+   sources Briefs cite. The caption says so, without claiming the list is
+   complete. The figure shown is still the preserved-record count, and cited
+   material is not added into it.
+2. **Empty state.** The scopes nest. When the current scope has no match, the
+   finder offers "Search all published material (N matching)" whenever that
+   scope has matches. The offer keeps the query, records the scope in the
+   address and is announced in the live region. When it has none, the finder
+   offers to clear the search and filters, keeping the scope. Focus returns to
+   the search box either way. A genuine no-match therefore still says only
+   "No records match."
+3. **Not changed.** The Archive default (`scope=focus`), title and keyword
+   matching, sort order (undated Briefs still sort after dated items) and
+   publisher, source-type, hold and citation display are as they were. The
+   10,000- and 9,500-byte JavaScript budgets were not raised.
+
 ## 2026-11-14 — USCC narrative path built into the shared Daily, disabled (engineering record; no activation)
 
 **What changed.** The 7 November qualifier-based adoption candidate (PR #1000)
