@@ -15,7 +15,7 @@
 [data-surface=desk] main section{margin:3rem 0 0}
 [data-surface=desk] main section section{margin-top:2rem}
 [data-surface=desk] main section section>h2,[data-surface=desk] main section h3{font:600 1.1875rem/1.35 var(--serif);letter-spacing:0;margin:1.6rem 0 .5rem;padding:0;border:0}
-[data-surface=desk] main section>p:not(.meta):not(.evidence):not(.records-key),.desk-sec-note{max-width:68ch}
+[data-surface=desk] main section>p:not(.meta):not(.evidence):not(.records-key){max-width:68ch}
 [data-surface=desk] main .evidence{white-space:normal}
 [data-surface=desk] main section>.evidence{display:flex;max-width:none;margin:0 0 -.35rem;padding-top:1rem;border-top:2px solid var(--rule-hard)}
 [data-surface=desk] main section>.evidence+h2{border-top:0;padding-top:.7rem}
@@ -29,16 +29,7 @@
 [data-surface=desk] main .desk-sec-head h2{margin:0;padding:0;border:0;font:400 clamp(1.75rem,1.4rem + 1.3vw,2.5rem)/1.05 var(--display);letter-spacing:-.012em}
 .desk-sec-head .evidence{margin:0 0 .35rem}
 .desk-sec-head>a{display:inline-flex;align-items:center;min-height:40px;font:600 var(--step-meta)/1.3 var(--sans)}
-.desk-sec-note{color:var(--ink-2);margin:0 0 1.1rem}
 .desk-references{border:0;padding:0}
-.desk-limits{max-width:70ch;padding-left:1.15rem;margin:.4rem 0 1rem}
-.desk-limits li{margin:.45rem 0}
-.desk-machine-list{list-style:none;margin:1.1rem 0 1rem;padding:0;border-top:2px dotted var(--machine-ink)}
-.desk-machine-list>li{display:grid;grid-template-columns:var(--gutter-date,7.25rem) minmax(0,1fr);gap:.2rem 1.5rem;max-width:none;padding:1rem 0 1.05rem;border-bottom:1px solid var(--rule)}
-.desk-machine-when{margin:0;font:400 var(--step-meta)/1.45 var(--sans);color:var(--muted)}
-.desk-machine-when span{display:block;color:var(--ink-2);font-weight:600}
-.desk-machine-text{font:400 1.0625rem/1.5 var(--serif);margin:0 0 .4rem;max-width:66ch}
-.desk-machine-list .meta{margin:0;overflow-wrap:anywhere}
 .desk-reference-list{list-style:none;margin:1rem 0;padding:0;border-top:1px solid var(--rule)}
 .desk-reference-list li{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.15rem 1.5rem;max-width:none;border-bottom:1px solid var(--rule);padding:.8rem 0}
 .desk-reference-list li[hidden]{display:none}
@@ -53,14 +44,11 @@
 .desk-more{margin:1.2rem 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 .desk-more>summary{cursor:pointer;padding:.75rem 0;font:600 .9375rem/1.4 var(--sans)}
 .desk-more[open]{padding-bottom:1rem}
-.desk-more--end{margin-top:3rem;border-top:2px solid var(--rule-hard)}
 [data-surface=desk] main .desk-more>h2{font:600 1.25rem/1.3 var(--serif);letter-spacing:0;margin:1.6rem 0 .5rem;padding:0;border:0}
 .desk-more>p{max-width:68ch}
 @media(max-width:720px){
   [data-surface=desk] .status-panel>div{grid-template-columns:1fr}
   [data-surface=desk] .status-panel{padding:1.1rem 0 1.3rem;margin-bottom:1.8rem}
-  .desk-machine-list>li,.desk-reference-filters{grid-template-columns:1fr}
-  .desk-machine-when span{display:inline}
-  .desk-machine-when span::before{content:"· "}
+  .desk-reference-filters{grid-template-columns:1fr}
   [data-surface=desk] main section{margin-top:2.4rem}
 }

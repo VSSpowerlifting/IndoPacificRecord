@@ -244,7 +244,13 @@ class VNMinistryAdapter(ShadowHttpAdapter):
                                    "visible publication date").get_text())
                 canonical = meta(soup, "og:url")
                 byline = meta(soup, "author")
-                if meta(soup, "og:title") != squash(title_node.get_text()):
+                # Compare titles after the same whitespace squash on both sides:
+                # the publisher's og:title can carry incidental surrounding or
+                # repeated whitespace (observed 17 Nov 2026, run 43998961835-1,
+                # a trailing space only). A missing or textually different
+                # og:title still fails.
+                og_title = meta(soup, "og:title")
+                if og_title is None or squash(og_title) != squash(title_node.get_text()):
                     raise ValueError("article title metadata conflicts")
             else:
                 title_node = one(soup.select("h1.article-title"), "article title")

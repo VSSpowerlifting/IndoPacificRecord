@@ -126,6 +126,21 @@ class DailySource:
     # family report source-wide evidence (a refused terms page) on its own
     # run-result row when the envelope alone would read as "nothing new".
     evidence_report: Optional[str] = None
+    # UTC HH:MM of the private collector's scheduled cron, mirrored from its
+    # workflow (cited beside each value below). With the grace window it fixes
+    # which target date a healthy collection must have reached; None means no
+    # cadence is declared, so no staleness verdict is applied.
+    collection_cron_utc: Optional[str] = None
+    # Hours after the cron slot during which the previous slot is still the
+    # expected one. Observed cron-to-finish lags are 4 to 10.5 hours.
+    collection_grace_hours: int = 14
+
+    def collection_expectation(self) -> Tuple[Optional[str], int]:
+        """(cron, grace hours) for the freshness verdict; no cron for an
+        attended pilot, whose collection is operator-run, not scheduled."""
+        if attended_only(self.family):
+            return None, self.collection_grace_hours
+        return self.collection_cron_utc, self.collection_grace_hours
 
     def evidence_outcome(self, intake_dir) -> Optional[Tuple[str, str]]:
         return _call(self.evidence_report)(intake_dir) if self.evidence_report else None
@@ -481,6 +496,8 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         language="en", label="AFP", publisher="Armed Forces of the Philippines",
         public_issuer="Armed Forces of the Philippines", prompt_versions=_PH_PROMPTS,
         identity_max_length=120, first_party=True,
+        # private afp_private_first_collector.yml: cron '40 6 * * *'
+        collection_cron_utc="06:40",
         links="core.daily_sources:_afp_links",
         quality="processing.daily_intake:english_official_quality"),
     DailySource(
@@ -488,6 +505,8 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         custody_ref="archive/ph-nsc", language="en", label="NSC",
         publisher="National Security Council", public_issuer=None,
         prompt_versions=_PH_PROMPTS, identity_max_length=120,
+        # private nsc_private_first_collector.yml: cron '10 10 * * *'
+        collection_cron_utc="10:10",
         links="core.daily_sources:_nsc_links",
         quality="processing.daily_intake:english_official_quality",
         release_gate="core.daily_sources:_nsc_category_gate"),
@@ -500,6 +519,8 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         # readable. No other superseded Indonesia pair was ever released.
         released_prompt_versions=("id-relevance-v1+id-analysis-v4",),
         first_party=True, reject_credit_line=True,
+        # private indonesia_private_first_collector.yml: cron '17 17 * * *'
+        collection_cron_utc="17:17",
         links="core.daily_sources:_kemhan_links",
         quality="processing.indonesia_quality:quality_check",
         known_hold="core.daily_sources:_kemhan_known_hold",
@@ -547,6 +568,8 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         public_issuer="Japan Coast Guard",
         prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v1",),
         identity_max_length=64,
+        # private japan_jcg_private_first_collector.yml: cron '13 19 * * *'
+        collection_cron_utc="19:13",
         links="core.daily_sources:_jcg_links",
         quality="processing.daily_intake:english_official_quality",
         known_hold="core.daily_sources:_jcg_known_hold",

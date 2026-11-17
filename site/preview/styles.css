@@ -232,15 +232,6 @@ h1.page-name {font-family:var(--display);font-weight:400;text-transform:none;let
 .reader-contents a { display: inline-flex; min-height: 32px; align-items: center; }
 .section { padding-block: 2.2rem; }
 .section + .section { border-top: 1px solid var(--rule-soft); }
-.section-head {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: .4rem 1rem;
-  padding-bottom: .7rem; margin-bottom: 1.2rem;
-  border-bottom: 2px solid var(--rule-hard);
-}
-.section-head h2 {
-  margin: 0; padding: 0; border: 0;
-  font-size: clamp(1.45rem, 1.2rem + .9vw, 1.9rem); letter-spacing: -.014em;
-}
 .evidence {
   display: inline-flex; align-items: center; gap: .45rem;
   font-size: .8125rem; font-weight: 600; line-height: 1.3;
