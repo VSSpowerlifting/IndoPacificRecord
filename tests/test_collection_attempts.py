@@ -147,6 +147,12 @@ class Verdict(unittest.TestCase):
                   unledgered_exit={"run_id": "1", "collector_exit_status": 1})
         self.assertEqual(verdict(f, self.NOW)[0], st.TIMEOUT)
 
+    def test_health_only_failure_never_reads_as_collection_ok(self):
+        status, detail = verdict(facts(latest=latest(result="ok", health="fail")), self.NOW)
+        self.assertEqual(status, "fetch_failure")
+        self.assertIn("collection health_fail (result ok", detail)
+        self.assertNotIn("collection ok", detail)
+
     def test_stale_and_current_healthy_targets(self):
         stale = facts(latest_healthy_target_date="2026-11-13")
         self.assertEqual(verdict(stale, self.NOW),

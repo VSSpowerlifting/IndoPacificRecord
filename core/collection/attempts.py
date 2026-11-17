@@ -119,8 +119,12 @@ def verdict(facts, *, now: datetime, cron_utc: Optional[str], grace_hours: int,
         if result in collection_status.FAILURE_STATUSES or health == "fail":
             status = (result if result in collection_status.FAILURE_STATUSES
                       else collection_status.FETCH_FAILURE)
+            # A failed health with a non-failure result is named as such, so
+            # the public detail never reads "collection ok" for a failure.
+            what = (_code(result) if result in collection_status.FAILURE_STATUSES
+                    else "health_fail (result %s)" % _code(result))
             return status, "collection %s (run %s, target %s)" % (
-                _code(result), _safe_run(latest.get("run_id")),
+                what, _safe_run(latest.get("run_id")),
                 _safe_date(latest.get("target_date")))
     exit_ = facts.get("unledgered_exit")
     if isinstance(exit_, dict):

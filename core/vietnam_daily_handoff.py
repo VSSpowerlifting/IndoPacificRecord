@@ -237,14 +237,25 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
 
 
 def collection_by_family(envelope: dict) -> dict:
-    """{family: validated collection facts | None} from an already verified
-    handoff. None when absent or invalid, i.e. not attested."""
+    """{family: validated collection facts | not-attested marker | None} from
+    an already verified handoff.
+
+    None only when no block is present (an older signer). A present but
+    malformed or family-mismatched block becomes the same not-attested marker
+    the Shared Daily reader uses (processing.daily_intake.collection_facts), so
+    a signed defective attestation is reported, never read as a quiet day.
+    """
     from core.collection import attempts
     out = {}
     for entry in envelope["families"]:
-        facts = attempts.validate(entry.get("collection"))
+        block = entry.get("collection")
+        if block is None:
+            out[entry["source_family"]] = None
+            continue
+        facts = attempts.validate(block)
         out[entry["source_family"]] = (
-            facts if facts is not None and facts["family"] == entry["source_family"] else None)
+            facts if facts is not None and facts["family"] == entry["source_family"]
+            else {"attested": False, "reason": "collection_attestation_invalid"})
     return out
 
 

@@ -272,8 +272,21 @@ class Handoff(unittest.TestCase):
                 body = {k: v for k, v in envelope.items() if k != "mac"}
                 envelope["mac"] = handoff._mac(BRIDGE_KEY, body)
                 self.assertEqual(self.verify(envelope), old)
-                expected = {MPS: good if label == "valid" else None}
+                invalid = {"attested": False, "reason": "collection_attestation_invalid"}
+                expected = {MPS: {"valid": good, "null": None}.get(label, invalid)}
                 self.assertEqual(handoff.collection_by_family(envelope), expected)
+        # A family-mismatched block is a defect too, not an absent block.
+        report, _ = self.run_private(source_use=grant())
+        envelope = handoff.sign([report], {MPS: json.loads(self.ledger.read_text())},
+                                key=BRIDGE_KEY, run_id="simulated-private-run",
+                                generated_utc=NOW)
+        for entry in envelope["families"]:
+            entry["collection"] = facts(family="vn_vpcp_official_documents_vi")
+        envelope["mac"] = handoff._mac(BRIDGE_KEY, {k: v for k, v in envelope.items()
+                                                    if k != "mac"})
+        self.verify(envelope)
+        self.assertEqual(handoff.collection_by_family(envelope),
+                         {MPS: {"attested": False, "reason": "collection_attestation_invalid"}})
 
     def test_verify_still_refuses_unknown_family_entry_keys(self):
         envelope = self.signed()
