@@ -2,6 +2,9 @@
    ornament is the record itself, set as parallel text, so this sheet carries
    no texture and no drawn scenery: paper, rules and type. */
 [data-surface] .page-head{margin:0 0 2.2rem;padding:1.6rem 0 1.9rem;border-bottom:2px solid var(--rule-hard)}
+/* Waterline rule: the head's edge echoed as the atlas echoes a coast */
+[data-surface] .page-head{position:relative}
+[data-surface] .page-head:not(.ds-hero,.tl-library-head)::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:4px;border-top:1px solid color-mix(in srgb,var(--accent) 42%,var(--bg));border-bottom:1px solid color-mix(in srgb,var(--accent) 20%,var(--bg));pointer-events:none}
 [data-surface] .page-head h1{font:400 clamp(46px,5.6vw,80px)/1.02 var(--display);letter-spacing:-.018em;text-transform:none;max-width:18ch;margin:0 0 .35em}
 [data-surface=source] .page-head h1,[data-surface=desk] .page-head h1{font-size:clamp(42px,4.8vw,68px)}
 [data-surface] .page-head .lede{font:400 clamp(1.125rem,1rem + .45vw,1.3125rem)/1.5 var(--serif);color:var(--ink-2);max-width:56ch;margin:.4rem 0 0}
