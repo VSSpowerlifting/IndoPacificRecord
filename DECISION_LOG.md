@@ -1,4 +1,44 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-17 — Regional atlas: geography returns as real coastline, seats and waterlines
+
+**Authority.** Founder brief of 17 November ("Take ownership of the next
+visual evolution of Indo-Pacific Record"), which authorizes this bounded
+visual phase through merge and deployment under repository governance.
+
+**What changed.**
+- One drawing of real geography, `site/assets/geo/atlas.svg`, built by
+  `scripts/build_atlas.py`. Its source, `site/assets/geo/atlas-50m.json`, is
+  cut from the retired Desks map's committed generated SVG (commit
+  `46f7431982`, SHA-256 pinned): Natural Earth 1:50m via world-atlas 2.0.2,
+  generalized by `scripts/desk_map.py`. No new data was downloaded. Singapore
+  island, dropped from that map's land by its smallest-ring cut, is restored
+  from the same file's Singapore polygon.
+- The sea is drawn with waterlines: the coastline repeated at five fixed
+  distances. They mean distance from the drawn coast, not depth. The retired
+  page terrain (invented contours) is not revived.
+- Desks page: the atlas sits beside the opening; each seat is a link to its
+  row and carries the registry state glyph; rows gain "Seat: <place>".
+- Desk pages: a regional locator beside the head, captioned with the seat.
+- Page heads: the 2px rule gains two waterline hairlines (`surfaces.css`).
+
+**Placement decisions.**
+- Indonesia is placed at Jakarta, where its declared institution (Kemhan)
+  is based. It was left unplaced while its status page was new.
+- The US Indo-Pacific Reference Desk is no longer drawn at Hawaii. Its
+  registered sources are the USCC and the Treasury; nothing from U.S. Pacific
+  Command, the Hawaii institution, is configured. The atlas shows an edge
+  pointer, "United States, outside this map", in open sea at 6°N, away from
+  Hawaii's latitude (a test keeps it off land at every width).
+- No country fills: a filled country reads as coverage. A point is a seat.
+- `desks/geography.json` loses the retired plate placements and country ids;
+  `scripts/desk_map.py` loses the plate layout. `scripts/build_geo_assets.py`
+  keeps its Hawaii emblem point as a constant.
+
+**Unchanged.** Every desk state, count, label, limit and scope is read from
+the registry and the record as before; `CONTENT_AND_DATA_RIGHTS.md` (whose
+"Map base" paragraph covers Natural Earth) is untouched. No script, motion,
+source activation or editorial content was added.
+
 ## 2026-11-16 — Owner: temporary 130 KB delivery budget for korea.html
 
 In PR #1064 the owner was asked how the Korea desk page should keep room as

@@ -8,9 +8,10 @@ generalized and clipped, with land, borders, coastline and a graticule, and
 each desk country under its own id for the page to emphasise. That file is
 committed; the raw TopoJSON is not, and the site build never needs it.
 
-At render time `layout()` projects each desk's seat and plate positions from
-`desks/geography.json` through the same projection, so an anchor always lands
-on the coastline the build drew.
+2026-11-17: the retired map's render-time plate layout is removed. The regional
+atlas (`scripts/build_atlas.py`) is cut from this module's last committed
+output; `scripts/build_geo_assets.py` still reuses the decoder, simplifier and
+projection below.
 
 Miller cylindrical, 10 units per degree of longitude. Boundaries are Natural
 Earth's de facto lines, generalized for a page-scale map; nothing here is a
@@ -34,7 +35,6 @@ LAT_N, LAT_S = 54.0, -47.0
 K = 10.0                     # units per degree of longitude
 TOLERANCE = 0.06             # Douglas-Peucker tolerance, degrees
 MIN_RING_AREA = 6.0          # square units; smaller islands are dropped
-MIN_RUN = 26.0               # a leader's horizontal run into its plate, units
 
 
 def _miller(lat: float) -> float:
@@ -49,81 +49,6 @@ HEIGHT = round((Y_TOP - _miller(LAT_S)) * K)
 
 def project(lon: float, lat: float) -> tuple:
     return ((lon - LON_W) * K, (Y_TOP - _miller(lat)) * K)
-
-
-# ── render time ───────────────────────────────────────────────────────────────
-
-def _leader(ax, ay, cx, cy, hang):
-    """Anchor → plate. A plate hung `left` or `right` takes the leader at a
-    top corner: a vertical drop if needed, one 45° diagonal, then a
-    horizontal run that continues the plate's top rule. A plate hung `up` or
-    `down` takes a vertical leader square into its bottom or top edge."""
-    if hang in ("up", "down"):
-        if (cy - ay) * (1 if hang == "down" else -1) < MIN_RUN:
-            raise ValueError("leader would cross its own plate")
-        return "%.1f,%.1f %.1f,%.1f" % (ax, ay, ax, cy)
-    sx = -1 if hang == "left" else 1     # direction of travel along the run
-    if (cx - ax) * sx < MIN_RUN:
-        raise ValueError("leader would cross its own plate")
-    dx = abs(cx - ax) - MIN_RUN
-    dy = cy - ay
-    d = min(dx, abs(dy))
-    sy = 1 if dy > 0 else -1
-    pts = [(ax, ay), (ax, ay + sy * (abs(dy) - d)),
-           (cx - sx * (MIN_RUN + dx - d), cy), (cx, cy)]
-    out = []
-    for p in pts:
-        if not out or (abs(p[0] - out[-1][0]) > .05 or abs(p[1] - out[-1][1]) > .05):
-            out.append(p)
-    return " ".join("%.1f,%.1f" % p for p in out)
-
-
-def _plate(ax, ay, card):
-    """Where the plate's box goes, as CSS: the point it hangs from, in
-    percent of the map, and the translate that puts the right edge there."""
-    hang = card["hang"]
-    if hang in ("up", "down"):
-        # The leader stays on the anchor's meridian; `align` says how far
-        # along the plate's width it meets the edge.
-        cx, cy = ax, project(*card["at"])[1]
-        tx = "%g%%" % (-100 * card.get("align", .5))
-        ty = "-100%" if hang == "up" else "0%"
-    else:
-        cx, cy = project(*card["at"])
-        tx, ty = ("-100%" if hang == "left" else "0%"), "0%"
-    return {
-        "hang": hang,
-        "left": "%.2f%%" % (cx / WIDTH * 100),
-        "top": "%.2f%%" % (cy / HEIGHT * 100),
-        "tx": tx, "ty": ty,
-        "points": _leader(ax, ay, cx, cy, hang),
-    }
-
-
-def layout(desks) -> dict:
-    """slug -> anchor and plate placement, for the desks the registry declares
-    and the geography file places. Everything else renders in the list only."""
-    places = json.loads(GEOGRAPHY.read_text(encoding="utf-8"))["desks"]
-    out = {}
-    for desk in desks:
-        geo = places.get(desk.slug)
-        if not geo:
-            continue
-        lon, lat = geo["anchor"]
-        ax, ay = project(lon, lat)
-        entry = {
-            "seat": geo["seat"],
-            "coords": "%.1f°%s %.1f°%s" % (
-                abs(lat), "N" if lat >= 0 else "S",
-                lon if lon <= 180 else 360 - lon, "E" if lon <= 180 else "W"),
-            "x": "%.1f" % ax, "y": "%.1f" % ay,
-            # The phone map's own label sits west of a point near the edge.
-            "label_west": ax > WIDTH * .7,
-        }
-        for mode, card in geo["card"].items():
-            entry[mode] = _plate(ax, ay, card)
-        out[desk.slug] = entry
-    return {"width": WIDTH, "height": HEIGHT, "desks": out}
 
 
 # ── build time ────────────────────────────────────────────────────────────────

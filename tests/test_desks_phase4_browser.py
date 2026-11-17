@@ -107,6 +107,33 @@ class DesksDirectoryBrowser(unittest.TestCase):
                 if entry.status == "shadow":
                     self.assertNotRegex(row["records"], r"\d")
 
+    def test_atlas_labels_stay_clear_of_each_other_and_inside_the_map(self):
+        # The regional atlas (2026-11-17): no name overlaps another name or
+        # another desk's mark, and none leaves the map, at any width.
+        probe = """() => {const m=document.querySelector('.atlas-map').getBoundingClientRect();
+          const r=[...document.querySelectorAll('.atlas .seat')].map(a=>{
+            const t=a.querySelector('.seat-text').getBoundingClientRect(),k=a.querySelector('.seat-mark').getBoundingClientRect();
+            return {n:a.querySelector('b').textContent,t:[t.left,t.top,t.right,t.bottom],
+                    k:[k.left+12,k.top+12,k.right-12,k.bottom-12],h:a.getBoundingClientRect().height}});
+          const hit=(a,b)=>a[0]<b[2]&&b[0]<a[2]&&a[1]<b[3]&&b[1]<a[3],out=[];
+          for(let i=0;i<r.length;i++)for(let j=0;j<r.length;j++){if(i===j)continue;
+            if(j>i&&hit(r[i].t,r[j].t))out.push(r[i].n+' / '+r[j].n);
+            if(hit(r[i].t,r[j].k))out.push(r[i].n+' over the mark of '+r[j].n)}
+          for(const x of r){if(x.t[0]<m.left-1||x.t[2]>m.right+1||x.t[1]<m.top-1||x.t[3]>m.bottom+1)out.push(x.n+' outside the map');
+            if(x.h<40)out.push(x.n+' target under 40px')}
+          return {count:r.length,problems:out}}"""
+        for width in WIDTHS + (414, 1024):
+            ctx = self.browser.new_context(viewport={"width": width, "height": 900})
+            page = ctx.new_page()
+            try:
+                page.goto((self.out / "desks.html").as_uri(), wait_until="load")
+                result = page.evaluate(probe)
+            finally:
+                ctx.close()
+            with self.subTest(width=width):
+                self.assertEqual(result["count"], len(self.registry))
+                self.assertEqual(result["problems"], [])
+
     def test_no_javascript_still_exposes_every_public_desk(self):
         rows, doc_width = self._rows(viewport={"width": 375, "height": 812},
                                      java_script_enabled=False)

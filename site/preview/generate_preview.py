@@ -103,6 +103,9 @@ ARCHIVE_MARK_ASSETS = tuple("assets/desk-marks/%s.svg" % s
 # derivatives travel separately, one by one, from the admission record
 # (core/catalogue_media.py) and only when a card actually shows one.
 CATALOGUE_STATIC_ASSETS = ("assets/geo/region.svg",)
+# The regional atlas (scripts/build_atlas.py): one waterlined Natural Earth
+# drawing, cropped by CSS for the Desks page and for each desk's locator.
+ATLAS_ASSETS = ("assets/geo/atlas.svg",)
 
 #: The public name. Owner-directed 2026-08-25; the governing record is
 #: docs/INDO_PACIFIC_RECORD_EVOLUTION.md §1. "The Declared Record" and
@@ -149,6 +152,7 @@ from core.catalogue_media import (                                   # noqa: E40
 from core.timelines import load_timelines
 from core.dossiers import load_dossiers, validate_review_destination
 from core.desk_registry import load_registry                         # noqa: E402
+from scripts.build_atlas import atlas_view, locator_view              # noqa: E402
 from core.reviewed_source_links import load_public_desk_references    # noqa: E402
 from core.public_editorial_research import load_catalog as load_editorial_catalog, published_for_desk
 from core.indonesia_official_index import load as load_indonesia_official_index  # noqa: E402
@@ -2992,6 +2996,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         "collection_name": COLLECTION_NAME,
         "briefs_feed_route": BRIEFS_FEED_ROUTE if briefs_feed else None,
         "desks": desks,
+        # Where each desk's publishing institutions are based, on the atlas.
+        "atlas": atlas_view(desks),
         "editorial_published_desks": editorial_published_desks,
         "live_desk_count": desks.collecting_count,
         "developing_desk_count": desks.not_collecting_count,
@@ -3130,11 +3136,10 @@ def build(out_dir: Path, title: str, db_path: Path,
         page_html = env.get_template(template).render(
             page=target, **ctx, **desk_index_lanes)
         if target == "desks.html":
-            # Desks embeds the canonical 1:50m map inline. Its accessible
-            # directory keeps every status/limit, so trim only indentation
-            # at the start of lines whose next token is an HTML/SVG tag.
-            # The newline remains intact: text spacing and all SVG path
-            # coordinates are preserved, and other pages are untouched.
+            # Trim only indentation at the start of lines whose next token
+            # is a tag, to keep the long directory under its raw-size pin.
+            # The newline remains intact, so text spacing is preserved, and
+            # other pages are untouched.
             page_html = re.sub(r"(?m)^[ \t]+(?=<)", "", page_html)
         (out_dir / target).write_text(page_html, encoding="utf-8")
         written.append(target)
@@ -3237,7 +3242,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         written.append("gallery.html")
         for folder in ("geo", "flags", "glyphs"):
             for asset in sorted((REPO_ROOT / "site/assets" / folder).iterdir()):
-                if (not asset.is_file() or asset.name.endswith(".receipt.json")
+                if (not asset.is_file() or asset.name.endswith(".json")
+                        or "assets/%s/%s" % (folder, asset.name) in ATLAS_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in DESKS_PUBLIC_FLAG_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in CATALOGUE_STATIC_ASSETS):
                     continue
@@ -3432,7 +3438,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         ])
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
-        desk_page = desk_tmpl.render(page=desk.route, desk=desk,
+        desk_page = desk_tmpl.render(page=desk.route, desk=desk, locator=locator_view(desk.slug),
                              support_stylesheet=("indonesia-shell.css"
                                  if desk.slug == "indonesia" else
                                  "korea-shell.css" if desk.slug == "korea" else "support.css"),
@@ -3706,6 +3712,11 @@ def build(out_dir: Path, title: str, db_path: Path,
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
             written.append(route)
+    for route in ATLAS_ASSETS:
+        target = out_dir / route
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
+        written.append(route)
     for folder in ("fonts", "identity/selected-ipr", "frontend"):
         source = REPO_ROOT / "site/assets" / folder
         for asset in sorted(source.iterdir()):

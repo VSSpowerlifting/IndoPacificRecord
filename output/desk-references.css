@@ -2,6 +2,25 @@
    opens a section and hairlines separate its rows; the only marks are the
    shared evidence labels. Korea-only rules live in korea-shell.css. */
 [data-surface=desk] .page-head{margin-bottom:0}
+/* Seat locator (_geo.html): a window on assets/geo/atlas.svg */
+.page-head--located{display:grid;grid-template-columns:minmax(0,1fr) 13rem;grid-template-rows:auto auto 1fr;column-gap:3rem}
+.page-head--located>*{grid-column:1}
+.page-head--located>.locator{grid-column:2;grid-row:1/-1;align-self:start;margin:.5rem 0 0}
+.locator-map{position:relative;background:var(--accent-tint) url(assets/geo/atlas.svg) var(--crop-at)/var(--crop-size) no-repeat;border:1px solid var(--rule)}
+.locator .seat-mark{position:absolute;transform:translate(-50%,-50%);font-size:1rem;line-height:1;color:var(--ink)}
+.locator .seat-mark::before{content:"◐"}
+.locator .seat-mark--live{color:var(--positive)}.locator .seat-mark--live::before{content:"■"}
+.locator .seat-mark--access_blocked{color:var(--warning)}.locator .seat-mark--access_blocked::before{content:"▣"}
+.locator figcaption{margin:.45rem 0 0;font:400 .8125rem/1.4 var(--sans);color:var(--muted)}
+.locator figcaption a{font-weight:600}
+@media(max-width:699px){
+  .page-head--located{grid-template-columns:minmax(0,1fr) 6.5rem;grid-template-rows:auto;column-gap:1rem}
+  .page-head--located>.locator{grid-row:1;margin:0}
+  .page-head--located>.lede,.page-head--located>.desk-count{grid-column:1/-1}
+  .locator .seat-mark{font-size:.8125rem}
+  .locator figcaption{font-size:.75rem;margin-top:.3rem}
+}
+@media(forced-colors:active){.locator-map{forced-color-adjust:none}}
 .desk-count{font:400 var(--step-meta)/1.5 var(--sans);color:var(--muted);margin:.9rem 0 0}
 [data-surface=desk] .status-panel{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 .7rem;align-items:start;margin:0 0 2.4rem;padding:1.4rem 0 1.6rem;border:0;border-bottom:1px solid var(--rule);background:none}
 [data-surface=desk] .status-panel .status-glyph{font-size:1.05rem;line-height:1.75rem;padding:0}
