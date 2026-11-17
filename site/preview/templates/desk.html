@@ -2,12 +2,14 @@
 {% from "_atlas.html" import breadcrumb %}
 {% from "_weeks.html" import week_strip %}
 {% from "_records.html" import record_days %}
+{% from "_geo.html" import locator as atlas_locator %}
 {% block title %}{{ desk.name }} — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="desk-references.css">{% if korea_preview | default(false) %}<link rel="stylesheet" href="korea-preview.css">{% endif %}{% endblock %}
 {% block content %}
 {{ breadcrumb([('Desks', 'desks.html'), (desk.name, none)]) }}
-<header class="page-head">
+<header class="page-head{% if locator %} page-head--located{% endif %}">
   <h1 class="page-name">{{ desk.name }}</h1>
+  {{ atlas_locator(locator, desk) }}
   <p class="lede">{{ desk.scope }}</p>
   {% if desk.record_count %}<p class="desk-count">{{ desk.record_count|count }} record{{ '' if desk.record_count == 1 else 's' }}{% if desk.first_published and desk.last_published %}, published {{ desk.first_published | reader_date }} to {{ desk.last_published | reader_date }}{% endif %}.</p>{% endif %}
 </header>

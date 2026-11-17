@@ -1,0 +1,23 @@
+{
+ "generator": "scripts/build_atlas.py",
+ "licence": "Natural Earth: public domain. world-atlas: ISC.",
+ "meaning": "Waterlines are offsets of the drawn coastline: distance from the coast, not depth, terrain or coverage.",
+ "outputs": {
+  "atlas.svg": {
+   "bytes": 40158,
+   "sha256": "fbcdbfbe98ac26c95abec18294847e80cca72f9b01aae1877a5c8ccbc94d651f"
+  }
+ },
+ "source": {
+  "cut_from": {
+   "commit": "46f7431982f355b2612f135fee517f7a83f6549e",
+   "natural_earth_inputs": {
+    "countries-50m.json": "04342cdc1e3016bcd7db1630de95684d67b79fe3c8c460321e87aef469502394"
+   },
+   "path": "site/preview/templates/_desk_map_geo.svg",
+   "sha256": "6358018ee3827f43e09543baef1d5578cd981e768ac502c36e7a95e9099ce012"
+  },
+  "file": "atlas-50m.json",
+  "sha256": "94e77998236a0602c51e60f3156456f6ba78af438e5f727002500228b7696a42"
+ }
+}
