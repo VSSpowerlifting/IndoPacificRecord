@@ -29,6 +29,11 @@ INDONESIA_HTML_CSS_CAP = 130000
 # statement) and sat 656 bytes under 120 KB before the #1053 Record CSS.
 # Every other record keeps 120 KB.
 RECORD_476_HTML_CSS_CAP = 125000
+# Owner authorization, DECISION_LOG 2026-11-16 (PR #1064): temporary 130 KB
+# HTML+CSS for the root Korea desk page only, while its admitted MND and DAPA
+# official-link list grows (about 510 bytes a link). Every other desk, record
+# and nested route keeps its cap.
+KOREA_HTML_CSS_CAP = 130000
 
 
 def html_css_cap(route):
@@ -36,6 +41,8 @@ def html_css_cap(route):
         return INDONESIA_HTML_CSS_CAP
     if route == 'record/476.html':
         return RECORD_476_HTML_CSS_CAP
+    if route == 'korea.html':
+        return KOREA_HTML_CSS_CAP
     parts = route.split('/')
     if parts[0] == 'dossier':
         # Nothing under dossier/ takes the hub allowance; nested or index

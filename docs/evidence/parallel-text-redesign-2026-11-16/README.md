@@ -41,7 +41,7 @@ viewport (no horizontal scroll at 375px) and logged no console errors.
   matches it byte for byte, apart from sitemap URL order.
 - `scripts/verify_frontend_delivery.py`: 0 budget failures across 3,613
   committed routes (3,595 in the fresh render). Nearest to their caps:
-  `korea.html` 118,790 / 120,000; `indonesia.html` 122,338 / 130,000;
+  `korea.html` 118,790 / 120,000 (the cap at capture; 130,000 since the owner's decision of 16 November); `indonesia.html` 122,338 / 130,000;
   `record/476.html` 117,072 / 125,000.
 - `scripts/build_archive_js.py --check` passes: `browse.js` 9,485 bytes,
   `citation.js` 4,961 bytes.

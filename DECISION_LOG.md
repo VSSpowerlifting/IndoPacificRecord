@@ -1,4 +1,31 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-16 — Owner: temporary 130 KB delivery budget for korea.html
+
+In PR #1064 the owner was asked how the Korea desk page should keep room as
+its link list grows. The owner answered: "Raise the Korea cap".
+
+**Scope.** The allowance applies only to the root `korea.html` route
+(`scripts/verify_frontend_delivery.py`, `KOREA_HTML_CSS_CAP` in
+`html_css_cap`). It is 130 KB, the same as the temporary Indonesia allowance,
+which was granted for the same reason. Every other desk page keeps 120 KB, as
+do the Korea originals, translations and analysis pages, any nested path named
+`korea.html`, records, Briefs and week pages. Hubs, dossiers, `indonesia.html`
+and `record/476.html` keep their caps, and the JS caps are unchanged.
+`tests/test_briefs_enrichment.py` checks two things: the allowance covers only
+that route, and `korea.html` is still rejected at 130,001 bytes.
+
+**Why.** Each MND or DAPA official link admitted to the Korea desk page adds
+about 510 bytes. With the parallel text redesign the page measured 119,046
+bytes after the three links admitted on 16 November (`c9fba5e3ef`), which
+left room for about two more. `main` itself had about 4.5 KB. The budget is
+enforced in PR CI (`CompleteDelivery` on the committed tree), so a committed
+Korea page over the cap would fail every later pull request.
+
+**Not chosen.** Two other options were offered. One was a Korea-only desk
+stylesheet without the other desks' reference-list rules, which would change
+the Korea and country-research release-scope guards. The other was fewer
+newest rows on the Korea page.
+
 ## 2026-11-16 — Parallel text redesign (pending review)
 
 **Status.** An engineering and design change awaiting the owner's review in
@@ -57,8 +84,11 @@ withheld) never carries one. Korea MND and Vietnam records already publish
 these summaries on their record pages. Not on the Records page, week pages or
 the search index. **Korea page headroom:** the Korea desk page carries no
 summary lines. Measured on this build with `verify_frontend_delivery` against
-its 120,000-byte HTML-plus-CSS budget: 118,586 bytes without them, 120,058
-with them (over the cap), and its link lists grow daily.
+its then 120,000-byte HTML-plus-CSS budget: 118,586 bytes without them,
+120,058 with them (over the cap), and its link lists grow daily. The owner
+has since raised the Korea cap to 130 KB (entry above). That room is kept
+for admitted links, so the page still carries no summary lines; adding them
+would be a separate change.
 
 **Scaffolding language.** Lists state once, at the head of the English
 column, that English titles are machine translations with human review not
