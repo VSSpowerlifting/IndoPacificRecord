@@ -81,6 +81,53 @@ class BoundedAnalysisTests(unittest.TestCase):
         self.assertEqual(writes, [])
         self.assertEqual(sorted(started), [0, 1])
 
+    def test_later_fatal_stops_dispatch_while_earlier_result_is_pending(self):
+        # A later worker can discover a 402 before the first queued request
+        # completes. Do not dispatch article 2 while waiting to commit 0.
+        allow_first_finish = threading.Event()
+        later_failed = threading.Event()
+        started = []
+        writes = []
+        fatals = []
+        lock = threading.Lock()
+
+        def work(item):
+            with lock:
+                started.append(item)
+            if item == 0:
+                self.assertTrue(allow_first_finish.wait(timeout=3))
+                return item
+            if item == 1:
+                later_failed.set()
+                raise AccountBlocked("credit exhausted")
+            return item
+
+        def release_first_after_second_fails():
+            try:
+                self.assertTrue(later_failed.wait(timeout=3))
+                # Let the executor wrapper mark the fatal condition before
+                # releasing the earlier result into the commit loop.
+                time.sleep(0.05)
+            finally:
+                allow_first_finish.set()
+
+        releaser = threading.Thread(target=release_first_after_second_fails)
+        releaser.start()
+        try:
+            process_bounded(
+                range(8), work, lambda item, _: writes.append(item),
+                workers=2, fatal_error=AccountBlocked,
+                on_fatal=lambda item, exc: fatals.append((item, str(exc))),
+            )
+        finally:
+            allow_first_finish.set()
+            releaser.join(timeout=3)
+
+        self.assertFalse(releaser.is_alive())
+        self.assertEqual(started, [0, 1])
+        self.assertEqual(writes, [0])
+        self.assertEqual(fatals, [(1, "credit exhausted")])
+
     def test_nonfatal_empty_result_is_persisted_and_unexpected_errors_propagate(self):
         writes = []
         process_bounded([1, 2], lambda item: None if item == 1 else item,
