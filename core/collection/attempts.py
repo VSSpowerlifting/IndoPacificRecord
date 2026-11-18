@@ -34,7 +34,12 @@ _RUN_ID = re.compile(r"[A-Za-z0-9_.-]{1,80}\Z")
 _COMMIT = re.compile(r"[a-f0-9]{40}\Z")
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 _CODE = re.compile(r"[a-z0-9_]{1,80}\Z")
-_HEALTH = ("ok", "partial", "fail")
+# Every health value the collectors write (scripts/shadow_collect_*.py): a
+# disabled day is "skipped", a challenged Japan MOD run is "degraded". Only
+# _HEALTHY_HEALTH can make an entry healthy; the others are valid but never
+# healthy, so one switched-off day never makes custody unreadable.
+_HEALTH = ("ok", "partial", "fail", "skipped", "degraded")
+_HEALTHY_HEALTH = (None, "ok", "partial")
 
 
 def _date(value) -> Optional[object]:
@@ -206,7 +211,7 @@ def _reduce_ledger(ledger) -> dict:
     entry = {k: ledger.get(k) for k in _LEDGER_FIELDS}
     ok = entry["result"] in collection_status.ALL_STATUSES
     entry["healthy"] = bool(ok and entry["result"] in collection_status.SUCCESS_STATUSES
-                            and entry["health"] != "fail")
+                            and entry["health"] in _HEALTHY_HEALTH)
     if not _latest_ok(entry):
         raise ValueError("ledger fields are not well formed")
     return entry

@@ -307,6 +307,33 @@ class ReadCustody(unittest.TestCase):
         self.assertFalse(out["latest"]["healthy"])
         self.assertIsNone(out["latest"]["health"])
 
+    def test_a_switched_off_day_is_unhealthy_but_never_poisons_custody(self):
+        # The collectors write result=skipped_disabled, health="skipped" for a
+        # disabled day (shadow_collect_desk.py, shadow_collect_ph_nsc.py). It
+        # must not make the next twenty healthy runs unattested.
+        files = dict([
+            self.led("a", run_id="1-1", target="2026-11-14", finished="2026-11-14T20:00:00+00:00"),
+            self.led("b", run_id="2-1", target="2026-11-15", finished="2026-11-15T20:00:00+00:00",
+                     result="skipped_disabled", health="skipped"),
+            self.led("c", run_id="3-1", target="2026-11-16", finished="2026-11-16T20:00:00+00:00",
+                     result="access_challenged", health="degraded")]
+            + [self.led("d%02d" % i, run_id="%d-1" % (10 + i), target="2026-11-17",
+                        finished="2026-11-17T%02d:00:00+00:00" % i) for i in range(3)])
+        out = self.read(files)
+        self.assertTrue(out["attested"], out)
+        self.assertTrue(out["latest"]["healthy"])
+        self.assertEqual(out["latest_healthy_target_date"], "2026-11-17")
+        self.assertIsNone(verdict(out, at(17, "23:00")))
+        # A skipped latest is valid, never healthy, and is judged by staleness.
+        out = self.read(dict([
+            self.led("a", run_id="1-1", target="2026-11-14", finished="2026-11-14T20:00:00+00:00"),
+            self.led("b", run_id="2-1", target="2026-11-17", finished="2026-11-17T20:00:00+00:00",
+                     result="skipped_disabled", health="skipped")]))
+        self.assertTrue(out["attested"])
+        self.assertFalse(out["latest"]["healthy"])
+        self.assertEqual(out["latest_healthy_target_date"], "2026-11-14")
+        self.assertEqual(verdict(out, at(17, "23:00"))[0], "fetch_failure")
+
     def test_rehearsal_ledgers_are_skipped(self):
         files = dict([
             self.led("a", run_id="1-1", target="2026-11-15", finished="2026-11-15T10:00:00+00:00"),
