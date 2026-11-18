@@ -486,7 +486,11 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
     return result, usage_record or []
 
 
-def sign_outputs(state, *, family, policy, key, selected_record=None):
+def sign_outputs(state, *, family, policy, key, selected_record=None, collection=None):
+    """Sign the family's outputs. ``collection=None`` emits the exact /1 packet
+    and MAC; a facts dict emits /2 with that block, MACed under DOMAIN_V2. A
+    block that fails validation is replaced by a not-attested one, never
+    dropped or signed as given."""
     p = policy["sources"][family]
     need(p["private_model_processing"] and p["public_machine_explanation"]
          and p["unattended_release"], "daily_output_rights_held")
@@ -521,13 +525,23 @@ def sign_outputs(state, *, family, policy, key, selected_record=None):
                     "metadata_version_sha256", "content_sha256", "capture_sha256")
         need(all(out.get(k) == selected_record.get(k) for out in outputs for k in expected),
              "daily_singapore_pilot_version_mismatch")
-    packet = {"schema": "ipr-shared-daily-machine-output/1", "family": family,
+    packet = {"schema": SCHEMA_V1, "family": family,
               "source_repository": PRIVATE_REPO, "source_ref": REFS[family],
               "processor_commit": git(ROOT, "rev-parse", "HEAD").decode().strip(), "records": outputs,
               "held": held}
+    domain = DOMAIN
+    if collection is not None:
+        from core.collection import attempts
+        facts = attempts.validate(collection)
+        if facts is None or facts["family"] != family:
+            commit = collection.get("custody_commit") if isinstance(collection, dict) else None
+            facts = attempts.unattested(
+                family, commit if isinstance(commit, str) and COMMIT.fullmatch(commit)
+                else "0" * 40, "collection_attestation_invalid")
+        packet["schema"], packet["collection"], domain = SCHEMA_V2, facts, DOMAIN_V2
     raw = canonical(packet)
     need(len(raw) <= 512000, "daily_envelope_too_large")
-    return {"packet": packet, "mac": hmac.new(key.encode(), DOMAIN + raw, hashlib.sha256).hexdigest()}
+    return {"packet": packet, "mac": hmac.new(key.encode(), domain + raw, hashlib.sha256).hexdigest()}
 
 
 def admit(conn, envelope, *, family, policy, key):

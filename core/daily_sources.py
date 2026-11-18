@@ -134,6 +134,9 @@ class DailySource:
     # Hours after the cron slot during which the previous slot is still the
     # expected one. Observed cron-to-finish lags are 4 to 10.5 hours.
     collection_grace_hours: int = 14
+    # Receipt directories (at the custody commit) holding "<run_id>.json" files
+    # with the collector's exit status, written even when no ledger is.
+    collection_receipt_dirs: Tuple[str, ...] = ()
 
     def collection_expectation(self) -> Tuple[Optional[str], int]:
         """(cron, grace hours) for the freshness verdict; no cron for an
@@ -141,6 +144,18 @@ class DailySource:
         if attended_only(self.family):
             return None, self.collection_grace_hours
         return self.collection_cron_utc, self.collection_grace_hours
+
+    def signs_collection(self) -> bool:
+        """True when the private signer emits schema /2 with a signed
+        collection block: exactly the families with a declared, unattended
+        cadence. Others (attended pilot, no cadence) keep signing /1."""
+        return self.collection_expectation()[0] is not None
+
+    def collection_attempt(self, repo, commit) -> dict:
+        """Signed-facts block read from custody at ``commit``; never raises."""
+        from core.collection import attempts
+        return attempts.read_custody(repo, commit, self.family,
+                                     receipt_dirs=self.collection_receipt_dirs)
 
     def evidence_outcome(self, intake_dir) -> Optional[Tuple[str, str]]:
         return _call(self.evidence_report)(intake_dir) if self.evidence_report else None
@@ -497,7 +512,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         public_issuer="Armed Forces of the Philippines", prompt_versions=_PH_PROMPTS,
         identity_max_length=120, first_party=True,
         # private afp_private_first_collector.yml: cron '40 6 * * *'
-        collection_cron_utc="06:40",
+        collection_cron_utc="06:40", collection_receipt_dirs=("private_attempts",),
         links="core.daily_sources:_afp_links",
         quality="processing.daily_intake:english_official_quality"),
     DailySource(
@@ -506,7 +521,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         publisher="National Security Council", public_issuer=None,
         prompt_versions=_PH_PROMPTS, identity_max_length=120,
         # private nsc_private_first_collector.yml: cron '10 10 * * *'
-        collection_cron_utc="10:10",
+        collection_cron_utc="10:10", collection_receipt_dirs=("private_attempts",),
         links="core.daily_sources:_nsc_links",
         quality="processing.daily_intake:english_official_quality",
         release_gate="core.daily_sources:_nsc_category_gate"),
@@ -520,7 +535,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         released_prompt_versions=("id-relevance-v1+id-analysis-v4",),
         first_party=True, reject_credit_line=True,
         # private indonesia_private_first_collector.yml: cron '17 17 * * *'
-        collection_cron_utc="17:17",
+        collection_cron_utc="17:17", collection_receipt_dirs=("state/private_attempts",),
         links="core.daily_sources:_kemhan_links",
         quality="processing.indonesia_quality:quality_check",
         known_hold="core.daily_sources:_kemhan_known_hold",
