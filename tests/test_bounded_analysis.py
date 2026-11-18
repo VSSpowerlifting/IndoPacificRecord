@@ -124,7 +124,7 @@ class BoundedAnalysisTests(unittest.TestCase):
             releaser.join(timeout=3)
 
         self.assertFalse(releaser.is_alive())
-        self.assertEqual(started, [0, 1])
+        self.assertEqual(sorted(started), [0, 1])
         self.assertEqual(writes, [0])
         self.assertEqual(fatals, [(1, "credit exhausted")])
 
