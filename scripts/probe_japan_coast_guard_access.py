@@ -11,9 +11,9 @@ import json
 import time
 import urllib.error
 import urllib.request
-import urllib.robotparser
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 HOST = "www.kaiho.mlit.go.jp"
 UA = ("ChinaMilWatch/1.0 (non-commercial research; project: "
@@ -120,8 +120,7 @@ def examine(*, opener=None, request=get_once, sleep=time.sleep):
         policy_text = raw.decode("utf-8-sig", errors="replace")
         if any(line.strip().lower().startswith("user-agent:")
                for line in policy_text.splitlines()):
-            robot = urllib.robotparser.RobotFileParser()
-            robot.parse(policy_text.splitlines())
+            robot = policy_text.splitlines()
             policy["verdict"] = "readable"
     if robot is None and not no_robots_file:
         policy["verdict"] = "unreadable_no_further_requests"
@@ -137,7 +136,7 @@ def examine(*, opener=None, request=get_once, sleep=time.sleep):
         item = {"id": ident, "url": url, "kind": kind}
         if robot is None and not no_robots_file:
             item["verdict"] = "blocked_policy_unavailable"
-        elif robot is not None and not robot.can_fetch(UA, url):
+        elif robot is not None and not legacy_can_fetch(robot, UA, url):
             item["verdict"] = "blocked_by_robots"
         else:
             sleep(INTERVAL)

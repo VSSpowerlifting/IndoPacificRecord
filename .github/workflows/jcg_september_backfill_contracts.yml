@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: pip install -r requirements.txt
       - name: Verify two-record addition with unchanged Day 0 and prevention of replay
         run: python -m unittest tests.test_jcg_september_historical_backfill -v

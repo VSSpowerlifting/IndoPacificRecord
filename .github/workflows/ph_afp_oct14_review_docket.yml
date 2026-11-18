@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Validate existing AFP packet, docket and workflow contracts
         run: python -m unittest tests.test_ph_afp_review_docket tests.test_ph_afp_run_review tests.test_ph_afp_oct14_review_docket_workflow -q
       - name: Assert worktree preservation
@@ -44,7 +44,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Exercise offline human-review contracts
         run: python -m unittest tests.test_ph_afp_review_docket tests.test_ph_afp_run_review tests.test_ph_afp_oct14_review_docket_workflow -q
       - name: Pin existing AFP shadow to exact reviewed Oct 14 commit

@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Exact URL, robots, JSON, source and no-publish contracts
         run: python -m unittest -v tests.test_korea_dapa_catalogue_metadata_probe tests.test_korea_dapa_official_catalogue
       - name: Refuse any source or publication mutations
@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Run exactly one distinct-host robots and qualified catalogue metadata check
         run: python -m scripts.probe_korea_dapa_catalogue_metadata --approve-one-time-data-go-kr-metadata
       - name: Verify original source and publication state untouched

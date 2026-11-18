@@ -20,7 +20,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Validate immutable targets and denied-access isolation
         run: python -m unittest tests.test_us_other_firstparty_access -v
       - name: Real GitHub-runner read-only official-site access test

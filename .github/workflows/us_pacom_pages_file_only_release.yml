@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install -r requirements.txt
       - name: Validate publisher links and render actual desk
         shell: bash
@@ -82,7 +82,7 @@ jobs:
           persist-credentials: true
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Pin current main and production database
         shell: bash
         run: |

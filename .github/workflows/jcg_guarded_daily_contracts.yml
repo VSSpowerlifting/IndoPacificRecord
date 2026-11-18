@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Assert no unapproved schedule activity or date drift
         run: python -m unittest tests.test_jcg_guarded_daily_shadow_contracts -v
       - name: Assert no production/output mutations

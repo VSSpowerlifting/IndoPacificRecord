@@ -13,10 +13,10 @@ import re
 import time
 import urllib.error
 import urllib.request
-import urllib.robotparser
 from html.parser import HTMLParser
 
 from scripts.probe_vietnam_mod_defrel_access import NoRedirect
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 HOST = "https://www.dapa.go.kr"
 ROBOTS = HOST + "/robots.txt"
@@ -94,9 +94,7 @@ def check_robots(raw):
         line.strip().lower().startswith("user-agent:") for line in body.splitlines()
     ):
         raise Hold("dapa_article_robots_not_readable") from None
-    parser = urllib.robotparser.RobotFileParser()
-    parser.parse(body.splitlines())
-    if not parser.can_fetch(AGENT, ARTICLE):
+    if not legacy_can_fetch(body.splitlines(), AGENT, ARTICLE):
         raise Hold("dapa_article_robots_denies_document")
     return True
 

@@ -15,13 +15,13 @@ import sys
 import time
 import urllib.error
 import urllib.request
-import urllib.robotparser
 from collections import Counter
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 HOST = "www.kaiho.mlit.go.jp"
 PREFIX = "https://" + HOST
@@ -106,9 +106,7 @@ def _read_policy(outcome):
     text = outcome["bytes"].decode("utf-8-sig", errors="replace")
     if not any(line.strip().lower().startswith("user-agent:") for line in text.splitlines()):
         raise ValueError("robots response lacks directives")
-    parser = urllib.robotparser.RobotFileParser()
-    parser.parse(text.splitlines())
-    return parser, "parsed"
+    return text.splitlines(), "parsed"
 
 
 def _pdf_metrics(raw):
@@ -152,7 +150,7 @@ def audit(*, opener=None, fetch=_http_once, pdf_metrics=_pdf_metrics,
         entry = {"id": identity, "article_url": article,
                  "assessment": "incomplete_not_reviewed"}
         observations.append(entry)
-        if robots is not None and not robots.can_fetch(CLIENT, article):
+        if robots is not None and not legacy_can_fetch(robots, CLIENT, article):
             entry["failure"] = "article_robots_disallow"
             continue
         sleep(INTERVAL)
@@ -171,7 +169,7 @@ def audit(*, opener=None, fetch=_http_once, pdf_metrics=_pdf_metrics,
             entry["failure"] = str(exc)
             continue
         entry["pdf_url"] = linked
-        if robots is not None and not robots.can_fetch(CLIENT, linked):
+        if robots is not None and not legacy_can_fetch(robots, CLIENT, linked):
             entry["failure"] = "pdf_robots_disallow"
             continue
         sleep(INTERVAL)

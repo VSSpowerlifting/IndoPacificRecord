@@ -136,10 +136,9 @@ def candidates(repo, commit, *, fetch_run):
          and robots.get("url") == "https://www.mod.go.jp/robots.txt"
          and hashlib.sha256(text.encode()).hexdigest() == robots.get("payload_sha256"),
          "japan_policy_observation_unverified")
-    import urllib.robotparser
-    parser = urllib.robotparser.RobotFileParser()
-    parser.parse(text.splitlines())
-    need(parser.can_fetch("*", FEED), "japan_feed_policy_refused")
+    from scraper.sources.robots_prefix import legacy_can_fetch
+    policy = text.splitlines()
+    need(legacy_can_fetch(policy, "*", FEED), "japan_feed_policy_refused")
     with tempfile.TemporaryDirectory(prefix="ipr-japan-replay-") as tmp:
         path = Path(tmp) / "shadow.db"
         path.write_bytes(db_bytes)
@@ -157,7 +156,7 @@ def candidates(repo, commit, *, fetch_run):
         need(ident not in seen, "japan_duplicate_source_identity")
         seen.add(ident)
         need(verified_rss_day(day, latest["finished_utc"]), "japan_rss_date_unverified")
-        need(parser.can_fetch("*", url), "japan_original_policy_refused")
+        need(legacy_can_fetch(policy, "*", url), "japan_original_policy_refused")
         need(type(capture_hash) is str and HASH.fullmatch(capture_hash)
              and hashlib.sha256(original.encode()).hexdigest() == content_hash,
              "japan_stored_content_identity_unverified")
