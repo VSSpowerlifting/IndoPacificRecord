@@ -2,12 +2,14 @@
 
 Workers may perform independent external-model calls concurrently. Results are
 consumed in queue order by the caller, which alone owns SQLite writes and
-processing-failure bookkeeping. At most `workers` articles are dispatched,
-including on fatal account errors; no eager submission of the whole backlog.
+processing-failure bookkeeping. At most `workers` articles are in flight.
+A fatal account-level error stops further dispatch as soon as any worker sees
+it, even if an earlier article is still awaiting ordered persistence.
 """
 
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
+from threading import Event, Lock
 
 
 def process_bounded(items, work, consume, *, workers, fatal_error, on_fatal):
@@ -34,15 +36,33 @@ def process_bounded(items, work, consume, *, workers, fatal_error, on_fatal):
         return
 
     source = iter(items)
+    # Synchronize fatal observation with new submission: a later worker may
+    # discover a 402 while the caller waits for an earlier ordered result.
+    # Without this gate the caller could submit another paid request despite
+    # the already-known account block.
+    fatal_seen = Event()
+    dispatch_lock = Lock()
+
+    def guarded_work(item):
+        try:
+            return work(item)
+        except fatal_error:
+            with dispatch_lock:
+                fatal_seen.set()
+            raise
+
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ipr-analysis") as pool:
         outstanding = deque()
 
         def submit_one():
-            try:
-                item = next(source)
-            except StopIteration:
-                return
-            outstanding.append((item, pool.submit(work, item)))
+            with dispatch_lock:
+                if fatal_seen.is_set():
+                    return
+                try:
+                    item = next(source)
+                except StopIteration:
+                    return
+                outstanding.append((item, pool.submit(guarded_work, item)))
 
         for _ in range(workers):
             submit_one()
