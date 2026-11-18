@@ -362,7 +362,7 @@ class ProductionAssetTests(unittest.TestCase):
             with self.subTest(route=route):
                 self.assertIn('href="atlas-footer.css"',
                               (self.out / route).read_text(encoding="utf-8"))
-        for route in ("china.html", "korea.html", "indonesia.html",
+        for route in ("archive.html", "china.html", "korea.html", "indonesia.html",
                       "source/mod_china.html", "record/476.html"):
             with self.subTest(route=route):
                 self.assertNotIn("atlas-footer.css",
