@@ -198,6 +198,7 @@ def _response_text(content) -> str:
 # not change the other worker's model or usage attribution.
 _ACTIVE_TASK_MODEL = ContextVar("ipr_task_model", default=None)
 _RECORD_MODELS = ContextVar("ipr_record_models", default=None)
+_LAST_RELEVANCE_FAILURE = ContextVar("ipr_last_relevance_failure", default=None)
 
 
 def task_route(task):
@@ -290,6 +291,15 @@ class Analyzer:
             )
         self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         self._usage = UsageLedger()
+
+    @property
+    def last_relevance_failure(self):
+        """Per-task failure kind; parallel article workers must not overwrite peers."""
+        return _LAST_RELEVANCE_FAILURE.get()
+
+    @last_relevance_failure.setter
+    def last_relevance_failure(self, value):
+        _LAST_RELEVANCE_FAILURE.set(value)
 
     def task_model(self, task: str) -> str:
         active = _ACTIVE_TASK_MODEL.get()
