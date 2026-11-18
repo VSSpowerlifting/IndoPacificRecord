@@ -4,21 +4,19 @@
    "Human-controlled analysis" is set once. Photographs appear only where the
    catalogue-media decision admits one. */
 .catalog-head{padding-top:1.2rem}
-.catalog-head .page-head{margin-bottom:0;border-bottom:2px solid var(--editorial-ink)}
-.catalog-head .page-head .evidence{margin:0 0 .9rem}
 
-/* Latest Brief: photograph left, title right. */
-.briefs-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(24px,3.4vw,52px);align-items:start;max-width:none;margin:0;padding:clamp(24px,3vw,40px) 0 0;border:0}
+/* The latest Brief leads with its title at every width. */
+.briefs-lead{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(24px,4vw,64px);align-items:start;max-width:none;margin:0;padding:clamp(24px,3vw,40px) 0 0;border:0}
 .briefs-lead-photo{margin:0}
 .briefs-lead-photo>a{display:block;overflow:hidden}
 .briefs-lead-photo img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;background:var(--surface-inset)}
 .briefs-lead-photo figcaption{margin-top:.6rem;color:var(--muted)}
 .briefs-lead-photo figcaption p,.brief-credit p{margin:0 0 .2rem;max-width:none;font-size:.75rem;line-height:1.5;color:var(--muted)}
 .briefs-lead-photo figcaption a,.brief-credit a{color:inherit}
-.catalog-lead-copy{min-width:0}
+.catalog-lead-copy{min-width:0;padding-top:.5rem}
 .catalog-lead-copy:only-child{grid-column:1/-1;max-width:46rem}
 .catalog-label{margin:0 0 .7rem;font-size:.8125rem;font-weight:600;color:var(--muted);max-width:none;font-variant-numeric:lining-nums}
-.briefs-lead h2{margin:0;padding:0;border:0;max-width:none;font:400 clamp(2.125rem,1.35rem + 2.5vw,3.5rem)/1.08 var(--display);letter-spacing:-.014em;text-wrap:balance}
+.briefs-lead h2{margin:0;padding:0;border:0;max-width:24ch;font:400 clamp(2.125rem,1.35rem + 2.5vw,3.5rem)/1.08 var(--display);letter-spacing:-.014em;text-wrap:balance}
 .briefs-lead h2 a,.issue-ledger-copy :is(h2,h3) a{color:var(--ink);text-decoration:none}
 .briefs-lead h2 a:hover,.issue-ledger-copy :is(h2,h3) a:hover{text-decoration:underline;text-decoration-thickness:1px}
 .catalog-lead-dek{margin:1rem 0 0;max-width:36em;font:400 1.125rem/1.6 var(--serif);color:var(--ink-2)}
@@ -98,6 +96,7 @@
 
 @media(max-width:900px){
   .briefs-lead{grid-template-columns:minmax(0,1fr)}
+  .catalog-lead-copy{padding-top:0}
   .layer-key{grid-template-columns:repeat(2,minmax(0,1fr))}
   .brief-card[data-media=photograph]{grid-template-columns:7.25rem minmax(0,1fr) minmax(0,9.5rem)}
 }
