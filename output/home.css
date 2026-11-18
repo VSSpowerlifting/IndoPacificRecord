@@ -1,33 +1,29 @@
-/* Home. The navy opening continues the masthead. With an admitted
-   photograph (illustrative context) it is set large
-   behind the claim and the title search under an IPR gradient, and credited
-   in full beneath; without one the opening is plain navy. No record appears
-   in the opening: records begin with "Newest from each desk". */
+/* The photograph, the finder and its credit form one opening. The search
+   remains usable on plain navy if the verified photograph is unavailable. */
 .home-page{padding-bottom:4.5rem}
 .home-open{background:var(--band);color:var(--band-ink)}
-.home-stage{position:relative;isolation:isolate;overflow:hidden}
-.home-open-grid{display:grid;grid-template-columns:minmax(0,1fr);padding-block:clamp(40px,5.5vw,76px) clamp(48px,6vw,84px)}
-.home-open-copy{max-width:35rem;min-width:0}
-.home-open a{color:var(--band-ink)}
-.home-open a:focus-visible,.home-open button:focus-visible,.home-open input:focus-visible{outline-color:var(--focus-band)}
-.claim{font:400 clamp(3.25rem,6.2vw,5.75rem)/.98 var(--display);letter-spacing:-.018em;color:var(--band-ink);max-width:9.5ch;margin:0 0 1.5rem;text-wrap:balance}
-.home-dek{font:400 clamp(1.125rem,1rem + .45vw,1.3125rem)/1.5 var(--serif);color:var(--band-dek);max-width:31em;margin:0 0 2.2rem}
-.home-search label{display:block;margin:0 0 .5rem;font-size:.8125rem;font-weight:600;color:var(--band-muted)}
-.home-search-row{display:flex;gap:10px;max-width:31rem}
-.home-search input[type=search]{flex:1;min-width:0;min-height:48px;background:var(--band-raised);border:1px solid var(--band-muted);color:var(--band-ink);font-size:1rem}
-.btn--light{min-height:48px;background:var(--band-ink);color:var(--band);border-color:var(--band-ink)}
-.btn--light:hover{background:var(--focus-band);border-color:var(--focus-band);color:var(--band)}
-.home-open-note{margin:.9rem 0 0;font-size:.875rem;color:var(--band-muted);max-width:none}
-.home-open-note a{display:inline-flex;align-items:center;min-height:40px}
-.home-photo{position:absolute;inset:0;z-index:-1;margin:0;background:var(--band)}
-.home-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 80%}
-.home-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,46,56,.95) 0%,rgba(20,46,56,.9) 50%,rgba(20,46,56,.5) 68%,rgba(20,46,56,.12) 100%),linear-gradient(0deg,rgba(20,46,56,.6) 0%,rgba(20,46,56,0) 40%)}
-.home-open--photo .home-open-grid{min-height:clamp(520px,46vw,660px);align-content:end;padding-block:clamp(72px,8vw,120px) clamp(44px,5vw,72px)}
-.home-open--photo .home-search input[type=search]{background:rgba(20,46,56,.72)}
-.home-photo-credit{border-top:1px solid var(--band-rule);padding:.85rem 0 1rem}
-.home-photo-credit p{margin:0 0 .2rem;font-size:.75rem;line-height:1.55;color:var(--band-muted);max-width:none}
-.home-photo-credit .home-photo-label{font-size:.8125rem;font-weight:600;color:var(--band-ink)}
-.home-photo-credit a{display:inline-block;padding-block:3px;color:var(--band-dek)}
+.home-stage{position:relative;isolation:isolate}
+.home-open-grid{display:grid;align-content:center;padding-block:clamp(3rem,6vw,7rem) clamp(4rem,8vw,8rem)}
+.home-open-copy{max-width:37rem;min-width:0}
+.claim{font:400 clamp(3.25rem,6.7vw,6.5rem)/.98 var(--display);letter-spacing:-.025em;color:var(--band-ink);max-width:100%;margin:0 0 1.1rem;text-wrap:balance}
+.home-dek{font:400 clamp(1.0625rem,1rem + .45vw,1.3125rem)/1.45 var(--serif);color:var(--band-ink);max-width:42ch;margin:0}
+.home-photo{position:absolute;inset:0;z-index:-1;background:var(--band)}
+.home-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 68%}
+.home-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,32,41,.94) 0%,rgba(10,32,41,.86) 33%,rgba(10,32,41,.32) 62%,rgba(10,32,41,.05))}
+.home-open--photo .home-open-grid{min-height:clamp(25rem,35vw,37rem)}
+.home-finder{position:relative;display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);align-items:center;gap:.7rem 2rem;margin-top:-2.25rem;padding:clamp(1.2rem,2.4vw,2.1rem);background:var(--paper);color:var(--ink);border-top:3px solid var(--ink)}
+.home-finder h2{font:400 clamp(2rem,3.3vw,3.5rem)/1.08 var(--display);margin:0;padding:0;border:0}
+.home-open-note{margin:.3rem 0 0;font-size:.875rem;color:var(--ink-2)}
+.home-open-note a{color:var(--link);display:inline-flex;align-items:center;min-height:40px}
+.home-search label{display:block;margin:0 0 .45rem;font-size:.875rem;font-weight:600;color:var(--ink)}
+.home-search-row{display:flex;gap:.5rem}
+.home-search input[type=search]{flex:1;min-width:0;min-height:48px;background:var(--surface);border:1px solid var(--muted);color:var(--ink);font-size:1rem}
+.home-search button{min-height:48px}
+.home-photo-credit .wrap{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.15rem 1.5rem;padding-block:1rem 1.25rem}
+.home-photo-credit p{grid-column:2;margin:0;font-size:.75rem;line-height:1.5;color:var(--band-muted);max-width:none}
+.home-photo-credit .home-photo-label{grid-column:1;grid-row:1/span 2;font-weight:600;color:var(--band-ink)}
+.home-photo-credit a{color:var(--band-ink)}
+.home-photo-credit a:focus-visible{outline-color:var(--focus-band)}
 
 .home-section{padding-top:clamp(40px,5vw,68px)}
 .home-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.4rem 1.5rem;margin:0 0 1.1rem}
@@ -38,21 +34,20 @@
 .text-link{display:inline-flex;align-items:center;min-height:40px;font-size:.875rem;font-weight:600}
 
 .home-briefs-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:clamp(28px,4vw,56px);padding-top:1.5rem;border-top:2px solid var(--editorial-ink)}
-.home-feature--photo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,2.6vw,36px);align-items:start}
-.home-feature-photo{margin:0}
-.home-feature-photo img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;background:var(--surface-inset)}
-.home-feature-photo figcaption{margin-top:.5rem}.home-feature-photo figcaption p{margin:0 0 .2rem;font-size:.75rem;line-height:1.5;color:var(--muted);max-width:none}
-.home-feature h3{margin:0 0 .7rem;font:400 clamp(1.75rem,1.3rem + 1.3vw,2.5rem)/1.08 var(--display);letter-spacing:-.01em;text-wrap:balance}
-.home-feature h3 a,.home-briefs-more h3 a{color:var(--ink);text-decoration:none}
+.home-briefs{margin-top:clamp(3rem,6vw,6rem);padding-block:clamp(2.25rem,4.5vw,4rem)}
+.home-briefs .home-head h2{color:var(--band-ink)}
+.home-briefs-grid{border-color:var(--editorial-on-dark)}
+.home-briefs :is(.meta,.home-label,.home-briefs-about){color:var(--band-muted)}
+.home-feature h3{margin:0 0 1rem;font:400 clamp(2.25rem,4vw,4rem)/1.06 var(--display);letter-spacing:-.015em;text-wrap:balance}
+.home-feature h3 a,.home-briefs-more h3 a{color:var(--band-ink);text-decoration:none}
 .home-feature h3 a:hover,.home-briefs-more h3 a:hover{text-decoration:underline;text-decoration-thickness:1px}
-.home-feature-dek{font:400 1.0625rem/1.6 var(--serif);color:var(--ink-2);margin:0 0 .9rem}
+.home-feature-dek{font:400 1.125rem/1.55 var(--serif);color:var(--band-ink);margin:0 0 .9rem;max-width:56ch}
 .home-feature .meta{margin:0 0 .3rem}
-.home-briefs-more article{padding:0 0 1.2rem;margin:0 0 1.2rem;border-bottom:1px solid var(--rule)}
-.home-briefs-more h3{margin:0 0 .4rem;font:600 1.125rem/1.32 var(--serif)}
-.home-briefs-more p{margin:0 0 .4rem;font-size:.9375rem;line-height:1.55;color:var(--ink-2)}
-.home-briefs-about{font:400 .9375rem/1.6 var(--serif)!important;color:var(--ink-2);max-width:34em}
-.brief-fixture{font-size:.8125rem;font-weight:600;color:var(--warning)}
-
+.home-briefs-more article{padding:0 0 1rem;margin:0 0 1rem;border-bottom:1px solid var(--band-muted)}
+.home-briefs-more h3{margin:0 0 .6rem;font:400 clamp(1.625rem,2.4vw,2.5rem)/1.14 var(--display)}
+.home-briefs-more p:not(.home-label){margin:0 0 .5rem;font-size:.9375rem;line-height:1.55}
+.home-briefs-about{max-width:34em}
+.brief-fixture{font-weight:600}
 /* Newest from each desk: the desk's name stands where a dated list puts the
    day numeral; the date moves into the row's meta line. */
 .records-desks .desk-cell{padding-top:1.05rem}
@@ -69,40 +64,34 @@
 .home-legend dd{margin:0;font:400 1rem/1.6 var(--serif);color:var(--ink-2);max-width:34ch}
 
 @media(max-width:900px){
-  .home-open-grid{grid-template-columns:minmax(0,1fr)}
+  .home-photo{position:relative;inset:auto;z-index:auto}
+  .home-photo img{height:clamp(7rem,32vw,14rem);object-position:center 70%}
+  .home-photo::after{background:linear-gradient(0deg,var(--band),transparent 58%)}
+  .home-open-grid,.home-open--photo .home-open-grid{min-height:0;padding-block:1.4rem}
+  .home-open--photo .home-open-grid{position:relative;padding-top:0}
+  .home-open-copy{max-width:46rem}
+  .claim{max-width:none;margin-bottom:.65rem}
+  .home-dek{max-width:50ch}
+  .home-finder{margin-top:0}
   .home-briefs-grid{grid-template-columns:minmax(0,1fr)}
 }
-@media(min-width:901px) and (max-width:1100px){
-  /* The copy column covers most of a narrow desktop stage: hold the dark
-     part of the gradient under all of it. */
-  .home-photo::after{background:linear-gradient(90deg,rgba(20,46,56,.95) 0%,rgba(20,46,56,.92) 70%,rgba(20,46,56,.6) 88%,rgba(20,46,56,.3) 100%),linear-gradient(0deg,rgba(20,46,56,.6) 0%,rgba(20,46,56,0) 40%)}
-}
-@media(max-width:900px){
-  /* Phones and tablets: the photograph is a band above the claim, clear of
-     a copy column that would fill most of the stage. */
-  .home-photo{position:relative;inset:auto;z-index:auto}
-  .home-photo img{height:auto;aspect-ratio:16/10}
-  .home-photo::after{background:linear-gradient(0deg,var(--band) 0%,rgba(20,46,56,.55) 30%,rgba(20,46,56,0) 62%)}
-  .home-open--photo .home-open-grid{min-height:0;margin-top:-3.4rem;position:relative;padding-block:0 2.2rem}
-  .home-open--photo .claim{margin-bottom:1rem}
-  .home-open--photo .home-dek{margin-bottom:1.5rem}
-  .claim{max-width:none}
-}
-@media(min-width:701px) and (max-width:900px){
-  /* A tablet band no taller than a third of a short or landscape screen, so
-     the title search stays on the first screen. */
-  .home-photo img{aspect-ratio:auto;height:min(56.25vw,38vh);height:min(56.25vw,38svh)}
-}
 @media(max-width:700px){
-  .home-feature--photo{grid-template-columns:minmax(0,1fr)}
+  .home-finder{grid-template-columns:minmax(0,1fr);padding:1rem;gap:.65rem}
+  .home-finder-heading{display:contents}
+  .home-finder h2{grid-row:1}
+  .home-search{grid-row:2}
+  .home-open-note{margin:0}
+  .home-open-note a{min-height:40px}
+  .home-photo-credit .wrap{display:block}
+  .home-photo-credit p+p{margin-top:.2rem}
   .home-legend{grid-template-columns:minmax(0,1fr)}
   .records-desks .desk-cell{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.35rem 1rem;padding-top:1rem}
   .records-desks .desk-cell span{margin:0}
 }
 @media(max-width:420px){
-  /* A shorter band on small phones keeps the title search in the first screen. */
-  .home-photo img{aspect-ratio:2/1}
-  .home-open--photo .claim{margin-bottom:.75rem}
-  .home-open--photo .home-dek{margin-bottom:1.1rem}
+  .home-photo img{height:clamp(5rem,32vw,8rem)}
+  .claim{font-size:2.8rem}
+  .home-open-grid,.home-open--photo .home-open-grid{padding-bottom:1rem}
 }
-@media print{.home-search{display:none}.home-photo{position:static}.home-photo::after{display:none}}
+@media(max-height:650px) and (max-width:420px){.home-photo img{height:4rem}}
+@media print{.home-finder,.home-photo{display:none}.home-briefs{background:white;color:black}}
