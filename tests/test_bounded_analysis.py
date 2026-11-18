@@ -56,6 +56,7 @@ class BoundedAnalysisTests(unittest.TestCase):
 
     def test_fatal_cancels_tail_and_never_commits_speculative_result(self):
         gate = threading.Event()
+        both_started = threading.Barrier(2)
         started = []
         writes = []
         failures = []
@@ -64,6 +65,7 @@ class BoundedAnalysisTests(unittest.TestCase):
         def work(item):
             with lock:
                 started.append(item)
+            both_started.wait(timeout=2)
             if item == 0:
                 raise AccountBlocked("credit exhausted")
             gate.wait(timeout=2)
@@ -91,6 +93,34 @@ class BoundedAnalysisTests(unittest.TestCase):
                             lambda *_: self.fail("should not commit"),
                             workers=2, fatal_error=AccountBlocked,
                             on_fatal=lambda *_: self.fail("fatal"))
+
+    def test_analyzer_failure_context_is_isolated_between_article_threads(self):
+        # Test the actual Analyzer attribute used by the pipeline, with no
+        # network calls or API client construction.
+        from concurrent.futures import ThreadPoolExecutor
+        from analysis.analyzer import Analyzer
+
+        analyzer = Analyzer.__new__(Analyzer)
+        barrier = threading.Barrier(2)
+
+        def remember(value):
+            analyzer.last_relevance_failure = value
+            barrier.wait(timeout=2)
+            return analyzer.last_relevance_failure
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first = pool.submit(remember, "invalid_response")
+            second = pool.submit(remember, "api_error")
+            self.assertEqual(first.result(), "invalid_response")
+            self.assertEqual(second.result(), "api_error")
+
+    def test_invalid_environment_workers_fall_back_to_serial(self):
+        from config import _daily_analysis_workers
+        self.assertEqual(_daily_analysis_workers("2"), 2)
+        self.assertEqual(_daily_analysis_workers("999"), 3)
+        for raw in (None, "", "invalid", "0", "-2"):
+            with self.subTest(raw=raw):
+                self.assertEqual(_daily_analysis_workers(raw), 1)
 
     def test_out_of_bounds_worker_counts_fail_before_dispatch(self):
         for workers in (0, 4, -1, "2", True, None):
