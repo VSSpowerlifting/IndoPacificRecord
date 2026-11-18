@@ -356,6 +356,18 @@ class ProductionAssetTests(unittest.TestCase):
             self.assertFalse((self.out / absent).exists(), absent)
         self.assertFalse(any(self.out.glob("assets/**/*.receipt.json")))
 
+    def test_footer_chart_is_scoped_to_navigation_and_reference_surfaces(self):
+        self.assertTrue((self.out / "atlas-footer.css").is_file())
+        for route in ("index.html", "desks.html", "sources.html"):
+            with self.subTest(route=route):
+                self.assertIn('href="atlas-footer.css"',
+                              (self.out / route).read_text(encoding="utf-8"))
+        for route in ("china.html", "korea.html", "indonesia.html",
+                      "source/mod_china.html", "record/476.html"):
+            with self.subTest(route=route):
+                self.assertNotIn("atlas-footer.css",
+                                 (self.out / route).read_text(encoding="utf-8"))
+
     def test_the_homepage_draws_no_relief_art(self):
         # The pinned fixture Brief lists Singapore: the case that used to draw
         # the strait and both desks' emblems beside it.
