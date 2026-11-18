@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% from "_records.html" import desk_front %}
 {% from "_catalogue_credit.html" import photo_credit %}
+{% from "_geo.html" import atlas_figure %}
 {# The home page (2026-11-16). It opens on one stable photograph: the U.S.
    Navy photograph of the Ronald Reagan Carrier Strike Group with Japan
    Maritime Self-Defense Force ships (`home_hero`, founder direction), set
    large behind the claim and the title search and credited beneath as
    illustrative context (it is not a record and carries no record mark).
-   Below it: each public-record desk's newest record as parallel text (the
+   Below it: the regional atlas on a navy band (where each desk's institutions
+   are based), then each public-record desk's newest record as parallel text (the
    first row of that desk's own page, never a selection), the latest Brief,
    and the three kinds of text a reader will meet. Every title, date and name
    here is read from the record or the credit record; nothing is written for
@@ -14,7 +16,7 @@
    the same claim and search. #}
 {% block title %}{{ title }} — Official records, as published{% endblock %}
 {% block main_class %} class="leads-with-hero home-page"{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="home.css">{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="home.css"><link rel="stylesheet" href="desk-map.css">{% endblock %}
 {% block hero %}
 {% set hero = home_hero | default(none) %}
 <section class="home-open{% if hero %} home-open--photo{% endif %}" aria-labelledby="home-title">
@@ -50,6 +52,22 @@
 {% endblock %}
 {% block content %}{% endblock %}
 {% block after_content %}
+{# The region band (2026-11-17): the night chart of the atlas, each point a
+   link to its desk. The same seats, states and disclosure as the Desks page
+   (`_geo.html`). It follows the opening directly and sits outside it, so the
+   opening still holds one photograph and nothing else. #}
+{% if atlas %}
+<section class="home-region" aria-labelledby="region-title">
+  <div class="wrap home-region-grid">
+    <div class="home-region-copy">
+      <h2 id="region-title">Where the desks are based</h2>
+      <p>A desk follows the official sources of one country or one group of institutions. {{ desks.collecting_count }} of {{ desks.declared_count }} are collecting into the record.</p>
+      <p><a class="text-link" href="desks.html">All {{ desks.declared_count }} desks</a></p>
+    </div>
+    {{ atlas_figure(atlas, home=true) }}
+  </div>
+</section>
+{% endif %}
 <section class="wrap home-section home-newest" aria-labelledby="latest-title">
   <div class="home-head"><h2 id="latest-title">Newest from each desk</h2><a href="archive.html">All {{ corpus_total | count }} records</a></div>
   {{ desk_front(home_desks.rows, lead=true) }}

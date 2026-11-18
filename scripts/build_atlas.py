@@ -1,5 +1,5 @@
 """
-The regional atlas: one real coastline, used on the Desks page and the desk pages.
+The regional atlas: one real coastline, drawn once and inked twice.
 
 Geometry. Natural Earth 1:50m land and de facto boundary lines (public domain,
 via world-atlas 2.0.2, ISC), as `scripts/desk_map.py` projected and generalized
@@ -10,17 +10,23 @@ generated SVG out of git history (blob pinned below by its SHA-256), clips it to
 the atlas frame and writes `site/assets/geo/atlas-50m.json`. That JSON is the
 source of truth from then on.
 
-Drawing. `python scripts/build_atlas.py` turns the JSON into
-`site/assets/geo/atlas.svg` and `atlas.receipt.json`, deterministically (same
-input, same bytes; the receipt holds hashes, never a time). The sea is drawn
-with *waterlines*: the real coastline's outline repeated at fixed offsets, an
-engraved-chart convention. They show distance from the drawn coast and nothing
-else: no depth, relief, terrain or coverage.
+Drawing. `python scripts/build_atlas.py` turns the JSON into two files and
+`atlas.receipt.json`, deterministically (same input, same bytes; the receipt
+holds hashes, never a time). `atlas.svg` is the day chart, inked for paper:
+page heads and the desk locators crop it. `atlas-night.svg` is the night chart,
+the same geometry inked for the navy bands: the Desks opening, the home page's
+region band, the footer and a dossier's opening. The two differ in colour and
+in nothing else. The sea is drawn with *waterlines*: the real coastline's
+outline repeated at fixed offsets, an engraved-chart convention. They show
+distance from the drawn coast and nothing else: no depth, relief, terrain or
+coverage.
 
 Placement. `atlas_view()` and `locator_view()` project a desk's seat
 (`desks/geography.json`) into the same frame at render time, so a seat always
 lands on the coastline the asset drew. A seat marks where a desk's publishing
-institutions are based, never an area of coverage.
+institutions are based, never an area of coverage. Where the chart is used as
+page furniture (a page head, the footer, a dossier's opening) it carries no
+seat, no label and no claim.
 """
 
 from __future__ import annotations
@@ -38,6 +44,7 @@ GEOGRAPHY = REPO_ROOT / "desks" / "geography.json"
 GEO_DIR = REPO_ROOT / "site" / "assets" / "geo"
 SOURCE_JSON = GEO_DIR / "atlas-50m.json"
 ATLAS_SVG = GEO_DIR / "atlas.svg"
+ATLAS_NIGHT_SVG = GEO_DIR / "atlas-night.svg"
 RECEIPT = GEO_DIR / "atlas.receipt.json"
 
 # The retired generated geometry this atlas is cut from.
@@ -57,21 +64,38 @@ LAT_N, LAT_S = 52.0, -18.0
 VIEW = {"lon": (94.0, 148.0), "lat": (45.5, -10.5)}
 # A desk page's locator: a regional window, never a city-scale zoom (at
 # 1:50m a close crop would draw Singapore as five points).
-LOCATOR_SPAN = (26.0, 26.0)   # degrees of longitude, degrees of Miller height
+LOCATOR_SPAN = (40.0, 30.0)   # degrees of longitude, degrees of Miller height
+LOCATOR_AT = (.5, .55)        # the seat's default place in a locator window
 # Where an outside desk's edge pointer meets the east edge: open ocean, and
 # deliberately not the latitude of any former seat.
 OUTSIDE_EDGE_LAT = 6.0
 
 # Waterline offsets from the coast, in units, nearest first, with the share of
-# the line colour mixed into the sea for each.
-WATERLINES = ((2.4, .50), (5.2, .38), (8.6, .28), (12.8, .2), (18.0, .13))
-LINE_W = .62
-SEA = (0xE1, 0xEE, 0xEA)      # --accent-tint
-LINE = (0x17, 0x6C, 0x6C)     # --accent
-LAND = "#F8F6EF"
-COAST = "#2E4C56"
-BORDER = "#8C9C9A"
-GRATICULE = "#CDDBD7"
+# the line colour mixed into the sea for each. The widest stays inside the
+# extraction pad (24 units), so a ring clipped at the frame never draws its
+# clipped edge's waterline in view.
+WATERLINES = ((2.2, .80), (4.6, .64), (7.4, .52), (10.6, .42), (14.2, .33), (18.2, .25), (22.4, .18))
+LINE_W = .7
+SHORE_W = 5.0                  # the tint band drawn inside the coast, in units
+# Two inkings of the one drawing. The day chart sits on paper pages; the night
+# chart sits on the navy bands. Same geometry, same lines, different ink.
+DAY = {
+    "name": "atlas.svg",
+    "sea": (0xE1, 0xEE, 0xEA),     # --accent-tint
+    "line": (0x17, 0x6C, 0x6C),    # --accent
+    "land": "#F8F6EF", "shore": "#E9E5D6", "coast": "#1D2D31", "coast_w": .9,
+    "border": "#7E908E", "graticule": "#BCCFCA", "parallel": "#8FB0AC",
+}
+NIGHT = {
+    "name": "atlas-night.svg",
+    "sea": (0x14, 0x2E, 0x38),     # --band
+    "line": (0x92, 0xD5, 0xCC),    # --focus-band
+    "land": "#21434E", "shore": "#2C5560", "coast": "#C9DEDA", "coast_w": .8,
+    "border": "#6F8D93", "graticule": "#22434E", "parallel": "#37626B",
+}
+PALETTES = (DAY, NIGHT)
+# Kept for callers that name the day inks directly.
+SEA, LINE = DAY["sea"], DAY["line"]
 
 
 def _miller(lat: float) -> float:
@@ -208,22 +232,27 @@ def _path(lines, closed) -> str:
     return "".join(out)
 
 
-def _mix(share: float) -> str:
-    return "#%02X%02X%02X" % tuple(round(s + (l - s) * share) for s, l in zip(SEA, LINE))
+def _mix(share: float, sea=SEA, line=LINE) -> str:
+    return "#%02X%02X%02X" % tuple(round(a + (b - a) * share) for a, b in zip(sea, line))
 
 
-def draw(src: dict) -> str:
-    sea = "#%02X%02X%02X" % SEA
+def draw(src: dict, ink: dict = DAY) -> str:
+    """The chart in one inking. Every mark is the committed coastline, a line
+    of latitude or longitude, or a de facto boundary line: nothing is invented."""
+    sea = "#%02X%02X%02X" % ink["sea"]
     grat = []
     for lon in range(90, 161, 10):
         x = project(lon, 0)[0]
         grat.append("M%s 0V%s" % (_fmt(x), HEIGHT))
-    for lat in (-10, 0, 10, 20, 30, 40, 50):
+    for lat in (-10, 10, 20, 30, 40, 50):
         y = project(LON_W, lat)[1]
         grat.append("M0 %sH%s" % (_fmt(y), WIDTH))
+    # The equator and the Tropic of Cancer, the two named parallels in frame.
+    named = "".join("M0 %sH%s" % (_fmt(project(LON_W, lat)[1]), WIDTH) for lat in (0, 23.4364))
     rings = []
     for off, share in reversed(WATERLINES):
-        rings.append('<use href="#l" stroke="%s" stroke-width="%s"/>' % (_mix(share), _fmt(2 * off + LINE_W)))
+        rings.append('<use href="#l" stroke="%s" stroke-width="%s"/>'
+                     % (_mix(share, ink["sea"], ink["line"]), _fmt(2 * off + LINE_W)))
         rings.append('<use href="#l" stroke="%s" stroke-width="%s"/>' % (sea, _fmt(2 * off - LINE_W)))
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -231,32 +260,44 @@ def draw(src: dict) -> str:
         + "<!-- Indo-Pacific Record regional atlas. Natural Earth 1:50m (public domain; "
           "world-atlas 2.0.2, ISC), Miller projection, generalized; de facto lines, no "
           "boundary claim. Waterlines repeat the coastline at fixed offsets: distance "
-          "from the drawn coast, not depth. Generated by scripts/build_atlas.py; do not "
+          "from the drawn coast, not depth. The band inside the coast is a tint of the "
+          "same outline, not relief. Generated by scripts/build_atlas.py; do not "
           "edit by hand. -->\n"
-        + '<defs><path id="l" fill-rule="evenodd" d="%s"/></defs>\n' % _path(src["land"], True)
+        + '<defs><path id="l" fill-rule="evenodd" clip-rule="evenodd" d="%s"/>'
+          '<clipPath id="c"><use href="#l"/></clipPath></defs>\n' % _path(src["land"], True)
         + '<rect width="%d" height="%d" fill="%s"/>\n' % (WIDTH, HEIGHT, sea)
-        + '<path d="%s" fill="none" stroke="%s" stroke-width=".6"/>\n' % ("".join(grat), GRATICULE)
+        + '<path d="%s" fill="none" stroke="%s" stroke-width=".6"/>\n' % ("".join(grat), ink["graticule"])
+        + '<path d="%s" fill="none" stroke="%s" stroke-width=".7" stroke-dasharray="7 3"/>\n'
+          % (named, ink["parallel"])
         + '<g fill="none" stroke-linejoin="round">%s</g>\n' % "".join(rings)
-        + '<use href="#l" fill="%s" stroke="%s" stroke-width=".7" stroke-linejoin="round"/>\n' % (LAND, COAST)
-        + '<path d="%s" fill="none" stroke="%s" stroke-width=".55" stroke-dasharray="2.4 1.4" '
-          'stroke-linejoin="round"/>\n' % (_path(src["borders"], False), BORDER)
+        + '<use href="#l" fill="%s"/>\n' % ink["land"]
+        + '<use href="#l" fill="none" stroke="%s" stroke-width="%s" stroke-linejoin="round" '
+          'clip-path="url(#c)"/>\n' % (ink["shore"], _fmt(2 * SHORE_W))
+        + '<path d="%s" fill="none" stroke="%s" stroke-width=".6" stroke-dasharray="2.4 1.4" '
+          'stroke-linejoin="round"/>\n' % (_path(src["borders"], False), ink["border"])
+        + '<use href="#l" fill="none" stroke="%s" stroke-width="%s" stroke-linejoin="round"/>\n'
+          % (ink["coast"], _fmt(ink["coast_w"]))
         + "</svg>\n"
     )
 
 
 def build() -> dict:
     src = json.loads(SOURCE_JSON.read_text(encoding="utf-8"))
-    svg = draw(src).encode("utf-8")
-    ATLAS_SVG.write_bytes(svg)
+    outputs = {}
+    for ink in PALETTES:
+        svg = draw(src, ink).encode("utf-8")
+        (GEO_DIR / ink["name"]).write_bytes(svg)
+        outputs[ink["name"]] = {"bytes": len(svg), "sha256": hashlib.sha256(svg).hexdigest()}
     receipt = {
         "generator": "scripts/build_atlas.py",
         "source": {"file": SOURCE_JSON.name,
                    "sha256": hashlib.sha256(SOURCE_JSON.read_bytes()).hexdigest(),
                    "cut_from": src["source"]},
         "licence": "Natural Earth: public domain. world-atlas: ISC.",
-        "outputs": {ATLAS_SVG.name: {"bytes": len(svg), "sha256": hashlib.sha256(svg).hexdigest()}},
+        "outputs": outputs,
         "meaning": "Waterlines are offsets of the drawn coastline: distance from the coast, "
-                   "not depth, terrain or coverage.",
+                   "not depth, terrain or coverage. The band inside the coast is a tint of "
+                   "the same outline, not relief. The two files are one drawing in two inkings.",
     }
     RECEIPT.write_text(json.dumps(receipt, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return receipt
@@ -306,7 +347,13 @@ def atlas_view(desks) -> dict:
         seats.append({"desk": d, "seat": p["seat"], "label": p.get("label", "right"),
                       "label_narrow": p.get("label_narrow", p.get("label", "right")),
                       "short": p.get("short", d.name),
-                      "x": _pct((x - x0) / w * 100), "y": _pct((y - y0) / h * 100)})
+                      "x": _pct((x - x0) / w * 100), "y": _pct((y - y0) / h * 100), "_y": y})
+    # Arrival order, north to south, for the one-time settle (desk-map.css).
+    # It orders nothing a reader navigates: the DOM stays in registry order.
+    for rank, seat in enumerate(sorted(seats, key=lambda v: v.pop("_y"))):
+        seat["order"] = rank
+    for rank, seat in enumerate(outside):
+        seat["order"] = len(seats) + rank
     return {"window": _window(x0, y0, w, h), "seats": seats, "outside": outside,
             "graticule": _graticule_labels(x0, y0, w, h)}
 
@@ -331,8 +378,12 @@ def locator_view(slug: str):
         return None
     sx, sy = project(*p["anchor"])
     w, h = LOCATOR_SPAN[0] * K, LOCATOR_SPAN[1] * K
-    x0 = min(max(sx - w / 2, 0), WIDTH - w)
-    y0 = min(max(sy - h * .55, 0), HEIGHT - h)
+    # Where the seat sits in the window, as fractions of its width and height.
+    # A seat far inland can name its own (`locator_at`, desks/geography.json)
+    # so the window shows the coast it belongs to rather than open land.
+    fx, fy = p.get("locator_at", LOCATOR_AT)
+    x0 = min(max(sx - w * fx, 0), WIDTH - w)
+    y0 = min(max(sy - h * fy, 0), HEIGHT - h)
     return {"window": _window(x0, y0, w, h), "seat": p["seat"],
             "x": _pct((sx - x0) / w * 100), "y": _pct((sy - y0) / h * 100)}
 

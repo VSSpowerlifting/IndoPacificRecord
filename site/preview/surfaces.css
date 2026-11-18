@@ -1,10 +1,8 @@
-/* Page furniture shared by every route, loaded last. The publication's one
-   ornament is the record itself, set as parallel text, so this sheet carries
-   no texture and no drawn scenery: paper, rules and type. */
-[data-surface] .page-head{margin:0 0 2.2rem;padding:1.6rem 0 1.9rem;border-bottom:2px solid var(--rule-hard)}
+/* Page furniture shared by every route, loaded last. The chart behind some
+   page heads is support.css (docs/DESIGN_SYSTEM.md, Geography). */
+[data-surface] .page-head{position:relative;margin:0 0 2.2rem;padding:1.6rem 0 1.9rem;border-bottom:2px solid var(--rule-hard)}
 /* Waterline rule: the head's edge echoed as the atlas echoes a coast */
-[data-surface] .page-head{position:relative}
-[data-surface] .page-head:not(.ds-hero,.tl-library-head)::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:4px;border-top:1px solid color-mix(in srgb,var(--accent) 42%,var(--bg));border-bottom:1px solid color-mix(in srgb,var(--accent) 20%,var(--bg));pointer-events:none}
+[data-surface] .page-head:not(.ds-hero,.tl-library-head,.desks-head)::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:4px;border-top:1px solid color-mix(in srgb,var(--accent) 42%,var(--bg));border-bottom:1px solid color-mix(in srgb,var(--accent) 20%,var(--bg));pointer-events:none}
 [data-surface] .page-head h1{font:400 clamp(46px,5.6vw,80px)/1.02 var(--display);letter-spacing:-.018em;text-transform:none;max-width:18ch;margin:0 0 .35em}
 [data-surface=source] .page-head h1,[data-surface=desk] .page-head h1{font-size:clamp(42px,4.8vw,68px)}
 [data-surface] .page-head .lede{font:400 clamp(1.125rem,1rem + .45vw,1.3125rem)/1.5 var(--serif);color:var(--ink-2);max-width:56ch;margin:.4rem 0 0}
@@ -17,13 +15,21 @@
 [data-surface] details[open]>summary{color:var(--accent-ink)}
 [data-surface] :is(.masthead,.band,footer.site) details[open]>summary{color:var(--focus-band)}
 @keyframes disclose-arrive{from{opacity:.6;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes head-rise{from{opacity:.4;transform:translateY(12px)}}
+@media(prefers-reduced-motion:no-preference){
+  [data-surface]:not([data-surface=record]) .page-head>:is(h1,.lede){animation:head-rise .7s var(--ease-out) backwards}
+  [data-surface] .page-head>.lede{animation-delay:.08s}
+}
 @media(prefers-reduced-motion:no-preference) and (scripting:enabled){
   [data-surface] .btn{transition:transform 160ms var(--ease-rule),background 160ms var(--ease-rule),border-color 160ms var(--ease-rule)}
   [data-surface] :is(.btn,button):not(:disabled):active{transform:translateY(1px)}
   [data-surface] details[open]>:not(summary){animation:disclose-arrive 180ms var(--ease-rule)}
 }
+@media(max-width:900px){
+  [data-surface] .page-head{padding-bottom:calc(1.9rem + var(--chart-pad,0rem))}
+}
 @media(max-width:700px){
-  [data-surface] .page-head{padding:1.1rem 0 1.4rem;margin-bottom:1.6rem}
+  [data-surface] .page-head{padding:1.1rem 0 calc(1.4rem + var(--chart-pad,0rem));margin-bottom:1.6rem}
   [data-surface] .page-head h1{font-size:clamp(40px,11vw,56px)}
   [data-surface] .table-scroll{padding:4px 12px}
 }

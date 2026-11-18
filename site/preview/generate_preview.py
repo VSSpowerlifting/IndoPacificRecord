@@ -105,7 +105,7 @@ ARCHIVE_MARK_ASSETS = tuple("assets/desk-marks/%s.svg" % s
 CATALOGUE_STATIC_ASSETS = ("assets/geo/region.svg",)
 # The regional atlas (scripts/build_atlas.py): one waterlined Natural Earth
 # drawing, cropped by CSS for the Desks page and for each desk's locator.
-ATLAS_ASSETS = ("assets/geo/atlas.svg",)
+ATLAS_ASSETS = ("assets/geo/atlas.svg", "assets/geo/atlas-night.svg")
 
 #: The public name. Owner-directed 2026-08-25; the governing record is
 #: docs/INDO_PACIFIC_RECORD_EVOLUTION.md §1. "The Declared Record" and

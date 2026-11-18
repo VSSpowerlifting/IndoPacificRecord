@@ -13,6 +13,8 @@
     "short    the name beside the point on the Desks atlas.",
     "label    which side of the point the name sits: left, right or below;",
     "         label_narrow, if given, replaces it when the atlas is narrow.",
+    "locator_at  optional [x, y] fractions: where the seat sits in the desk",
+    "         page's locator window, when the default would show mostly land.",
     "outside  instead of seat/anchor: the desk's institutions are outside the",
     "         atlas frame. The atlas shows an edge pointer naming this place,",
     "         and the desk page has no locator. (The US Indo-Pacific Reference",
@@ -24,7 +26,7 @@
     "seat of its declared institution (2026-11-17)."
   ],
   "desks": {
-    "china": {"seat": "Beijing", "anchor": [116.4, 39.9], "short": "China", "label": "left"},
+    "china": {"seat": "Beijing", "anchor": [116.4, 39.9], "short": "China", "label": "left", "locator_at": [0.3, 0.4]},
     "japan": {"seat": "Tokyo", "anchor": [139.7, 35.7], "short": "Japan", "label": "right", "label_narrow": "below"},
     "korea": {"seat": "Seoul", "anchor": [126.98, 37.56], "short": "South Korea", "label": "left", "label_narrow": "below"},
     "philippines": {"seat": "Manila", "anchor": [120.98, 14.6], "short": "Philippines", "label": "right"},

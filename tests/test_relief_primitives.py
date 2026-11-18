@@ -332,13 +332,17 @@ class ProductionAssetTests(unittest.TestCase):
         self.assertEqual((self.out / "assets/geo/region.svg").read_bytes(),
                          (REPO_ROOT / "site/assets/geo/region.svg").read_bytes())
         # The regional atlas (scripts/build_atlas.py) is the one other geo
-        # asset: the Desks page and the desk locators crop it. Its source JSON
-        # and receipt stay out of a production tree.
-        self.assertEqual(self.gp.ATLAS_ASSETS, ("assets/geo/atlas.svg",))
-        self.assertEqual((self.out / "assets/geo/atlas.svg").read_bytes(),
-                         (REPO_ROOT / "site/assets/geo/atlas.svg").read_bytes())
+        # asset, in its two inkings: the day chart on paper (page heads, desk
+        # locators) and the night chart on the navy bands (Desks, home, the
+        # footer, a dossier's opening). Its source JSON and receipt stay out
+        # of a production tree.
+        self.assertEqual(self.gp.ATLAS_ASSETS,
+                         ("assets/geo/atlas.svg", "assets/geo/atlas-night.svg"))
+        for route in self.gp.ATLAS_ASSETS:
+            self.assertEqual((self.out / route).read_bytes(),
+                             (REPO_ROOT / "site" / route).read_bytes(), route)
         self.assertEqual(sorted(p.name for p in (self.out / "assets/geo").iterdir()),
-                         ["atlas.svg", "region.svg"])
+                         ["atlas-night.svg", "atlas.svg", "region.svg"])
         # A public Desk flag is an explicitly referenced asset and the MIT
         # notice travels with it; gallery-only glyphs must still stay private.
         expected = {"%s.svg" % iso for iso in FLAGS} | {"LICENSE"}

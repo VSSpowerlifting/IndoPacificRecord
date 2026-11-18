@@ -2,9 +2,9 @@
    then one ruled row per desk, collecting desks first. Name, state, seat and
    counts at left; the desk's newest record as parallel text at right. The
    class names on the rows are kept because guards and citations address
-   them. The atlas (2026-11-17) is one waterlined Natural Earth drawing
-   (assets/geo/atlas.svg, scripts/build_atlas.py) cropped by the inline
-   background size and position; each seat is an HTML link placed in percent. */
+   them. The atlas (2026-11-17) is one waterlined Natural Earth drawing in its
+   night inking (assets/geo/atlas-night.svg, scripts/build_atlas.py) cropped by
+   the inline size and position; each seat is an HTML link placed in percent. */
 .desk-count{font:400 var(--step-meta)/1.5 var(--sans);color:var(--muted);margin:.9rem 0 0}
 .desks-tally{display:flex;flex-wrap:wrap;gap:.3rem 2rem;margin:1.1rem 0 0;padding:0}
 .desks-tally div{display:flex;align-items:baseline;gap:.45rem}
@@ -40,26 +40,40 @@
 .desks-seat{margin:.35rem 0 0;font-size:var(--step-meta);color:var(--muted)}
 .desks-seat a{margin-left:.35rem;font-weight:600}
 .deskmap-register>.desk:target{border-left:3px solid var(--accent);padding-left:1rem}
-.desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem}
+/* The night chart (2026-11-17). The head is a navy band continuous with the
+   masthead; inside it the shared tokens are re-pointed at their on-band
+   values, so every rule below reads the same on paper or on navy. */
+.desks-open,.home-region{background:var(--band);color:var(--band-ink);--ink:var(--band-ink);--ink-2:var(--band-dek);--muted:var(--band-muted);--rule:var(--band-rule);--paper:var(--band);--positive:var(--positive-band);--warning:var(--warning-band);--accent-tint:color-mix(in srgb,var(--band-ink) 10%,var(--band));--focus:var(--focus-band)}
+:is(.desks-open,.home-region) a,:is(.desks-open,.home-region) a:visited{color:var(--ink)}
+[data-surface] .desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem;margin:0;padding:2.6rem 0 2.8rem;border:0}
 .atlas{margin:1.8rem 0 0}
-.atlas-map{position:relative;width:100%;container-type:inline-size;background:var(--accent-tint) url(assets/geo/atlas.svg) var(--crop-at)/var(--crop-size) no-repeat;border:1px solid var(--rule)}
+.atlas-map{position:relative;width:100%;container-type:inline-size}
+/* The drawing sits behind the seats and dissolves into the band at its edges,
+   so the coast reads as part of the page rather than a framed picture. */
+.atlas-map::before{content:"";position:absolute;inset:0;background:url(assets/geo/atlas-night.svg) var(--crop-at)/var(--crop-size) no-repeat;mask:linear-gradient(90deg,transparent,black 12%,black 86%,transparent),linear-gradient(transparent,black 8%,black 94%,transparent);mask-composite:intersect}
 .atlas-seats{list-style:none;margin:0;padding:0}
-.seat{position:absolute;display:flex;align-items:center;min-height:40px;transform:translate(-20px,-50%);color:var(--ink);text-decoration:none;font:400 .8125rem/1.15 var(--sans);text-shadow:0 0 2px var(--paper),0 0 3px var(--paper),0 0 4px var(--paper)}
-.seat-text{display:block;color:var(--ink-2)}
-.seat-text b{display:block;font-weight:600;font-size:.875rem;color:var(--ink)}
+/* A label is cut out of the drawing: the name and place stand on a plate of
+   the band's own colour and the mark on a disc of it, so no coast or
+   waterline runs through a letter or along a mark's edge. */
+.seat{position:absolute;display:flex;align-items:center;min-height:40px;transform:translate(-20px,-50%);color:var(--ink);text-decoration:none;font:400 .8125rem/1.15 var(--sans)}
+.seat-text{display:block;color:var(--ink-2);padding:.22em .45em .28em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent)}
+.seat-text b{display:block;font-weight:600;font-size:.9375rem;color:var(--ink)}
 .seat:hover b{text-decoration:underline;text-decoration-thickness:1px}
 .seat:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .seat--left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
 .seat--edge{top:var(--y);right:0;padding-right:.4rem;transform:translateY(-50%);text-align:right}
 .seat--edge .seat-text{max-width:9.5rem}
 .seat--edge .seat-text::after{content:" →"}
-.seat .seat-mark{width:40px;height:40px;font-size:1.125rem}
-.seat-mark{display:inline-grid;place-items:center;flex:none;color:var(--ink);line-height:1;text-shadow:none}
+.seat .seat-mark{position:relative;width:40px;height:40px;font-size:1.125rem;background:radial-gradient(circle,var(--paper) 11px,transparent 12px)}
+.seat-mark{display:inline-grid;place-items:center;flex:none;color:var(--ink);line-height:1}
 .seat-mark::before{content:"◐"}
 .seat-mark--live{color:var(--positive)}.seat-mark--live::before{content:"■";font-size:.85em}
 .seat-mark--access_blocked{color:var(--warning)}.seat-mark--access_blocked::before{content:"▣"}
 .seat-mark--research::before{content:"◻"}.seat-mark--planned::before{content:"▫"}.seat-mark--paused::before{content:"□"}
-.atlas-grat span{position:absolute;font:400 .6875rem/1 var(--sans);color:var(--muted)}
+/* The ring answers a pointer or the keyboard; it never moves on its own. */
+.seat .seat-mark::after{content:"";position:absolute;inset:5px;border:1px solid currentColor;border-radius:50%;opacity:0;transform:scale(.45);pointer-events:none}
+.seat:is(:hover,:focus-visible) .seat-mark::after{opacity:.9;transform:none}
+.atlas-grat span{position:absolute;padding:.2em .35em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent);font:400 .6875rem/1 var(--sans);color:var(--muted)}
 .g-lon{bottom:.35rem;transform:translateX(-50%)}
 .g-lat{left:.4rem;transform:translateY(-50%)}
 .atlas figcaption{margin:.7rem 0 0;font:400 .8125rem/1.5 var(--sans);color:var(--muted);max-width:68ch}
@@ -82,9 +96,9 @@
 .desk-jump-detail{display:block;font:400 .75rem/1.35 var(--sans);color:var(--muted);overflow-wrap:anywhere}
 .desk-jump-arrow{justify-self:end;color:var(--muted);font:400 1rem/1 var(--sans)}
 @media(min-width:1140px){
-  .desks-head{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:clamp(1.6rem,4vw,3.2rem)}
+  [data-surface] .desks-head{grid-template-columns:minmax(0,.82fr) minmax(0,1.3fr);grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:clamp(1.6rem,4vw,3.2rem)}
   .desks-head>*{grid-column:1}
-  .desks-head>.atlas{grid-column:2;grid-row:1/span 5;margin:.4rem 0 0}
+  .desks-head>.atlas{grid-column:2;grid-row:1/span 5;margin:-1.2rem 0 0}
   .desks-head>.desk-jump{grid-column:1;grid-row:5;align-self:end}
 }
 @media(min-width:680px) and (max-width:1139px){
@@ -92,25 +106,36 @@
   .desk-jump-list li:nth-last-child(2){border-bottom:1px solid var(--rule)}
 }
 /* Both navigation surfaces share an order, computed from atlas.seats followed
-   by atlas.outside. CSS-only matching preserves keyboard and no-script use. */
-.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+   by atlas.outside. Pointing at a desk in either one rings it in the other
+   and lets the drawing recede; no name, place or state mark ever dims. CSS
+   only, so keyboard and no-script use are unchanged. */
+.atlas:has(.atlas-seats a:is(:hover,:focus-visible)) .atlas-map::before,.desks-head:has(.desk-jump-list a:is(:hover,:focus-visible)) .atlas-map::before{opacity:.5}
+.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(1) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(1) a{background:var(--accent-tint)}
-.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(2) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(2) a{background:var(--accent-tint)}
-.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(3) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(3) a{background:var(--accent-tint)}
-.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(4) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(4) a{background:var(--accent-tint)}
-.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(5) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(5) a{background:var(--accent-tint)}
-.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(6) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(6) a{background:var(--accent-tint)}
-.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(7) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(7) a{background:var(--accent-tint)}
-.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) .seat-text b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(8) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(8) a{background:var(--accent-tint)}
-
-@container (max-width:540px){
+/* In rem, so enlarged text also takes the compact labels. */
+@container (max-width:34rem){
   .seat{font-size:.75rem}.seat-text b{font-size:.8125rem}
   .seat--n-left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
   .seat--n-right{flex-direction:row;text-align:left;transform:translate(-20px,-50%)}
@@ -118,8 +143,25 @@
   .seat-place{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .atlas-grat{display:none}
 }
-@media(forced-colors:active){.atlas-map{forced-color-adjust:none}}
-@media print{.atlas-map{border-color:#000}}
+/* Motion. The finished chart is the default. Where motion is welcome the
+   drawing settles in once and the seats come up from north to south (--i,
+   scripts/build_atlas.py); a seat is a link, so it is never invisible. On the
+   home page the drawing settles as its band scrolls into view. Nothing
+   radiates from a seat and nothing repeats. */
+@keyframes chart-in{from{opacity:0;transform:scale(1.035)}}
+@keyframes seat-in{from{opacity:.3}}
+@media(prefers-reduced-motion:no-preference){
+  .atlas-map::before{animation:chart-in 1.3s var(--ease-out) backwards;transition:opacity .3s var(--ease-out)}
+  .atlas-seats .seat{animation:seat-in .4s calc(.15s + var(--i,0)*55ms) var(--ease-out) backwards}
+  .atlas-seats .seat-mark::after{transition:opacity .22s var(--ease-out),transform .45s var(--ease-rule)}
+  @supports(animation-timeline:view()){
+    .home-region .atlas-map::before{animation:chart-in linear both;animation-timeline:view();animation-range:entry 0% cover 32%}
+    .home-region .atlas-seats .seat{animation:none}
+  }
+}
+@media(forced-colors:active){.atlas-map::before{display:none}.desks-open,.home-region{background:Canvas;color:CanvasText}.seat-text,.atlas-grat span,.seat .seat-mark{background:none}}
+/* Print takes the day inking of the same drawing: same geometry, dark on paper. */
+@media print{.atlas-map::before{background-image:url(assets/geo/atlas.svg);mask:none;animation:none}.desks-open,.home-region{background:none;color:CanvasText;--ink:CanvasText;--ink-2:CanvasText;--muted:CanvasText;--paper:Canvas;--positive:CanvasText;--warning:CanvasText}}
 .desks-section{margin:3rem 0 0}
 .desks-section>h2{margin:0 0 .8rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
 .scope-register{margin:0;padding:0}

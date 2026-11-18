@@ -1,11 +1,15 @@
 {
  "generator": "scripts/build_atlas.py",
  "licence": "Natural Earth: public domain. world-atlas: ISC.",
- "meaning": "Waterlines are offsets of the drawn coastline: distance from the coast, not depth, terrain or coverage.",
+ "meaning": "Waterlines are offsets of the drawn coastline: distance from the coast, not depth, terrain or coverage. The band inside the coast is a tint of the same outline, not relief. The two files are one drawing in two inkings.",
  "outputs": {
+  "atlas-night.svg": {
+   "bytes": 40738,
+   "sha256": "364461f15f4c4540cb2f76f72caad05eb15d44f8dadfa6d310f7e376424300ba"
+  },
   "atlas.svg": {
-   "bytes": 40158,
-   "sha256": "fbcdbfbe98ac26c95abec18294847e80cca72f9b01aae1877a5c8ccbc94d651f"
+   "bytes": 40738,
+   "sha256": "77f1e02f3a278e11d5e9666f2c4e9fc3f05e53f1ac48216f39280f305c7c6107"
   }
  },
  "source": {
