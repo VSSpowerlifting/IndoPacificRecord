@@ -178,7 +178,7 @@ class DesksDirectoryBrowser(unittest.TestCase):
             finally:
                 ctx.close()
 
-    def test_home_and_desks_atlas_links_are_reachable_at_small_widths_and_zoom(self):
+    def test_desks_atlas_links_are_reachable_at_small_widths_and_zoom(self):
         # A box can sit inside the map while a neighbouring link intercepts
         # its label or marker. Check the browser's actual hit target.
         hit_targets = """() => {
@@ -193,23 +193,37 @@ class DesksDirectoryBrowser(unittest.TestCase):
           }
           return failures;
         }"""
-        for route in ("index.html", "desks.html"):
-            for width, enlarged in ((320, False), (375, True), (680, False), (1280, False)):
-                with self.subTest(route=route, width=width, enlarged=enlarged):
-                    page = self.browser.new_page(viewport={"width": width, "height": 900},
-                                                 reduced_motion="reduce")
-                    try:
-                        page.goto((self.out / route).as_uri(), wait_until="load")
-                        if enlarged:
-                            page.add_style_tag(content="html{font-size:200%}")
-                        seats = page.locator(".atlas-seats a")
-                        self.assertEqual(seats.count(), len(self.registry))
-                        self.assertEqual(page.evaluate(hit_targets), [])
-                        if width == 320 or enlarged:
-                            self.assertEqual(seats.first.evaluate(
-                                "(link) => getComputedStyle(link).position"), "relative")
-                    finally:
-                        page.close()
+        for width, enlarged in ((320, False), (375, False), (375, True),
+                                (680, False), (1280, False), (1280, True)):
+            with self.subTest(width=width, enlarged=enlarged):
+                page = self.browser.new_page(viewport={"width": width, "height": 900},
+                                             reduced_motion="reduce")
+                try:
+                    page.goto((self.out / "desks.html").as_uri(), wait_until="load")
+                    if enlarged:
+                        page.add_style_tag(content="html{font-size:200%}")
+                    seats = page.locator(".atlas-seats a")
+                    self.assertEqual(seats.count(), len(self.registry))
+                    self.assertEqual(page.evaluate(hit_targets), [])
+                    self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"),
+                                         width + 1)
+                    if width == 320 or (width == 375 and enlarged):
+                        self.assertEqual(seats.first.evaluate(
+                            "(link) => getComputedStyle(link).position"), "relative")
+
+                    seats.first.focus()
+                    for i in range(seats.count()):
+                        seat = seats.nth(i)
+                        self.assertTrue(seat.evaluate("(a) => a === document.activeElement"))
+                        self.assertTrue(seat.evaluate("(a) => a.matches(':focus-visible')"))
+                        if i < seats.count() - 1:
+                            page.keyboard.press("Tab")
+                    target = seats.last.get_attribute("href")
+                    page.keyboard.press("Enter")
+                    self.assertEqual(page.evaluate("location.hash"), target)
+                    self.assertTrue(page.locator(target).evaluate("(section) => section.matches(':target')"))
+                finally:
+                    page.close()
 
     def test_no_javascript_still_exposes_every_public_desk(self):
         rows, doc_width = self._rows(viewport={"width": 375, "height": 812},

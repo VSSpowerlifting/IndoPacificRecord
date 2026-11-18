@@ -3,44 +3,6 @@
 {% from "_geo.html" import atlas_figure %}
 {% block title %}Desks — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="desk-map.css">{% endblock %}
-{% block main_class %} class="leads-with-hero"{% endblock %}
-{% block hero %}
-{# The page opens on the night chart (2026-11-17): the head is a navy band
-   continuous with the masthead, the regional atlas drawn across it. Every
-   name, state and seat is still text. #}
-<div class="desks-open"><div class="wrap">
-<header class="page-head desks-head">
-<h1 class="page-name">Desks</h1>
-<p class="lede">A desk follows the official sources of one country or one group of institutions. Each has its own sources, its own record of what was collected and its own limits.</p>
-<dl class="desks-tally" aria-label="Desk totals">
-  <div><dt>Desks</dt><dd>{{ desks.declared_count }}</dd></div>
-  <div><dt>Collecting into the record</dt><dd>{{ desks.collecting_count }}</dd></div>
-  <div><dt>Not collecting</dt><dd>{{ desks.not_collecting_count }}</dd></div>
-</dl>
-<p class="desk-count">{{ corpus_total|count }} records as of <time datetime="{{ snapshot.date }}">{{ snapshot.date | reader_date }}</time>. Record counts cover official originals only, never IPR's own articles. <a href="coverage.html">What each collection returned</a></p>
-{{ atlas_figure(atlas) }}
-{# A compact navigator for the register below; rows and atlas locations share
-   the same authoritative geography and registry desk objects. #}
-{% macro jump_link(d, place) -%}
-<li><a href="#desk-{{ d.slug }}" data-desk="{{ d.slug }}">
-  <span class="desk-jump-mark seat-mark seat-mark--{{ d.status }}" aria-hidden="true"></span>
-  <span class="desk-jump-copy">
-    <span class="desk-jump-name">{{ d.name }}</span>
-    <span class="desk-jump-detail">{{ place }} <span aria-hidden="true">·</span> {{ d.status_label }}</span>
-  </span>
-  <span class="desk-jump-arrow" aria-hidden="true">↓</span>
-</a></li>
-{%- endmacro %}
-<nav class="desk-jump" aria-labelledby="desk-jump-title">
-  <h2 id="desk-jump-title">Explore the desks</h2>
-  <ul class="desk-jump-list">
-    {% for s in atlas.seats %}{{ jump_link(s.desk, s.seat) }}{% endfor %}
-    {% for o in atlas.outside %}{{ jump_link(o.desk, o.place ~ ', outside this map') }}{% endfor %}
-  </ul>
-</nav>
-</header>
-</div></div>
-{% endblock %}
 {% block content %}
 {# The desk index (2026-11-15). Every state, count, date and title on this page
    comes from the desk registry and the record.
@@ -68,6 +30,37 @@
 {#- The registry's state label, verbatim (core.desk_registry.status_label). -#}
 <span class="desk-state desk-state--{{ d.status }}">{{ d.status_label }}</span>{% if d.slug in pubd %} <span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the record.">Research published</span>{% endif %}
 {%- endmacro %}
+
+<header class="page-head desks-head">
+<h1 class="page-name">Desks</h1>
+<p class="lede">Each desk follows a defined set of official sources from one country or group of institutions.</p>
+<dl class="desks-tally" aria-label="Desk totals">
+  <div><dt>Desks</dt><dd>{{ desks.declared_count }}</dd></div>
+  <div><dt>Collecting into the record</dt><dd>{{ desks.collecting_count }}</dd></div>
+  <div><dt>Not collecting</dt><dd>{{ desks.not_collecting_count }}</dd></div>
+</dl>
+<p class="desk-count">{{ corpus_total|count }} records as of <time datetime="{{ snapshot.date }}">{{ snapshot.date | reader_date }}</time>. Counts cover official originals. <a href="coverage.html">See what each collection returned</a>.</p>
+{{ atlas_figure(atlas) }}
+{# A compact navigator for the register below; rows and atlas locations share
+   the same authoritative geography and registry desk objects. #}
+{% macro jump_link(d, place) -%}
+<li><a href="#desk-{{ d.slug }}" data-desk="{{ d.slug }}">
+  <span class="desk-jump-mark seat-mark seat-mark--{{ d.status }}" aria-hidden="true"></span>
+  <span class="desk-jump-copy">
+    <span class="desk-jump-name">{{ d.name }}</span>
+    <span class="desk-jump-detail">{{ place }} <span aria-hidden="true">·</span> {{ d.status_label }}</span>
+  </span>
+  <span class="desk-jump-arrow" aria-hidden="true">↓</span>
+</a></li>
+{%- endmacro %}
+<nav class="desk-jump" aria-labelledby="desk-jump-title">
+  <h2 id="desk-jump-title">Explore the desks</h2>
+  <ul class="desk-jump-list">
+    {% for s in atlas.seats %}{{ jump_link(s.desk, s.seat) }}{% endfor %}
+    {% for o in atlas.outside %}{{ jump_link(o.desk, o.place ~ ', outside this map') }}{% endfor %}
+  </ul>
+</nav>
+</header>
 
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
@@ -102,7 +95,7 @@
     <p class="desks-title"{{ title_attrs(r) }}><a href="record/{{ r.id }}.html">{{ r.title_english or r.title_original }}</a></p>
     {{- original_line(r, standalone=true) }}
     {% else %}
-    <p class="desks-none"><a href="#scope-{{ d.slug }}">What this desk reads, and why it does not collect into the record</a></p>
+    <p class="desks-none"><a href="#scope-{{ d.slug }}">Sources and collection limits</a></p>
     {% endif %}
     <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Open the {{ d.name }}">Open desk</a></p>
   </div>

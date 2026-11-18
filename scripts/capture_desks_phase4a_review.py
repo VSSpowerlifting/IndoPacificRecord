@@ -71,7 +71,7 @@ def main() -> int:
                     if doc_width > width + 1:
                         failures.append(f"{width}: horizontal overflow {doc_width}")
                     if width in (375, 768, 1280, 1600):
-                        page.locator(".desks-open").screenshot(
+                        page.locator(".desks-head").screenshot(
                             path=str(OUT / f"atlas-{width}.png")
                         )
                         page.locator(REGISTER).screenshot(

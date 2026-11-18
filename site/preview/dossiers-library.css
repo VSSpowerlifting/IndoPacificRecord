@@ -43,7 +43,7 @@
 .dl-list > li { max-width: none; margin: 0; }
 .dl-companion { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: .2rem clamp(18px, 2.4vw, 32px); padding: 1.1rem 0 1.2rem; border-bottom: 1px solid var(--rule); }
 .dl-companion .dl-kind { margin: .7rem 0 0; }
-.dl-companion h3, .dl-item h3 { max-width: 34em; font: 600 1.3125rem/1.28 var(--serif); letter-spacing: 0; text-wrap: pretty; }
+.dl-companion h3, .dl-item h3 { max-width: 34em; font: 600 1.3125rem/1.35 var(--serif); letter-spacing: 0; text-wrap: pretty; }
 .dl-companion h3 a, .dl-item h3 a { display: inline-flex; align-items: center; min-height: 40px; }
 .dl-companion p:not([class]), .dl-item-dek { margin: .2rem 0 0; max-width: 64ch; font: 400 1rem/1.55 var(--serif); color: var(--ink-2); }
 .dossier-library .dl-role, .dossier-library .dl-meta { margin: .5rem 0 0; font: 400 .8125rem/1.5 var(--sans); color: var(--muted); font-variant-numeric: lining-nums; }
@@ -61,6 +61,7 @@
   .dl-feature, .dl-foot { grid-template-columns: minmax(0, 1fr); }
   .dl-companion { grid-template-columns: minmax(0, 1fr); }
   .dl-companion .dl-kind { margin: 0; }
+  .dl-facts div { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }
 }
 @media (max-width: 520px) {
   .dl-contents ol, .dl-key { grid-template-columns: minmax(0, 1fr); }

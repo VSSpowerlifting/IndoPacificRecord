@@ -19,9 +19,8 @@ identity" supersedes two treatments described below:
 Both were owner-approved on 2026-10-05, so their removal is a reversal that
 needs the owner's review with this change, not a standing rule yet. Their
 descriptions below are kept as the record of what was approved. The remaining
-motion on active pages was reader-triggered (button press, disclosure
-opening and archive results). The Atmosphere & Motion candidate adds
-the bounded entrances listed in §1. The week strip (§3.2a) is unchanged except that
+motion on active pages is reader-triggered (button press, disclosure
+opening, archive results and atlas link feedback). The week strip (§3.2a) is unchanged except that
 its key names the edge weeks "Part week, at either end of the record". Also
 retired with this change: scroll-reveal (`reveal.js`), the desk map
 (`desk-map.js`, `_desk_map_geo.svg`; geography returned on 17 November as the
@@ -73,26 +72,14 @@ new work must reuse it, not reinvent it.
 | Ambient | ≥3s loop, subtle | signal dots in the Signal Field / dark band only |
 
 ### Hard rules
-- Animate transform and opacity. Reserve layout before animation starts
-  and keep content available from the first frame. Active entrances use
-  the screen, scripting-enabled and reduced-motion media queries.
+- Animate transform and opacity for interaction feedback. Keep the full
+  layout and its contents available immediately.
 - Every page must satisfy three fallback paths: no-JS, `.no-anim`,
-  `prefers-reduced-motion` (global kill-switch exists).
-- Prohibited: bouncing, floating cards, glow, cursor-following, radar
-  sweeps, anything that radiates from a map point, looping or ambient motion
-  on active pages, animated backgrounds outside the terrain exception below,
-  per-paragraph animation, autoplaying video, and any motion on a record
-  page's head or on original-language text.
-- Heading text stays fully opaque and settles within 0.8s. The atlas drawing
-  fades in within 1.3s. The home photograph may ease from a larger scale for
-  up to 2.4s and a Brief photograph for up to 1.8s.
-- Scroll-linked motion is limited to two CSS scroll-driven effects, both on
-  the home page and both off under reduced motion and where unsupported: the
-  opening photograph travels slower than the page (wide screens only, at most
-  14% of its height), and the region band's chart fades in as the band
-  enters the view. No other parallax.
-- Cross-document view transitions are a plain cross-fade (old 0.16s, new
-  0.28s) with the masthead held in place.
+  `prefers-reduced-motion` (the global stop rule).
+- Active page arrivals, photographs and atlas artwork are static. Scroll
+  progress on historical reading pages still follows the reader's position.
+- Avoid bouncing, floating cards, glow, cursor-following, radar sweeps,
+  pulsing map points, ambient motion and autoplaying video.
 - Prefer CSS/SVG. JS only for IntersectionObserver gating and interactions
   that provide analytical value (e.g., node highlighting).
 
@@ -153,7 +140,7 @@ in `tests/test_homepage_intro.py`.
 | Source photographs | inside editions as context | verbatim from the cited article; credit + "visual context only; not evidence" note (mandatory, existing norm); no misleading crops |
 | Homepage photograph | the home opening only | one stable, verified asset (manifest `reagan-jmsdf-2015`, public domain, routed to `home`); source and derivative hashes checked at render; CSS-only gradient; full credit beneath, labelled "Illustrative photograph, not a record"; never a record image, never rotated with the Briefs; fail closed to plain navy |
 | Brief cover photographs | a native Brief's catalogue card and opened-article hero | one individually verified, owner-approved photograph per Brief, same image on both surfaces, CSS-only gradient, full provenance and any publisher notice; fail closed to the plate. See `docs/BRIEF_PHOTOGRAPHY_CONTRACT.md` |
-| Maps | Desks, home and seated desk locators, plus decorative crops | The atlas uses Natural Earth 1:50m geometry (public domain), de facto lines and the Miller projection. `scripts/build_atlas.py` draws the same geometry in day and night palettes. Waterlines repeat the coastline at fixed distances. Markers identify where a desk's publishing institutions are based, and glyph shape carries its state. See the geography section in DESIGN_SYSTEM.md for placement, attribution and compact layout. On Desks, the artwork fades in once and the glyphs settle from north to south. A ring answers hover and focus. |
+| Maps | Desks and seated desk locators | Natural Earth 1:50m (public domain), de facto lines and the Miller projection. Markers identify where a desk's publishing institutions are based. Glyph shape carries collection state, and the full label is available to assistive technology. The atlas shows its interactive links beside the artwork when space permits and as a list otherwise. A ring responds to hover or focus. |
 | Generated abstract imagery | backgrounds of plates | never depicting real events as documentary; no imitation photography |
 | Stock imagery | — | banned |
 

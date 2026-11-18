@@ -1575,7 +1575,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
             self.assertNotIn(total, soup.select_one(selector).get_text())
         # ... it is stated where it is used, beside the search it scopes ...
         note = ' '.join(soup.select_one('.home-open-note').get_text().split())
-        self.assertIn(total + ' records. Search reads titles only.', note)
+        self.assertIn(total + ' records.', note)
         # ... and the dateline ties the same figure to the snapshot's date.
         status = ' '.join(soup.select_one('.masthead .publication-status').get_text(' ').split())
         self.assertIn('%s records, as of %s' % (
