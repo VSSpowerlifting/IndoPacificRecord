@@ -115,8 +115,8 @@ desk's own page (`desk_front_rows`), the desk name in the left column and the
 date in the meta line; a line saying how many desks hold public records and,
 measured from the counts, that most of the records come from Chinese sources, with a link to
 Coverage; one line naming the desks with no public records and their registry
-state. A navy spread pairs the latest Brief with the related catalogue
-entry available from the editorial collection. The three kinds of text follow
+state. A navy spread pairs the latest Brief with a published dossier or
+evidence timeline when available. The three kinds of text follow
 on paper. The Briefs and Dossiers catalogues share a title and lede spread.
 The Brief headline precedes its credited photograph in reading order.
 

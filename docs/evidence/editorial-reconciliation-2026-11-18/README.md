@@ -10,80 +10,80 @@ Each sheet pairs desktop and mobile views of November 10, November 18 before the
 
 ![Homepage comparison](comparisons/home.webp)
 
-November 10 · [desktop](nov10/1280/home.webp) · [mobile](nov10/375/home.webp)  
-November 18 · [desktop](nov18/1280/home.webp) · [mobile](nov18/375/home.webp)  
-Proposal · [desktop](proposed/1280/home.webp) · [mobile](proposed/375/home.webp)  
+- November 10 · [desktop](nov10/1280/home.webp) · [mobile](nov10/375/home.webp)
+- November 18 · [desktop](nov18/1280/home.webp) · [mobile](nov18/375/home.webp)
+- Proposal · [desktop](proposed/1280/home.webp) · [mobile](proposed/375/home.webp)
 
 ### Analysis on the homepage
 
 ![Analysis on the homepage comparison](comparisons/home-analysis.webp)
 
-November 10 · [desktop](nov10/1280/home-analysis.webp) · [mobile](nov10/375/home-analysis.webp)  
-November 18 · [desktop](nov18/1280/home-analysis.webp) · [mobile](nov18/375/home-analysis.webp)  
-Proposal · [desktop](proposed/1280/home-analysis.webp) · [mobile](proposed/375/home-analysis.webp)  
+- November 10 · [desktop](nov10/1280/home-analysis.webp) · [mobile](nov10/375/home-analysis.webp)
+- November 18 · [desktop](nov18/1280/home-analysis.webp) · [mobile](nov18/375/home-analysis.webp)
+- Proposal · [desktop](proposed/1280/home-analysis.webp) · [mobile](proposed/375/home-analysis.webp)
 
 ### Briefs catalogue
 
 ![Briefs catalogue comparison](comparisons/briefs.webp)
 
-November 10 · [desktop](nov10/1280/briefs.webp) · [mobile](nov10/375/briefs.webp)  
-November 18 · [desktop](nov18/1280/briefs.webp) · [mobile](nov18/375/briefs.webp)  
-Proposal · [desktop](proposed/1280/briefs.webp) · [mobile](proposed/375/briefs.webp)  
+- November 10 · [desktop](nov10/1280/briefs.webp) · [mobile](nov10/375/briefs.webp)
+- November 18 · [desktop](nov18/1280/briefs.webp) · [mobile](nov18/375/briefs.webp)
+- Proposal · [desktop](proposed/1280/briefs.webp) · [mobile](proposed/375/briefs.webp)
 
 ### Brief article
 
 ![Brief article comparison](comparisons/article.webp)
 
-November 10 · [desktop](nov10/1280/article.webp) · [mobile](nov10/375/article.webp)  
-November 18 · [desktop](nov18/1280/article.webp) · [mobile](nov18/375/article.webp)  
-Proposal · [desktop](proposed/1280/article.webp) · [mobile](proposed/375/article.webp)  
+- November 10 · [desktop](nov10/1280/article.webp) · [mobile](nov10/375/article.webp)
+- November 18 · [desktop](nov18/1280/article.webp) · [mobile](nov18/375/article.webp)
+- Proposal · [desktop](proposed/1280/article.webp) · [mobile](proposed/375/article.webp)
 
 ### Dossiers catalogue
 
 ![Dossiers catalogue comparison](comparisons/dossiers.webp)
 
-November 18 · [desktop](nov18/1280/dossiers.webp) · [mobile](nov18/375/dossiers.webp)  
-Proposal · [desktop](proposed/1280/dossiers.webp) · [mobile](proposed/375/dossiers.webp)  
+- November 18 · [desktop](nov18/1280/dossiers.webp) · [mobile](nov18/375/dossiers.webp)
+- Proposal · [desktop](proposed/1280/dossiers.webp) · [mobile](proposed/375/dossiers.webp)
 
 ### Desks and atlas
 
 ![Desks and atlas comparison](comparisons/desks.webp)
 
-November 10 · [desktop](nov10/1280/desks.webp) · [mobile](nov10/375/desks.webp)  
-November 18 · [desktop](nov18/1280/desks.webp) · [mobile](nov18/375/desks.webp)  
-Proposal · [desktop](proposed/1280/desks.webp) · [mobile](proposed/375/desks.webp)  
+- November 10 · [desktop](nov10/1280/desks.webp) · [mobile](nov10/375/desks.webp)
+- November 18 · [desktop](nov18/1280/desks.webp) · [mobile](nov18/375/desks.webp)
+- Proposal · [desktop](proposed/1280/desks.webp) · [mobile](proposed/375/desks.webp)
 
 ### China Desk
 
 ![China Desk comparison](comparisons/china.webp)
 
-November 10 · [desktop](nov10/1280/china.webp) · [mobile](nov10/375/china.webp)  
-November 18 · [desktop](nov18/1280/china.webp) · [mobile](nov18/375/china.webp)  
-Proposal · [desktop](proposed/1280/china.webp) · [mobile](proposed/375/china.webp)  
+- November 10 · [desktop](nov10/1280/china.webp) · [mobile](nov10/375/china.webp)
+- November 18 · [desktop](nov18/1280/china.webp) · [mobile](nov18/375/china.webp)
+- Proposal · [desktop](proposed/1280/china.webp) · [mobile](proposed/375/china.webp)
 
 ### Searchable archive
 
 ![Searchable archive comparison](comparisons/archive.webp)
 
-November 10 · [desktop](nov10/1280/archive.webp) · [mobile](nov10/375/archive.webp)  
-November 18 · [desktop](nov18/1280/archive.webp) · [mobile](nov18/375/archive.webp)  
-Proposal · [desktop](proposed/1280/archive.webp) · [mobile](proposed/375/archive.webp)  
+- November 10 · [desktop](nov10/1280/archive.webp) · [mobile](nov10/375/archive.webp)
+- November 18 · [desktop](nov18/1280/archive.webp) · [mobile](nov18/375/archive.webp)
+- Proposal · [desktop](proposed/1280/archive.webp) · [mobile](proposed/375/archive.webp)
 
 ### Individual Record
 
 ![Individual Record comparison](comparisons/records.webp)
 
-November 10 · [desktop](nov10/1280/records.webp) · [mobile](nov10/375/records.webp)  
-November 18 · [desktop](nov18/1280/records.webp) · [mobile](nov18/375/records.webp)  
-Proposal · [desktop](proposed/1280/records.webp) · [mobile](proposed/375/records.webp)  
+- November 10 · [desktop](nov10/1280/records.webp) · [mobile](nov10/375/records.webp)
+- November 18 · [desktop](nov18/1280/records.webp) · [mobile](nov18/375/records.webp)
+- Proposal · [desktop](proposed/1280/records.webp) · [mobile](proposed/375/records.webp)
 
 ### Records by week
 
 ![Records by week comparison](comparisons/weekly.webp)
 
-November 10 · [desktop](nov10/1280/weekly.webp) · [mobile](nov10/375/weekly.webp)  
-November 18 · [desktop](nov18/1280/weekly.webp) · [mobile](nov18/375/weekly.webp)  
-Proposal · [desktop](proposed/1280/weekly.webp) · [mobile](proposed/375/weekly.webp)  
+- November 10 · [desktop](nov10/1280/weekly.webp) · [mobile](nov10/375/weekly.webp)
+- November 18 · [desktop](nov18/1280/weekly.webp) · [mobile](nov18/375/weekly.webp)
+- Proposal · [desktop](proposed/1280/weekly.webp) · [mobile](proposed/375/weekly.webp)
 
 ## Capture method
 
