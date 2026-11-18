@@ -11,7 +11,7 @@
 <header class="page-head dl-head">
   <p class="evidence evidence--analysis">Analysis</p>
   <h1>Dossiers</h1>
-  <p class="lede">One research question, followed over time. Each finding names its sources and the evidence that qualifies it.</p>
+  <p class="lede">Dossiers follow a research question over time. Each finding cites its sources and explains where the evidence is limited.</p>
 </header>
 {% set top = dossiers|rejectattr('parent_dossiers')|list %}
 {% macro meta(d) -%}
@@ -34,7 +34,7 @@
     <p class="dl-go"><a class="btn btn--primary" href="{{ d.route }}">Read the dossier</a></p>
   </div>
   <div class="dl-record">
-    <p class="dl-label">The record behind it</p>
+    <p class="dl-label">Source record</p>
     <div class="dl-counts">
       <p><b>{{ d.ledger|length }}</b> preserved records<span>Archived by IPR</span></p>
       {% if d.external_ledger %}<p><b>{{ d.external_ledger|length }}</b> linked official pages<span>Linked, not preserved</span></p>{% endif %}

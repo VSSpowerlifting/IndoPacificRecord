@@ -19,11 +19,6 @@
 .ds-strip{width:100%;margin-top:auto;padding:.8rem 0 1.1rem;border-top:1px solid var(--band-rule);display:flex;flex-wrap:wrap;gap:.7rem 2.2rem;font:.9375rem/1.45 var(--sans)}
 .ds-side{min-width:0;padding:2.1rem var(--ds-edge) 1.8rem clamp(1.5rem,3.4vw,3.25rem);border-left:1px solid var(--band-rule)}
 .ds-premise .ds-answer{margin-bottom:0}
-/* The night chart (assets/geo, scripts/build_atlas.py) under the research question: the whole
-   drawing at small scale, the same on every dossier, never a crop of a dossier's subject. Decoration only. */
-.ds-premise{position:relative;isolation:isolate;overflow:hidden}
-.ds-premise::before{content:"";position:absolute;z-index:-1;inset:auto 0 0 0;height:min(72%,23rem);background:url(assets/geo/atlas-night.svg) 82% 46%/auto 190% no-repeat;mask:linear-gradient(transparent,black 60%),linear-gradient(90deg,transparent,black 40%);mask-composite:intersect;pointer-events:none}
-@media(max-width:960px),(forced-colors:active),print{.ds-premise::before{display:none}}
 .ds-comparison h2{margin:0 0 1.2rem;padding:0;border:0;font:600 .8125rem/1.5 var(--sans);color:var(--band-muted)}
 .ds-window+.ds-window,.ds-comparison .ds-boundary-note{border-top:1px solid var(--band-rule);padding-top:1rem;margin-top:1rem}
 .ds-window h3{margin:0 0 .4rem;font:600 1.0625rem/1.4 var(--serif)}
@@ -70,7 +65,7 @@
 .ds-section-intro+.ds-finding{margin-top:0}
 .ds-finding{margin-top:2.25rem;padding-top:1rem;border-top:2px solid var(--editorial-ink)}
 .ds-finding-heading{display:grid;grid-template-columns:2.25rem minmax(0,1fr) 40px;gap:.5rem;align-items:baseline}
-.ds-finding-heading h3{margin:0;font:400 clamp(1.75rem,2.7vw,2.375rem)/1.14 var(--display);letter-spacing:-.012em;text-wrap:balance}
+.ds-finding-heading h3{margin:0;font:400 clamp(1.75rem,2.7vw,2.375rem)/1.14 var(--display);letter-spacing:-.012em;text-wrap:balance;overflow-wrap:anywhere}
 .ds-ordinal{font:400 1.5rem/1 var(--display);color:var(--editorial-ink);font-variant-numeric:lining-nums tabular-nums}
 .ds-finding>p,.ds-finding>.ds-evidence-detail{margin-left:2.75rem}
 .ds-permalink{padding-block:.75rem;font:.75rem/1.5 var(--sans);opacity:0;transition:opacity 150ms ease}

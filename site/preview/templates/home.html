@@ -1,14 +1,12 @@
 {% extends "base.html" %}
 {% from "_records.html" import desk_front %}
 {% from "_catalogue_credit.html" import photo_credit %}
-{% from "_geo.html" import atlas_figure %}
 {# The home page (2026-11-16). It opens on one stable photograph: the U.S.
    Navy photograph of the Ronald Reagan Carrier Strike Group with Japan
    Maritime Self-Defense Force ships (`home_hero`, founder direction), set
    large behind the claim and the title search and credited beneath as
    illustrative context (it is not a record and carries no record mark).
-   Below it: the regional atlas on a navy band (where each desk's institutions
-   are based), then each public-record desk's newest record as parallel text (the
+   Below it: each public-record desk's newest record as parallel text (the
    first row of that desk's own page, never a selection), the latest Brief,
    and the three kinds of text a reader will meet. Every title, date and name
    here is read from the record or the credit record; nothing is written for
@@ -16,7 +14,7 @@
    the same claim and search. #}
 {% block title %}{{ title }} — Official records, as published{% endblock %}
 {% block main_class %} class="leads-with-hero home-page"{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="home.css"><link rel="stylesheet" href="desk-map.css">{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="home.css">{% endblock %}
 {% block hero %}
 {% set hero = home_hero | default(none) %}
 <section class="home-open{% if hero %} home-open--photo{% endif %}" aria-labelledby="home-title">
@@ -29,13 +27,13 @@
   <div class="wrap home-open-grid">
     <div class="home-open-copy">
       <h1 class="claim" id="home-title">The region, in its own words.</h1>
-      <p class="home-dek">Official defense and security texts from across the Indo-Pacific, kept as they were published and set beside a labeled English translation.</p>
+      <p class="home-dek">Official defense and security records from across the Indo-Pacific, with original text and labeled English translations where available.</p>
       <form action="archive.html" method="get" class="home-search" role="search">
         <input type="hidden" name="scope" value="all">
-        <label for="home-q">Search record titles, in English or the original language</label>
+        <label for="home-q">Search titles in English or the original language</label>
         <div class="home-search-row"><input id="home-q" type="search" name="q" autocomplete="off"><button class="btn btn--light" type="submit">Search</button></div>
       </form>
-      <p class="home-open-note">{{ corpus_total | count }} records. Search reads titles only. <a href="#latest-title">Newest from each desk</a> · <a href="archive.html">All records</a></p>
+      <p class="home-open-note">{{ corpus_total | count }} records. <a href="#latest-title">Newest from each desk</a> · <a href="archive.html">All records</a></p>
     </div>
   </div>
   </div>
@@ -52,22 +50,6 @@
 {% endblock %}
 {% block content %}{% endblock %}
 {% block after_content %}
-{# The region band (2026-11-17): the night chart of the atlas, each point a
-   link to its desk. The same seats, states and disclosure as the Desks page
-   (`_geo.html`). It follows the opening directly and sits outside it, so the
-   opening still holds one photograph and nothing else. #}
-{% if atlas %}
-<section class="home-region" aria-labelledby="region-title">
-  <div class="wrap home-region-grid">
-    <div class="home-region-copy">
-      <h2 id="region-title">Where the desks are based</h2>
-      <p>A desk follows the official sources of one country or one group of institutions. {{ desks.collecting_count }} of {{ desks.declared_count }} are collecting into the record.</p>
-      <p><a class="text-link" href="desks.html">All {{ desks.declared_count }} desks</a></p>
-    </div>
-    {{ atlas_figure(atlas, home=true) }}
-  </div>
-</section>
-{% endif %}
 <section class="wrap home-section home-newest" aria-labelledby="latest-title">
   <div class="home-head"><h2 id="latest-title">Newest from each desk</h2><a href="archive.html">All {{ corpus_total | count }} records</a></div>
   {{ desk_front(home_desks.rows, lead=true) }}
@@ -122,7 +104,7 @@
         <p>{{ item.dek }}</p>
       </article>
       {% endif %}
-      <p class="home-briefs-about">A Brief compares official accounts and says what each source supports. It is kept apart from the records it reads.</p>
+      <p class="home-briefs-about">Briefs compare official accounts and explain what the sources support.</p>
     </div>
   </div>
   {% else %}
@@ -130,9 +112,9 @@
   {% endif %}
 </section>
 <section class="wrap home-section home-method" aria-labelledby="home-method-title">
-  <div class="home-head"><h2 id="home-method-title">Three kinds of text, kept apart</h2><a href="methodology.html">How this publication works</a></div>
+  <div class="home-head"><h2 id="home-method-title">How to read this site</h2><a href="methodology.html">How this publication works</a></div>
   <dl class="home-legend">
-    <div><dt><span class="evidence evidence--record">Source record</span></dt><dd>What an institution published: its title, its text where that can be shown, the date it gave and a link to the original.</dd></div>
+    <div><dt><span class="evidence evidence--record">Source record</span></dt><dd>The issuing institution’s title, publication date and a link to the original, with the text where we can show it.</dd></div>
     <div><dt><span class="evidence evidence--model">Machine output</span></dt><dd>Translations and summaries made by a model. They are published without human review and can be wrong.</dd></div>
     <div><dt><span class="evidence evidence--analysis">Human-controlled analysis</span></dt><dd>Briefs and dossiers. People make the judgments, and each one shows the sources it rests on.</dd></div>
   </dl>

@@ -13,10 +13,8 @@ source of truth from then on.
 Drawing. `python scripts/build_atlas.py` turns the JSON into two files and
 `atlas.receipt.json`, deterministically (same input, same bytes; the receipt
 holds hashes, never a time). `atlas.svg` is the day chart, inked for paper:
-page heads and the desk locators crop it. `atlas-night.svg` is the night chart,
-the same geometry inked for the navy bands: the Desks opening, the home page's
-region band, selected footers and a dossier's opening. The palettes share
-the same paths and projection. The sea is drawn with *waterlines*: the coastline's
+Desks and the desk locators crop it. `atlas-night.svg` is the alternate
+inking kept in source. The palettes share the same paths and projection. The sea is drawn with *waterlines*: the coastline's
 outline repeated at fixed offsets, an engraved-chart convention. They show
 distance from the drawn coast and nothing else: no depth, relief, terrain or
 coverage.
@@ -24,9 +22,7 @@ coverage.
 Placement. `atlas_view()` and `locator_view()` project a desk's seat
 (`desks/geography.json`) into the same frame at render time, so a seat always
 lands on the coastline the asset drew. A seat marks where a desk's publishing
-institutions are based, never an area of coverage. Where the chart is used as
-page furniture (a page head, the footer, a dossier's opening) it carries no
-seat, no label and no claim.
+institutions are based, never an area of coverage.
 """
 
 from __future__ import annotations
@@ -347,13 +343,7 @@ def atlas_view(desks) -> dict:
         seats.append({"desk": d, "seat": p["seat"], "label": p.get("label", "right"),
                       "label_narrow": p.get("label_narrow", p.get("label", "right")),
                       "short": p.get("short", d.name),
-                      "x": _pct((x - x0) / w * 100), "y": _pct((y - y0) / h * 100), "_y": y})
-    # Arrival order, north to south, for the one-time settle (desk-map.css).
-    # It orders nothing a reader navigates: the DOM stays in registry order.
-    for rank, seat in enumerate(sorted(seats, key=lambda v: v.pop("_y"))):
-        seat["order"] = rank
-    for rank, seat in enumerate(outside):
-        seat["order"] = len(seats) + rank
+                      "x": _pct((x - x0) / w * 100), "y": _pct((y - y0) / h * 100)})
     return {"window": _window(x0, y0, w, h), "seats": seats, "outside": outside,
             "graticule": _graticule_labels(x0, y0, w, h)}
 

@@ -50,66 +50,29 @@ labels. Original-language titles use `--zh-serif`, `--ja-serif` and
 Labels are sentence case with no tracking. Monospace is for hashes and
 identifiers only.
 
-**Surface.** Paper, navy bands, rules and type. Corner radius is 0 (a 3px
-radius on the atlas label plates is the one exception). There are no pills,
-cards with shadows, decorative gradients, invented textures, contour fields,
-relief scenes or drawn scenery on active pages. The publication's one texture
-is its own chart: the real coastline and its waterlines (see Geography). The
-only gradients are the CSS-only legibility gradients over a photograph (the
-home opening and Brief covers, see Pictures) and the masks that fade the
-chart into its ground. `surfaces.css` holds the shared page head
-(`.page-head`), which is a display title, an optional lede and a 2px rule
-echoed by two fainter hairlines in the atlas's waterline colour (the
-*waterline rule*). The chart behind a page head is in `support.css`, which
-record pages and the Korea and Indonesia desk pages do not load, so they do
-not pay for a chart they never show.
+**Surface.** Paper, navy bands, rules and type. Shared page heads use a
+display title, an optional lede and a ruled edge. Photographs carry their
+legibility gradients and full credits.
 
-**Geography: the sea chart (2026-11-17).** One drawing, built by
-`scripts/build_atlas.py` from Natural Earth 1:50m (public domain) as the
-retired Desks map generalized it (Miller projection; de facto lines; no
-boundary claim), in two inkings of identical geometry: the **day chart**
-`site/assets/geo/atlas.svg` (ink on paper) and the **night chart**
-`atlas-night.svg` (light on the navy band). Its only topographic language is
-*waterlining*: the real coastline repeated in the sea at fixed distances, an
-engraved-chart convention that shows distance from the drawn coast and
-nothing else. No invented contours, relief, depth, terrain, sea names or
-coverage areas. Every use is a CSS crop of one of the two files.
+**Geography.** `scripts/build_atlas.py` produces two palettes from the same
+Natural Earth 1:50m geometry (public domain, Miller projection, generalized
+de facto boundaries). The site uses the day atlas, `site/assets/geo/atlas.svg`.
+The night palette and matching receipt remain in source. Waterlines show
+fixed distances from the drawn coast.
 
-Where it carries meaning (points, labels, a caption):
-- **Desks page atlas.** The page opens on a navy band; the night chart fills
-  the right of it and dissolves into the band at its edges. Each desk's seat
-  (where its publishing institutions are based, `desks/geography.json`) is an
-  HTML link to its row, marked with the desk's registry state glyph (■ live,
-  ◐ shadow, ▣ access blocked), so state never rests on colour. Names stand on
-  plates of the band colour and marks on discs of it, so no coast runs
-  through a letter. A desk whose institutions are outside the frame gets an
-  edge pointer naming the place, never a stand-in seat. The caption says a
-  point is not an area of coverage. Label sides are set per desk, with
-  narrow-atlas alternatives applied by a container query (in rem, so enlarged
-  text takes them too). When there is too little room for separate map
-  targets, the same links reflow below the drawing. The index and seats share an
-  order; pointing at a desk in either rings it in the other and lets the
-  drawing recede. Names, places and state marks never dim.
-- **Home page region band.** The same atlas, seats, states and disclosure,
-  directly under the opening, each seat a link to its desk page.
-- **Desk page locator.** A regional window (never a city-scale zoom) on the
-  day chart beside the page head, the seat ringed, captioned "Seat: <place>"
-  with a link to the atlas. A seat far inland may set where it sits in the
-  window (`locator_at`) so the window shows its coast. Locators are limited
-  to desks with a seat in the frame.
-
-Where it is decoration (no point, no label, no claim):
-- **Page heads** of the catalogue, archive, week and reference pages carry
-  the day chart: off the right of the head on a wide screen, clear of the
-  heading and lede; a strip under them at 900px and narrower. The crop is
-  fixed per page family and never chosen to match a page's subject.
-- **The dossier opening** and **navigation and reference footers** carry
-  the night chart, faded. The footer chart becomes a separate strip at
-  1100px and narrower. Records, Briefs, source detail pages, timelines
-  and Korea reading routes keep a plain footer.
-- Methodology (Scope) tells the reader what the chart is and is not.
-Forced colours and print drop the decoration; the Desks atlas prints in the
-day inking.
+- **Desks.** The day atlas sits beside the introduction on wide screens and
+  below it on smaller ones. Each seat is a link to its desk row. Its glyph
+  identifies the registry state, and the link spells out the state for
+  assistive technology. A desk outside the frame is identified at the edge.
+  The caption explains what the map represents and credits Natural Earth.
+  Labels switch sides when space is tight. The same links move below the
+  drawing when their targets would collide, including at enlarged text sizes.
+  The desk index and atlas share an order and highlight the matching link
+  on hover or keyboard focus.
+- **Desk locators.** Desk pages with a seat inside the frame show a regional
+  crop of the day atlas, a seat caption and a link to the full chart.
+- **Methodology.** The Scope section describes the map geometry and its limits.
+  Forced colours present the atlas links as a list.
 
 **Pictures.** Two places carry a photograph, and both are credited
 photographs of real scenes, never generated images or illustration:
@@ -132,14 +95,9 @@ photographs of real scenes, never generated images or illustration:
   surfaces only.
 Records never carry source media.
 
-**Motion in the Atmosphere & Motion candidate.** The atlas answers hover and
-keyboard focus with a ring. On arrival, selected headings settle without
-fading. The homepage photograph settles once and moves slightly slower than
-the page on wide screens. The atlas drawing fades in while the Desks state
-marks scale into place from north to south. A Brief's title and cover
-photograph settle once. Where supported, pages cross-fade with the masthead
-held in place. Reduced motion and scripting disabled show the settled state.
-See VISUAL_AND_MOTION_SYSTEM.md for the timing and scope.
+**Motion.** The photo and atlas remain still. Button, disclosure and atlas
+focus feedback use short transitions when reduced motion is off. See
+VISUAL_AND_MOTION_SYSTEM.md for the timing and scope.
 
 **Lists.** Every list of records uses `_records.html`. A list states once,
 at the head of its English column, that English titles are machine

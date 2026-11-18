@@ -126,20 +126,13 @@ class RegionalAtlasTest(unittest.TestCase):
                     self.assertEqual(float(loc["x"].rstrip("%")), round(fx * 100, 2))
                     self.assertEqual(float(loc["y"].rstrip("%")), round(fy * 100, 2))
 
-    def test_seats_settle_north_to_south_and_the_outside_desk_last(self):
+    def test_atlas_links_follow_registry_order_with_the_outside_desk_last(self):
         view = atlas.atlas_view(self.public)
-        seats, outside = view["seats"], view["outside"]
-        # The order is presentation only: the list itself stays in registry order.
-        self.assertEqual([s["desk"].slug for s in seats],
-                         [d.slug for d in self.public if "outside" not in self.places[d.slug]])
-        by_order = sorted(seats, key=lambda s: s["order"])
-        self.assertEqual([s["order"] for s in by_order], list(range(len(seats))))
-        lats = [self.places[s["desk"].slug]["anchor"][1] for s in by_order]
-        self.assertEqual(lats, sorted(lats, reverse=True))
-        self.assertEqual([o["order"] for o in outside],
-                         list(range(len(seats), len(seats) + len(outside))))
-        for s in seats:
-            self.assertNotIn("_y", s)
+        for key in ("seats", "outside"):
+            with self.subTest(placement=key):
+                self.assertEqual([s["desk"].slug for s in view[key]],
+                                 [d.slug for d in self.public
+                                  if ("outside" in self.places[d.slug]) == (key == "outside")])
 
     def test_a_seat_outside_the_view_is_refused(self):
         stray = SimpleNamespace(slug="china")
@@ -196,8 +189,8 @@ class AtlasOnThePages(unittest.TestCase):
         for d in public:
             self.assertIn('href="#desk-%s"' % d.slug, head)
             self.assertIn("%s. %s" % (d.name, d.status_label), head)
-        self.assertIn("It is not an area of coverage", head)
-        self.assertIn("no boundary claim", head)
+        self.assertIn("They show no coverage area", head)
+        self.assertIn("IPR makes no boundary claim", head)
         self.assertIn("United States, </span>outside this map", head)
         self.assertNotIn("Hawaii", head)
         self.assertTrue((ROOT / "output" / "assets" / "geo" / "atlas.svg").is_file())
@@ -214,20 +207,7 @@ class AtlasOnThePages(unittest.TestCase):
                     self.assertIn("Seat: %s" % places[d.slug]["seat"], html)
 
     def test_a_desk_with_no_seat_in_the_frame_is_never_set_on_a_chart(self):
-        """The decorative chart behind a page head is withheld from desk,
-        source and record pages in the stylesheet, so a desk the atlas does
-        not draw is not placed on it by its page furniture either. The rules
-        live in support.css, which record pages and the Korea and Indonesia
-        desk pages never load: they do not pay for a chart they cannot show."""
-        import re
-        self.assertNotIn("--chart:", (ROOT / "site" / "preview" / "surfaces.css").read_text(encoding="utf-8"))
-        css = (ROOT / "site" / "preview" / "support.css").read_text(encoding="utf-8")
-        reset = re.search(r":is\(([^)]*)\) \.page-head\{--chart:initial;--chart-pad:initial;--chart-image:initial\}", css)
-        self.assertIsNotNone(reset)
-        for surface in ("desk", "source", "record"):
-            self.assertIn("[data-surface=%s]" % surface, reset.group(1))
-        # The reset follows the rule that grants the chart, so it wins.
-        self.assertGreater(reset.start(), css.index('{--chart:"";'))
+        """The atlas uses the supported institutional location, with no fallback seat."""
         places = json.loads(atlas.GEOGRAPHY.read_text(encoding="utf-8"))["desks"]
         for d in load_registry().public_entries:
             html = (ROOT / "output" / d.route).read_text(encoding="utf-8")

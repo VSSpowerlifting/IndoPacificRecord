@@ -3,7 +3,7 @@
    counts at left; the desk's newest record as parallel text at right. The
    class names on the rows are kept because guards and citations address
    them. The atlas (2026-11-17) is one waterlined Natural Earth drawing in its
-   night inking (assets/geo/atlas-night.svg, scripts/build_atlas.py) cropped by
+   day palette (assets/geo/atlas.svg, scripts/build_atlas.py) cropped by
    the inline size and position; each seat is an HTML link placed in percent. */
 .desk-count{font:400 var(--step-meta)/1.5 var(--sans);color:var(--muted);margin:.9rem 0 0}
 .desks-tally{display:flex;flex-wrap:wrap;gap:.3rem 2rem;margin:1.1rem 0 0;padding:0}
@@ -40,21 +40,14 @@
 .desks-seat{margin:.35rem 0 0;font-size:var(--step-meta);color:var(--muted)}
 .desks-seat a{margin-left:.35rem;font-weight:600}
 .deskmap-register>.desk:target{border-left:3px solid var(--accent);padding-left:1rem}
-/* The night chart (2026-11-17). The head is a navy band continuous with the
-   masthead; inside it the shared tokens are re-pointed at their on-band
-   values, so every rule below reads the same on paper or on navy. */
-.desks-open,.home-region{background:var(--band);color:var(--band-ink);--ink:var(--band-ink);--ink-2:var(--band-dek);--muted:var(--band-muted);--rule:var(--band-rule);--paper:var(--band);--positive:var(--positive-band);--warning:var(--warning-band);--accent-tint:color-mix(in srgb,var(--band-ink) 10%,var(--band));--focus:var(--focus-band)}
-:is(.desks-open,.home-region) a,:is(.desks-open,.home-region) a:visited{color:var(--ink)}
-[data-surface] .desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem;margin:0;padding:2.6rem 0 2.8rem;border:0}
+[data-surface] .desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem}
 .atlas{margin:1.8rem 0 0;container-type:inline-size}
 .atlas-map{position:relative;width:100%;aspect-ratio:var(--atlas-ratio)}
-/* The drawing sits behind the seats and dissolves into the band at its edges,
-   so the coast reads as part of the page rather than a framed picture. */
-.atlas-map::before{content:"";position:absolute;inset:0;background:url(assets/geo/atlas-night.svg) var(--crop-at)/var(--crop-size) no-repeat;mask:linear-gradient(90deg,transparent,black 12%,black 86%,transparent),linear-gradient(transparent,black 8%,black 94%,transparent);mask-composite:intersect;pointer-events:none}
+/* Keep the drawing separate from its links so the links can reflow below it. */
+.atlas-map::before{content:"";position:absolute;inset:0;background:var(--accent-tint) url(assets/geo/atlas.svg) var(--crop-at)/var(--crop-size) no-repeat;outline:1px solid var(--rule);outline-offset:-1px;pointer-events:none}
 .atlas-seats{list-style:none;margin:0;padding:0}
 /* A label is cut out of the drawing: the name and place stand on a plate of
-   the band's own colour and the mark on a disc of it, so no coast or
-   waterline runs through a letter or along a mark's edge. */
+   paper and the mark on a disc of it so the chart leaves each label legible. */
 .seat{position:absolute;left:var(--x,auto);top:var(--y);display:flex;align-items:center;min-height:40px;transform:translate(-20px,-50%);color:var(--ink);text-decoration:none;font:400 .8125rem/1.15 var(--sans)}
 .seat-text{display:block;color:var(--ink-2);padding:.22em .45em .28em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent)}
 .seat-text b{display:block;font-weight:600;font-size:.9375rem;color:var(--ink)}
@@ -97,9 +90,9 @@
 .desk-jump-detail{display:block;font:400 .75rem/1.35 var(--sans);color:var(--muted);overflow-wrap:anywhere}
 .desk-jump-arrow{justify-self:end;color:var(--muted);font:400 1rem/1 var(--sans)}
 @media(min-width:1140px){
-  [data-surface] .desks-head{grid-template-columns:minmax(0,.82fr) minmax(0,1.3fr);grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:clamp(1.6rem,4vw,3.2rem)}
+  [data-surface] .desks-head{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:clamp(1.6rem,4vw,3.2rem)}
   .desks-head>*{grid-column:1}
-  .desks-head>.atlas{grid-column:2;grid-row:1/span 5;margin:-1.2rem 0 0}
+  .desks-head>.atlas{grid-column:2;grid-row:1/span 5;margin:.4rem 0 0}
   .desks-head>.desk-jump{grid-column:1;grid-row:5;align-self:end}
 }
 @media(min-width:680px) and (max-width:1139px){
@@ -107,10 +100,7 @@
   .desk-jump-list li:nth-last-child(2){border-bottom:1px solid var(--rule)}
 }
 /* Both navigation surfaces share an order, computed from atlas.seats followed
-   by atlas.outside. Pointing at a desk in either one rings it in the other
-   and lets the drawing recede; no name, place or state mark ever dims. CSS
-   only, so keyboard and no-script use are unchanged. */
-.atlas:has(.atlas-seats a:is(:hover,:focus-visible)) .atlas-map::before,.desks-head:has(.desk-jump-list a:is(:hover,:focus-visible)) .atlas-map::before{opacity:.5}
+   by atlas.outside. Pointing at a desk in either one highlights its match in the other. The matching works without scripts. */
 .desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) b{text-decoration:underline;text-decoration-thickness:2px}
 .desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) .seat-mark::after{opacity:.9;transform:none}
 .desks-head:has(.atlas-seats li:nth-child(1) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(1) a{background:var(--accent-tint)}
@@ -153,27 +143,22 @@
   .atlas-seats .seat{position:relative;inset:auto;transform:none;flex-direction:row;text-align:left}
   .atlas-seats .seat-text{padding-inline:0;min-width:0;overflow-wrap:anywhere}
   .atlas-seats .seat--edge .seat-mark{order:-1}
-  .seat--edge .seat-text::after,.atlas-points{display:none}
+  .seat--edge .seat-text::after{display:none}
 }
-/* Motion. The finished chart is the default. Where motion is welcome the
-   drawing settles in once and the seats come up from north to south (--i,
-   scripts/build_atlas.py); a seat is a link, so it is never invisible. On the
-   home page the drawing settles as its band scrolls into view. Nothing
-   radiates from a seat and nothing repeats. */
-@keyframes chart-in{from{opacity:0;transform:scale(1.035)}}
-@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){
-  .atlas-map::before{animation:chart-in 1.3s var(--ease-out) backwards;transition:opacity .3s var(--ease-out)}
-  .atlas-seats .seat-mark::after{transition:opacity .22s var(--ease-out),transform .45s var(--ease-rule)}
-  .atlas-seats .seat-mark::before{animation:seat-ink .4s calc(.15s + var(--i,0)*55ms) var(--ease-out) backwards}
-  @supports(animation-timeline:view()){
-    .home-region .atlas-map::before{animation:chart-in linear both;animation-timeline:view();animation-range:entry 0% cover 32%}
-    .home-region .atlas-seats .seat-mark::before{animation:none}
-  }
+@media (prefers-reduced-motion:no-preference) {
+  .atlas-seats .seat-mark::after{transition:opacity 160ms var(--ease-rule)}
 }
-@keyframes seat-ink{from{transform:scale(.75)}}
-@media(forced-colors:active){.atlas-map::before{display:none}.desks-open,.home-region{background:Canvas;color:CanvasText}.seat-text,.atlas-grat span,.seat .seat-mark{background:none}}
-/* Print takes the day inking of the same drawing: same geometry, dark on paper. */
-@media print{.atlas-map::before{background-image:url(assets/geo/atlas.svg);mask:none;animation:none}.desks-open,.home-region{background:none;color:CanvasText;--ink:CanvasText;--ink-2:CanvasText;--muted:CanvasText;--paper:Canvas;--positive:CanvasText;--warning:CanvasText}}
+@media (forced-colors:active) {
+  .atlas-map{aspect-ratio:auto}
+  .atlas-map::before,.atlas-grat{display:none}
+  .atlas-seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(8.5rem,100%),1fr));border-top:1px solid var(--rule);gap:.25rem}
+  .atlas-seats .seat{position:relative;inset:auto;transform:none;flex-direction:row;text-align:left}
+  .atlas-seats .seat-text{padding-inline:0;min-width:0;overflow-wrap:anywhere}
+  .atlas-seats .seat--edge .seat-mark{order:-1}
+  .seat--edge .seat-text::after{display:none}
+  .seat-text b{color:LinkText}
+  .seat-text,.atlas-grat span,.seat .seat-mark{background:none}
+}
 .desks-section{margin:3rem 0 0}
 .desks-section>h2{margin:0 0 .8rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
 .scope-register{margin:0;padding:0}

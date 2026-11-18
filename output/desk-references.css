@@ -28,7 +28,7 @@
 [data-surface=desk] .status-panel{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 .7rem;align-items:start;margin:0 0 2.4rem;padding:1.4rem 0 1.6rem;border:0;border-bottom:1px solid var(--rule);background:none}
 [data-surface=desk] .status-panel .status-glyph{font-size:1.05rem;line-height:1.75rem;padding:0}
 [data-surface=desk] .status-panel>div{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:.5rem 2.5rem;align-items:start}
-[data-surface=desk] .status-panel h2{font:600 clamp(1.1875rem,1.05rem + .5vw,1.4375rem)/1.3 var(--serif);margin:0;padding:0;border:0;max-width:24ch}
+[data-surface=desk] .status-panel h2{font:600 clamp(1.1875rem,1.05rem + .5vw,1.4375rem)/1.3 var(--serif);margin:0;padding:0;border:0;max-width:24ch;overflow-wrap:anywhere}
 [data-surface=desk] .status-panel p{margin:0;color:var(--ink-2);max-width:66ch}
 [data-surface=desk] .status-panel p:empty{display:none}
 [data-surface=desk] .collection-notes{grid-column:-2/-1;font-size:.875rem;color:var(--ink-2)}
@@ -69,8 +69,10 @@
 [data-surface=desk] main .desk-more>h2{font:600 1.25rem/1.3 var(--serif);letter-spacing:0;margin:1.6rem 0 .5rem;padding:0;border:0}
 .desk-more>p{max-width:68ch}
 @media(max-width:720px){
-  [data-surface=desk] .status-panel>div{grid-template-columns:1fr}
+  [data-surface=desk] .status-panel>div{grid-template-columns:minmax(0,1fr)}
   [data-surface=desk] .status-panel{padding:1.1rem 0 1.3rem;margin-bottom:1.8rem}
-  .desk-reference-filters{grid-template-columns:1fr}
+  [data-surface=desk] .stat-row{flex-wrap:wrap;gap:.2rem .8rem}
+  [data-surface=desk] .desk-reference-list .meta{overflow-wrap:anywhere}
+  .desk-reference-filters{grid-template-columns:minmax(0,1fr)}
   [data-surface=desk] main section{margin-top:2.4rem}
 }
