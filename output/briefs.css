@@ -38,6 +38,8 @@
 .brief-cover-frame img{object-fit:cover}
 .brief-cover--gradient .brief-cover-frame::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(11,28,44,.34));pointer-events:none}
 .brief-opening-photo img{display:block;width:100%;height:auto}
+@keyframes photo-settle{from{transform:scale(1.05)}}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){.brief-heading .brief-title{animation:head-rise .7s var(--ease-out) backwards}:is(.brief-opening-photo,.brief-cover-frame) picture{display:block;overflow:hidden}:is(.brief-opening-photo,.brief-cover-frame) img{animation:photo-settle 1.8s var(--ease-out) backwards}}
 .historical-veil img{display:block;width:100%;height:clamp(190px,27vw,360px);object-fit:cover}
 :is(.brief-cover,.brief-opening-photo,.historical-veil,.historical-media) figcaption{margin-top:.6rem;max-width:none;font:400 .75rem/1.55 var(--sans);color:var(--muted);overflow-wrap:anywhere}
 :is(.brief-cover,.brief-opening-photo,.historical-veil,.historical-media) figcaption a{color:inherit;text-underline-offset:.2em}

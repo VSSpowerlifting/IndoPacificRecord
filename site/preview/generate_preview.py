@@ -105,7 +105,7 @@ ARCHIVE_MARK_ASSETS = tuple("assets/desk-marks/%s.svg" % s
 CATALOGUE_STATIC_ASSETS = ("assets/geo/region.svg",)
 # The regional atlas (scripts/build_atlas.py): one waterlined Natural Earth
 # drawing, cropped by CSS for the Desks page and for each desk's locator.
-ATLAS_ASSETS = ("assets/geo/atlas.svg",)
+ATLAS_ASSETS = ("assets/geo/atlas.svg", "assets/geo/atlas-night.svg")
 
 #: The public name. Owner-directed 2026-08-25; the governing record is
 #: docs/INDO_PACIFIC_RECORD_EVOLUTION.md §1. "The Declared Record" and
@@ -3687,7 +3687,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
-    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-references.css", "desk-references.js"):
+    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "atlas-footer.css", "desk-map.css", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
     # Explicit named assets only: the Desks flag tabs (including the MIT

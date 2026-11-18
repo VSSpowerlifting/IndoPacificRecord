@@ -33,6 +33,7 @@
    record pages carry no bytes for behaviour they do not have. #}
 {% if dossier is defined %}<link rel="stylesheet" href="{{ root }}dossier-shell.css">{% elif record is not defined and brief is not defined and not timeline_surface | default(false) and page != 'index.html' %}<link rel="stylesheet" href="{{ root }}{{ support_stylesheet | default('support.css') }}">{% endif %}
 <link rel="stylesheet" href="{{ root }}surfaces.css">
+{% if dossier is defined or surface in ('home', 'catalog', 'week') or (surface == 'utility' and page in ('desks.html', 'corpus.html', 'dossiers.html', 'methodology.html', 'sources.html', 'coverage.html', 'about.html')) %}<link rel="stylesheet" href="{{ root }}atlas-footer.css">{% endif %}
 {% block head_scripts %}{% endblock %}
 </head>
 {% block body_open %}<body{% if page == 'index.html' %} class="page-home"{% endif %}>{% endblock %}

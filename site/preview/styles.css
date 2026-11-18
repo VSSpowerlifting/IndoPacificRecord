@@ -29,6 +29,8 @@
   --band-rule:     #2C3D48;
   --positive:      #1C6450;
   --warning:       #87511A;
+  --positive-band: #7FD3B4;
+  --warning-band:  #E8BE6E;
   --focus:         #176C6C;
   --focus-band:    #92D5CC;
   --white:         #FFFFFF;
@@ -473,7 +475,7 @@ td.num, th.num { text-align: right; padding-right: 0; padding-left: .9rem; }
 footer.site{background:var(--band);color:var(--band-muted);padding:56px 0 44px;border:0}
 footer.site a{color:var(--band-ink)}footer.site a:visited{color:var(--band-ink)}footer.site a:hover{color:var(--focus-band)}
 footer.site a:focus-visible{outline-color:var(--focus-band)}
-.footer-standing{font:400 clamp(1.25rem,1rem + .9vw,1.625rem)/1.4 var(--serif);color:var(--band-ink);max-width:36em;margin:0 0 40px;padding-bottom:36px;border-bottom:1px solid var(--band-rule);text-wrap:pretty}
+.footer-standing{font:400 clamp(1.25rem,1rem + .9vw,1.625rem)/1.4 var(--serif);color:var(--band-ink);max-width:31em;margin:0 0 40px;padding-bottom:36px;border-bottom:1px solid var(--band-rule);text-wrap:pretty}
 .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px}.brand--footer{margin-bottom:18px}.footer-grid p{font:13px/1.7 var(--sans);color:var(--band-muted);margin:.5rem 0}
 .footer-grid .colophon-tagline{color:var(--band-dek)}
 .footer-col h2{font:600 13px/1.5 var(--sans);color:var(--band-ink);border:0;margin:0 0 8px;padding:0}.footer-col ul{list-style:none;padding:0;margin:0}.footer-col a{display:inline-flex;align-items:center;min-height:40px;font-size:13px;color:var(--band-muted);text-decoration:none}.footer-col a:visited{color:var(--band-muted)}.footer-col a:hover{text-decoration:underline}
@@ -493,6 +495,10 @@ footer.site a:focus-visible{outline-color:var(--focus-band)}
 @media(max-width:500px){.header-inner{height:64px;gap:10px}.brand{gap:10px}.brand-mark{width:48px}.brand-name{font-size:23px}.publication-status{font-size:11px;gap:10px}.footer-grid{grid-template-columns:1fr}.footer-grid>:first-child{grid-column:auto}.freshness-bar dl{display:block}.freshness-bar dl>div{flex-wrap:wrap}}
 @media(max-width:380px){.publication-status>span:first-child{display:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){@view-transition{navigation:auto}.masthead{view-transition-name:masthead}::view-transition-old(root){animation-duration:.16s}::view-transition-new(root){animation-duration:.28s}::view-transition-old(masthead){display:none}::view-transition-group(masthead),::view-transition-new(masthead){animation:none}}
+/* Browser checks can hold the page in its settled state. */
+.no-anim *,.no-anim *::before,.no-anim *::after{animation:none!important;transition:none!important}
+.no-anim::view-transition-group(*),.no-anim::view-transition-old(*),.no-anim::view-transition-new(*){animation:none!important}
 @media(forced-colors:active){body,.band,.masthead,footer.site,.publication-status{background:Canvas;color:CanvasText}.brand,.band a,.nav-desktop>a,.masthead summary,footer.site a{color:LinkText}a,button,summary,input,select{forced-color-adjust:auto}.brand-mark{background:var(--band)}}
 
 @media(max-width:760px){

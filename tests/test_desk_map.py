@@ -111,6 +111,36 @@ class RegionalAtlasTest(unittest.TestCase):
                     for v in (loc["x"], loc["y"]):
                         self.assertTrue(0 < float(v.rstrip("%")) < 100)
 
+    def test_a_locator_window_stays_on_the_drawing_and_honours_its_placement(self):
+        for slug, p in self.places.items():
+            loc = atlas.locator_view(slug)
+            if loc is None:
+                continue
+            with self.subTest(desk=slug):
+                for v in loc["window"]["position"].split():
+                    self.assertTrue(0 <= float(v.rstrip("%")) <= 100, loc["window"])
+                if "locator_at" in p:
+                    fx, fy = p["locator_at"]
+                    self.assertTrue(0 < fx < 1 and 0 < fy < 1, p["locator_at"])
+                    # Unclamped, the seat sits exactly where the entry puts it.
+                    self.assertEqual(float(loc["x"].rstrip("%")), round(fx * 100, 2))
+                    self.assertEqual(float(loc["y"].rstrip("%")), round(fy * 100, 2))
+
+    def test_seats_settle_north_to_south_and_the_outside_desk_last(self):
+        view = atlas.atlas_view(self.public)
+        seats, outside = view["seats"], view["outside"]
+        # The order is presentation only: the list itself stays in registry order.
+        self.assertEqual([s["desk"].slug for s in seats],
+                         [d.slug for d in self.public if "outside" not in self.places[d.slug]])
+        by_order = sorted(seats, key=lambda s: s["order"])
+        self.assertEqual([s["order"] for s in by_order], list(range(len(seats))))
+        lats = [self.places[s["desk"].slug]["anchor"][1] for s in by_order]
+        self.assertEqual(lats, sorted(lats, reverse=True))
+        self.assertEqual([o["order"] for o in outside],
+                         list(range(len(seats), len(seats) + len(outside))))
+        for s in seats:
+            self.assertNotIn("_y", s)
+
     def test_a_seat_outside_the_view_is_refused(self):
         stray = SimpleNamespace(slug="china")
         moved = {"china": {"seat": "Nowhere", "anchor": [60.0, 0.0], "short": "X"}}
@@ -119,10 +149,14 @@ class RegionalAtlasTest(unittest.TestCase):
                 atlas.atlas_view([stray])
 
     def test_the_drawing_is_rebuilt_byte_for_byte(self):
-        svg = atlas.draw(self.source).encode("utf-8")
-        self.assertEqual(svg, atlas.ATLAS_SVG.read_bytes())
         receipt = json.loads(atlas.RECEIPT.read_text(encoding="utf-8"))
-        self.assertEqual(receipt["outputs"]["atlas.svg"]["sha256"], hashlib.sha256(svg).hexdigest())
+        # Two inkings of the one drawing: the day chart and the night chart.
+        for ink, path in ((atlas.DAY, atlas.ATLAS_SVG), (atlas.NIGHT, atlas.ATLAS_NIGHT_SVG)):
+            svg = atlas.draw(self.source, ink).encode("utf-8")
+            self.assertEqual(svg, path.read_bytes(), path.name)
+            self.assertEqual(receipt["outputs"][path.name]["sha256"],
+                             hashlib.sha256(svg).hexdigest(), path.name)
+        self.assertEqual(sorted(receipt["outputs"]), ["atlas-night.svg", "atlas.svg"])
         self.assertEqual(receipt["source"]["sha256"],
                          hashlib.sha256(atlas.SOURCE_JSON.read_bytes()).hexdigest())
         self.assertNotIn("time", json.dumps(receipt).lower().replace("timeline", ""))
@@ -178,6 +212,30 @@ class AtlasOnThePages(unittest.TestCase):
                 else:
                     self.assertIn('<figure class="locator">', html)
                     self.assertIn("Seat: %s" % places[d.slug]["seat"], html)
+
+    def test_a_desk_with_no_seat_in_the_frame_is_never_set_on_a_chart(self):
+        """The decorative chart behind a page head is withheld from desk,
+        source and record pages in the stylesheet, so a desk the atlas does
+        not draw is not placed on it by its page furniture either. The rules
+        live in support.css, which record pages and the Korea and Indonesia
+        desk pages never load: they do not pay for a chart they cannot show."""
+        import re
+        self.assertNotIn("--chart:", (ROOT / "site" / "preview" / "surfaces.css").read_text(encoding="utf-8"))
+        css = (ROOT / "site" / "preview" / "support.css").read_text(encoding="utf-8")
+        reset = re.search(r":is\(([^)]*)\) \.page-head\{--chart:initial;--chart-pad:initial;--chart-image:initial\}", css)
+        self.assertIsNotNone(reset)
+        for surface in ("desk", "source", "record"):
+            self.assertIn("[data-surface=%s]" % surface, reset.group(1))
+        # The reset follows the rule that grants the chart, so it wins.
+        self.assertGreater(reset.start(), css.index('{--chart:"";'))
+        places = json.loads(atlas.GEOGRAPHY.read_text(encoding="utf-8"))["desks"]
+        for d in load_registry().public_entries:
+            html = (ROOT / "output" / d.route).read_text(encoding="utf-8")
+            with self.subTest(desk=d.slug):
+                self.assertIn('data-surface="desk"', html)
+                if "outside" in places[d.slug]:
+                    self.assertNotIn("page-head--located", html)
+                    self.assertNotIn("locator-map", html)
 
 
 if __name__ == "__main__":
