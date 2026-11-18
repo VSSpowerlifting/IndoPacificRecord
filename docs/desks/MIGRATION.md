@@ -530,8 +530,19 @@ that fails `attempts.validate` (or names another family) is replaced by
   or unexpected-valued ledger or newer receipt reads `ledger_unreadable`
   (fail closed, never raises). Error text, URLs and request data are never
   copied.
-- No private workflow change is needed: the signer already runs from the
-  public processor against the pinned custody checkout.
+- No private workflow change is needed for the block to be signed: the
+  signer already runs from the public processor against the pinned custody
+  checkout. But the private `process` job runs only after a *successful*
+  collector `workflow_run` (or a manual dispatch), and Kemhan and JCG are
+  processed only on their own collector's run. A failed Kemhan or JCG
+  collection is therefore never signed: the last healthy block keeps being
+  admitted, so the row reads duplicates within the 14-hour grace and
+  `collection stale` after it, not the specific failure code. In practice
+  Kemhan's `unledgered_exit` appears only through a manual dispatch. AFP and
+  NSC are processed on either one's successful collector, so each one's
+  failure is signed by the other's success (NSC's `access_challenged`
+  depends on AFP succeeding). Signing after a failed collector run is a
+  separate private workflow change (follow-up, not in this step).
 - Expected effect once the next shared Daily runs: NSC, whose collector has
   failed every day since 5 November, reports `access_challenged` on its
   run-result row instead of duplicates. Strict flip
