@@ -222,7 +222,7 @@ class AtlasOnThePages(unittest.TestCase):
         import re
         self.assertNotIn("--chart:", (ROOT / "site" / "preview" / "surfaces.css").read_text(encoding="utf-8"))
         css = (ROOT / "site" / "preview" / "support.css").read_text(encoding="utf-8")
-        reset = re.search(r":is\(([^)]*)\) \.page-head\{--chart:initial;--chart-pad:initial\}", css)
+        reset = re.search(r":is\(([^)]*)\) \.page-head\{--chart:initial;--chart-pad:initial;--chart-image:initial\}", css)
         self.assertIsNotNone(reset)
         for surface in ("desk", "source", "record"):
             self.assertIn("[data-surface=%s]" % surface, reset.group(1))

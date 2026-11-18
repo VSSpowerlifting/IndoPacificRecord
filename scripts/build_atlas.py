@@ -15,8 +15,8 @@ Drawing. `python scripts/build_atlas.py` turns the JSON into two files and
 holds hashes, never a time). `atlas.svg` is the day chart, inked for paper:
 page heads and the desk locators crop it. `atlas-night.svg` is the night chart,
 the same geometry inked for the navy bands: the Desks opening, the home page's
-region band, the footer and a dossier's opening. The two differ in colour and
-in nothing else. The sea is drawn with *waterlines*: the real coastline's
+region band, selected footers and a dossier's opening. The palettes share
+the same paths and projection. The sea is drawn with *waterlines*: the coastline's
 outline repeated at fixed offsets, an engraved-chart convention. They show
 distance from the drawn coast and nothing else: no depth, relief, terrain or
 coverage.
@@ -77,8 +77,8 @@ OUTSIDE_EDGE_LAT = 6.0
 WATERLINES = ((2.2, .80), (4.6, .64), (7.4, .52), (10.6, .42), (14.2, .33), (18.2, .25), (22.4, .18))
 LINE_W = .7
 SHORE_W = 5.0                  # the tint band drawn inside the coast, in units
-# Two inkings of the one drawing. The day chart sits on paper pages; the night
-# chart sits on the navy bands. Same geometry, same lines, different ink.
+# Two inkings of the one drawing. The day chart sits on paper pages. The
+# night chart uses the same geometry on navy bands.
 DAY = {
     "name": "atlas.svg",
     "sea": (0xE1, 0xEE, 0xEA),     # --accent-tint

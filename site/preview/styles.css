@@ -472,10 +472,7 @@ td.num, th.num { text-align: right; padding-right: 0; padding-left: .9rem; }
 .freshness-bar .wrap { width: 100%; font-size: 13px; }
 .freshness-bar dl { display: flex; flex-wrap: wrap; gap: 16px 32px; }
 .freshness-bar dl > div { display: flex; gap: 8px; }.freshness-bar dd { margin: 0; white-space: nowrap; }.freshness-bar .behind{max-width:70ch}
-footer.site{position:relative;isolation:isolate;overflow:hidden;background:var(--band);color:var(--band-muted);padding:56px 0 44px;border:0}
-/* The night chart, as decoration: no seat, no claim. */
-footer.site::before{content:"";position:absolute;z-index:-1;inset:0 0 0 auto;width:min(52%,700px);background:url(assets/geo/atlas-night.svg) 62% 38%/1400px auto no-repeat;opacity:.5;mask:linear-gradient(90deg,transparent 8%,black 78%),linear-gradient(black 30%,transparent 72%);mask-composite:intersect;pointer-events:none}
-@media(max-width:1100px){footer.site{padding-bottom:calc(44px + 4.6rem)}footer.site::before{inset:auto 0 0;width:auto;height:5.4rem;background-size:900px auto;mask:linear-gradient(transparent,black 66%),linear-gradient(90deg,transparent,black 14%,black 86%,transparent);mask-composite:intersect}}
+footer.site{background:var(--band);color:var(--band-muted);padding:56px 0 44px;border:0}
 footer.site a{color:var(--band-ink)}footer.site a:visited{color:var(--band-ink)}footer.site a:hover{color:var(--focus-band)}
 footer.site a:focus-visible{outline-color:var(--focus-band)}
 .footer-standing{font:400 clamp(1.25rem,1rem + .9vw,1.625rem)/1.4 var(--serif);color:var(--band-ink);max-width:31em;margin:0 0 40px;padding-bottom:36px;border-bottom:1px solid var(--band-rule);text-wrap:pretty}
@@ -498,10 +495,11 @@ footer.site a:focus-visible{outline-color:var(--focus-band)}
 @media(max-width:500px){.header-inner{height:64px;gap:10px}.brand{gap:10px}.brand-mark{width:48px}.brand-name{font-size:23px}.publication-status{font-size:11px;gap:10px}.footer-grid{grid-template-columns:1fr}.footer-grid>:first-child{grid-column:auto}.freshness-bar dl{display:block}.freshness-bar dl>div{flex-wrap:wrap}}
 @media(max-width:380px){.publication-status>span:first-child{display:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-@media(prefers-reduced-motion:no-preference){@view-transition{navigation:auto}.masthead{view-transition-name:masthead}::view-transition-old(root){animation-duration:.16s}::view-transition-new(root){animation-duration:.28s}}
-/* Test hook: browser guards set it to measure a settled page. */
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){@view-transition{navigation:auto}.masthead{view-transition-name:masthead}::view-transition-old(root){animation-duration:.16s}::view-transition-new(root){animation-duration:.28s}::view-transition-old(masthead){display:none}::view-transition-group(masthead),::view-transition-new(masthead){animation:none}}
+/* Browser checks can hold the page in its settled state. */
 .no-anim *,.no-anim *::before,.no-anim *::after{animation:none!important;transition:none!important}
-@media(forced-colors:active){footer.site::before{display:none}body,.band,.masthead,footer.site,.publication-status{background:Canvas;color:CanvasText}.brand,.band a,.nav-desktop>a,.masthead summary,footer.site a{color:LinkText}a,button,summary,input,select{forced-color-adjust:auto}.brand-mark{background:var(--band)}}
+.no-anim::view-transition-group(*),.no-anim::view-transition-old(*),.no-anim::view-transition-new(*){animation:none!important}
+@media(forced-colors:active){body,.band,.masthead,footer.site,.publication-status{background:Canvas;color:CanvasText}.brand,.band a,.nav-desktop>a,.masthead summary,footer.site a{color:LinkText}a,button,summary,input,select{forced-color-adjust:auto}.brand-mark{background:var(--band)}}
 
 @media(max-width:760px){
 .records-key{display:block}.records-key>span+span{display:none}.records-key .key-note{display:inline;margin:0 0 0 .4em}
@@ -528,7 +526,6 @@ footer.site a:focus-visible{outline-color:var(--focus-band)}
   .wrap { width: 100%; padding: 0; }
   .brand--footer, .footer-col { display: none; }
   .footer-grid { display: block; }
-  footer.site::before { display: none; }
   .btn { background: none !important; color: #000 !important; border: 0; padding: 0; min-height: 0; transition: none; }
   .interpretation, .cite-block, .processing-plate { background: #fff; }
   main a[href^="http"]::after { content: " <" attr(href) ">"; font: 8pt var(--mono); color: #333; overflow-wrap: anywhere; }

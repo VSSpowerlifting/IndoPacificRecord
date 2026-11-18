@@ -46,22 +46,23 @@
 .desks-open,.home-region{background:var(--band);color:var(--band-ink);--ink:var(--band-ink);--ink-2:var(--band-dek);--muted:var(--band-muted);--rule:var(--band-rule);--paper:var(--band);--positive:var(--positive-band);--warning:var(--warning-band);--accent-tint:color-mix(in srgb,var(--band-ink) 10%,var(--band));--focus:var(--focus-band)}
 :is(.desks-open,.home-region) a,:is(.desks-open,.home-region) a:visited{color:var(--ink)}
 [data-surface] .desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem;margin:0;padding:2.6rem 0 2.8rem;border:0}
-.atlas{margin:1.8rem 0 0}
-.atlas-map{position:relative;width:100%;container-type:inline-size}
+.atlas{margin:1.8rem 0 0;container-type:inline-size}
+.atlas-map{position:relative;width:100%;aspect-ratio:var(--atlas-ratio)}
 /* The drawing sits behind the seats and dissolves into the band at its edges,
    so the coast reads as part of the page rather than a framed picture. */
-.atlas-map::before{content:"";position:absolute;inset:0;background:url(assets/geo/atlas-night.svg) var(--crop-at)/var(--crop-size) no-repeat;mask:linear-gradient(90deg,transparent,black 12%,black 86%,transparent),linear-gradient(transparent,black 8%,black 94%,transparent);mask-composite:intersect}
+.atlas-map::before{content:"";position:absolute;inset:0;background:url(assets/geo/atlas-night.svg) var(--crop-at)/var(--crop-size) no-repeat;mask:linear-gradient(90deg,transparent,black 12%,black 86%,transparent),linear-gradient(transparent,black 8%,black 94%,transparent);mask-composite:intersect;pointer-events:none}
 .atlas-seats{list-style:none;margin:0;padding:0}
 /* A label is cut out of the drawing: the name and place stand on a plate of
    the band's own colour and the mark on a disc of it, so no coast or
    waterline runs through a letter or along a mark's edge. */
-.seat{position:absolute;display:flex;align-items:center;min-height:40px;transform:translate(-20px,-50%);color:var(--ink);text-decoration:none;font:400 .8125rem/1.15 var(--sans)}
+.seat{position:absolute;left:var(--x,auto);top:var(--y);display:flex;align-items:center;min-height:40px;transform:translate(-20px,-50%);color:var(--ink);text-decoration:none;font:400 .8125rem/1.15 var(--sans)}
 .seat-text{display:block;color:var(--ink-2);padding:.22em .45em .28em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent)}
 .seat-text b{display:block;font-weight:600;font-size:.9375rem;color:var(--ink)}
 .seat:hover b{text-decoration:underline;text-decoration-thickness:1px}
 .seat:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .seat--left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
-.seat--edge{top:var(--y);right:0;padding-right:.4rem;transform:translateY(-50%);text-align:right}
+.seat--below{flex-direction:column;text-align:center;transform:translate(-50%,-20px)}
+.seat--edge{right:0;padding-right:.4rem;transform:translateY(-50%);text-align:right}
 .seat--edge .seat-text{max-width:9.5rem}
 .seat--edge .seat-text::after{content:" →"}
 .seat .seat-mark{position:relative;width:40px;height:40px;font-size:1.125rem;background:radial-gradient(circle,var(--paper) 11px,transparent 12px)}
@@ -73,7 +74,7 @@
 /* The ring answers a pointer or the keyboard; it never moves on its own. */
 .seat .seat-mark::after{content:"";position:absolute;inset:5px;border:1px solid currentColor;border-radius:50%;opacity:0;transform:scale(.45);pointer-events:none}
 .seat:is(:hover,:focus-visible) .seat-mark::after{opacity:.9;transform:none}
-.atlas-grat span{position:absolute;padding:.2em .35em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent);font:400 .6875rem/1 var(--sans);color:var(--muted)}
+.atlas-grat span{position:absolute;padding:.2em .35em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent);font:400 .6875rem/1 var(--sans);color:var(--muted);pointer-events:none}
 .g-lon{bottom:.35rem;transform:translateX(-50%)}
 .g-lat{left:.4rem;transform:translateY(-50%)}
 .atlas figcaption{margin:.7rem 0 0;font:400 .8125rem/1.5 var(--sans);color:var(--muted);max-width:68ch}
@@ -143,22 +144,33 @@
   .seat-place{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .atlas-grat{display:none}
 }
+/* The same links reflow below the drawing when there is too little room
+   to keep the seat targets apart, including with enlarged text. */
+@container (max-width:20rem){
+  .atlas-map{aspect-ratio:auto}
+  .atlas-map::before{position:relative;display:block;aspect-ratio:var(--atlas-ratio)}
+  .atlas-seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(8.5rem,100%),1fr));border-top:1px solid var(--rule);gap:.25rem}
+  .atlas-seats .seat{position:relative;inset:auto;transform:none;flex-direction:row;text-align:left}
+  .atlas-seats .seat-text{padding-inline:0;min-width:0;overflow-wrap:anywhere}
+  .atlas-seats .seat--edge .seat-mark{order:-1}
+  .seat--edge .seat-text::after,.atlas-points{display:none}
+}
 /* Motion. The finished chart is the default. Where motion is welcome the
    drawing settles in once and the seats come up from north to south (--i,
    scripts/build_atlas.py); a seat is a link, so it is never invisible. On the
    home page the drawing settles as its band scrolls into view. Nothing
    radiates from a seat and nothing repeats. */
 @keyframes chart-in{from{opacity:0;transform:scale(1.035)}}
-@keyframes seat-in{from{opacity:.3}}
-@media(prefers-reduced-motion:no-preference){
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){
   .atlas-map::before{animation:chart-in 1.3s var(--ease-out) backwards;transition:opacity .3s var(--ease-out)}
-  .atlas-seats .seat{animation:seat-in .4s calc(.15s + var(--i,0)*55ms) var(--ease-out) backwards}
   .atlas-seats .seat-mark::after{transition:opacity .22s var(--ease-out),transform .45s var(--ease-rule)}
+  .atlas-seats .seat-mark::before{animation:seat-ink .4s calc(.15s + var(--i,0)*55ms) var(--ease-out) backwards}
   @supports(animation-timeline:view()){
     .home-region .atlas-map::before{animation:chart-in linear both;animation-timeline:view();animation-range:entry 0% cover 32%}
-    .home-region .atlas-seats .seat{animation:none}
+    .home-region .atlas-seats .seat-mark::before{animation:none}
   }
 }
+@keyframes seat-ink{from{transform:scale(.75)}}
 @media(forced-colors:active){.atlas-map::before{display:none}.desks-open,.home-region{background:Canvas;color:CanvasText}.seat-text,.atlas-grat span,.seat .seat-mark{background:none}}
 /* Print takes the day inking of the same drawing: same geometry, dark on paper. */
 @media print{.atlas-map::before{background-image:url(assets/geo/atlas.svg);mask:none;animation:none}.desks-open,.home-region{background:none;color:CanvasText;--ink:CanvasText;--ink-2:CanvasText;--muted:CanvasText;--paper:Canvas;--positive:CanvasText;--warning:CanvasText}}

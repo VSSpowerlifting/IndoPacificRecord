@@ -86,7 +86,8 @@ Where it carries meaning (points, labels, a caption):
   edge pointer naming the place, never a stand-in seat. The caption says a
   point is not an area of coverage. Label sides are set per desk, with
   narrow-atlas alternatives applied by a container query (in rem, so enlarged
-  text takes them too). The index beside the map and the seats share an
+  text takes them too). When there is too little room for separate map
+  targets, the same links reflow below the drawing. The index and seats share an
   order; pointing at a desk in either rings it in the other and lets the
   drawing recede. Names, places and state marks never dim.
 - **Home page region band.** The same atlas, seats, states and disclosure,
@@ -94,18 +95,18 @@ Where it carries meaning (points, labels, a caption):
 - **Desk page locator.** A regional window (never a city-scale zoom) on the
   day chart beside the page head, the seat ringed, captioned "Seat: <place>"
   with a link to the atlas. A seat far inland may set where it sits in the
-  window (`locator_at`) so the window shows its coast. A desk with no seat in
-  the frame has no locator and no chart at all.
+  window (`locator_at`) so the window shows its coast. Locators are limited
+  to desks with a seat in the frame.
 
 Where it is decoration (no point, no label, no claim):
 - **Page heads** of the catalogue, archive, week and reference pages carry
   the day chart: off the right of the head on a wide screen, clear of the
   heading and lede; a strip under them at 900px and narrower. The crop is
   fixed per page family and never chosen to match a page's subject.
-- **The footer** and **the dossier opening** carry the night chart, faded;
-  in the footer it is a strip under the text at 1100px and narrower.
-- Records, Briefs, source pages (which set an original-language name in the
-  head), timelines, the Korea reading heads and desk heads carry none.
+- **The dossier opening** and **navigation and reference footers** carry
+  the night chart, faded. The footer chart becomes a separate strip at
+  1100px and narrower. Records, Briefs, source detail pages, timelines
+  and Korea reading routes keep a plain footer.
 - Methodology (Scope) tells the reader what the chart is and is not.
 Forced colours and print drop the decoration; the Desks atlas prints in the
 day inking.
@@ -131,20 +132,14 @@ photographs of real scenes, never generated images or illustration:
   surfaces only.
 Records never carry source media.
 
-**Motion (2026-11-17).** Two kinds, both CSS only. *Answering the reader*: a
-button press, a disclosure opening, the archive updating its results, a ring
-on an atlas seat under the pointer or the keyboard. *Settling, once*: on
-arrival a page head's title and lede settle into place (from 40% opacity, so
-the text is legible from its first frame); the home photograph eases from a
-slightly larger scale (2.4s) and then travels slower than the page as it
-scrolls (wide screens only); a Brief's title and cover photograph settle; the
-atlas drawing fades in and its seats come up from north to south; pages
-cross-fade into one another (`@view-transition`). Nothing loops, pulses,
-radiates or follows the cursor; nothing is hidden until it animates; record
-pages and original-language text are never animated. Everything is removed
-under `prefers-reduced-motion` and the page is complete without script. The
-homepage opening title and the animated page terrain stay retired; see
-VISUAL_AND_MOTION_SYSTEM.md.
+**Motion in the Atmosphere & Motion candidate.** The atlas answers hover and
+keyboard focus with a ring. On arrival, selected headings settle without
+fading. The homepage photograph settles once and moves slightly slower than
+the page on wide screens. The atlas drawing fades in while the Desks state
+marks scale into place from north to south. A Brief's title and cover
+photograph settle once. Where supported, pages cross-fade with the masthead
+held in place. Reduced motion and scripting disabled show the settled state.
+See VISUAL_AND_MOTION_SYSTEM.md for the timing and scope.
 
 **Lists.** Every list of records uses `_records.html`. A list states once,
 at the head of its English column, that English titles are machine

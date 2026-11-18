@@ -359,11 +359,11 @@ h1, h2, h3 { break-after: avoid; }
    in space surfaces.css makes for it. Desk, source and record heads carry none:
    a seated desk has its locator, and a desk with no seat in the frame is not
    placed on a chart at all. docs/DESIGN_SYSTEM.md, Geography. */
-[data-surface] .page-head:where(:not(.ds-hero,.tl-library-head,.page-head--located,.desks-head,.record-head,.tl-hero,[class^=korea-reviewed]>*)){--chart:"";--chart-pad:3.4rem;isolation:isolate}
-:is([data-surface=source],[data-surface=desk],[data-surface=record]) .page-head{--chart:initial;--chart-pad:initial}
-[data-surface] .page-head::before{content:var(--chart);position:absolute;z-index:-1;inset:0 0 0 auto;width:min(46%,620px);background:url(assets/geo/atlas.svg) var(--chart-at,56% 36%)/1280px auto no-repeat;mask:linear-gradient(90deg,transparent 6%,black 72%),linear-gradient(transparent,black 34%),linear-gradient(270deg,transparent,black 12%);mask-composite:intersect;pointer-events:none}
+[data-surface] .page-head:where(:not(.ds-hero,.tl-library-head,.page-head--located,.desks-head,.record-head,.tl-hero,[class^=korea-reviewed]>*)){--chart:"";--chart-pad:3.4rem;--chart-image:url(assets/geo/atlas.svg);isolation:isolate}
+:is([data-surface=source],[data-surface=desk],[data-surface=record]) .page-head{--chart:initial;--chart-pad:initial;--chart-image:initial}
+[data-surface] .page-head::before{content:var(--chart);position:absolute;z-index:-1;inset:0 0 0 auto;width:min(46%,620px);background:var(--chart-image,none) var(--chart-at,56% 36%)/1280px auto no-repeat;mask:linear-gradient(90deg,transparent 6%,black 72%),linear-gradient(transparent,black 34%),linear-gradient(270deg,transparent,black 12%);mask-composite:intersect;pointer-events:none}
 [data-surface=archive]{--chart-at:38% 66%}[data-surface=catalog]{--chart-at:84% 13%}[data-surface=week]{--chart-at:66% 52%}
 @keyframes head-chart{from{opacity:0}}
-@media(prefers-reduced-motion:no-preference){[data-surface] .page-head::before{animation:head-chart 1.2s .1s var(--ease-out) backwards}}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){[data-surface] .page-head::before{animation:head-chart 1.2s .1s var(--ease-out) backwards}}
 @media(max-width:900px){[data-surface] .page-head::before{inset:auto 0 0;width:auto;height:4.4rem;background-size:900px auto;mask:linear-gradient(transparent,black 62%),linear-gradient(90deg,transparent,black 16%,black 84%,transparent);mask-composite:intersect}}
-@media(forced-colors:active),print{[data-surface] .page-head{--chart:initial;--chart-pad:initial}}
+@media(forced-colors:active),print{[data-surface] .page-head{--chart:initial;--chart-pad:initial;--chart-image:initial}}

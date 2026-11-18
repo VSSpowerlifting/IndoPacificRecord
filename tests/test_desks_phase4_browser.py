@@ -1,9 +1,8 @@
 """Phase 4A browser gate for the rendered eight-desk directory (2026-11-16).
 
-The map is retired; the directory is the page. Builds into a disposable
-folder from the tracked DB through the renderer's safe path, never touching
-output/ or production state. Every state and count is checked against the
-registry and the build's own data, at phone through wide desktop widths.
+Builds the atlas and directory into a disposable folder from the tracked DB
+through the renderer's safe path. Every state and count is checked against
+the registry and the build's own data, at phone through wide desktop widths.
 """
 from __future__ import annotations
 
@@ -178,6 +177,39 @@ class DesksDirectoryBrowser(unittest.TestCase):
                 self.assertNotEqual(bg, "rgba(0, 0, 0, 0)")
             finally:
                 ctx.close()
+
+    def test_home_and_desks_atlas_links_are_reachable_at_small_widths_and_zoom(self):
+        # A box can sit inside the map while a neighbouring link intercepts
+        # its label or marker. Check the browser's actual hit target.
+        hit_targets = """() => {
+          const failures = [];
+          for (const link of document.querySelectorAll('.atlas-seats a')) {
+            link.scrollIntoView({block:'center'});
+            for (const part of link.querySelectorAll('.seat-mark,.seat-text')) {
+              const {x,y,width,height} = part.getBoundingClientRect();
+              const hit = document.elementFromPoint(x+width/2,y+height/2);
+              if (!link.contains(hit)) failures.push(link.getAttribute('href'));
+            }
+          }
+          return failures;
+        }"""
+        for route in ("index.html", "desks.html"):
+            for width, enlarged in ((320, False), (375, True), (680, False), (1280, False)):
+                with self.subTest(route=route, width=width, enlarged=enlarged):
+                    page = self.browser.new_page(viewport={"width": width, "height": 900},
+                                                 reduced_motion="reduce")
+                    try:
+                        page.goto((self.out / route).as_uri(), wait_until="load")
+                        if enlarged:
+                            page.add_style_tag(content="html{font-size:200%}")
+                        seats = page.locator(".atlas-seats a")
+                        self.assertEqual(seats.count(), len(self.registry))
+                        self.assertEqual(page.evaluate(hit_targets), [])
+                        if width == 320 or enlarged:
+                            self.assertEqual(seats.first.evaluate(
+                                "(link) => getComputedStyle(link).position"), "relative")
+                    finally:
+                        page.close()
 
     def test_no_javascript_still_exposes_every_public_desk(self):
         rows, doc_width = self._rows(viewport={"width": 375, "height": 812},

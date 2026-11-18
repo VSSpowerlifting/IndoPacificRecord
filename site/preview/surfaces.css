@@ -15,9 +15,9 @@
 [data-surface] details[open]>summary{color:var(--accent-ink)}
 [data-surface] :is(.masthead,.band,footer.site) details[open]>summary{color:var(--focus-band)}
 @keyframes disclose-arrive{from{opacity:.6;transform:translateY(-6px)}to{opacity:1;transform:none}}
-@keyframes head-rise{from{opacity:.4;transform:translateY(12px)}}
-@media(prefers-reduced-motion:no-preference){
-  [data-surface]:not([data-surface=record]) .page-head>:is(h1,.lede){animation:head-rise .7s var(--ease-out) backwards}
+@keyframes head-rise{from{transform:translateY(8px)}}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){
+  [data-surface]:not([data-surface=record],[data-surface=source],[data-route^=korea-]) .page-head:where(:not(.tl-hero,.tl-library-head))>:is(h1,.lede){animation:head-rise .65s var(--ease-out) backwards}
   [data-surface] .page-head>.lede{animation-delay:.08s}
 }
 @media(prefers-reduced-motion:no-preference) and (scripting:enabled){

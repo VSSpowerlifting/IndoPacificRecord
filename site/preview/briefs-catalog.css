@@ -11,7 +11,7 @@
 .briefs-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(24px,3.4vw,52px);align-items:start;max-width:none;margin:0;padding:clamp(24px,3vw,40px) 0 0;border:0}
 .briefs-lead-photo{margin:0}
 .briefs-lead-photo>a{display:block;overflow:hidden}
-@media(prefers-reduced-motion:no-preference){.briefs-lead-photo img{animation:catalog-settle 1.8s var(--ease-out) backwards;transition:transform .6s var(--ease-out)}.briefs-lead-photo>a:hover img{transform:scale(1.025)}}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled){.briefs-lead-photo img{animation:catalog-settle 1.8s var(--ease-out) backwards;transition:transform .6s var(--ease-out)}.briefs-lead-photo>a:hover img{transform:scale(1.025)}}
 @keyframes catalog-settle{from{transform:scale(1.05)}}
 .briefs-lead-photo img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;background:var(--surface-inset)}
 .briefs-lead-photo figcaption{margin-top:.6rem;color:var(--muted)}

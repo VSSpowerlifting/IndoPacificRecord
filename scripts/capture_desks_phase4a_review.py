@@ -3,12 +3,10 @@
 Run on a PR head after Playwright Chromium is installed. The candidate builder
 writes only to a fresh disposable directory, preserving output/ and the DB.
 
-The geographic desk map was retired on 2026-11-16 (parallel text redesign);
-Desks is a directory. The receipt keeps what the map's receipt protected that
-still applies: all eight registry desks are listed with their registry state,
-nothing overflows at any width, the page raises no errors, a reader without
-JavaScript reaches every desk, and the state text stays visible in forced
-colours.
+Capture the regional atlas and directory together. Verify that all eight
+registry desks are listed with their registry state, that the directory
+fits the viewport, and that its content remains available without JavaScript
+and in forced colours.
 """
 from __future__ import annotations
 
@@ -73,6 +71,9 @@ def main() -> int:
                     if doc_width > width + 1:
                         failures.append(f"{width}: horizontal overflow {doc_width}")
                     if width in (375, 768, 1280, 1600):
+                        page.locator(".desks-open").screenshot(
+                            path=str(OUT / f"atlas-{width}.png")
+                        )
                         page.locator(REGISTER).screenshot(
                             path=str(OUT / f"desks-{width}.png")
                         )
