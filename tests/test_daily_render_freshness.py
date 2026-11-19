@@ -590,6 +590,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # The two existing Vietnam activation switches and a run-local
         # receipt are passed to the governed dispatcher for reporting only.
         # This does not activate a collector, model, or publication path.
+        self.assertIn("DAILY_ANALYSIS_WORKERS: ${{ vars.DAILY_ANALYSIS_WORKERS || '1' }}", pipeline)
         self.assertIn("DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}", pipeline)
         self.assertIn("IPR_VIETNAM_HANDOFF_RECEIPT: ${{ runner.temp }}/vietnam-handoff.json", pipeline)
         for key in ("VIETNAM_DAILY_HANDOFF_ENABLED", "VIETNAM_VPCP_METADATA_ENABLED"):
@@ -599,7 +600,8 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         self.assertIn("IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata", pipeline)
         self.assertEqual(sorted(env_keys),
                          ["ANALYSIS_MODEL", "ANTHROPIC_API_KEY", "CATEGORIZATION_MODEL",
-                          "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ID_KEMHAN_NEWS_KEY",
+                          "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ANALYSIS_WORKERS",
+                          "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_JP_JCG_PRESS_EN_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "DAILY_SG_MINDEF_RELEASES_KEY", "DAILY_US_USCC_PRESS_EN_KEY",
