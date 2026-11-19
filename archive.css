@@ -10,6 +10,7 @@
 /* The finder: a full-width title box, then one row of the filters most
    searches need. Everything else waits behind "More filters". */
 .archive-page #browse{margin:0 0 1.5rem}
+.archive-page .finder{padding:clamp(.8rem,2.2vw,1.7rem);background:var(--surface);border:1px solid var(--rule);border-top:2px solid var(--ink)}
 .finder-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 .6rem;align-items:end}
 .finder-field{min-width:0}
 .finder-field label{display:block;margin:0 0 .35rem}
