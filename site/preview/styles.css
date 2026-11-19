@@ -172,7 +172,7 @@ input:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .wrap { width:min(100% - var(--gutter)*2,var(--shell)); max-width:var(--shell); margin-inline:auto; padding-inline:0; }
 .analysis-nav { display: flex; gap: 1.6rem; border-bottom: 1px solid var(--rule); margin: 0 0 2rem; }
 .analysis-nav a { position: relative; min-height: 44px; display: flex; align-items: center; text-decoration: none; color: var(--ink-2); }
-.analysis-nav a::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 150ms var(--ease-rule); }
+.analysis-nav a::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; }
 .analysis-nav a[aria-current]::after, .analysis-nav a:hover::after { transform: scaleX(1); }
 .analysis-nav a[aria-current] { color: var(--ink); font-weight: 600; }
 .analysis-nav a:hover, .analysis-nav a:focus-visible { text-decoration: underline; }
@@ -454,8 +454,8 @@ td.num, th.num { text-align: right; padding-right: 0; padding-left: .9rem; }
 .brand-name{font:400 30px/1 var(--display);letter-spacing:-.005em;white-space:nowrap;color:inherit}
 .nav-desktop{display:flex;align-items:center;gap:30px;font:600 14px/1.5 var(--sans)}
 .nav-desktop>a{color:var(--band-ink);text-decoration:none;position:relative;padding:14px 0}
-.nav-desktop>a::after{content:'';position:absolute;inset:auto 0 8px;height:2px;background:var(--focus-band);transform:scaleX(0);transform-origin:left;transition:transform var(--dur-fast) var(--ease-rule)}
-.nav-desktop>a:hover::after,.nav-desktop>a[aria-current]::after{transform:none}
+.nav-desktop>a::after{content:'';position:absolute;inset:auto 0 8px;height:2px;background:var(--focus-band);transform:scaleX(0);transform-origin:left}
+.nav-desktop>a:is(:hover,:focus-visible,[aria-current])::after{transform:none}
 .shell-menu{font:600 14px/1.5 var(--sans)}
 .shell-menu summary{display:flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--band-rule);color:var(--band-ink);cursor:pointer;list-style:none}.shell-menu summary::-webkit-details-marker{display:none}
 .shell-menu[open] summary{border-color:var(--band-muted)}

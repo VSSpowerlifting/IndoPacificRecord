@@ -194,7 +194,7 @@ class DesksDirectoryBrowser(unittest.TestCase):
           return failures;
         }"""
         for width, enlarged in ((320, False), (375, False), (375, True),
-                                (680, False), (1280, False), (1280, True)):
+                                (680, False), (768, True), (1280, False), (1280, True)):
             with self.subTest(width=width, enlarged=enlarged):
                 page = self.browser.new_page(viewport={"width": width, "height": 900},
                                              reduced_motion="reduce")

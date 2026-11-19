@@ -6,7 +6,7 @@
    on the catalogue and article surfaces admitted by their manifest. #}
 {% block title %}{{ title }} — Official records, as published{% endblock %}
 {% block main_class %} class="leads-with-hero home-page"{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="home.css">{% endblock %}
+{% block head_scripts %}<style>{{ home_css }}</style>{% endblock %}
 {% block hero %}
 {% set hero = home_hero | default(none) %}
 <section class="home-open{% if hero %} home-open--photo{% endif %}" aria-labelledby="home-title">
