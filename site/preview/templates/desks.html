@@ -97,7 +97,7 @@
     {% else %}
     <p class="desks-none"><a href="#scope-{{ d.slug }}">Sources and collection limits</a></p>
     {% endif %}
-    <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Open the {{ d.name }}">Open desk</a></p>
+    <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Open desk: {{ d.name }}">Open desk</a></p>
   </div>
 </section>
 {% endfor %}

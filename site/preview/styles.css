@@ -451,8 +451,7 @@ td.num, th.num { text-align: right; padding-right: 0; padding-left: .9rem; }
 .brand{display:flex;align-items:center;gap:14px;min-width:0;flex:none;text-decoration:none;color:var(--band-ink)}
 .brand:visited,.brand:hover{color:var(--band-ink)}
 .brand-mark{display:block;width:52px;height:auto;flex:none}
-.brand-name{font:400 27px/1 var(--display);letter-spacing:-.005em;white-space:nowrap;color:inherit}
-.brand-name>span{margin-left:.26em}
+.brand-name{font:400 30px/1 var(--display);letter-spacing:-.005em;white-space:nowrap;color:inherit}
 .nav-desktop{display:flex;align-items:center;gap:30px;font:600 14px/1.5 var(--sans)}
 .nav-desktop>a{color:var(--band-ink);text-decoration:none;position:relative;padding:14px 0}
 .nav-desktop>a::after{content:'';position:absolute;inset:auto 0 8px;height:2px;background:var(--focus-band);transform:scaleX(0);transform-origin:left;transition:transform var(--dur-fast) var(--ease-rule)}

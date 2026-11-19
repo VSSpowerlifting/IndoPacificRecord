@@ -81,8 +81,9 @@ photographs of real scenes, never generated images or illustration:
   Self-Defense Force ships (manifest `reagan-jmsdf-2015`, public domain,
   routed to `home`). It never changes with the Briefs. `home_hero` verifies
   the manifest entry, the source hash and each derivative's hash, and fails
-  closed to plain navy. The photograph sits large behind the claim and the
-  title search under a CSS-only IPR gradient, dark enough for the text to
+  closed to plain navy. The photograph sits behind the claim under a CSS-only IPR gradient.
+  A paper finder meets its lower edge and carries the title search and
+  snapshot count. The gradient is dark enough for the claim to
   clear WCAG AA at every width. Its credit runs beneath it with the label
   "Illustrative photograph, not a record": caption, creator and DoD ID,
   licence, source, the change note and "Visual context, not evidence". It
@@ -108,13 +109,16 @@ headline, not a translation" (`title_kind`). Rows shown outside a list with a
 column head (the Desks page) keep "Machine-translated title · human review not
 recorded". Singapore metadata-only rows are set quieter (`record-row--metadata`).
 
-**Home.** The opening (photograph, claim, title search, then the photograph's
+**Home.** The opening (photograph, claim, paper finder, then the photograph's
 credit), then "Newest from each desk": the first row of each public-record
 desk's own page (`desk_front_rows`), the desk name in the left column and the
 date in the meta line; a line saying how many desks hold public records and,
 measured from the counts, that most of the records come from Chinese sources, with a link to
 Coverage; one line naming the desks with no public records and their registry
-state; then Briefs and the three kinds of text.
+state. A navy spread pairs the latest Brief with a published dossier or
+evidence timeline when available. The three kinds of text follow
+on paper. The Briefs and Dossiers catalogues share a title and lede spread.
+The Brief headline precedes its credited photograph in reading order.
 
 **Stored-summary sentence.** On the home desk rows and the
 five newest rows on each desk page except Korea, a row carries the first
