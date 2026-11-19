@@ -34,6 +34,7 @@ from core import vietnam_corpus_bridge as bridge
 from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as source_use
+from core.collection import attempts, status as collection_status
 from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 from processing.mps_recovery import withheld
 
@@ -51,6 +52,8 @@ _KEYS = {"schema", "source_repository", "run_id", "generated_utc", "families",
          "deferred", "mac"}
 _FAMILY_KEYS = {"source_family", "source_ref", "source_git_commit",
                 "rights_decision_sha256", "records"}
+_BRIDGE_FAILURES = {"bridge_failed", "bridge_result_invalid", "held_source",
+                    "private_source_unavailable"}
 
 
 class HandoffError(bridge.BridgeError):
@@ -81,32 +84,78 @@ def _check_keys(bridge_key: bytes, review_key: Optional[bytes] = None):
 # ── Private runner ───────────────────────────────────────────────────────────
 
 def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: str,
-         generated_utc: str) -> dict:
+         generated_utc: str, collection=None, failed_families=None) -> dict:
     """The MAC'd envelope of this run's PUBLISHED projections, in stable order."""
     _check_keys(key)
     families, size, deferred = [], 2048, 0
+    collection = collection or {}
+    for family, (commit, status) in (failed_families or {}).items():
+        _need(family in SOURCES and status in _BRIDGE_FAILURES
+              and _valid_collection_pin(commit, status), "vietnam_handoff_family_invalid")
+        families.append({"source_family": family, "source_ref": vn.private_ref(family),
+                         "source_git_commit": commit, "rights_decision_sha256": None,
+                         "records": [], "bridge_status": status})
+    if families or collection:
+        size += len(_canonical(families)) + len(_canonical(collection))
+    seen = {entry["source_family"] for entry in families}
     for report in sorted(reports, key=lambda r: r["source_family"]):
         family = report["source_family"]
-        items = ledgers[family]["items"]
+        _need(family not in seen, "vietnam_handoff_family_invalid")
+        seen.add(family)
         records = []
-        for identity in sorted(o["source_identity"] for o in report["outcomes"]
-                               if o["outcome"] == qa.PUBLISHED):
-            if withheld(identity, items[identity]):
-                continue  # an owner recovery waits for its reviewed release
-            article = items[identity]["article"]
-            cost = len(_canonical(article))
-            if size + cost > MAX_BYTES:
-                deferred += 1
-                continue
-            size += cost
-            records.append(article)
+        facts = _bound_collection(collection.get(family), family, report["source_git_commit"])
+        if not _collection_failed(facts):
+            items = ledgers[family]["items"]
+            for identity in sorted(o["source_identity"] for o in report["outcomes"]
+                                   if o["outcome"] == qa.PUBLISHED):
+                if withheld(identity, items[identity]):
+                    continue  # an owner recovery waits for its reviewed release
+                article = items[identity]["article"]
+                cost = len(_canonical(article))
+                if size + cost > MAX_BYTES:
+                    deferred += 1
+                    continue
+                size += cost
+                records.append(article)
         families.append({"source_family": family, "source_ref": report["custody"]["source_ref"],
                          "source_git_commit": report["source_git_commit"],
                          "rights_decision_sha256": report["rights_decision_sha256"],
                          "records": records})
+    for entry in families:
+        family = entry["source_family"]
+        if family not in collection:
+            continue
+        commit = entry["source_git_commit"]
+        if commit is not None:
+            entry["collection"] = _bound_collection(collection[family], family, commit) or (
+                attempts.unattested(family, commit, "collection_attestation_invalid"))
+    families.sort(key=lambda entry: entry["source_family"])
     body = {"schema": SCHEMA, "source_repository": vn.PRIVATE_REPO, "run_id": run_id,
             "generated_utc": generated_utc, "families": families, "deferred": deferred}
     return dict(body, mac=_mac(key, body))
+
+
+def _valid_collection_pin(commit, bridge_status):
+    if bridge_status == "private_source_unavailable":
+        return commit is None
+    return isinstance(commit, str) and bool(re.fullmatch(r"[0-9a-f]{40}", commit))
+
+
+def _bound_collection(block, family, commit):
+    facts = attempts.validate(block)
+    if facts is not None and facts["family"] == family and facts["custody_commit"] == commit:
+        return facts
+    return None
+
+
+def _collection_failed(facts):
+    if facts is None or not facts["attested"]:
+        return False
+    latest = facts["latest"]
+    return (facts["unledgered_exit"] is not None
+            or (latest is not None
+                and (latest["health"] == "fail"
+                     or collection_status.is_failure(latest["result"]))))
 
 
 # ── Public side ──────────────────────────────────────────────────────────────
@@ -201,20 +250,29 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
     if desk is None:
         from core.desk_registry import load_registry
         desk = load_registry().get("vietnam")
-    out, seen = [], set()
+    out, seen, seen_families = [], set(), set()
     for entry in envelope["families"]:
         # `collection` is an optional signed attestation (the MAC already covers
         # it). A malformed block is reported as not attested by collection_by_family;
         # it never refuses the handoff.
         _need(isinstance(entry, dict)
-              and (set(entry) == _FAMILY_KEYS or set(entry) == _FAMILY_KEYS | {"collection"})
+              and set(entry) - {"collection", "bridge_status"} == _FAMILY_KEYS
               and entry["source_family"] in SOURCES
+              and entry["source_family"] not in seen_families
               and entry["source_ref"] == vn.private_ref(entry["source_family"])
-              and re.fullmatch(r"[0-9a-f]{40}", str(entry["source_git_commit"]))
+              and _valid_collection_pin(entry["source_git_commit"], entry.get("bridge_status"))
               and isinstance(entry["records"], list), "vietnam_handoff_family_invalid")
         family = entry["source_family"]
+        seen_families.add(family)
+        if "bridge_status" in entry:
+            _need(isinstance(entry["bridge_status"], str)
+                  and entry["bridge_status"] in _BRIDGE_FAILURES
+                  and not entry["records"] and entry["rights_decision_sha256"] is None,
+                  "vietnam_handoff_bridge_status_invalid")
         if not entry["records"]:
             continue
+        facts = _bound_collection(entry.get("collection"), family, entry["source_git_commit"])
+        _need(not _collection_failed(facts), "vietnam_handoff_collection_failure_has_records")
         if family != source_use.VPCP:
             _need(family not in vn.HOLDS, "vietnam_handoff_source_hold")
         _need(bridge.desk_promoted(desk), "vietnam_desk_not_promoted")
@@ -240,21 +298,20 @@ def collection_by_family(envelope: dict) -> dict:
     """{family: validated collection facts | not-attested marker | None} from
     an already verified handoff.
 
-    None only when no block is present (an older signer). A present but
-    malformed or family-mismatched block becomes the same not-attested marker
+    None for missing or null blocks (an older signer). A malformed block, or
+    a block for a different family or custody commit, becomes the not-attested marker
     the Shared Daily reader uses (processing.daily_intake.collection_facts), so
     a signed defective attestation is reported, never read as a quiet day.
     """
-    from core.collection import attempts
     out = {}
     for entry in envelope["families"]:
-        block = entry.get("collection")
-        if block is None:
+        if entry.get("collection") is None:
             out[entry["source_family"]] = None
             continue
-        facts = attempts.validate(block)
+        facts = _bound_collection(entry["collection"], entry["source_family"],
+                                  entry["source_git_commit"])
         out[entry["source_family"]] = (
-            facts if facts is not None and facts["family"] == entry["source_family"]
+            facts if facts is not None
             else {"attested": False, "reason": "collection_attestation_invalid"})
     return out
 
@@ -347,6 +404,9 @@ def main(argv=None) -> int:
         counts = admit_database(db, records, by_family) if records else {}
         print(json.dumps({"status": "OK", "run_id": envelope["run_id"], "counts": counts,
                           "by_family": by_family,
+                          "bridge_by_family": {entry["source_family"]: entry["bridge_status"]
+                                               for entry in envelope["families"]
+                                               if "bridge_status" in entry},
                           "collection_by_family": collection_by_family(envelope),
                           "generated_utc": envelope["generated_utc"],
                           "deferred": envelope["deferred"]}, sort_keys=True))

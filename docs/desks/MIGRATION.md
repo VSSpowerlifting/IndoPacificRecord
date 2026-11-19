@@ -547,3 +547,20 @@ that fails `attempts.validate` (or names another family) is replaced by
   failed every day since 5 November, reports `access_challenged` on its
   run-result row instead of duplicates. Strict flip
   (`_REQUIRE_COLLECTION_ATTESTATION`) stays deferred per the condition above.
+
+Vietnam uses the same collection-fact schema inside its existing signed
+handoff. The private bridge signs each enabled family's newest authenticated
+scheduled attempt from the same custody tip used for processing. MPS binds
+the private attempt to its collection ledger when successful. VPCP binds the
+cycle receipt to its original custody commit and the completed collection
+step. The scheduling grace remains 14 hours.
+
+An authenticated failure or source-wide processing hold can travel as a
+status-only family entry. It carries zero projections and can never authorize
+records. A sibling's accepted records still travel in the same handoff.
+An authenticated collection failure also withholds that family's projections
+while keeping accepted private output available for an eligible later run.
+Collection and processing details are reported independently, including when
+a new handoff reuses an older collection attempt. Legacy handoffs still
+verify and strict enforcement stays off. Enable emission through the
+existing private bridge only after the public reader is on main.
