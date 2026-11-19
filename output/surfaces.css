@@ -29,7 +29,6 @@
   [data-surface] :is(.btn,button):not(:disabled):active{transform:translateY(1px)}
   [data-surface] details[open]:not([data-wide-open])>:not(summary){animation:disclose-arrive var(--dur-fast) var(--ease-rule)}
   .nav-desktop>a::after,.analysis-nav a::after{transition:transform var(--dur-fast) var(--ease-rule)}
-  .reader-contents a{transition:color var(--dur-fast) var(--ease-rule)}
 
   /* A reading rail measures the document position on long-form routes. */
   @supports (animation-timeline:scroll(root block)) {
@@ -39,7 +38,7 @@
       z-index:20;
       inset:0 0 auto;
       height:2px;
-      background:var(--editorial-ink);
+      background:var(--accent);
       pointer-events:none;
       transform:scaleX(0);
       transform-origin:left;

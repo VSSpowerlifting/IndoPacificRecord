@@ -152,7 +152,8 @@
 }
 @media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled) {
   .atlas-seats .seat-mark::after{transition:opacity var(--dur-fast) var(--ease-rule),transform var(--dur-fast) var(--ease-rule)}
-  .desk-jump-list a{transition:background-color var(--dur-fast) var(--ease-rule)}
+  .desk-jump-arrow{transition:transform var(--dur-fast) var(--ease-rule)}
+  .desk-jump-list a:is(:hover,:focus-visible) .desk-jump-arrow{transform:translateY(2px)}
   .deskmap-register>.desk::before{transition:transform var(--dur-base) var(--ease-rule)}
 }
 @media (forced-colors:active) {
