@@ -21,12 +21,33 @@
 [data-surface] summary{min-height:44px}
 [data-surface] details[open]>summary{color:var(--accent-ink)}
 [data-surface] :is(.masthead,.band,footer.site) details[open]>summary{color:var(--focus-band)}
-@keyframes disclose-arrive{from{opacity:.6;transform:translateY(-6px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:no-preference) and (scripting:enabled){
-  [data-surface] .btn{transition:transform 160ms var(--ease-rule),background 160ms var(--ease-rule),border-color 160ms var(--ease-rule)}
+@keyframes disclose-arrive{from{transform:translateY(-4px)}to{transform:none}}
+@keyframes editorial-rule-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled) {
+  [data-surface] .btn{transition:transform var(--dur-fast) var(--ease-rule),background-color var(--dur-fast) var(--ease-rule),border-color var(--dur-fast) var(--ease-rule)}
   [data-surface] :is(.btn,button):not(:disabled):active{transform:translateY(1px)}
-  [data-surface] details[open]>:not(summary){animation:disclose-arrive 180ms var(--ease-rule)}
+  [data-surface] details[open]:not([data-wide-open])>:not(summary){animation:disclose-arrive var(--dur-fast) var(--ease-rule)}
+  .nav-desktop>a::after,.analysis-nav a::after{transition:transform var(--dur-fast) var(--ease-rule)}
+
+  /* A reading rail measures the document position on long-form routes. */
+  @supports (animation-timeline:scroll(root block)) {
+    html:not(.no-anim) body:not(.no-anim):has(main:is(.record-reading,.brief-page,.dossier-page))::before {
+      content:"";
+      position:fixed;
+      z-index:20;
+      inset:0 0 auto;
+      height:2px;
+      background:var(--accent);
+      pointer-events:none;
+      transform:scaleX(0);
+      transform-origin:left;
+      animation:editorial-rule-draw auto linear both;
+      animation-timeline:scroll(root block);
+    }
+  }
 }
+@media (forced-colors:active){body:has(main:is(.record-reading,.brief-page,.dossier-page))::before{display:none}}
 @media(max-width:700px){
   [data-surface] .page-head{padding:1.1rem 0 1.4rem;margin-bottom:1.6rem}
   [data-surface] .page-head h1{font-size:clamp(2.5rem,11vw,3.5rem)}

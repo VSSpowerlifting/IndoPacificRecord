@@ -2783,6 +2783,12 @@ def build(out_dir: Path, title: str, db_path: Path,
     env.filters["weekday"] = weekday
     from markupsafe import Markup
     env.filters["brief_prose"] = lambda text: Markup(linked_prose(text))
+    # Ship the opening layout with the HTML that uses it. A cached copy of
+    # the previous home.css can otherwise leave the finder transparent.
+    home_css = (TEMPLATES.parent / "home.css").read_text(encoding="utf-8")
+    if "</style" in home_css.lower():
+        raise ValueError("home.css cannot contain an HTML style end tag")
+    env.globals["home_css"] = Markup(home_css)
 
     gaps = collection_gaps(data["run_days"])
     editions = load_editions(REPO_ROOT)
@@ -3687,6 +3693,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
+    # Keep the original home.css URL available to previously cached HTML.
     for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)

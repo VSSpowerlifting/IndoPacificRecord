@@ -13,7 +13,7 @@
 .desks-group{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:2.6rem 0 0;padding:1rem 0 .9rem;border-top:0;border-bottom:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
 .desks-group:first-child{margin-top:.4rem}
 .desks-group span{font:600 var(--step-meta)/1 var(--sans);color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
-.deskmap-register>.desk{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
+.deskmap-register>.desk{display:grid;position:relative;grid-template-columns:minmax(0,min(17rem,40%)) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
 .deskmap-register .desk h3{margin:0;padding:0;border:0;font:400 2rem/1.05 var(--display)}
 .deskmap-register .desk h3 a{display:inline-flex;align-items:center;min-height:40px;color:var(--ink);text-decoration:none}
 .deskmap-register .desk h3 a:hover{text-decoration:underline;text-decoration-thickness:1px}
@@ -35,11 +35,16 @@
 .desks-latest .meta{grid-column:1;margin-top:.35rem;font-size:.8125rem}
 .desks-none{max-width:56ch}
 .desks-latest .deskmap-enter{margin-top:.5rem}
-.deskmap-enter a,.desks-none a{display:inline-flex;align-items:center;min-height:40px}
+.deskmap-enter a,.desks-none a{display:inline-flex;align-items:center;min-height:40px;max-width:100%}
 .deskmap-enter a{font:600 var(--step-meta)/1.3 var(--sans)}
 .desks-seat{margin:.35rem 0 0;font-size:var(--step-meta);color:var(--muted)}
 .desks-seat a{margin-left:.35rem;font-weight:600}
-.deskmap-register>.desk:target{border-left:3px solid var(--accent);padding-left:1rem}
+.deskmap-register>.desk::before{
+  content:"";position:absolute;inset-block:1.3rem 1.4rem;inset-inline-start:-.65rem;
+  width:3px;background:var(--accent);transform:scaleY(0);transform-origin:top;
+  pointer-events:none
+}
+.deskmap-register>.desk:target::before{transform:scaleY(1)}
 [data-surface] .desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem}
 .atlas{margin:1.8rem 0 0;container-type:inline-size}
 .atlas-map{position:relative;width:100%;aspect-ratio:var(--atlas-ratio)}
@@ -65,7 +70,7 @@
 .seat-mark--access_blocked{color:var(--warning)}.seat-mark--access_blocked::before{content:"▣"}
 .seat-mark--research::before{content:"◻"}.seat-mark--planned::before{content:"▫"}.seat-mark--paused::before{content:"□"}
 /* The ring answers a pointer or the keyboard; it never moves on its own. */
-.seat .seat-mark::after{content:"";position:absolute;inset:5px;border:1px solid currentColor;border-radius:50%;opacity:0;transform:scale(.45);pointer-events:none}
+.seat .seat-mark::after{content:"";position:absolute;inset:5px;border:1px solid currentColor;border-radius:50%;opacity:0;transform:scale(.78);pointer-events:none}
 .seat:is(:hover,:focus-visible) .seat-mark::after{opacity:.9;transform:none}
 .atlas-grat span{position:absolute;padding:.2em .35em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent);font:400 .6875rem/1 var(--sans);color:var(--muted);pointer-events:none}
 .g-lon{bottom:.35rem;transform:translateX(-50%)}
@@ -145,8 +150,11 @@
   .atlas-seats .seat--edge .seat-mark{order:-1}
   .seat--edge .seat-text::after{display:none}
 }
-@media (prefers-reduced-motion:no-preference) {
-  .atlas-seats .seat-mark::after{transition:opacity 160ms var(--ease-rule)}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled) {
+  .atlas-seats .seat-mark::after{transition:opacity var(--dur-fast) var(--ease-rule),transform var(--dur-fast) var(--ease-rule)}
+  .desk-jump-arrow{transition:transform var(--dur-fast) var(--ease-rule)}
+  .desk-jump-list a:is(:hover,:focus-visible) .desk-jump-arrow{transform:translateY(2px)}
+  .deskmap-register>.desk::before{transition:transform var(--dur-base) var(--ease-rule)}
 }
 @media (forced-colors:active) {
   .atlas-map{aspect-ratio:auto}
