@@ -13,7 +13,7 @@
 .desks-group{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:2.6rem 0 0;padding:1rem 0 .9rem;border-top:0;border-bottom:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
 .desks-group:first-child{margin-top:.4rem}
 .desks-group span{font:600 var(--step-meta)/1 var(--sans);color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
-.deskmap-register>.desk{position:relative;display:grid;grid-template-columns:minmax(0,min(17rem,40%)) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
+.deskmap-register>.desk{display:grid;position:relative;grid-template-columns:minmax(0,min(17rem,40%)) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
 .deskmap-register .desk h3{margin:0;padding:0;border:0;font:400 2rem/1.05 var(--display)}
 .deskmap-register .desk h3 a{display:inline-flex;align-items:center;min-height:40px;color:var(--ink);text-decoration:none}
 .deskmap-register .desk h3 a:hover{text-decoration:underline;text-decoration-thickness:1px}
