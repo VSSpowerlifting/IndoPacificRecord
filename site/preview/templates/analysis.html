@@ -34,24 +34,13 @@
 <section class="catalog-head" aria-labelledby="briefs-title">
   <div class="wrap">
     {% if timelines or dossiers %}{% set analysis_current = 'briefs' %}{% include '_analysis_nav.html' %}{% endif %}
-    <header class="page-head">
+    <header class="page-head collection-head">
       <p class="evidence evidence--analysis">Human-controlled analysis</p>
       <h1 id="briefs-title" class="page-name">{{ collection_name }}</h1>
       <p class="lede">{% if has_source_linked %}Each Brief names its editor and shows its sources: records kept by Indo-Pacific Record, and links to pages on a publisher's own site.{% else %}Each Brief cites the records it rests on and names its editor.{% endif %}</p>
     </header>
     {% if lead %}
     <article class="briefs-lead" aria-labelledby="briefs-lead-title">
-      {#- The lead photograph is a catalogue surface too: it shows only what
-          the catalogue-media decision admits (core/catalogue_media.py), never
-          an article cover by itself. -#}
-      {% set lead_media = catalogue_media.get(lead.slug) if catalogue_media else none %}
-      {% if lead_row.kind == 'brief' and lead_media and lead_media.is_photograph %}
-      {% set lp = lead_media.photo %}
-      <figure class="briefs-lead-photo"{% if lp.cover_treatment %} data-treatment="{{ lp.cover_treatment }}"{% endif %}>
-        <a href="{{ lead.url }}"><img src="{{ lp.served }}" width="{{ lp.width }}" height="{{ lp.height }}" alt="{{ lp.alt }}"></a>
-        <figcaption>{{ photo_credit(lp) }}</figcaption>
-      </figure>
-      {% endif %}
       <div class="catalog-lead-copy">
         <p class="catalog-label">{% if lead.is_review %}Review candidate{% else %}Latest Brief{% endif %}{% if lead.issue is not none %} · No. {{ lead.issue }}{% endif %}{% if lead.date %} · week ending {{ lead.date|reader_date }}{% endif %}</p>
         <h2 id="briefs-lead-title"><a href="{{ lead.url }}"{% if lead_row.kind == 'issue' %} rel="noopener"{% endif %}>{{ lead.title or lead.slug }}</a></h2>
@@ -70,6 +59,17 @@
         <p class="catalog-lead-trail"><span class="evidence evidence--model">Model-flagged</span> {{ trail.flagged }} of the {{ trail.ticks|length }} record{{ '' if trail.ticks|length == 1 else 's' }} in this Brief's source trail. This is a software triage flag, not the editor's judgment.</p>
         {% endif %}
       </div>
+      {#- The lead photograph is a catalogue surface too: it shows only what
+          the catalogue-media decision admits (core/catalogue_media.py), never
+          an article cover by itself. -#}
+      {% set lead_media = catalogue_media.get(lead.slug) if catalogue_media else none %}
+      {% if lead_row.kind == 'brief' and lead_media and lead_media.is_photograph %}
+      {% set lp = lead_media.photo %}
+      <figure class="briefs-lead-photo"{% if lp.cover_treatment %} data-treatment="{{ lp.cover_treatment }}"{% endif %}>
+        <a href="{{ lead.url }}"><img src="{{ lp.served }}" width="{{ lp.width }}" height="{{ lp.height }}" alt="{{ lp.alt }}"></a>
+        <figcaption>{{ photo_credit(lp) }}</figcaption>
+      </figure>
+      {% endif %}
     </article>
     {% else %}
     <section class="catalog-empty" aria-labelledby="briefs-development">

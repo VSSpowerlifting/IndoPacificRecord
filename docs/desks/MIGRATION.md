@@ -558,6 +558,8 @@ step. The scheduling grace remains 14 hours.
 An authenticated failure or source-wide processing hold can travel as a
 status-only family entry. It carries zero projections and can never authorize
 records. A sibling's accepted records still travel in the same handoff.
+An authenticated collection failure also withholds that family's projections
+while keeping accepted private output available for an eligible later run.
 Collection and processing details are reported independently, including when
 a new handoff reuses an older collection attempt. Legacy handoffs still
 verify and strict enforcement stays off. Enable emission through the

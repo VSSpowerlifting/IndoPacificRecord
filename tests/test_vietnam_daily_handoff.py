@@ -318,6 +318,32 @@ class Handoff(unittest.TestCase):
         with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_bridge_status_invalid"):
             self.verify(forged)
 
+    def test_failed_collection_withholds_projection_without_changing_private_ledger(self):
+        from tests.test_collection_attempts import facts, latest
+
+        report, _ = self.run_private(source_use=grant())
+        ledger_before = self.ledger.read_bytes()
+        ledgers = {MPS: json.loads(ledger_before)}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        good = facts(family=MPS, custody_commit=report["source_git_commit"])
+        failed = dict(good, latest=latest(result=st.FETCH_FAILURE, health="fail", healthy=False))
+
+        envelope = handoff.sign([report], ledgers, **fields, collection={MPS: failed})
+        self.assertEqual(envelope["families"][0]["records"], [])
+        self.assertEqual(self.verify(envelope), [])
+        self.assertEqual(handoff.collection_by_family(envelope), {MPS: failed})
+        self.assertEqual(ledgers[MPS], json.loads(ledger_before))
+        self.assertEqual(self.ledger.read_bytes(), ledger_before)
+
+        recover = handoff.sign([report], ledgers, **fields, collection={MPS: good})
+        records = self.verify(recover)
+        public = self.public()
+        self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
+        self.assertEqual(handoff.admit(public, records), {bridge.DUPLICATE: 2})
+        conflicting = self.resign(recover, lambda body: body["families"][0].update(collection=failed))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_collection_failure_has_records"):
+            self.verify(conflicting)
+
     def test_verify_still_refuses_unknown_family_entry_keys(self):
         envelope = self.signed()
         envelope["families"][0]["extra"] = 1

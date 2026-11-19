@@ -34,7 +34,7 @@ from core import vietnam_corpus_bridge as bridge
 from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from core import vietnam_source_use as source_use
-from core.collection import attempts
+from core.collection import attempts, status as collection_status
 from core.collection.vietnam_sources import PROCESSING_SOURCES as SOURCES
 from processing.mps_recovery import withheld
 
@@ -102,19 +102,21 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
         family = report["source_family"]
         _need(family not in seen, "vietnam_handoff_family_invalid")
         seen.add(family)
-        items = ledgers[family]["items"]
         records = []
-        for identity in sorted(o["source_identity"] for o in report["outcomes"]
-                               if o["outcome"] == qa.PUBLISHED):
-            if withheld(identity, items[identity]):
-                continue  # an owner recovery waits for its reviewed release
-            article = items[identity]["article"]
-            cost = len(_canonical(article))
-            if size + cost > MAX_BYTES:
-                deferred += 1
-                continue
-            size += cost
-            records.append(article)
+        facts = _bound_collection(collection.get(family), family, report["source_git_commit"])
+        if not _collection_failed(facts):
+            items = ledgers[family]["items"]
+            for identity in sorted(o["source_identity"] for o in report["outcomes"]
+                                   if o["outcome"] == qa.PUBLISHED):
+                if withheld(identity, items[identity]):
+                    continue  # an owner recovery waits for its reviewed release
+                article = items[identity]["article"]
+                cost = len(_canonical(article))
+                if size + cost > MAX_BYTES:
+                    deferred += 1
+                    continue
+                size += cost
+                records.append(article)
         families.append({"source_family": family, "source_ref": report["custody"]["source_ref"],
                          "source_git_commit": report["source_git_commit"],
                          "rights_decision_sha256": report["rights_decision_sha256"],
@@ -144,6 +146,16 @@ def _bound_collection(block, family, commit):
     if facts is not None and facts["family"] == family and facts["custody_commit"] == commit:
         return facts
     return None
+
+
+def _collection_failed(facts):
+    if facts is None or not facts["attested"]:
+        return False
+    latest = facts["latest"]
+    return (facts["unledgered_exit"] is not None
+            or (latest is not None
+                and (latest["health"] == "fail"
+                     or collection_status.is_failure(latest["result"]))))
 
 
 # ── Public side ──────────────────────────────────────────────────────────────
@@ -259,6 +271,8 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
                   "vietnam_handoff_bridge_status_invalid")
         if not entry["records"]:
             continue
+        facts = _bound_collection(entry.get("collection"), family, entry["source_git_commit"])
+        _need(not _collection_failed(facts), "vietnam_handoff_collection_failure_has_records")
         if family != source_use.VPCP:
             _need(family not in vn.HOLDS, "vietnam_handoff_source_hold")
         _need(bridge.desk_promoted(desk), "vietnam_desk_not_promoted")

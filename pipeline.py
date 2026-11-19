@@ -40,6 +40,7 @@ from typing import Callable, NamedTuple, Optional
 
 from config import (
     ANTHROPIC_API_KEY, BACKLOG_RESERVE_FRACTION, CACHE_DIR, DAILY_ANALYSIS_CAP,
+    DAILY_ANALYSIS_WORKERS,
     DB_PATH, LIVE_BACKLOG_DAYS, OUTPUT_DIR, ANALYSIS_MODEL, RELEVANCE_MODEL,
     TRANSLATION_MODEL, SUMMARY_MODEL, CATEGORIZATION_MODEL, FALLBACK_MODEL,
 )
@@ -1348,40 +1349,30 @@ def run(
         from analysis.analyzer import Analyzer, FatalAPIError
         analyzer = Analyzer()
 
-        for i, (aid, title_zh, body_zh, url) in enumerate(queue, 1):
-            logger.info(
-                "[%d/%d] Analyzing: %s",
-                i, len(queue), title_zh[:70],
-            )
+        from scripts.bounded_analysis import process_bounded
 
-            try:
-                result = analyzer.analyze_record(
-                    title_zh, body_zh, profile_for_desk(queue_desk.get(aid)))
-            except FatalAPIError as exc:
-                # Account-level failure: every remaining call would fail the
-                # same way. On 2026-07-31 the spend limit was reached mid-run
-                # and the loop made 40 further doomed calls before finishing.
-                account_blocked = str(exc)
-                logger.error(
-                    "ABORTING analysis at %d/%d — account-level API failure, not "
-                    "an article-level one: %s\n"
-                    "The %d remaining queued article(s) were NOT attempted; they "
-                    "stay unscored and re-enter the backlog on a later run. "
-                    "Articles scraped this run are already stored.",
-                    i, len(queue), account_blocked, len(queue) - i,
-                )
-                errors.append(f"Analysis aborted: {account_blocked}")
-                break
+        def _analyze_queued(item):
+            i, (aid, title_zh, body_zh, url) = item
+            logger.info("[%d/%d] Analyzing: %s", i, len(queue), title_zh[:70])
+            # A shared Analyzer has an internally synchronized usage ledger.
+            # Its per-task relevance-failure context is isolated by ContextVar.
+            result = analyzer.analyze_record(
+                title_zh, body_zh, profile_for_desk(queue_desk.get(aid)))
+            return result, analyzer.last_relevance_failure
 
+        def _persist_analysis(item, outcome):
+            nonlocal articles_analyzed, passed_relevance_count
+            _index, (aid, title_zh, body_zh, url) = item
+            result, relevance_failure = outcome
+            # Every DB mutation stays on this calling thread, in queue order.
             if result is None:
-                relevance_failure_kinds.append(
-                    getattr(analyzer, "last_relevance_failure", None))
+                relevance_failure_kinds.append(relevance_failure)
                 msg = f"Analysis failed entirely for article {aid} ({url})"
                 logger.error(msg)
                 errors.append(msg)
                 _record_failure(aid, body_zh, "analysis_failed",
                                 attempts_before, content_verdicts)
-                continue
+                return
 
             # Always write relevance result
             db.update_relevance(
@@ -1447,6 +1438,33 @@ def run(
                 errors.append(msg)
                 _record_failure(aid, body_zh, "analysis_incomplete",
                                 attempts_before, content_verdicts)
+
+        def _on_analysis_fatal(item, exc):
+            nonlocal account_blocked
+            i, _article = item
+            account_blocked = str(exc)
+            # With N workers, at most N-1 peers were dispatched before the
+            # fatal result was observed. They may finish and incur charges;
+            # their results are held, never marked complete or published.
+            speculative = min(DAILY_ANALYSIS_WORKERS - 1, len(queue) - i)
+            not_dispatched = len(queue) - i - speculative
+            logger.error(
+                "ABORTING analysis at %d/%d — account-level API failure: %s. "
+                "Up to %d peer article(s) already dispatched; these results "
+                "are not committed. %d article(s) not dispatched. All "
+                "uncommitted records remain retryable.",
+                i, len(queue), account_blocked, speculative, not_dispatched,
+            )
+            errors.append(f"Analysis aborted: {account_blocked}")
+
+        logger.info("Daily article analysis: %d worker(s); cap=%d",
+                    DAILY_ANALYSIS_WORKERS, DAILY_ANALYSIS_CAP)
+        process_bounded(
+            enumerate(queue, 1), _analyze_queued, _persist_analysis,
+            workers=DAILY_ANALYSIS_WORKERS,
+            fatal_error=FatalAPIError,
+            on_fatal=_on_analysis_fatal,
+        )
 
     # Korea MND lane (processing/korea_shared_queue.py): the shared engine's
     # Korea profile over governed admissions, after the China/Singapore queue
