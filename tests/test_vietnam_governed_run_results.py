@@ -175,6 +175,21 @@ class VietnamDispatch(unittest.TestCase):
         self.write(ok_receipt({MPS: {"published": 2}}))
         self.assertRow(self.dispatch(MPS)[0], st.OK, new=2)
 
+    def test_signed_mixed_outcome_distinguishes_quiet_bridge_hold_and_unavailable(self):
+        from tests.test_collection_attempts import facts
+        healthy = facts(family=VPCP, latest_healthy_target_date="2026-11-01")
+        for bridge_status, expected in (("held_source", st.ANALYSIS_FAILURE),
+                                        ("bridge_failed", st.ANALYSIS_FAILURE),
+                                        ("private_source_unavailable", st.FETCH_FAILURE)):
+            with self.subTest(bridge_status=bridge_status):
+                self.write(dict(ok_receipt({MPS: {}, VPCP: {}}),
+                                collection_by_family={VPCP: healthy},
+                                bridge_by_family={MPS: bridge_status}))
+                self.assertRow(self.dispatch(MPS)[0], expected,
+                               detail="Vietnam bridge: %s (run 41399999999-1)" % bridge_status)
+                self.assertRow(self.dispatch(VPCP, env=dict(ACTIVE, VIETNAM_VPCP_METADATA_ENABLED=""))[0],
+                               st.OK_NO_PUBLICATIONS)
+
     def test_a_replayed_envelope_with_a_stale_collection_is_a_failure_not_a_quiet_day(self):
         """MPS replay of 14 Nov: signed 23:57Z, collection target 13 Nov, read 15 Nov 13:00Z."""
         from tests.test_collection_attempts import facts

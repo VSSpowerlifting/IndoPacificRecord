@@ -259,7 +259,8 @@ class Handoff(unittest.TestCase):
         from tests.test_collection_attempts import facts
         good = facts(family=MPS)
         for label, block in (("valid", good), ("malformed", {"schema": "junk"}),
-                             ("leaky", dict(good, error_detail="x")), ("null", None)):
+                             ("leaky", dict(good, error_detail="x")), ("null", None),
+                             ("wrong custody", dict(good, custody_commit="0" * 40))):
             with self.subTest(label):
                 report, _ = self.run_private(source_use=grant())
                 ledger = json.loads(self.ledger.read_text())
@@ -268,12 +269,14 @@ class Handoff(unittest.TestCase):
                 old = self.verify(envelope)
                 self.assertEqual(handoff.collection_by_family(envelope), {MPS: None})
                 for entry in envelope["families"]:
-                    entry["collection"] = block
+                    entry["collection"] = (dict(block, custody_commit=entry["source_git_commit"])
+                                           if label in ("valid", "leaky") else block)
                 body = {k: v for k, v in envelope.items() if k != "mac"}
                 envelope["mac"] = handoff._mac(BRIDGE_KEY, body)
                 self.assertEqual(self.verify(envelope), old)
                 invalid = {"attested": False, "reason": "collection_attestation_invalid"}
-                expected = {MPS: {"valid": good, "null": None}.get(label, invalid)}
+                expected = {MPS: {"valid": envelope["families"][0]["collection"],
+                                  "null": None}.get(label, invalid)}
                 self.assertEqual(handoff.collection_by_family(envelope), expected)
         # A family-mismatched block is a defect too, not an absent block.
         report, _ = self.run_private(source_use=grant())
@@ -287,6 +290,33 @@ class Handoff(unittest.TestCase):
         self.verify(envelope)
         self.assertEqual(handoff.collection_by_family(envelope),
                          {MPS: {"attested": False, "reason": "collection_attestation_invalid"}})
+
+    def test_sign_authenticates_a_failed_sibling_without_changing_accepted_records(self):
+        from tests.test_collection_attempts import facts
+        vpcp = handoff.source_use.VPCP
+        report, _ = self.run_private(source_use=grant())
+        ledgers = {MPS: json.loads(self.ledger.read_text())}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        previous = handoff.sign([report], ledgers, **fields)
+        mps = dict(facts(family=MPS), custody_commit=report["source_git_commit"])
+        vpcp_facts = facts(family=vpcp)
+        envelope = handoff.sign([report], ledgers, **fields,
+                                collection={MPS: mps, vpcp: vpcp_facts},
+                                failed_families={vpcp: (vpcp_facts["custody_commit"], "held_source")})
+        records = self.verify(envelope)
+        self.assertEqual(records, self.verify(previous))
+        self.assertEqual(handoff.collection_by_family(envelope), {MPS: mps, vpcp: vpcp_facts})
+        failed = envelope["families"][1]
+        self.assertEqual((failed["bridge_status"], failed["records"]), ("held_source", []))
+        public = self.public()
+        self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
+        self.assertEqual(handoff.admit(public, self.verify(envelope)), {bridge.DUPLICATE: 2})
+        failed["bridge_status"] = "bridge_failed"
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_mac_invalid"):
+            self.verify(envelope)
+        forged = self.resign(envelope, lambda body: body["families"][1]["records"].append({}))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_bridge_status_invalid"):
+            self.verify(forged)
 
     def test_verify_still_refuses_unknown_family_entry_keys(self):
         envelope = self.signed()

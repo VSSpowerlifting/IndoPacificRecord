@@ -607,9 +607,26 @@ def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
     from core.collection import attempts
     by_collection = receipt.get("collection_by_family")
     facts = by_collection.get(family) if isinstance(by_collection, dict) else None
+    bridge_by_family = receipt.get("bridge_by_family", {})
+    bridge_status = bridge_by_family.get(family) if isinstance(bridge_by_family, dict) else None
+    if bridge_status in ("bridge_failed", "bridge_result_invalid", "held_source",
+                         "private_source_unavailable"):
+        status = {
+            "bridge_failed": collection_status.ANALYSIS_FAILURE,
+            "bridge_result_invalid": collection_status.ADAPTER_ERROR,
+            "held_source": collection_status.ANALYSIS_FAILURE,
+            "private_source_unavailable": collection_status.FETCH_FAILURE,
+        }[bridge_status]
+        outcome = GovernedOutcome(status, error_detail="Vietnam bridge: %s (run %s)"
+                                  % (bridge_status, run))
+    else:
+        latest = facts.get("latest") if isinstance(facts, dict) else None
+        if isinstance(latest, dict) and latest.get("result") == collection_status.OK_ALL_FILTERED:
+            holds.append("collection_all_filtered")
+        outcome = _receipt_outcome(admitted, unchanged, holds=holds)
     # private vietnam_private_first_collector.yml: cron '17 18 * * *'
     return _with_collection(
-        _receipt_outcome(admitted, unchanged, holds=holds),
+        outcome,
         attempts.verdict(facts, now=now, cron_utc="18:17", grace_hours=14,
                          require_attestation=_REQUIRE_COLLECTION_ATTESTATION))
 
