@@ -21,7 +21,7 @@
 .home-search button{min-height:48px}
 .home-finder::after{
   content:"";position:absolute;inset:-3px 0 auto;height:3px;
-  background:var(--editorial-ink);transform:scaleX(0);transform-origin:left;pointer-events:none
+  background:var(--focus);transform:scaleX(0);transform-origin:left;pointer-events:none
 }
 .home-finder:focus-within::after{transform:scaleX(1)}
 .home-photo-credit .wrap{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.15rem 1.5rem;padding-block:1rem 1.25rem}
