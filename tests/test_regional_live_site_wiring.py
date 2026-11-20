@@ -112,7 +112,7 @@ class RegionalLiveSiteWiring(unittest.TestCase):
         self.assertIn("AFP official source", page)
         self.assertIn("Official links and machine explanations, published automatically", page)
         self.assertIn("Verified official publisher references", page)
-        self.assertIn("Original documents in the IPR corpus</dt><dd>None", page)
+        self.assertIn("Records with original text</dt><dd>None yet</dd>", page)
         self.assertNotIn("Kemhan Berita official source", page)
         self.assertNotIn("title_original", page)
         self.assertEqual(self._digest(), before)

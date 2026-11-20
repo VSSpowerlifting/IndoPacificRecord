@@ -160,15 +160,13 @@ class PhilippinesPublicPages(DeskCase):
         plate = re.search(r'<section class="desk[^"]*" id="desk-philippines".*?</section>',
                           desks, re.S).group(0)
         originals = sum(bool(r["original_text"]) for r in machine)
+        self.assertIn("Official links and machine explanations — not in corpus", plate)
         if originals:
-            self.assertIn("Official links, machine explanations and selected AFP originals", plate)
-        else:
-            self.assertIn("Official links and machine explanations — not in corpus", plate)
+            self.assertIn("<dt>AFP Records with original text</dt><dd>%d</dd>" % originals, plate)
         self.assertNotIn("Shadow evaluation", plate)
         self.assertIn("<dt>Verified official links</dt><dd>%d</dd>" % len(links), plate)
         self.assertIn("<dt>Machine explanations</dt><dd>%d</dd>" % len(machine), plate)
-        count_label = ("%d with original text" % originals) if originals else "None in the public record"
-        self.assertIn("<dt>Records</dt><dd>%s</dd>" % count_label, plate)
+        self.assertIn("<dt>Records</dt><dd>None in the public record</dd>", plate)
         scope = desks.split('id="desk-scopes"', 1)[1]
         self.assertIn('data-philippines-directory-scope-count="%d"' % len(links), scope)
         for other in ("china", "singapore", "japan", "korea", "vietnam", "us-indopacific"):
