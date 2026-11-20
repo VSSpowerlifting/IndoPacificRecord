@@ -297,6 +297,33 @@ tests; tests/CI have to pass at the final exact head. No page retrieval,
 source-policy change, collector identity change, credential change, production
 data or shadow-state modification is part of this update.
 
+## Challenge diagnostics and the November 2026 robots.txt failures
+
+The private collector (`ipr-source-evidence-private`, `archive/ph-nsc`) recorded
+`access_challenged` on `https://nsc.gov.ph/robots.txt` on 5, 6 and 7 November 2026,
+before any listing request, with zero records and unchanged state. Collector code,
+`core/collection` and `requirements.txt` were byte-identical between the last
+success (4 November) and the first failure, and both runs installed the same
+dependency stack (requests 2.32.5, urllib3 2.6.3, certifi 2026.10.23). A code or
+dependency regression is therefore ruled out. The ledger could not say whether the
+host served a real edge challenge or the detector misread a response, because it
+kept no status, headers or detector branch.
+
+`PHNscAdapter.refusal_report` (written to the ledger as `refusal_report` by
+`scripts/shadow_collect_ph_nsc.py`) now records, for a refused challenge only: HTTP
+status, media type, which detector branch fired (`challenge_signal`), whether
+`server` and `cf-ray` headers were present, and the body length. It never holds
+body bytes, excerpts or header values. `looks_challenged()` keeps its contract.
+
+Unchanged by design: a challenge is still `access_challenged`, health `fail`, exit
+1; a robots 401/403 is still `auth_failure`; a quiet day is still
+`ok_no_publications`. No retry, header, identity or proxy change was made, and
+the source is not disabled. The collector identity is declared and honest; if the
+diagnostics show the host is deliberately challenging it, the remaining step is
+outside contact with NSC or its host to allowlist that identity, which needs
+separate owner authorization. The private workflow checks out public `main`, so
+this change has no effect on scheduled runs until it is merged.
+
 ## Bounded verification after activation merges (historical, public writer)
 
 This procedure applied to the retired public writer. After the cutover, use the

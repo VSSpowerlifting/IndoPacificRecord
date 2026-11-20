@@ -129,6 +129,23 @@ class TestRunner(RunnerCase):
         self.assertEqual(entry["failures"][0]["url"], ARTICLE_URL[1])
         self.assertFalse((self.state / "clock.json").exists())
 
+    def test_robots_challenge_fails_the_run_and_ledgers_sanitized_evidence(self):
+        secret = b"SECRET-BODY-TEXT-7731"
+        rig = Rig(routes({"https://nsc.gov.ph/robots.txt":
+                          FakeResponse(CHALLENGE + secret, 403, {"Server": "cloudflare"})}))
+        entry = self.go(rig)
+        self.assertEqual((entry["result"], entry["health"]), (st.ACCESS_CHALLENGED, "fail"))
+        self.assertEqual((entry["challenged"], entry["access_failures"]), (1, 1))
+        self.assertEqual(entry["refusal_report"]["http_status"], 403)
+        self.assertTrue(entry["refusal_report"]["server_header_present"])
+        self.assertEqual(len(rig.urls), 1)
+        ledger = next((self.state / "ledger").glob("*.json")).read_text()
+        self.assertNotIn(secret.decode(), ledger)
+        self.assertIn('"refusal_report"', ledger)
+
+    def test_a_clean_run_ledgers_an_empty_refusal_report(self):
+        self.assertEqual(self.go()["refusal_report"], {})
+
     def test_robots_refusal_preserves_status_and_never_reads_listing(self):
         from tests.test_ph_nsc_adapter import robots_rig
         rig = robots_rig("User-agent: *\nDisallow: /\n")
