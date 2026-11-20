@@ -154,29 +154,18 @@ jobs:
           fetch-depth: 0
           path: us-existing-pages
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish ONLY U.S. Desk HTML on Pages
         shell: bash
         run: |
           set -euo pipefail
           sha256sum -c "$RUNNER_TEMP/us-page.sha"
-          cd us-existing-pages
-          test -z "$(git status --porcelain --untracked-files=all)"
-          old="$(git rev-parse HEAD)"
-          cp ../output/us-indopacific.html us-indopacific.html
-          cmp -s ../output/us-indopacific.html us-indopacific.html
-          git add -- us-indopacific.html
-          staged="$(git diff --cached --name-only)"
-          test -z "$staged" || test "$staged" = "us-indopacific.html" || {
-            echo "::error::Unexpected Pages file staged"; exit 1;
-          }
-          if [ -n "$staged" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "US PACOM: publish fixed outbound first-party directory"
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$old" || {
-            echo "::error::gh-pages moved, refuse stale overwrite"; exit 1;
-          }
-          if [ -n "$staged" ]; then git push origin HEAD:gh-pages; fi
-          test -z "$(git status --porcelain --untracked-files=all)"
+          # The helper publishes the committed blob: it must be the validated file.
+          git show HEAD:output/us-indopacific.html | cmp - output/us-indopacific.html
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay us-indopacific.html --subject "US PACOM: publish fixed outbound first-party directory" --writer "us_pacom_pages_file_only_release ${{ github.run_id }}"
+          # Read back the attested Pages tip into the existing Pages checkout.
+          git -C us-existing-pages fetch --quiet origin gh-pages
+          git -C us-existing-pages checkout --quiet --detach FETCH_HEAD
+          cmp output/us-indopacific.html us-existing-pages/us-indopacific.html

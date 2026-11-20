@@ -206,22 +206,37 @@ jobs:
           path: korea-english-existing-pages
           fetch-depth: 0
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish exactly Korea translations, analysis and updated Desk
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$(cat "$RUNNER_TEMP/korea-english-main-after")"
-          test -z "$(git -C korea-english-existing-pages status --porcelain --untracked-files=all)"
-          mkdir -p korea-english-existing-pages/korea-translations korea-english-existing-pages/korea-analysis
-          cp output/korea.html korea-english-existing-pages/korea.html
-          cp output/korea-translations/*.html korea-english-existing-pages/korea-translations/
-          cp output/korea-analysis/*.html korea-english-existing-pages/korea-analysis/
-          python - <<'PY'
+          test "$(git rev-parse HEAD)" = "$(cat "$RUNNER_TEMP/korea-english-main-after")"
+          test -z "$(git status --porcelain --untracked-files=all -- output/korea.html output/korea-translations output/korea-analysis)"
+          # The overlay mirrors both folders exactly: the committed sets must equal
+          # the reviewed public registry before anything is published.
+          PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
           from pathlib import Path
           from core.korea_english_publication import public_registry
           rows=public_registry()
           assert rows
+          expected={r["source_identity"].split(":")[1]+".html" for r,_,_ in rows}
+          for folder in ("korea-translations","korea-analysis"):
+              found={p.relative_to(Path("output")/folder).as_posix()
+                     for p in (Path("output")/folder).rglob("*") if p.is_file()}
+              assert found==expected,"main output "+folder+" does not equal the reviewed registry"
+          PY
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay korea.html --overlay korea-translations --overlay korea-analysis --subject "Korea: publish reviewer-approved English translation and analysis only" --writer "korea_reviewed_english_release ${{ github.run_id }}"
+          git -C korea-english-existing-pages fetch --quiet origin gh-pages
+          git -C korea-english-existing-pages checkout --quiet --detach FETCH_HEAD
+          PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
+          from pathlib import Path
+          from core.korea_english_publication import public_registry
+          rows=public_registry()
           for folder in ("korea-translations","korea-analysis"):
               expected={r["source_identity"].split(":")[1]+".html" for r,_,_ in rows}
               dest=Path("korea-english-existing-pages")/folder
@@ -231,30 +246,4 @@ jobs:
           assert Path("output/korea.html").read_bytes()==Path(
               "korea-english-existing-pages/korea.html").read_bytes()
           PY
-          cd korea-english-existing-pages
-          base_pages="$(git rev-parse HEAD)"
-          git add -A -- korea.html korea-translations korea-analysis
-          PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
-          import subprocess
-          from core.korea_english_publication import public_registry
-          allowed={"korea.html"}
-          for row,_,src in public_registry():
-              n=src["source_identity"].split(":")[1]
-              allowed|={"korea-translations/"+n+".html","korea-analysis/"+n+".html"}
-          staged=set(subprocess.check_output(["git","diff","--cached","--name-only"],
-                                             text=True).splitlines())
-          assert staged<=allowed
-          PY
-          if ! git diff --cached --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "Korea: publish reviewer-approved English translation and analysis only"
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$base_pages"
-          if [ "$(git rev-parse HEAD)" != "$base_pages" ]; then
-            git push origin HEAD:gh-pages
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$(git rev-parse HEAD)"
           echo "Reviewed Korea English and Desk Pages exact branch parity verified."

@@ -368,8 +368,12 @@ class ProductionWorkflow(unittest.TestCase):
         self.assertIn("python -m migrations.cli --apply", self.code)
         self.assertIn("python scripts/admit_ph_nsc_official_links.py admit", self.code)
         self.assertIn("git add -- pla_watch.db output/philippines.html", self.code)
-        self.assertIn("git add -- philippines.html", self.code)
+        # Pages: one attested file-only release of philippines.html (#346);
+        # the helper's fast-forward is the Pages compare-and-swap.
+        self.assertIn("--overlay philippines.html --subject", self.code)
+        self.assertEqual(self.code.count(" --overlay "), 1)
+        self.assertIn("git show HEAD:output/philippines.html | cmp - output/philippines.html", self.code)
+        self.assertNotIn("HEAD:gh-pages", self.code)
         self.assertIn("Production main moved", self.code)
-        self.assertIn("Pages moved; never overwrite", self.code)
         self.assertIn("main output and gh-pages Philippines bytes differ", self.code)
         self.assertIn("assert got == rows", self.code)

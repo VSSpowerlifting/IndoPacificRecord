@@ -22,8 +22,9 @@ class KoreaMetadataSchedulerIsolation(unittest.TestCase):
             "korea-prod-main-before",
             "git fetch origin main",
             "git push origin HEAD:main",
-            "git push origin HEAD:gh-pages",
-            "git rev-parse origin/gh-pages",
+            # Pages compare-and-swap is the attested helper's fast-forward (#346).
+            'scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay korea.html ',
+            "git show HEAD:output/korea.html | cmp - output/korea.html",
             "korea-prod-source-before",
             "current_source",
             "sha256sum -c",
@@ -34,6 +35,8 @@ class KoreaMetadataSchedulerIsolation(unittest.TestCase):
             with self.subTest(protection=protection):
                 self.assertIn(protection, content)
         self.assertNotIn("peaceiris/actions-gh-pages", content)
+        self.assertNotIn("HEAD:gh-pages", content)
+        self.assertEqual(content.count(" --overlay "), 1)
         self.assertNotIn("git push --force", content)
 
 

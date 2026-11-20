@@ -312,24 +312,19 @@ jobs:
           ref: gh-pages
           path: vn-existing-pages
           fetch-depth: 0
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish only Vietnam and independently read back Pages Git
         run: |
           set -euo pipefail
           git fetch --quiet origin main
           test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)"
-          before=$(git -C vn-existing-pages rev-parse HEAD)
-          cp output/vietnam.html vn-existing-pages/vietnam.html
-          git -C vn-existing-pages add -- vietnam.html
-          git -C vn-existing-pages config user.name 'github-actions[bot]'
-          git -C vn-existing-pages config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if ! git -C vn-existing-pages diff --cached --quiet; then
-            git -C vn-existing-pages commit -m 'Vietnam: publish exact reviewed official links'
-          fi
+          git show HEAD:output/vietnam.html | cmp - output/vietnam.html
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay vietnam.html --subject "Vietnam: publish exact reviewed official links" --writer "vietnam_ministry_shadow ${{ github.run_id }}"
           git -C vn-existing-pages fetch --quiet origin gh-pages
-          test "$(git -C vn-existing-pages rev-parse origin/gh-pages)" = "$before"
-          git -C vn-existing-pages push origin HEAD:refs/heads/gh-pages
-          git -C vn-existing-pages fetch --quiet origin gh-pages
-          git -C vn-existing-pages show origin/gh-pages:vietnam.html > "$RUNNER_TEMP/vn-pages-readback.html"
+          git -C vn-existing-pages checkout --quiet --detach FETCH_HEAD
+          git -C vn-existing-pages show HEAD:vietnam.html > "$RUNNER_TEMP/vn-pages-readback.html"
           cmp output/vietnam.html "$RUNNER_TEMP/vn-pages-readback.html"
           python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
             --site-dir output --deployed-dir vn-existing-pages --require-desk vietnam

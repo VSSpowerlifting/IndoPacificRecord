@@ -281,14 +281,10 @@ jobs:
             echo "::error::Main moved; stopping instead of publishing an unreviewed revision"; exit 1;
           }
           git push origin HEAD:main
+      # Attested release (scripts/pages_release.py, #346): Pages becomes this
+      # commit's main:output plus any newer file-only releases; a stale source
+      # is a no-op and an out-of-band Pages state HOLDs (never overwritten).
       - name: Publish validated static output to GitHub Pages
         if: steps.korea-output-scope.outputs.publish_required == 'true'
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
-          publish_branch: gh-pages
-          cname: indopacificrecord.org
-          user_name: github-actions[bot]
-          user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          commit_message: 'Korea fourteen-link directory: ${{ github.run_id }}'
+        run: |
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --subject "Korea fourteen-link directory: ${{ github.run_id }}" --writer "korea_public_bibliography_release ${{ github.run_id }}"

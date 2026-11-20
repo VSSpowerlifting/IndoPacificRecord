@@ -69,7 +69,9 @@ class BriefsRenderReleaseContract(unittest.TestCase):
         strict = text.index("python -m scripts.run_briefs_render_release --scope strict")
         stage = text.index("git add -A -- output/")
         push = text.index("git push origin HEAD:main")
-        deploy = text.index("uses: peaceiris/actions-gh-pages@v3")
+        deploy = text.index('python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)"')
+        self.assertNotIn("peaceiris/actions-gh-pages", text)
+        self.assertNotIn("--overlay", text)  # a full attested release, as before
         self.assertLess(strict, stage)
         self.assertLess(stage, push)
         self.assertLess(push, deploy)

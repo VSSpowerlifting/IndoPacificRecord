@@ -110,9 +110,13 @@ class Phase4AReleaseContract(unittest.TestCase):
 
     def test_no_publisher_permissions_or_unreviewed_generated_assets(self):
         text = WF.read_text(encoding="utf-8")
-        self.assertEqual(text.count("actions-gh-pages@v3"), 1)
-        self.assertIn("publish_dir: ${{ runner.temp }}/desks-pages-patch", text)
-        self.assertIn("keep_files: true", text)
+        # One attested file-only release of exactly the reviewed paths (#346);
+        # every other Pages file is preserved, as keep_files did before.
+        self.assertNotIn("actions-gh-pages", text)
+        self.assertEqual(text.count("scripts/pages_release.py --push"), 1)
+        self.assertIn('--overlay desks.html --overlay desk-map.css --overlay assets/flags --subject',
+                      text)
+        self.assertEqual(text.count(" --overlay "), 3)
         self.assertIn("python -m scripts.guard_desks_p4a_output_scope --allow-unchanged", text)
         self.assertIn("if ! git diff --cached --quiet; then", text)
         self.assertNotIn("publish_dir: ./output", text)

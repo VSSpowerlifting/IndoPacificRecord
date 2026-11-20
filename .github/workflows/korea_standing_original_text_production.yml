@@ -295,6 +295,9 @@ jobs:
           path: korea-standing-existing-pages
           fetch-depth: 0
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish only exact Korea Desk and registered original text pages
         if: steps.verified_noop.outputs.verified != 'true'
         shell: bash
@@ -302,11 +305,23 @@ jobs:
           set -euo pipefail
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$(cat "$RUNNER_TEMP/korea-text-auto-main-after")"
-          test -z "$(git -C korea-standing-existing-pages status --porcelain --untracked-files=all)"
-          mkdir -p korea-standing-existing-pages/korea-originals
-          cp output/korea.html korea-standing-existing-pages/korea.html
-          cp output/korea-originals/*.html korea-standing-existing-pages/korea-originals/
-          python - <<'PY'
+          test "$(git rev-parse HEAD)" = "$(cat "$RUNNER_TEMP/korea-text-auto-main-after")"
+          test -z "$(git status --porcelain --untracked-files=all -- output/korea.html output/korea-originals)"
+          # The overlay mirrors output/korea-originals exactly: the committed set must
+          # equal the release index before anything is published.
+          PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
+          from pathlib import Path
+          from core.korea_published_originals import read_release_index
+          routes={"korea.html"}|{row["route"] for row in read_release_index()}
+          found={"korea.html"}|{p.relative_to("output").as_posix()
+                for p in Path("output/korea-originals").rglob("*") if p.is_file()}
+          assert routes==found, "main output has missing or orphan Korean original text"
+          print("Exact Korea main route index:",len(routes))
+          PY
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay korea.html --overlay korea-originals --subject "Korea: auto-release verified Type 1 original text, Korea Pages only" --writer "korea_standing_original_text_production ${{ github.run_id }}"
+          git -C korea-standing-existing-pages fetch --quiet origin gh-pages
+          git -C korea-standing-existing-pages checkout --quiet --detach FETCH_HEAD
+          PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
           from pathlib import Path
           from core.korea_published_originals import read_release_index
           routes={"korea.html"}|{row["route"] for row in read_release_index()}
@@ -318,29 +333,6 @@ jobs:
                   Path("korea-standing-existing-pages")/route).read_bytes()
           print("Exact Korea Pages file parity:",len(routes))
           PY
-          cd korea-standing-existing-pages
-          old="$(git rev-parse HEAD)"
-          git add -A -- korea.html korea-originals
-          PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
-          import subprocess
-          from core.korea_published_originals import read_release_index
-          allowed={"korea.html"}|{row["route"] for row in read_release_index()}
-          changed=set(subprocess.check_output(["git","diff","--cached","--name-only"],
-                                               text=True).splitlines())
-          assert changed<=allowed, "Unexpected foreign Pages file staged"
-          PY
-          if ! git diff --cached --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "Korea: auto-release verified Type 1 original text, Korea Pages only"
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$old"
-          if [ "$(git rev-parse HEAD)" != "$old" ]; then
-            git push origin HEAD:gh-pages
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$(git rev-parse HEAD)"
       - name: Verify exact public HTTPS byte readback of every Korean source page
         if: steps.verified_noop.outputs.verified != 'true'
         shell: bash

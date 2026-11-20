@@ -211,7 +211,11 @@ class CountryResearchReleaseContract(unittest.TestCase):
         self.assertIn("tests/test_country_research_output_scope.py", text)
         self.assertIn("git fetch origin main", text)
         self.assertIn("git push origin HEAD:main", text)
-        self.assertIn("cname: indopacificrecord.org", text)
+        # Attested full release; the helper refuses any CNAME but
+        # indopacificrecord.org (tests/test_pages_release_convergence.py).
+        self.assertIn('python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)"', text)
+        self.assertNotIn("--overlay", text)
+        self.assertNotIn("peaceiris/actions-gh-pages", text)
         self.assertIn("actions/upload-artifact@v4", text)
         self.assertIn("group: daily-update", text)
 

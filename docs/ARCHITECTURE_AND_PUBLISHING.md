@@ -151,26 +151,40 @@ screenshots at 1280 and 375 widths.
 - `daily_update.yml` — scheduled (five retry windows, one success per NY
   day): verifies reusable full qualification or runs the offline fallback, then
   the pipeline (which renders through
-  `site/render.py`), commits `pla_watch.db` + `output/` to main, deploys
-  `output/` → `gh-pages` (peaceiris/actions-gh-pages@v3,
-  `cname: indopacificrecord.org`). Python 3.9 on the runner — keep the
-  validator and both renderers 3.9-compatible.
-- `deploy_output_only.yml` — manual: validates then publishes the
-  already-committed `output/` from main, with the same CNAME. Use after local
-  re-renders.
+  `site/render.py`), commits `pla_watch.db` + `output/` to main, then releases
+  that commit through `scripts/pages_release.py`. Python 3.9 on the runner —
+  keep the validator, both renderers and the release helper 3.9-compatible.
+- `deploy_output_only.yml` — manual, `main` only: validates then releases the
+  already-committed `output/` of the main tip. Use after local re-renders.
 - `pr_offline_checks.yml` — offline checks on pull requests.
 - `singapore_shadow.yml`, `japan_shadow.yml` — daily shadow collection into
   isolated orphan state branches. They publish nothing, deploy nothing, and
   never open `pla_watch.db` or `output/`. See `docs/SHADOW_COLLECTION.md`.
 
-**Both deploy workflows must keep naming `indopacificrecord.org`.** A domain is
-held by one Pages site at a time, and `chinamilwatch.org` is served by a
-separate redirect-only site; a workflow that reclaimed the old domain would
-turn every preserved legacy address back into the predecessor's site. Pinned by
-test.
+**Every write to `gh-pages` goes through `scripts/pages_release.py` (#346).**
+There is one publisher and two release kinds. A *full* release (Daily,
+`deploy_output_only`, the render-only and China release workflows) publishes
+a main commit's `output/`. An *overlay* release (`--overlay PATH`, the Korea,
+Indonesia, Philippines, U.S., Vietnam and Desks file-only writers) changes
+only its named paths and preserves every other Pages file. Each gh-pages
+commit records its attested state (`Source-SHA:` base plus `Overlay:` lines),
+and the helper refuses any tip whose tree differs from that state. A stale
+or older source is a no-op (`superseded`), never a rollback. A newer
+file-only release is re-applied over an older full release, never erased.
+Rollback is a revert commit on main, released normally. An out-of-band push
+(owner-local or web) makes every writer HOLD (publication only; collection
+and main are unaffected) until an operator runs the reviewed
+`--reconcile --expect-pages <tip>` command. The contract is the helper's
+docstring; `scripts/audit_pages_writers.py` fails CI on any writer that
+publishes another way or changes its overlay paths. See
+`docs/PAGES_WRITER_AUDIT_2026-10-15.md` §8.
 
-`peaceiris/actions-gh-pages` writes `.nojekyll` at the root of `gh-pages`. It
-is not tracked under `output/`, and it does not need to be.
+**Every release keeps naming `indopacificrecord.org`.** `output/CNAME` and
+`output/.nojekyll` are tracked in main's `output/`, and the helper refuses to
+publish a tree whose CNAME names any other domain. A domain is held by one
+Pages site at a time, and `chinamilwatch.org` is served by a separate
+redirect-only site; a release that reclaimed the old domain would turn every
+preserved legacy address back into the predecessor's site. Pinned by test.
 
 **A green Actions run is not evidence that the pipeline executed.** Five
 scheduled windows report success each day and a scheduling guard admits one;
@@ -190,7 +204,8 @@ advances only at `Record successful run`. Builds with no run context
 `tests/test_daily_render_freshness.py`.
 
 **Deploys publish what is committed on main.** There is no build step in
-Pages — `output/` must be committed for anything to go live. Nothing blocks
+Pages — `output/` must be committed for anything to go live, and the release
+helper refuses any source that is not reachable from main. Nothing blocks
 a hand-commit to main; discipline lives in the validator + review flow.
 
 ## 5. Commit strategy (approved 2026-07-11; nothing auto-commits from sessions)

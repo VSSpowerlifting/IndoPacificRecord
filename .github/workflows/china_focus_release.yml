@@ -111,14 +111,10 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Site: release reviewed China research focus archive'
           git push origin HEAD:main
+      # Attested release (scripts/pages_release.py, #346): Pages becomes this
+      # commit's main:output plus any newer file-only releases; a stale source
+      # is a no-op and an out-of-band Pages state HOLDs (never overwritten).
       - name: Deploy exact reviewed output via existing Pages mechanism
         if: inputs.publish
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
-          publish_branch: gh-pages
-          cname: indopacificrecord.org
-          user_name: github-actions[bot]
-          user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          commit_message: 'Deploy focus-first China archive: ${{ github.run_id }}'
+        run: |
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --subject "Deploy focus-first China archive: ${{ github.run_id }}" --writer "china_focus_release ${{ github.run_id }}"

@@ -161,8 +161,12 @@ class KoreaLiveMetadataCountTests(unittest.TestCase):
         self.assertIn("- site/preview/generate_preview.py", flow)
         self.assertIn("- site/preview/templates/desk.html", flow)
         self.assertIn("git add -- pla_watch.db output/korea.html", flow)
-        self.assertIn("cp ../output/korea.html korea.html", flow)
-        self.assertIn("cmp ../output/korea.html korea.html", flow)
+        # Pages: one attested file-only release of korea.html (#346).
+        self.assertIn('--overlay korea.html --subject', flow)
+        self.assertEqual(flow.count(" --overlay "), 1)
+        self.assertIn("git show HEAD:output/korea.html | cmp - output/korea.html", flow)
+        self.assertIn("cmp output/korea.html korea-existing-pages/korea.html", flow)
+        self.assertNotIn("HEAD:gh-pages", flow)
 
 
 if __name__ == "__main__":

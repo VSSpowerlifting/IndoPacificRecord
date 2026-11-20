@@ -197,6 +197,9 @@ jobs:
           path: indonesia-existing-pages
           fetch-depth: 0
           persist-credentials: true
+      # Attested file-only release (scripts/pages_release.py --overlay, #346):
+      # only the named paths change, every other Pages file is preserved, and a
+      # stale, superseded or out-of-band Pages state never gets overwritten.
       - name: Publish only Indonesia HTML to existing Pages branch
         shell: bash
         run: |
@@ -209,28 +212,13 @@ jobs:
             echo "::error::Main changed since this Indonesia page was rendered"
             exit 1
           }
+          # The helper publishes the committed blob: it must be the validated file.
           git show HEAD:output/indonesia.html | cmp - output/indonesia.html
-          cd indonesia-existing-pages
-          test -z "$(git status --porcelain --untracked-files=all)"
-          pages_old="$(git rev-parse HEAD)"
-          cp ../output/indonesia.html indonesia.html
-          git add -- indonesia.html
-          staged="$(git diff --cached --name-only)"
-          test -z "$staged" || test "$staged" = "indonesia.html"
-          if [ -n "$staged" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "Indonesia: publish verified Kemhan Berita outbound links only"
-          fi
-          git fetch origin gh-pages
-          test "$(git rev-parse origin/gh-pages)" = "$pages_old" || {
-            echo "::error::Pages moved; never overwrite a concurrent release"
-            exit 1
-          }
-          if [ -n "$staged" ]; then
-            git push origin HEAD:gh-pages
-          fi
-          test -z "$(git status --porcelain --untracked-files=all)"
+          python3 scripts/pages_release.py --push --source "$(git rev-parse HEAD)" --overlay indonesia.html --subject "Indonesia: publish verified Kemhan Berita outbound links only" --writer "indonesia_verified_official_link_production ${{ github.run_id }}"
+          # Read back the attested Pages tip into the existing Pages checkout.
+          git -C indonesia-existing-pages fetch --quiet origin gh-pages
+          git -C indonesia-existing-pages checkout --quiet --detach FETCH_HEAD
+          cmp output/indonesia.html indonesia-existing-pages/indonesia.html
       - name: Independent readback of committed and deployed bytes
         env:
           GH_TOKEN: ${{ github.token }}
