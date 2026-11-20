@@ -109,7 +109,8 @@ class PhilippinesPublicPages(DeskCase):
         machine = self.machine()
         self.assertIn("<dt>Verified official links</dt><dd>%d " % len(links), page)
         self.assertIn("<dt>Machine explanations</dt><dd>%d " % len(machine), page)
-        self.assertIn("<dt>Original documents in the IPR corpus</dt><dd>None ", page)
+        originals = sum(bool(r["original_text"]) for r in machine)
+        self.assertIn("<dt>Records with original text</dt><dd>%s</dd>" % (originals or "None yet"), page)
         self.assertNotIn('href="archive.html?desk=philippines"', page)
 
     def test_every_released_machine_explanation_is_listed_with_its_labels(self):
@@ -158,12 +159,16 @@ class PhilippinesPublicPages(DeskCase):
         machine = self.machine()
         plate = re.search(r'<section class="desk[^"]*" id="desk-philippines".*?</section>',
                           desks, re.S).group(0)
-        self.assertIn("Official links and machine explanations — not in corpus", plate)
+        originals = sum(bool(r["original_text"]) for r in machine)
+        if originals:
+            self.assertIn("Official links, machine explanations and selected AFP originals", plate)
+        else:
+            self.assertIn("Official links and machine explanations — not in corpus", plate)
         self.assertNotIn("Shadow evaluation", plate)
         self.assertIn("<dt>Verified official links</dt><dd>%d</dd>" % len(links), plate)
         self.assertIn("<dt>Machine explanations</dt><dd>%d</dd>" % len(machine), plate)
-        # Reader wording (2026-11-16); still no count and no zero.
-        self.assertIn("<dt>Records</dt><dd>None in the public record</dd>", plate)
+        count_label = ("%d with original text" % originals) if originals else "None in the public record"
+        self.assertIn("<dt>Records</dt><dd>%s</dd>" % count_label, plate)
         scope = desks.split('id="desk-scopes"', 1)[1]
         self.assertIn('data-philippines-directory-scope-count="%d"' % len(links), scope)
         for other in ("china", "singapore", "japan", "korea", "vietnam", "us-indopacific"):

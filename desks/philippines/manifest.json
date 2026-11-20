@@ -52,7 +52,7 @@
       "listing_endpoints": [
         "https://www.afp.mil.ph/news"
       ],
-      "notes": "Public Daily does not fetch this source. Originals are preserved in private custody; the signed Daily envelope for family ph_afp_articles admits neutral link metadata and short attributed machine explanations only, under config/philippines_daily_policy.json (owner decisions 2026-10-18 and 2026-10-20). Nothing original enters the public corpus. AFP claims are attributed, not independently corroborated."
+      "notes": "Public Daily does not fetch this source. Originals are preserved in private custody; the shared Daily admits attributed machine explanations under config/philippines_daily_policy.json and version-pinned AFP titles and article prose under config/daily_public_originals.json. AFP claims are attributed, not independently corroborated."
     },
     {
       "slug": "ph_nsc_official_statements",

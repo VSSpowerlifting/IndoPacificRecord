@@ -854,8 +854,11 @@ def main() -> int:
     # workflow already calls this deploy gate, including after a rebase.
     db_path = output_dir.parent / "pla_watch.db"
     if db_path.is_file():
+        from core import daily_record_originals
         from scripts.reconcile_db import read_only
         with read_only(db_path) as con:
+            if daily_record_originals.withdrawn_components(con, daily_record_originals.load_pins()):
+                errors.append("Daily original components include a withdrawn or unbound version")
             projected = con.execute("SELECT 1 FROM sqlite_master WHERE type='trigger' "
                 "AND name='mindef_public_no_expression_insert'").fetchone()
         if projected:

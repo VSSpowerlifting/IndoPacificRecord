@@ -242,6 +242,32 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
     return result
 
 
+def verify_philippines_original_routes(db_path, pages_dir):
+    """Page-only writers may link an original only after shared site delivery."""
+    from bs4 import BeautifulSoup
+    from core.daily_machine_records import load
+
+    records = [r for r in load(db_path) if r["desk_id"] == "philippines" and r["original_text"]]
+    if not records:
+        return
+    pages_dir = Path(pages_dir)
+    archive_path = pages_dir / "archive-research-index.json"
+    need(archive_path.is_file(), "philippines_original_archive_missing_on_pages")
+    rows = {r["id"]: r for r in json.loads(archive_path.read_bytes())["records"]}
+    for record in records:
+        path = pages_dir / record["record_path"]
+        need(path.is_file(), "philippines_original_record_missing_on_pages")
+        page = BeautifulSoup(path.read_bytes(), "html.parser")
+        title = page.select_one("h1")
+        paragraphs = page.select('section[aria-labelledby="record-text"] div.original p')
+        row = rows.get("machine:" + record["source_identity"])
+        need(title and title.get_text() == record["original_title"]
+             and [p.get_text() for p in paragraphs] == record["original_text"].split("\n\n")
+             and row and row["title"] == record["original_title"]
+             and row["ipr_url"] == "https://indopacificrecord.org/" + record["record_path"],
+             "philippines_original_version_differs_on_pages")
+
+
 def verify_vietnam_https(db_path, site_dir, *, fetch=None):
     """Independent fixed-origin HTTP readback, requiring exact committed bytes."""
     if fetch is None:

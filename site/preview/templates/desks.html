@@ -28,7 +28,7 @@
 {% set front = {} %}{% for item in home_desks.rows %}{% set _ = front.update({item.desk.slug: item.record}) %}{% endfor %}
 {% macro marks(d) -%}
 {#- The registry's state label, verbatim (core.desk_registry.status_label). -#}
-<span class="desk-state desk-state--{{ d.status }}">{{ d.status_label }}</span>{% if d.slug in pubd %} <span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the record.">Research published</span>{% endif %}
+<span class="desk-state desk-state--{{ d.status }}">{% if d.slug == 'philippines' and ph_original_count | default(0) %}Official links, machine explanations and selected AFP originals{% else %}{{ d.status_label }}{% endif %}</span>{% if d.slug in pubd %} <span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the record.">Research published</span>{% endif %}
 {%- endmacro %}
 
 <header class="page-head desks-head">
@@ -76,7 +76,7 @@
     <p class="card-meta deskmap-marks">{{ marks(d) }}</p>
     {% if d.slug in seats %}<p class="desks-seat">Seat: {{ seats[d.slug] }} <a href="#atlas">On the map</a></p>{% endif %}
     <dl class="deskmap-stats">
-      <div><dt>Records</dt><dd>{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'None in the public record' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
+      <div><dt>Records</dt><dd>{% if d.slug == 'philippines' and ph_original_count | default(0) %}{{ ph_original_count }} with original text{% elif d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'None in the public record' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
       {% if d.record_count is not none and d.status != 'shadow' and d.last_successful_run %}
       <div><dt>Last collected</dt><dd>{{ d.last_successful_run[:10] | reader_date }}</dd></div>
       {% endif %}

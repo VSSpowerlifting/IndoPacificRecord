@@ -1,8 +1,9 @@
-"""Read only permitted shared machine explanations, without source originals."""
+"""Read permitted shared Daily Record components."""
 import hashlib
 import json
 
 from scripts.reconcile_db import read_only
+from core import daily_record_originals
 from core.daily_sources import source_for
 from processing.daily_intake import load_policy, policy_binding, validate_output
 
@@ -35,9 +36,11 @@ def _released_visibility_policy(family, policy):
 def load(db_path):
     policy = load_policy()
     result = []
+    pins = daily_record_originals.load_pins()
     with read_only(str(db_path)) as conn:
         if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='daily_machine_records'").fetchone():
             return []
+        has_originals = daily_record_originals.is_already_applied(conn)
         from processing.daily_intake import PUBLIC_FIELDS
         columns = ["categories_json" if k == "categories" else k for k in PUBLIC_FIELDS]
         for values in conn.execute("SELECT " + ",".join(columns) + " FROM daily_machine_records WHERE publication_state='released'"):
@@ -77,7 +80,16 @@ def load(db_path):
             if source.release_hold():
                 continue
             path = "record/source-" + hashlib.sha256((family + ":" + r["source_identity"]).encode()).hexdigest()[:24] + ".html"
-            result.append({**r, "record_path": path, "source_label": source.label,
+            original = None
+            if has_originals and family == daily_record_originals.AFP:
+                component = daily_record_originals.stored_component(conn, family, r["source_identity"])
+                if component:
+                    parent = daily_record_originals.released_parent(conn, family, r["source_identity"])
+                    if parent and daily_record_originals.permitted(component, parent, pins):
+                        original = component
+            result.append({**r, "original_title": original["title_original"] if original else None,
+                           "original_text": original["text_original"] if original else None,
+                           "record_path": path, "source_label": source.label,
                            "url": link[0], "published_date": link[1],
                            "publisher": source.publisher,
                            "issuer": source.public_issuer, "desk_id": source.desk_id,
@@ -88,13 +100,19 @@ def load(db_path):
 def archive_rows(records):
     from core.archive_research import projection, ORIGIN
     for r in records:
+        official_title = r.get("original_title")
+        ipr_url = ORIGIN + "/" + r["record_path"]
+        citation = ("Indo-Pacific Record machine explanation of " + r["source_identity"] + ". " + r["url"])
+        if official_title:
+            citation = (f'{r["publisher"]}. “{official_title}.” {r["published_date"]}. '
+                        f'Indo-Pacific Record, {ipr_url}. Official source {r["url"]}.')
         yield projection(id="machine:" + r["source_identity"],
-            title=r["source_label"] + " official source — machine explanation",
+            title=official_title or r["source_label"] + " official source — machine explanation",
+            original_title=official_title,
             summary=r["summary"], date=r["published_date"], date_kind="source-stated publication",
             desks=[r["desk_id"]], source=r["source_label"], issuer=r["publisher"],
             record_type="machine_explanation", processing="Machine-generated; not human-reviewed. Official account, not independent verification.",
-            ipr_url=ORIGIN + "/" + r["record_path"], source_url=r["url"],
-            citation="Indo-Pacific Record machine explanation of " + r["source_identity"] + ". " + r["url"])
+            ipr_url=ipr_url, source_url=r["url"], citation=citation)
 
 
 def editorial_candidates(db_path, start, cutoff, *, limit=2):

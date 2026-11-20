@@ -399,6 +399,8 @@ def _daily_admission(family: str, *, intake=None, clock=None) -> GovernedAdmissi
         unchanged = max(receipt["records"] - admitted, 0)
         logger.info("%s: governed admission — %d records, %d admitted, %d held",
                     family, receipt["records"], admitted, len(receipt["holds"]))
+        if "originals_admitted" in receipt:
+            logger.info("%s: %d original components admitted", family, receipt["originals_admitted"])
         base = _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
         if attended_only(family):
             # An operator-run pilot has no scheduled collector to attest.

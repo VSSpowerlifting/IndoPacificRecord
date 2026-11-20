@@ -1,0 +1,11 @@
+{
+  "ph_afp_articles": {
+    "afp:1423": {
+      "metadata_version_sha256": "a6de71492a4654e71b965f4f6d8b117c8a218d99d25b7c156c25d8f0d597e82e",
+      "content_sha256": "2f07420d4484fd833d1ff768bf3e3ba0c07efa87cd1a0dab7694860db5047a44",
+      "capture_sha256": "a4628631018ffacae69085475f1f88b85b533a82aa71b9cb285cf3ef80855fbe",
+      "title_sha256": "e557b8a6850ddf4aae9e62da474b055099b9a103af33403a966b61503ee0b928",
+      "public_text_sha256": "58f9cbf5d85d3966ee64f14490794c1290abdc8b07372fe37a384023c4c43f5d"
+    }
+  }
+}

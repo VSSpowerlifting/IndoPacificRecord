@@ -130,7 +130,7 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         envelope = sign_outputs(state, family=family, policy=policy,
                                  key=os.environ.get("DAILY_OUTPUT_KEY", ""),
                                  selected_record=eligible[0] if pilot else None,
-                                 collection=collection)
+                                 collection=collection, verified_records=eligible)
         if collection is not None:
             result["collection"] = envelope["packet"]["collection"]
         target = Path(out_dir) / (family + ".json")
@@ -182,4 +182,6 @@ def intake_family(db_path, input_dir, family, *, policy=None):
     from processing.daily_intake import collection_facts
     return {"records": len(envelope["packet"]["records"]),
             "admitted": receipt["admitted"], "holds": list(receipt["holds"]),
-            "collection": collection_facts(envelope["packet"])}
+            "collection": collection_facts(envelope["packet"]),
+            **({"originals_admitted": receipt["originals_admitted"]}
+               if "originals_admitted" in receipt else {})}
