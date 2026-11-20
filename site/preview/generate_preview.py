@@ -3504,6 +3504,9 @@ def build(out_dir: Path, title: str, db_path: Path,
                 admitted_list,
                 '<p class="meta">Each date below is the official date.</p>\n  '
                 + admitted_list)
+            # Drop indentation in the ordinary HTML flow. Keep newlines so
+            # adjacent words and inline elements retain their spacing.
+            desk_page = re.sub(r"(?m)^[ \t]+", "", desk_page)
         (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
 

@@ -9,7 +9,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from scripts.audit_sunday_source_offer import (
-    explain_offer, inspect_offer, main, parse_watch_ids,
+    MIN_BODY_CHARS, explain_offer, inspect_offer, main, parse_watch_ids,
 )
 from scripts.author_brief import build_draft
 from scripts.sunday_briefs_auto_writer import choose_evidence
@@ -31,7 +31,7 @@ def row(ident, desk, published="2026-10-08", *, chars=450,
         "title_original": "Original source headline",
         "title_english": "Original source headline",
         "source_language_tag": "en",
-        "text_original": "Original official body " * 40 if chars >= 250 else "short",
+        "text_original": "Original official body " * 40 if chars >= MIN_BODY_CHARS else "short",
         "text_english": ("E" * chars) if text_english is None else text_english,
         "analyzed_at": "2026-10-10T12:00:00" if analyzed else None,
         "is_significant": 1 if significant else 0,
