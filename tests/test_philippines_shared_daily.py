@@ -591,18 +591,72 @@ class SharedDaily(unittest.TestCase):
         conn, p, envelope = self._admission_fixture()
 
         def signed(packet):
-            domain = d.DOMAIN_V2 if packet["schema"].endswith("/2") else d.DOMAIN
+            domain = d.PACKET_DOMAINS.get(packet["schema"], d.DOMAIN)
             return {"packet": packet, "mac": hmac.new(
                 self.KEY.encode(), domain + d.canonical(packet), hashlib.sha256).hexdigest()}
         cases = [dict(envelope["packet"], collection={}),                      # /1 plus extra
                  dict(envelope["packet"], schema="ipr-shared-daily-machine-output/2"),  # /2 lacks block
-                 dict(envelope["packet"], schema="ipr-shared-daily-machine-output/3"),
+                 dict(envelope["packet"], schema=d.SCHEMA_V3),
+                 dict(envelope["packet"], schema="ipr-shared-daily-machine-output/unknown"),
                  dict(envelope["packet"], collection={}, extra=1,
                       schema="ipr-shared-daily-machine-output/2")]
         for packet in cases:
             with self.subTest(schema=packet["schema"], keys=sorted(packet)):
                 with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_source_mismatch"):
                     d.admit(conn, signed(packet), family="ph_afp_articles", policy=p, key=self.KEY)
+
+    def test_exact_original_component_admission_replay_and_withdrawal(self):
+        import hmac
+        from core import daily_record_originals as original
+        from migrations.versions import m0025_daily_record_originals as migration
+
+        conn, p, _ = self._admission_fixture()
+        self.addCleanup(conn.close)
+        migration.up(conn)
+        item = record()
+        prose = item["body"]
+        item["body"] += "\n\nPhotos by Synthetic Credit"
+        item["content_sha256"] = original.text_hash(item["body"])
+        state, _ = d.process([item], {}, family=original.AFP, policy=p,
+                             analyzer_factory=fake_analyzer)
+        pins = {original.AFP: {item["source_identity"]: {
+            **{k: item[k] for k in original.VERSION_FIELDS},
+            "title_sha256": original.text_hash(item["title"]),
+            "public_text_sha256": original.text_hash(prose),
+        }}}
+
+        def admit(envelope):
+            return d.admit(conn, envelope, family=original.AFP, policy=p, key=self.KEY)
+
+        def sign(record):
+            return d.sign_outputs(state, family=original.AFP, policy=p, key=self.KEY,
+                                  collection=self._facts(), verified_records=[record])
+
+        with patch.object(original, "load_pins", return_value=pins):
+            for edit in ({"official_republisher": "other"}, {"official_issuer": "ph_nsc"},
+                         {"capture_sha256": "0" * 64}, {"body": "Third-party text"}):
+                self.assertEqual(sign({**item, **edit})["packet"]["schema"], d.SCHEMA_V2)
+            good = sign(item)
+            self.assertEqual(good["packet"]["schema"], d.SCHEMA_V3)
+            component, = good["packet"]["originals"]
+            self.assertEqual(component["text_original"], prose)
+            packet = copy.deepcopy(good["packet"])
+            packet["originals"][0]["text_original"] = "Replacement text"
+            wrong_mac = hmac.new(self.KEY.encode(), d.DOMAIN_V2 + d.canonical(packet),
+                                 hashlib.sha256).hexdigest()
+            with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_mac_invalid"):
+                admit({"packet": packet, "mac": wrong_mac})
+            mac = hmac.new(self.KEY.encode(), d.DOMAIN_V3 + d.canonical(packet),
+                           hashlib.sha256).hexdigest()
+            bad_version = admit({"packet": packet, "mac": mac})
+            self.assertEqual(bad_version["originals_admitted"], 0)
+            self.assertIn("daily_original_version_or_policy_held", bad_version["holds"])
+            self.assertEqual(admit(good)["originals_admitted"], 1)
+            self.assertEqual(admit(good)["originals_admitted"], 0)
+        with patch.object(original, "load_pins", return_value={}):
+            self.assertEqual(admit(good)["originals_admitted"], 0)
+            self.assertIsNone(original.stored_component(conn, original.AFP, item["source_identity"]))
+            self.assertIsNotNone(original.released_parent(conn, original.AFP, item["source_identity"]))
 
     def test_a_malformed_collection_block_still_admits_and_is_reported_not_attested(self):
         for block in ({"schema": "junk"}, None, "text", [], dict(self._facts(), error_detail="leak")):

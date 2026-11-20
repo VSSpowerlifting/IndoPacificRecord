@@ -4,7 +4,7 @@
 {# Display title: the machine translation when one exists, otherwise the
    original. Never a placeholder — a record with no English title shows its
    original title as the heading rather than inventing a substitute. #}
-{% set display_title = (record.source_label ~ ' official source — machine explanation') if record.machine_only | default(false) else record.original_title if record.cited_only | default(false) else (record.title_english or record.title_original) %}
+{% set display_title = (record.original_title or record.source_label ~ ' official source — machine explanation') if record.machine_only | default(false) else record.original_title if record.cited_only | default(false) else (record.title_english or record.title_original) %}
 {% block title %}{{ display_title }} — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="../record.css">{% endblock %}
 {% block main_class %} class="record-reading"{% endblock %}

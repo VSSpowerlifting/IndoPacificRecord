@@ -50,6 +50,7 @@
 {% set ph_afp = ph_links | selectattr('publisher_label', 'equalto', 'Armed Forces of the Philippines') | list %}
 {% set ph_nsc = ph_links | selectattr('publisher_label', 'equalto', 'National Security Council') | list %}
 {% set ph_machine = daily_machine_records | default([]) %}
+{% set ph_original_count = ph_machine | selectattr('original_text') | list | length %}
 {% set ph_explained = ph_machine | map(attribute='source_identity') | list %}
 {# Counts come only from admitted production rows and released machine
    records. Private originals and shadow history are never counted here. #}
@@ -57,7 +58,7 @@
   <div class="stat-row"><dt>Verified official links</dt><dd>{{ ph_links | length }} <span class="meta">(AFP {{ ph_afp | length }} · NSC {{ ph_nsc | length }})</span></dd></div>
   <div class="stat-row"><dt>Newest official date</dt><dd>{% if ph_afp %}AFP <time datetime="{{ ph_afp[0].publisher_posted_date }}">{{ ph_afp[0].publisher_posted_date }}</time>{% endif %}{% if ph_afp and ph_nsc %} · {% endif %}{% if ph_nsc %}NSC <time datetime="{{ ph_nsc[0].publisher_posted_date }}">{{ ph_nsc[0].publisher_posted_date }}</time>{% endif %}{% if not ph_links %}None yet{% endif %}</dd></div>
   <div class="stat-row"><dt>Machine explanations</dt><dd>{{ ph_machine | length }} <span class="meta">(AFP {{ ph_machine | selectattr('source_label', 'equalto', 'AFP') | list | length }} · NSC {{ ph_machine | selectattr('source_label', 'equalto', 'NSC') | list | length }})</span></dd></div>
-  <div class="stat-row"><dt>Original documents in the IPR corpus</dt><dd>None <span class="meta">(originals stay in private custody and are not counted here)</span></dd></div>
+  <div class="stat-row"><dt>Records with original text</dt><dd>{{ ph_original_count or 'None yet' }}</dd></div>
 </dl>
 <nav class="reader-contents" aria-label="On this page">
   <span>On this page</span>
@@ -74,14 +75,14 @@
   <ol class="desk-reference-list" aria-label="Machine explanations">
     {% for rec in ph_machine %}
     <li data-machine-explanation-id="{{ rec.source_identity }}">
-      <h3><a href="{{ rec.record_path }}">{{ rec.source_label }} · {{ rec.published_date }} · {{ rec.source_identity }}</a></h3>
+      <h3><a href="{{ rec.record_path }}">{% if rec.original_title %}{{ rec.original_title }}{% else %}{{ rec.source_label }} · {{ rec.published_date }} · {{ rec.source_identity }}{% endif %}</a></h3>
       <p>{{ rec.summary }}</p>
-      <p class="meta"><span class="evidence evidence--model">Machine explanation</span>
+      <p class="meta"><span class="evidence evidence--model">Machine explanation</span>{% if rec.original_text %} · Original text available ·{% endif %}
         Publisher: {{ rec.publisher }} · Official date <time datetime="{{ rec.published_date }}">{{ rec.published_date }}</time> · {% if rec.model_flagged %}Model-flagged for closer reading: {{ rec.flag_reason }}{% else %}Not model-flagged{% endif %} · Topics (machine-assigned): {{ rec.categories | map('replace', '_', ' ') | map('title') | join(', ') }} · <a href="{{ rec.url }}" target="_blank" rel="noopener noreferrer">Official source</a></p>
     </li>
     {% endfor %}
   </ol>
-  <p class="meta">Each explanation links to its own record with source custody and model details. Original titles, bodies and images are not republished.</p>
+  <p class="meta">Records include provenance and model details. Where available, the Record also includes the source title and original text.</p>
 </section>
 {% endif %}
 {% endif -%}

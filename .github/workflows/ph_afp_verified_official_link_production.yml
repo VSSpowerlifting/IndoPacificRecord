@@ -158,10 +158,16 @@ jobs:
           assert afp >= 23 and got == rows, "rendered links differ from SQLite"
           for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
               assert forbidden not in page, forbidden
-          # No preserved AFP headline or body may reach the public page.
+          # Metadata links cannot carry source expression. The adjacent
+          # Record list may use only titles already admitted by shared Daily.
+          from core.daily_machine_records import load
+          allowed = {r["source_identity"]: r["original_title"] for r in load(Path("pla_watch.db"))
+                     if r["source_family"] == "ph_afp_articles" and r["original_title"]}
           src = sqlite3.connect("file:%s?mode=ro" % os.environ["SOURCE_DB"], uri=True)
-          for title, body in src.execute("SELECT title_original, text_original FROM shadow_records"):
-              assert not (title and title in page), "original AFP headline on public page"
+          for identity, title, body in src.execute(
+                  "SELECT source_identity, title_original, text_original FROM shadow_records"):
+              if title and title in page:
+                  assert allowed.get(identity) == title, "unapproved AFP headline on public page"
               assert not (body and body[:120] in page), "original AFP body on public page"
           print("Admitted Philippines links rendered:", len(rows), "AFP:", afp)
           PY
@@ -223,6 +229,10 @@ jobs:
             exit 1
           }
           git show HEAD:output/philippines.html | cmp - output/philippines.html
+          python - <<'PY'
+          from scripts.verify_regional_source_index_readback import verify_philippines_original_routes
+          verify_philippines_original_routes("pla_watch.db", "philippines-existing-pages")
+          PY
           cd philippines-existing-pages
           test -z "$(git status --porcelain --untracked-files=all)"
           pages_old="$(git rev-parse HEAD)"
