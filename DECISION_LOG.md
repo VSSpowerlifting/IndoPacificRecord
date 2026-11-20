@@ -287,6 +287,48 @@ changed, and no ledger entry, attempt or clock was reset.
 
 Details: `docs/engineering/KOREA_DESK_OPERATION.md`, "MND attachment size hold".
 
+## 2026-11-14 — Owner: PCG 97-meter dossier evidence lane
+
+Benjamin Yang selected the evidence approach for the private Philippine Coast
+Guard 97-meter Dossier manuscripts in this task: “Option B, press attributed.”
+The founder then approved the proposed rule and registry list: “Approve as
+drafted.” The approval covers:
+
+1. Attributed press reports may be carried as external sources in
+   `philippine-coast-guard-97m-patrol-vessels` and `escoda-shoal-2024` only
+   when the official original was unreachable, the claim names the official
+   whose statement is relayed, and any characterisation that is the outlet's
+   own is labelled as the outlet's.
+2. The following 23 institutions are to be registered through a reviewed
+   engineering change, with the desk and type assignments set out in the
+   desk manifests changed with this entry, including a new
+   `independent_media` institution type: `cn_ccg`, `cn_mfa`,
+   `cn_embassy_ph`, `jp_jica`, `jp_mhi`, `ph_dfa`, `ph_dof`, `ph_dotr`,
+   `ph_nmc`, `ph_ntf_wps`, `ph_pcg`, `ph_pia`, `ph_ptv`, `press_abscbn`,
+   `press_bombo`, `press_dzrh`, `press_gma`, `press_inquirer`,
+   `press_navalnews`, `press_philstar`, `press_portnews`, `press_tribune` and
+   `press_usni`.
+3. `reconcile_external_sources` and `docs/LIVING_DOSSIERS.md`, which describe
+   external sources as official, are to be amended in the same change so the
+   rule is explicit.
+
+The rule applies to these two manuscripts only. That restriction is this
+recorded decision, not a code check: once the rows exist,
+`reconcile_external_sources` accepts these institutions for any dossier. Not
+covered: source-use grants for corpus Records 4574 and 5283 and for the
+external sources, a case-study label for `escoda-shoal-2024`, editorial
+approval and publication.
+
+Implementation (pending review, not merged): `core/domain.py` adds
+`independent_media` to `INSTITUTION_TYPES`; `desks/china`, `desks/japan`,
+`desks/philippines` and `desks/us-indopacific` manifests declare the 23
+institutions with no sources, so nothing is collected and no desk's status
+changes; the `reconcile_external_sources` docstring and
+`docs/LIVING_DOSSIERS.md` state the attributed-press rule. The tracked
+`pla_watch.db` is not changed: the rows reach the database only after merge,
+at Daily's migration step. Public institution counts are derived from sources,
+so they do not move.
+
 ## 2026-11-14 — USCC narrative path built into the shared Daily, disabled (engineering record; no activation)
 
 **What changed.** The 7 November qualifier-based adoption candidate (PR #1000)
