@@ -158,6 +158,18 @@ class NarrativeStandardTests(unittest.TestCase):
         self.assertIn("Both figures come from the navy", article)
         self.assertIn("did not name the submarine", article)
 
+    def test_empty_significance_bridge_is_advisory_and_real_negatives_remain(self):
+        original = article_manuscript()
+        self.assertNotIn("empty_significance_bridge", codes(report(original)))
+        weak = copy.deepcopy(original)
+        weak["article"][-1]["text"] += " That distinction matters because this mission is important."
+        result = report(weak)
+        self.assertIn("empty_significance_bridge", codes(result))
+        self.assertFalse(result["hold"])
+        # A necessary, attributed factual negative is still allowed.
+        article = " ".join(block["text"] for block in original["article"])
+        self.assertIn("did not name the submarine", article)
+
     def test_checks_never_edit_or_delete_prose(self):
         before = copy.deepcopy(article_manuscript())
         subject = copy.deepcopy(before)
@@ -336,6 +348,15 @@ class WriterContractTests(unittest.TestCase):
                 "background, significance, challenges and outlook",
                 "A paragraph can report a fact and stop.",
                 "fact-caveat-interpretation rhythm",
+                "Prefer affirmative, direct statements",
+                "That distinction matters",
+                "prefer flowing sentences",
+                "3a. ANALYTICAL PAYOFF",
+                "best source-supported alternative explanation",
+                "as much or more reader attention",
+                "3b. ECONOMICAL QUOTES",
+                "source-verified and attributed quote",
+                "Semicolons are welcome",
                 "No stylistic improvement can justify"):
             self.assertIn(rule, sent)
         self.assertIn("ONE cohesive article", sent)
