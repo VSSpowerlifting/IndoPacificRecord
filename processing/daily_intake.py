@@ -367,6 +367,10 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
     result = json.loads(json.dumps(state))
     used, analyzer, budget, exhausted = 0, None, None, False
     present = {family + ":" + r["source_identity"] for r in records}
+    if source.first_attempts_first:
+        # Stable sort: never-attempted entries first, input order within groups.
+        records = sorted(records, key=lambda r: bool(
+            result.get(family + ":" + r["source_identity"], {}).get("attempts")))
     for key, entry in result.items():
         if key.startswith(family + ":") and key not in present:
             entry.update(status="held", reason="source_missing_or_metadata_changed")
