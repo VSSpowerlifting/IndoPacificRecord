@@ -191,6 +191,9 @@
   translations are excluded from this list. Machine explanations are listed
   separately above. Held records cannot appear in this index.</p>
   {% else %}
+  {% if official_link_index | default(none) %}
+  <p class="meta" data-official-link-index-note="{{ official_link_index.shown }}/{{ official_link_index.total }}">{% if official_link_index.shown < official_link_index.total %}Showing the latest {{ official_link_index.shown }} of {{ official_link_index.total }} admitted links by official date.{% else %}Showing all {{ official_link_index.total }} admitted {{ 'link' if official_link_index.total == 1 else 'links' }}.{% endif %} <a href="{{ official_link_index.hub }}">Full index by month</a></p>
+  {% endif %}
   <ol class="desk-reference-list" aria-label="Admitted official publisher references">
     {% for ref in regional_official_links %}
     <li data-regional-official-source-id="{{ ref.source_identity }}">
@@ -510,6 +513,9 @@
     the underlying event claims, and this list does not contain original
     headlines, translated text, document bodies, photographs or analysis.
     Collection can be incomplete or interrupted.</p>
+    {% if official_link_index | default(none) %}
+    <p class="meta" data-official-link-index-note="{{ official_link_index.shown }}/{{ official_link_index.total }}">{% if official_link_index.shown < official_link_index.total %}Showing the latest {{ official_link_index.shown }} of {{ official_link_index.total }} new links by portal posting date.{% else %}Showing all {{ official_link_index.total }} new {{ 'link' if official_link_index.total == 1 else 'links' }}.{% endif %} <a href="{{ official_link_index.hub }}">Full index by month</a></p>
+    {% endif %}
     <ol class="korea-public-source-list" aria-label="Automatically admitted official Korean source links">
     {% for ref in korea_auto_official_links -%}
       <li data-korea-auto-official-link="{{ ref.source_identity }}">

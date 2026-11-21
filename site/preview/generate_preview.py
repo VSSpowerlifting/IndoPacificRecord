@@ -2581,6 +2581,117 @@ LEGACY_REDIRECT = """<!doctype html>
 """
 
 
+from core import official_link_index as official_link_index_mod
+
+INDONESIA_ADMITTED_LIST = ('<ol class="desk-reference-list" '
+                           'aria-label="Admitted official publisher references">')
+INDONESIA_ADMITTED_ROW = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
+
+
+def compact_indonesia_admitted(page, expected):
+    """Compact the admitted Kemhan rows of a desk or index month page.
+
+    The admitted URL/date-only entries are repetitive; keep every source,
+    publisher and date, but compact layout whitespace and omit the per-row
+    "metadata only" refrain already explained above the list. Each row keeps
+    its identity, official URL, rel="noopener noreferrer", "Kemhan Berita
+    official source" label, publisher attribution and <time datetime>; it
+    opens in the same tab and the repeated "Official date" label is stated
+    once above the list. The desk lists only the newest
+    official_link_index.DESK_LINK_LIMIT rows, so indonesia.html stays well
+    under its 160 KB owner cap (DECISION_LOG 2026-11-13, raised 21 Nov 2026);
+    month pages keep the default 120 KB route cap.
+    """
+    matches = re.findall(INDONESIA_ADMITTED_ROW, page)
+    if len(matches) != expected:
+        raise ValueError("Indonesia admitted-index markup/count mismatch")
+
+    def compact(match):
+        item = (re.sub(r'\s*\n\s*', ' ', match.group(0))
+                .replace(' · Official-link metadata only', '')
+                .replace(' target="_blank"', '')
+                .replace(' · Official date <time', ' · <time'))
+        return re.sub(r'>\s+<', '><', item)
+
+    page = re.sub(INDONESIA_ADMITTED_ROW, compact, page)
+    page = re.sub(
+        r'(</li>)\s+(?=<li data-regional-official-source-id="kemhan:)',
+        r'\1', page)
+    if page.count(INDONESIA_ADMITTED_LIST) != 1:
+        raise ValueError("Indonesia admitted-index list is not unique")
+    page = page.replace(
+        INDONESIA_ADMITTED_LIST,
+        '<p class="meta">Each date below is the official date.</p>\n  '
+        + INDONESIA_ADMITTED_LIST)
+    # Drop indentation in the ordinary HTML flow. Keep newlines so adjacent
+    # words and inline elements retain their spacing.
+    return re.sub(r"(?m)^[ \t]+", "", page)
+
+
+def render_official_link_index(env, desk, rows, **ctx):
+    """{route: html} for a desk's official-link hub and month pages.
+
+    Every admitted row appears exactly once, on the page for the month of its
+    official date, in the caller's newest-first order. No rows, no pages.
+    """
+    oli = official_link_index_mod
+    months = oli.partition(desk.slug, rows)
+    if not months:
+        return {}
+    tmpl = env.get_template("official_link_index.html")
+    hub = oli.hub_route(desk.slug)
+    entries = [{"month": month, "label": oli.month_label(month),
+                "count": len(items), "route": oli.month_route(desk.slug, month)}
+               for month, items in months]
+    common = dict(ctx, desk=desk, index_desk=desk.slug, index_hub=hub,
+                  index_total=len(rows),
+                  index_shown=min(len(rows), oli.DESK_LINK_LIMIT),
+                  support_stylesheet=("indonesia-shell.css"
+                                      if desk.slug == "indonesia"
+                                      else "korea-shell.css"))
+    pages = {hub: tmpl.render(page=hub, nested=False, index_kind="hub",
+                              index_months=entries, **common)}
+    for position, (month, items) in enumerate(months):
+        entry = entries[position]
+        html = tmpl.render(
+            page=entry["route"], nested=True, index_kind="month",
+            index_month=entry, index_rows=items,
+            index_newer=entries[position - 1] if position else None,
+            index_older=(entries[position + 1]
+                         if position + 1 < len(entries) else None),
+            **common)
+        if desk.slug == "indonesia":
+            html = compact_indonesia_admitted(html, len(items))
+        pages[entry["route"]] = html
+    return pages
+
+
+def write_official_link_index(env, out_dir, desk, rows, **ctx):
+    """Write the index routes and remove stale ones; return written routes.
+
+    A month that no longer has admitted rows, or a whole index whose desk has
+    none, is deleted so the published tree never keeps an orphan page.
+    """
+    oli = official_link_index_mod
+    pages = render_official_link_index(env, desk, rows, **ctx)
+    folder = out_dir / oli.month_dir(desk.slug)
+    hub = out_dir / oli.hub_route(desk.slug)
+    if folder.is_dir():
+        for stale in folder.glob("*.html"):
+            if oli.month_dir(desk.slug) + "/" + stale.name not in pages:
+                stale.unlink()
+    if not pages:
+        if hub.exists():
+            hub.unlink()
+        if folder.is_dir() and not any(folder.iterdir()):
+            folder.rmdir()
+        return []
+    folder.mkdir(parents=True, exist_ok=True)
+    for route, html in pages.items():
+        (out_dir / route).write_text(html, encoding="utf-8")
+    return list(pages)
+
+
 def build(out_dir: Path, title: str, db_path: Path,
           snapshot: dict = DECLARED_SNAPSHOT,
           legacy_routes: bool = False, mode: str = BUILD_MODE,
@@ -3442,6 +3553,28 @@ def build(out_dir: Path, title: str, db_path: Path,
         ])
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
+        # Indonesia and Korea desk pages list only the newest
+        # DESK_LINK_LIMIT admitted official links; the full admitted set is
+        # carried by the hub and month routes written below. Archive groups
+        # and archive-research-index.json keep every row.
+        desk_regional_links = regional_official_links
+        desk_korea_auto_links = (korea_auto_official_rows
+                                 if desk.slug == "korea" else [])
+        index_rows = None
+        if desk.slug == "indonesia":
+            index_rows = regional_official_links
+        elif desk.slug == "korea" and not review_korea:
+            index_rows = korea_auto_official_rows
+        official_link_index = None
+        if index_rows:
+            shown = official_link_index_mod.latest(desk.slug, index_rows)
+            official_link_index = {
+                "total": len(index_rows), "shown": len(shown),
+                "hub": official_link_index_mod.hub_route(desk.slug)}
+            if desk.slug == "indonesia":
+                desk_regional_links = shown
+            else:
+                desk_korea_auto_links = shown
         desk_page = desk_tmpl.render(page=desk.route, desk=desk, locator=locator_view(desk.slug),
                              support_stylesheet=("indonesia-shell.css"
                                  if desk.slug == "indonesia" else
@@ -3452,7 +3585,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                              public_reference_languages=languages,
                              indonesia_official_links=indonesia_official_links,
                              indonesia_press_links=indonesia_press_links,
-                             regional_official_links=regional_official_links,
+                             regional_official_links=desk_regional_links,
+                             official_link_index=official_link_index,
                              daily_machine_records=daily_machine_records,
                              vietnam_records=vietnam_records[:20],
                              vietnam_explained=vietnam_explained,
@@ -3462,7 +3596,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                              us_bis_authenticated_links=bis_links,
                              korea_public_links=(korea_public_rows if desk.slug == "korea" else []),
                              korea_additional_links=(korea_additional_rows if desk.slug == "korea" else []),
-                             korea_auto_official_links=(korea_auto_official_rows if desk.slug == "korea" else []),
+                             korea_auto_official_links=desk_korea_auto_links,
                              korea_production_link_count=(korea_production_link_count if desk.slug == "korea" else 0),
                              korea_dapa_production_link_count=(korea_dapa_production_link_count if desk.slug == "korea" else 0),
                              korea_published_originals=(korea_published_original_rows if desk.slug == "korea" else []),
@@ -3470,45 +3604,14 @@ def build(out_dir: Path, title: str, db_path: Path,
                              korea_english_publications=(korea_english_publication_rows if desk.slug == "korea" else []),
                              display_limits=public_desk_limits(
                                  desk, source_views), **ctx)
-        if desk.slug == "indonesia" and regional_official_links:
-            # The admitted URL/date-only entries are repetitive; keep every
-            # source, publisher and date, but compact layout whitespace and
-            # omit the per-row "metadata only" refrain already explained above.
-            # Each row keeps its identity, official URL, rel="noopener
-            # noreferrer", "Kemhan Berita official source" label, publisher
-            # attribution and <time datetime>; it opens in the same tab and
-            # the repeated "Official date" label is stated once above the list.
-            # indonesia.html alone has a temporary 160 KB owner cap (raised 21 Nov 2026)
-            # (DECISION_LOG 2026-11-13); every other route keeps its budget.
-            pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
-            matches = re.findall(pattern, desk_page)
-            if len(matches) != len(regional_official_links):
-                raise ValueError("Indonesia admitted-index markup/count mismatch")
-
-            def compact(match):
-                item = (re.sub(r'\s*\n\s*', ' ', match.group(0))
-                        .replace(' · Official-link metadata only', '')
-                        .replace(' target="_blank"', '')
-                        .replace(' · Official date <time', ' · <time'))
-                return re.sub(r'>\s+<', '><', item)
-
-            desk_page = re.sub(pattern, compact, desk_page)
-            desk_page = re.sub(
-                r'(</li>)\s+(?=<li data-regional-official-source-id="kemhan:)',
-                r'\1', desk_page)
-            admitted_list = ('<ol class="desk-reference-list" '
-                             'aria-label="Admitted official publisher references">')
-            if desk_page.count(admitted_list) != 1:
-                raise ValueError("Indonesia admitted-index list is not unique")
-            desk_page = desk_page.replace(
-                admitted_list,
-                '<p class="meta">Each date below is the official date.</p>\n  '
-                + admitted_list)
-            # Drop indentation in the ordinary HTML flow. Keep newlines so
-            # adjacent words and inline elements retain their spacing.
-            desk_page = re.sub(r"(?m)^[ \t]+", "", desk_page)
+        if desk.slug == "indonesia" and desk_regional_links:
+            desk_page = compact_indonesia_admitted(desk_page, len(desk_regional_links))
         (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
+        if desk.slug in official_link_index_mod.INDEX_DESKS and not (
+                desk.slug == "korea" and review_korea):
+            written.extend(write_official_link_index(
+                env, out_dir, desk, index_rows or [], **ctx))
 
     # Reproducible original Korean source pages are emitted ONLY when an
     # independently owner-released, exact-text-hash-pinned registry exists.

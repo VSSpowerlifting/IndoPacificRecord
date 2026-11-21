@@ -7033,11 +7033,29 @@ class TestStop4RoutesAreIntact(PreviewCase):
         staff = load_staff(REPO_ROOT / "site/preview/staff.json")
         self.assertEqual(sorted(q.name for q in (self.out / "authors").glob("*.html")),
                          sorted(p["slug"] + ".html" for p in staff))
+        # Official-link month pages (2026-11-21) are nested routes under
+        # `<desk>-official-links/`; their hubs are top-level and already in
+        # `top`. Derived from the readbacks' own DB queries, never a literal.
+        from core import official_link_index as link_index
+        from scripts.verify_korea_official_link_index import korea_index_rows
+        from scripts.verify_regional_source_index_readback import (
+            load_admitted_links as regional_admitted)
+        index_months = set()
+        for desk, rows in (("indonesia", regional_admitted(TRACKED_DB, "indonesia")),
+                           ("korea", korea_index_rows(TRACKED_DB))):
+            expected = {r for r in link_index.index_routes(desk, rows) if "/" in r}
+            folder = self.out / link_index.month_dir(desk)
+            built = ({link_index.month_dir(desk) + "/" + q.name
+                      for q in folder.iterdir() if q.is_file()}
+                     if folder.is_dir() else set())
+            self.assertEqual(built, expected,
+                             "official-link month routes must match admitted rows")
+            index_months |= expected
         self.assertEqual(len(files),
                          self.corpus_size + len(top) + len(sources) + len(staff)
                          + len(covers) + len(atmosphere)
                          + registered_korean_originals + reviewed_english_pages
-                         + len(machine_paths)
+                         + len(machine_paths) + len(index_months)
                          + len([q for q in (self.out / "assets").rglob("*") if q.is_file()]))
         # One declared file since 2026-11-16: the withdrawn J-20 derivative,
         # which stays published with its licence record because "do not render
