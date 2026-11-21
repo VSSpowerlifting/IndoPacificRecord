@@ -21,8 +21,12 @@ INDEX_NAMES = ('index.html', 'archive.html', 'analysis.html', 'corpus.html', 'pl
 DOSSIER_HTML_CSS_CAP = 230000
 # Owner authorization, DECISION_LOG 2026-11-13: temporary 130 KB HTML+CSS
 # allowance for the root Indonesia desk page only, while its admitted Kemhan
-# link list grows. Every other desk, record and nested route keeps its cap.
-INDONESIA_HTML_CSS_CAP = 130000
+# link list grows. Raised to 160 KB by the founder on 21 Nov 2026 (eight-desk
+# lead session, PR for this constant) after 100 admitted links reached
+# 130,483 bytes and would have failed every desk's Daily offline suite; a
+# bounded desk list follows so growth stops reaching this cap. Every other
+# desk, record and nested route keeps its cap.
+INDONESIA_HTML_CSS_CAP = 160000
 # Owner authorization, DECISION_LOG 2026-11-13 (PR #1055): temporary 125 KB
 # HTML+CSS for record/476.html only. That page carries 54,211 bytes of
 # preserved stored source text (the 20 May 2026 China-Russia joint
@@ -31,9 +35,11 @@ INDONESIA_HTML_CSS_CAP = 130000
 RECORD_476_HTML_CSS_CAP = 125000
 # Owner authorization, DECISION_LOG 2026-11-16 (PR #1064): temporary 130 KB
 # HTML+CSS for the root Korea desk page only, while its admitted MND and DAPA
-# official-link list grows (about 510 bytes a link). Every other desk, record
-# and nested route keeps its cap.
-KOREA_HTML_CSS_CAP = 130000
+# official-link list grows (about 510 bytes a link). Raised to 160 KB by the
+# founder on 21 Nov 2026 after the committed page reached 132,857 bytes and
+# failed every desk's Daily offline suite; a bounded desk list follows. Every
+# other desk, record and nested route keeps its cap.
+KOREA_HTML_CSS_CAP = 160000
 
 
 def html_css_cap(route):

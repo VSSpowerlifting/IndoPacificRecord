@@ -158,8 +158,9 @@ class CompleteDelivery(unittest.TestCase):
             self.assertEqual(failed['record/476.html'], 125001)
 
     def test_korea_allowance_covers_only_the_root_desk_page(self):
-        # Owner, DECISION_LOG 2026-11-16 (#1064): temporary 130 KB for korea.html only.
-        for route, cap in (('korea.html', 130000), ('vietnam.html', 120000),
+        # Owner, DECISION_LOG 2026-11-16 (#1064): temporary 130 KB for korea.html only;
+        # raised to 160 KB by the founder on 21 Nov 2026.
+        for route, cap in (('korea.html', 160000), ('vietnam.html', 120000),
                            ('korea-translations/1.html', 120000),
                            ('korea-originals/1.html', 120000),
                            ('korea-analysis/1.html', 120000),
@@ -170,18 +171,19 @@ class CompleteDelivery(unittest.TestCase):
             (root / 'nested').mkdir()
             (root / 'korea-shell.css').write_text('x' * 40000)
             link = '<link rel="stylesheet" href="korea-shell.css">'
-            (root / 'korea.html').write_text(link + 'x' * (130000 - 40000 - len(link)))
+            (root / 'korea.html').write_text(link + 'x' * (160000 - 40000 - len(link)))
             (root / 'nested/korea.html').write_text('x' * 120001)
             values = verify(root)
             self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
                              {'nested/korea.html': 120000})
-            (root / 'korea.html').write_text(link + 'x' * (130001 - 40000 - len(link)))
+            (root / 'korea.html').write_text(link + 'x' * (160001 - 40000 - len(link)))
             failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
-            self.assertEqual(failed['korea.html'], 130001)
+            self.assertEqual(failed['korea.html'], 160001)
 
     def test_indonesia_allowance_covers_only_the_root_desk_page(self):
-        # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only.
-        for route, cap in (('indonesia.html', 130000), ('philippines.html', 120000),
+        # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only;
+        # raised to 160 KB by the founder on 21 Nov 2026.
+        for route, cap in (('indonesia.html', 160000), ('philippines.html', 120000),
                            ('vietnam.html', 120000), ('desks/indonesia.html', 120000),
                            ('record/indonesia.html', 120000), ('desks.html', 300000)):
             self.assertEqual(html_css_cap(route), cap, route)
@@ -190,12 +192,12 @@ class CompleteDelivery(unittest.TestCase):
             (root / 'nested').mkdir()
             (root / 'indonesia-shell.css').write_text('x' * 40000)
             link = '<link rel="stylesheet" href="indonesia-shell.css">'
-            (root / 'indonesia.html').write_text(link + 'x' * (130000 - 40000 - len(link)))
+            (root / 'indonesia.html').write_text(link + 'x' * (160000 - 40000 - len(link)))
             (root / 'philippines.html').write_text('x' * 120001)
             (root / 'nested/indonesia.html').write_text('x' * 120001)
             values = verify(root)
             self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
                              {'philippines.html': 120000, 'nested/indonesia.html': 120000})
-            (root / 'indonesia.html').write_text(link + 'x' * (130001 - 40000 - len(link)))
+            (root / 'indonesia.html').write_text(link + 'x' * (160001 - 40000 - len(link)))
             failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
-            self.assertEqual(failed['indonesia.html'], 130001)
+            self.assertEqual(failed['indonesia.html'], 160001)
