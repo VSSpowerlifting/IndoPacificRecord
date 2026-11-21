@@ -196,6 +196,63 @@ class VietnamAdmission(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "rights_hold"):
             read_live_links(self.cx, "vietnam")
 
+    def replay_with_first_seen(self, anomalies, listing_title):
+        """Re-run prepare() with one first-seen observation's persisted fields set."""
+        real = vn.ministry.review
+        target = self.packet["records"][0]
+
+        def review(state, slug):
+            evidence = real(state, slug)
+            title = next(v["title_original"] for v in evidence["versions"]
+                         if (v["source_identity"], v["content_sha256"]) == (
+                             target["source_identity"], target["content_sha256"]))
+            for o in evidence["observations"]:
+                if (o["run_id"], o["source_identity"]) == (
+                        target["version_first_seen_run"], target["source_identity"]):
+                    o["anomalies_json"] = json.dumps(anomalies, ensure_ascii=False)
+                    o["listing_title"] = listing_title(title)
+            return evidence
+
+        with patch.object(vn.ministry, "review", side_effect=review):
+            return vn.prepare(self.repo, self.shas[MPS], MPS)
+
+    def test_whitespace_only_listing_title_anomaly_resolves_on_replay(self):
+        # mps-vi:1794826878: first-seen observations 44212325471-1 et al.
+        # persisted listing_title_differs for an RSS title with one trailing
+        # space. Custody is immutable; the replay must decide it, not a rewrite.
+        for label, listed in (("trailing space", lambda t: t + " "),
+                              ("leading and doubled space", lambda t: "  " + "  ".join(t.split())),
+                              ("newline", lambda t: t + "\n")):
+            with self.subTest(label):
+                packet = self.replay_with_first_seen(["listing_title_differs"], listed)
+                self.assertEqual(packet["records"], self.packet["records"])
+
+    def test_substantive_or_other_anomaly_still_holds_on_replay(self):
+        flag = ["listing_title_differs"]
+        for label, anomalies, listed in (
+                ("different wording", flag, lambda t: t + " (cập nhật)"),
+                ("dropped word", flag, lambda t: " ".join(t.split()[:-1])),
+                ("changed diacritic", flag, lambda t: t.replace("a", "á", 1)),
+                ("changed case", flag, lambda t: t.upper()),
+                ("missing listing title", flag, lambda t: None),
+                ("other anomaly", ["metadata_date_differs: visible x / metadata y"], lambda t: t),
+                ("extra anomaly", flag + ["listing_date_differs: a / b"], lambda t: t + " "),
+                ("date anomaly", ["listing_date_differs: a / b"], lambda t: t)):
+            with self.subTest(label), self.assertRaisesRegex(
+                    ValueError, "vietnam_original_has_unresolved_anomalies"):
+                self.replay_with_first_seen(anomalies, listed)
+
+    def test_anomalies_resolved_is_exact(self):
+        self.assertTrue(vn.anomalies_resolved([], None, "Tiêu đề"))
+        self.assertTrue(vn.anomalies_resolved(["listing_title_differs"], " Tiêu  đề\t", "Tiêu đề"))
+        for args in ((["listing_title_differs"], "Tieu đề", "Tiêu đề"),
+                     (["listing_title_differs"], "Tiêu đề", ""),
+                     (["listing_title_differs"], None, "Tiêu đề"),
+                     (["listing_title_differs", "listing_title_differs"], "Tiêu đề", "Tiêu đề"),
+                     (["other"], "Tiêu đề", "Tiêu đề")):
+            with self.subTest(args=args):
+                self.assertFalse(vn.anomalies_resolved(*args))
+
 
 class AuthenticatedVietnamAttempts(unittest.TestCase):
     def test_original_attempt_and_collector_are_authenticated_independently(self):
