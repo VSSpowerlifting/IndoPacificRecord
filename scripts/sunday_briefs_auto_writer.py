@@ -1043,8 +1043,13 @@ def compose(sidecar, as_of, *, db=DB_PATH, client=None, supplemental=(),
                    "never a publication-ready or approved article. "
                    "Follow the tool schema; no text outside tool input.",
             messages=[{"role": "user", "content": instruction}],
+            # Anthropic rejects the large combined discovery/article grammar
+            # (HTTP 400: compiled grammar too large). The full-week one-call
+            # path still validates every offered ID, exact evidence anchor,
+            # readiness decision, article field and citation before any email.
+            # Keep strict grammar for the smaller non-discovery manuscript path.
             tools=[{"name": "compose_editorial_draft",
-                    "strict": True,
+                    "strict": not automatic_story_selection,
                     "description": "Compose a provisional source-cited editor's Briefs manuscript.",
                     "input_schema": schema}],
             tool_choice={"type": "tool", "name": "compose_editorial_draft"},

@@ -1,4 +1,4 @@
-"""Offline contracts for the complete Sunday strict-tool request.
+"""Offline contracts for Sunday strict and non-strict tool requests.
 
 Reference (checked 2026-10-27):
 https://platform.claude.com/docs/en/build-with-claude/structured-outputs#json-schema-limitations
@@ -76,7 +76,10 @@ class StrictToolSchemaTests(unittest.TestCase):
                                  {"type": "tool", "name": "compose_editorial_draft"})
                 self.assertEqual(len(request["tools"]), 1)
                 tool = request["tools"][0]
-                self.assertIs(tool["strict"], True)
+                # Full-week discovery avoids provider grammar overflow; local
+                # source/selection/manuscript validation remains mandatory.
+                # Smaller non-discovery modes retain strict grammar.
+                self.assertIs(tool["strict"], not automatic)
                 schema = tool["input_schema"]
                 self.assert_compatible(schema)
                 props = schema["properties"]
