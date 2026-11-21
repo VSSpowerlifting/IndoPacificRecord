@@ -18,8 +18,8 @@ from pathlib import Path
 
 from core import official_link_index as link_index
 from scripts.verify_regional_source_index_readback import (
-    ReadbackHold, https_exact, index_partition, latest_rows, need, read_page,
-    verify_index,
+    ReadbackHold, hub_link_count, https_exact, index_partition, latest_rows, need,
+    read_page, verify_index,
 )
 
 DESK = "korea"
@@ -131,7 +131,7 @@ def verify(db_path, site_dir, *, pages_dir=None, rows=None):
     data, html = read_page(site_dir / ROUTE, "committed_korea_desk_page_missing")
     shown = latest_rows(DESK, rows)
     validate_rows(html, shown)
-    hub_links = html.count('href="%s"' % link_index.hub_route(DESK))
+    hub_links = hub_link_count(html, DESK)
     need(hub_links == (1 if rows else 0),
          "desk_page_full_index_link_missing_or_repeated")
     index = verify_index(site_dir, DESK, rows, validate_rows, pages_dir=pages_dir)

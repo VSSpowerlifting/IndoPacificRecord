@@ -160,9 +160,20 @@ class OfficialLinkHubParser(HTMLParser):
         self.total = None
         self.months = []
         self.active = None
+        self.list_depth = 0
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
+        if self.list_depth:
+            if tag == "ol":
+                self.list_depth += 1
+            # Inside the month list only month rows may exist, and links only
+            # inside them: a plain <li> or <a> could advertise a month route
+            # the DB does not have.
+            need(tag != "li" or "data-official-link-month" in a,
+                 "official_link_index_hub_unmarked_month_entry")
+            need(tag != "a" or self.active is not None,
+                 "official_link_index_hub_unmarked_month_entry")
         need(a.get("data-source-scope") != "official-link-only"
              and not {"data-regional-official-source-id",
                       "data-korea-auto-official-link"} & set(a),
@@ -172,6 +183,7 @@ class OfficialLinkHubParser(HTMLParser):
                  "official_link_index_hub_identity_differs")
             self.lists += 1
             self.total = a.get("data-official-link-total")
+            self.list_depth = 1
         if "data-official-link-month" in a:
             need(tag == "li" and self.lists == 1 and self.active is None,
                  "official_link_index_hub_month_outside_list")
@@ -185,11 +197,104 @@ class OfficialLinkHubParser(HTMLParser):
         if tag == "li" and self.active is not None:
             self.months.append(self.active)
             self.active = None
+        elif tag == "ol" and self.list_depth:
+            self.list_depth -= 1
 
     def close(self):
         super().close()
-        need(self.active is None and self.lists == 1,
+        need(self.active is None and self.lists == 1 and not self.list_depth,
              "official_link_index_hub_list_missing_or_repeated")
+
+
+# The source URL each index desk's month pages link out to, per admitted row.
+INDEX_URL_KEY = {"indonesia": "canonical_official_url", "korea": "source_url"}
+_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
+
+
+def _off_site(href):
+    """Any scheme or protocol-relative href other than IPR's own origin."""
+    href = re.sub(r"[\t\r\n]", "", href or "").strip()
+    if href.startswith(LIVE_ORIGIN + "/"):
+        return False
+    return href.startswith("//") or bool(_SCHEME.match(href)) or "\\" in href
+
+
+class IndexPageLinkParser(HTMLParser):
+    """Every link-bearing element inside an index page's single <main>.
+
+    Row parsers validate marked rows only; this closes the page around them,
+    so an unmarked publisher link (an extra <li>, a <p><a>, an <area>) cannot
+    ride along on a hub or month page.
+    """
+
+    LINK_TAGS = {"a": "href", "area": "href"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.mains = 0
+        self.main_depth = 0
+        self.in_main = []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "main":
+            need(self.main_depth == 0, "official_link_index_page_main_nested")
+            self.mains += 1
+            self.main_depth = 1
+            return
+        if self.main_depth and tag in self.LINK_TAGS and self.LINK_TAGS[tag] in a:
+            self.in_main.append(a[self.LINK_TAGS[tag]])
+
+    def handle_startendtag(self, tag, attrs):
+        need(tag != "main", "official_link_index_page_main_nested")
+        self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        if tag == "main" and self.main_depth:
+            self.main_depth = 0
+
+    def close(self):
+        super().close()
+        need(self.mains == 1 and self.main_depth == 0,
+             "official_link_index_page_main_missing_or_repeated")
+
+
+class _AnchorHrefCounter(HTMLParser):
+    def __init__(self, href):
+        super().__init__(convert_charrefs=True)
+        self.href, self.count = href, 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a" and dict(attrs).get("href") == self.href:
+            self.count += 1
+
+
+def hub_link_count(html, desk):
+    """How many real <a> elements link the desk page to its index hub.
+
+    Returns -1 when the raw `href="..."` text count disagrees with the parsed
+    anchors (a comment, attribute text or a non-<a> element carrying it), so
+    the desk's only route to rows past DESK_LINK_LIMIT must be a working link.
+    """
+    href = link_index.hub_route(desk)
+    counter = _AnchorHrefCounter(href)
+    counter.feed(html)
+    counter.close()
+    raw = html.count('href="%s"' % href)
+    return counter.count if counter.count == raw else -1
+
+
+def check_index_page_links(html, desk, rows):
+    """The page's off-site links are exactly the rows' source URLs, in <main>."""
+    parser = IndexPageLinkParser()
+    parser.feed(html)
+    parser.close()
+    # Only <main> carries row content. Shared chrome (header/footer) comes from
+    # base.html, not from admitted rows, so it is not checked here.
+    off_site = [h for h in parser.in_main if _off_site(h)]
+    need(sorted(off_site) == sorted(r[INDEX_URL_KEY[desk]] for r in rows),
+         "official_link_index_page_has_unadmitted_off_site_link")
+    return len(off_site)
 
 
 def read_page(path, reason):
@@ -249,6 +354,7 @@ def verify_index(site_dir, desk, rows, check_rows, *, pages_dir=None):
     hub = OfficialLinkHubParser(desk)
     hub.feed(hub_html)
     hub.close()
+    check_index_page_links(hub_html, desk, [])
     need(hub.total == str(len(rows)),
          "official_link_index_hub_total_disagrees_with_db")
     need([(m["month"], m["count"], m["hrefs"]) for m in hub.months] ==
@@ -262,6 +368,7 @@ def verify_index(site_dir, desk, rows, check_rows, *, pages_dir=None):
         data, html = read_page(Path(site_dir) / route,
                                "official_link_index_month_page_missing")
         check_rows(html, items)
+        check_index_page_links(html, desk, items)
         pages[route] = data
         hashes[route] = hashlib.sha256(data).hexdigest()
     if pages_dir is not None:
@@ -397,7 +504,7 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
             shown = latest_rows(desk, expected)
             validate_page(html, shown, explanations=explanations, ordered=True)
             if expected:
-                need(html.count('href="%s"' % link_index.hub_route(desk)) == 1,
+                need(hub_link_count(html, desk) == 1,
                      "desk_page_full_index_link_missing_or_repeated")
             index = verify_index(
                 site_dir, desk, expected,
@@ -503,7 +610,9 @@ def verify_vietnam_https(db_path, site_dir, *, fetch=None):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--db", required=True, type=Path)
-    p.add_argument("--site-dir", required=True, type=Path)
+    # Required for every readback; only --print-routes (a pure DB query run
+    # before the budget gate) may omit it.
+    p.add_argument("--site-dir", type=Path)
     p.add_argument("--deployed-dir", type=Path)
     p.add_argument("--require-records", action="store_true",
                    help="Require nonempty verified links in BOTH regional desks")
@@ -517,6 +626,8 @@ def main(argv=None):
     p.add_argument("--print-routes", choices=indexed,
                    help="Print the desk and index routes the DB requires, one per line")
     args = p.parse_args(argv)
+    if args.site_dir is None and not args.print_routes:
+        p.error("the following arguments are required: --site-dir")
     try:
         if args.print_routes:
             print("\n".join(index_routes(args.db, args.print_routes)))

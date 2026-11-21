@@ -565,6 +565,88 @@ class RenderedIndexTests(unittest.TestCase):
         with self.assertRaises(ReadbackHold):
             korea_readback.verify(DB, self.out, rows=self.korea_rows[1:])
 
+    # -- page closure: no unmarked link rides along on index pages ------
+    @staticmethod
+    def in_list(html, marker, extra, after=False):
+        """Insert `extra` just inside (or just after) the list carrying `marker`."""
+        close = html.index("</ol>", html.index(marker))
+        if after:
+            close += len("</ol>")
+        return html[:close] + extra + html[close:]
+
+    def test_unmarked_publisher_links_on_index_pages_hold(self):
+        reason = "official_link_index_page_has_unadmitted_off_site_link"
+        id_month = "indonesia-official-links/2026-10.html"
+        korea_month = link_index.index_routes("korea", self.korea_rows)[1]
+        id_row, ko_row = "data-regional-official-source-id", "data-korea-auto-official-link"
+        hub_list = "data-official-link-index"
+        extra_korea_li = ('<li><a href="%s111111111" rel="noopener noreferrer">MND official '
+                          'press release 111111111</a> <time datetime="2026-11-01">x</time></li>'
+                          % korea_live.PREFIX)
+        cases = (
+            ("korea", korea_month, "unmarked Korea li",
+             lambda h: self.in_list(h, ko_row, extra_korea_li)),
+            ("indonesia", id_month, "p/a after the list",
+             lambda h: self.in_list(h, id_row, '<p><a href="https://example.com/x" '
+                                    'rel="noopener noreferrer">Kemhan Berita official '
+                                    'source</a></p>', after=True)),
+            ("indonesia", id_month, "area element",
+             lambda h: self.in_list(h, id_row, '<map><area href="https://example.com/x"></map>',
+                                    after=True)),
+            ("indonesia", id_month, "protocol-relative link",
+             lambda h: self.in_list(h, id_row, '<a href="//example.com/x">x</a>', after=True)),
+            ("korea", korea_month, "javascript link with a tab",
+             lambda h: self.in_list(h, ko_row, '<a href="java\tscript:alert(1)">x</a>',
+                                    after=True)),
+            ("korea", korea_month, "mailto inside main",
+             lambda h: self.in_list(h, ko_row, '<a href="mailto:x@example.com">x</a>',
+                                    after=True)),
+            ("indonesia", "indonesia-official-links.html", "off-site link on the hub",
+             lambda h: self.in_list(h, hub_list, '<p><a href="https://www.kemhan.go.id/x">x</a></p>',
+                                    after=True)),
+            ("korea", "korea-official-links.html", "off-site link on the Korea hub",
+             lambda h: self.in_list(h, hub_list, '<p><a href="%s1">x</a></p>' % korea_live.PREFIX,
+                                    after=True)),
+        )
+        for desk, route, label, change in cases:
+            holds = self.indonesia_holds if desk == "indonesia" else self.korea_holds
+            with self.subTest(label), self.mutated(route, change):
+                holds(reason)
+        # Shared chrome outside <main> comes from base.html, not admitted rows.
+        with self.mutated(id_month, lambda h: h.replace(
+                "</main>", '</main><a href="https://example.com/x">x</a>', 1)):
+            readback.verify(DB, self.out, required_desks=("indonesia",))
+        for desk, route in (("indonesia", id_month), ("korea", korea_month)):
+            holds = self.indonesia_holds if desk == "indonesia" else self.korea_holds
+            with self.subTest(desk + " second main"), self.mutated(
+                    route, lambda h: h.replace("</main>", "</main><main></main>", 1)):
+                holds("official_link_index_page_main_missing_or_repeated")
+
+    def test_hub_month_list_admits_only_marked_month_entries(self):
+        reason = "official_link_index_hub_unmarked_month_entry"
+        for desk, holds in (("indonesia", self.indonesia_holds), ("korea", self.korea_holds)):
+            hub = link_index.hub_route(desk)
+            orphan = link_index.month_route(desk, "2026-08")
+            for label, extra in (
+                    ("plain li", '<li><a href="%s">August 2026 (5)</a></li>' % orphan),
+                    ("bare a", '<a href="%s">August</a>' % orphan)):
+                with self.subTest(desk + " " + label), self.mutated(
+                        hub, lambda h, e=extra: self.in_list(h, "data-official-link-index", e)):
+                    holds(reason)
+
+    def test_desk_hub_link_must_be_a_real_anchor(self):
+        reason = "desk_page_full_index_link_missing_or_repeated"
+        for desk, holds in (("indonesia", self.indonesia_holds), ("korea", self.korea_holds)):
+            route, hub = desk + ".html", link_index.hub_route(desk)
+            html = self.read(route)
+            anchor = re.search(r'<a href="%s">[^<]*</a>' % re.escape(hub), html).group(0)
+            for label, change in (
+                    ("comment", lambda h: h.replace(anchor, '<!-- href="%s" -->' % hub, 1)),
+                    ("non-anchor", lambda h: h.replace(
+                        anchor, '<span data-x=\'href="%s"\'>Full index</span>' % hub, 1))):
+                with self.subTest(desk + " " + label), self.mutated(route, change):
+                    holds(reason)
+
     def test_korea_deployed_readback_requires_identical_bytes(self):
         routes = ["korea.html"] + link_index.index_routes("korea", self.korea_rows)
         pages = self.make_pages_dir(routes)
@@ -683,6 +765,30 @@ class WriterWorkflowTextTests(unittest.TestCase):
                 self.assertIn('"${only[@]}"', flow[gate:gate + 200])
                 self.assertLess(gate, flow.index(first_add))
                 self.assertLess(gate, flow.index("git commit"))
+
+    def test_route_listing_commands_run_as_written(self):
+        """Run each writer's exact --print-routes lines under `set -euo pipefail`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            bin_dir = Path(tmp) / "bin"
+            bin_dir.mkdir()
+            (bin_dir / "python").symlink_to(PYTHON)
+            for name, desk in (("indonesia_verified_official_link_production.yml", "indonesia"),
+                               ("korea_verified_official_link_production.yml", "korea"),
+                               ("korea_standing_original_text_production.yml", "korea")):
+                with self.subTest(name):
+                    m = re.search(r"\n( *)(python -m scripts\.verify_\w+ --db pla_watch\.db"
+                                  r" \\\n *--print-routes[^\n]*\n\1test [^\n]*)\n",
+                                  self.flow(name))
+                    self.assertIsNotNone(m, name)
+                    env = {"PATH": "%s:/usr/bin:/bin" % bin_dir, "RUNNER_TEMP": tmp,
+                           "HOME": tmp}
+                    run = subprocess.run(["bash", "-c", "set -euo pipefail\n" + m.group(2)],
+                                         cwd=ROOT, env=env, capture_output=True, text=True)
+                    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+                    target = re.search(r'> "\$RUNNER_TEMP/([\w-]+)"', m.group(2)).group(1)
+                    routes = (Path(tmp) / target).read_text().split()
+                    self.assertEqual(routes[0], desk + ".html")
+                    self.assertEqual(routes[1:2], [link_index.hub_route(desk)])
 
     def test_staging_allowlists_reject_stray_files(self):
         for name, desk in (("indonesia_verified_official_link_production.yml", "indonesia"),
