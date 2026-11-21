@@ -1,5 +1,7 @@
 # Indo-Pacific Record
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/VSSpowerlifting/IndoPacificRecord)
+
 An independent, source-grounded monitoring and analysis project that preserves
 official defense and security publication from the Indo-Pacific, translates and
 summarizes it, and publishes a structured record to a static website updated on
