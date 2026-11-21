@@ -145,9 +145,10 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
         delivery = measure_page(output / "indonesia.html", output)
         self.assertIn("indonesia-shell.css", delivery["css"])
         self.assertNotIn("support.css", delivery["css"])
-        # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only.
-        self.assertEqual(html_css_cap("indonesia.html"), 130000)
-        self.assertLessEqual(delivery["html_css_bytes"], 130000)
+        # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html
+        # only; raised to 160 KB by the founder on 21 Nov 2026.
+        self.assertEqual(html_css_cap("indonesia.html"), 160000)
+        self.assertLessEqual(delivery["html_css_bytes"], 160000)
         # The shared stylesheet and other desks keep their existing behavior.
         self.assertEqual((output / "support.css").read_bytes(),
                          (root / "site/preview/support.css").read_bytes())
@@ -159,9 +160,10 @@ class IndonesiaOfficialSourceIndexTests(unittest.TestCase):
         korea = measure_page(output / "korea.html", output)
         self.assertIn("korea-shell.css", korea["css"])
         self.assertNotIn("support.css", korea["css"])
-        # Owner, DECISION_LOG 2026-11-16 (#1064): temporary 130 KB for korea.html only.
-        self.assertEqual(html_css_cap("korea.html"), 130000)
-        self.assertLessEqual(korea["html_css_bytes"], 130000)
+        # Owner, DECISION_LOG 2026-11-16 (#1064): temporary 130 KB for korea.html
+        # only; raised to 160 KB by the founder on 21 Nov 2026.
+        self.assertEqual(html_css_cap("korea.html"), 160000)
+        self.assertLessEqual(korea["html_css_bytes"], 160000)
         self.assertEqual((output / "korea-shell.css").read_bytes(),
                          (root / "site/preview/korea-shell.css").read_bytes())
         targets = soup.select("#indonesia-links-heading ~ ol a")
