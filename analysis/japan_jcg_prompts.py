@@ -15,7 +15,11 @@ import json
 
 from analysis.philippines_prompts import CATEGORIES, evidence_passages  # noqa: F401  (shared taxonomy and exact-excerpt IDs)
 
-VERSION = "jp-jcg-relevance-v1+jp-jcg-analysis-v1"
+# v2 (analysis only): never flags, which _jcg_output_check would hold at public
+# admission, and closes with a per-sentence token check against the one cited
+# passage, the rule english_official_quality enforces unchanged. v1 readings
+# held at that check (0 of 7 passed); the validator is not relaxed.
+VERSION = "jp-jcg-relevance-v1+jp-jcg-analysis-v2"
 RELEVANCE_VERSION, ANALYSIS_VERSION = VERSION.split("+")
 
 
@@ -60,8 +64,8 @@ def analysis_messages(title, body):
         "do NOT copy or rewrite an evidence passage into your reply. "
         "Select TWO complementary source-supported facts and write exactly TWO "
         "summary sentences in natural English. Hard length budget, counted in "
-        "words: the two summary sentences TOGETHER at most 60 words, and a "
-        "flag_reason at most 25 words. Count before replying and shorten a "
+        "words: the two summary sentences TOGETHER at most 60 words. "
+        "Count before replying and shorten a "
         "sentence by dropping secondary detail, never by dropping attribution. "
         "Lead with who did what and its status; use the second sentence for a "
         "concrete detail such as the activity, location, participant, scope or "
@@ -87,10 +91,18 @@ def analysis_messages(title, body):
         "source words. Independently rephrase facts, do not merely truncate "
         "publisher sentences. Keep numerical quantities and date ranges "
         "exactly as written. Avoid unsupported negative claims. "
-        "Flag only substantive developments. If flagged, briefly restate one "
-        "supported summary fact with explicit attribution and its passage ID. "
-        "Summary plus flag_reason above 90 words is rejected outright. "
+        "Set flag=false, flag_reason=null and flag_evidence_id=null: a "
+        "substantive English explanation does not by itself warrant a "
+        "significance flag. A summary above 60 words is rejected outright. "
         "Use fewer words when the evidence is thin; do not pad to a target. "
+        "FINAL CHECK before returning, for each sentence against its ONE cited "
+        "passage: every number, day, month and year, and every capitalized word "
+        "other than JCG, Japan, Coast, Guard and the first word of the sentence "
+        "(a vessel, ship or aircraft name, place, country, nationality or "
+        "demonym, office, rank or person) appears in that same passage with the "
+        "same spelling. If one does not, drop that detail or choose a different "
+        "fact wholly supported by a single passage; never borrow it from the "
+        "title or another passage. "
         "Return only JSON: summary (string), flag (boolean), flag_reason "
         "(attributed sentence or null), flag_evidence_id (passage ID or null), "
         "facts (exactly two objects with sentence and evidence_id fields), "

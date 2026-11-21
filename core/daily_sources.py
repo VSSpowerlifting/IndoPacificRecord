@@ -122,6 +122,12 @@ class DailySource:
     # restores them once the hold clears; the signer neither releases nor
     # withdraws the identity meanwhile. Item-specific holds never resume.
     resumable_holds: Tuple[str, ...] = ()
+    # Queue order within one private processing run. False keeps newest-first.
+    # True tries never-attempted entries before retriable ones (newest-first
+    # within each group), so a one-record-per-run cap cannot keep a fresh
+    # version waiting behind a version still spending its retry budget. It
+    # changes order only: no attempt count, budget, hold or check changes.
+    first_attempts_first: bool = False
     # adapter: intake_dir -> (run-result status, fixed detail) | None. Lets a
     # family report source-wide evidence (a refused terms page) on its own
     # run-result row when the envelope alone would read as "nothing new".
@@ -581,7 +587,10 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         family="jp_jcg_press_en", desk_id="japan", custody_ref="archive/japan-jcg",
         language="en", label="JCG", publisher="Japan Coast Guard",
         public_issuer="Japan Coast Guard",
-        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v1",),
+        # v2 is what the processor now emits; v1 stays admissible for any
+        # output signed before the switch (none was complete at the change).
+        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v2",
+                         "jp-jcg-relevance-v1+jp-jcg-analysis-v1"),
         identity_max_length=64,
         # private japan_jcg_private_first_collector.yml: cron '13 19 * * *'
         collection_cron_utc="19:13",
@@ -590,6 +599,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         known_hold="core.daily_sources:_jcg_known_hold",
         known_hold_reason="core.daily_sources:_jcg_known_hold_reason",
         resumable_holds=JCG_RESUMABLE_HOLDS,
+        first_attempts_first=True,
         evidence_report="core.daily_sources:_jcg_evidence_report",
         output_check="core.daily_sources:_jcg_output_check",
         parent="core.daily_sources:_jcg_parent",
