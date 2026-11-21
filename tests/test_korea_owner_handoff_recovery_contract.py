@@ -77,8 +77,9 @@ class KoreaPrivateDraftRecoveryContracts(unittest.TestCase):
             "      - name: Select published originals without delivered/reviewed English\n",
             "      - name: Read existing Pages branch without publish credentials\n",
         )
-        self.assertIn("from scripts.send_korea_english_owner_drafts import pending", section)
-        self.assertIn("selected, _ = pending()", section)
+        self.assertIn("from scripts.send_korea_english_owner_drafts import pending_with_budget_holds", section)
+        self.assertIn("selected, _, held = pending_with_budget_holds()", section)
+        self.assertIn("Korea source-budget holds (no model calls):", section)
         self.assertIn('out.write("has_pending="', section)
         self.assertNotIn("source_identity", section)
         self.assertNotIn("text_original", section)
