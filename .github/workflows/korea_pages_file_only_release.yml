@@ -94,8 +94,14 @@ jobs:
           from core.korea_official_live_links import load_live_korea_official_links
           fixed = {x["source_identity"] for x in five+nine}
           auto = load_live_korea_official_links("pla_watch.db", exclude=fixed)
-          assert html.count('data-korea-auto-official-link=') == len(auto)
-          assert html.count('https://www.korea.kr/briefing/pressReleaseView.do?newsId=')==14 + len(auto)
+          # The desk rail lists the newest DESK_LINK_LIMIT auto rows; the
+          # official-link hub and month pages carry the full set.
+          from core import official_link_index as link_index
+          shown = link_index.latest("korea", auto)
+          assert html.count('data-korea-auto-official-link=') == len(shown)
+          for row in shown:
+              assert 'data-korea-auto-official-link="%s"' % row["source_identity"] in html
+          assert html.count('https://www.korea.kr/briefing/pressReleaseView.do?newsId=')==14 + len(shown)
           assert all(x['source_url'] in html for x in five+nine)
           assert "unresolved excavation-year discrepancy" in html
           assert "not IPR archived records" in html
@@ -158,6 +164,12 @@ jobs:
           cd korea-existing-pages
           test -z "$(git status --porcelain --untracked-files=all)"
           pages_old="$(git rev-parse HEAD)"
+          # Never publish a desk page whose full-index link would 404 on Pages.
+          if grep -qF 'href="korea-official-links.html"' ../output/korea.html; then
+            test -f korea-official-links.html || {
+              echo "::error::Korea desk links the official-link index but Pages lacks it"; exit 1;
+            }
+          fi
           cp ../output/korea.html korea.html
           cmp -s ../output/korea.html korea.html
           git add -- korea.html

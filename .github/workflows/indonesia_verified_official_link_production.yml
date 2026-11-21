@@ -137,22 +137,61 @@ jobs:
           rows = {r[0]: r[1] for r in db.execute(
               "SELECT source_identity, canonical_official_url FROM regional_official_source_links "
               "WHERE desk='indonesia' AND source_family='id_kemhan_news'")}
+          from core import official_link_index as link_index
+          from core.regional_official_link_render import load_admitted_links
+          admitted = load_admitted_links(Path("pla_watch.db"), "indonesia")
+          assert {r["source_identity"]: r["canonical_official_url"] for r in admitted} == rows
+          def listed(html):
+              soup = BeautifulSoup(html, "html.parser")
+              return [(li["data-regional-official-source-id"], li.find("a")["href"])
+                      for li in soup.select("li[data-regional-official-source-id]")]
           page = Path("output/indonesia.html").read_text(encoding="utf-8")
-          soup = BeautifulSoup(page, "html.parser")
-          items = soup.select("li[data-regional-official-source-id]")
-          got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
+          # The desk lists exactly the newest DESK_LINK_LIMIT admitted links,
+          # in DB order; the full index below carries every admitted link.
+          shown = link_index.latest("indonesia", admitted)
+          got = listed(page)
           # At least the 30 frozen-cohort links; verified later records are
           # admitted under the Oct 18 standing link-metadata authorization.
-          assert len(rows) >= 30 and got == rows, "rendered links differ from SQLite"
+          assert len(rows) >= 30 and got == [
+              (r["source_identity"], r["canonical_official_url"]) for r in shown
+          ], "rendered desk links differ from the newest SQLite rows"
           assert "yonif-tp-880" not in page
           for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
               assert forbidden not in page, forbidden
           from scripts.indonesia_operational_health import check_admitted_links, check_public_page
           check_public_page(Path("output/indonesia.html"))
-          assert check_admitted_links(page) == len(rows)
-          print("Admitted Kemhan links rendered:", len(rows))
+          assert check_admitted_links(page) == len(shown)
+          assert page.count('href="%s"' % link_index.hub_route("indonesia")) == 1
+          indexed = {}
+          for month, month_rows in link_index.partition("indonesia", admitted):
+              month_page = Path("output", link_index.month_route("indonesia", month)).read_text(encoding="utf-8")
+              month_got = listed(month_page)
+              assert month_got == [(r["source_identity"], r["canonical_official_url"])
+                                   for r in month_rows], month
+              assert check_admitted_links(month_page) == len(month_rows), month
+              assert "yonif-tp-880" not in month_page
+              for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
+                  assert forbidden not in month_page, forbidden
+              for sid, href in month_got:
+                  assert sid not in indexed, sid
+                  indexed[sid] = href
+          assert indexed == rows, "full official-link index differs from SQLite"
+          print("Admitted Kemhan links:", len(rows), "desk:", len(shown))
           PY
-          sha256sum output/indonesia.html > "$RUNNER_TEMP/id-prod-page-sha"
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --site-dir output --require-desk indonesia
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --print-routes indonesia > "$RUNNER_TEMP/id-routes"
+          test "$(head -n 1 "$RUNNER_TEMP/id-routes")" = "indonesia.html"
+          # Pre-commit budget gate: the desk keeps its 160 KB owner cap and
+          # every hub/month route its default 120 KB cap. A month page over its
+          # cap HOLDs this writer before anything is staged or committed.
+          only=()
+          while read -r route; do only+=(--only "$route"); done < "$RUNNER_TEMP/id-routes"
+          python scripts/verify_frontend_delivery.py --root output \
+            --receipt "$RUNNER_TEMP/id-budget.json" "${only[@]}"
+          while read -r route; do sha256sum "output/$route"; done \
+            < "$RUNNER_TEMP/id-routes" > "$RUNNER_TEMP/id-prod-page-sha"
           echo "All rendered output changes listed for audit, not bulk publication:"
           git diff --name-only -- output/
       - name: Refuse a moved source history or production main
@@ -177,12 +216,19 @@ jobs:
         run: |
           set -euo pipefail
           git add -- pla_watch.db output/indonesia.html
+          # The full official-link index: hub plus month pages, including the
+          # removal of a month that no longer has admitted rows.
+          for path in output/indonesia-official-links.html output/indonesia-official-links; do
+            if [ -e "$path" ] || [ -n "$(git ls-files -- "$path")" ]; then
+              git add -A -- "$path"
+            fi
+          done
           staged="$(git diff --cached --name-only)"
           if [ -z "$staged" ]; then
             echo "No new admitted links; nothing to commit"
             exit 0
           fi
-          if echo "$staged" | grep -vE '^(pla_watch.db|output/indonesia.html)$'; then
+          if echo "$staged" | grep -vE '^(pla_watch\.db|output/indonesia\.html|output/indonesia-official-links\.html|output/indonesia-official-links/[0-9]{4}-[0-9]{2}\.html)$'; then
             echo "::error::Unexpected staged file; full-site publish prohibited"
             exit 1
           fi
@@ -210,13 +256,31 @@ jobs:
             exit 1
           }
           git show HEAD:output/indonesia.html | cmp - output/indonesia.html
+          while read -r route; do
+            git show "HEAD:output/$route" | cmp - "output/$route"
+          done < "$RUNNER_TEMP/id-routes"
+          test -z "$(git ls-files --others -- output/indonesia-official-links.html output/indonesia-official-links)"
           cd indonesia-existing-pages
           test -z "$(git status --porcelain --untracked-files=all)"
           pages_old="$(git rev-parse HEAD)"
           cp ../output/indonesia.html indonesia.html
+          rm -rf indonesia-official-links.html indonesia-official-links
+          if [ -e ../output/indonesia-official-links.html ]; then
+            cp ../output/indonesia-official-links.html indonesia-official-links.html
+            cp -R ../output/indonesia-official-links indonesia-official-links
+          fi
+          while read -r route; do cmp "../output/$route" "$route"; done < "$RUNNER_TEMP/id-routes"
           git add -- indonesia.html
+          for path in indonesia-official-links.html indonesia-official-links; do
+            if [ -e "$path" ] || [ -n "$(git ls-files -- "$path")" ]; then
+              git add -A -- "$path"
+            fi
+          done
           staged="$(git diff --cached --name-only)"
-          test -z "$staged" || test "$staged" = "indonesia.html"
+          if [ -n "$staged" ] && echo "$staged" | grep -vE '^(indonesia\.html|indonesia-official-links\.html|indonesia-official-links/[0-9]{4}-[0-9]{2}\.html)$'; then
+            echo "::error::Unexpected staged Pages file; full-site publish prohibited"
+            exit 1
+          fi
           if [ -n "$staged" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -245,6 +309,30 @@ jobs:
             exit 1
           }
           echo "PASS: main:output/indonesia.html == gh-pages:indonesia.html ($main_sha)"
+          # The full index: identical month inventory and bytes on both refs.
+          test "$(git ls-tree --name-only origin/main output/indonesia-official-links/ | sed 's|^output/||')" = \
+            "$(git ls-tree --name-only origin/gh-pages indonesia-official-links/)" || {
+            echo "::error::main output and gh-pages Indonesia index months differ"
+            exit 1
+          }
+          while read -r route; do
+            test "$(git show "origin/main:output/$route" | sha256sum)" = \
+              "$(git show "origin/gh-pages:$route" | sha256sum)" || {
+              echo "::error::main output and gh-pages differ for $route"
+              exit 1
+            }
+          done < "$RUNNER_TEMP/id-routes"
+      - name: Independent fixed-origin HTTPS readback of desk and full index
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Pages builds take 22-71 s; bounded wait (24 x 10 s), then fail.
+          for attempt in $(seq 1 24); do
+            if python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+              --site-dir output --require-desk indonesia --https-desk indonesia; then exit 0; fi
+            sleep 10
+          done
+          exit 1
 
 # Original bytes stay in their preserved source branches and private custody.
 # No source artifact upload, bulk site push, AI request or editor email.
