@@ -95,6 +95,14 @@ jobs:
           assert html.count('data-korea-auto-official-link=') == len(shown)
           for row in shown:
               assert 'data-korea-auto-official-link="%s"' % row["source_identity"] in html
+          # Every admitted auto row, including those past the desk bound, must
+          # appear exactly once in the correct month page of the full index.
+          from scripts.verify_korea_official_link_index import verify as verify_link_index
+          from scripts.verify_regional_source_index_readback import ReadbackHold
+          try:
+              verify_link_index("pla_watch.db", "output", rows=auto)
+          except ReadbackHold as exc:
+              raise AssertionError(str(exc))
           # Fourteen curated outbound references, production-admitted outbound
           # links, and separately owner-released full Korean original TEXT are
           # distinct public rails. An eligible published source can appear in

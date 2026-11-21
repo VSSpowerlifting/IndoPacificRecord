@@ -765,6 +765,12 @@ class WriterWorkflowTextTests(unittest.TestCase):
                 self.assertIn('shown = link_index.latest("korea", auto)', flow)
                 self.assertIn("== len(shown)", flow)
                 self.assertNotIn("== len(auto)", flow)
+        # The PR-triggered source-link contract must still check every admitted
+        # auto row, now through the full index, not only the bounded desk.
+        contract = self.flow("korea_public_bibliography_release.yml")
+        self.assertIn('verify_link_index("pla_watch.db", "output", rows=auto)', contract)
+        self.assertLess(contract.index('verify_link_index("pla_watch.db", "output", rows=auto)'),
+                        contract.index("print(\"Korea routes:"))
         for name in ("indonesia_official_links_release.yml",
                      "indonesia_press_links_release.yml"):
             flow = self.flow(name)
