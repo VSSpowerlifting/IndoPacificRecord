@@ -474,6 +474,81 @@ class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
         self.assertIn("last article 2026-09-05 (15d ago, threshold 7d)", detail)
         self.assertIn("governed: last healthy run 2026-09-19", detail)
 
+    # -- A shared-Daily family never writes articles (Singapore MINDEF) ----------
+
+    CLOSED = liveness.Expectation(manual=True, articles_closed=True)
+
+    def test_a_shared_daily_family_is_judged_on_governed_runs_not_its_closed_articles(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))
+        state, days, detail = self.judge(runs["gov_mil"], total=40, last_seen="2026-07-01",
+                                         expectation=self.CLOSED)
+        self.assertEqual(("HEALTHY", 1), (state, days))
+        self.assertIn("governed: last healthy run 2026-09-19", detail)
+        self.assertNotIn("last article", detail)
+
+    def test_a_shared_daily_family_with_a_stale_governed_run_is_unhealthy_on_the_run(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-05 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-19 23:00:00", st.FETCH_FAILURE, 1, "handoff stale"))
+        # Even with fresh articles the run decides; and stale articles are not blamed.
+        for last_seen in ("2026-09-19", "2026-07-01"):
+            with self.subTest(last_seen=last_seen):
+                state, days, detail = self.judge(runs["gov_mil"], total=40, last_seen=last_seen,
+                                                 expectation=self.CLOSED)
+                self.assertEqual(("UNHEALTHY", 15), (state, days))
+                self.assertIn("governed: last healthy run 2026-09-05", detail)
+                self.assertIn("latest 2026-09-19 fetch_failure: handoff stale", detail)
+                self.assertNotIn("last article", detail)
+
+    def test_a_shared_daily_family_with_no_collection_run_still_falls_back_to_articles(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.SKIPPED_DISABLED, 0, "gate closed"))
+        state, _, detail = self.judge(runs["gov_mil"], total=40, last_seen="2026-07-01",
+                                      expectation=self.CLOSED)
+        self.assertEqual("UNHEALTHY", state)
+        self.assertIn("last article 2026-07-01", detail)
+
+    def test_a_non_daily_manual_source_is_still_judged_on_the_worse_of_both(self):
+        self.assertFalse(self.MANUAL.articles_closed)
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))
+        state, days, detail = self.judge(runs["gov_mil"], total=40, last_seen="2026-07-01")
+        self.assertEqual(("UNHEALTHY", 81), (state, days))
+        self.assertIn("last article 2026-07-01", detail)
+        self.assertIn("governed: last healthy run 2026-09-19", detail)
+
+    def test_articles_closed_is_derived_only_for_manual_shared_daily_families(self):
+        from core.daily_sources import SOURCES
+
+        class Source(FakeSource):
+            def __init__(self, slug, access_method):
+                super().__init__(slug)
+                self.access_method = access_method
+
+        daily = "sg_mindef_releases"
+        self.assertIn(daily, SOURCES)
+        reg = FakeRegistry(
+            [SourceHealthResult(daily, st.OK, None),
+             SourceHealthResult("other_manual", st.OK, None),
+             SourceHealthResult("scraped_daily_like", st.OK, None)],
+            [Source(daily, "manual"), Source("other_manual", "manual"),
+             Source("scraped_daily_like", "scrape")])
+        got = liveness.expectations(reg, paused={})
+        self.assertTrue(got[daily].articles_closed)
+        self.assertFalse(got["other_manual"].articles_closed)
+        self.assertFalse(got["scraped_daily_like"].articles_closed)
+        # A scraped source of the same slug set is never closed by this route.
+        from unittest import mock
+        with mock.patch("core.daily_sources.SOURCES", {"scraped_daily_like": object()}):
+            got = liveness.expectations(reg, paused={})
+        self.assertFalse(got["scraped_daily_like"].articles_closed)
+
+    def test_singapore_mindef_is_derived_as_recurring_not_paused_and_articles_closed(self):
+        got = liveness.expectations()["sg_mindef_releases"]
+        self.assertEqual((got.manual, got.articles_closed, got.paused, got.inert, got.broken),
+                         (True, True, None, False, False))
+
     def test_the_threshold_day_itself_is_still_healthy(self):
         runs = self.history(
             ("at_threshold", "2026-09-13 23:00:00", st.OK, 0, None),

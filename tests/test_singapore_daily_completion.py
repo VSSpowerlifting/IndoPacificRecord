@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from core import mindef_public_boundary as boundary
+from core import daily_sources
 from core import singapore_mindef_links as links
 from core.daily_sources import SOURCES, _sg_known_hold, _sg_output_check, attended_only
 from migrations.versions import m0021_dapa_daily_machine_parent as m21
@@ -34,6 +35,17 @@ BODY = FIRST + "\n\n" + SECOND
 DAY = "2026-10-28"
 RUN = "77-1"
 REMOTE = "https://github.com/" + d.PRIVATE_REPO
+
+
+# The attended-pilot MECHANISM is kept for a future pilot; production has no
+# attended-only family since the 22 Nov recurring approval (ATTENDED_PILOT_ENV
+# is empty). Tests of the mechanism open it for the family under test.
+PILOT_GATE = {FAMILY: "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}
+
+
+def pilot_gate_open():
+    """Patch: as if sg_mindef_releases were attended-only (a future pilot)."""
+    return patch.dict(daily_sources.ATTENDED_PILOT_ENV, PILOT_GATE)
 
 
 def sha(text):
@@ -105,7 +117,7 @@ def build_custody(root, rows=None, *, schema_current=True, remote=REMOTE):
 
 
 class SingaporeDefinition(unittest.TestCase):
-    def test_family_is_in_the_shared_lane_but_not_activated(self):
+    def test_family_is_in_the_shared_lane_and_recurring(self):
         s = SOURCES[FAMILY]
         self.assertEqual((s.desk_id, s.label, s.custody_ref, s.language),
                          ("singapore", "MINDEF", "archive/singapore-mindef-daily", "en"))
@@ -115,13 +127,28 @@ class SingaporeDefinition(unittest.TestCase):
                                              "sg-relevance-v2+sg-analysis-v4",
                                              "sg-relevance-v2+sg-analysis-v5"))
         p = d.load_policy()["sources"][FAMILY]
-        # Founder approval of 22 November: the third attended pilot and recurring
-        # release. The switches stay on; until a separate reviewed change removes
-        # the attended-pilot gate, no scheduled run handles the family.
+        # Founder approval of 22 November: recurring release. The switches are on
+        # and the attended-pilot gate is empty, so scheduled runs handle the
+        # family (the gate mechanism is kept for a future pilot).
         self.assertEqual((p["private_model_processing"], p["public_machine_explanation"],
                           p["unattended_release"]), (True, True, True))
-        self.assertTrue(attended_only(FAMILY))
+        self.assertEqual(daily_sources.ATTENDED_PILOT_ENV, {})
+        self.assertFalse(attended_only(FAMILY))
+        # Declares the private collector's schedule, so its envelopes sign the
+        # collection block and get a freshness verdict.
+        self.assertEqual(s.collection_cron_utc, "10:37")
+        self.assertEqual(s.collection_expectation()[0], "10:37")
+        self.assertTrue(s.signs_collection())
         self.assertEqual(sorted(p["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
+
+    def test_declared_cron_matches_the_private_collector_schedule_it_cites(self):
+        import re
+        text = (ROOT / "core" / "daily_sources.py").read_text()
+        cited = re.search(r"singapore_mindef_private_first_collector\.yml: cron "
+                          r"'(\d{1,2}) (\d{1,2}) \* \* \*'", text)
+        self.assertIsNotNone(cited, "the collector cron citation is gone")
+        minute, hour = (int(g) for g in cited.groups())
+        self.assertEqual(SOURCES[FAMILY].collection_cron_utc, "%02d:%02d" % (hour, minute))
 
     def test_held_identities_have_one_value_everywhere(self):
         from scraper.sources.sg_mindef import HELD_RELEASE_SLUGS
@@ -227,7 +254,10 @@ class SingaporeGovernedDailyDispatch(unittest.TestCase):
 
 
 class SingaporeNoCollectionVerdict(unittest.TestCase):
+    @pilot_gate_open()
     def test_attended_pilot_gets_no_freshness_verdict_even_with_failed_facts(self):
+        # If the family were attended-only again, its operator-run collection
+        # gets no freshness verdict.
         import os
         import pipeline
         from core.collection import status as st
@@ -315,8 +345,10 @@ class SingaporeCustody(unittest.TestCase):
         shadow_collect.assert_current_schema(Path(self.tmp) / "absent.db")  # first run
 
 
+@pilot_gate_open()
 class SingaporeAttendedPilotGate(unittest.TestCase):
-    """Singapore runs only on a deliberately dispatched, identity-named pilot."""
+    """The attended-pilot mechanism, as if the family were attended-only again:
+    it would run only on a deliberately dispatched, identity-named pilot."""
     ENV = "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"
 
     def run_dispatch(self, env, pol, receipt=None):
@@ -418,6 +450,27 @@ class SingaporeAttendedPilotGate(unittest.TestCase):
         line = ("IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == "
                 "'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}")
         self.assertEqual(wf.count(line), 2)  # shared-Daily fetch step and pipeline step
+
+
+class SingaporeRecurringDispatch(unittest.TestCase):
+    """With no attended-only family, scheduled and ordinary runs reach intake."""
+
+    def test_scheduled_run_reaches_intake_with_no_identity(self):
+        import os
+        import pipeline
+        from core.collection import status as st
+        from core.registry import SourceRegistry
+        errors = []
+        env = {"IPR_PRIVATE_DAILY_ENABLED": "true", "IPR_DAILY_INTAKE_DIR": "/scratch/intake",
+               "GITHUB_EVENT_NAME": "schedule"}
+        receipt = {"records": 1, "admitted": 1, "holds": []}
+        with patch.dict(os.environ, env), \
+             patch("processing.daily_intake.load_policy", return_value=policy(True)), \
+             patch("processing.daily_runner.intake_family", return_value=receipt) as intake:
+            os.environ.pop("IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY", None)
+            [result] = pipeline.run_governed_manual_sources([FAMILY], 7, SourceRegistry(), errors)
+        self.assertEqual((result.status, errors), (st.OK, []))
+        intake.assert_called_once()
 
 
 class SingaporeAdmission(unittest.TestCase):
@@ -589,6 +642,7 @@ class SingaporeAdmission(unittest.TestCase):
                                           max_input_characters=15999)
         self.assertEqual(self.reader(paused), [])
 
+    @pilot_gate_open()
     def test_singapore_selected_signing_ignores_prior_completed_and_held_rows(self):
         import copy
         old = copy.deepcopy(self.state)
@@ -608,6 +662,7 @@ class SingaporeAdmission(unittest.TestCase):
             d.sign_outputs(old, family=FAMILY, policy=self.p, key=self.key,
                            selected_record=wrong_version)
 
+    @pilot_gate_open()
     def test_public_admission_rejects_a_signed_two_record_singapore_packet(self):
         import copy
         import hmac
@@ -622,6 +677,7 @@ class SingaporeAdmission(unittest.TestCase):
         self.assertEqual(self.connect().execute(
             "SELECT count(*) FROM daily_machine_records").fetchone()[0], 0)
 
+    @pilot_gate_open()
     def test_private_pilot_preserves_unselected_ledger_state_and_envelope(self):
         import copy
         import json
@@ -651,6 +707,53 @@ class SingaporeAdmission(unittest.TestCase):
         self.assertEqual([r["source_identity"] for r in envelope["packet"]["records"]], [IDENT])
         self.assertEqual(envelope["packet"]["held"], [])
 
+    def _private_run(self, ledger, **kwargs):
+        import json
+        import os
+        from processing import daily_runner
+        state_file = Path(self.tmp) / "ledger.json"
+        out_dir = Path(self.tmp) / "out"
+        state_file.write_text(json.dumps(ledger))
+        with patch.dict(os.environ, {"DAILY_OUTPUT_KEY": self.key}), \
+             patch("processing.daily_runner.load_policy", return_value=self.p), \
+             patch.object(daily_runner, "sign_outputs", wraps=d.sign_outputs) as signer:
+            result = daily_runner.private_run(
+                FAMILY + "," + str(self.repo) + "," + self.head,
+                public_db=self.db, state_path=state_file, out_dir=out_dir, **kwargs)
+        envelope = json.loads((out_dir / (FAMILY + ".json")).read_text())
+        return result, json.loads(state_file.read_text()), envelope, signer
+
+    def test_recurring_private_run_without_identity_takes_the_full_family_path(self):
+        self.assertFalse(attended_only(FAMILY))
+        result, persisted, envelope, signer = self._private_run(self.state)
+        self.assertEqual(result["source_family"], FAMILY)
+        signer.assert_called_once()
+        self.assertIsNone(signer.call_args.kwargs["selected_record"])
+        self.assertEqual([r["source_identity"] for r in envelope["packet"]["records"]], [IDENT])
+        self.assertEqual(persisted[FAMILY + ":" + IDENT], self.state[FAMILY + ":" + IDENT])
+        # Recurring: the envelope carries the signed collection block.
+        self.assertIn("collection", envelope["packet"])
+
+    def test_selected_identity_run_of_a_recurring_family_preserves_other_ledger_rows(self):
+        import copy
+        import json
+        self.assertFalse(attended_only(FAMILY))
+        ledger = copy.deepcopy(self.state)
+        previous = copy.deepcopy(ledger[FAMILY + ":" + IDENT])
+        previous["output"]["source_identity"] = "synthetic-previous-release"
+        ledger[FAMILY + ":synthetic-previous-release"] = previous
+        ledger[FAMILY + ":synthetic-previous-held"] = {"status": "held",
+                                                       "reason": "source_version_changed"}
+        before = copy.deepcopy(ledger)
+        result, persisted, envelope, signer = self._private_run(ledger, source_identity=IDENT)
+        self.assertEqual(result["source_family"], FAMILY)
+        for name in ("synthetic-previous-release", "synthetic-previous-held"):
+            key = FAMILY + ":" + name
+            self.assertEqual(persisted[key], before[key])
+        self.assertNotIn("source_missing_or_metadata_changed", json.dumps(persisted))
+        self.assertEqual(persisted[FAMILY + ":" + IDENT]["status"], "complete")
+
+    @pilot_gate_open()
     def test_private_singapore_run_requires_explicit_identity_before_custody(self):
         from processing.daily_runner import private_run
         from processing.daily_intake import IntakeHold
