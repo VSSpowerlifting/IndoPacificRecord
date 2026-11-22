@@ -1,18 +1,24 @@
 {
   "manifest_version": 1,
   "_comment": [
-    "Production registration for the two U.S. reference families admitted under the owner's standing",
+    "Production registration for the U.S. reference families. Two are admitted under the owner's standing",
     "metadata-only approval of 2026-10-15: the U.S.-China Economic and Security Review Commission (USCC)",
-    "press-release listing and the U.S. Department of the Treasury press-release listing.",
+    "press-release listing and the U.S. Department of the Treasury press-release listing. The third,",
+    "us_uscc_press_en, was activated by the founder on 2026-11-22 (DECISION_LOG.md).",
     "These are MANUAL sources: public Daily never fetches uscc.gov or home.treasury.gov. The isolated",
     "shadow collectors preserve dated listing observations on their own branches; the governed admission",
     "(scripts/admit_uscc_official_metadata.py, scripts/admit_us_treasury_official_metadata.py) admits only",
-    "official URL, date and issuer metadata into the existing isolated tables. No headline, body,",
-    "attachment, translation, summary or topical claim enters the public corpus through this manifest.",
+    "official URL, date and issuer metadata into the existing isolated tables. Through these two metadata",
+    "sources no headline, body, attachment, translation, summary or topical claim enters the public corpus.",
     "U.S. Pacific Command (the desk's declared scope) stays access-blocked and unregistered; the",
     "separate DVIDS shadow draft stays under shadow/us_indopacom/. The Commerce BIS family is not",
     "registered here because its release is bound to an authenticated scheduled-run attestation that",
     "Daily cannot reproduce (docs/desks/MIGRATION.md).",
+    "The USCC press-release narrative family (us_uscc_press_en) is also MANUAL: public Daily never",
+    "fetches uscc.gov. Its text is collected privately; the shared Daily lane admits only signed official",
+    "links and separately written, USCC-attributed machine explanations of at most 90 words",
+    "(core/uscc_press_links.py, core/daily_sources.py). Quotations, linked reports, testimony,",
+    "attachments, PDFs and media are excluded. The two metadata sources above are unchanged.",
     "Registering the sources here gives them the same registry row, run-result row and liveness",
     "disposition as every other production source. It enables no fetch."
   ],
@@ -74,6 +80,22 @@
         "https://home.treasury.gov/news/press-releases"
       ],
       "notes": "Public Daily does not fetch this source. The isolated shadow collector preserves dated observations of the official press-release listing on branch shadow/us-treasury-press; the governed admission admits only official URL, date and issuer metadata into treasury_official_source_records / treasury_official_observations under the owner's standing metadata-only approval of 2026-10-15 (docs/engineering/US_TREASURY_LIVE_METADATA_ADMISSION_2026-10-15.md). The listing is a broad executive-department feed, not a topically screened Indo-Pacific feed; inclusion does not establish Indo-Pacific relevance. Nothing original enters the public corpus."
+    },
+    {
+      "slug": "us_uscc_press_en",
+      "institution_id": "us_uscc",
+      "display_name": "USCC — English press-release narratives",
+      "base_url": "https://www.uscc.gov",
+      "language_tag": "en",
+      "access_method": "manual",
+      "authority_tier": "A",
+      "source_type": "official_statement",
+      "originality": "original",
+      "enabled": true,
+      "listing_endpoints": [
+        "https://www.uscc.gov/press-releases"
+      ],
+      "notes": "Public Daily does not fetch this source. The private-first collector preserves Commission-issued English press-release text that passes the standing qualifier (config/philippines_daily_policy.json owner_decision); quotations, linked reports, testimony, attachments, PDFs and media never enter model input or the public corpus. The shared Daily lane admits signed official-link parents and independently written, USCC-attributed machine explanations of at most 90 words; the original title and body stay in private custody. The USCC is a congressional commission, not U.S. Pacific Command."
     }
   ]
 }

@@ -642,9 +642,16 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         admission_migration="migrations.versions.m0024_uscc_press_source_records:is_already_applied",
         # One owner switch for both public halves, off by default.
         public_switch="US_USCC_LINKS_ENABLED",
-        # Not registered: the U.S. desk has no governed Daily admission or
-        # run-result row until a founder activation decision registers it.
-        desk_registered=False),
+        # A manifest-registered manual source (2026-11-22 founder activation):
+        # public Daily admits signed links and outputs, never fetches uscc.gov.
+        desk_registered=True),
+        # No collection_cron_utc yet: the private collector (cron '35 11 * * *',
+        # ipr-source-evidence-private#50) writes ledger entries with result
+        # "success"/"hold" and no target_date, target_date_source or health, which
+        # core/collection/attempts.read_custody cannot read. Declaring the cron
+        # would sign /2 with attested=false and report collection_not_attested on
+        # every Daily. The family signs /1 (no freshness verdict) until that
+        # collector writes the shared ledger schema.
 )}
 
 
