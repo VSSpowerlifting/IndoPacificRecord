@@ -80,11 +80,15 @@ class GlobalTimesMilScraper(BaseScraper):
         # url -> (wire bytes, decoded html), live this run only.
         self._captured: dict[str, tuple[bytes, str]] = {}
         self._last_wire: dict[str, bytes] = {}
+        self._last_content_type: dict[str, Optional[str]] = {}
+        # url -> Content-Type header of the captured response.
+        self._captured_type: dict[str, Optional[str]] = {}
 
     # ── Raw capture ───────────────────────────────────────────────────────────
 
     def _on_response(self, url, resp) -> None:
         self._last_wire[url] = bytes(resp.content)
+        self._last_content_type[url] = resp.headers.get("Content-Type")
 
     def fetch(self, url: str, force_refresh: bool = False):
         """
@@ -98,9 +102,11 @@ class GlobalTimesMilScraper(BaseScraper):
         if url in self._captured:
             return self._captured[url][1]
         self._last_wire.pop(url, None)
+        self._last_content_type.pop(url, None)
         html = super().fetch(url, force_refresh=True)
         if html is not None and url in self._last_wire:
             self._captured[url] = (self._last_wire[url], html)
+            self._captured_type[url] = self._last_content_type.get(url)
         return html
 
     # ── Listing page ──────────────────────────────────────────────────────────
@@ -198,7 +204,10 @@ class GlobalTimesMilScraper(BaseScraper):
         wire = self._captured.get(url, (None, None))[0]
         if wire is not None:
             sha = hashlib.sha256(wire).hexdigest()
-            retained = self._store_raw(sha, wire)
+            # A deliberate body hold (e.g. third-party byline) is never
+            # written to the raw store: retaining such pages is a rights
+            # decision outside this change.
+            retained = False if text_held else self._store_raw(sha, wire)
             article["custody"] = {
                 "capture_sha256": sha,
                 "raw_retained": retained,
@@ -207,6 +216,7 @@ class GlobalTimesMilScraper(BaseScraper):
                 "fetched_at": datetime.now(timezone.utc).strftime(
                     "%Y-%m-%dT%H:%M:%SZ"),
                 "text_held": text_held,
+                "content_type": self._captured_type.get(url),
             }
         return article
 
