@@ -34,6 +34,33 @@ dictionaries are gone. Expectations are now derived:
 A source whose adapter will not even import is UNHEALTHY, not INERT. That is
 the failure this gate exists for, and it must never be reachable by accident.
 
+Governed sources are judged by their recorded runs (2026-11-21)
+---------------------------------------------------------------
+A manual source stores what it admits in its own family tables, not in
+`articles`, so judging it by article count left every governed family INERT
+("nothing admitted yet") however many records it held and however long its
+admission had been failing. INERT is exempt from every threshold. The
+pipeline already records one `source_run_results` row per governed source per
+Daily; that is now the signal. A run is healthy when its stored `is_failure`
+is 0 AND its status is a collection success (`st.SUCCESS_STATUSES`, which
+includes `ok_all_filtered` for an admission that reached its source but held
+what it found). `skipped_disabled` and `not_implemented` are stored with
+`is_failure` 0 yet collected nothing, so they never count as a healthy run.
+The run date is `scrape_runs.started_at`; governed rows leave their own
+`started_at` NULL.
+
+A manual source with no articles and no run that attempted collection (no
+rows at all, or only skipped/not-implemented rows awaiting activation) stays
+INERT; one with articles but no such run is judged by its articles alone.
+Otherwise it is UNHEALTHY when its last healthy run is older than its
+threshold. When it also holds articles, the article-recency verdict is still
+applied and the worse of the two wins: the signal can turn an INERT source
+into a judged one, or a HEALTHY one UNHEALTHY when its admission has stopped,
+but it never turns an UNHEALTHY verdict HEALTHY. A latest failed run is shown
+in the detail even when the state is HEALTHY. A run whose Daily has no
+parseable date is ignored. A database without the run tables is judged
+exactly as before.
+
 Exit codes:
     0  all sources healthy (or only inert ones are quiet)
     1  at least one source is unhealthy
@@ -47,6 +74,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sqlite3
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -96,6 +124,29 @@ class Expectation:
     #: a fault: it is reported as PAUSED on every run and never fails the gate.
     #: Turning the switch back on restores the ordinary threshold at once.
     paused: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class GovernedRuns:
+    """What `source_run_results` records for one governed source.
+
+    `collected` is True once any run attempted collection (a success or a
+    failure); skipped and not-implemented rows alone leave it False.
+    """
+
+    last_healthy: Optional[str] = None
+    collected: bool = False
+    latest_date: Optional[str] = None
+    latest_status: Optional[str] = None
+    latest_failure: bool = False
+    latest_detail: Optional[str] = None
+
+
+#: Run tables present, nothing recorded for this slug.
+NO_GOVERNED_RUNS = GovernedRuns()
+
+#: Longest error_detail quoted in a report line.
+DETAIL_LIMIT = 160
 
 
 #: The expectation for a slug no desk manifest declares. Deliberately not
@@ -181,15 +232,117 @@ def rows(db_path: Path, today: date):
         ).fetchall()
 
 
+def governed_runs(db_path: Path) -> Optional[Dict[str, GovernedRuns]]:
+    """Per-slug run history, or None when the database predates run tables.
+
+    Read through the same scratch copy as `rows()`. Runs are dated and
+    ordered by their Daily (`scrape_runs.started_at`, then id).
+    """
+    with read_only(db_path) as conn:
+        tables = {r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'")}
+        if not {"source_run_results", "scrape_runs"} <= tables:
+            return None
+        try:
+            found = conn.execute(
+                """
+                SELECT r.source_slug, date(s.started_at), r.status,
+                       r.is_failure, r.error_detail
+                  FROM source_run_results r
+                  JOIN scrape_runs s ON s.id = r.scrape_run_id
+                 WHERE date(s.started_at) IS NOT NULL
+                 ORDER BY r.source_slug, s.started_at, s.id, r.id
+                """
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return None
+    out: Dict[str, GovernedRuns] = {}
+    for slug, day, status, is_failure, detail in found:
+        if not day:                     # an undated run cannot be judged
+            continue
+        prior = out.get(slug, NO_GOVERNED_RUNS)
+        succeeded = not is_failure and status in st.SUCCESS_STATUSES
+        out[slug] = GovernedRuns(
+            last_healthy=day if succeeded else prior.last_healthy,
+            collected=prior.collected or bool(is_failure) or succeeded,
+            latest_date=day,
+            latest_status=status,
+            latest_failure=bool(is_failure),
+            latest_detail=detail,
+        )
+    return out
+
+
+def _quote(detail: Optional[str]) -> str:
+    text = " ".join((detail or "").split())
+    if len(text) > DETAIL_LIMIT:
+        text = text[:DETAIL_LIMIT - 1] + "…"
+    return text
+
+
+def _latest(runs: GovernedRuns) -> str:
+    out = "latest %s %s" % (runs.latest_date, runs.latest_status)
+    # Quoted on success too: a held admission (e.g. "held: ...; signed_held: N")
+    # is reported here without changing the verdict.
+    if runs.latest_detail:
+        out += ": " + _quote(runs.latest_detail)
+    return out
+
+
+def _classify_governed(total, last_seen, today, max_silent, expectation, runs):
+    """A manual source with run evidence: the worse of runs and articles."""
+    has_articles = bool(total) and last_seen is not None
+    if not has_articles and not runs.collected:
+        detail = "manual source — nothing admitted yet; no governed run recorded"
+        if runs.latest_status:
+            detail += " (%s)" % _latest(runs)
+        return "INERT", None, detail
+
+    threshold = expectation.threshold or max_silent
+    verdicts = []                       # (unhealthy, days, detail)
+    if has_articles:
+        days = (today - datetime.strptime(last_seen, "%Y-%m-%d").date()).days
+        verdicts.append((days > threshold, days,
+                         f"last article {last_seen} ({days}d ago, threshold {threshold}d)"))
+    if runs.collected:
+        if runs.last_healthy:
+            days = (today - datetime.strptime(runs.last_healthy, "%Y-%m-%d").date()).days
+            verdicts.append((days > threshold, days,
+                             "governed: last healthy run %s (%dd ago, threshold %dd); %s"
+                             % (runs.last_healthy, days, threshold, _latest(runs))))
+        else:
+            verdicts.append((True, None, "governed: no healthy run recorded; %s"
+                             % _latest(runs)))
+
+    detail = "; ".join(v[2] for v in verdicts)
+    failing = [v for v in verdicts if v[0]]
+    deciding = failing or verdicts
+    days = max((v[1] for v in deciding if v[1] is not None), default=None)
+    if failing:
+        if expectation.paused:
+            return "PAUSED", days, "%s; %s" % (detail, expectation.paused)
+        return "UNHEALTHY", days, detail
+    return "HEALTHY", days, detail
+
+
 def classify(slug: str, total: int, last_seen: str | None,
              today: date, max_silent: int,
-             expectation: Expectation = UNDECLARED):
-    """Return (state, days_silent, detail)."""
+             expectation: Expectation = UNDECLARED,
+             runs: Optional[GovernedRuns] = None):
+    """Return (state, days_silent, detail).
+
+    `runs` is consulted only for a manual source; None (no run tables, or no
+    caller evidence) keeps the article-only judgement.
+    """
     if expectation.broken:
         return "UNHEALTHY", None, expectation.reason
 
     if expectation.inert:
         return "INERT", None, expectation.reason
+
+    if expectation.manual and runs is not None:
+        return _classify_governed(total, last_seen, today, max_silent,
+                                  expectation, runs)
 
     if total == 0 or last_seen is None:
         if expectation.manual:
@@ -239,6 +392,7 @@ def main() -> int:
         sys.exit(f"ERROR: database not found: {args.db}")
 
     expected = expectations()
+    runs = governed_runs(args.db)
     unhealthy: list[tuple[str, str]] = []
     paused: list[tuple[str, str]] = []
     lines: list[str] = []
@@ -247,6 +401,7 @@ def main() -> int:
         state, _days, detail = classify(
             slug, total, last_seen, args.today, args.max_silent_days,
             expected.get(slug, UNDECLARED),
+            runs=None if runs is None else runs.get(slug, NO_GOVERNED_RUNS),
         )
         lines.append(f"{state:<10} {name:<28} {total:>5} article(s)  {detail}")
         if state == "UNHEALTHY":

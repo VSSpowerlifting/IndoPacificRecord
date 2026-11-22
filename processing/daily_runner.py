@@ -183,5 +183,7 @@ def intake_family(db_path, input_dir, family, *, policy=None):
     return {"records": len(envelope["packet"]["records"]),
             "admitted": receipt["admitted"], "holds": list(receipt["holds"]),
             "collection": collection_facts(envelope["packet"]),
+            **({"signed_held": list(receipt["signed_held"])}
+               if receipt.get("signed_held") else {}),
             **({"originals_admitted": receipt["originals_admitted"]}
                if "originals_admitted" in receipt else {})}
