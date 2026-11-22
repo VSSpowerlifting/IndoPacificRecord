@@ -11,8 +11,14 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from core import daily_sources
 from scripts import fetch_daily_machine_outputs as fetch
 from processing.daily_intake import load_policy as _committed_policy
+
+
+# The attended-pilot gate is empty in production (Singapore MINDEF is recurring
+# since 22 Nov); the retained mechanism is tested as if the family were gated.
+SG_PILOT_GATE = {'sg_mindef_releases': 'IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY'}
 
 
 def load_policy():
@@ -125,6 +131,7 @@ class FetchOutputs(unittest.TestCase):
             result = fetch.main()
         return root, result, call
 
+    @patch.dict(daily_sources.ATTENDED_PILOT_ENV, SG_PILOT_GATE)
     def test_closed_pilot_gate_skips_singapore_cleanly_even_with_all_flags_true(self):
         for event, identity in [('schedule', ''), ('schedule', '6nov26-nr2'), ('workflow_dispatch', '')]:
             with self.subTest(event=event, identity=identity):
@@ -140,6 +147,15 @@ class FetchOutputs(unittest.TestCase):
                 for family in others:
                     self.assertEqual(result[family], 'policy_disabled' if family in ('kr_policy_dapa_releases', 'jp_jcg_press_en', 'us_uscc_press_en') else 'fetched')
 
+    def test_recurring_singapore_is_fetched_on_a_scheduled_run_with_no_identity(self):
+        self.assertEqual(daily_sources.ATTENDED_PILOT_ENV, {})
+        root, result, call = self.run_gated(
+            'schedule', '', [self.response() for _ in fetch.SOURCES])
+        self.assertEqual(result['sg_mindef_releases'], 'fetched')
+        self.assertTrue((root / 'sg_mindef_releases.json').exists())
+        self.assertEqual(call.call_count, len(fetch.SOURCES) - 3)  # DAPA, JCG and USCC are policy-disabled
+
+    @patch.dict(daily_sources.ATTENDED_PILOT_ENV, SG_PILOT_GATE)
     def test_attended_dispatch_fetches_singapore_only_with_the_named_identity(self):
         order = list(fetch.SOURCES)
         outcomes = [self.response() for _ in order]

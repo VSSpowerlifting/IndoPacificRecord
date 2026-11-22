@@ -36,7 +36,9 @@ _THIRD_PARTY_CREDIT = re.compile(r"(?im)^\s*(?:sumber|source|credit)\s*:")
 # ordinary manual Daily runs, whatever its source-policy flags say. The gate is
 # open only for a deliberately dispatched run that names the one identity; the
 # identity then bounds both the envelope fetch and governed admission.
-ATTENDED_PILOT_ENV = {"sg_mindef_releases": "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}
+# Empty since Singapore MINDEF recurring activation (DECISION_LOG 2026-11-22):
+# no family is attended-only now; the mechanism stays for a future pilot.
+ATTENDED_PILOT_ENV = {}
 _PILOT_IDENTITY = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 
 
@@ -582,8 +584,11 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         output_check_before_signing=True,
         parent="core.daily_sources:_sg_parent",
         admission_migration="migrations.versions.m0022_singapore_mindef_source_records:is_already_applied",
-        # A manifest-registered manual source: public Daily admits signed outputs,
-        # never fetches MINDEF originals. Runtime source-use gates stay off.
+        # private singapore_mindef_private_first_collector.yml: cron '37 10 * * *'
+        collection_cron_utc="10:37",
+        # A manifest-registered manual source: public Daily admits signed links
+        # and outputs, never fetches MINDEF originals. Recurring since the
+        # founder's 22 Nov approval (DECISION_LOG 2026-11-22).
         desk_registered=True),
     DailySource(
         # Standing first-party text family (PR #1015, Public Data License 1.0):

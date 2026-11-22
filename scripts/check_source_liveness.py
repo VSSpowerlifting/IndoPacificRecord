@@ -124,6 +124,19 @@ class Expectation:
     #: a fault: it is reported as PAUSED on every run and never fails the gate.
     #: Turning the switch back on restores the ordinary threshold at once.
     paused: Optional[str] = None
+    #: A shared-Daily family (core.daily_sources.SOURCES) admits into its own
+    #: family tables and never writes `articles`. Any article rows it has are a
+    #: closed pre-cutover corpus (MINDEF: public scraper, 2026-08-19..10-29), so
+    #: their age says nothing about collection; it is judged on governed runs.
+    articles_closed: bool = False
+
+
+def _daily_families() -> frozenset:
+    try:
+        from core.daily_sources import SOURCES
+    except Exception:
+        return frozenset()
+    return frozenset(SOURCES)
 
 
 @dataclass(frozen=True)
@@ -188,6 +201,7 @@ def expectations(registry=None, paused=None) -> Dict[str, Expectation]:
     """
     registry = registry or get_registry()
     paused = paused_by_policy() if paused is None else paused
+    daily = _daily_families()
     out: Dict[str, Expectation] = {}
     for result in registry.healthcheck_all():
         source = registry.get_source(result.source_slug)
@@ -213,7 +227,9 @@ def expectations(registry=None, paused=None) -> Dict[str, Expectation]:
                 threshold=threshold,
                 manual=getattr(source, "access_method", None) == "manual",
                 paused=(paused.get(result.source_slug)
-                        if getattr(source, "access_method", None) == "manual" else None))
+                        if getattr(source, "access_method", None) == "manual" else None),
+                articles_closed=(getattr(source, "access_method", None) == "manual"
+                                 and result.source_slug in daily))
     return out
 
 
@@ -301,6 +317,8 @@ def _latest(runs: GovernedRuns) -> str:
 def _classify_governed(total, last_seen, today, max_silent, expectation, runs):
     """A manual source with run evidence: the worse of runs and articles."""
     has_articles = bool(total) and last_seen is not None
+    if expectation.articles_closed and runs.collected:
+        has_articles = False
     if not has_articles and not runs.collected:
         detail = "manual source — nothing admitted yet; no governed run recorded"
         if runs.latest_status:

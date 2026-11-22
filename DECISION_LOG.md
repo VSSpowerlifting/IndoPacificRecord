@@ -1,4 +1,64 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-22 — Singapore MINDEF: attended-pilot gate removed; recurring processing begins
+
+**Authority.** Action B of the founder's 22 November approval (entry below):
+recurring unattended processing and release of eligible MINDEF-owned official
+releases inside the existing per-run limits. This change merges only after
+action A's single attended run has been signed.
+
+**Action A result (attended run, held).** Private run 44993720678
+(dispatch, 06:26Z) made exactly 2 model calls, estimated USD 0.013113
+(3,537 input and 392 output tokens). The other five family jobs made no
+model calls. State commit `093f8e7a86` (after `a00eaf7503`) changed only
+the MINDEF queue and envelope. `sg_mindef_releases:6nov26-nr2` is
+`retriable`, 3 of 5 attempts, hold `daily_quantity_or_date_unsupported`
+(reading file `6b65918e…`). The hold is genuine: one sentence carries a date
+that its cited passage does not contain. The date appears elsewhere in the
+original, but the check binds every number to the sentence's own passage, and
+prompt v5 already says so. No check, prompt or policy was changed. Nothing was
+admitted. MINDEF still has no live machine explanation, and its processing gate
+is not met. `SG_MINDEF_DAILY_ENABLED` was set back to `false` at 06:29:39Z.
+
+**Queue order after this change.** The private runner sorts eligible
+releases newest first, and only releases whose links are already admitted
+publicly are eligible. With one record per run, a newer unprocessed release
+takes the slot ahead of the 6 November retry. On the first recurring day, new
+links are admitted only by that evening's Daily. That day's processing will
+therefore very likely spend attempt 4 of 5 on `6nov26-nr2`, inside the
+existing caps.
+
+**What changed in this PR.**
+- `core/daily_sources.ATTENDED_PILOT_ENV` is empty. Scheduled and ordinary
+  runs now handle `sg_mindef_releases` under its policy ceilings: one record,
+  $0.35 estimated, 16,000 input characters, 90 words, five attempts per
+  version. The gate mechanism stays in place for any future pilot.
+- `sg_mindef_releases` declares its private collector cron, `10:37` UTC
+  (`singapore_mindef_private_first_collector.yml`, `37 10 * * *`). Its
+  envelopes therefore carry a signed collection block, and the family gets a
+  freshness verdict.
+- A private run that names one identity (an operator recovery dispatch) keeps
+  the per-identity ledger view. Without the pilot flag it would otherwise
+  hold every other MINDEF row as `source_missing_or_metadata_changed`.
+- Liveness: a shared-Daily family never writes `articles`. MINDEF's 102
+  article rows are the closed corpus of the pre-cutover public scraper (scraped
+  19 August to 29 October), so the family is judged on governed runs only.
+  It reads UNHEALTHY until its first healthy governed run, which is accurate:
+  nothing has been admitted since 29 October.
+- The policy object, `owner_decision` and prompt (`sg-analysis-v5`) are
+  byte-identical to the A change.
+
+**Runtime switches (private repository variables).**
+`SG_MINDEF_PRIVATE_COLLECTION_ENABLED`, `SG_MINDEF_LINKS_BRIDGE_ENABLED`,
+`SG_MINDEF_DAILY_ENABLED` and `SG_MINDEF_RECURRING_ENABLED`, plus the public
+`SG_MINDEF_LINKS_ENABLED`. Rollback, fastest first:
+1. `SG_MINDEF_RECURRING_ENABLED=false` stops model processing and spend.
+2. `SG_MINDEF_PRIVATE_COLLECTION_ENABLED=false` stops collection.
+3. The links variables stop new parents.
+
+**Not authorized here.** No backfill, no change to the excluded speech
+identities, and no ledger or attempt reset. Original text and media stay
+private.
+
 ## 2026-11-22 — Founder: third attended Singapore MINDEF pilot and recurring release approved
 
 **Authority.** Founder chat reply of 22 November, "Approve all four", to the

@@ -114,7 +114,7 @@ class SignOutputs(unittest.TestCase):
     def test_signing_rule_is_the_declared_unattended_cadence(self):
         self.assertEqual({f for f, s in SOURCES.items() if s.signs_collection()},
                          {"ph_afp_articles", "ph_nsc_official_statements", "id_kemhan_news",
-                          "jp_jcg_press_en"})
+                          "jp_jcg_press_en", "sg_mindef_releases"})
 
 
 class SignerEndToEnd(unittest.TestCase):
