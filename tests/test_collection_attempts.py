@@ -203,7 +203,9 @@ class DeclaredCadence(unittest.TestCase):
         self.assertEqual(got["jp_jcg_press_en"], ("19:13", 14))
         # Singapore MINDEF is recurring (22 Nov approval): private collector 10:37 UTC.
         self.assertEqual(got["sg_mindef_releases"], ("10:37", 14))
-        for family in ("us_uscc_press_en", "kr_policy_dapa_releases"):
+        # private uscc_private_first_collector.yml: cron '35 11 * * *'
+        self.assertEqual(got["us_uscc_press_en"], ("11:35", 14))
+        for family in ("kr_policy_dapa_releases",):
             self.assertIsNone(got[family][0], family)
 
 
@@ -459,8 +461,11 @@ class DeclaredReceiptDirs(unittest.TestCase):
                          ("state/private_attempts",))
         signs = {f for f, s in SOURCES.items() if s.signs_collection()}
         self.assertEqual(signs, {"ph_afp_articles", "ph_nsc_official_statements",
-                                 "id_kemhan_news", "jp_jcg_press_en", "sg_mindef_releases"})
-        for family in ("sg_mindef_releases", "us_uscc_press_en", "kr_policy_dapa_releases"):
+                                 "id_kemhan_news", "jp_jcg_press_en", "sg_mindef_releases",
+                                 "us_uscc_press_en"})
+        # JCG, Singapore and USCC write state/ledger/<run>.json and declare no receipt dir.
+        for family in ("sg_mindef_releases", "jp_jcg_press_en", "us_uscc_press_en",
+                       "kr_policy_dapa_releases"):
             self.assertEqual(source_for(family).collection_receipt_dirs, ())
 
 

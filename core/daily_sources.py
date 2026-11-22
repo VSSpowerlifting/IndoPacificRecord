@@ -642,9 +642,14 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         admission_migration="migrations.versions.m0024_uscc_press_source_records:is_already_applied",
         # One owner switch for both public halves, off by default.
         public_switch="US_USCC_LINKS_ENABLED",
-        # Not registered: the U.S. desk has no governed Daily admission or
-        # run-result row until a founder activation decision registers it.
-        desk_registered=False),
+        # A manifest-registered manual source (2026-11-22 founder activation):
+        # public Daily admits signed links and outputs, never fetches uscc.gov.
+        desk_registered=True,
+        # private uscc_private_first_collector.yml: cron '35 11 * * *'
+        # (ipr-source-evidence-private#50). It writes state/ledger/<run>.json
+        # on archive/uscc-press, which read_custody reads by default, so no
+        # collection_receipt_dirs (as for JCG).
+        collection_cron_utc="11:35"),
 )}
 
 

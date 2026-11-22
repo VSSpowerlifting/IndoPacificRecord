@@ -114,7 +114,8 @@ class SignOutputs(unittest.TestCase):
     def test_signing_rule_is_the_declared_unattended_cadence(self):
         self.assertEqual({f for f, s in SOURCES.items() if s.signs_collection()},
                          {"ph_afp_articles", "ph_nsc_official_statements", "id_kemhan_news",
-                          "jp_jcg_press_en", "sg_mindef_releases"})
+                          "jp_jcg_press_en", "sg_mindef_releases",
+                          "us_uscc_press_en"})
 
 
 class SignerEndToEnd(unittest.TestCase):
@@ -231,9 +232,9 @@ class SignerEndToEnd(unittest.TestCase):
 
 
 class NoCadenceFamiliesStayV1(unittest.TestCase):
-    def test_private_run_for_uscc_signs_v1_and_never_reads_custody(self):
-        from tests import test_uscc_press_daily as u
-        family = u.FAMILY
+    def test_private_run_for_dapa_signs_v1_and_never_reads_custody(self):
+        # USCC left this class on 2026-11-22: it declares a cron and signs /2.
+        family = "kr_policy_dapa_releases"
         self.assertFalse(SOURCES[family].signs_collection())
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

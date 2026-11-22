@@ -71,10 +71,10 @@
       "max_input_characters": 16000
     },
     "us_uscc_press_en": {
-      "private_model_processing": false,
-      "public_machine_explanation": false,
-      "unattended_release": false,
-      "owner_decision": "2026-11-03 founder: exact July 18 and July 25 2026 USCC unquoted institutional narratives accepted as potential input for an independently worded, USCC-attributed machine note of at most 90 words. 2026-11-04 founder: rebuttable standing-family assessment text for unsigned Commission-issued releases passing the six qualifier checks; 2026-11-07 founder: adopt with its qualifier as one review candidate, effective only on merge. External model transmission, provider handling, spending, recurring capture, activation and public release are NOT authorized; every flag stays false until a separate founder decision.",
+      "private_model_processing": true,
+      "public_machine_explanation": true,
+      "unattended_release": true,
+      "owner_decision": "2026-11-03 founder: exact July 18 and July 25 2026 USCC unquoted institutional narratives accepted as potential input for an independently worded, USCC-attributed machine note of at most 90 words. 2026-11-04 founder: rebuttable standing-family assessment text for unsigned Commission-issued releases passing the six qualifier checks; 2026-11-07 founder: adopt with its qualifier as one review candidate, effective only on merge. Until then external model transmission, provider handling, spending, recurring capture, activation and public release were NOT authorized and every flag stayed false. 2026-11-22 founder (chat): approved \"USCC first activation of us_uscc_press_en: policy flags, owner decision, US_USCC_LINKS_ENABLED, key and desk registration\"; this supersedes that activation hold: private model processing, public machine explanation and unattended release within these ceilings (0.35 USD estimated per run, 1 record per run, 16,000 input characters, at most 90 words, 5 attempts per version); US_USCC_LINKS_ENABLED rolls back both public halves. No backfill; PDFs, media and attachments remain excluded.",
       "max_estimated_cost_usd_per_run": 0.35,
       "excluded_source_identities": [],
       "max_records_per_run": 1,

@@ -1,4 +1,50 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-22 — Founder: USCC press releases first activation approved
+
+**Authority.** On 22 November 2026 the founder approved, in chat, "USCC first
+activation of us_uscc_press_en: policy flags, owner decision,
+US_USCC_LINKS_ENABLED, key and desk registration". It builds on the founder
+decisions of 3, 4 and 7 November already quoted in
+`config/philippines_daily_policy.json` (`owner_decision` for
+`us_uscc_press_en`) and on the shared-Daily path recorded on 14 November.
+
+**Ceilings (unchanged).** USD 0.35 estimated per run; 1 record per run; 16,000
+input characters; 5 attempts per version (the existing retry budget);
+independently worded, USCC-attributed machine explanations of at most 90 words.
+Exclusions, factual checks and rights limits are unchanged, including the
+individually held identities and the six-check qualifier.
+
+**What this change does.**
+- Sets `private_model_processing`, `public_machine_explanation` and
+  `unattended_release` to true for `us_uscc_press_en` and appends this decision
+  to its `owner_decision`; the earlier text stays as history and its activation
+  hold is superseded.
+- Registers the source in `desks/us-indopacific/manifest.json` (manual, English
+  release text, existing `us_uscc` institution), sets `desk_registered=True` and
+  mirrors the private collector's cron, `uscc_private_first_collector.yml`
+  `'35 11 * * *'` (VSSpowerlifting/ipr-source-evidence-private#50, merge commit
+  `37b4aa2`), as `collection_cron_utc="11:35"`. The collector writes
+  `state/ledger/<run>.json`, so no receipt directory is declared (as for JCG).
+- Desk status is unchanged: `us-indopacific` stays `shadow`, inactive and
+  `access_blocked` in the registry.
+
+**What goes live, and behind which variable.** Nothing runs until the variables
+are set:
+- private collection by the private collector: `US_USCC_PRIVATE_COLLECTION_ENABLED`;
+- the signed official-link bridge: `US_USCC_LINKS_BRIDGE_ENABLED`;
+- private processing (model input and signed outputs): `US_USCC_DAILY_ENABLED`;
+- public admission of parent links and machine explanations:
+  `US_USCC_LINKS_ENABLED`.
+
+**Rollback.** Unset or set any of those variables to anything but `true`.
+`US_USCC_LINKS_ENABLED` withholds both public halves (links and machine
+explanations); the others stop collection, link signing and model use.
+
+**Not authorized.** No backfill of older releases; no PDFs, media, linked
+reports, testimony or attachments; no change to any ceiling, word limit,
+exclusion, factual check or rights limit; no second record per run. This entry
+does not itself set a variable, run a collector, spend, deploy or publish.
+
 ## 2026-11-22 — Singapore MINDEF: attended-pilot gate removed; recurring processing begins
 
 **Authority.** Action B of the founder's 22 November approval (entry below):
