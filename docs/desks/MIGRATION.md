@@ -499,6 +499,8 @@ row, after admission, keeping its counts and `held:` detail.
   public Daily has run reader code -> strict flip -> liveness. Cron values are
   mirrored in `core/daily_sources.py` from the private collector workflows and
   must be edited together; the attended Singapore pilot never gets a verdict.
+  (22 November: Singapore MINDEF is recurring and declares `10:37`; it signs `/2`
+  and gets a verdict. See DECISION_LOG 2026-11-22.)
 - Strict-flip condition: set `pipeline._REQUIRE_COLLECTION_ATTESTATION` only
   after a structure-only listing shows `/2` for every enabled, non-attended
   family with a declared cadence. Until then a missing block is "no verdict".

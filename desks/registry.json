@@ -52,14 +52,14 @@
       "route": "singapore.html",
       "scope": "One publication family: official releases from the Singapore Ministry of Defence, which publishes for itself and for the Singapore Armed Forces.",
       "status": "live",
-      "status_explanation": "Promoted 2026-09-21 (DECISION_LOG), after 33 elapsed shadow-collection days, completed Day 7 and Day 14 human checkpoint reviews, and owner sign-off. The corpus began as a one-time governed promotion of 57 corrected shadow records; the same adapter had previously operated in scheduled collection, but new production collection and model processing are currently held by the source-specific runtime policy; historical public identities and provenance remain. Two records stay held out of the promotable set for unrepaired charset damage.",
+      "status_explanation": "Promoted 2026-09-21 (DECISION_LOG), after 33 elapsed shadow-collection days, completed Day 7 and Day 14 human checkpoint reviews, and owner sign-off. The corpus began as a one-time governed promotion of 57 corrected shadow records; the same adapter had previously operated in scheduled collection. Since 22 November (DECISION_LOG) new releases are collected privately each day; a new release is published as its official link and, only when every factual check passes, an independently written MINDEF-attributed machine explanation, never the original text or media. Historical public identities and provenance remain. Two records stay held out of the promotable set for unrepaired charset damage.",
       "public": true,
       "manifest": "desks/singapore/manifest.json",
       "has_production_records": true,
       "limits": [
         "This is not whole-of-government coverage, not armed-forces-wide, and not comprehensive Singapore defense coverage.",
         "Other ministries, the parliamentary Hansard record, unit and recruitment pages, magazine features, social media, and procurement notices are all outside the declared scope.",
-        "The corpus began as a one-time governed promotion. New production acquisition and external-model processing are presently held; the 7 November standing MINDEF outbound-link rule does not release these distinct uses.",
+        "The corpus began as a one-time governed promotion. Since 22 November new releases are collected privately each day. A public page carries the official link and, only when every factual check passes, an independently written MINDEF-attributed machine explanation within fixed ceilings (one release and USD 0.35 per run, 90 words); original text and media are never republished.",
         "Two records are held out of the promoted corpus: their CJK text was damaged by a historical extractor defect the correction overlay could not repair, and they are excluded rather than published with damaged text. See shadow/singapore_mindef/CORRECTIONS.md for which records and why."
       ],
       "qualification": {
