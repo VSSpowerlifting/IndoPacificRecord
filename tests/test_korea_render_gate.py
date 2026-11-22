@@ -3,20 +3,24 @@
 Two layers:
 
   * the gate itself (core.korea_corpus_bridge.publication_gate) on a migrated
-    scratch database: admitted and finished rows publish, every other Korea
-    row is hidden, a row that bypassed the bridge is hidden;
+    scratch database: admitted and finished rows publish; an admitted
+    unfinished row publishes only around its released, hash-matching original
+    (English withheld); every other Korea row is hidden, a row that bypassed
+    the bridge is hidden;
   * the production renderer (site/preview/generate_preview.build) on a
     disposable copy of pla_watch.db with the STAGED activation manifest synced
     in and the four public KOGL releases bridged: one reader record per
     finished release, labeled machine translation, cross-linked to its
-    licensed original exhibit; held and pending releases absent; China and
-    Singapore output unchanged; half-applied activation refused.
+    licensed original exhibit; held and pending releases get a Record around
+    their released original with no English; China and Singapore output
+    unchanged; half-applied activation refused.
 
 The English lines below are synthetic fixtures, never claims about the
 releases. Nothing touches pla_watch.db, which is only read through a backup.
 """
 import dataclasses
 import difflib
+import hashlib
 import json
 import re
 import shutil
@@ -53,13 +57,16 @@ def synthetic_english(text_original):
                      for n, line in enumerate(text_original.split("\n"), 1))
 
 
-def finish(conn, identity, state, *, english=True):
-    """Put a bridged row into a processing state as the lane would."""
+def finish(conn, identity, state, *, english=True, machine=None):
+    """Put a bridged row into a processing state as the lane would.
+
+    ``machine`` writes the synthetic machine fields even for an unfinished
+    ledger state (an English draft the lane produced but QA held)."""
     aid, text = conn.execute(
         "SELECT a.id, a.text_original FROM korea_corpus_admissions k "
         "JOIN articles a ON a.id = k.article_id WHERE k.source_identity = ?",
         (identity,)).fetchone()
-    if state == "processed":
+    if machine if machine is not None else state == "processed":
         conn.execute(
             "UPDATE articles SET passed_relevance = 1, relevance_score = 0.9, "
             "title_english = ?, text_english = ?, summary_english = ?, "
@@ -86,9 +93,57 @@ class TestPublicationGate(BridgeCase):
             "SELECT source_identity, article_id FROM korea_corpus_admissions"))
 
     def test_admitted_but_unprocessed_rows_are_hidden(self):          # scenario 1
-        publishable, hidden = bridge.publication_gate(self.conn)
+        # Without a released original, an unfinished row stays hidden.
+        publishable, hidden = bridge.publication_gate(self.conn, released={})
         self.assertEqual(publishable, {})
         self.assertEqual(hidden, set(self.ids.values()))
+
+    def released_digests(self):
+        return {r["source_identity"]: r["original_text_sha256"] for r in self.records}
+
+    def test_unfinished_row_with_released_original_gets_a_record(self):
+        a, b, c, d = sorted(self.ids)
+        for ident, state in ((a, "qa_held"), (b, "retryable"), (c, "paused")):
+            self.conn.execute("UPDATE korea_corpus_admissions SET processing_state=? "
+                              "WHERE source_identity=?", (state, ident))
+        publishable, hidden, held = bridge.publication_gate_detail(
+            self.conn, released=self.released_digests(), excluded={})
+        self.assertEqual(publishable, {v: k for k, v in self.ids.items()})
+        self.assertEqual(hidden, set())
+        self.assertEqual(held, {self.ids[a]: "qa_held", self.ids[b]: "retryable",
+                                self.ids[c]: "paused", self.ids[d]: "pending"})
+        self.assertEqual({bridge.ENGLISH_STATUS_LABELS[v] for v in held.values()},
+                         {"English held for QA", "English retrying",
+                          "English paused", "English pending"})
+
+    def test_default_registry_is_the_released_index(self):
+        publishable, _, held = bridge.publication_gate_detail(self.conn, excluded={})
+        self.assertEqual(set(publishable), set(self.ids.values()))
+        self.assertEqual(set(held), set(self.ids.values()))
+
+    def test_released_original_must_match_identity_and_digest(self):
+        a, b = sorted(self.ids)[:2]
+        digests = self.released_digests()
+        digests[a] = "0" * 64              # same identity, different text
+        del digests[b]                      # no released original at all
+        publishable, hidden, held = bridge.publication_gate_detail(
+            self.conn, released=digests, excluded={})
+        self.assertEqual(hidden, {self.ids[a], self.ids[b]})
+        self.assertNotIn(self.ids[a], held)
+
+    def test_excluded_unfinished_identity_stays_hidden(self):
+        a = sorted(self.ids)[0]
+        publishable, hidden, _ = bridge.publication_gate_detail(
+            self.conn, released=self.released_digests(),
+            excluded={a: "excluded_frozen_baseline"})
+        self.assertEqual(hidden, {self.ids[a]})
+        # A FINISHED excluded row is still returned, so the renderer refuses.
+        self.conn.execute("UPDATE korea_corpus_admissions SET processing_state='processed' "
+                          "WHERE source_identity=?", (a,))
+        publishable, hidden, _ = bridge.publication_gate_detail(
+            self.conn, released=self.released_digests(),
+            excluded={a: "excluded_frozen_baseline"})
+        self.assertIn(self.ids[a], publishable)
 
     def test_only_processed_and_not_relevant_publish(self):           # scenario 3, 4
         a, b, c, d = sorted(self.ids)
@@ -96,7 +151,7 @@ class TestPublicationGate(BridgeCase):
         self.conn.execute("UPDATE korea_corpus_admissions SET processing_state='not_relevant' WHERE source_identity=?", (b,))
         self.conn.execute("UPDATE korea_corpus_admissions SET processing_state='qa_held' WHERE source_identity=?", (c,))
         self.conn.execute("UPDATE korea_corpus_admissions SET processing_state='retryable' WHERE source_identity=?", (d,))
-        publishable, hidden = bridge.publication_gate(self.conn)
+        publishable, hidden = bridge.publication_gate(self.conn, released={})
         self.assertEqual(publishable, {self.ids[a]: a, self.ids[b]: b})
         self.assertEqual(hidden, {self.ids[c], self.ids[d]})
 
@@ -193,7 +248,10 @@ class TestRenderedKoreaRecords(unittest.TestCase):
         idents = sorted(i for i, in conn.execute(
             "SELECT source_identity FROM korea_corpus_admissions"))
         cls.processed, cls.no_english, cls.held, cls.pending = idents
-        cls.ids = {i: finish(conn, i, s, english=(i != cls.no_english))
+        # The QA-held row carries a synthetic machine draft in the DB: the
+        # Record must withhold every English field of it.
+        cls.ids = {i: finish(conn, i, s, english=(i != cls.no_english),
+                             machine=(s != "pending"))
                    for i, s in ((cls.processed, "processed"),
                                 (cls.no_english, "processed"),
                                 (cls.held, "qa_held"))}
@@ -215,6 +273,15 @@ class TestRenderedKoreaRecords(unittest.TestCase):
                 mock.patch("core.korea_corpus_bridge.excluded_identities", return_value={}):
             gp.build(cls.after, gp.PUBLIC_TITLE, cls.activated,
                      snapshot=gp.snapshot_from_corpus(cls.activated), legacy_routes=True)
+        # The same activated corpus with no released originals: only the two
+        # finished releases publish. Their output must not depend on whether
+        # the held/pending releases are shown.
+        cls.unreleased = root / "unreleased"
+        with mock.patch.object(gp, "load_registry", return_value=live_registry()), \
+                mock.patch("core.korea_corpus_bridge.excluded_identities", return_value={}), \
+                mock.patch("core.korea_corpus_bridge.released_original_digests", return_value={}):
+            gp.build(cls.unreleased, gp.PUBLIC_TITLE, cls.activated,
+                     snapshot=gp.snapshot_from_corpus(cls.activated), legacy_routes=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -223,13 +290,16 @@ class TestRenderedKoreaRecords(unittest.TestCase):
     def page(self, out, rel):
         return (out / rel).read_text(encoding="utf-8")
 
-    def assertOnlyTotalsMoved(self, rel):
-        """Two more published records legitimately raise site-wide totals
-        (masthead, citation snapshot, desk ledger). Anything else differing
-        between the builds is a regression."""
-        published = 2
-        before = self.page(self.before, rel).split("\n")
-        after = self.page(self.after, rel).split("\n")
+    #: Four more visible records (two analyzed) legitimately raise site-wide
+    #: totals (masthead, citation snapshot, desk ledger).
+    DELTAS = (0, 2, 4)
+
+    def assertOnlyTotalsMoved(self, rel, before_dir=None, after_dir=None, deltas=None):
+        """Only site-wide totals may differ between the builds; anything else
+        differing is a regression."""
+        deltas = deltas or self.DELTAS
+        before = self.page(before_dir or self.before, rel).split("\n")
+        after = self.page(after_dir or self.after, rel).split("\n")
         if len(before) != len(after):
             self.fail("%s: lines added or removed\n%s" % (rel, "\n".join(
                 difflib.unified_diff(before, after, lineterm="", n=1))))
@@ -239,20 +309,80 @@ class TestRenderedKoreaRecords(unittest.TestCase):
             self.assertEqual(NUMBER.sub("N", old), NUMBER.sub("N", new), rel)
             for a, b in zip(NUMBER.findall(old), NUMBER.findall(new)):
                 self.assertIn(int(b.replace(",", "")) - int(a.replace(",", "")),
-                              (0, published), "%s: %s" % (rel, new.strip()))
+                              deltas, "%s: %s" % (rel, new.strip()))
 
     def news_id(self, identity):
         return identity.split(":", 1)[1]
 
-    def test_only_finished_releases_get_a_record(self):              # scenario 1, 4
-        for ident in (self.processed, self.no_english):
+    def test_every_released_original_gets_a_record(self):            # scenario 1, 4
+        for ident in (self.processed, self.no_english, self.held, self.pending):
             self.assertTrue((self.after / "record" / ("%d.html" % self.ids[ident])).is_file())
+        ids = {row[0] for row in json.loads(self.page(self.after, "corpus-index.json"))["records"]}
+        self.assertLessEqual(set(self.ids.values()), ids)
+        # Without a released original the unfinished rows stay hidden.
         for ident in (self.held, self.pending):
-            self.assertFalse((self.after / "record" / ("%d.html" % self.ids[ident])).exists())
-        index = json.loads(self.page(self.after, "corpus-index.json"))
-        listed = json.dumps(index)
-        for ident in (self.held, self.pending):
-            self.assertNotIn("record/%d.html" % self.ids[ident], listed)
+            self.assertFalse((self.unreleased / "record" / ("%d.html" % self.ids[ident])).exists())
+        ids = {row[0] for row in json.loads(self.page(self.unreleased, "corpus-index.json"))["records"]}
+        self.assertFalse({self.ids[self.held], self.ids[self.pending]} & ids)
+
+    def released_row(self, ident):
+        return next(r for r in json.loads(INDEX.read_text(encoding="utf-8"))["records"]
+                    if r["source_identity"] == ident)
+
+    def test_held_record_carries_exact_original_hash_and_no_english(self):
+        html = self.page(self.after, "record/%d.html" % self.ids[self.held])
+        news = self.news_id(self.held)
+        raw = (ORIGINAL_DIR / (news + ".txt")).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        self.assertEqual(digest, self.released_row(self.held)["original_text_sha256"])
+        self.assertIn("Source version SHA-256: <code>%s</code>" % digest, html)
+        self.assertIn('data-korea-english-status="English held for QA"', html)
+        self.assertIn("../korea-originals/%s.html" % news, html)
+        for leaked in ("Synthetic machine translation line", "Synthetic English title",
+                       "Synthetic summary", "fixture-model", "korea-v2-fixture",
+                       "record-translation-section", "Machine translation"):
+            self.assertNotIn(leaked, html)
+        # The Korean body is still shown once, on its exhibit page only.
+        longest = max(raw.decode("utf-8").split("\n"), key=len).strip()
+        self.assertNotIn(longest, html)
+        # Nowhere else in the build does the held English surface.
+        for rel in ("korea.html", "corpus-index.json", "archive-research-index.json",
+                    "index.html"):
+            self.assertNotIn("Synthetic English title %d" % self.ids[self.held],
+                             self.page(self.after, rel), rel)
+
+    def test_pending_record_is_labelled_pending(self):
+        html = self.page(self.after, "record/%d.html" % self.ids[self.pending])
+        self.assertIn('data-korea-english-status="English pending"', html)
+        self.assertIn("Source version SHA-256: <code>%s</code>"
+                      % self.released_row(self.pending)["original_text_sha256"], html)
+
+    def test_processed_records_unchanged_by_original_only_records(self):
+        """A finished release's Record is the same page whether or not the
+        held/pending releases are shown, except for the site-wide record
+        total (two more records)."""
+        for ident in (self.processed, self.no_english):
+            rel = "record/%d.html" % self.ids[ident]
+            self.assertNotIn("data-korea-english-status", self.page(self.after, rel))
+            self.assertOnlyTotalsMoved(rel, self.unreleased, self.after, deltas=(0, 2))
+
+    def test_archive_has_one_record_entry_per_release(self):
+        records = {r["id"]: r for r in json.loads(
+            self.page(self.after, "archive-research-index.json"))["records"]}
+        for ident in (self.processed, self.no_english, self.held, self.pending):
+            self.assertIn("record:%d" % self.ids[ident], records)
+            self.assertNotIn("original:" + ident, records)
+            self.assertNotIn("official:" + ident, records)
+        held = records["record:%d" % self.ids[self.held]]
+        self.assertTrue(held["processing"].startswith("English held for QA"))
+        self.assertIsNone(held["text"])
+        self.assertNotIn("Synthetic", json.dumps(held))
+        # An exhibit without a Record keeps its own archive entry.
+        unrouted = {r["source_identity"] for r in json.loads(INDEX.read_text(
+            encoding="utf-8"))["records"]} - set(self.ids)
+        self.assertTrue(unrouted)
+        for ident in unrouted:
+            self.assertIn("original:" + ident, records)
 
     def test_record_labels_machine_translation_and_links_the_original(self):  # scenario 3, 16
         html = self.page(self.after, "record/%d.html" % self.ids[self.processed])
@@ -278,16 +408,36 @@ class TestRenderedKoreaRecords(unittest.TestCase):
     def test_desk_links_records_and_keeps_every_released_original(self):  # scenario 12
         desk = self.page(self.after, "korea.html")
         links = set(re.findall(r'data-korea-record-link="([^"]+)"', desk))
-        self.assertEqual(links, {self.processed, self.no_english})
+        self.assertEqual(links, {self.processed, self.no_english, self.held, self.pending})
         for ident in (self.processed, self.held, self.pending, self.no_english):
             self.assertIn("korea-originals/%s.html" % self.news_id(ident), desk)
-        for ident in (self.held, self.pending):
-            self.assertNotIn("record/%d.html" % self.ids[ident], desk)
 
-    def test_released_original_exhibits_are_byte_identical(self):    # scenario 8, 12
+    def test_released_original_exhibits_gain_only_a_record_backlink(self):  # scenario 8, 12
+        from core.korea_published_originals import read_release_index, render_original_page
+        rows = {r["source_identity"]: r for r in read_release_index()}
         for ident in (self.processed, self.held, self.pending, self.no_english):
             rel = "korea-originals/%s.html" % self.news_id(ident)
-            self.assertEqual((self.before / rel).read_bytes(), (self.after / rel).read_bytes(), rel)
+            route = "record/%d.html" % self.ids[ident]
+            line = ('  <p lang="en"><a class="korea-record-backlink" href="../%s">'
+                    'Indo-Pacific Record entry for this release</a></p>\n' % route)
+            after = self.page(self.after, rel)
+            self.assertEqual(after.count(line), 1, rel)
+            self.assertEqual(after.replace(line, ""), self.page(self.before, rel), rel)
+            self.assertEqual(after, render_original_page(
+                rows[ident], site_origin=None, record_route=route), rel)
+        # An exhibit with no Record is byte-identical to before.
+        other = sorted(set(rows) - set(self.ids))[0]
+        rel = "korea-originals/%s.html" % self.news_id(other)
+        self.assertEqual((self.before / rel).read_bytes(), (self.after / rel).read_bytes())
+        self.assertNotIn("korea-record-backlink", self.page(self.after, rel))
+
+    def test_excluded_identity_in_a_record_refuses_the_build(self):  # scenario 6
+        with mock.patch.object(gp, "load_registry", return_value=live_registry()), \
+                mock.patch("core.korea_corpus_bridge.excluded_identities",
+                           return_value={self.processed: "excluded_frozen_baseline"}), \
+                self.assertRaisesRegex(ValueError, "excluded Korean identity"):
+            gp.build(Path(self.tmp.name) / "refused", gp.PUBLIC_TITLE, self.activated,
+                     snapshot=gp.snapshot_from_corpus(self.activated), legacy_routes=True)
 
     def test_other_desks_record_pages_unchanged(self):               # scenario 11
         korea = {"%d.html" % i for i in self.ids.values()}
@@ -321,7 +471,7 @@ class TestFormattedCountComparison(unittest.TestCase):
                 self.compare("<dd>%s</dd>" % before, "<dd>%s</dd>" % after)
 
     def test_wrong_delta_text_extra_quantity_and_malformed_groups_still_fail(self):
-        for before, after in (("<dd>999</dd>", "<dd>1,003</dd>"),
+        for before, after in (("<dd>999</dd>", "<dd>1,005</dd>"),
                               ("Records: 999", "Documents: 1,001"),
                               ("Records: 999", "Records: 1,001 plus 2"),
                               ("<dd>999</dd>", "<dd>1,01</dd>")):

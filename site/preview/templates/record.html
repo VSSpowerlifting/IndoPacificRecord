@@ -153,6 +153,14 @@
   {# A gated Korean MND release (core/korea_corpus_bridge.publication_gate).
      The licensed original is shown once, on its own exhibit page; this
      record links to it rather than reproducing it a second time. #}
+  {% if record.korea_english_status %}
+  <section class="record-section" id="record-english-status" data-korea-english-status="{{ record.korea_english_status }}" aria-labelledby="record-english-status-heading">
+    <div class="layer-head"><span class="evidence evidence--record">English status</span>
+      <h2 id="record-english-status-heading">{{ record.korea_english_status }}</h2></div>
+    <p class="meta">The official Korean release is preserved below. No machine translation, summary or
+    analysis of it is shown: English for this release has not passed IPR's checks.</p>
+  </section>
+  {% endif %}
   {% if record.text_english %}
   <section class="record-section record-section--machine" id="record-translation-section" aria-labelledby="record-translation">
     <div class="layer-head"><span class="evidence evidence--model">Machine translation</span>
@@ -174,6 +182,9 @@
     <div class="layer-head"><span class="evidence evidence--record">Source record</span>
       <h2 id="record-text">Korean original</h2></div>
     <p class="record-lead"><a href="../korea-originals/{{ record.korea_news_id }}.html">Read the verbatim Korean original — release {{ record.korea_news_id }}</a></p>
+    {% if record.korea_english_status %}
+    <p class="meta">Source version SHA-256: <code>{{ record.korea_original_sha256 }}</code></p>
+    {% endif %}
     <p class="meta"><strong>Official Korean government source text</strong> — not an IPR fact-check or independent endorsement of the claims.
     Issuer: Republic of Korea Ministry of National Defense; republication: Republic of Korea Policy Briefing.
     Text reproduced with attribution under the article-specific

@@ -80,7 +80,9 @@ from core.viewmodel import PublicView                               # noqa: E402
 from core.title_translation import english_title, receipts, processing_note  # noqa: E402
 from core.china_discovery import build_focus                        # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
-from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
+from core.korea_corpus_bridge import (  # noqa: E402,F401
+    ENGLISH_STATUS_LABELS, publication_gate, publication_gate_detail,
+    hidden_predicate)
 from core.mindef_permissions import mindef_metadata_label, source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
 
@@ -507,8 +509,12 @@ def load_corpus(db_path: Path) -> dict:
         con.row_factory = _dict_row
         # Korea rows render only once the governed bridge admitted them and
         # processing finished; every query below applies the same predicate.
-        korea_publishable, korea_hidden = publication_gate(con)
+        korea_publishable, korea_hidden, korea_english_held = (
+            publication_gate_detail(con))
         visible = hidden_predicate(korea_hidden)
+        # A Korean row shown only for its released original has no
+        # publishable machine output: it is never "analyzed" in any count.
+        machine_ok = hidden_predicate(set(korea_english_held))
 
         sources = con.execute(
             "SELECT s.slug, s.display_name, s.language, s.language_tag, "
@@ -571,7 +577,7 @@ def load_corpus(db_path: Path) -> dict:
 
         totals = con.execute(
             "SELECT (SELECT COUNT(*) FROM articles a WHERE " + visible + ") AS articles, "
-            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + ") AS analyzed, "
+            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + " AND " + machine_ok + ") AS analyzed, "
             "       (SELECT COUNT(*) FROM scrape_runs) AS runs, "
             "       (SELECT MIN(published_date) FROM articles a WHERE " + visible + ") AS first_date, "
             "       (SELECT MAX(published_date) FROM articles a WHERE " + visible + ") AS last_date"
@@ -592,7 +598,7 @@ def load_corpus(db_path: Path) -> dict:
             "  FROM articles a "
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
-            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " "
+            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " AND " + machine_ok + " "
             " ORDER BY a.published_date DESC, a.id DESC LIMIT 60").fetchall()
 
         # Collection continuity: which calendar days have a run. The published
@@ -660,9 +666,40 @@ def load_corpus(db_path: Path) -> dict:
             korea_english = {r["id"]: r["text_english"] for r in con.execute(
                 "SELECT id, text_english FROM articles WHERE id IN (%s)"
                 % ",".join(str(int(i)) for i in sorted(korea_publishable)))}
+        # The gate already proved this digest equals the released, re-hashed
+        # original's digest; the record shows it beside the exhibit link.
+        korea_original_digests = {}
+        if korea_english_held:
+            korea_original_digests = {
+                r["source_identity"]: r["original_text_sha256"]
+                for r in con.execute(
+                    "SELECT source_identity, original_text_sha256 "
+                    "FROM korea_corpus_admissions WHERE article_id IN (%s)"
+                    % ",".join(str(int(i)) for i in sorted(korea_english_held)))}
+        # Every English machine field of an original-only row is withheld
+        # before anything below can read it (titles, summaries, receipts).
+        for rec in corpus:
+            if rec["id"] in korea_english_held:
+                for key in ("title_english", "summary_english", "analyzed_at",
+                            "model_id", "prompt_version", "is_significant",
+                            "title_translation_model", "title_translation_prompt",
+                            "title_translated_at",
+                            "title_translation_value_sha256"):
+                    rec[key] = None
+                rec["summary_lead"] = None
+                korea_english[rec["id"]] = None
+                if rec["state"] == "analyzed":
+                    rec["state"] = "analysis_incomplete"
 
     for rec in corpus:
         rec["state_label"] = STATE_LABELS[rec["state"]]
+        if rec["id"] in korea_english_held:
+            # The stored-state label stays as is (the Records list and the
+            # browser index share it); the Record states English separately.
+            rec["korea_english_status"] = ENGLISH_STATUS_LABELS[
+                korea_english_held[rec["id"]]]
+            rec["korea_original_sha256"] = korea_original_digests[
+                korea_publishable[rec["id"]]]
         # The machine flag is surfaced ONLY where it was actually computed.
         # Everywhere else it is None — not False, which would read as
         # "assessed and not flagged".
@@ -695,6 +732,7 @@ def load_corpus(db_path: Path) -> dict:
         "institutions": institutions,
         "corpus": corpus,
         "korea_publishable": korea_publishable,
+        "korea_english_held": korea_english_held,
         "state_counts": corpus_state_counts(corpus),
         "facets": corpus_facets(corpus),
         "weeks": corpus_weeks(corpus, run_days),
@@ -3623,9 +3661,17 @@ def build(out_dir: Path, title: str, db_path: Path,
             target.parent.mkdir(parents=True, exist_ok=True)
             # Render candidate-safe noindex markup first; the shared site-origin
             # pass below installs canonical and social URLs for actual release.
-            target.write_text(render_original_page(record, site_origin=None),
-                              encoding="utf-8")
+            target.write_text(render_original_page(
+                record, site_origin=None,
+                record_route=korea_record_routes.get(record["source_identity"])),
+                encoding="utf-8")
             written.append(record["route"])
+    # An exhibit that belongs to a Record names that Record as its canonical
+    # reader page (render_original_page applies the same rule for readback).
+    korea_original_canonical = {
+        r["route"]: korea_record_routes[r["source_identity"]]
+        for r in korea_published_original_rows
+        if r["source_identity"] in korea_record_routes}
 
     # English pages are written only for explicitly registered, already
     # source-pinned originals with an editor-approved review pack. An empty
@@ -3762,7 +3808,10 @@ def build(out_dir: Path, title: str, db_path: Path,
         machine_records=machine_archive_rows(machine_records),
         english_publications=korea_english_publication_rows, analyses=public_analyses,
         cited=cited_archive_rows(cited_records),
-        title_kinds={rec["id"]: rec["title_kind"] for rec in data["corpus"]})
+        title_kinds={rec["id"]: rec["title_kind"] for rec in data["corpus"]},
+        korea_records={ident: aid for aid, ident in data["korea_publishable"].items()},
+        english_withheld={aid: ENGLISH_STATUS_LABELS[state]
+                          for aid, state in data["korea_english_held"].items()})
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
@@ -4034,7 +4083,8 @@ def build(out_dir: Path, title: str, db_path: Path,
             page = path.read_text(encoding="utf-8")
             if NOINDEX_TAG not in page:
                 continue
-            loc = origin + "/" + canonical_route(rel)
+            loc = origin + "/" + canonical_route(
+                korea_original_canonical.get(rel, rel))
             # The canonical and og:url are the same fact stated twice, so they
             # are derived from one value here rather than composed separately
             # in a template that does not know the origin. A social card that
@@ -4086,7 +4136,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         locs, seen = [], set()
         for path in sorted(out_dir.rglob("*.html")):
             rel = path.relative_to(out_dir).as_posix()
-            if rel.startswith("article/") or rel in cited_moved:
+            if (rel.startswith("article/") or rel in cited_moved
+                    or rel in korea_original_canonical):
                 continue
             loc = "%s/%s" % (origin, canonical_route(rel))
             if loc not in seen:

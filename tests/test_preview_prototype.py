@@ -239,14 +239,10 @@ def weeks_from_sql(db_path):
     con = sqlite3.connect(uri, uri=True)
     try:
         # Reproduce the release eligibility rule independently in SQL.
-        # Korea's admitted-but-QA-held rows are stored, not publicly counted.
-        korea_filter = (
-            "(COALESCE(s.desk_id, '') != 'korea' "
-            "AND s.slug != 'kr_policy_mnd_releases') "
-            "OR EXISTS (SELECT 1 FROM korea_corpus_admissions k "
-            "WHERE k.article_id = a.id AND k.state = 'admitted' "
-            "AND k.processing_state IN ('processed', 'not_relevant'))"
-        )
+        # Korea's admitted-but-unfinished rows count only when a released,
+        # hash-matching original backs them (tests/korea_release_rule.py).
+        from tests.korea_release_rule import public_filter
+        korea_filter = public_filter(con)
         rows = con.execute(
             "SELECT date(a.published_date,'weekday 0','-6 days') AS start, "
             "       COUNT(*) AS n "
@@ -2857,7 +2853,8 @@ class TestWeekShards(PreviewCase):
     def test_run_dates_are_never_presented_as_a_denominator(self):
         pages = dict(self.shard_html)
         pages["corpus.html"] = self.page("corpus.html")
-        ratio = re.compile(r"\d\s*(?:/|of)\s*7\b")
+        # "Page 2 of 7" is shard pagination, not a run-date ratio.
+        ratio = re.compile(r"(?<!Page )(?<!\d)\d+\s*(?:/|of)\s*7\b")
         for name, html in pages.items():
             with self.subTest(page=name):
                 self.assertIsNone(ratio.search(html),

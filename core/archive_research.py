@@ -78,7 +78,8 @@ def projection(**values):
     return result
 
 
-def archive_projection(index, con, cite_record, processing_notes, excluded):
+def archive_projection(index, con, cite_record, processing_notes, excluded,
+                       english_withheld=None):
     """Intersection of existing public metadata, exact current rows and tombstones.
 
     Original URLs are used ONLY for retirement checks, never serialized. The
@@ -94,6 +95,14 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
     current = {r[0]: r for r in con.execute(
         'SELECT a.id, a.url, a.published_date, a.title_english, a.title_original, '
         's.slug FROM articles a JOIN sources s ON s.id=a.source_id')}
+    # A Record shown only for its released original publishes no English:
+    # its stored machine title is withheld here exactly as on the Record, and
+    # its honest English status ({article id: label}) replaces the note.
+    english_withheld = dict(english_withheld or {})
+    for ident in english_withheld:
+        if ident in current:
+            row = current[ident]
+            current[ident] = (row[0], row[1], row[2], None, row[4], row[5])
     title_receipts = receipts(con, metadata=True)
     source_columns = {r[1] for r in con.execute('PRAGMA table_info(sources)')}
     languages = ({r[0]: (r[1], r[2]) for r in con.execute(
@@ -154,6 +163,9 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
             record_type='archive_record', processing=(
                 'Historical processing status: ' + state['label'] + '. MINDEF titles, text, translations and machine '
                 'explanations are not published on this site at present.' if mindef else
+                english_withheld[ident] + ' · The official Korean release is preserved; '
+                'no English for it has passed IPR checks, so none is published.'
+                if ident in english_withheld else
                 state['label'] + ' · ' + processing_note(title_record, processing_notes)),
             ipr_url=ipr, citation=citation + ' ' + ipr)
     excluded['active_not_in_public_projection'] += len(set(current) - seen)
@@ -294,9 +306,25 @@ def with_cited(records, cited):
     return kept + cited
 
 
+def fold_into_records(records, korea_records):
+    """One Korean release with a Record is ONE archive entry: record:<id>.
+
+    ``korea_records`` maps a source identity to its Record's article id. The
+    parallel ``original:<identity>`` exhibit entry and any ``official:``
+    link entry for that identity are dropped; the Record links to both. No
+    text or source URL moves into the record entry (bulk-text rule).
+    """
+    if not korea_records:
+        return list(records)
+    folded = {'original:' + i for i in korea_records} | {
+        'official:' + i for i in korea_records}
+    return [r for r in records if r['id'] not in folded]
+
+
 def build_index(db_path, compact, *, cite_record, processing_notes,
                 official_groups=(), originals=(), english_publications=(), analyses=(),
-                machine_records=(), cited=(), title_kinds=None):
+                machine_records=(), cited=(), title_kinds=None, korea_records=None,
+                english_withheld=None):
     """One build's selected DB + current public projection/loaders, fail closed.
 
     `title_kinds` maps a corpus record id to generate_preview.title_kind(), so
@@ -309,7 +337,8 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
     with read_only(str(db_path)) as con:
         count = verify_no_active_retired_urls(con)
         tombstones = con.execute('SELECT original_article_id,url_sha256 FROM retired_article_urls').fetchall()
-        records = list(archive_projection(compact, con, cite_record, processing_notes, excluded))
+        records = list(archive_projection(compact, con, cite_record, processing_notes, excluded,
+                                          english_withheld))
     holds = {}
     for rows, desk, source, issuer in official_groups:
         rows = list(rows)
@@ -319,6 +348,12 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
             if raw.get('editorial_hold'):
                 holds.setdefault(record['id'], raw['editorial_hold'])
     records.extend(published_artifacts(originals, english_publications))
+    # Fold only where the record:<id> entry actually exists; a Record the
+    # archive projection excluded keeps its exhibit entry rather than vanish.
+    present = {r['id'] for r in records}
+    records = fold_into_records(records, {
+        ident: aid for ident, aid in (korea_records or {}).items()
+        if 'record:%d' % aid in present})
     records.extend(analyses)
     records.extend(machine_records)
     records = with_cited(records, cited)
