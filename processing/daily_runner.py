@@ -83,9 +83,10 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         if no_release:
             readings[identity] = reading
 
-    if pilot:
-        # A selected one-item pilot must not turn other historical ledger rows
-        # into source_missing_or_metadata_changed holds. Process a temporary
+    if pilot or source_identity:
+        # A selected one-item run (an attended pilot, or an operator recovery
+        # dispatch of a recurring family) must not turn other historical ledger
+        # rows into source_missing_or_metadata_changed holds. Process a temporary
         # per-identity view, then fold only the chosen entry back into custody.
         selected_key = family + ":" + source_identity
         selected_state = {selected_key: state[selected_key]} if selected_key in state else {}
