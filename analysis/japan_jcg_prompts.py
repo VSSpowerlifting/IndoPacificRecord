@@ -19,7 +19,10 @@ from analysis.philippines_prompts import CATEGORIES, evidence_passages  # noqa: 
 # admission, and closes with a per-sentence token check against the one cited
 # passage, the rule english_official_quality enforces unchanged. v1 readings
 # held at that check (0 of 7 passed); the validator is not relaxed.
-VERSION = "jp-jcg-relevance-v1+jp-jcg-analysis-v2"
+# v3 (analysis only): writes every acronym and abbreviation exactly as the
+# cited passage does. Six of eight held v1/v2 readings spelled out an acronym
+# the passage leaves unexpanded, which the same unchanged check holds.
+VERSION = "jp-jcg-relevance-v1+jp-jcg-analysis-v3"
 RELEVANCE_VERSION, ANALYSIS_VERSION = VERSION.split("+")
 
 
@@ -80,6 +83,11 @@ def analysis_messages(title, body):
         "explicitly present in the ONE passage you cite for that sentence. "
         "When possible use simpler wording without extra proper names; never "
         "invent abbreviations or normalize named offices. "
+        "Write every acronym, abbreviation and short form exactly as the cited "
+        "passage writes it: never spell out an acronym or abbreviation that the "
+        "passage leaves unexpanded, and never shorten a term the passage spells "
+        "out into an acronym. If its meaning is unclear, keep the passage's own "
+        "form or leave that detail out. "
         "Do not combine evidence from different passages for one sentence. "
         "Distinguish an announcement, proposal, instruction, planned exercise, "
         "exercise conducted and completed action. An official assertion remains "
