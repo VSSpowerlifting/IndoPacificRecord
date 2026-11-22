@@ -191,6 +191,10 @@ class GlobalTimesMilScraper(BaseScraper):
             "published_date":  pub_date,
             "content_verdict": verdict,
         }
+        if text_held:
+            # Read by the collection adapter: a deliberate hold is not an
+            # unreadable page, so it is not counted as text_unavailable.
+            article["text_held"] = text_held
         wire = self._captured.get(url, (None, None))[0]
         if wire is not None:
             sha = hashlib.sha256(wire).hexdigest()

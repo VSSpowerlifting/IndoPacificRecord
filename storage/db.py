@@ -227,7 +227,8 @@ def complete_scrape_run(
 def insert_article(article: dict, scrape_run_id: int) -> Optional[int]:
     """
     Insert a new article. Returns the new row id, or None if the URL
-    already exists.
+    already exists. Raises CustodyError when a Global Times capture row
+    cannot be recorded; neither row is then stored.
     """
     # Interim source-use hold (inert unless enabled). Raises: returning None
     # would be reported as a duplicate URL.
@@ -274,9 +275,12 @@ def insert_article(article: dict, scrape_run_id: int) -> Optional[int]:
                 record_capture(conn, article)
             return cur.lastrowid
     except CustodyError as exc:
+        # Raised, not returned as None: None reads as a duplicate URL, and the
+        # source would then report a healthy empty run. The transaction above
+        # has already rolled back the article row with its capture row.
         logger.error("Capture custody failed, article not stored: %s (%s)",
                      article["url"], exc)
-        return None
+        raise
     except sqlite3.IntegrityError:
         logger.debug("Duplicate URL skipped: %s", article["url"])
         return None

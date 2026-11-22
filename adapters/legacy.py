@@ -286,7 +286,12 @@ class LegacyScraperAdapter(SourceAdapter):
         # is what let a source report "34 read" while one of the 34 was an
         # empty shell.
         result.extracted = len(documents)
-        unusable = [d for d in documents if not d.has_usable_text]
+        # A body a parser withheld on purpose (it marks `text_held`, e.g. a
+        # page republishing another agency's text) was read, not lost.
+        held = [d for d in documents if (d.extra or {}).get("text_held")]
+        held_ids = {id(d) for d in held}
+        unusable = [d for d in documents
+                    if not d.has_usable_text and id(d) not in held_ids]
         result.text_unavailable = len(unusable)
         result.failed_fetches = len(self.failed_fetches)
         result.completed_at = _now()
@@ -301,6 +306,12 @@ class LegacyScraperAdapter(SourceAdapter):
             # is a gap in an otherwise working source, not an outage — calling
             # it one would hide the working majority behind a failure status.
             result.status = st.OK
+            if held:
+                notes.append(
+                    "%d of %d parsed page(s) had their body held by the "
+                    "parser (%s); titles, URLs and dates were kept"
+                    % (len(held), len(documents), ", ".join(sorted(
+                        {str(d.extra["text_held"]) for d in held}))))
             if unusable:
                 notes.append(
                     "%d of %d parsed page(s) carried no usable text; their "

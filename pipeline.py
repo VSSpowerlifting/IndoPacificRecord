@@ -195,6 +195,34 @@ def production_window(adapter, target_date: date) -> CollectionWindow:
         lookback_days=getattr(adapter, "production_lookback_days", 0))
 
 
+def _counting_custody(insert: Callable[[], Optional[int]], article: dict,
+                      failed) -> Optional[int]:
+    """
+    Run one `db.insert_article()` call, counting a capture-custody failure per
+    source.
+
+    The failed article and its capture row were rolled back together; the
+    caller reports the count through `_mark_custody_failure()` so the loss is
+    never read as a duplicate URL.
+    """
+    from core.collection.global_times_custody import CustodyError
+    try:
+        return insert()
+    except CustodyError:
+        failed[article.get("source_slug")] += 1
+        return None
+
+
+def _mark_custody_failure(result, failed: int) -> None:
+    """Some captures could not be recorded: a storage failure, never a healthy
+    empty run."""
+    result.status = collection_status.STORAGE_FAILURE
+    result.error_detail = (
+        (result.error_detail + "; " if result.error_detail else "")
+        + "%d capture custody row(s) failed; those articles not stored" % failed
+    )
+
+
 def _store_atomic_batches(kw_passed: list, kw_rejected: list, run_id,
                           atomic_slugs=ATOMIC_BATCH_SLUGS):
     """
@@ -996,13 +1024,23 @@ def run(
     normal_kw_rejected = [a for a in kw_rejected
                          if a.get("source_slug") not in ATOMIC_BATCH_SLUGS]
 
+    # A capture-custody failure loses only that article (its transaction rolled
+    # back), but it must not read as a duplicate: it is counted per source and
+    # reported as a storage failure in the fold below.
+    from collections import Counter
+    custody_failed: Counter = Counter()
+
+    def _store(article):
+        return _counting_custody(lambda: db.insert_article(article, run_id),
+                                 article, custody_failed)
+
     for article in normal_kw_passed:
-        aid = db.insert_article(article, run_id)
+        aid = _store(article)
         if aid is not None:
             inserted.append((aid, article))
 
     for article in normal_kw_rejected:
-        aid = db.insert_article(article, run_id)
+        aid = _store(article)
         if aid is not None:
             db.update_relevance(aid, 0.0, "failed keyword pre-filter", False)
 
@@ -1033,7 +1071,9 @@ def run(
         result.new_documents      = inserted_by_source.get(slug, 0)
         result.relevance_rejected = rejected_by_source.get(slug, 0)
 
-        if slug in atomic_failed_slugs:
+        if custody_failed.get(slug):
+            _mark_custody_failure(result, custody_failed[slug])
+        elif slug in atomic_failed_slugs:
             # The batch existed and was rejected as a whole -- record that
             # honestly rather than letting new_documents == 0 read as
             # OK_ALL_DUPLICATES/OK_ALL_FILTERED below, which would claim a

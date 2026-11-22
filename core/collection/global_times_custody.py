@@ -22,7 +22,8 @@ from typing import Mapping, Optional, Tuple
 
 FAMILY = "global_times_mil"
 SOURCE_SLUG = "global_times_mil"
-METADATA_FIELDS = ("url", "content_hash", "byline", "pub_time", "fetched_at")
+METADATA_FIELDS = ("url", "content_hash", "byline", "pub_time", "fetched_at",
+                   "text_held")
 
 _ID_RE = re.compile(r"^https?://www\.globaltimes\.cn/page/\d{6}/(\d+)\.shtml$")
 _HEX64 = re.compile(r"^[a-f0-9]{64}$")
@@ -60,6 +61,9 @@ def metadata(article: dict) -> dict:
         "byline": custody.get("byline"),
         "pub_time": custody.get("pub_time"),
         "fetched_at": custody.get("fetched_at"),
+        # Why the stored body is blank, when it was withheld on purpose
+        # (e.g. "non_gt_byline"); None when the body was kept.
+        "text_held": custody.get("text_held"),
     }
 
 
