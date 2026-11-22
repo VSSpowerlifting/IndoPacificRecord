@@ -422,6 +422,19 @@ class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
             ("gov_mil", "2026-09-19 23:00:00", st.OK_ALL_FILTERED, 0, "held: review"))
         self.assertEqual("HEALTHY", self.judge(runs["gov_mil"])[0])
 
+    def test_signed_holds_on_a_healthy_run_are_visible_without_changing_it(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK_ALL_DUPLICATES, 0,
+             "duplicates only; signed_held: 2"))
+        state, days, detail = self.judge(runs["gov_mil"])
+        self.assertEqual(("HEALTHY", 1), (state, days))
+        self.assertIn("latest 2026-09-19 ok_all_duplicates: duplicates only; "
+                      "signed_held: 2", detail)
+
+    def test_a_healthy_run_without_detail_quotes_nothing(self):
+        runs = self.history(("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))
+        self.assertTrue(self.judge(runs["gov_mil"])[2].endswith("latest 2026-09-19 ok"))
+
     def test_a_paused_source_is_paused_not_failed(self):
         runs = self.history(
             ("gov_mil", "2026-09-05 23:00:00", st.OK, 0, None),

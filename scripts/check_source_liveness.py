@@ -282,7 +282,9 @@ def _quote(detail: Optional[str]) -> str:
 
 def _latest(runs: GovernedRuns) -> str:
     out = "latest %s %s" % (runs.latest_date, runs.latest_status)
-    if runs.latest_failure and runs.latest_detail:
+    # Quoted on success too: a held admission (e.g. "held: ...; signed_held: N")
+    # is reported here without changing the verdict.
+    if runs.latest_detail:
         out += ": " + _quote(runs.latest_detail)
     return out
 
