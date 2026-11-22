@@ -149,6 +149,11 @@ class DailySource:
     # Receipt directories (at the custody commit) holding "<run_id>.json" files
     # with the collector's exit status, written even when no ledger is.
     collection_receipt_dirs: Tuple[str, ...] = ()
+    # Cutover floor for a family whose custody holds ledgers written before its
+    # collector adopted the shared schema: ledger file names that sort at or
+    # below it are not read (core.collection.attempts.read_custody). None reads
+    # every ledger.
+    collection_ledger_after: Optional[str] = None
 
     def collection_expectation(self) -> Tuple[Optional[str], int]:
         """(cron, grace hours) for the freshness verdict; no cron for an
@@ -167,7 +172,8 @@ class DailySource:
         """Signed-facts block read from custody at ``commit``; never raises."""
         from core.collection import attempts
         return attempts.read_custody(repo, commit, self.family,
-                                     receipt_dirs=self.collection_receipt_dirs)
+                                     receipt_dirs=self.collection_receipt_dirs,
+                                     ledger_after=self.collection_ledger_after)
 
     def evidence_outcome(self, intake_dir) -> Optional[Tuple[str, str]]:
         return _call(self.evidence_report)(intake_dir) if self.evidence_report else None
@@ -517,6 +523,15 @@ def _uscc_parent(conn, identity) -> Optional[dict]:
     from core import uscc_press_links
     return uscc_press_links.read_parent(conn, identity)
 
+# Basename of the last pre-schema ledger on archive/uscc-press: those ledgers
+# carry result "success"/"hold" and no target_date, target_date_source or health,
+# so read_custody would report the whole custody unreadable. Newer ledgers
+# (named "%Y%m%dT%H%M%SZ-<run_id>.json") sort after it and are read as usual.
+# TODO(lead): PLACEHOLDER. Replace with the basename of the last pre-schema
+# ledger, verified against a fresh fetch of archive/uscc-press, before opening
+# the PR.
+USCC_LEDGER_AFTER = "20261122T080917Z-45001379646-1.json"
+
 SOURCES: Dict[str, DailySource] = {s.family: s for s in (
     DailySource(
         family="ph_afp_articles", desk_id="philippines", custody_ref="archive/ph-afp",
@@ -644,14 +659,12 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         public_switch="US_USCC_LINKS_ENABLED",
         # A manifest-registered manual source (2026-11-22 founder activation):
         # public Daily admits signed links and outputs, never fetches uscc.gov.
-        desk_registered=True),
-        # No collection_cron_utc yet: the private collector (cron '35 11 * * *',
-        # ipr-source-evidence-private#50) writes ledger entries with result
-        # "success"/"hold" and no target_date, target_date_source or health, which
-        # core/collection/attempts.read_custody cannot read. Declaring the cron
-        # would sign /2 with attested=false and report collection_not_attested on
-        # every Daily. The family signs /1 (no freshness verdict) until that
-        # collector writes the shared ledger schema.
+        desk_registered=True,
+        # private uscc_private_first_collector.yml: cron '35 11 * * *'
+        collection_cron_utc="11:35",
+        # Custody keeps the pre-schema ledger(s) of the first collector forever
+        # (the collector refuses to modify or delete under state/ledger).
+        collection_ledger_after=USCC_LEDGER_AFTER),
 )}
 
 

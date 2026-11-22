@@ -502,11 +502,13 @@ row, after admission, keeping its counts and `held:` detail.
   must be edited together; the attended Singapore pilot never gets a verdict.
   (22 November: Singapore MINDEF is recurring and declares `10:37`; it signs `/2`
   and gets a verdict. See DECISION_LOG 2026-11-22.)
-  USCC declares no cadence yet: its private collector (`'35 11 * * *'`,
-  VSSpowerlifting/ipr-source-evidence-private#50) writes ledger results
-  `success`/`hold` without `target_date`, `target_date_source` or `health`, which
-  `attempts.read_custody` cannot read. It signs `/1` until that collector writes
-  the shared ledger schema; only then is `collection_cron_utc="11:35"` declared.
+  USCC declares `collection_cron_utc="11:35"` (private collector `'35 11 * * *'`)
+  and signs `/2`, read above `collection_ledger_after`: custody keeps the
+  pre-schema ledger(s) of the first collector (results `success`/`hold`, no
+  `target_date`, `target_date_source` or `health`), which `read_custody` would
+  otherwise report unreadable. This lands only after the private collector
+  writes the shared schema and one `schedule-slot` ledger is in custody;
+  before that, every USCC Daily row would read `collection_not_attested`.
 - Strict-flip condition: set `pipeline._REQUIRE_COLLECTION_ATTESTATION` only
   after a structure-only listing shows `/2` for every enabled, non-attended
   family with a declared cadence. Until then a missing block is "no verdict".
