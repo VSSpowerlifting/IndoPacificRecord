@@ -675,7 +675,19 @@ def admit(conn, envelope, *, family, policy, key):
                     held.append("daily_original_version_or_policy_held")
                 elif disposition == "inserted":
                     originals_admitted += 1
+    # Signed paused holds are applied above as withdrawals only. Report which
+    # of them are not currently released (identities only), so the receipt
+    # does not silently drop them. Status semantics are unchanged.
+    still_held = []
+    for ident in sorted(set(packet["held"])):
+        if conn.execute("SELECT 1 FROM daily_machine_records WHERE source_family=? "
+                        "AND source_identity=? AND publication_state='released'",
+                        (family, ident)).fetchone() is None:
+            still_held.append(ident)
     result = {"admitted": accepted, "holds": held}
+    if still_held:
+        # Present only when non-empty, so the receipt shape is otherwise unchanged.
+        result["signed_held"] = still_held
     if originals:
         result["originals_admitted"] = originals_admitted
     return result

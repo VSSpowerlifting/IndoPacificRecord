@@ -397,11 +397,17 @@ def _daily_admission(family: str, *, intake=None, clock=None) -> GovernedAdmissi
                                    error_detail="no signed envelope delivered this run")
         admitted = receipt["admitted"]
         unchanged = max(receipt["records"] - admitted, 0)
-        logger.info("%s: governed admission — %d records, %d admitted, %d held",
-                    family, receipt["records"], admitted, len(receipt["holds"]))
+        signed_held = len(receipt.get("signed_held") or ())
+        logger.info("%s: governed admission — %d records, %d admitted, %d held, %d signed_held",
+                    family, receipt["records"], admitted, len(receipt["holds"]), signed_held)
         if "originals_admitted" in receipt:
             logger.info("%s: %d original components admitted", family, receipt["originals_admitted"])
         base = _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
+        if signed_held:
+            # Reporting only: persistent paused holds never change the status.
+            base = GovernedOutcome(base.status, base.new_documents, base.duplicates,
+                                   "; ".join(d for d in (base.error_detail,
+                                             "signed_held: %d" % signed_held) if d))
         if attended_only(family):
             # An operator-run pilot has no scheduled collector to attest.
             return base
