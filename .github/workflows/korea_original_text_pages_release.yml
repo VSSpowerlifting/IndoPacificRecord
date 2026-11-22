@@ -156,6 +156,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Page-only release: never commit a desk page that links the full
+          # official-link index unless main already carries that index.
+          if grep -qF 'href="korea-official-links.html"' output/korea.html; then
+            git cat-file -e HEAD:output/korea-official-links.html || {
+              echo "::error::Korea desk links the official-link index but main lacks it"
+              exit 1
+            }
+          fi
           git add -A -- research/korea_published_original_texts.json \
             research/korea_published_original_texts output/korea.html output/korea-originals
           python - <<'PY'
@@ -194,6 +202,13 @@ jobs:
           test "$(git rev-parse origin/main)" = "$(cat "$RUNNER_TEMP/korea-original-main-commit")"
           test -z "$(git -C korea-existing-original-pages status --porcelain --untracked-files=all)"
           mkdir -p korea-existing-original-pages/korea-originals
+          # Never publish a desk page whose full-index link would 404 on Pages.
+          if grep -qF 'href="korea-official-links.html"' output/korea.html; then
+            test -f korea-existing-original-pages/korea-official-links.html || {
+              echo "::error::Korea desk links the official-link index but Pages lacks it"
+              exit 1
+            }
+          fi
           cp output/korea.html korea-existing-original-pages/korea.html
           cp output/korea-originals/*.html korea-existing-original-pages/korea-originals/
           python - <<'PY'

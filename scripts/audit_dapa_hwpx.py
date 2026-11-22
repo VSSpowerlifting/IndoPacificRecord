@@ -26,7 +26,52 @@ class AuditHold(ValueError):
 def local(tag):
     return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
 
+def located_items(root, state=None):
+    """Pre-order walk: the audited text lines, each with its table location.
+
+    Yields ("text", line, table, cell) for every non-empty paragraph, in
+    exactly the order audit() joins them, and ("picture", None, table, cell)
+    for each picture. table/cell are top-level ordinals, None in the body.
+    """
+    state = state if state is not None else {"tables": 0, "where": (None, None)}
+    for node in root:
+        kind = local(node.tag)
+        if kind == "p":
+            chunks = ["".join(t.itertext()) for run in node
+                      if local(run.tag) == "run" for t in run
+                      if local(t.tag) == "t"]
+            line = "".join(chunks).strip()
+            if line:
+                yield ("text", line) + state["where"]
+            yield from located_items(node, state)
+        elif kind == "tbl":
+            outer = state["where"]
+            if outer[0] is None:
+                state["where"] = (state["tables"], None)
+                state["cells"] = 0
+                state["tables"] += 1
+            yield from located_items(node, state)
+            state["where"] = outer
+        elif kind == "tc":
+            outer = state["where"]
+            if outer[1] is None:
+                state["where"] = (outer[0], state["cells"])
+                state["cells"] += 1
+            yield from located_items(node, state)
+            state["where"] = outer
+        elif kind in ("pic", "img"):
+            yield ("picture", None) + state["where"]
+            yield from located_items(node, state)
+        else:
+            yield from located_items(node, state)
+
 def audit(path, expected_sha256, expected_bytes=None, expected_characters=None):
+    return audit_with_items(path, expected_sha256, expected_bytes,
+                            expected_characters)[0]
+
+def audit_with_items(path, expected_sha256, expected_bytes=None,
+                     expected_characters=None):
+    """One verified read: (report, located items). Items stay in memory only."""
     path = Path(path).expanduser()
     if not path.is_absolute() or path.is_symlink() or not path.is_file():
         raise AuditHold("ordinary_absolute_local_file_required")
@@ -59,12 +104,15 @@ def audit(path, expected_sha256, expected_bytes=None, expected_characters=None):
             count = dict(paragraphs=0, empty_paragraphs=0, tables=0,
                          table_rows=0, table_cells=0, pictures=0,
                          equations=0, other_shapes=0)
-            lines = []
+            lines, items, state = [], [], None
             for section in sections:
                 xml = z.read(section).decode("utf-8", "strict")
                 if "<!DOCTYPE" in xml.upper() or "<!ENTITY" in xml.upper():
                     raise AuditHold("xml_external_entities_refused")
-                for node in ET.fromstring(xml).iter():
+                tree = ET.fromstring(xml)
+                state = state or {"tables": 0, "where": (None, None)}
+                items.extend(located_items(tree, state))
+                for node in tree.iter():
                     kind = local(node.tag)
                     if kind == "tbl": count["tables"] += 1
                     elif kind == "tr": count["table_rows"] += 1
@@ -75,12 +123,8 @@ def audit(path, expected_sha256, expected_bytes=None, expected_characters=None):
                         count["other_shapes"] += 1
                     elif kind == "p":
                         count["paragraphs"] += 1
-                        chunks = ["".join(t.itertext()) for run in node
-                                  if local(run.tag) == "run" for t in run
-                                  if local(t.tag) == "t"]
-                        line = "".join(chunks).strip()
-                        if line: lines.append(line)
-                        else: count["empty_paragraphs"] += 1
+            lines = [item[1] for item in items if item[0] == "text"]
+            count["empty_paragraphs"] = count["paragraphs"] - len(lines)
             if not lines:
                 raise AuditHold("hwpx_no_extractable_original_text")
             extracted = "\n".join(lines)
@@ -107,7 +151,7 @@ def audit(path, expected_sha256, expected_bytes=None, expected_characters=None):
         "source_use_or_publication_approved": False,
         "automated_production_admission_approved": False,
         "original_or_text_exported": False,
-    }
+    }, items
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -126,7 +170,7 @@ def main(argv=None):
                     or not dest.parent.is_dir() or dest.parent.is_symlink()
                     or dest.parent.stat().st_mode & 0o077):
                 raise AuditHold("private_receipt_requires_new_file_in_restricted_directory")
-            with dest.open("x", encoding="utf-8",
+            with open(dest, "x", encoding="utf-8",
                            opener=lambda name, flags: os.open(name, flags, 0o600)) as stream:
                 json.dump(report, stream, ensure_ascii=False, indent=2, sort_keys=True)
                 stream.write("\n")

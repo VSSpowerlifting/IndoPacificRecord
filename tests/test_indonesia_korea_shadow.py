@@ -16,7 +16,8 @@ from urllib.parse import urlsplit
 from bs4 import BeautifulSoup
 
 from core.collection import status as st
-from core.collection.contract import CollectionWindow, CandidateReference
+from core.collection.contract import (
+    CollectionWindow, CandidateReference, CaptureResult, DiscoveryResult)
 from core.manifests import load_all_desks, load_manifest
 from scraper.sources import desk_shadow_http as http
 from scraper.sources.id_kemhan import KemhanAdapter, LISTING as ID_LISTING, article_url as id_url
@@ -84,6 +85,39 @@ def adapter(desk, mutations=None):
     source = load_manifest(ROOT / "shadow" / name / "manifest.json").sources[0]
     session = Session(mutations)
     return cls(source, session=session, sleeper=lambda _: None), session
+
+
+def two_release_listing():
+    """The real filtered listing cut to its first two MND releases."""
+    soup = BeautifulSoup(fixture("korea-filtered.bin"), "html.parser")
+    links = soup.select('a[href*="pressReleaseView.do"][href*="pageIndex="]')
+    for link in links[2:]:
+        link.parent.decompose()
+    soup.select_one('#mainForm input[name="startDate"]')["value"] = "2026-10-02"
+    soup.select_one(".result strong").string = "2"
+    for link in soup.select(".paging a[onclick]"):
+        if "pageLink(" in link["onclick"]:
+            link.parent.decompose()
+    return Response(KR_LISTING, str(soup).encode())
+
+
+def korea_pair():
+    """Those two releases in listing order: (release URL, HWPX URL, page bytes)."""
+    probe, _ = adapter("korea", {KR_LISTING: two_release_listing()})
+    pair = []
+    for ref in probe.discover(CollectionWindow(TARGET, 4)).references:
+        row = next(r for r in ROWS if "pressReleaseView.do" in r["url"]
+                   and kr_url(r["url"]) == ref.url)
+        page = fixture(row["capture"])
+        pair.append((ref.url, probe.metadata(page.decode("utf-8"), ref.url)[2], page))
+    assert len(pair) == 2
+    return pair
+
+
+def oversized(url, ctype="application/x-download", status=200):
+    """One byte past this client's own cap, with an honest declared length."""
+    size = http.MAX_BYTES + 1
+    return Response(url, b"x" * size, status, ctype, {"Content-Length": str(size)})
 
 
 class Case(unittest.TestCase):
@@ -330,6 +364,36 @@ class Access(Case):
                 self.assertEqual(korean.transport_retries, 0)
                 self.assertEqual([url for _, url, _ in session.calls].count(KR_LISTING), 1)
 
+    def test_mnd_oversized_attachment_is_refused_once_unrecorded_with_header_facts(self):
+        korean, session = adapter("korea")
+        ref = korean.discover(CollectionWindow(TARGET, 0)).references[0]
+        row = next(r for r in ROWS if "pressReleaseView.do" in r["url"]
+                   and kr_url(r["url"]) == ref.url)
+        document = korean.metadata(fixture(row["capture"]).decode("utf-8"), ref.url)[2]
+        session.mutations[document] = oversized(document)
+        capture = korean.fetch(ref)
+        self.assertEqual(capture.status, st.OVERSIZED_RESPONSE)
+        self.assertEqual(capture.error_detail, "response exceeds byte cap")
+        # The release page itself is captured; only the attachment is refused.
+        self.assertEqual(capture.payload_sha256,
+                         hashlib.sha256(fixture(row["capture"])).hexdigest())
+        self.assertEqual([url for _, url, _ in session.calls].count(document), 1)
+        self.assertEqual(korean.transport_retries, 0)
+        self.assertNotIn(document, [e["requested_url"] for e in korean.evidence])
+        self.assertNotIn(ref.url, korean.documents)
+        self.assertEqual(korean.attachment_refusals, {ref.url: {
+            "status": st.OVERSIZED_RESPONSE, "http_status": 200,
+            "content_type": "application/x-download",
+            "declared_content_length": http.MAX_BYTES + 1}})
+        # Any other attachment refusal is recorded by status alone.
+        session.mutations[document] = Response(document, b"<html>unavailable</html>")
+        self.assertEqual(korean.fetch(ref).status, st.UNEXPECTED_CONTENT_TYPE)
+        self.assertEqual(korean.attachment_refusals,
+                         {ref.url: {"status": st.UNEXPECTED_CONTENT_TYPE}})
+        # A refusal never survives into the next collection.
+        korean.discover(CollectionWindow(TARGET, 0))
+        self.assertEqual(korean.attachment_refusals, {})
+
     def test_korea_robots_timeout_is_extended_for_only_one_request(self):
         korean, korean_session = adapter("korea")
         self.assertEqual(korean.discover(CollectionWindow(TARGET, 0)).status, st.OK)
@@ -495,6 +559,357 @@ class Runner(Case):
         self.assertEqual(entry["inserted"], 0)
         self.assertFalse((self.state / "shadow.db").exists())
         self.assertFalse((self.state / "clock.json").exists())
+
+    def korea(self, run_id, mutations=None, lookback=4):
+        a, session = adapter("korea", dict({KR_LISTING: two_release_listing()},
+                                           **(mutations or {})))
+        return runner.run("korea", self.state, TARGET, lookback, run_id=run_id,
+                          commit="collector-sha", adapter=a), session
+
+    def stored_urls(self):
+        with sqlite3.connect(self.state / "shadow.db") as db:
+            return [row[0] for row in db.execute("SELECT url FROM shadow_records ORDER BY url")]
+
+    def test_mnd_oversized_attachment_is_held_while_the_complete_release_is_stored(self):
+        (kept, _, _), (held, held_document, held_page) = korea_pair()
+        entry, session = self.korea("hold-1", {held_document: oversized(held_document)})
+        self.assertEqual((entry["result"], entry["health"]), (st.OK, "ok"))
+        self.assertEqual([entry[k] for k in ("selected", "retrieved", "extracted", "inserted",
+                                             "duplicates", "attachment_holds", "stored_total")],
+                         [2, 1, 1, 1, 0, 1, 1])
+        # A hold is neither retrieved nor a failure.
+        self.assertEqual(entry["failures"], [])
+        self.assertEqual([entry[k] for k in ("fetch_failures", "extraction_failures",
+                                             "access_failures")], [0, 0, 0])
+        self.assertNotIn("error_detail", entry)
+        item, = entry["attachment_hold_items"]
+        self.assertRegex(item.pop("published_date"), r"\A2026-10-0[2-6]\Z")
+        self.assertEqual(item, {
+            "url": held, "component": "hwpx_attachment",
+            "status": st.OVERSIZED_RESPONSE, "detail": "response exceeds byte cap",
+            "article_capture_sha256": hashlib.sha256(held_page).hexdigest(),
+            "refused_response_recorded": False, "refused_http_status": 200,
+            "refused_content_type": "application/x-download",
+            "refused_declared_content_length": http.MAX_BYTES + 1})
+        # Custody holds only the complete release; the refused response left no
+        # request row and no capture, and was requested exactly once.
+        self.assertEqual(self.stored_urls(), [kept])
+        requested = [r["requested_url"] for r in entry["requests"]]
+        self.assertIn(held, requested)
+        self.assertNotIn(held_document, requested)
+        self.assertEqual([url for _, url, _ in session.calls].count(held_document), 1)
+        self.assertTrue(all(p.stat().st_size <= http.MAX_BYTES
+                            for p in (self.state / "captures").glob("*.bin")))
+        self.assertTrue((self.state / "clock.json").exists())
+        ledger, = (self.state / "ledger").glob("*.json")
+        self.assertEqual(json.loads(ledger.read_text())["attachment_holds"], 1)
+
+    def test_mnd_hold_with_nothing_new_fails_and_leaves_custody_byte_identical(self):
+        (kept, _, _), (_, held_document, _) = korea_pair()
+        self.korea("hold-1", {held_document: oversized(held_document)})
+        before = {name: (self.state / name).read_bytes() for name in ("shadow.db", "clock.json")}
+        entry, _ = self.korea("hold-2", {held_document: oversized(held_document)})
+        # Never "all duplicates": that result means everything listed is stored.
+        self.assertEqual((entry["result"], entry["health"]), (st.OVERSIZED_RESPONSE, "fail"))
+        self.assertEqual(entry["error_detail"],
+                         "size-held releases and no new release; no corpus write")
+        self.assertEqual([entry[k] for k in ("selected", "retrieved", "inserted",
+                                             "duplicates", "attachment_holds")], [2, 1, 0, 1, 1])
+        self.assertEqual(entry["failures"], [])
+        self.assertNotIn("stored_total", entry)
+        self.assertIsNone(entry["shadow_day"])
+        self.assertEqual(entry["state_sha256_before"], entry["state_sha256_after"])
+        for name, body in before.items():
+            self.assertEqual((self.state / name).read_bytes(), body)
+        self.assertEqual(self.stored_urls(), [kept])
+
+    def test_mnd_batch_of_only_held_releases_fails_before_any_custody_is_created(self):
+        (_, first_document, _), (_, second_document, _) = korea_pair()
+        entry, _ = self.korea("hold-1", {first_document: oversized(first_document),
+                                         second_document: oversized(second_document)})
+        self.assertEqual((entry["result"], entry["health"]), (st.OVERSIZED_RESPONSE, "fail"))
+        self.assertEqual(entry["error_detail"],
+                         "only size-held releases remained; no corpus write")
+        self.assertEqual([entry[k] for k in ("selected", "retrieved", "extracted",
+                                             "inserted", "attachment_holds")], [2, 0, 0, 0, 2])
+        self.assertEqual(entry["failures"], [])
+        self.assertNotIn("stored_total", entry)
+        self.assertFalse((self.state / "shadow.db").exists())
+        self.assertFalse((self.state / "clock.json").exists())
+
+    def test_mnd_hold_never_rescues_a_batch_with_any_other_failure(self):
+        (first, first_document, _), (second, second_document, _) = korea_pair()
+        for label, mutations, status, counter in (
+            ("unreadable sibling attachment",
+             {first_document: oversized(first_document),
+              second_document: Response(second_document, b"<html>unavailable</html>")},
+             st.UNEXPECTED_CONTENT_TYPE, "fetch_failures"),
+            ("sibling refused by the institution",
+             {first_document: oversized(first_document),
+              second: Response(second, b"forbidden", 403)},
+             st.AUTH_FAILURE, "access_failures"),
+            ("sibling extraction failure",
+             {second_document: oversized(second_document),
+              first_document: Response(first_document, b"not a zip archive",
+                                       ctype="application/x-download")},
+             st.EXTRACTION_FAILURE, "extraction_failures"),
+        ):
+            with self.subTest(label), tempfile.TemporaryDirectory() as folder:
+                self.state = Path(folder) / "state"
+                entry, _ = self.korea("mixed", mutations)
+                self.assertEqual((entry["result"], entry["health"]), (status, "fail"))
+                self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                self.assertEqual(entry[counter], 1)
+                self.assertEqual(len(entry["failures"]), 1)
+                # The hold stays on the record, but nothing is stored.
+                self.assertEqual(entry["attachment_holds"], 1)
+                self.assertEqual(entry["inserted"], 0)
+                self.assertFalse((self.state / "shadow.db").exists())
+                self.assertFalse((self.state / "clock.json").exists())
+
+    def test_mnd_only_an_ordinary_oversized_document_response_is_held(self):
+        (_, _, _), (held, held_document, _) = korea_pair()
+        for label, mutations in (
+            ("oversized release page", {held: oversized(held, "text/html; charset=UTF-8")}),
+            ("oversized non-document body", {held_document: oversized(held_document, "text/html")}),
+            ("oversized refusal body", {held_document: oversized(held_document, status=403)}),
+            ("oversized error body", {held_document: oversized(held_document, status=503)}),
+        ):
+            with self.subTest(label), tempfile.TemporaryDirectory() as folder:
+                self.state = Path(folder) / "state"
+                entry, _ = self.korea("not-held", mutations)
+                self.assertEqual((entry["result"], entry["health"]),
+                                 (st.OVERSIZED_RESPONSE, "fail"))
+                self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                self.assertEqual((entry["attachment_holds"], entry["attachment_hold_items"]),
+                                 (0, []))
+                self.assertEqual([f["status"] for f in entry["failures"]],
+                                 [st.OVERSIZED_RESPONSE])
+                self.assertEqual(entry["fetch_failures"], 1)
+                self.assertFalse((self.state / "shadow.db").exists())
+
+    def test_mnd_release_already_in_custody_is_never_held(self):
+        (_, _, _), (_, held_document, _) = korea_pair()
+        first, _ = self.korea("clean-1")
+        self.assertEqual((first["result"], first["inserted"], first["attachment_holds"]),
+                         (st.OK, 2, 0))
+        before = (self.state / "shadow.db").read_bytes()
+        entry, _ = self.korea("hold-2", {held_document: oversized(held_document)})
+        # Failing to re-verify a stored record stays a batch failure, as before.
+        self.assertEqual((entry["result"], entry["health"]), (st.OVERSIZED_RESPONSE, "fail"))
+        self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+        self.assertEqual((entry["attachment_holds"], entry["fetch_failures"]), (0, 1))
+        self.assertEqual((self.state / "shadow.db").read_bytes(), before)
+
+    def test_mnd_held_release_is_stored_normally_once_it_can_be_retrieved(self):
+        (kept, _, _), (held, held_document, _) = korea_pair()
+        self.korea("hold-1", {held_document: oversized(held_document)})
+        entry, _ = self.korea("clean-2")
+        self.assertEqual((entry["result"], entry["health"]), (st.OK, "ok"))
+        self.assertEqual([entry[k] for k in ("retrieved", "inserted", "duplicates",
+                                             "attachment_holds", "stored_total")],
+                         [2, 1, 1, 0, 2])
+        self.assertEqual(entry["attachment_hold_items"], [])
+        self.assertEqual(self.stored_urls(), sorted([kept, held]))
+
+    def test_attachment_hold_is_scoped_to_the_mnd_desk_by_exact_name(self):
+        class Stub:
+            """The same held-release adapter state, presented to every desk."""
+            robots_status, listing_report, evidence = "read", {}, []
+            url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=1"
+            attachment_refusals = {url: {
+                "status": st.OVERSIZED_RESPONSE, "http_status": 200,
+                "content_type": "application/x-download",
+                "declared_content_length": http.MAX_BYTES + 1}}
+
+            def discover(self, window):
+                return DiscoveryResult("stub", st.OK, [CandidateReference(
+                    self.url, "stub", None, window.target_date.isoformat())])
+
+            def fetch(self, reference):
+                return CaptureResult(reference, st.OVERSIZED_RESPONSE, reference.url,
+                                     payload_sha256="0" * 64,
+                                     error_detail="response exceeds byte cap")
+
+        for desk, extra in (("indonesia", {}), ("japan_jcg", {}),
+                            ("korea_dapa", {"dapa_original_access_authorized": True})):
+            with self.subTest(desk), tempfile.TemporaryDirectory() as folder:
+                state = Path(folder) / "state"
+                entry = runner.run(desk, state, TARGET, 0, 4, adapter=Stub(), **extra)
+                self.assertEqual((entry["result"], entry["health"]),
+                                 (st.OVERSIZED_RESPONSE, "fail"))
+                self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                self.assertEqual((entry["fetch_failures"], len(entry["failures"])), (1, 1))
+                self.assertNotIn("attachment_holds", entry)
+                self.assertNotIn("attachment_hold_items", entry)
+                self.assertFalse((state / "shadow.db").exists())
+        entry = runner.run("korea", self.state, TARGET, 0, 4, adapter=Stub())
+        self.assertEqual((entry["attachment_holds"], entry["failures"]), (1, []))
+        self.assertEqual(entry["error_detail"],
+                         "only size-held releases remained; no corpus write")
+        self.assertEqual(runner.ATTACHMENT_HOLD_DESKS, frozenset(("korea",)))
+        self.assertEqual(runner.ATTACHMENT_HOLD_STATUSES, frozenset((st.OVERSIZED_RESPONSE,)))
+        self.assertEqual(http.MAX_BYTES, 2_000_000)
+
+    def test_mnd_hold_needs_the_captured_page_and_the_adapters_own_matching_refusal(self):
+        url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=1"
+        ordinary = {"status": st.OVERSIZED_RESPONSE, "http_status": 200,
+                    "content_type": "application/x-download",
+                    "declared_content_length": http.MAX_BYTES + 1}
+
+        def stub(refusals, page_sha256):
+            class Stub:
+                robots_status, listing_report, evidence = "read", {}, []
+                attachment_refusals = refusals
+
+                def discover(self, window):
+                    return DiscoveryResult("stub", st.OK, [CandidateReference(
+                        url, "stub", None, window.target_date.isoformat())])
+
+                def fetch(self, reference):
+                    return CaptureResult(reference, st.OVERSIZED_RESPONSE, reference.url,
+                                         payload_sha256=page_sha256,
+                                         error_detail="response exceeds byte cap")
+            return Stub()
+
+        cases = (("release page was never captured", {url: ordinary}, None),
+                 ("adapter recorded no attachment refusal", {}, "0" * 64),
+                 ("refusal recorded for another release", {url + "0": ordinary}, "0" * 64),
+                 ("recorded refusal has a different status",
+                  {url: dict(ordinary, status=st.FETCH_FAILURE)}, "0" * 64))
+        for name, refusals, page_sha256 in cases:
+            with self.subTest(name), tempfile.TemporaryDirectory() as folder:
+                state = Path(folder) / "state"
+                entry = runner.run("korea", state, TARGET, 0, 4,
+                                   adapter=stub(refusals, page_sha256))
+                self.assertEqual((entry["result"], entry["health"]),
+                                 (st.OVERSIZED_RESPONSE, "fail"))
+                self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                self.assertEqual((entry["attachment_holds"], entry["attachment_hold_items"]),
+                                 (0, []))
+                self.assertEqual((entry["fetch_failures"], len(entry["failures"])), (1, 1))
+                self.assertFalse((state / "shadow.db").exists())
+
+    def test_reviewer_reports_releases_a_healthy_attempt_left_out_of_custody(self):
+        (_, _, _), (_, held_document, _) = korea_pair()
+        self.korea("hold-1", {held_document: oversized(held_document)})
+        report = reviewer.review(self.state, "korea", Path(self.tmp.name) / "packet", TARGET)
+        self.assertEqual(report["records"], 1)
+        self.assertEqual(report["findings"],
+                         ["Size-held releases not in custody in attempt: hold-1"])
+
+    def test_reviewer_reports_holds_on_a_failed_attempt_too(self):
+        # The accepted "held, nothing new" day is a failed attempt; it must
+        # still be reported (Fable review T5).
+        (_, _, _), (_, held_document, _) = korea_pair()
+        self.korea("hold-1", {held_document: oversized(held_document)})
+        failed, _ = self.korea("hold-2", {held_document: oversized(held_document)})
+        self.assertEqual((failed["health"], failed["attachment_holds"]), ("fail", 1))
+        report = reviewer.review(self.state, "korea", Path(self.tmp.name) / "packet", TARGET)
+        self.assertIn("Size-held releases not in custody in attempt: hold-2",
+                      report["findings"])
+
+    def run_main_korea(self, run_id, mutations):
+        """Drive runner.main() as the private workflow does, adapter patched."""
+        from contextlib import redirect_stderr, redirect_stdout
+        original = runner.run
+        a, _ = adapter("korea", dict({KR_LISTING: two_release_listing()}, **mutations))
+
+        def patched(*args, **kwargs):
+            return original(*args, adapter=a, **kwargs)
+        with mock.patch.object(runner, "run", side_effect=patched), \
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            return runner.main(["--desk", "korea", "--state-dir", str(self.state),
+                                "--target-date", TARGET.isoformat(), "--lookback-days", "4",
+                                "--run-id", run_id, "--commit", "collector-sha",
+                                "--event-name", "workflow_dispatch"])
+
+    def test_mnd_hold_exit_codes_match_recorded_health(self):
+        # The private commit step asserts (health == "ok") == (exit == 0);
+        # pin it for every hold outcome through main() (Fable review T12).
+        (_, first_document, _), (_, held_document, _) = korea_pair()
+        hold = {held_document: oversized(held_document)}
+        self.assertEqual(self.run_main_korea("hold-1", hold), 0)
+        before = {n: (self.state / n).read_bytes() for n in ("shadow.db", "clock.json")}
+        self.assertEqual(self.run_main_korea("hold-2", hold), 1)
+        for name, body in before.items():
+            self.assertEqual((self.state / name).read_bytes(), body)
+        with tempfile.TemporaryDirectory() as folder:
+            self.state = Path(folder) / "state"
+            both = {first_document: oversized(first_document),
+                    held_document: oversized(held_document)}
+            self.assertEqual(self.run_main_korea("hold-3", both), 1)
+            self.assertFalse((self.state / "shadow.db").exists())
+            self.assertFalse((self.state / "clock.json").exists())
+        healths = []
+        for ledger in sorted((Path(self.tmp.name) / "state" / "ledger").glob("*.json")):
+            data = json.loads(ledger.read_text())
+            healths.append((data["run_id"], data["health"]))
+        self.assertEqual(sorted(healths), [("hold-1", "ok"), ("hold-2", "fail")])
+
+    def test_mnd_hold_predicate_edges(self):
+        # Fable review T2/T3/T4: only an HTTP 200 document response is held,
+        # whatever the case of its type and whether or not it declares a length.
+        (kept, _, _), (held, held_document, _) = korea_pair()
+
+        def response(status=200, ctype="application/x-download", length="keep"):
+            r = oversized(held_document, ctype, status)
+            if ctype is None:
+                del r.headers["Content-Type"]
+            if length is None:
+                del r.headers["Content-Length"]
+            elif length != "keep":
+                r.headers["Content-Length"] = length
+            return r
+
+        for label, r, is_held in (
+            ("206 partial content", response(206), False),
+            ("302 redirect body", response(302), False),
+            ("no content type", response(ctype=None), False),
+            ("upper-case document type", response(ctype="Application/ZIP"), True),
+            ("no declared length", response(length=None), True),
+            ("non-numeric declared length", response(length="abc"), True),
+        ):
+            with self.subTest(label), tempfile.TemporaryDirectory() as folder:
+                self.state = Path(folder) / "state"
+                entry, _ = self.korea("edge", {held_document: r})
+                if is_held:
+                    self.assertEqual((entry["result"], entry["health"]), (st.OK, "ok"))
+                    item, = entry["attachment_hold_items"]
+                    self.assertEqual(item["url"], held)
+                    if label.startswith("no declared") or label.startswith("non-numeric"):
+                        self.assertIsNone(item["refused_declared_content_length"])
+                    self.assertEqual(self.stored_urls(), [kept])
+                else:
+                    self.assertEqual(entry["health"], "fail")
+                    self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                    self.assertEqual(entry["attachment_holds"], 0)
+                    self.assertEqual(len(entry["failures"]), 1)
+                    self.assertFalse((self.state / "shadow.db").exists())
+
+    def test_mnd_hold_requires_an_oversized_capture_status(self):
+        # Fable review T1: a matching refusal record cannot turn another
+        # capture failure into a hold.
+        url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=1"
+
+        class Stub:
+            robots_status, listing_report, evidence = "read", {}, []
+            attachment_refusals = {url: {"status": st.EXTRACTION_FAILURE, "http_status": 200,
+                                         "content_type": "application/zip",
+                                         "declared_content_length": 10}}
+
+            def discover(self, window):
+                return DiscoveryResult("stub", st.OK, [CandidateReference(
+                    url, "stub", None, window.target_date.isoformat())])
+
+            def fetch(self, reference):
+                return CaptureResult(reference, st.EXTRACTION_FAILURE, reference.url,
+                                     payload_sha256="0" * 64, error_detail="bad archive")
+
+        entry = runner.run("korea", self.state, TARGET, 0, 4, adapter=Stub())
+        self.assertEqual((entry["attachment_holds"], entry["health"]), (0, "fail"))
+        self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+        self.assertFalse((self.state / "shadow.db").exists())
 
     def test_ambiguous_rerun_is_refused_before_state_creation(self):
         from contextlib import redirect_stderr

@@ -10,7 +10,7 @@ Owner-dispatched [Actions run 37828199188](https://github.com/VSSpowerlifting/Ch
 - Collector SHA: `1323117a7eb2352f2780c8ee7178bb5c8535d48b`.
 - Day 0 UTC: `2026-10-08T18:57:32.592661+00:00`.
 - One official listing; three in-window original English HTML releases; three original-body extractions; three records stored, no failures; capture bytes/hash and ledger frozen.
-- Source scope is Japan **Coast Guard**; HTML body only. Separate PDF audit #217 found 46–69 unmatched word tokens per linked PDF, which remains an editorial completeness hold.
+- Source scope is Japan **Coast Guard**; first-party HTML article text only. Separate PDF audit #217 found 46–69 unmatched tokens in attached PDFs. That limits **HTML-plus-PDF package completeness claims**, but under the founder's 9 November decision it does **not** hold the independent HTML text source.
 
 **Day 0 is not Day 7/14/30 approval, production activation or full Japanese MOD coverage.** The isolated branch and record bodies must be reviewed against official publisher originals.
 
@@ -35,7 +35,7 @@ Scheduled runs use append-only ledgers/capture hashes and a non-force push to `s
 2. Cross-check the three original publisher HTML bodies and visible/index dates, including the stale HTML `datetime=2021-3-1` attributes. Confirm first-party text use, attribution and PDF attachment exclusions.
 3. If the owner accepts the shadow-only scope, first merge this guarded-workflow PR after exact-head CI passes. Then, separately, in **GitHub → Settings → Secrets and variables → Actions → Variables**, create `JCG_SHADOW_DAILY_ENABLED` with value `true`. Connecting GitHub for this workflow cannot set that variable through the tools currently available here.
 4. Inspect the next actual schedule event, confirm `health=ok`, source capture integrity, logical target date, state commit ancestry and preserved day-zero clock. If unsuccessful, do not call it a healthy day; recover by an explicitly dated manual run after examining the refusal.
-5. Keep Day 7, 14, 30 human checkpoint packets and source-specific publishing-coverage evidence. Revoke the variable (unset/false) to skip future scheduled collections if material source integrity or rights issues emerge.
+5. Preserve actual historical Day 7/14/30 evidence when available; these are not fixed waiting periods before a qualified HTML-only source can progress under the shared desk standard. Source-specific integrity, actual recurring collection and publishing evidence remain necessary. Revoke the variable (unset/false) if material source-integrity or rights issues emerge.
 
 ## Explicit boundaries
 

@@ -18,7 +18,8 @@ def fragment():
     full=TEMPLATE.read_text(encoding="utf-8")
     start=full.index("{# Commerce/BIS links:")
     end=full.index("{# A permanent publication is IPR-authored analysis",start)
-    return Environment(autoescape=True,undefined=StrictUndefined).from_string(
+    from tests.preview_filters import with_filters
+    return with_filters(Environment(autoescape=True,undefined=StrictUndefined)).from_string(
         full[start:end])
 
 def render(rows, slug="us-indopacific"):

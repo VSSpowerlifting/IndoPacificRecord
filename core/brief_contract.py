@@ -287,6 +287,26 @@ def validate_brief(sidecar: Mapping, registry, *,
         from core.brief_editorial_cycle import receipt_problems
         problems += receipt_problems(sidecar)
 
+    # Role-specific credits remain separate from the byline and publication citation.
+    # These two roles never confer authorship or imply approval of source claims.
+    credits = sidecar.get("editorial_credits")
+    if credits is not None:
+        roles_seen = set()
+        if (not is_source_linked(sidecar) or not isinstance(credits, list)
+                or len(credits) > 2):
+            problems.append("editorial_credits requires a source-linked Brief and at most two roles")
+        else:
+            for credit in credits:
+                if (not isinstance(credit, Mapping) or set(credit) != {"role", "name"}
+                        or credit.get("role") not in ("Editing", "Research and analysis")
+                        or not isinstance(credit.get("name"), str)
+                        or not credit["name"].strip() or len(credit["name"]) > 120
+                        or credit["name"] != credit["name"].strip()
+                        or credit["role"] in roles_seen):
+                    problems.append("invalid or duplicate editorial credit")
+                    continue
+                roles_seen.add(credit["role"])
+
     # Legacy contributor credits keep the original narrow schema and limits.
     # A source-linked Brief alone may recognize an explicit co-author credit,
     # including a longer bio and an email. All evidence/release gates remain.

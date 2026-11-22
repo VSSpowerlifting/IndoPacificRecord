@@ -1,0 +1,25 @@
+{
+  "source_page": "https://www.dvidshub.net/image/8834151/roks-ahn-jung-geun-moors-alongside-emory-s-land",
+  "license": "Public domain",
+  "license_url": "https://www.dvidshub.net/about/copyright",
+  "license_basis": "DVIDS publication marks the image public domain. Used for news/editorial context with credit and the non-endorsement notice. Retained bytes are the openly linked DVIDS preview JPEG.",
+  "creator": "Mass Communication Specialist Seaman Apprentice Ethan Lambert, U.S. Navy",
+  "dvids_image_id": "8834151",
+  "dod_id": "241115-N-EQ708-1083",
+  "retrieval": {
+    "url": "https://d1ldvf68ux039x.cloudfront.net/thumbs/photos/2501/8834151/2000w_q95.jpg",
+    "status": 200,
+    "bytes": 916784,
+    "etag": "\"f9fddc24a83454dc3670ac7d7471cb81\"",
+    "retrieved_at": "2026-11-16T05:33:11.544887+00:00",
+    "user_agent": "Indo-Pacific Record editorial review"
+  },
+  "retained_sha256": "115602759aa92e32a4c51578b68b17bb25c19bf74ff431b48373ab556d0a739f",
+  "caption": "The conventionally powered ROKS Ahn Jung-Geun alongside USS Emory S. Land at Busan on November 15, 2024. The photo illustrates South Korea’s existing submarine fleet.",
+  "notice": "The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement.",
+  "surfaces": [
+    "article",
+    "catalogue"
+  ],
+  "owner_authorization": "https://github.com/VSSpowerlifting/IndoPacificRecord/pull/1051#issuecomment-6908195484"
+}

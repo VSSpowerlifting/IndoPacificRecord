@@ -55,6 +55,37 @@ def published_html_paths(ref):
     return set(paths)
 
 
+INDEX_HUB = "korea-official-links.html"
+INDEX_MONTH = re.compile(r"korea-official-links/[0-9]{4}-(0[1-9]|1[0-2])[.]html\Z")
+
+
+def index_month_paths(ref):
+    prefix = ("output/" if ref == "origin/main" else "") + "korea-official-links/"
+    listed = git("ls-tree", "-r", "--name-only", ref, "--", prefix).decode(
+        "utf-8", "strict").splitlines()
+    paths = {x[len(prefix) - len("korea-official-links/"):]
+             for x in listed if x.startswith(prefix)}
+    need(all(INDEX_MONTH.fullmatch(x) for x in paths),
+         "korea_noop_orphan_official_link_index_page")
+    return paths
+
+
+def official_link_index_routes():
+    """The desk's full official-link index must match on both refs too.
+
+    The current main desk links the hub iff it lists auto official links.
+    Then the hub and the exact month-page roster must be identical on Pages;
+    otherwise neither ref may carry any index page.
+    """
+    linked = b'href="' + INDEX_HUB.encode() + b'"' in blob(
+        "origin/main", "output/korea.html")
+    main_months = index_month_paths("origin/main")
+    pages_months = index_month_paths("origin/gh-pages")
+    need(main_months == pages_months and (linked or not main_months),
+         "korea_noop_official_link_index_not_converged")
+    return sorted(main_months | ({INDEX_HUB} if linked else set()))
+
+
 def verify_parity():
     """Require exact CURRENT main -> gh-pages byte identity, including roster."""
     try:
@@ -88,9 +119,14 @@ def verify_parity():
         main_path = "output/" + pages_path
         need(blob("origin/main", main_path) == blob("origin/gh-pages", pages_path),
              "korea_noop_current_main_pages_byte_drift")
+    index_routes = official_link_index_routes()
+    for pages_path in index_routes:
+        need(blob("origin/main", "output/" + pages_path)
+             == blob("origin/gh-pages", pages_path),
+             "korea_noop_current_main_pages_byte_drift")
     return {"status": "KOREA_NO_NEW_TEXT_CURRENT_MAIN_PAGES_CONVERGED",
             "published_originals_verified": len(ids),
-            "routes_byte_identical": 1 + len(expected_pages),
+            "routes_byte_identical": 1 + len(expected_pages) + len(index_routes),
             "published": False, "new_original_texts": 0}
 
 

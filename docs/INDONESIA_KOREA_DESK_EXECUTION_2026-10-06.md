@@ -17,8 +17,10 @@ is recorded in DECISION_LOG.md. Main merge, scheduling, public declaration,
 promotion, production integration and deployment remain unauthorized.
 The [durable launch receipt](INDONESIA_KOREA_SHADOW_LAUNCH_2026-10-06.md) records
 the subsequent PR, fresh published state commits and source-commit CI results.
-The [reusable prompt](INDONESIA_KOREA_DESK_EXECUTION_PROMPT.md) states the continuation
-contract; the candidate READMEs state each source's limits.
+The former October 6 continuation prompt is retired from the active tree
+and retained in Git history. Any new work follows [current agent rules](../AGENTS.md),
+[shared desk architecture](desks/README.md) and source-specific policy;
+the candidate READMEs remain historical source-scope evidence.
 
 ## Repository and implementation
 

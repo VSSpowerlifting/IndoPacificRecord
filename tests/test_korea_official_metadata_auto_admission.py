@@ -53,6 +53,16 @@ def packet(ids=None):
     return result
 
 
+def korea_index_markers(site):
+    """Auto-official rows across the Korea hub and month pages."""
+    from core import official_link_index as link_index
+    hub = site / link_index.hub_route("korea")
+    pages = ([hub] + sorted((site / link_index.month_dir("korea")).glob("*.html"))
+             if hub.exists() else [])
+    return "".join(p.read_text(encoding="utf-8") for p in pages).count(
+        'data-korea-auto-official-link=')
+
+
 class KoreaStandingLinkAdmissionTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -183,11 +193,17 @@ class KoreaStandingLinkAdmissionTests(unittest.TestCase):
         page = (target / "korea.html").read_text(encoding="utf-8")
         self.assertEqual(page.count('data-korea-public-link='), 5)
         self.assertEqual(page.count('data-korea-additional-link='), 9)
+        from core import official_link_index as link_index
         self.assertEqual(
-            page.count('data-korea-auto-official-link=') -
-            baseline_page.count('data-korea-auto-official-link='),
+            korea_index_markers(target) - korea_index_markers(baseline),
             len(self.packet["records"]),
-            "new admitted metadata must add links to the real rendered baseline")
+            "new admitted metadata must add links to the real rendered index")
+        self.assertEqual(
+            page.count('data-korea-auto-official-link='),
+            min(korea_index_markers(target), link_index.DESK_LINK_LIMIT))
+        self.assertEqual(
+            baseline_page.count('data-korea-auto-official-link='),
+            min(korea_index_markers(baseline), link_index.DESK_LINK_LIMIT))
         self.assertIn("MND official press release 156799905", page)
         self.assertIn("Portal posted:", page)
         for forbidden in ("summary_english", "text_original", "source_git_commit",

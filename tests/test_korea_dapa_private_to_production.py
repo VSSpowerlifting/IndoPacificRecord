@@ -17,6 +17,16 @@ from migrations.versions import (
 KEY = "fictional-test-key-only-" + "x" * 40
 
 
+def korea_index_markers(site):
+    """Auto-official rows across the Korea hub and month pages."""
+    from core import official_link_index as link_index
+    hub = site / link_index.hub_route("korea")
+    pages = ([hub] + sorted((site / link_index.month_dir("korea")).glob("*.html"))
+             if hub.exists() else [])
+    return "".join(p.read_text(encoding="utf-8") for p in pages).count(
+        'data-korea-auto-official-link=')
+
+
 class DAPACollectionDateTests(unittest.TestCase):
     def test_delayed_first_schedule_uses_preserved_nominal_day(self):
         ledger = {"target_date_source": "schedule-slot",
@@ -315,8 +325,13 @@ class DAPASyntheticVaultRoundTrip(unittest.TestCase):
                           snapshot=preview.snapshot_from_corpus(temp_db),
                           site_origin="https://indopacificrecord.org")
             second = (published / "korea.html").read_text(encoding="utf-8")
+            from core import official_link_index as link_index
+            self.assertEqual(korea_index_markers(published),
+                             korea_index_markers(baseline) + 2)
             self.assertEqual(second.count("data-korea-auto-official-link="),
-                             first.count("data-korea-auto-official-link=") + 2)
+                             min(korea_index_markers(published), link_index.DESK_LINK_LIMIT))
+            self.assertEqual(first.count("data-korea-auto-official-link="),
+                             min(korea_index_markers(baseline), link_index.DESK_LINK_LIMIT))
             self.assertIn('data-korea-auto-official-link="korea-dapa-policy:156785998"', second)
             self.assertIn('data-korea-auto-official-link="korea-dapa-policy:156785999"', second)
             self.assertIn(b.URL_PREFIX + "156785999", second)

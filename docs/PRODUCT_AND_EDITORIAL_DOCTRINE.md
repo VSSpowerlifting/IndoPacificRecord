@@ -2,8 +2,7 @@
 
 Durable. Change only by deliberate decision (record in DECISION_LOG.md).
 Design tokens and components live in docs/DESIGN_SYSTEM.md; visual/motion
-specs in docs/VISUAL_AND_MOTION_SYSTEM.md. Current operational state lives in
-PROJECT_STATE.md and is deliberately not restated here.
+specs in docs/VISUAL_AND_MOTION_SYSTEM.md. Current operational state is verified from live source/code/PR/Actions and site evidence; the retired PROJECT_STATE.md diary is not a status source.
 
 ## 1. What this publication is
 
@@ -24,8 +23,10 @@ and no new issue is published under it.
 
 Two layers, one masthead:
 
-- **The record** — automated preservation and rendering: scraped originals held
-  verbatim, model translation/summaries/categorization, model flags. Every
+- **The record** — permitted original preservation and component rendering:
+  authentic originals in authorized custody, and separately permitted public
+  text, model translation/summaries/categorization and model flags. Full source
+  text need not be public. Every
   automatically assembled readout is labeled as pipeline output, never as
   analyst prose.
 - **Indo-Pacific Record Briefs** — the *analysis*. Numbered, human-controlled
@@ -63,11 +64,23 @@ full originals, neutral metadata, and/or an independently permitted
 machine-produced summary. Those outputs must be clearly distinguished.
 
 **Normal model-labeled record output should eventually publish unattended**
-after explicit source-family permissions, accuracy and cost controls, and real
+after an established source/use-specific legal basis and operational authority,
+accuracy and cost controls, and real
 end-to-end acceptance; exceptions hold. This does **not** authorize new
 machine processing, derivative text or publication today. Human-authored
 IPR Briefs, bylined analysis and approval remain the distinct editorial layer.
-Implementation contract: `docs/engineering/SHARED_DAILY_DESK_ARCHITECTURE_2026-10-19.md`.
+Implementation contract: [mandatory shared-desk architecture](desks/README.md)
+and [live migration boundaries](desks/MIGRATION.md). The superseded October
+2026 shared-Daily proposal remains recoverable in Git history.
+
+**Source-use rule (owner, 4 November 2026):**
+[`CONTENT_AND_DATA_RIGHTS.md` §7](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard)
+governs the evidence-based alternatives to written publisher permission and
+the separate access, custody, external-model, independent-analysis and
+republication questions. Favor defensible research and permitted links or
+bounded quotation over unsupported full-text reproduction. This does not
+enlarge content-reuse authorizations or relax real holds, MINDEF's separate
+original-text/media/model controls, editorial approvals or activation controls.
 
 ## 1b. Research-led growth and development (owner, 2026-10-30)
 
@@ -343,7 +356,7 @@ page is the collection's landing page (no separate `briefs/index.html`); and
 `briefs/feed.xml` carries briefs only, while the existing issues keep
 `the-pla-watch/feed.xml` and its entry IDs. Drafts remain outside published coverage until their own approval. No. 14
 was reconciled by the owner ruling of 2026-10-03; no new Brief was approved
-by that ruling. Current publication state lives in PROJECT_STATE.md.
+by that ruling. Current publication status is verified from the approved edition data, GitHub release/PR evidence and the deployed site.
 
 **One collection, provenance intact.** *Indo-Pacific Record Briefs* includes the
 existing issues and every future issue. Each existing issue keeps its sidecar,
@@ -394,22 +407,38 @@ cross-desk provenance requirements above/below remain fully applicable to every
 ordinary Brief. See `core/brief_source_linked.py` and
 `docs/LAOS_BRIEF_RELEASE_2026-10-12.md`.
 
-**Cited official sources are Records (owner direction, 2026-11-01).** Each
-*official* publisher reference in an approved Brief gets one IPR Record per
-URL (`record/cited-<sha256[:16]>.html`, keyed on the URL with scheme and host
-lowercased and the fragment dropped; path and query stay exact). The Record publishes only what
-the Brief already publishes: original title, issuer, publisher, language,
-source-stated date and the link. It holds no source bytes, excerpt, translation
-or verification notes and adds no desk coverage or database row. The Brief
-keeps its publisher link and adds an "IPR Record" link; the Record links back to
-every citing Brief. A URL already held as a corpus record or released machine
-Record resolves to that page instead, so manual citation and collection share one
-identity; a cited route published before collection becomes a redirect. Independent
-reporting stays an external citation. MINDEF is omitted entirely: its 2026-10-29
-permission covers hyperlinks from a Brief, not a standalone IPR page. Vietnam MPS,
-MOIT and VPCP are omitted without a sealed decision. Conflicting metadata for one
-URL stops the build.
-Derived on every render by `core/cited_source_records.py`; nothing is hand-admitted.
+**Cited works in approved Briefs have link-metadata Records (founder direction,
+2026-11-13; extending the 2026-11-01 official-source implementation).** Each
+eligible *official or independent* publisher reference in an approved,
+non-review Brief resolves to one IPR Record per URL
+(`record/cited-<sha256[:16]>.html`, with scheme/host lowercased and fragment
+removed; path and query remain exact). These citation-only pages repeat solely
+the already-approved Brief's publisher reference metadata—original title,
+issuer, publisher, language, source-stated date and publisher link. They publish
+no body, excerpt, summary, translation, private capture, review locator or
+independent verification. Independent publications are explicitly labeled
+independent, never official government sources or IPR-confirmed findings.
+
+Each eligible Record links back to all citing Briefs and is indexed in the
+Archive with its honest publication type, but adds no production DB row, desk
+coverage or new collection. A URL already present as a permitted public corpus
+or machine Record resolves to that Record without duplication, with a
+bidirectional citation when supported. A previously published citation-only
+route redirects to its admitted original-backed Record after convergence.
+Reference metadata conflicts for the same URL halt rendering.
+
+Source-specific controls continue to govern **all** public surfaces. No
+standalone citation Record is minted for MINDEF or for Vietnam MPS/MOIT/VPCP
+works lacking the applicable public-title standing, including any genuine
+subdomains. A held family that already has a separately permitted public
+Record may be linked to that existing page without creating a new one.
+Unclassified, unsafe or incomplete references do not bypass admission.
+A Brief's original publisher hyperlink remains visible when standalone
+Record eligibility is held; the source's existence does not imply it was
+ingested, retained or independently fact-checked. This feature changes no
+source rights, automated model processing, publication approval or original
+document custody. Derived by `core/cited_source_records.py` at render time;
+no independent article importer or collector is introduced.
 
 **The approval of 2026-10-13 applies only to** “What Is Being Built in Laos?”
 with fingerprint

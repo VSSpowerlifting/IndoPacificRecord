@@ -12,12 +12,15 @@ import json
 import os
 import sqlite3
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import pipeline as ipr_pipeline
 from core import vietnam_corpus_bridge as bridge
 from core import vietnam_daily_handoff as handoff
+from core.collection import status as st
 from core import vietnam_daily_qa as qa
 from core import vietnam_official_link_admission as vn
 from tests import test_vietnam_daily_pipeline as pipeline
@@ -25,6 +28,8 @@ from tests.test_vietnam_daily_pipeline import (ENERGY, KEY, MPS, NOW, PROMOTED,
                                                FakeAnalyzer, clone_schema, decision, grant)
 
 BRIDGE_KEY = b"fictional-test-only-private-bridge-key-0000"
+#: When the Daily pipeline reads the receipt: the same day the envelope was signed.
+RECEIVED = datetime(2026, 10, 20, 11, 0, tzinfo=timezone.utc)
 WITHHOLD = {"public_original_storage": False, "public_full_translation": False,
             "public_excerpt": False}
 
@@ -250,6 +255,102 @@ class Handoff(unittest.TestCase):
         self.assertEqual([f["records"] for f in envelope["families"]], [[], []])
         self.assertEqual(self.verify(envelope, desk=None, decisions=self.tmp / "none"), [])
 
+    def test_verify_accepts_old_and_new_family_entries_and_never_refuses_on_the_block(self):
+        from tests.test_collection_attempts import facts
+        good = facts(family=MPS)
+        for label, block in (("valid", good), ("malformed", {"schema": "junk"}),
+                             ("leaky", dict(good, error_detail="x")), ("null", None),
+                             ("wrong custody", dict(good, custody_commit="0" * 40))):
+            with self.subTest(label):
+                report, _ = self.run_private(source_use=grant())
+                ledger = json.loads(self.ledger.read_text())
+                envelope = handoff.sign([report], {MPS: ledger}, key=BRIDGE_KEY,
+                                        run_id="simulated-private-run", generated_utc=NOW)
+                old = self.verify(envelope)
+                self.assertEqual(handoff.collection_by_family(envelope), {MPS: None})
+                for entry in envelope["families"]:
+                    entry["collection"] = (dict(block, custody_commit=entry["source_git_commit"])
+                                           if label in ("valid", "leaky") else block)
+                body = {k: v for k, v in envelope.items() if k != "mac"}
+                envelope["mac"] = handoff._mac(BRIDGE_KEY, body)
+                self.assertEqual(self.verify(envelope), old)
+                invalid = {"attested": False, "reason": "collection_attestation_invalid"}
+                expected = {MPS: {"valid": envelope["families"][0]["collection"],
+                                  "null": None}.get(label, invalid)}
+                self.assertEqual(handoff.collection_by_family(envelope), expected)
+        # A family-mismatched block is a defect too, not an absent block.
+        report, _ = self.run_private(source_use=grant())
+        envelope = handoff.sign([report], {MPS: json.loads(self.ledger.read_text())},
+                                key=BRIDGE_KEY, run_id="simulated-private-run",
+                                generated_utc=NOW)
+        for entry in envelope["families"]:
+            entry["collection"] = facts(family="vn_vpcp_official_documents_vi")
+        envelope["mac"] = handoff._mac(BRIDGE_KEY, {k: v for k, v in envelope.items()
+                                                    if k != "mac"})
+        self.verify(envelope)
+        self.assertEqual(handoff.collection_by_family(envelope),
+                         {MPS: {"attested": False, "reason": "collection_attestation_invalid"}})
+
+    def test_sign_authenticates_a_failed_sibling_without_changing_accepted_records(self):
+        from tests.test_collection_attempts import facts
+        vpcp = handoff.source_use.VPCP
+        report, _ = self.run_private(source_use=grant())
+        ledgers = {MPS: json.loads(self.ledger.read_text())}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        previous = handoff.sign([report], ledgers, **fields)
+        mps = dict(facts(family=MPS), custody_commit=report["source_git_commit"])
+        vpcp_facts = facts(family=vpcp)
+        envelope = handoff.sign([report], ledgers, **fields,
+                                collection={MPS: mps, vpcp: vpcp_facts},
+                                failed_families={vpcp: (vpcp_facts["custody_commit"], "held_source")})
+        records = self.verify(envelope)
+        self.assertEqual(records, self.verify(previous))
+        self.assertEqual(handoff.collection_by_family(envelope), {MPS: mps, vpcp: vpcp_facts})
+        failed = envelope["families"][1]
+        self.assertEqual((failed["bridge_status"], failed["records"]), ("held_source", []))
+        public = self.public()
+        self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
+        self.assertEqual(handoff.admit(public, self.verify(envelope)), {bridge.DUPLICATE: 2})
+        failed["bridge_status"] = "bridge_failed"
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_mac_invalid"):
+            self.verify(envelope)
+        forged = self.resign(envelope, lambda body: body["families"][1]["records"].append({}))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_bridge_status_invalid"):
+            self.verify(forged)
+
+    def test_failed_collection_withholds_projection_without_changing_private_ledger(self):
+        from tests.test_collection_attempts import facts, latest
+
+        report, _ = self.run_private(source_use=grant())
+        ledger_before = self.ledger.read_bytes()
+        ledgers = {MPS: json.loads(ledger_before)}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        good = facts(family=MPS, custody_commit=report["source_git_commit"])
+        failed = dict(good, latest=latest(result=st.FETCH_FAILURE, health="fail", healthy=False))
+
+        envelope = handoff.sign([report], ledgers, **fields, collection={MPS: failed})
+        self.assertEqual(envelope["families"][0]["records"], [])
+        self.assertEqual(self.verify(envelope), [])
+        self.assertEqual(handoff.collection_by_family(envelope), {MPS: failed})
+        self.assertEqual(ledgers[MPS], json.loads(ledger_before))
+        self.assertEqual(self.ledger.read_bytes(), ledger_before)
+
+        recover = handoff.sign([report], ledgers, **fields, collection={MPS: good})
+        records = self.verify(recover)
+        public = self.public()
+        self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
+        self.assertEqual(handoff.admit(public, records), {bridge.DUPLICATE: 2})
+        conflicting = self.resign(recover, lambda body: body["families"][0].update(collection=failed))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_collection_failure_has_records"):
+            self.verify(conflicting)
+
+    def test_verify_still_refuses_unknown_family_entry_keys(self):
+        envelope = self.signed()
+        envelope["families"][0]["extra"] = 1
+        envelope["mac"] = handoff._mac(BRIDGE_KEY, {k: v for k, v in envelope.items() if k != "mac"})
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_family_invalid"):
+            self.verify(envelope)
+
     def test_command_admits_into_a_copy_and_holds_without_touching_the_database(self):
         envelope = self.signed()
         path = self.tmp / "handoff.json"
@@ -266,18 +367,34 @@ class Handoff(unittest.TestCase):
                 code = handoff.main(["--database", str(db), "--handoff", str(path)])
             return code, json.loads(out.getvalue())
 
+        def reported(out):
+            # The printed receipt is exactly what the Daily pipeline reports.
+            receipt = self.tmp / "receipt.json"
+            receipt.write_text(json.dumps(out))
+            with patch.dict(os.environ, {"IPR_VIETNAM_HANDOFF_RECEIPT": str(receipt)}):
+                return ipr_pipeline._vn_handoff_outcome(MPS, RECEIVED)
+
         before = hashlib.sha256(db.read_bytes()).hexdigest()
         code, out = run()  # live MPS still requires a sealed owner decision
         self.assertEqual((code, out["status"], out["reason"]),
                          (2, "HOLD", "source_use_decision_unsealed"))
         self.assertEqual(hashlib.sha256(db.read_bytes()).hexdigest(), before)
+        self.assertEqual(reported(out), ipr_pipeline.GovernedOutcome(
+            st.ADAPTER_ERROR, error_detail="vietnam_daily_handoff: source_use_decision_unsealed"))
         with patch.object(handoff, "DECISIONS", self.decisions()), \
                 patch.object(bridge, "desk_promoted", return_value=True):
             code, out = run()
             self.assertEqual((code, out["counts"]), (0, {qa.PUBLISHED: 2}))
+            self.assertEqual(out["by_family"], {MPS: {qa.PUBLISHED: 2}})
+            self.assertEqual(out["collection_by_family"], {MPS: None})
+            self.assertEqual(out["generated_utc"], NOW)
             self.assertNotIn("summary_english", json.dumps(out))
+            self.assertEqual(reported(out), ipr_pipeline.GovernedOutcome(st.OK, 2, 0))
             code, out = run()
             self.assertEqual((code, out["counts"]), (0, {bridge.DUPLICATE: 2}))
+            self.assertEqual(out["by_family"], {MPS: {bridge.DUPLICATE: 2}})
+            self.assertEqual(reported(out),
+                             ipr_pipeline.GovernedOutcome(st.OK_ALL_DUPLICATES, 0, 2))
         with closing_ro(db) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM articles").fetchone(), (2,))
         self.assertFalse(any(p.name.startswith(".vietnam-handoff-") for p in self.tmp.iterdir()))

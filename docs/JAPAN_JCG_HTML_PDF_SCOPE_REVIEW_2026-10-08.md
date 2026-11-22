@@ -1,5 +1,12 @@
 # Japan Coast Guard linked-PDF completeness — research review (2026-10-08)
 
+## Superseding source-scope decision — 9 November 2026
+
+The founder has approved **English HTML article text as an independently qualifying original source** for JCG. The exact first-party /e/topics_archive/articleNNNN.html body and publisher date are the scope; linked PDFs, photographs and media are separate artifacts and do **not** gate eligibility, preservation, model preparation or release of an independently written factual explanation from the verified HTML text.
+
+The historical comparison below remains useful for describing what the HTML does **not** cover. Do not claim HTML-plus-PDF completeness or silently combine the PDF content into an HTML record. Existing PDL1.0 first-party text conditions (attribution, changed-text notice where applicable, third-party and separately marked exclusions), authentic source-version replay and substantive QA still govern use. The standing source eligibility gate now includes `jp_jcg_press_en`. The code change does not activate collection, a model, public release or any paid work.
+
+
 **Status: bounded research only; no documents admitted, no collector changes, no editorial approval.** This work is deliberately separate from main-target collector integration PR #212 and does not alter its CI.
 
 ## Why this matters
@@ -37,6 +44,6 @@ The public BAKAMLA and PCG pages expose those links separately from the English 
 
 ## Relation to production promotion
 
-JCG can be a **narrow HTML-only** shadow source while attachment completeness is under assessment, as long as every stored record is transparently labeled `published_html_text_only`. This does **not** qualify it for full-document production claims. The Day 7/14/30 review, publisher original-language comparison, exact-state-commit review, and owner promotion approval remain mandatory.
+JCG's HTML article text can qualify independently once its exact captured HTML/text version, publisher dates, source authenticity, standing-text PDL1.0 application and relevant exceptions, and factual QA are verified. Preserve the `published_html_text_only` scope label and any attachment URL as **uncollected separate material**. A missing or text-different PDF cannot block the HTML-text component; it can only prevent claims that IPR has reproduced a full HTML-plus-PDF package. Historical Day 7/14/30 checkpoints describe observed reliability and never substitute for actual recurring source-to-reader verification or impose a new fixed wait.
 
 Once the metadata-only Actions run finishes, preserve its exact run ID and the three per-source verdicts in activation issue #205. This research does not authorize any state branch writes or immediate production admission.

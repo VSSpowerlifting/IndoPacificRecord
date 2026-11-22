@@ -1,165 +1,187 @@
-/* Desks: a light paper chart of institutional seats beside one selection panel,
-   then one consistent summary per desk. The registry and corpus supply every
-   claim; coordinates only locate seats. No shadows beyond the shared plate lift,
-   no motion beyond a short fade, nothing that depends on script for content. */
-[data-route='desks.html'] .page-head{padding-block:24px 65px;min-height:0;margin-bottom:24px}
-[data-route='desks.html'] .page-head::after{background-image:url('assets/material/chart-shelf.svg');inset:auto -22px 0 auto;width:45%;height:70px;background-size:850px auto;background-position:center 54%}
-.desks-head .lede{max-width:46rem}
-.desks-tally{display:flex;flex-wrap:wrap;gap:12px 40px;margin:22px 0 14px;padding:0}
-.desks-tally>div{display:flex;flex-direction:column-reverse;gap:2px}
-.desks-tally dt{font:600 12px/1.4 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
-.desks-tally dd{margin:0;font:400 44px/1 var(--display);color:var(--ink);font-variant-numeric:lining-nums}
-.desks-note{font:14px/1.65 var(--sans);color:var(--ink-2);max-width:50rem;margin:0}
-.desks-snapshot{display:block;margin-top:4px;font-size:13px;color:var(--muted)}
-
-.deskmap{--dm-sea:#e3ecea;--dm-land:#f8f7f2;--dm-edge:#b2bfbc;--dm-on:#1f4757;--dm-fill:#456f7d;--dm-quiet:#d5e4e3;--dm-quiet-edge:#5f8790;--dm-warn:#87511a;--dm-ink:#1d2d31;--dm-paper:#fbfaf6;margin:0 0 3rem}
-.deskmap-explorer{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin:0 0 40px}
-.deskmap-figure{margin:0;min-width:0}
-.deskmap-chart{background:var(--dm-sea);border:1px solid var(--rule)}
-.deskmap-svg{display:block;width:100%;height:auto;max-height:min(72vh,540px);margin-inline:auto}
-.deskmap-caption{font:12.5px/1.6 var(--sans);color:var(--ink-2);margin:10px 0 0;max-width:72ch}
-.deskmap-caption-lead{font-weight:600;color:var(--ink)}
-
-/* Map parts */
-.dm-sea{fill:var(--dm-sea)}.dm-graticule{fill:none;stroke:#176c6c;stroke-opacity:.1;stroke-width:.6px}
-.dm-land{fill:var(--dm-land);stroke-linejoin:round;stroke:var(--dm-edge);stroke-width:.6px}.dm-borders{fill:none;stroke:#c9d1ce;stroke-linejoin:round;stroke-width:.5px}
-.dm-scale{display:inline}.dm-scale text{fill:#6d8583;font:19px var(--sans)}
-.dm-country{cursor:pointer;outline:none}
-.dm-country use{fill:var(--dm-land);stroke:var(--dm-edge);stroke-width:.7px;transition:fill 160ms,opacity 160ms}
-.dm-country.is-live use{fill:var(--dm-fill);stroke:#2c5260;stroke-width:.8px}
-.dm-country.is-quiet use{fill:var(--dm-quiet);stroke:var(--dm-quiet-edge);stroke-width:.9px;stroke-dasharray:3 2}
-.dm-country.is-hover use{fill-opacity:.8}
-.dm-country.is-selected use{stroke:var(--accent);stroke-width:2.4px;stroke-dasharray:none}
-.has-selection .dm-country:not(.is-selected) use{opacity:.55}
-.dm-ocean{font:400 italic 46px var(--display);fill:#829e99;letter-spacing:1px;pointer-events:none;transform:translate(130px,-135px)}
-.dm-anchor{cursor:pointer;outline:none}
-.dm-hit{fill:transparent;stroke:none}
-.dm-dot{fill:var(--dm-on);stroke:#fff;stroke-width:5;transition:r 140ms}
-.dm-anchor.is-quiet .dm-dot,.dm-anchor.is-blocked .dm-dot{fill:#fff;stroke:var(--dm-on)}
-.dm-anchor.is-blocked .dm-dot{stroke:var(--dm-warn)}
-.dm-ring{fill:none;stroke:var(--accent);stroke-width:2px;vector-effect:non-scaling-stroke;opacity:0;transition:opacity 140ms}
-.dm-anchor.is-hover .dm-ring{opacity:.5}
-.dm-anchor:focus-visible .dm-ring,.dm-anchor.is-selected .dm-ring{opacity:1;stroke-width:3px}
-.dm-anchor.is-selected .dm-dot,.dm-anchor.is-hover .dm-dot{r:14}
-.dm-label{font:600 27px var(--sans);fill:var(--dm-ink);stroke:rgba(251,250,246,.92);stroke-width:7px;stroke-linejoin:round;paint-order:stroke;pointer-events:none}
-.dm-anchor.is-selected .dm-label{fill:var(--accent-ink)}
-.has-selection .dm-anchor:not(.is-selected):not(.is-hover) .dm-label{opacity:.6}
-
-/* Selection panel: the index doubles as the key; the detail fills from the page */
-.deskmap-panel{min-width:0}
-.deskmap-panel-inner{background:var(--surface);border:1px solid var(--rule);padding:18px 18px 16px}
-.deskmap-group-label{display:flex;align-items:center;gap:8px;margin:0 0 8px;font:600 12px/1.4 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);max-width:none}
-.deskmap-swatch{width:16px;height:11px;flex:none;background:var(--dm-fill);border:1px solid #2c5260}
-.deskmap-swatch.is-quiet{background:var(--dm-quiet);border:1px dashed var(--dm-quiet-edge)}
-.deskmap-swatch.is-seat{position:relative;background:var(--dm-land);border:1px solid var(--dm-edge)}
-.deskmap-swatch.is-seat::after{content:"";position:absolute;left:4px;top:1px;width:5px;height:5px;border:1.5px solid var(--dm-on);border-radius:50%}
-.deskmap-picks{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;padding:0;list-style:none}
-.deskmap-picks li{max-width:none}
-.deskmap-picks a{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;font:600 13.5px/1.2 var(--sans);color:var(--ink);text-decoration:none;background:var(--bg);border:1px solid var(--rule-strong);transition:background-color 140ms,border-color 140ms}
-.deskmap-picks a:hover,.deskmap-picks a.is-hover{border-color:var(--accent)}
-.deskmap-picks a.is-selected{background:var(--band);color:var(--band-ink);border-color:var(--band)}
-.deskmap-picks a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.deskmap-seatonly{display:flex;align-items:center;gap:8px;margin:-4px 0 14px;font:12.5px/1.5 var(--sans);color:var(--ink-2);max-width:none}
-.deskmap-detail{border-top:1px solid var(--rule);padding-top:14px}
-.deskmap-hint{margin:0;font:13.5px/1.6 var(--sans);color:var(--ink-2)}
-.deskmap-sel-name{display:flex;align-items:center;gap:10px;margin:0 0 8px;font:400 28px/1.1 var(--display);color:var(--ink)}
-.deskmap-sel>.deskmap-marks{margin:0 0 6px}
-.deskmap-sel .deskmap-seat{margin:0 0 4px}
-.deskmap-sel-scope,.deskmap-sel-limit{margin:0 0 10px;font:13.5px/1.6 var(--sans);max-width:none}
-.deskmap-sel-limit{color:var(--ink-2)}
-.deskmap-sel-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:12px 0 0;max-width:none}
-.deskmap-sel-actions .btn{min-height:40px;padding:.5rem 1rem}
-.deskmap-sel-actions a:not(.btn){font:600 13.5px/1.4 var(--sans);color:var(--accent-ink)}
-
-/* Directory */
-.deskmap-dir-title{font:400 32px/1.15 var(--display);margin:0 0 6px;max-width:none}
-.deskmap-register{display:grid;grid-template-columns:repeat(auto-fill,minmax(16.5rem,1fr));gap:16px;margin:0}
-.deskmap-group-head{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;margin:14px 0 -2px;padding-bottom:8px;border-bottom:1px solid var(--rule);font:600 12px/1.4 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);max-width:none}
-.deskmap-group-head:first-child{margin-top:4px}
-.deskmap-group-head span{font-variant-numeric:lining-nums;color:var(--muted)}
-.deskmap-plate{display:flex;flex-direction:column;min-width:0;background:var(--dm-paper);border-top:3px solid var(--dm-on);padding:16px 16px 6px}
-.deskmap-plate.is-quiet{border-top:3px dashed var(--dm-quiet-edge)}
-.deskmap-plate.is-blocked{border-top:3px solid var(--dm-warn)}
-.deskmap-plate.is-selected{outline:2px solid var(--accent);outline-offset:2px}
-.deskmap-plate.is-hover:not(.is-selected){border-color:var(--rule-strong);border-top-color:inherit}
-.deskmap-plate-head{display:flex;align-items:center;gap:10px}
-.deskmap-plate h3.plain{font:400 26px/1.12 var(--display);margin:0;max-width:none}
-.deskmap-plate h3.plain a{color:var(--ink);text-decoration:none}
-.deskmap-plate h3.plain a:hover{text-decoration:underline}
-.deskmap-flag-tab{display:inline-flex;flex:none;line-height:0}
-.deskmap-flag-tab:empty{display:none}
-.deskmap-flag-tab .rl-flag{display:block;width:22px;height:16.5px;vertical-align:initial}
-.deskmap-marks{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
-.deskmap-marks .desk-state,.desk-pub{padding:3px 8px;border:1px solid var(--rule-strong);background:var(--bg);font:600 12px/1.35 var(--sans)}
-.deskmap-marks .desk-state--live{border-color:#9bc2b4;background:#eef5f1}
-.deskmap-marks .desk-state--access_blocked{border-color:var(--warning-rule)}
-.desk-pub{display:inline-flex;align-items:center;gap:6px;color:var(--editorial-ink);border-color:var(--editorial-rule);background:var(--editorial-tint);white-space:nowrap}
-.desk-pub::before{content:"";width:7px;height:7px;border:1.5px solid currentColor;flex:none}
-.scope-entry .desk-pub,.desk-table .desk-pub{margin-left:6px;font-size:12px}
-.deskmap-seat{font:13px/1.55 var(--sans);margin:8px 0 0;color:var(--ink-2);max-width:none}
-.deskmap-stats{margin:12px 0 0;padding:0}
-.deskmap-stats>div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-top:1px solid var(--rule);padding:6px 0}
-.deskmap-stats dt{font:12.5px/1.5 var(--sans);color:var(--ink-2);text-transform:none;letter-spacing:0}
-.deskmap-stats dd{font:600 13px/1.5 var(--sans);margin:0;text-align:right;font-variant-numeric:tabular-nums lining-nums}
-.deskmap-enter{margin:auto 0 0;padding-top:8px;font:600 13.5px/1.4 var(--sans);max-width:none}
-.deskmap-enter a{min-height:44px;display:inline-flex;align-items:center;gap:6px}
-.deskmap-plate a:focus-visible,.deskmap-sel a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.deskmap-enter a:hover span{transform:translateX(3px)}
-.deskmap-enter span{transition:transform 140ms}
-
-/* Reference sections */
-.desk-compare{margin:0 0 2rem;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
-.desk-compare>summary{cursor:pointer;padding:14px 0;font:400 28px/1.2 var(--display);min-height:44px}
-.desk-compare>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.desk-compare[open]>summary{border-bottom:1px solid var(--rule)}
-
-/* Two columns once the panel can sit beside a map large enough to read */
-@media(min-width:1100px){
- .deskmap-explorer{grid-template-columns:minmax(0,1fr) 20rem;gap:28px;align-items:stretch}
- .deskmap-svg{max-height:none}
- .deskmap-panel{position:relative}
- .deskmap-panel-inner{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain}
+/* The desk index (desks.html): the regional atlas beside the page's opening,
+   then one ruled row per desk, collecting desks first. Name, state, seat and
+   counts at left; the desk's newest record as parallel text at right. The
+   class names on the rows are kept because guards and citations address
+   them. The atlas (2026-11-17) is one waterlined Natural Earth drawing in its
+   day palette (assets/geo/atlas.svg, scripts/build_atlas.py) cropped by
+   the inline size and position; each seat is an HTML link placed in percent. */
+.desk-count{font:400 var(--step-meta)/1.5 var(--sans);color:var(--muted);margin:.9rem 0 0}
+.desks-tally{display:flex;flex-wrap:wrap;gap:.3rem 2rem;margin:1.1rem 0 0;padding:0}
+.desks-tally div{display:flex;align-items:baseline;gap:.45rem}
+.desks-tally dt{font-size:var(--step-meta);color:var(--muted)}
+.desks-tally dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums lining-nums}
+.desks-group{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:2.6rem 0 0;padding:1rem 0 .9rem;border-top:0;border-bottom:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
+.desks-group:first-child{margin-top:.4rem}
+.desks-group span{font:600 var(--step-meta)/1 var(--sans);color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
+.deskmap-register>.desk{display:grid;position:relative;grid-template-columns:minmax(0,min(17rem,40%)) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
+.deskmap-register .desk h3{margin:0;padding:0;border:0;font:400 2rem/1.05 var(--display)}
+.deskmap-register .desk h3 a{display:inline-flex;align-items:center;min-height:40px;color:var(--ink);text-decoration:none}
+.deskmap-register .desk h3 a:hover{text-decoration:underline;text-decoration-thickness:1px}
+.deskmap-marks{display:flex;flex-wrap:wrap;gap:.2rem .9rem;margin:.5rem 0 0;font-size:var(--step-meta)}
+.desk-pub{color:var(--editorial-ink);font-weight:600}
+.deskmap-stats{margin:.55rem 0 0;padding:0;font-size:var(--step-meta)}
+.deskmap-stats div{display:flex;gap:.45rem;align-items:baseline}
+.deskmap-stats dt{color:var(--muted)}
+.deskmap-stats dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums lining-nums}
+.desks-latest{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);column-gap:1.6rem;align-content:start}
+.desks-latest>*{grid-column:1/-1;margin:0}
+.desks-latest .desks-label{font-size:.8125rem;font-weight:600;color:var(--muted);margin:0 0 .4rem}
+.desks-latest .desks-title{grid-column:1;font:600 1.0625rem/1.36 var(--serif);max-width:44ch}
+.desks-latest .desks-title[lang]{font-weight:400}
+.desks-title[lang^=zh]{font-family:var(--zh-serif)}.desks-title[lang^=ja]{font-family:var(--ja-serif)}.desks-title[lang^=ko]{font-family:var(--ko-serif)}
+.desks-title a{color:var(--ink);text-decoration:none}
+.desks-title a:hover{text-decoration:underline;text-decoration-thickness:1px}
+.desks-latest .original{grid-column:2;grid-row:2/span 2;padding-left:1.3rem;border-left:1px solid var(--rule);font-size:1.0625rem;line-height:1.5;overflow-wrap:anywhere}
+.desks-latest .meta{grid-column:1;margin-top:.35rem;font-size:.8125rem}
+.desks-none{max-width:56ch}
+.desks-latest .deskmap-enter{margin-top:.5rem}
+.deskmap-enter a,.desks-none a{display:inline-flex;align-items:center;min-height:40px;max-width:100%}
+.deskmap-enter a{font:600 var(--step-meta)/1.3 var(--sans)}
+.desks-seat{margin:.35rem 0 0;font-size:var(--step-meta);color:var(--muted)}
+.desks-seat a{margin-left:.35rem;font-weight:600}
+.deskmap-register>.desk::before{
+  content:"";position:absolute;inset-block:1.3rem 1.4rem;inset-inline-start:-.65rem;
+  width:3px;background:var(--accent);transform:scaleY(0);transform-origin:top;
+  pointer-events:none
 }
-@media(min-width:1280px){.deskmap-explorer{grid-template-columns:minmax(0,1fr) 22rem}}
-@media(min-width:600px) and (max-width:1099px){
- .deskmap-panel-inner{display:grid;grid-template-columns:minmax(0,18rem) minmax(0,1fr);gap:0 28px}
- .deskmap-detail{border-top:0;padding-top:0;border-left:1px solid var(--rule);padding-left:28px}
+.deskmap-register>.desk:target::before{transform:scaleY(1)}
+[data-surface] .desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem}
+.atlas{margin:1.8rem 0 0;container-type:inline-size}
+.atlas-map{position:relative;width:100%;aspect-ratio:var(--atlas-ratio)}
+/* Keep the drawing separate from its links so the links can reflow below it. */
+.atlas-map::before{content:"";position:absolute;inset:0;background:var(--accent-tint) url(assets/geo/atlas.svg) var(--crop-at)/var(--crop-size) no-repeat;outline:1px solid var(--rule);outline-offset:-1px;pointer-events:none}
+.atlas-seats{list-style:none;margin:0;padding:0}
+/* A label is cut out of the drawing: the name and place stand on a plate of
+   paper and the mark on a disc of it so the chart leaves each label legible. */
+.seat{position:absolute;left:var(--x,auto);top:var(--y);display:flex;align-items:center;min-height:40px;transform:translate(-20px,-50%);color:var(--ink);text-decoration:none;font:400 .8125rem/1.15 var(--sans)}
+.seat-text{display:block;color:var(--ink-2);padding:.22em .45em .28em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent)}
+.seat-text b{display:block;font-weight:600;font-size:.9375rem;color:var(--ink)}
+.seat:hover b{text-decoration:underline;text-decoration-thickness:1px}
+.seat:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.seat--left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
+.seat--below{flex-direction:column;text-align:center;transform:translate(-50%,-20px)}
+.seat--edge{right:0;padding-right:.4rem;transform:translateY(-50%);text-align:right}
+.seat--edge .seat-text{max-width:9.5rem}
+.seat--edge .seat-text::after{content:" →"}
+.seat .seat-mark{position:relative;width:40px;height:40px;font-size:1.125rem;background:radial-gradient(circle,var(--paper) 11px,transparent 12px)}
+.seat-mark{display:inline-grid;place-items:center;flex:none;color:var(--ink);line-height:1}
+.seat-mark::before{content:"◐"}
+.seat-mark--live{color:var(--positive)}.seat-mark--live::before{content:"■";font-size:.85em}
+.seat-mark--access_blocked{color:var(--warning)}.seat-mark--access_blocked::before{content:"▣"}
+.seat-mark--research::before{content:"◻"}.seat-mark--planned::before{content:"▫"}.seat-mark--paused::before{content:"□"}
+/* The ring answers a pointer or the keyboard; it never moves on its own. */
+.seat .seat-mark::after{content:"";position:absolute;inset:5px;border:1px solid currentColor;border-radius:50%;opacity:0;transform:scale(.78);pointer-events:none}
+.seat:is(:hover,:focus-visible) .seat-mark::after{opacity:.9;transform:none}
+.atlas-grat span{position:absolute;padding:.2em .35em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent);font:400 .6875rem/1 var(--sans);color:var(--muted);pointer-events:none}
+.g-lon{bottom:.35rem;transform:translateX(-50%)}
+.g-lat{left:.4rem;transform:translateY(-50%)}
+.atlas figcaption{margin:.7rem 0 0;font:400 .8125rem/1.5 var(--sans);color:var(--muted);max-width:68ch}
+.atlas figcaption p{margin:0 0 .35rem}
+.atlas-key{display:flex;flex-wrap:wrap;gap:.2rem 1.4rem;color:var(--ink)}
+.atlas-key .seat-mark{margin-right:.2rem}
+/* One compact navigation rail belongs to the atlas, not to a second data
+   directory. The detailed, citable desk register stays below unchanged. */
+.desk-jump{min-width:0;margin:1.6rem 0 0}
+.desk-jump h2{margin:0 0 .55rem;font:400 clamp(1.5rem,1.25rem + .85vw,1.875rem)/1.15 var(--display)}
+.desk-jump-list{list-style:none;margin:0;padding:0}
+.desk-jump-list li{border-top:1px solid var(--rule)}
+.desk-jump-list li:last-child{border-bottom:1px solid var(--rule)}
+.desk-jump-list a{display:grid;grid-template-columns:1.5rem minmax(0,1fr) 1rem;gap:.65rem;align-items:center;min-height:48px;padding:.42rem .35rem;color:var(--ink);text-decoration:none}
+.desk-jump-list a:hover,.desk-jump-list a:focus-visible{background:var(--accent-tint)}
+.desk-jump-list a:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.desk-jump-mark{width:1.5rem;height:1.5rem}
+.desk-jump-copy{min-width:0}
+.desk-jump-name{display:block;font:600 .9375rem/1.3 var(--sans)}
+.desk-jump-detail{display:block;font:400 .75rem/1.35 var(--sans);color:var(--muted);overflow-wrap:anywhere}
+.desk-jump-arrow{justify-self:end;color:var(--muted);font:400 1rem/1 var(--sans)}
+@media(min-width:1140px){
+  [data-surface] .desks-head{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:clamp(1.6rem,4vw,3.2rem)}
+  .desks-head>*{grid-column:1}
+  .desks-head>.atlas{grid-column:2;grid-row:1/span 5;margin:.4rem 0 0}
+  .desks-head>.desk-jump{grid-column:1;grid-row:5;align-self:end}
 }
-@media(max-width:1099px){.dm-label{font-size:31px}}
-@media(max-width:599px){
- [data-route='desks.html'] .page-head::after{width:100%;height:44px;background-size:700px auto}
- .desks-tally{gap:10px 28px}.desks-tally dd{font-size:38px}
- .deskmap-detail,.deskmap-hint{display:none}
- .deskmap-panel-inner{padding:14px}
- .dm-label,.dm-scale,.dm-ocean{display:none}
- .dm-anchor{pointer-events:none}
- .deskmap-register{grid-template-columns:minmax(0,1fr)}
- .desk-compare>summary{font-size:24px}
+@media(min-width:680px) and (max-width:1139px){
+  .desk-jump-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1.25rem}
+  .desk-jump-list li:nth-last-child(2){border-bottom:1px solid var(--rule)}
 }
-@media(prefers-reduced-motion:reduce){.dm-country use,.dm-dot,.dm-ring,.deskmap-picks a,.deskmap-enter span{transition:none}}
-@media(forced-colors:active){
- .deskmap-chart{background:Canvas}.dm-sea,.dm-land,.dm-country use{fill:Canvas;stroke:CanvasText}
- .dm-graticule,.dm-borders{stroke:CanvasText}.dm-label,.dm-scale text{fill:CanvasText;stroke:Canvas;stroke-width:4px}
- .dm-dot{fill:CanvasText;stroke:Canvas}.dm-anchor.is-quiet .dm-dot,.dm-anchor.is-blocked .dm-dot{fill:Canvas;stroke:CanvasText}
- .dm-ocean{fill:CanvasText}
- /* The hit circles stay transparent at every contrast setting; otherwise
-    Chromium repaints them as Highlight discs over the coastline. */
- .dm-hit{fill:transparent;stroke:none;forced-color-adjust:none}
- .dm-country.is-live use,.dm-country.is-quiet use{fill:Canvas;stroke:CanvasText}
- .dm-country.is-live use{stroke-width:1.7px;stroke-dasharray:none}
- .dm-country.is-quiet use{stroke-width:1px;stroke-dasharray:4 3}
- .dm-country.is-selected use{fill:Canvas;stroke:Highlight;stroke-width:2.4px}
- .dm-ring{stroke:Highlight}
- .deskmap-plate{border:1px solid CanvasText;border-top:3px solid CanvasText}
- .deskmap-plate.is-selected{outline-color:Highlight}
- .deskmap-panel-inner{border:1px solid CanvasText}
- .deskmap-picks a{background:ButtonFace;color:ButtonText;border-color:ButtonText}
- .deskmap-picks a.is-selected{border-color:Highlight;outline:3px solid Highlight;outline-offset:0}
- .deskmap-swatch{forced-color-adjust:none}
- .desk-pub{border-color:CanvasText;background:Canvas;color:CanvasText}
+/* Both navigation surfaces share an order, computed from atlas.seats followed
+   by atlas.outside. Pointing at a desk in either one highlights its match in the other. The matching works without scripts. */
+.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(1) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(1) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(2) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(2) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(3) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(3) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(4) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(4) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(5) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(5) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(6) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(6) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(7) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(7) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(8) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(8) a{background:var(--accent-tint)}
+/* In rem, so enlarged text also takes the compact labels. */
+@container (max-width:34rem){
+  .seat{font-size:.75rem}.seat-text b{font-size:.8125rem}
+  .seat--n-left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
+  .seat--n-right{flex-direction:row;text-align:left;transform:translate(-20px,-50%)}
+  .seat--n-below{flex-direction:column;text-align:center;transform:translate(-50%,-20px)}
+  .seat-place{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .atlas-grat{display:none}
 }
-@media print{
- .deskmap-explorer{display:block}.deskmap-panel{display:none}
- .deskmap-register{grid-template-columns:repeat(2,minmax(0,1fr))}
- .deskmap-plate{box-shadow:none}.deskmap-chart{background:none}
+/* The same links reflow below the drawing when there is too little room
+   to keep the seat targets apart, including with enlarged text. */
+@container (max-width:20rem){
+  .atlas-map{aspect-ratio:auto}
+  .atlas-map::before{position:relative;display:block;aspect-ratio:var(--atlas-ratio)}
+  .atlas-seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(8.5rem,100%),1fr));border-top:1px solid var(--rule);gap:.25rem}
+  .atlas-seats .seat{position:relative;inset:auto;transform:none;flex-direction:row;text-align:left}
+  .atlas-seats .seat-text{padding-inline:0;min-width:0;overflow-wrap:anywhere}
+  .atlas-seats .seat--edge .seat-mark{order:-1}
+  .seat--edge .seat-text::after{display:none}
+}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled) {
+  .atlas-seats .seat-mark::after{transition:opacity var(--dur-fast) var(--ease-rule),transform var(--dur-fast) var(--ease-rule)}
+  .desk-jump-arrow{transition:transform var(--dur-fast) var(--ease-rule)}
+  .desk-jump-list a:is(:hover,:focus-visible) .desk-jump-arrow{transform:translateY(2px)}
+  .deskmap-register>.desk::before{transition:transform var(--dur-base) var(--ease-rule)}
+}
+@media (forced-colors:active) {
+  .atlas-map{aspect-ratio:auto}
+  .atlas-map::before,.atlas-grat{display:none}
+  .atlas-seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(8.5rem,100%),1fr));border-top:1px solid var(--rule);gap:.25rem}
+  .atlas-seats .seat{position:relative;inset:auto;transform:none;flex-direction:row;text-align:left}
+  .atlas-seats .seat-text{padding-inline:0;min-width:0;overflow-wrap:anywhere}
+  .atlas-seats .seat--edge .seat-mark{order:-1}
+  .seat--edge .seat-text::after{display:none}
+  .seat-text b{color:LinkText}
+  .seat-text,.atlas-grat span,.seat .seat-mark{background:none}
+}
+.desks-section{margin:3rem 0 0}
+.desks-section>h2{margin:0 0 .8rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
+.scope-register{margin:0;padding:0}
+.scope-entry{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:.4rem 2.2rem;padding:1.1rem 0;border-top:1px solid var(--rule);scroll-margin-top:1rem}
+.scope-entry dt{display:flex;flex-direction:column;gap:.3rem;font:600 1.0625rem/1.35 var(--serif)}
+.scope-entry dt .desk-state,.scope-entry dt .desk-pub{font:400 var(--step-meta)/1.4 var(--sans)}
+.scope-entry dt .desk-pub{font-weight:600}
+.scope-entry dd{margin:0;max-width:68ch}
+.scope-entry dd p{margin:0 0 .5rem}
+.scope-entry .blocking{color:var(--ink-2);font-size:.9375rem}
+.desk-more{margin:3rem 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.desk-more>summary{cursor:pointer;padding:.75rem 0;font:600 .9375rem/1.4 var(--sans)}
+.desk-more[open]{padding-bottom:1rem}
+@media(max-width:720px){
+  .deskmap-register>.desk,.scope-entry,.desks-latest{grid-template-columns:minmax(0,1fr)}
+  .deskmap-register .desk h3{font-size:1.75rem}
+  .desks-latest .original{grid-column:1;grid-row:auto;margin-top:.45rem;padding-left:.85rem;border-left-width:2px}
 }

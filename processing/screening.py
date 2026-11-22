@@ -204,7 +204,7 @@ PHILIPPINES_PROFILE = ScreeningProfile(
     prompt_version="ph-relevance-v1", build_system_prompt=system_prompt,
     build_analysis_messages=analysis_messages,
     build_analysis_system_prompt=system_prompt,
-    analysis_prompt_version="ph-analysis-v13", categories=CATEGORIES,
+    analysis_prompt_version="ph-analysis-v14", categories=CATEGORIES,
 )
 
 from analysis import indonesia_prompts as id_prompts
@@ -215,8 +215,70 @@ INDONESIA_PROFILE = ScreeningProfile(
     prompt_version="id-relevance-v1", build_system_prompt=id_prompts.system_prompt,
     build_analysis_messages=id_prompts.analysis_messages,
     build_analysis_system_prompt=id_prompts.system_prompt,
-    analysis_prompt_version="id-analysis-v4", source_language="id",
+    analysis_prompt_version="id-analysis-v6", source_language="id",
     source_family="id_kemhan_news", categories=id_prompts.CATEGORIES,
+)
+
+from analysis import korea_dapa_prompts as dapa_prompts
+
+# DAPA releases: a source-level Korea profile. KOREA_PROFILE (MND, public
+# queue) is untouched; DAPA input is only the builder's approved prose scope.
+DAPA_PROFILE = ScreeningProfile(
+    desk_id="korea", keyword_prefilter=False, daily_queue=False,
+    build_messages=dapa_prompts.relevance_messages,
+    prompt_version=dapa_prompts.RELEVANCE_VERSION,
+    build_system_prompt=dapa_prompts.system_prompt,
+    build_analysis_messages=dapa_prompts.analysis_messages,
+    build_analysis_system_prompt=dapa_prompts.system_prompt,
+    analysis_prompt_version=dapa_prompts.ANALYSIS_VERSION, source_language="ko",
+    source_family="kr_policy_dapa_releases", categories=dapa_prompts.CATEGORIES,
+)
+
+from analysis import singapore_daily_prompts as sg_daily_prompts
+
+# MINDEF official releases in the shared Daily lane: a source-level Singapore
+# profile with the English-original, evidence-bound contract. SINGAPORE_PROFILE
+# (the legacy public-queue profile, summary and flag only) is untouched and is
+# never applied to this source family.
+SINGAPORE_MINDEF_DAILY_PROFILE = ScreeningProfile(
+    desk_id="singapore", keyword_prefilter=False, daily_queue=False,
+    build_messages=sg_daily_prompts.relevance_messages,
+    prompt_version=sg_daily_prompts.RELEVANCE_VERSION,
+    build_system_prompt=sg_daily_prompts.system_prompt,
+    build_analysis_messages=sg_daily_prompts.analysis_messages,
+    build_analysis_system_prompt=sg_daily_prompts.system_prompt,
+    analysis_prompt_version=sg_daily_prompts.ANALYSIS_VERSION, source_language="en",
+    source_family="sg_mindef_releases", categories=sg_daily_prompts.CATEGORIES,
+)
+
+from analysis import japan_jcg_prompts as jcg_prompts
+
+# Japan Coast Guard English releases in the shared Daily lane. The Japan desk
+# has no desk-level profile: this source family is its only screened input.
+JAPAN_JCG_DAILY_PROFILE = ScreeningProfile(
+    desk_id="japan", keyword_prefilter=False, daily_queue=False,
+    build_messages=jcg_prompts.relevance_messages,
+    prompt_version=jcg_prompts.RELEVANCE_VERSION,
+    build_system_prompt=jcg_prompts.system_prompt,
+    build_analysis_messages=jcg_prompts.analysis_messages,
+    build_analysis_system_prompt=jcg_prompts.system_prompt,
+    analysis_prompt_version=jcg_prompts.ANALYSIS_VERSION, source_language="en",
+    source_family="jp_jcg_press_en", categories=jcg_prompts.CATEGORIES,
+)
+
+from analysis import uscc_daily_prompts as uscc_prompts
+
+# USCC institutional press releases in the shared Daily lane (switched off). The
+# U.S. desk has no desk-level profile: this family is its only screened input.
+US_USCC_DAILY_PROFILE = ScreeningProfile(
+    desk_id="us-indopacific", keyword_prefilter=False, daily_queue=False,
+    build_messages=uscc_prompts.relevance_messages,
+    prompt_version=uscc_prompts.RELEVANCE_VERSION,
+    build_system_prompt=uscc_prompts.system_prompt,
+    build_analysis_messages=uscc_prompts.analysis_messages,
+    build_analysis_system_prompt=uscc_prompts.system_prompt,
+    analysis_prompt_version=uscc_prompts.ANALYSIS_VERSION, source_language="en",
+    source_family="us_uscc_press_en", categories=uscc_prompts.CATEGORIES,
 )
 
 _PROFILES: Dict[str, ScreeningProfile] = {
@@ -233,8 +295,14 @@ _PROFILES: Dict[str, ScreeningProfile] = {
 _SOURCE_PROFILES: Dict[str, ScreeningProfile] = dict(VIETNAM_FAMILY_PROFILES)
 # Shared private-source Daily families take their desk's own profile, by their
 # source definition. A family without a definition never inherits one.
+_FAMILY_PROFILES = {p.source_family: p for p in (JAPAN_JCG_DAILY_PROFILE,
+                                                          US_USCC_DAILY_PROFILE)}
 for _s in DAILY_SOURCES.values():
-    _SOURCE_PROFILES[_s.family] = _PROFILES[_s.desk_id]
+    # A family on a desk without a desk-level profile must bring its own.
+    _SOURCE_PROFILES[_s.family] = _FAMILY_PROFILES.get(_s.family) or _PROFILES[_s.desk_id]
+_SOURCE_PROFILES[DAPA_PROFILE.source_family] = DAPA_PROFILE
+# The loop above would hand a Singapore family the legacy daily-queue profile.
+_SOURCE_PROFILES[SINGAPORE_MINDEF_DAILY_PROFILE.source_family] = SINGAPORE_MINDEF_DAILY_PROFILE
 # Government Office is explicitly bibliographic-only. Neither the common
 # public queue nor the ministry bridge may turn a subject line into analysis.
 _SOURCE_PROFILES["vn_vpcp_official_documents_vi"] = ScreeningProfile(

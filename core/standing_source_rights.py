@@ -25,11 +25,13 @@ HASH = re.compile(r"[0-9a-f]{64}\Z")
 TIME = re.compile(r"20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\dZ\Z")
 MAX_POLICY_AGE = timedelta(days=7)
 
-# The two *specific* source families for which official standing terms make
-# public reuse/derivatives possible. No rights carry across desks or hosts.
+# Source-specific official standing terms permit qualified first-party text
+# reuse/derivatives. No rights carry across distinct institutions or hosts.
 # JAPAN: as of Oct 15 Japan MOD's Japanese notice cites PDL1.0, allowing text
 # copying, public transmission and translation with attribution, modification
 # disclosure, exceptions for third-party expression and reserved contents.
+# JCG: official first-party English HTML article prose is subject to PDL1.0;
+# linked PDFs, photographs and media remain separate, not article-text gates.
 # KOREA: Korea Policy Briefing confirms only items MARKED KOGL Type 1 have
 # an affirmative text-reuse/derivative permission. Images/attachments excluded.
 POLICIES = {
@@ -45,6 +47,32 @@ POLICIES = {
         "excluded_scopes": frozenset(("original_pdf", "original_media", "embedded_assets")),
         "requires_attribution": True,
         "requires_change_notice_for_translation": True,
+    },
+    "jp_mod_press_en": {
+        "schema": POLICY_SCHEMA,
+        "desk": "japan",
+        "official_host": "www.mod.go.jp",
+        "official_path_prefix": "/en/",
+        "policy_url": "https://www.mod.go.jp/j/info/contents.html",
+        "policy_id": "jp-mod-english-first-party-text-pdl1",
+        "item_license_mark_required": False,
+        "permitted_scopes": frozenset(("original_text",)),
+        "excluded_scopes": frozenset(("original_pdf", "original_media", "embedded_assets", "translation_en")),
+        "requires_attribution": True,
+        "requires_change_notice_for_translation": False,
+    },
+    "jp_jcg_press_en": {
+        "schema": POLICY_SCHEMA,
+        "desk": "japan",
+        "official_host": "www.kaiho.mlit.go.jp",
+        "official_path_prefix": "/e/topics_archive/article",
+        "policy_url": "https://www.kaiho.mlit.go.jp/questions/post-1.html",
+        "policy_id": "jcg-english-html-text-pdl1",
+        "item_license_mark_required": False,
+        "permitted_scopes": frozenset(("original_text",)),
+        "excluded_scopes": frozenset(("original_pdf", "original_media", "embedded_assets", "translation_en")),
+        "requires_attribution": True,
+        "requires_change_notice_for_translation": False,
     },
     "kr_policy_mnd_releases": {
         "schema": POLICY_SCHEMA,
@@ -114,6 +142,21 @@ def validate_source(source, policy):
          "source_family_does_not_match_policy")
     safe_url(source["official_url"], policy["official_host"],
              policy["official_path_prefix"])
+    if source["source_family"] == "jp_mod_press_en":
+        # An English MOD release must be served as a verified ministry article,
+        # not inferred from a generic English webpage or a challenged response.
+        parsed = urlsplit(source["official_url"])
+        need(not parsed.query and re.fullmatch(
+            r"/en/(?:article|press-release)/[A-Za-z0-9_./-]+\.html",
+            parsed.path) is not None,
+            "publisher_outside_standing_policy_scope")
+    if source["source_family"] == "jp_jcg_press_en":
+        # A page outside the precise JCG English release family is NOT licensed
+        # as this source merely because it shares the government host.
+        parsed = urlsplit(source["official_url"])
+        need(not parsed.query and re.fullmatch(
+            r"/e/topics_archive/article[0-9]+\.html", parsed.path) is not None,
+            "publisher_outside_standing_policy_scope")
     need(type(source["source_identity"]) is str
          and 3 <= len(source["source_identity"]) <= 240,
          "source_identity_invalid")
@@ -122,8 +165,10 @@ def validate_source(source, policy):
          and type(source["source_capture_sha256"]) is str
          and HASH.fullmatch(source["source_capture_sha256"]) is not None,
          "original_source_version_not_pinned")
-    need(source["language"] in ("ja", "ko")
-         and source["language"] == ("ja" if policy["desk"] == "japan" else "ko"),
+    expected_language = ("en" if source["source_family"] in
+                         ("jp_mod_press_en", "jp_jcg_press_en")
+                         else ("ja" if policy["desk"] == "japan" else "ko"))
+    need(source["language"] == expected_language,
          "original_source_language_mismatch")
     need(type(source["publisher_posted_date"]) is str
          and re.fullmatch(r"20\d\d-\d\d-\d\d",

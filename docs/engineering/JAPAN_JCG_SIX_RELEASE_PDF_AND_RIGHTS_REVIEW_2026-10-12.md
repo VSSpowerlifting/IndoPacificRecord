@@ -1,5 +1,15 @@
 # Japan Coast Guard: six official English release/attachment pairs — original-source and rights review (2026-10-12)
 
+> **Current-policy clarification, 4 November 2026:** retain this dated evidence
+> and its unresolved rights, completeness and attachment findings. Evaluate
+> proposed uses under [the canonical source-use standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard).
+> The former instructions requiring a publisher reply/correspondence and
+> Day 7/14/30 signoffs are superseded as universal prerequisites. An actually
+> applicable legal basis may suffice without correspondence; none is established
+> for broader JCG use here. No contact is authorized, no hold is relaxed, and
+> no HTML-only capture proves PDF/media custody or rights. The approved
+> original-to-reader acceptance standard remains binding.
+
 **Decision: HOLD PDF-package completeness and release reuse/admission pending independent human rights and source approval.** This is a source-document-level research review, not a collector run, seven collecting-day qualification, a Day 7/14/30 signature, permission to reproduce source documents, or an owner decision. The website's **official-source index may be linked without any JCG shadow records becoming production records**.
 
 ## What was actually checked
@@ -45,9 +55,12 @@ The original bounded probe retrieved/parses each PDF in memory and stores no PDF
 
 **Proposed use disposition, awaiting human signoff:** citation/link-only references to these six official HTML pages and their direct publisher-hosted PDFs may be shown *as external links* with source and PDF-scope notes; JCG-owned, body-only HTML archival/translation/model processing is **pending a source-version permission finding**; all PDF original bytes, attached participant/photographic details as stored text, joint-statement text, logos/photos and full-package completeness claims **held**. Factual observations for independent editorial analysis are not themselves approval to store or redistribute protected originals. Keep all existing production and model gates closed.
 
-## Human permissions questions and minimal review receipt
+## Unresolved source-use questions
 
-Route the following to the documented JCG policy office (Japanese originals can be used to clarify the relevant policy) before a source/admission authorization:
+Evaluate the following through primary legal/publisher evidence and the existing
+source-use decision, using Japanese originals where relevant. A publisher reply
+is not mandatory if another defensible applicable basis establishes the use.
+Any proposed correspondence still needs separate authorization; none is given here.
 
 1. Does the JCG Japanese website PDL1.0 default apply to **specific English `/e/topics_archive/article*.html` versions** despite their English `© 2020 ... All rights reserved` footer, and if so on what attribution/adaptation terms?
 2. Are the **linked six PDF file versions** separately covered, and which page sections, insignia, layout, charts, institutional photos or partner-supplied works have third-party or specially reserved rights?
@@ -55,7 +68,13 @@ Route the following to the documented JCG policy office (Japanese originals can 
 4. Is **automated analysis/AI model processing** of stored original English article and PDF text within scope, including derived English summaries and long-term editorial archives?
 5. Who can authorize the **jointly adopted HACGAM statement** on pp. 3–4 of `e260916.pdf`, if not JCG alone?
 
-A named reviewer must pin the exact six URL/body/PDF versions and dates, document readable official reuse response and precise exceptions, attest any HTML-vs-PDF text/source discrepancies, explicitly approve or reject each component, and separately sign Day 7/14/30/30-day qualification. **No owner signature, continuity or production authorization is implied by this dossier.**
+Pin the exact source versions/dates, evidence for the applicable basis and
+exceptions, and actual HTML/PDF differences in the existing source decision.
+Assess each component separately; no new receipt form or fixed-day signoff is
+required by this dossier. The former publisher-response and Day 7/14/30
+prerequisites are retired; historical evidence remains in Git.
+**No source-use clearance, owner signature, continuity or production
+authorization is implied by this dossier.**
 
 ## Relation to active engineering and release
 

@@ -369,6 +369,17 @@ def inventory(week_ending: str, *, database=DB_PATH, desks=None, root=ROOT) -> d
             for row in cursor:
                 data = dict(zip(columns, row))
                 pins["machine:" + data["source_family"] + ":" + data["source_identity"]] = digest(data)
+        if {"daily_machine_records", "korea_official_source_records"} <= tables:
+            # DAPA machine rows hang off the Korea official link (m0021).
+            cursor = conn.execute("SELECT m.* FROM daily_machine_records m JOIN "
+                "korea_official_source_records k ON k.source_identity=m.source_identity "
+                "AND k.official_issuer='kr_dapa' AND k.public_scope='official_link_only' "
+                "WHERE m.source_family='kr_policy_dapa_releases' "
+                "AND k.publisher_posted_date BETWEEN ? AND ?", (start, week_ending))
+            columns = [col[0] for col in cursor.description]
+            for row in cursor:
+                data = dict(zip(columns, row))
+                pins["machine:" + data["source_family"] + ":" + data["source_identity"]] = digest(data)
     return {"week_start": start, "week_ending": week_ending, "desks": desks,
             "sources": pins, "policy": policy_snapshot(root)}
 

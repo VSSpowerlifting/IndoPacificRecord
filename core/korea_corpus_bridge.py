@@ -443,20 +443,68 @@ def withdrawn_article_ids(conn: sqlite3.Connection) -> set:
         "WHERE state='withdrawn' AND article_id IS NOT NULL")}
 
 
-# Ledger processing states a reader may see. Everything else — pending,
-# retryable, QA-held, paused — would render with the generic
-# "awaiting screening" label, which is not what happened to it.
+# Ledger processing states whose English (machine) fields a reader may see.
+# Everything else - pending, retryable, QA-held, paused - would render with the
+# generic "awaiting screening" label, which is not what happened to it.
 PUBLISHABLE_PROCESSING = ("processed", "not_relevant")
 
+# Honest reader labels for an admitted row whose released original is shown
+# but whose English is not (yet) publishable.
+ENGLISH_STATUS_LABELS = {
+    "pending": "English pending",
+    "retryable": "English retrying",
+    "qa_held": "English held for QA",
+    "paused": "English paused",
+}
 
-def publication_gate(conn: sqlite3.Connection):
-    """Which Korea-desk corpus rows a renderer may show.
+# The page knows only the ledger state, not whether the model ever screened the
+# release (pre-dispatch holds never reach it; post-model QA holds did), so
+# neither text makes a screening claim in either direction.
+ENGLISH_WITHHELD_NOTE = ("The official Korean release is preserved; no English "
+                         "for it has passed IPR checks, so none is published.")
+_NOTHING_PUBLISHED = (" No machine screening result, translation, summary or "
+                      "analysis is published for this record.")
+ENGLISH_STATUS_DEFINITIONS = {
+    "pending": "English processing of this release has not yet produced a result."
+               + _NOTHING_PUBLISHED,
+    "retryable": "English processing of this release did not complete and will "
+                 "be retried." + _NOTHING_PUBLISHED,
+    "qa_held": "IPR's translation checks are holding the English for this "
+               "release, so it is not published." + _NOTHING_PUBLISHED,
+    "paused": "English processing of this release did not complete and is "
+              "paused." + _NOTHING_PUBLISHED,
+}
+assert set(ENGLISH_STATUS_DEFINITIONS) == set(ENGLISH_STATUS_LABELS)
 
-    Returns ``(publishable, hidden)``: ``{article_id: source_identity}`` for
-    rows that are admitted, still pinned and finished processing, and the set
-    of every other Korea-desk article id. Fail closed: a Korea-desk row with
-    no ledger entry (one that bypassed the bridge) is hidden, not shown.
-    Other desks are untouched; with no Korea rows ``hidden`` is empty.
+
+def released_original_digests() -> Dict[str, str]:
+    """``{source_identity: original_text_sha256}`` of the released originals.
+
+    ``read_release_index`` re-hashes every released ``.txt`` against its
+    index row, so a digest returned here is the hash of bytes actually on
+    disk. Fails closed: an unreadable or drifted registry releases nothing.
+    """
+    try:
+        return {r["source_identity"]: r["original_text_sha256"]
+                for r in read_release_index()}
+    except ValueError:
+        return {}
+
+
+def publication_gate_detail(conn: sqlite3.Connection, released=None,
+                            excluded=None):
+    """``(publishable, hidden, english_held)`` for the Korea desk.
+
+    ``publishable``: ``{article_id: source_identity}`` for admitted, pinned
+    rows that either finished processing or whose released KOGL original
+    (same identity AND same original-text digest) exists. ``english_held``:
+    ``{article_id: processing_state}`` for the latter group that has NOT
+    finished processing - they render a Record around the released original
+    and never show English machine fields. An excluded identity (frozen
+    baseline, reviewed English, research hold) never enters that second
+    group; a FINISHED excluded row still reaches ``publishable`` so the
+    renderer's excluded-identity refusal keeps firing. ``released`` and
+    ``excluded`` override the registries for tests.
     """
     def rows(sql, params=()):
         # Positional rows whatever row factory the caller's connection uses
@@ -469,16 +517,61 @@ def publication_gate(conn: sqlite3.Connection):
         "SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id "
         "WHERE s.desk_id = ? OR s.slug = ?", (DESK_ID, SOURCE_SLUG))}
     if not korea:
-        return {}, set()
-    publishable = {}
+        return {}, set(), {}
+    publishable, english_held = {}, {}
     if rows("SELECT 1 FROM sqlite_master WHERE type='table' "
             "AND name='korea_corpus_admissions'"):
-        publishable = {r[0]: r[1] for r in rows(
-            "SELECT article_id, source_identity FROM korea_corpus_admissions "
-            "WHERE state = 'admitted' AND article_id IS NOT NULL "
-            "AND processing_state IN (?, ?)", PUBLISHABLE_PROCESSING)
-            if r[0] in korea}
-    return publishable, korea - set(publishable)
+        # A ledger without the digest column (an older schema) cannot prove
+        # a released original matches, so its unfinished rows stay hidden.
+        cols = {r[1] for r in rows("PRAGMA table_info(korea_corpus_admissions)")}
+        digest_col = ("original_text_sha256" if "original_text_sha256" in cols
+                      else "NULL")
+        admitted = [r for r in rows(
+            "SELECT article_id, source_identity, processing_state, "
+            + digest_col + " FROM korea_corpus_admissions "
+            "WHERE state = 'admitted' AND article_id IS NOT NULL")
+            if r[0] in korea]
+        unfinished = any(r[2] not in PUBLISHABLE_PROCESSING for r in admitted)
+        if released is None and unfinished:
+            released = released_original_digests()
+        if excluded is None and unfinished:
+            # The frozen baseline straight from the two public registries
+            # (what scripts.admit_korea_standing_original_texts.baseline
+            # reads) so every gate consumer, including light verifiers, avoids
+            # importing the KOGL replay stack.
+            from core.korea_additional_public_links import (
+                load_additional_korea_official_links)
+            from core.korea_public_bibliography import load_public_korea_links
+            previous = (load_public_korea_links()
+                        + load_additional_korea_official_links())
+            frozen = {row["source_identity"] for row in previous}
+            # Same drift guard as baseline(): exactly the 14 frozen references.
+            _require(len(previous) == len(frozen) == 14,
+                     "historical_korea_original_frontier_drift")
+            excluded = excluded_identities(frozen=frozen)
+        released, excluded = released or {}, excluded or {}
+        for aid, ident, proc, digest in admitted:
+            if proc in PUBLISHABLE_PROCESSING:
+                publishable[aid] = ident
+            elif (proc in ENGLISH_STATUS_LABELS and ident not in excluded
+                    and digest and released.get(ident) == digest):
+                publishable[aid] = ident
+                english_held[aid] = proc
+    return publishable, korea - set(publishable), english_held
+
+
+def publication_gate(conn: sqlite3.Connection, released=None, excluded=None):
+    """Which Korea-desk corpus rows a renderer may show.
+
+    Returns ``(publishable, hidden)``: ``{article_id: source_identity}`` for
+    rows that are admitted, still pinned and either finished processing or
+    backed by a released, hash-matching original, and the set of every other
+    Korea-desk article id. Fail closed: a Korea-desk row with no ledger entry
+    (one that bypassed the bridge) is hidden, not shown. Other desks are
+    untouched; with no Korea rows ``hidden`` is empty.
+    """
+    publishable, hidden, _ = publication_gate_detail(conn, released, excluded)
+    return publishable, hidden
 
 
 def hidden_predicate(hidden, alias: str = "a") -> str:

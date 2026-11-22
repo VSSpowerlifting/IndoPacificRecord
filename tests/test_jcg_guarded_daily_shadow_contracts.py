@@ -74,14 +74,18 @@ class JCGDailyQualifications(unittest.TestCase):
         self.assertEqual(day, date(2026, 10, 8))
         self.assertEqual(prov, "explicit")
 
-    def test_original_source_is_not_archive_complete_without_pdf(self):
+    def test_html_source_is_independent_of_uncollected_pdf_and_production_activation(self):
         source = (ROOT / "shadow/jp_jcg/manifest.json").read_text(encoding="utf-8")
         self.assertIn("shadow", source)
         self.assertIn("jp_jcg_press_en", source)
         self.assertIn("linked PDFs", source)
         production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-        self.assertNotIn("jcg", json.dumps(production).lower())
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+        # The production declaration is manual: the shared Daily lane admits signed
+        # links and readings; only this shadow runner ever fetches the publisher.
+        jcg = [s for s in production["sources"] if s["slug"] == "jp_jcg_press_en"][0]
+        self.assertEqual(jcg["access_method"], "manual")
+        self.assertNotIn("adapter", jcg)
 
 
 if __name__ == "__main__":

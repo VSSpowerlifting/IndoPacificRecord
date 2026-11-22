@@ -12,6 +12,13 @@ on:
       - scripts/korea_dapa_private_recovery_plan.py
       - tests/test_korea_dapa_private_recovery_plan.py
       - tests/test_korea_dapa_private_collector.py
+      - core/korea_dapa_record_candidate.py
+      - core/korea_dapa_archived_kogl_replay.py
+      - scripts/build_dapa_record_candidate.py
+      - scripts/audit_dapa_hwpx.py
+      - tests/test_korea_dapa_record_candidate.py
+      - tests/test_korea_dapa_archived_kogl_replay.py
+      - tests/test_dapa_hwpx_local_audit.py
       - .github/workflows/korea_dapa_metadata_bridge_contracts.yml
       - .github/workflows/korea_verified_official_link_production.yml
 
@@ -30,14 +37,17 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install only source-parser test dependencies
-        run: python -m pip install beautifulsoup4 requests python-dotenv 'jinja2>=3.1.4,<4'
+        run: python -m pip install beautifulsoup4 requests python-dotenv 'jinja2>=3.1.4,<4' 'Pillow>=10.0.0'
       - name: Verify signed packet, source identity, DB admission and MND preservation
         run: |
           python -m unittest -v \
             tests.test_korea_dapa_private_to_production \
             tests.test_korea_dapa_official_metadata_policy_and_schema \
             tests.test_korea_dapa_private_recovery_plan \
-            tests.test_korea_dapa_private_collector
+            tests.test_korea_dapa_private_collector \
+            tests.test_dapa_hwpx_local_audit \
+            tests.test_korea_dapa_record_candidate \
+            tests.test_korea_dapa_archived_kogl_replay
       - name: Verify disabled-by-default private dispatch trust boundary
         shell: bash
         run: |

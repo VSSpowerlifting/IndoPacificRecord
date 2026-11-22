@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from core.manifests import load_all_desks, load_manifest
-from scraper.sources.jp_jcg_en import JCGEnglishAdapter, LISTING
+from scraper.sources.jp_jcg_en import JCGEnglishAdapter, LISTING, POLICY_URL
 from scripts import shadow_collect_desk as runner
 from scripts import review_desk_shadow as reviewer
 
@@ -34,6 +34,10 @@ class MemorySession:
         self.calls = []
         self.pages = {
             HOST + "/robots.txt": Response(HOST + "/robots.txt", b"", 404, "text/plain"),
+            # Synthetic terms page; the collector captures it in every run.
+            POLICY_URL: Response(POLICY_URL, (
+                "<html><body><main><p>Synthetic site-use terms placeholder.</p>"
+                "</main></body></html>").encode()),
             LISTING: Response(LISTING, (
                 '<html><main><article class="main-article">'
                 '<section class="topics has-pd"><dl class="topics-list">'
@@ -77,11 +81,15 @@ class JapanJCGManualShadow(unittest.TestCase):
         self.assertEqual(source.desk_id, "japan_jcg")
         self.assertEqual(source.language_tag, "en")
         self.assertNotIn("japan_jcg", load_all_desks())
-        self.assertNotIn("jp_jcg_press_en",
-                         {s.slug for s in load_all_desks()["japan"].sources})
+        self.assertIsNone({s.slug: s for s in load_all_desks()["japan"].sources}
+                          ["jp_jcg_press_en"].adapter)
         production = json.loads((ROOT / "desks/japan/manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja"])
-        self.assertNotIn("jcg", json.dumps(production).lower())
+        self.assertEqual([s["slug"] for s in production["sources"]], ["jp_mod_news_ja", "jp_jcg_press_en"])
+        # The production declaration is manual: the shared Daily lane admits signed
+        # links and readings; only this shadow runner ever fetches the publisher.
+        jcg = [s for s in production["sources"] if s["slug"] == "jp_jcg_press_en"][0]
+        self.assertEqual(jcg["access_method"], "manual")
+        self.assertNotIn("adapter", jcg)
 
     def test_workflow_manual_only_and_no_production_or_artifact_bodies(self):
         text = (ROOT / ".github/workflows/japan_jcg_shadow_manual.yml").read_text()
@@ -95,6 +103,48 @@ class JapanJCGManualShadow(unittest.TestCase):
         self.assertNotIn("output/", text)
         self.assertNotIn("pla_watch.db", text)
         self.assertNotIn("/jcg-state/state/", text.split("path:", 1)[-1])
+
+    def test_run_captures_the_site_terms_and_records_a_failed_capture(self):
+        config = load_manifest(ROOT / "shadow/jp_jcg/manifest.json")
+        with tempfile.TemporaryDirectory() as temp:
+            state = Path(temp) / "state"
+            ok = MemorySession()
+            a = JCGEnglishAdapter(config.sources[0], session=ok, sleeper=lambda _: None)
+            first = runner.run("japan_jcg", state, date(2026, 10, 8), lookback=9, cap=20,
+                               adapter=a, run_id="jcg-terms-1")
+            self.assertEqual(ok.calls[:3], [HOST + "/robots.txt", POLICY_URL, LISTING])
+            terms = [r for r in first["requests"] if r["requested_url"] == POLICY_URL]
+            self.assertEqual([(r["http_status"], r["final_url"]) for r in terms],
+                             [(200, POLICY_URL)])
+            self.assertEqual(first["listing_report"]["site_terms"], "ok")
+            self.assertTrue((state / "captures" / (terms[0]["capture_sha256"] + ".bin")).is_file())
+        # A failed terms capture is rights evidence, not a discovery failure:
+        # the run completes and records the failure, so the shared Daily
+        # re-signs and the rights replay holds every row on the newer attempt.
+        import requests
+        for label, page, want in (
+                ("404", Response(POLICY_URL, b"<html></html>", 404), "fetch_failure"),
+                ("503", Response(POLICY_URL, b"<html></html>", 503), "fetch_failure"),
+                ("timeout", requests.Timeout("synthetic"), "timeout")):
+            with self.subTest(label), tempfile.TemporaryDirectory() as temp:
+                gone = MemorySession()
+                gone.pages[POLICY_URL] = page
+                if isinstance(page, Exception):
+                    serve = gone.request
+
+                    def failing(method, url, data, headers, **kwargs):
+                        if url == POLICY_URL:
+                            gone.calls.append(url)
+                            raise page
+                        return serve(method, url, data, headers, **kwargs)
+                    gone.request = failing
+                a = JCGEnglishAdapter(config.sources[0], session=gone, sleeper=lambda _: None)
+                entry = runner.run("japan_jcg", Path(temp) / "state", date(2026, 10, 8),
+                                   lookback=9, cap=20, adapter=a, run_id="jcg-terms-2")
+                self.assertEqual(entry["health"], "ok")
+                self.assertEqual(entry["listing_report"]["site_terms"], want)
+                self.assertEqual(gone.calls[:3], [HOST + "/robots.txt", POLICY_URL, LISTING])
+                self.assertEqual(entry["inserted"], 1)
 
     def test_mock_one_run_stores_shadow_only_and_replay_is_idempotent(self):
         config = load_manifest(ROOT / "shadow/jp_jcg/manifest.json")
@@ -120,7 +170,7 @@ class JapanJCGManualShadow(unittest.TestCase):
             self.assertEqual(metadata["html_datetime_verdict"],
                              "observed_stale_template_2021-3-1")
             self.assertFalse(metadata["attachments_collected"])
-            self.assertEqual(len(list((state / "captures").glob("*.bin"))), 3)
+            self.assertEqual(len(list((state / "captures").glob("*.bin"))), 4)  # robots, terms, index, release
             self.assertEqual(len(list((state / "ledger").glob("*.json"))), 1)
             self.assertTrue((state / "clock.json").is_file())
 

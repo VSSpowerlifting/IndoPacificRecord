@@ -42,6 +42,9 @@ jobs:
           def git_blob_sha(raw):
               return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") +
                                   b"\0" + raw).hexdigest()
+          import re
+          backlink = re.compile(
+              r'class="korea-record-backlink" href="[.][.]/(record/[0-9]+[.]html)"')
           for row in rows:
               ident = row["news_id"]
               expected = render_original_page(row)
@@ -52,6 +55,12 @@ jobs:
               if not page.is_file():
                   continue
               current = page.read_bytes()
+              # A Record rendered around this release adds one backlink to
+              # the exhibit; byte parity is then against that exact render.
+              routes = backlink.findall(current.decode("utf-8"))
+              assert len(routes) <= 1, "more than one Record backlink"
+              if routes:
+                  expected = render_original_page(row, record_route=routes[0])
               if current != expected.encode("utf-8"):
                   # Exactly one already-public legacy page has the pre-shell
                   # bytes verified against main and gh-pages. This is a

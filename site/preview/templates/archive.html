@@ -1,12 +1,22 @@
 {% extends "base.html" %}
-{% from "_records.html" import record_days %}
+{% from "_records.html" import record_days, records_key %}
 {% from "_weeks.html" import week_strip %}
 {% from "_atlas.html" import spine %}
 {% block title %}The record — {{ title }}{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="relief.css"><link rel="stylesheet" href="archive.css">{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="archive.css">{% endblock %}
 {% block main_class %} class="archive-page"{% endblock %}
 {% block content %}
-<header class="page-head"><h1>The record.</h1><p class="lede">{{ corpus_total | count }} preserved records. Search English and original titles.</p><p class="finder-note">Start with a smaller <strong>automatically assembled research focus</strong> ({{ focus.china_focus | count }} China records, plus {{ (focus.all_focus - focus.china_focus) | count }} records from other desks). It is not individually fact-checked or editor-approved. All {{ corpus_total | count }} preserved records, their permanent links and publication citations remain available below and through Full preserved record.</p></header>
+{# The page in reading order: what this is, the search box and one row of
+   filters, how many, then the records. Everything that explains the
+   collection — the research list, the weeks, processing states, how search
+   and counts work, desks and the week table — comes after the list, so a
+   reader meets records before apparatus. #}
+<header class="page-head">
+  <h1>The record.</h1>
+  <p class="lede">{{ corpus_total | count }} records of official publications. Some include the source text; others only describe the publication.</p>
+  <p class="archive-about">Search reads record titles, in English and as published. You can also <a href="corpus.html">browse every record by week</a>.</p>
+</header>
+<noscript><p class="nojs-note">Search and filters need JavaScript. Without it, the newest records are listed below and every record is open <a href="corpus.html">week by week</a>.</p></noscript>
 {# The finder. `#browse` and the form both ship `hidden`; browse.js reveals
    them, so with JavaScript off no control ever appears operative when nothing
    can operate it. The newest records below are rendered on the server and
@@ -19,77 +29,84 @@
    (`data-snapshot-*`, public facts only), and a refused index never draws a
    row: the server's rows stay and the message below says why. The form is a
    plain GET, so a query survives in the address and the back button restores
-   it. (DECISION_LOG 2026-09-27, the Records finder.) #}
+   it. (DECISION_LOG 2026-09-27, the Records finder.)
+
+   browse.js names each active-filter chip after its control's <label>, so a
+   label hidden from sight still has to say what the control is. Every control
+   applies as it changes, so the drawer needs no second submit button. #}
 <div id="browse" data-snapshot-date="{{ snapshot.date }}"
      data-snapshot-records="{{ corpus_total }}" data-focus-records="{{ focus.all_focus }}" data-archive-digest="{{ archive_digest }}" data-research-digest="{{ archive_research_digest }}" hidden>
-  <form id="controls" class="finder rl-finder" role="search" action="archive.html" method="get" hidden>
+  <form id="controls" class="finder" role="search" action="archive.html" method="get" hidden>
     <div class="finder-row">
-      <div class="finder-field">
-        <label for="f-scope">Browse collection</label>
-        <select id="f-scope" name="scope">
-          <option value="focus" selected>Research focus ({{ focus.all_focus | count }} records)</option>
-          <option value="all">Full preserved record ({{ corpus_total | count }} records)</option>
-          <option value="published">All published material</option>
-        </select>
-      </div>
       <div class="finder-field finder-field--q">
         <label for="f-q">Title contains</label>
         <input id="f-q" name="q" type="search" autocomplete="off"
                placeholder="English or original title">
       </div>
+      <button type="submit" class="btn btn--primary">Search</button>
+    </div>
+    <div class="finder-filters">
+      <div class="finder-quick">
+        <div class="finder-field finder-field--scope">
+          <label for="f-scope">Search in</label>
+          <select id="f-scope" name="scope">
+            <option value="focus" selected>Selected records ({{ focus.all_focus | count }})</option>
+            <option value="all">Every record ({{ corpus_total | count }})</option>
+            <option value="published">All published material</option>
+          </select>
+        </div>
+        <div class="finder-field">
+          <label for="f-desk" class="visually-hidden">Desk</label>
+          <select id="f-desk" name="desk">
+            <option value="">All desks</option>
+            {% for d in desks %}<option value="{{ d.slug }}">{{ d.name }}{% if d.record_count is not none %} ({{ d.record_count | count }}){% endif %}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="finder-field">
+          <label for="f-sort" class="visually-hidden">Sort by</label>
+          <select id="f-sort" name="sort">
+            <option value="new">Newest first</option>
+            <option value="old">Oldest first</option>
+            <option value="relevance">Best keyword match first</option>
+          </select>
+        </div>
+      </div>
       <details class="finder-more">
-
-        <summary>Filters</summary>
+        <summary>More filters</summary>
         <div class="finder-more-body">
-          <div class="finder-field">
+          <div class="finder-field finder-field--wide">
             <label for="f-keywords">Keywords or "quoted phrase"</label>
             <input id="f-keywords" name="keywords" type="search" maxlength="512" aria-describedby="research-help">
           </div>
           <div class="finder-field">
             <label for="f-record_type">Publication type</label>
             <select id="f-record_type" name="record_type"><option value="">All publication types</option>
-            <option value="archive_record">Archive record</option><option value="official_link">Official-link reference</option>
+            <option value="archive_record">Source record</option><option value="official_link">Link to an official page</option><option value="independent_link">Link to an independent publication</option>
             <option value="preserved_original">Published original</option><option value="reviewed_translation">Reviewed translation</option>
             {% if has_machine_explanations | default(false) %}<option value="machine_explanation">Machine explanation</option>{% endif %}
-            <option value="reviewed_analysis">Reviewed analysis</option>{% if has_dossiers | default(false) %}<option value="living_dossier">Living Dossier</option>{% endif %}<option value="human_analysis">Human-controlled analysis</option></select>
+            <option value="reviewed_analysis">Reviewed analysis</option>{% if has_dossiers | default(false) %}<option value="living_dossier">Dossier</option>{% endif %}<option value="human_analysis">Human-controlled analysis</option></select>
           </div>
-          <div class="finder-field"><label for="f-issuer">Issuer or author</label><select id="f-issuer" name="issuer"><option value="">All issuers / authors</option>{% for issuer in archive_issuers %}<option value="{{ issuer }}">{{ issuer }}</option>{% endfor %}</select></div>
-      <div class="finder-field">
-        <label for="f-desk">Desk</label>
-        <select id="f-desk" name="desk">
-          <option value="">All desks</option>
-          {% for d in desks %}<option value="{{ d.slug }}">{{ d.name }}{% if d.record_count is not none %} ({{ d.record_count | count }} preserved){% endif %}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="finder-field">
-        <label for="f-source">Source outlet</label>
-        <select id="f-source" name="source">
-          <option value="">All sources</option>
-          {% for s in corpus_facets.source %}<option value="{{ s.key }}">{{ s.label }} ({{ s.count | count }})</option>{% endfor %}
-          {% for source in archive_public_sources %}<option value="{{ source }}">{{ source }} — published material</option>{% endfor %}
-        </select>
-      </div>
-      <div class="finder-field">
-        <label for="f-status">Processing status</label>
-        <select id="f-status" name="status">
-          <option value="">All processing states</option>
-          {% for s in corpus_facets.state %}<option value="{{ s.code }}">{{ s.label }} ({{ s.count | count }})</option>{% endfor %}
-        </select>
-      </div>
-      <div class="finder-field">
-        <label for="f-sort">Order</label>
-        <select id="f-sort" name="sort">
-          <option value="new">Newest first</option>
-          <option value="old">Oldest first</option>
-          <option value="relevance">Keyword relevance</option>
-        </select>
-      </div>
-
+          <div class="finder-field">
+            <label for="f-source">Source</label>
+            <select id="f-source" name="source">
+              <option value="">All sources</option>
+              {% for s in corpus_facets.source %}<option value="{{ s.key }}">{{ s.label }} ({{ s.count | count }})</option>{% endfor %}
+              {% for source in archive_public_sources %}<option value="{{ source }}">{{ source }} — published material</option>{% endfor %}
+            </select>
+          </div>
           <div class="finder-field">
             <label for="f-institution">Publishing institution</label>
             <select id="f-institution" name="institution">
               <option value="">All institutions</option>
               {% for s in corpus_facets.institution %}<option value="{{ s.key }}">{{ s.label }} ({{ s.count | count }})</option>{% endfor %}
+            </select>
+          </div>
+          <div class="finder-field"><label for="f-issuer">Issuer or author</label><select id="f-issuer" name="issuer"><option value="">All issuers and authors</option>{% for issuer in archive_issuers %}<option value="{{ issuer }}">{{ issuer }}</option>{% endfor %}</select></div>
+          <div class="finder-field">
+            <label for="f-status">Processing status</label>
+            <select id="f-status" name="status">
+              <option value="">All processing states</option>
+              {% for s in corpus_facets.state %}<option value="{{ s.code }}">{{ s.label }} ({{ s.count | count }})</option>{% endfor %}
             </select>
           </div>
           <div class="finder-field">
@@ -99,129 +116,142 @@
               {% for s in corpus_facets.language %}<option value="{{ s.key }}">{{ s.key | language_label }} ({{ s.count | count }})</option>{% endfor %}
             </select>
           </div>
-          <div class="finder-field">
-            <label for="f-from">Publication date from</label>
-            <input id="f-from" name="from" type="date" >
+          <div class="finder-dates">
+            <div class="finder-field">
+              <label for="f-from">Publication date from</label>
+              <input id="f-from" name="from" type="date" >
+            </div>
+            <div class="finder-field">
+              <label for="f-to">Publication date through</label>
+              <input id="f-to" name="to" type="date" >
+            </div>
           </div>
-          <div class="finder-field">
-            <label for="f-to">Publication date through</label>
-            <input id="f-to" name="to" type="date" >
+          <div class="finder-more-foot">
+            <label for="f-trail" class="finder-check"><input id="f-trail" name="trail" type="checkbox" value="1">
+              Only records cited in IPR analysis ({{ trail_record_count | count }})</label>
+            <a href="#search-help">How search and counts work</a>
           </div>
-          <div class="finder-field">
-            <label for="f-trail"><input id="f-trail" name="trail" type="checkbox" value="1">
-              Only records in an analysis source trail ({{ trail_record_count | count }})</label>
-          </div>
-          <button type="submit" class="btn btn--primary">Apply filters</button>
         </div>
       </details>
-      <button type="submit" class="btn btn--primary">Search</button>
     </div>
     <div class="finder-status">
       <ul class="chips" id="chips" aria-label="Active filters"></ul>
       <button type="button" class="chip-clear" id="f-reset" hidden>Clear all filters</button>
     </div>
-
-    <details class="finder-about">
-      <summary>Search scope and counts</summary>
-    <p id="research-help">Title contains keeps literal title matching. Keywords require every term or quoted phrase. All published material adds public official-link references, registered originals, reviewed English artifacts and human-controlled analysis. Archive dates remain source-stated. IPR publication dates come from public release records; unrecorded dates stay unrecorded. Dates use YYYY-MM-DD. Processing state, institution, original language and source-trail filters apply to archive records. Search counts are documents, not events or independent corroboration.</p>
-    <p class="finder-note">Archive title search covers titles only — the English title where one
-    exists, and the original title always. It does not search machine summaries
-    or stored source text.</p>
-      <p>Source outlets and publishing institutions overlap: one institution can
-      publish through more than one source, so their counts are not mutually
-      exclusive categories. Original language is an attribute of the source, not
-      something asserted independently for each record. Counts are stored,
-      deduplicated records, not an institution's output.</p>
-    </details>
   </form>
 </div>
 
 <p id="index-state" class="index-state index-state--loading" role="status" hidden>Loading
-the search index for {{ corpus_total | count }} records…</p>
+the search index…</p>
 {# Shown only when the index fails to load or fails validation. Rendering
    "0 results" there would describe an empty corpus when the truth is a failed
-   fetch. Outside `#browse`, so it can be seen when the finder is withdrawn. #}
+   fetch. Outside `#browse`, so it can be seen when the finder is withdrawn.
+   "Above" is the browse-by-week link in the page head. #}
 <p id="index-error" class="index-state index-state--error" role="status" aria-live="polite" hidden>The
 search index could not be loaded or did not match this snapshot, so search and
 filters are unavailable. The records held in this snapshot remain
 accessible through the week-by-week browse above.</p>
+<p id="research-error" class="index-state index-state--error" role="status" hidden></p>
 
-<details id="research-list" class="archive-research-list" hidden>
-  <summary>Research list · <span id="selection-count">0</span><span id="export-cue" hidden> · Exports available</span></summary>
-  <div class="research-list-body"><button type="submit" form="controls">Show citations and keep records</button><p>Selections stay in this browser tab. Each kept record remains listed below.</p>
-    <button type="button" id="export-csv" disabled>Export CSV</button>
-    <button type="button" id="export-json" disabled>Export JSON</button>
-    <button type="button" id="selection-clear" disabled>Clear list</button>
-    <ul id="selected-list"></ul><p>Each result has a citation. Exports preserve attribution and grant no reuse rights.</p>
-  </div>
-</details>
-<p id="selection-note" class="visually-hidden" data-kept=" kept. Exports are in Research list; citations are beside each result." role="status" aria-live="polite"></p>
-<p id="research-error" role="status" hidden></p>
 <h2 id="results-heading" class="visually-hidden">Records</h2>
 {# tabindex="-1": a page turn moves focus here (browse.js `turn`), because
    the button pressed may have become disabled. #}
-<p class="result-range" id="result-range" tabindex="-1">The newest {{ archive_first | length }} of {{ focus.all_focus | count }} research-focus records. <a href="corpus.html">All {{ corpus_total | count }} preserved records by week</a>.</p>
+<p class="result-range" id="result-range" tabindex="-1">The newest {{ archive_first | length }} of {{ focus.all_focus | count }} selected records.</p>
 <p class="visually-hidden" id="result-live" role="status" aria-live="polite"></p>
+{# What the first list is. Always visible: it qualifies the rows a reader sees
+   on arrival, with or without JavaScript. #}
+<p class="focus-note">The list starts with {{ focus.all_focus | count }} selected records: every record from the other desks, and {{ focus.china_focus | count }} China Desk records picked by software to spread across its sources and months, without repeated titles. The selection is automatic, not fact-checked or editor-approved. <a href="archive.html?scope=all">Search all {{ corpus_total | count }} records</a></p>
+{# The column names are printed once here, not by `record_days`: browse.js
+   replaces everything inside `#results` when it redraws. #}
+{{ records_key(archive_first, searchable=true) }}
 <div id="results">
-  {{ record_days(archive_first, desk_by_source) }}
+  {{ record_days(archive_first, desk_by_source, key=false) }}
 </div>
 
-<div id="no-results" class="no-results" hidden><p><b>No records match these filters.</b>
-Remove a filter, widen the date range, or try the original-language title.</p></div>
+{# One recovery per scope: browse.js sets data-scope and handles the button
+   values ("all" widens the focus; "clear" keeps the scope and clears the
+   rest). archive.css shows only the line that fits. #}
+<div id="no-results" class="no-results" hidden><p><b>No records match.</b></p>
+<p class="no-results-focus"><button type="button" value="all">Search all {{ corpus_total | count }} records</button></p>
+<p class="no-results-wide"><button type="button" value="clear">Clear the search and filters</button></p></div>
 
 <nav id="pager" class="pager" aria-label="Result pages">
   <button type="button" id="page-prev" hidden>Previous page</button>
   <button type="button" id="page-next" hidden>Next page</button>
-  <p id="nojs-path">Every record is also reachable by publication week in the complete preserved collection:
-  <a href="corpus.html">browse the corpus by week</a>. No JavaScript required.</p>
+  <p id="nojs-path">Every record is also reachable by publication week:
+  <a href="corpus.html">browse by week</a>. No JavaScript required.</p>
 </nav>
+
+{# The research list sits after the results, so keeping a record never moves
+   the row a reader is on. browse.js opens it on wide screens. #}
+<details id="research-list" class="archive-research-list" hidden>
+  <summary><span class="research-list-name">Research list</span> · <span id="selection-count">0</span> kept<span id="export-cue" hidden> · ready to export</span></summary>
+  <div class="research-list-body">
+    <p>Keep records as you read, then export them with their citations. Your list is kept in this browser tab only.</p>
+    <p class="research-list-actions"><button type="submit" form="controls">Show keep and citation options on each record</button>
+    <button type="button" id="export-csv" disabled>Export CSV</button>
+    <button type="button" id="export-json" disabled>Export JSON</button>
+    <button type="button" id="selection-clear" disabled>Clear list</button></p>
+    <ul id="selected-list"></ul>
+    <p class="meta">Exports keep each record's attribution. They do not grant any right to reuse the source text.</p>
+  </div>
+</details>
+<p id="selection-note" class="visually-hidden" data-kept=" kept. Exports are in the Research list below the results; citations are beside each result." role="status" aria-live="polite"></p>
 
 {# Browse by time, after the newest records: search and results come first
    for every reader, and a keyboard does not cross 21 week links to reach
    them. #}
-{{ week_strip(weeks, volume_max, heading='h2', title='Records by publication week') }}
+{{ week_strip(weeks, volume_max, heading='h2', title='Records by week') }}
 
-<noscript><p class="nojs-note">Search and filters need JavaScript. The smaller research focus above is still readable. The full record, including every historic China source and Brief citation, remains available through the <a href="corpus.html">week-by-week preserved corpus</a>.</p></noscript>
-
-{# A server-derived chart of the four exhaustive processing states. The exact
+{# The four exhaustive processing states, derived on the server. The exact
    figures are text; bar widths are decorative and never the only evidence. #}
 <figure class="processing-plate" aria-labelledby="processing-title">
-  <figcaption class="processing-plate-head">
-    <span class="processing-kicker">Where each stored record stands</span>
-    <h2 id="processing-title">Processing states</h2>
+  <figcaption class="states-head">
+    <h2 id="processing-title">Where each record stands</h2>
     <p>{{ snapshot_label }} · {{ corpus_total|count }} stored, deduplicated records.
     Every record is in exactly one of these states.</p>
-    <svg class="processing-engraving" viewBox="0 0 220 110" focusable="false" aria-hidden="true">
-      <path d="M-20 104C35 17 135 12 240 98M-20 87C38 4 139 0 240 83M-20 70C42-10 145-15 240 68M-20 53C45-27 148-31 240 53M-20 36C49-44 152-47 240 38"/>
-    </svg>
   </figcaption>
-  <div class="processing-plate-body">
-    <ul class="processing-bars">
-    {% for state in processing_bars %}
-      <li>
-        <div class="processing-bar-label">
-          <a href="archive.html?status={{ state.code }}#results-heading">{{ state.label }}</a>
-          <strong>{{ state.count|count }}</strong>
-        </div>
-        <span class="processing-track" aria-hidden="true"><span class="processing-fill" style="width: {{ state.percent }}%"></span></span>
-        <span class="processing-share">{{ state.share_label }} of stored records</span>
-      </li>
-    {% endfor %}
-    </ul>
-    <p class="processing-limit">These are processing states in this selective corpus,
-    not institutional output, complete coverage, or an editorial judgment.
-    <a href="corpus-guide.html#states">Definitions and limits</a> ·
-    <a href="corpus.html">Browse every record by week</a>.</p>
-  </div>
+  <ul class="states-list">
+  {% for state in processing_bars %}
+    <li>
+      <strong class="states-count">{{ state.count|count }}</strong>
+      <a href="archive.html?status={{ state.code }}#results-heading">{{ state.label }}</a>
+      <span class="states-track" aria-hidden="true"><span class="states-fill" style="width: {{ state.percent }}%"></span></span>
+      <span class="states-share">{{ state.share_label }} of stored records</span>
+    </li>
+  {% endfor %}
+  </ul>
+  <p class="states-note">These are processing states in this selective collection,
+  not institutional output, complete coverage, or an editorial judgment.
+  <a href="corpus-guide.html#states">What each state means</a> ·
+  <a href="corpus.html">Browse every record by week</a>.</p>
 </figure>
 
-<details class="archive-coverage"><summary>Corpus scope and coverage</summary>
-{{ spine(desks, snapshot, corpus_total) }}
-<p class="meta" id="guide-link">Stored fields and limits: <a href="corpus-guide.html">Corpus Guide</a>. <span id="volume-jump"><a href="#volume-heading">View records by publication week</a>.</span></p>
+<div class="archive-notes">
+<details class="archive-more" id="search-help"><summary><h2>How search and counts work</h2></summary>
+  <p id="research-help"><b>Title contains</b> matches the English title where one
+  exists and the original title always. It does not search machine summaries or stored source text.
+  <b>Keywords</b>, under More filters, must all appear; put a phrase in quotes to match it exactly. They also read
+  the names of the source, institution and desk. Dates are the publication dates each source stated.</p>
+  <p><b>All published material</b> adds IPR Briefs, published originals,
+  reviewed English texts and links to official pages, and there keywords also read
+  the summaries and texts IPR publishes. The processing status, institution,
+  language and cited-in-analysis filters apply only to source records.</p>
+  <p>Counts are stored records with duplicates removed: not events, not independent
+  corroboration and not an institution's total output. Sources and
+  institutions overlap: one institution can publish through more than one
+  source, so their counts are not mutually exclusive categories. Original
+  language is an attribute of the source, not something asserted
+  independently for each record.</p>
 </details>
+<details class="archive-more"><summary><h2>Desks and coverage</h2></summary>
+{{ spine(desks, snapshot, corpus_total) }}
+<p class="meta" id="guide-link">What a record stores, and its limits: <a href="corpus-guide.html">Guide to the records</a>. <span id="volume-jump"><a href="#volume-heading">View records by publication week</a>.</span></p>
+</details>
+</div>
 {% include "_volume.html" %}
 {% endblock %}
 {% block scripts %}
-<template id="archive-row"><li class="record-row"><div><h3><a data-text="title"></a></h3><p class="original" data-text="original"></p><p class="meta" data-text="title_note"></p><p class="row-tags"><span data-text="analyzed"></span><span class="trail-tag" data-text="trail_label"></span></p><p class="archive-snippet" data-text="summary"></p><p class="archive-hold" data-text="hold"></p><div class="archive-actions"><label class="keep-record"><input type="checkbox">Keep in research list</label><details><summary>Citation and provenance</summary><p data-text="processing"></p><p data-text="date_info"></p><p class="archive-citation" tabindex="0" data-text="citation"></p><button type="button" aria-live="polite" aria-atomic="true">Copy citation</button></details></div></div><p class="row-side"><span class="row-who" data-text="who"></span><span class="row-via" data-text="via"></span><a data-text="desk_name"></a><span data-text="state"></span></p></li></template>
+<template id="archive-row"><li class="record-row"><div><h3><a data-text="title"></a></h3><p class="original" data-text="original"></p><p class="meta title-mark" data-text="title_published"></p><p class="meta" data-text="title_note"></p><p class="row-tags"><span data-text="analyzed"></span><span class="trail-tag" data-text="trail_label"></span></p><p class="archive-snippet" data-text="summary"></p><p class="archive-hold" data-text="hold"></p><div class="archive-actions"><details><summary>Citation and provenance</summary><p data-text="processing"></p><p data-text="date_info"></p><p class="archive-citation" tabindex="0" data-text="citation"></p><button type="button" aria-live="polite" aria-atomic="true">Copy citation</button></details><label class="keep-record"><input type="checkbox">Keep in research list</label></div></div><p class="row-side"><span class="row-who" data-text="who"></span><span class="row-via" data-text="via"></span><a data-text="desk_name"></a><span data-text="state"></span></p></li></template>
 <template id="archive-day"><section class="records-day"><p class="day-date"><time><span class="day-num"></span><span class="day-month"></span><span class="day-week"></span></time></p><ul class="record-list"></ul></section></template>
 <script src="browse.js" defer></script>{% endblock %}

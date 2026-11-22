@@ -1,110 +1,65 @@
-"""Phase 4A: public Desks map is a light, status-honest geographic index.
+"""Phase 4A, as rebuilt (2026-11-16): the public Desks page is a directory.
 
-These are cheap source contracts. They do not replace browser geometry,
-accessible interaction, and label/plate collision probes.
+The geographic map, its script and its geometry are retired. These cheap
+source contracts keep what the map's contract protected that still applies:
+the registry, never geography, decides every state and count; a reader
+without JavaScript reaches every desk; and the page carries no map.
 """
 
 from pathlib import Path
 import unittest
 
-from core.desk_registry import load_registry
-from scripts import desk_map
-
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "site/preview/templates/desks.html"
 STYLE = ROOT / "site/preview/desk-map.css"
-FLAGS = ROOT / "site/assets/flags"
-RELIEF = ROOT / "site/preview/templates/_relief.html"
 
 
-class DesksPhase4MapContract(unittest.TestCase):
+class DesksDirectoryContract(unittest.TestCase):
     def setUp(self):
         self.html = TEMPLATE.read_text(encoding="utf-8")
         self.css = STYLE.read_text(encoding="utf-8")
-        self.relief = RELIEF.read_text(encoding="utf-8")
 
     def test_template_compiles_as_jinja(self):
         from jinja2 import Environment
         Environment().parse(self.html)
 
-    def test_no_us_sovereign_fill(self):
-        self.assertIn("d.slug != 'us-indopacific'", self.html)
-        self.assertIn('href="#dm-geo-{{ d.slug }}"', self.html)
-        self.assertIn('class="dm-anchor', self.html)
-        self.assertIn("Seat only: regional reference, not a country fill", self.html)
-
-    def test_registry_drives_status_not_geography(self):
+    def test_registry_drives_state_and_counts(self):
         self.assertIn("d.status_label", self.html)
-        self.assertIn("d.status_explanation", self.html)
         self.assertIn("d.record_count", self.html)
         self.assertIn("d.last_successful_run", self.html)
-        self.assertIn("Not admitted", self.html)
-        self.assertIn("if d.slug not in placed", self.html)
+        self.assertIn("desks.declared_count", self.html)
+        self.assertIn("desks.collecting_count", self.html)
+        self.assertIn("desks.not_collecting_count", self.html)
         self.assertNotIn("private_originals", self.html)
+        # The state is the registry's label verbatim, never a rewrite of it.
+        self.assertNotIn("replace('Live", self.html)
+        # Operating notes live on each desk page, not in the directory.
+        self.assertNotIn("d.status_explanation", self.html)
 
-    def test_flags_are_licensed_local_assets(self):
-        self.assertIn('from "_relief.html" import flag with context', self.html)
-        for iso, slug in (("cn", "china"), ("sg", "singapore"), ("jp", "japan"),
-                          ("vn", "vietnam"), ("us", "us-indopacific"),
-                          ("kr", "korea"), ("ph", "philippines"),
-                          ("id", "indonesia")):
-            with self.subTest(slug=slug):
-                self.assertTrue((FLAGS / (iso + ".svg")).is_file())
-                self.assertIn("'" + slug + "': '" + iso + "'", self.relief)
-        self.assertTrue((FLAGS / "LICENSE").is_file())
-        self.assertIn('aria-hidden="true">{{ flag(d.slug) }}', self.html)
-
-    def test_seat_map_keeps_no_js_register_and_context(self):
-        self.assertEqual(self.html.count('<div class="deskmap-register">'), 1)
-        self.assertLess(self.html.index('<div class="deskmap-chart">'),
-                        self.html.index('<div class="deskmap-register">'))
-        # One synchronized detail panel replaces the floating cards and the
-        # per-desk context excerpts; the full scope stays on the page below.
-        self.assertIn('class="deskmap-detail"', self.html)
-        self.assertLess(self.html.index('<div class="deskmap-register">'),
+    def test_every_desk_is_a_plain_linked_row_before_the_scopes(self):
+        self.assertEqual(self.html.count('<div class="deskmap-register" id="desks-list">'), 1)
+        self.assertLess(self.html.index('class="deskmap-register"'),
                         self.html.index('id="desk-scopes"'))
-        self.assertNotIn('deskmap-context', self.html)
-        self.assertIn('href="#desk-{{ d.slug }}"', self.html)
         self.assertIn('id="desk-{{ d.slug }}"', self.html)
-        self.assertIn('src="desk-map.js"', self.html)
-        self.assertIn('rel="stylesheet" href="relief.css"', self.html)
+        self.assertIn('<a href="{{ d.route }}">{{ d.name }}</a>', self.html)
 
-    def test_light_chart_fallback_and_accessibility(self):
-        self.assertIn("--dm-sea:#e3ecea", self.css)
-        self.assertIn("dm-country.is-quiet use", self.css)
-        self.assertIn("min-width:1100px", self.css)
-        self.assertIn("max-width:599px", self.css)
-        self.assertIn("prefers-reduced-motion:reduce", self.css)
-        self.assertIn("forced-colors:active", self.css)
-        self.assertIn("@media print", self.css)
+    def test_on_page_contents_point_at_real_sections(self):
+        nav = self.html[self.html.index('<nav class="reader-contents"'):]
+        nav = nav[:nav.index("</nav>")]
+        for target in ("desks-list", "desk-scopes", "desk-comparison", "desk-statuses"):
+            with self.subTest(target=target):
+                self.assertIn('href="#%s"' % target, nav)
+                self.assertIn('id="%s"' % target, self.html)
 
-    def test_wide_plate_projection_has_no_obvious_pairwise_overlap(self):
-        """Conservative box preflight; does NOT certify real-browser labels.
+    def test_the_map_is_retired(self):
+        for retired in ("desk-map.js", "_relief.html", "_desk_map_geo", "dm-anchor",
+                        "deskmap-chart", "desk_map"):
+            self.assertNotIn(retired, self.html)
+        self.assertFalse((ROOT / "site/preview/desk-map.js").exists())
 
-        Real browser B10 probe is still required before publication. Use a
-        deliberately generous paper-plate bounding box (232 x 265 px) at the
-        shell's max map width, 1280 px, rather than a five-desk mockup.
-        """
-        map_width = 1280.0
-        map_height = map_width * desk_map.HEIGHT / desk_map.WIDTH
-        width, height = 232.0, 265.0
-        bounds = {}
-        for slug, place in desk_map.layout(load_registry().public_entries)["desks"].items():
-            card = place["wide"]
-            x = float(card["left"].rstrip("%")) * map_width / 100
-            y = float(card["top"].rstrip("%")) * map_height / 100
-            x += float(card["tx"].rstrip("%")) * width / 100
-            y += float(card["ty"].rstrip("%")) * height / 100
-            bounds[slug] = (x, y, x + width, y + height)
-            self.assertGreaterEqual(x, 0, slug)
-            self.assertLessEqual(x + width, map_width, slug)
-        slugs = sorted(bounds)
-        for i, left_slug in enumerate(slugs):
-            a = bounds[left_slug]
-            for right_slug in slugs[i + 1:]:
-                b = bounds[right_slug]
-                overlap = a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
-                self.assertFalse(overlap, "%s overlaps %s" % (left_slug, right_slug))
+    def test_stylesheet_has_no_map(self):
+        for retired in ("--dm-sea", ".dm-", "deskmap-chart"):
+            self.assertNotIn(retired, self.css)
 
 
 if __name__ == "__main__":

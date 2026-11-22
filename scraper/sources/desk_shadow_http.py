@@ -23,6 +23,9 @@ from core.collection.contract import (
 USER_AGENT = ("IndoPacificRecord-ShadowCollector/0.1 "
               "(+https://indopacificrecord.org; research archive; contact via site)")
 MAX_BYTES = 2_000_000
+DOCUMENT_TYPES = ("application/zip", "application/octet-stream",
+                  "application/haansofthwpx", "application/hwp",
+                  "application/x-download")
 MAX_PAGES = 10
 
 
@@ -144,7 +147,18 @@ class ListingShadowAdapter(SourceAdapter):
             for chunk in response.iter_content(65536):
                 payload.extend(chunk)
                 if len(payload) > limit:
-                    raise Refused(st.OVERSIZED_RESPONSE, "response exceeds byte cap")
+                    refused = Refused(st.OVERSIZED_RESPONSE, "response exceeds byte cap")
+                    # Size evidence only. The refused body is discarded unread
+                    # and unrecorded; these are response header facts, at no
+                    # extra request, for whoever later reviews the cap.
+                    length = headers.get("content-length", "")
+                    refused.response_facts = {
+                        "http_status": response.status_code,
+                        "content_type": headers.get("content-type", "")[:120] or None,
+                        "declared_content_length": (
+                            int(length) if re.fullmatch(r"[0-9]{1,12}", length) else None),
+                    }
+                    raise refused
             payload = bytes(payload)
             evidence = {"requested_url": url, "final_url": response.url,
                         "method": "POST" if form is not None else "GET", "form": form,
@@ -168,9 +182,7 @@ class ListingShadowAdapter(SourceAdapter):
                 raise Refused(st.FETCH_FAILURE, "HTTP %d" % response.status_code)
             ctype = headers.get("content-type", "").lower()
             if binary:
-                if not ctype.startswith(("application/zip", "application/octet-stream",
-                                         "application/haansofthwpx", "application/hwp",
-                                         "application/x-download")):
+                if not ctype.startswith(DOCUMENT_TYPES):
                     raise Refused(st.UNEXPECTED_CONTENT_TYPE, "unexpected document type")
                 return payload
             if not ctype.startswith("text/plain" if robots else "text/html"):

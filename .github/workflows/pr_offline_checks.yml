@@ -160,19 +160,21 @@ jobs:
 
       # First execution of PR-controlled content.
       - name: Install dependencies
-        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}
+        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' || steps.scope.outputs.mode == 'editorial' }}
         run: pip install -r requirements.txt
 
       # Omit the redundant fast preflight: full CI reran every selected test.
 
-      # The browser binary, with its system libraries. Same command the daily
-      # workflow uses, so the two runs exercise one browser story rather than
-      # two. `--with-deps` shells out to the runner's package manager; it needs
-      # OS privileges on the ephemeral runner, never repository privileges, and
-      # the job token stays read-only.
+      # Install the exact Playwright-managed Chromium binary. Do not invoke
+      # apt here: the Ubuntu mirror DNS failure on November 11 prevented both
+      # cleanup PRs from reaching any tests. ubuntu-24.04 already supplies the
+      # baseline browser runtime libraries; their presence is NOT presumed:
+      # the mandatory launch smoke check immediately below fails closed on
+      # any missing shared library, corrupted download or sandbox failure.
+      # Daily's separately governed install remains unchanged.
       - name: Install Chromium for the browser-backed tests
         if: ${{ steps.scope.outputs.browser == 'true' }}
-        run: playwright install chromium --with-deps
+        run: playwright install chromium
 
       # Launch it. The fixtures downgrade a launch failure to SkipTest, which
       # is precisely the failure this job must not absorb, so the launch is
@@ -225,7 +227,16 @@ jobs:
       # The assertion below is what makes that a fact rather than a claim.
       - name: Run offline test suite
         if: ${{ steps.scope.outputs.mode == 'full' }}
-        run: python -m unittest discover -s tests -t . -v
+        run: python -m scripts.parallel_unittest -s tests -t . -v
+
+      # Editorial-only PRs (governed Brief content and admitted presentation
+      # assets, as plain regular files) run every test module that reads those
+      # inputs plus the real-browser Brief suites, then the same isolated
+      # render, validator and DB/output assertion. This lane never certifies
+      # qualification reuse; the main-push run of the merge is still full.
+      - name: Run editorial Brief contracts
+        if: ${{ steps.scope.outputs.mode == 'editorial' }}
+        run: python -m scripts.parallel_unittest -s tests -t . -v --editorial
 
       # The focused path still has real Chromium and publication/rights tests.
       - name: Run focused timeline presentation contracts
@@ -252,7 +263,7 @@ jobs:
       # Keeping the normal repo layout also keeps validator check 8 enabled.
       - name: Render isolated output for validation
         id: validation_tree
-        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}
+        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' || steps.scope.outputs.mode == 'editorial' }}
         run: |
           set -euo pipefail
           candidate="$(mktemp -d "${RUNNER_TEMP}/ipr-pr-validation.XXXXXX")"
@@ -263,7 +274,7 @@ jobs:
       # The unchanged deploy gate, including analyzed-record coverage, now
       # checks the freshly rendered candidate rather than an older deployment.
       - name: Validate rendered output
-        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' }}
+        if: ${{ steps.scope.outputs.mode == 'full' || steps.scope.outputs.mode == 'focused' || steps.scope.outputs.mode == 'editorial' }}
         working-directory: ${{ steps.validation_tree.outputs.root }}
         run: python scripts/validate_output.py
 

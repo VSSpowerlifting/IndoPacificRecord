@@ -86,6 +86,7 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.documents = {}
+        self.attachment_refusals = {}
         self.robots_timeout_retries = 0
         self.transport_retries = 0
 
@@ -124,6 +125,7 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
     def discover(self, window):
         self.robots_timeout_retries = 0
         self.transport_retries = 0
+        self.attachment_refusals = {}
         return super().discover(window)
 
     def first_request(self, window):
@@ -213,7 +215,15 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
                 hint = self.references[reference.url]
                 if not self.titles_match(hint["title"], title) or published != hint["date"]:
                     raise ValueError("release metadata disagrees with listing")
-                payload = self._request(url, binary=True)
+                try:
+                    payload = self._request(url, binary=True)
+                except Refused as exc:
+                    # The release page is captured and agrees with the listing;
+                    # only its attachment request was refused. Record which
+                    # component failed. The runner alone decides what follows.
+                    self.attachment_refusals[reference.url] = dict(
+                        getattr(exc, "response_facts", {}), status=exc.status)
+                    raise
                 self.documents[reference.url] = (payload, dict(self.evidence[-1]))
             except (Refused, ValueError) as exc:
                 capture.status = exc.status if isinstance(exc, Refused) else st.EXTRACTION_FAILURE

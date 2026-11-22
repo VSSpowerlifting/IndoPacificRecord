@@ -120,6 +120,10 @@ CARRIED_FORWARD = (
     ".nojekyll",
 )
 
+# Withdrawn presentation asset. Keep the alternate inking and its receipt
+# in source; it is no longer part of the reader site.
+RETIRED_ASSET_PATHS = {"geo/atlas-night.svg"}
+
 #: `/signals.html` moves to `/methodology.html`: "Signals & Methodology" has no
 #: separate page in the regional model because its content is the methodology.
 #: The renderer does not emit this stub — it emits no legacy route outside
@@ -388,8 +392,9 @@ def publish(staged: Path, target: Path, gp) -> tuple:
             # older referenced asset without nesting assets/assets or replacing
             # the newly built fonts, identity and responsive photographs.
             for source in sorted((holding / name).rglob("*")):
-                if source.is_file():
-                    destination = target / name / source.relative_to(holding / name)
+                relative = source.relative_to(holding / name)
+                if source.is_file() and relative.as_posix() not in RETIRED_ASSET_PATHS:
+                    destination = target / name / relative
                     if not destination.exists():
                         destination.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(source, destination)

@@ -77,6 +77,46 @@ class JapanModAdmission(unittest.TestCase):
                 run("unused", FIXTURE["source_commit"], ROOT / "pla_watch.db")
             source.assert_not_called()
 
+    def test_pdl_text_eligibility_keeps_metadata_model_and_release_separate(self):
+        # Source-specific research eligibility is not an intake/publication switch.
+        from core import standing_source_rights as licensed
+        scope = self.approved["standing_license_text_eligibility"]
+        self.assertEqual(scope["license_policy_id"],
+                         licensed.POLICIES["jp_mod_news_ja"]["policy_id"])
+        self.assertEqual(scope["license_qualification_contract"],
+                         "core.standing_source_rights.qualify_standing_text")
+        self.assertEqual(set(scope["candidate_scopes"]),
+                         {"original_text", "translation_en"})
+        self.assertEqual(set(scope["candidate_scopes"]),
+                         set(licensed.POLICIES["jp_mod_news_ja"]["permitted_scopes"]))
+        self.assertFalse(scope["public_text_release_authorized"])
+        self.assertFalse(scope["external_model_input_authorized"])
+        self.assertFalse(scope["automated_text_processing_or_release_authorized"])
+        self.assertEqual(self.approved["permitted_fields"], gate.PERMITTED)
+        self.assertIn("unqualified or incomplete original bodies",
+                      self.approved["excluded_uses"])
+        self.assertIn("unqualified or unlicensed source excerpts",
+                      self.approved["excluded_uses"])
+        self.assertIn("maps, diagrams, media and embedded third-party assets",
+                      self.approved["excluded_uses"])
+        self.assertNotIn("original bodies", self.approved["excluded_uses"])
+        self.assertNotIn("translations", self.approved["excluded_uses"])
+
+    def test_pdl_eligibility_still_requires_independent_trusted_replays(self):
+        from core import standing_source_rights as licensed
+        source = dict(desk="japan", source_family="jp_mod_news_ja",
+            source_identity="japan-mod:synthetic", official_url=
+            "https://www.mod.go.jp/j/press/news/2026/11/06a.pdf",
+            source_git_commit="a" * 40, source_capture_sha256="b" * 64,
+            publisher_posted_date="2026-11-06", language="ja")
+        with self.assertRaisesRegex(
+                licensed.StandingLicenseHold,
+                "trusted_source_policy_and_exception_verifiers_required"):
+            licensed.qualify_standing_text(
+                source, kind="original_text", proposed_sha256="c" * 64,
+                attribution="Original source: " + source["official_url"],
+                now_utc="2026-11-06T12:00:00Z")
+
     def test_exact_metadata_only_rows_repeat_idempotently_across_commits(self):
         self.assertEqual(self.admit()["new_official_links"], 7)
         before = self.stored()

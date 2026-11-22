@@ -127,9 +127,14 @@ class TestRosterMatchesConfiguration(DeskCase):
                 if active and access_method != "manual":
                     self.assertIn(desk_id, collecting)
 
+    # The two Japan sources production is authorized to know: the MOD news-feed
+    # registration and the Japan Coast Guard English releases (#1045,
+    # migration m0023). Any other Japan source still fails this contract.
+    AUTHORIZED_JAPAN_SOURCES = frozenset({"jp_mod_news_ja", "jp_jcg_press_en"})
+
     def test_japan_has_no_fetched_source_and_no_articles(self):
-        """The only Japan source production may know is the manual news-feed
-        registration for governed link admission. Nothing fetches it and no
+        """Production may know only the authorized Japan sources, each a manual
+        registration for governed link admission. Nothing fetches them and no
         Japan article row may exist."""
         with self.db() as con:
             japan = con.execute(
@@ -138,7 +143,7 @@ class TestRosterMatchesConfiguration(DeskCase):
             articles = con.execute(
                 "SELECT COUNT(*) FROM articles a JOIN sources s ON s.id = a.source_id "
                 "WHERE s.desk_id IN ('japan', 'philippines', 'indonesia')").fetchone()[0]
-        self.assertLessEqual({slug for slug, _ in japan}, {"jp_mod_news_ja"})
+        self.assertLessEqual({slug for slug, _ in japan}, self.AUTHORIZED_JAPAN_SOURCES)
         self.assertTrue(all(method == "manual" for _, method in japan))
         self.assertEqual(articles, 0)
 
@@ -165,16 +170,18 @@ class TestRosterMatchesConfiguration(DeskCase):
         endpoint, the site root, the Press Releases and Readouts listing and
         robots.txt itself all return 403 at the edge. What this test protects is
         unchanged — the desk collects nothing. Since runtime migration 4 its
-        two registered sources are the manual USCC and Treasury listing-metadata
-        families admitted through the governed dispatch; nothing fetches them.
+        first two registered sources are the manual USCC and Treasury listing-metadata
+        families admitted through the governed dispatch; the third is the USCC
+        press-release narrative family `us_uscc_press_en` (founder activation of
+        2026-11-22). Nothing fetches them from public Daily.
         """
         us = load_registry().get("us-indopacific")
         self.assertIsNotNone(us)
         self.assertEqual(us.status, "access_blocked")
         self.assertFalse(us.is_collecting)
         self.assertEqual(us.manifest_path, "desks/us-indopacific/manifest.json")
-        self.assertEqual(us.configured_source_count, 2)
-        self.assertEqual(us.enabled_source_count, 2)
+        self.assertEqual(us.configured_source_count, 3)
+        self.assertEqual(us.enabled_source_count, 3)
         self.assertEqual({s.access_method for s in us.sources}, {"manual"})
         self.assertIn("not collecting", us.status_label.lower())
 
@@ -356,7 +363,7 @@ class IndonesiaPublicStatusWithoutCorpus(DeskCase):
         tally = {dt.get_text(" ", strip=True): dd.get_text(strip=True)
                  for dt, dd in zip(*[iter(BeautifulSoup(html, "html.parser")
                                           .select(".desks-tally dt, .desks-tally dd"))] * 2)}
-        self.assertEqual(tally, {"Declared": "8",
+        self.assertEqual(tally, {"Desks": "8",
                                  "Collecting into the record": "4",
                                  "Not collecting": "4"})
         self.assertEqual(
@@ -370,10 +377,10 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
         self.assertTrue((self.out / "japan.html").is_file())
         self.assertIn('href="japan.html"', self.page("desks.html"))
 
-    def test_the_japan_page_states_no_production_records_and_one_manual_source(self):
+    def test_the_japan_page_states_no_production_records_and_its_manual_sources(self):
         html = self.page("japan.html")
         self.assertIn("Corpus records</dt><dd>Not admitted", html)
-        self.assertIn("Sources enabled for governed admission</dt><dd>1", html)
+        self.assertIn("Sources enabled for governed admission</dt><dd>2", html)
         self.assertIn("No source is fetched in production.", html)
         self.assertIn("the public pipeline never fetches", html)
         self.assertNotIn("Sources enabled in shadow", html)
@@ -425,11 +432,19 @@ class TestJapanDeskIsPlannedNotCoverage(DeskCase):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.page("index.html"), "html.parser")
         public_desks = [d for d in gp.PublicView(TRACKED_DB).desk_directory() if d.record_count]
-        shown = soup.select(".home-desk-list a")
+        # One row per desk that holds public records (2026-11-16: "Newest
+        # from each desk"); a desk without records is never given a row.
+        shown = soup.select(".home-newest .desk-cell > a")
+        self.assertTrue(shown, "the home page lists no desk")
         self.assertEqual({a.get("href") for a in shown},
                          {d.slug + ".html" for d in public_desks})
         self.assertNotIn("japan.html", {a.get("href") for a in shown})
-        self.assertIn("Other desks contribute no public records", soup.main.get_text(" "))
+        # The desks without public records are named only in the quiet line,
+        # each with its registry state, and never with a record count.
+        empty = soup.select_one(".home-desks-empty")
+        self.assertIsNotNone(empty.select_one('a[href="japan.html"]'))
+        self.assertNotRegex(" ".join(empty.get_text(" ").split()), r"\d+ records?")
+        self.assertLess(len(public_desks), len(load_registry().public_entries))
 
     def test_the_volume_rows_still_name_the_joint_staff(self):
         """The row subject moved from the template into the registry so each
@@ -546,32 +561,18 @@ class TestVietnamMpsLiveCoverage(DeskCase):
                  if 'data-desk="vietnam"' in b][0]
         self.assertIn("Records</dt>", block)
         self.assertNotIn("Records</dt><dd>Not admitted", block)
-        self.assertIn("Hanoi", block)
+        # The live state is the registry's own label; the count is the real one.
+        self.assertIn(load_registry().get("vietnam").status_label, block)
+        self.assertRegex(block, r"Records</dt><dd>[1-9][0-9,]*</dd>")
 
-    def test_tablet_directory_uses_all_desk_plates_at_full_width(self):
-        """Phase 4A uses a responsive register rather than side-hung cards.
-
-        Geography still records Vietnam's side-oriented tablet leader, but
-        no mapped plate receives the legacy narrow-width class at 760–1100px.
-        Keeping that class would trigger support.css's old 25% width rule
-        and make the entry unreadable inside the new register.
-        """
-        import json
-        places = json.loads((MANIFESTS / "geography.json")
-                            .read_text(encoding="utf-8"))["desks"]
-        side = {slug for slug, place in places.items()
-                if place["card"]["mid"]["hang"] in ("left", "right")}
-        self.assertEqual(side, {"vietnam"})
+    def test_directory_rows_span_the_full_width(self):
+        """The map's side-hung plates are retired (2026-11-16): every desk is
+        one full-width row of the directory, and no plate carries the legacy
+        narrow-width class."""
         html = self.page("desks.html")
-        narrowed = {slug for cls, slug in re.findall(
-            r'<section class="([^"]*\bdeskmap-plate\b[^"]*)"[^>]*data-desk="([^"]+)"', html)
-            if "is-mid-side" in cls.split()}
-        self.assertFalse(narrowed)
+        self.assertNotIn("is-mid-side", html)
         css = (REPO_ROOT / "site/preview/desk-map.css").read_text(encoding="utf-8")
-        # Every plate sits in one auto-fill register: no plate is hung at a
-        # fractional width, and the print layout falls back to two columns.
-        self.assertIn(".deskmap-register{display:grid;grid-template-columns:repeat(auto-fill,minmax(", css)
-        self.assertIn(".deskmap-register{grid-template-columns:repeat(2", css)
+        self.assertIn(".deskmap-register>.desk{display:grid;", css)
 
 
 class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
@@ -582,8 +583,7 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
         directory = self.page("desks.html")
         self.assertIn('href="philippines.html"', directory)
         self.assertIn('data-desk="philippines"', directory)
-        self.assertIn("Manila", directory)
-        self.assertIn('dm-geo-philippines', directory)
+        self.assertIn('id="desk-philippines"', directory)
 
     def test_shadow_registry_never_claims_production(self):
         entry = load_registry().get("philippines")
@@ -610,6 +610,11 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
             self.assertEqual(con.execute(
                 "SELECT COUNT(*) FROM sources WHERE desk_id = 'philippines' "
                 "AND access_method != 'manual'").fetchone()[0], 0)
+
+    def assertOriginalCount(self, page):
+        from core.daily_machine_records import load
+        count = sum(bool(r["original_text"]) for r in load(TRACKED_DB) if r["desk_id"] == "philippines")
+        self.assertIn("Records with original text</dt><dd>%s</dd>" % (count or "None yet"), page)
 
     def test_countries_have_honest_empty_public_corpus(self):
         # Admitted AFP and NSC link metadata are not general corpus coverage.
@@ -639,9 +644,7 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
                 if name == "philippines":
-                    # Link metadata and machine explanations are not corpus
-                    # records; the page says so rather than showing zero-source rows.
-                    self.assertIn("Original documents in the IPR corpus</dt><dd>None", page)
+                    self.assertOriginalCount(page)
                     self.assertNotIn("Sources enabled in production", page)
                     self.assertNotIn('href="archive.html?desk=' + name + '"', page)
                 else:
@@ -676,7 +679,6 @@ class TestPendingDeskReferenceBrowser(DeskCase):
         self.assertNotIn("Individually reviewed official-source references", html)
         self.assertNotIn("No individual source references have completed", html)
         self.assertNotIn('data-reference-list', html)
-        self.assertIn("Original documents in the IPR corpus</dt><dd>None", html)
         self.assertNotIn("archive.html?desk=" + slug, html)
         self.assertIn("Individually reviewed official-source references", self.page("indonesia.html"))
 

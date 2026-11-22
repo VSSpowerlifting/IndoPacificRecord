@@ -1,0 +1,103 @@
+# One read-only PR gate replacing four overlapping model-validation jobs.
+# Retained: the union of their path triggers, six synthetic test modules,
+# translation failure-cause readback, tracked SQLite checksum, and output/ parity.
+# No model key, source fetch, collection, deployment, or repository write token.
+name: Model processing offline contracts
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'analysis/analyzer.py'
+      - 'config.py'
+      - 'requirements.txt'
+      - 'scripts/audit_analysis_failure_causes.py'
+      - 'tests/test_relevance_json_value_validation.py'
+      - 'tests/test_relevance_tool_optin.py'
+      - 'tests/test_model_parse_error_redaction.py'
+      - 'tests/test_llm_usage_telemetry.py'
+      - 'tests/test_analysis_failure_causes.py'
+      - 'tests/test_translation_tool_value_validation.py'
+      - 'tests/test_model_processing_workflow_contract.py'
+      - 'docs/DEFAULT_RELEVANCE_VALUE_VALIDATION.md'
+      - 'docs/RELEVANCE_TOOL_OPTIN.md'
+      - 'docs/MODEL_PARSE_ERROR_REDACTION.md'
+      - 'docs/TRANSLATION_TOOL_VALUE_VALIDATION.md'
+      - '.github/workflows/model_processing_contracts.yml'
+      # Included so the replacement check is visible on this migration PR.
+      - '.github/workflows/default_relevance_value_contracts.yml'
+      - '.github/workflows/relevance_tool_optin_contracts.yml'
+      - '.github/workflows/model_parse_error_redaction_contracts.yml'
+      - '.github/workflows/translation_tool_value_contracts.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  model-processing-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out PR without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.13
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - name: Pin original archive and require absent sidecars
+        run: |
+          set -euo pipefail
+          sha256sum pla_watch.db > "$RUNNER_TEMP/model-processing-db.sha256"
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm
+      - name: Install declared dependencies
+        run: pip install -r requirements.txt
+      - name: Check relevance, translation, parse redaction and usage contracts
+        env:
+          ANTHROPIC_API_KEY: ''
+          RELEVANCE_TOOL_OUTPUT_ENABLED: '0'
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_relevance_json_value_validation -v
+          python -m unittest tests.test_relevance_tool_optin -v
+          python -m unittest tests.test_model_parse_error_redaction -v
+          python -m unittest tests.test_llm_usage_telemetry -v
+          python -m unittest tests.test_analysis_failure_causes -v
+          python -m unittest tests.test_translation_tool_value_validation -v
+          python -m unittest tests.test_model_processing_workflow_contract -v
+      - name: Preserve translation failure-cause SQLite readback
+        run: |
+          set -euo pipefail
+          python scripts/audit_analysis_failure_causes.py --db pla_watch.db \
+            > "$RUNNER_TEMP/translation-review-metadata.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) /
+                               "translation-review-metadata.json").read_text())
+          assert report["model_calls"] == 0 and report["writes"] == 0
+          assert report["root_causes_established"] is False
+          assert report["model_spend_authorized"] is False
+          blank = {r["article_id"] for r in
+                   report["samples_by_flag"]["daily_blank_body"]}
+          for ident in (1856, 1857, 1944):
+              print("Previously repeated translation-failure article=%d "
+                    "currently_in_blank_body_audit_sample=%s" %
+                    (ident, ident in blank))
+          print("All stored Daily blank-body flags=%d; sample_size=%d" %
+                (report["totals"]["daily_blank_body"], len(blank)))
+          PY
+      - name: Verify tracked archive, sidecars and public output untouched
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          sha256sum -c "$RUNNER_TEMP/model-processing-db.sha256"
+          git diff --exit-code -- pla_watch.db output/
+          test -z "$(git status --porcelain --untracked-files=all -- pla_watch.db output/)"
+          test ! -e pla_watch.db-wal
+          test ! -e pla_watch.db-shm

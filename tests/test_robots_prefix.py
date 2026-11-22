@@ -30,6 +30,7 @@ PLAIN_CALLERS = (
     "scripts/collect_uscc_press_metadata.py",
     "scripts/collect_us_bis_homepage_metadata.py",
     "scripts/collect_us_treasury_press_metadata.py",
+    "core/uscc_offline_input.py",
 )
 
 

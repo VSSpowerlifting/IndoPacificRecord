@@ -30,7 +30,277 @@ def originals():
     return data
 
 
+def held(d, *, run, count=1, **kwargs):
+    """A receipt recording `count` releases left out of custody by the size hold."""
+    data = receipt(d, run=run, **kwargs)
+    data["attachment_holds"] = count
+    data["attachment_hold_items"] = [
+        {"url": "https://www.korea.kr/briefing/pressReleaseView.do?newsId=%d" % (9000 + n)}
+        for n in range(count)]
+    return data
+
+
+def through_october_thirteen():
+    return originals() + [receipt("2026-10-12", run="38323793488-1"),
+                          receipt("2026-10-13", run="38400000001-1")]
+
+
 class KoreaWatchTests(unittest.TestCase):
+    def run_main(self, ledgers, as_of, *flags):
+        import contextlib
+        import io
+        with tempfile.TemporaryDirectory() as tmp:
+            clock = Path(tmp) / "state" / "clock.json"
+            clock.parent.mkdir()
+            clock.write_text(json.dumps(CLOCK), encoding="utf-8")
+            out = io.StringIO()
+            with patch.object(watch, "pinned_ledger_checkout",
+                              return_value=(SHA, ledgers)), \
+                    contextlib.redirect_stdout(out):
+                code = watch.main(["--shadow-checkout", tmp,
+                                   "--as-of-utc", as_of, *flags])
+        return code, out.getvalue()
+
+    def test_hold_on_the_latest_scheduled_slot_fails_the_check_without_identities(self):
+        data = originals() + [held("2026-10-12", run="38323793488-1",
+                                   count=2, result="ok")]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
+        self.assertFalse(report["current_mature_slot_missing"])
+        self.assertEqual(report["status"], "CURRENT_SCHEDULED_SLOT_HAS_ATTACHMENT_HOLDS")
+        self.assertEqual(report["attachment_holds_latest_mature_slot"], 2)
+        self.assertEqual(report["scheduled_dates_with_attachment_holds"], ["2026-10-12"])
+        self.assertEqual(report["distinct_attachment_hold_identities_in_ledgers"], 2)
+        self.assertFalse(report["attachment_hold_custody_resolution_verified"])
+        self.assertFalse(report["production_eligible"])
+        code, out = self.run_main(data, "2026-10-13T01:30:00Z", "--fail-current-gap")
+        self.assertEqual(code, 2)
+        self.assertEqual(out.count("::error::"), 1)
+        self.assertIn("left 2 release(s) out of custody", out)
+        # Public Actions log: counts and dates only, never a release identity.
+        self.assertNotIn("newsId", out)
+        self.assertNotIn("korea.kr", out)
+        # Without the flag the same evidence is reported but never fails.
+        code, out = self.run_main(data, "2026-10-13T01:30:00Z")
+        self.assertEqual(code, 0)
+        self.assertNotIn("::error::", out)
+        self.assertIn("::warning::Korea ledgers in the evaluated window record", out)
+
+    def test_later_clean_slot_keeps_an_earlier_hold_visible_and_blocks_the_candidate(self):
+        clean = through_october_thirteen()
+        report = watch.summarize(clean, CLOCK, commit=SHA, as_of="2026-10-14T01:30:00Z")
+        self.assertTrue(report["rolling_seven_consecutive_ledger_candidate"])
+        self.assertEqual(report["scheduled_dates_with_attachment_holds"], [])
+        self.assertEqual(report["attachment_holds_latest_mature_slot"], 0)
+        code, out = self.run_main(clean, "2026-10-14T01:30:00Z", "--fail-current-gap")
+        self.assertEqual((code, out.count("::")), (0, 0))
+
+        data = [held(r["target_date"], run=r["run_id"], result="ok")
+                if r["target_date"] == "2026-10-12" else r for r in clean]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-14T01:30:00Z")
+        self.assertEqual(report["status"], "LEDGER_SCHEDULED_SLOTS_OBSERVED")
+        self.assertEqual(report["missing_scheduled_dates"], [])
+        self.assertEqual(report["attachment_holds_latest_mature_slot"], 0)
+        self.assertEqual(report["scheduled_dates_with_attachment_holds"], ["2026-10-12"])
+        self.assertEqual(report["rolling_seven_dates_with_attachment_holds"], ["2026-10-12"])
+        self.assertFalse(report["rolling_seven_consecutive_ledger_candidate"])
+        code, out = self.run_main(data, "2026-10-14T01:30:00Z", "--fail-current-gap")
+        self.assertEqual(code, 0)
+        self.assertNotIn("::error::", out)
+        self.assertEqual(out.count("::warning::"), 1)
+        self.assertIn("A later clean slot or recovery does not show those releases "
+                      "were collected", out)
+        self.assertNotIn("newsId", out)
+
+    def test_failed_scheduled_run_with_holds_is_both_missing_and_held(self):
+        data = originals() + [held("2026-10-12", run="38323793488-1",
+                                   health="fail", result="oversized_response")]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
+        self.assertTrue(report["current_mature_slot_missing"])
+        self.assertEqual(report["status"], "CURRENT_SCHEDULED_SLOT_MISSING")
+        self.assertEqual(report["attachment_holds_latest_mature_slot"], 1)
+        self.assertEqual(report["scheduled_dates_with_attachment_holds"], ["2026-10-12"])
+        code, out = self.run_main(data, "2026-10-13T01:30:00Z", "--fail-current-gap")
+        self.assertEqual((code, out.count("::error::")), (2, 2))
+
+    def test_missing_latest_slot_without_holds_still_fails_the_check(self):
+        code, out = self.run_main(originals(), "2026-10-13T01:30:00Z", "--fail-current-gap")
+        self.assertEqual((code, out.count("::error::")), (2, 1))
+        self.assertIn("no successful scheduled-run ledger", out)
+        self.assertNotIn("out of custody", out)
+        code, out = self.run_main(originals(), "2026-10-13T01:30:00Z")
+        self.assertEqual((code, out.count("::error::")), (0, 0))
+
+    def test_explicit_recovery_that_left_releases_out_is_not_a_recovery(self):
+        data = originals() + [held("2026-10-12", run="9991-1", origin="explicit",
+                                   result="ok")]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
+        self.assertEqual(report["source_dates_recovered_explicitly_but_not_scheduled"], [])
+        self.assertEqual(
+            report["source_dates_without_successful_scheduled_or_explicit_recovery"],
+            ["2026-10-12"])
+        self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                         ["2026-10-12"])
+        self.assertEqual(report["scheduled_dates_with_attachment_holds"], [])
+        # A second, clean recovery of the same date cannot show the held
+        # release reached custody (ledgers carry no stored identities), so in
+        # either order the date stays held and is never reported recovered.
+        clean = receipt("2026-10-12", run="9992-1", origin="explicit", result="ok")
+        for ordered in (data + [clean], originals() + [clean, data[-1]]):
+            with self.subTest(first=ordered[-2]["run_id"]):
+                report = watch.summarize(ordered, CLOCK, commit=SHA,
+                                         as_of="2026-10-13T01:30:00Z")
+                self.assertEqual(
+                    report["source_dates_recovered_explicitly_but_not_scheduled"], [])
+                self.assertEqual(
+                    report["source_dates_without_successful_scheduled_or_explicit_recovery"],
+                    ["2026-10-12"])
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 ["2026-10-12"])
+                self.assertEqual(report["distinct_attachment_hold_identities_in_ledgers"], 1)
+                code, out = self.run_main(ordered, "2026-10-13T01:30:00Z")
+                self.assertEqual(code, 0)
+                self.assertIn("::warning::Korea ledgers in the evaluated window record "
+                              "attachment holds (1 distinct release(s)", out)
+
+    def test_unscheduled_holds_from_failed_or_manual_runs_are_never_silent(self):
+        # Fable review W1/F1/T9: a failed explicit recovery holding a release
+        # (the documented "held, nothing new" outcome) and manual-utc-date runs,
+        # failed or not, used to reach no date list and no annotation.
+        base = through_october_thirteen()
+        cases = {
+            "failed-explicit": held("2026-10-10", run="9993-1", origin="explicit",
+                                    health="fail", result="oversized_response"),
+            "failed-manual": held("2026-10-11", run="9994-1", origin="manual-utc-date",
+                                  health="fail", result="oversized_response"),
+            "ok-manual": held("2026-10-11", run="9995-1", origin="manual-utc-date",
+                              count=3, result="ok"),
+        }
+        for name, extra in cases.items():
+            with self.subTest(case=name):
+                data = base + [extra]
+                report = watch.summarize(data, CLOCK, commit=SHA,
+                                         as_of="2026-10-14T01:30:00Z")
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 [extra["target_date"]])
+                self.assertEqual(report["scheduled_dates_with_attachment_holds"], [])
+                self.assertEqual(report["distinct_attachment_hold_identities_in_window"],
+                                 extra["attachment_holds"])
+                # Scheduled continuity, not an operator run, decides the slot.
+                self.assertEqual(report["status"], "LEDGER_SCHEDULED_SLOTS_OBSERVED")
+                code, out = self.run_main(data, "2026-10-14T01:30:00Z",
+                                          "--fail-current-gap")
+                self.assertEqual(code, 0)
+                self.assertNotIn("::error::", out)
+                self.assertEqual(out.count("::warning::"), 1)
+                self.assertIn("(%d distinct release(s); scheduled dates none; "
+                              "explicit or manual-date dates %s)"
+                              % (extra["attachment_holds"], extra["target_date"]), out)
+                self.assertNotIn("newsId", out)
+                self.assertNotIn("korea.kr", out)
+
+    def test_holds_outside_the_evaluated_window_do_not_warn(self):
+        old = held("2026-10-08", run="9996-1", origin="explicit", result="ok")
+        data = through_october_thirteen() + [old]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-11-20T01:30:00Z")
+        self.assertEqual(report["distinct_attachment_hold_identities_in_ledgers"], 1)
+        self.assertEqual(report["distinct_attachment_hold_identities_in_window"], 0)
+        self.assertEqual(report["unscheduled_dates_with_attachment_holds"], [])
+
+    def test_unscheduled_hold_on_the_latest_slot_warns_but_never_fails(self):
+        # Only the scheduled slot decides --fail-current-gap (review of 4839e21).
+        for origin in ("explicit", "manual-utc-date"):
+            with self.subTest(origin=origin):
+                data = through_october_thirteen() + [
+                    held("2026-10-13", run="9997-1", origin=origin, result="ok")]
+                report = watch.summarize(data, CLOCK, commit=SHA,
+                                         as_of="2026-10-14T01:30:00Z")
+                self.assertEqual(report["attachment_holds_latest_mature_slot"], 0)
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 ["2026-10-13"])
+                code, out = self.run_main(data, "2026-10-14T01:30:00Z",
+                                          "--fail-current-gap")
+                self.assertEqual((code, out.count("::error::"),
+                                  out.count("::warning::")), (0, 0, 1))
+
+    def test_scheduled_hold_then_clean_recovery_is_not_recovered(self):
+        data = originals() + [
+            held("2026-10-12", run="38323793488-1", health="fail",
+                 result="oversized_response"),
+            receipt("2026-10-12", run="9998-1", origin="explicit", result="ok")]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
+        self.assertEqual(report["source_dates_recovered_explicitly_but_not_scheduled"], [])
+        self.assertEqual(
+            report["source_dates_without_successful_scheduled_or_explicit_recovery"],
+            ["2026-10-12"])
+
+    def test_hold_window_is_exactly_the_mature_slots(self):
+        # as-of 2026-11-06T22:00Z: 16:00Z after the six-hour grace, before
+        # 17:47, so the latest mature slot is 2026-11-05 and 2026-11-06 (whose
+        # run has finished) is not yet mature; first window day is 2026-11-05
+        # minus 29 days = 2026-10-07.
+        as_of = "2026-11-06T22:00:00Z"
+        self.assertEqual(watch.first_window_day(as_of).isoformat(), "2026-10-07")
+        self.assertEqual(watch.matured_slot(as_of).isoformat(), "2026-11-05")
+        for target, inside in (("2026-10-06", False), ("2026-10-07", True),
+                               ("2026-11-05", True), ("2026-11-06", False)):
+            with self.subTest(target=target):
+                data = through_october_thirteen() + [
+                    held(target, run="9999-1", origin="manual-utc-date", result="ok")]
+                report = watch.summarize(data, CLOCK, commit=SHA, as_of=as_of)
+                self.assertEqual(report["distinct_attachment_hold_identities_in_window"],
+                                 int(inside))
+                self.assertEqual(report["unscheduled_dates_with_attachment_holds"],
+                                 [target] if inside else [])
+
+    def test_several_scheduled_receipts_for_one_date_report_the_largest_hold(self):
+        for counts in ((3, 1), (1, 3)):
+            with self.subTest(counts=counts):
+                data = originals() + [
+                    held("2026-10-12", run="38323793488-1", count=counts[0],
+                         health="fail", result="oversized_response"),
+                    dict(held("2026-10-12", run="38323793499-1", count=counts[1],
+                              result="ok"),
+                         attachment_hold_items=[
+                             {"url": "https://www.korea.kr/x?newsId=%d" % (8000 + n)}
+                             for n in range(counts[1])])]
+                report = watch.summarize(data, CLOCK, commit=SHA,
+                                         as_of="2026-10-13T01:30:00Z")
+                self.assertEqual(report["attachment_holds_latest_mature_slot"], 3)
+                code, out = self.run_main(data, "2026-10-13T01:30:00Z",
+                                          "--fail-current-gap")
+                self.assertIn("left 3 release(s) out of custody", out)
+                self.assertIn("(4 distinct release(s);", out)
+
+    def test_current_hold_outranks_historical_gaps_in_status(self):
+        data = [r for r in originals() if r["target_date"] != "2026-10-09"] + [
+            held("2026-10-12", run="38323793488-1", result="ok")]
+        report = watch.summarize(data, CLOCK, commit=SHA, as_of="2026-10-13T01:30:00Z")
+        self.assertEqual(report["missing_scheduled_dates"], ["2026-10-09"])
+        self.assertEqual(report["status"], "CURRENT_SCHEDULED_SLOT_HAS_ATTACHMENT_HOLDS")
+
+    def test_malformed_attachment_hold_evidence_fails_closed(self):
+        url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=9000"
+        for bad in ({"attachment_holds": 1},
+                    {"attachment_hold_items": [{"url": url}]},
+                    {"attachment_holds": True, "attachment_hold_items": [{"url": url}]},
+                    {"attachment_holds": "1", "attachment_hold_items": [{"url": url}]},
+                    {"attachment_holds": -1, "attachment_hold_items": []},
+                    {"attachment_holds": 1, "attachment_hold_items": {"url": url}},
+                    {"attachment_holds": 1, "attachment_hold_items": [url]},
+                    {"attachment_holds": 1, "attachment_hold_items": [{"url": ""}]},
+                    {"attachment_holds": 1, "attachment_hold_items": [{"url": 123}]},
+                    {"attachment_holds": 1, "attachment_hold_items": [{"url": ["x"]}]},
+                    {"attachment_holds": 2, "attachment_hold_items": [{"url": url}] * 2},
+                    {"attachment_holds": 1, "attachment_hold_items": [{"url": url}] * 2},
+                    {"attachment_holds": 41, "attachment_hold_items": [
+                        {"url": url + str(n)} for n in range(41)]}):
+            with self.subTest(bad=sorted(bad)):
+                data = originals()
+                data.append(dict(receipt("2026-10-12", run="38323793488-1"), **bad))
+                with self.assertRaisesRegex(watch.KoreaWatchHold, "attachment-hold"):
+                    watch.summarize(data, CLOCK, commit=SHA,
+                                    as_of="2026-10-13T01:30:00Z")
+
     def test_maturation_never_alerts_before_six_hour_grace(self):
         self.assertEqual(watch.matured_slot("2026-10-13T23:46:59Z").isoformat(),
                          "2026-10-12")

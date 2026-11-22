@@ -132,6 +132,32 @@ authority. The separately tracked Pages writer race/guard work is not resolved
 or activated by this implementation; assess the then-current deployer before
 an authorized release.
 
+## China–Singapore revision 2
+
+On 13 November 2026 Benjamin Yang approved revision 2 of the thematic dossier (draft digest `b4f0c920…`, approved digest `27debfde…`) and the narrow projection for linked pages x10–x17, and raised the individual-dossier HTML+CSS cap to 230,000 bytes. Receipts are in `DECISION_LOG.md` and `core/dossier_decisions.py`. The case study stays at revision 2.
+
+## MINDEF citations and the whole-work hold
+
+The MINDEF signed-editorial hold (#913, `core.mindef_public_boundary.editorial_hold`)
+withholds any Brief or Timeline that cites a MINDEF corpus record, because those
+sidecars can carry publisher titles. A dossier's projection cannot: its
+`sources[]` entries are identity pins, and only attribution, dates, IPR
+paraphrase and links leave `core.dossiers`. `core.dossiers.mindef_dossier_hold`
+therefore exempts a MINDEF `sources[]` entry only when its exact `SOURCE_USES`
+binding exists (identity, URL, body hash, the full narrow field set); the
+private-original body hash is still reconciled. Any unbound or drifted MINDEF
+record, a MINDEF source slug elsewhere in the manuscript, or a mindef.gov.sg
+string that fails the official-host link gate holds the whole dossier as
+before. `editorial_hold()` itself is unchanged for Briefs and Timelines.
+
+Both dossiers list Brief No. 15 as related analysis, and No. 15 stays held: its
+signed source trail carries MINDEF titles. An approved related Brief withheld
+for that reason is omitted from the dossier page instead of linked; any other
+unavailable related Brief still fails with `related_brief_not_approved`.
+`tests/test_dossier_mindef_restoration.py` renders production without mocked
+authority and checks that Briefs No. 15–17 and the draft Timeline stay held and
+that no MINDEF publisher title reaches public bytes.
+
 ## Reviewed revisions
 
 The approved manuscript is revision 2: a shorter title/answer and tighter finding

@@ -62,14 +62,30 @@ jobs:
           admitted = load_admitted_links(Path("pla_watch.db"), "indonesia")
           admitted_items = BeautifulSoup(html, "html.parser").select(
               'ol[aria-label="Admitted official publisher references"] li[data-regional-official-source-id]')
+          from core import official_link_index as link_index
+          hub = Path("output", link_index.hub_route("indonesia"))
           if admitted:
               assert "Verified official-source links admitted — original publisher references" in html
+              # The desk lists the newest DESK_LINK_LIMIT admitted rows in DB
+              # order; the hub and month pages carry every admitted row once.
               assert [item["data-regional-official-source-id"] for item in admitted_items] == [
-                  row["source_identity"] for row in admitted
+                  row["source_identity"] for row in link_index.latest("indonesia", admitted)
               ]
+              assert html.count('href="%s"' % link_index.hub_route("indonesia")) == 1
+              assert hub.is_file()
+              indexed = []
+              for month, month_rows in link_index.partition("indonesia", admitted):
+                  month_html = Path("output", link_index.month_route("indonesia", month)).read_text(encoding="utf-8")
+                  month_ids = [item["data-regional-official-source-id"] for item in BeautifulSoup(
+                      month_html, "html.parser").select(
+                      'ol[aria-label="Admitted official publisher references"] li[data-regional-official-source-id]')]
+                  assert month_ids == [row["source_identity"] for row in month_rows], month
+                  indexed += month_ids
+              assert indexed == [row["source_identity"] for row in admitted]
           else:
               assert "Shadow evaluation — no public corpus records" in html
               assert not admitted_items
+              assert not hub.exists()
           assert "data-reference-list" not in html
           assert all(x not in html for x in ("text_original", "body_original", "state/shadow.db"))
           assert 'href="indonesia.html"' in Path("output/desks.html").read_text()

@@ -90,10 +90,11 @@ class ChinaFocusRealBrowser(unittest.TestCase):
                     self.assertEqual(response.status, 200)
                     self.assertEqual(
                         page.locator("#f-scope").input_value(), "focus")
-                    self.assertIn("not individually fact-checked or editor-approved",
+                    self.assertIn("not fact-checked or editor-approved",
                                   page.locator("body").inner_text())
+                    self.assertTrue(page.locator(".focus-note").is_visible())
                     self.assertIn(
-                        "research-focus records",
+                        "selected records",
                         page.locator("#result-range").inner_text())
                     page.locator("#f-scope").select_option("all")
                     page.wait_for_function(
@@ -104,6 +105,8 @@ class ChinaFocusRealBrowser(unittest.TestCase):
                     self.assertEqual(
                         page.locator("#f-scope").input_value(), "all")
                     self.assertIn("scope=all", page.url)
+                    # The selection note qualifies the selected list only.
+                    self.assertFalse(page.locator(".focus-note").is_visible())
                     self.assertEqual(page.locator("#index-error:visible").count(), 0)
                     # Previously downranked Chinese ministry report remains
                     # available through ordinary full-archive title searching.
@@ -118,6 +121,7 @@ class ChinaFocusRealBrowser(unittest.TestCase):
                     page.goto(self.origin + "/archive.html?scope=all",
                               wait_until="networkidle")
                     self.assertEqual(page.locator("#f-scope").input_value(), "all")
+                    self.assertFalse(page.locator(".focus-note").is_visible())
                     page.wait_for_function(
                         """() => document.querySelector('#result-range')
                           .textContent.includes('preserved records')""")
@@ -134,7 +138,7 @@ class ChinaFocusRealBrowser(unittest.TestCase):
             p = ctx.new_page()
             resp = p.goto(self.origin + "/archive.html")
             self.assertEqual(resp.status, 200)
-            self.assertIn("research focus", p.locator("body").inner_text().lower())
+            self.assertIn("selected records", p.locator("body").inner_text().lower())
             self.assertEqual(p.locator("li.record-row").count(), 50)
             p.locator('a[href="corpus.html"]').first.click()
             self.assertTrue(p.url.endswith("corpus.html"))

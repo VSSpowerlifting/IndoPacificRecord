@@ -35,47 +35,39 @@
 <link rel="stylesheet" href="{{ root }}surfaces.css">
 {% block head_scripts %}{% endblock %}
 </head>
-{% set shell_dark = page == 'index.html' or timeline_surface | default(false) %}
 {% block body_open %}<body{% if page == 'index.html' %} class="page-home"{% endif %}>{% endblock %}
 <a class="skip" href="#main">Skip to content</a>
-<div class="publication-status"><span>Independent publication</span>{% if snapshot is defined and corpus_total is defined %}<span>Corpus snapshot: {{ snapshot.date | reader_date }} · {{ corpus_total | count }} records</span>{% endif %}</div>
-<header class="masthead{% if shell_dark %} masthead--dark{% endif %}">
+{# One navy masthead on every page (2026-11-14): the ivory mark, the name on
+   one line, and the dateline that says how current the record is. #}
+<header class="masthead masthead--dark">
+  <div class="publication-status"><span>Independent publication</span>{% if snapshot is defined and corpus_total is defined %}<span>{{ corpus_total | count }} records, as of {{ snapshot.date | reader_date }}</span>{% endif %}</div>
   <div class="wrap header-inner">
-    {% set logo_color = 'ivory' if shell_dark else 'navy' %}
     <a class="brand" href="{{ root }}index.html" aria-label="{{ title }} home">
-      <img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png"
-           srcset="{{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-160.png 160w, {{ root }}assets/identity/selected-ipr/ipr-{{ logo_color }}-320.png 320w"
-           sizes="(max-width:500px) 56px, 72px" width="160" height="{{ 133 if shell_dark else 130 }}" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
-      <span class="brand-name">Indo-Pacific<span>Record</span></span>
+      <img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-ivory-160.png"
+           srcset="{{ root }}assets/identity/selected-ipr/ipr-ivory-160.png 160w, {{ root }}assets/identity/selected-ipr/ipr-ivory-320.png 320w"
+           sizes="(max-width:500px) 48px, 52px" width="160" height="133" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
+      <span class="brand-name">Indo-Pacific Record</span>
     </a>
-    {% set nav = [('archive.html','Records'),('analysis.html','Analysis')] %}
+    {# Five destinations, named for what a reader comes to do (2026-11-13):
+       find a Record, read a Brief, follow a desk, check the method, learn who
+       publishes it. Sources, Coverage and Team live in the footer and on the
+       Methodology and About pages. #}
+    {% set nav = [('archive.html','Records'),('analysis.html','Briefs')] %}
     {% if timelines %}{% set nav = nav + [('timelines.html','Timelines')] %}{% endif %}
-    {% set nav = nav + [('desks.html','Desks')] %}
+    {% set nav = nav + [('desks.html','Desks'),('methodology.html','Methodology'),('about.html','About')] %}
     {% set desk_routes = desks | map(attribute='route') | list if desks else [] %}
     {% macro links() %}
-      {% for href, label in nav %}<a href="{{ root }}{{ href }}"{% if (page == href and not timeline_surface | default(false)) or (href == 'archive.html' and page in ['corpus.html','corpus-guide.html']) or (href == 'desks.html' and page in desk_routes) or (href == 'analysis.html' and page == 'pla-watch.html') or (href == 'timelines.html' and timeline_surface | default(false)) %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+      {% for href, label in nav %}<a href="{{ root }}{{ href }}"{% if (page == href and not timeline_surface | default(false)) or (href == 'archive.html' and page in ['corpus.html','corpus-guide.html']) or (href == 'desks.html' and page in desk_routes) or (href == 'analysis.html' and page == 'pla-watch.html') or (href == 'timelines.html' and timeline_surface | default(false)) or (href == 'methodology.html' and page in ['sources.html','coverage.html']) or (href == 'about.html' and (page == 'team.html' or page.startswith('authors/'))) %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
     {% endmacro %}
     <nav class="nav-desktop" aria-label="Primary">
       {{ links() }}
-      <details class="shell-menu nav-more"><summary>About IPR</summary><div>
-        <a href="{{ root }}sources.html"{% if page == 'sources.html' %} aria-current="page"{% endif %}>Sources</a><a href="{{ root }}coverage.html"{% if page == 'coverage.html' %} aria-current="page"{% endif %}>Coverage</a>
-        <a href="{{ root }}methodology.html"{% if page == 'methodology.html' %} aria-current="page"{% endif %}>Methodology</a>{% if team is defined %}<a href="{{ root }}team.html"{% if page == 'team.html' or page.startswith('authors/') %} aria-current="page"{% endif %}>Team</a>{% endif %}<a href="{{ root }}about.html"{% if page == 'about.html' %} aria-current="page"{% endif %}>About</a>
-      </div></details>
     </nav>
-    <details class="shell-menu nav-mobile"><summary>Menu <span aria-hidden="true">☰</span></summary>
-      <nav aria-label="Primary">{{ links() }}<a href="{{ root }}sources.html"{% if page == 'sources.html' %} aria-current="page"{% endif %}>Sources</a><a href="{{ root }}coverage.html"{% if page == 'coverage.html' %} aria-current="page"{% endif %}>Coverage</a><a href="{{ root }}methodology.html"{% if page == 'methodology.html' %} aria-current="page"{% endif %}>Methodology</a>{% if team is defined %}<a href="{{ root }}team.html"{% if page == 'team.html' or page.startswith('authors/') %} aria-current="page"{% endif %}>Team</a>{% endif %}<a href="{{ root }}about.html"{% if page == 'about.html' %} aria-current="page"{% endif %}>About</a></nav>
+    <details class="shell-menu nav-mobile"><summary>Menu</summary>
+      <nav aria-label="Primary">{{ links() }}</nav>
     </details>
   </div>
 </header>
-{# A decorative profile follows the actual address, including nested pages.
-   It never represents geography, collection volume or analytical meaning. #}
-{% if timeline is defined %}{% set terrain_key = timeline.route %}
-{% elif brief is defined %}{% set terrain_key = brief.route %}
-{% elif source is defined %}{% set terrain_key = source.route %}
-{% elif record is defined %}{% set terrain_key = 'record/' ~ record.id %}
-{% elif week is defined %}{% set terrain_key = week.path ~ '-' ~ (page_no | default(1)) %}
-{% else %}{% set terrain_key = page %}{% endif %}
-<main id="main"{% if topography_style is defined %} style="{{ topography_style(terrain_key) }}"{% endif %}{% block main_class %}{% endblock %}>
+<main id="main"{% block main_class %}{% endblock %}>
 
 {% if review_mode %}<p class="wrap review-banner" role="note">Private editorial preview · draft content is unapproved and unpublished.</p>{% endif %}
 {% block hero %}{% endblock %}
@@ -85,7 +77,7 @@
 {% block after_content %}{% endblock %}
 </main>
 {% if run_status %}
-<details class="publication-freshness wrap"><summary>Collection and processing dates</summary>
+<details class="publication-freshness wrap"><summary>When this record was last updated</summary>
 <aside class="freshness-bar" aria-label="How current the record is">
   <div class="wrap">
     {# The labels are not shortened: these three dates exist precisely because
@@ -119,12 +111,15 @@
 {% endif %}
 <footer class="site">
   <div class="wrap">
-    {# The colophon opens on the publication's name. A div rather than a
-       heading: the page's outline is complete without it. Nothing here may
-       describe the site as unpublished; PR #32 published it. #}
+    {# The colophon opens on the one qualification every page shares, then the
+       publication's name. A div rather than a heading: the page's outline is
+       complete without it. Nothing here may describe the site as unpublished;
+       PR #32 published it. #}
+    <p class="footer-standing">Coverage is selective. A record shows what an institution published, not whether its
+    claims are true or its capabilities exist.</p>
     <div class="footer-grid">
       <div>
-        <a class="brand brand--footer" href="{{ root }}index.html" aria-label="{{ title }} home"><img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-navy-160.png" width="160" height="130" loading="lazy" alt=""><span class="brand-name">Indo-Pacific<span>Record</span></span></a>
+        <a class="brand brand--footer" href="{{ root }}index.html" aria-label="{{ title }} home"><img class="brand-mark" src="{{ root }}assets/identity/selected-ipr/ipr-ivory-160.png" width="160" height="133" loading="lazy" alt=""><span class="brand-name">Indo-Pacific Record</span></a>
         <p class="colophon-tagline">{{ tagline }}</p>
 {% if team is defined %}
         <p>{{ title }} is an independent research project founded by {{ maintainer.name }} and produced with its
@@ -133,22 +128,21 @@
         <p>{{ title }} is an independent research project created and edited by
         {{ maintainer.name }} · <a href="mailto:{{ maintainer.email }}">{{ maintainer.email }}</a></p>
 {% endif %}
-        <p>Corrections and questions about any record are welcome at the same
-        address.</p>
+        <p>Send corrections and questions about any record to the same address.</p>
       </div>
       <nav class="footer-col" aria-label="The record">
         <h2>The record</h2>
         <ul>
           <li><a href="{{ root }}archive.html">Records</a></li>
           <li><a href="{{ root }}corpus.html">Records by week</a></li>
-          <li><a href="{{ root }}corpus-guide.html">Corpus Guide</a></li>
+          <li><a href="{{ root }}corpus-guide.html">Guide to the records</a></li>
           <li><a href="{{ root }}desks.html">Desks</a></li>
           <li><a href="{{ root }}sources.html"{% if page == 'sources.html' %} aria-current="page"{% endif %}>Sources</a></li>
           <li><a href="{{ root }}coverage.html"{% if page == 'coverage.html' %} aria-current="page"{% endif %}>Coverage</a></li>
         </ul>
       </nav>
-      <nav class="footer-col" aria-label="Analysis">
-        <h2>Analysis</h2>
+      <nav class="footer-col" aria-label="Briefs">
+        <h2>Briefs</h2>
         <ul>
           <li><a href="{{ root }}analysis.html">{{ collection_name }}</a></li>
           {# The series glossary lives with the published issues, which this
@@ -165,11 +159,10 @@
           <li><a href="{{ root }}team.html"{% if page == 'team.html' or page.startswith('authors/') %} aria-current="page"{% endif %}>Editorial team</a></li>
 {% endif %}
           <li><a href="{{ root }}corpus-guide.html#citation">Citing a record</a></li>
+          <li><a href="{{ root }}about.html#reuse">Reusing this material</a></li>
         </ul>
       </nav>
     </div>
-    <p class="footer-standing">Coverage is selective. Publication records what an institution said, not whether its
-    claims are true or its capabilities exist.</p>
   </div>
 </footer>
 {% block scripts %}{% endblock %}

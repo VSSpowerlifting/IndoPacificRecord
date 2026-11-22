@@ -88,7 +88,21 @@ jobs:
           with _read_only("pla_watch.db") as con:
               records = set(publication_gate(con)[0].values())
           auto = load_live_korea_official_links("pla_watch.db", exclude=fixed | records)
-          assert html.count('data-korea-auto-official-link=') == len(auto)
+          # The desk rail lists the newest DESK_LINK_LIMIT auto rows; the
+          # official-link hub and month pages carry the full set.
+          from core import official_link_index as link_index
+          shown = link_index.latest("korea", auto)
+          assert html.count('data-korea-auto-official-link=') == len(shown)
+          for row in shown:
+              assert 'data-korea-auto-official-link="%s"' % row["source_identity"] in html
+          # Every admitted auto row, including those past the desk bound, must
+          # appear exactly once in the correct month page of the full index.
+          from scripts.verify_korea_official_link_index import verify as verify_link_index
+          from scripts.verify_regional_source_index_readback import ReadbackHold
+          try:
+              verify_link_index("pla_watch.db", "output", rows=auto)
+          except ReadbackHold as exc:
+              raise AssertionError(str(exc))
           # Fourteen curated outbound references, production-admitted outbound
           # links, and separately owner-released full Korean original TEXT are
           # distinct public rails. An eligible published source can appear in
@@ -102,11 +116,11 @@ jobs:
               assert item["original_text_sha256"] in (
                   base / item["route"]).read_text(encoding="utf-8")
           assert html.count('https://www.korea.kr/briefing/pressReleaseView.do?newsId=') == (
-              14 + len(auto) + len(published_originals))
+              14 + len(shown) + len(published_originals))
           assert '<nav class="korea-publisher-shortcuts"' in html
           assert html.index('korea-publisher-shortcuts-title') < html.index('data-korea-public-link=')
           assert html.count("Open official publisher index") == 2
-          auto_ids = {x["source_identity"].partition(":")[2] for x in auto}
+          auto_ids = {x["source_identity"].partition(":")[2] for x in shown}
           for unreviewed_id in ("156784618", "156784625"):
               if unreviewed_id not in auto_ids:
                   assert unreviewed_id not in html
@@ -200,8 +214,14 @@ jobs:
           with _read_only("pla_watch.db") as con:
               records = set(publication_gate(con)[0].values())
           auto = load_live_korea_official_links("pla_watch.db", exclude=fixed | records)
-          assert html.count('data-korea-auto-official-link=') == len(auto)
-          assert html.count('https://www.korea.kr/briefing/pressReleaseView.do?newsId=') == 14 + len(auto)
+          # The desk rail lists the newest DESK_LINK_LIMIT auto rows; the
+          # official-link hub and month pages carry the full set.
+          from core import official_link_index as link_index
+          shown = link_index.latest("korea", auto)
+          assert html.count('data-korea-auto-official-link=') == len(shown)
+          for row in shown:
+              assert 'data-korea-auto-official-link="%s"' % row["source_identity"] in html
+          assert html.count('https://www.korea.kr/briefing/pressReleaseView.do?newsId=') == 14 + len(shown)
           for row in additional:
               assert row["source_url"] in html
           assert "unresolved excavation-year discrepancy" in html
@@ -219,7 +239,7 @@ jobs:
               from urllib.parse import parse_qs, urlsplit
               assert parse_qs(urlsplit(url).query).get("repCode") == [rep_code]
               assert ('href="' + escape(url, quote=True) + '"') in html
-          auto_ids = {x["source_identity"].partition(":")[2] for x in auto}
+          auto_ids = {x["source_identity"].partition(":")[2] for x in shown}
           for unreviewed_id in ("156784618", "156784625"):
               if unreviewed_id not in auto_ids:
                   assert unreviewed_id not in html

@@ -111,6 +111,20 @@ CHINA_TITLE_TRANSLATION_LIMIT: int = max(0, min(200, int(
 # which fires when it doesn't.
 DAILY_ANALYSIS_CAP: int = int(os.environ.get("DAILY_ANALYSIS_CAP", "55"))
 
+# Article-level concurrency for the existing shared Daily queue only.
+# Default remains the incumbent serial behavior. The owner may separately
+# activate 2 or 3 workers after factual, spend and retry verification; even
+# then DAILY_ANALYSIS_CAP is unchanged. Invalid input fails safe to serial.
+def _daily_analysis_workers(raw: str) -> int:
+    try:
+        return max(1, min(3, int(raw)))
+    except (TypeError, ValueError):
+        return 1
+
+
+DAILY_ANALYSIS_WORKERS: int = _daily_analysis_workers(
+    os.environ.get("DAILY_ANALYSIS_WORKERS", "1"))
+
 # BACKLOG_RESERVE_FRACTION: share of DAILY_ANALYSIS_CAP held for backlog articles
 # (relevance-pending or never-scored) so a full day of fresh scrapes cannot crowd
 # them out. Until 2026-07-30 the queue was `new + pending + unscored` truncated to

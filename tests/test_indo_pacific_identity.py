@@ -140,6 +140,19 @@ class TestTheMastheadIsTheNewIdentity(IdentityCase):
                                "and source-linked research, with findings, counterevidence and revision history.")
             elif name == "team.html":
                 description = "Meet the team behind Indo-Pacific Record's source-grounded defense and security research."
+            elif re.match(r"(indonesia|korea)-official-links(\.html|/\d{4}-\d{2}\.html)\Z", name):
+                # Official-link index pages (2026-11-21) describe their own
+                # scope: the hub, or one month of admitted metadata records.
+                from core import official_link_index as link_index
+                slug = name.split("-official-links", 1)[0]
+                registry = json.loads((REPO_ROOT / "desks/registry.json").read_text(encoding="utf-8"))
+                desk_name = next(d["name"] for d in registry["desks"] if d["slug"] == slug)
+                if name.endswith("-official-links.html"):
+                    description = ("Every admitted %s official-link metadata record, grouped by "
+                                   "month of its official date." % desk_name)
+                else:
+                    description = ("Admitted %s official-link metadata records dated %s."
+                                   % (desk_name, link_index.month_label(Path(name).stem)))
             elif name.startswith("authors/"):
                 from core.staff_directory import load_staff
                 member = next(p for p in load_staff(REPO_ROOT / "site/preview/staff.json") if p["route"] == name)
@@ -196,12 +209,13 @@ class TestTheMastheadIsTheNewIdentity(IdentityCase):
         nav = self.page("index.html").split('aria-label="Primary"', 1)[1]
         nav = nav.split("</nav>", 1)[0]
         labels = re.findall(r">([A-Za-z ]+)</a>", nav)
-        # Grouped by what a reader is doing (2026-09-27): reading (Records,
-        # Analysis), the collection (Desks, Sources, Coverage) and the method
-        # (Methodology, About). "Records" is the destination formerly labelled
-        # "Atlas"; its address is unchanged.
-        self.assertEqual(labels, ["Records", "Analysis", "Desks", "Sources",
-                                  "Coverage", "Methodology", "Team", "About"])
+        # Simplified 2026-11-13 (reader polish): the two reading destinations
+        # (Records, Briefs), the collection (Desks) and the method
+        # (Methodology, About). Sources and Coverage are reached from
+        # Methodology; Team from About. "Briefs" is the destination formerly
+        # labelled "Analysis"; its address (analysis.html) is unchanged.
+        self.assertEqual(labels, ["Records", "Briefs", "Desks", "Methodology",
+                                  "About"])
 
 
 class TestRetiredNamesStayRetired(IdentityCase):

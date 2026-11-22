@@ -174,71 +174,55 @@ production.
 enabled. A source with no working collector is reported as
 `not_implemented` — or reclassified — and is never hidden.
 
-### C12 — Checkpoint-review tooling
-*Stage 7.* The desk has its **own** review path that produces a provenance-
-verified, deterministic evidence packet from a named state commit.
+### C12 — Source-version evidence, using shared review tooling
+*Stage 7.* The existing common source/custody review path may be used with
+source-specific issuer, identity, date, language, extraction and exception rules.
+No separate country-specific review engine, fixed checkpoint day or new
+per-record founder signature is compulsory for ordinary standing-eligible
+machine Records.
 
-**Measured by:** the tool refuses to produce a publishable packet before the
-checkpoint has arrived, and two runs of the same state commit are byte-
-identical.
-**Fails when:** a desk is reviewed with another desk's tooling. Review tooling
-encodes a desk's URL shapes, date rules and document kinds; pointing Singapore's
-reviewer at Japan would silently validate Japanese records against Singaporean
-assumptions.
+**Measured by:** immutable authentic source and capture/version hashes,
+reviewable exact-revision custody, truthful run and attempt dispositions,
+correct source-specific rights, QA and retained exceptions. Source-specific
+failed or incomplete evidence never qualifies through a generic checker.
+**Fails when:** review substitutes another source's rules, ignores a hold,
+omits meaningful original content or mistakes a metadata lead for its body.
 
-### C13 — No promotion on elapsed days alone
-**Scope of C13:** This source-collection qualification governs only
-**production ingest of publisher source records**. An independently approved,
-permanently published IPR **editorial research desk** can publish original IPR
-analysis, verified official bibliographic metadata and outgoing first-party
-links without rehosting government documents or photographs. That is a real
-editorial publication, not an interim beta, but **does not count as a
-production-collecting desk, prove private preservation, or change registry
-`status` to `live`**. Its own exact-original source review, source-use
-limitations, editorial approval and guarded website release are required.
-See the separate editorial/research versus collecting-source definitions in
-`docs/PERMANENT_DESK_ACCELERATED_ACTIVATION_2026-10-15.md`.
+### C13 — Minimum source-to-reader acceptance without launch clocks
+The **11 November 2026 founder milestone** is one genuinely operational
+source family per desk, with the sixteen-family original roster retained
+as full-coverage completion. There is **no mandatory seven-day or thirty-day
+prelaunch wait** or obligatory Day 7/14/30 human-review ceremony. Existing
+successful review receipts remain valid evidence, but not independent
+permission to activate a publisher or publish an item.
 
-*Stage 7.* Thirty consecutive genuine collecting days and independently
-completed Day 7, Day 14 and Day 30 human reviews remain the **normal**
-production-promotion standard. Elapsed calendar days by themselves never pass.
+A minimum-operational family must demonstrate authentic permitted original
+retrieval, versioned recoverable authorized custody, source-appropriate
+factual and language QA, accurate machine-labeling and public-component
+rights, a signed/authenticated shared processing/admission path, real
+production DB and rendered Record/desk/Archive/search, controlled deployment
+and independent HTTPS readback of the exact version. A subsequently observed
+genuine unattended cycle must honestly report new, duplicate, quiet, error
+or hold behavior, and prove representative recovery without resetting paid
+attempts. This can happen as quickly as evidence allows; no invented streak
+or thirty-day elapsed clock stands in for actual recurrence.
 
-**Standard path:** all C1–C12 `PASS`, every scheduled run and retry attempt
-reconciled, 30 consecutive genuine collecting days, each anomaly dispositioned,
-all three human reviews completed, source-specific lawful reuse scope decided,
-and a recorded owner sign-off in `DECISION_LOG.md`.
+**Initial milestone:** at least one qualifying family independently passes
+every applicable stage, with public labels naming that source and remaining
+coverage gaps. **Full-scope milestone:** every family from the retained
+2 November roster independently passes those same gates. Neither
+metadata-only links nor synthetic tests certify a substantive family.
+A separate editorial research desk may publish approved original IPR work
+and verified references without pretending collection is live; human-authored
+publications still require actual human editorial approval.
 
-**Owner-authorized accelerated permanent activation — exceptional path:**
-For a specifically named, narrowly scoped first-party source family, the owner
-may *separately* authorize permanent public production after **at least seven
-consecutive successful scheduled logical collecting days** rather than waiting
-for Day 30. This is an explicit waiver of **elapsed collection duration and
-prospective Day 14/30 prelaunch timing only**. It is not a waiver of C1–C12, a
-complete Actions run/attempt/job census for the observed window, complete and
-faithful preservation of the evidence, accurate source/date/identity matching,
-a source-version-bound named human review of **every record selected for
-publication**, unresolved anomaly holds, the publisher's robots/access terms,
-reuse rights **for the exact proposed public output**, or explicit owner
-authorization recorded with exact source-state SHA and a reviewed release PR.
-Publication-scope exclusions are recorded individually; unreviewed records are
-not included. See `docs/PERMANENT_DESK_ACCELERATED_ACTIVATION_2026-10-15.md`.
-
-**After accelerated promotion:** collect and independently evaluate actual
-Day 14 and Day 30 evidence as operational postlaunch checkpoints, without
-backdating or declaring these reviews passed in advance. Any source-access
-refusal, integrity conflict, material coverage failure, rights discrepancy or
-unresolved postlaunch checkpoint must be surfaced and the affected source
-paused/removed from new public ingestion pending review. The public archive
-must preserve history and corrections rather than silently suppress source
-provenance.
-
-**Fails when:** source-specific authorization, original reviews or rights
-cannot be produced, or a desk is claimed live because merely seven or thirty
-calendar days elapsed. No source, desk status, production database, render,
-model input or deployed page changes automatically when this policy is updated.
-A desk is described as **live** only after an independently validated
-production integration and authorized guarded deployment; otherwise it
-remains unpromoted.
+**Fails when:** the original is unavailable or held, source use is unresolved,
+QA fails, versions/signatures mismatch, public use exceeds approved scope,
+unattended recurrence is only scheduled rather than witnessed, recovery is
+unproven, or live HTTPS readback has not occurred. A source rights finding,
+PR merge, release switch, deployment and desk certification remain separate
+events. No rule here activates a source, spends money, removes publisher
+restrictions, changes a public desk status or certifies past runs.
 
 ---
 

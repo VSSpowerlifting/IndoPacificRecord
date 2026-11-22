@@ -1,5 +1,7 @@
 """Delivery failures cannot masquerade as fresh signed inputs or stop peers."""
 import copy
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 import os
 from pathlib import Path
@@ -9,8 +11,26 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from core import daily_sources
 from scripts import fetch_daily_machine_outputs as fetch
-from processing.daily_intake import load_policy
+from processing.daily_intake import load_policy as _committed_policy
+
+
+# The attended-pilot gate is empty in production (Singapore MINDEF is recurring
+# since 22 Nov); the retained mechanism is tested as if the family were gated.
+SG_PILOT_GATE = {'sg_mindef_releases': 'IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY'}
+
+
+def load_policy():
+    """Committed policy with the Singapore pilot, Japan Coast Guard and USCC flags
+    held off, so these three-family delivery tests do not depend on the pilot state
+    of the repository. JCG delivery under its committed policy is covered in
+    tests/test_japan_jcg_daily.py and USCC in tests/test_uscc_press_daily.py."""
+    p = _committed_policy()
+    for family in ('sg_mindef_releases', 'jp_jcg_press_en', 'us_uscc_press_en'):
+        p['sources'][family].update(
+            private_model_processing=False, public_machine_explanation=False, unattended_release=False)
+    return p
 
 
 class FetchOutputs(unittest.TestCase):
@@ -45,6 +65,29 @@ class FetchOutputs(unittest.TestCase):
         self.assertNotIn('private stderr', (root / 'summary').read_text())
         self.assertFalse(list(root.glob('*.tmp')))
 
+    def test_http_failures_disclose_only_the_status(self):
+        for code in (401, 403, 404, 429, 503):
+            with self.subTest(code=code):
+                failure = subprocess.CompletedProcess(
+                    [], 1, b'private response body',
+                    f'gh: private error message (HTTP {code})\n'.encode())
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    root, result, _ = self.run_fetch([failure, self.response(), self.response()])
+                status = f"fetch_http_{code}"
+                self.assertEqual(result["ph_afp_articles"], status)
+                self.assertEqual(result["id_kemhan_news"], "fetched")
+                self.assertFalse((root / "ph_afp_articles.json").exists())
+                summary = (root / "summary").read_text()
+                self.assertEqual(stdout.getvalue(),
+                                 f"::warning title=Shared Daily handoff unavailable::ph_afp_articles: {status}\n")
+                self.assertEqual((root / "outputs").read_text(), "failed_families=1\n")
+                self.assertIn(status, summary)
+                self.assertNotIn("private error message", summary)
+                self.assertNotIn("private response body", summary)
+                (root / "outputs").unlink()
+                (root / "summary").unlink()
+
     def test_timeout_unavailable_and_oversize_never_leave_old_input(self):
         for failure in [subprocess.TimeoutExpired('gh', 45), OSError('unavailable'), self.response(b'x' * 512001)]:
             with self.subTest(failure=type(failure).__name__):
@@ -70,6 +113,99 @@ class FetchOutputs(unittest.TestCase):
         self.assertEqual(call.call_count, 2)
         self.assertEqual((root / 'outputs').read_text(), 'failed_families=0\n')
 
+    def sg_policy(self):
+        p = copy.deepcopy(load_policy())
+        p['sources']['sg_mindef_releases'].update(
+            private_model_processing=True, public_machine_explanation=True, unattended_release=True)
+        return p
+
+    def run_gated(self, event, identity, outcomes):
+        root = Path(self.tmp.name)
+        for family in fetch.SOURCES:
+            (root / (family + '.json')).write_text('old envelope')
+        env = {'IPR_PRIVATE_DAILY_ENABLED': 'true', 'IPR_DAILY_INTAKE_DIR': str(root),
+               'GITHUB_OUTPUT': str(root / 'outputs'), 'GITHUB_STEP_SUMMARY': str(root / 'summary'),
+               'GITHUB_EVENT_NAME': event, 'IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY': identity}
+        with patch.dict(os.environ, env), patch.object(fetch, 'load_policy', return_value=self.sg_policy()), \
+                patch.object(fetch.subprocess, 'run', side_effect=outcomes) as call:
+            result = fetch.main()
+        return root, result, call
+
+    @patch.dict(daily_sources.ATTENDED_PILOT_ENV, SG_PILOT_GATE)
+    def test_closed_pilot_gate_skips_singapore_cleanly_even_with_all_flags_true(self):
+        for event, identity in [('schedule', ''), ('schedule', '6nov26-nr2'), ('workflow_dispatch', '')]:
+            with self.subTest(event=event, identity=identity):
+                others = [f for f in fetch.SOURCES if f != 'sg_mindef_releases']
+                root, result, call = self.run_gated(
+                    event, identity, [self.response() for _ in others])
+                self.assertEqual(result['sg_mindef_releases'], 'pilot_gate_closed')
+                self.assertFalse((root / 'sg_mindef_releases.json').exists())
+                self.assertEqual(call.call_count, len(others) - 3)  # DAPA, JCG and USCC are policy-disabled
+                for call_args in call.call_args_list:
+                    self.assertNotIn('sg_mindef_releases', ' '.join(map(str, call_args.args[0])))
+                self.assertEqual(set((root / 'outputs').read_text().split()), {'failed_families=0'})
+                for family in others:
+                    self.assertEqual(result[family], 'policy_disabled' if family in ('kr_policy_dapa_releases', 'jp_jcg_press_en', 'us_uscc_press_en') else 'fetched')
+
+    def test_recurring_singapore_is_fetched_on_a_scheduled_run_with_no_identity(self):
+        self.assertEqual(daily_sources.ATTENDED_PILOT_ENV, {})
+        root, result, call = self.run_gated(
+            'schedule', '', [self.response() for _ in fetch.SOURCES])
+        self.assertEqual(result['sg_mindef_releases'], 'fetched')
+        self.assertTrue((root / 'sg_mindef_releases.json').exists())
+        self.assertEqual(call.call_count, len(fetch.SOURCES) - 3)  # DAPA, JCG and USCC are policy-disabled
+
+    @patch.dict(daily_sources.ATTENDED_PILOT_ENV, SG_PILOT_GATE)
+    def test_attended_dispatch_fetches_singapore_only_with_the_named_identity(self):
+        order = list(fetch.SOURCES)
+        outcomes = [self.response() for _ in order]
+        root, result, call = self.run_gated('workflow_dispatch', '6nov26-nr2', outcomes)
+        self.assertEqual(result['sg_mindef_releases'], 'fetched')
+        self.assertTrue((root / 'sg_mindef_releases.json').exists())
+
+    def test_jcg_owner_switch_withholds_its_envelope_even_with_policy_on(self):
+        policy = copy.deepcopy(load_policy())
+        policy['sources']['jp_jcg_press_en'].update(
+            private_model_processing=True, public_machine_explanation=True, unattended_release=True)
+        enabled = [f for f in fetch.SOURCES if f not in ('sg_mindef_releases', 'kr_policy_dapa_releases', 'us_uscc_press_en')]
+        for switch in (None, 'false', 'true'):
+            with self.subTest(switch=switch), patch.dict(os.environ, {}):
+                os.environ.pop('JP_JCG_LINKS_ENABLED', None)
+                if switch:
+                    os.environ['JP_JCG_LINKS_ENABLED'] = switch
+                on = switch == 'true'
+                outcomes = [self.response() for _ in range(len(enabled) + (1 if on else 0))]
+                root, result, call = self.run_fetch(outcomes, policy)
+                urls = ' '.join(' '.join(map(str, c.args[0])) for c in call.call_args_list)
+                self.assertEqual(result['jp_jcg_press_en'], 'fetched' if on else 'public_switch_off')
+                self.assertEqual('envelopes/jp_jcg_press_en.json' in urls, on)
+                self.assertEqual((root / 'jp_jcg_press_en.json').exists(), on)
+                for family in enabled:
+                    if family != 'jp_jcg_press_en':
+                        self.assertEqual(result[family], 'fetched')
+                self.assertTrue((root / 'outputs').read_text().endswith('failed_families=0\n'))
+                (root / 'outputs').unlink()
+
+    def test_uscc_owner_switch_withholds_its_envelope_even_with_policy_on(self):
+        policy = copy.deepcopy(load_policy())
+        policy['sources']['us_uscc_press_en'].update(
+            private_model_processing=True, public_machine_explanation=True, unattended_release=True)
+        enabled = [f for f in fetch.SOURCES if f not in ('sg_mindef_releases', 'kr_policy_dapa_releases', 'jp_jcg_press_en')]
+        for switch in (None, 'false', 'true'):
+            with self.subTest(switch=switch), patch.dict(os.environ, {}):
+                os.environ.pop('US_USCC_LINKS_ENABLED', None)
+                if switch:
+                    os.environ['US_USCC_LINKS_ENABLED'] = switch
+                on = switch == 'true'
+                outcomes = [self.response() for _ in range(len(enabled) + (1 if on else 0))]
+                root, result, call = self.run_fetch(outcomes, policy)
+                urls = ' '.join(' '.join(map(str, c.args[0])) for c in call.call_args_list)
+                self.assertEqual(result['us_uscc_press_en'], 'fetched' if on else 'public_switch_off')
+                self.assertEqual('envelopes/us_uscc_press_en.json' in urls, on)
+                self.assertEqual((root / 'us_uscc_press_en.json').exists(), on)
+                self.assertTrue((root / 'outputs').read_text().endswith('failed_families=0\n'))
+                (root / 'outputs').unlink()
+
     def test_annotations_do_not_disclose_response_or_stderr(self):
         from contextlib import redirect_stdout
         from io import StringIO
@@ -94,6 +230,7 @@ class FetchOutputs(unittest.TestCase):
         from tests.test_migrations import build_legacy_db
         from processing import daily_intake as intake
         from processing.daily_runner import intake_family
+        from core.daily_sources import attended_pilot_gate
         from tests.test_philippines_shared_daily import record, reading, fake_analyzer
 
         policy = load_policy()
@@ -106,6 +243,9 @@ class FetchOutputs(unittest.TestCase):
             # others report the same admitted/holds receipt as before.
             result = {}
             for family in fetch.SOURCES:
+                gated, pilot = attended_pilot_gate(family)
+                if gated and pilot is None:
+                    continue  # pipeline._daily_admission skips a closed pilot gate
                 receipt = intake_family(db, root, family, policy=policy)
                 if receipt is not None:
                     result[family] = {k: receipt[k] for k in ('admitted', 'holds')}
@@ -147,7 +287,8 @@ class FetchOutputs(unittest.TestCase):
                     intake.admit(conn, envelopes[failed], family=failed, policy=policy, key=keys[failed])
                     old = conn.execute('SELECT * FROM daily_machine_records').fetchone()
                 outcomes = [self.response(code=1) if f == failed else
-                            self.response(json.dumps(envelopes[f]).encode()) for f in fetch.SOURCES]
+                            self.response(json.dumps(envelopes[f]).encode())
+                            for f in fetch.SOURCES if f in envelopes]
                 root, result, _ = self.run_fetch(outcomes)
                 with patch.dict(os.environ, env):
                     admitted = public_intake(db, root)
@@ -161,6 +302,9 @@ class FetchOutputs(unittest.TestCase):
                     self.assertEqual(conn.execute('SELECT * FROM daily_machine_records WHERE source_family=?',
                                                   (failed,)).fetchone(), old)
                 self.assertEqual(result[failed], 'fetch_failed')
+                # DAPA is in fetch.SOURCES but policy-disabled: no fetch, no envelope, no intake.
+                self.assertEqual(result['kr_policy_dapa_releases'], 'policy_disabled')
+                self.assertNotIn('kr_policy_dapa_releases', admitted)
 
     def test_health_shell_notifies_for_failure_and_accepts_quiet_or_skipped_fetch(self):
         import textwrap

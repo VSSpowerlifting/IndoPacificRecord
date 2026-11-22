@@ -195,6 +195,10 @@ jobs:
             exit 1
           }
           git show HEAD:output/philippines.html | cmp - output/philippines.html
+          python - <<'PY'
+          from scripts.verify_regional_source_index_readback import verify_philippines_original_routes
+          verify_philippines_original_routes("pla_watch.db", "philippines-existing-pages")
+          PY
           cd philippines-existing-pages
           test -z "$(git status --porcelain --untracked-files=all)"
           pages_old="$(git rev-parse HEAD)"

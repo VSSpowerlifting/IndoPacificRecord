@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 from scripts.reconcile_db import read_only
 from core.mindef_permissions import MINDEF_SOURCE_SLUG, mindef_metadata_label
+from core.korea_corpus_bridge import ENGLISH_WITHHELD_NOTE
 from core.retired_article_urls import url_sha256, verify_no_active_retired_urls
 from core.title_translation import english_title, receipts, processing_note
 
@@ -68,15 +69,18 @@ def projection(**values):
     result['desks'] = sorted(set(result['desks']))
     public_url(result['ipr_url'], ipr=True)
     public_url(result['source_url'])
-    if result['record_type'] == 'official_link':
+    if result['record_type'] in ('official_link', 'independent_link'):
         # Title may be copied ONLY by a loader that explicitly permits it. No body,
         # summary, model draft or private capture fields can cross this boundary.
         if result['summary'] is not None or result['text'] is not None:
-            raise ValueError('official_link_text_prohibited')
+            raise ValueError('official_link_text_prohibited'
+                             if result['record_type'] == 'official_link'
+                             else 'link_reference_text_prohibited')
     return result
 
 
-def archive_projection(index, con, cite_record, processing_notes, excluded):
+def archive_projection(index, con, cite_record, processing_notes, excluded,
+                       english_withheld=None):
     """Intersection of existing public metadata, exact current rows and tombstones.
 
     Original URLs are used ONLY for retirement checks, never serialized. The
@@ -92,6 +96,14 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
     current = {r[0]: r for r in con.execute(
         'SELECT a.id, a.url, a.published_date, a.title_english, a.title_original, '
         's.slug FROM articles a JOIN sources s ON s.id=a.source_id')}
+    # A Record shown only for its released original publishes no English:
+    # its stored machine title is withheld here exactly as on the Record, and
+    # its honest English status ({article id: label}) replaces the note.
+    english_withheld = dict(english_withheld or {})
+    for ident in english_withheld:
+        if ident in current:
+            row = current[ident]
+            current[ident] = (row[0], row[1], row[2], None, row[4], row[5])
     title_receipts = receipts(con, metadata=True)
     source_columns = {r[1] for r in con.execute('PRAGMA table_info(sources)')}
     languages = ({r[0]: (r[1], r[2]) for r in con.execute(
@@ -133,7 +145,7 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
         ipr = ORIGIN + '/record/%d.html' % ident
         # Reuse only the helper's As-held block; its source-text block is NOT a
         # permitted bulk export. Sparse records retain a precise record locator.
-        citation = 'As held. Indo-Pacific Record, Research Atlas corpus, Record %d, Snapshot — %s (%s records).' % (
+        citation = 'As held. Indo-Pacific Record, Record %d, archive snapshot of %s (%s records).' % (
             ident, index['snapshot']['date'], format(index['snapshot']['records'], ','))
         title = english or original or None
         if mindef:
@@ -151,7 +163,9 @@ def archive_projection(index, con, cite_record, processing_notes, excluded):
             desks=[desk['code']] if desk.get('code') else [], source=source['label'], issuer=issuer,
             record_type='archive_record', processing=(
                 'Historical processing status: ' + state['label'] + '. MINDEF titles, text, translations and machine '
-                'explanations are withheld under the current source-use policy.' if mindef else
+                'explanations are not published on this site at present.' if mindef else
+                english_withheld[ident] + ' · ' + ENGLISH_WITHHELD_NOTE
+                if ident in english_withheld else
                 state['label'] + ' · ' + processing_note(title_record, processing_notes)),
             ipr_url=ipr, citation=citation + ' ' + ipr)
     excluded['active_not_in_public_projection'] += len(set(current) - seen)
@@ -292,10 +306,29 @@ def with_cited(records, cited):
     return kept + cited
 
 
+def fold_into_records(records, korea_records):
+    """One Korean release with a Record is ONE archive entry: record:<id>.
+
+    ``korea_records`` maps a source identity to its Record's article id. The
+    parallel ``original:<identity>`` exhibit entry and any ``official:``
+    link entry for that identity are dropped; the Record links to both. No
+    text or source URL moves into the record entry (bulk-text rule).
+    """
+    if not korea_records:
+        return list(records)
+    folded = {'original:' + i for i in korea_records} | {
+        'official:' + i for i in korea_records}
+    return [r for r in records if r['id'] not in folded]
+
+
 def build_index(db_path, compact, *, cite_record, processing_notes,
                 official_groups=(), originals=(), english_publications=(), analyses=(),
-                machine_records=(), cited=()):
+                machine_records=(), cited=(), title_kinds=None, korea_records=None,
+                english_withheld=None):
     """One build's selected DB + current public projection/loaders, fail closed.
+
+    `title_kinds` maps a corpus record id to generate_preview.title_kind(), so
+    the Records page marks a row's English exactly as every other list does.
 
     Source URLs are read solely for retirement checks on archive rows, never
     serialized for them. Counts and digests describe public data only.
@@ -304,7 +337,8 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
     with read_only(str(db_path)) as con:
         count = verify_no_active_retired_urls(con)
         tombstones = con.execute('SELECT original_article_id,url_sha256 FROM retired_article_urls').fetchall()
-        records = list(archive_projection(compact, con, cite_record, processing_notes, excluded))
+        records = list(archive_projection(compact, con, cite_record, processing_notes, excluded,
+                                          english_withheld))
     holds = {}
     for rows, desk, source, issuer in official_groups:
         rows = list(rows)
@@ -314,6 +348,12 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
             if raw.get('editorial_hold'):
                 holds.setdefault(record['id'], raw['editorial_hold'])
     records.extend(published_artifacts(originals, english_publications))
+    # Fold only where the record:<id> entry actually exists; a Record the
+    # archive projection excluded keeps its exhibit entry rather than vanish.
+    present = {r['id'] for r in records}
+    records = fold_into_records(records, {
+        ident: aid for ident, aid in (korea_records or {}).items()
+        if 'record:%d' % aid in present})
     records.extend(analyses)
     records.extend(machine_records)
     records = with_cited(records, cited)
@@ -324,14 +364,14 @@ def build_index(db_path, compact, *, cite_record, processing_notes,
             raise ValueError('archive_bulk_text_prohibited')
     return {'schema': SCHEMA, 'snapshot': compact['snapshot'],
             'archive_sha256': digest(encoded(compact)), 'digest': digest(encoded(records)),
-            'records': records, 'holds': {r['id']: holds[r['id']] for r in records if r['id'] in holds}, 'display': display_records(compact, records),
+            'records': records, 'holds': {r['id']: holds[r['id']] for r in records if r['id'] in holds}, 'display': display_records(compact, records, title_kinds),
             'days': {day: [int(day[8:10]), calendar.month_name[int(day[5:7])] + ' ' + day[:4],
                            calendar.day_name[date.fromisoformat(day).weekday()]]
                      for day in sorted({r['date'] for r in records if r['date']})}, 'retirement_ledger_entries': count,
             'excluded': dict(sorted(excluded.items()))}
 
 
-def display_records(compact, records):
+def display_records(compact, records, title_kinds=None):
     """Reader labels and closed facets from the same six-field public projection.
 
     Kept outside the export records. This avoids a second set of browser-side
@@ -361,8 +401,21 @@ def display_records(compact, records):
             state=state['label'] if state['code'] != 'analyzed' else None,
             state_class='state state--' + state['code'],
             trail_label='In an analysis source trail' if ident in compact['trail_ids'] else None)
-        if desk.get('code') == 'china' and english and lang.get('code') != 'en':
-            result[r['id']]['title_note'] = 'Machine-translated title · human review not recorded'
+        # The Records page states once, above the list, that English titles
+        # are machine translations; only rows whose English is something
+        # else carry a mark. The kind comes from generate_preview.title_kind(),
+        # the rule every other list uses; without it, the stored language
+        # alone decides, and no Vietnam row is called a headline unverified.
+        kind = (title_kinds or {}).get(ident)
+        if kind is None and english and lang.get('code') == 'en' and source['code'] != 'sg_mindef_releases':
+            kind = 'published_english'
+        # Separate keys because the two marks are styled apart, as
+        # `_records.html` renders them: a title the institution published in
+        # English is not machine output (`title-mark`), a headline is.
+        if kind == 'published_english':
+            result[r['id']]['title_published'] = 'Title published in English'
+        elif kind == 'machine_headline':
+            result[r['id']]['title_note'] = 'Machine-written headline, not a translation'
     return result
 
 
