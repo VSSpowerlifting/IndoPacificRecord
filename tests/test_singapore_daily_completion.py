@@ -752,6 +752,11 @@ class SingaporeAdmission(unittest.TestCase):
             self.assertEqual(persisted[key], before[key])
         self.assertNotIn("source_missing_or_metadata_changed", json.dumps(persisted))
         self.assertEqual(persisted[FAMILY + ":" + IDENT]["status"], "complete")
+        # A selected-identity run of a recurring family signs like an ordinary
+        # family run (selected_record is only for an attended pilot), so the
+        # envelope carries the selected release alongside the preserved ledger rows.
+        self.assertIn(IDENT, [r["source_identity"] for r in envelope["packet"]["records"]])
+        self.assertIsNone(signer.call_args.kwargs["selected_record"])
 
     @pilot_gate_open()
     def test_private_singapore_run_requires_explicit_identity_before_custody(self):
