@@ -287,12 +287,12 @@
       <ol class="custody" aria-label="How this record reached this page">
         <li><b>{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }}</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
         <li><b>Collected</b>{{ record.scraped_at }}{% if record.scraped_at | length == 19 %} UTC{% endif %}{% if record.scrape_run_id is not none %}, run {{ record.scrape_run_id }}{% endif %}</li>
-        <li class="{{ 'is-machine' if record.state in ['analyzed', 'not_selected', 'analysis_incomplete'] else 'is-absent' }}"><b>Machine reading</b>{{ record.state_label }}</li>
+        <li class="{{ 'is-machine' if record.state in ['analyzed', 'not_selected', 'analysis_incomplete'] else 'is-absent' }}"><b>Machine reading</b>{{ record.korea_english_status or record.state_label }}</li>
         <li class="{{ 'is-analysis' if record.in_trails else 'is-absent' }}"><b>Analysis</b>{% if record.in_trails %}{% for ref in record.in_trails %}{{ ('Cited in ' if ref.kind | default('issue') == 'brief_reference' else 'In the source trail of ') if loop.first or ref.kind | default('issue') != loop.previtem.kind | default('issue') }}{{ ref.series_name }} No. {{ ref.issue }}{{ ', ' if not loop.last }}{% endfor %}{% else %}Not in a published issue's source trail{% endif %}</li>
       </ol>
 
       <h3 id="record-status">Processing status</h3>
-      <p class="record-state">{{ record.state_label }}</p>
+      <p class="record-state">{{ record.korea_english_status or record.state_label }}</p>
       {% if is_mindef %}
       <p>This is the historical processing status. MINDEF's original titles and
       text, and IPR's translations, summaries and model reasoning for them, are

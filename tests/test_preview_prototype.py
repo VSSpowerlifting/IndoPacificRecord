@@ -2340,7 +2340,19 @@ class TestRecordPages(PreviewCase):
                                    "label": gp.STATE_LABELS[state]},
                                   index["states"])
                     continue
-                html = self.record(self.first_in_state(state))
+                # A Korean Record shown only for its released original states
+                # its English status (e.g. "English held for QA") instead of
+                # the generic stored-state label; it is checked on its own.
+                rid = next((r["id"] for r in self.data["corpus"]
+                            if r["state"] == state
+                            and not r.get("korea_english_status")), None)
+                if rid is None:
+                    rid = self.first_in_state(state)
+                    rec = next(r for r in self.data["corpus"] if r["id"] == rid)
+                    self.assertIn('<p class="record-state">%s</p>'
+                                  % rec["korea_english_status"], self.record(rid))
+                    continue
+                html = self.record(rid)
                 self.assertIn(gp.STATE_LABELS[state], html)
 
     def test_records_without_english_claim_no_translation_or_summary(self):

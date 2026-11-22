@@ -523,9 +523,13 @@ def publication_gate_detail(conn: sqlite3.Connection, released=None,
             from core.korea_additional_public_links import (
                 load_additional_korea_official_links)
             from core.korea_public_bibliography import load_public_korea_links
-            excluded = excluded_identities(frozen={
-                row["source_identity"] for row in
-                load_public_korea_links() + load_additional_korea_official_links()})
+            previous = (load_public_korea_links()
+                        + load_additional_korea_official_links())
+            frozen = {row["source_identity"] for row in previous}
+            # Same drift guard as baseline(): exactly the 14 frozen references.
+            _require(len(previous) == len(frozen) == 14,
+                     "historical_korea_original_frontier_drift")
+            excluded = excluded_identities(frozen=frozen)
         released, excluded = released or {}, excluded or {}
         for aid, ident, proc, digest in admitted:
             if proc in PUBLISHABLE_PROCESSING:

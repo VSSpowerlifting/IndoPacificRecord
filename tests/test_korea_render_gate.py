@@ -337,6 +337,11 @@ class TestRenderedKoreaRecords(unittest.TestCase):
         self.assertEqual(digest, self.released_row(self.held)["original_text_sha256"])
         self.assertIn("Source version SHA-256: <code>%s</code>" % digest, html)
         self.assertIn('data-korea-english-status="English held for QA"', html)
+        # The Record's own status lines state the honest English status, not
+        # the generic stored-state label.
+        self.assertIn('<p class="record-state">English held for QA</p>', html)
+        self.assertIn("<b>Machine reading</b>English held for QA</li>", html)
+        self.assertNotIn("Awaiting screening", html)
         self.assertIn("../korea-originals/%s.html" % news, html)
         for leaked in ("Synthetic machine translation line", "Synthetic English title",
                        "Synthetic summary", "fixture-model", "korea-v2-fixture",
