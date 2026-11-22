@@ -82,6 +82,11 @@ class LegacyScraperAdapter(SourceAdapter):
         # is precisely how it contributed zero rows for the life of the project
         # while every run reported success.
         self.implemented = not getattr(self._scraper_class, "IS_STUB", False)
+        # A scraper that discovers by its own acquisition window declares it on
+        # the class; `pipeline.production_window()` reads it from this adapter.
+        # Every scraper that declares nothing keeps the single-day window.
+        self.production_lookback_days = int(
+            getattr(self._scraper_class, "PRODUCTION_LOOKBACK_DAYS", 0))
 
     # ── construction ─────────────────────────────────────────────────────────
 
@@ -91,6 +96,10 @@ class LegacyScraperAdapter(SourceAdapter):
             kwargs = {}
             if window is not None:
                 kwargs["target_date"] = window.target_date
+                # Only scrapers that declare a window receive its lookback, so
+                # the other constructors are called exactly as before.
+                if getattr(self._scraper_class, "ACCEPTS_LOOKBACK", False):
+                    kwargs["lookback_days"] = window.lookback_days
             self._scraper = self._scraper_class(**kwargs)
         return self._scraper
 

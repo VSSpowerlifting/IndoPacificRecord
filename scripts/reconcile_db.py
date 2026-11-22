@@ -401,7 +401,9 @@ def merge_government_document_metadata(con):
         if cols != local_cols:
             raise ValueError("government_document_schema_conflict")
         where = " AND ".join(k + "=?" for k in keys)
-        for row in con.execute("SELECT * FROM loc." + table + " WHERE source_family=?", (family,)).fetchall():
+        # Global Times capture versions (0026) share the immutable-row rule.
+        for row in con.execute("SELECT * FROM loc." + table + " WHERE source_family IN (?,?)",
+                               (family, "global_times_mil")).fetchall():
             key = [row[k] for k in keys]
             old = con.execute("SELECT * FROM main." + table + " WHERE " + where, key).fetchone()
             if old is not None and tuple(old) != tuple(row):

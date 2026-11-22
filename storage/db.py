@@ -17,6 +17,8 @@ from typing import Callable
 
 from config import DB_PATH
 from core.retired_article_urls import is_retired, next_available_article_id
+from core.collection.global_times_custody import (
+    SOURCE_SLUG as GT_CUSTODY_SLUG, CustodyError)
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +266,17 @@ def insert_article(article: dict, scrape_run_id: int) -> Optional[int]:
                     article.get("published_date"),
                 ),
             )
+            if (article.get("source_slug") == GT_CUSTODY_SLUG
+                    and article.get("custody") is not None):
+                # Same transaction: the article and its capture row commit
+                # together or not at all (core/collection/global_times_custody).
+                from core.collection.global_times_custody import record_capture
+                record_capture(conn, article)
             return cur.lastrowid
+    except CustodyError as exc:
+        logger.error("Capture custody failed, article not stored: %s (%s)",
+                     article["url"], exc)
+        return None
     except sqlite3.IntegrityError:
         logger.debug("Duplicate URL skipped: %s", article["url"])
         return None
