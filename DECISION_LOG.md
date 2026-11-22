@@ -20,11 +20,14 @@ individually held identities and the six-check qualifier.
   to its `owner_decision`; the earlier text stays as history and its activation
   hold is superseded.
 - Registers the source in `desks/us-indopacific/manifest.json` (manual, English
-  release text, existing `us_uscc` institution), sets `desk_registered=True` and
-  mirrors the private collector's cron, `uscc_private_first_collector.yml`
-  `'35 11 * * *'` (VSSpowerlifting/ipr-source-evidence-private#50, merge commit
-  `37b4aa2`), as `collection_cron_utc="11:35"`. The collector writes
-  `state/ledger/<run>.json`, so no receipt directory is declared (as for JCG).
+  release text, existing `us_uscc` institution) and sets `desk_registered=True`.
+  It does not declare a collection cadence. The private collector,
+  `uscc_private_first_collector.yml` `'35 11 * * *'`
+  (VSSpowerlifting/ipr-source-evidence-private#50, merge commit `37b4aa2`), writes
+  ledger results `success`/`hold` without `target_date`, `target_date_source` or
+  `health`. The shared reader cannot read that shape, so a declared cron would
+  report `collection_not_attested` on every Daily. USCC keeps signing `/1`
+  (no freshness verdict) until the collector writes the shared ledger schema.
 - Desk status is unchanged: `us-indopacific` stays `shadow`, inactive and
   `access_blocked` in the registry.
 

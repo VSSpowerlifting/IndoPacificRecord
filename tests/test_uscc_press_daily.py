@@ -24,7 +24,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -109,16 +108,6 @@ def commit_custody(repo, releases, *, run_id="uscc-1", robots=ROBOTS, provenance
         rows.append(row)
         captures.update(caps)
     links.write_custody(repo / "state", rows, captures)
-    # The collector's own run ledger (state/ledger/<run>.json, which the private
-    # collector writes): the family now declares a cron, so a Daily that admits
-    # its outputs reads this as the attested, healthy collection.
-    now = datetime.now(timezone.utc)
-    (repo / "state/ledger").mkdir(parents=True, exist_ok=True)
-    (repo / "state/ledger" / (now.strftime("%Y%m%dT%H%M%S%f") + "-" + run_id + ".json")).write_text(
-        json.dumps({"run_id": run_id, "result": "ok", "health": "ok",
-                    "finished_utc": now.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "target_date": now.strftime("%Y-%m-%d"),
-                    "target_date_source": "schedule-slot"}))
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
     subprocess.run(git + ["add", "state"], check=True)
     subprocess.run(git + ["commit", "-qm", "custody " + run_id], check=True)
@@ -308,9 +297,10 @@ class Definition(unittest.TestCase):
         self.assertEqual(s.publisher, "U.S.-China Economic and Security Review Commission")
         self.assertEqual((s.key_env, s.public_switch), (links.KEY_ENV, "US_USCC_LINKS_ENABLED"))
         self.assertTrue(s.desk_registered)
-        # private uscc_private_first_collector.yml: cron '35 11 * * *'
-        self.assertEqual(s.collection_expectation(), ("11:35", 14))
-        self.assertEqual(s.collection_receipt_dirs, ())
+        # No declared cadence until the private collector writes the shared
+        # ledger schema: the family signs /1 and gets no freshness verdict.
+        self.assertIsNone(s.collection_expectation()[0])
+        self.assertFalse(s.signs_collection())
         committed = d.load_policy()["sources"][FAMILY]
         # 2026-11-22 founder first activation, within unchanged ceilings.
         for switch in ("private_model_processing", "public_machine_explanation",

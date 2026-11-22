@@ -644,12 +644,14 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         public_switch="US_USCC_LINKS_ENABLED",
         # A manifest-registered manual source (2026-11-22 founder activation):
         # public Daily admits signed links and outputs, never fetches uscc.gov.
-        desk_registered=True,
-        # private uscc_private_first_collector.yml: cron '35 11 * * *'
-        # (ipr-source-evidence-private#50). It writes state/ledger/<run>.json
-        # on archive/uscc-press, which read_custody reads by default, so no
-        # collection_receipt_dirs (as for JCG).
-        collection_cron_utc="11:35"),
+        desk_registered=True),
+        # No collection_cron_utc yet: the private collector (cron '35 11 * * *',
+        # ipr-source-evidence-private#50) writes ledger entries with result
+        # "success"/"hold" and no target_date, target_date_source or health, which
+        # core/collection/attempts.read_custody cannot read. Declaring the cron
+        # would sign /2 with attested=false and report collection_not_attested on
+        # every Daily. The family signs /1 (no freshness verdict) until that
+        # collector writes the shared ledger schema.
 )}
 
 

@@ -325,7 +325,8 @@ Built with every switch off. **Founder first activation, 22 November 2026**
 ceilings, `desk_registered=True`, the source is registered in
 `desks/us-indopacific/manifest.json`, and the private collector
 (`uscc_private_first_collector.yml`, VSSpowerlifting/ipr-source-evidence-private#50)
-writes `state/ledger/<run>.json` on `archive/uscc-press`. Nothing runs until
+writes custody and its own run ledger on `archive/uscc-press` (not yet the shared
+ledger schema, so USCC has no declared collection cadence). Nothing runs until
 the owner variables are set; `US_USCC_LINKS_ENABLED` unset withholds both public
 halves. Seeding production custody from the 3 November archive and any backfill
 are not authorized.
@@ -501,9 +502,11 @@ row, after admission, keeping its counts and `held:` detail.
   must be edited together; the attended Singapore pilot never gets a verdict.
   (22 November: Singapore MINDEF is recurring and declares `10:37`; it signs `/2`
   and gets a verdict. See DECISION_LOG 2026-11-22.)
-  USCC mirrors `uscc_private_first_collector.yml: cron '35 11 * * *'` as
-  `collection_cron_utc="11:35"` (VSSpowerlifting/ipr-source-evidence-private#50;
-  it writes `state/ledger/<run>.json`, so no receipt directory is declared, as for JCG).
+  USCC declares no cadence yet: its private collector (`'35 11 * * *'`,
+  VSSpowerlifting/ipr-source-evidence-private#50) writes ledger results
+  `success`/`hold` without `target_date`, `target_date_source` or `health`, which
+  `attempts.read_custody` cannot read. It signs `/1` until that collector writes
+  the shared ledger schema; only then is `collection_cron_utc="11:35"` declared.
 - Strict-flip condition: set `pipeline._REQUIRE_COLLECTION_ATTESTATION` only
   after a structure-only listing shows `/2` for every enabled, non-attended
   family with a declared cadence. Until then a missing block is "no verdict".
@@ -514,9 +517,9 @@ row, after admission, keeping its counts and `held:` detail.
 
 The shared Daily private signer now emits the `/2` envelope for exactly the
 families with a declared, unattended collection cadence
-(`DailySource.signs_collection()`: AFP, NSC, Kemhan, JCG and, from the
-22 November 2026 USCC activation, USCC). The attended
-Singapore pilot and DAPA have no cadence and keep signing `/1`, byte
+(`DailySource.signs_collection()`: AFP, NSC, Kemhan, JCG and, from
+22 November 2026, recurring Singapore MINDEF). USCC (until its collector
+writes the shared ledger schema) and DAPA have no cadence and keep signing `/1`, byte
 for byte. `private_run` reads the block after the atomic queue write and just
 before signing (`DailySource.collection_attempt` ->
 `attempts.read_custody`), so a reader failure never stops signing or alters
