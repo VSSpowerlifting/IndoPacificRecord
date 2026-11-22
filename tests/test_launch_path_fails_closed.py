@@ -150,14 +150,11 @@ class TestTheAcceptedSnapshot(unittest.TestCase):
             # Source-pinned Korea records may exist before passing their
             # publication QA. They stay stored but are excluded from the
             # public snapshot until release.
+            from tests.korea_release_rule import public_filter
             live = conn.execute(
                 "SELECT COUNT(*) FROM articles a "
                 "JOIN sources s ON s.id=a.source_id "
-                "WHERE (COALESCE(s.desk_id,'') != 'korea' "
-                "AND s.slug != 'kr_policy_mnd_releases') "
-                "OR EXISTS (SELECT 1 FROM korea_corpus_admissions k "
-                "WHERE k.article_id=a.id AND k.state='admitted' "
-                "AND k.processing_state IN ('processed','not_relevant'))"
+                "WHERE " + public_filter(conn)
             ).fetchone()[0]
         self.assertEqual(derived["expected_records"], live)
         # It would be incorrect to label the post-cull daily corpus as the

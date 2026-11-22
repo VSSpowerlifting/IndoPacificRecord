@@ -261,6 +261,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
       - name: Publish only Korea HTML to existing Pages branch
+        id: korea_pages
         shell: bash
         run: |
           set -euo pipefail
@@ -277,6 +278,22 @@ jobs:
             git show "HEAD:output/$route" | cmp - "output/$route"
           done < "$RUNNER_TEMP/korea-routes"
           test -z "$(git ls-files --others -- output/korea-official-links.html output/korea-official-links)"
+          # Never publish a Korea page that links a Record not yet on Pages.
+          # Main has already advanced (it carries what the Daily renders); Pages
+          # keeps its last-good Korea pages and the Daily's full-site deploy
+          # publishes the Records and these pages together.
+          rc=0
+          python -m scripts.guard_korea_record_links_live --output output \
+            --pages-repo korea-existing-pages > "$RUNNER_TEMP/korea-record-guard.txt" || rc=$?
+          cat "$RUNNER_TEMP/korea-record-guard.txt"
+          if [ "$rc" -ne 0 ]; then
+            [ "$rc" -eq 3 ] || exit "$rc"
+            echo "::notice::$(head -n 1 "$RUNNER_TEMP/korea-record-guard.txt")"
+            cat "$RUNNER_TEMP/korea-record-guard.txt" >> "$GITHUB_STEP_SUMMARY"
+            echo "held=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "held=false" >> "$GITHUB_OUTPUT"
           cd korea-existing-pages
           test -z "$(git status --porcelain --untracked-files=all)"
           pages_old="$(git rev-parse HEAD)"
@@ -319,6 +336,7 @@ jobs:
           python -m scripts.verify_korea_official_link_index --db pla_watch.db \
             --site-dir output --deployed-dir korea-existing-pages
       - name: Independent fixed-origin HTTPS readback of desk and full index
+        if: steps.korea_pages.outputs.held != 'true'
         shell: bash
         run: |
           set -euo pipefail

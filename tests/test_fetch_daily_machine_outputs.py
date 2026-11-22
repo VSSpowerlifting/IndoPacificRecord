@@ -11,17 +11,23 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from core import daily_sources
 from scripts import fetch_daily_machine_outputs as fetch
 from processing.daily_intake import load_policy as _committed_policy
 
 
+# The attended-pilot gate is empty in production (Singapore MINDEF is recurring
+# since 22 Nov); the retained mechanism is tested as if the family were gated.
+SG_PILOT_GATE = {'sg_mindef_releases': 'IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY'}
+
+
 def load_policy():
-    """Committed policy with the Singapore pilot and Japan Coast Guard flags held
-    off, so these three-family delivery tests do not depend on the pilot state of
-    the repository. JCG delivery under its committed policy is covered in
-    tests/test_japan_jcg_daily.py."""
+    """Committed policy with the Singapore pilot, Japan Coast Guard and USCC flags
+    held off, so these three-family delivery tests do not depend on the pilot state
+    of the repository. JCG delivery under its committed policy is covered in
+    tests/test_japan_jcg_daily.py and USCC in tests/test_uscc_press_daily.py."""
     p = _committed_policy()
-    for family in ('sg_mindef_releases', 'jp_jcg_press_en'):
+    for family in ('sg_mindef_releases', 'jp_jcg_press_en', 'us_uscc_press_en'):
         p['sources'][family].update(
             private_model_processing=False, public_machine_explanation=False, unattended_release=False)
     return p
@@ -125,6 +131,7 @@ class FetchOutputs(unittest.TestCase):
             result = fetch.main()
         return root, result, call
 
+    @patch.dict(daily_sources.ATTENDED_PILOT_ENV, SG_PILOT_GATE)
     def test_closed_pilot_gate_skips_singapore_cleanly_even_with_all_flags_true(self):
         for event, identity in [('schedule', ''), ('schedule', '6nov26-nr2'), ('workflow_dispatch', '')]:
             with self.subTest(event=event, identity=identity):
@@ -140,6 +147,15 @@ class FetchOutputs(unittest.TestCase):
                 for family in others:
                     self.assertEqual(result[family], 'policy_disabled' if family in ('kr_policy_dapa_releases', 'jp_jcg_press_en', 'us_uscc_press_en') else 'fetched')
 
+    def test_recurring_singapore_is_fetched_on_a_scheduled_run_with_no_identity(self):
+        self.assertEqual(daily_sources.ATTENDED_PILOT_ENV, {})
+        root, result, call = self.run_gated(
+            'schedule', '', [self.response() for _ in fetch.SOURCES])
+        self.assertEqual(result['sg_mindef_releases'], 'fetched')
+        self.assertTrue((root / 'sg_mindef_releases.json').exists())
+        self.assertEqual(call.call_count, len(fetch.SOURCES) - 3)  # DAPA, JCG and USCC are policy-disabled
+
+    @patch.dict(daily_sources.ATTENDED_PILOT_ENV, SG_PILOT_GATE)
     def test_attended_dispatch_fetches_singapore_only_with_the_named_identity(self):
         order = list(fetch.SOURCES)
         outcomes = [self.response() for _ in order]
@@ -167,6 +183,26 @@ class FetchOutputs(unittest.TestCase):
                 for family in enabled:
                     if family != 'jp_jcg_press_en':
                         self.assertEqual(result[family], 'fetched')
+                self.assertTrue((root / 'outputs').read_text().endswith('failed_families=0\n'))
+                (root / 'outputs').unlink()
+
+    def test_uscc_owner_switch_withholds_its_envelope_even_with_policy_on(self):
+        policy = copy.deepcopy(load_policy())
+        policy['sources']['us_uscc_press_en'].update(
+            private_model_processing=True, public_machine_explanation=True, unattended_release=True)
+        enabled = [f for f in fetch.SOURCES if f not in ('sg_mindef_releases', 'kr_policy_dapa_releases', 'jp_jcg_press_en')]
+        for switch in (None, 'false', 'true'):
+            with self.subTest(switch=switch), patch.dict(os.environ, {}):
+                os.environ.pop('US_USCC_LINKS_ENABLED', None)
+                if switch:
+                    os.environ['US_USCC_LINKS_ENABLED'] = switch
+                on = switch == 'true'
+                outcomes = [self.response() for _ in range(len(enabled) + (1 if on else 0))]
+                root, result, call = self.run_fetch(outcomes, policy)
+                urls = ' '.join(' '.join(map(str, c.args[0])) for c in call.call_args_list)
+                self.assertEqual(result['us_uscc_press_en'], 'fetched' if on else 'public_switch_off')
+                self.assertEqual('envelopes/us_uscc_press_en.json' in urls, on)
+                self.assertEqual((root / 'us_uscc_press_en.json').exists(), on)
                 self.assertTrue((root / 'outputs').read_text().endswith('failed_families=0\n'))
                 (root / 'outputs').unlink()
 

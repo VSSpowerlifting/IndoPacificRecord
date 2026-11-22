@@ -3,6 +3,13 @@
 Proves registered source UTF-8 SHA -> deterministic rendered HTML -> main
 output -> gh-pages blob -> optional real HTTPS served bytes. Never uploads
 source bodies, makes publication changes, or treats branch parity as HTTP proof.
+
+An original exhibit that belongs to a Record carries one backlink to
+record/<article id>.html. That Record page is read back too: it must be the
+same bytes on main and gh-pages (and over HTTPS), link its exhibit, and, when
+it is shown only for its released original (English held), state that
+original's exact SHA-256. Expected bytes are always the committed output, not
+a frozen hash list.
 """
 from __future__ import annotations
 
@@ -24,6 +31,10 @@ SCHEMA = "ipr-korea-public-original-https-readback/1"
 CANONICAL_HOST = "indopacificrecord.org"
 MAX_HTML = 400_000
 ROUTE = re.compile(r"korea-originals/[0-9]{9}[.]html\Z")
+RECORD_ROUTE = re.compile(r"record/[0-9]+[.]html\Z")
+BACKLINK = re.compile(
+    r'<a class="korea-record-backlink" href="[.][.]/([^"]*)">')
+ENGLISH_STATUS = "data-korea-english-status="
 
 
 class ReadbackHold(ValueError):
@@ -84,11 +95,17 @@ def validate_branch_parity(main_root, pages_root):
     page_bytes = {}
     for row in rows:
         route = row["route"]
-        rendered = render_original_page(row).encode("utf-8")
         main_file = _html(main_root / "output" / route)
         pages_file = _html(pages_root / route)
         need(main_file == pages_file,
              "korea_original_main_pages_bytes_differ")
+        backlinks = BACKLINK.findall(main_file.decode("utf-8", "strict"))
+        need(len(backlinks) <= 1
+             and all(RECORD_ROUTE.fullmatch(b) for b in backlinks),
+             "korea_original_record_backlink_invalid")
+        record_route = backlinks[0] if backlinks else None
+        rendered = render_original_page(
+            row, record_route=record_route).encode("utf-8")
         need(main_file == rendered,
              "korea_original_rendered_bytes_differ_from_published")
         need(row["official_url"] in main_desk_text and route in main_desk_text,
@@ -96,6 +113,21 @@ def validate_branch_parity(main_root, pages_root):
         need(row["original_text_sha256"] in main_file.decode("utf-8", "strict"),
              "korea_original_page_source_sha_missing")
         page_bytes[route] = main_file
+        if record_route is not None:
+            need(record_route not in page_bytes,
+                 "korea_record_shared_by_two_originals")
+            main_record = _html(main_root / "output" / record_route)
+            pages_record = _html(pages_root / record_route)
+            need(main_record == pages_record,
+                 "korea_record_main_pages_bytes_differ")
+            record_text = main_record.decode("utf-8", "strict")
+            need(("../" + route) in record_text,
+                 "korea_record_original_link_missing")
+            if ENGLISH_STATUS in record_text:
+                need(("Source version SHA-256: <code>%s</code>"
+                      % row["original_text_sha256"]) in record_text,
+                     "korea_record_original_sha_missing")
+            page_bytes[record_route] = main_record
     return rows, {"korea.html": main_desk, **page_bytes}
 
 
@@ -130,6 +162,8 @@ def verify_readback(main_root, pages_root, *, require_https=False,
         "status": "GIT_BRANCH_READBACK_VERIFIED",
         "registered_originals": len(rows),
         "korea_html_paths_verified": len(verified),
+        "korea_record_pages_verified": sum(
+            1 for path in verified if path.startswith("record/")),
         "main_pages_exact_html_parity": True,
         "rendered_to_pages_exact_html_parity": True,
         "public_https_verified": False,

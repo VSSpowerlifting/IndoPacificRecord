@@ -37,9 +37,10 @@ def record(ident="jcg-en:90001", day="2026-10-28"):
 
 
 class JcgV2Prompt(unittest.TestCase):
-    def test_v2_is_registered_and_v1_stays_admissible(self):
-        self.assertEqual(prompts.VERSION, V2)
-        self.assertEqual(SOURCES[FAMILY].prompt_versions,
+    def test_v2_and_v1_stay_admissible_after_v3(self):
+        # v3 is emitted now (tests/test_japan_jcg_v3_acronyms.py); a v2 or v1
+        # reading signed before the switch is still admissible.
+        self.assertEqual(SOURCES[FAMILY].prompt_versions[1:],
                          (V2, "jp-jcg-relevance-v1+jp-jcg-analysis-v1"))
 
     def test_v2_instructs_no_flag_and_the_single_passage_token_check(self):

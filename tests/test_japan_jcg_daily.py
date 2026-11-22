@@ -217,7 +217,7 @@ class JcgDefinition(unittest.TestCase):
         pair = (JAPAN_JCG_DAILY_PROFILE.prompt_version + "+"
                 + JAPAN_JCG_DAILY_PROFILE.analysis_prompt_version)
         self.assertEqual(pair, SOURCES[FAMILY].prompt_versions[0])
-        self.assertEqual(pair, "jp-jcg-relevance-v1+jp-jcg-analysis-v2")
+        self.assertEqual(pair, "jp-jcg-relevance-v1+jp-jcg-analysis-v3")
 
     def test_prompts_name_only_the_coast_guard_and_exclude_attachments(self):
         from analysis import japan_jcg_prompts as prompts

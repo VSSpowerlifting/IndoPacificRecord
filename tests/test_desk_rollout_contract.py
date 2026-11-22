@@ -170,16 +170,18 @@ class TestRosterMatchesConfiguration(DeskCase):
         endpoint, the site root, the Press Releases and Readouts listing and
         robots.txt itself all return 403 at the edge. What this test protects is
         unchanged — the desk collects nothing. Since runtime migration 4 its
-        two registered sources are the manual USCC and Treasury listing-metadata
-        families admitted through the governed dispatch; nothing fetches them.
+        first two registered sources are the manual USCC and Treasury listing-metadata
+        families admitted through the governed dispatch; the third is the USCC
+        press-release narrative family `us_uscc_press_en` (founder activation of
+        2026-11-22). Nothing fetches them from public Daily.
         """
         us = load_registry().get("us-indopacific")
         self.assertIsNotNone(us)
         self.assertEqual(us.status, "access_blocked")
         self.assertFalse(us.is_collecting)
         self.assertEqual(us.manifest_path, "desks/us-indopacific/manifest.json")
-        self.assertEqual(us.configured_source_count, 2)
-        self.assertEqual(us.enabled_source_count, 2)
+        self.assertEqual(us.configured_source_count, 3)
+        self.assertEqual(us.enabled_source_count, 3)
         self.assertEqual({s.access_method for s in us.sources}, {"manual"})
         self.assertIn("not collecting", us.status_label.lower())
 

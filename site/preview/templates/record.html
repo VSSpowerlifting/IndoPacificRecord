@@ -153,6 +153,14 @@
   {# A gated Korean MND release (core/korea_corpus_bridge.publication_gate).
      The licensed original is shown once, on its own exhibit page; this
      record links to it rather than reproducing it a second time. #}
+  {% if record.korea_english_status %}
+  <section class="record-section" id="record-english-status" data-korea-english-status="{{ record.korea_english_status }}" aria-labelledby="record-english-status-heading">
+    <div class="layer-head"><span class="evidence evidence--record">English status</span>
+      <h2 id="record-english-status-heading">{{ record.korea_english_status }}</h2></div>
+    <p class="meta">The official Korean release is preserved below. No machine translation, summary or
+    analysis of it is shown: English for this release has not passed IPR's checks.</p>
+  </section>
+  {% endif %}
   {% if record.text_english %}
   <section class="record-section record-section--machine" id="record-translation-section" aria-labelledby="record-translation">
     <div class="layer-head"><span class="evidence evidence--model">Machine translation</span>
@@ -174,6 +182,9 @@
     <div class="layer-head"><span class="evidence evidence--record">Source record</span>
       <h2 id="record-text">Korean original</h2></div>
     <p class="record-lead"><a href="../korea-originals/{{ record.korea_news_id }}.html">Read the verbatim Korean original — release {{ record.korea_news_id }}</a></p>
+    {% if record.korea_english_status %}
+    <p class="meta">Source version SHA-256: <code>{{ record.korea_original_sha256 }}</code></p>
+    {% endif %}
     <p class="meta"><strong>Official Korean government source text</strong> — not an IPR fact-check or independent endorsement of the claims.
     Issuer: Republic of Korea Ministry of National Defense; republication: Republic of Korea Policy Briefing.
     Text reproduced with attribution under the article-specific
@@ -276,12 +287,12 @@
       <ol class="custody" aria-label="How this record reached this page">
         <li><b>{{ 'Issued' if record.source_slug == 'vn_vpcp_official_documents_vi' else 'Published' }}</b>{{ record.published_date | reader_date }}, by {{ record.institution or record.source_name }}</li>
         <li><b>Collected</b>{{ record.scraped_at }}{% if record.scraped_at | length == 19 %} UTC{% endif %}{% if record.scrape_run_id is not none %}, run {{ record.scrape_run_id }}{% endif %}</li>
-        <li class="{{ 'is-machine' if record.state in ['analyzed', 'not_selected', 'analysis_incomplete'] else 'is-absent' }}"><b>Machine reading</b>{{ record.state_label }}</li>
+        <li class="{{ 'is-machine' if record.state in ['analyzed', 'not_selected', 'analysis_incomplete'] else 'is-absent' }}"><b>Machine reading</b>{{ record.korea_english_status or record.state_label }}</li>
         <li class="{{ 'is-analysis' if record.in_trails else 'is-absent' }}"><b>Analysis</b>{% if record.in_trails %}{% for ref in record.in_trails %}{{ ('Cited in ' if ref.kind | default('issue') == 'brief_reference' else 'In the source trail of ') if loop.first or ref.kind | default('issue') != loop.previtem.kind | default('issue') }}{{ ref.series_name }} No. {{ ref.issue }}{{ ', ' if not loop.last }}{% endfor %}{% else %}Not in a published issue's source trail{% endif %}</li>
       </ol>
 
       <h3 id="record-status">Processing status</h3>
-      <p class="record-state">{{ record.state_label }}</p>
+      <p class="record-state">{{ record.korea_english_status or record.state_label }}</p>
       {% if is_mindef %}
       <p>This is the historical processing status. MINDEF's original titles and
       text, and IPR's translations, summaries and model reasoning for them, are

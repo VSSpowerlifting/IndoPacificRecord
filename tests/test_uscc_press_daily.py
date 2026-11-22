@@ -290,31 +290,44 @@ def leaks(needles, blobs):
 
 
 class Definition(unittest.TestCase):
-    def test_family_is_disabled_unregistered_and_switch_gated(self):
+    def test_family_is_activated_registered_and_switch_gated(self):
         s = SOURCES[FAMILY]
         self.assertEqual((s.desk_id, s.label, s.custody_ref, s.language, s.identity_max_length),
                          ("us-indopacific", "USCC", BRANCH, "en", links.IDENTITY_MAX))
         self.assertEqual(s.publisher, "U.S.-China Economic and Security Review Commission")
         self.assertEqual((s.key_env, s.public_switch), (links.KEY_ENV, "US_USCC_LINKS_ENABLED"))
-        self.assertFalse(s.desk_registered)
+        self.assertTrue(s.desk_registered)
+        # No declared cadence until the private collector writes the shared
+        # ledger schema: the family signs /1 and gets no freshness verdict.
+        self.assertIsNone(s.collection_expectation()[0])
+        self.assertFalse(s.signs_collection())
         committed = d.load_policy()["sources"][FAMILY]
+        # 2026-11-22 founder first activation, within unchanged ceilings.
         for switch in ("private_model_processing", "public_machine_explanation",
                        "unattended_release"):
-            self.assertIs(committed[switch], False)
-        self.assertIn("NOT authorized", committed["owner_decision"])
+            self.assertIs(committed[switch], True)
+        self.assertIn("2026-11-22 founder", committed["owner_decision"])
+        self.assertIn("US_USCC_LINKS_ENABLED rolls back both public halves",
+                      committed["owner_decision"])
         self.assertEqual((committed["max_records_per_run"],
-                          committed["max_estimated_cost_usd_per_run"]), (1, 0.35))
+                          committed["max_estimated_cost_usd_per_run"],
+                          committed["max_input_characters"],
+                          committed["excluded_source_identities"]), (1, 0.35, 16000, []))
         import pipeline
-        self.assertNotIn(FAMILY, pipeline._governed_admissions())
-        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                     "US_USCC_LINKS_ENABLED": "true"}):
-            self.assertEqual(pipeline._daily_admission(FAMILY).inactive_reason(),
-                             "source-use policy withholds unattended release")
-        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true"}), \
-                patch.object(d, "load_policy", return_value=policy()):
+        self.assertIn(FAMILY, pipeline._governed_admissions())
+        # The committed policy is open; the owner switch alone withholds it.
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true"}):
             os.environ.pop("US_USCC_LINKS_ENABLED", None)
             self.assertEqual(pipeline._daily_admission(FAMILY).inactive_reason(),
                              "owner public switch is off")
+            os.environ["US_USCC_LINKS_ENABLED"] = "true"
+            self.assertIsNone(pipeline._daily_admission(FAMILY).inactive_reason())
+        # A policy with any flag withheld still stops it.
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                     "US_USCC_LINKS_ENABLED": "true"}), \
+                patch.object(d, "load_policy", return_value=policy(enabled=False)):
+            self.assertEqual(pipeline._daily_admission(FAMILY).inactive_reason(),
+                             "source-use policy withholds unattended release")
 
     def test_profile_is_source_level_and_evidence_bound(self):
         from analysis.analyzer import _evidence_bound, _fact_only
@@ -363,16 +376,16 @@ class Definition(unittest.TestCase):
             os.environ.pop("US_USCC_LINKS_ENABLED", None)
             call.return_value = "fetched"
             result = fetch.main()
-            self.assertEqual(result[FAMILY], "policy_disabled")
+            self.assertEqual(result[FAMILY], "public_switch_off")
             self.assertNotIn(links.LINKS_NAME, result)
             os.environ["US_USCC_LINKS_ENABLED"] = "true"
             result = fetch.main()
-            # The committed policy still withholds the machine envelope.
-            self.assertEqual(result[FAMILY], "policy_disabled")
+            # The committed policy is open: the owner switch releases both halves.
+            self.assertEqual(result[FAMILY], "fetched")
             self.assertEqual(result[links.LINKS_NAME], "fetched")
             self.assertEqual(call.call_args.args[2], links.LINKS_REF)
-            self.assertNotIn("envelopes/" + FAMILY + ".json",
-                             [c.args[0] for c in call.call_args_list])
+            self.assertIn("envelopes/" + FAMILY + ".json",
+                          [c.args[0] for c in call.call_args_list])
 
 
 class Migration(unittest.TestCase):
@@ -536,7 +549,7 @@ class Custody(unittest.TestCase):
                                           (dalai, "2026-08-26", release_page(dalai, "2026-08-26"))])
         records = d.verified_source(self.repo, head, FAMILY)
         factory = Mock()
-        state, _ = d.process(records, {}, family=FAMILY, policy=d.load_policy(),
+        state, _ = d.process(records, {}, family=FAMILY, policy=policy(enabled=False),
                              analyzer_factory=factory)
         factory.assert_not_called()
         self.assertEqual(state[FAMILY + ":" + ident(SLUG_A)]["reason"], "model_rights_held")

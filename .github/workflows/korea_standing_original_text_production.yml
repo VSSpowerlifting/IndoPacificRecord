@@ -252,7 +252,14 @@ jobs:
             refs/heads/gh-pages:refs/remotes/origin/gh-pages
           main_before="$(git rev-parse origin/main)"
           pages_before="$(git rev-parse origin/gh-pages)"
-          python -m scripts.verify_korea_standing_noop_parity
+          # A mismatch (for instance while Pages holds Korea pages for Records
+          # the next Daily deploys) is not a converged no-op: take the full
+          # compare-and-swap path, whose Pages job re-applies its own gate.
+          if ! python -m scripts.verify_korea_standing_noop_parity; then
+            echo "Korea standing parity does not hold; running the full source/main/Pages path."
+            echo "verified=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           # Read-only convergence proof must also be stable across refetch.
           git fetch origin \
             refs/heads/main:refs/remotes/origin/main \
@@ -331,6 +338,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
       - name: Publish only exact Korea Desk and registered original text pages
+        id: korea_std_pages
         if: steps.verified_noop.outputs.verified != 'true'
         shell: bash
         run: |
@@ -341,6 +349,22 @@ jobs:
           while read -r route; do
             git show "HEAD:output/$route" | cmp - "output/$route"
           done < "$RUNNER_TEMP/korea-text-routes"
+          # Never publish a Korea page that links a Record not yet on Pages.
+          # Main has already advanced (it carries what the Daily renders); Pages
+          # keeps its last-good Korea pages and the Daily's full-site deploy
+          # publishes the Records and these pages together.
+          rc=0
+          python -m scripts.guard_korea_record_links_live --output output \
+            --pages-repo korea-standing-existing-pages > "$RUNNER_TEMP/korea-record-guard.txt" || rc=$?
+          cat "$RUNNER_TEMP/korea-record-guard.txt"
+          if [ "$rc" -ne 0 ]; then
+            [ "$rc" -eq 3 ] || exit "$rc"
+            echo "::notice::$(head -n 1 "$RUNNER_TEMP/korea-record-guard.txt")"
+            cat "$RUNNER_TEMP/korea-record-guard.txt" >> "$GITHUB_STEP_SUMMARY"
+            echo "held=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "held=false" >> "$GITHUB_OUTPUT"
           mkdir -p korea-standing-existing-pages/korea-originals
           cp output/korea.html korea-standing-existing-pages/korea.html
           cp output/korea-originals/*.html korea-standing-existing-pages/korea-originals/
@@ -407,7 +431,7 @@ jobs:
           git fetch origin gh-pages
           test "$(git rev-parse origin/gh-pages)" = "$(git rev-parse HEAD)"
       - name: Verify exact public HTTPS byte readback of every Korean source page
-        if: steps.verified_noop.outputs.verified != 'true'
+        if: steps.verified_noop.outputs.verified != 'true' && steps.korea_std_pages.outputs.held != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -415,7 +439,7 @@ jobs:
             --main-checkout . --pages-checkout korea-standing-existing-pages \
             --require-https-readback --attempts 8
       - name: Verify exact public HTTPS readback of the Korea official-link index
-        if: steps.verified_noop.outputs.verified != 'true'
+        if: steps.verified_noop.outputs.verified != 'true' && steps.korea_std_pages.outputs.held != 'true'
         shell: bash
         run: |
           set -euo pipefail

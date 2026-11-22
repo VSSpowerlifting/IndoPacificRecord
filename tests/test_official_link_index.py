@@ -68,7 +68,11 @@ def philippines_rows():
 
 
 def korea_synthetic_rows():
-    """30 synthetic MND rows newer than every committed row (21 Nov 2026)."""
+    """61 synthetic MND rows newer than every committed row (21 Nov 2026).
+
+    One more than DESK_LINK_LIMIT on their own, so the desk bound is exercised
+    however many real auto rows remain (released originals with a Record
+    leave the auto-link list)."""
     return [{
         "source_identity": "korea-policy:%d" % (999999999 - i),
         "source_url": korea_live.PREFIX + str(999999999 - i),
@@ -77,7 +81,7 @@ def korea_synthetic_rows():
         "issuer_original_label": "국방부",
         "republisher_label": "Republic of Korea Policy Briefing",
         "neutral_label": "MND official press release %d" % (999999999 - i),
-    } for i in range(30)]
+    } for i in range(link_index.DESK_LINK_LIMIT + 1)]
 
 
 ID_ROWS = indonesia_rows()

@@ -105,7 +105,7 @@ class Verdict(unittest.TestCase):
         self.assertIsNone(verdict(None, self.NOW))
         self.assertEqual(verdict(None, self.NOW, require=True),
                          (st.FETCH_FAILURE, "collection_not_attested"))
-        # No declared cadence (attended pilot, unscheduled family): never required.
+        # No declared cadence (an attended-only family, an unscheduled family): never required.
         self.assertIsNone(verdict(None, self.NOW, cron=None, require=True))
 
     def test_not_attested_reports_only_a_fixed_code(self):
@@ -201,7 +201,11 @@ class DeclaredCadence(unittest.TestCase):
         self.assertEqual(got["ph_nsc_official_statements"], ("10:10", 14))
         self.assertEqual(got["id_kemhan_news"], ("17:17", 14))
         self.assertEqual(got["jp_jcg_press_en"], ("19:13", 14))
-        for family in ("sg_mindef_releases", "us_uscc_press_en", "kr_policy_dapa_releases"):
+        # Singapore MINDEF is recurring (22 Nov approval): private collector 10:37 UTC.
+        self.assertEqual(got["sg_mindef_releases"], ("10:37", 14))
+        # USCC's private collector does not yet write the shared ledger schema, so
+        # it declares no cadence (core/daily_sources.py).
+        for family in ("us_uscc_press_en", "kr_policy_dapa_releases"):
             self.assertIsNone(got[family][0], family)
 
 
@@ -457,8 +461,10 @@ class DeclaredReceiptDirs(unittest.TestCase):
                          ("state/private_attempts",))
         signs = {f for f, s in SOURCES.items() if s.signs_collection()}
         self.assertEqual(signs, {"ph_afp_articles", "ph_nsc_official_statements",
-                                 "id_kemhan_news", "jp_jcg_press_en"})
-        for family in ("sg_mindef_releases", "us_uscc_press_en", "kr_policy_dapa_releases"):
+                                 "id_kemhan_news", "jp_jcg_press_en", "sg_mindef_releases"})
+        # JCG and Singapore write state/ledger/<run>.json and declare no receipt dir.
+        for family in ("sg_mindef_releases", "jp_jcg_press_en", "us_uscc_press_en",
+                       "kr_policy_dapa_releases"):
             self.assertEqual(source_for(family).collection_receipt_dirs, ())
 
 

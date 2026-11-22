@@ -48,10 +48,10 @@
       "max_input_characters": 16000
     },
     "sg_mindef_releases": {
-      "private_model_processing": false,
-      "public_machine_explanation": false,
-      "unattended_release": false,
-      "owner_decision": "2026-11-09 founder: standing authorization, under the founder's written relationship with MINDEF Media Relations, for eligible MINDEF-owned official-release private original custody, bounded external AI processing and independently written public factual explanations. Third-party media, original-text republication and human-controlled editorial publication stay outside it. 2026-11-10 founder (PR #1019 comment 6787036515): bounded one-original pilot of eligible release 6nov26-nr2 only, maximum $0.35 model spend, source identities 15aug26-speech and 16sep26-speech excluded. No recurrence, additional record or historical backfill is authorized. After successful public readback, private_model_processing and unattended_release are to be set false by a reviewed change leaving every other policy field unchanged; public display of only that exact released Record continues. 2026-11-12 founder: one retry of the same one-original pilot (6nov26-nr2 only) on the corrected sentence-packed evidence prompt sg-analysis-v3, same $0.35 cap and exclusions; the three switches return to false after public readback or a hold. 2026-11-12 result: the retry held at daily_explanation_word_limit (estimated spend $0.015); nothing was published and the three switches are false again.",
+      "private_model_processing": true,
+      "public_machine_explanation": true,
+      "unattended_release": true,
+      "owner_decision": "2026-11-09 founder: standing authorization, under the founder's written relationship with MINDEF Media Relations, for eligible MINDEF-owned official-release private original custody, bounded external AI processing and independently written public factual explanations. Third-party media, original-text republication and human-controlled editorial publication stay outside it. 2026-11-10 founder (PR #1019 comment 6787036515): bounded one-original pilot of eligible release 6nov26-nr2 only, maximum $0.35 model spend, source identities 15aug26-speech and 16sep26-speech excluded. No recurrence, additional record or historical backfill is authorized. After successful public readback, private_model_processing and unattended_release are to be set false by a reviewed change leaving every other policy field unchanged; public display of only that exact released Record continues. 2026-11-12 founder: one retry of the same one-original pilot (6nov26-nr2 only) on the corrected sentence-packed evidence prompt sg-analysis-v3, same $0.35 cap and exclusions; the three switches return to false after public readback or a hold. 2026-11-12 result: the retry held at daily_explanation_word_limit (estimated spend $0.015); nothing was published and the three switches are false again. 2026-11-22 founder (chat approval of the four reserved actions): one attended third pilot of the same original 6nov26-nr2 on sg-relevance-v2+sg-analysis-v5, at most one private dispatch, two model calls and $0.35 estimated spend, exclusions unchanged; and recurring unattended processing and release of eligible MINDEF-owned official releases within the same per-run limits (one record, $0.35, 16,000 input characters), effective when a separate reviewed change removes the attended-pilot gate. This supersedes the earlier instructions to set the switches false after readback or a hold, and the earlier no-recurrence limit.",
       "max_estimated_cost_usd_per_run": 0.35,
       "excluded_source_identities": [
         "15aug26-speech",
@@ -71,10 +71,10 @@
       "max_input_characters": 16000
     },
     "us_uscc_press_en": {
-      "private_model_processing": false,
-      "public_machine_explanation": false,
-      "unattended_release": false,
-      "owner_decision": "2026-11-03 founder: exact July 18 and July 25 2026 USCC unquoted institutional narratives accepted as potential input for an independently worded, USCC-attributed machine note of at most 90 words. 2026-11-04 founder: rebuttable standing-family assessment text for unsigned Commission-issued releases passing the six qualifier checks; 2026-11-07 founder: adopt with its qualifier as one review candidate, effective only on merge. External model transmission, provider handling, spending, recurring capture, activation and public release are NOT authorized; every flag stays false until a separate founder decision.",
+      "private_model_processing": true,
+      "public_machine_explanation": true,
+      "unattended_release": true,
+      "owner_decision": "2026-11-03 founder: exact July 18 and July 25 2026 USCC unquoted institutional narratives accepted as potential input for an independently worded, USCC-attributed machine note of at most 90 words. 2026-11-04 founder: rebuttable standing-family assessment text for unsigned Commission-issued releases passing the six qualifier checks; 2026-11-07 founder: adopt with its qualifier as one review candidate, effective only on merge. Until then external model transmission, provider handling, spending, recurring capture, activation and public release were NOT authorized and every flag stayed false. 2026-11-22 founder (chat): approved \"USCC first activation of us_uscc_press_en: policy flags, owner decision, US_USCC_LINKS_ENABLED, key and desk registration\"; this supersedes that activation hold: private model processing, public machine explanation and unattended release within these ceilings (0.35 USD estimated per run, 1 record per run, 16,000 input characters, at most 90 words, 5 attempts per version); US_USCC_LINKS_ENABLED rolls back both public halves. No backfill; PDFs, media and attachments remain excluded.",
       "max_estimated_cost_usd_per_run": 0.35,
       "excluded_source_identities": [],
       "max_records_per_run": 1,

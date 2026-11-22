@@ -36,7 +36,9 @@ _THIRD_PARTY_CREDIT = re.compile(r"(?im)^\s*(?:sumber|source|credit)\s*:")
 # ordinary manual Daily runs, whatever its source-policy flags say. The gate is
 # open only for a deliberately dispatched run that names the one identity; the
 # identity then bounds both the envelope fetch and governed admission.
-ATTENDED_PILOT_ENV = {"sg_mindef_releases": "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}
+# Empty since Singapore MINDEF recurring activation (DECISION_LOG 2026-11-22):
+# no family is attended-only now; the mechanism stays for a future pilot.
+ATTENDED_PILOT_ENV = {}
 _PILOT_IDENTITY = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 
 
@@ -88,6 +90,10 @@ class DailySource:
     release_gate: Optional[str] = None  # adapter: () -> hold reason | None
     known_hold: Optional[str] = None    # adapter: record -> bool
     output_check: Optional[str] = None  # adapter: output -> hold reason | None
+    # Apply output_check in private processing too, before signing, so an output
+    # admission would hold for attribution is a retriable QA hold rather than a
+    # signed item that never publishes. Opt-in per family.
+    output_check_before_signing: bool = False
     # Families whose candidate builder narrows the original to an approved prose
     # scope: (private link fields, shadow row) -> model input body. Unset, the
     # whole preserved original is the input, as before.
@@ -575,10 +581,14 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         quality="processing.daily_intake:english_official_quality",
         known_hold="core.daily_sources:_sg_known_hold",
         output_check="core.daily_sources:_sg_output_check",
+        output_check_before_signing=True,
         parent="core.daily_sources:_sg_parent",
         admission_migration="migrations.versions.m0022_singapore_mindef_source_records:is_already_applied",
-        # A manifest-registered manual source: public Daily admits signed outputs,
-        # never fetches MINDEF originals. Runtime source-use gates stay off.
+        # private singapore_mindef_private_first_collector.yml: cron '37 10 * * *'
+        collection_cron_utc="10:37",
+        # A manifest-registered manual source: public Daily admits signed links
+        # and outputs, never fetches MINDEF originals. Recurring since the
+        # founder's 22 Nov approval (DECISION_LOG 2026-11-22).
         desk_registered=True),
     DailySource(
         # Standing first-party text family (PR #1015, Public Data License 1.0):
@@ -587,9 +597,10 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         family="jp_jcg_press_en", desk_id="japan", custody_ref="archive/japan-jcg",
         language="en", label="JCG", publisher="Japan Coast Guard",
         public_issuer="Japan Coast Guard",
-        # v2 is what the processor now emits; v1 stays admissible for any
-        # output signed before the switch (none was complete at the change).
-        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v2",
+        # v3 is what the processor now emits; v2 and v1 stay admissible for
+        # any output signed before each switch (none was complete at either).
+        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v3",
+                         "jp-jcg-relevance-v1+jp-jcg-analysis-v2",
                          "jp-jcg-relevance-v1+jp-jcg-analysis-v1"),
         identity_max_length=64,
         # private japan_jcg_private_first_collector.yml: cron '13 19 * * *'
@@ -631,9 +642,16 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         admission_migration="migrations.versions.m0024_uscc_press_source_records:is_already_applied",
         # One owner switch for both public halves, off by default.
         public_switch="US_USCC_LINKS_ENABLED",
-        # Not registered: the U.S. desk has no governed Daily admission or
-        # run-result row until a founder activation decision registers it.
-        desk_registered=False),
+        # A manifest-registered manual source (2026-11-22 founder activation):
+        # public Daily admits signed links and outputs, never fetches uscc.gov.
+        desk_registered=True),
+        # No collection_cron_utc yet: the private collector (cron '35 11 * * *',
+        # ipr-source-evidence-private#50) writes ledger entries with result
+        # "success"/"hold" and no target_date, target_date_source or health, which
+        # core/collection/attempts.read_custody cannot read. Declaring the cron
+        # would sign /2 with attested=false and report collection_not_attested on
+        # every Daily. The family signs /1 (no freshness verdict) until that
+        # collector writes the shared ledger schema.
 )}
 
 
