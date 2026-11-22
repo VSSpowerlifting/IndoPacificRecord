@@ -148,8 +148,9 @@ class TestGenericCollectClosesTheGap(unittest.TestCase):
 
     def test_china_adapters_are_unaffected_by_the_new_base_method(self):
         """
-        `LegacyScraperAdapter` -- what every China source resolves to --
-        already defines its own `collect()`. Method resolution order means
+        `LegacyScraperAdapter` -- what every China source except Global
+        Times resolves to -- already defines its own `collect()`, as does the
+        Global Times replay adapter. Method resolution order means
         adding `collect()` to the shared `SourceAdapter` base class is
         invisible to it. This is the guarantee, checked directly, not an
         argument about it.
