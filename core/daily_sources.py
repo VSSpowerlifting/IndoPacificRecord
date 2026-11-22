@@ -88,6 +88,10 @@ class DailySource:
     release_gate: Optional[str] = None  # adapter: () -> hold reason | None
     known_hold: Optional[str] = None    # adapter: record -> bool
     output_check: Optional[str] = None  # adapter: output -> hold reason | None
+    # Apply output_check in private processing too, before signing, so an output
+    # admission would hold for attribution is a retriable QA hold rather than a
+    # signed item that never publishes. Opt-in per family.
+    output_check_before_signing: bool = False
     # Families whose candidate builder narrows the original to an approved prose
     # scope: (private link fields, shadow row) -> model input body. Unset, the
     # whole preserved original is the input, as before.
@@ -575,6 +579,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         quality="processing.daily_intake:english_official_quality",
         known_hold="core.daily_sources:_sg_known_hold",
         output_check="core.daily_sources:_sg_output_check",
+        output_check_before_signing=True,
         parent="core.daily_sources:_sg_parent",
         admission_migration="migrations.versions.m0022_singapore_mindef_source_records:is_already_applied",
         # A manifest-registered manual source: public Daily admits signed outputs,

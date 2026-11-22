@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch
 
 from core import mindef_public_boundary as boundary
 from core import singapore_mindef_links as links
-from core.daily_sources import SOURCES, _sg_known_hold, _sg_output_check
+from core.daily_sources import SOURCES, _sg_known_hold, _sg_output_check, attended_only
 from migrations.versions import m0021_dapa_daily_machine_parent as m21
 from migrations.versions import m0022_singapore_mindef_source_records as m22
 from processing import daily_intake as d
@@ -115,11 +115,12 @@ class SingaporeDefinition(unittest.TestCase):
                                              "sg-relevance-v2+sg-analysis-v4",
                                              "sg-relevance-v2+sg-analysis-v5"))
         p = d.load_policy()["sources"][FAMILY]
-        # Founder-authorized retry (12 November) of the one-original pilot: the
-        # three switches are on together for that attended run only and return
-        # to false after public readback or a hold.
+        # Founder approval of 22 November: the third attended pilot and recurring
+        # release. The switches stay on; until a separate reviewed change removes
+        # the attended-pilot gate, no scheduled run handles the family.
         self.assertEqual((p["private_model_processing"], p["public_machine_explanation"],
-                          p["unattended_release"]), (False, False, False))
+                          p["unattended_release"]), (True, True, True))
+        self.assertTrue(attended_only(FAMILY))
         self.assertEqual(sorted(p["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
 
     def test_held_identities_have_one_value_everywhere(self):
@@ -742,6 +743,47 @@ class SingaporeAdmission(unittest.TestCase):
         entry = state[FAMILY + ":" + IDENT]
         self.assertNotEqual(entry["status"], "complete")
 
+    def test_only_singapore_applies_its_output_check_before_signing(self):
+        # Opt-in per family: no other family's private attempt behaviour changes.
+        from core.daily_sources import SOURCES
+        self.assertEqual({f for f, s in SOURCES.items() if s.output_check_before_signing},
+                         {FAMILY})
+
+    def test_publisher_name_only_attribution_is_held_before_signing(self):
+        """Private QA accepts the publisher's full name, public admission
+        requires the MINDEF label in the summary. An output that satisfies only
+        the first is a QA hold here, retriable, and is never signed complete."""
+        bound = d.bind_admitted_metadata(self.records, self.connect(), source_repo=self.repo)
+        # A release that itself prints the ministry's name, so every proper
+        # name in the explanation is supported by its evidence passage.
+        first = "The Ministry of Defence held a routine bilateral meeting on Tuesday."
+        second = "The Ministry of Defence described a planned working-level discussion."
+        bound = [dict(bound[0], body=first + "\n\n" + second)]
+        one = "The Ministry of Defence, Singapore says it held a routine bilateral meeting."
+        two = "The Ministry of Defence, Singapore describes a planned working-level discussion."
+        named = reading(summary_english=one + " " + two,
+                        facts=[dict(sentence=one, evidence=first),
+                               dict(sentence=two, evidence=second)])
+        self.assertIsInstance(d.quality_check(bound[0], named), str)  # private QA alone passes
+        state, _ = d.process(bound, {}, family=FAMILY, policy=self.p,
+                             analyzer_factory=lambda: analyzer(named))
+        entry = state[FAMILY + ":" + IDENT]
+        self.assertEqual((entry["status"], entry["attempts"], entry["quality_hold"]),
+                         ("retriable", 1, "daily_singapore_flag_or_attribution_held"))
+        self.assertNotIn("output", entry)
+        envelope = d.sign_outputs(state, family=FAMILY, policy=self.p, key=self.key)
+        self.assertEqual(d.admit(self.connect(), envelope, family=FAMILY, policy=self.p,
+                                 key=self.key)["admitted"], 0)
+        # The same release explained with the MINDEF label still completes.
+        one, two = ("MINDEF says it held a routine bilateral meeting.",
+                    "MINDEF describes a planned working-level discussion.")
+        labelled = reading(summary_english=one + " " + two,
+                           facts=[dict(sentence=one, evidence=first),
+                                  dict(sentence=two, evidence=second)])
+        state, _ = d.process(bound, {}, family=FAMILY, policy=self.p,
+                             analyzer_factory=lambda: analyzer(labelled))
+        self.assertEqual(state[FAMILY + ":" + IDENT]["status"], "complete")
+
     def test_unattributed_or_flagged_output_is_held(self):
         bound = d.bind_admitted_metadata(self.records, self.connect(), source_repo=self.repo)
         unattributed = "It held a routine bilateral meeting between two defence officials."
@@ -776,7 +818,7 @@ class SingaporeAdmission(unittest.TestCase):
         self.assertEqual((sg["max_records_per_run"], sg["max_estimated_cost_usd_per_run"]), (1, 0.35))
         self.assertEqual(sorted(sg["excluded_source_identities"]), sorted(links.HELD_IDENTITIES))
         self.assertEqual((sg["private_model_processing"], sg["public_machine_explanation"],
-                          sg["unattended_release"]), (False, False, False))
+                          sg["unattended_release"]), (True, True, True))
         over = json.loads(json.dumps(committed))
         over["sources"][FAMILY]["max_estimated_cost_usd_per_run"] = 0.36
         tmp = Path(tempfile.mkdtemp()); self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))

@@ -258,9 +258,27 @@ class DeclaredStubsAreStillExempt(unittest.TestCase):
             "manual_mil", 3, "2026-09-05", TODAY, 7, broken)[0])
 
     def test_the_pause_list_is_read_from_the_daily_policy(self):
+        from core.daily_sources import attended_only
         from processing.daily_intake import load_policy
-        off = {f for f, p in load_policy()["sources"].items() if not p["unattended_release"]}
+        off = {f for f, p in load_policy()["sources"].items()
+               if not p["unattended_release"] or attended_only(f)}
         self.assertEqual(off, set(liveness.paused_by_policy()))
+
+    def test_the_attended_pilot_gate_pauses_a_family_with_its_switches_on(self):
+        """Switches on, gate still closed: no scheduled run may handle the
+        family, so its silence is a pause, not a failure. A family with its
+        switches on and no gate is judged by the ordinary threshold."""
+        from unittest.mock import patch
+        from processing import daily_intake
+        policy = {"sources": {
+            "gated_family": {"unattended_release": True},
+            "open_family": {"unattended_release": True},
+            "off_family": {"unattended_release": False}}}
+        with patch.object(daily_intake, "load_policy", return_value=policy), \
+                patch("core.daily_sources.ATTENDED_PILOT_ENV", {"gated_family": "X"}):
+            paused = liveness.paused_by_policy()
+        self.assertEqual(set(paused), {"gated_family", "off_family"})
+        self.assertEqual(paused["gated_family"], "attended-pilot gate: no scheduled runs")
 
     def test_an_undeclared_slug_is_not_exempt(self):
         """A source configuration has forgotten is still expected to produce."""
