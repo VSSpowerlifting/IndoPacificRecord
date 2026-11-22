@@ -743,6 +743,12 @@ class SingaporeAdmission(unittest.TestCase):
         entry = state[FAMILY + ":" + IDENT]
         self.assertNotEqual(entry["status"], "complete")
 
+    def test_only_singapore_applies_its_output_check_before_signing(self):
+        # Opt-in per family: no other family's private attempt behaviour changes.
+        from core.daily_sources import SOURCES
+        self.assertEqual({f for f, s in SOURCES.items() if s.output_check_before_signing},
+                         {FAMILY})
+
     def test_publisher_name_only_attribution_is_held_before_signing(self):
         """Private QA accepts the publisher's full name, public admission
         requires the MINDEF label in the summary. An output that satisfies only

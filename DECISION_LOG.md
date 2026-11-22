@@ -20,25 +20,26 @@ the earlier no-recurrence limit.
 - The three Singapore policy switches are true.
 - `owner_decision` records the approval.
 - Caps, exclusions, factual QA, retry history and the attempt ledger are
-  unchanged. The ledger stands at two attempts, retriable at
-  `daily_explanation_word_limit`.
+  unchanged. The committed private ledger stands at two attempts, retriable at
+  `daily_explanation_word_limit`. The second attempt was recovered from run
+  43276741401 in private commit `1543be4`.
 - The attended-pilot gate in `core/daily_sources.py` still limits scheduled
   runs to the named original. Lifting it is B's separate reviewed change.
   "Revert" after A's run means the private run variable, not these policy
   switches.
 
 **Two engineering fixes ship with A.**
-- **Private attribution check before signing.** `processing/daily_intake.py`
-  now applies the family's public attribution check (`output_check`, the same
-  one admission's `validate_output` applies) before signing an output
-  "complete". An output that public admission would hold for attribution
+- **Private attribution check before signing (Singapore only).**
+  `processing/daily_intake.py` now applies the family's public attribution
+  check (`output_check`, the same one admission's `validate_output` applies)
+  before signing an output "complete", for a family that sets
+  `output_check_before_signing`. Only `sg_mindef_releases` sets it. An output that public admission would hold for attribution
   becomes a retriable private QA hold and counts an attempt. Before this, it
   would use the item's completion and never publish. A model flag stays a
   public editorial disposition, as before.
   - No check is loosened. The public Singapore check still requires
     `MINDEF` and an unflagged output.
-  - This affects the families that have an output check: Kemhan, DAPA,
-    Singapore, JCG and USCC.
+  - No other family's private attempt behaviour changes.
 - **Liveness.** `scripts/check_source_liveness.py` now reports a family as
   paused while the attended-pilot gate holds it, as well as when its policy
   has recurring release off. With the switches on and the gate still in

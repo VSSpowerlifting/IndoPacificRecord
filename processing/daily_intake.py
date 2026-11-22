@@ -466,16 +466,17 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 "model_id": reading["model_id"], "prompt_version": reading["prompt_version"],
                 "quality_sha256": quality, "policy_sha256": policy_binding(p),
             }
-            # The family's public attribution check, applied before signing.
-            # Public admission runs the same check (validate_output). An output
-            # it would hold for attribution is a QA failure, so it must not be
-            # signed "complete" here, where it would use the item's completion
-            # and then never publish. A model flag stays a public editorial
-            # disposition: it completes here and admission holds it, as before.
-            attribution_hold = source.output_hold(dict(output, model_flagged=False,
-                                                       flag_reason=None))
-            if attribution_hold:
-                raise IntakeHold(attribution_hold)
+            # For a family that opts in, its public attribution check is applied
+            # before signing. Public admission runs the same check
+            # (validate_output). An output it would hold for attribution is then
+            # a QA failure, not signed "complete" here, where it would use the
+            # item's completion and never publish. A model flag stays a public
+            # editorial disposition: it completes here and admission holds it.
+            if source.output_check_before_signing:
+                attribution_hold = source.output_hold(dict(output, model_flagged=False,
+                                                           flag_reason=None))
+                if attribution_hold:
+                    raise IntakeHold(attribution_hold)
             entry.update(status="complete", output=output)
         except FatalAPIError:
             entry.update(status="pending", reason="account_blocked")
