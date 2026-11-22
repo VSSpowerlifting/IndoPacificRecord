@@ -1,6 +1,7 @@
 """Exact branch and HTTPS readback contracts using fictional source text only."""
 import hashlib
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -252,10 +253,14 @@ class KoreaRecordReadbackTests(KoreaOriginalReadbackTests):
         self.assertEqual(out["korea_record_pages_verified"], 1)
         self.assertFalse(out["public_https_verified"])
 
-    def test_exhibit_backlink_and_canonical_name_the_record(self):
+    def test_exhibit_backlink_names_the_record_and_canonical_stays_its_own(self):
         html = self.page.decode("utf-8")
         self.assertIn('class="korea-record-backlink" href="../record/6621.html"', html)
-        self.assertIn('<link rel="canonical" href="https://indopacificrecord.org/record/6621.html">', html)
+        # The backlink is navigation only; the exhibit stays its own
+        # canonical, sitemap-listed page.
+        route = re.search(r'data-route="(korea-originals/[0-9]{9}[.]html)"', html).group(1)
+        self.assertIn('<link rel="canonical" href="https://indopacificrecord.org/%s">' % route, html)
+        self.assertNotIn('<link rel="canonical" href="https://indopacificrecord.org/record/', html)
         self.assertEqual(html.count("korea-record-backlink"), 1)
 
     def test_held_record_must_state_the_exact_original_sha(self):

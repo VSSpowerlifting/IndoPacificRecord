@@ -81,8 +81,8 @@ from core.title_translation import english_title, receipts, processing_note  # n
 from core.china_discovery import build_focus                        # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
 from core.korea_corpus_bridge import (  # noqa: E402,F401
-    ENGLISH_STATUS_LABELS, publication_gate, publication_gate_detail,
-    hidden_predicate)
+    ENGLISH_STATUS_DEFINITIONS, ENGLISH_STATUS_LABELS, ENGLISH_WITHHELD_NOTE,
+    publication_gate, publication_gate_detail, hidden_predicate)
 from core.mindef_permissions import mindef_metadata_label, source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
 
@@ -696,6 +696,7 @@ def load_corpus(db_path: Path) -> dict:
         if rec["id"] in korea_english_held:
             # The stored-state label stays as is (the Records list and the
             # browser index share it); the Record states English separately.
+            rec["korea_english_state"] = korea_english_held[rec["id"]]
             rec["korea_english_status"] = ENGLISH_STATUS_LABELS[
                 korea_english_held[rec["id"]]]
             rec["korea_original_sha256"] = korea_original_digests[
@@ -2386,6 +2387,8 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
         "note": ("Historical processing status only. MINDEF titles, source text, translations, "
                  "summaries and reasoning are not published on this site at present."
                  if withheld_mindef_title else
+                 "%s. %s" % (record["korea_english_status"], ENGLISH_WITHHELD_NOTE)
+                 if record.get("korea_english_state") else
                  processing_note(record, CITATION_PROCESSING_NOTES)),
     }
 
@@ -3666,12 +3669,6 @@ def build(out_dir: Path, title: str, db_path: Path,
                 record_route=korea_record_routes.get(record["source_identity"])),
                 encoding="utf-8")
             written.append(record["route"])
-    # An exhibit that belongs to a Record names that Record as its canonical
-    # reader page (render_original_page applies the same rule for readback).
-    korea_original_canonical = {
-        r["route"]: korea_record_routes[r["source_identity"]]
-        for r in korea_published_original_rows
-        if r["source_identity"] in korea_record_routes}
 
     # English pages are written only for explicitly registered, already
     # source-pinned originals with an editor-approved review pack. An empty
@@ -3746,7 +3743,10 @@ def build(out_dir: Path, title: str, db_path: Path,
     for rec in data["corpus"]:
         (out_dir / "record" / ("%d.html" % rec["id"])).write_text(
             record_tmpl.render(page="archive.html", record=rec,
-                               state_definition=definitions[rec["state"]],
+                               state_definition=(
+                                   ENGLISH_STATUS_DEFINITIONS[rec["korea_english_state"]]
+                                   if rec.get("korea_english_state")
+                                   else definitions[rec["state"]]),
                                record_desk=desk_by_source.get(rec["source_slug"]),
                                cite=record_citation(rec, title, snapshot),
                                **ctx),
@@ -4083,8 +4083,7 @@ def build(out_dir: Path, title: str, db_path: Path,
             page = path.read_text(encoding="utf-8")
             if NOINDEX_TAG not in page:
                 continue
-            loc = origin + "/" + canonical_route(
-                korea_original_canonical.get(rel, rel))
+            loc = origin + "/" + canonical_route(rel)
             # The canonical and og:url are the same fact stated twice, so they
             # are derived from one value here rather than composed separately
             # in a template that does not know the origin. A social card that
@@ -4136,8 +4135,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         locs, seen = [], set()
         for path in sorted(out_dir.rglob("*.html")):
             rel = path.relative_to(out_dir).as_posix()
-            if (rel.startswith("article/") or rel in cited_moved
-                    or rel in korea_original_canonical):
+            if rel.startswith("article/") or rel in cited_moved:
                 continue
             loc = "%s/%s" % (origin, canonical_route(rel))
             if loc not in seen:

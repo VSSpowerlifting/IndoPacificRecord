@@ -5706,8 +5706,11 @@ class TestSnapshotScopedCitations(PreviewCase):
 
     def first_in_state(self, state):
         # MINDEF pages are metadata-only and are asserted separately below.
+        # A Korea record whose English is withheld carries its own English
+        # status note instead (tests/test_korea_render_gate.py).
         for rec in self.corpus:
-            if rec["state"] == state and rec["source_slug"] != MINDEF_SOURCE_SLUG:
+            if (rec["state"] == state and rec["source_slug"] != MINDEF_SOURCE_SLUG
+                    and not rec.get("korea_english_state")):
                 return rec["id"]
         raise AssertionError("no record in state %s" % state)
 

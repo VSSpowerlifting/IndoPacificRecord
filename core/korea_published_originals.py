@@ -167,8 +167,8 @@ def render_original_page(record, *, site_origin=PUBLIC_ORIGIN,
     # Byte-for-byte equivalent to the single origin switch in
     # site/preview/generate_preview.py. The readback verifier can thus re-render
     # the exact production HTML without a mutable build or production DB.
-    # An exhibit that belongs to a Record names the Record as canonical.
-    canonical = site_origin + "/" + (record_route or record["route"])
+    # The exhibit keeps its own canonical URL; a Record backlink is navigation only.
+    canonical = site_origin + "/" + record["route"]
     card = site_origin + "/social-card.png"
     metadata = "\n".join([
         '<link rel="canonical" href="%s">' % html.escape(canonical, quote=True),

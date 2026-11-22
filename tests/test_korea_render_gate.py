@@ -356,6 +356,22 @@ class TestRenderedKoreaRecords(unittest.TestCase):
             self.assertNotIn("Synthetic English title %d" % self.ids[self.held],
                              self.page(self.after, rel), rel)
 
+    def test_unfinished_records_make_no_screening_claim(self):
+        """The ledger says nothing about whether the model ever saw the
+        release, so the Record and its citation claim neither way."""
+        from core.korea_corpus_bridge import ENGLISH_STATUS_DEFINITIONS
+        import html as html_lib
+        for ident, state, label in ((self.held, "qa_held", "English held for QA"),
+                                    (self.pending, "pending", "English pending")):
+            page = html_lib.unescape(
+                self.page(self.after, "record/%d.html" % self.ids[ident]))
+            for claim in ("not yet screened", "has not been machine-screened",
+                          "No machine screening judgment has been made",
+                          "Machine-screened as relevant"):
+                self.assertNotIn(claim, page, (state, claim))
+            self.assertIn(ENGLISH_STATUS_DEFINITIONS[state], page, state)
+            self.assertIn(label + ". The official Korean release is preserved;", page, state)
+
     def test_pending_record_is_labelled_pending(self):
         html = self.page(self.after, "record/%d.html" % self.ids[self.pending])
         self.assertIn('data-korea-english-status="English pending"', html)

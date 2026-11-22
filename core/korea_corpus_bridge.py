@@ -457,6 +457,25 @@ ENGLISH_STATUS_LABELS = {
     "paused": "English paused",
 }
 
+# The page knows only the ledger state, not whether the model ever screened the
+# release (pre-dispatch holds never reach it; post-model QA holds did), so
+# neither text makes a screening claim in either direction.
+ENGLISH_WITHHELD_NOTE = ("The official Korean release is preserved; no English "
+                         "for it has passed IPR checks, so none is published.")
+_NOTHING_PUBLISHED = (" No machine screening result, translation, summary or "
+                      "analysis is published for this record.")
+ENGLISH_STATUS_DEFINITIONS = {
+    "pending": "English processing of this release has not yet produced a result."
+               + _NOTHING_PUBLISHED,
+    "retryable": "English processing of this release did not complete and will "
+                 "be retried." + _NOTHING_PUBLISHED,
+    "qa_held": "IPR's translation checks are holding the English for this "
+               "release, so it is not published." + _NOTHING_PUBLISHED,
+    "paused": "English processing of this release did not complete and is "
+              "paused." + _NOTHING_PUBLISHED,
+}
+assert set(ENGLISH_STATUS_DEFINITIONS) == set(ENGLISH_STATUS_LABELS)
+
 
 def released_original_digests() -> Dict[str, str]:
     """``{source_identity: original_text_sha256}`` of the released originals.

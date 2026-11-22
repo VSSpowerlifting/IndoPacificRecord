@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 from scripts.reconcile_db import read_only
 from core.mindef_permissions import MINDEF_SOURCE_SLUG, mindef_metadata_label
+from core.korea_corpus_bridge import ENGLISH_WITHHELD_NOTE
 from core.retired_article_urls import url_sha256, verify_no_active_retired_urls
 from core.title_translation import english_title, receipts, processing_note
 
@@ -163,8 +164,7 @@ def archive_projection(index, con, cite_record, processing_notes, excluded,
             record_type='archive_record', processing=(
                 'Historical processing status: ' + state['label'] + '. MINDEF titles, text, translations and machine '
                 'explanations are not published on this site at present.' if mindef else
-                english_withheld[ident] + ' · The official Korean release is preserved; '
-                'no English for it has passed IPR checks, so none is published.'
+                english_withheld[ident] + ' · ' + ENGLISH_WITHHELD_NOTE
                 if ident in english_withheld else
                 state['label'] + ' · ' + processing_note(title_record, processing_notes)),
             ipr_url=ipr, citation=citation + ' ' + ipr)
