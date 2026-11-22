@@ -158,9 +158,19 @@ class TestGenericCollectClosesTheGap(unittest.TestCase):
         registry = SourceRegistry()
         china_slugs = registry.slugs_for_desk("china")
         self.assertTrue(china_slugs, "expected at least one china source")
+        # DECISION_LOG 2026-11-22 (action D): Global Times replays signed
+        # private captures through its own whole-source `collect()`; it too
+        # never falls through to the shared base method.
+        from adapters.global_times_handoff import GlobalTimesHandoffAdapter
+        self.assertIsNot(GlobalTimesHandoffAdapter.collect, SourceAdapter.collect)
         for slug in china_slugs:
             adapter = registry.get_adapter(slug)
             with self.subTest(slug=slug):
+                if slug == "global_times_mil":
+                    self.assertIsInstance(adapter, GlobalTimesHandoffAdapter)
+                    self.assertIs(type(adapter).collect,
+                                  GlobalTimesHandoffAdapter.collect)
+                    continue
                 self.assertIsInstance(adapter, LegacyScraperAdapter)
                 self.assertIs(type(adapter).collect,
                               LegacyScraperAdapter.collect)

@@ -25,10 +25,8 @@ Article structure (verified May 2026):
 """
 
 import hashlib
-import os
 import re
 from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -48,11 +46,6 @@ _ARTICLE_URL_RE = re.compile(
 
 #: Source-family identifiers for the custody row.
 FAMILY = "global_times_mil"
-
-#: Optional private raw-byte store. When set, the exact wire bytes of every
-#: custodied article are written here (never to a git-tracked path). No
-#: workflow sets it yet; see the PR body for the remaining private wiring.
-RAW_CAPTURE_DIR_ENV = "IPR_GT_RAW_CAPTURE_DIR"
 
 #: Bylines naming an agency or institution other than Global Times. Their
 #: text is not Global Times' own reporting; public text is held.
@@ -203,14 +196,11 @@ class GlobalTimesMilScraper(BaseScraper):
             article["text_held"] = text_held
         wire = self._captured.get(url, (None, None))[0]
         if wire is not None:
-            sha = hashlib.sha256(wire).hexdigest()
-            # A deliberate body hold (e.g. third-party byline) is never
-            # written to the raw store: retaining such pages is a rights
-            # decision outside this change.
-            retained = False if text_held else self._store_raw(sha, wire)
+            # Custody facts for the private collector
+            # (core.collection.global_times_handoff), which alone decides
+            # whether bytes are retained: never for a held body.
             article["custody"] = {
-                "capture_sha256": sha,
-                "raw_retained": retained,
+                "capture_sha256": hashlib.sha256(wire).hexdigest(),
                 "byline": byline,
                 "pub_time": _pub_time_text(soup),
                 "fetched_at": datetime.now(timezone.utc).strftime(
@@ -219,25 +209,6 @@ class GlobalTimesMilScraper(BaseScraper):
                 "content_type": self._captured_type.get(url),
             }
         return article
-
-    @staticmethod
-    def _store_raw(sha: str, wire: bytes) -> bool:
-        """
-        Write the exact wire bytes to the configured store; True once they are
-        there with this digest.
-
-        The directory must be durable custody. No workflow sets it yet, so a
-        production capture row records ``raw_retained: false``: the digest is
-        evidence of what was read, not a recoverable copy.
-        """
-        root = os.environ.get(RAW_CAPTURE_DIR_ENV)
-        if not root:
-            return False
-        path = Path(root) / FAMILY / (sha + ".html")
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if not path.exists():
-            path.write_bytes(wire)
-        return hashlib.sha256(path.read_bytes()).hexdigest() == sha
 
     @staticmethod
     def _extract_byline(soup: BeautifulSoup) -> Optional[str]:

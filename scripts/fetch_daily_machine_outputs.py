@@ -126,6 +126,15 @@ def main():
     if os.environ.get("US_USCC_LINKS_ENABLED") == "true":
         results[uscc_press_links.LINKS_NAME] = _fetch(
             uscc_press_links.LINKS_NAME, uscc, uscc_press_links.LINKS_REF)
+    # Global Times signed captures (DECISION_LOG 2026-11-22, action D): the
+    # private collector's envelope, replayed by the public adapter. Its own
+    # owner switch and private state branch; absence fails the source closed.
+    from core.collection import global_times_handoff
+    gt = target / global_times_handoff.ENVELOPE_NAME
+    gt.unlink(missing_ok=True)
+    if os.environ.get("CN_GLOBAL_TIMES_HANDOFF_ENABLED") == "true":
+        results[global_times_handoff.ENVELOPE_NAME] = _fetch(
+            global_times_handoff.ENVELOPE_NAME, gt, global_times_handoff.ENVELOPE_REF)
     return _report(results)
 
 

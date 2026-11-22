@@ -1,29 +1,25 @@
-"""Custody rows for Global Times military article captures.
+"""Identity and custody-metadata helpers for Global Times military captures.
 
-Each distinct capture of an article page becomes one row in the shared
-`official_document_versions` store (migration 0026): `capture_sha256` is the
-SHA-256 of the exact wire bytes, and the metadata binds that capture to the
-stored article's `content_hash`, URL, byline and printed publication time.
-`raw_retained` says whether those bytes were kept; until a durable store is
-wired it is false, and a row is evidence of a read, not recoverable custody.
-Re-recording identical bytes writes nothing.
+Custody itself lives in the private evidence repository (DECISION_LOG
+2026-11-22, action D): ``core.collection.global_times_handoff`` appends one
+``capture_versions`` row per distinct capture there, keyed by the identity
+below and the SHA-256 of the exact wire bytes. Nothing here writes to the
+public database.
 
 Provenance requires a complete GitHub Actions run (numeric `GITHUB_RUN_ID` and
 `GITHUB_RUN_ATTEMPT`). `collector_commit` is `git rev-parse HEAD` of the
-checkout that is executing, not `GITHUB_SHA`: the daily workflow checks out
-`main` at job start, so the event SHA can differ from the code that ran. If
-HEAD cannot be read, or there is no Actions run, no row is written and nothing
-is invented. `content_type` records the HTTP Content-Type header, which drives
-text decoding but is not part of the wire bytes. No source text is stored here.
+checkout that is executing, not `GITHUB_SHA`: a workflow may check out a
+different revision than the event SHA. If HEAD cannot be read, or there is no
+Actions run, no provenance is invented. `content_type` records the HTTP
+Content-Type header, which drives text decoding but is not part of the wire
+bytes. No source text is stored here.
 """
 from __future__ import annotations
 
 import hashlib
 import json
-import logging
 import os
 import re
-import sqlite3
 import subprocess
 from pathlib import Path
 from typing import Callable, Mapping, Optional, Tuple
@@ -34,16 +30,13 @@ METADATA_FIELDS = ("url", "content_hash", "byline", "pub_time", "fetched_at",
                    "text_held", "raw_retained", "content_type")
 
 _ID_RE = re.compile(r"^https?://www\.globaltimes\.cn/page/\d{6}/(\d+)\.shtml$")
-_HEX64 = re.compile(r"^[a-f0-9]{64}$")
 _HEX40 = re.compile(r"^[a-f0-9]{40}$")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-logger = logging.getLogger(__name__)
-
 
 class CustodyError(RuntimeError):
-    """The capture could not be recorded; the article must not be stored."""
+    """A capture's identity or custody facts are not well formed."""
 
 
 def source_identity(url: str) -> str:
@@ -102,46 +95,3 @@ def digest(value: dict) -> str:
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True)
                           .encode("utf-8")).hexdigest()
 
-
-def record_capture(conn: sqlite3.Connection, article: dict,
-                   env: Optional[Mapping[str, str]] = None,
-                   head: Optional[Callable[[], Optional[str]]] = None) -> str:
-    """
-    Write this article's capture row inside the caller's transaction.
-
-    Returns "written", "unchanged" (these bytes are already recorded for this
-    identity) or "no_provenance" (no Actions run or unreadable HEAD; nothing written).
-    Raises CustodyError on malformed custody or a failed write.
-    """
-    custody = article.get("custody") or {}
-    capture = custody.get("capture_sha256") or ""
-    if not _HEX64.match(capture):
-        raise CustodyError("capture_sha256 missing or malformed")
-    if not _HEX64.match(article.get("content_hash") or ""):
-        raise CustodyError("content_hash missing or malformed")
-    if not custody.get("fetched_at"):
-        raise CustodyError("fetched_at missing")
-    ident = source_identity(article["url"])
-    prov = provenance(env, head)
-    if prov is None:
-        logger.warning("%s: no GitHub run provenance; capture %s not recorded",
-                       ident, capture[:12])
-        return "no_provenance"
-    source_run, commit = prov
-    try:
-        if conn.execute(
-                "SELECT 1 FROM official_document_versions WHERE source_family=? "
-                "AND source_identity=? AND capture_sha256=?",
-                (FAMILY, ident, capture)).fetchone():
-            return "unchanged"
-        meta = metadata(article)
-        conn.execute(
-            "INSERT INTO official_document_versions (source_family, source_identity, "
-            "metadata_sha256, metadata_json, capture_sha256, first_observed_utc, "
-            "source_run, collector_commit) VALUES (?,?,?,?,?,?,?,?)",
-            (FAMILY, ident, digest(meta),
-             json.dumps(meta, ensure_ascii=False, sort_keys=True), capture,
-             meta["fetched_at"], source_run, commit))
-    except sqlite3.Error as exc:
-        raise CustodyError("capture row not written: %s" % exc) from exc
-    return "written"

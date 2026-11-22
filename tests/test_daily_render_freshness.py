@@ -601,7 +601,7 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         self.assertEqual(sorted(env_keys),
                          ["ANALYSIS_MODEL", "ANTHROPIC_API_KEY", "CATEGORIZATION_MODEL",
                           "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ANALYSIS_WORKERS",
-                          "DAILY_ID_KEMHAN_NEWS_KEY",
+                          "DAILY_GLOBAL_TIMES_MIL_KEY", "DAILY_ID_KEMHAN_NEWS_KEY",
                           "DAILY_JP_JCG_PRESS_EN_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
                           "DAILY_SG_MINDEF_RELEASES_KEY", "DAILY_US_USCC_PRESS_EN_KEY",
