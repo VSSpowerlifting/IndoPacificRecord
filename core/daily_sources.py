@@ -587,9 +587,10 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         family="jp_jcg_press_en", desk_id="japan", custody_ref="archive/japan-jcg",
         language="en", label="JCG", publisher="Japan Coast Guard",
         public_issuer="Japan Coast Guard",
-        # v2 is what the processor now emits; v1 stays admissible for any
-        # output signed before the switch (none was complete at the change).
-        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v2",
+        # v3 is what the processor now emits; v2 and v1 stay admissible for
+        # any output signed before each switch (none was complete at either).
+        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v3",
+                         "jp-jcg-relevance-v1+jp-jcg-analysis-v2",
                          "jp-jcg-relevance-v1+jp-jcg-analysis-v1"),
         identity_max_length=64,
         # private japan_jcg_private_first_collector.yml: cron '13 19 * * *'
