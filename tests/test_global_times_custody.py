@@ -57,6 +57,34 @@ class Identity(unittest.TestCase):
                          "non_gt_byline")
         self.assertIsNone(metadata(article())["text_held"])
 
+    def test_no_retention_is_never_a_recoverability_claim(self):
+        self.assertIs(metadata(article())["raw_retained"], False)
+        self.assertIs(metadata(article(raw_retained="yes"))["raw_retained"], False)
+        self.assertIs(metadata(article(raw_retained=True))["raw_retained"], True)
+
+
+class RawStore(unittest.TestCase):
+    def test_unset_store_retains_nothing(self):
+        from scraper.sources.global_times_mil import (RAW_CAPTURE_DIR_ENV,
+                                                      GlobalTimesMilScraper)
+        sha = hashlib.sha256(WIRE).hexdigest()
+        with patch.dict("os.environ", {}, clear=False):
+            import os
+            os.environ.pop(RAW_CAPTURE_DIR_ENV, None)
+            self.assertFalse(GlobalTimesMilScraper._store_raw(sha, WIRE))
+
+    def test_configured_store_keeps_exact_bytes(self):
+        from scraper.sources.global_times_mil import (RAW_CAPTURE_DIR_ENV,
+                                                      GlobalTimesMilScraper)
+        sha = hashlib.sha256(WIRE).hexdigest()
+        with tempfile.TemporaryDirectory() as root, \
+                patch.dict("os.environ", {RAW_CAPTURE_DIR_ENV: root}):
+            self.assertTrue(GlobalTimesMilScraper._store_raw(sha, WIRE))
+            self.assertEqual((Path(root) / FAMILY / (sha + ".html")).read_bytes(),
+                             WIRE)
+            # A wrong digest is never reported as retained.
+            self.assertFalse(GlobalTimesMilScraper._store_raw("0" * 64, WIRE))
+
 
 class Recording(unittest.TestCase):
     def setUp(self):

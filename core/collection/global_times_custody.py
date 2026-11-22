@@ -4,6 +4,8 @@ Each distinct capture of an article page becomes one row in the shared
 `official_document_versions` store (migration 0026): `capture_sha256` is the
 SHA-256 of the exact wire bytes, and the metadata binds that capture to the
 stored article's `content_hash`, URL, byline and printed publication time.
+`raw_retained` says whether those bytes were kept; until a durable store is
+wired it is false, and a row is evidence of a read, not recoverable custody.
 Re-recording identical bytes writes nothing.
 
 Provenance is taken only from the GitHub Actions run (`GITHUB_RUN_ID`,
@@ -23,7 +25,7 @@ from typing import Mapping, Optional, Tuple
 FAMILY = "global_times_mil"
 SOURCE_SLUG = "global_times_mil"
 METADATA_FIELDS = ("url", "content_hash", "byline", "pub_time", "fetched_at",
-                   "text_held")
+                   "text_held", "raw_retained")
 
 _ID_RE = re.compile(r"^https?://www\.globaltimes\.cn/page/\d{6}/(\d+)\.shtml$")
 _HEX64 = re.compile(r"^[a-f0-9]{64}$")
@@ -64,6 +66,10 @@ def metadata(article: dict) -> dict:
         # Why the stored body is blank, when it was withheld on purpose
         # (e.g. "non_gt_byline"); None when the body was kept.
         "text_held": custody.get("text_held"),
+        # True only when the exact wire bytes were written to the configured
+        # store. False means this row proves what was read, not that the bytes
+        # can be recovered.
+        "raw_retained": custody.get("raw_retained") is True,
     }
 
 
