@@ -157,18 +157,27 @@ UNDECLARED = Expectation()
 
 
 def paused_by_policy() -> Dict[str, str]:
-    """Governed families whose recurring release the Daily policy has off.
+    """Governed families that no scheduled run may release: the Daily policy has
+    recurring release off, or the attended-pilot gate still holds the family.
 
-    Read from the policy file, never listed here. An unreadable policy pauses
+    Read from the policy file and the gate, never listed here. An unreadable policy pauses
     nothing, so a broken file cannot hide a silent source.
     """
     try:
+        from core.daily_sources import attended_only
         from processing.daily_intake import POLICY_PATH, load_policy
         sources = load_policy()["sources"]
     except Exception:
         return {}
-    return {family: "recurring release switched off in %s" % Path(POLICY_PATH).name
-            for family, policy in sources.items() if not policy["unattended_release"]}
+    paused = {}
+    for family, policy in sources.items():
+        if not policy["unattended_release"]:
+            paused[family] = "recurring release switched off in %s" % Path(POLICY_PATH).name
+        elif attended_only(family):
+            # Switches on, but no scheduled run may handle the family until the
+            # attended-pilot gate is removed (core/daily_sources.ATTENDED_PILOT_ENV).
+            paused[family] = "attended-pilot gate: no scheduled runs"
+    return paused
 
 
 def expectations(registry=None, paused=None) -> Dict[str, Expectation]:

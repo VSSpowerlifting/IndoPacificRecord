@@ -1,4 +1,52 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-22 — Founder: third attended Singapore MINDEF pilot and recurring release approved
+
+**Authority.** Founder chat reply of 22 November, "Approve all four", to the
+lead's list of four reserved actions. Two of them concern Singapore:
+
+- **A.** One attended processing run of `6nov26-nr2` on
+  `sg-relevance-v2+sg-analysis-v5`: at most one private dispatch, two model
+  calls and $0.35 estimated spend. The exclusions are unchanged.
+- **B.** Recurring unattended processing and release of eligible
+  MINDEF-owned official releases, inside the existing per-run limits: one
+  record, $0.35, 16,000 input characters and the 90-word explanation maximum.
+
+This supersedes the 11 November "pilot ended" entry and the 12 November
+"retry held; switches off" entry. It also supersedes the earlier
+instructions to return the switches to false after readback or a hold, and
+the earlier no-recurrence limit.
+
+**What changed in this PR.**
+- The three Singapore policy switches are true.
+- `owner_decision` records the approval.
+- Caps, exclusions, factual QA, retry history and the attempt ledger are
+  unchanged. The ledger stands at two attempts, retriable at
+  `daily_explanation_word_limit`.
+- The attended-pilot gate in `core/daily_sources.py` still limits scheduled
+  runs to the named original. Lifting it is B's separate reviewed change.
+  "Revert" after A's run means the private run variable, not these policy
+  switches.
+
+**Two engineering fixes ship with A.**
+- **Private attribution check before signing.** `processing/daily_intake.py`
+  now applies the family's public attribution check (`output_check`, the same
+  one admission's `validate_output` applies) before signing an output
+  "complete". An output that public admission would hold for attribution
+  becomes a retriable private QA hold and counts an attempt. Before this, it
+  would use the item's completion and never publish. A model flag stays a
+  public editorial disposition, as before.
+  - No check is loosened. The public Singapore check still requires
+    `MINDEF` and an unflagged output.
+  - This affects the families that have an output check: Kemhan, DAPA,
+    Singapore, JCG and USCC.
+- **Liveness.** `scripts/check_source_liveness.py` now reports a family as
+  paused while the attended-pilot gate holds it, as well as when its policy
+  has recurring release off. With the switches on and the gate still in
+  place, MINDEF reads PAUSED rather than UNHEALTHY.
+
+**Not authorized here.** No backfill, no second record per run, no change
+to the excluded identities or the word limit, and no ledger or attempt reset.
+
 ## 2026-11-17 — Regional atlas: geography returns as real coastline, seats and waterlines
 
 **Authority.** Founder brief of 17 November ("Take ownership of the next
