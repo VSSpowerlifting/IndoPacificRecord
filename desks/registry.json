@@ -52,14 +52,14 @@
       "route": "singapore.html",
       "scope": "One publication family: official releases from the Singapore Ministry of Defence, which publishes for itself and for the Singapore Armed Forces.",
       "status": "live",
-      "status_explanation": "Promoted 2026-09-21 (DECISION_LOG), after 33 elapsed shadow-collection days, completed Day 7 and Day 14 human checkpoint reviews, and owner sign-off. The corpus began as a one-time governed promotion of 57 corrected shadow records; the same adapter, already run daily by the shadow collector since 2026-08-19, is now also invoked by the ordinary scheduled production pipeline, so the corpus grows from further scheduled runs going forward. Two records stay held out of the promotable set for unrepaired charset damage.",
+      "status_explanation": "Promoted 2026-09-21 (DECISION_LOG), after 33 elapsed shadow-collection days, completed Day 7 and Day 14 human checkpoint reviews, and owner sign-off. The corpus began as a one-time governed promotion of 57 corrected shadow records; the same adapter had previously operated in scheduled collection. Since 22 November (DECISION_LOG) new releases are collected privately each day; a new release is published as its official link and, only when every factual check passes, an independently written MINDEF-attributed machine explanation, never the original text or media. Historical public identities and provenance remain. Two records stay held out of the promotable set for unrepaired charset damage.",
       "public": true,
       "manifest": "desks/singapore/manifest.json",
       "has_production_records": true,
       "limits": [
         "This is not whole-of-government coverage, not armed-forces-wide, and not comprehensive Singapore defense coverage.",
         "Other ministries, the parliamentary Hansard record, unit and recruitment pages, magazine features, social media, and procurement notices are all outside the declared scope.",
-        "The corpus began as a one-time governed promotion; new records are now collected by the ordinary scheduled production pipeline, subject to the same held-record exclusions.",
+        "The corpus began as a one-time governed promotion. Since 22 November new releases are collected privately each day. A public page carries the official link and, only when every factual check passes, an independently written MINDEF-attributed machine explanation within fixed ceilings (one release and USD 0.35 per run, 90 words); original text and media are never republished.",
         "Two records are held out of the promoted corpus: their CJK text was damaged by a historical extractor defect the correction overlay could not repair, and they are excluded rather than published with damaged text. See shadow/singapore_mindef/CORRECTIONS.md for which records and why."
       ],
       "qualification": {
@@ -223,7 +223,7 @@
       "scope": "Bounded first-party Armed Forces of the Philippines (AFP) public-affairs publications and Philippine National Security Council (NSC) official statements. Not a comprehensive defense, military, foreign-policy or whole-of-government archive.",
       "status": "shadow",
       "public_status_label": "Official links and machine explanations — not in corpus",
-      "status_explanation": "AFP and NSC are collected daily into private custody. Verified neutral official links and short, attributed, machine-labeled explanations are then published automatically, with no per-record human review. Original titles, bodies, images and translations stay private and are not republished. Neither source has original-document records in the IPR corpus, and a quiet source is not a failure.",
+      "status_explanation": "AFP and NSC are collected daily into private custody. Verified neutral official links and short, attributed, machine-labeled explanations are then published automatically, with no per-record human review. Where available, AFP Records also include version-verified original titles and text. NSC originals and publisher media stay in private custody. A quiet source is not a failure.",
       "public": true,
       "manifest": "desks/philippines/manifest.json",
       "has_production_records": false,
@@ -233,7 +233,7 @@
             "name": "Armed Forces of the Philippines — first-party publications",
             "format": "Official English-language news releases; private daily collection, link metadata and machine explanations published automatically",
             "publisher_url": "https://www.afp.mil.ph/",
-            "note": "Verified neutral link metadata (official URL, publisher date, attributed issuer) is published automatically. Qualifying English releases also receive a short, independently worded explanation labeled as machine output and attributed to AFP. Preserved originals stay in private custody and are not public archive records."
+            "note": "Verified neutral link metadata (official URL, publisher date, attributed issuer) is published automatically. Qualifying English releases also receive a short, independently worded explanation labeled as machine output and attributed to AFP. Selected AFP-owned text appears on the same Record after version and rights checks."
           },
           {
             "name": "Philippine National Security Council — official statements",
@@ -243,11 +243,11 @@
           }
         ],
         "observed_volume": [],
-        "volume_caveat": "Private custody holds originals that are not counted anywhere on this page. Link and explanation counts describe what has been published, not what was collected.",
+        "volume_caveat": "The desk counts published links, explanations and original texts. Collection into private custody is tracked separately.",
         "blockers": [
           [
-            "Original documents are not in the IPR corpus.",
-            "Titles, article bodies, images, translations and long excerpts remain in private custody. Publishing any of them needs separate source-use permission for that material. The standing decisions cover neutral link metadata and short attributed machine explanations only."
+            "Original-text coverage is selective.",
+            "AFP titles and prose require a verified first-party source version. NSC originals and publisher media remain private."
           ],
           [
             "Each record still passes its own checks.",
@@ -261,7 +261,7 @@
         "resolved": [
           [
             "Link metadata and machine explanations are authorized for both sources.",
-            "Owner decisions of October 18 (AFP links) and October 20, 2026 (AFP and NSC machine explanations, NSC link metadata, and the historical NSC category warning for bounded release) authorize these lanes. They are standing decisions for these uses, not a licence for originals."
+            "Owner decisions of October 18 (AFP links) and October 20, 2026 (AFP and NSC machine explanations, NSC link metadata, and the historical NSC category warning for bounded release) authorize these lanes. AFP original title and text reuse follows the standing publisher permission and the version-specific release policy."
           ],
           [
             "Collection, processing and publication use the existing shared Daily path.",
@@ -270,9 +270,9 @@
         ]
       },
       "limits": [
-        "Original AFP and NSC titles, article bodies, images and translations are not published. Links are neutral metadata: official URL, publisher date and publisher.",
+        "AFP titles and text can appear on version-verified Records. The link lists give official URLs, dates and publisher names.",
         "Machine explanations are short, independently worded model output attributed to the publisher. They are not human-reviewed IPR analysis and do not verify the institution's claims. IPR analysis appears only in Briefs an editor has approved.",
-        "No AFP or NSC original-document records are in the public IPR corpus. Link and explanation counts on this page are separate from corpus counts.",
+        "NSC original titles and bodies remain in private custody. Images and translations are outside this release.",
         "AFP and NSC are independently governed institutional sources, not comprehensive Philippine defense coverage."
       ]
     },
@@ -455,7 +455,7 @@
       "manifest": "desks/us-indopacific/manifest.json",
       "has_production_records": false,
       "limits": [
-        "No source is fetched. Two manual sources are registered for governed admission of official USCC and Treasury press-release URL, date and issuer metadata only, under the standing owner approval of 2026-10-15; nothing from U.S. Pacific Command has been configured, enabled or collected. BIS official-link metadata enters separately, through its own attested release.",
+        "No source is fetched by public Daily. Two manual sources are registered for governed admission of official USCC and Treasury press-release URL, date and issuer metadata only, under the standing owner approval of 2026-10-15. A third source, USCC Commission press releases, is registered under the founder activation of 2026-11-22: a release is published as its official link and, only when every factual check passes, an independently written USCC-attributed explanation of at most 90 words; the original text is never republished; nothing from U.S. Pacific Command has been configured, enabled or collected. BIS official-link metadata enters separately, through its own attested release.",
         "robots.txt returns 403, so this project cannot establish that collection is permitted. That is a blocker on its own, independent of whether any endpoint answers.",
         "The institution's current name is U.S. Pacific Command, restored in 2026. If a source is ever built, its identity follows the institution's own name even though the desk stays geographically labeled Indo-Pacific.",
         "If it is ever built it is collected under the same contract, health thresholds and evidence hierarchy as every other desk. U.S. institutional statements are evaluated under the same source-verification and editorial standards as every other desk; they are not treated as independent confirmation of their own claims."

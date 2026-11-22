@@ -16,11 +16,13 @@ import re
 from html.parser import HTMLParser
 from pathlib import Path
 
+from core import official_link_index as link_index
 from core.regional_official_link_render import DESK_TO_FAMILY, load_admitted_links
 
 ROUTES = {"philippines": "philippines.html", "indonesia": "indonesia.html",
           "vietnam": "vietnam.html"}
 SCHEMA = "ipr-regional-source-link-readback/1"
+LIVE_ORIGIN = "https://indopacificrecord.org"
 
 
 class ReadbackHold(ValueError):
@@ -113,7 +115,7 @@ class MetadataOnlySourceParser(HTMLParser):
              "unclosed_regional_source_html")
 
 
-def validate_page(actual_html, expected, *, explanations=None):
+def validate_page(actual_html, expected, *, explanations=None, ordered=False):
     parser = MetadataOnlySourceParser()
     parser.feed(actual_html)
     parser.close()
@@ -141,7 +143,278 @@ def validate_page(actual_html, expected, *, explanations=None):
              "html_link_date_or_neutral_label_differs_from_db")
     need(seen == set(expected_by_id),
          "admitted_source_missing_from_site")
+    if ordered:
+        need([r["source_identity"] for r in parser.rows] ==
+             [r["source_identity"] for r in expected],
+             "rendered_official_source_order_disagrees_with_db")
     return len(seen)
+
+
+class OfficialLinkHubParser(HTMLParser):
+    """The month list of an official-link index hub, and nothing else."""
+
+    def __init__(self, desk):
+        super().__init__(convert_charrefs=True)
+        self.desk = desk
+        self.lists = 0
+        self.total = None
+        self.months = []
+        self.active = None
+        self.list_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if self.list_depth:
+            if tag == "ol":
+                self.list_depth += 1
+            # Inside the month list only month rows may exist, and links only
+            # inside them: a plain <li> or <a> could advertise a month route
+            # the DB does not have.
+            need(tag != "li" or "data-official-link-month" in a,
+                 "official_link_index_hub_unmarked_month_entry")
+            need(tag != "a" or self.active is not None,
+                 "official_link_index_hub_unmarked_month_entry")
+        need(a.get("data-source-scope") != "official-link-only"
+             and not {"data-regional-official-source-id",
+                      "data-korea-auto-official-link"} & set(a),
+             "official_link_index_hub_contains_source_rows")
+        if "data-official-link-index" in a:
+            need(tag == "ol" and a["data-official-link-index"] == self.desk,
+                 "official_link_index_hub_identity_differs")
+            self.lists += 1
+            self.total = a.get("data-official-link-total")
+            self.list_depth = 1
+        if "data-official-link-month" in a:
+            need(tag == "li" and self.lists == 1 and self.active is None,
+                 "official_link_index_hub_month_outside_list")
+            self.active = {"month": a["data-official-link-month"],
+                           "count": a.get("data-official-link-month-count"),
+                           "hrefs": []}
+        elif tag == "a" and self.active is not None:
+            self.active["hrefs"].append(a.get("href"))
+
+    def handle_endtag(self, tag):
+        if tag == "li" and self.active is not None:
+            self.months.append(self.active)
+            self.active = None
+        elif tag == "ol" and self.list_depth:
+            self.list_depth -= 1
+
+    def close(self):
+        super().close()
+        need(self.active is None and self.lists == 1 and not self.list_depth,
+             "official_link_index_hub_list_missing_or_repeated")
+
+
+# The source URL each index desk's month pages link out to, per admitted row.
+INDEX_URL_KEY = {"indonesia": "canonical_official_url", "korea": "source_url"}
+_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
+
+
+def _off_site(href):
+    """Any scheme or protocol-relative href other than IPR's own origin."""
+    href = re.sub(r"[\t\r\n]", "", href or "").strip()
+    if href.startswith(LIVE_ORIGIN + "/"):
+        return False
+    return href.startswith("//") or bool(_SCHEME.match(href)) or "\\" in href
+
+
+class IndexPageLinkParser(HTMLParser):
+    """Every link-bearing element inside an index page's single <main>.
+
+    Row parsers validate marked rows only; this closes the page around them,
+    so an unmarked publisher link (an extra <li>, a <p><a>, an <area>) cannot
+    ride along on a hub or month page.
+    """
+
+    LINK_TAGS = {"a": "href", "area": "href"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.mains = 0
+        self.main_depth = 0
+        self.in_main = []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "main":
+            need(self.main_depth == 0, "official_link_index_page_main_nested")
+            self.mains += 1
+            self.main_depth = 1
+            return
+        if self.main_depth and tag in self.LINK_TAGS and self.LINK_TAGS[tag] in a:
+            self.in_main.append(a[self.LINK_TAGS[tag]])
+
+    def handle_startendtag(self, tag, attrs):
+        need(tag != "main", "official_link_index_page_main_nested")
+        self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        if tag == "main" and self.main_depth:
+            self.main_depth = 0
+
+    def close(self):
+        super().close()
+        need(self.mains == 1 and self.main_depth == 0,
+             "official_link_index_page_main_missing_or_repeated")
+
+
+class _AnchorHrefCounter(HTMLParser):
+    def __init__(self, href):
+        super().__init__(convert_charrefs=True)
+        self.href, self.count = href, 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a" and dict(attrs).get("href") == self.href:
+            self.count += 1
+
+
+def hub_link_count(html, desk):
+    """How many real <a> elements link the desk page to its index hub.
+
+    Returns -1 when the raw `href="..."` text count disagrees with the parsed
+    anchors (a comment, attribute text or a non-<a> element carrying it), so
+    the desk's only route to rows past DESK_LINK_LIMIT must be a working link.
+    """
+    href = link_index.hub_route(desk)
+    counter = _AnchorHrefCounter(href)
+    counter.feed(html)
+    counter.close()
+    raw = html.count('href="%s"' % href)
+    return counter.count if counter.count == raw else -1
+
+
+def check_index_page_links(html, desk, rows):
+    """The page's off-site links are exactly the rows' source URLs, in <main>."""
+    parser = IndexPageLinkParser()
+    parser.feed(html)
+    parser.close()
+    # Only <main> carries row content. Shared chrome (header/footer) comes from
+    # base.html, not from admitted rows, so it is not checked here.
+    off_site = [h for h in parser.in_main if _off_site(h)]
+    need(sorted(off_site) == sorted(r[INDEX_URL_KEY[desk]] for r in rows),
+         "official_link_index_page_has_unadmitted_off_site_link")
+    return len(off_site)
+
+
+def read_page(path, reason):
+    path = Path(path)
+    need(path.is_file() and not path.is_symlink(), reason)
+    try:
+        data = path.read_bytes()
+        return data, data.decode("utf-8")
+    except (OSError, UnicodeError):
+        raise ReadbackHold("committed_page_unavailable_or_non_utf8") from None
+
+
+def month_inventory(root, desk):
+    folder = Path(root) / link_index.month_dir(desk)
+    if not folder.exists() and not folder.is_symlink():
+        return []
+    need(folder.is_dir() and not folder.is_symlink(),
+         "official_link_index_month_folder_invalid")
+    return sorted(p.name for p in folder.iterdir())
+
+
+def index_partition(desk, rows):
+    try:
+        return link_index.partition(desk, rows)
+    except link_index.IndexHold:
+        raise ReadbackHold("admitted_rows_not_indexable_by_official_date") from None
+
+
+def latest_rows(desk, rows):
+    try:
+        return link_index.latest(desk, rows)
+    except link_index.IndexHold:
+        raise ReadbackHold("admitted_rows_not_indexable_by_official_date") from None
+
+
+def verify_index(site_dir, desk, rows, check_rows, *, pages_dir=None):
+    """Hub + month pages carry every admitted row once, in DB order.
+
+    `check_rows(html, month_rows)` validates one month page's rows exactly
+    and in order. With `pages_dir`, every index route and the month folder
+    inventory must be byte-identical in the deployed checkout.
+    """
+    months = index_partition(desk, rows)
+    hub_route = link_index.hub_route(desk)
+    roots = [Path(site_dir)] + ([Path(pages_dir)] if pages_dir is not None else [])
+    if not months:
+        for root in roots:
+            need(not (root / hub_route).exists() and not month_inventory(root, desk),
+                 "official_link_index_present_without_admitted_rows")
+        return {"hub": None, "months": {}, "admitted_official_link_count": 0}
+    expected_names = sorted(month + ".html" for month, _ in months)
+    for root in roots:
+        need(month_inventory(root, desk) == expected_names,
+             "official_link_index_month_pages_disagree_with_db")
+    hub_data, hub_html = read_page(Path(site_dir) / hub_route,
+                                   "official_link_index_hub_missing")
+    hub = OfficialLinkHubParser(desk)
+    hub.feed(hub_html)
+    hub.close()
+    check_index_page_links(hub_html, desk, [])
+    need(hub.total == str(len(rows)),
+         "official_link_index_hub_total_disagrees_with_db")
+    need([(m["month"], m["count"], m["hrefs"]) for m in hub.months] ==
+         [(month, str(len(items)), [link_index.month_route(desk, month)])
+          for month, items in months],
+         "official_link_index_hub_months_disagree_with_db")
+    hashes = {hub_route: hashlib.sha256(hub_data).hexdigest()}
+    pages = {hub_route: hub_data}
+    for month, items in months:
+        route = link_index.month_route(desk, month)
+        data, html = read_page(Path(site_dir) / route,
+                               "official_link_index_month_page_missing")
+        check_rows(html, items)
+        check_index_page_links(html, desk, items)
+        pages[route] = data
+        hashes[route] = hashlib.sha256(data).hexdigest()
+    if pages_dir is not None:
+        for route, data in pages.items():
+            deployed = Path(pages_dir) / route
+            need(deployed.is_file() and not deployed.is_symlink()
+                 and deployed.read_bytes() == data,
+                 "deployed_pages_route_differs_from_committed_site")
+    return {"hub": hub_route,
+            "months": {month: len(items) for month, items in months},
+            "admitted_official_link_count": len(rows),
+            "page_sha256": hashes}
+
+
+def https_fetcher(label, limit=500000):
+    """Fixed-origin GET without redirects, bounded size, exact status."""
+    import urllib.request
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+
+    def fetch(url):
+        req = urllib.request.Request(url, headers={"User-Agent": "IPR-Publication-Readback/1"})
+        with urllib.request.build_opener(NoRedirect).open(req, timeout=20) as response:
+            need(response.status == 200 and response.geturl() == url,
+                 label + "_https_status_or_origin_differs")
+            data = response.read(limit + 1)
+            need(len(data) <= limit, label + "_https_page_oversized")
+            return data
+    return fetch
+
+
+def https_exact(site_dir, routes, label, fetch=None):
+    """Every route's live bytes equal the committed bytes; returns hashes."""
+    fetch = fetch or https_fetcher(label)
+    hashes = {}
+    for route in routes:
+        expected, _ = read_page(Path(site_dir) / route,
+                                "committed_regional_desk_page_missing")
+        actual = fetch(LIVE_ORIGIN + "/" + route)
+        need(isinstance(actual, bytes) and len(actual) <= 500000,
+             label + "_https_page_oversized")
+        need(actual == expected, label + "_https_bytes_differ_from_committed_output")
+        hashes[route] = hashlib.sha256(actual).hexdigest()
+    return hashes
 
 
 def vietnam_explanations(db_path, expected):
@@ -224,7 +497,22 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
         except (OSError, UnicodeError):
             raise ReadbackHold("committed_page_unavailable_or_non_utf8") from None
         explanations = vietnam_explanations(db_path, expected) if desk == "vietnam" else {}
-        count = validate_page(html, expected, explanations=explanations)
+        index = None
+        if desk in link_index.INDEX_DESKS:
+            # The desk page lists exactly the newest DESK_LINK_LIMIT rows in
+            # DB order; the hub and month pages carry every admitted row.
+            shown = latest_rows(desk, expected)
+            validate_page(html, shown, explanations=explanations, ordered=True)
+            if expected:
+                need(hub_link_count(html, desk) == 1,
+                     "desk_page_full_index_link_missing_or_repeated")
+            index = verify_index(
+                site_dir, desk, expected,
+                lambda page, items: validate_page(page, items, ordered=True),
+                pages_dir=pages_dir)
+            count = index["admitted_official_link_count"]
+        else:
+            count = validate_page(html, expected, explanations=explanations)
         if desk in required:
             need(count > 0, "claimed_live_desk_has_no_admitted_source_links")
         if pages_dir is not None:
@@ -239,7 +527,57 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
             "page_sha256": hashlib.sha256(data).hexdigest(),
             "released_source_original_text": False,
         }
+        if index is not None:
+            result["source_families"][DESK_TO_FAMILY[desk]].update(
+                desk_official_link_count=len(shown), full_index=index)
     return result
+
+
+def index_routes(db_path, desk):
+    """Site-relative desk + index routes this DB requires, for writer gates."""
+    need(desk in link_index.INDEX_DESKS and desk in ROUTES,
+         "unknown_required_regional_source_desk")
+    rows = load_admitted_links(db_path, desk)
+    try:
+        return [ROUTES[desk]] + link_index.index_routes(desk, rows)
+    except link_index.IndexHold:
+        raise ReadbackHold("admitted_rows_not_indexable_by_official_date") from None
+
+
+def verify_https(db_path, site_dir, desk, *, fetch=None):
+    """Live desk + full-index bytes equal committed bytes and the DB rows."""
+    routes = index_routes(db_path, desk)
+    hashes = https_exact(site_dir, routes, desk, fetch=fetch)
+    receipt = verify(db_path, site_dir, required_desks=(desk,))
+    family = receipt["source_families"][DESK_TO_FAMILY[desk]]
+    return {"https_origin": LIVE_ORIGIN, "routes": routes, "page_sha256": hashes,
+            "admitted_official_link_count": family["admitted_official_link_count"]}
+
+
+def verify_philippines_original_routes(db_path, pages_dir):
+    """Page-only writers may link an original only after shared site delivery."""
+    from bs4 import BeautifulSoup
+    from core.daily_machine_records import load
+
+    records = [r for r in load(db_path) if r["desk_id"] == "philippines" and r["original_text"]]
+    if not records:
+        return
+    pages_dir = Path(pages_dir)
+    archive_path = pages_dir / "archive-research-index.json"
+    need(archive_path.is_file(), "philippines_original_archive_missing_on_pages")
+    rows = {r["id"]: r for r in json.loads(archive_path.read_bytes())["records"]}
+    for record in records:
+        path = pages_dir / record["record_path"]
+        need(path.is_file(), "philippines_original_record_missing_on_pages")
+        page = BeautifulSoup(path.read_bytes(), "html.parser")
+        title = page.select_one("h1")
+        paragraphs = page.select('section[aria-labelledby="record-text"] div.original p')
+        row = rows.get("machine:" + record["source_identity"])
+        need(title and title.get_text() == record["original_title"]
+             and [p.get_text() for p in paragraphs] == record["original_text"].split("\n\n")
+             and row and row["title"] == record["original_title"]
+             and row["ipr_url"] == "https://indopacificrecord.org/" + record["record_path"],
+             "philippines_original_version_differs_on_pages")
 
 
 def verify_vietnam_https(db_path, site_dir, *, fetch=None):
@@ -272,7 +610,9 @@ def verify_vietnam_https(db_path, site_dir, *, fetch=None):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--db", required=True, type=Path)
-    p.add_argument("--site-dir", required=True, type=Path)
+    # Required for every readback; only --print-routes (a pure DB query run
+    # before the budget gate) may omit it.
+    p.add_argument("--site-dir", type=Path)
     p.add_argument("--deployed-dir", type=Path)
     p.add_argument("--require-records", action="store_true",
                    help="Require nonempty verified links in BOTH regional desks")
@@ -280,13 +620,25 @@ def main(argv=None):
                    default=[],
                    help="Require admitted links for this desk; may be repeated")
     p.add_argument("--vietnam-https", action="store_true")
+    indexed = sorted(set(link_index.INDEX_DESKS) & set(ROUTES))
+    p.add_argument("--https-desk", choices=indexed, action="append", default=[],
+                   help="Read back this desk page and its full index over HTTPS")
+    p.add_argument("--print-routes", choices=indexed,
+                   help="Print the desk and index routes the DB requires, one per line")
     args = p.parse_args(argv)
+    if args.site_dir is None and not args.print_routes:
+        p.error("the following arguments are required: --site-dir")
     try:
+        if args.print_routes:
+            print("\n".join(index_routes(args.db, args.print_routes)))
+            return 0
         receipt = verify(args.db, args.site_dir, pages_dir=args.deployed_dir,
                          require_records=args.require_records,
                          required_desks=args.require_desk)
         if args.vietnam_https:
             receipt["vietnam_https"] = verify_vietnam_https(args.db, args.site_dir)
+        for desk in args.https_desk:
+            receipt[desk + "_https"] = verify_https(args.db, args.site_dir, desk)
     except (ReadbackHold, OSError, ValueError) as exc:
         reason = (str(exc) if isinstance(exc, ReadbackHold)
                   else "regional_source_index_readback_failed")

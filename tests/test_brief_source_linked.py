@@ -47,6 +47,54 @@ class SourceLinkedTests(unittest.TestCase):
         env.filters["brief_prose"] = brief_collection.linked_prose
         return env.get_template("brief.html").render(brief=view)
 
+    def test_role_specific_credits_keep_a_single_author(self):
+        draft = copy.deepcopy(self.value)
+        draft["editorial_status"] = "draft"
+        draft["issue_number"] = None
+        draft.pop("approval", None)
+        draft.pop("editorial_review", None)
+        draft.pop("policy_ruling", None)
+        draft.pop("research_contributor", None)
+        draft["editorial_credits"] = [
+            {"role": "Editing", "name": "Dylan Tanzi"},
+            {"role": "Research and analysis", "name": "Peter"},
+        ]
+        self.assertEqual(brief_contract.validate_brief(draft, self.registry), [])
+        self.assertEqual(brief_collection.credited_author_names(
+            draft, "Benjamin Yang"), ("Benjamin Yang",))
+        page = self.render(draft)
+        self.assertIn("Edited by", page)
+        self.assertIn("Dylan Tanzi", page)
+        self.assertIn("Research and analysis by", page)
+        self.assertIn("Peter", page)
+        self.assertNotIn("By <span class=\"byline-name\">Benjamin Yang and", page)
+
+        bad = copy.deepcopy(draft)
+        bad["editorial_credits"][1]["role"] = "Co-author"
+        self.assertTrue(any("editorial credit" in p for p in
+                            brief_contract.validate_brief(bad, self.registry)))
+        duplicate = copy.deepcopy(draft)
+        duplicate["editorial_credits"][1]["role"] = "Editing"
+        self.assertTrue(any("editorial credit" in p for p in
+                            brief_contract.validate_brief(duplicate, self.registry)))
+
+    def test_western_pacific_candidate_has_valid_release_evidence(self):
+        candidate = json.loads((ROOT / "briefs/china-western-pacific-deployment-coordination-2026.json").read_text())
+        self.assertEqual(candidate["editorial_status"], "approved")
+        self.assertEqual(candidate["issue_number"], 23)
+        self.assertEqual(candidate["author_name"], "Benjamin Yang")
+        self.assertEqual(candidate["editorial_credits"][0]["role"], "Editing")
+        self.assertEqual(candidate["editorial_credits"][1]["role"], "Research and analysis")
+        self.assertEqual(candidate["editorial_credits"][1]["name"], "Peter Nguyen")
+        rendered = self.render(candidate)
+        self.assertIn("Research and analysis by Peter Nguyen", rendered)
+        self.assertIn('By <span class="byline-name">Benjamin Yang</span>', rendered)
+        self.assertNotIn('class="byline-title"', rendered)
+        self.assertEqual(validate_source_linked(candidate), [])
+        self.assertEqual(brief_contract.validate_brief(candidate, self.registry), [])
+        self.assertEqual(validate_source_linked(candidate, release=True), [])
+        self.assertEqual(manuscript_html_errors(candidate, self.render(candidate)), [])
+
     def test_frozen_manuscript_and_seven_associations(self):
         fields = {k: self.value[k] for k in ("title", "dek", "body_paragraphs", "manuscript_sha256")}
         fields["publisher_references"] = [{k: s[k] for k in ("id", "url")}
@@ -278,11 +326,26 @@ class SourceLinkedTests(unittest.TestCase):
                     catalogue_media={}, review_mode=True, collection_name="Indo-Pacific Record Briefs")
         row["is_review"] = True
         html = render()
-        self.assertIn("preserved corpus records from source-linked editorial references", html)
+        # With a source-linked Brief in the collection the catalogue says, in
+        # plain words, that a Brief's sources are of two kinds: records IPR
+        # keeps, and links to a publisher's own page. It never says every
+        # Brief rests on kept records.
+        both = ("shows its sources: records kept by Indo-Pacific Record, and "
+                "links to pages on a publisher's own site.")
+        records_only = "Each Brief cites the records it rests on and names its editor."
+        boundary = ("A link to a publisher's page belongs to the Brief that cites it. "
+                    "It adds no record to a desk and does not change what a desk collects.")
+        self.assertIn('<p class="evidence evidence--analysis">Human-controlled analysis</p>', html)
+        self.assertIn(both, html)
+        self.assertIn(boundary, html)
         self.assertIn("0 published · 1 unapproved review candidate", html)
-        self.assertNotIn("built from preserved records", html)
+        self.assertNotIn(records_only, html)
         row["source_linked"] = False
-        self.assertIn("Human-controlled analysis built from preserved records", render())
+        plain = render()
+        self.assertIn('<p class="evidence evidence--analysis">Human-controlled analysis</p>', plain)
+        self.assertIn(records_only, plain)
+        self.assertNotIn(both, plain)
+        self.assertNotIn(boundary, plain)
 
 
 if __name__ == "__main__":

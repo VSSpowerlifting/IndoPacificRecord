@@ -1,26 +1,29 @@
+{# A document a Brief cites. IPR publishes its reference details and a link,
+   never its text; the title is shown as its publisher wrote it. #}
+{% from "_atlas.html" import breadcrumb %}
 <article class="record-page">
-  <div class="record-body">
-    <p><span class="evidence evidence--record">Official source</span> · Cited in IPR analysis · Link only; IPR holds no copy</p>
-    <h1 lang="{{ record.lang }}">{{ record.original_title }}</h1>
-    <p class="record-source-line">Issuer: {{ record.issuer }} · Publisher: {{ record.publisher }} · {% if record.date %}Source-stated date: <time datetime="{{ record.date }}">{{ record.date }}</time>{% else %}Undated{% endif %}</p>
-    <p><a href="{{ record.url }}" rel="noopener nofollow">Read the original on the publisher's site</a></p>
-    <section class="record-section" aria-labelledby="cited-in"><h2 id="cited-in">Cited in</h2>
-      <ul>
-      {% for ref in record.cited_in %}
-        <li><a href="../{{ ref.url }}#{{ ref.anchor }}">{{ ref.title }}</a> <span class="meta">{{ ref.series_name }} No. {{ ref.issue }} · week ending {{ ref.date | reader_date }} · publisher reference</span></li>
-      {% endfor %}
-      </ul>
-      <p class="meta">The Brief identifies which of its claims rest on this source.</p>
-    </section>
-    <section class="record-section"><h2>Source custody and use</h2>
-      <p>IPR holds no copy of this document. This Record publishes the reference metadata that the citing Brief already publishes, with a link to the original. It adds no source text, translation or independent verification.</p>
-      <dl class="provenance">
-        <dt>Issuing institution</dt><dd>{{ record.issuer }}</dd>
-        <dt>Publisher</dt><dd>{{ record.publisher }}</dd>
-        <dt>Original URL</dt><dd>{{ record.url }}</dd>
-      </dl>
-      <p class="meta">Publication dates describe when the source published, not necessarily when an event happened. An official account is the issuer's statement, not independent confirmation of it.</p>
-    </section>
-    <section class="record-section" id="record-citation"><h2>Citation</h2><p>{{ cite }}</p></section>
-  </div>
+  <header class="page-head record-head">
+    {{ breadcrumb([('Records', '../archive.html'), ('Cited source', none)]) }}
+    <p class="record-mark record-mark--original"><span class="evidence evidence--record">{{ "Official source" if record.independence == "official" else "Independent publication" }}</span> <span>Cited in IPR analysis · reference details and link only</span></p>
+    <h1 class="as-published" lang="{{ record.lang }}">{{ record.original_title }}</h1>
+    <p class="record-source-line">Issuer: <b>{{ record.issuer }}</b> · Publisher: {{ record.publisher }} · {% if record.date %}Date stated by the source: <time datetime="{{ record.date }}">{{ record.date }}</time>{% else %}Undated{% endif %}</p>
+    <div class="record-actions"><a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Read the original on the publisher's site</a><a href="#record-citation">Cite this source</a></div>
+  </header>
+  <section class="record-section" aria-labelledby="page-holds"><div class="layer-head"><span class="evidence evidence--record">Source record</span><h2 id="page-holds">What this page holds</h2></div>
+    <p class="record-lead">This page publishes no copy, text or excerpt of the document. It repeats the reference details that the citing Brief already publishes, with a link to the original, and adds no translation or independent verification.</p>
+    <dl class="provenance">
+      <dt>Original URL</dt><dd>{{ record.url }}</dd>
+    </dl>
+    <p class="meta">Publication dates describe when the source published, not necessarily when an event happened. {% if record.independence == "official" %}An official account is the issuer's statement, not independent confirmation of it.{% else %}This independent publication is cited by IPR; inclusion is not IPR verification or endorsement of its findings.{% endif %}</p>
+  </section>
+  <aside class="record-rail" aria-label="Where IPR analysis cites this source"><div class="rail-block trail-panel">
+    <h2 id="cited-in"><span class="evidence evidence--analysis">Human-controlled analysis</span> Cited in</h2>
+    <ul>
+    {% for ref in record.cited_in %}
+      <li><a href="../{{ ref.url }}#{{ ref.anchor }}">{{ ref.title }}</a> <span class="meta">{{ ref.series_name }} No. {{ ref.issue }} · week ending {{ ref.date | reader_date }} · publisher reference</span></li>
+    {% endfor %}
+    </ul>
+    <p class="meta">The Brief identifies which of its claims rest on this source.</p>
+  </div></aside>
+  <section class="record-section" id="record-citation"><div class="layer-head"><h2>Cite this record</h2></div><p class="cite-text">{{ cite }}</p></section>
 </article>

@@ -56,6 +56,8 @@ MANUAL_FAMILIES = {
     "ph_nsc_official_statements": "philippines",
     "id_kemhan_news": "indonesia",
     "jp_mod_news_ja": "japan",
+    "jp_jcg_press_en": "japan",
+    "us_uscc_press_en": "us-indopacific",
     "uscc_press_official_metadata": "us-indopacific",
     "us_treasury_press_official_metadata": "us-indopacific",
 }
@@ -78,8 +80,16 @@ class FakeRegistry:
 class TestRegistration(unittest.TestCase):
 
     def test_every_governed_family_is_a_manual_production_source(self):
-        self.assertEqual(set(SOURCES) | {jp.FAMILY} | set(pipeline._US_METADATA_FAMILIES),
-                         set(MANUAL_FAMILIES))
+        registered = {f for f, s in SOURCES.items() if s.desk_registered}
+        # DAPA remains unregistered until its separate activation; Singapore's
+        # manual route is registered, but its model/release policy is still disabled.
+        # USCC is registered by the founder's 2026-11-22 first activation.
+        unregistered = {"kr_policy_dapa_releases"}
+        self.assertEqual(set(SOURCES) - registered, unregistered)
+        for family in unregistered:
+            self.assertNotIn(family, pipeline._governed_admissions())
+        self.assertEqual(registered | {jp.FAMILY} | set(pipeline._US_METADATA_FAMILIES),
+                         set(MANUAL_FAMILIES) | {"sg_mindef_releases"})
         registry = load_registry()
         for slug, desk in MANUAL_FAMILIES.items():
             with self.subTest(source=slug):
@@ -110,6 +120,8 @@ class TestRegistration(unittest.TestCase):
     def test_daily_source_metadata_matches_the_manifest(self):
         desks = load_all_desks()
         for family, source in SOURCES.items():
+            if not source.desk_registered:
+                continue
             with self.subTest(family=family):
                 cfg = desks[source.desk_id]
                 src = {s.slug: s for s in cfg.sources}[family]
@@ -296,6 +308,120 @@ class TestGovernedDispatch(unittest.TestCase):
         self.assertEqual(by_slug["ph_afp_articles"].status, st.OK)
         self.assertEqual(by_slug["ph_nsc_official_statements"].status, st.ADAPTER_ERROR)
         self.assertEqual(len(errors), 1)
+
+    # -- Daily collection attestation (schema /2 facts) -------------------
+
+    @staticmethod
+    def facts(family, **over):
+        from tests.test_collection_attempts import facts
+        return facts(family=family, **over)
+
+    def switches_on(self):
+        return mock.patch.dict(os.environ, {s.public_switch: "true" for s in SOURCES.values()
+                                            if s.public_switch})
+
+    def daily_at(self, family, receipt, now):
+        return pipeline._daily_admission(family, intake=lambda *a: receipt, clock=lambda: now)
+
+    def test_receipts_without_collection_facts_keep_their_statuses_exactly(self):
+        from datetime import datetime, timezone
+        now = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
+        for with_key in (False, True):
+            for receipt, status, new, dups, detail in (
+                    ({"records": 3, "admitted": 2, "holds": []}, st.OK, 2, 1, None),
+                    ({"records": 0, "admitted": 0, "holds": []}, st.OK_NO_PUBLICATIONS, 0, 0, None),
+                    ({"records": 2, "admitted": 0, "holds": ["daily_record_copying"]},
+                     st.OK_ALL_FILTERED, 0, 2, "held: daily_record_copying")):
+                rc = dict(receipt, collection=None) if with_key else receipt
+                for family in ("ph_afp_articles", "ph_nsc_official_statements",
+                               "id_kemhan_news", "jp_jcg_press_en"):
+                    with self.subTest(family=family, with_key=with_key, receipt=receipt), \
+                            self.activated(), self.policy_open(), self.switches_on():
+                        r, errors = self.dispatch(family, self.daily_at(family, rc, now))
+                        self.assertEqual((r.status, r.new_documents, r.duplicates, r.error_detail),
+                                         (status, new, dups, detail))
+                        self.assertEqual(errors, [])
+
+    def test_nsc_replay_with_failed_facts_reports_the_failure_and_keeps_duplicates(self):
+        from datetime import datetime, timezone
+        nsc = "ph_nsc_official_statements"
+        failed = self.facts(nsc, latest=dict(self.facts(nsc)["latest"], run_id="43949292737-1",
+                                             target_date="2026-11-16", result="access_challenged",
+                                             health="fail", healthy=False),
+                            latest_healthy_target_date="2026-11-04")
+        receipt = {"records": 1, "admitted": 0, "holds": [], "collection": failed}
+        now = datetime(2026, 11, 17, 0, 30, tzinfo=timezone.utc)
+        entries = {nsc: self.daily_at(nsc, receipt, now),
+                   # A sibling AFP row in the same dispatch is unaffected.
+                   "ph_afp_articles": self.daily_at(
+                       "ph_afp_articles", {"records": 1, "admitted": 1, "holds": [],
+                                           "collection": None}, now)}
+        errors = []
+        with self.activated(), self.policy_open(), self.switches_on(), \
+                mock.patch.object(pipeline, "_governed_admissions", return_value=entries):
+            results = pipeline.run_governed_manual_sources(
+                list(entries), 7, FakeRegistry("philippines"), errors)
+        by = {r.source_slug: r for r in results}
+        self.assertEqual((by[nsc].status, by[nsc].new_documents, by[nsc].duplicates),
+                         (st.ACCESS_CHALLENGED, 0, 1))
+        self.assertEqual(by[nsc].error_detail,
+                         "collection access_challenged (run 43949292737-1, target 2026-11-16)")
+        self.assertTrue(by[nsc].is_failure)
+        self.assertEqual((by["ph_afp_articles"].status, by["ph_afp_articles"].error_detail),
+                         (st.OK, None))
+        self.assertEqual(len(errors), 1)
+
+    def test_a_stale_kemhan_collection_is_a_failure_that_keeps_its_counts_and_holds(self):
+        from datetime import datetime, timezone
+        fam = "id_kemhan_news"
+        stale = self.facts(fam, latest_healthy_target_date="2026-11-14",
+                           latest=dict(self.facts(fam)["latest"], target_date="2026-11-14"))
+        now = datetime(2026, 11, 16, 13, 0, tzinfo=timezone.utc)   # expected slot 2026-11-15
+        receipt = {"records": 3, "admitted": 0, "holds": ["daily_record_copying"],
+                   "collection": stale}
+        with self.activated(), self.policy_open(), self.switches_on():
+            r, errors = self.dispatch(fam, self.daily_at(fam, receipt, now))
+        self.assertEqual((r.status, r.new_documents, r.duplicates), (st.FETCH_FAILURE, 0, 3))
+        self.assertEqual(r.error_detail,
+                         "collection stale: last healthy target 2026-11-14 (latest run "
+                         "43949292737-1); expected slot 2026-11-15; held: daily_record_copying")
+        self.assertEqual(len(errors), 1)
+        # Admitted records are kept too (no hold detail exists in that case).
+        receipt = {"records": 3, "admitted": 2, "holds": [], "collection": stale}
+        with self.activated(), self.policy_open(), self.switches_on():
+            r, _ = self.dispatch(fam, self.daily_at(fam, receipt, now))
+        self.assertEqual((r.status, r.new_documents, r.duplicates), (st.FETCH_FAILURE, 2, 1))
+        current = dict(stale, latest_healthy_target_date="2026-11-15")
+        with self.activated(), self.policy_open(), self.switches_on():
+            r, errors = self.dispatch(fam, self.daily_at(fam, dict(receipt, collection=current), now))
+        self.assertEqual((r.status, r.error_detail), (st.OK, None))
+
+    def test_require_flag_is_off_and_when_on_exempts_unscheduled_and_attended_families(self):
+        from datetime import datetime, timezone
+        now = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
+        self.assertIs(pipeline._REQUIRE_COLLECTION_ATTESTATION, False)
+        plain = {"records": 1, "admitted": 1, "holds": []}
+        with mock.patch.object(pipeline, "_REQUIRE_COLLECTION_ATTESTATION", True):
+            with self.activated(), self.policy_open(), self.switches_on():
+                r, _ = self.dispatch("ph_afp_articles", self.daily_at("ph_afp_articles", plain, now))
+                self.assertEqual((r.status, r.error_detail),
+                                 (st.FETCH_FAILURE, "collection_not_attested"))
+                # No declared cadence (USCC, DAPA) never needs it.
+                for fam in ("us_uscc_press_en", "kr_policy_dapa_releases"):
+                    out = self.daily_at(fam, plain, now).admit(1)
+                    self.assertEqual((out.status, out.error_detail), (st.OK, None), fam)
+                # Singapore MINDEF is recurring (10:37 UTC collector): attested like the
+                # other scheduled families.
+                for fam in ("sg_mindef_releases",):
+                    out = self.daily_at(fam, plain, now).admit(1)
+                    self.assertEqual((out.status, out.error_detail),
+                                     (st.FETCH_FAILURE, "collection_not_attested"), fam)
+                # An attended-only family (the retained pilot mechanism) never needs it.
+                with mock.patch.dict(
+                        "core.daily_sources.ATTENDED_PILOT_ENV",
+                        {"sg_mindef_releases": "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}):
+                    out = self.daily_at("sg_mindef_releases", plain, now).admit(1)
+                self.assertEqual((out.status, out.error_detail), (st.OK, None))
 
     # -- Japan official links --------------------------------------------
 

@@ -79,9 +79,13 @@ _SOURCE_AUTHORITY_TIER: dict[str, str] = {
     "ph_nsc_official_statements": "A",
     "id_kemhan_news":     "A",
     "jp_mod_news_ja":     "A",
+    "jp_jcg_press_en":    "A",
     # desks/us-indopacific: USCC and Treasury official listing metadata,
     # governed admission under the standing 2026-10-15 approval; never fetched.
     "uscc_press_official_metadata": "A",
+    # USCC press-release narratives (founder activation 2026-11-22); a manual,
+    # tier A source in the same desk manifest.
+    "us_uscc_press_en": "A",
     "us_treasury_press_official_metadata": "A",
 }
 

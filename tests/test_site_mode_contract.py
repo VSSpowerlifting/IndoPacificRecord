@@ -329,14 +329,20 @@ class TestCandidateBuild(unittest.TestCase):
             self.assertIn('href="../record/%s.html"' % rec_id,
                           stub.read_text(encoding="utf-8"))
 
-    def test_the_registry_collecting_desks_are_linked_from_home(self):
+    def test_the_directory_states_collecting_and_blocked_desks(self):
         html = (self.out / "desks.html").read_text(encoding="utf-8")
         self.assertIn("Live — collecting", html)
         self.assertIn("Access blocked — not collecting", html)
+
+    def test_the_registry_collecting_desks_are_linked_from_home(self):
         from bs4 import BeautifulSoup
         home = BeautifulSoup((self.out / "index.html").read_text(encoding="utf-8"), "html.parser")
         from core.desk_registry import load_registry
-        self.assertEqual({a.get("href") for a in home.select(".home-desk-list a")},
+        # "Newest from each desk" (2026-11-16) gives each desk with public
+        # records one row; every collecting desk holds records today.
+        linked = home.select(".home-newest .desk-cell > a")
+        self.assertTrue(linked, "the home page lists no desk")
+        self.assertEqual({a.get("href") for a in linked},
                          {d.route for d in load_registry().entries if d.is_collecting})
 
     def test_japan_renders_with_no_admitted_corpus_records(self):

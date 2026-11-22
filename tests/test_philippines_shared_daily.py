@@ -50,6 +50,29 @@ def fake_analyzer(reply=None):
 
 
 class SharedDaily(unittest.TestCase):
+    def test_afp_place_normalization_requires_the_full_cited_dateline(self):
+        item = record()
+        result = reading()
+        first = result["facts"][0]
+        dateline = "CAMP EXAMPLE, District One - "
+        item["body"] = dateline + item["body"]
+        first["evidence"] = dateline + first["evidence"]
+        for place, hold in (
+            ("Camp Example", None),
+            ("Camp Other", "daily_name_or_office_unsupported"),
+            ("Example Camp", "daily_name_or_office_unsupported"),
+            ("Example Camp near Camp Example", "daily_name_or_office_unsupported"),
+            ("Camp Example-based facilities", "daily_name_or_office_unsupported"),
+        ):
+            with self.subTest(place=place):
+                first["sentence"] = "AFP reports an exercise planned at " + place + " for 23 October."
+                result["summary_english"] = " ".join(fact["sentence"] for fact in result["facts"])
+                if hold:
+                    with self.assertRaisesRegex(d.IntakeHold, hold):
+                        d.quality_check(item, result)
+                else:
+                    d.quality_check(item, result)
+
     def test_geographic_topic_requires_explicit_source_support(self):
         r = record()
         reading = fake_analyzer().analyze_record(r["title"], r["body"], None)
@@ -140,11 +163,33 @@ class SharedDaily(unittest.TestCase):
         self.assertTrue(all(20 <= len(span) <= 480 and span in body
                             for _, span in passages))
 
+    def test_long_paragraph_passages_keep_whole_neighbouring_sentences(self):
+        from analysis.philippines_prompts import evidence_passages
+        lead = "6 November 2026 The service inaugurated its Training Command today."
+        officer = ("Maj. Gen. A. B. Synthetic officiated at the ceremony at Example Camp, "
+                   "which senior commanders attended.")
+        filler = "A later synthetic sentence describes training domains and schools. " * 9
+        body = lead + " " + officer + " " + filler.strip()
+        passages = [span for _, span in evidence_passages(body)]
+        # The dateline and the officiating sentence are citable as ONE passage,
+        # and a rank or initial full stop does not split the officer's name.
+        self.assertTrue(passages[0].startswith(lead + " " + officer))
+        self.assertTrue(all(span in body and 20 <= len(span) <= 480 for span in passages))
+        self.assertTrue(all(span[-1] in ".!?" for span in passages))
+        # Consecutive passages share a whole sentence; none starts mid-sentence.
+        for before, after in zip(passages, passages[1:]):
+            self.assertIn(after.split(". ")[0], before)
+        # One sentence beyond the limit is still citable in exact bounded spans.
+        long_sentence = "The synthetic statement lists " + "another named item, " * 40 + "and ends."
+        spans = [span for _, span in evidence_passages(long_sentence)]
+        self.assertGreater(len(spans), 1)
+        self.assertTrue(all(span in long_sentence and len(span) <= 480 for span in spans))
+
     def test_version_thirteen_requests_specific_independent_explanations(self):
         from analysis.philippines_prompts import analysis_messages
         from processing.screening import PHILIPPINES_PROFILE
         prompt = analysis_messages(record()["title"], record()["body"])[0]["content"]
-        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v13")
+        self.assertEqual(PHILIPPINES_PROFILE.analysis_prompt_version, "ph-analysis-v14")
         self.assertIn("no fixed per-sentence length", prompt)
         self.assertIn("at most 90 words", prompt)
         self.assertIn("NSC hosting does not establish authorship", prompt)
@@ -157,7 +202,8 @@ class SharedDaily(unittest.TestCase):
         for version in ("ph-relevance-v1+ph-analysis-v10",
                         "ph-relevance-v1+ph-analysis-v11",
                         "ph-relevance-v1+ph-analysis-v12",
-                        "ph-relevance-v1+ph-analysis-v13"):
+                        "ph-relevance-v1+ph-analysis-v13",
+                        "ph-relevance-v1+ph-analysis-v14"):
             good = reading()
             good["prompt_version"] = version
             state, _ = d.process([record()], {}, family="ph_afp_articles",
@@ -176,17 +222,18 @@ class SharedDaily(unittest.TestCase):
                                  policy=policy(), analyzer_factory=fake_analyzer)
             approved = dict(state["ph_afp_articles:afp:1"]["output"])
             approved["source_family"] = family
-            approved["policy_sha256"] = d.digest(p)
+            approved["policy_sha256"] = d.policy_binding(p)
             for version in ("ph-relevance-v1+ph-analysis-v10",
                             "ph-relevance-v1+ph-analysis-v11",
                             "ph-relevance-v1+ph-analysis-v12",
-                            "ph-relevance-v1+ph-analysis-v13"):
+                            "ph-relevance-v1+ph-analysis-v13",
+                            "ph-relevance-v1+ph-analysis-v14"):
                 with self.subTest(family=family, version=version):
                     d.validate_output(dict(approved, prompt_version=version), family, p)
             with self.subTest(family=family, version="unapproved"):
                 with self.assertRaisesRegex(d.IntakeHold, "daily_output_incomplete"):
                     d.validate_output(dict(approved,
-                        prompt_version="ph-relevance-v1+ph-analysis-v14"), family, p)
+                        prompt_version="ph-relevance-v1+ph-analysis-v15"), family, p)
 
     def test_unsupported_profile_never_dispatches(self):
         from analysis.analyzer import Analyzer, AnalysisError
@@ -321,6 +368,121 @@ class SharedDaily(unittest.TestCase):
         self.assertEqual(state["ph_afp_articles:afp:2"]["status"], "complete")
         self.assertEqual(state["ph_afp_articles:afp:3"]["status"], "pending")
 
+    def test_policy_record_count_is_bounded_and_cost_ceiling_is_unchanged(self):
+        base = json.loads(d.POLICY_PATH.read_text())
+        for value, ok in ((1, True), (d.MAX_RECORDS_PER_RUN, True), (0, False),
+                          (d.MAX_RECORDS_PER_RUN + 1, False), (True, False), (2.0, False)):
+            p = copy.deepcopy(base); p["sources"]["ph_afp_articles"]["max_records_per_run"] = value
+            with tempfile.TemporaryDirectory() as tmp, self.subTest(value=value):
+                path = Path(tmp) / "policy.json"; path.write_text(json.dumps(p))
+                if ok:
+                    d.load_policy(path)
+                else:
+                    with self.assertRaisesRegex(d.IntakeHold, "daily_spend_bound_invalid"):
+                        d.load_policy(path)
+        p = copy.deepcopy(base); p["sources"]["ph_afp_articles"]["max_estimated_cost_usd_per_run"] = 0.36
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "policy.json"; path.write_text(json.dumps(p))
+            with self.assertRaisesRegex(d.IntakeHold, "daily_spend_bound_invalid"):
+                d.load_policy(path)
+
+    def test_guard_allows_two_calls_per_record_under_one_run_ceiling(self):
+        from config import RELEVANCE_MODEL
+        p = dict(policy()["sources"]["ph_afp_articles"], max_records_per_run=2)
+        a = Mock(); underlying = a._call
+        budget = d.bound_private_calls(a, p)
+        for _ in range(2):
+            budget.begin_record()
+            a._call([], task="relevance", model=RELEVANCE_MODEL, max_tokens=500)
+            a._call([], task="summary", max_tokens=2200)
+            with self.assertRaisesRegex(d.IntakeHold, "call_bound"):
+                a._call([], task="summary", max_tokens=2200)
+        with self.assertRaisesRegex(d.IntakeHold, "call_bound"):
+            budget.begin_record()
+        self.assertEqual(underlying.call_count, 4)
+        self.assertLess(budget.remaining, p["max_estimated_cost_usd_per_run"])
+        self.assertGreaterEqual(budget.remaining, 0)
+
+    def budgeted_run(self, records, *, max_records, state=None):
+        """Real spend guard around a synthetic analyzer; no client is reached."""
+        from config import RELEVANCE_MODEL
+
+        class Budgeted:
+            def __init__(self):
+                self._client, self.usage = Mock(), Mock()
+                self.usage.rows.return_value = []
+                self.sent = []
+
+            def _call(self, messages, **kwargs):
+                self.sent.append(kwargs["task"])
+
+            def analyze_record(self, title, body, profile):
+                self._call([{"content": title + body}], task="relevance",
+                           model=RELEVANCE_MODEL, max_tokens=500)
+                if title.startswith("Routine"):
+                    return {"passed_relevance": False}
+                self._call([{"content": title + body}], task="summary", max_tokens=2200)
+                return reading()
+
+        made = []
+        def factory():
+            made.append(Budgeted()); return made[-1]
+        p = policy(); p["sources"]["ph_afp_articles"]["max_records_per_run"] = max_records
+        with patch("analysis.analyzer.Analyzer", factory):
+            state, _ = d.process(records, state or {}, family="ph_afp_articles", policy=p)
+        return state, made[0].sent
+
+    def numbered(self, n, *, title="Synthetic source fixture", pad=0):
+        r = record(); r["source_identity"] = "afp:%d" % n; r["title"] = title
+        r["body"] += " " + "x" * pad
+        r["content_sha256"] = hashlib.sha256(r["body"].encode()).hexdigest()
+        return r
+
+    def test_multiple_records_share_one_reservation_and_overflow_waits(self):
+        # Screened-out records reserve only their relevance call, so all four fit.
+        records = [self.numbered(n, title="Routine notice") for n in range(1, 5)]
+        state, sent = self.budgeted_run(records, max_records=4)
+        self.assertEqual(sent, ["relevance"] * 4)
+        self.assertEqual({v["status"] for v in state.values()}, {"not_selected"})
+        # Near-ceiling originals: the reservation, not the count, stops the run.
+        records = [self.numbered(n, pad=15000) for n in range(1, 5)]
+        state, sent = self.budgeted_run(records, max_records=4)
+        self.assertEqual(sent, ["relevance", "summary"] * 2)
+        self.assertEqual([state["ph_afp_articles:afp:%d" % n]["status"] for n in range(1, 5)],
+                         ["complete", "complete", "pending", "pending"])
+        self.assertEqual([state["ph_afp_articles:afp:%d" % n]["attempts"] for n in (3, 4)], [0, 0])
+        # The deferred records are taken by the next run, without a lost attempt.
+        state, sent = self.budgeted_run(records, max_records=4, state=state)
+        self.assertEqual(sent, ["relevance", "summary"] * 2)
+        self.assertEqual({v["status"] for v in state.values()}, {"complete"})
+
+    def test_deferral_keeps_a_prior_quality_disposition(self):
+        records = [self.numbered(n, pad=15000) for n in range(1, 4)]
+        prior = {"ph_afp_articles:afp:3": {"version": d.digest({k: records[2][k] for k in (
+            "metadata_version_sha256", "content_sha256", "capture_sha256")}),
+            "status": "retriable", "attempts": 2, "reason": "analysis_or_quality_failed",
+            "quality_hold": "daily_topic_unsupported"}}
+        state, _ = self.budgeted_run(records, max_records=3, state=prior)
+        self.assertEqual(state["ph_afp_articles:afp:3"], prior["ph_afp_articles:afp:3"])
+
+    def test_capacity_change_keeps_released_binding_but_other_drift_withdraws(self):
+        base = d.load_policy()["sources"]["ph_afp_articles"]
+        bound = d.policy_binding(base)
+        self.assertEqual(bound, d.digest({**base, "max_records_per_run": 1}))
+        self.assertEqual(d.policy_binding({**base, "max_records_per_run": 6}), bound)
+        for drift in ({"max_estimated_cost_usd_per_run": 0.2}, {"max_input_characters": 8000},
+                      {"owner_decision": base["owner_decision"] + " changed"},
+                      {"excluded_source_identities": base["excluded_source_identities"] + ["afp:9"]},
+                      {"unattended_release": not base["unattended_release"]}):
+            self.assertNotEqual(d.policy_binding({**base, **drift}), bound, drift)
+
+    def test_single_record_policy_still_dispatches_exactly_one(self):
+        records = [self.numbered(n) for n in range(1, 4)]
+        state, sent = self.budgeted_run(records, max_records=1)
+        self.assertEqual(sent, ["relevance", "summary"])
+        self.assertEqual([state["ph_afp_articles:afp:%d" % n]["status"] for n in range(1, 4)],
+                         ["complete", "pending", "pending"])
+
     def test_quality_rejects_unsupported_facts_and_incomplete_analysis(self):
         changes = [dict(requires_translation=True), dict(facts=[]), dict(categories=["political_work"])]
         for change in changes:
@@ -364,6 +526,172 @@ class SharedDaily(unittest.TestCase):
         d.admit(conn, envelope, family="ph_afp_articles", policy=p, key=key)
         self.assertEqual(conn.execute("SELECT publication_state FROM daily_machine_records").fetchone()[0], "held")
         conn.close()
+
+    # -- schema /2: signed collection attestation --------------------------
+
+    KEY = "synthetic-test-key-" * 3
+
+    def _admission_fixture(self):
+        from migrations.versions.m0015_daily_machine_records import up
+        from core.regional_official_link_release import SCHEMA_SQL
+        p = policy()
+        state, _ = d.process([record()], {}, family="ph_afp_articles", policy=p, analyzer_factory=fake_analyzer)
+        envelope = d.sign_outputs(state, family="ph_afp_articles", policy=p, key=self.KEY)
+        conn = sqlite3.connect(":memory:"); conn.executescript(SCHEMA_SQL); up(conn)
+        r = record()
+        conn.execute("INSERT INTO regional_official_source_links VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+            r["source_family"], r["source_identity"], "philippines", r["canonical_official_url"],
+            r["publisher_posted_date"], "ph_afp", "ph_afp", None, "c"*40, "a"*64, "123-1",
+            "official_link_only", "d"*64, "2026-10-19T00:00:00Z"))
+        conn.commit()
+        return conn, p, envelope
+
+    def _v2(self, envelope, collection, domain=None):
+        import hmac
+        packet = dict(copy.deepcopy(envelope["packet"]), collection=collection,
+                      schema="ipr-shared-daily-machine-output/2")
+        mac = hmac.new(self.KEY.encode(), (domain or d.DOMAIN_V2) + d.canonical(packet),
+                       hashlib.sha256).hexdigest()
+        return {"packet": packet, "mac": mac}
+
+    def _facts(self, **over):
+        from tests.test_collection_attempts import facts
+        return facts(family="ph_afp_articles", **over)
+
+    def test_domains_and_schemas_are_pinned(self):
+        self.assertEqual(d.DOMAIN, b"ipr-shared-daily-machine-output/1\n")
+        self.assertEqual(d.DOMAIN_V2, b"ipr-shared-daily-machine-output/2\n")
+
+    def test_admit_accepts_schema_one_and_two_with_an_unchanged_return(self):
+        for label, make in (("v1", lambda e: e),
+                            ("v2", lambda e: self._v2(e, self._facts()))):
+            with self.subTest(label):
+                conn, p, envelope = self._admission_fixture()
+                out = d.admit(conn, make(envelope), family="ph_afp_articles", policy=p, key=self.KEY)
+                self.assertEqual(out, {"admitted": 1, "holds": []})
+                self.assertEqual(sorted(out), ["admitted", "holds"])
+                conn.close()
+
+    def test_schema_two_under_the_schema_one_domain_is_a_mac_failure(self):
+        conn, p, envelope = self._admission_fixture()
+        wrong = self._v2(envelope, self._facts(), domain=d.DOMAIN)
+        with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_mac_invalid"):
+            d.admit(conn, wrong, family="ph_afp_articles", policy=p, key=self.KEY)
+        # And the reverse: a /1 body MACed under the /2 domain.
+        import hmac
+        swapped = {"packet": envelope["packet"], "mac": hmac.new(
+            self.KEY.encode(), d.DOMAIN_V2 + d.canonical(envelope["packet"]),
+            hashlib.sha256).hexdigest()}
+        with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_mac_invalid"):
+            d.admit(conn, swapped, family="ph_afp_articles", policy=p, key=self.KEY)
+        self.assertEqual(conn.execute("SELECT count(*) FROM daily_machine_records").fetchone()[0], 0)
+
+    def test_extra_or_missing_keys_by_schema_are_a_source_mismatch(self):
+        import hmac
+        conn, p, envelope = self._admission_fixture()
+
+        def signed(packet):
+            domain = d.PACKET_DOMAINS.get(packet["schema"], d.DOMAIN)
+            return {"packet": packet, "mac": hmac.new(
+                self.KEY.encode(), domain + d.canonical(packet), hashlib.sha256).hexdigest()}
+        cases = [dict(envelope["packet"], collection={}),                      # /1 plus extra
+                 dict(envelope["packet"], schema="ipr-shared-daily-machine-output/2"),  # /2 lacks block
+                 dict(envelope["packet"], schema=d.SCHEMA_V3),
+                 dict(envelope["packet"], schema="ipr-shared-daily-machine-output/unknown"),
+                 dict(envelope["packet"], collection={}, extra=1,
+                      schema="ipr-shared-daily-machine-output/2")]
+        for packet in cases:
+            with self.subTest(schema=packet["schema"], keys=sorted(packet)):
+                with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_source_mismatch"):
+                    d.admit(conn, signed(packet), family="ph_afp_articles", policy=p, key=self.KEY)
+
+    def test_exact_original_component_admission_replay_and_withdrawal(self):
+        import hmac
+        from core import daily_record_originals as original
+        from migrations.versions import m0025_daily_record_originals as migration
+
+        conn, p, _ = self._admission_fixture()
+        self.addCleanup(conn.close)
+        migration.up(conn)
+        item = record()
+        prose = item["body"]
+        item["body"] += "\n\nPhotos by Synthetic Credit"
+        item["content_sha256"] = original.text_hash(item["body"])
+        state, _ = d.process([item], {}, family=original.AFP, policy=p,
+                             analyzer_factory=fake_analyzer)
+        pins = {original.AFP: {item["source_identity"]: {
+            **{k: item[k] for k in original.VERSION_FIELDS},
+            "title_sha256": original.text_hash(item["title"]),
+            "public_text_sha256": original.text_hash(prose),
+        }}}
+
+        def admit(envelope):
+            return d.admit(conn, envelope, family=original.AFP, policy=p, key=self.KEY)
+
+        def sign(record):
+            return d.sign_outputs(state, family=original.AFP, policy=p, key=self.KEY,
+                                  collection=self._facts(), verified_records=[record])
+
+        with patch.object(original, "load_pins", return_value=pins):
+            for edit in ({"official_republisher": "other"}, {"official_issuer": "ph_nsc"},
+                         {"capture_sha256": "0" * 64}, {"body": "Third-party text"}):
+                self.assertEqual(sign({**item, **edit})["packet"]["schema"], d.SCHEMA_V2)
+            good = sign(item)
+            self.assertEqual(good["packet"]["schema"], d.SCHEMA_V3)
+            component, = good["packet"]["originals"]
+            self.assertEqual(component["text_original"], prose)
+            packet = copy.deepcopy(good["packet"])
+            packet["originals"][0]["text_original"] = "Replacement text"
+            wrong_mac = hmac.new(self.KEY.encode(), d.DOMAIN_V2 + d.canonical(packet),
+                                 hashlib.sha256).hexdigest()
+            with self.assertRaisesRegex(d.IntakeHold, "daily_envelope_mac_invalid"):
+                admit({"packet": packet, "mac": wrong_mac})
+            mac = hmac.new(self.KEY.encode(), d.DOMAIN_V3 + d.canonical(packet),
+                           hashlib.sha256).hexdigest()
+            bad_version = admit({"packet": packet, "mac": mac})
+            self.assertEqual(bad_version["originals_admitted"], 0)
+            self.assertIn("daily_original_version_or_policy_held", bad_version["holds"])
+            self.assertEqual(admit(good)["originals_admitted"], 1)
+            self.assertEqual(admit(good)["originals_admitted"], 0)
+        with patch.object(original, "load_pins", return_value={}):
+            self.assertEqual(admit(good)["originals_admitted"], 0)
+            self.assertIsNone(original.stored_component(conn, original.AFP, item["source_identity"]))
+            self.assertIsNotNone(original.released_parent(conn, original.AFP, item["source_identity"]))
+
+    def test_a_malformed_collection_block_still_admits_and_is_reported_not_attested(self):
+        for block in ({"schema": "junk"}, None, "text", [], dict(self._facts(), error_detail="leak")):
+            with self.subTest(block=block):
+                conn, p, envelope = self._admission_fixture()
+                v2 = self._v2(envelope, block)
+                self.assertEqual(d.admit(conn, v2, family="ph_afp_articles", policy=p, key=self.KEY),
+                                 {"admitted": 1, "holds": []})
+                self.assertEqual(d.collection_facts(v2["packet"]),
+                                 {"attested": False, "reason": "collection_attestation_invalid"})
+                conn.close()
+
+    def test_collection_facts_is_none_for_schema_one_and_the_block_for_valid_two(self):
+        _, _, envelope = self._admission_fixture()
+        self.assertIsNone(d.collection_facts(envelope["packet"]))
+        good = self._facts()
+        self.assertEqual(d.collection_facts(self._v2(envelope, good)["packet"]), good)
+        other = dict(good, family="ph_nsc_official_statements")
+        self.assertFalse(d.collection_facts(self._v2(envelope, other)["packet"])["attested"])
+
+    def test_intake_family_adds_collection_to_its_receipt(self):
+        from processing.daily_runner import intake_family
+        conn, p, envelope = self._admission_fixture()
+        conn.close()
+        for label, env, expected in (("v1", envelope, None),
+                                     ("v2", self._v2(envelope, self._facts()), self._facts())):
+            with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
+                (Path(tmp) / "ph_afp_articles.json").write_text(json.dumps(env))
+                with patch("processing.daily_runner.admit",
+                           return_value={"admitted": 1, "holds": []}) as call, \
+                        patch.dict("os.environ", {"DAILY_PH_AFP_ARTICLES_KEY": self.KEY}):
+                    receipt = intake_family(Path(tmp) / "s.db", tmp, "ph_afp_articles", policy=p)
+                self.assertEqual(receipt, {"records": 1, "admitted": 1, "holds": [],
+                                           "collection": expected})
+                self.assertTrue(call.called)
 
     def test_intake_family_raises_on_bad_envelope_and_is_silent_when_absent(self):
         # Family failures are isolated by the pipeline's governed dispatch, which

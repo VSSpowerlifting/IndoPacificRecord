@@ -62,12 +62,17 @@ class FutureJournalTests(unittest.TestCase):
         self.assertIn("Cropped and resized by IPR", figure.get_text())
         self.assertTrue(figure.select("figcaption a[href^='https://']"))
 
-    def test_no_photo_uses_labelled_artwork_and_short_omits_optional_extras(self):
+    def test_no_photo_has_no_picture_and_short_omits_optional_extras(self):
+        # A Brief without a granted photograph is text-led: no photograph, no
+        # drawn Editorial plate, and no stand-in picture of any kind.
         page = self.page("fixture-journal-no-photograph")
         self.assertIsNone(page.select_one('[data-article-media="photograph"]'))
-        plate = page.select_one('[data-article-media="plate"]')
-        self.assertIsNotNone(plate)
-        self.assertIn("Editorial plate", plate.get_text())
+        self.assertIsNone(page.select_one('[data-article-media="plate"]'))
+        hero = page.select_one("section.brief-hero")
+        self.assertEqual(hero.select("figure, img, picture, svg"), [])
+        self.assertNotIn("brief-hero--photo", hero["class"])
+        self.assertNotIn("Editorial plate", page.get_text())
+        self.assertIsNotNone(page.select_one("h1#brief-title"))
         short = self.page("fixture-journal-short")
         for selector in ("#s-term", ".brief-signal", "#s-external", "#reading-finding", "#reading-evidence", '[aria-label="Research contributor"]'):
             self.assertIsNone(short.select_one(selector), selector)

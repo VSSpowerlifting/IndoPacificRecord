@@ -7,7 +7,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from PIL import Image
 from core.frontend_budget import measure_page
-from scripts.verify_frontend_delivery import verify
+from scripts.verify_frontend_delivery import html_css_cap, verify
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,15 +31,13 @@ class MaterialIntegrity(unittest.TestCase):
         self.assertLess((directory / 'chart-paper.png').stat().st_size, 60000)
 
     def test_curves_are_original_and_no_operational_marks_are_added(self):
-        from urllib.parse import unquote
-        original = unquote((ROOT / 'site/preview/topography.css').read_text())
+        # topography.css, which once embedded these curves, is retired
+        # (2026-11-16); the committed SVGs keep their pinned structure.
         for name in ('hero', 'paper'):
             svg = ET.parse(ROOT / ('site/assets/material/contours-%s.svg' % name))
             paths = list(svg.getroot().iter('{http://www.w3.org/2000/svg}path'))
             self.assertEqual(len(paths), 36)
             self.assertEqual(len(set(path.attrib['d'] for path in paths)), 12)
-            for path in paths:
-                self.assertIn(path.attrib['d'], original)
             self.assertEqual(set(e.tag.split('}')[-1] for e in svg.getroot().iter()), {'svg', 'g', 'path'})
 
 
@@ -59,10 +57,22 @@ class CompleteDelivery(unittest.TestCase):
         from core.daily_machine_records import load as load_machine_records
         machine = {Path(r['record_path']).name for r in load_machine_records(ROOT / 'pla_watch.db')}
         from core.brief_collection import load_collection
-        from core.cited_source_records import resolve
+        from core.cited_source_records import released, resolve
         from core.desk_registry import load_registry
         briefs = load_collection([], load_registry(), briefs_dir=ROOT / 'briefs')
-        cited = {Path(r['record_path']).name for r in resolve(briefs)[0]}
+        # The *committed* output is a publication snapshot. A newly eligible
+        # reference obtains its cited page only when its Brief is re-rendered
+        # and released. Check the actual IPR Record links on published Brief
+        # pages: every linked cited route must exist, and every committed
+        # cited page must be justified by such a link. In a fresh render,
+        # all eligible references gain their links, enforcing completeness.
+        cited = set()
+        for record in released(resolve(briefs)[0], root):
+            route = '../' + record['record_path']
+            if any(route in (root / citing['url']).read_text('utf-8')
+                   for citing in record['cited_in']
+                   if (root / citing['url']).is_file()):
+                cited.add(Path(record['record_path']).name)
         self.assertEqual({p.name for p in (root / 'record').glob('*.html')},
                          living | machine | cited,
                          "retired, missing or extra record pages would go unchecked")
@@ -106,10 +116,10 @@ class CompleteDelivery(unittest.TestCase):
             # Linked CSS counts toward the dossier's combined allowance.
             (root / 'dossiers.css').write_text('x' * 50000)
             link = '<link rel="stylesheet" href="../dossiers.css">'
-            (root / 'dossier/within.html').write_text(link + 'x' * (200000 - 50000 - len(link)))
-            (root / 'dossier/over.html').write_text(link + 'x' * (200001 - 50000 - len(link)))
-            (root / 'dossier/plain.html').write_text('x' * 199999)
-            (root / 'dossier/large.html').write_text('x' * 200001)
+            (root / 'dossier/within.html').write_text(link + 'x' * (230000 - 50000 - len(link)))
+            (root / 'dossier/over.html').write_text(link + 'x' * (230001 - 50000 - len(link)))
+            (root / 'dossier/plain.html').write_text('x' * 229999)
+            (root / 'dossier/large.html').write_text('x' * 230001)
             for route in ('dossiers.html', 'dossier/index.html', 'dossier/nested/page.html', 'record/1.html',
                           'briefs/brief.html', 'the-pla-watch/posts/week.html'):
                 (root / route).write_text('x' * 120001)
@@ -118,10 +128,76 @@ class CompleteDelivery(unittest.TestCase):
             values = verify(root)
             failed = {v['route']: v['html_css_limit'] for v in values['failures']}
             self.assertEqual(failed, {'briefs/brief.html': 120000, 'dossier/index.html': 120000,
-                                      'dossier/large.html': 200000, 'dossier/nested/page.html': 120000,
-                                      'dossier/over.html': 200000, 'dossier/scripts.html': 200000,
+                                      'dossier/large.html': 230000, 'dossier/nested/page.html': 120000,
+                                      'dossier/over.html': 230000, 'dossier/scripts.html': 230000,
                                       'dossiers.html': 120000, 'record/1.html': 120000,
                                       'the-pla-watch/posts/week.html': 120000})
             limits = {v['route']: (v['html_css_limit'], v['js_limit']) for v in values['routes']}
-            self.assertEqual(limits['dossier/within.html'], (200000, 10000))
-            self.assertEqual(limits['dossier/plain.html'], (200000, 10000))
+            self.assertEqual(limits['dossier/within.html'], (230000, 10000))
+            self.assertEqual(limits['dossier/plain.html'], (230000, 10000))
+
+    def test_record_476_allowance_covers_only_that_record(self):
+        # Owner, DECISION_LOG 2026-11-13 (#1055): temporary 125 KB for record/476.html only.
+        for route, cap in (('record/476.html', 125000), ('record/475.html', 120000),
+                           ('record/4760.html', 120000), ('record/1476.html', 120000),
+                           ('nested/record/476.html', 120000), ('476.html', 120000),
+                           ('record/source-476.html', 120000)):
+            self.assertEqual(html_css_cap(route), cap, route)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'record').mkdir()
+            (root / 'record.css').write_text('x' * 50000)
+            link = '<link rel="stylesheet" href="../record.css">'
+            (root / 'record/476.html').write_text(link + 'x' * (125000 - 50000 - len(link)))
+            (root / 'record/477.html').write_text('x' * 120001)
+            values = verify(root)
+            self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
+                             {'record/477.html': 120000})
+            (root / 'record/476.html').write_text(link + 'x' * (125001 - 50000 - len(link)))
+            failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
+            self.assertEqual(failed['record/476.html'], 125001)
+
+    def test_korea_allowance_covers_only_the_root_desk_page(self):
+        # Owner, DECISION_LOG 2026-11-16 (#1064): temporary 130 KB for korea.html only;
+        # raised to 160 KB by the founder on 21 Nov 2026.
+        for route, cap in (('korea.html', 160000), ('vietnam.html', 120000),
+                           ('korea-translations/1.html', 120000),
+                           ('korea-originals/1.html', 120000),
+                           ('korea-analysis/1.html', 120000),
+                           ('desks/korea.html', 120000), ('record/korea.html', 120000)):
+            self.assertEqual(html_css_cap(route), cap, route)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'nested').mkdir()
+            (root / 'korea-shell.css').write_text('x' * 40000)
+            link = '<link rel="stylesheet" href="korea-shell.css">'
+            (root / 'korea.html').write_text(link + 'x' * (160000 - 40000 - len(link)))
+            (root / 'nested/korea.html').write_text('x' * 120001)
+            values = verify(root)
+            self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
+                             {'nested/korea.html': 120000})
+            (root / 'korea.html').write_text(link + 'x' * (160001 - 40000 - len(link)))
+            failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
+            self.assertEqual(failed['korea.html'], 160001)
+
+    def test_indonesia_allowance_covers_only_the_root_desk_page(self):
+        # Owner, DECISION_LOG 2026-11-13: temporary 130 KB for indonesia.html only;
+        # raised to 160 KB by the founder on 21 Nov 2026.
+        for route, cap in (('indonesia.html', 160000), ('philippines.html', 120000),
+                           ('vietnam.html', 120000), ('desks/indonesia.html', 120000),
+                           ('record/indonesia.html', 120000), ('desks.html', 300000)):
+            self.assertEqual(html_css_cap(route), cap, route)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'nested').mkdir()
+            (root / 'indonesia-shell.css').write_text('x' * 40000)
+            link = '<link rel="stylesheet" href="indonesia-shell.css">'
+            (root / 'indonesia.html').write_text(link + 'x' * (160000 - 40000 - len(link)))
+            (root / 'philippines.html').write_text('x' * 120001)
+            (root / 'nested/indonesia.html').write_text('x' * 120001)
+            values = verify(root)
+            self.assertEqual({v['route']: v['html_css_limit'] for v in values['failures']},
+                             {'philippines.html': 120000, 'nested/indonesia.html': 120000})
+            (root / 'indonesia.html').write_text(link + 'x' * (160001 - 40000 - len(link)))
+            failed = {v['route']: v['html_css_bytes'] for v in verify(root)['failures']}
+            self.assertEqual(failed['indonesia.html'], 160001)

@@ -401,13 +401,14 @@ class TestShadowRun(ShadowRunCase):
     def test_two_documents_sharing_a_title_stay_distinct(self):
         e = self.go()
         con = sqlite3.connect(str(self.state / "shadow.db"))
-        con.execute("INSERT INTO shadow_records (url, source_slug,"
+        con.execute("INSERT INTO shadow_records (url, source_identity,"
+                    " source_slug, title_original, text_original,"
+                    " published_date, language_tag, publication_kind,"
+                    " content_sha256, metadata_json)"
+                    " SELECT url || 'x2/', source_identity || 'x2', source_slug,"
                     " title_original, text_original, published_date,"
-                    " language_tag, publication_kind, content_sha256)"
-                    " SELECT url || 'x2/', source_slug, title_original,"
-                    " text_original, published_date, language_tag,"
-                    " publication_kind, content_sha256 FROM shadow_records"
-                    " LIMIT 1")
+                    " language_tag, publication_kind, content_sha256,"
+                    " metadata_json FROM shadow_records LIMIT 1")
         con.commit()
         titles = con.execute("SELECT title_original, COUNT(*) FROM"
                              " shadow_records GROUP BY title_original"

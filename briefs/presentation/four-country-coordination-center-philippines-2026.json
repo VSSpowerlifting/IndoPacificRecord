@@ -1,0 +1,44 @@
+{
+  "version": "brief-presentation-v1",
+  "article": "four-country-coordination-center-philippines-2026",
+  "manuscript_fingerprint": "5d8561ae3e4dc234727e131485dbcf1cd4264b9065a848e079411e796e93b59d",
+  "status": "approved",
+  "sections": [
+    {
+      "id": "reading-section-1",
+      "start": 1,
+      "end": 2,
+      "heading": "The four-government pledge"
+    },
+    {
+      "id": "reading-section-2",
+      "start": 3,
+      "end": 5,
+      "heading": "From a bilateral planning room to multinational exercises"
+    },
+    {
+      "id": "reading-section-3",
+      "start": 6,
+      "end": 7,
+      "heading": "Manila’s account of a center already operating"
+    },
+    {
+      "id": "reading-section-4",
+      "start": 8,
+      "end": 11,
+      "heading": "The next test comes between exercises"
+    }
+  ],
+  "approval": {
+    "reviewed_by": "Benjamin Yang",
+    "reviewed_on": "2026-11-16",
+    "reference": "Benjamin Yang's 2026-11-16 review of both exact rendered presentations and acceptance of the documented source-access limits in the IPR two-Brief publication chat. Final review packet for PR #1061.",
+    "fingerprint": "ddc5e7cda34666b9e113764d0c6615f78468244eed2e0cc9efae0c1d5316a75f",
+    "checks": {
+      "excerpts": true,
+      "headings": true,
+      "media": true,
+      "rendered_page": true
+    }
+  }
+}

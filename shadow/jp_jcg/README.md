@@ -1,5 +1,11 @@
 # Japan Coast Guard official English releases — isolated shadow pilot
 
+**Source-use authority:** evaluate each proposed use under
+[the canonical research-first standard](../../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard).
+The linked October rights dossier preserves evidence, not a mandatory publisher
+correspondence route or launch clock. Its unresolved English-PDL applicability,
+attachment, custody and activation limits remain unresolved here.
+
 **Status (October 8, 2026): the owner-dispatched shadow collector has archived
 three official English HTML releases on isolated `shadow/japan-jcg` (Day 0
 commit `81558026117067cbcf54bd7a7859a2d9db168a0c`). A guarded daily

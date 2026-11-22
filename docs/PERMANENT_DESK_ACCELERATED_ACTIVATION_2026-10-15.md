@@ -1,4 +1,16 @@
-# Permanent source activation — exceptional seven-day evidence path
+# Historical policy — permanent source activation under former seven-day exception
+
+> **RETIRED AS AN OPERATING LAUNCH RULE — founder decision 11 November 2026.**
+> The seven-day exception and thirty-day normal launch clock below describe
+> the October 15 historical decision. Neither remains a current prerequisite
+> to the initial minimum-operational milestone or to full-scope completion.
+> Current authority: [eight-desk completion plan](desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md),
+> [C13](DESK_STRENGTH_CRITERIA.md#c13--minimum-source-to-reader-acceptance-without-launch-clocks)
+> and specific publisher rights, source holds and operational decisions.
+> The dated procedures below are **historical**; preserve their audit record,
+> but do not make an agent wait, obtain per-record routine founder approvals,
+> bypass a rights hold, or activate/deploy based on this document alone.
+
 
 > **Desk architecture/process supersession — 30 October 2026:** the
 > [mandatory shared desk standard](desks/README.md) governs every current and future

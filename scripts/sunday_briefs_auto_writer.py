@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from config import DB_PATH
+from core import china_source_use_hold as china_hold
 from core.brief_contract import trail_entry
 from core.brief_editorial_evidence import evidence_prompt as research_prompt
 from core.brief_prose_standard import (
@@ -107,6 +108,13 @@ def choose_evidence(sidecar, *, as_of, db=DB_PATH, selected_ids=None,
     offered = {entry["record_id"]: entry for entry in sidecar["source_trail"]}
     verified = []
     for row in rows:
+        if china_hold.is_held_row(row):
+            # Interim source-use hold: stored text from a held publisher is
+            # never offered to the model (disabled unless the hold is enabled).
+            if discovery_inventory is not None:
+                discovery_inventory.append({"id": row["id"], "desk": row["desk_id"],
+                    "date": row["published_date"], "reason": "source_use_hold"})
+            continue
         reference = offered.get(row["id"])
         reason = None
         if discovery_inventory is not None:

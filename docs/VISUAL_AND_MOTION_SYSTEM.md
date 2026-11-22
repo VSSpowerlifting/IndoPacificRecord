@@ -3,6 +3,37 @@
 Durable specification for motion and the flagship visual components.
 Tokens/typography: docs/DESIGN_SYSTEM.md. Tickets: docs/ROADMAP.md.
 
+## Parallel text identity (2026-11-15, pending review)
+
+For the active `site/preview/` renderer, DESIGN_SYSTEM.md "Parallel text
+identity" supersedes two treatments described below:
+
+- **Abstract page terrain (§1).** Active pages no longer paint or animate the
+  contour field, and `<main>` no longer carries the `--topo-*` inline style;
+  `topography.css` and `_terrain.html` are retired. The page ground is plain
+  paper. (`core/topography.py` stays for the historical renderers.)
+- **Opening title (§1.1).** The homepage no longer loads `intro.js`. The
+  script, its WebGL ocean and `tests/test_homepage_intro.py` are removed. The
+  homepage opens directly on one real record set as parallel text.
+
+Both were owner-approved on 2026-10-05, so their removal is a reversal that
+needs the owner's review with this change, not a standing rule yet. Their
+descriptions below are kept as the record of what was approved. The remaining
+motion on active pages is reader-triggered (button press, disclosure
+opening, archive results and atlas link feedback). The week strip (§3.2a) is unchanged except that
+its key names the edge weeks "Part week, at either end of the record". Also
+retired with this change: scroll-reveal (`reveal.js`), the desk map
+(`desk-map.js`, `_desk_map_geo.svg`; geography returned on 17 November as the
+regional atlas, §2 Maps, without the map's script or plates), the relief primitives (`relief.css`,
+`_relief.html`, their sprites and gallery page), the Edition Plate partial
+(`_plate.html`) and the homepage Ocean Signal Veil emission (its source
+assets and manifest entry are kept). Photographs appear as admitted Brief covers
+and, since 16 November, as the home opening: one stable, public-domain
+U.S. Navy photograph (the Reagan CSG with JMSDF ships, the image IPR's
+homepage carried before), in full colour under a CSS-only gradient with its
+full credit beneath. The Signal Veil's duotone treatment is not used (see §2
+and DESIGN_SYSTEM.md "Pictures").
+
 ## Coastal colour representation (2026-10-14)
 
 The owner-directed coastal migration supersedes crimson/rust paint in the
@@ -41,15 +72,14 @@ new work must reuse it, not reinvent it.
 | Ambient | ≥3s loop, subtle | signal dots in the Signal Field / dark band only |
 
 ### Hard rules
-- Transform/opacity only; zero layout shift; content never waits on motion
-  (start states only under `.js` inside un-revealed containers, so no-JS,
-  print, and reduced-motion render the finished artwork — keep this exact
-  pattern for every new component).
+- Animate transform and opacity for interaction feedback. Keep the full
+  layout and its contents available immediately.
 - Every page must satisfy three fallback paths: no-JS, `.no-anim`,
-  `prefers-reduced-motion` (global kill-switch exists).
-- Prohibited: bouncing, floating cards, glow, cursor-following, radar
-  sweeps, animated backgrounds outside the terrain exception below, entrance animations >1.2s, per-paragraph
-  animation, autoplaying video, parallax.
+  `prefers-reduced-motion` (the global stop rule).
+- Active page arrivals, photographs and atlas artwork are static. Scroll
+  progress on historical reading pages still follows the reader's position.
+- Avoid bouncing, floating cards, glow, cursor-following, radar sweeps,
+  pulsing map points, ambient motion and autoplaying video.
 - Prefer CSS/SVG. JS only for IntersectionObserver gating and interactions
   that provide analytical value (e.g., node highlighting).
 
@@ -108,8 +138,9 @@ in `tests/test_homepage_intro.py`.
 | Original editorial graphics (SVG plates) | flagship visuals, edition plates | abstract, generated from real repo data; must read as editorial, not evidentiary |
 | Data-derived visualizations | Signals dashboard, snapshot bars | only fields the pipeline reliably produces; label gaps honestly |
 | Source photographs | inside editions as context | verbatim from the cited article; credit + "visual context only; not evidence" note (mandatory, existing norm); no misleading crops |
+| Homepage photograph | the home opening only | one stable, verified asset (manifest `reagan-jmsdf-2015`, public domain, routed to `home`); source and derivative hashes checked at render; CSS-only gradient; full credit beneath, labelled "Illustrative photograph, not a record"; never a record image, never rotated with the Briefs; fail closed to plain navy |
 | Brief cover photographs | a native Brief's catalogue card and opened-article hero | one individually verified, owner-approved photograph per Brief, same image on both surfaces, CSS-only gradient, full provenance and any publisher notice; fail closed to the plate. See `docs/BRIEF_PHOTOGRAPHY_CONTRACT.md` |
-| Maps | Desks page only (`desks.html`) | only with rights-cleared bases + honest generalization; no fake operational maps. The Desks map: Natural Earth 1:50m (public domain), de facto lines, Miller projection, generated by `scripts/desk_map.py`; a point marks where a desk's publishing institutions sit, never an area of coverage |
+| Maps | Desks and seated desk locators | Natural Earth 1:50m (public domain), de facto lines and the Miller projection. Markers identify where a desk's publishing institutions are based. Glyph shape carries collection state, and the full label is available to assistive technology. The atlas shows its interactive links beside the artwork when space permits and as a list otherwise. A ring responds to hover or focus. |
 | Generated abstract imagery | backgrounds of plates | never depicting real events as documentary; no imitation photography |
 | Stock imagery | — | banned |
 

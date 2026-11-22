@@ -1,0 +1,13 @@
+/* Private pre-publication review harness: intentional factual constraints. */
+.korea-private-preview{margin-block:2rem 3rem;padding-block:1.5rem;border-top:2px solid currentColor}
+.korea-preview-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-block:1.5rem}
+.korea-preview-metrics>div{border:1px solid var(--rule);padding:.8rem;display:flex;flex-direction:column;gap:.2rem}
+.korea-preview-metrics strong{font-size:1.7rem;line-height:1.2}
+.korea-preview-metrics span{font-size:.8rem}
+.korea-candidate-list{list-style:none;padding:0;margin:1rem 0}
+.korea-candidate{padding:1rem 0 1.2rem;border-top:1px solid var(--rule)}
+.korea-candidate h3{font-size:1.08rem;margin:.45rem 0;line-height:1.55}
+.korea-candidate-kicker{font-size:.78rem;margin:0}
+.korea-candidate code{overflow-wrap:anywhere;font-size:.77rem}
+.korea-private-synopsis{font-size:1rem;line-height:1.6;margin:.75rem 0}
+@media(max-width:720px){.korea-preview-metrics{grid-template-columns:1fr}}

@@ -2,8 +2,7 @@
 
 Map of the existing producers, source versus generated artifacts, and release
 commands. The mandatory all-desk architecture is
-[`desks/README.md`](desks/README.md); this layer map does not override it. Session state lives in PROJECT_STATE.md; durable
-identity and editorial principles live in PRODUCT_AND_EDITORIAL_DOCTRINE.md.
+[`desks/README.md`](desks/README.md); this layer map does not override it. Current status is established by actual GitHub code, PRs, Actions and public readback, not the retired PROJECT_STATE diary; durable identity and editorial principles live in PRODUCT_AND_EDITORIAL_DOCTRINE.md.
 
 The published site is **Indo-Pacific Record** at `https://indopacificrecord.org`.
 "China Mil Watch" is the retired predecessor identity and appears below only
@@ -225,8 +224,7 @@ undated early trail entries, cadence notes. Baseline: **passes with 10
 governed warnings** (verified 2026-09-02) — three no-date source-trail
 warnings, two `n_significant` warnings with no marked trail entry, one pilot
 week-span warning, three missing LinkedIn files for editions 1–3, and one
-cadence gap (2026-07-18 → 2026-08-01). Any new warning must be explained in
-PROJECT_STATE.md, and none is ever cleared by invention.
+cadence gap (2026-07-18 → 2026-08-01). Any new warning must be investigated and recorded in the actual issue/PR and governed validation evidence, and none is ever cleared by invention.
 
 ## 7. Editorial production flow
 
@@ -304,8 +302,7 @@ It does not amend canonical manuscript approvals or the native Sunday anatomy.
 **The existing issues** (published as *The PLA Watch*) re-render from their
 sidecars with `scripts/rerender_pla_watch.py`. `scripts/generate_pla_watch.py`
 authors nothing new, and `generate_pla_watch_draft.yml`, which only dispatched
-it, is retired (DECISION_LOG 2026-09-23). After any publication, update
-PROJECT_STATE.md and record constraining rulings in DECISION_LOG.md.
+it, is retired (DECISION_LOG 2026-09-23). After an authorized publication, record actual deployed verification in the edition's existing release issue/PR and any constraining owner ruling in DECISION_LOG.md.
 
 ## Living Dossiers
 

@@ -149,11 +149,11 @@ class RenderedPermanentResearchContracts(unittest.TestCase):
         self.assertIn("Research published", directory)
         # Collection state and editorial publication are separate marks: the
         # registry label is printed in its own span and the publication chip
-        # says outright that it is not collection into the source archive.
-        self.assertIn("collection into the source archive", directory)
+        # says outright that it is not collection into the record.
+        self.assertIn("separate from collection into the record", directory)
         self.assertIn('desk-state--{{ d.status }}">{{ d.status_label }}</span>', directory)
         self.assertIn('class="desk-pub"', directory)
-        self.assertIn("Corpus records", directory)
+        self.assertIn("<dt>Records</dt>", directory)
         self.assertIn("editorial_published_desks", directory)
         self.assertIn("editorial_published_desks", renderer)
 

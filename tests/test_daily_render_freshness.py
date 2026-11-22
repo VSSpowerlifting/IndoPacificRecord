@@ -558,25 +558,63 @@ class TestTheWorkflowHandsTheGuardsDateToTheRender(WorkflowCase):
         # (DECISION_LOG 2026-10-23); it never reaches a model or another source.
         # Kemhan reuses its existing source-specific bridge secret under the
         # shared Daily MAC domain; this mapping does not enable the source.
+        # DAILY_SG_MINDEF_RELEASES_KEY is the Singapore family's shared Daily
+        # MAC key. It is a presence-only mapping: the fetcher still skips
+        # unless all three sg_mindef_releases policy booleans are true, and
+        # they are false (docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
+        # DAILY_JP_JCG_PRESS_EN_KEY is the same presence-only mapping for the
+        # Japan Coast Guard family (founder-reserved activation in #1045).
+        # JP_JCG_LINKS_ENABLED is that family's owner rollback switch: unless
+        # it is exactly "true" the governed admission reports the family
+        # inactive and admits no machine output, even against an admitted
+        # parent. It can only stop admission, never add a source or model use.
         # IPR_USCC_SOURCE_CHECKOUT and IPR_US_TREASURY_SOURCE_CHECKOUT name the
         # run-local clones of this repository's preserved listing histories
         # that the governed USCC/Treasury admissions read under the owner's
         # standing metadata-only approval of 2026-10-15 (runtime migration 4,
         # docs/desks/MIGRATION.md); they are paths, never a publisher or a model.
+        # IPR_CHINA_SOURCE_USE_HOLD is mapped from the repository variable of
+        # the same name and is inert unless it is exactly "true"; it can only
+        # remove three China sources from collection and model use (founder
+        # direction on #979, docs/desks/MIGRATION.md), never add one.
+        self.assertIn(
+            "IPR_CHINA_SOURCE_USE_HOLD: ${{ vars.IPR_CHINA_SOURCE_USE_HOLD }}", pipeline)
+        # IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY is the Singapore-only attended
+        # pilot gate. It is empty except on a deliberate workflow_dispatch that
+        # names one identity; scheduled runs always receive "" and skip the
+        # family (docs/engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md).
+        self.assertIn(
+            "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY: ${{ github.event_name == "
+            "'workflow_dispatch' && inputs.singapore_attended_pilot_identity || '' }}",
+            pipeline)
+        # The two existing Vietnam activation switches and a run-local
+        # receipt are passed to the governed dispatcher for reporting only.
+        # This does not activate a collector, model, or publication path.
+        self.assertIn("DAILY_ANALYSIS_WORKERS: ${{ vars.DAILY_ANALYSIS_WORKERS || '1' }}", pipeline)
         self.assertIn("DAILY_ID_KEMHAN_NEWS_KEY: ${{ secrets.KEMHAN_BRIDGE_KEY }}", pipeline)
+        self.assertIn("IPR_VIETNAM_HANDOFF_RECEIPT: ${{ runner.temp }}/vietnam-handoff.json", pipeline)
+        for key in ("VIETNAM_DAILY_HANDOFF_ENABLED", "VIETNAM_VPCP_METADATA_ENABLED"):
+            self.assertIn(key + ": ${{ vars." + key + " }}", pipeline)
+        self.assertIn("JP_JCG_LINKS_ENABLED: ${{ vars.JP_JCG_LINKS_ENABLED }}", pipeline)
         self.assertIn("IPR_USCC_SOURCE_CHECKOUT: ${{ runner.temp }}/uscc-preserved-metadata", pipeline)
         self.assertIn("IPR_US_TREASURY_SOURCE_CHECKOUT: ${{ runner.temp }}/treasury-preserved-metadata", pipeline)
         self.assertEqual(sorted(env_keys),
                          ["ANALYSIS_MODEL", "ANTHROPIC_API_KEY", "CATEGORIZATION_MODEL",
-                          "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ID_KEMHAN_NEWS_KEY",
+                          "CHINA_TITLE_TRANSLATION_LIMIT", "DAILY_ANALYSIS_WORKERS",
+                          "DAILY_ID_KEMHAN_NEWS_KEY",
+                          "DAILY_JP_JCG_PRESS_EN_KEY",
                           "DAILY_PH_AFP_ARTICLES_KEY", "DAILY_PH_NSC_OFFICIAL_STATEMENTS_KEY",
-                          "FALLBACK_MODEL", "GH_TOKEN", "IPR_DAILY_INTAKE_DIR",
-                          "IPR_PRIVATE_DAILY_ENABLED", "IPR_USCC_SOURCE_CHECKOUT",
-                          "IPR_US_TREASURY_SOURCE_CHECKOUT", "JAPAN_MOD_OFFICIAL_LINKS_ENABLED",
+                          "DAILY_SG_MINDEF_RELEASES_KEY", "DAILY_US_USCC_PRESS_EN_KEY",
+                          "FALLBACK_MODEL", "GH_TOKEN", "IPR_CHINA_SOURCE_USE_HOLD",
+                          "IPR_DAILY_INTAKE_DIR", "IPR_PRIVATE_DAILY_ENABLED",
+                          "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY", "IPR_USCC_SOURCE_CHECKOUT",
+                          "IPR_US_TREASURY_SOURCE_CHECKOUT", "IPR_VIETNAM_HANDOFF_RECEIPT",
+                           "JAPAN_MOD_OFFICIAL_LINKS_ENABLED", "JP_JCG_LINKS_ENABLED",
                           "KOREA_DAILY_AUTOMATION_ENABLED",
                           "KOREA_DAILY_PROCESSING_CAP", "LLM_USAGE_RECORD_PATH",
                           "PLA_WATCH_DAILY_RUN_DATE", "RELEVANCE_MODEL", "SUMMARY_MODEL",
-                          "TRANSLATION_MODEL", "VPCP_METADATA_ONLY"])
+                          "TRANSLATION_MODEL", "US_USCC_LINKS_ENABLED", "VIETNAM_DAILY_HANDOFF_ENABLED",
+                           "VIETNAM_VPCP_METADATA_ENABLED", "VPCP_METADATA_ONLY"])
         # Every new model input is deliberately mapped, with incumbent defaults
         # or an empty override. Keep the exact-key assertion above so future
         # unreviewed environment additions continue to fail closed.

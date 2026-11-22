@@ -15,11 +15,6 @@
 .status-panel--shadow { border-left-color: var(--rule-strong); background: var(--bg); }
 .status-panel--access_blocked { border-left-color: var(--warning); background: var(--bg); }
 .status-panel--access_blocked .status-glyph { color: var(--warning); }
-.desk-figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.4rem 0; padding: 1rem 0; border-top: 2px solid var(--rule-hard); border-bottom: 1px solid var(--rule); }
-.desk-figures div { min-width: 0; }
-.desk-figures dt { font-size: .8125rem; color: var(--muted); }
-.desk-figures dd { margin: .15rem 0 0; font-family: var(--serif); font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; line-height: 1.1; }
-.desk-figures dd small { display: block; font-family: var(--sans); font-size: .75rem; font-weight: 400; color: var(--muted); margin-top: .2rem; }
 @media (max-width: 720px) {
 table.stacking thead { position: absolute; left: -9999px; }
 table.stacking, table.stacking tbody, table.stacking tr, table.stacking td { display: block; width: 100%; }
@@ -35,18 +30,16 @@ body { font-size: 1rem; }
 }
 @media (max-width: 760px) {
 :root { --gutter-date: 100%; }
-.desk-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
 :root { --gutter: 22px; }
 h1 { font-size: clamp(1.9rem, 8vw, 2.3rem); }
 .week-bars { gap: 2px; height: 64px; }
-.desk-figures dd { font-size: 1.35rem; }
 }
 @media print {
 @page { margin: 18mm 16mm; }
 body { background: #fff; color: #000; font-size: 11pt; }
-.skip, .veil, .pager, .cite-copy, .link-copy, .chips, .back-link { display: none !important; }
+.skip, .pager, .cite-copy, .link-copy, .chips, .back-link { display: none !important; }
 .freshness-bar, .site { background: #fff; border-color: #999; }
 main a[href^="http"]::after { content: " <" attr(href) ">"; font-family: var(--mono); font-size: 8pt; color: #333; overflow-wrap: anywhere; }
 a[href^="#"]::after, a[href^="mailto:"]::after { content: ""; }
@@ -55,3 +48,19 @@ thead { break-after: avoid; break-inside: avoid; }
 .table-scroll { overflow: visible; }
 h1, h2, h3 { break-after: avoid; }
 }
+
+/* Korea desk only (moved from desk-references.css so other desks do not carry it). */
+.korea-public-bibliography{border:0;padding:0}
+.korea-public-source-list,.korea-reviewed-english-list{list-style:none;margin:1.2rem 0 1rem;padding:0;border-top:1px solid var(--rule)}
+.korea-public-source-list li,.korea-reviewed-english-list li{max-width:none;border-bottom:1px solid var(--rule);padding:1rem 0}
+.korea-reviewed-english-list li p{margin:0 0 .3rem}
+[data-surface=desk] main .korea-public-source-list h3{font:600 1.125rem/1.5 var(--ko-serif,var(--serif));margin:0 0 .4rem}
+.korea-public-source-list .meta{margin:.3rem 0}
+.korea-public-source-list a{overflow-wrap:anywhere}
+.korea-publisher-shortcuts{margin:1.2rem 0 1.8rem}
+.korea-publisher-shortcuts ul{list-style:none;padding:0;margin:.8rem 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem 2rem}
+.korea-publisher-shortcuts li{border-top:1px solid var(--rule);padding-top:.8rem;display:flex;flex-direction:column;gap:.35rem}
+.korea-publisher-shortcuts li strong{font-size:.95rem;line-height:1.4}
+.korea-publisher-shortcuts li a{align-self:flex-start;min-height:40px;display:inline-flex;align-items:center}
+.korea-publisher-shortcuts li .meta{margin:0}
+@media(max-width:720px){.korea-publisher-shortcuts ul{grid-template-columns:1fr}}

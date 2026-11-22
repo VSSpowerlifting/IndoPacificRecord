@@ -32,6 +32,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 from dataclasses import dataclass
@@ -39,6 +40,7 @@ from typing import Callable, NamedTuple, Optional
 
 from config import (
     ANTHROPIC_API_KEY, BACKLOG_RESERVE_FRACTION, CACHE_DIR, DAILY_ANALYSIS_CAP,
+    DAILY_ANALYSIS_WORKERS,
     DB_PATH, LIVE_BACKLOG_DAYS, OUTPUT_DIR, ANALYSIS_MODEL, RELEVANCE_MODEL,
     TRANSLATION_MODEL, SUMMARY_MODEL, CATEGORIZATION_MODEL, FALLBACK_MODEL,
 )
@@ -331,18 +333,42 @@ def _korea_admission(bridge=None) -> GovernedAdmission:
 # Shared Daily: independently signed machine-output envelopes from private
 # custody (core/daily_sources.py). Public Daily never fetches these sources.
 
-def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
+# While False, a missing collection block (every schema /1 envelope) is "no
+# verdict". Flip only after every enabled, non-attended family signs /2; see
+# docs/desks/MIGRATION.md.
+_REQUIRE_COLLECTION_ATTESTATION = False
+
+
+def _with_collection(base: GovernedOutcome, verdict) -> GovernedOutcome:
+    """base, or the collection verdict's status over it. Counts and the
+    existing 'held:' detail are kept, as in _combine_lanes."""
+    if verdict is None:
+        return base
+    status, detail = verdict
+    return GovernedOutcome(status, base.new_documents, base.duplicates,
+                           "; ".join(d for d in (detail, base.error_detail) if d))
+
+
+def _daily_admission(family: str, *, intake=None, clock=None) -> GovernedAdmission:
     from processing.daily_intake import IntakeHold
 
     def inactive_reason():
         if os.environ.get("IPR_PRIVATE_DAILY_ENABLED") != "true":
             return _AWAITING_ACTIVATION
+        from core.daily_sources import attended_pilot_gate
+        gated, pilot = attended_pilot_gate(family)
+        if gated and pilot is None:
+            return "attended pilot gate closed"
         from processing.daily_intake import load_policy
         flags = load_policy()["sources"][family]
         if not all(flags[k] for k in ("private_model_processing",
                                       "public_machine_explanation",
                                       "unattended_release")):
             return "source-use policy withholds unattended release"
+        from core.daily_sources import source_for
+        source = source_for(family)
+        if source is not None and not source.public_switch_on():
+            return "owner public switch is off"
         return None
 
     def admit(run_id):
@@ -350,6 +376,17 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
         if not intake_dir:
             return GovernedOutcome(collection_status.SKIPPED_DISABLED,
                                    error_detail="no shared Daily intake directory configured")
+        from core.daily_sources import attended_only, source_for
+        source = source_for(family)
+        evidence = source.evidence_outcome(intake_dir) if source is not None else None
+        if evidence is not None:
+            # Source-wide evidence failed upstream (JCG: the terms page). The
+            # machine envelope may predate that run (signed before it, or its
+            # re-sign failed), so nothing is admitted from it; its withdrawals
+            # wait for valid evidence too. Reported, never read as a quiet day.
+            status, detail = evidence
+            logger.warning("%s: %s", family, detail)
+            return GovernedOutcome(status, error_detail=detail)
         from processing.daily_runner import intake_family
         receipt = (intake or intake_family)(DB_PATH, intake_dir, family)
         if receipt is None:
@@ -360,9 +397,25 @@ def _daily_admission(family: str, *, intake=None) -> GovernedAdmission:
                                    error_detail="no signed envelope delivered this run")
         admitted = receipt["admitted"]
         unchanged = max(receipt["records"] - admitted, 0)
-        logger.info("%s: governed admission — %d records, %d admitted, %d held",
-                    family, receipt["records"], admitted, len(receipt["holds"]))
-        return _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
+        signed_held = len(receipt.get("signed_held") or ())
+        logger.info("%s: governed admission — %d records, %d admitted, %d held, %d signed_held",
+                    family, receipt["records"], admitted, len(receipt["holds"]), signed_held)
+        if "originals_admitted" in receipt:
+            logger.info("%s: %d original components admitted", family, receipt["originals_admitted"])
+        base = _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
+        if signed_held:
+            # Reporting only: persistent paused holds never change the status.
+            base = GovernedOutcome(base.status, base.new_documents, base.duplicates,
+                                   "; ".join(d for d in (base.error_detail,
+                                             "signed_held: %d" % signed_held) if d))
+        if attended_only(family):
+            # An operator-run pilot has no scheduled collector to attest.
+            return base
+        from core.collection import attempts
+        cron, grace = source.collection_expectation()
+        return _with_collection(base, attempts.verdict(
+            receipt.get("collection"), now=(clock or _utcnow)(), cron_utc=cron,
+            grace_hours=grace, require_attestation=_REQUIRE_COLLECTION_ATTESTATION))
 
     return GovernedAdmission("daily_intake", inactive_reason, admit,
                              holds=(IntakeHold,))
@@ -478,17 +531,229 @@ def _us_metadata_admission(slug: str, *, admit_metadata=None) -> GovernedAdmissi
     return GovernedAdmission(family.label, inactive_reason, admit, holds=(hold,))
 
 
+# Vietnam: the private runner's signed article handoff and the Government
+# Office bibliographic collector. Each writes pla_watch.db in its own Daily
+# step before this process starts; the handoff replaces the database file
+# atomically and so cannot run under this process's open connections. These
+# admissions therefore report what those steps recorded for this run rather
+# than repeat them. Activation stays with each step's own owner variable.
+
+_VN_HANDOFF_RECEIPT_ENV = "IPR_VIETNAM_HANDOFF_RECEIPT"
+# The private runner signs a fresh envelope on every scheduled run, including
+# runs that publish nothing. One older than this was re-served after a missed
+# private run: its records are duplicates, not evidence of a quiet source.
+# This is only a backstop. A fresh signed handoff does not show a fresh
+# collection: the per-family `collection` facts (core/collection/attempts.py)
+# report that, and the signer is fresh even when the latest attempt failed.
+_VN_HANDOFF_MAX_AGE = timedelta(hours=36)
+_VN_CODE = re.compile(r"[a-z0-9_]{1,80}")
+_VN_RUN = re.compile(r"[A-Za-z0-9_.-]{1,80}")
+_VN_HANDOFF_LANE = "vietnam_daily_handoff"
+_VN_METADATA_LANE = "vpcp_bibliographic_metadata"
+
+
+def _vn_code(value) -> str:
+    """A receipt's reason only when it is a fixed machine code."""
+    return value if isinstance(value, str) and _VN_CODE.fullmatch(value) else "unclassified_hold"
+
+
+def _vn_handoff_inactive() -> Optional[str]:
+    # Parity with the "Admit Vietnam Daily handoff" step's own condition.
+    if os.environ.get("VIETNAM_DAILY_HANDOFF_ENABLED") != "true":
+        return _AWAITING_ACTIVATION
+    if os.environ.get("VPCP_METADATA_ONLY") == "true":
+        return "metadata-only run: Vietnam handoff not admitted"
+    return None
+
+
+def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
+    """This family's share of the handoff step's printed receipt."""
+    from pathlib import Path as _Path
+    from core.vietnam_corpus_bridge import DUPLICATE
+    from core.vietnam_daily_qa import PUBLISHED
+    path = os.environ.get(_VN_HANDOFF_RECEIPT_ENV)
+    if not path:
+        # Activation was on: a missing required receipt path is a reporting
+        # failure, not evidence that this source was intentionally disabled.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no Vietnam handoff receipt path configured")
+    try:
+        receipt = json.loads(_Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no handoff receipt recorded this run")
+    except (OSError, ValueError):
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: receipt_unreadable" % _VN_HANDOFF_LANE)
+    if not isinstance(receipt, dict) or receipt.get("status") != "OK":
+        reason = receipt.get("reason") if isinstance(receipt, dict) else None
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: %s" % (_VN_HANDOFF_LANE, _vn_code(reason)))
+    run = receipt.get("run_id")
+    if not (isinstance(run, str) and _VN_RUN.fullmatch(run)):
+        run = "unidentified"
+    try:
+        generated = datetime.fromisoformat(receipt["generated_utc"].replace("Z", "+00:00"))
+        if generated.tzinfo is None:
+            generated = generated.replace(tzinfo=timezone.utc)
+        tally = receipt["by_family"].get(family)
+    except (KeyError, TypeError, AttributeError, ValueError):
+        return GovernedOutcome(collection_status.ADAPTER_ERROR,
+                               error_detail="%s: receipt_unreadable" % _VN_HANDOFF_LANE)
+    if now - generated > _VN_HANDOFF_MAX_AGE:
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="signed handoff not refreshed since %s (run %s)"
+                               % (generated.strftime("%Y-%m-%dT%H:%MZ"), run))
+    if not isinstance(tally, dict):
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="signed handoff (run %s) carried no report "
+                               "for this family" % run)
+    admitted, unchanged = tally.get(PUBLISHED, 0), tally.get(DUPLICATE, 0)
+    holds = [_vn_code(k.replace(":", "_").lower()) for k in tally
+             if k not in (PUBLISHED, DUPLICATE)]
+    logger.info("%s: handoff run %s — %d admitted, %d unchanged, %d held",
+                family, run, admitted, unchanged, len(holds))
+    from core.collection import attempts
+    by_collection = receipt.get("collection_by_family")
+    facts = by_collection.get(family) if isinstance(by_collection, dict) else None
+    bridge_by_family = receipt.get("bridge_by_family", {})
+    bridge_status = bridge_by_family.get(family) if isinstance(bridge_by_family, dict) else None
+    if bridge_status in ("bridge_failed", "bridge_result_invalid", "held_source",
+                         "private_source_unavailable"):
+        status = {
+            "bridge_failed": collection_status.ANALYSIS_FAILURE,
+            "bridge_result_invalid": collection_status.ADAPTER_ERROR,
+            "held_source": collection_status.ANALYSIS_FAILURE,
+            "private_source_unavailable": collection_status.FETCH_FAILURE,
+        }[bridge_status]
+        outcome = GovernedOutcome(status, error_detail="Vietnam bridge: %s (run %s)"
+                                  % (bridge_status, run))
+    else:
+        latest = facts.get("latest") if isinstance(facts, dict) else None
+        if isinstance(latest, dict) and latest.get("result") == collection_status.OK_ALL_FILTERED:
+            holds.append("collection_all_filtered")
+        outcome = _receipt_outcome(admitted, unchanged, holds=holds)
+    # private vietnam_private_first_collector.yml: cron '17 18 * * *'
+    return _with_collection(
+        outcome,
+        attempts.verdict(facts, now=now, cron_utc="18:17", grace_hours=14,
+                         require_attestation=_REQUIRE_COLLECTION_ATTESTATION))
+
+
+def _vpcp_metadata_inactive() -> Optional[str]:
+    # Parity with the bibliographic collection step's own condition.
+    if os.environ.get("VIETNAM_VPCP_METADATA_ENABLED") != "true":
+        return _AWAITING_ACTIVATION
+    return None
+
+
+def _vpcp_metadata_outcome(read_report=None) -> GovernedOutcome:
+    """The collector's own run record for this workflow run and attempt."""
+    run = os.environ.get("GITHUB_RUN_ID")
+    if not run:
+        # This collector is enabled but its run cannot be authenticated to
+        # a run/attempt: do not misreport missing evidence as an inactive lane.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no workflow run to match a collection record")
+    source_run = "%s-%s" % (run, os.environ.get("GITHUB_RUN_ATTEMPT", "1"))
+    report = (read_report or _read_vpcp_collection_report)(source_run)
+    if report is None:
+        # The step was enabled and recorded nothing: it failed before its
+        # transaction committed. Missed, not quiet.
+        return GovernedOutcome(collection_status.FETCH_FAILURE,
+                               error_detail="no bibliographic collection recorded this run")
+    if report.get("status") == "held":
+        return GovernedOutcome(collection_status.LISTING_FAILURE,
+                               error_detail="%s: %s" % (_VN_METADATA_LANE,
+                                                        _vn_code(report.get("hold_reason"))))
+    admitted = report.get("new", 0) + report.get("revised", 0)
+    held = report.get("held", 0)
+    logger.info("vn_vpcp_official_documents_vi: bibliographic run %s — %d new, "
+                "%d revised, %d unchanged, %d held", source_run, report.get("new", 0),
+                report.get("revised", 0), report.get("unchanged", 0), held)
+    return _receipt_outcome(admitted, report.get("unchanged", 0),
+                            holds=("%d_records_held" % held,) if held else ())
+
+
+def _read_vpcp_collection_report(source_run: str) -> Optional[dict]:
+    from scripts.collect_vietnam_government_documents import FAMILY
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT report_json FROM official_document_collection_runs "
+            "WHERE source_family=? AND source_run=?", (FAMILY, source_run)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def _combine_lanes(lanes: list) -> GovernedOutcome:
+    """One row for a source fed by more than one lane.
+
+    A failed lane always shows, so a missed lane is never hidden by a quiet or
+    productive one; otherwise new material, then holds, then duplicates, and
+    the source is quiet only when every lane is quiet. Counts are summed.
+    """
+    new = sum(o.new_documents for _, o in lanes)
+    dups = sum(o.duplicates for _, o in lanes)
+    details = ["%s: %s" % (name, o.error_detail) for name, o in lanes if o.error_detail]
+    detail = "; ".join(details) or None
+    statuses = [o.status for _, o in lanes]
+    for status in statuses:
+        if collection_status.is_failure(status):
+            return GovernedOutcome(status, new, dups, detail)
+    for status in (collection_status.OK, collection_status.OK_ALL_FILTERED,
+                   collection_status.OK_ALL_DUPLICATES):
+        if status in statuses:
+            return GovernedOutcome(status, new, dups, detail)
+    return GovernedOutcome(collection_status.OK_NO_PUBLICATIONS, new, dups, detail)
+
+
+def _vietnam_handoff_admission(family: str, *, clock=None) -> GovernedAdmission:
+    def admit(run_id):
+        return _vn_handoff_outcome(family, (clock or _utcnow)())
+
+    return GovernedAdmission(_VN_HANDOFF_LANE, _vn_handoff_inactive, admit)
+
+
+def _vpcp_admission(*, clock=None, read_report=None) -> GovernedAdmission:
+    from scripts.collect_vietnam_government_documents import FAMILY
+
+    def inactive_reason():
+        handoff, metadata = _vn_handoff_inactive(), _vpcp_metadata_inactive()
+        return handoff if handoff and metadata else None
+
+    def admit(run_id):
+        lanes = []
+        if not _vpcp_metadata_inactive():
+            lanes.append((_VN_METADATA_LANE, _vpcp_metadata_outcome(read_report)))
+        if not _vn_handoff_inactive():
+            lanes.append((_VN_HANDOFF_LANE,
+                          _vn_handoff_outcome(FAMILY, (clock or _utcnow)())))
+        if len(lanes) == 1:
+            return lanes[0][1]
+        return _combine_lanes(lanes)
+
+    return GovernedAdmission("vietnam_vpcp", inactive_reason, admit)
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 def _governed_admissions() -> dict:
     """slug → GovernedAdmission for every manual source with a production path."""
     from core import korea_corpus_bridge
     from core import japan_mod_official_links
     from core.daily_sources import SOURCES
     out = {korea_corpus_bridge.SOURCE_SLUG: _korea_admission()}
-    for family in SOURCES:
-        out[family] = _daily_admission(family)
+    for family, source in SOURCES.items():
+        if source.desk_registered:
+            out[family] = _daily_admission(family)
     out[japan_mod_official_links.FAMILY] = _japan_admission()
     for slug in _US_METADATA_FAMILIES:
         out[slug] = _us_metadata_admission(slug)
+    # Only the registered Vietnam families; the MOIT families remain
+    # unregistered and so receive no run-result row at all.
+    out["vn_mps_foreign_affairs_vi"] = _vietnam_handoff_admission("vn_mps_foreign_affairs_vi")
+    out["vn_vpcp_official_documents_vi"] = _vpcp_admission()
     return out
 
 
@@ -617,14 +882,17 @@ def run(
             )
             continue
 
-        if slug == "sg_mindef_releases":
-            # No new source acquisition or external processing is authorized
-            # by the two-link grant. Preserve all historical collection rows.
+        from core import china_source_use_hold as china_hold
+        if china_hold.is_held_source(slug):
+            # Interim source-use hold (disabled unless IPR_CHINA_SOURCE_USE_HOLD
+            # is "true"). Before any adapter call, so no publisher request is
+            # made. Reported as a hold, not a failure or an empty collection.
             from core.collection.contract import SourceRunResult
+            logger.warning("%s: %s", slug, china_hold.hold_detail(slug))
             source_results.append(SourceRunResult(
-                source_slug=slug, desk_id="singapore",
+                source_slug=slug, desk_id=registry.get_source(slug).desk_id,
                 status=collection_status.SKIPPED_DISABLED,
-                error_detail="MINDEF source-use hold; no collection or model processing"))
+                error_detail=china_hold.hold_detail(slug)))
             continue
 
         if registry.get_source(slug).access_method == "manual":
@@ -851,6 +1119,9 @@ def run(
     # ── Stages 9–12: LLM analysis ────────────────────────────────────────────
     articles_analyzed      = 0
     passed_relevance_count = 0   # articles that passed relevance this run
+    # Why each "Analysis failed entirely" happened (analysis/analyzer.py
+    # RELEVANCE_FAILURE_*): a returned-but-unusable response, or anything else.
+    relevance_failure_kinds = []
     # Set when the run aborts on an account-level API failure (spend limit,
     # exhausted credit, bad credentials) rather than a per-article one.
     account_blocked: Optional[str] = None
@@ -881,7 +1152,18 @@ def run(
 
     mindef_article_ids = db.get_article_ids_for_source("sg_mindef_releases")
 
+    # Interim China source-use hold: empty (and no query) unless enabled.
+    from core import china_source_use_hold as china_hold
+    china_held_ids = china_hold.held_article_ids(db.get_article_ids_for_source)
+    china_held_count = 0
+
     def _in_daily_queue(desk_id: Optional[str], *, article_id=None, source_slug=None) -> bool:
+        nonlocal china_held_count
+        if china_hold.is_held_source(source_slug) or article_id in china_held_ids:
+            china_held_count += 1
+            return False
+        # NAMED COMPATIBILITY SHIM: historical MINDEF article rows stay out of
+        # the public screening queue; their screening is the shared Daily lane.
         if source_slug == "sg_mindef_releases" or article_id in mindef_article_ids:
             held_desks[desk_id] = held_desks.get(desk_id, 0) + 1
             return False
@@ -941,6 +1223,11 @@ def run(
     # existing reversible budget can eventually pause recurring failures.
     # The newly inserted lane has no prior retry history.
     attempts_before = prior_processing_attempts(pending_rows, unscored_rows)
+    if china_held_count:
+        logger.info(
+            "Held out of the daily analysis queue: %d China record(s) under "
+            "the interim source-use hold; no title or body is sent to a model.",
+            china_held_count)
     for desk_id, held in sorted(held_desks.items(), key=lambda kv: str(kv[0])):
         if desk_id == "korea":
             # Governed admissions are processed by the Korea lane below, on
@@ -1070,38 +1357,30 @@ def run(
         from analysis.analyzer import Analyzer, FatalAPIError
         analyzer = Analyzer()
 
-        for i, (aid, title_zh, body_zh, url) in enumerate(queue, 1):
-            logger.info(
-                "[%d/%d] Analyzing: %s",
-                i, len(queue), title_zh[:70],
-            )
+        from scripts.bounded_analysis import process_bounded
 
-            try:
-                result = analyzer.analyze_record(
-                    title_zh, body_zh, profile_for_desk(queue_desk.get(aid)))
-            except FatalAPIError as exc:
-                # Account-level failure: every remaining call would fail the
-                # same way. On 2026-07-31 the spend limit was reached mid-run
-                # and the loop made 40 further doomed calls before finishing.
-                account_blocked = str(exc)
-                logger.error(
-                    "ABORTING analysis at %d/%d — account-level API failure, not "
-                    "an article-level one: %s\n"
-                    "The %d remaining queued article(s) were NOT attempted; they "
-                    "stay unscored and re-enter the backlog on a later run. "
-                    "Articles scraped this run are already stored.",
-                    i, len(queue), account_blocked, len(queue) - i,
-                )
-                errors.append(f"Analysis aborted: {account_blocked}")
-                break
+        def _analyze_queued(item):
+            i, (aid, title_zh, body_zh, url) = item
+            logger.info("[%d/%d] Analyzing: %s", i, len(queue), title_zh[:70])
+            # A shared Analyzer has an internally synchronized usage ledger.
+            # Its per-task relevance-failure context is isolated by ContextVar.
+            result = analyzer.analyze_record(
+                title_zh, body_zh, profile_for_desk(queue_desk.get(aid)))
+            return result, analyzer.last_relevance_failure
 
+        def _persist_analysis(item, outcome):
+            nonlocal articles_analyzed, passed_relevance_count
+            _index, (aid, title_zh, body_zh, url) = item
+            result, relevance_failure = outcome
+            # Every DB mutation stays on this calling thread, in queue order.
             if result is None:
+                relevance_failure_kinds.append(relevance_failure)
                 msg = f"Analysis failed entirely for article {aid} ({url})"
                 logger.error(msg)
                 errors.append(msg)
                 _record_failure(aid, body_zh, "analysis_failed",
                                 attempts_before, content_verdicts)
-                continue
+                return
 
             # Always write relevance result
             db.update_relevance(
@@ -1168,6 +1447,33 @@ def run(
                 _record_failure(aid, body_zh, "analysis_incomplete",
                                 attempts_before, content_verdicts)
 
+        def _on_analysis_fatal(item, exc):
+            nonlocal account_blocked
+            i, _article = item
+            account_blocked = str(exc)
+            # With N workers, at most N-1 peers were dispatched before the
+            # fatal result was observed. They may finish and incur charges;
+            # their results are held, never marked complete or published.
+            speculative = min(DAILY_ANALYSIS_WORKERS - 1, len(queue) - i)
+            not_dispatched = len(queue) - i - speculative
+            logger.error(
+                "ABORTING analysis at %d/%d — account-level API failure: %s. "
+                "Up to %d peer article(s) already dispatched; these results "
+                "are not committed. %d article(s) not dispatched. All "
+                "uncommitted records remain retryable.",
+                i, len(queue), account_blocked, speculative, not_dispatched,
+            )
+            errors.append(f"Analysis aborted: {account_blocked}")
+
+        logger.info("Daily article analysis: %d worker(s); cap=%d",
+                    DAILY_ANALYSIS_WORKERS, DAILY_ANALYSIS_CAP)
+        process_bounded(
+            enumerate(queue, 1), _analyze_queued, _persist_analysis,
+            workers=DAILY_ANALYSIS_WORKERS,
+            fatal_error=FatalAPIError,
+            on_fatal=_on_analysis_fatal,
+        )
+
     # Korea MND lane (processing/korea_shared_queue.py): the shared engine's
     # Korea profile over governed admissions, after the China/Singapore queue
     # and on its own cap, so it can never take their slots. Its outcomes are
@@ -1218,13 +1524,33 @@ def run(
     # the CI commit are skipped and the day's collection is discarded anyway.
     analysis_attempted = bool(len(queue) > 0 and ANTHROPIC_API_KEY and not no_analysis)
 
-    # Relevance scoring itself failed for every queued article (analyze() returned
-    # None) → likely API/billing outage. Preserved exactly as the original check
-    # so the billing-failure guard behaves the same.
+    # Relevance scoring failed and nothing was analyzed → possibly an API or
+    # billing outage, so the billing marker below stops later paid windows.
+    # That inference is only made when at least one failure is NOT a returned
+    # response. An HTTP 200 whose content was unusable (malformed JSON, a
+    # refusal, truncation) proves the account works; on 2026-11-11 (run
+    # 43103361840) a one-article queue whose only failure was malformed
+    # relevance JSON wrote a false billing marker and stopped render/deploy.
+    # Mixed or unclassified failures stay conservative and keep the marker.
+    from analysis.analyzer import RELEVANCE_FAILURE_INVALID_RESPONSE
+    relevance_failed_on_invalid_responses_only = bool(relevance_failure_kinds) and all(
+        kind == RELEVANCE_FAILURE_INVALID_RESPONSE for kind in relevance_failure_kinds)
     relevance_total_failure = (
         analysis_attempted
         and articles_analyzed == 0
         and any("Analysis failed entirely" in e for e in errors)
+        and not relevance_failed_on_invalid_responses_only
+    )
+    # Nothing analyzed, and every relevance failure was a returned-but-invalid
+    # response. Per-article and already counted by _record_failure (bounded by
+    # core/processing_state.RETRY_BUDGET), so the run is degraded, not failed:
+    # collection is rendered and deployed, and the success marker — not a
+    # false billing marker — keeps later cron windows today from re-paying.
+    invalid_response_only_failure = (
+        analysis_attempted
+        and articles_analyzed == 0
+        and relevance_failed_on_invalid_responses_only
+        and account_blocked is None
     )
     # Relevance scoring worked (≥1 article passed) but translation/summary failed
     # for ALL of them, so the run produced nothing publishable. Previously this
@@ -1280,6 +1606,15 @@ def run(
         run_status = "failed"
     elif account_blocked is not None or korea_blocked is not None:
         run_status = "degraded"
+    elif invalid_response_only_failure:
+        run_status = "degraded"
+        logger.error(
+            "Run marked degraded: nothing analyzed; %d article(s) failed "
+            "relevance on an invalid model response (the API answered, so this "
+            "is not a billing failure — no billing marker). They stay "
+            "retriable within the retry budget.",
+            len(relevance_failure_kinds),
+        )
     elif collection_agg in ("failed", "degraded"):
         run_status = "degraded"
         failed_slugs = [r.source_slug for r in source_results if r.is_failure]

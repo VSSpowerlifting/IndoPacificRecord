@@ -150,7 +150,7 @@ class TestPhaseBoundary(unittest.TestCase):
                        re.split(r"^      - name:", self.text, flags=re.M)[1:]])
         suite = [b for n, b in blocks.items() if "Run offline test suite" in n]
         self.assertEqual(len(suite), 1)
-        self.assertIn("python -m unittest discover -s tests -t . -v", suite[0])
+        self.assertIn("python -m scripts.parallel_unittest -s tests -t . -v", suite[0])
 
 
 class TestGateBehaviour(unittest.TestCase):

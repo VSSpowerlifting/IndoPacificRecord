@@ -65,7 +65,7 @@ class CountryResearchReleaseContract(unittest.TestCase):
         self.assertIn('assert "not a production source-text archive" in text', text)
         self.assertIn('assert "ipr-published-research-heading" not in text, name', text)
         self.assertIn('assert "data-reference-list" not in text', text)
-        self.assertIn('assert "<dt>Declared</dt><dd>8</dd>" in desk_html', text)
+        self.assertIn('assert "<dt>Desks</dt><dd>8</dd>" in desk_html', text)
         self.assertIn('if name == "philippines":', text)
         self.assertIn('"philippines": "Official links and machine explanations, published automatically"', text)
 

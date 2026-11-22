@@ -117,7 +117,8 @@ TAGLINE = ("Official defense and security texts, preserved as published and "
            "analyzed in context.")
 
 
-def render_original_page(record, *, site_origin=PUBLIC_ORIGIN):
+def render_original_page(record, *, site_origin=PUBLIC_ORIGIN,
+                         record_route=None):
     """Render qualified original inside shared IPR chrome.
 
     A missing origin is a safe, noindex private/candidate preview. The public
@@ -134,6 +135,12 @@ def render_original_page(record, *, site_origin=PUBLIC_ORIGIN):
             "korea_original_page_identity_mismatch")
     require(site_origin is None or site_origin == PUBLIC_ORIGIN,
             "korea_original_page_origin_unrecognized")
+    # The Record this exhibit belongs to, when one exists: a relative link
+    # to record/<article id>.html, nothing else.
+    require(record_route is None
+            or (type(record_route) is str
+                and re.fullmatch(r"record/[0-9]+[.]html", record_route)),
+            "korea_original_page_record_route_invalid")
     # Import templating only for actual HTML projection. Source-identity and
     # hash verification remain stdlib-only for lightweight collector jobs.
     from jinja2 import Environment, FileSystemLoader
@@ -144,7 +151,8 @@ def render_original_page(record, *, site_origin=PUBLIC_ORIGIN):
     # active on this source page; register its custom filter deterministically.
     env.filters["reader_date"] = lambda day: str(day)
     page = env.get_template("korea_original.html").render(
-        original=record, page=record["route"], nested=True,
+        original=record, record_route=record_route,
+        page=record["route"], nested=True,
         title="Indo-Pacific Record", tagline=TAGLINE,
         mode="indo-pacific-record",
         maintainer={"name": "Benjamin Yang", "email": "ben.yang@gwmail.gwu.edu"},
@@ -159,6 +167,7 @@ def render_original_page(record, *, site_origin=PUBLIC_ORIGIN):
     # Byte-for-byte equivalent to the single origin switch in
     # site/preview/generate_preview.py. The readback verifier can thus re-render
     # the exact production HTML without a mutable build or production DB.
+    # The exhibit keeps its own canonical URL; a Record backlink is navigation only.
     canonical = site_origin + "/" + record["route"]
     card = site_origin + "/social-card.png"
     metadata = "\n".join([

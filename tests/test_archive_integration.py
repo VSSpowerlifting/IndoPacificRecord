@@ -118,6 +118,19 @@ class CorpusBoundaryTests(unittest.TestCase):
         poisoned = dict(result, text='Secret needle')
         with self.assertRaisesRegex(ValueError,'official_link_text_prohibited'): c.projection(**poisoned)
 
+    def test_link_references_reject_text_and_summary(self):
+        for record_type, error in (("official_link", "official_link_text_prohibited"),
+                                   ("independent_link", "link_reference_text_prohibited")):
+            row = c.projection(id="fixture:link", record_type=record_type, desks=[],
+                               source_url="https://example.org/x")
+            for field in ("text", "summary"):
+                with self.subTest(record_type=record_type, field=field):
+                    with self.assertRaisesRegex(ValueError, "^" + error + "$"):
+                        c.projection(**dict(row, **{field: "Private source text"}))
+            with self.subTest(record_type=record_type, field="private_capture"):
+                with self.assertRaisesRegex(ValueError, "^unknown_public_field$"):
+                    c.projection(**dict(row, private_capture="Private source text"))
+
     def test_exact_duplicates_collapse_distinct_documents_survive(self):
         a,b = fixture()['records'][:2]
         b = dict(b,title=a['title'])

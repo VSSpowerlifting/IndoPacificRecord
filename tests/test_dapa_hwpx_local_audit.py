@@ -55,6 +55,18 @@ class TestDapaHWPXStructureAudit(unittest.TestCase):
         with self.assertRaisesRegex(AuditHold, "ordinary_absolute_local_file_required"):
             audit(other, self.digest)
 
+    def test_private_receipt_is_new_owner_only_file(self):
+        import contextlib, os, stat
+        from scripts.audit_dapa_hwpx import main
+        os.chmod(self.temp.name, 0o700)
+        dest = Path(self.temp.name) / "receipt.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(main(["--local-hwpx", str(self.path), "--expected-sha256",
+                                   self.digest, "--private-receipt", str(dest)]), 0)
+            self.assertEqual(stat.S_IMODE(dest.stat().st_mode), 0o600)
+            self.assertEqual(main(["--local-hwpx", str(self.path), "--expected-sha256",
+                                   self.digest, "--private-receipt", str(dest)]), 2)
+
     def test_fake_zip_cannot_claim_real_original(self):
         self.path.write_bytes(b"not-an-HWPX")
         with self.assertRaisesRegex(AuditHold, "invalid_hwpx"):

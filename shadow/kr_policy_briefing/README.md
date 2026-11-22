@@ -41,7 +41,13 @@ No timestamp, issuing unit, translation or analytical assertion is inferred.
 Access uses the same full project identity and bounded transport as Indonesia.
 At most ten listing pages and forty releases are admitted: at most 91 responses
 including robots, listings, release HTML and one document per release. A refusal
-stops the batch; a cap breach does not truncate it into a sample.
+stops the batch; a cap breach does not truncate it into a sample. One exception,
+for the MND desk only: a release whose HWPX attachment exceeds the transport's
+byte cap is held out of custody and listed in the ledger. The run's complete
+releases are stored only when no other release fails and at least one is new;
+otherwise the run fails with no corpus write (its ledger entry and
+release-page captures are still kept as attempt evidence)
+(`docs/engineering/KOREA_DESK_OPERATION.md`, "MND attachment size hold").
 
 Live rehearsals on 2026-10-06 passed for one current-date release, then all four
 selected releases for 2026-09-30 through 2026-10-06 (10 responses: robots, one

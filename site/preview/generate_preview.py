@@ -79,20 +79,17 @@ from jinja2 import Environment, FileSystemLoader                    # noqa: E402
 from core.viewmodel import PublicView                               # noqa: E402
 from core.title_translation import english_title, receipts, processing_note  # noqa: E402
 from core.china_discovery import build_focus                        # noqa: E402
-from core.topography import topography_style                         # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
-from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
+from core.korea_corpus_bridge import (  # noqa: E402,F401
+    ENGLISH_STATUS_DEFINITIONS, ENGLISH_STATUS_LABELS, ENGLISH_WITHHELD_NOTE,
+    publication_gate, publication_gate_detail, hidden_predicate)
 from core.mindef_permissions import mindef_metadata_label, source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
-from scripts.desk_map import layout as desk_map_layout              # noqa: E402
 
 TEMPLATES = Path(__file__).parent / "templates"
 DEFAULT_OUT = REPO_ROOT / "preview"
 PRODUCTION_OUT = (REPO_ROOT / "output").resolve()
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
-# The relief assets the homepage references (home.html, via _relief.html),
-# delivered by name. relief.css travels with the stylesheets.
-RELIEF_PRODUCTION_ASSETS = ("assets/geo/emblems.svg", "assets/geo/strait.svg")
 # Phase 4A: the public Desks chart uses the licensed country flags as paper
 # tabs. Publish only the eight mapped/declared desk flags plus the MIT notice,
 # never a whole asset folder or gallery-only sprite.
@@ -108,6 +105,9 @@ ARCHIVE_MARK_ASSETS = tuple("assets/desk-marks/%s.svg" % s
 # derivatives travel separately, one by one, from the admission record
 # (core/catalogue_media.py) and only when a card actually shows one.
 CATALOGUE_STATIC_ASSETS = ("assets/geo/region.svg",)
+# The regional atlas (scripts/build_atlas.py): one waterlined Natural Earth
+# drawing, cropped by CSS for the Desks page and for each desk's locator.
+ATLAS_ASSETS = ("assets/geo/atlas.svg",)
 
 #: The public name. Owner-directed 2026-08-25; the governing record is
 #: docs/INDO_PACIFIC_RECORD_EVOLUTION.md §1. "The Declared Record" and
@@ -145,6 +145,8 @@ from core.brief_collection import (                                  # noqa: E40
     adjacent_items)
 from core.article_media import native_article_media                  # noqa: E402
 from core.brief_photography import article_cover                    # noqa: E402
+from core.brief_social_card import (                             # noqa: E402
+    render_brief_social_card, social_preview_granted)
 from core.brief_contract import validate_readiness
 from core.catalogue_media import (                                   # noqa: E402
     load_admissions as load_catalogue_admissions,
@@ -152,6 +154,7 @@ from core.catalogue_media import (                                   # noqa: E40
 from core.timelines import load_timelines
 from core.dossiers import load_dossiers, validate_review_destination
 from core.desk_registry import load_registry                         # noqa: E402
+from scripts.build_atlas import atlas_view, locator_view              # noqa: E402
 from core.reviewed_source_links import load_public_desk_references    # noqa: E402
 from core.public_editorial_research import load_catalog as load_editorial_catalog, published_for_desk
 from core.indonesia_official_index import load as load_indonesia_official_index  # noqa: E402
@@ -506,8 +509,12 @@ def load_corpus(db_path: Path) -> dict:
         con.row_factory = _dict_row
         # Korea rows render only once the governed bridge admitted them and
         # processing finished; every query below applies the same predicate.
-        korea_publishable, korea_hidden = publication_gate(con)
+        korea_publishable, korea_hidden, korea_english_held = (
+            publication_gate_detail(con))
         visible = hidden_predicate(korea_hidden)
+        # A Korean row shown only for its released original has no
+        # publishable machine output: it is never "analyzed" in any count.
+        machine_ok = hidden_predicate(set(korea_english_held))
 
         sources = con.execute(
             "SELECT s.slug, s.display_name, s.language, s.language_tag, "
@@ -570,7 +577,7 @@ def load_corpus(db_path: Path) -> dict:
 
         totals = con.execute(
             "SELECT (SELECT COUNT(*) FROM articles a WHERE " + visible + ") AS articles, "
-            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + ") AS analyzed, "
+            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + " AND " + machine_ok + ") AS analyzed, "
             "       (SELECT COUNT(*) FROM scrape_runs) AS runs, "
             "       (SELECT MIN(published_date) FROM articles a WHERE " + visible + ") AS first_date, "
             "       (SELECT MAX(published_date) FROM articles a WHERE " + visible + ") AS last_date"
@@ -591,7 +598,7 @@ def load_corpus(db_path: Path) -> dict:
             "  FROM articles a "
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
-            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " "
+            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " AND " + machine_ok + " "
             " ORDER BY a.published_date DESC, a.id DESC LIMIT 60").fetchall()
 
         # Collection continuity: which calendar days have a run. The published
@@ -648,6 +655,9 @@ def load_corpus(db_path: Path) -> dict:
                 # without attributing the changed value to the old model run.
                 for key in ("title_translation_model", "title_translation_prompt", "title_translated_at"):
                     rec.pop(key, None)
+            # Read from the shaped record, after every source hold above has
+            # applied, so a withheld summary can never reach a list row.
+            rec["summary_lead"] = summary_lead(rec.get("summary_english"))
 
         # The line-aligned machine translation is read only for gated Korean
         # records; no other desk's record carries or renders this field.
@@ -656,9 +666,41 @@ def load_corpus(db_path: Path) -> dict:
             korea_english = {r["id"]: r["text_english"] for r in con.execute(
                 "SELECT id, text_english FROM articles WHERE id IN (%s)"
                 % ",".join(str(int(i)) for i in sorted(korea_publishable)))}
+        # The gate already proved this digest equals the released, re-hashed
+        # original's digest; the record shows it beside the exhibit link.
+        korea_original_digests = {}
+        if korea_english_held:
+            korea_original_digests = {
+                r["source_identity"]: r["original_text_sha256"]
+                for r in con.execute(
+                    "SELECT source_identity, original_text_sha256 "
+                    "FROM korea_corpus_admissions WHERE article_id IN (%s)"
+                    % ",".join(str(int(i)) for i in sorted(korea_english_held)))}
+        # Every English machine field of an original-only row is withheld
+        # before anything below can read it (titles, summaries, receipts).
+        for rec in corpus:
+            if rec["id"] in korea_english_held:
+                for key in ("title_english", "summary_english", "analyzed_at",
+                            "model_id", "prompt_version", "is_significant",
+                            "title_translation_model", "title_translation_prompt",
+                            "title_translated_at",
+                            "title_translation_value_sha256"):
+                    rec[key] = None
+                rec["summary_lead"] = None
+                korea_english[rec["id"]] = None
+                if rec["state"] == "analyzed":
+                    rec["state"] = "analysis_incomplete"
 
     for rec in corpus:
         rec["state_label"] = STATE_LABELS[rec["state"]]
+        if rec["id"] in korea_english_held:
+            # The stored-state label stays as is (the Records list and the
+            # browser index share it); the Record states English separately.
+            rec["korea_english_state"] = korea_english_held[rec["id"]]
+            rec["korea_english_status"] = ENGLISH_STATUS_LABELS[
+                korea_english_held[rec["id"]]]
+            rec["korea_original_sha256"] = korea_original_digests[
+                korea_publishable[rec["id"]]]
         # The machine flag is surfaced ONLY where it was actually computed.
         # Everywhere else it is None — not False, which would read as
         # "assessed and not flagged".
@@ -666,7 +708,7 @@ def load_corpus(db_path: Path) -> dict:
                                 if rec["state"] == "analyzed" else None)
         rec["has_text"] = bool((rec["text_original"] or "").strip())
         rec["record_path"] = "record/%d.html" % rec["id"]
-        # Exact written permission for two MINDEF hyperlinks, not source-text reuse.
+        # Official-host outbound-link safety check, not source-text reuse.
         # Derived presentation field; never changes raw corpus custody or fingerprint.
         rec["mindef_link_allowed"] = source_link_approved(rec["source_slug"], rec["url"])
         if rec["id"] in vietnam:
@@ -676,6 +718,7 @@ def load_corpus(db_path: Path) -> dict:
         if rec["korea_identity"]:
             rec["korea_news_id"] = rec["korea_identity"].split(":", 1)[1]
             rec["text_english"] = korea_english.get(rec["id"])
+        rec["title_kind"] = title_kind(rec)
 
     for s in sources:
         s["article_count"] = counts.get(s["slug"], 0)
@@ -690,6 +733,7 @@ def load_corpus(db_path: Path) -> dict:
         "institutions": institutions,
         "corpus": corpus,
         "korea_publishable": korea_publishable,
+        "korea_english_held": korea_english_held,
         "state_counts": corpus_state_counts(corpus),
         "facets": corpus_facets(corpus),
         "weeks": corpus_weeks(corpus, run_days),
@@ -1304,55 +1348,217 @@ def edition_cover(repo_root: Path, slug: str, sidecar: dict):
     }
 
 
-#: How many records the home page publishes: one lead plate and the register
-#: beneath it. Declared once so the template cannot drift from the derivation.
-HOME_RECORD_COUNT = 6
+DESK_NEWEST_ROWS = 5
+
+#: The longest summary sentence a list row carries. A longer first sentence is
+#: not shortened: the row simply carries no line, and the record page keeps
+#: the whole summary. Measured over the stored summaries on 2026-11-16: about
+#: two thirds of first sentences fit.
+SUMMARY_LEAD_MAX = 400
+
+#: Words that end in a period without ending a sentence. A boundary after one
+#: of them is never guessed: the record gets no line instead.
+_ABBREVIATIONS = frozenset((
+    "u.s", "u.n", "u.k", "lt", "gen", "col", "maj", "capt", "no", "nos", "mr",
+    "mrs", "ms", "dr", "st", "jr", "sr", "rep", "sen", "adm", "cmdr", "sgt",
+    "gov", "prof", "inc", "co", "corp", "ltd", "vs", "etc", "e.g", "i.e",
+    "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct",
+    "nov", "dec", "dept", "vol", "art", "para", "fig", "approx", "est", "p.m",
+    "a.m", "mt", "ft", "rd", "ave", "pres", "v"))
+_SENTENCE_END = re.compile(r'[.!?]["”’)\]]*(?=\s)')
+_TERMINAL = re.compile(r'[.!?]["”’)\]]*$')
 
 
-def home_record_group(records: list, count: int = HOME_RECORD_COUNT) -> dict:
+def summary_lead(summary):
+    """The first complete sentence of a stored machine summary, verbatim.
+
+    Returns an exact prefix of the stripped summary, or None. Nothing is
+    rewritten, normalised or shortened: when the first boundary is ambiguous
+    (an abbreviation, an initial, a figure such as "3.5%." followed by a
+    capital) or the sentence is longer than SUMMARY_LEAD_MAX, there is no
+    line at all rather than a guessed one.
     """
-    The home page's records, and the one provenance question their layout
-    turns on: do the non-lead records genuinely share a source and a date?
+    if not summary or not summary.strip():
+        return None
+    text = summary.strip()
+    # With no internal boundary, the whole summary is one sentence — if it
+    # ends like one.
+    lead = text if _TERMINAL.search(text) else None
+    for match in _SENTENCE_END.finditer(text):
+        before = text[:match.start()].split()
+        token = before[-1].lstrip('("“‘[').lower() if before else ""
+        following = text[match.end():].lstrip()[0]
+        abbreviated = (token in _ABBREVIATIONS
+                       or (len(token) == 1 and token.isalpha())
+                       or ("." in token and match.group(0)[0] == "."))
+        if abbreviated and following.islower():
+            continue
+        if abbreviated:
+            return None
+        if not (following.isupper() or following.isdigit()
+                or following in '"“‘('):
+            return None
+        lead = text[:match.end()]
+        break
+    if lead is None or len(lead) > SUMMARY_LEAD_MAX:
+        return None
+    return lead
 
-    The approved design collapses repeated institution/date metadata into a
-    single sentence, because the snapshot it was drawn from held six records
-    from one institution on one day. Production cannot assume that holds. When
-    the register really is homogeneous the sentence is true and the repetition
-    is noise; the moment any source, institution or publication date differs,
-    a summary would attribute one record's provenance to another — so `shared`
-    is None and every row states its own.
 
-    The test is the SOURCE, not the institution. `pla_daily` and
-    `china_mil_online` are two sources of one institution, so an
-    institution-only test would print "all five from CMC Political Work
-    Department" over a register that mixes two outlets. Source attribution is
-    never inferred across records.
+def title_kind(record):
+    """What the English heading of a list row is, so a list can state the
+    common case once and mark only the rows that differ.
 
-    `relevant_date` is the source-stated publication date. It is deliberately
-    not the collection date: they are different calendars and different
-    claims, and the dateline states the collection date separately.
+    * ``machine_translation`` — a model's translation of the published title.
+    * ``machine_headline`` — a model-written headline that is not a
+      translation (Vietnam records without a translated title).
+    * ``published_english`` — the title as published in English.
+    * ``metadata`` — a governed metadata label standing in for a title that
+      is not republished (Singapore MINDEF).
+    * ``original`` — no English; the heading is the published title.
     """
-    selected = list(records[:count])
-    if not selected:
-        return {"lead": None, "rest": [], "shared": None}
-    rest = selected[1:]
+    if record.get("source_slug") == "sg_mindef_releases":
+        return "metadata"
+    if not record.get("title_english"):
+        return "original"
+    if (record.get("language_tag") or "").split("-")[0] == "en":
+        return "published_english"
+    vietnam = record.get("vietnam")
+    if vietnam and not vietnam.get("translation_prompt_version"):
+        return "machine_headline"
+    return "machine_translation"
 
-    def provenance(record):
-        return (record.get("source_slug"),
-                record.get("institution") or record.get("source_name"),
-                record.get("published_date"))
 
-    shared = None
-    if rest:
-        marks = {provenance(record) for record in rest}
-        if len(marks) == 1:
-            slug, institution, date = marks.pop()
-            # A summary may only stand in for facts that are all present. A
-            # missing institution or date is stated per row, never smoothed.
-            if institution and date:
-                shared = {"source_slug": slug, "institution": institution,
-                          "date": date, "count": len(rest)}
-    return {"lead": selected[0], "rest": rest, "shared": shared}
+def vietnam_published_rows(corpus):
+    """Vietnam records published after factual QA, newest first: the rows the
+    Vietnam desk page lists and the home page's Vietnam row."""
+    return sorted((r for r in corpus
+                   if r.get("vietnam") and r["state"] == "analyzed"
+                   and r["vietnam"]["qa"]["outcome"] == "published"),
+                  key=lambda r: (r["published_date"], r["id"]), reverse=True)
+
+
+def desk_front_rows(desks, desk_newest, corpus):
+    """Each public-record desk's newest record, as its own desk page lists it
+    first, in registry order; and the desks that hold no public records.
+
+    Deterministic: the first row of the desk page's newest list. Nothing is
+    chosen for interest or importance.
+    """
+    vietnam = vietnam_published_rows(corpus)
+    latest = {r["desk_id"]: r for r in reversed(corpus) if r.get("desk_id")}
+    front, empty = [], []
+    for desk in desks:
+        if not desk.record_count:
+            empty.append(desk)
+            continue
+        if desk.slug == "vietnam" and vietnam:
+            row = vietnam[0]
+        else:
+            rows = desk_newest.get(desk.slug) or []
+            row = rows[0] if rows else latest.get(desk.slug)
+        if row is not None:
+            front.append({"desk": desk, "record": row})
+    return {"rows": front, "empty": empty}
+
+
+#: The home opening's photograph (founder direction, 16 November): one stable
+#: homepage asset, never the latest Brief's cover. The U.S. Navy photograph of
+#: the Ronald Reagan Carrier Strike Group with Japan Maritime Self-Defense
+#: Force ships that IPR's homepage carried before this redesign. Its manifest
+#: entry is the rights anchor (public domain, 17 U.S.C. section 105, read from
+#: the Commons file page), routed to `home`.
+HOME_PHOTO_ID = "reagan-jmsdf-2015"
+#: The resized derivatives `scripts/build_frontend_assets.py` builds from that
+#: source and records in DELIVERY.json, with both hashes.
+HOME_PHOTO_DELIVERY = Path("site") / "assets" / "frontend" / "DELIVERY.json"
+#: The only licence the home opening may carry: its credit, change note and
+#: CSS overlay are written for a public-domain photograph.
+HOME_PHOTO_LICENCES = frozenset({"Public domain"})
+
+
+def home_hero(repo_root=None):
+    """The home page's photograph and its credit record, or None.
+
+    Fails closed to a plain navy opening unless every link of the chain
+    holds: the manifest entry exists and is routed to the home page, the
+    committed source file matches the manifest's SHA-256, and each served
+    derivative matches the hash DELIVERY.json records for it, built from that
+    same source. Nothing is fetched, generated or written here. It is
+    illustrative context for the publication, never a picture of a record.
+    """
+    root = Path(repo_root or REPO_ROOT)
+    manifest_path = root / "site" / "assets" / "editorial" / "manifest.json"
+    delivery_path = root / HOME_PHOTO_DELIVERY
+    if not manifest_path.is_file() or not delivery_path.is_file():
+        return None
+    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entries = raw if isinstance(raw, list) else (
+        raw.get("assets") or raw.get("images") or [])
+    if isinstance(entries, dict):
+        entries = list(entries.values())
+    entry = next((e for e in entries if e.get("id") == HOME_PHOTO_ID), None)
+    if not entry or "home" not in ((entry.get("match") or {}).get("routes") or []):
+        return None
+    # The credit beneath the photograph is read from this entry, and its
+    # source link is labelled "Wikimedia Commons": without every field, a
+    # public-domain basis and a Commons file page, the page would show a
+    # photograph it cannot credit truthfully.
+    if any(not (entry.get(k) or "").strip() for k in
+           ("caption", "creator", "license", "license_url", "source_page")):
+        return None
+    if entry["license"] not in HOME_PHOTO_LICENCES:
+        return None
+    if not entry["source_page"].startswith("https://commons.wikimedia.org/wiki/File:"):
+        return None
+    source = root / "site" / "assets" / "editorial" / entry.get("file", "")
+    if not source.is_file() or not entry.get("sha256") or (
+            hashlib.sha256(source.read_bytes()).hexdigest() != entry["sha256"]):
+        return None
+    source_route = "site/assets/editorial/" + entry["file"]
+    variants = []
+    for image in json.loads(delivery_path.read_text(encoding="utf-8")).get("images", []):
+        if image.get("source") != source_route or image.get("source_sha256") != entry["sha256"]:
+            continue
+        served = root / "site" / "assets" / "frontend" / image["file"]
+        if not served.is_file() or hashlib.sha256(served.read_bytes()).hexdigest() != image.get("sha256"):
+            return None
+        variants.append({"route": "assets/frontend/" + image["file"],
+                         "width": image["width"], "height": image["height"]})
+    if not variants:
+        return None
+    variants.sort(key=lambda v: v["width"])
+    fallback = next((v for v in variants if v["width"] >= 1600), variants[-1])
+    return {
+        "id": entry["id"],
+        "variants": variants,
+        "src": fallback,
+        "alt": entry.get("alt", ""),
+        "caption": entry.get("caption", ""),
+        "creator": entry.get("creator", ""),
+        "institution": entry.get("institution", ""),
+        "license": entry.get("license", ""),
+        "license_url": entry.get("license_url", ""),
+        "source_page": entry.get("source_page", ""),
+        "dod_id": entry.get("dod_id", ""),
+    }
+
+
+def desk_newest_rows(rows, limit=DESK_NEWEST_ROWS):
+    """The first `limit` rows of each desk, in the order the rows arrive.
+
+    A pure grouping of rows that are already rendered and ordered newest
+    first: nothing is selected, ranked or derived here.
+    """
+    newest = {}
+    for row in rows:
+        desk_id = row.get("desk_id")
+        if not desk_id:
+            continue
+        held = newest.setdefault(desk_id, [])
+        if len(held) < limit:
+            held.append(row)
+    return newest
 
 
 #: The homepage atmospheric visual. One asset, chosen by the manifest's own
@@ -1432,92 +1638,6 @@ def home_atmosphere(repo_root: Path):
         # manufacturer.
         "subject_short": (entry.get("subject", "").split("·")[0].strip()
                           or entry.get("subject", "")),
-        "note": entry.get("note", ""),
-    }
-
-
-#: The Ocean Signal Veil's manifest placement, and where its two derivatives
-#: are published. Routes are fixed because the STYLESHEET references them: the
-#: stylesheet cannot carry an inline background —
-#: `tests/test_palette_and_accessibility.py` forbids `style="...background..."`
-#: on any built page, and it is right to. An inline paint is a colour nobody
-#: measured and nobody can retune.
-VEIL_PLACEMENT = "homepage-veil"
-VEIL_ROUTES = {
-    "webp": "atmosphere/veil-ocean.webp",
-    "jpg": "atmosphere/veil-ocean.jpg",
-}
-
-#: Where the credit's link points, and what the link is called. The source is
-#: public domain, so nothing compels attribution; the publication credits a
-#: photograph it shows anyway.
-VEIL_REPOSITORY_LABEL = "COMMONS"
-
-
-def home_veil(repo_root: Path):
-    """
-    The homepage Ocean Signal Veil, with the provenance that makes it usable.
-
-    Rights basis: a U.S. Navy photograph by MC3 Nathan Burke, prepared in the
-    course of official duties and therefore not subject to copyright in the
-    United States (17 U.S.C. § 105, tagged {{PD-USGov-Military}} on its
-    Commons file page). Public domain carries no attribution condition, and
-    the credit is rendered visibly regardless — a publication that shows a
-    photograph says whose it is.
-
-    Nothing is generated and nothing is sourced afresh: this returns the
-    derivatives already in the repository, or nothing at all. A missing file
-    renders no veil rather than a broken frame, which is also why the template
-    gates both the layer and the credit on this being truthy — an attribution
-    for an image the page does not show would be a claim about a page that
-    does not exist.
-
-    This does NOT replace `home_atmosphere`. That entry, its asset, its
-    derivative and its published licence record stay exactly as they are; the
-    J-20 veil was withdrawn from the homepage on contrast grounds and "do not
-    render it" was never "delete it".
-    """
-    manifest_path = repo_root / "site" / "assets" / "editorial" / "manifest.json"
-    if not manifest_path.is_file():
-        return None
-    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
-    entries = raw if isinstance(raw, list) else (
-        raw.get("assets") or raw.get("images") or [])
-    if isinstance(entries, dict):
-        entries = list(entries.values())
-    entry = next((e for e in entries
-                  if e.get("placement") == VEIL_PLACEMENT), None)
-    if not entry:
-        return None
-
-    deriv_dir = repo_root / "site" / "assets" / "editorial" / "derivatives"
-    files = {}
-    for kind, route in VEIL_ROUTES.items():
-        path = deriv_dir / Path(route).name
-        if not path.is_file():
-            return None
-        files[kind] = path
-
-    return {
-        "id": entry.get("id"),
-        "files": files,
-        "routes": dict(VEIL_ROUTES),
-        "sha256": {k: hashlib.sha256(v.read_bytes()).hexdigest()
-                   for k, v in files.items()},
-        "bytes": {k: v.stat().st_size for k, v in files.items()},
-        "credit": entry.get("credit", ""),
-        "creator": entry.get("creator", ""),
-        "license": entry.get("license", ""),
-        "license_url": entry.get("license_url", ""),
-        "license_basis": entry.get("license_basis", ""),
-        "source_page": entry.get("source_page", ""),
-        "original_url": entry.get("original_url", ""),
-        "downloaded_at": entry.get("downloaded_at", ""),
-        # The mono micro-label that names the photograph beside it, from the
-        # manifest rather than written into the template.
-        "source_id": entry.get("source_id", ""),
-        "subject": entry.get("subject", ""),
-        "repository_label": VEIL_REPOSITORY_LABEL,
         "note": entry.get("note", ""),
     }
 
@@ -2113,25 +2233,9 @@ def changelog_entries(stats: dict) -> list:
 # permanent identifier, a DOI, an accession number or a public permalink, and
 # the private preview route never appears in a citation.
 
-MONTHS = ("January", "February", "March", "April", "May", "June", "July",
-          "August", "September", "October", "November", "December")
-
-
-def reader_date(iso: str) -> str:
-    """`2026-08-08` -> `8 August 2026`.
-
-    Day–month–year, per the standing reader-facing date convention
-    (`DECISION_LOG.md` 2026-07-09): week-ending labels read "4 July 2026", and
-    ISO `YYYY-MM-DD` is kept for tabular and metadata contexts. The convention
-    governs date FORM; the American-English ruling of 2026-08-16 governs
-    spelling, and does not reach it.
-
-    An explicit month table rather than `strftime`, so the rendered string is
-    identical on every machine regardless of locale — determinism is a tested
-    property of this build.
-    """
-    year, month, day = (int(part) for part in iso.split("-"))
-    return "%d %s %d" % (day, MONTHS[month - 1], year)
+# Reader date and count formats live in core.reader_format (standard library
+# only) so bare-Jinja contract tests use the same functions.
+from core.reader_format import MONTHS, reader_date, count as reader_count  # noqa: E402,F401
 
 
 def script_lang(text) -> str:
@@ -2191,7 +2295,7 @@ def corpus_citation(title: str, snapshot: dict, maintainer=MAINTAINER) -> str:
     count from the corpus as well would create a second source of truth for a
     value that is governed in exactly one place.
     """
-    return ("{title}. Research Atlas corpus. Snapshot — {date}. "
+    return ("{title}. Records archive, snapshot of {date}. "
             "{records:,} records. {name}, {role}.").format(
                 title=title, date=snapshot["date"],
                 records=snapshot["expected_records"],
@@ -2274,15 +2378,17 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
                               "source-stated publication date", subject),
                 url=_require(record.get("url"), "original URL", subject)),
         "as_held":
-            "As held. {work}, Research Atlas corpus, Record {id}, "
-            "Snapshot — {date} ({records:,} records).".format(
+            "As held. {work}, Record {id}, archive snapshot of {date} "
+            "({records:,} records).".format(
                 work=title,
                 id=_require(record.get("id"), "record id", subject),
                 date=snapshot["date"],
                 records=snapshot["expected_records"]),
         "note": ("Historical processing status only. MINDEF titles, source text, translations, "
-                 "summaries and reasoning are withheld under the current source-use policy."
+                 "summaries and reasoning are not published on this site at present."
                  if withheld_mindef_title else
+                 "%s. %s" % (record["korea_english_status"], ENGLISH_WITHHELD_NOTE)
+                 if record.get("korea_english_state") else
                  processing_note(record, CITATION_PROCESSING_NOTES)),
     }
 
@@ -2473,6 +2579,24 @@ IDENTITY_DIR = Path(__file__).resolve().parent.parent / "assets" / "identity"
 #: `tests/test_identity_assets.py` asserts the emitted numbers match it.
 SOCIAL_CARD = (1200, 630)
 
+#: Pages whose link preview is their own image rather than the publication's
+#: lockup. Keyed by built path; each value is the served route (already
+#: delivered by the `frontend` asset loop below, so nothing is copied twice)
+#: and the alt text, which for these cards describes the image itself.
+#: `site/assets/frontend/<card>.json` records each card's digest and the
+#: provenance of the photograph on it. Every page not listed here keeps
+#: `/social-card.png`, so adding a card is one entry and no behaviour change
+#: anywhere else. The card's pixel size is the same 1200 x 630 as SOCIAL_CARD.
+PAGE_SOCIAL_CARDS = {
+    "briefs/japan-us-amraam-final-assembly-sm3-production.html": {
+        "route": "assets/frontend/brief-21-amraam-final-assembly-social-1200x630.png",
+        "alt": ("Indo-Pacific Record Briefs, No. 21, week ending 31 October "
+                "2026: Japan and the United States Agree to Establish AMRAAM "
+                "Final Assembly in Japan. Two AIM-120 AMRAAM missiles on a "
+                "ground handling rack in front of an AV-8B Harrier II."),
+    },
+}
+
 IDENTITY_ASSETS = {
     "mark.svg": "ipr-compass-mark-small.svg",
     "icon-16.png": "ipr-compass-icon-16.png",
@@ -2496,6 +2620,117 @@ LEGACY_REDIRECT = """<!doctype html>
 </body>
 </html>
 """
+
+
+from core import official_link_index as official_link_index_mod
+
+INDONESIA_ADMITTED_LIST = ('<ol class="desk-reference-list" '
+                           'aria-label="Admitted official publisher references">')
+INDONESIA_ADMITTED_ROW = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
+
+
+def compact_indonesia_admitted(page, expected):
+    """Compact the admitted Kemhan rows of a desk or index month page.
+
+    The admitted URL/date-only entries are repetitive; keep every source,
+    publisher and date, but compact layout whitespace and omit the per-row
+    "metadata only" refrain already explained above the list. Each row keeps
+    its identity, official URL, rel="noopener noreferrer", "Kemhan Berita
+    official source" label, publisher attribution and <time datetime>; it
+    opens in the same tab and the repeated "Official date" label is stated
+    once above the list. The desk lists only the newest
+    official_link_index.DESK_LINK_LIMIT rows, so indonesia.html stays well
+    under its 160 KB owner cap (DECISION_LOG 2026-11-13, raised 21 Nov 2026);
+    month pages keep the default 120 KB route cap.
+    """
+    matches = re.findall(INDONESIA_ADMITTED_ROW, page)
+    if len(matches) != expected:
+        raise ValueError("Indonesia admitted-index markup/count mismatch")
+
+    def compact(match):
+        item = (re.sub(r'\s*\n\s*', ' ', match.group(0))
+                .replace(' · Official-link metadata only', '')
+                .replace(' target="_blank"', '')
+                .replace(' · Official date <time', ' · <time'))
+        return re.sub(r'>\s+<', '><', item)
+
+    page = re.sub(INDONESIA_ADMITTED_ROW, compact, page)
+    page = re.sub(
+        r'(</li>)\s+(?=<li data-regional-official-source-id="kemhan:)',
+        r'\1', page)
+    if page.count(INDONESIA_ADMITTED_LIST) != 1:
+        raise ValueError("Indonesia admitted-index list is not unique")
+    page = page.replace(
+        INDONESIA_ADMITTED_LIST,
+        '<p class="meta">Each date below is the official date.</p>\n  '
+        + INDONESIA_ADMITTED_LIST)
+    # Drop indentation in the ordinary HTML flow. Keep newlines so adjacent
+    # words and inline elements retain their spacing.
+    return re.sub(r"(?m)^[ \t]+", "", page)
+
+
+def render_official_link_index(env, desk, rows, **ctx):
+    """{route: html} for a desk's official-link hub and month pages.
+
+    Every admitted row appears exactly once, on the page for the month of its
+    official date, in the caller's newest-first order. No rows, no pages.
+    """
+    oli = official_link_index_mod
+    months = oli.partition(desk.slug, rows)
+    if not months:
+        return {}
+    tmpl = env.get_template("official_link_index.html")
+    hub = oli.hub_route(desk.slug)
+    entries = [{"month": month, "label": oli.month_label(month),
+                "count": len(items), "route": oli.month_route(desk.slug, month)}
+               for month, items in months]
+    common = dict(ctx, desk=desk, index_desk=desk.slug, index_hub=hub,
+                  index_total=len(rows),
+                  index_shown=min(len(rows), oli.DESK_LINK_LIMIT),
+                  support_stylesheet=("indonesia-shell.css"
+                                      if desk.slug == "indonesia"
+                                      else "korea-shell.css"))
+    pages = {hub: tmpl.render(page=hub, nested=False, index_kind="hub",
+                              index_months=entries, **common)}
+    for position, (month, items) in enumerate(months):
+        entry = entries[position]
+        html = tmpl.render(
+            page=entry["route"], nested=True, index_kind="month",
+            index_month=entry, index_rows=items,
+            index_newer=entries[position - 1] if position else None,
+            index_older=(entries[position + 1]
+                         if position + 1 < len(entries) else None),
+            **common)
+        if desk.slug == "indonesia":
+            html = compact_indonesia_admitted(html, len(items))
+        pages[entry["route"]] = html
+    return pages
+
+
+def write_official_link_index(env, out_dir, desk, rows, **ctx):
+    """Write the index routes and remove stale ones; return written routes.
+
+    A month that no longer has admitted rows, or a whole index whose desk has
+    none, is deleted so the published tree never keeps an orphan page.
+    """
+    oli = official_link_index_mod
+    pages = render_official_link_index(env, desk, rows, **ctx)
+    folder = out_dir / oli.month_dir(desk.slug)
+    hub = out_dir / oli.hub_route(desk.slug)
+    if folder.is_dir():
+        for stale in folder.glob("*.html"):
+            if oli.month_dir(desk.slug) + "/" + stale.name not in pages:
+                stale.unlink()
+    if not pages:
+        if hub.exists():
+            hub.unlink()
+        if folder.is_dir() and not any(folder.iterdir()):
+            folder.rmdir()
+        return []
+    folder.mkdir(parents=True, exist_ok=True)
+    for route, html in pages.items():
+        (out_dir / route).write_text(html, encoding="utf-8")
+    return list(pages)
 
 
 def build(out_dir: Path, title: str, db_path: Path,
@@ -2681,15 +2916,17 @@ def build(out_dir: Path, title: str, db_path: Path,
     assert_snapshot(data["corpus"], snapshot)
     env = Environment(loader=FileSystemLoader(str(TEMPLATES)),
                       autoescape=True, trim_blocks=True, lstrip_blocks=True)
-    env.globals["topography_style"] = topography_style
     env.filters["status_label"] = lambda s: STATUS_PROSE.get(s, (s, ""))[0]
     env.filters["status_prose"] = lambda s: STATUS_PROSE.get(s, ("", s))[1]
+    # An unmapped type is shown as its own stored words, spaced and
+    # capitalised ("official_news" -> "Official news"): nothing is renamed or
+    # dropped, and a reader is not handed an identifier.
     env.filters["source_type_label"] = (
-        lambda v: SOURCE_TYPE_LABELS.get(v, v or "—"))
+        lambda v: SOURCE_TYPE_LABELS.get(v)
+        or (v.replace("_", " ").capitalize() if v else "—"))
     # Thousands separators for reader-facing counts. Never applied to ids,
     # dates, hashes, run numbers or source codes.
-    env.filters["count"] = (
-        lambda n: "{:,}".format(n) if isinstance(n, int) else n)
+    env.filters["count"] = reader_count
     env.filters["reader_date"] = reader_date
     import calendar
     env.filters["month_name"] = lambda n: calendar.month_name[n]
@@ -2698,6 +2935,12 @@ def build(out_dir: Path, title: str, db_path: Path,
     env.filters["weekday"] = weekday
     from markupsafe import Markup
     env.filters["brief_prose"] = lambda text: Markup(linked_prose(text))
+    # Ship the opening layout with the HTML that uses it. A cached copy of
+    # the previous home.css can otherwise leave the finder transparent.
+    home_css = (TEMPLATES.parent / "home.css").read_text(encoding="utf-8")
+    if "</style" in home_css.lower():
+        raise ValueError("home.css cannot contain an HTML style end tag")
+    env.globals["home_css"] = Markup(home_css)
 
     gaps = collection_gaps(data["run_days"])
     editions = load_editions(REPO_ROOT)
@@ -2707,7 +2950,6 @@ def build(out_dir: Path, title: str, db_path: Path,
     # Freeze the approved collection before any private review can add a draft.
     public_archive_collection = collection
     atmosphere = home_atmosphere(REPO_ROOT)
-    veil = home_veil(REPO_ROOT)
 
     # Record <-> analysis, both ways, on the exact stored URL only. A record
     # page names the issues whose source trail lists it; the Records search can
@@ -2804,7 +3046,7 @@ def build(out_dir: Path, title: str, db_path: Path,
     dossiers, dossiers_withheld = load_dossiers(
         db_path, {e["slug"]: e for e in collection.briefs},
         review_path=review_dossier, related_timelines={t["slug"]: t for t in timelines},
-        **dossier_options)
+        briefs_dir=briefs_dir, **dossier_options)
     dossier_records, dossier_briefs = defaultdict(list), defaultdict(list)
     for item in dossiers:
         for rec in item["ledger"]:
@@ -2912,9 +3154,9 @@ def build(out_dir: Path, title: str, db_path: Path,
         "collection_name": COLLECTION_NAME,
         "briefs_feed_route": BRIEFS_FEED_ROUTE if briefs_feed else None,
         "desks": desks,
+        # Where each desk's publishing institutions are based, on the atlas.
+        "atlas": atlas_view(desks),
         "editorial_published_desks": editorial_published_desks,
-        # Where each desk's plate hangs on the Desks-page map; geography only.
-        "desk_map": desk_map_layout(desks),
         "live_desk_count": desks.collecting_count,
         "developing_desk_count": desks.not_collecting_count,
         "metrics": metrics,
@@ -2954,7 +3196,11 @@ def build(out_dir: Path, title: str, db_path: Path,
         # Derived here rather than in the template: whether a group summary is
         # truthful is a fact about the records, and a template that computes it
         # is a template that can be wrong quietly.
-        "home_records": home_record_group(data["recent"]),
+        # The newest held record on each desk, for the home page's desk index.
+        # `data["corpus"]` is ordered newest first, so walking it backwards
+        # leaves each desk holding its newest row. Derived, never stored.
+        "desk_latest": {r["desk_id"]: r for r in reversed(data["corpus"])
+                        if r.get("desk_id")},
         "gaps": gaps,
         "source_facets": sorted(by_source.items()),
         "status_prose": STATUS_PROSE,
@@ -2967,7 +3213,6 @@ def build(out_dir: Path, title: str, db_path: Path,
              "anchor": "cite-edition-%s" % edition["slug"]}
             for edition in editions],
         "atmosphere": atmosphere,
-        "veil": veil,
         "live_base": LIVE_BASE,
         "snapshot": snapshot,
         # Sources actually enabled for collection, summed from the desk
@@ -2996,6 +3241,15 @@ def build(out_dir: Path, title: str, db_path: Path,
         # The Records page's server-rendered first page: the newest stored
         # records, in the corpus's own order, readable with no script at all.
         "archive_first": focus["rows"][:ARCHIVE_FIRST_PAGE],
+        # Each desk page opens on that desk's own newest records, taken from
+        # the same ordered rows as the Records page so the two never disagree.
+        "desk_newest": desk_newest_rows(focus["rows"]),
+        # The home page's one row per desk: the first row of each desk page's
+        # newest list, and the desks that hold no public records.
+        "home_desks": desk_front_rows(desks, desk_newest_rows(focus["rows"]),
+                                      data["corpus"]),
+        # The large home photograph: the latest Brief's admitted photograph.
+        "home_hero": home_hero(),
         "archive_page_size": ARCHIVE_FIRST_PAGE,
         # Records listed in any published issue's source trail (exact URL).
         "trail_record_count": sum(1 for r in data["corpus"]
@@ -3005,10 +3259,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         # from that issue's own sidecar; replaces the cover photograph in page.
         "edition_plates": {e["slug"]: edition_plate(e, trail_marks.get(e["slug"]))
                            for e in editions},
-        # Symbol viewBoxes for the relief macros (_relief.html), from the geo
-        # builder's receipt. Read by home.html and gallery-relief.html.
-        "relief_boxes": json.loads((REPO_ROOT / "site/assets/geo/geo.receipt.json")
-                                   .read_text(encoding="utf-8"))["symbols"],
     }
 
     pages = {
@@ -3034,21 +3284,18 @@ def build(out_dir: Path, title: str, db_path: Path,
         desk_index_lanes = ({"korea_mnd_live_link_count": (korea_production_link_count - korea_dapa_production_link_count)}
                             if target == "desks.html" else {})
         if target == "desks.html":
-            # Philippines link metadata and machine explanations are real
-            # production lanes but not corpus originals; count each from its own
-            # governed table and never add them to a corpus figure.
             from core.regional_official_link_render import load_admitted_links as ph_links
-            from core.daily_machine_records import load as ph_machine
+            ph_records = [r for r in machine_records if r["desk_id"] == "philippines"]
             desk_index_lanes["ph_official_link_count"] = len(ph_links(db_path, "philippines"))
-            desk_index_lanes["ph_machine_explanation_count"] = sum(r["desk_id"] == "philippines" for r in ph_machine(db_path))
+            desk_index_lanes["ph_machine_explanation_count"] = len(ph_records)
+            desk_index_lanes["ph_original_count"] = sum(bool(r["original_text"]) for r in ph_records)
         page_html = env.get_template(template).render(
             page=target, **ctx, **desk_index_lanes)
         if target == "desks.html":
-            # Desks embeds the canonical 1:50m map inline. Its accessible
-            # directory keeps every status/limit, so trim only indentation
-            # at the start of lines whose next token is an HTML/SVG tag.
-            # The newline remains intact: text spacing and all SVG path
-            # coordinates are preserved, and other pages are untouched.
+            # Trim only indentation at the start of lines whose next token
+            # is a tag, to keep the long directory under its raw-size pin.
+            # The newline remains intact, so text spacing is preserved, and
+            # other pages are untouched.
             page_html = re.sub(r"(?m)^[ \t]+(?=<)", "", page_html)
         (out_dir / target).write_text(page_html, encoding="utf-8")
         written.append(target)
@@ -3067,8 +3314,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                       "jobTitle": member["role"],
                       "worksFor": {"@type": "Organization", "name": title,
                                    "url": profile_origin + "/"}}
-            if member["links"]:
-                schema["sameAs"] = list(member["links"].values())
+            # Person.sameAs describes equivalent profile pages, not emails.
+            public_profiles = [href for href in member["links"].values()
+                               if href.startswith("https://")]
+            if public_profiles:
+                schema["sameAs"] = public_profiles
         route = member["route"]
         (out_dir / route).write_text(profile_template.render(
             page=route, nested=True, member=member,
@@ -3143,26 +3393,13 @@ def build(out_dir: Path, title: str, db_path: Path,
                 states=data["state_counts"],
                 desk_statuses=[(code, DESK_STATUS_LABELS[code])
                                for code in DESK_STATUSES],
-                plate_a=ctx["edition_plates"].get(slugs[0]) if slugs else None,
-                plate_b=ctx["edition_plates"].get(slugs[1]) if len(slugs) > 1 else None,
                 **ctx),
             encoding="utf-8")
         written.append("gallery.html")
-        # The relief primitives get a page of their own, so the component
-        # gallery stays inside its delivery budget. The specimen-only assets
-        # travel with the gallery and nowhere else; relief.css and the two
-        # sprites the homepage uses are delivered below with production.
-        (out_dir / "gallery-relief.html").write_text(
-            env.get_template("gallery-relief.html").render(
-                page="gallery-relief.html",
-                specimen_records=specimens,
-                **ctx),
-            encoding="utf-8")
-        written.append("gallery-relief.html")
         for folder in ("geo", "flags", "glyphs"):
             for asset in sorted((REPO_ROOT / "site/assets" / folder).iterdir()):
-                if (not asset.is_file() or asset.name.endswith(".receipt.json")
-                        or "assets/%s/%s" % (folder, asset.name) in RELIEF_PRODUCTION_ASSETS
+                if (not asset.is_file() or asset.name.endswith(".json")
+                        or "assets/%s/%s" % (folder, asset.name) in ATLAS_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in DESKS_PUBLIC_FLAG_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in CATALOGUE_STATIC_ASSETS):
                     continue
@@ -3171,6 +3408,11 @@ def build(out_dir: Path, title: str, db_path: Path,
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(asset.read_bytes())
                 written.append(route)
+
+    # Preserve all existing Brief cards. No.25 onward may receive an automatic
+    # photographic card when the paired cover also carries an exact-image,
+    # founder-approved grant for the social-link-preview surface.
+    social_cards = dict(PAGE_SOCIAL_CARDS)
 
     # ── One page per published brief ─────────────────────────────────────────
     # `briefs/<slug>.html`, one level down, in the site's own shell: the
@@ -3251,6 +3493,20 @@ def build(out_dir: Path, title: str, db_path: Path,
                     raise ValueError("rendered manuscript: " + "; ".join(errors))
             (out_dir / brief["route"]).write_text(html, encoding="utf-8")
             written.append(brief["route"])
+            # A separately admitted photo is required for a photographic
+            # social preview. Never substitute an AI image, an unlicensed
+            # source photograph or an unrelated picture.
+            if (not brief["synthetic"] and not brief["is_review"]
+                    and brief["route"] not in social_cards and cover
+                    and social_preview_granted(brief["number"], cover["entry"])):
+                card_route = "assets/social/brief-%s.jpg" % slug
+                card_alt = render_brief_social_card(
+                    out_dir / card_route, title=brief["title"],
+                    issue=brief["number"], week_ending=brief["week_ending"],
+                    photo_file=cover["src"]["file"], photo=cover["entry"],
+                    byline=brief.get("author_name", ""))
+                social_cards[brief["route"]] = {"route": card_route, "alt": card_alt}
+                written.append(card_route)
         (out_dir / "briefs.css").write_text(
             (Path(__file__).parent / "briefs.css").read_text(encoding="utf-8"),
             encoding="utf-8")
@@ -3296,14 +3552,12 @@ def build(out_dir: Path, title: str, db_path: Path,
         from core.daily_machine_records import load as load_daily_machine_records
         daily_machine_records = ([r for r in load_daily_machine_records(db_path)
                                   if r["desk_id"] == desk.slug]
-                                 if desk.slug in ("philippines", "indonesia") else [])
+                                 if desk.slug in ("philippines", "indonesia", "singapore", "japan",
+                                                  "us-indopacific") else [])
         # Reuse the admitted corpus and its ordinary record rows. Private
         # captures and bibliographic references cannot enter this list.
-        vietnam_records = sorted((r for r in data["corpus"]
-            if desk.slug == "vietnam" and r.get("vietnam")
-            and r["state"] == "analyzed"
-            and r["vietnam"]["qa"]["outcome"] == "published"),
-            key=lambda r: (r["published_date"], r["id"]), reverse=True)
+        vietnam_records = (vietnam_published_rows(data["corpus"])
+                           if desk.slug == "vietnam" else [])
         vietnam_explained = {r["vietnam"]["source_identity"]: r["record_path"]
                              for r in vietnam_records}
         regional_official_links = (
@@ -3340,7 +3594,29 @@ def build(out_dir: Path, title: str, db_path: Path,
         ])
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
-        desk_page = desk_tmpl.render(page=desk.route, desk=desk,
+        # Indonesia and Korea desk pages list only the newest
+        # DESK_LINK_LIMIT admitted official links; the full admitted set is
+        # carried by the hub and month routes written below. Archive groups
+        # and archive-research-index.json keep every row.
+        desk_regional_links = regional_official_links
+        desk_korea_auto_links = (korea_auto_official_rows
+                                 if desk.slug == "korea" else [])
+        index_rows = None
+        if desk.slug == "indonesia":
+            index_rows = regional_official_links
+        elif desk.slug == "korea" and not review_korea:
+            index_rows = korea_auto_official_rows
+        official_link_index = None
+        if index_rows:
+            shown = official_link_index_mod.latest(desk.slug, index_rows)
+            official_link_index = {
+                "total": len(index_rows), "shown": len(shown),
+                "hub": official_link_index_mod.hub_route(desk.slug)}
+            if desk.slug == "indonesia":
+                desk_regional_links = shown
+            else:
+                desk_korea_auto_links = shown
+        desk_page = desk_tmpl.render(page=desk.route, desk=desk, locator=locator_view(desk.slug),
                              support_stylesheet=("indonesia-shell.css"
                                  if desk.slug == "indonesia" else
                                  "korea-shell.css" if desk.slug == "korea" else "support.css"),
@@ -3350,7 +3626,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                              public_reference_languages=languages,
                              indonesia_official_links=indonesia_official_links,
                              indonesia_press_links=indonesia_press_links,
-                             regional_official_links=regional_official_links,
+                             regional_official_links=desk_regional_links,
+                             official_link_index=official_link_index,
                              daily_machine_records=daily_machine_records,
                              vietnam_records=vietnam_records[:20],
                              vietnam_explained=vietnam_explained,
@@ -3360,7 +3637,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                              us_bis_authenticated_links=bis_links,
                              korea_public_links=(korea_public_rows if desk.slug == "korea" else []),
                              korea_additional_links=(korea_additional_rows if desk.slug == "korea" else []),
-                             korea_auto_official_links=(korea_auto_official_rows if desk.slug == "korea" else []),
+                             korea_auto_official_links=desk_korea_auto_links,
                              korea_production_link_count=(korea_production_link_count if desk.slug == "korea" else 0),
                              korea_dapa_production_link_count=(korea_dapa_production_link_count if desk.slug == "korea" else 0),
                              korea_published_originals=(korea_published_original_rows if desk.slug == "korea" else []),
@@ -3368,23 +3645,14 @@ def build(out_dir: Path, title: str, db_path: Path,
                              korea_english_publications=(korea_english_publication_rows if desk.slug == "korea" else []),
                              display_limits=public_desk_limits(
                                  desk, source_views), **ctx)
-        if desk.slug == "indonesia" and regional_official_links:
-            # The admitted URL/date-only entries are repetitive; keep every
-            # source, publisher and date, but compact layout whitespace and
-            # omit the per-row "metadata only" refrain already explained above.
-            # The all-route 120 KB budget remains unchanged.
-            pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
-            matches = re.findall(pattern, desk_page)
-            if len(matches) != len(regional_official_links):
-                raise ValueError("Indonesia admitted-index markup/count mismatch")
-            desk_page = re.sub(
-                pattern,
-                lambda m: re.sub(r'\s*\n\s*', ' ', m.group(0))
-                         .replace(' · Official-link metadata only', ''),
-                desk_page,
-            )
+        if desk.slug == "indonesia" and desk_regional_links:
+            desk_page = compact_indonesia_admitted(desk_page, len(desk_regional_links))
         (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
+        if desk.slug in official_link_index_mod.INDEX_DESKS and not (
+                desk.slug == "korea" and review_korea):
+            written.extend(write_official_link_index(
+                env, out_dir, desk, index_rows or [], **ctx))
 
     # Reproducible original Korean source pages are emitted ONLY when an
     # independently owner-released, exact-text-hash-pinned registry exists.
@@ -3396,8 +3664,10 @@ def build(out_dir: Path, title: str, db_path: Path,
             target.parent.mkdir(parents=True, exist_ok=True)
             # Render candidate-safe noindex markup first; the shared site-origin
             # pass below installs canonical and social URLs for actual release.
-            target.write_text(render_original_page(record, site_origin=None),
-                              encoding="utf-8")
+            target.write_text(render_original_page(
+                record, site_origin=None,
+                record_route=korea_record_routes.get(record["source_identity"])),
+                encoding="utf-8")
             written.append(record["route"])
 
     # English pages are written only for explicitly registered, already
@@ -3473,7 +3743,10 @@ def build(out_dir: Path, title: str, db_path: Path,
     for rec in data["corpus"]:
         (out_dir / "record" / ("%d.html" % rec["id"])).write_text(
             record_tmpl.render(page="archive.html", record=rec,
-                               state_definition=definitions[rec["state"]],
+                               state_definition=(
+                                   ENGLISH_STATUS_DEFINITIONS[rec["korea_english_state"]]
+                                   if rec.get("korea_english_state")
+                                   else definitions[rec["state"]]),
                                record_desk=desk_by_source.get(rec["source_slug"]),
                                cite=record_citation(rec, title, snapshot),
                                **ctx),
@@ -3534,7 +3807,11 @@ def build(out_dir: Path, title: str, db_path: Path,
         official_groups=archive_official_groups, originals=korea_published_original_rows,
         machine_records=machine_archive_rows(machine_records),
         english_publications=korea_english_publication_rows, analyses=public_analyses,
-        cited=cited_archive_rows(cited_records))
+        cited=cited_archive_rows(cited_records),
+        title_kinds={rec["id"]: rec["title_kind"] for rec in data["corpus"]},
+        korea_records={ident: aid for aid, ident in data["korea_publishable"].items()},
+        english_withheld={aid: ENGLISH_STATUS_LABELS[state]
+                          for aid, state in data["korea_english_held"].items()})
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
@@ -3560,22 +3837,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         encoding="utf-8")
     written.append("citation.js")
 
-    # Reveal-on-scroll. Requested per page through base.html's
-    # `head_scripts` block rather than inherited by all of them, so the week
-    # shards keep their no-script contract and the record pages carry no
-    # bytes for behaviour they do not have. ~2 KB, no dependencies.
-    (out_dir / "reveal.js").write_text(
-        (Path(__file__).parent / "reveal.js").read_text(encoding="utf-8"),
-        encoding="utf-8")
-    written.append("reveal.js")
-
-    # The homepage's opening title. Requested by home.html alone; no other
-    # page carries it.
-    (out_dir / "intro.js").write_text(
-        (Path(__file__).parent / "intro.js").read_text(encoding="utf-8"),
-        encoding="utf-8")
-    written.append("intro.js")
-
     (out_dir / "corpus.html").write_text(
         env.get_template("corpus_weeks.html").render(page="corpus.html", **ctx),
         encoding="utf-8")
@@ -3585,12 +3846,13 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
-    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "home.css", "relief.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-map.js", "desk-references.css", "desk-references.js"):
+    # Keep the original home.css URL available to previously cached HTML.
+    for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
-    # Explicit named assets only: homepage relief sprites and Phase 4A Desks
-    # flag tabs (including the MIT notice). No unrelated glyphs or gallery art.
-    for route in RELIEF_PRODUCTION_ASSETS + DESKS_PUBLIC_FLAG_ASSETS:
+    # Explicit named assets only: the Desks flag tabs (including the MIT
+    # notice). No unrelated glyphs or gallery art.
+    for route in DESKS_PUBLIC_FLAG_ASSETS:
         target = out_dir / route
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
@@ -3610,13 +3872,11 @@ def build(out_dir: Path, title: str, db_path: Path,
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
             written.append(route)
-    # The full-color JPEG fallback must travel in fresh trees too; production
-    # carry-forward is not a source dependency for the home picture.
-    route = "assets/editorial/reagan-jmsdf-2015.jpg"
-    target = out_dir / route
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes((REPO_ROOT / "site/assets/editorial/reagan-jmsdf-2015.jpg").read_bytes())
-    written.append(route)
+    for route in ATLAS_ASSETS:
+        target = out_dir / route
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
+        written.append(route)
     for folder in ("fonts", "identity/selected-ipr", "frontend"):
         source = REPO_ROOT / "site/assets" / folder
         for asset in sorted(source.iterdir()):
@@ -3635,10 +3895,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((REPO_ROOT / "site/assets/material" / name).read_bytes())
         written.append(route)
-    (out_dir / "topography.css").write_text(
-        (Path(__file__).parent / "topography.css").read_text(encoding="utf-8"),
-        encoding="utf-8")
-    written.append("topography.css")
 
     # ── Identity assets ──────────────────────────────────────────────────
     # All derived from one owner-supplied compass, and copied rather than
@@ -3698,51 +3954,6 @@ def build(out_dir: Path, title: str, db_path: Path,
         written.append("cover/*.png")
         written.append("covers.json")
 
-    # ── Homepage Ocean Signal Veil ───────────────────────────────────────
-    # Published under `atmosphere/` beside the withdrawn J-20 derivative,
-    # because that is what the directory is for. Both derivatives are written:
-    # the stylesheet offers them through `image-set()`, so the browser takes
-    # the WebP where it can and the JPEG where it cannot, and exactly one is
-    # fetched. Neither is fetched below 901px — the `background-image` property
-    # is not declared at all under that width, which is stronger than
-    # `display: none` on a declared image.
-    if veil:
-        (out_dir / "atmosphere").mkdir(parents=True, exist_ok=True)
-        for kind, route in veil["routes"].items():
-            (out_dir / route).write_bytes(veil["files"][kind].read_bytes())
-            written.append(route)
-        # The licence record travels with the asset, as `atmosphere.json` does
-        # for the J-20. Public domain needs no permission trail, but a reader
-        # who wants to know where a photograph on a research publication came
-        # from should not have to read a stylesheet to find out.
-        (out_dir / "veil.json").write_text(json.dumps({
-            "_comment": ("The homepage Ocean Signal Veil. A duotone derivative "
-                         "of a public-domain U.S. Navy photograph, shown as a "
-                         "masked layer rather than as an image card. It "
-                         "illustrates no record and is not evidence of "
-                         "anything; the page says so beside it."),
-            "routes": {k: "/" + v for k, v in veil["routes"].items()},
-            "editorial_id": veil["id"],
-            "sha256": veil["sha256"],
-            "bytes": veil["bytes"],
-            "credit": veil["credit"],
-            "creator": veil["creator"],
-            "license": veil["license"],
-            "license_url": veil["license_url"],
-            "license_basis": veil["license_basis"],
-            "source_page": veil["source_page"],
-            "original_url": veil["original_url"],
-            "acquired_at": veil["downloaded_at"],
-            "derivative": ("cropped, resampled and duotoned against the paper "
-                           "ground by scripts/make_veil.py, whose effective "
-                           "crop is recorded in "
-                           "site/assets/editorial/derivatives/veil-ocean.json. "
-                           "The source is public domain, so the derivative "
-                           "carries no onward licence condition."),
-            "origin": "site/assets/editorial/derivatives/veil-ocean.{webp,jpg}",
-            "note": veil["note"],
-        }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        written.append("veil.json")
 
     # ── Homepage atmosphere ──────────────────────────────────────────────
     # Copied in with a recorded digest and a provenance manifest of its own.
@@ -3887,7 +4098,13 @@ def build(out_dir: Path, title: str, db_path: Path,
             # inventing a sentence about a document the renderer has not read,
             # which is the same rule that governs og:description.
             safe_origin = _html.escape(origin, True)
-            card = "%s/social-card.png" % safe_origin
+            page_card = social_cards.get(rel)
+            if page_card:
+                card = "%s/%s" % (safe_origin, page_card["route"])
+                card_alt = page_card["alt"]
+            else:
+                card = "%s/social-card.png" % safe_origin
+                card_alt = title
             head = "\n".join([
                 '<link rel="canonical" href="%s">' % _html.escape(loc, True),
                 '<meta property="og:url" content="%s">' % _html.escape(loc, True),
@@ -3895,10 +4112,10 @@ def build(out_dir: Path, title: str, db_path: Path,
                 '<meta property="og:image:width" content="%d">' % SOCIAL_CARD[0],
                 '<meta property="og:image:height" content="%d">' % SOCIAL_CARD[1],
                 '<meta property="og:image:alt" content="%s">' % _html.escape(
-                    title, True),
+                    card_alt, True),
                 '<meta name="twitter:image" content="%s">' % card,
                 '<meta name="twitter:image:alt" content="%s">' % _html.escape(
-                    title, True),
+                    card_alt, True),
             ])
             path.write_text(page.replace(NOINDEX_TAG, head, 1),
                             encoding="utf-8")
@@ -3984,7 +4201,7 @@ def main(argv=None):
                     help="serve the result on localhost:8770")
     ap.add_argument("--gallery", action="store_true",
                     help="also render the component and state gallery "
-                         "(gallery.html, gallery-relief.html). Maintenance only; "
+                         "(gallery.html). Maintenance only; "
                          "never published.")
     args = ap.parse_args(argv)
 

@@ -43,10 +43,10 @@
   if (!buttons.length) return;
 
   /* Each control reports in the status line of its own block: a record's
-     citation block, the record rail's share block, or an issue's citation
+     citation block, the record's action row, or an issue's citation
      disclosure (`.ed-cite`, on the series and brief pages). */
   function statusFor(button) {
-    var block = button.closest(".cite-block, .rail-block, .ed-cite");
+    var block = button.closest(".cite-block, .record-actions, .rail-block, .ed-cite");
     return block ? block.querySelector(".cite-status") : null;
   }
 

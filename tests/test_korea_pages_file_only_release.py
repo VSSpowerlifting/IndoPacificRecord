@@ -51,7 +51,10 @@ class KoreaFileOnlyPagesTests(unittest.TestCase):
         for snippet in (
             "html.count('data-korea-public-link=')==5",
             "html.count('data-korea-additional-link=')==9",
-            "14 + len(auto)",
+            # The desk lists the newest DESK_LINK_LIMIT auto rows only.
+            'shown = link_index.latest("korea", auto)',
+            "html.count('data-korea-auto-official-link=') == len(shown)",
+            "14 + len(shown)",
             "data-korea-auto-official-link=",
             "unresolved excavation-year discrepancy",
             "not IPR archived records",

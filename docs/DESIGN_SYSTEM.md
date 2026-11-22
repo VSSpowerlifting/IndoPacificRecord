@@ -8,6 +8,149 @@ direction and source/route verification remain in
 `docs/FRONTEND_PRODUCTION_2026-10-09.md`.
 Motion and flagship visual components: docs/VISUAL_AND_MOTION_SYSTEM.md.
 
+## Parallel text identity — 15–16 November 2026 (pending review)
+
+This section governs the active `site/preview/` renderer. Where it conflicts
+with the October implementation candidate, the Brief journal candidate, §2, §5,
+§6 or §6a below, this section wins for active pages; those sections stay as
+history and as the description of the rollback renderer. The coastal colour
+tokens and their meanings in §3 are unchanged, and so are the accessibility
+standards in §7 and the byte budgets in §8.
+
+**The idea.** The publication's one ornament is the record itself. A record
+is set as parallel text: the English heading on the left, the title as the
+institution published it on the right, at the same size, in a serif of its own
+script, with a hairline between them. A record with only one title spans both
+columns. Nothing invents an English title, and the original is never reduced
+to a caption. On a narrow screen the original sits under the English behind a
+2px rule.
+
+**What a reader can tell at a glance.** Three kinds of text carry three marks,
+and the marks survive grayscale and print:
+
+| Kind | Mark | Token |
+|---|---|---|
+| Source record (what an institution published) | solid ink rule | `.evidence--record` |
+| Machine output (translation, summary, classification) | dotted slate rule | `.evidence--model`, `.state--analyzed`, `--machine-ink` |
+| Human-controlled analysis (Briefs, dossiers, timelines) | solid jade rule | `.evidence--analysis`, `--editorial-ink` |
+
+**Shell.** One navy masthead (`--band`) and one navy colophon on every page,
+including earlier Briefs, with plain paper between them. The masthead carries
+the ivory mark, the name on one line and a dateline that states the record
+count and the snapshot date. The colophon opens on the standing qualification:
+coverage is selective, and a record shows what an institution published, not
+whether its claims are true. Navigation is Records, Briefs, Timelines (when
+any exist), Desks, Methodology, About.
+
+**Type.** Instrument Serif for display (page titles, section heads, desk
+names), Source Serif 4 for reading text and record headings (600 for English
+headings, 400 for titles in their own script), Inter for interface text and
+labels. Original-language titles use `--zh-serif`, `--ja-serif` and
+`--ko-serif`, which are system font stacks; no font is downloaded for them.
+Labels are sentence case with no tracking. Monospace is for hashes and
+identifiers only.
+
+**Surface.** Paper, navy bands, rules and type. Shared page heads use a
+display title, an optional lede and a ruled edge. Photographs carry their
+legibility gradients and full credits.
+
+**Geography.** `scripts/build_atlas.py` produces two palettes from the same
+Natural Earth 1:50m geometry (public domain, Miller projection, generalized
+de facto boundaries). The site uses the day atlas, `site/assets/geo/atlas.svg`.
+The night palette and matching receipt remain in source. Waterlines show
+fixed distances from the drawn coast.
+
+- **Desks.** The day atlas sits beside the introduction on wide screens and
+  below it on smaller ones. Each seat is a link to its desk row. Its glyph
+  identifies the registry state, and the link spells out the state for
+  assistive technology. A desk outside the frame is identified at the edge.
+  The caption explains what the map represents and credits Natural Earth.
+  Labels switch sides when space is tight. The same links move below the
+  drawing when their targets would collide, including at enlarged text sizes.
+  The desk index and atlas share an order and highlight the matching link
+  on hover or keyboard focus.
+- **Desk locators.** Desk pages with a seat inside the frame show a regional
+  crop of the day atlas, a seat caption and a link to the full chart.
+- **Methodology.** The Scope section describes the map geometry and its limits.
+  Forced colours present the atlas links as a list.
+
+**Pictures.** Two places carry a photograph, and both are credited
+photographs of real scenes, never generated images or illustration:
+- **The home opening** is set on one stable photograph: the U.S. Navy
+  photograph of the Ronald Reagan Carrier Strike Group with Japan Maritime
+  Self-Defense Force ships (manifest `reagan-jmsdf-2015`, public domain,
+  routed to `home`). It never changes with the Briefs. `home_hero` verifies
+  the manifest entry, the source hash and each derivative's hash, and fails
+  closed to plain navy. The photograph sits behind the claim under a CSS-only IPR gradient.
+  A paper finder meets its lower edge and carries the title search and
+  snapshot count. The gradient is dark enough for the claim to
+  clear WCAG AA at every width. Its credit runs beneath it with the label
+  "Illustrative photograph, not a record": caption, creator and DoD ID,
+  licence, source, the change note and "Visual context, not evidence". It
+  carries no record mark, and no record appears in the opening. On phones
+  and tablets (900px and narrower) the photograph is a band above the claim,
+  clear of the copy column (cropped to the band, not shown whole), and short
+  enough that the title search stays on the first screen.
+- **Briefs**: catalogue cards and opened-Brief covers, as before. The home
+  page's Briefs card carries no picture: covers are granted for those two
+  surfaces only.
+Records never carry source media.
+
+**Motion.** The photo and atlas remain still. Button, disclosure and atlas
+focus feedback use short transitions when reduced motion is off. See
+VISUAL_AND_MOTION_SYSTEM.md for the timing and scope.
+
+**Lists.** Every list of records uses `_records.html`. A list states once,
+at the head of its English column, that English titles are machine
+translations and human review is not recorded (`records_key`, readable by
+screen readers, visible at every width); only rows whose English is
+something else carry a mark: "Title published in English" or "Machine-written
+headline, not a translation" (`title_kind`). Rows shown outside a list with a
+column head (the Desks page) keep "Machine-translated title · human review not
+recorded". Singapore metadata-only rows are set quieter (`record-row--metadata`).
+
+**Home.** The opening (photograph, claim, paper finder, then the photograph's
+credit), then "Newest from each desk": the first row of each public-record
+desk's own page (`desk_front_rows`), the desk name in the left column and the
+date in the meta line; a line saying how many desks hold public records and,
+measured from the counts, that most of the records come from Chinese sources, with a link to
+Coverage; one line naming the desks with no public records and their registry
+state. A navy spread pairs the latest Brief with a published dossier or
+evidence timeline when available. The three kinds of text follow
+on paper. The Briefs and Dossiers catalogues share a title and lede spread.
+The Brief headline precedes its credited photograph in reading order.
+
+**Stored-summary sentence.** On the home desk rows and the
+five newest rows on each desk page except Korea, a row carries the first
+complete sentence of the record's stored machine summary, verbatim, under
+the dotted mark (`summary_lead`: an exact prefix or nothing; ambiguous
+boundaries and sentences over 400 characters get no line). Never on the
+Records page, week pages or in the search index.
+
+**Desk pages.** Name and scope; the registry `status_label` verbatim and any
+source-specific notice; a closed "Collection notes" disclosure holding the
+registry's operating notes verbatim; the newest records; then links,
+explanations, numbers, sources and limits. The page head carries the
+desk's locator (see Geography). The retired Desks map's plates, country
+fills and script are not restored.
+
+**Record page.** Title pair, actions (Open original source, Cite this record,
+Copy link), summary, "What this record supports" (before the source text on
+narrow screens), source text (one paragraph per stored line; Latin 36em,
+CJK 18px with about 36 characters a line, Hangul `keep-all`), citation,
+provenance. Metadata-only records get a quieter label-style heading.
+
+**Wording.** Pages name things by what a reader does with them. One path back
+to the source everywhere: "Read the record", "Open original source", "Cite
+this record". The Records page's default set is "Selected records", with one
+sentence saying it is chosen automatically and is not fact-checked or
+editor-approved, and a one-step link to every record. Governed labels stay
+verbatim: the registry state labels, "Human-controlled analysis", the
+guarded record caveat and owner-approved captions. Qualifications stay where
+they change a reader's decision: machine output is unreviewed, coverage is
+selective, and source-specific notices (MINDEF, KOGL, withheld text, PDL,
+image credits and disclaimers) stay beside the material they govern.
+
 ## October implementation candidate
 
 The owner's production request adopts design checkpoint `8cb2f23f` as the
@@ -435,7 +578,9 @@ Budgets for all future work:
 - HTML plus all linked local CSS (including recursive imports and inline CSS) per page ≤ 120 KB; ≤ 300 KB for any index or archive
   surface. Re-open archive navigation only if a measurement crosses those.
   Individual dossier pages (`dossier/<slug>.html` only) may reach 200 KB (owner, DECISION_LOG 2026-10-26); the
-  dossier collection and every other route keep the limits above.
+  dossier collection and every other route keep the limits above. The root Indonesia desk page (`indonesia.html`
+  only) has a temporary 130 KB allowance (owner, DECISION_LOG 2026-11-13), as does the root Korea desk page
+  (`korea.html` only; owner, DECISION_LOG 2026-11-16); other desk pages keep 120 KB.
 - Client JS, including linked modules/imports and inline executable scripts, ≤ 10 KB per page, vanilla only; no frameworks, no chart libs,
   no canvas unless a spec explicitly justifies it.
 - Images: explicit width/height (no CLS), `loading="lazy"` below fold,

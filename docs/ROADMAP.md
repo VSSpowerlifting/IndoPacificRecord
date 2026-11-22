@@ -1,5 +1,17 @@
 # Roadmap — Indo-Pacific Record
 
+**11 November 2026 execution order (founder):** First retire the
+obsolete seven-/thirty-day gates, overlapping procedures and unsupported
+universal processing caps *as decisions*, preserving source-specific binding
+limits and actual runtime holds. Review and test any capacity changes under
+the existing model spend/retry budgets as separate source-focused engineering.
+Second, perform a read-only, original-to-reader evidence review against the
+single-family-per-desk initial milestone in the
+[eight-desk plan](desks/EIGHT_DESK_OPERATIONAL_COMPLETION_PLAN.md).
+Third, repair only the measured family blockers and extend to the retained
+sixteen-family full-coverage objective. No parallel infrastructure overhaul,
+unapproved activation or source-rights shortcut.
+
 **Active strategic priorities, approved 30 October 2026.** This is a short
 forward plan—not a second architecture standard, release checklist, or
 historical evidence ledger. Check source/activation state, PRs, Actions and
@@ -15,6 +27,9 @@ The binding mission and growth test live in
 work is in [`docs/desks/MIGRATION.md`](desks/MIGRATION.md). Existing
 source-specific permissions, spending limits, holds and human editorial
 approvals remain authoritative.
+General source-use evaluation follows [the research-first standard](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard):
+establish a use-specific legal basis rather than add blanket publisher-letter
+prerequisites. Existing source holds and operational authority remain separate.
 
 ## A. Finish shared architecture, retire duplication
 
@@ -78,8 +93,9 @@ security work and already-authorized research remain in scope.
 ## Maintain this file, do not accumulate it
 
 Update these priorities in place when the owner changes direction.
-Put code boundaries in `docs/desks/MIGRATION.md`, actual operational
-snapshots in `PROJECT_STATE.md` (verified against current evidence),
-durable decisions in `DECISION_LOG.md`, and historic plans in Git
-history. Do not append a dated project diary, additional readiness
+Put code boundaries in `docs/desks/MIGRATION.md`, verify operational
+status from live GitHub code, current PRs/Actions, source receipts and
+independent site readback, retain durable decisions in `DECISION_LOG.md`,
+and recover dated session notes from Git history. `PROJECT_STATE.md` is
+retired as an active snapshot (see PR #1027). Do not append a dated project diary, additional readiness
 program, procedural checklist or CI gate to this roadmap.

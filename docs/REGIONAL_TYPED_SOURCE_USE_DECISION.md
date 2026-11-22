@@ -34,10 +34,16 @@ private_analyst_synopsis_reviewed. Each positive decision requires:
    historical publication-day byte equality.
 2. Original analyst synopsis and concrete limitations, including translation,
    issuer attribution, chronology, and lack of third-party corroboration.
-3. An explicit legal rights basis: qualifying official published reuse terms or
-   written rights-owner permission, documented by reference. An attribution-only
-   footer is not sufficient. The operator must explicitly affirm private
-   synopsis scope. The tool never copies publisher bodies or clears images.
+3. An evidenced legal basis under [the canonical source-use standard](../CONTENT_AND_DATA_RIGHTS.md#7-research-first-source-use-standard):
+   qualifying published reuse terms/open licence, actual rights-holder
+   permission, documented public-domain status, an applicable statutory
+   exception or another documented legal authorization. The existing reference
+   field must point to the primary evidence and use-specific assessment,
+   including jurisdiction, conditions and contrary restrictions. A bare statute
+   citation, attribution-only footer or assertion of research purpose is not a
+   determination. The operator must explicitly affirm private synopsis scope.
+   The tool validates the signed record, not the legal merits; it never copies
+   publisher bodies, clears images or grants model/public authority.
 4. An owner decision made after the completed Saturday reporting week and
    not later than the review execution day. No partial-week signing.
 
@@ -62,6 +68,12 @@ publication_authorized=false and japan_vietnam_production_activated=false.
 This module implements NO HTTP, model invocation, SMTP, CLI, report writer,
 source promotion, scheduling, database/site mutation or publication.
 Focused CI uses fabricated fixtures and a test-only owner key.
+
+The legacy `RIGHTS` constant is also imported by Vietnam runtime policy and
+retains its existing publisher-basis vocabulary. `SYNOPSIS_RIGHTS_BASES` adds
+documented alternative bases **only for this offline contract**. Existing
+Vietnam source-specific assessments, seals and MOIT holds are unchanged;
+no generic exception can bypass their runtime restrictions through this change.
 
 The next separate engineering phase may consume these signed decisions only
 with independent refreshed publisher/rights/version checks, explicit per-run

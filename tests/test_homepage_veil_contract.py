@@ -1,7 +1,11 @@
-"""Photograph-led opening contrast at actual glyph pixels.
+"""Home opening contrast at actual glyph pixels.
 
-October refinement replaces the retired Ocean Signal lobe geometry. Preserve
-the existing screenshot-difference method and WCAG floors for the new photo.
+The opening is set on the stable homepage photograph (the U.S. Navy Reagan
+CSG and JMSDF formation) under the IPR gradient (founder direction,
+2026-11-16; the Signal Veil stays retired). The
+screenshot-difference method and the WCAG floors measure every text run the
+opening carries, over the photograph, at the pixels its glyphs cover. One
+test holds that the only picture there is that governed, credited photograph.
 """
 from __future__ import annotations
 import json
@@ -20,8 +24,6 @@ sys.path.insert(0, str(REPO_ROOT / "site" / "preview"))
 import generate_preview as gp                                    # noqa: E402
 TRACKED_DB = REPO_ROOT / "pla_watch.db"
 CSS = REPO_ROOT / "site" / "preview" / "home.css"
-DERIV = REPO_ROOT / "site" / "assets" / "editorial" / "derivatives"
-NARROWEST_VEIL_BOX_ASPECT = 2.442
 AA_BODY = 4.5
 AA_LARGE = 3.0
 def _luminance(rgb) -> float:
@@ -34,6 +36,9 @@ def _luminance(rgb) -> float:
 def contrast(a, b) -> float:
     high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
     return (high + 0.05) / (low + 0.05)
+WIDTHS = (320, 375, 700, 701, 768, 820, 900, 1024, 1100, 1280, 1600, 1920)
+
+
 class VeilCase(unittest.TestCase):
     """One build, served over loopback, shared by every measurement."""
 
@@ -77,14 +82,17 @@ class VeilCase(unittest.TestCase):
         return "http://127.0.0.1:%d/index.html" % self.port
 class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
     """
-    The measurement that nearly did not happen. Every run below sits over the
-    photograph at one width or the other.
+    The measurement that nearly did not happen. Every run below sits on the
+    navy band: the masthead, or the opening that continues it.
     """
 
-    #: selector -> the floor it must clear. `.claim` is display type and takes
-    #: the large-text floor; everything else takes body.
-    RUNS = {".claim": AA_LARGE, ".pacific-dek": AA_BODY,
-            ".pacific-intro": AA_BODY, ".photo-credit": AA_BODY,
+    #: selector -> the floor it must clear. `.claim` and the title as published
+    #: are display type and take the large-text floor; everything else takes
+    #: body.
+    RUNS = {".claim": AA_LARGE, ".home-dek": AA_BODY,
+            ".home-search label": AA_BODY, ".home-open-note": AA_BODY,
+            ".home-photo-label": AA_BODY, ".home-photo-credit p + p": AA_BODY,
+            ".publication-status span:last-child": AA_BODY,
             ".nav-desktop>a": AA_BODY}
 
     #: Below this many differing pixels the mask did not find a glyph, which
@@ -139,7 +147,10 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                 "weight": info["weight"]}
 
     def test_every_text_run_over_the_veil_clears_its_floor_at_its_glyphs(self):
-        for width in (375, 1280, 1920):
+        # The gradient changes shape at 700px and between 701 and 1100px,
+        # and the copy column moves against the photograph at every width, so
+        # the sweep covers each band and its edges, not just phone and desktop.
+        for width in WIDTHS:
             context = self.browser.new_context(
                 viewport={"width": width, "height": 900},
                 device_scale_factor=2)
@@ -150,7 +161,7 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                     "() => document.documentElement.classList.add('no-anim')")
                 page.wait_for_timeout(120)
                 for selector, floor in sorted(self.RUNS.items()):
-                    if selector.startswith(".nav-desktop") and width < 900: continue
+                    if selector.startswith(".nav-desktop") and width <= 900: continue
                     result = self.glyph_contrast(page, selector)
                     with self.subTest(width=width, run=selector):
                         self.assertIsNotNone(
@@ -163,11 +174,124 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
                             % (selector, result["pixels"]))
                         self.assertGreaterEqual(
                             result["worst"], floor,
-                            "%s at %d measures %.2f:1 over the source photo "
+                            "%s at %d measures %.2f:1 on its ground "
                             "(floor %.1f, %d glyph pixels)."
                             % (selector, width, result["worst"], floor,
                                result["pixels"]))
             finally:
                 context.close()
+
+    def test_the_title_search_is_in_the_first_screen_on_a_phone(self):
+        """The photograph must not push the search off a phone's or tablet's
+        first screen: the input and its button sit wholly inside the viewport."""
+        for width, height in ((320, 568), (360, 640), (375, 667), (375, 812), (414, 736),
+                              (768, 1024), (820, 1180),
+                              (768, 800), (820, 800), (860, 768), (900, 800)):
+            context = self.browser.new_context(viewport={"width": width, "height": height})
+            page = context.new_page()
+            try:
+                page.goto(self.url, wait_until="networkidle")
+                boxes = page.evaluate(
+                    "() => ['#home-q', '.home-search button'].map(s => {"
+                    " const r = document.querySelector(s).getBoundingClientRect();"
+                    " return {sel: s, top: r.top, bottom: r.bottom}; })")
+                for box in boxes:
+                    with self.subTest(viewport=(width, height), control=box["sel"]):
+                        self.assertGreaterEqual(box["top"], 0)
+                        self.assertLessEqual(box["bottom"], height,
+                                             "%s ends at %.1f in a %dpx-tall screen"
+                                             % (box["sel"], box["bottom"], height))
+            finally:
+                context.close()
+
+    def test_finder_layout_does_not_request_the_mutable_home_stylesheet(self):
+        home = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertIn("<style>" + CSS.read_text(encoding="utf-8") + "</style>", home)
+        self.assertEqual((self.out / "home.css").read_bytes(), CSS.read_bytes())
+        for width in (375, 1280):
+            with self.subTest(width=width):
+                with self.browser.new_page(
+                    viewport={"width": width, "height": 900},
+                    java_script_enabled=False,
+                ) as page:
+                    page.route("**/home.css", lambda route: route.fulfill(
+                        content_type="text/css",
+                        body=".home-finder{background:transparent;display:block}",
+                    ))
+                    page.goto(self.url)
+                    finder = page.locator(".home-finder")
+                    self.assertEqual(finder.evaluate("(el) => getComputedStyle(el).display"), "grid")
+                    self.assertEqual(finder.evaluate("(el) => getComputedStyle(el).backgroundColor"),
+                                     "rgb(243, 242, 236)")
+                    self.assertNotIn("home.css", page.locator("link[rel=stylesheet]")
+                                     .evaluate_all("(links) => links.map(link => link.getAttribute('href'))"))
+
+    def test_search_focus_draws_the_rule_and_respects_reduced_motion(self):
+        for preference, duration in (("no-preference", "0.24s"), ("reduce", "0s")):
+            with self.subTest(preference=preference):
+                with self.browser.new_page(reduced_motion=preference) as page:
+                    page.goto(self.url)
+                    field = page.locator("#home-q")
+                    field.focus()
+                    self.assertTrue(field.evaluate("(el) => el === document.activeElement"))
+                    finder = page.locator(".home-finder")
+                    rule = "(el) => getComputedStyle(el, '::after')"
+                    self.assertEqual(finder.evaluate(rule + ".transitionDuration"), duration)
+                    page.wait_for_function(
+                        "() => getComputedStyle(document.querySelector('.home-finder'), '::after')"
+                        ".transform === 'matrix(1, 0, 0, 1, 0, 0)'"
+                    )
+                    field.blur()
+                    page.wait_for_function(
+                        "() => getComputedStyle(document.querySelector('.home-finder'), '::after')"
+                        ".transform === 'matrix(0, 0, 0, 1, 0, 0)'"
+                    )
+
+    def test_the_only_picture_is_the_credited_homepage_photograph(self):
+        """One image, the stable homepage photograph (founder direction, 16
+        November), its gradient the only layer, its full credit beneath, and
+        no record mark or record link in the opening."""
+        hero = gp.home_hero(REPO_ROOT)
+        self.assertIsNotNone(hero, "the homepage photograph did not verify")
+        context = self.browser.new_context(viewport={"width": 1280, "height": 900})
+        page = context.new_page()
+        try:
+            page.goto(self.url, wait_until="networkidle")
+            found = page.evaluate(
+                "() => ({"
+                " layers: [...document.querySelectorAll("
+                "'.masthead, .home-open, .home-open *, #analysis, #analysis *')]"
+                ".filter(e => getComputedStyle(e).backgroundImage !== 'none'"
+                " || getComputedStyle(e, '::before').backgroundImage !== 'none'"
+                " || getComputedStyle(e, '::after').backgroundImage !== 'none')"
+                ".map(e => e.className || e.tagName),"
+                " images: [...document.querySelectorAll('.home-open img')]"
+                ".map(i => ({src: i.getAttribute('src'), current: i.currentSrc,"
+                " loaded: i.complete && i.naturalWidth > 0})),"
+                " other: document.querySelectorAll("
+                "'.home-open canvas, .home-open svg, .home-open video, .pacific-photo, "
+                ".home-coast-band').length,"
+                " marks: document.querySelectorAll('.home-open .evidence').length,"
+                " records: document.querySelectorAll('.home-open a[href^=\"record/\"]').length,"
+                " credit: (document.querySelector('#home-photo-credit') || {}).textContent || ''})")
+            self.assertEqual(found["layers"], ["home-photo"])
+            self.assertEqual(found["other"], 0)
+            self.assertEqual(found["marks"], 0)
+            self.assertEqual(found["records"], 0)
+            self.assertEqual(len(found["images"]), 1, found["images"])
+            image = found["images"][0]
+            routes = [v["route"] for v in hero["variants"]]
+            self.assertEqual(image["src"], hero["src"]["route"])
+            self.assertTrue(any(image["current"].endswith(r) for r in routes), image["current"])
+            self.assertTrue(image["loaded"])
+            credit = " ".join(found["credit"].split())
+            for part in ("Illustrative photograph, not a record.", hero["caption"],
+                         hero["creator"], hero["license"], "Wikimedia Commons",
+                         "Cropped and resized by IPR; IPR gradient overlaid.",
+                         "Visual context, not evidence."):
+                self.assertIn(" ".join(part.split()), credit)
+        finally:
+            context.close()
+
 if __name__ == "__main__":
     unittest.main()

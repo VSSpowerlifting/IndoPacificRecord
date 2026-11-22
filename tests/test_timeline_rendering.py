@@ -69,21 +69,22 @@ class TimelineRendering(unittest.TestCase):
     def detail(self, root=None):
         return (root or self.preview) / 'timeline/maritime-cooperation-2026.html'
 
-    def test_maritime_water_asset_is_scoped_and_decorative(self):
-        # The unapproved timeline and its image must not leak into public output.
+    def test_the_chronology_carries_no_decorative_texture(self):
+        # The ocean texture behind the maritime chronology went with the rest
+        # of the page decoration: the timeline is paper, rules and type. No
+        # page or stylesheet references it, and the unapproved timeline still
+        # leaks no asset into public output.
         route = "assets/timelines/maritime-ocean-texture.webp"
         self.assertFalse((self.public / route).exists())
         for root in (self.preview, self.approved):
-            self.assertTrue((root / route).is_file())
-            self.assertEqual((root / route).read_bytes(),
-                             (ROOT / "site" / route).read_bytes())
             html = self.detail(root).read_text()
-            self.assertIn('tl-narrative--maritime', html)
-            self.assertNotIn('tl-art-note', html)
-            self.assertNotIn('Illustrative AI-generated ocean texture', html)
-        css = (self.preview / "timelines.css").read_text()
-        self.assertIn('assets/timelines/maritime-ocean-texture.webp', css)
-        self.assertIn('@media(max-width:1050px)', css)
+            for marker in ('tl-narrative--maritime', 'tl-art-note', 'maritime-ocean-texture',
+                           'Illustrative AI-generated ocean texture'):
+                self.assertNotIn(marker, html)
+            css = (root / "timelines.css").read_text()
+            for marker in ('maritime-ocean-texture', 'url(', 'background-image'):
+                self.assertNotIn(marker, css)
+            self.assertIn('@media(max-width:1050px)', css)
 
     def test_public_draft_exclusion_in_routes_links_feed_and_sitemap(self):
         self.assertFalse((self.public / 'timelines.html').exists())
@@ -219,7 +220,9 @@ class TimelineRendering(unittest.TestCase):
             self.assertLessEqual(budget['html_css_bytes'], 120000, budget)
             self.assertLessEqual(budget['js_bytes'], 10000, budget)
             self.assertEqual(budget['external'], [])
-        self.assertIn('src="../reveal.js"', self.detail().read_text())
+        # The scroll-reveal script was retired with its start state: a
+        # timeline page now carries no script that moves content.
+        self.assertNotIn('reveal.js', self.detail().read_text())
 
     def test_flowing_connectors_follow_wrapping_disclosures_and_resizing(self):
         from playwright.sync_api import sync_playwright
@@ -242,19 +245,24 @@ class TimelineRendering(unittest.TestCase):
                         const box=s=>e.querySelector(s).getBoundingClientRect();
                         const rail=box('.tl-spine-segment'), branch=box('.tl-branch');
                         const card=box('.tl-entry-body');
-                        return {railX:rail.x+rail.width/2, railBottom:rail.bottom,
+                        return {railX:rail.x+rail.width/2, railLeft:rail.left, railRight:rail.right, railBottom:rail.bottom,
                             railTop:rail.top, left:branch.left, right:branch.right,
                             top:branch.top, bottom:branch.bottom,
                             cardLeft:card.left, cardRight:card.right,
                             cardTop:card.top, cardBottom:card.bottom};
                     })''')
                     for i, g in enumerate(geometry):
-                        left_card = width > 1050 and i % 2 == 0
-                        self.assertAlmostEqual(g['right'] if left_card else g['left'], g['railX'], delta=.1)
-                        self.assertAlmostEqual(g['left'] if left_card else g['right'],
-                                               g['cardRight'] if left_card else g['cardLeft'], delta=.1)
+                        # One column at every width: the rail runs down the
+                        # left, and each entry's rule starts on the rail and
+                        # ends exactly where the entry begins, at its top rule.
+                        self.assertLess(g['railRight'], g['cardLeft'])
+                        self.assertGreaterEqual(g['left'], g['railLeft'] - .1)
+                        self.assertLessEqual(g['left'], g['railRight'] + .1)
+                        self.assertAlmostEqual(g['right'], g['cardLeft'], delta=.1)
+                        self.assertAlmostEqual(g['top'], g['cardTop'], delta=.1)
                         self.assertGreater(g['bottom'], g['cardTop'])
                         self.assertLess(g['bottom'], g['cardBottom'])
+                        self.assertLessEqual(g['cardRight'], width + .1)
                         if i < len(geometry) - 1:
                             self.assertAlmostEqual(g['railBottom'], geometry[i+1]['railTop'], delta=.1)
             # No timeline entrance transform may detach the static rail.

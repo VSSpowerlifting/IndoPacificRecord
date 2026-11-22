@@ -31,4 +31,5 @@ addresses and attribution; no new issue is authored as The PLA Watch.
    collection, API call or scheduled authoring flow is required.
 8. After deployment, fetch the actual article, Analysis, home, native feed and
    sitemap. Check title, number, citations and version; only then report it as
-   published. Update `PROJECT_STATE.md` with actual status and remaining work.
+   published. Record verified release status and remaining work in the existing
+   edition issue/PR; do not recreate the retired `PROJECT_STATE.md` diary.

@@ -244,7 +244,13 @@ class VNMinistryAdapter(ShadowHttpAdapter):
                                    "visible publication date").get_text())
                 canonical = meta(soup, "og:url")
                 byline = meta(soup, "author")
-                if meta(soup, "og:title") != squash(title_node.get_text()):
+                # Compare titles after the same whitespace squash on both sides:
+                # the publisher's og:title can carry incidental surrounding or
+                # repeated whitespace (observed 17 Nov 2026, run 43998961835-1,
+                # a trailing space only). A missing or textually different
+                # og:title still fails.
+                og_title = meta(soup, "og:title")
+                if og_title is None or squash(og_title) != squash(title_node.get_text()):
                     raise ValueError("article title metadata conflicts")
             else:
                 title_node = one(soup.select("h1.article-title"), "article title")
@@ -265,7 +271,13 @@ class VNMinistryAdapter(ShadowHttpAdapter):
             if capture.reference.hint_published_date not in (None, published):
                 anomalies.append("listing_date_differs: %s / %s" %
                                  (capture.reference.hint_published_date, published))
-            if selected.get("title") not in (None, title):
+            # RSS titles arrive raw; the page title is squashed. Compare after
+            # the same squash on both sides (observed 18 Nov 2026, mps-vi:
+            # 1794826878: one trailing space only). The raw listing title is
+            # still persisted below, and any wording, word or diacritic
+            # difference is still an anomaly. squash() never normalizes Unicode.
+            listed = selected.get("title")
+            if listed is not None and squash(listed) != title:
                 anomalies.append("listing_title_differs")
             metadata = {"publisher": self.profile.publisher, "issuer": None,
                         "language": "vi", "family": self.profile.family,

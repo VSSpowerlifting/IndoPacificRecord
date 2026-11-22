@@ -103,6 +103,11 @@ def llm_relevance_check(
     results: list[tuple[dict, float, str]] = []
     for i, article in enumerate(articles, 1):
         from processing.screening import CHINA_PROFILE, profile_for_source
+        from core.china_source_use_hold import is_held_row
+        if is_held_row(article):
+            # Interim source-use hold: title and body never reach a model.
+            results.append((article, 0.0, "held: source-use hold; no model transmission"))
+            continue
         profile = profile_for_source(article.get("source_slug"))
         if not profile.daily_queue:
             results.append((article, 0.0, "held: source requires its authorized intake/profile"))

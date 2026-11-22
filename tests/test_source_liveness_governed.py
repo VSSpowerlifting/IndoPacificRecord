@@ -231,6 +231,55 @@ class DeclaredStubsAreStillExempt(unittest.TestCase):
             "manual_mil", 3, "2026-09-05", TODAY, 7, expected)
         self.assertEqual("UNHEALTHY", state)        # 15d > 7d
 
+    def test_a_policy_pause_is_reported_but_never_fails_the_gate(self):
+        source = FakeSource("manual_mil", silence_threshold_days=7)
+        source.access_method = "manual"
+        reg = FakeRegistry([SourceHealthResult("manual_mil", st.OK, None)], [source])
+        paused = liveness.expectations(reg, paused={"manual_mil": "switched off"})["manual_mil"]
+        state, days, detail = liveness.classify(
+            "manual_mil", 3, "2026-09-05", TODAY, 7, paused)
+        self.assertEqual(("PAUSED", 15), (state, days))
+        self.assertIn("switched off", detail)
+        # Recent records are still simply healthy; the pause hides nothing.
+        self.assertEqual("HEALTHY", liveness.classify(
+            "manual_mil", 3, "2026-09-19", TODAY, 7, paused)[0])
+        # Switch on again and the ordinary threshold applies at once.
+        active = liveness.expectations(reg, paused={})["manual_mil"]
+        self.assertEqual("UNHEALTHY", liveness.classify(
+            "manual_mil", 3, "2026-09-05", TODAY, 7, active)[0])
+
+    def test_a_pause_never_covers_a_fetched_or_broken_source(self):
+        fetched = FakeSource("fetched_mil", silence_threshold_days=7)
+        reg = FakeRegistry([SourceHealthResult("fetched_mil", st.OK, None)], [fetched])
+        expected = liveness.expectations(reg, paused={"fetched_mil": "switched off"})
+        self.assertIsNone(expected["fetched_mil"].paused)
+        broken = liveness.Expectation(broken=True, reason="adapter unusable", paused="off")
+        self.assertEqual("UNHEALTHY", liveness.classify(
+            "manual_mil", 3, "2026-09-05", TODAY, 7, broken)[0])
+
+    def test_the_pause_list_is_read_from_the_daily_policy(self):
+        from core.daily_sources import attended_only
+        from processing.daily_intake import load_policy
+        off = {f for f, p in load_policy()["sources"].items()
+               if not p["unattended_release"] or attended_only(f)}
+        self.assertEqual(off, set(liveness.paused_by_policy()))
+
+    def test_the_attended_pilot_gate_pauses_a_family_with_its_switches_on(self):
+        """Switches on, gate still closed: no scheduled run may handle the
+        family, so its silence is a pause, not a failure. A family with its
+        switches on and no gate is judged by the ordinary threshold."""
+        from unittest.mock import patch
+        from processing import daily_intake
+        policy = {"sources": {
+            "gated_family": {"unattended_release": True},
+            "open_family": {"unattended_release": True},
+            "off_family": {"unattended_release": False}}}
+        with patch.object(daily_intake, "load_policy", return_value=policy), \
+                patch("core.daily_sources.ATTENDED_PILOT_ENV", {"gated_family": "X"}):
+            paused = liveness.paused_by_policy()
+        self.assertEqual(set(paused), {"gated_family", "off_family"})
+        self.assertEqual(paused["gated_family"], "attended-pilot gate: no scheduled runs")
+
     def test_an_undeclared_slug_is_not_exempt(self):
         """A source configuration has forgotten is still expected to produce."""
         self.assertFalse(liveness.UNDECLARED.inert)
@@ -277,6 +326,339 @@ class ThresholdsComeFromTheManifest(unittest.TestCase):
         self.assertIn("threshold 7d", detail)
 
 
+# ── Governed sources are judged by their recorded runs (2026-11-21) ──────────
+
+def run_db(path, runs, with_run_tables=True):
+    """A minimal database: one row per (slug, day, status, is_failure, detail).
+
+    Governed rows leave `source_run_results.started_at` NULL, as the pipeline
+    does; the date lives on `scrape_runs`.
+    """
+    import sqlite3
+    conn = sqlite3.connect(str(path))
+    conn.executescript(
+        "CREATE TABLE sources (id INTEGER PRIMARY KEY, slug TEXT, "
+        "display_name TEXT, is_active INTEGER);"
+        "CREATE TABLE articles (id INTEGER PRIMARY KEY, source_id INTEGER, "
+        "scraped_at TEXT);")
+    if with_run_tables:
+        conn.executescript(
+            "CREATE TABLE scrape_runs (id INTEGER PRIMARY KEY, started_at TEXT NOT NULL);"
+            "CREATE TABLE source_run_results (id INTEGER PRIMARY KEY, "
+            "scrape_run_id INTEGER NOT NULL, source_slug TEXT NOT NULL, "
+            "status TEXT NOT NULL, is_failure INTEGER NOT NULL DEFAULT 0, "
+            "started_at TEXT, error_detail TEXT);")
+        for n, (slug, started, status, failed, detail) in enumerate(runs, start=1):
+            conn.execute("INSERT INTO scrape_runs (id, started_at) VALUES (?, ?)",
+                         (n, started))
+            conn.execute(
+                "INSERT INTO source_run_results (scrape_run_id, source_slug, status, "
+                "is_failure, started_at, error_detail) VALUES (?, ?, ?, ?, NULL, ?)",
+                (n, slug, status, failed, detail))
+    conn.commit()
+    conn.close()
+    return path
+
+
+class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
+    """Governed families keep their records out of `articles`, so article
+    count alone left every one INERT and exempt from every threshold."""
+
+    MANUAL = liveness.Expectation(manual=True)
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def history(self, *runs):
+        db = run_db(Path(self.tmp.name) / "runs.db", runs)
+        return liveness.governed_runs(db)
+
+    def judge(self, runs, total=0, last_seen=None, expectation=None):
+        return liveness.classify("gov_mil", total, last_seen, TODAY, 7,
+                                 expectation or self.MANUAL, runs=runs)
+
+    def test_recent_healthy_runs_are_healthy_not_inert(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-18 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-19 23:00:00", st.OK_ALL_DUPLICATES, 0, None))
+        state, days, detail = self.judge(runs["gov_mil"])
+        self.assertEqual(("HEALTHY", 1), (state, days))
+        self.assertIn("governed: last healthy run 2026-09-19 (1d ago, threshold 7d)", detail)
+        self.assertIn("latest 2026-09-19 ok_all_duplicates", detail)
+
+    def test_only_failures_in_the_window_are_unhealthy_with_the_error_shown(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-05 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-17 23:00:00", st.FETCH_FAILURE, 1, "no signed envelope"),
+            ("gov_mil", "2026-09-19 23:00:00", st.ACCESS_CHALLENGED, 1,
+             "collection access_challenged (target 2026-09-18)"))
+        state, days, detail = self.judge(runs["gov_mil"])
+        self.assertEqual(("UNHEALTHY", 15), (state, days))
+        self.assertIn("last healthy run 2026-09-05", detail)
+        self.assertIn("latest 2026-09-19 access_challenged: collection access_challenged", detail)
+
+    def test_a_source_that_has_only_ever_failed_is_unhealthy(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.ADAPTER_ERROR, 1, "daily_intake: mac_invalid"))
+        state, days, detail = self.judge(runs["gov_mil"])
+        self.assertEqual(("UNHEALTHY", None), (state, days))
+        self.assertIn("no healthy run recorded", detail)
+        self.assertIn("mac_invalid", detail)
+
+    def test_no_runs_and_no_articles_is_inert(self):
+        runs = self.history(("other_mil", "2026-09-19 23:00:00", st.OK, 0, None))
+        self.assertNotIn("gov_mil", runs)
+        state, days, detail = self.judge(runs.get("gov_mil", liveness.NO_GOVERNED_RUNS))
+        self.assertEqual(("INERT", None), (state, days))
+        self.assertIn("manual source", detail)
+        self.assertIn("nothing admitted yet", detail)
+        self.assertIn("no governed run recorded", detail)
+
+    def test_skips_awaiting_activation_are_not_collection(self):
+        """skipped_disabled is stored with is_failure 0 but collected nothing."""
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.SKIPPED_DISABLED, 0,
+             "governed admission awaiting owner activation"))
+        self.assertFalse(runs["gov_mil"].collected)
+        self.assertIsNone(runs["gov_mil"].last_healthy)
+        state, _, detail = self.judge(runs["gov_mil"])
+        self.assertEqual("INERT", state)
+        self.assertIn("latest 2026-09-19 skipped_disabled", detail)
+
+    def test_a_skip_never_counts_as_a_healthy_run(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-05 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-19 23:00:00", st.SKIPPED_DISABLED, 0, "gate closed"),
+            ("gov_mil", "2026-09-19 23:30:00", st.NOT_IMPLEMENTED, 0, None))
+        self.assertEqual("2026-09-05", runs["gov_mil"].last_healthy)
+        self.assertEqual("UNHEALTHY", self.judge(runs["gov_mil"])[0])
+
+    def test_a_held_admission_still_reached_its_source(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK_ALL_FILTERED, 0, "held: review"))
+        self.assertEqual("HEALTHY", self.judge(runs["gov_mil"])[0])
+
+    def test_signed_holds_on_a_healthy_run_are_visible_without_changing_it(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK_ALL_DUPLICATES, 0,
+             "duplicates only; signed_held: 2"))
+        state, days, detail = self.judge(runs["gov_mil"])
+        self.assertEqual(("HEALTHY", 1), (state, days))
+        self.assertIn("latest 2026-09-19 ok_all_duplicates: duplicates only; "
+                      "signed_held: 2", detail)
+
+    def test_a_healthy_run_without_detail_quotes_nothing(self):
+        runs = self.history(("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))
+        self.assertTrue(self.judge(runs["gov_mil"])[2].endswith("latest 2026-09-19 ok"))
+
+    def test_a_paused_source_is_paused_not_failed(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-05 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-19 23:00:00", st.SKIPPED_DISABLED, 0, "gate closed"))
+        paused = liveness.Expectation(manual=True, paused="switched off")
+        state, days, detail = self.judge(runs["gov_mil"], total=3,
+                                         last_seen="2026-09-05", expectation=paused)
+        self.assertEqual(("PAUSED", 15), (state, days))
+        self.assertTrue(detail.endswith("switched off"))
+
+    def test_a_recent_run_never_rescues_stale_articles(self):
+        """The invariant: a source UNHEALTHY before this signal stays UNHEALTHY."""
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK_NO_PUBLICATIONS, 0, None))
+        before = liveness.classify("gov_mil", 3, "2026-09-05", TODAY, 7, self.MANUAL)
+        state, days, detail = self.judge(runs["gov_mil"], total=3, last_seen="2026-09-05")
+        self.assertEqual("UNHEALTHY", before[0])
+        self.assertEqual(("UNHEALTHY", 15), (state, days))
+        self.assertIn("last article 2026-09-05 (15d ago, threshold 7d)", detail)
+        self.assertIn("governed: last healthy run 2026-09-19", detail)
+
+    # -- A shared-Daily family never writes articles (Singapore MINDEF) ----------
+
+    CLOSED = liveness.Expectation(manual=True, articles_closed=True)
+
+    def test_a_shared_daily_family_is_judged_on_governed_runs_not_its_closed_articles(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))
+        state, days, detail = self.judge(runs["gov_mil"], total=40, last_seen="2026-07-01",
+                                         expectation=self.CLOSED)
+        self.assertEqual(("HEALTHY", 1), (state, days))
+        self.assertIn("governed: last healthy run 2026-09-19", detail)
+        self.assertNotIn("last article", detail)
+
+    def test_a_shared_daily_family_with_a_stale_governed_run_is_unhealthy_on_the_run(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-05 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-19 23:00:00", st.FETCH_FAILURE, 1, "handoff stale"))
+        # Even with fresh articles the run decides; and stale articles are not blamed.
+        for last_seen in ("2026-09-19", "2026-07-01"):
+            with self.subTest(last_seen=last_seen):
+                state, days, detail = self.judge(runs["gov_mil"], total=40, last_seen=last_seen,
+                                                 expectation=self.CLOSED)
+                self.assertEqual(("UNHEALTHY", 15), (state, days))
+                self.assertIn("governed: last healthy run 2026-09-05", detail)
+                self.assertIn("latest 2026-09-19 fetch_failure: handoff stale", detail)
+                self.assertNotIn("last article", detail)
+
+    def test_a_shared_daily_family_with_no_collection_run_still_falls_back_to_articles(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.SKIPPED_DISABLED, 0, "gate closed"))
+        state, _, detail = self.judge(runs["gov_mil"], total=40, last_seen="2026-07-01",
+                                      expectation=self.CLOSED)
+        self.assertEqual("UNHEALTHY", state)
+        self.assertIn("last article 2026-07-01", detail)
+
+    def test_a_non_daily_manual_source_is_still_judged_on_the_worse_of_both(self):
+        self.assertFalse(self.MANUAL.articles_closed)
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))
+        state, days, detail = self.judge(runs["gov_mil"], total=40, last_seen="2026-07-01")
+        self.assertEqual(("UNHEALTHY", 81), (state, days))
+        self.assertIn("last article 2026-07-01", detail)
+        self.assertIn("governed: last healthy run 2026-09-19", detail)
+
+    def test_articles_closed_is_derived_only_for_manual_shared_daily_families(self):
+        from core.daily_sources import SOURCES
+
+        class Source(FakeSource):
+            def __init__(self, slug, access_method):
+                super().__init__(slug)
+                self.access_method = access_method
+
+        daily = "sg_mindef_releases"
+        self.assertIn(daily, SOURCES)
+        reg = FakeRegistry(
+            [SourceHealthResult(daily, st.OK, None),
+             SourceHealthResult("other_manual", st.OK, None),
+             SourceHealthResult("scraped_daily_like", st.OK, None)],
+            [Source(daily, "manual"), Source("other_manual", "manual"),
+             Source("scraped_daily_like", "scrape")])
+        got = liveness.expectations(reg, paused={})
+        self.assertTrue(got[daily].articles_closed)
+        self.assertFalse(got["other_manual"].articles_closed)
+        self.assertFalse(got["scraped_daily_like"].articles_closed)
+        # A scraped source of the same slug set is never closed by this route.
+        from unittest import mock
+        with mock.patch("core.daily_sources.SOURCES", {"scraped_daily_like": object()}):
+            got = liveness.expectations(reg, paused={})
+        self.assertFalse(got["scraped_daily_like"].articles_closed)
+
+    def test_singapore_mindef_is_derived_as_recurring_not_paused_and_articles_closed(self):
+        got = liveness.expectations()["sg_mindef_releases"]
+        self.assertEqual((got.manual, got.articles_closed, got.paused, got.inert, got.broken),
+                         (True, True, None, False, False))
+
+    def test_the_threshold_day_itself_is_still_healthy(self):
+        runs = self.history(
+            ("at_threshold", "2026-09-13 23:00:00", st.OK, 0, None),
+            ("past_threshold", "2026-09-12 23:00:00", st.OK, 0, None))
+        state, days, _ = self.judge(runs["at_threshold"])
+        self.assertEqual(("HEALTHY", 7), (state, days))
+        state, days, _ = self.judge(runs["past_threshold"])
+        self.assertEqual(("UNHEALTHY", 7 + 1), (state, days))
+
+    def test_an_undated_run_is_not_judged(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None),
+            ("gov_mil", "not a date", st.FETCH_FAILURE, 1, "undated"))
+        self.assertEqual(("2026-09-19", st.OK),
+                         (runs["gov_mil"].latest_date, runs["gov_mil"].latest_status))
+
+    def test_a_stale_run_turns_fresh_articles_unhealthy(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-05 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-19 23:00:00", st.FETCH_FAILURE, 1, "handoff stale"))
+        self.assertEqual("HEALTHY", liveness.classify(
+            "gov_mil", 3, "2026-09-19", TODAY, 7, self.MANUAL)[0])
+        self.assertEqual("UNHEALTHY", self.judge(
+            runs["gov_mil"], total=3, last_seen="2026-09-19")[0])
+
+    def test_a_latest_failure_is_visible_while_healthy(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-17 23:00:00", st.OK_ALL_DUPLICATES, 0, None),
+            ("gov_mil", "2026-09-19 23:00:00", st.ACCESS_CHALLENGED, 1, "x" * (liveness.DETAIL_LIMIT + 1)))
+        state, _, detail = self.judge(runs["gov_mil"])
+        self.assertEqual("HEALTHY", state)
+        self.assertIn("latest 2026-09-19 access_challenged: ", detail)
+        quoted = detail.split("access_challenged: ", 1)[1]
+        self.assertEqual(liveness.DETAIL_LIMIT, len(quoted))
+        self.assertTrue(quoted.endswith("…"))
+
+    def test_latest_is_ordered_by_the_daily_not_by_row_id(self):
+        runs = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None),
+            ("gov_mil", "2026-09-18 23:00:00", st.FETCH_FAILURE, 1, "older"))
+        self.assertEqual(("2026-09-19", st.OK),
+                         (runs["gov_mil"].latest_date, runs["gov_mil"].latest_status))
+
+    def test_a_database_without_run_tables_keeps_the_old_judgement(self):
+        db = run_db(Path(self.tmp.name) / "old.db", (), with_run_tables=False)
+        self.assertIsNone(liveness.governed_runs(db))
+        self.assertEqual(
+            liveness.classify("gov_mil", 0, None, TODAY, 7, self.MANUAL),
+            ("INERT", None, "manual source — nothing admitted yet"))
+
+    def test_the_gate_reads_the_runs_and_fails_on_them(self):
+        """main() wires the run table into the verdict and the exit code."""
+        import contextlib
+        import io
+        import os
+        import sqlite3
+        from unittest import mock
+        db = run_db(Path(self.tmp.name) / "cli.db", (
+            ("gov_mil", "2026-09-19 23:00:00", st.FETCH_FAILURE, 1, "handoff stale"),))
+        conn = sqlite3.connect(str(db))
+        conn.execute("INSERT INTO sources (slug, display_name, is_active) "
+                     "VALUES ('gov_mil', 'Governed family', 1)")
+        conn.commit()
+        conn.close()
+        argv = ["check_source_liveness.py", "--db", str(db), "--today", "2026-09-20"]
+        env = {k: v for k, v in os.environ.items() if k != "GITHUB_STEP_SUMMARY"}
+        out = io.StringIO()
+        with mock.patch.object(sys, "argv", argv), \
+                mock.patch.dict(os.environ, env, clear=True), \
+                mock.patch.object(liveness, "expectations",
+                                  return_value={"gov_mil": self.MANUAL}), \
+                contextlib.redirect_stdout(out):
+            code = liveness.main()
+        self.assertEqual(1, code)
+        self.assertIn("UNHEALTHY", out.getvalue())
+        self.assertIn("governed: no healthy run recorded; latest 2026-09-19 "
+                      "fetch_failure: handoff stale", out.getvalue())
+
+    def test_a_scraped_source_ignores_run_evidence(self):
+        runs = self.history(
+            ("fetched_mil", "2026-09-19 23:00:00", st.FETCH_FAILURE, 1, "down"))
+        for expectation in (liveness.UNDECLARED, liveness.Expectation(threshold=21)):
+            for total, seen in ((0, None), (3, "2026-09-19"), (3, "2026-09-05")):
+                with self.subTest(expectation=expectation, seen=seen):
+                    self.assertEqual(
+                        liveness.classify("fetched_mil", total, seen, TODAY, 7, expectation),
+                        liveness.classify("fetched_mil", total, seen, TODAY, 7, expectation,
+                                          runs=runs["fetched_mil"]))
+
+    def test_the_live_corpus_never_gets_more_lenient(self):
+        """Over the tracked database: run evidence only ever adds a verdict."""
+        if not liveness.DEFAULT_DB.exists():
+            self.skipTest("tracked database not present")
+        runs = liveness.governed_runs(liveness.DEFAULT_DB)
+        if runs is None:
+            self.skipTest("tracked database predates run tables")
+        expected = liveness.expectations()
+        today = date.today()
+        for slug, name, total, last_seen in liveness.rows(liveness.DEFAULT_DB, today):
+            exp = expected.get(slug, liveness.UNDECLARED)
+            old = liveness.classify(slug, total, last_seen, today, 7, exp)
+            new = liveness.classify(slug, total, last_seen, today, 7, exp,
+                                    runs=runs.get(slug, liveness.NO_GOVERNED_RUNS))
+            with self.subTest(source=slug):
+                if old[0] in {"UNHEALTHY", "PAUSED"}:
+                    self.assertEqual(old[0], new[0])
+                if not exp.manual:
+                    self.assertEqual(old, new)
+
+
 # ── Against the live corpus ───────────────────────────────────────────────────
 
 class TheLiveCorpusAgrees(unittest.TestCase):
@@ -309,7 +691,7 @@ class TheLiveCorpusAgrees(unittest.TestCase):
                 slug, total, last_seen, date.today(), 7,
                 self.expected.get(slug, liveness.UNDECLARED),
             )
-            self.assertIn(state, {"HEALTHY", "UNHEALTHY", "INERT"})
+            self.assertIn(state, {"HEALTHY", "UNHEALTHY", "INERT", "PAUSED"})
 
     def test_no_moving_corpus_count_is_frozen_in_this_file(self):
         """Guard against pinning a total that grows every day.

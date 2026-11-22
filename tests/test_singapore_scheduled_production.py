@@ -137,14 +137,14 @@ class TestGenericCollectClosesTheGap(unittest.TestCase):
         # US DVIDS, which still use the shared base implementation as-is.
         self.assertIsNot(sg.SGMindefAdapter.collect, SourceAdapter.collect)
 
-    def test_registry_get_adapter_returns_something_collectible(self):
-        """
-        The exact call `pipeline.py` makes for every source in
-        `available_slugs()`. No network: proving the attribute exists is
-        enough to show the AttributeError this task fixes cannot recur.
-        """
-        adapter = SourceRegistry().get_adapter("sg_mindef_releases")
-        self.assertTrue(callable(adapter.collect))
+    def test_public_registry_no_longer_exposes_the_singapore_collector(self):
+        """The real collector remains separately usable in private custody."""
+        from core.registry import RegistryError
+        source = SourceRegistry().get_source("sg_mindef_releases")
+        self.assertEqual(source.access_method, "manual")
+        self.assertIsNone(source.adapter)
+        with self.assertRaisesRegex(RegistryError, "declares no adapter"):
+            SourceRegistry().get_adapter("sg_mindef_releases")
 
     def test_china_adapters_are_unaffected_by_the_new_base_method(self):
         """
