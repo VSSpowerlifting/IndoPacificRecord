@@ -4,8 +4,10 @@ The private runner holds the originals. It runs core.vietnam_corpus_bridge on a
 copy of public main's database, so its corpus copy is discarded; what crosses
 to the canonical database is only the projection the bridge wrote for this
 run's PUBLISHED records (the permitted article columns and their provenance),
-MAC'd with VIETNAM_PRIVATE_BRIDGE_KEY. Nothing else crosses: no ledger, no
-withheld original, no held or screened record, no token.
+MAC'd with VIETNAM_PRIVATE_BRIDGE_KEY, plus a per-family count of this run's
+outcome codes so the Daily row reports held, screened and duplicate items.
+Nothing else crosses: no ledger, no withheld original, no held or screened
+record, no token.
 
 The public side trusts the MAC for authenticity only. Rights are re-derived
 from the owner-sealed decision committed to public main
@@ -54,6 +56,23 @@ _FAMILY_KEYS = {"source_family", "source_ref", "source_git_commit",
                 "rights_decision_sha256", "records"}
 _BRIDGE_FAILURES = {"bridge_failed", "bridge_result_invalid", "held_source",
                     "private_source_unavailable"}
+# Every per-record outcome core.vietnam_corpus_bridge reports (the QA outcomes
+# plus the bridge's own duplicate and settled), in the order the Daily run
+# detail lists them. A family entry's optional signed "dispositions" block
+# counts this run's outcomes by these codes only: counts, never identities,
+# failure reasons or text.
+DISPOSITIONS = (qa.HELD_RETRYABLE, qa.HELD_REVIEW, qa.HELD_RIGHTS, qa.HELD_SOURCE,
+                qa.HELD_ESCALATED, qa.SCREENED_OUT, bridge.SETTLED, bridge.DUPLICATE,
+                qa.PUBLISHED)
+DISPOSITIONS_INVALID = {"valid": False, "reason": "dispositions_invalid"}
+# Reader first (docs/desks/MIGRATION.md order): a verifier before this change
+# refuses any family entry carrying "dispositions", so a Daily re-run at an
+# older SHA, or a revert, would HOLD every Vietnam record. sign() emits the
+# block only once a follow-up change sets this True, after one public Daily
+# has run this reader. The private runner signs from public main, so that flip
+# needs no private change.
+SIGN_DISPOSITIONS = False
+_MAX_DISPOSITION_COUNT = 1_000_000
 
 
 class HandoffError(bridge.BridgeError):
@@ -102,6 +121,12 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
         family = report["source_family"]
         _need(family not in seen, "vietnam_handoff_family_invalid")
         seen.add(family)
+        # Reporting only: what the bridge decided for every record this run,
+        # including the held, screened and duplicate ones that never cross.
+        extra = {}
+        if SIGN_DISPOSITIONS:
+            extra["dispositions"] = _dispositions(report["outcomes"])
+            size += len(_canonical(extra))
         records = []
         facts = _bound_collection(collection.get(family), family, report["source_git_commit"])
         if not _collection_failed(facts):
@@ -120,7 +145,7 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
         families.append({"source_family": family, "source_ref": report["custody"]["source_ref"],
                          "source_git_commit": report["source_git_commit"],
                          "rights_decision_sha256": report["rights_decision_sha256"],
-                         "records": records})
+                         "records": records, **extra})
     for entry in families:
         family = entry["source_family"]
         if family not in collection:
@@ -133,6 +158,23 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
     body = {"schema": SCHEMA, "source_repository": vn.PRIVATE_REPO, "run_id": run_id,
             "generated_utc": generated_utc, "families": families, "deferred": deferred}
     return dict(body, mac=_mac(key, body))
+
+
+def _dispositions(outcomes) -> Dict[str, int]:
+    """{outcome code: count}. An unexpected code is kept, never dropped, so the
+    public verifier reports the block as invalid instead of under-counting."""
+    counts: Dict[str, int] = {}
+    for item in outcomes:
+        counts[item["outcome"]] = counts.get(item["outcome"], 0) + 1
+    return counts
+
+
+def valid_dispositions(block) -> bool:
+    """A dispositions block holds only fixed codes with bounded integer counts."""
+    return (isinstance(block, dict) and len(block) <= len(DISPOSITIONS)
+            and all(isinstance(code, str) and code in DISPOSITIONS
+                    and type(count) is int and 0 <= count <= _MAX_DISPOSITION_COUNT
+                    for code, count in block.items()))
 
 
 def _valid_collection_pin(commit, bridge_status):
@@ -252,11 +294,12 @@ def verify(envelope, *, bridge_key: bytes, review_key: bytes, as_of: str, desk=N
         desk = load_registry().get("vietnam")
     out, seen, seen_families = [], set(), set()
     for entry in envelope["families"]:
-        # `collection` is an optional signed attestation (the MAC already covers
-        # it). A malformed block is reported as not attested by collection_by_family;
-        # it never refuses the handoff.
+        # `collection` is an optional signed attestation and `dispositions` an
+        # optional signed count of this run's bridge outcomes (the MAC already
+        # covers both). A malformed block is reported by collection_by_family or
+        # dispositions_by_family; it never refuses the handoff.
         _need(isinstance(entry, dict)
-              and set(entry) - {"collection", "bridge_status"} == _FAMILY_KEYS
+              and set(entry) - {"collection", "bridge_status", "dispositions"} == _FAMILY_KEYS
               and entry["source_family"] in SOURCES
               and entry["source_family"] not in seen_families
               and entry["source_ref"] == vn.private_ref(entry["source_family"])
@@ -313,6 +356,26 @@ def collection_by_family(envelope: dict) -> dict:
         out[entry["source_family"]] = (
             facts if facts is not None
             else {"attested": False, "reason": "collection_attestation_invalid"})
+    return out
+
+
+def dispositions_by_family(envelope: dict) -> dict:
+    """{family: {code: count} | DISPOSITIONS_INVALID | None} from an already
+    verified handoff.
+
+    None when the entry has no block (an older signer, or a family whose
+    bridge failed). A present block that is not a dict of fixed codes to
+    bounded non-negative integers becomes DISPOSITIONS_INVALID: reported,
+    never read as zero.
+    """
+    out = {}
+    for entry in envelope["families"]:
+        if "dispositions" not in entry:
+            out[entry["source_family"]] = None
+            continue
+        block = entry["dispositions"]
+        out[entry["source_family"]] = (dict(block) if valid_dispositions(block)
+                                       else dict(DISPOSITIONS_INVALID))
     return out
 
 
@@ -408,6 +471,7 @@ def main(argv=None) -> int:
                                                for entry in envelope["families"]
                                                if "bridge_status" in entry},
                           "collection_by_family": collection_by_family(envelope),
+                          "dispositions_by_family": dispositions_by_family(envelope),
                           "generated_utc": envelope["generated_utc"],
                           "deferred": envelope["deferred"]}, sort_keys=True))
         return 0
