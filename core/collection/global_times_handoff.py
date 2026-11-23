@@ -16,10 +16,16 @@ it.
 
 Private custody (``state/`` in the custody checkout):
 
-* ``shadow.db`` table ``capture_versions``: one append-only row per distinct
-  ``(source_identity, capture_sha256)``. Re-observations of a known article are
-  recorded as versions, never skipped. ``content_sha256`` is exactly the
-  public Daily's ``content_hash`` for the same parsed page
+* ``shadow.db`` table ``capture_versions``: append-only, ordered by
+  ``version_seq``. An observation is a new version whenever its
+  ``(capture_sha256, text_held)`` differs from the article's latest recorded
+  version, so re-observations are recorded, never skipped; the same bytes
+  held by one collector and published by a later one (or a page that reverts)
+  become the latest version. Every attempt, even a held or early-failing one,
+  leaves this database (schema only if need be), and ``verify`` requires
+  every row of the parent custody commit to be present and unchanged.
+  ``content_sha256`` is exactly the public Daily's ``content_hash`` for the
+  same parsed page
   (``processing.metadata.normalize_article``), so a public row can always be
   tied back to the bytes it came from.
 * ``captures/<capture_sha256>.bin``: the exact wire bytes, content-addressed.
@@ -94,6 +100,7 @@ CONTENT_VERDICTS = (None, "media_only")
 
 CAPTURE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS capture_versions (
+    version_seq      INTEGER PRIMARY KEY,
     source_identity  TEXT NOT NULL,
     url              TEXT NOT NULL,
     title_original   TEXT NOT NULL,
@@ -108,9 +115,10 @@ CREATE TABLE IF NOT EXISTS capture_versions (
     content_sha256   TEXT NOT NULL,
     fetched_at       TEXT NOT NULL,
     source_run       TEXT NOT NULL,
-    collector_commit TEXT NOT NULL,
-    PRIMARY KEY (source_identity, capture_sha256)
+    collector_commit TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS capture_versions_identity
+    ON capture_versions (source_identity, version_seq);
 CREATE INDEX IF NOT EXISTS capture_versions_url ON capture_versions (url);
 CREATE TRIGGER IF NOT EXISTS capture_versions_no_update
     BEFORE UPDATE ON capture_versions
@@ -304,12 +312,24 @@ def load_envelope(path, key, now: Optional[datetime] = None
 
 def _connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
-    conn.executescript(CAPTURE_SCHEMA)
+    try:
+        conn.executescript(CAPTURE_SCHEMA)
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(capture_versions)")}
+        if "version_seq" not in cols:
+            # A table keyed (source_identity, capture_sha256) would silently
+            # drop an un-held re-observation of bytes once held.
+            raise HandoffError("capture_schema_outdated")
+    except BaseException:
+        conn.close()
+        raise
     return conn
 
 
 def _write_capture(captures: Path, sha: str, wire: bytes) -> None:
-    """Content-addressed; an existing file must already hold these bytes."""
+    """Content-addressed; an existing file must already hold these bytes.
+
+    Never leaves a partial ``.tmp`` or an unverified ``.bin`` it created.
+    """
     if hashlib.sha256(wire).hexdigest() != sha:
         raise HandoffError("capture_digest_mismatch")
     path = captures / (sha + ".bin")
@@ -318,10 +338,15 @@ def _write_capture(captures: Path, sha: str, wire: bytes) -> None:
             raise HandoffError("capture_file_conflict")
         return
     tmp = path.with_suffix(".tmp")
-    tmp.write_bytes(wire)
-    tmp.replace(path)
-    if hashlib.sha256(path.read_bytes()).hexdigest() != sha:
-        raise HandoffError("capture_write_unverified")
+    try:
+        tmp.write_bytes(wire)
+        tmp.replace(path)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != sha:
+            raise HandoffError("capture_write_unverified")
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        path.unlink(missing_ok=True)
+        raise
 
 
 def _ledger_name(finished_utc: str, run_id: str) -> str:
@@ -379,24 +404,48 @@ def _observe(scraper, url: str, conn, captures: Path, run_id: str,
         raise HandoffError("capture_binding_mismatch")
     held = article.get("text_held")
     raw = public_raw(article)
+    # One transaction per page: its row and its bytes land together or not
+    # at all. A later page's failure can then never leave a ``.bin`` without
+    # a committed row (which verify would refuse forever after).
+    path = captures / (sha + ".bin")
+    path_existed = path.exists()
+    tmp_existed = path.with_suffix(".tmp").exists()
+    ident = source_identity(url)
+    try:
+        latest = conn.execute(
+            "SELECT capture_sha256, text_held FROM capture_versions"
+            " WHERE source_identity = ? ORDER BY version_seq DESC LIMIT 1",
+            (ident,)).fetchone()
+        known = latest is not None and latest[0] == sha and latest[1] == (held or None)
+        if not known:
+            conn.execute(
+                "INSERT INTO capture_versions (source_identity, url,"
+                " title_original, text_original, published_date, content_verdict,"
+                " text_held, byline, pub_time, content_type, capture_sha256,"
+                " content_sha256, fetched_at, source_run, collector_commit)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (ident, url, raw["title_original"],
+                 "" if held else raw["text_original"], raw["published_date"],
+                 raw["content_verdict"], held or None, custody.get("byline"),
+                 custody.get("pub_time"), custody.get("content_type"), sha,
+                 content_sha256(raw), custody.get("fetched_at") or _stamp(_utc_now()),
+                 run_id, commit))
+        if not held:
+            _write_capture(captures, sha, wire)
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        # Only files this page created: they are new and untracked, so
+        # removing them is never a deletion of committed custody.
+        if not path_existed:
+            path.unlink(missing_ok=True)
+        if not tmp_existed:
+            path.with_suffix(".tmp").unlink(missing_ok=True)
+        raise
     if held:
         entry["held"] += 1
-    else:
-        _write_capture(captures, sha, wire)
-    cur = conn.execute(
-        "INSERT OR IGNORE INTO capture_versions (source_identity, url,"
-        " title_original, text_original, published_date, content_verdict,"
-        " text_held, byline, pub_time, content_type, capture_sha256,"
-        " content_sha256, fetched_at, source_run, collector_commit)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (source_identity(url), url, raw["title_original"],
-         "" if held else raw["text_original"], raw["published_date"],
-         raw["content_verdict"], held or None, custody.get("byline"),
-         custody.get("pub_time"), custody.get("content_type"), sha,
-         content_sha256(raw), custody.get("fetched_at") or _stamp(_utc_now()),
-         run_id, commit))
     entry["observed"] += 1
-    if cur.rowcount:
+    if not known:
         entry["new_versions"] += 1
     else:
         entry["known_versions"] += 1
@@ -408,6 +457,16 @@ def run_collect(state: Path, target: date, target_source: str, run_id: str,
     from core import china_source_use_hold as hold
     for sub in ("ledger", "captures", "private_attempts"):
         (state / sub).mkdir(parents=True, exist_ok=True)
+    # The schema-only custody DB exists before any outcome: a held or
+    # early-failing attempt (even on a brand-new custody ref) must still be
+    # persistable, and persist/verify/sign all require this file.
+    db_failure = None
+    try:
+        _connect(state / "shadow.db").close()
+    except HandoffError as exc:
+        db_failure = str(exc)
+    except (sqlite3.Error, OSError):
+        db_failure = "custody_db_unavailable"
     entry = {"schema": attempts.SCHEMA, "family": FAMILY, "run_id": run_id,
              "target_date": target.isoformat(), "target_date_source": target_source,
              "window": [(target - timedelta(days=LOOKBACK_DAYS)).isoformat(),
@@ -423,6 +482,9 @@ def run_collect(state: Path, target: date, target_source: str, run_id: str,
     # Persisted before any request: an attempt killed mid-run still leaves a
     # well-formed failed ledger for the custody commit to attest.
     skeleton = _write_ledger(entry, state)
+    if db_failure is not None:
+        entry.update(result=st.STORAGE_FAILURE, health="fail", error_detail=db_failure)
+        return _finish(entry, state, skeleton)
     if hold.is_held_source(FAMILY):
         # Mirror of the public hold: no publisher request at all.
         entry.update(result=st.SKIPPED_DISABLED, health="skipped",
@@ -533,9 +595,13 @@ def verify_clone(clone: Path, expect_head: str, collector_commit: str) -> Option
     retained = {r["capture_sha256"] for r in rows if r["text_held"] is None}
     for row in rows:
         # Checked first: bytes kept for a held page are the specific failure,
-        # not merely an unreferenced file.
+        # not merely an unreferenced file. The same bytes may legitimately be
+        # kept for an un-held version of the same page (a later collector's
+        # different hold decision).
         if row["text_held"] is not None and (
-                row["capture_sha256"] in files or row["text_original"] != ""):
+                (row["capture_sha256"] in files
+                 and row["capture_sha256"] not in retained)
+                or row["text_original"] != ""):
             return "held_row_retained"
     for sha, path in files.items():
         if not _HEX64.fullmatch(sha) or hashlib.sha256(path.read_bytes()).hexdigest() != sha:
@@ -559,6 +625,50 @@ def verify_clone(clone: Path, expect_head: str, collector_commit: str) -> Option
                 "title_original", "text_original", "published_date",
                 "content_verdict")) or content_sha256(parsed) != row["content_sha256"]:
             return "reparse_mismatch"
+    return _parent_rows_preserved(clone, rows)
+
+
+def _parent_rows_preserved(clone: Path, rows) -> Optional[str]:
+    """None when every row of each parent custody commit is still present
+    and unchanged (held rows included); else a failure code.
+
+    Append-only is otherwise enforced only by triggers the writer creates;
+    this independent check catches a rewrite, a REPLACE or a deleted row.
+    """
+    import tempfile
+    from collections import Counter
+    try:
+        parents = _git(clone, "rev-list", "--parents", "-n", "1", "HEAD").decode().split()[1:]
+    except Exception:
+        return "git_check_failed"
+    for parent in parents:
+        try:
+            listed = _git(clone, "ls-tree", "--name-only", parent, "--", "state/shadow.db")
+            if not listed.strip():
+                continue   # the parent kept no custody DB: nothing to preserve
+            blob = _git(clone, "show", parent + ":state/shadow.db")
+        except Exception:
+            return "parent_custody_unreadable"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "parent.db"
+            path.write_bytes(blob)
+            conn = _open_ro(path)
+            try:
+                before = conn.execute("SELECT * FROM capture_versions").fetchall()
+            except sqlite3.Error:
+                return "parent_custody_unreadable"
+            finally:
+                conn.close()
+        if not before:
+            continue
+        cols = before[0].keys()
+        try:
+            now = Counter(tuple(r[c] for c in cols) for r in rows)
+        except (IndexError, KeyError):
+            return "custody_row_changed"   # a column vanished
+        then = Counter(tuple(r[c] for c in cols) for r in before)
+        if then - now:
+            return "custody_row_changed"
     return None
 
 
@@ -591,7 +701,7 @@ def build_envelope(clone: Path, commit: str, key: str, now: datetime) -> dict:
         try:
             rows = conn.execute(
                 "SELECT * FROM capture_versions ORDER BY source_identity,"
-                " fetched_at, capture_sha256").fetchall()
+                " version_seq").fetchall()
         finally:
             conn.close()
     floor = now - RECORD_WINDOW
@@ -601,8 +711,7 @@ def build_envelope(clone: Path, commit: str, key: str, now: datetime) -> dict:
         if fetched is None or not (floor <= fetched <= now):
             continue
         current = latest.get(row["source_identity"])
-        if current is None or (row["fetched_at"], row["capture_sha256"]) > (
-                current["fetched_at"], current["capture_sha256"]):
+        if current is None or row["version_seq"] > current["version_seq"]:
             latest[row["source_identity"]] = row
     records = []
     for ident in sorted(latest):
@@ -644,10 +753,17 @@ def build_envelope(clone: Path, commit: str, key: str, now: datetime) -> dict:
 def recover(public_row: dict, custody_db: Path, captures: Path) -> dict:
     """Tie a public ``articles`` row back to its private capture.
 
-    ``articles.url`` -> ``gt:<id>`` -> ``capture_versions`` (by url) -> retained
-    ``.bin`` -> offline ``parse_article`` -> ``normalize_article`` content hash,
-    which must equal the public ``articles.content_hash``. Returns
-    ``{"status": recovered|held_no_bytes|no_version|no_match, "capture_sha256"}``.
+    ``articles.url`` -> ``gt:<id>`` -> ``capture_versions`` (by url). A version
+    matches by record first: its retained ``.bin`` re-hashes to the row's
+    ``capture_sha256``, and the row's ``content_sha256`` and
+    ``published_date`` equal the public ``content_hash`` and
+    ``published_date``. The bytes are then re-parsed offline
+    (``parse_article`` -> ``normalize_article``); the row's fields and hash
+    must come back unchanged. Returns ``{"status", "capture_sha256"}`` with
+    status ``recovered``; ``parser_drift`` (bytes and record match, today's
+    parser reads them differently); ``reparse_failed`` (the parser raised);
+    ``held_no_bytes``; ``no_version``; or ``no_match``. Never raises for a
+    parser failure.
     """
     url = public_row["url"]
     ident = source_identity(url)
@@ -657,11 +773,14 @@ def recover(public_row: dict, custody_db: Path, captures: Path) -> dict:
     try:
         rows = conn.execute(
             "SELECT * FROM capture_versions WHERE url = ? AND source_identity = ?"
-            " ORDER BY fetched_at, capture_sha256", (url, ident)).fetchall()
+            " ORDER BY version_seq", (url, ident)).fetchall()
     finally:
         conn.close()
     if not rows:
         return {"status": "no_version", "capture_sha256": None}
+    getter = getattr(public_row, "get", None)
+    public_date = getter("published_date") if getter else None
+    fallback = None
     for row in rows:
         if row["text_held"] is not None:
             continue
@@ -671,9 +790,22 @@ def recover(public_row: dict, custody_db: Path, captures: Path) -> dict:
         wire = path.read_bytes()
         if hashlib.sha256(wire).hexdigest() != row["capture_sha256"]:
             continue
-        parsed = reparse(wire, row)
-        if parsed is not None and content_sha256(parsed) == public_row["content_hash"]:
+        if row["content_sha256"] != public_row["content_hash"] \
+                or row["published_date"] != public_date:
+            continue
+        try:
+            parsed = reparse(wire, row)
+        except Exception:
+            fallback = fallback or ("reparse_failed", row["capture_sha256"])
+            continue
+        if parsed is not None and all(parsed[k] == row[k] for k in (
+                "title_original", "text_original", "published_date",
+                "content_verdict")) and content_sha256(parsed) == row["content_sha256"]:
             return {"status": "recovered", "capture_sha256": row["capture_sha256"]}
+        if fallback is None or fallback[0] != "parser_drift":
+            fallback = ("parser_drift", row["capture_sha256"])
+    if fallback is not None:
+        return {"status": fallback[0], "capture_sha256": fallback[1]}
     if all(r["text_held"] is not None for r in rows):
         return {"status": "held_no_bytes", "capture_sha256": None}
     return {"status": "no_match", "capture_sha256": None}

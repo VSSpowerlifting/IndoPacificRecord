@@ -341,8 +341,27 @@ class AdapterStatuses(Isolated):
         self.assertEqual(result.status, st.OK)
         self.assertEqual([d.raw for d in docs], legacy)
         self.assertEqual([d.as_article_dict() for d in docs], legacy)
-        self.assertEqual(result.text_unavailable, 0)
+        # PUB-3: the held (blank-body) page is counted exactly as the
+        # pipeline's text-gap receipts count it, so they never disagree.
+        self.assertEqual(result.text_unavailable, 1)
         self.assertIn("held by the parser (non_gt_byline)", result.error_detail)
+
+    def test_held_documents_agree_with_text_gap_receipts(self):
+        import logging
+        from core.collection.text_gap_receipts import log_unreadable_source_receipts
+        recs = [record(A1, "Fixture headline one"),
+                record(A2, "Fixture headline two", held="non_gt_byline"),
+                record(A3, "Fixture headline three", text="   ")]
+        result, docs = self.collect(self.write(envelope(recs)), FRESH)
+        receipts = log_unreadable_source_receipts(
+            "global_times_mil", docs, logging.getLogger("gt-test-receipts"))
+        self.assertEqual((result.status, result.text_unavailable, receipts), (st.OK, 2, 2))
+        self.assertIn("held by the parser (non_gt_byline)", result.error_detail)
+        self.assertIn("1 of 3 parsed page(s) carried no usable text", result.error_detail)
+        # Held pages alone stay a healthy read, never an extraction failure.
+        result, docs = self.collect(self.write(envelope(
+            [record(A2, "Fixture headline two", held="non_gt_byline")])), FRESH)
+        self.assertEqual((result.status, result.text_unavailable), (st.OK, 1))
 
 
 # ── the real public dedup / insert path ──────────────────────────────────────
@@ -415,6 +434,51 @@ class PublicStorage(Isolated):
         self.assertEqual(len(self.replay([record(A2, "Shared headline", held="non_gt_byline")])), 1)
         self.assertEqual(len(self.replay([record(A3, "Shared headline", held="non_gt_byline")])), 1)
         self.assertEqual(self.replay([record(A3, "Shared headline", held="non_gt_byline")]), [])
+
+    def fold_status(self, records):
+        """Replay, then the per-source status refinement pipeline.py applies."""
+        from processing.dedup import dedup_articles
+        from processing.deduplicator import deduplicate
+        result, docs = GlobalTimesHandoffAdapter(
+            AdapterStatuses.Source(), envelope_path=self.write(envelope(records)),
+            key=KEY, now=FRESH).collect(CollectionWindow(TARGET, TARGET))
+        new = deduplicate(dedup_articles(
+            [normalize_article(d.as_article_dict()) for d in docs]))
+        duplicates = len(docs) - len(new)
+        if result.status == st.OK and not new and duplicates > 0:
+            return st.OK_ALL_DUPLICATES, len(docs)
+        return result.status, len(docs)
+
+    def test_stored_redelivery_never_title_suppresses_a_new_article(self):
+        b2 = "A different fictional fixture paragraph for a second article."
+        self.assertEqual(len(self.replay([record(A3, "Shared headline")])), 1)
+        day2 = [record(A3, "Shared headline"), record(A2, "Shared headline", text=b2)]
+        self.assertEqual(len(self.replay(day2)), 1)
+        self.assertIn(A2, {r[1] for r in self.rows()})
+        # Input order does not matter.
+        self.assertEqual(len(self.replay([record(A1, "Other headline", text=b2 + " x"),
+                                          record(A3, "Other headline")])), 1)
+
+    def test_stored_held_redelivery_never_title_suppresses_a_new_held_article(self):
+        self.assertEqual(len(self.replay([record(A3, "Shared headline",
+                                                 held="non_gt_byline")])), 1)
+        self.assertEqual(len(self.replay([record(A3, "Shared headline", held="non_gt_byline"),
+                                          record(A2, "Shared headline",
+                                                 held="non_gt_byline")])), 1)
+        self.assertEqual({r[1] for r in self.rows()}, {A2, A3})
+
+    def test_all_known_day_still_folds_to_all_duplicates(self):
+        recs = [record(A3, "Shared headline"), record(A1, "Fixture headline one")]
+        self.assertEqual(len(self.replay(recs)), 2)
+        # Every delivered record is stored: all of them still reach dedup, so
+        # the fold reports ok_all_duplicates exactly as before, never
+        # ok_no_publications.
+        self.assertEqual(self.fold_status(recs), (st.OK_ALL_DUPLICATES, 2))
+        # A same-title pair that is entirely stored is also left untouched.
+        b2 = "A different fictional fixture paragraph for a second article."
+        pair = [record(A3, "Shared headline"), record(A2, "Shared headline", text=b2)]
+        self.replay(pair)
+        self.assertEqual(self.fold_status(pair), (st.OK_ALL_DUPLICATES, 2))
 
     def test_china_hold_still_refuses_insert(self):
         from core.china_source_use_hold import SourceUseHold
@@ -569,6 +633,41 @@ class Collect(CollectBase):
         entry = json.loads(final.read_text())
         self.assertEqual((code, entry["result"], entry["error_detail"]),
                          (1, st.ADAPTER_ERROR, "collector_raised"))
+        # A run that dies before listing still leaves a valid custody DB.
+        self.assertTrue((state / "shadow.db").is_file())
+
+    def test_mid_loop_exception_leaves_no_orphan_capture(self):
+        state = self.tmp / "custody" / "state"
+        real = GlobalTimesMilScraper.parse_article
+
+        def second_page_raises(scraper, url, html):
+            if url == A2:
+                raise RuntimeError("fixture parser crash")
+            return real(scraper, url, html)
+
+        with patch.object(GlobalTimesMilScraper, "parse_article", second_page_raises):
+            state, code, entry = self.run_once(FakeSession(pages()))
+        self.assertEqual((code, entry["result"]), (1, st.ADAPTER_ERROR))
+        rows = self.versions(state)
+        # The page completed before the crash is committed with its bytes;
+        # nothing on disk lacks a committed row.
+        self.assertEqual([r["source_identity"] for r in rows], ["gt:900001"])
+        self.assertEqual(sorted(p.name for p in (state / "captures").iterdir()),
+                         [rows[0]["capture_sha256"] + ".bin"])
+
+    def test_failed_page_write_rolls_back_its_row_and_file(self):
+        real = handoff._write_capture
+
+        def write_then_fail(captures, sha, wire):
+            real(captures, sha, wire)
+            raise handoff.HandoffError("capture_write_unverified")
+
+        with patch.object(handoff, "_write_capture", write_then_fail):
+            state, code, entry = self.run_once(FakeSession(pages()))
+        self.assertEqual((code, entry["result"], entry["error_detail"]),
+                         (1, st.STORAGE_FAILURE, "capture_write_unverified"))
+        self.assertEqual(self.versions(state), [])
+        self.assertEqual(list((state / "captures").iterdir()), [])
 
     def test_china_hold_skips_with_zero_requests(self):
         os.environ["IPR_CHINA_SOURCE_USE_HOLD"] = "true"
@@ -577,7 +676,9 @@ class Collect(CollectBase):
         self.assertEqual((code, entry["result"], entry["health"], entry["error_detail"]),
                          (0, st.SKIPPED_DISABLED, "skipped", "source_use_hold"))
         self.assertEqual(session.calls, [])
-        self.assertFalse((state / "shadow.db").exists())
+        # The schema-only custody DB exists, so the attempt can be persisted.
+        self.assertTrue((state / "shadow.db").is_file())
+        self.assertEqual(self.versions(state), [])
 
     def test_cli_refuses_rerun_without_explicit_date_and_writes_nothing(self):
         state = self.tmp / "cli" / "state"
@@ -657,6 +758,8 @@ class Custody(CollectBase):
         self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR), "held_row_retained")
 
     def test_verify_detects_parse_mismatch(self):
+        # Rows of an older collector are not re-parsed by this one.
+        self.assertIsNone(handoff.verify_clone(self.fresh(), self.head, "f" * 40))
         conn = sqlite3.connect(str(self.state / "shadow.db"))
         conn.executescript("DROP TRIGGER capture_versions_no_update;"
                            "UPDATE capture_versions SET text_original = 'not what was served'"
@@ -665,8 +768,122 @@ class Custody(CollectBase):
         conn.close()
         head = commit(self.repo)
         self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR), "reparse_mismatch")
-        # Rows of an older collector are not re-parsed by this one.
-        self.assertIsNone(handoff.verify_clone(self.fresh(), head, "f" * 40))
+        # A committed row rewritten since the parent custody commit is caught
+        # even when this collector would not re-parse it.
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, "f" * 40),
+                         "custody_row_changed")
+
+    def test_held_first_run_persists_verifies_and_signs(self):
+        os.environ["IPR_CHINA_SOURCE_USE_HOLD"] = "true"
+        repo = self.tmp / "fresh-orphan"
+        repo.mkdir()
+        git(repo, "init", "-q")
+        code = handoff.run_collect(repo / "state", TARGET, SOURCE_EXPLICIT, "2001-1",
+                                   COLLECTOR, scraper_factory=factory(FakeSession({})))
+        self.assertEqual(code, 0)
+        # The private persist step's read-only integrity check.
+        conn = sqlite3.connect("file:%s?mode=ro" % (repo / "state" / "shadow.db"), uri=True)
+        try:
+            self.assertEqual(conn.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        finally:
+            conn.close()
+        head = commit(repo)
+        fresh = clone(repo, self.tmp / "fresh-orphan-clone")
+        self.assertIsNone(handoff.verify_clone(fresh, head, COLLECTOR))
+        env = handoff.build_envelope(fresh, head, KEY, self.now())
+        self.assertEqual((env["records"], env["collection"]["latest"]["result"]),
+                         ([], st.SKIPPED_DISABLED))
+
+    def test_mid_loop_exception_then_healthy_run_still_verifies(self):
+        real = GlobalTimesMilScraper.parse_article
+
+        def second_page_raises(scraper, url, html):
+            if url == A2:
+                raise RuntimeError("fixture parser crash")
+            return real(scraper, url, html)
+
+        changed = pages(**{A1: page("Fixture headline one", body=BODY + " Edited.")})
+        with patch.object(GlobalTimesMilScraper, "parse_article", second_page_raises):
+            _, code, _ = self.run_once(FakeSession(changed), run_id="1002-1")
+        self.assertEqual(code, 1)
+        head = commit(self.repo)
+        self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
+        again = pages(**{A1: page("Fixture headline one", body=BODY + " Edited twice.")})
+        _, code, _ = self.run_once(FakeSession(again), run_id="1003-1")
+        self.assertEqual(code, 0)
+        head = commit(self.repo)
+        self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
+
+    def run_with(self, run_id, collector, held_by_byline=True):
+        import scraper.sources.global_times_mil as gt
+        never = __import__("re").compile(r"(?!x)x")
+        with patch.object(gt, "_NON_GT_BYLINE_RE",
+                          gt._NON_GT_BYLINE_RE if held_by_byline else never):
+            return handoff.run_collect(self.state, TARGET, SOURCE_EXPLICIT, run_id,
+                                       collector, scraper_factory=factory(FakeSession(pages())))
+
+    def verify_with(self, head, collector, held_by_byline=True):
+        import scraper.sources.global_times_mil as gt
+        never = __import__("re").compile(r"(?!x)x")
+        with patch.object(gt, "_NON_GT_BYLINE_RE",
+                          gt._NON_GT_BYLINE_RE if held_by_byline else never):
+            return handoff.verify_clone(self.fresh(), head, collector)
+
+    def test_held_then_unheld_same_bytes_records_the_unheld_version(self):
+        # A later collector stops holding the same byte-identical page.
+        self.assertEqual(self.run_with("1002-1", "e" * 40, held_by_byline=False), 0)
+        entry = json.loads(sorted((self.state / "ledger").glob("*-1002-1.json"))[-1].read_text())
+        self.assertEqual((entry["result"], entry["new_versions"]), (st.OK, 1))
+        rows = [r for r in self.versions(self.state) if r["source_identity"] == "gt:900002"]
+        self.assertEqual([r["text_held"] for r in rows], ["non_gt_byline", None])
+        self.assertEqual(rows[0]["capture_sha256"], rows[1]["capture_sha256"])
+        self.assertTrue((self.state / "captures" / (rows[1]["capture_sha256"] + ".bin")).is_file())
+        head = commit(self.repo)
+        self.assertIsNone(self.verify_with(head, "e" * 40, held_by_byline=False))
+        env = handoff.build_envelope(self.fresh(), head, KEY, self.now())
+        rec = {r["source_identity"]: r for r in env["records"]}["gt:900002"]
+        self.assertEqual((rec["text_held"], rec["raw_retained"], rec["text_original"]),
+                         (None, True, BODY))
+        # And back: a still later collector holds it again; nothing breaks.
+        self.assertEqual(self.run_with("1003-1", "b" * 40), 0)
+        head = commit(self.repo)
+        self.assertIsNone(self.verify_with(head, "b" * 40))
+        env = handoff.build_envelope(self.fresh(), head, KEY, self.now())
+        rec = {r["source_identity"]: r for r in env["records"]}["gt:900002"]
+        self.assertEqual((rec["text_held"], rec["raw_retained"]), ("non_gt_byline", False))
+
+    def tamper(self, sql):
+        conn = sqlite3.connect(str(self.state / "shadow.db"))
+        conn.executescript("DROP TRIGGER capture_versions_no_update;"
+                           "DROP TRIGGER capture_versions_no_delete;" + sql)
+        conn.commit()
+        conn.close()
+        return commit(self.repo)
+
+    def test_verify_detects_a_deleted_held_row(self):
+        head = self.tamper("DELETE FROM capture_versions WHERE text_held IS NOT NULL;")
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_changed")
+
+    def test_verify_detects_insert_or_replace_rewrite(self):
+        conn = sqlite3.connect(str(self.state / "shadow.db"))
+        conn.row_factory = sqlite3.Row
+        row = dict(conn.execute("SELECT * FROM capture_versions"
+                                " WHERE source_identity = 'gt:900002'").fetchone())
+        row["title_original"] = "Rewritten fixture headline"
+        conn.execute("INSERT OR REPLACE INTO capture_versions (%s) VALUES (%s)" % (
+            ", ".join(row), ", ".join("?" * len(row))), list(row.values()))
+        conn.commit()
+        conn.close()
+        head = commit(self.repo)
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, "f" * 40),
+                         "custody_row_changed")
+
+    def test_verify_accepts_appended_versions(self):
+        changed = pages(**{A1: page("Fixture headline one", body=BODY + " Corrected.")})
+        self.run_once(FakeSession(changed), run_id="1002-1")
+        head = commit(self.repo)
+        self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
 
     def test_cli_verify(self):
         clone_dir = self.fresh()
@@ -769,18 +986,70 @@ class Custody(CollectBase):
 
     # recovery
 
+    def public_a1(self):
+        public = normalize_article(legacy_parse(A1, pages()[A1]))
+        return {"url": A1, "content_hash": public["content_hash"],
+                "published_date": public["published_date"]}
+
     def test_recover_ties_a_public_row_to_its_capture(self):
         db_path, captures = self.state / "shadow.db", self.state / "captures"
-        public = normalize_article(legacy_parse(A1, pages()[A1]))
-        self.assertEqual(handoff.recover({"url": A1, "content_hash": public["content_hash"]},
-                                         db_path, captures),
+        self.assertEqual(handoff.recover(self.public_a1(), db_path, captures),
                          {"status": "recovered", "capture_sha256": self.normal_sha()})
         self.assertEqual(handoff.recover({"url": A2, "content_hash": "0" * 64},
                                          db_path, captures)["status"], "held_no_bytes")
         self.assertEqual(handoff.recover({"url": A3, "content_hash": "0" * 64},
                                          db_path, captures)["status"], "no_version")
-        self.assertEqual(handoff.recover({"url": A1, "content_hash": "0" * 64},
+        self.assertEqual(handoff.recover({"url": A1, "content_hash": "0" * 64,
+                                          "published_date": "2026-11-20"},
                                          db_path, captures)["status"], "no_match")
+
+    def test_recover_requires_the_public_date_and_the_recorded_hash(self):
+        db_path, captures = self.state / "shadow.db", self.state / "captures"
+        # An earlier, self-consistent version with the same title and body
+        # but another publication date is not the public row's version.
+        forged = page("Fixture headline one", pub="Published: Nov 19, 2026 09:00 AM")
+        sha = hashlib.sha256(forged).hexdigest()
+        (captures / (sha + ".bin")).write_bytes(forged)
+        parsed = legacy_parse(A1, forged)
+        self.assertEqual(parsed["published_date"], "2026-11-19")
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "INSERT INTO capture_versions (source_identity, url, title_original,"
+            " text_original, published_date, content_verdict, text_held, byline,"
+            " pub_time, content_type, capture_sha256, content_sha256, fetched_at,"
+            " source_run, collector_commit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ("gt:900001", A1, parsed["title_original"], parsed["text_original"],
+             parsed["published_date"], None, None, None, None,
+             "text/html; charset=utf-8", sha, handoff.content_sha256(
+                 handoff.public_raw(parsed)), "2000-01-01T00:00:00Z", "999-1", COLLECTOR))
+        conn.commit()
+        conn.close()
+        self.assertEqual(handoff.recover(self.public_a1(), db_path, captures),
+                         {"status": "recovered", "capture_sha256": self.normal_sha()})
+        # Without the public date nothing can be tied to an exact version.
+        public = dict(self.public_a1())
+        del public["published_date"]
+        self.assertEqual(handoff.recover(public, db_path, captures)["status"], "no_match")
+
+    def test_recover_reports_parser_drift_separately(self):
+        db_path, captures = self.state / "shadow.db", self.state / "captures"
+        public = self.public_a1()   # what the public archive stored
+        real = GlobalTimesMilScraper.parse_article
+
+        def drifted(scraper, url, html):
+            article = real(scraper, url, html)
+            return dict(article, text_original=article["text_original"] + " drift")
+
+        with patch.object(GlobalTimesMilScraper, "parse_article", drifted):
+            self.assertEqual(handoff.recover(public, db_path, captures),
+                             {"status": "parser_drift", "capture_sha256": self.normal_sha()})
+
+        def raises(scraper, url, html):
+            raise RuntimeError("fixture parser crash")
+
+        with patch.object(GlobalTimesMilScraper, "parse_article", raises):
+            self.assertEqual(handoff.recover(public, db_path, captures),
+                             {"status": "reparse_failed", "capture_sha256": self.normal_sha()})
 
 
 # ── wiring: manifest, imports, fetch step, workflow ──────────────────────────
