@@ -65,6 +65,13 @@ DISPOSITIONS = (qa.HELD_RETRYABLE, qa.HELD_REVIEW, qa.HELD_RIGHTS, qa.HELD_SOURC
                 qa.HELD_ESCALATED, qa.SCREENED_OUT, bridge.SETTLED, bridge.DUPLICATE,
                 qa.PUBLISHED)
 DISPOSITIONS_INVALID = {"valid": False, "reason": "dispositions_invalid"}
+# Reader first (docs/desks/MIGRATION.md order): a verifier before this change
+# refuses any family entry carrying "dispositions", so a Daily re-run at an
+# older SHA, or a revert, would HOLD every Vietnam record. sign() emits the
+# block only once a follow-up change sets this True, after one public Daily
+# has run this reader. The private runner signs from public main, so that flip
+# needs no private change.
+SIGN_DISPOSITIONS = False
 _MAX_DISPOSITION_COUNT = 1_000_000
 
 
@@ -116,8 +123,10 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
         seen.add(family)
         # Reporting only: what the bridge decided for every record this run,
         # including the held, screened and duplicate ones that never cross.
-        dispositions = _dispositions(report["outcomes"])
-        size += len(_canonical({"dispositions": dispositions}))
+        extra = {}
+        if SIGN_DISPOSITIONS:
+            extra["dispositions"] = _dispositions(report["outcomes"])
+            size += len(_canonical(extra))
         records = []
         facts = _bound_collection(collection.get(family), family, report["source_git_commit"])
         if not _collection_failed(facts):
@@ -136,7 +145,7 @@ def sign(reports: List[dict], ledgers: Dict[str, dict], *, key: bytes, run_id: s
         families.append({"source_family": family, "source_ref": report["custody"]["source_ref"],
                          "source_git_commit": report["source_git_commit"],
                          "rights_decision_sha256": report["rights_decision_sha256"],
-                         "records": records, "dispositions": dispositions})
+                         "records": records, **extra})
     for entry in families:
         family = entry["source_family"]
         if family not in collection:
