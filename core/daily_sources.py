@@ -523,13 +523,13 @@ def _uscc_parent(conn, identity) -> Optional[dict]:
     from core import uscc_press_links
     return uscc_press_links.read_parent(conn, identity)
 
-# Basename of the last pre-schema ledger on archive/uscc-press: those ledgers
-# carry result "success"/"hold" and no target_date, target_date_source or health,
-# so read_custody would report the whole custody unreadable. Newer ledgers
+# Cutover floor for archive/uscc-press: the lead-verified basename of the last
+# pre-schema ledger in custody at release time. Pre-schema ledgers carry result
+# "success"/"hold" and no target_date, target_date_source or health, so
+# read_custody would report the whole custody unreadable. Shared-schema ledgers
 # (named "%Y%m%dT%H%M%SZ-<run_id>.json") sort after it and are read as usual.
-# TODO(lead): PLACEHOLDER. Replace with the basename of the last pre-schema
-# ledger, verified against a fresh fetch of archive/uscc-press, before opening
-# the PR.
+# If the pre-schema collector writes another ledger before the first
+# shared-schema ledger lands, the lead moves this floor to that ledger.
 USCC_LEDGER_AFTER = "20261122T080917Z-45001379646-1.json"
 
 SOURCES: Dict[str, DailySource] = {s.family: s for s in (
@@ -660,8 +660,10 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         # A manifest-registered manual source (2026-11-22 founder activation):
         # public Daily admits signed links and outputs, never fetches uscc.gov.
         desk_registered=True,
-        # private uscc_private_first_collector.yml: cron '35 11 * * *'
-        collection_cron_utc="11:35",
+        # private uscc_private_first_collector.yml: cron '35 11 * * *'. Every
+        # attempt writes state/private_attempts/<run_id>-<attempt>.json with its
+        # exit status, so a refusal or crash that wrote no ledger is reported.
+        collection_cron_utc="11:35", collection_receipt_dirs=("state/private_attempts",),
         # Custody keeps the pre-schema ledger(s) of the first collector forever
         # (the collector refuses to modify or delete under state/ledger).
         collection_ledger_after=USCC_LEDGER_AFTER),

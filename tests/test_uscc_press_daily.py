@@ -312,7 +312,7 @@ class Definition(unittest.TestCase):
         self.assertEqual(s.collection_expectation(), ("11:35", 14))
         self.assertTrue(s.signs_collection())
         self.assertEqual(s.collection_ledger_after, USCC_LEDGER_AFTER)
-        self.assertEqual(s.collection_receipt_dirs, ())
+        self.assertEqual(s.collection_receipt_dirs, ("state/private_attempts",))
         committed = d.load_policy()["sources"][FAMILY]
         # 2026-11-22 founder first activation, within unchanged ceilings.
         for switch in ("private_model_processing", "public_machine_explanation",

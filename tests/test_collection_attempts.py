@@ -535,22 +535,65 @@ class LedgerFloor(unittest.TestCase):
         self.assertEqual(attempts.read_custody(repo, head, "us_uscc_press_en")["reason"],
                          "ledger_unreadable")
 
+    def test_uscc_definition_reports_a_receipt_only_refused_attempt(self):
+        # The private collector writes state/private_attempts/<run>-<attempt>.json
+        # on every attempt (fictional values, the workflow's key set). A refused
+        # rerun that left only its receipt above a healthy ledger must reach the
+        # verdict through the production DailySource path.
+        from core.daily_sources import USCC_LEDGER_AFTER
+        src = source_for("us_uscc_press_en")
+
+        def receipt(attempt, code):
+            return {"schema": "ipr-uscc-private-attempt/1", "run_attempt": attempt,
+                    "collector_commit": "b" * 40, "collector_exit_status": code,
+                    "recorded_at_utc": "2026-11-23T19:02:50Z",
+                    "collection_success_claim": False,
+                    "source_or_publication_rights_granted": False}
+
+        healthy = {
+            "state/ledger/" + USCC_LEDGER_AFTER: legacy(),
+            "state/ledger/20261123T190244Z-45100000000-1.json": new_shape(),
+            # Receipts at or below the latest ledger's run are never reported,
+            # including a pre-floor refusal.
+            "state/private_attempts/45001379646-2.json": receipt("45001379646-2", 2),
+            "state/private_attempts/45100000000-1.json": receipt("45100000000-1", 0)}
+        refused = dict(healthy, **{
+            "state/private_attempts/45200000000-2.json": receipt("45200000000-2", 2)})
+        now = datetime(2026, 11, 24, 3, 0, tzinfo=timezone.utc)
+        cron, grace = src.collection_expectation()
+        got = {}
+        for name, files in (("healthy", healthy), ("refused", refused)):
+            root = "%s/uscc-%s" % (self.tmp, name)
+            __import__("os").makedirs(root)
+            repo, head = custody(root, files)
+            out = src.collection_attempt(repo, head)
+            self.assertIsNotNone(attempts.validate(out), out)
+            self.assertEqual((out["attested"], out["latest"]["run_id"]),
+                             (True, "45100000000-1"))
+            got[name] = (out["unledgered_exit"],
+                         attempts.verdict(out, now=now, cron_utc=cron, grace_hours=grace,
+                                          require_attestation=True))
+        self.assertEqual(got["healthy"], (None, None))
+        self.assertEqual(got["refused"], (
+            {"run_id": "45200000000-2", "collector_exit_status": 2},
+            (st.FETCH_FAILURE, "collector exited 2 without a ledger (run 45200000000-2)")))
+
 
 class DeclaredReceiptDirs(unittest.TestCase):
     def test_receipt_dirs_and_signing_rule(self):
         self.assertEqual(source_for("ph_afp_articles").collection_receipt_dirs, ("private_attempts",))
         self.assertEqual(source_for("ph_nsc_official_statements").collection_receipt_dirs,
                          ("private_attempts",))
-        self.assertEqual(source_for("id_kemhan_news").collection_receipt_dirs,
-                         ("state/private_attempts",))
+        for family in ("id_kemhan_news", "us_uscc_press_en"):
+            self.assertEqual(source_for(family).collection_receipt_dirs,
+                             ("state/private_attempts",))
         signs = {f for f, s in SOURCES.items() if s.signs_collection()}
         self.assertEqual(signs, {"ph_afp_articles", "ph_nsc_official_statements",
                                  "id_kemhan_news", "jp_jcg_press_en", "sg_mindef_releases",
                                  "us_uscc_press_en"})
-        # JCG, Singapore and USCC write state/ledger/<run>.json and declare no
-        # receipt dir.
-        for family in ("sg_mindef_releases", "jp_jcg_press_en", "us_uscc_press_en",
-                       "kr_policy_dapa_releases"):
+        # JCG and Singapore write state/ledger/<run>.json and declare no receipt
+        # dir; DAPA has no scheduled collector.
+        for family in ("sg_mindef_releases", "jp_jcg_press_en", "kr_policy_dapa_releases"):
             self.assertEqual(source_for(family).collection_receipt_dirs, ())
 
 
