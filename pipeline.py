@@ -566,6 +566,26 @@ def _vn_handoff_inactive() -> Optional[str]:
     return None
 
 
+def _vn_dispositions_detail(family: str, run: str, by_family) -> Optional[str]:
+    """The private bridge's signed outcome counts for this family, as a fixed-code
+    detail; None when the receipt carries none (an older signer) or nothing
+    beyond published records, which by_family already reports."""
+    if not isinstance(by_family, dict) or by_family.get(family) is None:
+        return None
+    from core.vietnam_daily_handoff import DISPOSITIONS, valid_dispositions
+    from core.vietnam_daily_qa import PUBLISHED
+    block = by_family[family]
+    if not valid_dispositions(block):
+        logger.warning("%s: handoff run %s — private bridge dispositions invalid", family, run)
+        return "private bridge: dispositions_invalid"
+    counts = ", ".join("%d %s" % (block[code], code) for code in DISPOSITIONS
+                       if block.get(code))
+    logger.info("%s: handoff run %s — private bridge: %s", family, run, counts or "no outcomes")
+    held = ", ".join("%d %s" % (block[code], code) for code in DISPOSITIONS
+                     if code != PUBLISHED and block.get(code))
+    return "private bridge: " + held if held else None
+
+
 def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
     """This family's share of the handoff step's printed receipt."""
     from pathlib import Path as _Path
@@ -633,6 +653,12 @@ def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
         if isinstance(latest, dict) and latest.get("result") == collection_status.OK_ALL_FILTERED:
             holds.append("collection_all_filtered")
         outcome = _receipt_outcome(admitted, unchanged, holds=holds)
+        private = _vn_dispositions_detail(family, run, receipt.get("dispositions_by_family"))
+        if private:
+            # Reporting only: the private bridge's outcomes never change the
+            # status or the admitted/unchanged counts read from by_family.
+            outcome = GovernedOutcome(outcome.status, outcome.new_documents, outcome.duplicates,
+                                      "; ".join(d for d in (outcome.error_detail, private) if d))
     # private vietnam_private_first_collector.yml: cron '17 18 * * *'
     return _with_collection(
         outcome,

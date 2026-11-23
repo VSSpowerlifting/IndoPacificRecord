@@ -494,7 +494,10 @@ row, after admission, keeping its counts and `held:` detail.
   block, so a malformed block never blocks records (it reads as not attested).
   Vietnam family entries may carry the same optional block under the
   existing, unbumped handoff MAC; the printed receipt adds
-  `collection_by_family`.
+  `collection_by_family`. (22 November: entries also carry an optional signed
+  `dispositions` count per bridge outcome code; the receipt adds
+  `dispositions_by_family`, and the run detail appends `private bridge: N code`
+  for non-published codes without changing status or counts.)
 - Order: reader (this change; every live envelope is still `/1`, so every
   disposition is unchanged) -> shared and Vietnam producers, only after one
   public Daily has run reader code -> strict flip -> liveness. Cron values are
