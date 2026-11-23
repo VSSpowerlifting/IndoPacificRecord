@@ -639,7 +639,18 @@ class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
                                           runs=runs["fetched_mil"]))
 
     def test_the_live_corpus_never_gets_more_lenient(self):
-        """Over the tracked database: run evidence only ever adds a verdict."""
+        """Over the tracked database: run evidence only ever adds a verdict.
+
+        The one deliberate exception is a shared-Daily family
+        (``articles_closed``) with runs that attempted collection. #1093 stops
+        judging its closed pre-cutover article rows (see
+        test_a_shared_daily_family_is_judged_on_governed_runs_not_its_closed_articles),
+        so for it the property is the stronger one: its article rows have no
+        influence at all, and its verdict equals the article-free verdict on
+        the same runs. Every other source, including every manual source that
+        still writes articles, keeps the original property: stale articles
+        are never rescued by a recent run.
+        """
         if not liveness.DEFAULT_DB.exists():
             self.skipTest("tracked database not present")
         runs = liveness.governed_runs(liveness.DEFAULT_DB)
@@ -650,50 +661,50 @@ class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
         for slug, name, total, last_seen in liveness.rows(liveness.DEFAULT_DB, today):
             exp = expected.get(slug, liveness.UNDECLARED)
             source_runs = runs.get(slug, liveness.NO_GOVERNED_RUNS)
-            old = liveness.classify(*self._baseline(slug, total, last_seen, exp, source_runs),
-                                    today, 7, exp)
             new = liveness.classify(slug, total, last_seen, today, 7, exp,
                                     runs=source_runs)
             with self.subTest(source=slug):
+                if exp.articles_closed and source_runs.collected:
+                    self.assertEqual(
+                        liveness.classify(slug, 0, None, today, 7, exp,
+                                          runs=source_runs),
+                        new)
+                    continue
+                old = liveness.classify(slug, total, last_seen, today, 7, exp)
                 if old[0] in {"UNHEALTHY", "PAUSED"}:
                     self.assertEqual(old[0], new[0])
                 if not exp.manual:
                     self.assertEqual(old, new)
 
-    @staticmethod
-    def _baseline(slug, total, last_seen, exp, source_runs):
-        """The article-only judgement the governed signal is compared against.
-
-        A shared-Daily family (``articles_closed``) never writes ``articles``;
-        once it has governed runs its article rows are a closed pre-cutover
-        corpus that #1093 deliberately stops judging (see
-        test_a_shared_daily_family_is_judged_on_governed_runs_not_its_closed_articles).
-        Its baseline is therefore "nothing admitted": the invariant still holds
-        for every other source, including every manual source that writes
-        articles, whose stale articles a recent run must never rescue.
-        """
-        if exp.articles_closed and source_runs.collected:
-            return slug, 0, None
-        return slug, total, last_seen
-
-    def test_only_a_closed_corpus_with_runs_gets_the_article_free_baseline(self):
-        healthy = self.history(("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))["gov_mil"]
+    def test_closed_articles_are_ignored_only_once_a_run_attempted_collection(self):
         closed = liveness.Expectation(manual=True, articles_closed=True)
-        cases = (
-            (closed, healthy, ("gov_mil", 0, None)),
-            (closed, liveness.NO_GOVERNED_RUNS, ("gov_mil", 3, "2026-09-05")),
-            (self.MANUAL, healthy, ("gov_mil", 3, "2026-09-05")),
-            (liveness.UNDECLARED, healthy, ("gov_mil", 3, "2026-09-05")),
-        )
-        for exp, source_runs, expected in cases:
-            with self.subTest(exp=exp, collected=source_runs.collected):
-                self.assertEqual(expected,
-                                 self._baseline("gov_mil", 3, "2026-09-05", exp, source_runs))
-        # Without the closed flag, a manual source's stale articles still decide.
-        old = liveness.classify("gov_mil", 3, "2026-09-05", TODAY, 7, self.MANUAL)
-        new = liveness.classify("gov_mil", 3, "2026-09-05", TODAY, 7, self.MANUAL,
-                                runs=healthy)
-        self.assertEqual(("UNHEALTHY", "UNHEALTHY"), (old[0], new[0]))
+        stale = ("gov_mil", 3, "2026-09-05")
+        both = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None),
+            ("idle_mil", "2026-09-19 23:00:00", st.SKIPPED_DISABLED, 0, None))
+        healthy, skipped = both["gov_mil"], both["idle_mil"]
+        self.assertTrue(healthy.collected)
+        self.assertFalse(skipped.collected)
+        # A closed family with a collecting run: articles have no influence.
+        self.assertEqual(
+            liveness.classify("gov_mil", 0, None, TODAY, 7, closed, runs=healthy),
+            liveness.classify(*stale, TODAY, 7, closed, runs=healthy))
+        # Skipped rows only (awaiting activation): the stale articles still decide.
+        self.assertEqual(
+            "UNHEALTHY",
+            liveness.classify(*stale, TODAY, 7, closed, runs=skipped)[0])
+        self.assertEqual(
+            "UNHEALTHY",
+            liveness.classify(*stale, TODAY, 7, closed)[0])
+        # Without the closed flag, a recent run never rescues stale articles.
+        for exp in (self.MANUAL, liveness.UNDECLARED):
+            with self.subTest(exp=exp):
+                self.assertEqual(
+                    liveness.classify(*stale, TODAY, 7, exp)[0],
+                    liveness.classify(*stale, TODAY, 7, exp, runs=healthy)[0])
+        self.assertEqual(
+            "UNHEALTHY",
+            liveness.classify(*stale, TODAY, 7, self.MANUAL, runs=healthy)[0])
 
 
 # ── Against the live corpus ───────────────────────────────────────────────────
