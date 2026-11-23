@@ -302,22 +302,28 @@ def load_envelope(path, key, now: Optional[datetime] = None
             return [], st.LISTING_FAILURE, "gt_handoff_not_delivered"
         if p.stat().st_size > MAX_ENVELOPE_BYTES:
             return [], st.ADAPTER_ERROR, "gt_handoff_envelope_too_large"
-        env = verify_envelope(p.read_bytes(), key)
+        raw = p.read_bytes()
+        env = verify_envelope(raw, key)
     except HandoffError as exc:
         return [], st.ADAPTER_ERROR, str(exc)
     except Exception:
         return [], st.ADAPTER_ERROR, "gt_handoff_unreadable"
     if env["collection"] is None:
         return [], st.FETCH_FAILURE, "collection_not_attested"
+    if ((env["collection"]["latest"] or {}).get("result") == st.SKIPPED_DISABLED
+            and env["collection"].get("unledgered_exit") is None):
+        return [], st.SKIPPED_DISABLED, "private_source_use_hold"
     objection = attempts.verdict(env["collection"], now=now, cron_utc=CRON_UTC,
                                  grace_hours=GRACE_HOURS, require_attestation=True)
     if objection is not None:
         return [], objection[0], objection[1]
     counts = env["exclusions"]
-    detail = None
+    receipt = "GT custody %s; envelope SHA-256 %s" % (
+        env["custody_commit"], hashlib.sha256(raw).hexdigest())
+    detail = receipt if env["records"] else None
     if any(counts.values()):
-        detail = "GT signing excluded %d parser mismatch(es) and %d held without bytes" % (
-            counts["parser_mismatches"], counts["held_without_bytes"])
+        detail = "%s; GT signing excluded %d parser mismatch(es) and %d held without bytes" % (
+            receipt, counts["parser_mismatches"], counts["held_without_bytes"])
     if not env["records"] and detail:
         status = st.EXTRACTION_FAILURE if counts["parser_mismatches"] else st.OK_ALL_FILTERED
         return [], status, detail
@@ -645,14 +651,6 @@ def verify_clone(clone: Path, expect_head: str, collector_commit: str) -> Option
             continue
         if row["capture_sha256"] not in files:
             return "capture_missing"
-        if row["collector_commit"] != collector_commit:
-            continue
-        try:
-            parsed = reparse(files[row["capture_sha256"]].read_bytes(), row)
-        except Exception:
-            return "reparse_raised"
-        if not _matches_reparse(parsed, dict(row, source_slug=SOURCE_SLUG)):
-            return "reparse_mismatch"
     return _history_preserved(clone, collector_commit)
 
 
@@ -817,7 +815,7 @@ def build_envelope(clone: Path, commit: str, key: str, now: datetime) -> dict:
         # the public branch then ages into a staleness verdict.
         raise HandoffError("collection_not_attested")
     db_path = clone / "state" / "shadow.db"
-    if not db_path.is_file():
+    if (facts["latest"] or {}).get("result") == st.SKIPPED_DISABLED or not db_path.is_file():
         rows = []
     else:
         conn = _open_ro(db_path)
@@ -892,7 +890,9 @@ def recover(public_row: dict, custody_db: Path, captures: Path) -> dict:
     ``published_date`` equal the public ``content_hash`` and
     ``published_date``. The bytes are then re-parsed offline
     (``parse_article`` -> ``normalize_article``); the row's fields and hash
-    must come back unchanged. Returns ``{"status", "capture_sha256"}`` with
+    must come back unchanged. Use the run's signed envelope to pin the exact
+    bytes when multiple captures normalize to the same public row. Returns
+    ``{"status", "capture_sha256"}`` with
     status ``recovered``; ``parser_drift`` (bytes and record match, today's
     parser reads them differently); ``reparse_failed`` (the parser raised);
     ``held_no_bytes`` or ``held_shared_bytes`` (with the original hold reason);

@@ -789,9 +789,7 @@ class Custody(CollectBase):
         head = commit(self.repo)
         self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR), "held_row_retained")
 
-    def test_verify_detects_parse_mismatch(self):
-        # Rows an older collector committed in an earlier custody commit are
-        # not re-parsed by this one (rows this commit appends always are).
+    def test_verify_detects_rewritten_rows_independently_of_the_running_parser(self):
         second = self.healthy_next_run("1002-1")
         self.assertIsNone(handoff.verify_clone(self.fresh(), second, "f" * 40))
         conn = sqlite3.connect(str(self.state / "shadow.db"))
@@ -801,9 +799,8 @@ class Custody(CollectBase):
         conn.commit()
         conn.close()
         head = commit(self.repo)
-        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR), "reparse_mismatch")
-        # A committed row rewritten since the parent custody commit is caught
-        # even when this collector would not re-parse it.
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_changed")
         self.assertEqual(handoff.verify_clone(self.fresh(), head, "f" * 40),
                          "custody_row_changed")
 
@@ -1178,6 +1175,15 @@ class Custody(CollectBase):
         records, status, detail = handoff.load_envelope(self.write(env), KEY, now=FRESH)
         self.assertEqual((records, status), ([], st.LISTING_FAILURE))
         self.assertIn("run 1002-1", detail)
+
+    def test_private_hold_emits_no_records_even_after_a_healthy_collection(self):
+        os.environ["IPR_CHINA_SOURCE_USE_HOLD"] = "true"
+        self.run_once(FakeSession({}), run_id="1002-1")
+        head = commit(self.repo)
+        env = handoff.build_envelope(self.fresh(), head, KEY, self.now())
+        self.assertEqual(env["records"], [])
+        self.assertEqual(handoff.load_envelope(self.write(env), KEY, now=FRESH),
+                         ([], st.SKIPPED_DISABLED, "private_source_use_hold"))
 
     # recovery
 

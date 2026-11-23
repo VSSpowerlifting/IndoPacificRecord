@@ -191,10 +191,8 @@ class GlobalTimesMilScraper(BaseScraper):
             "content_verdict": verdict,
         }
         if text_held:
-            # Read by the collection adapters: adapters/legacy.py does not
-            # count a deliberate hold as text_unavailable; the Global Times
-            # replay adapter (adapters/global_times_handoff.py) does, so the
-            # pipeline's text-gap receipts agree with the held documents.
+            # Both collection adapters report the reason and count a held
+            # body in the pipeline's text-gap receipts.
             article["text_held"] = text_held
         wire = self._captured.get(url, (None, None))[0]
         if wire is not None:

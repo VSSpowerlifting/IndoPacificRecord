@@ -20,7 +20,7 @@ This entry records the public half; the private collector is a separate change.
   governs collection. It must be exactly `true` (hold) or `false` (allow).
   A private hold or invalid setting makes no publisher request. The public
   variable of the same name independently governs public admission.
-- `verify` re-hashes and re-parses a fresh clone. `sign` builds the envelope
+- `verify` checks the fresh clone's hashes and append-only history. `sign` builds the envelope
   from that clone only: the latest version per article fetched in the last
   3 days, with HMAC key `DAILY_GLOBAL_TIMES_MIL_KEY`, at most 512,000 bytes.
   The running parser must reproduce each candidate from verified bytes.
@@ -30,7 +30,9 @@ This entry records the public half; the private collector is a separate change.
 - Public: the fetch step copies the envelope only when
   `CN_GLOBAL_TIMES_HANDOFF_ENABLED` is exactly `true`.
   `adapters.global_times_handoff` authenticates it, imports no network
-  library, and yields the legacy `parse_article` dicts.
+  library, and yields the legacy `parse_article` dicts. Source-run receipts
+  bind replay to the signed envelope digest and custody commit, which identify
+  the exact capture even when distinct HTML versions normalize identically.
 - An absent, unauthenticated, unattested, failed or stale envelope fails the
   source closed with a named status. Stale means the slot plus 14 hours has
   passed.
