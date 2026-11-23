@@ -508,9 +508,11 @@ row, after admission, keeping its counts and `held:` detail.
   and signs `/2`, read above `collection_ledger_after`: custody keeps the
   pre-schema ledger(s) of the first collector (results `success`/`hold`, no
   `target_date`, `target_date_source` or `health`), which `read_custody` would
-  otherwise report unreadable. This lands only after the private collector
-  writes the shared schema and one `schedule-slot` ledger is in custody;
-  before that, every USCC Daily row would read `collection_not_attested`.
+  otherwise report unreadable. It follows the private collector's switch to the
+  shared schema (ipr-source-evidence-private#52, `a0ec7e5`). USCC is signed
+  only by its own collector's processing run, so the first `/2` envelope comes
+  from the next USCC collection; until then the Daily keeps the last `/1`
+  envelope, which carries no verdict.
 - Strict-flip condition: set `pipeline._REQUIRE_COLLECTION_ATTESTATION` only
   after a structure-only listing shows `/2` for every enabled, non-attended
   family with a declared cadence. Until then a missing block is "no verdict".
