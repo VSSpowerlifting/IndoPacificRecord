@@ -245,16 +245,25 @@ def _unledgered_exit(repo, commit, receipt_dirs, ledger_ids, latest_run_id):
     return best[1] if best else None
 
 
-def read_custody(repo, commit, family, *, receipt_dirs=()) -> dict:
+def read_custody(repo, commit, family, *, receipt_dirs=(), ledger_after=None) -> dict:
     """Closed collection facts from the newest ledgers at a custody commit.
 
     Total: always returns a dict that passes ``validate`` (for a well-formed
     ``commit``), attested False with a fixed reason when custody cannot be read.
     Only the six allowlisted ledger fields are copied; a ledger with any other
     value shape makes the whole read unattested rather than being skipped.
+
+    ``ledger_after`` is a family-scoped cutover floor, not a skip of malformed
+    ledgers: ledger file names that sort at or below it (the same lexical order
+    as the window) are left out before the window is taken, so ledgers written
+    before a family's collector adopted this schema cannot make custody
+    unreadable. Every ledger above the floor is still read fail-closed. None
+    (the default) reads every ledger.
     """
     try:
         names = _list(repo, commit, LEDGER_DIR)
+        if ledger_after is not None:
+            names = [n for n in names if n > ledger_after]
         if not names:
             return unattested(family, commit, "no_ledger")
         entries, ledger_ids = [], set()

@@ -114,7 +114,7 @@ class SignOutputs(unittest.TestCase):
     def test_signing_rule_is_the_declared_unattended_cadence(self):
         self.assertEqual({f for f, s in SOURCES.items() if s.signs_collection()},
                          {"ph_afp_articles", "ph_nsc_official_statements", "id_kemhan_news",
-                          "jp_jcg_press_en", "sg_mindef_releases"})
+                          "jp_jcg_press_en", "sg_mindef_releases", "us_uscc_press_en"})
 
 
 class SignerEndToEnd(unittest.TestCase):
@@ -230,33 +230,64 @@ class SignerEndToEnd(unittest.TestCase):
         self.assertNotIn("collection", result)
 
 
+def private_run_for(family, files, root):
+    """private_run for ``family`` over a synthetic custody, every switch on."""
+    db = root / "public.db"
+    build_legacy_db(db)
+    migrate(db)
+    repo, head = custody(root, files)
+    p = d.load_policy()
+    p["sources"][family].update(private_model_processing=True, public_machine_explanation=True,
+                                unattended_release=True,
+                                owner_decision="SYNTHETIC TEST ONLY; no owner authorization")
+    with patch.object(runner, "verified_source", return_value=[]), \
+         patch.object(runner, "bind_admitted_metadata", return_value=[]), \
+         patch.object(runner, "load_policy", return_value=p), \
+         patch.dict(os.environ, {"DAILY_OUTPUT_KEY": KEY}):
+        result = runner.private_run(family + "," + str(repo) + "," + head, public_db=db,
+                                    state_path=root / "q.json", out_dir=root / "out")
+    envelope = json.loads((root / "out" / (family + ".json")).read_text())
+    return result, envelope, head
+
+
 class NoCadenceFamiliesStayV1(unittest.TestCase):
-    def test_private_run_for_uscc_signs_v1_and_never_reads_custody(self):
+    def test_private_run_for_dapa_signs_v1_and_never_reads_custody(self):
+        # DAPA declares no collection_cron_utc (no scheduled private collector).
+        family = "kr_policy_dapa_releases"
+        self.assertFalse(SOURCES[family].signs_collection())
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("core.daily_sources.DailySource.collection_attempt") as read:
+            result, envelope, _ = private_run_for(family, {"README": "x"}, Path(tmp))
+        read.assert_not_called()
+        self.assertNotIn("collection", result)
+        self.assertEqual(envelope["packet"]["schema"], d.SCHEMA_V1)
+        self.assertNotIn("collection", envelope["packet"])
+
+
+class UsccSignsV2AboveItsLedgerFloor(unittest.TestCase):
+    def test_private_run_for_uscc_signs_v2_reading_only_ledgers_above_the_floor(self):
+        from core.daily_sources import USCC_LEDGER_AFTER
+        from tests.test_collection_attempts import legacy, new_shape
         from tests import test_uscc_press_daily as u
         family = u.FAMILY
-        self.assertFalse(SOURCES[family].signs_collection())
+        self.assertTrue(SOURCES[family].signs_collection())
+        files = {"state/ledger/" + USCC_LEDGER_AFTER: legacy(),
+                 "state/ledger/20261123T190244Z-45100000000-1.json": new_shape()}
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            db = root / "public.db"
-            build_legacy_db(db)
-            migrate(db)
-            repo, head = custody(root, {"README": "x"})
-            p = d.load_policy()
-            p["sources"][family].update(private_model_processing=True, public_machine_explanation=True,
-                                        unattended_release=True,
-                                        owner_decision="SYNTHETIC TEST ONLY; no owner authorization")
-            with patch.object(runner, "verified_source", return_value=[]), \
-                 patch.object(runner, "bind_admitted_metadata", return_value=[]), \
-                 patch.object(runner, "load_policy", return_value=p), \
-                 patch("core.daily_sources.DailySource.collection_attempt") as read, \
-                 patch.dict(os.environ, {"DAILY_OUTPUT_KEY": KEY}):
-                result = runner.private_run(family + "," + str(repo) + "," + head, public_db=db,
-                                            state_path=root / "q.json", out_dir=root / "out")
-            read.assert_not_called()
-            self.assertNotIn("collection", result)
-            envelope = json.loads((root / "out" / (family + ".json")).read_text())
-            self.assertEqual(envelope["packet"]["schema"], d.SCHEMA_V1)
-            self.assertNotIn("collection", envelope["packet"])
+            result, envelope, head = private_run_for(family, files, Path(tmp))
+        self.assertEqual(envelope["packet"]["schema"], d.SCHEMA_V2)
+        block = envelope["packet"]["collection"]
+        self.assertEqual(result["collection"], block)
+        self.assertIsNotNone(attempts.validate(block))
+        self.assertEqual((block["family"], block["custody_commit"], block["attested"],
+                          block["latest"]["run_id"], block["latest_healthy_target_date"]),
+                         (family, head, True, "45100000000-1", "2026-11-23"))
+        # Only the pre-schema ledger: the floor leaves nothing, so it signs not attested.
+        with tempfile.TemporaryDirectory() as tmp:
+            _, envelope, _ = private_run_for(
+                family, {"state/ledger/" + USCC_LEDGER_AFTER: legacy()}, Path(tmp))
+        self.assertEqual((envelope["packet"]["collection"]["attested"],
+                          envelope["packet"]["collection"]["reason"]), (False, "no_ledger"))
 
 
 if __name__ == "__main__":
